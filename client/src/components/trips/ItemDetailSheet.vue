@@ -492,7 +492,7 @@ const packedStamp = computed(() => {
         <IonCheckbox
           :checked="todo.task_state === 'resolved'"
           :disabled="isLocked"
-          :data-testid="`m5-todo-${todo.id}`"
+          :data-testid="`m5-todo-${todo.body}`"
           @ion-change="toggleTodo(todo)"
         />
         <span class="todo-body">{{ todo.body }}</span>

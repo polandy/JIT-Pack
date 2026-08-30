@@ -106,6 +106,7 @@ import {
   NO_VALUE,
   type PackingCluster,
   type PackingRow,
+  rowEdgeAvatar,
 } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
 import { canJudgeUnused } from '@/domain/trips'
@@ -703,18 +704,6 @@ function lockNote(item: TripItem): string | null {
  */
 function ownClaimNote(item: TripItem): string | null {
   return orchestrator.holdsClaim(props.tripId, item) ? t('packing.claimedByMe') : null
-}
-
-/**
- * The one avatar at the right edge (FR-25.19): who packed it once it is
- * packed, who is responsible for it while it is open. Never both — the
- * revealed row's stamp below names them both where they differ, which is
- * where there is room for it.
- */
-function edgeAvatar(item: TripItem): { variant: 'assignee' | 'packer'; id: string } | null {
-  if (item.packed_by_user_id) return { variant: 'packer', id: item.packed_by_user_id }
-  if (item.packer_user_id) return { variant: 'assignee', id: item.packer_user_id }
-  return null
 }
 
 /** FR-25.17: "gepackt von Andy · heute 14:32", on revealed rows only. */
@@ -1752,11 +1741,11 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     </p>
                   </IonLabel>
                   <UserAvatar
-                    v-if="edgeAvatar(child.item)"
+                    v-if="rowEdgeAvatar(child.item)"
                     slot="end"
-                    :variant="edgeAvatar(child.item)!.variant"
-                    :name="nameOf(edgeAvatar(child.item)!.id)"
-                    :seed="edgeAvatar(child.item)!.id"
+                    :variant="rowEdgeAvatar(child.item)!.variant"
+                    :name="nameOf(rowEdgeAvatar(child.item)!.id)"
+                    :seed="rowEdgeAvatar(child.item)!.id"
                   />
                 </IonItem>
               </div>
@@ -1822,7 +1811,12 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                 <IonLabel>
                   <h3>
                     {{ entry.label }}
-                    <IonBadge v-if="openTodoCount(entry.item.id) > 0" color="brand" class="prep">
+                    <IonBadge
+                      v-if="openTodoCount(entry.item.id) > 0"
+                      color="brand"
+                      class="prep"
+                      :data-testid="`m4-prep-badge-${entry.item.name}`"
+                    >
                       <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
                     </IonBadge>
                   </h3>
@@ -1869,10 +1863,10 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     :title="t('mode.latePacker')"
                   />
                   <UserAvatar
-                    v-if="edgeAvatar(entry.item)"
-                    :variant="edgeAvatar(entry.item)!.variant"
-                    :name="nameOf(edgeAvatar(entry.item)!.id)"
-                    :seed="edgeAvatar(entry.item)!.id"
+                    v-if="rowEdgeAvatar(entry.item)"
+                    :variant="rowEdgeAvatar(entry.item)!.variant"
+                    :name="nameOf(rowEdgeAvatar(entry.item)!.id)"
+                    :seed="rowEdgeAvatar(entry.item)!.id"
                   />
                 </div>
               </IonItem>

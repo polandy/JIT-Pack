@@ -340,5 +340,45 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
     // On the list, not hidden as a done row.
     await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toContainText(`${ITEM} · Andy`)
   })
-})
 
+  /**
+   * E2E-M4-14 (FR-25.1/25.2): packing one instance leaves the cluster standing.
+   *
+   * The rule — decide cluster-vs-flat over the *full* set, not over what is
+   * currently on screen — is unit-tested twice in `domain/packingView.spec.ts`.
+   * What no unit can see is M4's own wiring: the screen holds two sets, the
+   * full one and the hidden-done one, and handing the wrong one to the view
+   * builder restructures the list under the user's finger mid-tap. Andy's row
+   * would become a flat „Kurze Hosen · Andy" the instant Leonardo's was packed,
+   * moving the control the finger is already on.
+   */
+  test('E2E-M4-14: packing one instance of a cluster does not flatten the other', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+
+    await openMembership(page, ITEM)
+    await page.getByTestId('membership-per-person').click()
+    await setMember(page, 'Andy', 1)
+    await setMember(page, 'Leonardo', 1)
+    await closeAll(page)
+
+    const list = visiblePage(page)
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/2')
+
+    await list.getByTestId(`m4-child-${ITEM}-Leonardo`).getByTestId('row-check').click()
+
+    // The packed child drops out (FR-25.2), and the head still counts over the
+    // full set — so the number goes up rather than the denominator down.
+    await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toHaveCount(0)
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('1/2')
+
+    // The assertion this case exists for: Andy's instance is still a *child*.
+    // A flat row would also be visible and also say "Andy", so the negative
+    // half — no top-level row by that name — is what carries it.
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toBeVisible()
+    // The flat row is testid'd by the item *name* (the „· Andy" is only in the
+    // label), so this one locator is the whole negative half.
+    await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
+  })
+})

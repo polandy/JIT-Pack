@@ -16,7 +16,7 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { buildPackingView, isDone, noFacets } from '../packingView'
+import { buildPackingView, isDone, noFacets, rowEdgeAvatar } from '../packingView'
 import type { Container, Facets, TripItem, TripParticipant, Traveler } from '@/types/domain'
 
 let seq = 0
@@ -632,5 +632,42 @@ describe('the closing pass lists what was packed (FR-9.3)', () => {
     })
 
     expect(names).toContain('Regenjacke')
+  })
+})
+
+describe("the row's edge avatar (FR-25.19)", () => {
+  it('names the responsible person while the row is open', () => {
+    expect(rowEdgeAvatar(item({ packer_user_id: 'u-sia' }))).toEqual({
+      variant: 'assignee',
+      id: 'u-sia',
+    })
+  })
+
+  it('names the packer once the row is packed', () => {
+    expect(rowEdgeAvatar(packed({ packed_by_user_id: 'u-andy' }))).toEqual({
+      variant: 'packer',
+      id: 'u-andy',
+    })
+  })
+
+  it('shows the packer and not the assignee when a row was packed by somebody else', () => {
+    // The rule the FR spells out as "never both": Sia was responsible, Andy
+    // packed it, and the row has one right edge. Showing the assignee too
+    // would leave the row claiming an open job it no longer has.
+    const both = packed({ packer_user_id: 'u-sia', packed_by_user_id: 'u-andy' })
+    expect(rowEdgeAvatar(both)).toEqual({ variant: 'packer', id: 'u-andy' })
+  })
+
+  it('shows nothing where nobody is named — an avatar is a fact, not a placeholder', () => {
+    expect(rowEdgeAvatar(item())).toBeNull()
+  })
+
+  it('is decided by the columns, not by doneness', () => {
+    // A row can carry the packing record while it is open again (FR-25.2's
+    // undo restores `packed_count` and `state`, never the record), and the
+    // stamp is what says so. Deriving the edge from `done` instead would
+    // silently swap the avatar back to the assignee at that moment.
+    const undone = item({ packer_user_id: 'u-sia', packed_by_user_id: 'u-andy' })
+    expect(rowEdgeAvatar(undone)).toEqual({ variant: 'packer', id: 'u-andy' })
   })
 })

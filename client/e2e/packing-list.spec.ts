@@ -510,9 +510,7 @@ test.describe('M4 packing list @local @m4', () => {
     // of what this pass did.
     await sheet.getByTestId('browse-row').filter({ hasText: 'Lampe' }).click()
     await expect(sheet.getByTestId('browse-added-now')).toHaveCount(1)
-    await expect(
-      sheet.getByTestId('browse-row-carried').filter({ hasText: 'Lampe' }),
-    ).toBeVisible()
+    await expect(sheet.getByTestId('browse-row-carried').filter({ hasText: 'Lampe' })).toBeVisible()
     await expect(sheet.getByTestId('browse-hide-count')).toHaveText('1 hidden')
     // Kocher is untouched, so the sheet is still a working list.
     await expect(sheet.getByTestId('browse-row').filter({ hasText: 'Kocher' })).toBeVisible()
@@ -920,5 +918,172 @@ test.describe('M4 packing list — scroll memory @local @m4', () => {
      * that. This one does not.
      */
     await expect(visible(page).getByRole('textbox').first()).toBeVisible()
+  })
+})
+
+test.describe('M4 packing list — the rendered remainder @local @m4', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M4-25, with E2E-M4-08 (FR-7.3/25.2): the preparation lifecycle, end to
+   * end on the list.
+   *
+   * `packingView.spec.ts` covers the arithmetic — a packed row with open prep
+   * is not done. This is the rendered half, and it is where the defect the FR
+   * was amended for actually showed: open-prep must be derived from the todos
+   * at read time, and the prototype's stored count meant that resolving the
+   * last todo left the row on the list forever. Resolving the badge away and
+   * watching the row leave is the only assertion that catches that.
+   */
+  test('E2E-M4-25: a packed row with open prep stays on the list until the todo is resolved', async ({
+    page,
+  }) => {
+    const TODO = 'Akku laden'
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Kamera'])
+
+    await page.getByTestId('m4-row-Kamera').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
+    await page.getByTestId('m5-todo-add').click()
+    await expect(page.getByTestId(`m5-todo-${TODO}`)).toBeVisible()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    // E2E-M4-08: the row carries the badge, counting what is open.
+    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
+
+    await visible(page).getByTestId('m4-row-Kamera').getByTestId('row-check').click()
+
+    // Packed, and still on the working list: work remains. The reveal bar is
+    // the positive signal for "nothing is done" — its absence is what would
+    // otherwise be indistinguishable from a list that failed to update.
+    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-done-bar')).toHaveCount(0)
+
+    await visible(page).getByTestId('m4-row-Kamera').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await page.getByTestId(`m5-todo-${TODO}`).click()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    // The last todo resolved: the row is done and leaves.
+    await expect(visible(page).getByTestId('m4-row-Kamera')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-done-bar')).toBeVisible()
+
+    // Revealed, it comes back without a badge — the badge counts *open* prep,
+    // so a badge surviving its todo would be the stored-count defect again.
+    await visible(page).getByTestId('m4-done-bar').click()
+    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M4-24 (FR-25.17): the packing stamp, and that it never outlives the
+   * state it describes.
+   *
+   * Local Mode has no account, so `packed_by_user_id` is null here and the
+   * stamp reads its time alone — the *name* half is the server's answer and is
+   * asserted in `server/multi-user.spec.ts` (E2E-FLOW-01), where the server
+   * stamps the column itself (invariant 3). What this case owns is the half
+   * that has no account in it: the stamp appears with the pack, and un-packing
+   * takes it back.
+   */
+  test('E2E-M4-24: a packed row says when, and un-packing takes the stamp back', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt'])
+
+    await visible(page).getByTestId('m4-row-Zelt').getByTestId('row-check').click()
+    await visible(page).getByTestId('m4-done-bar').click()
+
+    const row = visible(page).getByTestId('m4-row-Zelt')
+    await expect(row.getByTestId('m4-packed-stamp')).toBeVisible()
+    // A time, not merely a rendered element: a stamp with nothing in it would
+    // satisfy visibility and say nothing.
+    await expect(row.getByTestId('m4-packed-stamp')).toContainText(/\d{1,2}[:.]\d{2}/)
+
+    await row.getByTestId('row-check').click()
+
+    // Back on the working list, and the stamp is gone with the state it
+    // described. The row still being there is the positive half — a stamp that
+    // vanished with its row would satisfy the first assertion alone.
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-packed-stamp')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M4-11 (FR-3.2): the shopping badge counts, and stays away when there is
+   * nothing to buy.
+   *
+   * The entry itself is always there — M6 is a screen, not a notification — so
+   * the badge is the part that carries information, and a badge that renders a
+   * zero is worse than none.
+   */
+  test('E2E-M4-11: the shopping entry carries a count only once something is to be bought', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt'])
+
+    const nav = visible(page).getByTestId('m4-nav-shopping')
+    await expect(nav).toBeVisible()
+    await expect(nav.locator('ion-badge')).toHaveCount(0)
+
+    // Turning the row into a purchase is what puts it on M6 (FR-3.2).
+    await visible(page).getByTestId('m4-row-Zelt').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    // The mode sits behind FR-25.7's disclosure, like every other detail.
+    await page.getByTestId('m5-details').click()
+    await page.getByTestId('m5-mode').click()
+    await page
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: /buy|Kaufen/i })
+      .first()
+      .click()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    await expect(visible(page).getByTestId('m4-nav-shopping').locator('ion-badge')).toHaveText('1')
+  })
+
+  /**
+   * E2E-M4-19 (FR-25.11f): the Person facet's absence bucket has a word of its
+   * own.
+   *
+   * Only the wording is here. That the bucket *leads* its facet is asserted in
+   * `domain/packingView.spec.ts`, which is where the sort lives; repeating it
+   * through the browser would re-run a covered rule at a hundred times the
+   * cost. What the unit deliberately does not decide is the word — it labels
+   * the values it can and leaves UI copy to the caller — so the caller is
+   * where the word has to be checked.
+   *
+   * The failure it guards is generic: three facets address absence with the
+   * same empty value, and one shared label makes the Person facet read as "no
+   * category". "Alle" is the other wrong answer the FR names — the bucket means
+   * *nobody in particular*, not *everybody*.
+   */
+  test('E2E-M4-19: the Person facet names its shared bucket, and not the way the others do', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt'])
+
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
+
+    const person = page.getByTestId('facet-person-')
+    const category = page.getByTestId('facet-category-')
+    await expect(person).toBeVisible()
+    await expect(category).toBeVisible()
+
+    const shared = ((await person.textContent()) ?? '').trim()
+    expect(shared).not.toMatch(/^(alle|all)\b/i)
+    // The comparison is the assertion: "a word of its own" is a claim about two
+    // labels, and asserting one string alone would pass against a shared one.
+    expect(shared).not.toBe(((await category.textContent()) ?? '').trim())
   })
 })

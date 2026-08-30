@@ -317,9 +317,31 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(empty).toContainText(ACCOUNT_NAMES.bob)
     await expect(empty).not.toContainText(/filter/i)
 
+    // E2E-M4-31's regression guard: hiding somebody else's rows is a *view*,
+    // so the header must count the same trip either way. A filtered list that
+    // also shortened the header would make the trip look further along than it
+    // is — read before the reveal and after it, so the two are one assertion.
+    const progress = await visiblePage(alice).getByTestId('m4-progress').textContent()
+
     // The action reveals rather than clearing something that was never on.
     await visiblePage(alice).getByTestId('m4-reset').click()
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await expect(visiblePage(alice).getByTestId('m4-progress')).toHaveText(progress ?? '')
+
+    // E2E-M4-30 (FR-25.19), the half that needs two accounts: Bob is
+    // responsible, Alice packs it, and the row has **one** right edge. The
+    // precedence itself is unit-tested in `domain/packingView.spec.ts`; what
+    // needs both identities is that the two columns hold different people at
+    // the same time — with one account the rule is satisfied by accident.
+    await packItem(alice, item)
+    await visiblePage(alice).getByTestId('m4-done-bar').click()
+
+    const edge = visiblePage(alice).getByTestId(`m4-row-${item}`).locator('.row-end .avatar')
+    await expect(edge).toHaveCount(1)
+    await expect(edge).toHaveAttribute('aria-label', ACCOUNT_NAMES.alice)
+    // The packer variant is the one that carries the tick — the rendered
+    // difference, not merely a class the row happens to have.
+    await expect(edge.locator('.tick')).toHaveCount(1)
 
     await ctxAlice.close()
     await ctxBob.close()
