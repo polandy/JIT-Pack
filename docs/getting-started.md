@@ -19,7 +19,7 @@ cd JIT-Pack
 docker compose up --build
 ```
 
-The first run compiles both halves, so give it a few minutes. It brings up two containers: `jitpack-app` (the backend, reachable only inside the compose network) and `jitpack-web` (nginx, published on port 3000).
+The first run compiles both halves, so give it a few minutes. It brings up two containers: `jitpack-dev-app` (the backend, reachable only inside the compose network) and `jitpack-dev-web` (nginx, published on port 3000).
 
 The backend is configured for **single-user mode** through two environment variables in `docker-compose.yml`:
 
