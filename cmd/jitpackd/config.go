@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// currencyCodeLen is ISO 4217's alphabetic code length.
+const currencyCodeLen = 3
+
 // Config holds the startup-time configuration read from environment
 // variables (PRD Section 2: declarative, twelve-factor style).
 type Config struct {
@@ -34,6 +37,12 @@ type Config struct {
 	// e.g. "mailto:ops@example.com". Optional — the keys themselves are
 	// self-generated on first use.
 	PushContact string // JITPACK_PUSH_CONTACT
+
+	// Currency the instance's amounts are in (FR-21.9): an ISO-4217
+	// code such as "CHF". Empty ⇒ amounts stay unit-less, which is what
+	// every instance did before this existed. No conversion is implied —
+	// the value is a label on a number, and one number is one currency.
+	Currency string // JITPACK_CURRENCY
 
 	// Instance admins (FR-23.1): comma-separated e-mail addresses,
 	// matched case-insensitively against the verified email the UserInfo
@@ -66,6 +75,12 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		AdminEmails: splitList(getenv("JITPACK_ADMIN_EMAILS")),
 	}
 
+	currency, err := parseCurrency(getenv("JITPACK_CURRENCY"))
+	if err != nil {
+		return Config{}, err
+	}
+	c.Currency = currency
+
 	if c.SingleUser {
 		if c.LocalUserID == "" {
 			return Config{}, errors.New("JITPACK_LOCAL_USER_ID is required in single-user mode")
@@ -88,6 +103,26 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		return Config{}, errors.New("JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together")
 	}
 	return c, nil
+}
+
+// parseCurrency normalises an ISO-4217 code and refuses anything else.
+// A malformed value is an error rather than a silent fallback to "no
+// currency": the only visible effect of the fallback would be a missing
+// label, which names neither the cause nor the fix.
+func parseCurrency(raw string) (string, error) {
+	code := strings.ToUpper(strings.TrimSpace(raw))
+	if code == "" {
+		return "", nil
+	}
+	if len(code) != currencyCodeLen {
+		return "", errors.New("JITPACK_CURRENCY must be a three-letter ISO 4217 code such as CHF, or unset")
+	}
+	for _, r := range code {
+		if r < 'A' || r > 'Z' {
+			return "", errors.New("JITPACK_CURRENCY must be a three-letter ISO 4217 code such as CHF, not a symbol")
+		}
+	}
+	return code, nil
 }
 
 func envOr(getenv func(string) string, key, fallback string) string {

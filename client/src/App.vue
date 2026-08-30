@@ -10,6 +10,8 @@
  * server or against IndexedDB (Local Mode, Addendum 3.19).
  */
 import { API } from '@/api/routes'
+import type { InstanceConfigResponse } from '@/api/types'
+import { setCurrency } from '@/lib/currency'
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
@@ -157,6 +159,23 @@ onMounted(async () => {
       // Server unreachable — the sync indicator will show offline.
     }
   }
+  // FR-21.9: what the instance labels its amounts with. Unauthenticated and
+  // outside the OIDC branch above, because Single-User Mode has a currency
+  // and no session — and a failure here is silent by design: the persisted
+  // code from the last start is already applied, and losing every label
+  // because a request timed out is worse than a stale three-letter code.
+  if (mode.value === 'server') {
+    try {
+      const resp = await fetch(`${serverBaseUrl()}${API.instanceConfig}`)
+      if (resp.ok) {
+        const config: InstanceConfigResponse = await resp.json()
+        setCurrency(config.currency)
+      }
+    } catch {
+      // Server unreachable — keep the last known label.
+    }
+  }
+
   // Session ended for real (IdP rejected the refresh token) → log in again.
   window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
   // Awaited: in Local Mode this *is* the hydration from IndexedDB, and the

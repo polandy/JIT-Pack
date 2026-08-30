@@ -70,6 +70,12 @@ export const API = {
   authRefresh: '/api/v1/auth/refresh',
   authConfig: '/api/v1/auth/config',
 
+  // Instance-wide settings the client renders with (ADR-027: scope
+  // first). Deliberately its own path rather than a field on
+  // /auth/config, which answers 501 in Single-User Mode and would
+  // therefore hide the settings from a mode that has them.
+  instanceConfig: '/api/v1/instance/config',
+
   // Outside the versioned surface on purpose: the socket carries the
   // versioned frame in its payload, and a health probe is not an API.
   ws: '/ws',

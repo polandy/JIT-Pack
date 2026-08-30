@@ -192,6 +192,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A rule that was complete and invisible (2026-08-30)](#a-rule-that-was-complete-and-invisible-2026-08-30) — E2E-G3-04. The G-3 cluster lock shipped correct and unobservable: every other G-3 surface names its holder, and the one surface that could inherit none of them said nothing at all. Why writing the two-identity case is what found it, and why the release — not the pack — is what the positive half needs.
 - [A row kept saying it was skipped after it had stopped being (2026-08-30)](#a-row-kept-saying-it-was-skipped-after-it-had-stopped-being-2026-08-30) — where FR-25.13f's ✕ meets FR-25.21's editor. Why the fix is a derivation rather than a policy, why only one of the two cases is worth a confirm, and the two fields deliberately left alone.
 - [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
+- [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 
 ## Current state
 
@@ -8397,3 +8398,46 @@ having the merge report it. That is not a second decision — the decision ran o
 inside the mutation — and it is the field the status code cannot carry: a 200 on a
 retired row does not mean the row is gone, and without it a caller cleaning up
 would have to pull the whole partition back down to find out what it had done.
+
+## The amount finally says what it is in (2026-08-30)
+
+Three owner decisions were settled on 2026-08-30; two of them closed
+unchanged and are recorded where their rules live (the G-3 lock stays
+advisory, CLAUDE.md item 14; M4's header keeps its name in the page rather
+than the bar, UI-Spec M4). This is the third, and the only one with code.
+
+**The setting had been described for months and never existed.** UI-Spec M10
+named an *"instance currency"* from the concept round; the locale pass found
+in August that nothing implemented it and corrected the spec to say amounts
+are unit-less. That correction was honest and left the question open. It is
+answered now: `JITPACK_CURRENCY`.
+
+**The endpoint that looked like it would carry it could not.** `/auth/config`
+is the one thing the client already asks the server before rendering, so it
+was the obvious home — and it is wrong for exactly one reason: it answers 501
+in Single-User Mode, *by design*, because that 501 is how the client discovers
+the mode (invariant 5). Hanging an instance-wide display setting off it would
+have hidden the currency from a mode that has one. Hence a second small
+public endpoint, `GET /api/v1/instance/config`, scoped-path-first per ADR-027,
+answering without a session because nothing in it is about a caller.
+
+**Per instance, and the reason is not convenience.** A per-device or
+locale-derived currency was the cheaper build — no endpoint at all — and it
+produces a wrong answer rather than a limited one: `de-CH` and `de-DE` would
+disagree about a number that belongs to neither of them, and two family
+members would read the same jacket in two currencies. One database holds one
+set of amounts. That is also why the value only ever labels: no rate, no
+history, no second currency exists anywhere in the model, so a conversion
+would have nothing to convert with.
+
+**Local Mode's cost was accepted, not designed around.** It has no server, so
+its amounts stay unit-less. The tempting fix — a device-level setting for that
+mode alone — was rejected: it would make the currency a device opinion in the
+one mode where it is least ambiguous, and give a single value two writers, the
+shape ADR-025 exists to undo. The status quo is not a regression, and if this
+ever matters the answer is a setting in *every* mode, not one bolted onto the
+mode that lacks a server.
+
+**A typo stops the server.** Ignoring a malformed code would leave exactly one
+visible symptom — a missing label — which names neither cause nor fix. The
+refusal at start-up names both.

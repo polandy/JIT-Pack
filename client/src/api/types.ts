@@ -315,6 +315,19 @@ export interface AuthConfigResponse {
 }
 
 /**
+ * InstanceConfigResponse carries what the client must know about the
+ * instance before it renders anything, and nothing that identifies a
+ * caller — it is answered without a session, in every mode.
+ *
+ * Currency is an ISO-4217 code, or empty where the operator named none:
+ * amounts then stay unit-less, as they were before FR-21.9. It is a label,
+ * never a conversion — the stored amount is already in this currency.
+ */
+export interface InstanceConfigResponse {
+  currency: string
+}
+
+/**
  * SessionTokens is the first-party session pair the login broker issues.
  * ExpiresIn is the access token's lifetime in seconds.
  */

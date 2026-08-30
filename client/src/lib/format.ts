@@ -3,6 +3,7 @@
  * presentation choices (units, precision), not packing rules.
  */
 
+import { currentCurrency } from '@/lib/currency'
 import { formatDay, formatDayRange, formatNumber, t } from '@/i18n'
 
 /** formatWeight renders grams as "850 g" below a kilo and "1.2 kg" from there. */
@@ -12,11 +13,19 @@ export function formatWeight(grams: number): string {
 
 /**
  * formatValue renders `value_cents` as a two-decimal amount in the active
- * locale (UX-11). The instance has no configured currency, so the number
- * stays unit-less on purpose — naming one is an owner decision.
+ * locale. Where the instance names a currency (FR-21.9) the amount carries
+ * it; where it names none the number stays unit-less, as it was before.
+ * Intl places the symbol and the separators — "CHF 1'250.00" in de-CH,
+ * "1.250,00 €" in de-DE — so the currency is named once and the locale
+ * still decides how it reads.
  */
 export function formatValue(cents: number): string {
-  return formatNumber(cents / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const code = currentCurrency()
+  return formatNumber(cents / 100, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    ...(code ? { style: 'currency', currency: code } : {}),
+  })
 }
 
 /**

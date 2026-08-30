@@ -290,6 +290,10 @@ export default defineConfig({
               JITPACK_DB_PATH: path.join(os.tmpdir(), `jitpackd-e2e-${Date.now()}.db`),
               JITPACK_SINGLE_USER: 'true',
               JITPACK_LOCAL_USER_ID: 'e2e-local',
+              // FR-21.9: the whole `single` project runs with a currency
+              // named, so any screen that renders an amount and does not
+              // carry it is a red case rather than a quiet omission.
+              JITPACK_CURRENCY: 'CHF',
             },
           },
         ]

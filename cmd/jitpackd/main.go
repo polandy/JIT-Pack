@@ -64,6 +64,10 @@ func main() {
 		log.Printf("instance admins: %d address(es) (FR-23.1)", len(cfg.AdminEmails))
 		srv.SetAdminEmails(cfg.AdminEmails)
 	}
+	if cfg.Currency != "" {
+		log.Printf("amounts are labelled %s (FR-21.9)", cfg.Currency)
+		srv.SetCurrency(cfg.Currency)
+	}
 
 	httpSrv := &http.Server{
 		Addr:         cfg.Listen,
