@@ -209,7 +209,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A number that was right when it was written (2026-08-30)](#a-number-that-was-right-when-it-was-written-2026-08-30) — CI efficiency. A stale shard count with no red signal anywhere, why eight is bounded by the concurrency limit rather than by fixed cost, and the superseded-run cancellation that is the same constraint from the other side.
   - [A workaround in the orientation document is a defect being paid for](#a-workaround-in-the-orientation-document-is-a-defect-being-paid-for) — ADR-040. Why the auto-formatting bot's push made a PR read as checkless, the PAT option rejected for what it costs, and the second change without which removing the bot would have dropped formatting enforcement entirely.
   - [The Makefile now diverges from CI in exactly one place, on purpose](#the-makefile-now-diverges-from-ci-in-exactly-one-place-on-purpose) — the Go test cache locally, why it is sound rather than a shortcut, and the coverage-profile half that had to be checked instead of assumed.
-  - [The trap: a local timing on this machine is not a measurement](#the-trap-a-local-timing-on-this-machine-is-not-a-measurement) — 100 s became 368 s on an unchanged tree under a parallel session's suite; why that is a confident wrong answer rather than a weak one, and the change it stopped from landing.
+  - [The trap: a local timing on this machine is not a measurement](#the-trap-a-local-timing-on-this-machine-is-not-a-measurement) — 100 s became 368 s on an unchanged tree under a parallel session's suite; why that is a confident wrong answer rather than a weak one, and the vitest pool decision that had to be moved to CI to be made at all.
+  - [The one character that was safe to change (2026-08-30)](#the-one-character-that-was-safe-to-change-2026-08-30) — E2E-M17-13 failed one run in sixteen because base64url discards the last character's low two bits, so its "tampered" token decoded to a valid signature. Why the guard against a no-op substitution was the thing that produced one.
 
 ## Current state
 
@@ -9590,3 +9591,37 @@ comparison, on the same four cores, of the same work. The rule to reuse:
 many times.** Isolation is untouched either way; `threads` still gives each file
 its own worker and module registry, which is what `unstubGlobals` and the
 per-file environment docblock depend on.
+
+### The one character that was safe to change (2026-08-30)
+
+Re-sharding meant running the pipeline twice on an unchanged tree, which is how
+`E2E-M17-13` was caught failing once and passing once: *„a token with a broken
+signature was accepted"*. Nothing in the change could touch it — the case mints
+an API token in M17 and checks that a tampered copy is refused — so the question
+was whether the suite had a flake or the server had a hole.
+
+Neither, and the cause is worth writing down because the defect is in the line
+that exists to prevent it. The case tampered with the token's **last**
+character, taking care not to pick the character already there:
+`token.slice(0, -1) + (token.endsWith('x') ? 'y' : 'x')`. An HS256 signature is
+32 bytes, and base64url encodes 32 bytes in 43 characters — 258 bits of room for
+256 bits of signature. **The final character's low two bits are padding, and the
+decoder discards them.** So `w`, `x`, `y` and `z` in that position all decode to
+the same byte, verified rather than reasoned about by decoding every candidate:
+they come back in sets of four.
+
+Encoders emit the canonical member of each set, so the signature's last
+character is never `x` and the guard against a no-op substitution never fired;
+what did fire, one time in sixteen, was a signature ending in `w` being
+"tampered" into `x` — a different string, an identical signature, a valid token,
+a 200. The assertion then reported a security failure it had not observed.
+
+Two things generalise. **A ~6 % flake is the worst rate to have**, because it
+survives: rare enough that a re-run clears it and the case reads as green,
+frequent enough to cost a pipeline regularly, and it sat on the negative half of
+a security assertion — the half whose whole job is to prove the positive result
+came from the credential. And **the mutation a test uses to prove a check works
+is itself a piece of production reasoning**: this one encoded an assumption
+about base64 that nothing checked, in a test written precisely because the
+authors did not want to assume things about token validation. The fix flips a
+character before the last, where all six bits are meaningful.
