@@ -72,6 +72,18 @@ const rowsWithContent = computed(() => {
 const perPerson = computed(() => rows.value.some((r) => r.assigned_traveler_id !== null))
 
 /**
+ * G-3 is about the **item**, not the row this was opened from: a conversion
+ * rewrites every instance, so a foreign claim on any of them freezes the
+ * editor — FR-25.21's own sentence, and the half only this component can
+ * answer, because only it knows which rows the cluster holds. The prop stays
+ * beside it: a caller has its own reasons to be read-only.
+ */
+const claimedByOther = computed(() =>
+  rows.value.some((r) => orchestrator.lockHolder(props.tripId, r) !== null),
+)
+const isLocked = computed(() => props.locked || claimedByOther.value)
+
+/**
  * Switching the tab shows the roster; it writes nothing. The first draft made
  * *Pro Person* an action, and the only thing it could do with nobody picked yet
  * was assign the item to whoever happens to be first in the roster — a silent
@@ -116,7 +128,7 @@ function currentMembers(): { traveler_id: string; quantity: number }[] {
  * only then is a question raised.
  */
 function apply(target: MembershipTarget) {
-  if (props.locked || !item.value) return
+  if (isLocked.value || !item.value) return
   const plan = planMembership({
     tripId: props.tripId,
     rows: rows.value,
@@ -211,7 +223,7 @@ const confirmMessage = computed(() => {
         role="tab"
         :aria-selected="!showRoster"
         :class="{ on: !showRoster }"
-        :disabled="locked"
+        :disabled="isLocked"
         data-testid="membership-shared"
         @click="toShared"
       >
@@ -221,7 +233,7 @@ const confirmMessage = computed(() => {
         role="tab"
         :aria-selected="showRoster"
         :class="{ on: showRoster }"
-        :disabled="locked"
+        :disabled="isLocked"
         data-testid="membership-per-person"
         @click="perPersonView = true"
       >
@@ -242,7 +254,7 @@ const confirmMessage = computed(() => {
       >
         <IonCheckbox
           :checked="amountOf(tr.id) !== null"
-          :disabled="locked"
+          :disabled="isLocked"
           :aria-label="tr.name"
           :data-testid="`membership-check-${tr.name}`"
           @ion-change="toggle(tr.id)"
@@ -251,7 +263,7 @@ const confirmMessage = computed(() => {
         <span class="nm">{{ tr.name }}</span>
         <span v-if="amountOf(tr.id) !== null" class="stepper">
           <button
-            :disabled="locked || (amountOf(tr.id) ?? 1) <= 1"
+            :disabled="isLocked || (amountOf(tr.id) ?? 1) <= 1"
             :aria-label="t('membership.less', { name: tr.name })"
             :data-testid="`membership-minus-${tr.name}`"
             @click="step(tr.id, -1)"
@@ -262,7 +274,7 @@ const confirmMessage = computed(() => {
             amountOf(tr.id)
           }}</span>
           <button
-            :disabled="locked"
+            :disabled="isLocked"
             :aria-label="t('membership.more', { name: tr.name })"
             :data-testid="`membership-plus-${tr.name}`"
             @click="step(tr.id, 1)"
