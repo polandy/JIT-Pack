@@ -8645,6 +8645,19 @@ deliberately narrower than the queue: a mutation the server has taken is
 captured, and a drain rewriting the queue is not an edit, so only `enqueue`
 moves the number.
 
+**One rule, four templates — pinned at the call sites.** The indicator is
+mounted by M5, M8, M10 and M11, and every one of them carried the same wrong
+line; a behavioural case on M5 would have proved M5 and left the other three
+exactly as they were. That is the review checklist's own trap, and the answer
+here is a source scan rather than four near-identical mount cases:
+`saveIndicatorWiring.spec.ts` reads every file under `client/src` and refuses
+a call site handed the sync state, a call site not taking `capturePending`,
+and a `SyncState` import in the component. It **counts the call sites it
+found before judging any of them** — a scan whose glob silently matches
+nothing satisfies every assertion it makes, which is the same false-green
+shape as a test asserting that something did not happen. Proved by rewiring
+one of the *other* three sheets: it reddens and names the file.
+
 **No e2e claims it, and that is the honest half.** The ● is transient by
 construction; a browser case could only race it, which this project treats
 as worse than no case. The falsifiable assertions live where the signal is a

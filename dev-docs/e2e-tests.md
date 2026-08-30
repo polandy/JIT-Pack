@@ -2606,6 +2606,17 @@ What the e2e does assert is the half that holds still — E2E-M5-11 now checks
 that the sheet carries no save control, beside the indicator that stands
 instead of one.
 
+**And the rule is pinned at the call sites, not on one screen.** The
+indicator is mounted by four sheets and all four carried the same wrong
+line, so a behavioural case on M5 would have proved M5 and nothing else —
+the §4.0 trap, one rule written into N templates. `saveIndicatorWiring.spec.ts`
+scans every file under `client/src` instead: no call site may be handed the
+sync state, all must take `capturePending`, and the component itself must not
+import `SyncState`. It **counts the call sites before judging them**, because
+a source scan whose glob quietly matches nothing passes every assertion it
+makes. Proved by rewiring one of the other three sheets — it reddens and
+names the file.
+
 **One promise was retired for the reverse reason.** FR-7.3 ends *"Resolution
 is restricted to the item's assignee or the trip owner"* — enforced nowhere,
 client or server, and contradicting the same FR's own sentence two lines
