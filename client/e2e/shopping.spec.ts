@@ -131,6 +131,15 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     await expect(bought.getByTestId('m6-bought-note')).toHaveText('on the packing list')
     await expect(bar).toHaveText('Hide 1 bought')
 
+    // E2E-M6-02 (FR-3.3), and the half the note only *claims*: the row really
+    // is on the packing list now. The sentence above is a string until the
+    // screen it names has been looked at.
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-row-Kaffee')).toBeVisible()
+    await visible(page).getByTestId('m4-nav-shopping').click()
+    await expect(m6(page).getByTestId('m6-bought-bar')).toBeVisible()
+    await m6(page).getByTestId('m6-bought-bar').click()
+
     // And the way back: it returns to the list it was bought from.
     await bought.locator('ion-checkbox').click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
