@@ -2687,6 +2687,13 @@ caller raises a snackbar, so the companion simply appears on the list. FR-20.2's
 look like an omission rather than a decision. Left as an owner decision with no
 case, the same treatment the M2 audit gave its three unkept promises.
 
+**The gate got a guard on itself.** It reported `ok — 0 case ids` when it found
+nothing, so renaming the spec or changing its bullet character would have
+switched the check off silently while the build stayed green — the same
+false-green shape a test asserting that something did not happen has. It now
+refuses an empty scan. Proved by changing `* **E2E-` to `- **E2E-` throughout:
+exit 1, with a message naming both plausible causes.
+
 **What this pass deliberately did not fix.** Of 300 case ids in the suite, **78
 appear only in a comment above a test rather than in its title**. That breaks
 id-based traceability in the direction this audit keeps relying on — `git grep`

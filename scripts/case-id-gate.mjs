@@ -46,6 +46,21 @@ for (const [, id] of spec.matchAll(DEFINITION)) {
   seen.set(id, (seen.get(id) ?? 0) + 1)
 }
 
+/*
+ * A guard on the guard. Every assertion below is about ids this scan found,
+ * so a scan that finds none passes them all — and it would find none if the
+ * spec were renamed or its bullet format changed, which is exactly when the
+ * check stops being run and nothing says so.
+ */
+if (seen.size === 0) {
+  console.error(
+    `case-id-gate: found no case ids at all in ${SPEC}.\n` +
+      'Either the file moved or its entry format changed — the gate is not\n' +
+      'checking anything, which is worse than failing.',
+  )
+  process.exit(1)
+}
+
 const collisions = [...seen].filter(([, n]) => n > 1).map(([id]) => id)
 
 if (collisions.length > 0) {
