@@ -82,3 +82,56 @@ func (s *Store) EnsureOIDCUser(ctx context.Context, subject, displayName, email 
 	}
 	return id, nil
 }
+
+// ErrUserRefAmbiguous means the reference names more than one account.
+// `users.email` carries no UNIQUE constraint, so an address legitimately
+// resolves to two rows — and minting a long-lived credential for whichever
+// one the query happened to return first is the mistake this prevents.
+var ErrUserRefAmbiguous = errors.New("user reference is ambiguous")
+
+// ResolveUserRef turns an id or an e-mail address into a user id.
+//
+// It lives here rather than in the command that uses it because deciding who
+// somebody meant is a rule, and because an unknown reference must be refused
+// rather than silently minting a credential for nobody — the same hole
+// AccountStatus closes at the other end (FR-23.7).
+func (s *Store) ResolveUserRef(ctx context.Context, ref string) (string, error) {
+	if ref == "" {
+		return "", ErrUserNotFound
+	}
+	var id string
+	err := s.db.QueryRowContext(ctx, `SELECT id FROM users WHERE id = ?`, ref).Scan(&id)
+	if err == nil {
+		return id, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", fmt.Errorf("resolve user %q: %w", ref, err)
+	}
+
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id FROM users WHERE lower(email) = lower(?) ORDER BY id`, ref)
+	if err != nil {
+		return "", fmt.Errorf("resolve user %q by email: %w", ref, err)
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var got string
+		if err := rows.Scan(&got); err != nil {
+			return "", fmt.Errorf("resolve user %q by email: %w", ref, err)
+		}
+		ids = append(ids, got)
+	}
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("resolve user %q by email: %w", ref, err)
+	}
+	switch len(ids) {
+	case 0:
+		return "", ErrUserNotFound
+	case 1:
+		return ids[0], nil
+	default:
+		return "", fmt.Errorf("%w: %q names %d accounts", ErrUserRefAmbiguous, ref, len(ids))
+	}
+}

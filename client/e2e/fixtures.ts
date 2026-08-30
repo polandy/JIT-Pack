@@ -439,6 +439,37 @@ export async function expectTripActionAbsent(page: Page, action: keyof typeof TR
   expect(offered).not.toContain(TRIP_ACTION[action])
 }
 
+/**
+ * M2's per-row actions live behind the slide gesture (FR-4.5, FR-18.3), and
+ * until 2026-08-30 no test had ever operated one — the Share entry was
+ * asserted as present in the DOM and nothing else. Opened through the
+ * element's own `open()` rather than by simulating a drag: how far and how
+ * fast a swipe has to travel is the animation's business, and a test that
+ * has to guess it is a test that can miss for reasons that are not the rule.
+ */
+export async function openTripSwipe(page: Page, trip: string) {
+  const sliding = visiblePage(page)
+    .locator('ion-item-sliding')
+    .filter({ has: page.getByTestId(`trip-row-${trip}`) })
+  await expect(sliding).toHaveCount(1)
+  await sliding.evaluate((el) =>
+    (el as unknown as { open(side: string): Promise<void> }).open('end'),
+  )
+  return sliding
+}
+
+/**
+ * What that row offers right now, by the names the user reads. Returns the
+ * whole list so an *absence* — G-8's omitted Share, a non-owner's missing
+ * Delete — is asserted against options that are demonstrably there.
+ */
+export async function tripSwipeActions(page: Page, trip: string): Promise<string[]> {
+  const sliding = await openTripSwipe(page, trip)
+  return sliding
+    .locator('ion-item-option')
+    .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label') ?? ''))
+}
+
 export const test = base.extend<Fixtures>({
   seedMode: async ({ page }, use) => {
     await use((opts: SeedOptions) => seed(page, opts))

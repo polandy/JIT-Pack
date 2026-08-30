@@ -45,6 +45,8 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type {
   AdminUserListResponse,
+  APITokenExpiry,
+  APITokenResponse,
   ConflictEntry,
   ConflictListResponse,
   DirectoryUser,
@@ -1280,6 +1282,19 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     await client.delete(API.adminResetDisplayName(userID))
   }
 
+  /**
+   * Mint an API token (FR-23.7). The response is the only time the token is
+   * ever readable, so it is handed straight to the caller and kept nowhere:
+   * this must not reach localStorage or any store.
+   */
+  async function createAPIToken(
+    name: string,
+    expiry: APITokenExpiry,
+  ): Promise<APITokenResponse | null> {
+    if (local) return null
+    return client.post<APITokenResponse>(API.meTokens, { name, expiry })
+  }
+
   async function saveDisplayName(userId: string, name: string): Promise<void> {
     if (local) return
     await client.put(API.userDisplayName(userId), { display_name: name })
@@ -1452,6 +1467,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Profile & data (M17)
     fetchMe,
+    createAPIToken,
     saveDisplayName,
     uploadAvatar,
     downloadExport,

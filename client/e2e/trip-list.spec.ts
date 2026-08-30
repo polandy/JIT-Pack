@@ -3,9 +3,13 @@ import {
   expect,
   seed,
   createTripViaWizard,
+  openQuickAdd,
+  openTripSwipe,
   tripAction,
+  tripSwipeActions,
   expectTripActionOffered,
 } from './fixtures'
+import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
 
 /**
@@ -144,5 +148,83 @@ test.describe('M2 opening segment @local @m2', () => {
     // against a screen that is still loading passes for the wrong reason.
     await expectCount(page, 'planned', '1')
     await expect(visible(page).getByTestId('trip-row-Elba')).toHaveCount(0)
+  })
+})
+
+/**
+ * M2's row actions (UI-Test-Spec §4, unit "M2 row actions", 2026-08-30).
+ *
+ * The whole slide menu was unoperated until this block: E2E-FLOW-01 asserts
+ * *Share* is in the DOM and nothing had ever opened the row. What is written
+ * here is what the screen actually offers — the wording of the spec's cases
+ * („long-press → context menu") describes a gesture M2 has never had.
+ */
+test.describe('M2 row actions @local @m2', () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, { mode: 'local' })
+  })
+
+  const TRIP = 'Elba'
+  const ITEM = 'Schnorchel'
+
+  /** A planning trip with one packed row, so an export has progress to carry. */
+  async function tripWithAPackedRow(page: Page) {
+    await createTripViaWizard(page, { name: TRIP })
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(visible(page).getByTestId(`m4-row-${ITEM}`)).toBeVisible()
+    await visible(page)
+      .getByTestId(`m4-row-${ITEM}`)
+      .getByTestId('row-check')
+      .locator('ion-checkbox')
+      .click()
+    // The row leaves the working list once it is done (FR-25.2) — which is
+    // this case's settled signal for the write having landed.
+    await expect(visible(page).getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
+    await page.goto('/tabs/trips')
+    await expect(visible(page).getByTestId(`trip-row-${TRIP}`)).toBeVisible()
+  }
+
+  // E2E-M2-06 (G-8/FR-17.3): without a session there is nobody to share
+  // with, so the entry is absent rather than disabled. The positive half is
+  // E2E-FLOW-01's, on the `server` project — this is the same list, read on
+  // a device that has no second account.
+  test('E2E-M2-06: a device with no second account is offered no Share', async ({ page }) => {
+    await createTripViaWizard(page, { name: TRIP })
+    await page.goto('/tabs/trips')
+
+    const offered = await tripSwipeActions(page, TRIP)
+    // Against a populated list: an empty menu would satisfy the absence.
+    expect(offered).toContain('Export trip')
+    expect(offered).not.toContain('Share')
+  })
+
+  // E2E-M2-07 (FR-18.3): the export asks progress-or-clean and the answer
+  // reaches the file. Both branches, because one of them alone cannot tell
+  // a working choice from a constant.
+  test('E2E-M2-07: the export writes the trip, and the clean list leaves its progress out', async ({
+    page,
+  }) => {
+    await tripWithAPackedRow(page)
+
+    await openTripSwipe(page, TRIP)
+    const withProgress = page.waitForEvent('download')
+    await visible(page).getByTestId(`m2-export-${TRIP}`).click()
+    await page.locator('ion-action-sheet').getByText('With pack progress').click()
+    const carried = await withProgress
+    expect(carried.suggestedFilename()).toBe('Elba.yaml')
+    const full = await readFile((await carried.path())!, 'utf8')
+    expect(full).toContain(`name: ${ITEM}`)
+    expect(full).toContain('packed_count: 1')
+
+    await openTripSwipe(page, TRIP)
+    const clean = page.waitForEvent('download')
+    await visible(page).getByTestId(`m2-export-${TRIP}`).click()
+    await page.locator('ion-action-sheet').getByText('Clean list (unpacked)').click()
+    const bare = await readFile((await (await clean).path())!, 'utf8')
+    // The same trip, the same row — and no record of anyone having packed it.
+    expect(bare).toContain(`name: ${ITEM}`)
+    expect(bare).not.toContain('packed_count')
   })
 })

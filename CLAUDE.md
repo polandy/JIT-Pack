@@ -133,7 +133,19 @@ it. Item numbers stay stable even as items close, because the log refers back to
    open (M4's container chip, the amber prep cast on M4); worth carrying forward:
    **`rowEdgeAvatar` had been a rule inside a component since the concept round**, so its
    case could not be written at all until it moved. Log: *„A blocked case that had quietly
-   unblocked, and one that had quietly been covered"*. **M5 followed the same day**, and
+   unblocked, and one that had quietly been covered"*. **M2 followed 2026-08-30 and sorted a
+   fifth way**: three of its nine unwritten ids were real and are written (E2E-M2-05/06/07 —
+   the whole slide menu had never been *operated* by any test, only asserted present), three
+   were already covered elsewhere or described a gesture M2 never had, and **three are
+   promises the screen never kept** — the list still groups by series and sorts newest-first
+   where the 2026-08-08 review decided flat-with-a-chip (E2E-M2-15, renumbered off a
+   duplicated id), the row has no participant avatars (E2E-M2-03), and `trips.imported` is
+   written by M15 and read by nothing (E2E-M2-08). Those three are open with the owner and
+   **deliberately have no test**: a case written first would leave a red suite pointing at a
+   rebuild nobody scheduled. The general form: **an unwritten case is as likely to be an
+   unbuilt promise as a missing test**, and only reading it against the screen tells you
+   which. Log: *„Nine promises, three tests and three things that were never built"*.
+   **M5 followed as well**, and
    found the failure mode the other two could not: **an id can mean two things**. Six
    `E2E-M5-*` numbers were each defined twice — the v1.0 catalogue and the §3.25 rebuild,
    in one section, never reconciled — so four *green* tests read as coverage of four

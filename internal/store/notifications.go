@@ -58,9 +58,11 @@ type Notification struct {
 func (s *Store) CreateNotification(ctx context.Context, userID, kind string, payload map[string]any) (string, error) {
 	// Deactivated accounts receive nothing (FR-23.3) — checked here so
 	// Web Push and the in-app channel are silenced at the single source.
-	if deactivated, err := s.UserDeactivated(ctx, userID); err != nil {
+	// An account that does not exist is silenced by the same check rather
+	// than left to fail the foreign key one statement later.
+	if state, err := s.AccountStatus(ctx, userID); err != nil {
 		return "", err
-	} else if deactivated {
+	} else if state != AccountActive {
 		return "", nil
 	}
 	prefs, err := s.NotificationPrefs(ctx, userID)

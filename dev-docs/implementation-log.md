@@ -193,8 +193,10 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A row kept saying it was skipped after it had stopped being (2026-08-30)](#a-row-kept-saying-it-was-skipped-after-it-had-stopped-being-2026-08-30) — where FR-25.13f's ✕ meets FR-25.21's editor. Why the fix is a derivation rather than a policy, why only one of the two cases is worth a confirm, and the two fields deliberately left alone.
 - [Seventeen unwritten cases, two worth writing (2026-08-30)](#seventeen-unwritten-cases-two-worth-writing-2026-08-30) — backlog item 6, taken screen by screen instead of by the count. What M6's unwritten ids turned out to be, why a coverage number is not a backlog, and the four promises the app had already reversed.
 - [A blocked case that had quietly unblocked, and one that had quietly been covered (2026-08-30)](#a-blocked-case-that-had-quietly-unblocked-and-one-that-had-quietly-been-covered-2026-08-30) — backlog item 6, M4. A rule that was correct and unreachable, an entry waiting on a blocker that was gone, and nine cases that had been written as unit tests with no E2E id on them.
+- [Nine promises, three tests and three things that were never built (2026-08-30)](#nine-promises-three-tests-and-three-things-that-were-never-built-2026-08-30) — backlog item 6, M2. The audit's fifth verdict: an unwritten case that is not a missing test but an unbuilt promise, three times over — including a settled 2026-08-08 decision the screen has never matched.
 - [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
+- [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
 
 ## Current state
@@ -8570,6 +8572,142 @@ naive recount counts it as a gap forever, and the number can only drift
 upwards as the audit does its work. The headline figure was left where it was
 and `CLAUDE.md` now says not to re-derive it. Measure a screen.
 
+## Nine promises, three tests and three things that were never built (2026-08-30)
+
+M2, taken through the same reading as M6 and M4: every unwritten case id read
+as a promise, checked against the *built* screen, and sorted. Nine ids. Three
+became tests, three were already covered or described something M2 never had,
+and three turned out not to be missing tests at all.
+
+**The whole slide menu had never been operated.** M2's row actions — export,
+share, clone, start, archive, delete — carry `aria-label`s and, until this
+change, one `data-testid` between them: `m2-share-<trip>`, asserted by
+E2E-FLOW-01 as *present in the DOM* and never opened. That is the same
+signature #242 read on M20: an absence of test ids is what a screen nobody
+has driven looks like. Each option has an id now, and `openTripSwipe` /
+`tripSwipeActions` sit in `fixtures.ts` beside the M4 menu's pair — the
+sliding item is opened through its own `open()` rather than by simulating a
+drag, because how far and how fast a swipe must travel is the animation's
+business and a test that has to guess it fails for reasons that are not the
+rule.
+
+The three that were written:
+
+- **E2E-M2-05** (`server`) is the one worth the two identities. `canDelete`
+  reads the roster for the caller's own role, so outside a collaborative
+  instance it is inert by design — the negative half exists nowhere but here.
+  Bob, an Editor on Alice's shared trip, is offered every other action and not
+  *Delete*; Alice is; her cancel leaves the trip where it was and her confirm
+  takes it off both lists. Mutation-proved by making `canDelete` return
+  `true`: red on Bob's half.
+- **E2E-M2-06** is G-8's negative for *Share* on a device with no session,
+  asserted against the row's other options so an empty menu cannot satisfy it.
+- **E2E-M2-07** takes both branches of the export sheet, because one branch
+  alone cannot tell a working choice from a constant. Mutation-proved by
+  making `serializeTrip` always write `packed_count`.
+
+**The finding is the other three.** M6 produced retirements and M4 produced
+cases that were already covered; M2 produced a third kind, and it is the one
+worth naming: **an unwritten case is as likely to be an unbuilt promise as a
+missing test.**
+
+- The list **still groups by series and sorts newest-first**. The concept
+  review of 2026-08-08 decided the opposite — one flat list, the active trip
+  first, upcoming ascending, archived descending, the series a *chip* on the
+  row — and both the UI-Spec and the Addendum say so. `TripListPage` renders
+  tappable series headers and sorts every segment through `tripOrderKey`
+  descending. The case describing the decision had been filed as a second
+  **E2E-M2-06**, colliding with the Share case; it is E2E-M2-15 now, and it
+  stays unwritten, because a case written before the rebuild would leave a red
+  suite pointing at work nobody has scheduled. E2E-M2-02, which describes the
+  series headers, is its other half and is deliberately not written either:
+  writing it would nail down behaviour two documents say should not exist.
+- The row has **no participant avatars**. The UI-Spec removed the presence
+  facepile on 2026-08-28 — G-10 is right that presence is meaningless off a
+  specific trip — and left the words *„and participant avatars"* standing
+  beside the removal. Travellers are not presence and need no subscription, so
+  the question is real; it is an owner decision, not a gap.
+- **`trips.imported` is written and read by nothing.** M15's migration sets
+  it, the store carries it into `Trip.imported`, FR-16.2 and the UI-Spec both
+  promise an *„Imported"* chip, and no surface renders one. It is the exact
+  mirror of FR-25.19's `packer_user_id`, which #194 found with a reader and no
+  writer — and the mirror is worth keeping in mind, because the two are found
+  by opposite methods. A column nothing writes is caught by trying to produce
+  the state through the app; a column nothing reads is caught only by asking
+  what displays it.
+
+None of the three is fixed here. This was an audit, and the audit's job is to
+say which of its findings are tests and which are decisions.
+## A credential that nothing remembers (2026-08-30)
+
+FR-23.7, ADR-039. What was asked for was "API tokens, creatable in the UI and
+on the CLI, listable and deletable, never in plaintext, shown once". What
+shipped drops two of those on purpose, and the path from one to the other is
+the part worth recording.
+
+**The premise moved twice.** The first thing checking turned up is that a
+long-lived credential was *already possible*: `authed` trusts any HS256 JWT
+signed with the session secret, and the server names that mode on startup —
+*"multi-user mode (externally minted session tokens)"*. So the feature was
+never "credentials that outlive fifteen minutes". It was a way to make one
+without hand-crafting a JWT, and — the only part that cost anything to decide
+— whether it should be revocable and listable, which a signed token cannot be
+without storage behind it.
+
+**Then a measurement moved it again.** The concept's first draft designed the
+stored version: a table, a two-part token, an indexed lookup, three endpoints,
+a management screen. The argument against the cheap alternative was "you
+cannot revoke", whose escape hatch — rotating `JITPACK_SESSION_SECRET` —
+looked like a blunt instrument because it appeared to log everyone out. It
+does not. Refresh tokens are opaque values stored hashed, not signed, so a
+rotation voids only the fifteen-minute access tokens and every browser
+recovers by itself. **Checking that one sentence deleted a table, a schema
+change, three endpoints and a screen** — and under invariant 2 the schema
+change was the expensive part, because it means every database rebuilt,
+including the one holding real trips.
+
+The caveat is the half that survives: `handleAuthRefresh` answers `501` where
+no IdP is configured, so on such an instance a rotation *does* log everyone
+out. That belongs in `docs/`, not only in an ADR, because the operator reading
+it may not be on the comfortable case.
+
+**The feature found a hole in something older.** `authed` established that a
+subject was *not deactivated*, and the store answered "not deactivated" for an
+id no row carries — so a credential naming nobody passed the gate. At fifteen
+minutes that is almost unreachable. At ninety days it is not, because **a
+token outlives the account it was minted for**. Existence and deactivation are
+now one question, and the shape matters: an enum whose zero value denies,
+rather than a pair of sentinel errors, so a caller that reads the value beside
+a non-nil error cannot thereby grant access. `UserDeactivated` was deleted
+rather than left beside it — an unsafe door that still opens gets used again.
+The unknown subject is refused with the *same* answer a bad signature gets, so
+probing cannot enumerate ids.
+
+**One rule looks like the thing the concept refused, and is not.** §9 rejects
+scopes, for the reason scopes deserve: a rule every handler must check is
+silently wrong wherever it is forgotten. Refusing a token the right to mint
+another token has the same silhouette. The difference is that a scope asks
+*which resources may this credential touch* — open-ended, asked everywhere —
+while this asks *may this credential extend its own life*, which has exactly
+one place to be asked, because exactly one endpoint answers with a credential.
+Without it a leaked token renews itself before its own expiry and `exp` — the
+only bound an unmanaged token has — stops bounding anything.
+
+**Single-User Mode is where invariant 5 had teeth here.** The usual story is
+that an `authed`-gated endpoint is inert in that mode. This one would not have
+been inert, it would have been *open*: `authed` is bypassed entirely there, so
+the handler is reachable with no credential at all. It answers `501` as its
+first statement, before it reads the body, and the test for it was written
+before the handler.
+
+**Two things the client had never done once.** Copying to a clipboard, and
+showing a value in a monospace face. Both went where the invariants put them —
+`client/src/lib/clipboard.ts` with the `execCommand` fallback a plain-http
+instance needs, and a `.jp-mono` role in the type table — rather than inline
+in the component, which is also what made the first testable and the second
+pass the token gate. The reveal renders the token **as text** and then offers
+to copy it, which is what lets the e2e case assert on what the person sees
+instead of on a browser permission.
 ## Six numbers that each meant two things (2026-08-30)
 
 M5 is the third screen through the audit of backlog item 6, and the first
