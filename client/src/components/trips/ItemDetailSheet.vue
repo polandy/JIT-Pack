@@ -561,7 +561,11 @@ const packedStamp = computed(() => {
     </section>
 
     <!-- FR-20.4: companions of this item that are not on the list yet. -->
-    <section v-if="suggestedCompanions.length > 0 && !isLocked" class="sec" data-testid="m5-companions">
+    <section
+      v-if="suggestedCompanions.length > 0 && !isLocked"
+      class="sec"
+      data-testid="m5-companions"
+    >
       <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('item.companions') }}</h2>
       <IonChip
         v-for="companion in suggestedCompanions"
