@@ -12,7 +12,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import ContainerSheet from '../ContainerSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
-import type { Container, TripItem } from '@/types/domain'
+import type { Container, Traveler, TripItem } from '@/types/domain'
 
 function container(id: string, overrides: Partial<Container> = {}): Container {
   return {
@@ -58,8 +58,8 @@ function item(id: string, containerId: string, weightGrams: number): TripItem {
 /** Seeds through the store's public applyChange, the same door sync uses. */
 function seed(
   store: ReturnType<typeof useTripStore>,
-  table: 'containers' | 'trip_items',
-  entity: Container | TripItem,
+  table: 'containers' | 'trip_items' | 'travelers',
+  entity: Container | TripItem | Traveler,
 ) {
   const { id, ...row } = entity
   store.applyChange({ seq: 0, table, id, deleted: false, row })
@@ -156,6 +156,24 @@ describe('ContainerSheet', () => {
     ;(input.element as HTMLInputElement & { value: string }).value = 'Left'
     await input.trigger('ionBlur')
     expect(orchestratorFake.updateContainer).toHaveBeenCalledTimes(1)
+  })
+
+  // FR-10.1 calls the carrier *optional*, and E2E-M11-01 promises editing
+  // it. E2E-M11-05 sets one and reads it back off the card; nothing at any
+  // layer took one off again until 2026-08-30 (backlog item 6), so a chip
+  // that could only ever be handed on was indistinguishable from one that
+  // toggles.
+  it('tapping the carrier again clears it — the carrier is optional (FR-10.1)', async () => {
+    const store = useTripStore()
+    seed(store, 'travelers', { id: 'andy', trip_id: 't1', name: 'Andy', linked_user_id: null })
+    seed(store, 'containers', container('left', { carrier_traveler_id: 'andy' }))
+
+    const wrapper = mountSheet('left')
+    await wrapper.get('[data-testid="m11-carrier-andy"]').trigger('click')
+
+    expect(orchestratorFake.updateContainer.mock.calls[0]![2]).toEqual({
+      carrier_traveler_id: null,
+    })
   })
 
   it('omits the carrier section when the trip has no travelers (absent, not emptied)', () => {

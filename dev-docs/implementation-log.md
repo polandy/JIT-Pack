@@ -199,6 +199,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
+- [An assertion that was true before the click (2026-08-30)](#an-assertion-that-was-true-before-the-click-2026-08-30) — backlog item 6, M11/M12. A screen where every id was implemented and two clauses still had no test: an assertion whose locator both dimensions render, a KPI checked where its two halves were equal, and the question that finds the shape. Plus two promises with a reader and no writer.
 - [The debt register empties, and one clause of it was never built (2026-08-30)](#the-debt-register-empties-and-one-clause-of-it-was-never-built-2026-08-30) — the four inherited id collisions read against their screens. Three were plain duplicates; the fourth split three ways and left a promise the quick-add has never kept.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
 
@@ -9022,6 +9023,80 @@ state itself offers. One sentence naming four screens counted as four, which
 is the same shape as the review rule about one rule written into N
 templates. Recorded against the id; owed to M2's next pass, not built here.
 
+## An assertion that was true before the click (2026-08-30)
+
+Backlog item 6, screens M11 and M12. The first pair in this programme where
+**every case id was already implemented** — seven for M11, seven for M12,
+none unwritten, none swapped, none shadowed. On the count that started the
+programme these two screens owed nothing at all, and the audit still found
+two clauses with no test and two promises with no code.
+
+**The shape: a clause whose assertion cannot fail.** E2E-M12-01 promises the
+dimension switcher reaches *Person / Kategorie / Gepäck*. It clicked *Gepäck*
+and asserted `analytics-slice-none` was visible — but the absence bucket is
+keyed `''` in **every** dimension (that is deliberate: the key is whatever M4
+facets on), and the trip's one item was uncategorized *and* unassigned. So the
+element the case waited for was already on screen before the click, and a
+segment button wired to nothing would have passed. The same case asserted the
+weight KPI as `5.0 kg / 5.0 kg`, in a world of exactly one packed item: a
+template printing `plannedWeight` on both sides of the slash satisfied it too.
+
+The test for this shape is one question, and it is cheap enough to ask of
+every assertion in a case that follows an action: **would this have passed
+before the action?** It is not the same question as *„is there an assertion
+for this clause"*, which both of these answered yes to, and it is not caught
+by a mutation proof of the *case* either — the case was green, and nobody had
+tried to redden it since the rebuild.
+
+**What was hiding under it.** FR-10.4 says containers are the data source of
+FR-8.2's *Luggage* dimension, and the traceability matrix has credited
+E2E-M12-01 with surfacing it since the screen was rebuilt. No test had ever
+put an item in a bag and opened M12 — the Gepäck view existed in the suite
+only as that undischargeable click. Rewritten, the case now builds a bag
+through M11's own FAB, assigns one of two weighted rows to it, packs that one,
+and asserts two slices where Kategorie shows one, the bag named and carrying
+its load. A dead segment now fails on the count alone, and packed and planned
+are two different numbers.
+
+**Two more credited-but-unasserted clauses**, both cheap once named. The
+FR-25.15 matrix row credits E2E-M11-05 with *„no Save button"*; the case
+asserted only that the save indicator is present. And FR-10.1 calls the
+carrier optional — M11-05 hands a bag to a traveler and reads the name off the
+card, and **nothing at any layer had ever taken a carrier off again**, so a
+chip that could only assign was indistinguishable from one that toggles. The
+first is an e2e absence with the visible indicator beside it as its positive
+signal; the second is a write rule and went to the write layer, as a
+`ContainerSheet` unit case.
+
+**And two promises with a reader and no writer** — the shape FR-25.19's
+`packer_user_id` and `trips.imported` had, found twice more here and left
+untested on purpose, because a case written first is a red suite pointing at
+work nobody scheduled:
+
+- **FR-10.3's per-trip imbalance threshold.** `imbalanceThreshold()` reads
+  `attributes.imbalance_threshold`, both container surfaces call it, and the
+  domain unit test pins that an override is honoured. Nothing writes the key:
+  the M3 wizard writes `season`, `transport_mode`, `accommodation` and `tags`;
+  M16 writes the series' defaults of the same three; M22 does not touch
+  attributes at all. Every imbalance the app has ever shown is measured
+  against the default 15 %.
+- **UI-Spec M11's *„and from M12"*.** `AnalyticsPage.vue` pushes exactly one
+  route, `/trips/{id}`. Tapping a Gepäck bar sets the container facet on the
+  packing list, which is FR-8.2's action and not this edge.
+
+**The cost accepted:** the four M11 navigation helpers moved into
+`fixtures.ts` so the M12 unit could build a bag, rather than being copied into
+a second spec. That is the M9 unit's lesson taken as a rule — its two
+byte-identical navigation sequences differed only in a missing wait, and only
+the comparison found it — and it makes `fixtures.ts` a slightly busier shared
+file for the sake of one flow that now exists once.
+
+**A stale sentence found on the way**, unrelated to the tests: UI-Spec M12
+still said M12's amounts stay unit-less because the instance has no configured
+currency and one would be an owner decision. FR-21.9 built `JITPACK_CURRENCY`
+the same week. The line was true when written, which is exactly how a spec
+sentence survives being wrong — nothing re-reads a *States* bullet when a
+different screen's feature lands.
 ## The debt register empties, and one clause of it was never built (2026-08-30)
 
 `case-id-gate.mjs` shipped with four inherited collisions in it — `E2E-M3-11`,

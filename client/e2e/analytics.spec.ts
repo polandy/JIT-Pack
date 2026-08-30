@@ -1,7 +1,10 @@
 import {
   test,
   expect,
+  assignToContainer,
+  createContainer,
   createTripViaWizard,
+  openLuggage,
   openQuickAdd,
   tripAction,
   expectTripActionOffered,
@@ -118,30 +121,57 @@ test.describe('M12 analytics @local @m12', () => {
     await seedMode({ mode: 'local' })
   })
 
-  // E2E-M12-01 (FR-8.1/8.2): dimension switcher and packed-vs-planned
+  // E2E-M12-01 (FR-8.1/8.2/10.4): dimension switcher and packed-in-planned
   // bars, with the trip totals beside them.
+  //
+  // Rewritten 2026-08-30 (backlog item 6): two of its clauses could not
+  // fail. The trip carried one item, packed, so "packed / planned" read
+  // "5.0 kg / 5.0 kg" — a KPI that printed the planned weight twice
+  // satisfied it. And the switch to *Gepäck* asserted `analytics-slice-none`,
+  // which the Kategorie view it started on already rendered for the same
+  // uncategorized item: the same locator was visible before and after the
+  // click, so a segment that changed nothing passed. FR-10.4 — containers
+  // are the data source of the Gepäck dimension — was credited to this case
+  // while no test had ever put an item in a bag and looked at this screen.
   test('E2E-M12-01: bars per dimension value with packed/planned weight and totals', async ({
     page,
   }) => {
     await createMasterItem(page, 'Zelt', 5000)
+    await createMasterItem(page, 'Kocher', 1000)
     await createTripViaWizard(page, TRIP)
     await quickAddFromMaster(page, 'Zelt')
+    await quickAddFromMaster(page, 'Kocher')
 
-    // Pack it, so packed and planned diverge visibly from zero.
+    // A real bag with a real load: the Gepäck dimension's data source.
+    await openLuggage(page)
+    await createContainer(page, 'Packsack')
+    await assignToContainer(page, 'Zelt', 'Packsack')
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+
+    // Pack one of the two, so packed and planned differ.
     await page.getByTestId('m4-row-Zelt').getByTestId('row-check').locator('ion-checkbox').click()
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
 
     await openAnalytics(page)
 
-    // Category view (default): one bucket, the uncategorized one.
+    // Kategorie (the default): both items are uncategorized, so one bucket
+    // holds the pair — and it states the packed kilos inside the planned.
     const slice = visible(page).getByTestId('analytics-slice-none')
     await expect(slice).toBeVisible()
     await expect(slice).toContainText('5.0 kg')
+    await expect(slice).toContainText('6.0 kg')
+    await expect(visible(page).getByTestId('analytics-kpi-weight')).toContainText('5.0 kg / 6.0 kg')
 
-    await expect(visible(page).getByTestId('analytics-kpi-weight')).toContainText('5.0 kg / 5.0 kg')
-
-    // The switcher reaches every dimension (FR-8.2).
+    // Gepäck (FR-8.2's third dimension, FR-10.4's data source): the same two
+    // rows fall apart into the bag that carries one and the absence bucket
+    // holding the other. Two slices where Kategorie had one, and the bag is
+    // named — a segment that changed nothing fails on the count alone.
     await visible(page).getByTestId('analytics-dim-container').click()
-    await expect(visible(page).getByTestId('analytics-slice-none')).toBeVisible()
+    const bags = visible(page).locator('[data-testid^="analytics-slice-"]')
+    await expect(bags).toHaveCount(2)
+    await expect(bags.filter({ hasText: 'Packsack' })).toContainText('5.0 kg')
+    await expect(bags.filter({ hasText: 'No luggage' })).toContainText('1.0 kg')
   })
 
   // E2E-M12-02 (FR-8.2): items without weight aggregate as an honest
