@@ -81,6 +81,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile and badge; the per-person list is unbuilt) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
+| Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
@@ -2331,6 +2332,40 @@ item name. A per-person item has no `m4-row-<name>` at all — it is a cluster
 head with child rows — so the two-argument convenience of the older cases could
 not address the row this one has to claim.
 
+## FR-21.9 — the amount finally says what it is in (2026-08-30)
+
+**E2E-M9-09**, `single`, in `single/instance-currency.spec.ts`. The chain is
+four links long — the operator's `JITPACK_CURRENCY`, the endpoint, the
+client's fetch at boot, `formatValue` — and only a rendered row crosses all
+four. A unit test covers the last link and would stay green against a broken
+first one.
+
+**Why `single` and not `all`.** Local Mode has no server to ask, so its
+amounts stay unit-less; that is the feature's stated cost, not a gap in the
+case. The project's backend is started with `JITPACK_CURRENCY=CHF` in
+`playwright.config.ts`, which makes the setting ambient for every `single`
+case: a screen that renders an amount and drops the currency turns some case
+red rather than passing quietly.
+
+**Two clauses, both asserted.** `CHF` proves the label arrived; `129.50`
+proves nothing converted it. The second is the one worth having — a currency
+feature that quietly rescaled amounts would satisfy the first assertion
+perfectly.
+
+**Three Ionic traps, paid in three red runs:**
+
+- A **header action is not inside the router outlet**. `visiblePage(page)`
+  scopes to `ion-router-outlet > .ion-page:not(.ion-page-hidden)`, and the one
+  app bar (ADR-011) lives outside it, so `m9-properties` is reached unscoped.
+- **Escape does not dismiss an Ionic sheet modal.** The case clicks the
+  backdrop, which is also what a person does.
+- **`toHaveCount(0)` never arrives for a dismissed modal.** The test id sits on
+  the `ion-modal` host, which Ionic keeps mounted and only empties, so the
+  assertion is `toBeHidden()`.
+
+**The case id was taken.** E2E-M9-08 already belongs to the UX-4 heading-gap
+case; this is the second time a fresh id has collided with `main`. Grep the
+spec *and* the ledger *and* `client/e2e` before claiming one.
 ## M6's twenty-two promises, read against the screen (2026-08-30)
 
 Backlog item 6 says a green `e2e` job is not a verified UI, and M6 is where that
@@ -2383,4 +2418,3 @@ a screen nobody built, and two more would have frozen a rule the app had already
 reversed on purpose. **Reading the promise against the screen has to come before
 reading it against the test** — the id existing means somebody once meant it,
 not that anything answers to it.
-

@@ -117,6 +117,20 @@ export interface PushResponse {
 }
 
 /**
+ * MasterDeleteResponse answers a DELETE on a single master row.
+ *
+ * Retired carries what the status code cannot: FR-24.3 keeps a row the rest
+ * of the data still resolves against, so a 200 does not always mean the row
+ * is gone. A caller cleaning up has to be able to tell the two apart without
+ * pulling the partition back down.
+ */
+export interface MasterDeleteResponse {
+  outcome: MutationOutcome
+  retired: boolean
+  pull_hint: PullHint
+}
+
+/**
  * WSEventType is the kind of a WebSocket frame.
  */
 export type WSEventType =
@@ -298,6 +312,19 @@ export interface VAPIDKeyResponse {
 export interface AuthConfigResponse {
   authorize_url: string
   client_id: string
+}
+
+/**
+ * InstanceConfigResponse carries what the client must know about the
+ * instance before it renders anything, and nothing that identifies a
+ * caller — it is answered without a session, in every mode.
+ *
+ * Currency is an ISO-4217 code, or empty where the operator named none:
+ * amounts then stay unit-less, as they were before FR-21.9. It is a label,
+ * never a conversion — the stored amount is already in this currency.
+ */
+export interface InstanceConfigResponse {
+  currency: string
 }
 
 /**

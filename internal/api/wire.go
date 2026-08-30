@@ -107,6 +107,20 @@ type PushResponse struct {
 	PullHint PullHint         `json:"pull_hint"`
 }
 
+// --- Master row deletion (ADR-038) ---
+
+// MasterDeleteResponse answers a DELETE on a single master row.
+//
+// Retired carries what the status code cannot: FR-24.3 keeps a row the rest
+// of the data still resolves against, so a 200 does not always mean the row
+// is gone. A caller cleaning up has to be able to tell the two apart without
+// pulling the partition back down.
+type MasterDeleteResponse struct {
+	Outcome  MutationOutcome `json:"outcome"`
+	Retired  bool            `json:"retired"`
+	PullHint PullHint        `json:"pull_hint"`
+}
+
 // --- WebSocket (Sync-API §7) ---
 
 // WSEventType is the kind of a WebSocket frame.
@@ -268,6 +282,17 @@ type AuthConfigResponse struct {
 	ClientID     string `json:"client_id"`
 }
 
+// InstanceConfigResponse carries what the client must know about the
+// instance before it renders anything, and nothing that identifies a
+// caller — it is answered without a session, in every mode.
+//
+// Currency is an ISO-4217 code, or empty where the operator named none:
+// amounts then stay unit-less, as they were before FR-21.9. It is a label,
+// never a conversion — the stored amount is already in this currency.
+type InstanceConfigResponse struct {
+	Currency string `json:"currency"`
+}
+
 // SessionTokens is the first-party session pair the login broker issues.
 // ExpiresIn is the access token's lifetime in seconds.
 type SessionTokens struct {
@@ -368,6 +393,9 @@ const (
 	PathUserID         = "userID"
 	PathItemID         = "itemID"
 	PathNotificationID = "notificationID"
+	PathTagID          = "tagID"
+	PathTemplateID     = "templateID"
+	PathTemplateItemID = "templateItemID"
 )
 
 // Every path this instance serves, declared once. The server registers from
@@ -394,6 +422,15 @@ const (
 	RouteMasterSync           = "/api/v1/master/sync"
 	RouteMasterConflicts      = "/api/v1/master/conflicts"
 	RouteMasterConflictRevert = "/api/v1/master/conflicts/{conflictID}/revert"
+
+	// One master row, addressed directly, so deleting it does not mean
+	// composing a mutation (ADR-038). The app itself does not call these —
+	// it writes through the push above so its writes survive being offline —
+	// and both doors run the same FR-24.3 rule underneath.
+	RouteMasterTag          = "/api/v1/master/tags/{tagID}"
+	RouteMasterItem         = "/api/v1/master/items/{itemID}"
+	RouteMasterTemplate     = "/api/v1/master/templates/{templateID}"
+	RouteMasterTemplateItem = "/api/v1/master/template-items/{templateItemID}"
 
 	// The caller's own scope. The full export lives here because it is
 	// filtered to what the caller may pull, and it names its format.
@@ -428,6 +465,12 @@ const (
 	RouteAuthToken   = "/api/v1/auth/token"
 	RouteAuthRefresh = "/api/v1/auth/refresh"
 	RouteAuthConfig  = "/api/v1/auth/config"
+
+	// Instance-wide settings the client renders with (ADR-027: scope
+	// first). Deliberately its own path rather than a field on
+	// /auth/config, which answers 501 in Single-User Mode and would
+	// therefore hide the settings from a mode that has them.
+	RouteInstanceConfig = "/api/v1/instance/config"
 
 	// Outside the versioned surface on purpose: the socket carries the
 	// versioned frame in its payload, and a health probe is not an API.

@@ -191,6 +191,9 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The shop stops asking three times for one purchase (2026-08-29)](#the-shop-stops-asking-three-times-for-one-purchase-2026-08-29) — FR-25.6. The premise that made M6's aggregation invisible for three weeks, why the buy row is keyed by M4's own function rather than a second one, and the two places that had to follow the aggregation once it existed — the reveal and the tab counts.
 - [A rule that was complete and invisible (2026-08-30)](#a-rule-that-was-complete-and-invisible-2026-08-30) — E2E-G3-04. The G-3 cluster lock shipped correct and unobservable: every other G-3 surface names its holder, and the one surface that could inherit none of them said nothing at all. Why writing the two-identity case is what found it, and why the release — not the pack — is what the positive half needs.
 - [A row kept saying it was skipped after it had stopped being (2026-08-30)](#a-row-kept-saying-it-was-skipped-after-it-had-stopped-being-2026-08-30) — where FR-25.13f's ✕ meets FR-25.21's editor. Why the fix is a derivation rather than a policy, why only one of the two cases is worth a confirm, and the two fields deliberately left alone.
+- [Seventeen unwritten cases, two worth writing (2026-08-30)](#seventeen-unwritten-cases-two-worth-writing-2026-08-30) — backlog item 6, taken screen by screen instead of by the count. What M6's unwritten ids turned out to be, why a coverage number is not a backlog, and the four promises the app had already reversed.
+- [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
+- [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 
 ## Current state
 
@@ -8345,3 +8348,144 @@ were packed by that person and `packed_count` still says so. Clearing the
 timestamp while keeping the name would render FR-25.17's stamp half-erased —
 „gepackt von Andy" with no when — which is worse than a true stamp on a row that
 has since grown.
+## A row gets a door of its own, and the app keeps its old one (2026-08-30)
+
+FR-24.4, ADR-038. The request was "a clean API I can use, and clean up with" —
+and, a message later, "the API should also be used between frontend and backend".
+The second half is the part worth recording, because it is a reasonable sentence
+that the architecture cannot honour, and saying so was the whole design work.
+
+**The frontend cannot use a REST delete as its write path.** Not a preference:
+every client write goes into the outbox as a clocked mutation
+(`enqueueAndDrain`), which is what lets it survive being offline, and Local Mode
+has no server at all — deletion there runs entirely in the browser. A route the
+client depended on would remove the feature from a supported mode (invariant 5).
+Having it call the route when online and the outbox when not would leave *three*
+write paths for one act, with the online one exercised in development and the
+offline one — the one an offline-first app most needs confidence in — not. So
+the two callers differ in transport and share the rule: `DeleteMasterRow` mints
+the `mutation_id` and the HLC and hands an ordinary delete to the same
+`ApplyMasterMutation` the push calls. The handler holds no decision at all,
+which is the property that keeps the doors from drifting (ADR-025's lesson).
+
+**An error code that nothing could emit, caught before it shipped.** The first
+version had a `still_referenced` code and a 409 branch, copied from the shape of
+the refusal the push can produce. It is unreachable for this endpoint's four
+tables, and only checking made that visible: `items` and `templates` are
+lifecycle tables, so a reference *retires* them (FR-24.3) instead of refusing;
+`tags` and `template_items` appear in `blockingReferences` not at all. Both
+branches were deleted, and the claim underneath them became
+`TestDeletableTables_CannotBeRefusedAsStillReferenced_FR24_3` — a comment
+asserting reachability rots, a test asserting it fails the day someone widens the
+allowlist to a table that can be refused. The refusal path is still there, as
+*one* branch: what it must never do is fall through to 200, because a refusal
+reported as a deletion tells a cleanup script the row is gone while it is not.
+
+**A test that asked three questions read as two defects.** The API test driving
+all four routes seeded them the way the app would have the data — the position
+pointing at both the item and the Vorlage — and then two subtests failed. Both
+"failures" were correct behaviour: the item was *retired* because the position
+referenced it, and the Vorlage's position was gone because the FK cascades. The
+test had conflated routing, FR-24.3 and the cascade, and the fix was in the
+seed, not in the code: every target is now a row nothing references, so the test
+answers only the question it asks — *does each route delete from its own table* —
+which is the copy-paste defect four near-identical registrations invite. The
+retire and the cascade keep their own named tests. A failing test that turns out
+to describe correct behaviour is a test that was measuring more than one thing.
+
+**`retired` is read back, not inferred.** The response distinguishes FR-24.3's
+two deletions by asking what became of the row after the mutation, rather than by
+having the merge report it. That is not a second decision — the decision ran once,
+inside the mutation — and it is the field the status code cannot carry: a 200 on a
+retired row does not mean the row is gone, and without it a caller cleaning up
+would have to pull the whole partition back down to find out what it had done.
+
+## The amount finally says what it is in (2026-08-30)
+
+Three owner decisions were settled on 2026-08-30; two of them closed
+unchanged and are recorded where their rules live (the G-3 lock stays
+advisory, CLAUDE.md item 14; M4's header keeps its name in the page rather
+than the bar, UI-Spec M4). This is the third, and the only one with code.
+
+**The setting had been described for months and never existed.** UI-Spec M10
+named an *"instance currency"* from the concept round; the locale pass found
+in August that nothing implemented it and corrected the spec to say amounts
+are unit-less. That correction was honest and left the question open. It is
+answered now: `JITPACK_CURRENCY`.
+
+**The endpoint that looked like it would carry it could not.** `/auth/config`
+is the one thing the client already asks the server before rendering, so it
+was the obvious home — and it is wrong for exactly one reason: it answers 501
+in Single-User Mode, *by design*, because that 501 is how the client discovers
+the mode (invariant 5). Hanging an instance-wide display setting off it would
+have hidden the currency from a mode that has one. Hence a second small
+public endpoint, `GET /api/v1/instance/config`, scoped-path-first per ADR-027,
+answering without a session because nothing in it is about a caller.
+
+**Per instance, and the reason is not convenience.** A per-device or
+locale-derived currency was the cheaper build — no endpoint at all — and it
+produces a wrong answer rather than a limited one: `de-CH` and `de-DE` would
+disagree about a number that belongs to neither of them, and two family
+members would read the same jacket in two currencies. One database holds one
+set of amounts. That is also why the value only ever labels: no rate, no
+history, no second currency exists anywhere in the model, so a conversion
+would have nothing to convert with.
+
+**Local Mode's cost was accepted, not designed around.** It has no server, so
+its amounts stay unit-less. The tempting fix — a device-level setting for that
+mode alone — was rejected: it would make the currency a device opinion in the
+one mode where it is least ambiguous, and give a single value two writers, the
+shape ADR-025 exists to undo. The status quo is not a regression, and if this
+ever matters the answer is a setting in *every* mode, not one bolted onto the
+mode that lacks a server.
+
+**A typo stops the server.** Ignoring a malformed code would leave exactly one
+visible symptom — a missing label — which names neither cause nor fix. The
+refusal at start-up names both.
+
+## Seventeen unwritten cases, two worth writing (2026-08-30)
+
+Backlog item 6 has always been a number that grows: 370 case ids in the
+UI-Test-Spec, 250 with a test. M6 was the first screen taken through it, and it
+had the widest gap — 17 of 22 ids unwritten, **none of them marked *not
+implemented***, so every one read as a description of built behaviour.
+
+Two of the 17 needed a new case. The other fifteen split three ways, and the
+split is the point.
+
+**Four were already asserted, under other ids.** M6-03 (free text into either
+list) and M6-19 (a suggestion adopting its master item's category) are what
+E2E-M6-01 does to *set up* its groups; M6-16's M6 half is the confirm button
+every add in that case taps; M6-02's two promises were both in M6-17 and M6-22
+already. Writing them as their own cases would have re-run existing assertions
+for the sake of an id — the mistake this project made once before, when a
+search for a free case *number* found one and the behaviour it described turned
+out to have two cases already.
+
+**Four described behaviour the app had deliberately reversed.** M6-11 still
+promised that the ＋ FAB *„expands the quick-add and focuses it"* and that
+*„an empty field collapses it on blur"*: M6 has no FAB, FR-25.13c removed the
+focus because the keyboard covered the chips, and FR-25.13a removed the
+blur-collapse because it reflowed the list under the next tap. M6-04 promised
+M4's *„entry/badge hidden"* on an empty list, where the code says in its own
+comment why the entry stays. Had these been written as specified, the suite
+would have grown four green tests pinning four rules the app had already
+argued its way out of.
+
+**Eight described a screen nobody built** — FR-25.12's row sheet, FR-25.13a's
+description and assignee fields, FR-25.11g's filter bar, FR-25.11k's search,
+FR-25.6's per-item note. `ShoppingPage.vue` is 300 lines and imports two
+components. That is not a coverage gap; writing those cases is building four
+features. The owner retired all but FR-25.12's sheet, which is being built.
+
+**The lesson is about the number.** A coverage count says how many promises have
+no test; it says nothing about how many are worth one, and on this screen the
+honest answer was two. **Read the promise against the screen before reading it
+against the test** — an id existing means somebody once meant it, not that
+anything answers to it. What made the difference cheap was doing it as one pass
+over one screen rather than case by case across the spec.
+
+One thing did have to be *added* rather than asserted: E2E-M6-17 reported that
+a bought row went *„on the packing list"* and never went to look. The note was
+a string. It now visits M4 and finds the row, and pinning the mutation to
+`buy_before` reddens it.

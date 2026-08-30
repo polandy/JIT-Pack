@@ -35,9 +35,11 @@ type Server struct {
 	keyFunc        jwt.Keyfunc
 	validMethods   []string
 	singleUserMode bool
-	localUserID    string
-	hub            *Hub
-	oidc           *oidcBroker
+	// currency is the instance-wide ISO-4217 label (FR-21.9); empty ⇒ none.
+	currency    string
+	localUserID string
+	hub         *Hub
+	oidc        *oidcBroker
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
 	pushContact string
@@ -130,6 +132,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodPost, RouteMasterSync), s.authed(s.handlePushMaster))
 	mux.HandleFunc(pattern(http.MethodGet, RouteMasterConflicts), s.authed(s.handleListMasterConflicts))
 	mux.HandleFunc(pattern(http.MethodPost, RouteMasterConflictRevert), s.authed(s.handleRevertMasterConflict))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTag),
+		s.authed(s.deleteMasterRow(store.TableTags, PathTagID)))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterItem),
+		s.authed(s.deleteMasterRow(store.TableItems, PathItemID)))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTemplate),
+		s.authed(s.deleteMasterRow(store.TableTemplates, PathTemplateID)))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTemplateItem),
+		s.authed(s.deleteMasterRow(store.TableTemplateItems, PathTemplateItemID)))
 
 	// The caller's own scope.
 	mux.HandleFunc(pattern(http.MethodGet, RouteMe), s.authed(s.handleMe))
@@ -169,6 +179,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodPost, RouteAuthToken), s.handleAuthToken)
 	mux.HandleFunc(pattern(http.MethodPost, RouteAuthRefresh), s.handleAuthRefresh)
 	mux.HandleFunc(pattern(http.MethodGet, RouteAuthConfig), s.handleAuthConfig)
+	mux.HandleFunc(pattern(http.MethodGet, RouteInstanceConfig), s.handleInstanceConfig)
 	mux.HandleFunc(pattern(http.MethodGet, RouteWS), s.wsAuth(s.handleWS))
 	mux.HandleFunc(pattern(http.MethodGet, RouteHealth), func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -113,7 +113,14 @@ it. Item numbers stay stable even as items close, because the log refers back to
 6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written and the per-screen cases
    are landing screen by screen. **`dev-docs/e2e-tests.md` is the ledger of what is actually
    covered, and it is the file to read and update** — a green `e2e` job is not the same as a
-   verified UI (log: *„What ‚covered by e2e' was not covering"*).
+   verified UI (log: *„What ‚covered by e2e' was not covering"*). Measured 2026-08-30:
+   **250 of 370 case ids have a test.** The count is not the backlog, though — **M6 was the
+   first screen taken through it**, and of its 17 unwritten ids only two needed a new case:
+   four were already asserted by cases that existed, four described behaviour the app had
+   deliberately reversed, and eight described a screen nobody built. Retired that day
+   (owner): M6's filter bar, search field, composer fields and per-item note; **owed and
+   decided to be built:** FR-25.12's row sheet. Log: *„Seventeen unwritten cases, two worth
+   writing"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
@@ -146,10 +153,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    consequential being that the stated deviation covers every generation-relevant field, not
    only the quantity. Log: *„FR-27.15: the editor learns to recognise its own duplicates"*.
 
-14. **The multi-user concept's unfinished half** — the concept itself is built and holds
+14. ~~**The multi-user concept's unfinished half**~~ — **closed 2026-08-30** — the concept itself is built and holds
    (NFR-4.2a: HLC + field-level LWW, additive fields, terminal precedence, the `conflict_log`,
-   G-3's lock, presence, FR-25.19/25.20's assignment). Five places do not do what the spec says,
-   each verified in the code, worst first:
+   G-3's lock, presence, FR-25.19/25.20's assignment). Five places did not do what the spec said,
+   each verified in the code, worst first — all five are closed:
    **(a)** ~~`groupDecision` let *any* incoming `packed` win regardless of HLC~~ — **done**
    (2026-08-22, ADR-022): the real fault under it was one `updated_hlc` per row where §6 says
    per field-group; `field_hlcs` now carries a clock per field, rule 2 is the two pairs §6
@@ -167,8 +174,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    that finding — the server neither expiring a lock nor refusing a push for one — **is not a
    defect and was not built**: §7 makes the lock advisory on purpose, and refusal would wedge an
    offline device's outbox — reaffirmed by the owner 2026-08-23, the lock stays a client-side
-   courtesy. **Open as an owner decision** if collision *prevention* is wanted instead of
-   avoidance. What was still missing is that a claim could only *end* by packing the row or by
+   courtesy. **Decided 2026-08-30 (owner): it stays advisory** — the question was reopened and
+   closed unchanged, so item 14 owes nothing. What refusal would buy is prevention of a collision
+   the field-level merge and the conflict log already survive; what it would cost is the one case
+   the app is built for, a device that packed rows offline and meets a claim taken while it was
+   away, whose outbox has no answer to a permanent rejection. What was still missing is that a claim could only *end* by packing the row or by
    ageing out: it can be **released** now, and an aged claim says it aged instead of letting the
    row go quiet. Log: *„The lock stopped at the row"*, *„A claim had no way out"*.
    ~~**(e)** NFR-4.2a promises audit **and manual revert**~~ — **done** (2026-08-22,

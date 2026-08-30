@@ -27,6 +27,15 @@ export const API = {
   masterConflicts: '/api/v1/master/conflicts',
   masterConflictRevert: (conflictID: string) => `/api/v1/master/conflicts/${conflictID}/revert`,
 
+  // One master row, addressed directly, so deleting it does not mean
+  // composing a mutation (ADR-038). The app itself does not call these —
+  // it writes through the push above so its writes survive being offline —
+  // and both doors run the same FR-24.3 rule underneath.
+  masterTag: (tagID: string) => `/api/v1/master/tags/${tagID}`,
+  masterItem: (itemID: string) => `/api/v1/master/items/${itemID}`,
+  masterTemplate: (templateID: string) => `/api/v1/master/templates/${templateID}`,
+  masterTemplateItem: (templateItemID: string) => `/api/v1/master/template-items/${templateItemID}`,
+
   // The caller's own scope. The full export lives here because it is
   // filtered to what the caller may pull, and it names its format.
   me: '/api/v1/me',
@@ -60,6 +69,12 @@ export const API = {
   authToken: '/api/v1/auth/token',
   authRefresh: '/api/v1/auth/refresh',
   authConfig: '/api/v1/auth/config',
+
+  // Instance-wide settings the client renders with (ADR-027: scope
+  // first). Deliberately its own path rather than a field on
+  // /auth/config, which answers 501 in Single-User Mode and would
+  // therefore hide the settings from a mode that has them.
+  instanceConfig: '/api/v1/instance/config',
 
   // Outside the versioned surface on purpose: the socket carries the
   // versioned frame in its payload, and a health probe is not an API.

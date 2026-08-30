@@ -20,6 +20,7 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_OIDC_CLIENT_SECRET` | with OIDC | — | The client secret. JIT-Pack is a confidential client — the secret stays server-side and is never handed to the app. |
 | `JITPACK_ADMIN_EMAILS` | no | — | Comma-separated e-mail addresses that hold the instance-admin role, matched case-insensitively against the **verified** address the IdP reports. See [Instance admins](#instance-admins). |
 | `JITPACK_PUSH_CONTACT` | no | — | Operator contact for Web Push, used as the VAPID `sub` claim shown to push services, e.g. `mailto:ops@example.com`. The VAPID keypair itself is generated and persisted on first use — there is nothing else to configure. |
+| `JITPACK_CURRENCY` | no | — | The currency your item values are in, as a three-letter ISO 4217 code such as `CHF` or `EUR`. Amounts are shown with it everywhere they appear. Leave it unset and amounts stay bare numbers. See [Currency](#currency). |
 
 Trailing slashes on `JITPACK_OIDC_ISSUER` are stripped before use, so `https://auth.example.com/` and `https://auth.example.com` are equivalent.
 
@@ -124,6 +125,24 @@ curl -s https://auth.example.com/.well-known/openid-configuration | jq -r .issue
     The same string is later required as the `iss` claim of every ID token the broker validates. If the check could be relaxed, a misrouted URL would silently wire the broker to a different identity provider and it would still appear to work. When the check fires, fix the configured value — there is no way to skip it.
 
 ---
+
+## Currency
+
+Item values are stored as a plain amount. `JITPACK_CURRENCY` says what that amount is *in*:
+
+```bash
+JITPACK_CURRENCY=CHF
+```
+
+Every place that shows a value — the inventory, an item's details, the trip analytics — then shows it with that currency, formatted the way each person's language expects: `CHF 1'250.00` for a Swiss German device, `1.250,00 CHF` for a German one.
+
+Three things worth knowing before you set it:
+
+- **It only labels; it never converts.** The amounts already in your database are not touched and not recalculated. If you have been typing francs and you set `EUR`, every number stays exactly as it was and simply reads as euros — which would be wrong. Set the currency you have actually been using.
+- **It applies to the whole instance.** There is no per-person setting, because one database holds one set of amounts.
+- **A typo stops the server.** `JITPACK_CURRENCY=EURO` or `JITPACK_CURRENCY=€` refuses to start, and says so. That is deliberate: the alternative is a server that starts fine and quietly shows no currency at all, leaving you to guess why.
+
+Leaving it unset is a normal choice. Amounts then appear as bare numbers, exactly as they did before this setting existed.
 
 ## Instance admins
 
