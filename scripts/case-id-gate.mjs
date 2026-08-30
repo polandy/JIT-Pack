@@ -29,16 +29,6 @@ import { resolve } from 'node:path'
 const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
 const SPEC = resolve(root, 'dev-docs/UI_Test_Spec_v1.0.md')
 
-/**
- * Ids whose second definition predates the gate, with the screen that owns
- * fixing them. This is a debt register, not a carve-out: each line is removed
- * by the audit of that screen, and the list may only ever get shorter. A new
- * collision is a failure, never an entry here.
- *
- * Empty since 2026-08-30: the four it opened with (E2E-M3-11/-12/-13 and
- * E2E-M4-32) were read against their screens and resolved. Keep it empty.
- */
-const KNOWN_COLLISIONS = new Map([])
 
 /**
  * A line that *defines a live case*: a top-level bullet headed by the id and
@@ -57,13 +47,11 @@ for (const [, id] of spec.matchAll(DEFINITION)) {
 }
 
 const collisions = [...seen].filter(([, n]) => n > 1).map(([id]) => id)
-const fresh = collisions.filter((id) => !KNOWN_COLLISIONS.has(id))
-const fixed = [...KNOWN_COLLISIONS.keys()].filter((id) => !collisions.includes(id))
 
-if (fresh.length > 0) {
+if (collisions.length > 0) {
   console.error(
-    `case-id-gate: ${fresh.length} case id(s) defined more than once in ${SPEC}:\n` +
-      fresh.map((id) => `  ${id}`).join('\n') +
+    `case-id-gate: ${collisions.length} case id(s) defined more than once in ${SPEC}:\n` +
+      collisions.map((id) => `  ${id}`).join('\n') +
       '\n\nA number means what the suite implements. Give the newer promise its own\n' +
       'id, and leave the older entry in place — struck through, re-headed, and\n' +
       'saying where its promise went — so a reader arriving from an old commit\n' +
@@ -72,17 +60,4 @@ if (fresh.length > 0) {
   process.exit(1)
 }
 
-if (fixed.length > 0) {
-  console.error(
-    `case-id-gate: ${fixed.length} known collision(s) are resolved — remove them from\n` +
-      `KNOWN_COLLISIONS in ${import.meta.filename ?? 'scripts/case-id-gate.mjs'}:\n` +
-      fixed.map((id) => `  ${id}`).join('\n'),
-  )
-  process.exit(1)
-}
-
-const owed = KNOWN_COLLISIONS.size
-console.log(
-  `case-id-gate: ok — ${seen.size} case ids, one definition each` +
-    (owed > 0 ? ` (${owed} pre-existing collision(s) owed to the M3 and M4 audits)` : ''),
-)
+console.log(`case-id-gate: ok — ${seen.size} case ids, one definition each`)

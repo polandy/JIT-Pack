@@ -284,9 +284,12 @@ find out what happened to the id it names.
 id has more than one *live* definition; a struck entry keeps its number on
 purpose and is a tombstone, not a definition. Writing it turned up **four more
 collisions on other screens** — `E2E-M3-11`, `-12`, `-13` and `E2E-M4-32`, each
-a live pair carrying two different promises. They are listed in the gate as a
-debt register that may only shrink, owed to the M3 and M4 audits; the list is
-not a carve-out, and a *new* collision fails the build outright.
+a live pair carrying two different promises. They were held in the gate as a
+shrink-only debt register and **resolved on the same day** — three were
+duplicates of ids implemented under their own number, and the fourth left one
+clause the quick-add has never kept. The register is gone with them: the gate
+now carries one rule and no escape hatch, so a collision has to be resolved
+rather than registered.
 
 
 * **E2E-M5-09** `all` (UI-Spec M5): tapping a row opens the detail **over** the list — M4 stays on screen — and the ✕ returns to the trip's own URL.

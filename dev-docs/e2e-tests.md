@@ -2569,8 +2569,9 @@ one of them defined the same id twice *inside a single commit*, and every
 automatic signal moved the reassuring way — the count of ids with a test rose
 each time. Writing the gate immediately found **four more**, `E2E-M3-11`,
 `-12`, `-13` and `E2E-M4-32`, all live pairs with two different promises. They
-sit in the gate's debt register, owed to those screens' own audits; a new
-collision is simply a failure.
+went into the gate as a shrink-only debt register — **and out of it the same
+day**, see *The four inherited id collisions* below. The register is gone with
+them; the gate carries one rule and no escape hatch.
 
 **Held against the screen, the twelve sorted the way the two earlier audits
 did** — four already asserted elsewhere (the G-3 lock banner, the delegation
