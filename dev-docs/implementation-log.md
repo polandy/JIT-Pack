@@ -219,6 +219,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 
 - [A rule that arrived after its tests (2026-08-30)](#a-rule-that-arrived-after-its-tests-2026-08-30) — backlog item 6, M21 and M22. A refusal added to a screen five days after its cases and invisible to every one of them; reading an *element list* instead of an id list; and the race fixed once in a case rather than in the file it lived in.
 
+- [A field that was there and had no width (2026-08-30)](#a-field-that-was-there-and-had-no-width-2026-08-30) — backlog item 6, M14 and M16. The first screen with no coverage at any layer, the control that turned out not to render at all, why no assertion could have found it, and two clauses on M14 that could not have failed where they stood.
+
 ## Current state
 
 > **Repack (Return-Trip Mode) is REMOVED (owner decision, 2026-07-17).** Spec retired (PRD Addendum
@@ -9977,3 +9979,66 @@ is itself a piece of production reasoning**: this one encoded an assumption
 about base64 that nothing checked, in a test written precisely because the
 authors did not want to assume things about token validation. The fix flips a
 character before the last, where all six bits are meaningful.
+
+## A field that was there and had no width (2026-08-30)
+
+Backlog item 6, M14 and M16 — two screens at opposite ends of the range. M14
+had all six ids implemented and a component test carrying most of its rules.
+M16 had **nothing at any layer**: four unwritten ids, no spec file, no unit
+test, and not one `data-testid` in `SeriesPage.vue`, which is the signature
+the M20 pass named for a screen no test has ever rendered.
+
+**The finding is what rendering it produced, and no assertion could have
+produced it.** M16's destination checklist has an add row: a text field, a
+mode picker, a `＋`. The field rendered at **zero width**. Ionic gives
+`ion-select` `width: 100%`, which as a flex item is a flex-basis of the whole
+row — the free space is already negative, so the input beside it, at
+flex-basis 0, grows by nothing and shrinks to nothing. FR-13.3's editor could
+not be typed into at all, and had not been since whenever that layout last
+changed. What makes it worth writing down is the *shape of its invisibility*:
+the native input is in the DOM, `getByTestId` resolves it, its computed
+`flex` is `1 1 0%` and its height is 44px. Every property a test would think
+to check is correct. Only the bounding box is empty, and the only things that
+say so are Playwright's *visible* precondition and the screenshot beside it.
+This is invariant 9b's argument arriving from the other side: a control can
+satisfy every rule it is subject to and still not be a control, and only a
+rendered pixel can tell you.
+
+**A second false-green nearly shipped inside the case that found it.**
+`toContainText` on an `ion-select` matches the host's text, and the host
+contains every `ion-select-option` — so `toContainText('Summer')` is true of a
+season select nobody has ever touched. The draft asserted exactly that, and it
+passed. What caught it was asserting the *untouched* second series first: the
+same locator was true there too. The value lives in `.select-text`, and the
+untouched assertion stays in the case as the reason.
+
+**On M14, two clauses could not have failed where they stood.** The why line
+has two branches — *„auf dieser Reise nicht gebraucht"* and *„auf {n} Reisen
+nicht gebraucht"* — and E2E-M14-01's trip belongs to no series, so only the
+singular one is reachable. The plural branch had never been rendered anywhere,
+and the reason is a split that reads like coverage from either end: the
+*domain* takes the count as a parameter and unit-tests both values, and the
+function deriving it from the series' archived trips is the page's own, tested
+nowhere. It is the shape a reader-with-no-writer has, one layer up: a
+parameter with no tested producer. The other was the FR-27.12 peek on a
+proposal's target group — `m14-peek-*` in no test and in no spec sentence, on
+a screen where every other control was covered, so no id count could point at
+it.
+
+**And one promise's own two halves are the same sentence.** E2E-M14-06 says
+archiving a trip with no flags skips the assistant *„with a nothing-to-review
+toast"*. `review.nothingToast` and `review.empty` are character-identical in
+both catalogues, so a case asserting the toast's text alone passes just as
+well on the screen the clause is about not reaching. The case reads the
+archived trip's own closing card instead. Writing it also produced a flake
+that is not a flake: *Reise gestartet* is still on screen when the second
+toast arrives, and `page.locator('ion-toast')` matching two elements is a
+strict-mode failure that surfaces intermittently.
+
+**Left for the owner:** UI-Spec M14 says the archived trip's closing card
+*„teases the first two proposals"*. It renders a heading, a hint and two
+buttons, and reads no proposal at all. No case id claims it, so nothing is
+red — the same treatment the M2 and M11 audits gave their unkept promises: the
+sentence is struck rather than reworded, because a spec that adopts whatever
+the code does has stopped being a decision.
+
