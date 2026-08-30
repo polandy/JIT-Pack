@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { test, expect, createTripViaWizard, createMasterItem, openQuickAdd } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 
 /**
@@ -146,15 +146,6 @@ test('M4: the row menu neither opens the sheet nor eats the next tap @local @m4'
   await expect(page.getByTestId('m5-sheet')).toBeVisible()
 })
 
-/** Create a master item through M9/M10's own path. */
-async function createMasterItem(page: Page, name: string) {
-  await page.goto('/tabs/items')
-  await shown(page).getByTestId('m9-fab').click()
-  await shown(page).getByTestId('m10-name').locator('input').fill(name)
-  await shown(page).getByTestId('m10-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-}
-
 // E2E-M4-40 (FR-5.5 with FR-20.2): the cascade is the reason the snackbar
 // carries names at all — a list that shortened itself by two rows on one
 // tap owes the user an account of the second.
@@ -206,7 +197,7 @@ test('M4: skipping a main item names the companion it took along @local @m4', as
 
 // E2E-M5-16 (FR-5.5): the findable half. The stepper says how many; only
 // this says "none, on purpose", and it is spelled out rather than held.
-test('M5: the sheet says a thing is not coming, and takes it back @local @m5', async ({
+test('E2E-M5-16: the sheet says a thing is not coming, and takes it back @local @m5', async ({
   page,
   seedMode,
 }) => {

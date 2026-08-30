@@ -1,6 +1,12 @@
 import type { Page } from '@playwright/test'
 
-import { test, expect, createTripViaWizard, visiblePage as visible } from './fixtures'
+import {
+  test,
+  expect,
+  chooseInSelect,
+  createTripViaWizard,
+  visiblePage as visible,
+} from './fixtures'
 
 /**
  * M6 — shopping views (UI-Test-Spec §6).
@@ -197,15 +203,6 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
-
-  /** Pick a value from an `ion-select`'s popover, the way M17's language switch is driven. */
-  async function chooseInSelect(page: Page, testid: string, label: string) {
-    await page.getByTestId(testid).click()
-    const popover = page.locator('ion-popover ion-select-popover')
-    await expect(popover).toBeVisible()
-    await popover.locator('ion-item', { hasText: label }).click()
-    await expect(page.locator('ion-popover')).toHaveCount(0)
-  }
 
   /**
    * A trip whose "Kurze Hosen" is bought before departure and belongs to

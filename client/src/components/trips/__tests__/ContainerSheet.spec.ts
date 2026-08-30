@@ -67,6 +67,8 @@ function seed(
 
 const orchestratorFake = {
   syncStatus: { state: { value: 'idle' } },
+  // FR-25.15: the indicator's own signal, deliberately not the one above.
+  capturePending: { value: false },
   updateContainer: vi.fn(),
   pairContainer: vi.fn(),
   unpairContainer: vi.fn(),

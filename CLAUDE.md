@@ -155,13 +155,34 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `server` for the data section, which is a *different section* in Local Mode. Also worth
    carrying: **the theme toggle had never been pressed**, because every colour test seeds
    `jitpack_theme` and asserts the palette. Log: *„A promise that was its own defect"*.
-   **M9 followed 2026-08-30 and found a fifth shape: two ids that were simply on the wrong
+   **M5 followed as well**, and
+   found the failure mode the other two could not: **an id can mean two things**. Six
+   `E2E-M5-*` numbers were each defined twice — the v1.0 catalogue and the §3.25 rebuild,
+   in one section, never reconciled — so four *green* tests read as coverage of four
+   promises nothing asserted. Neither commit that caused it is reviewable as a mistake
+   (both are pure additions to a long list) and the coverage count went **up** each time.
+   The rule that resolved it, and the one to reuse: **a number means what the suite
+   implements**; the loser is struck through in place and says where its promise went,
+   never renumbered, because a reader arriving from an old commit has to land somewhere
+   that explains it. Under the collision sat the audit's real finding: FR-25.15's save
+   indicator was a relabelled G-2 glyph on all four sheets carrying it, so offline — the
+   one case the requirement exists for — an open write said *saved*. It had survived
+   because the component's doc comment quoted the requirement, its unit test pinned the
+   defect as the rule, and the shadowed id made the promise look answered from every
+   direction. Owner retirements: M5-01, -03, -04, -09, -06(A), and FR-7.3's never-built
+   resolution restriction. **The class is a gate now** — `scripts/case-id-gate.mjs`, in
+   `make ci` — because nothing here was catchable by eye; it found **four more** live
+   collisions the same hour (`E2E-M3-11/-12/-13`, `E2E-M4-32`), which are a shrink-only
+   debt register owed to those screens' audits. Log: *„Six numbers that each meant two
+   things"*.
+   **M9 followed the same day and found a sixth shape: two ids that were simply on the wrong
    tests.** The §3.24 rebuild wrote the spec entries and the tests in one commit and numbered
    the tests `E2E-M9-02`/`E2E-M9-03`, whose entries describe the FAB's creation mode and a
    multi-select merge — so for a year the two behaviours those ids promise had no test while
    reading as covered, and the two that *were* tested (M9-05/06) read as implemented under
-   somebody else's number. **No gate can find this**: each id is used exactly once, so a
-   duplicate check is green, and the totals are identical either way. Renumbered, and the two
+   somebody else's number. **`scripts/case-id-gate.mjs`, landed one PR earlier, cannot find
+   this**: each id is used exactly once, so the duplicate check is green, and the totals are
+   identical either way — a swap is not a collision. Renumbered, and the two
    ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
    and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
    and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
