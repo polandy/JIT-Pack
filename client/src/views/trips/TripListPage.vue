@@ -651,6 +651,7 @@ async function handleRefresh(event: CustomEvent) {
                 <!-- FR-18.3: portable YAML export with progress choice -->
                 <IonItemOption
                   color="tertiary"
+                  :data-testid="`m2-export-${trip.name}`"
                   :aria-label="t('trips.actionExport')"
                   @click="exportTrip(trip)"
                 >
@@ -670,6 +671,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="trip.status === 'archived'"
                   color="primary"
+                  :data-testid="`m2-clone-${trip.name}`"
                   :aria-label="t('trips.actionClone')"
                   @click="$router.push(`/trips/${trip.id}/clone`)"
                 >
@@ -680,6 +682,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="trip.status === 'planning'"
                   color="primary"
+                  :data-testid="`m2-start-${trip.name}`"
                   :aria-label="t('trips.actionStart')"
                   @click="startTrip(trip.id)"
                 >
@@ -689,6 +692,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-else-if="trip.status === 'active'"
                   color="medium"
+                  :data-testid="`m2-archive-${trip.name}`"
                   :aria-label="t('trips.actionArchive')"
                   @click="archiveTrip(trip.id)"
                 >
@@ -698,6 +702,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="canDelete(trip)"
                   color="danger"
+                  :data-testid="`m2-delete-${trip.name}`"
                   :aria-label="t('trips.actionDelete')"
                   @click="deleteTrip(trip)"
                 >
