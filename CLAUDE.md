@@ -183,7 +183,23 @@ it. Item numbers stay stable even as items close, because the log refers back to
    somebody else's number. **`scripts/case-id-gate.mjs`, landed one PR earlier, cannot find
    this**: each id is used exactly once, so the duplicate check is green, and the totals are
    identical either way — a swap is not a collision. Renumbered, and the two
-   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
+   **M11 and M12 followed 2026-08-30, and both had every id implemented** — so
+   the audit's product was not new cases but a **seventh shape: a clause whose
+   assertion cannot fail.** E2E-M12-01 switched to the *Gepäck* dimension and
+   asserted `analytics-slice-none`, which the *Kategorie* view it started on
+   already rendered — the absence bucket is keyed `''` in every dimension, so
+   the same element was on screen before and after the click; and its
+   packed/planned KPI was asserted in a world where the two were equal.
+   Underneath sat FR-10.4, credited to the case while **no test had ever put an
+   item in a bag and opened the screen**. The check that finds this shape:
+   **would the assertion have passed before the action?** Two more clauses were
+   credited and unasserted (M11-05's absent Save button, FR-10.1's carrier being
+   *optional* — nothing had ever cleared one), and **two promises are unbuilt**:
+   FR-10.3's per-trip imbalance threshold is honoured by the domain and written
+   by no screen, and UI-Spec M11's *„and from M12"* edge does not exist. Both
+   open with the owner, deliberately untested. Log: *„An assertion that was true
+   before the click"*. And the
+   ids M9 freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
    and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
    and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
    decision, and note PRD FR-27.5 argues against fuzzy matching partly *because* M9 can merge).
