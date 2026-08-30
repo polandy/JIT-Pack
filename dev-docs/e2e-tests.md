@@ -1625,6 +1625,9 @@ as more than it is:
   cases do not.
 - **A real provider.** ADR-029 accepts this outright: an Authelia-specific
   defect still ships green, and Track H's deployment is where it gets paid.
+  **Half of that bill is now mechanical** (2026-08-30) — see the section at
+  the end of this file — and the half that is not has a written procedure
+  instead of an intention.
 
 ## FR-9.3/9.4 — the closing pass, and what its cases had to be careful about (2026-08-24)
 
@@ -2366,3 +2369,77 @@ perfectly.
 **The case id was taken.** E2E-M9-08 already belongs to the UX-4 heading-gap
 case; this is the second time a fresh id has collided with `main`. Grep the
 spec *and* the ledger *and* `client/e2e` before claiming one.
+
+## The real provider — what a machine checks, and what a person must (2026-08-30)
+
+ADR-029 kept a real Authelia out of the Playwright suite and wrote down the
+cost: *„an Authelia-specific defect still ships green"*, to be paid by a
+manual pre-release check against the family instance. That check existed as
+an intention. This is it, split by what each half can actually establish.
+
+### The mechanical half
+
+`internal/api/realprovider_test.go`, opted into with an issuer:
+
+```bash
+JITPACK_REAL_IDP_ISSUER=https://auth.example.com go test ./internal/api/ -run RealProvider -v
+```
+
+Four read-only GETs against published metadata — no client secret, no
+account, nothing written — so it is safe to point at production, which is
+the only place the real answers are. Skipped without the variable, so `make
+ci` and the pipeline are untouched: neither can reach a homelab, and a check
+that needs the network must never be why a build goes red.
+
+**It runs the shipped resolver, not a second reading of it.** The discovery
+case calls `api.FetchDiscovery`, so the issuer-equality rule is asserted by
+the code that runs at start-up.
+
+**What it protects, and why each one is worth a case.** A provider does not
+refuse an unsupported capability loudly; it grants less, and the failure
+surfaces much later wearing a different costume. `offline_access` missing is
+a session that stops renewing days after anyone would connect the two. A
+missing `name`/`preferred_username` is an account provisioned with a blank
+display name. An unpublished `email_verified` is an instance admin who
+silently never gets the role, because an unasserted flag reads as false
+(FR-23.1). Each failure names that consequence rather than only the gap.
+
+**Falsified, not assumed.** Green against the real instance proves nothing
+on its own, so the check was run twice more: against the same issuer with a
+trailing slash, which is the trap `docs/authentication.md` names and which
+fails with the mismatch printed; and against a locally served copy of the
+real document degraded in three places (no `offline_access`, `plain`
+instead of `S256`, `claims_supported` cut to `sub` and `email`, a JWKS
+holding one non-signing key). Every assertion failed, each naming its
+consequence. A conformance check that has never been red is a green light
+wired to nothing.
+
+**First run against the family instance** (2026-08-30, `https://auth.1-0.io`):
+all four cases pass. The endpoints resolve under `/api/oidc/`, the signing
+key is `kid=b4108f-rs256`, and every scope the client asks for is advertised.
+
+### The half that needs a person
+
+These are behind a real user session and no metadata document describes
+them. Run them by hand against the family instance before a release, with a
+real account:
+
+1. **The login itself** — password page, the second factor Authelia's
+   `family_two_factor` policy requires, and any consent screen. The mock IdP
+   models none of this: it renders an account chooser and grants
+   immediately.
+2. **The round trip lands back in the app** — `/auth/callback` on the app's
+   origin, the dashboard greeting carrying the display name UserInfo
+   supplied. Authelia sets `authorization_response_iss_parameter_supported`,
+   so the callback carries an `iss` parameter the mock never sends; what is
+   being checked is that it is ignored rather than tripped over.
+3. **The session renews** — leave the app open past the access token's
+   lifetime, or clear it, and confirm the refresh grant works. This is the
+   one `offline_access` buys, and the metadata check only proves it was
+   *offered*.
+4. **A deactivated account loses access** — the asymmetry the MVP plan
+   records (ADR1): marking a user disabled in Authelia blocks new logins
+   and **keeps honouring refresh tokens already issued**. Deactivate in
+   JIT-Pack, or revoke at Authelia; confirm which one you did and that it
+   took effect. This is the single most important item here, because the
+   safe-looking action is the one that does nothing.
