@@ -1078,6 +1078,7 @@ export const en = {
   'shopping.beforeDeparture': 'Before departure ({n})',
   'shopping.atDestination': 'At destination ({n})',
   'shopping.uncategorized': 'Uncategorized',
+  'shopping.forWhom': 'for {names}',
   'shopping.bought': 'Bought: {name}',
   'shopping.showBought': 'Show {n} bought',
   'shopping.hideBought': 'Hide {n} bought',

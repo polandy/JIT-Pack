@@ -53,7 +53,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
-| M6 shopping (composer wiring, FR-25.11j reveal) | E2E-M6-21, E2E-M6-17, E2E-M6-22 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
+| M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-17, E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M9-08 (tag-axis clearance, UX-4), E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
 | FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
@@ -2273,3 +2273,32 @@ reading the two side by side is what found it:
 The general form: **a case id in the UI-Test-Spec is a list of promises, and each
 clause has to be findable as an assertion.** The id existing is not the coverage,
 and a green case named after the promise is exactly what hides its absence.
+
+## FR-25.6 — one buy row for a per-person item (2026-08-29)
+
+**E2E-M6-05 / E2E-M6-06**, both `local`, in `shopping.spec.ts`. The item is made
+per-person the way a person makes one — M5's membership editor, three travelers,
+2 / 3 / 1 — and only then looked at from the shop, so the case runs the whole
+chain rather than a fixture shaped like its own answer.
+
+**The mode is set before the conversion, on purpose.** The membership fan-out
+copies the surviving row's fields onto the rows it creates (ADR-036), so
+`buy_before` set once reaches all three; setting it afterwards from M5 would
+have set it on **one** instance, and the other two would never have arrived on
+M6 at all. That is a property of the product, not of the test: a per-person
+item's procurement mode is still a per-row decision, and nothing yet changes it
+for the whole cluster in one act.
+
+**What makes M6-06 a real assertion.** "Every instance is settled" cannot be
+read off a disappearance: two instances left behind would aggregate into a row
+of their own and the list would still show something. The positive signals are
+the **empty state** after the tap and the **restored `6×`** after the undo —
+under a check-off that settled only the first instance, the first fails and the
+second reads `4×`.
+
+Proved by mutation in the unit layer rather than the container: with the
+previous `ShoppingPage.vue` restored, four of the five new component cases go
+red — the row count, the tab count, the fan-out and the aggregated reveal — and
+the fifth, which asserts a *shared* row is left alone with exactly one call,
+stays green in both builds. That last one is the guard against an aggregation
+that swallows the ordinary case.
