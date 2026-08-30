@@ -697,7 +697,8 @@ every tag instead of its primary one drops two of those cases.
 
 ## M11 — containers (`e2e/containers.spec.ts`, 2026-08-16)
 
-Four cases, Local Mode, landing with the M11 rebuild. The pairing *write
+Six cases, Local Mode: four landed with the M11 rebuild, E2E-M11-07 with the
+UX-8 pass and E2E-M5-22 with the 2026-08-30 audit round. The pairing *write
 semantics* (both sides at once, exclusive, released on delete) are unit
 territory — `src/domain/__tests__/containers.spec.ts` — so the e2e cases
 assert only what the user can see of them: the pair set in one sheet and
@@ -714,7 +715,8 @@ What the unit cost to learn:
    assertion counts.
 2. **An overlay's dismissal is part of the interaction.** A tap that arrives
    while the previous sheet is still animating out lands on the backdrop and
-   is swallowed. `closeSheet()` therefore waits for `ion-modal.show-modal`
+   is swallowed. `closeContainerSheet()` (in `fixtures.ts` since 2026-08-30)
+   therefore waits for `ion-modal.show-modal`
    to be gone, not merely for the sheet's content to detach — the same
    settled-not-arrived rule the M7 unit paid for, one layer down.
 3. **A spec sentence is a list of promises, and each one needs its own
