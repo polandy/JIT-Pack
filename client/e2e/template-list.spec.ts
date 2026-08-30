@@ -262,11 +262,16 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     // to widen back to, and an empty instance does not.
     await createTemplate(page, 'group', 'Makro')
     await backToList(page)
+    await createTemplate(page, 'template', 'Fotoreise')
+    await backToList(page)
 
+    // Two rows, so the term has something to narrow *away* — with one row a
+    // search that ignores its input is indistinguishable from one that works.
     await page.getByTestId('search').click()
     const list = visible(page)
     await list.getByTestId('templates-search-input').fill('makro')
     await expect(list.locator('ion-item').filter({ hasText: 'Makro' })).toHaveCount(1)
+    await expect(list.locator('ion-item').filter({ hasText: 'Fotoreise' })).toHaveCount(0)
     await expect(list.getByTestId('m7-empty')).toHaveCount(0)
 
     await list.getByTestId('templates-search-input').fill('zzz')
