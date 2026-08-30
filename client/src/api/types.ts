@@ -117,6 +117,20 @@ export interface PushResponse {
 }
 
 /**
+ * MasterDeleteResponse answers a DELETE on a single master row.
+ *
+ * Retired carries what the status code cannot: FR-24.3 keeps a row the rest
+ * of the data still resolves against, so a 200 does not always mean the row
+ * is gone. A caller cleaning up has to be able to tell the two apart without
+ * pulling the partition back down.
+ */
+export interface MasterDeleteResponse {
+  outcome: MutationOutcome
+  retired: boolean
+  pull_hint: PullHint
+}
+
+/**
  * WSEventType is the kind of a WebSocket frame.
  */
 export type WSEventType =

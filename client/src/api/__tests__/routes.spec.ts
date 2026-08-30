@@ -61,6 +61,14 @@ describe('API routes', () => {
       masterSync: '/api/v1/master/sync',
       masterConflicts: '/api/v1/master/conflicts',
       masterConflictRevert: '/api/v1/master/conflicts/ID1/revert',
+      // Declared and generated but called by nothing in the client, on
+      // purpose (ADR-038): the app writes through the push so its writes
+      // survive being offline. They are pinned like every other route
+      // because generation from one declaration is what produces them.
+      masterTag: '/api/v1/master/tags/ID1',
+      masterItem: '/api/v1/master/items/ID1',
+      masterTemplate: '/api/v1/master/templates/ID1',
+      masterTemplateItem: '/api/v1/master/template-items/ID1',
       me: '/api/v1/me',
       meNotificationPrefs: '/api/v1/me/notification-prefs',
       meExport: '/api/v1/me/export.json',

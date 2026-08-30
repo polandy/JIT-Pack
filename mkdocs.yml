@@ -52,6 +52,7 @@ nav:
       - Multi-user Setup: multi-user-setup.md
       - User Management: user-management.md
       - Notifications & Push: notifications.md
+      - Cleaning Up Master Data: cleaning-up-master-data.md
       - Backup & Export: backup.md
       - Upgrades: upgrades.md
       - Troubleshooting: troubleshooting.md

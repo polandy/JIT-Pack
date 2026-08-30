@@ -107,6 +107,20 @@ type PushResponse struct {
 	PullHint PullHint         `json:"pull_hint"`
 }
 
+// --- Master row deletion (ADR-038) ---
+
+// MasterDeleteResponse answers a DELETE on a single master row.
+//
+// Retired carries what the status code cannot: FR-24.3 keeps a row the rest
+// of the data still resolves against, so a 200 does not always mean the row
+// is gone. A caller cleaning up has to be able to tell the two apart without
+// pulling the partition back down.
+type MasterDeleteResponse struct {
+	Outcome  MutationOutcome `json:"outcome"`
+	Retired  bool            `json:"retired"`
+	PullHint PullHint        `json:"pull_hint"`
+}
+
 // --- WebSocket (Sync-API §7) ---
 
 // WSEventType is the kind of a WebSocket frame.
@@ -368,6 +382,9 @@ const (
 	PathUserID         = "userID"
 	PathItemID         = "itemID"
 	PathNotificationID = "notificationID"
+	PathTagID          = "tagID"
+	PathTemplateID     = "templateID"
+	PathTemplateItemID = "templateItemID"
 )
 
 // Every path this instance serves, declared once. The server registers from
@@ -394,6 +411,15 @@ const (
 	RouteMasterSync           = "/api/v1/master/sync"
 	RouteMasterConflicts      = "/api/v1/master/conflicts"
 	RouteMasterConflictRevert = "/api/v1/master/conflicts/{conflictID}/revert"
+
+	// One master row, addressed directly, so deleting it does not mean
+	// composing a mutation (ADR-038). The app itself does not call these —
+	// it writes through the push above so its writes survive being offline —
+	// and both doors run the same FR-24.3 rule underneath.
+	RouteMasterTag          = "/api/v1/master/tags/{tagID}"
+	RouteMasterItem         = "/api/v1/master/items/{itemID}"
+	RouteMasterTemplate     = "/api/v1/master/templates/{templateID}"
+	RouteMasterTemplateItem = "/api/v1/master/template-items/{templateItemID}"
 
 	// The caller's own scope. The full export lives here because it is
 	// filtered to what the caller may pull, and it names its format.
