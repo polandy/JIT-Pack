@@ -102,6 +102,7 @@ openssl rand -hex 32
 - **No minimum length is enforced.** A short or guessable value is accepted at startup and lets anyone forge a token for any user id, so treat it exactly like a password — from your secret store, never in the compose file.
 - **Changing it invalidates every issued access token immediately.** Refresh tokens are unaffected (they are random strings stored as SHA-256 hashes, not signatures), so clients recover on their next refresh rather than being logged out.
 - It signs *JIT-Pack's own* tokens only. It is unrelated to `JITPACK_OIDC_CLIENT_SECRET`, and there is nothing to share with the IdP.
+- **Changing it also revokes every API token**, which is the only way to revoke one — see [API Tokens](api-tokens.md#revoking-tokens).
 
 ---
 

@@ -202,13 +202,24 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if deactivated, err := s.store.UserDeactivated(r.Context(), sess.UserID); err != nil {
+	state, err := s.store.AccountStatus(r.Context(), sess.UserID)
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
 		return
-	} else if deactivated {
+	}
+	switch state {
+	case store.AccountDeactivated:
 		s.endSession(r.Context(), oldHash, sessionEndDeactivated)
 		writeError(w, http.StatusForbidden, ErrAccountDeactivated, sessionEndDeactivated)
 		return
+	case store.AccountUnknown:
+		// The row went away underneath a live chain. Refreshing it forever
+		// would keep minting access tokens for nobody, so the chain ends
+		// here rather than at its own expiry.
+		s.endSession(r.Context(), oldHash, sessionEndAccountGone)
+		writeError(w, http.StatusUnauthorized, ErrUnauthorized, sessionEndAccountGone)
+		return
+	case store.AccountActive:
 	}
 
 	newRefresh := newRefreshToken()
@@ -228,6 +239,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 const (
 	sessionEndIDPRejected = "IdP rejected the session"
 	sessionEndDeactivated = "account is deactivated"
+	sessionEndAccountGone = "account no longer exists"
 )
 
 // msgSessionCleanupFailed is asserted by the tests, so it is named once
@@ -289,12 +301,22 @@ func (s *Server) provisionFromUserinfo(w http.ResponseWriter, ctx context.Contex
 // token pair. Login of a deactivated account is refused outright rather
 // than issuing tokens that every endpoint would 403 anyway (FR-23.3).
 func (s *Server) issueSession(w http.ResponseWriter, ctx context.Context, userID, idpRefreshToken string) {
-	if deactivated, err := s.store.UserDeactivated(ctx, userID); err != nil {
+	state, err := s.store.AccountStatus(ctx, userID)
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
 		return
-	} else if deactivated {
+	}
+	switch state {
+	case store.AccountDeactivated:
 		writeError(w, http.StatusForbidden, ErrAccountDeactivated, "account is deactivated")
 		return
+	case store.AccountUnknown:
+		// EnsureOIDCUser returned this id moments ago, so an absent row is
+		// this server's broken invariant, not a state of the person — a 403
+		// here would tell them their account is deactivated when it is not.
+		writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
+		return
+	case store.AccountActive:
 	}
 	now := time.Now().UTC()
 	refresh := newRefreshToken()

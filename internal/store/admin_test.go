@@ -183,11 +183,11 @@ func TestDeactivateUser_Lifecycle(t *testing.T) {
 	if err := s.DeactivateUser(ctx, testUserB); err != nil {
 		t.Fatal(err)
 	}
-	deactivated, err := s.UserDeactivated(ctx, testUserB)
+	state, err := s.AccountStatus(ctx, testUserB)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !deactivated {
+	if state != AccountDeactivated {
 		t.Error("user must be deactivated")
 	}
 	subs, err := s.PushSubscriptions(ctx, testUserB)
@@ -204,11 +204,11 @@ func TestDeactivateUser_Lifecycle(t *testing.T) {
 	if err := s.ReactivateUser(ctx, testUserB); err != nil {
 		t.Fatal(err)
 	}
-	deactivated, err = s.UserDeactivated(ctx, testUserB)
+	state, err = s.AccountStatus(ctx, testUserB)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if deactivated {
+	if state != AccountActive {
 		t.Error("user must be active after reactivation")
 	}
 }
@@ -308,11 +308,11 @@ func TestDeactivatedUser_ExcludedFromDirectoryAndNotifications(t *testing.T) {
 	if again != id {
 		t.Fatalf("provisioning must reuse the row, got %s vs %s", again, id)
 	}
-	deactivated, err := s.UserDeactivated(ctx, id)
+	state, err := s.AccountStatus(ctx, id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !deactivated {
+	if state != AccountDeactivated {
 		t.Error("a login must not reactivate a deactivated account")
 	}
 }

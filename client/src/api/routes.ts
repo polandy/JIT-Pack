@@ -41,6 +41,7 @@ export const API = {
   me: '/api/v1/me',
   meNotificationPrefs: '/api/v1/me/notification-prefs',
   meExport: '/api/v1/me/export.json',
+  meTokens: '/api/v1/me/tokens',
 
   // User scope.
   users: '/api/v1/users',

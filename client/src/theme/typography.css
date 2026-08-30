@@ -143,6 +143,14 @@
   /* G-15: the mark's face — subset to the curated index (FR-28.6). */
   --jp-font-marks: 'JP Marks', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
 
+  /*
+   * The face for a string a person has to read character by character or
+   * compare against a clipboard — today only the API token of FR-23.7.
+   * Nothing is self-hosted for it: the platform stack is what a terminal
+   * shows the same value in, which is the comparison actually being made.
+   */
+  --jp-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
   --jp-icon-xs: 14px; /* a caret inside a row                     */
   --jp-icon-sm: 17px; /* an icon set beside a line of text        */
   --jp-icon-md: 22px; /* an icon that is its own tap target       */
@@ -273,6 +281,19 @@ body {
  */
 .jp-num {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * A value that is read rather than skimmed: every character carries, so the
+ * glyphs are unambiguous and the digits are fixed-width. `overflow-wrap`
+ * belongs to the role because such a string has no spaces to break at, and
+ * without it one long token widens whatever contains it.
+ */
+.jp-mono {
+  font-family: var(--jp-font-mono);
+  font-size: var(--jp-text-sm);
+  font-variant-numeric: tabular-nums slashed-zero;
+  overflow-wrap: anywhere;
 }
 
 /*

@@ -337,6 +337,8 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 
 ### M17 — Settings & Notifications
 
+**API tokens (FR-23.7, ADR-039) — added 2026-08-30.** A block between *Administration* and *Hidden master data*: a name field, an expiry select (an hour / a day / a week / 30 days / 90 days / a year / never, **90 preselected**), and a create button. It is a **form, not a list**, because there is nothing to list — tokens are stored nowhere. On success a sheet reveals the token **as text** and then offers to copy it: a value shown exactly once has to be shown to the person, and the clipboard can be refused. The sheet says the three things nothing else will — that it will not be shown again, that a single token cannot be taken back, and that changing the instance's session secret revokes them all. Closing it is what ends the token's only readable moment. The whole block is **absent** in Single-User Mode and Local Mode (G-8): the first bypasses authentication and configures no signing secret, the second has no server, so in both a token would prove nothing there is anything to prove.
+
 * **Default travellers (FR-2.5a, 2026-08-14):** a named list, added and removed inline, shown in every mode and stored on the device. Its hint says both things that matter: this device only, and changeable per trip.
 
 * **Purpose:** Personal preferences within the declarative-infrastructure constraint (Section 2: no administrative *infrastructure* changes via the UI; application-level user administration lives in M20, proposed per Addendum 3.23).

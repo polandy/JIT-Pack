@@ -51,6 +51,7 @@ nav:
       - Authentication: authentication.md
       - Multi-user Setup: multi-user-setup.md
       - User Management: user-management.md
+      - API Tokens: api-tokens.md
       - Notifications & Push: notifications.md
       - Cleaning Up Master Data: cleaning-up-master-data.md
       - Backup & Export: backup.md
