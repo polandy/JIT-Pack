@@ -36,7 +36,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 
 | Unit | Spec cases | Mode | File |
 |---|---|---|---|
-| Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
+| Harness smoke | E2E-M19-01 (full since 2026-08-30 — the choice itself, the persistence request and the reload), E2E-M19-04, E2E-G7-01 (the Dashboard's half) | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
+| M1 dashboard (populated) | E2E-M1-01 (card, open count, three previews, the remainder, and the card into M4), E2E-M1-02 (the prep card, and that ticking resolves on the trip) | `local` | [`dashboard.spec.ts`](../client/e2e/dashboard.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
@@ -66,11 +67,12 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
-| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
+| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | M2 opening segment, settled guard | E2E-M2-14 | `single` | [`single/opening-segment.spec.ts`](../client/e2e/single/opening-segment.spec.ts) |
+| Single-User is discovered, not configured (invariant 5) | E2E-M19-02 (the `single` destination; the `server` one is `loginAs`) | `single` | [`single/mode-discovery.spec.ts`](../client/e2e/single/mode-discovery.spec.ts) |
 | Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | Profile under an OIDC session: picture editable, name not (FR-17.13, revised 2026-08-29) | E2E-M17-05, E2E-M17-05b | `server` | [`server/settings-profile.spec.ts`](../client/e2e/server/settings-profile.spec.ts) |
 | M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
@@ -82,8 +84,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
-| M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
-| G-10 trip presence | E2E-G10-01 (facepile and badge; the per-person list is unbuilt) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
+| M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
+| G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
@@ -2332,7 +2334,8 @@ the one person worth noticing marked by an *absence*. Ringing the exception
 in amber inverts all three, and it is the vocabulary G-10's own badge
 already used.
 
-**Where each half is tested, and why it is not all in one place.** A device
+**Where each half is tested, and why it is not all in one place** *(the
+premise below was refuted on 2026-08-30 — see E2E-G10-02)*. A device
 is "behind" only while its reported pull cursor sits below the trip head,
 and the client reports one the moment its pull returns — so no Playwright
 case can produce a lagging device without racing it, which this project
@@ -2347,15 +2350,20 @@ count a person with no face to point at.
 
 ### What is deliberately not covered
 
-- **Amber for a lagging device, end to end.** Producing a genuinely lagging
-  device inside one case would mean holding a pull open, which is a seam the
-  production code does not have — and inventing one to watch a colour is the
-  wrong trade. It is a unit case and a gallery entry instead.
-- **E2E-M20-03's avatar half.** *Remove avatar* changes no pixel on M20: the
-  row's `img` src is the same URL either way and the served bytes are the
-  placeholder before and after. The name half is asserted because it *is*
-  rendered; the avatar half stays where it can be stated, in
-  `store/admin_test.go`.
+- ~~**Amber for a lagging device, end to end.**~~ **Reversed 2026-08-30 —
+  E2E-G10-02.** The seam was already there and pointing the other way: a
+  lagging device is one whose pull has *not* returned, and Playwright can
+  stop a request without any production code being invented for it. What
+  made this read as impossible is that it was written as "holding a pull
+  open", which is indeed a race; blocking one is a settled state.
+- ~~**E2E-M20-03's avatar half.**~~ **Written 2026-08-30 — E2E-M20-03b**, and
+  the sentence under it was wrong twice. There is no placeholder: the avatar
+  endpoint **404s** for an account with no picture and the initials are the
+  ground (FR-23.4a). And *Remove avatar* changed no pixel for a reason that
+  was a defect rather than a fixture gap — the row is keyed by user id, so
+  the same `<img>` keeps the same `src` across the reload and the browser
+  never asks again, under a `max-age=3600` that would answer it if it did.
+  M17 has had the cache-busting query since FR-17.13; M20 now has it too.
 - **The two reasons a row offers no Deactivate.** FR-23.3 exempts admins and
   the own row, and this instance has exactly one admin — so the rendered case
   can only assert the row that is both. The split is exhaustive in
@@ -3033,6 +3041,134 @@ drift across the whole suite, not four defects, and folding it into a
 four-entry cleanup would bury it. Recorded here so the next person measuring
 coverage by grep knows the number is soft.
 
+## M1 and M19 — the front door nobody had opened (2026-08-30)
+
+The app's first two screens, read the way backlog item 6 reads a screen. They
+share a failure mode that no id count can see: **every spec in the suite passes
+through both of them to get anywhere, and passing through is not asserting.**
+
+**M19 had never been *used*.** `seedMode` writes `jitpack_mode` into
+localStorage before the app boots, which is right — a suite that clicked
+through the first-launch choice in all 40 files would be testing it 40 times
+and the screen under test never. But the consequence stood for a year: the two
+cards were asserted *visible* and neither had ever been *clicked*, so nothing
+covered what the screen exists to do. E2E-M19-01 says so itself — the ledger
+called it *partial*, and the missing part was the whole action. It is one case
+now: the card lands on M1's empty state, the device asks the browser to keep
+what is now its only copy (NFR-4.11), and a reload does not ask again.
+
+Two things that case had to be careful about. The persistence request is not
+made in the click handler — `chooseMode` persists the choice and *reloads*, and
+`connect()` asks on the way back up — so an assertion in between would have
+proved nothing; and `navigator.storage` is replaced wholesale in an init
+script, with `persisted()` answering false, because otherwise the case asserts
+what the CI browser's storage policy happens to be.
+
+**M1's populated state had never been rendered.** Three `data-testid`s on the
+screen, all three in its empty state; the visual baseline is `/tabs/dashboard`
+on a fresh Local Mode with no trips; `global-nav`, `typography` and
+`pwa-offline` all land on it and read the greeting. The signature is the one
+#242 read on M20 — an absence of test ids is what a screen nobody has driven
+looks like. Two cases now cover what it does with an active trip, and one of
+them found that **"the next 3" names an ordering nothing defines**: the preview
+is the first three of the store's array, and after a reload that array is in
+IndexedDB key order over random ids. The case flaked on the wording before it
+was rewritten to assert the rule the screen keeps — three of four, and the
+fourth counted.
+
+**And three of M1's six promises are not built.** Delegation highlighting and
+live badge counts (M1-03) — there is no badge on M1 at all; the "Late Packer"
+section (M1-06), whose entry also cited FR-5.4, *Partial Quantities*, where the
+flag is FR-5.1, so the matrix had that requirement traced to a case about
+something else; and the item name in the prep card that should reach M5. With
+them, the two clauses that *read* like coverage: FR-6.1's "my" — M1 filters by
+nobody, and a filter would empty the screen in the two modes that have no
+account — and M1-04's "at the item", where the card is the only affordance.
+None of them is fixed here.
+
+**The `single` case is the third one written**, and it exists because of what
+mutating its rule does. `E2E-M19-02`'s Single-User destination is invariant 5's
+whole mechanism: the client persists `jitpack_mode = 'server'` like any other
+server device and learns which instance it has from one 501 on
+`/auth/config`. Every `single` spec depends on that and none asserted it —
+flipping the condition turns `E2E-M2-14` red too, with a message about a
+segment label, which is precisely the argument for a case that fails saying
+*"this instance was sent to a login it cannot complete"*. The mutation cannot
+be narrowed below that: the branch is one `if` on the app's boot path.
+
+## M15 — the step nobody had opened, and the screen that opens once (2026-08-30)
+
+Backlog item 6, M15. Four of its ten ids were unwritten, and they sorted into
+three different things at once — which is why the id count said nothing useful
+here: **one was a real remainder, one was six promises in one sentence, and two
+described behaviour the wizard has never had.**
+
+| the promise | case | what it took |
+|---|---|---|
+| merge and keep-separate decide the inventory | E2E-M15-03 | Step 3 has existed since the wizard was built and **no test had ever opened it**: every fixture in the unit imports into an empty device, where there is nothing to be a duplicate *of*. The inventory is built by an import of its own, and the five-row count afterwards is what makes the merge legible. |
+| the category-*row* layout, end to end | E2E-M15-11 | The layout this wizard exists for. Everything the unit drove had its category in a column, and the only case that committed imported a sheet with no trip and no headings — so `analyzeGrid`'s heading branch had never produced a row anybody could see. |
+| the mapping gate, and the include toggle past it | E2E-M15-12 | The note existed in the suite only as M15-08's *absence*, and the per-trip include checkbox had never been clicked. |
+
+**The clause that could not fail.** E2E-M15-06 promises that a detected
+category column files the items under it *„and no item turned into one"*. With
+a category column the analysis claims **no** category rows at all — so no item
+was ever a candidate, and that half of the sentence is green by construction.
+It is falsifiable only in the rows layout, which is where it now lives: the
+mutation that stops claiming heading rows turns both headings into items and
+E2E-M15-11 reads „5 new items, 0 categories". Same shape as E2E-M12-01's
+absence bucket, arrived at from the other direction — not an assertion that was
+true before the click, but an assertion in a world that cannot break it.
+
+**Two promises the wizard never kept**, both unbuilt and both open with the
+owner rather than quietly retired:
+
+- **The grid preview.** UI-Spec M15 Step 1 says *„parser preview of detected
+  grid"* and E2E-M15-01 repeats it. Step 1 is a file button, a paste box and
+  *Analyze*; step 2 shows lists *derived* from the grid and never the grid.
+- **The noise handling is done and never shown.** NFR-4.7's trailing `?`
+  genuinely becomes an item plus an open task — `buildImportPlan` strips it,
+  `commitImport` writes the todo, and both halves are unit-covered. What
+  E2E-M15-02 promises is that the wizard **says so inline**, and no step does;
+  the user meets the tasks inside the trip. Recorded with it, because it is the
+  same sentence: the task's body is a hard-coded English string in
+  `commitImport`, which NFR-4.12 would put on the catalogue.
+
+Two smaller ones went the same way: the confirm names no **target series**
+(the picker is on step 2 and the commit writes `series_id`), and the *„failure
+rolls back completely"* in UI-Spec Step 4 has never been true — the commit is
+an approximation, validated before anything is enqueued, with no rollback and
+no progress. Neither reached the code as a defect; both were sentences describing
+a screen nobody had re-read.
+
+**The defect the new case found, which is not a coverage question at all.**
+E2E-M15-03 needs two imports in one session, and the second one could not be
+driven: after any M15 commit, the `router.replace` onto a tab root leaves that
+tab's page **unhidden in the root outlet**, so a later push renders M15
+*underneath* it — visible, fillable, and every click intercepted. Three probes
+pinned it: M2 → M15 on a fresh boot is fine, and the same click after a commit
+is not, whichever screen the commit landed on. The case reloads between the two
+imports and says why; **M18's restore replaces exactly the same way**, and its
+cases never come back for a second file. Open with the owner.
+
+Two things the reload had to learn. The three rows are re-asserted after it
+because they are also this case's **settled signal** — the dedup step reads
+`master.itemList`, and a boot that has not finished loading offers no
+duplicates at all, which would skip step 3 and leave the case green against
+nothing. And the reload waits for the **G-2 glyph** to read `local` first: in
+Local Mode `syncing` outranks it while a write is open, and reloading without
+that wait dropped the import's last row once in five runs. Both are the seam
+the production code already had; neither is a wait on time.
+
+**One honesty note on a case nobody touched.** E2E-M15-09 promises that a name
+the sheet listed twice *„is there once"*, and its body asserts the name is
+visible without counting. It cannot pass against a duplicate — Playwright's
+strict mode throws on two matches — so it is coverage; it just does not read
+like it, and the next person to relax that locator would silently lose the
+assertion.
+
+**The production diff is five test ids on step 3.** The screen was right about
+everything it does; three of the four things written about what it does *not*
+do were wrong.
 ## The subscription helper was not deterministic, and said it was (2026-08-30)
 
 `wsSubscribed` waited for the hub's `presence` frame to prove a page's trip

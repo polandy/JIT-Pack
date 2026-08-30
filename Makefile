@@ -1,6 +1,7 @@
 # Local mirror of the CI pipeline (.github/workflows/ci.yml).
 # Each target maps 1:1 to a CI job or step, so a green `make ci` predicts a
 # green pipeline. When you change a job in ci.yml, change its target here.
+# The `test` target carries the one deliberate divergence, and says why.
 .PHONY: ci ci-remote pins log-index case-ids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-build client-test client-fmt \
         e2e e2e-single e2e-server visual visual-update docker-build all
@@ -93,8 +94,9 @@ vet:
 	$(RUN) go vet $(GO_PKGS)
 
 # `gofmt -l` exits 0 even when files need formatting, so the emptiness of its
-# output is the actual assertion. CI's autoformat job would fix this for you,
-# but a formatting commit pushed onto your branch mid-review is noise.
+# output is the actual assertion. Since ADR-040 the CI `format` job asserts the
+# same thing rather than fixing it, so this is the check that keeps that job
+# from being the first place anyone hears about it. `make fmt` is the fix.
 fmt-check:
 	@test -z "$$($(RUN) gofmt -l cmd internal)" || \
 		{ echo "gofmt needed:"; $(RUN) gofmt -l cmd internal; exit 1; }
@@ -103,8 +105,22 @@ fmt: $(CLIENT_DEPS)
 	$(RUN) gofmt -w cmd internal
 	cd client && $(RUN) npm run format
 
+# The one place this file deliberately does *not* mirror its CI job: CI passes
+# `-count=1`, this does not, so Go's test cache answers for a package whose
+# inputs have not moved. That is sound rather than a shortcut — the cache key
+# is the package's own content plus its dependencies, flags and the files and
+# env the test read, so a hit means this exact run already happened; the tests
+# here are hermetic (in-memory SQLite, no network, no wall clock), which is the
+# condition under which that guarantee holds. Verified 2026-08-30 that a cached
+# run still writes a byte-identical coverage profile, so `cover` below is
+# checking real numbers and not a stale file.
+#
+# It matters because `make ci` is run repeatedly while iterating, and a session
+# working on the client re-ran the whole race suite each time to be told
+# nothing. CI keeps `-count=1`: a fresh runner has a cold cache anyway, so it
+# costs nothing there and keeps the pipeline's verdict independent of any cache.
 test: build vet
-	$(RUN) go test $(GO_PKGS) -race -count=1 -coverprofile=coverage.txt
+	$(RUN) go test $(GO_PKGS) -race -coverprofile=coverage.txt
 	@$(MAKE) --no-print-directory cover
 
 # Thresholds live in the script, shared with the ci.yml `go` job. It shells out
@@ -134,7 +150,7 @@ tidy-check:
 ## --- client job -----------------------------------------------------------
 # CI lints without --fix; the package scripts fix in place. Check, don't fix,
 # so the local run fails on the same things CI does.
-client: client-lint client-tokens client-marks client-build client-cli client-devcode client-test
+client: client-lint client-fmt client-tokens client-marks client-build client-cli client-devcode client-test
 
 # `npm ci` is CI's first client step. Locally it only needs to rerun when the
 # lockfile moved, so hang it off the stamp npm itself writes — otherwise every

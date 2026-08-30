@@ -1040,6 +1040,8 @@ export const de: Record<keyof typeof en, string> = {
   'login.completing': 'Anmeldung wird abgeschlossen…',
   'login.interrupted': 'Die Anmeldung wurde unterbrochen — bitte noch einmal versuchen.',
   'login.rejected': 'Der Server hat die Anmeldung abgelehnt.',
+  'login.deactivated':
+    'Dieses Konto ist deaktiviert. Eine erneute Anmeldung stellt den Zugang nicht wieder her — das muss eine Instanz-Administration tun.',
   'login.failed': 'Anmeldung fehlgeschlagen — Server nicht erreichbar.',
   'login.backToLogin': 'Zurück zur Anmeldung',
 
