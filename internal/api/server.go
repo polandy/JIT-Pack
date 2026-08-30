@@ -218,14 +218,25 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 		// Session tokens carry users.id directly (ADR-007): identity was
 		// established once, at login, by the broker — never per request.
 		userID := sub
-		// FR-23.3: a deactivated account loses all access — distinct
-		// error code so the client can tell it from a stale token.
-		if deactivated, err := s.store.UserDeactivated(r.Context(), userID); err != nil {
+		// One lookup answers both questions the gate has (FR-23.7):
+		// FR-23.3's deactivation gets its own code so the client can tell
+		// it from a stale token, and a subject no account carries is
+		// refused with the *same* answer a bad signature gets — telling
+		// the two apart would let an unauthenticated caller probe which
+		// ids exist.
+		state, err := s.store.AccountStatus(r.Context(), userID)
+		if err != nil {
 			writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
 			return
-		} else if deactivated {
+		}
+		switch state {
+		case store.AccountDeactivated:
 			writeError(w, http.StatusForbidden, ErrAccountDeactivated, "account is deactivated")
 			return
+		case store.AccountUnknown:
+			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "invalid token")
+			return
+		case store.AccountActive:
 		}
 		next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, userID)))
 	}

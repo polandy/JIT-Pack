@@ -112,19 +112,45 @@ func (s *Store) ReactivateUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-// UserDeactivated reports whether the account is deactivated. Unknown
-// ids are not deactivated — existence is the caller's concern.
-func (s *Store) UserDeactivated(ctx context.Context, userID string) (bool, error) {
+// AccountState is what one lookup of a users row answers.
+//
+// It is an enum rather than a pair of sentinel errors because the caller has
+// to keep a *policy* answer apart from an *infrastructure failure*: with this
+// shape a non-nil error is unambiguously a 500, and the policy answer is a
+// switch whose zero value denies.
+type AccountState int
+
+// The three states, with the denying one as the zero value on purpose: a
+// caller that forgets a case, or reads the value beside a non-nil error, must
+// not thereby grant access.
+const (
+	// AccountUnknown means no row carries that id.
+	AccountUnknown AccountState = iota
+	// AccountActive means the account exists and may act.
+	AccountActive
+	// AccountDeactivated means the account exists and is barred (FR-23.3).
+	AccountDeactivated
+)
+
+// AccountStatus resolves an id in one query.
+//
+// Existence and deactivation are one question, because a caller that asks
+// only the second one treats "no such row" as a pass — which is what let a
+// credential outlive the account it was minted for (FR-23.7).
+func (s *Store) AccountStatus(ctx context.Context, userID string) (AccountState, error) {
 	var deactivated sql.NullString
 	err := s.db.QueryRowContext(ctx,
 		`SELECT deactivated_at FROM users WHERE id = ?`, userID).Scan(&deactivated)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return AccountUnknown, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("deactivation lookup: %w", err)
+		return AccountUnknown, fmt.Errorf("account lookup: %w", err)
 	}
-	return deactivated.Valid, nil
+	if deactivated.Valid {
+		return AccountDeactivated, nil
+	}
+	return AccountActive, nil
 }
 
 // IsInstanceAdmin reports whether the account holds the declarative
