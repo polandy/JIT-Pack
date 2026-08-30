@@ -282,6 +282,22 @@ it. Item numbers stay stable even as items close, because the log refers back to
    requirement pointed at the wrong evidence, which no gate can see either. Two clauses are kept
    and named as unfalsifiable rather than counted (G10-01's exclusive badge, M20-05's mode half).
    No owner decision owed. Log: *„Two premises that had closed two cases"*.
+   **M1 and M19 closed the pass 2026-08-30**, and they share M18's shape at the scale of the
+   whole suite: **every spec seeds past M19 and lands on M1 on the way somewhere**, so the
+   first-launch choice had never been *made* by any test (M19-01 read *partial* for a year, and
+   the missing part was the action) and the populated dashboard had never been *rendered* by one
+   — three test ids on the screen, all three in its empty state. Three cases written
+   (E2E-M1-01/02 in `dashboard.spec.ts`, E2E-M19-02's Single-User half in
+   `single/mode-discovery.spec.ts`, which asserts invariant 5's own 501). **Four owner
+   decisions**, all unbuilt promises: M1's delegation highlight and badges (M1-03), its Late
+   Packer section (M1-06, whose entry also mis-cited FR-5.4 for FR-5.1), the prep card's jump to
+   M5, and — the one with a real design question in it — **M19's connectivity check (M19-02/03),
+   which cannot be written as specified**: the API sets no CORS headers on purpose, so a probe
+   against another origin cannot tell an unreachable instance from a healthy one, and the inline
+   error would lie. Two clauses were also corrected against the screen: FR-6.1's *"my"* items (M1
+   filters by nobody, and a filter would empty the screen in the two modes with no account) and
+   *"next 3"* (the preview has no order to be next in). Log: *"The check that cannot be written,
+   on the screen nobody had clicked"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
