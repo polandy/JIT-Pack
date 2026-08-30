@@ -1817,7 +1817,12 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                 <IonLabel>
                   <h3>
                     {{ entry.label }}
-                    <IonBadge v-if="openTodoCount(entry.item.id) > 0" color="brand" class="prep">
+                    <IonBadge
+                      v-if="openTodoCount(entry.item.id) > 0"
+                      color="brand"
+                      class="prep"
+                      :data-testid="`m4-prep-badge-${entry.item.name}`"
+                    >
                       <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
                     </IonBadge>
                   </h3>
