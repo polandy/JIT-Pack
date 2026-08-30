@@ -145,7 +145,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     expect(await groupHeadings(list)).not.toContain('sommer')
   })
 
-  test('E2E-M9-02: the tag axis filters on any tag, not only the primary one', async ({ page }) => {
+  test('E2E-M9-06: the tag axis filters on any tag, not only the primary one', async ({ page }) => {
     await createItem(page, 'Badehose', ['Kleidung', 'Sommer'])
     await backToInventory(page)
     await createItem(page, 'Kabel', ['Technik'])
@@ -161,7 +161,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(list.getByTestId('m9-row')).toContainText('Badehose')
   })
 
-  test('E2E-M9-03: the list is lean until the properties sheet says otherwise', async ({
+  test('E2E-M9-05: the list is lean until the properties sheet says otherwise', async ({
     page,
   }) => {
     await createItem(page, 'Wanderschuhe', ['Schuhe'], { weight: '900' })
@@ -170,14 +170,24 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     const row = visible(page).getByTestId('m9-row').first()
     // Lean by default: the weight exists on the item but not on the row.
     await expect(row).not.toContainText('900 g')
+    // ...and the eye carries no badge while nothing is shown. This is the
+    // positive signal the count below is asserted against: "the badge reads
+    // 1" is equally satisfied by a badge that always reads 1.
+    const eye = page.getByTestId('m9-properties')
+    await expect(eye.locator('ion-badge')).toHaveCount(0)
 
-    await page.getByTestId('m9-properties').click()
+    await eye.click()
     await expect(page.getByTestId('m9-properties-sheet')).toBeVisible()
     await page.getByTestId('m9-property-weight').click()
     await page.keyboard.press('Escape')
 
     // The painted row changed — not merely the stored preference.
-    await expect(visible(page).getByTestId('m9-row').first()).toContainText('900 g')
+    const shown = visible(page).getByTestId('m9-row').first()
+    await expect(shown).toContainText('900 g')
+    // *Exactly* those: enabling one property must not paint the other two,
+    // which is the whole reason FR-24.4 is three switches and not one.
+    await expect(shown).not.toContainText('Schuhe')
+    await expect(eye.locator('ion-badge')).toHaveText('1')
   })
 
   test('E2E-M9-08: the first group heading clears the tag axis instead of touching it', async ({
@@ -198,6 +208,79 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     const axisBox = (await axis.boundingBox())!
     const headBox = (await head.boundingBox())!
     expect(headBox.y).toBeGreaterThanOrEqual(axisBox.y + axisBox.height + 8)
+  })
+
+  /**
+   * E2E-M9-10 (FR-1.1): the "searchable" half of M9-01's sentence, which
+   * until now nothing typed into. G-12's own case asserts that the
+   * magnifier opens *this* screen's field; that the field then filters the
+   * list is a different promise and belongs here.
+   */
+  test('E2E-M9-10: the search filters the list and says so when nothing matches', async ({
+    page,
+  }) => {
+    await createItem(page, 'Badehose', ['Kleidung'])
+    await backToInventory(page)
+    await createItem(page, 'Kabel', ['Technik'])
+    await backToInventory(page)
+
+    const list = visible(page)
+    await expect(list.getByTestId('m9-row')).toHaveCount(2)
+
+    await page.getByTestId('search').click()
+    // A plain <input>, not an ion-input, so fill() is enough — the shared
+    // search row owns the element itself (the fillIonic note above is about
+    // Ionic's re-emitted event, which does not apply here).
+    await list.getByTestId('items-search-input').fill('bade')
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-row')).toContainText('Badehose')
+    // The group the surviving row is *not* under is gone with it: the
+    // search filters before the grouping, so an empty heading would be a
+    // heading over nothing.
+    expect(await groupHeadings(list)).not.toContain('technik')
+
+    // A term nothing matches is answered, not left as a blank page — and it
+    // is answered with the *no-match* state rather than G-7's empty one,
+    // which would offer to import an inventory that already exists.
+    await list.getByTestId('items-search-input').fill('zzz')
+    await expect(list.getByTestId('m9-row')).toHaveCount(0)
+    await expect(list.getByTestId('m9-no-match')).toBeVisible()
+    await expect(list.getByTestId('m9-empty')).toHaveCount(0)
+  })
+})
+
+/**
+ * E2E-M9-04 (G-7/NFR-4.7): the empty inventory offers the way in. Its own
+ * describe because the world is the interesting part — every other case
+ * here creates an item first, and this one must not.
+ *
+ * Nothing had ever rendered this state: `m9-empty` appears in the suite
+ * exactly once before this case, as G9-13's *absence* assertion, where it
+ * stands in for "not the inventory screen".
+ */
+test.describe('M9 inventory — the empty state (G-7)', () => {
+  test('E2E-M9-04: an empty inventory offers the spreadsheet import', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto('/tabs/items')
+
+    const list = visible(page)
+    await expect(list.getByTestId('m9-empty')).toBeVisible()
+    // G-7 is an offer, not a shrug: the tag axis and the no-match state are
+    // both absent, so what is on screen is the empty state and not a list
+    // that happens to have painted nothing.
+    await expect(list.getByTestId('m9-tag-axis')).toHaveCount(0)
+    await expect(list.getByTestId('m9-no-match')).toHaveCount(0)
+
+    await list.getByTestId('m9-import').click()
+    await expect(visible(page).getByTestId('import-paste')).toBeVisible()
+
+    // NFR-4.7: the way back is the way in reversed, and it lands on the
+    // inventory rather than on M15's other parent, the trip list.
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m9-empty')).toBeVisible()
   })
 })
 
