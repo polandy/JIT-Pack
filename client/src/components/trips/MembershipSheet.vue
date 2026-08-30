@@ -390,6 +390,13 @@ const confirmMessage = computed(() => {
   color: var(--ct-on-accent);
 }
 
+/* G-3: the tab stays where it is and stops looking tappable. Removing it
+   would take the answer to "which mode is this item in" with it. */
+.seg button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .hint {
   margin: 0;
   color: var(--ct-subtext0);
