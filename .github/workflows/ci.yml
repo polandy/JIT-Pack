@@ -13,6 +13,19 @@ on:
 permissions:
   contents: read
 
+# A second push to the same PR makes the first run's verdict worthless, but it
+# goes on holding runners — and with the e2e matrix a run is 16 jobs against
+# the 20 a public repo may have in flight, so an abandoned run does not merely
+# waste minutes, it queues the run that replaced it.
+#
+# Superseding is deliberately limited to pull requests. A `push` to main is the
+# commit that ships: its run is the record that main was green, and two pushes
+# landing close together must both be checked rather than the older one being
+# cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   go:
     runs-on: ubuntu-latest
@@ -157,15 +170,29 @@ jobs:
   # passing WebKit unit already took 31.9 s starts failing. Not more workers
   # per runner either: a runner has 4 vCPU and Playwright already takes 2.
   #
-  # Four shards, sized from the 2026-08-19 CI reports: the suite carries
-  # ~1020 test-seconds, and with `fullyParallel` Playwright splits the test
-  # list into contiguous count-equal chunks — WebKit (~630 s) sits behind
-  # Chromium (~350 s) in that list, so the split is uneven by duration.
-  # Simulated on the real durations: 2 shards land 464/557 s, 4 shards land
-  # 150/315/251/305 s. The worst leg drops from ~4.7 min of test time to
-  # ~2.6, against ~1 min of fixed cost per leg (image pull ~36 s, npm ci +
-  # build ~25 s warm). More shards pay that fixed cost again for less than
-  # a minute back.
+  # Eight shards. The count is a measurement with a shelf life, not a
+  # constant: it was four, sized on 2026-08-19 against a suite carrying
+  # ~1020 test-seconds, and the backlog-item-6 audits roughly doubled that
+  # without anyone re-reading the number. Measured 2026-08-30 (run
+  # 33327549233) the four legs ran 5.0 / 7.5 / 9.5 / 10.0 min — 139 tests
+  # each, ~1920 test-seconds total — so the pipeline's critical path was one
+  # e2e leg at 11.2 min while every other job finished inside 3.
+  #
+  # The spread across equal test counts is the same effect the split has
+  # always had: `fullyParallel` chunks the test list contiguously by count,
+  # and WebKit sits behind Chromium in that list, so a leg's duration is
+  # decided by how much WebKit it inherited. Halving the chunks halves the
+  # worst leg's inheritance with it.
+  #
+  # Fixed cost per leg is ~60 s (image pull ~40 s, npm ci + build ~21 s
+  # warm), which is what bounds this from below and is why the answer is not
+  # simply "more".
+  #
+  # Why it stops at eight rather than twelve: concurrency, not fixed cost. A
+  # run carries 8 non-e2e jobs, so eight shards make 16 — under the 20
+  # concurrent jobs a public repo gets. Twelve would put a single run at the
+  # ceiling and make two overlapping runs queue against each other, which
+  # costs more wall-clock than the extra split returns.
   e2e:
     runs-on: ubuntu-latest
     strategy:
@@ -173,7 +200,7 @@ jobs:
       # others being cancelled.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
