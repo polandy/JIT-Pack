@@ -271,6 +271,13 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     await expect(forWhom.getByTestId('user-avatar')).toHaveCount(3)
     // The tab counts things to buy, so it agrees with what the list shows.
     await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(1)')
+
+    // E2E-M6-08 (FR-25.10): *for whom* is derived and there is nothing here to
+    // re-enter it with. The row's only control is the check-off — asserted as
+    // a count rather than as an absence, so the assertion has something
+    // positive to fail against.
+    await expect(forWhom.locator('button, input, ion-select, ion-checkbox')).toHaveCount(0)
+    await expect(rows.first().locator('ion-checkbox')).toHaveCount(1)
   })
 
   // E2E-M6-06 (FR-25.6/3.3): the half that matters — one act settles every
