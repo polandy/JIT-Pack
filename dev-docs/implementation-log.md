@@ -199,8 +199,11 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
+- [An assertion that was true before the click (2026-08-30)](#an-assertion-that-was-true-before-the-click-2026-08-30) — backlog item 6, M11/M12. A screen where every id was implemented and two clauses still had no test: an assertion whose locator both dimensions render, a KPI checked where its two halves were equal, and the question that finds the shape. Plus two promises with a reader and no writer.
 - [The debt register empties, and one clause of it was never built (2026-08-30)](#the-debt-register-empties-and-one-clause-of-it-was-never-built-2026-08-30) — the four inherited id collisions read against their screens. Three were plain duplicates; the fourth split three ways and left a promise the quick-add has never kept.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
+- [A row that could not count, and a segment nobody filled (2026-08-30)](#a-row-that-could-not-count-and-a-segment-nobody-filled-2026-08-30) — backlog item 6, M7 and M23. Why a case can assert a composition and still not see the one number the row computes, the spec sentence that described an unbuilt menu as built, and the cost one screen declined that the next screen could pay once for both.
+- [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
 - [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 
 ## Current state
@@ -9022,6 +9025,241 @@ G-7 CTA is the always-present `trips-new` FAB rather than anything the empty
 state itself offers. One sentence naming four screens counted as four, which
 is the same shape as the review rule about one rule written into N
 templates. Recorded against the id; owed to M2's next pass, not built here.
+
+## An assertion that was true before the click (2026-08-30)
+
+Backlog item 6, screens M11 and M12. The first pair in this programme where
+**every case id was already implemented** — seven for M11, seven for M12,
+none unwritten, none swapped, none shadowed. On the count that started the
+programme these two screens owed nothing at all, and the audit still found
+two clauses with no test and two promises with no code.
+
+**The shape: a clause whose assertion cannot fail.** E2E-M12-01 promises the
+dimension switcher reaches *Person / Kategorie / Gepäck*. It clicked *Gepäck*
+and asserted `analytics-slice-none` was visible — but the absence bucket is
+keyed `''` in **every** dimension (that is deliberate: the key is whatever M4
+facets on), and the trip's one item was uncategorized *and* unassigned. So the
+element the case waited for was already on screen before the click, and a
+segment button wired to nothing would have passed. The same case asserted the
+weight KPI as `5.0 kg / 5.0 kg`, in a world of exactly one packed item: a
+template printing `plannedWeight` on both sides of the slash satisfied it too.
+
+The test for this shape is one question, and it is cheap enough to ask of
+every assertion in a case that follows an action: **would this have passed
+before the action?** It is not the same question as *„is there an assertion
+for this clause"*, which both of these answered yes to, and it is not caught
+by a mutation proof of the *case* either — the case was green, and nobody had
+tried to redden it since the rebuild.
+
+**What was hiding under it.** FR-10.4 says containers are the data source of
+FR-8.2's *Luggage* dimension, and the traceability matrix has credited
+E2E-M12-01 with surfacing it since the screen was rebuilt. No test had ever
+put an item in a bag and opened M12 — the Gepäck view existed in the suite
+only as that undischargeable click. Rewritten, the case now builds a bag
+through M11's own FAB, assigns one of two weighted rows to it, packs that one,
+and asserts two slices where Kategorie shows one, the bag named and carrying
+its load. A dead segment now fails on the count alone, and packed and planned
+are two different numbers.
+
+**Two more credited-but-unasserted clauses**, both cheap once named. The
+FR-25.15 matrix row credits E2E-M11-05 with *„no Save button"*; the case
+asserted only that the save indicator is present. And FR-10.1 calls the
+carrier optional — M11-05 hands a bag to a traveler and reads the name off the
+card, and **nothing at any layer had ever taken a carrier off again**, so a
+chip that could only assign was indistinguishable from one that toggles. The
+first is an e2e absence with the visible indicator beside it as its positive
+signal; the second is a write rule and went to the write layer, as a
+`ContainerSheet` unit case.
+
+**And two promises with a reader and no writer** — the shape FR-25.19's
+`packer_user_id` and `trips.imported` had, found twice more here and left
+untested on purpose, because a case written first is a red suite pointing at
+work nobody scheduled:
+
+- **FR-10.3's per-trip imbalance threshold.** `imbalanceThreshold()` reads
+  `attributes.imbalance_threshold`, both container surfaces call it, and the
+  domain unit test pins that an override is honoured. Nothing writes the key:
+  the M3 wizard writes `season`, `transport_mode`, `accommodation` and `tags`;
+  M16 writes the series' defaults of the same three; M22 does not touch
+  attributes at all. Every imbalance the app has ever shown is measured
+  against the default 15 %.
+- **UI-Spec M11's *„and from M12"*.** `AnalyticsPage.vue` pushes exactly one
+  route, `/trips/{id}`. Tapping a Gepäck bar sets the container facet on the
+  packing list, which is FR-8.2's action and not this edge.
+
+**The cost accepted:** the four M11 navigation helpers moved into
+`fixtures.ts` so the M12 unit could build a bag, rather than being copied into
+a second spec. That is the M9 unit's lesson taken as a rule — its two
+byte-identical navigation sequences differed only in a missing wait, and only
+the comparison found it — and it makes `fixtures.ts` a slightly busier shared
+file for the sake of one flow that now exists once.
+
+**A stale sentence found on the way**, unrelated to the tests: UI-Spec M12
+still said M12's amounts stay unit-less because the instance has no configured
+currency and one would be an owner decision. FR-21.9 built `JITPACK_CURRENCY`
+the same week. The line was true when written, which is exactly how a spec
+sentence survives being wrong — nothing re-reads a *States* bullet when a
+different screen's feature lands.
+
+## A row that could not count, and a segment nobody filled (2026-08-30)
+
+Backlog item 6, sixth and seventh screens: **M7** and **M23**. Same method —
+read each id as a list of promises and check each clause against the built
+screen — and this pair produced no new shape, which is itself worth recording:
+five audits in, the shapes are stable enough that the sorting is now the cheap
+part and the reading is the whole cost.
+
+**What the age of a catalogue does to it.** M7's ids were written before the
+2026-08-15 variant pass rebuilt the screen, and three of them describe surfaces
+that pass removed or never built. M7-01's *my-vs-published split* is FR-1.6's
+MVP simplification seen from the wrong side: there is nothing to render, so
+there is nothing to assert, and its other half (name and item count per row) is
+E2E-M7-07's. M7-03's *name prompt* was not left unbuilt but **rejected** — the
+name lives in the same sheet as the scope precisely so that no row exists
+before the name does, which is a promise a `prompt()` cannot make. Both are
+struck through with the case that keeps what they meant.
+
+**A spec sentence that described an unbuilt menu as built.** E2E-M7-05 promises
+*FAB "+" menu → Import from file → M18*. The FAB has no menu; it opens the
+scope chooser. The UI-Test-Spec's own 2026-08-15 amendment already said the
+entry was owed — and UI-Spec M7's *Actions* line said, in the same paragraph as
+a dozen things that are true, that the menu offers it. Two documents, one
+built screen, and only the one nobody reads while looking at the other was
+right. The Actions line is corrected; whether the menu gets built is an owner
+decision, because the *function* has a door — the header icon beside the page
+title — and a second door is a preference, not a defect.
+
+**The clause a green case could not see.** E2E-M7-07 has read *implemented*
+since the M8 rebuild, and the ledger says so in a sentence titled *"E2E-M7-07
+is complete since the M8 unit"*. It is not: the id promises the row's
+**resolved** item count, *not 0 for a template with no own positions* — and the
+M8 case that completed it builds its composition out of groups that are
+**empty**. In that world the raw count and the resolved count are both 0, so a
+row that read its own positions instead of resolving would have been green
+there for as long as the case has existed. This is a different failure from the
+ones the earlier audits found: not a missing test, not a wrong id, but a test
+whose *world* cannot distinguish the rule from its negation. Giving the group
+one position and reading the composed row is the whole fix, and the mutation
+proves it.
+
+**A screen's search is usually covered as far as opening the field.** M9's
+audit found this the same day, one screen over, and M7 had it too: G-12's case
+asserts the magnifier opens *this* screen's field, and nothing typed. M7's
+States line promises two empty states painted into one element — nothing at
+all, which names both scopes and drops the segment, and nothing *matching*,
+which says *„Keine Vorlage gefunden"* and keeps it, because there is something
+to widen back to. Only the first had a case. The pattern is worth generalising
+before the next screen: **wherever a list has a search, check whether anything
+types into it.**
+
+**A cost one screen declined, paid once for two.** M23-01/02/03 keep every
+clause they make — this screen was written together with its cases and they did
+not drift. What the reading found is what all three have in common: each
+retires an **item**, and FR-24.3 governs items *and* Vorlagen, which M23 builds
+from two separate row builders. The Vorlagen segment had never held a row in
+any test, and E2E-M23-01 uses its *emptiness* as a positive control — a control
+that says nothing unless the list can be non-empty. The Vorlage **retire**
+branch was unrendered anywhere too, and for a reason that was written down:
+E2E-M7-11 covers the remove branch and states that reaching the retire branch
+through the UI means generating a whole trip for one sentence. That accounting
+was right for one sentence and wrong for four — the retire confirm's other
+wording, the Vorlagen list, the purge button correctly absent while the trip
+holds the row, and the restore — so E2E-M23-04 spends the trip once and
+collects all of them. **A declined cost is worth re-adding up when a second
+screen wants the same setup.**
+
+The mutation for it is the one this screen is actually exposed to: M23's two
+row builders differ only in which orchestrator call each field holds, so
+pointing the template row's `restore` at `restoreMasterItem` type-checks and
+looks right. It reddens the new case and leaves the three item cases green,
+which is also the proof that the new case is exercising the template path
+rather than re-rendering the item one.
+
+## A control nobody had ever clicked (2026-08-30)
+
+Backlog item 6, sixth screen: **M8**. It is the first one that arrived with
+**no unwritten ids** — all twenty-four `E2E-M8-*` numbers already carried a
+test — which sounds like the screen where this audit has nothing to do. The
+opposite: with no gaps to grep for, the only available reading is the one the
+programme is actually about, each id's sentence clause by clause against the
+body of the test underneath it. That reading found a **destructive control
+that nothing in the repository had ever operated**.
+
+`E2E-M8-06` promises *add/remove positions — remove via the row's ✕*. Add is
+asserted by a dozen cases. Remove is asserted by none: `m8-position-remove-*`
+occurs in no test file, and `TemplateEditorPage.vue` has no component test
+either, so the button that deletes a position had never been pressed by
+anything but a person. The list's **name sort** — the second half of the same
+sentence — was in the same state.
+
+**The interesting part is why, because the mechanism generalises.** The ✕ was
+not an oversight; it was a *decision*. The M7 variant pass had just found a
+swipe panel breaking out of the card, so M8's rebuild (`8dc89d8`) replaced the
+swipe with a ✕ and wrote that choice into three places on the same day: UI-Spec
+M8's amendment note, this id's entry, and the ledger row. The entry ends up
+reading *"add/remove positions — remove via the row's ✕ (amended 2026-08-15:
+the M7 variant pass showed a swipe panel breaking out of the card…)"*.
+
+Everything after that bracket is **news**, and news gets read. The clause in
+front of it is the requirement, and it had been sitting there since the v1.0
+catalogue. **A clause that arrives as an amendment is checked; the sentence it
+amends is re-read as already settled.** That is not a reviewer failing — it is
+what an amendment is *for* — which is why the answer is a reading pass rather
+than a resolution to be more careful.
+
+**Nothing mechanical was ever going to see it.** The id is defined once, so
+`case-id-gate.mjs` is green. The ledger names it as covered, so the coverage
+count is green. The tests that *do* exist are green. Every automatic signal
+pointed at a covered promise, and the only artefact that disagreed was the
+absence of a string in a directory nobody greps.
+
+**Four clauses of other ids were unasserted too**, and each went into the case
+that already owns its world rather than becoming a case of its own — the M6
+lesson, that an unasserted clause is not automatically a test:
+
+**M8-12's *„nothing auto-opens"*** is the whole of FR-25.7's one-tap promise:
+an editor that presents itself after every commit turns the defaults into a
+suggestion. The rest of that sentence was asserted; this half was not.
+
+**M8-13's *„autocomplete after two characters"*** had no assertion anywhere —
+not on M8, not on M4, not in `QuickAddItem.spec.ts` — and `MIN_SEARCH_LENGTH`
+is shared with M3 step 3, so a change to it would have moved two screens
+silently. What makes the assertion mean something is the **free-text hint**
+asserted absent beside the suggestions: that hint renders exactly when a
+long-enough query matches nothing, so without it "nothing is offered" is
+equally satisfied by an empty result and the gate goes unproven.
+
+**M8-03's clear-on-retap** is FR-15.2's one-value-per-axis rule seen from the
+chip, and the `delete` branch of `toggleCondition` was the only line in the
+sheet nothing reached. The three condition axes themselves come off one loop,
+so a second axis would have re-asserted a render rather than a rule — the
+distinction the audit keeps having to make.
+
+**M8-05's own sentence was the defect**, the shape M17 produced two screens
+ago. It promised that a followed trip *updates immediately* and that running
+trips are never touched — the FR-27.4 model that was replaced on 2026-08-18 by
+*asking* the trip, with only *past* trips frozen. The screen has said
+*„vorgeschlagen"* ever since and the test asserted that word, so nothing was
+broken; what was broken is that anyone writing a case from this entry would
+have written the old behaviour down as the requirement.
+
+**Three clauses were checked and deliberately left untested**, which is the
+half of this work that produces no diff. *Trip-Global* (M8-02) is the FR-25.7
+default, so E2E-M8-12 asserts it as the state a fresh row is already in.
+*„scrim tap closes"* (M8-14) named Ionic's `backdropDismiss` rather than
+anything of this screen's — both user-reachable paths through the single
+`@did-dismiss` handler are asserted already — so the clause was struck instead
+of tested. And M8-15 drives only the item-name hit because matching a group's
+**own** name, and the diacritics fold under it, are `searchGroups`' rules and
+are covered exhaustively as a unit, `föhn`/`fohn` included.
+
+**One filing oddity, left as it is on purpose.** E2E-M8-20/21/22 are defined
+in the UI-Test-Spec's **M4** block, beside the M4 twins they were written
+with. They are M8's ids on M8's tests, and moving them is the right tidy — but
+five audits are editing this file at once, and a move is a delete plus an
+insert that defines a number twice for the length of a merge. A pointer in the
+M8 block costs nothing and cannot collide.
+
 
 ## The debt register empties, and one clause of it was never built (2026-08-30)
 
