@@ -33,6 +33,7 @@ import { initTheme } from './theme/theme'
  * before mount for the same reason as the theme — the first paint should
  * already be in the user's language, not switch under them. */
 import { initLocale } from './i18n'
+import { initCurrency } from './lib/currency'
 
 /* App shell + push worker (NFR-4.13/NFR-4.6): registered unconditionally at
  * start, not only when push is enabled. Production only — the dev server has
@@ -42,6 +43,10 @@ import { registerAppServiceWorker } from './pwa/register'
 
 initTheme()
 initLocale()
+// FR-21.9: the last known currency, so an offline start keeps its labels.
+// The server's own answer replaces it once App.vue has asked (invariant 5:
+// Local Mode never asks, and its amounts stay unit-less).
+initCurrency()
 if (import.meta.env.PROD) registerAppServiceWorker()
 
 const app = createApp(App)

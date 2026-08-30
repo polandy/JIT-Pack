@@ -190,6 +190,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)](#the-quick-add-gets-a-mode-and-two-waiting-cases-did-not-land-where-they-waited-2026-08-29) — FR-25.8. Why the row is written *before* the membership editor opens rather than the mode collecting a draft; and the two e2e cases that had been parked on this feature since the concept round, one of which turned out to be a second run of another and the other to have lost its premise to G-8.
 - [The shop stops asking three times for one purchase (2026-08-29)](#the-shop-stops-asking-three-times-for-one-purchase-2026-08-29) — FR-25.6. The premise that made M6's aggregation invisible for three weeks, why the buy row is keyed by M4's own function rather than a second one, and the two places that had to follow the aggregation once it existed — the reveal and the tab counts.
 - [A rule that was complete and invisible (2026-08-30)](#a-rule-that-was-complete-and-invisible-2026-08-30) — E2E-G3-04. The G-3 cluster lock shipped correct and unobservable: every other G-3 surface names its holder, and the one surface that could inherit none of them said nothing at all. Why writing the two-identity case is what found it, and why the release — not the pack — is what the positive half needs.
+- [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 
 ## Current state
 
@@ -8310,3 +8311,46 @@ an item name and built `m4-row-<name>` from it. A per-person item has no such
 row — it is a cluster head with child rows — so the helper could not address the
 row this case has to claim. Every convenience that encodes a screen's shape has
 a feature that ends it; this one lasted six days.
+
+## The amount finally says what it is in (2026-08-30)
+
+Three owner decisions were settled on 2026-08-30; two of them closed
+unchanged and are recorded where their rules live (the G-3 lock stays
+advisory, CLAUDE.md item 14; M4's header keeps its name in the page rather
+than the bar, UI-Spec M4). This is the third, and the only one with code.
+
+**The setting had been described for months and never existed.** UI-Spec M10
+named an *"instance currency"* from the concept round; the locale pass found
+in August that nothing implemented it and corrected the spec to say amounts
+are unit-less. That correction was honest and left the question open. It is
+answered now: `JITPACK_CURRENCY`.
+
+**The endpoint that looked like it would carry it could not.** `/auth/config`
+is the one thing the client already asks the server before rendering, so it
+was the obvious home — and it is wrong for exactly one reason: it answers 501
+in Single-User Mode, *by design*, because that 501 is how the client discovers
+the mode (invariant 5). Hanging an instance-wide display setting off it would
+have hidden the currency from a mode that has one. Hence a second small
+public endpoint, `GET /api/v1/instance/config`, scoped-path-first per ADR-027,
+answering without a session because nothing in it is about a caller.
+
+**Per instance, and the reason is not convenience.** A per-device or
+locale-derived currency was the cheaper build — no endpoint at all — and it
+produces a wrong answer rather than a limited one: `de-CH` and `de-DE` would
+disagree about a number that belongs to neither of them, and two family
+members would read the same jacket in two currencies. One database holds one
+set of amounts. That is also why the value only ever labels: no rate, no
+history, no second currency exists anywhere in the model, so a conversion
+would have nothing to convert with.
+
+**Local Mode's cost was accepted, not designed around.** It has no server, so
+its amounts stay unit-less. The tempting fix — a device-level setting for that
+mode alone — was rejected: it would make the currency a device opinion in the
+one mode where it is least ambiguous, and give a single value two writers, the
+shape ADR-025 exists to undo. The status quo is not a regression, and if this
+ever matters the answer is a setting in *every* mode, not one bolted onto the
+mode that lacks a server.
+
+**A typo stops the server.** Ignoring a malformed code would leave exactly one
+visible symptom — a missing label — which names neither cause nor fix. The
+refusal at start-up names both.
