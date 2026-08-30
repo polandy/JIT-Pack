@@ -55,8 +55,22 @@ test.describe('API tokens @server', () => {
     const bare = await api.request.get('/api/v1/me')
     expect(bare.status(), 'the endpoint answered without any credential').toBe(401)
 
+    // Tamper with the signature's FIRST character, not its last. An HS256
+    // signature is 32 bytes, which base64url encodes as 43 characters — and
+    // 43 characters carry 258 bits, so the final character's low 2 bits are
+    // padding that the decoder discards. Changing only those bits produces a
+    // different string that decodes to the identical signature, so the token
+    // still verifies and the request is answered 200. Encoders emit the
+    // canonical final character, which made this fire whenever the signature
+    // ended in `w` (`w`, `x`, `y` and `z` all decode alike): one run in
+    // sixteen, failing an assertion about signature verification for a reason
+    // that has nothing to do with it. Every character before the last carries
+    // six meaningful bits, so a flip there always changes the bytes.
+    const sigStart = token.lastIndexOf('.') + 1
+    const tamperedToken =
+      token.slice(0, sigStart) + (token[sigStart] === 'A' ? 'B' : 'A') + token.slice(sigStart + 1)
     const tampered = await api.request.get('/api/v1/me', {
-      headers: { Authorization: `Bearer ${token.slice(0, -1)}${token.endsWith('x') ? 'y' : 'x'}` },
+      headers: { Authorization: `Bearer ${tamperedToken}` },
     })
     expect(tampered.status(), 'a token with a broken signature was accepted').toBe(401)
 

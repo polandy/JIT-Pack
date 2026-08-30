@@ -13,6 +13,19 @@ on:
 permissions:
   contents: read
 
+# A second push to the same PR makes the first run's verdict worthless, but it
+# goes on holding runners — and with the e2e matrix a run is 16 jobs against
+# the 20 a public repo may have in flight, so an abandoned run does not merely
+# waste minutes, it queues the run that replaced it.
+#
+# Superseding is deliberately limited to pull requests. A `push` to main is the
+# commit that ships: its run is the record that main was green, and two pushes
+# landing close together must both be checked rather than the older one being
+# cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   go:
     runs-on: ubuntu-latest
@@ -157,15 +170,41 @@ jobs:
   # passing WebKit unit already took 31.9 s starts failing. Not more workers
   # per runner either: a runner has 4 vCPU and Playwright already takes 2.
   #
-  # Four shards, sized from the 2026-08-19 CI reports: the suite carries
-  # ~1020 test-seconds, and with `fullyParallel` Playwright splits the test
-  # list into contiguous count-equal chunks — WebKit (~630 s) sits behind
-  # Chromium (~350 s) in that list, so the split is uneven by duration.
-  # Simulated on the real durations: 2 shards land 464/557 s, 4 shards land
-  # 150/315/251/305 s. The worst leg drops from ~4.7 min of test time to
-  # ~2.6, against ~1 min of fixed cost per leg (image pull ~36 s, npm ci +
-  # build ~25 s warm). More shards pay that fixed cost again for less than
-  # a minute back.
+  # Eight shards. The count is a measurement with a shelf life, not a
+  # constant: it was four, sized on 2026-08-19 against a suite carrying
+  # ~1020 test-seconds, and the backlog-item-6 audits roughly doubled that
+  # without anyone re-reading the number. Measured 2026-08-30 (run
+  # 33327549233) the four legs ran 5.0 / 7.5 / 9.5 / 10.0 min — 139 tests
+  # each, ~1920 test-seconds total — so the pipeline's critical path was one
+  # e2e leg at 11.2 min while every other job finished inside 3.
+  #
+  # The spread across equal test counts is the same effect the split has
+  # always had: `fullyParallel` chunks the test list contiguously by count,
+  # and WebKit sits behind Chromium in that list, so a leg's duration is
+  # decided by how much WebKit it inherited. Halving the chunks halves the
+  # worst leg's inheritance with it.
+  #
+  # Fixed cost per leg is ~60 s (image pull ~40 s, npm ci + build ~21 s
+  # warm), which is what bounds this from below and is why the answer is not
+  # simply "more".
+  #
+  # Why it stops at eight rather than twelve: concurrency, not fixed cost. A
+  # run carries 8 non-e2e jobs, so eight shards make 16 — under the 20
+  # concurrent jobs a public repo gets. Twelve would put a single run at the
+  # ceiling and make two overlapping runs queue against each other, which
+  # costs more wall-clock than the extra split returns.
+  #
+  # Measured after the change (run 33329405672, same tree): the legs ran
+  # 201–395 s and the worst dropped from 642 s to 395 s, so the pipeline's
+  # critical path went from 11.2 min to 6.6. The spread survives — it is the
+  # WebKit-behind-Chromium effect above, which sharding shrinks and does not
+  # remove.
+  #
+  # **Re-read this number when the suite grows.** It went stale silently once
+  # already: nothing in a green pipeline says the shard count no longer fits
+  # the suite, because the only symptom is that every run is slower than it
+  # needs to be. The cheap check is the per-leg times in any recent run — if
+  # the worst leg is drifting back toward twice the best, this is the knob.
   e2e:
     runs-on: ubuntu-latest
     strategy:
@@ -173,7 +212,7 @@ jobs:
       # others being cancelled.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
@@ -266,18 +305,21 @@ jobs:
           path: client/playwright-report/
           retention-days: 7
 
-  # Formats Go (gofmt) and the client (prettier) and pushes the fixes back,
-  # so formatting is never a red build — it just gets applied. Skipped for
-  # fork PRs, where GITHUB_TOKEN cannot push to the head branch.
-  autoformat:
+  # Checks formatting instead of applying it (ADR-040). This job used to run
+  # gofmt and prettier with --write and push a `style:` commit back onto the
+  # branch, which cost more than the convenience was worth: the bot's push is
+  # attributed to github-actions[bot] and its run arrives `action_required`,
+  # so `gh pr checks` reports *no checks at all* and the PR sits at BLOCKED —
+  # not red, not pending, blank, with nothing on screen saying that manually
+  # approving the run is what it wants.
+  #
+  # The same two commands run in `make ci` (fmt-check and client-fmt), so the
+  # failure this job can produce is one the author has already been shown
+  # locally, with `make fmt` as its fix.
+  format:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -286,21 +328,20 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: client/package-lock.json
-      - run: gofmt -w cmd internal
+      # `gofmt -l` exits 0 even when files need formatting, so the emptiness
+      # of its output is the assertion — same shape as the Makefile target.
+      - name: Check Go formatting
+        run: |
+          if [ -n "$(gofmt -l cmd internal)" ]; then
+            echo "gofmt needed — run \`make fmt\`:"
+            gofmt -l cmd internal
+            exit 1
+          fi
       - run: npm ci
         working-directory: client
-      - run: npm run format
+      - name: Check client formatting
+        run: npx prettier --check --experimental-cli src/
         working-directory: client
-      - name: Commit formatting fixes
-        run: |
-          if git diff --quiet; then
-            echo "already formatted"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -am "style: apply automatic formatting"
-          git push
 
   # Verifies both images still build on every change; docker.yml only
   # builds and pushes on release tags (backend + client, same matrix).
@@ -320,7 +361,7 @@ jobs:
   # the merge wait for green by construction. Major updates stay open
   # for manual review.
   dependabot-merge:
-    needs: [go, go-lint, client, visual, e2e, e2e-single, e2e-server, docker-build]
+    needs: [go, go-lint, client, format, visual, e2e, e2e-single, e2e-server, docker-build]
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
