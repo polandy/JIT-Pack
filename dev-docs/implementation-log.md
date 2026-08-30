@@ -201,6 +201,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
 - [An assertion that was true before the click (2026-08-30)](#an-assertion-that-was-true-before-the-click-2026-08-30) — backlog item 6, M11/M12. A screen where every id was implemented and two clauses still had no test: an assertion whose locator both dimensions render, a KPI checked where its two halves were equal, and the question that finds the shape. Plus two promises with a reader and no writer.
 - [The debt register empties, and one clause of it was never built (2026-08-30)](#the-debt-register-empties-and-one-clause-of-it-was-never-built-2026-08-30) — the four inherited id collisions read against their screens. Three were plain duplicates; the fourth split three ways and left a promise the quick-add has never kept.
+- [A helper that promised determinism and raced instead (2026-08-30)](#a-helper-that-promised-determinism-and-raced-instead-2026-08-30) — `wsSubscribed` dropped the frame it waited for whenever the caller rendered first, which was always. Why the API's shape was the defect, and how a 3 s probe turned an unreproducible CI failure into a one-line proof.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
 - [A row that could not count, and a segment nobody filled (2026-08-30)](#a-row-that-could-not-count-and-a-segment-nobody-filled-2026-08-30) — backlog item 6, M7 and M23. Why a case can assert a composition and still not see the one number the row computes, the spec sentence that described an unbuilt menu as built, and the cost one screen declined that the next screen could pay once for both.
 - [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
@@ -9516,3 +9517,43 @@ screen's name is exactly a rule that needs a case saying what actually
 happened, so `single/mode-discovery.spec.ts` asserts the 501 beside the
 rendered dashboard — "no login screen" alone being equally green on a device
 that never asked.
+## A helper that promised determinism and raced instead (2026-08-30)
+
+`e2e-server` went red on a PR that changed a Node script and a markdown file.
+It was not that PR's — the same job was green on `main` and on the branch's own
+parent commit — but both of the run's failures hung on one line, and that is
+what made it worth chasing rather than re-running.
+
+**The helper waited for a frame it had already missed.** `wsSubscribed` proved
+a page's trip subscription by waiting for the hub's `presence` broadcast.
+Playwright delivers no frames from before a listener exists, and the listener
+was attached only when the caller awaited the helper — after a `goto` and a
+`toBeVisible`. All twelve call sites had that shape. The frame lands during the
+render, the listener arrives too late, and the case then waits out 180 s for a
+second broadcast that only another account's arrival produces.
+
+**So it passed for the wrong reason**, whenever the server round trip happened
+to be slower than the render. That is also why it never failed locally and why
+one of the two failures was scored *flaky*: nothing about the run was random,
+only the ordering of two independent latencies.
+
+**The defect was the signature.** The caller made the promise and decided when
+to consume it, which put the window in the caller's hands — and every caller
+opened it, because every caller wants to assert the page rendered before it
+asserts anything else. `watchSubscribed(page)` takes the page and owns both
+halves; the listener attaches one microtask after the socket exists, and there
+is no place left to insert a wait. Twelve call sites changed shape, none
+changed meaning.
+
+**How it was proved, since the machine would not reproduce it.** Locally the
+case passes in 12.3 s. A deliberate 3 s wait inserted before the old helper
+reproduces the CI failure exactly; the *same* probe against the new helper
+passes in 15.1 s — 12.3 plus the probe. That is the whole argument, and it cost
+two runs. Reaching for a longer timeout, or re-running until green, would have
+buried a defect that was fully explicable.
+
+**A trap inside the probe, worth the sentence.** The first attempt patched the
+wrong test: the four-line pattern appears seven times in that file and a
+`replace(..., 1)` took the first. The run came back green in *exactly* the same
+12.3 s as the unprobed one — identical duration was the tell, not the pass. A
+probe that changes nothing looks like a probe that disproves the theory.
