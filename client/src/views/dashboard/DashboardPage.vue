@@ -120,7 +120,7 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- Prep to do (FR-7.3) -->
-      <IonCard v-if="totalOpenTodos > 0" class="prep-card">
+      <IonCard v-if="totalOpenTodos > 0" class="prep-card" data-testid="dashboard-prep">
         <IonCardHeader>
           <IonCardTitle>
             <IonIcon :icon="buildOutline" />
@@ -133,11 +133,17 @@ async function handleRefresh(event: CustomEvent) {
             :key="`${group.tripId}-${group.itemName}`"
             class="prep-group"
           >
-            <p class="prep-item-name">
+            <p class="prep-item-name" :data-testid="`dashboard-prep-item-${group.itemName}`">
               {{ group.itemName }}
               <span class="prep-trip-label">{{ group.tripName }}</span>
             </p>
-            <IonItem v-for="todo in group.todos" :key="todo.id" lines="none" class="dashboard-item">
+            <IonItem
+              v-for="todo in group.todos"
+              :key="todo.id"
+              lines="none"
+              class="dashboard-item"
+              :data-testid="`dashboard-todo-${todo.body}`"
+            >
               <IonCheckbox
                 slot="start"
                 :checked="false"
@@ -150,7 +156,13 @@ async function handleRefresh(event: CustomEvent) {
       </IonCard>
 
       <!-- Trip cards -->
-      <IonCard v-for="trip in activeTrips" :key="trip.id" button :router-link="`/trips/${trip.id}`">
+      <IonCard
+        v-for="trip in activeTrips"
+        :key="trip.id"
+        button
+        :router-link="`/trips/${trip.id}`"
+        :data-testid="`dashboard-trip-${trip.name}`"
+      >
         <IonCardHeader>
           <IonCardTitle>{{ trip.name }}</IonCardTitle>
           <p class="trip-dates">{{ formatTripPeriod(trip) }}</p>
@@ -159,7 +171,7 @@ async function handleRefresh(event: CustomEvent) {
         <IonProgressBar :value="progressFraction(trip)" />
 
         <IonCardContent>
-          <p class="item-summary">
+          <p class="item-summary" :data-testid="`dashboard-summary-${trip.name}`">
             {{
               t('trips.itemSummary', {
                 packed: tripKpis(trip).packedItems,
@@ -176,6 +188,7 @@ async function handleRefresh(event: CustomEvent) {
             :key="item.id"
             lines="none"
             class="dashboard-item"
+            :data-testid="`dashboard-preview-${item.name}`"
           >
             <IonCheckbox
               slot="start"
@@ -191,7 +204,11 @@ async function handleRefresh(event: CustomEvent) {
             </IonLabel>
           </IonItem>
 
-          <p v-if="openItemCount(trip.id) > 3" class="more-items">
+          <p
+            v-if="openItemCount(trip.id) > 3"
+            class="more-items"
+            :data-testid="`dashboard-more-${trip.name}`"
+          >
             {{ t('dashboard.moreItems', { n: openItemCount(trip.id) - 3 }) }}
           </p>
         </IonCardContent>

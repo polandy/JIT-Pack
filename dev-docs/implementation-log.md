@@ -205,8 +205,16 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
 - [A row that could not count, and a segment nobody filled (2026-08-30)](#a-row-that-could-not-count-and-a-segment-nobody-filled-2026-08-30) — backlog item 6, M7 and M23. Why a case can assert a composition and still not see the one number the row computes, the spec sentence that described an unbuilt menu as built, and the cost one screen declined that the next screen could pay once for both.
 - [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
+- [The check that cannot be written, on the screen nobody had clicked (2026-08-30)](#the-check-that-cannot-be-written-on-the-screen-nobody-had-clicked-2026-08-30) — backlog item 6, M1 and M19. Why a first-launch screen every spec seeds past had never been operated, the connectivity check that is an open design question rather than an omission, and a mutation that cannot be narrowed because the rule is one `if` on the boot path.
 - [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 - [The branch the backup never took (2026-08-30)](#the-branch-the-backup-never-took-2026-08-30) — backlog item 6, M18. The screen where every unwritten case was real, why a clause can be stale in four places at once, and the comment that contradicted the line three rows under it.
+- [A number that was right when it was written (2026-08-30)](#a-number-that-was-right-when-it-was-written-2026-08-30) — CI efficiency. A stale shard count with no red signal anywhere, why eight is bounded by the concurrency limit rather than by fixed cost, and the superseded-run cancellation that is the same constraint from the other side.
+  - [A workaround in the orientation document is a defect being paid for](#a-workaround-in-the-orientation-document-is-a-defect-being-paid-for) — ADR-040. Why the auto-formatting bot's push made a PR read as checkless, the PAT option rejected for what it costs, and the second change without which removing the bot would have dropped formatting enforcement entirely.
+  - [The Makefile now diverges from CI in exactly one place, on purpose](#the-makefile-now-diverges-from-ci-in-exactly-one-place-on-purpose) — the Go test cache locally, why it is sound rather than a shortcut, and the coverage-profile half that had to be checked instead of assumed.
+  - [The trap: a local timing on this machine is not a measurement](#the-trap-a-local-timing-on-this-machine-is-not-a-measurement) — 100 s became 368 s on an unchanged tree under a parallel session's suite; why that is a confident wrong answer rather than a weak one, and the vitest pool decision that had to be moved to CI to be made at all.
+  - [The one character that was safe to change (2026-08-30)](#the-one-character-that-was-safe-to-change-2026-08-30) — E2E-M17-13 failed one run in sixteen because base64url discards the last character's low two bits, so its "tampered" token decoded to a valid signature. Why the guard against a no-op substitution was the thing that produced one.
+- [Two premises that had closed two cases (2026-08-30)](#two-premises-that-had-closed-two-cases-2026-08-30) — backlog item 6, M20 and G-10. The youngest coverage in the repository, read for the opposite error: two sentences saying a case *could not* be written, both wrong, and both hiding a defect — a lagging device nothing could render, a moderation that changed no pixel, and a login screen that told a deactivated person the server was fussy.
+
 - [A wizard that opens once (2026-08-30)](#a-wizard-that-opens-once-2026-08-30) — backlog item 6, M15. The step no test had ever opened, the navigation defect that made the second import undrivable (M18 replaces the same way), and a rule that is complete, tested at both levels and still unkept because the promise was about saying it.
 
 ## Current state
@@ -9468,6 +9476,144 @@ sentence describing a state nobody can produce, and the shape is the same as
 M17's: **a promise can be wrong in a way only the screen can refute**, and
 reading it against another document will confirm it forever.
 
+## Two premises that had closed two cases (2026-08-30)
+
+M20 and G-10 through the same reading as the eleven screens before them, and
+the risk profile was the opposite one. These two were rendered for the first
+time ever two days earlier (#242), so their case sentences were not stale —
+they were written *by* the people who had just built the screens, and the
+error to look for is a promise that describes the implementation instead of
+the requirement. Every id on both surfaces already had a test. So the read
+was clause by clause, and what it found were **two sentences declaring that
+a case could not be written**. Both were wrong, and each was sitting on a
+defect.
+
+**„An e2e case could only race it."** G-10's entry said the lagging half of
+the presence badge was unreachable: a device is behind only while its
+reported cursor sits below the trip head, and the client reports one the
+moment its pull returns. Every clause of that is true, and the conclusion
+does not follow. It was written as *holding a pull open*, which really is a
+race — but a lagging device is one whose pull has **not returned**, and
+`route.abort()` needs no seam in the production code at all. `drainTrip`
+reports the cursor only after the pull comes back, so a device whose trip
+partition is blocked keeps the cursor it had and stays behind until the
+block is lifted: a settled state, not a moment. E2E-G10-02 blocks Bob's
+pulls, has Alice move the head, and asserts the count in the bubble, the
+✓✓ gone, and *„Bob · catching up"* against *„Alice · up to date"* — then
+unblocks and moves the head again, because a state that cannot recover is a
+latch. What it adds over the units is the wire: `hub_test.go` computes
+`in_sync` from cursors and `PresenceFacepile.spec.ts` rings whoever a prop
+says is behind, and **nothing said the server's answer is that prop**. The
+mutation that proves it is one line of Go — `InSync: true` — and it reddens
+E2E-G10-02 alone.
+
+**„Remove avatar changes no pixel on M20."** The ledger's reason was that no
+fixture account has a picture, which is true and is not the whole reason.
+Put one there and the removal *still* changes no pixel: the row is keyed by
+account id, so reloading the list hands the same `<img>` the same `src`, the
+browser never asks again — and the response carries `max-age=3600`, so it
+would not be told anything if it did. M17 has had FR-17.13's cache-busting
+query since the profile picture shipped; M20 was written beside it without
+one. The failure mode is the worst kind for a moderation feature: the
+moderator does the thing and watches nothing happen. E2E-M20-03b uploads a
+1×1 JPEG through the `self`-guarded endpoint — not through M17's control,
+whose crop modal has no settled signal (the blocker E2E-M17-12 is still
+waiting on) — and the same sentence in the ledger was wrong a second way:
+there is no placeholder image, the endpoint **404s** and the initials are
+the ground (FR-23.4a).
+
+**A clause that was in no case at all.** FR-23.3 ends with *„open JIT
+provisioning does not resurrect a deactivated account … otherwise
+deactivation would be meaningless under FR-23.6"*. The store proves the
+login does not clear `deactivated_at`, `issueSession` refuses the exchange,
+and no case had ever taken the app through that refusal. The screen said
+*„The server rejected the login."* — the sentence a replayed code gets. This
+is the login-screen twin of the defect FR-23.3's own 2026-08-28 amendment
+fixed *inside* the app, and it survived the same amendment: the client
+narrows on `account_deactivated` in `client.ts`, and the OIDC callback,
+which is the other place that 403 arrives, was not touched. A permanent
+state read as a glitch, presented to the one person who cannot do anything
+about it by trying again. E2E-M20-06 asserts the sentence rather than the
+refusal, because a regex matching the generic one would pass against the
+build the case was written for.
+
+**Two clauses that cannot fail, kept and named as such.** E2E-G10-01
+asserts `presence-behind` absent right after `presence-in-sync` is visible,
+and the two are a `v-if`/`v-else` — that clause documents the exclusivity
+and cannot break independently of the line above it. E2E-M20-05's *„hidden
+entirely in `single`/`local`"* is the stronger version of the same shape:
+the gate is `collaborative && me?.is_instance_admin`, and neither project
+has a `me` at all, so deleting the `collaborative` half leaves the row just
+as hidden. A case written there would be green against the rule being gone.
+Both are recorded in the spec as what they are instead of being counted as
+coverage — the M10 audit's tautology, met twice more and left in place
+because the alternative is a test that lies in the other direction.
+
+**A traceability row about a different requirement.** FR-4.6 is the presence
+indicator. Its matrix row read `UNIT | members.ts role model; surfaced via
+M3-04`, which is FR-4.5/4.7's membership model — so the one requirement this
+audit's new case exists for had been reading as covered by a unit test about
+something else. The M9 audit's shape (an id on the wrong test) has a
+sibling: **a requirement pointed at the wrong evidence**, and neither gate
+can see either, because every id in both rows is real and used exactly once.
+
+**What M20 keeps that is worth not re-litigating.** FR-23.2 says *„active /
+deactivated status"* and the screen has one chip: deactivated, plus the
+dimming. There is no active chip, and adding one would put a label on every
+row to say that nothing is wrong. The spec now says which of the two the
+case can pin. And the dimming itself is asserted nowhere on purpose — the
+only way to reach it from Playwright is a class or an opacity, which is an
+assertion about the stylesheet, not about the pixel.
+## The check that cannot be written, on the screen nobody had clicked (2026-08-30)
+
+M1 and M19 — the app's front door — through the same reading as the eleven
+screens before them. What they had in common is worth naming once, because it
+is not a property of either screen: **both are on the path to everything else,
+and being on the path is what kept them unexamined.** Forty spec files boot
+through M19 by seeding `jitpack_mode` and land on M1 on the way to somewhere
+else. The ledger even said so — E2E-M19-01 had read *partial* since the
+harness was built, and the missing part was the entire action the screen
+exists for.
+
+**The connectivity check is the finding worth keeping.** UI-Spec M19 has
+promised since the concept round that *Connect* validates the URL against the
+server's health endpoint, and E2E-M19-02/03 describe it and its inline error.
+It is not built — and the reason it should not simply be built is not effort.
+The API sets **no CORS headers**, deliberately: the SPA and the API share one
+origin on every self-hosted instance, which is also why this field arrives
+pre-filled with the page's own origin. A `fetch('/health')` from this screen
+against a *different* origin therefore fails whether the instance is
+unreachable or perfectly healthy, so the inline error the spec asks for would
+tell a user with a working server that their server is down. The honest
+options are a `no-cors` probe that can only distinguish "something answered"
+from "nothing did", CORS headers on one endpoint, or leaving it as it is and
+letting the G-2 indicator say offline. That is an owner decision with a cost on
+each branch, and writing the test first would have pinned the branch nobody
+chose. E2E-M19-03 has nothing to report until it is made.
+
+**Two clauses of M1 read as description and were requirements.** FR-6.1's
+dashboard aggregates *"items assigned to them"* and FR-7.3 repeats it for the
+prep card; the screen filters by nobody. It has been *possible* to build only
+since 2026-08-25, when FR-25.19 finally gave `packer_user_id` a writer — and it
+is still not obviously right, because in Local and Single-User Mode there is no
+account, so a personal filter empties the one screen the app opens on. The
+second is smaller and the same shape: "next 3" names an ordering that neither
+M1 nor the store defines. The preview is `getItems(...).slice(0, 3)`, and after
+a reload that array arrives in IndexedDB key order over random ids. The case
+flaked on it — which is how it was found — and now asserts the rule the screen
+keeps: three of four, and the fourth counted.
+
+**And one mutation could not be narrowed, which was itself the argument.**
+Invariant 5's Single-User distinction lives in one `if (resp.ok)` on the boot
+path: the client persists `jitpack_mode = 'server'` like any other server
+device and learns what it is talking to from a 501 on `/auth/config`. Flipping
+that condition reddens `E2E-M2-14` as well, with a message about a segment
+label. A rule whose breakage surfaces in other people's cases under another
+screen's name is exactly a rule that needs a case saying what actually
+happened, so `single/mode-discovery.spec.ts` asserts the 501 beside the
+rendered dashboard — "no login screen" alone being equally green on a device
+that never asked.
+
 ## A wizard that opens once (2026-08-30)
 
 M15's turn at backlog item 6. Four unwritten ids, and they sorted into three
@@ -9572,3 +9718,170 @@ wrong test: the four-line pattern appears seven times in that file and a
 `replace(..., 1)` took the first. The run came back green in *exactly* the same
 12.3 s as the unprobed one — identical duration was the tell, not the pass. A
 probe that changes nothing looks like a probe that disproves the theory.
+
+## A number that was right when it was written (2026-08-30)
+
+The pipeline had grown to 11.5 minutes per pull request and nothing in it was
+broken. Every job was green, every job was doing work it should do, and the
+critical path was a single e2e shard at 11.2 minutes while every other job
+finished inside three. The cause was one integer that had been correct when
+somebody measured it.
+
+**The shard count is a measurement with a shelf life, and nothing says so.**
+`ci.yml` split the Playwright suite four ways on 2026-08-19, sized against a
+suite carrying ~1020 test-seconds, and the comment recording that arithmetic is
+unusually good — it names the simulation, the per-leg predictions and the
+fixed cost that bounds it. What it could not do is notice that backlog item 6's
+audits then roughly doubled the suite. Measured against run 33327549233 the four
+legs ran 5.0 / 7.5 / 9.5 / 10.0 minutes, ~1920 test-seconds.
+
+The reason this is worth an entry rather than a commit message is the **shape of
+the failure**, because the project has a rule for exactly this class and it did
+not fire. A stale shard count has **no red signal at any point**: not a failing
+test, not a warning, not a slow-test report. The only symptom is that every run
+is slower than it needs to be, and a run that is slower than it needs to be
+looks precisely like a run. Every automatic signal moves the reassuring way —
+the same sentence backlog item 6 wrote about a shadowed case id, arrived at from
+the opposite direction. The countermeasure is not a gate (there is no threshold
+to assert against; the right number depends on runner cost and the concurrency
+limit) but a **standing instruction to re-read the per-leg times**, which is now
+in the comment and in CLAUDE.md.
+
+Eight rather than more, and the reason is not the fixed cost. Per-leg fixed cost
+is ~60 s (image pull ~40 s, npm ci + build ~21 s warm), which alone would argue
+for twelve. The binding constraint is **concurrency**: a run carries 8 non-e2e
+jobs, so eight shards make 16 against the 20 concurrent jobs a public repository
+gets, and twelve would put a single run at the ceiling — where two overlapping
+runs start queueing against each other and the split gives back less than the
+queue takes. Measured after the change (run 33329405672): legs 201–395 s, worst
+leg 642 s → 395 s, critical path 11.2 min → 6.6.
+
+**The `concurrency` group is the same constraint seen from the other side.** A
+superseded PR run was holding 16 runners to produce a verdict about a commit
+nobody would read. It now cancels — but only for `pull_request`. A `push` to
+main is deliberately never cancelled: its run is the record that main was green,
+and two pushes landing close together must both be checked rather than the older
+one being dropped.
+
+### A workaround in the orientation document is a defect being paid for
+
+The `autoformat` job wrote formatting fixes and pushed them back, so formatting
+was never a red build. The price was that its push arrived as
+`github-actions[bot]`, which makes the resulting run `action_required`, which
+makes `gh pr checks` report *no checks at all* on a PR sitting at `BLOCKED` —
+not red, not pending, blank. That was diagnosed twice on one day in August and
+then carried for a week as a paragraph of standing instructions telling every
+future session how to approve the run by hand.
+
+That paragraph is the finding. **A workaround written into CLAUDE.md is a defect
+that was priced once and then paid every time**, and the orientation document is
+the worst place for it precisely because it makes the cost invisible: the
+instruction is always there, so nobody re-asks whether it should be. ADR-040
+weighs the options; the rejected one is worth naming here because it is the
+tempting one — push with a fine-grained PAT so the bot's run is attributed to a
+real account. It works, and it buys the convenience with the widest credential
+in the repository, held so that nobody has to run `make fmt`.
+
+The check-instead-of-fix option has a real cost and it is accepted rather than
+hidden: formatting can now fail a build, where before it could not. What bounds
+that cost is a second change without which this would merely have moved the
+failure to GitHub — `client-fmt` joins the `client` target, so `make ci` checks
+prettier as well as gofmt. **Neither CI job checked formatting at all**; the
+auto-fixing bot was the only thing enforcing it, which is why removing it
+without that addition would have quietly dropped the rule.
+
+The same reasoning went one step further at the owner's decision (2026-08-30):
+**`format` is a required status check.** Replacing a job that *rewrote* main's
+formatting with one that only reports leaves the rule resting on a maintainer
+not merging past a red check, which is a weaker thing than the branch refusing
+it — and this ADR's second driver asks for enforcement, not intent. The two
+reasons CLAUDE.md gives for keeping a job out of the required set both fail to
+apply: `format` is one check name rather than a matrix, and it has no `needs`,
+so it cannot arrive skipped. Worth noting as a pattern rather than a footnote:
+**the required-check set is where "we still enforce this" is either true or
+merely believed**, and a refactor that moves a rule from one mechanism to
+another has to be read against it or the rule quietly becomes advice.
+
+### The Makefile now diverges from CI in exactly one place, on purpose
+
+`make ci` dropped `-count=1`, so Go's test cache answers for packages whose
+inputs have not moved; CI keeps it. This is a deliberate break in the file's
+1:1-mirror promise and is annotated as such. It is sound rather than a shortcut:
+the cache key covers the package's content, its dependencies, its flags and the
+files and environment the test read, so a hit means this exact run already
+happened — and these tests are hermetic (in-memory SQLite, no network, no wall
+clock), which is the condition that guarantee needs. **The half that had to be
+checked rather than assumed** is that a cached run still writes the coverage
+profile `scripts/coverage-gate.sh` reads; it does, byte-identically, verified
+before landing. Had it not, the gate would have gone on passing against a stale
+file — a silent hole in an enforced invariant, bought for a few seconds.
+
+### The trap: a local timing on this machine is not a measurement
+
+Mid-investigation `npx vitest run` took 368 s against the 100 s the same command
+had taken inside `make ci` twenty minutes earlier — on the same tree, same
+flags. Nothing had regressed. A parallel session was running its own Playwright
+suite locally; the load average was 21 on a four-core box and climbing past 33,
+and `user` time below `real` is the tell.
+
+The consequence is not a footnote, because this repository's standing rule is to
+**measure rather than guess** — and a measurement taken under foreign load is
+not a weaker measurement, it is a confident wrong one. Anything timed here needs
+the load average read alongside it, which is now in CLAUDE.md next to the
+`make ci` budget.
+
+The Vitest worker pool is what this cost. `pool: 'threads'` matters mostly to
+*local* wall-clock — vitest was the largest single component of `make ci`, while
+on CI the client job is nowhere near the critical path — so the machine that
+could not measure honestly was the machine whose number mattered. Two attempts
+failed in different ways and both are worth knowing: the full suite ran 368 s on
+`forks` and 270 s on `threads`, which *looks* decisive until you notice the
+threads run happened under the heavier load, so the comparison is unpaired and
+the direction is luck. The obvious fix — alternate the two pools on a subset to
+average the drift out — came back 3.6 / 5.7 s and then 5.5 / 3.8 s: **the noise
+was larger than the effect and the ordering flipped between rounds.** A paired
+design does not rescue a measurement when the variance is that wide; it only
+makes the wrong answer look methodical.
+
+What settled it was moving the measurement rather than repeating it. CI's runner
+is stable to ±2 s (`npx vitest run` was 46 s and 48 s on two independent
+`forks` runs), so the same step under `threads` — **32 s** — is a real
+comparison, on the same four cores, of the same work. The rule to reuse:
+**when the environment cannot hold still, change where you measure, not how
+many times.** Isolation is untouched either way; `threads` still gives each file
+its own worker and module registry, which is what `unstubGlobals` and the
+per-file environment docblock depend on.
+
+### The one character that was safe to change (2026-08-30)
+
+Re-sharding meant running the pipeline twice on an unchanged tree, which is how
+`E2E-M17-13` was caught failing once and passing once: *„a token with a broken
+signature was accepted"*. Nothing in the change could touch it — the case mints
+an API token in M17 and checks that a tampered copy is refused — so the question
+was whether the suite had a flake or the server had a hole.
+
+Neither, and the cause is worth writing down because the defect is in the line
+that exists to prevent it. The case tampered with the token's **last**
+character, taking care not to pick the character already there:
+`token.slice(0, -1) + (token.endsWith('x') ? 'y' : 'x')`. An HS256 signature is
+32 bytes, and base64url encodes 32 bytes in 43 characters — 258 bits of room for
+256 bits of signature. **The final character's low two bits are padding, and the
+decoder discards them.** So `w`, `x`, `y` and `z` in that position all decode to
+the same byte, verified rather than reasoned about by decoding every candidate:
+they come back in sets of four.
+
+Encoders emit the canonical member of each set, so the signature's last
+character is never `x` and the guard against a no-op substitution never fired;
+what did fire, one time in sixteen, was a signature ending in `w` being
+"tampered" into `x` — a different string, an identical signature, a valid token,
+a 200. The assertion then reported a security failure it had not observed.
+
+Two things generalise. **A ~6 % flake is the worst rate to have**, because it
+survives: rare enough that a re-run clears it and the case reads as green,
+frequent enough to cost a pipeline regularly, and it sat on the negative half of
+a security assertion — the half whose whole job is to prove the positive result
+came from the credential. And **the mutation a test uses to prove a check works
+is itself a piece of production reasoning**: this one encoded an assumption
+about base64 that nothing checked, in a test written precisely because the
+authors did not want to assume things about token validation. The fix flips a
+character before the last, where all six bits are meaningful.
