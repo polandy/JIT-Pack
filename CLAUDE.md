@@ -187,7 +187,7 @@ it. Item numbers stay stable even as items close, because the log refers back to
    somebody else's number. **`scripts/case-id-gate.mjs`, landed one PR earlier, cannot find
    this**: each id is used exactly once, so the duplicate check is green, and the totals are
    identical either way — a swap is not a collision. Renumbered, and the two
-   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
+   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-07 asserts the creation mode
    and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
    and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
    decision, and note PRD FR-27.5 argues against fuzzy matching partly *because* M9 can merge).
@@ -237,6 +237,21 @@ it. Item numbers stay stable even as items close, because the log refers back to
    FR-27.4 model the screen had already stopped following). Three were checked and deliberately left
    (M8-02's default, M8-14's *scrim tap* = Ionic's own `backdropDismiss`, M8-15's group-name match =
    the `searchGroups` unit). **No owner decision owed.** Log: *„A control nobody had ever clicked"*.
+   **M10 followed and is the same commit's larger half**: five tests written under
+   **M10-01 … M10-05**, which were live entries for five other promises, while the three ids
+   the commit marked implemented (07/08/10) had no test carrying them. `e2e-tests.md`'s
+   promise table named them right the whole time and nothing else did — **when two documents
+   disagree about coverage, the one mapping test bodies to ids is the one to trust**.
+   Renumbered. Two real remainders written, both sections that were built in July and had no
+   `data-testid` anywhere: **E2E-M10-03** (the dependency section — its cycle refusal, its
+   default mode, its read-only reverse list; two other cases only *drive* it as setup) and
+   **E2E-M10-04** (the photo, add/replace/remove, read back from the device). Retired: M10-01
+   (clause by clause), M10-02 (its „delete blocked" half was reversed by FR-24.3) and M10-09
+   (a second id over M10-03's section). **Two unbuilt promises, owner decision owed:**
+   „Enthalten in" (FR-27.8) and „Kommentare aus Reisen" (FR-27.9) exist in the prototype and
+   in three specs, and in no build — including inside FR-24.5, which named them as the
+   sections creation mode hides, so a green case asserted the absence of something absent in
+   both modes. Log: *„Five numbers, and two sections nobody had built"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
