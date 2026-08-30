@@ -85,6 +85,30 @@ Only the issuer is configured. The authorization, token, UserInfo and JWKS endpo
 
 The `email` scope is not cosmetic: the verified address it yields is what the [instance-admin allowlist](#instance-admins) matches against.
 
+### Check the provider before you trust it
+
+Every point above is something your IdP either supports or quietly does not. A provider that supports less does not usually say so — it grants a smaller set and the trouble arrives later, as a session that stops renewing or an account provisioned with a blank name.
+
+You can check the whole list in one command, against a running provider, without a client secret and without an account:
+
+```bash
+JITPACK_REAL_IDP_ISSUER=https://auth.example.com go test ./internal/api/ -run RealProvider -v
+```
+
+Use **exactly** the issuer you configured, trailing slash and all — if the two differ, that is itself one of the findings, and it is the most common one.
+
+It reads four published documents and writes nothing, so it is safe against a production instance. Each failure names what breaks rather than only what is missing, for example:
+
+```
+provider does not advertise "offline_access" (has [openid profile email])
+  — a provider that grants a subset issues no refresh token, and the
+    session silently stops renewing
+```
+
+Worth running after an IdP upgrade as well as before the first login: an option that disappears in a new version of your provider looks exactly like one that was never configured.
+
+What the command cannot check is the login itself — your provider's password page, any second factor, and the consent screen are behind a real user session. Do that once, by hand, with a real account.
+
 ---
 
 ## How a session works

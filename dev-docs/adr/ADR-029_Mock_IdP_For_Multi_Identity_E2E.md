@@ -92,7 +92,7 @@ Two harness consequences follow from it and are decided here rather than left to
 
 **Negative / accepted costs**
 
-- **A real-provider integration defect still ships green.** Named, not mitigated: the pre-release check against a real Authelia stays the manual step §2.3 and the UI-Test-Spec already call for, and Track H's dogfood deployment is where it is actually paid.
+- **A real-provider integration defect still ships green.** Named, not mitigated: the pre-release check against a real Authelia stays the manual step §2.3 and the UI-Test-Spec already call for, and Track H's dogfood deployment is where it is actually paid. **Partly paid 2026-08-30**: the part of that check that reads *published metadata* is now `internal/api/realprovider_test.go`, opted into with `JITPACK_REAL_IDP_ISSUER` and skipped everywhere else — it asserts, against the live provider, every capability the broker and the client depend on, and it runs the shipped `FetchDiscovery` rather than a second reading of it. It does **not** narrow this cost as far as it looks: metadata says what a provider *offers*, never what it does, so the login itself, the second factor, the consent screen, the refresh grant and the disabled-account asymmetry stay a person's job. The procedure for those is written down in `dev-docs/e2e-tests.md` instead of being an intention.
 - A second OIDC server implementation exists in the repo. It is bounded to the four endpoints the broker calls, and it drifts loudly rather than quietly: a change to the broker's expectations fails the whole `server` project at login.
 - CI grows a job (~1 min): the backend-backed projects cannot share a run.
 
