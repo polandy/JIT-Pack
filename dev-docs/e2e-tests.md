@@ -84,8 +84,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
-| M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
-| G-10 trip presence | E2E-G10-01 (facepile and badge; the per-person list is unbuilt) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
+| M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
+| G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
@@ -2231,7 +2231,8 @@ the one person worth noticing marked by an *absence*. Ringing the exception
 in amber inverts all three, and it is the vocabulary G-10's own badge
 already used.
 
-**Where each half is tested, and why it is not all in one place.** A device
+**Where each half is tested, and why it is not all in one place** *(the
+premise below was refuted on 2026-08-30 — see E2E-G10-02)*. A device
 is "behind" only while its reported pull cursor sits below the trip head,
 and the client reports one the moment its pull returns — so no Playwright
 case can produce a lagging device without racing it, which this project
@@ -2246,15 +2247,20 @@ count a person with no face to point at.
 
 ### What is deliberately not covered
 
-- **Amber for a lagging device, end to end.** Producing a genuinely lagging
-  device inside one case would mean holding a pull open, which is a seam the
-  production code does not have — and inventing one to watch a colour is the
-  wrong trade. It is a unit case and a gallery entry instead.
-- **E2E-M20-03's avatar half.** *Remove avatar* changes no pixel on M20: the
-  row's `img` src is the same URL either way and the served bytes are the
-  placeholder before and after. The name half is asserted because it *is*
-  rendered; the avatar half stays where it can be stated, in
-  `store/admin_test.go`.
+- ~~**Amber for a lagging device, end to end.**~~ **Reversed 2026-08-30 —
+  E2E-G10-02.** The seam was already there and pointing the other way: a
+  lagging device is one whose pull has *not* returned, and Playwright can
+  stop a request without any production code being invented for it. What
+  made this read as impossible is that it was written as "holding a pull
+  open", which is indeed a race; blocking one is a settled state.
+- ~~**E2E-M20-03's avatar half.**~~ **Written 2026-08-30 — E2E-M20-03b**, and
+  the sentence under it was wrong twice. There is no placeholder: the avatar
+  endpoint **404s** for an account with no picture and the initials are the
+  ground (FR-23.4a). And *Remove avatar* changed no pixel for a reason that
+  was a defect rather than a fixture gap — the row is keyed by user id, so
+  the same `<img>` keeps the same `src` across the reload and the browser
+  never asks again, under a `max-age=3600` that would answer it if it did.
+  M17 has had the cache-busting query since FR-17.13; M20 now has it too.
 - **The two reasons a row offers no Deactivate.** FR-23.3 exempts admins and
   the own row, and this instance has exactly one admin — so the rendered case
   can only assert the row that is both. The split is exhaustive in
