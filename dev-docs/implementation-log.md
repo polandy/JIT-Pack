@@ -202,6 +202,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An assertion that was true before the click (2026-08-30)](#an-assertion-that-was-true-before-the-click-2026-08-30) — backlog item 6, M11/M12. A screen where every id was implemented and two clauses still had no test: an assertion whose locator both dimensions render, a KPI checked where its two halves were equal, and the question that finds the shape. Plus two promises with a reader and no writer.
 - [The debt register empties, and one clause of it was never built (2026-08-30)](#the-debt-register-empties-and-one-clause-of-it-was-never-built-2026-08-30) — the four inherited id collisions read against their screens. Three were plain duplicates; the fourth split three ways and left a promise the quick-add has never kept.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
+- [A row that could not count, and a segment nobody filled (2026-08-30)](#a-row-that-could-not-count-and-a-segment-nobody-filled-2026-08-30) — backlog item 6, M7 and M23. Why a case can assert a composition and still not see the one number the row computes, the spec sentence that described an unbuilt menu as built, and the cost one screen declined that the next screen could pay once for both.
 
 ## Current state
 
@@ -9097,6 +9098,81 @@ currency and one would be an owner decision. FR-21.9 built `JITPACK_CURRENCY`
 the same week. The line was true when written, which is exactly how a spec
 sentence survives being wrong — nothing re-reads a *States* bullet when a
 different screen's feature lands.
+
+## A row that could not count, and a segment nobody filled (2026-08-30)
+
+Backlog item 6, sixth and seventh screens: **M7** and **M23**. Same method —
+read each id as a list of promises and check each clause against the built
+screen — and this pair produced no new shape, which is itself worth recording:
+five audits in, the shapes are stable enough that the sorting is now the cheap
+part and the reading is the whole cost.
+
+**What the age of a catalogue does to it.** M7's ids were written before the
+2026-08-15 variant pass rebuilt the screen, and three of them describe surfaces
+that pass removed or never built. M7-01's *my-vs-published split* is FR-1.6's
+MVP simplification seen from the wrong side: there is nothing to render, so
+there is nothing to assert, and its other half (name and item count per row) is
+E2E-M7-07's. M7-03's *name prompt* was not left unbuilt but **rejected** — the
+name lives in the same sheet as the scope precisely so that no row exists
+before the name does, which is a promise a `prompt()` cannot make. Both are
+struck through with the case that keeps what they meant.
+
+**A spec sentence that described an unbuilt menu as built.** E2E-M7-05 promises
+*FAB "+" menu → Import from file → M18*. The FAB has no menu; it opens the
+scope chooser. The UI-Test-Spec's own 2026-08-15 amendment already said the
+entry was owed — and UI-Spec M7's *Actions* line said, in the same paragraph as
+a dozen things that are true, that the menu offers it. Two documents, one
+built screen, and only the one nobody reads while looking at the other was
+right. The Actions line is corrected; whether the menu gets built is an owner
+decision, because the *function* has a door — the header icon beside the page
+title — and a second door is a preference, not a defect.
+
+**The clause a green case could not see.** E2E-M7-07 has read *implemented*
+since the M8 rebuild, and the ledger says so in a sentence titled *"E2E-M7-07
+is complete since the M8 unit"*. It is not: the id promises the row's
+**resolved** item count, *not 0 for a template with no own positions* — and the
+M8 case that completed it builds its composition out of groups that are
+**empty**. In that world the raw count and the resolved count are both 0, so a
+row that read its own positions instead of resolving would have been green
+there for as long as the case has existed. This is a different failure from the
+ones the earlier audits found: not a missing test, not a wrong id, but a test
+whose *world* cannot distinguish the rule from its negation. Giving the group
+one position and reading the composed row is the whole fix, and the mutation
+proves it.
+
+**A screen's search is usually covered as far as opening the field.** M9's
+audit found this the same day, one screen over, and M7 had it too: G-12's case
+asserts the magnifier opens *this* screen's field, and nothing typed. M7's
+States line promises two empty states painted into one element — nothing at
+all, which names both scopes and drops the segment, and nothing *matching*,
+which says *„Keine Vorlage gefunden"* and keeps it, because there is something
+to widen back to. Only the first had a case. The pattern is worth generalising
+before the next screen: **wherever a list has a search, check whether anything
+types into it.**
+
+**A cost one screen declined, paid once for two.** M23-01/02/03 keep every
+clause they make — this screen was written together with its cases and they did
+not drift. What the reading found is what all three have in common: each
+retires an **item**, and FR-24.3 governs items *and* Vorlagen, which M23 builds
+from two separate row builders. The Vorlagen segment had never held a row in
+any test, and E2E-M23-01 uses its *emptiness* as a positive control — a control
+that says nothing unless the list can be non-empty. The Vorlage **retire**
+branch was unrendered anywhere too, and for a reason that was written down:
+E2E-M7-11 covers the remove branch and states that reaching the retire branch
+through the UI means generating a whole trip for one sentence. That accounting
+was right for one sentence and wrong for four — the retire confirm's other
+wording, the Vorlagen list, the purge button correctly absent while the trip
+holds the row, and the restore — so E2E-M23-04 spends the trip once and
+collects all of them. **A declined cost is worth re-adding up when a second
+screen wants the same setup.**
+
+The mutation for it is the one this screen is actually exposed to: M23's two
+row builders differ only in which orchestrator call each field holds, so
+pointing the template row's `restore` at `restoreMasterItem` type-checks and
+looks right. It reddens the new case and leaves the three item cases green,
+which is also the proof that the new case is exercising the template path
+rather than re-rendering the item one.
+
 ## The debt register empties, and one clause of it was never built (2026-08-30)
 
 `case-id-gate.mjs` shipped with four inherited collisions in it — `E2E-M3-11`,

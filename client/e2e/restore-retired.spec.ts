@@ -4,6 +4,7 @@ import {
   addPosition,
   backToTemplateList,
   createTemplate,
+  createTripFollowingGroup,
   test,
   expect,
   visiblePage as visible,
@@ -168,6 +169,69 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     await expect(
       visible(page).locator('ion-item h2').filter({ hasText: 'Kamera (alt)' }),
     ).toHaveCount(1)
+  })
+
+  test('E2E-M23-04: a Vorlage a trip used is hidden too, listed on its own segment, and restored', async ({
+    seedMode,
+    page,
+  }) => {
+    // The half of M23 nothing had ever rendered (backlog item 6,
+    // 2026-08-30). FR-24.3 retires master items *and* Vorlagen, and the
+    // screen builds its two lists from two different row builders — but all
+    // three cases above retire an item, and one of them uses the Vorlagen
+    // segment's *emptiness* as a positive control, which only says anything
+    // if that segment can ever hold a row. The retire branch of a Vorlage
+    // had no rendered case either (E2E-M7-11 covers the remove branch and
+    // says why it stops there); one trip pays for both.
+    await seedMode({ mode: 'local' })
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Fotografie')
+    await addPosition(page, 'Kamera')
+    await backToTemplateList(page)
+
+    // FR-9.2's provenance is what makes the delete a retire: the trip's rows
+    // point back at the group they were generated from.
+    await createTripFollowingGroup(page, 'Wochenende', 'Fotografie')
+
+    await localWriteSettled(page)
+    await page.goto('/tabs/templates')
+    const row = visible(page).locator('ion-item', { hasText: 'Fotografie' })
+    await row.dispatchEvent('contextmenu')
+    const sheet = page.locator('ion-action-sheet')
+    await expect(sheet).toBeVisible()
+    await sheet.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    // The other sentence of the same confirm E2E-M7-11 reads: this one is
+    // used, so it says it is kept rather than removed — before the tap.
+    const confirm = page.locator('ion-alert')
+    await expect(confirm).toContainText('hidden, not removed')
+    await confirm.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(visible(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(0)
+
+    await openRetired(page)
+    // The items segment is empty, so a row on the Vorlagen list is a fact
+    // about which list it landed on — the mirror of E2E-M23-01's control.
+    await expect(visible(page).getByTestId('m23-empty')).toBeVisible()
+    await visible(page).getByTestId('m23-segment-templates').click()
+    await expect(visible(page).getByTestId('m23-row')).toHaveCount(1)
+    await expect(visible(page).getByTestId('m23-row-name')).toHaveText('Fotografie')
+    // Still used by the trip, so a permanent delete would silently be
+    // another retire and is not offered — the same rule E2E-M23-03 pins for
+    // an item, asserted here against the restore button's presence.
+    await expect(visible(page).getByTestId('m23-restore')).toHaveCount(1)
+    await expect(visible(page).getByTestId('m23-purge')).toHaveCount(0)
+
+    await visible(page).getByTestId('m23-restore').click()
+    await expect(visible(page).getByTestId('m23-empty')).toBeVisible()
+    await localWriteSettled(page)
+
+    // Back where it was hidden from, and still itself: the group is on M7
+    // and still holds the position it was created with.
+    await page.goto('/tabs/templates')
+    await expect(visible(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(1)
+    await visible(page).locator('ion-item', { hasText: 'Fotografie' }).click()
+    await expect(page.getByTestId('header-title')).toHaveText('Fotografie')
+    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' })).toHaveCount(1)
   })
 
   test('E2E-M23-03: a hidden row nothing uses any more can be removed for good', async ({
