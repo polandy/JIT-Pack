@@ -67,7 +67,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
-| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
+| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
@@ -2992,6 +2992,80 @@ flipping the condition turns `E2E-M2-14` red too, with a message about a
 segment label, which is precisely the argument for a case that fails saying
 *"this instance was sent to a login it cannot complete"*. The mutation cannot
 be narrowed below that: the branch is one `if` on the app's boot path.
+
+## M15 — the step nobody had opened, and the screen that opens once (2026-08-30)
+
+Backlog item 6, M15. Four of its ten ids were unwritten, and they sorted into
+three different things at once — which is why the id count said nothing useful
+here: **one was a real remainder, one was six promises in one sentence, and two
+described behaviour the wizard has never had.**
+
+| the promise | case | what it took |
+|---|---|---|
+| merge and keep-separate decide the inventory | E2E-M15-03 | Step 3 has existed since the wizard was built and **no test had ever opened it**: every fixture in the unit imports into an empty device, where there is nothing to be a duplicate *of*. The inventory is built by an import of its own, and the five-row count afterwards is what makes the merge legible. |
+| the category-*row* layout, end to end | E2E-M15-11 | The layout this wizard exists for. Everything the unit drove had its category in a column, and the only case that committed imported a sheet with no trip and no headings — so `analyzeGrid`'s heading branch had never produced a row anybody could see. |
+| the mapping gate, and the include toggle past it | E2E-M15-12 | The note existed in the suite only as M15-08's *absence*, and the per-trip include checkbox had never been clicked. |
+
+**The clause that could not fail.** E2E-M15-06 promises that a detected
+category column files the items under it *„and no item turned into one"*. With
+a category column the analysis claims **no** category rows at all — so no item
+was ever a candidate, and that half of the sentence is green by construction.
+It is falsifiable only in the rows layout, which is where it now lives: the
+mutation that stops claiming heading rows turns both headings into items and
+E2E-M15-11 reads „5 new items, 0 categories". Same shape as E2E-M12-01's
+absence bucket, arrived at from the other direction — not an assertion that was
+true before the click, but an assertion in a world that cannot break it.
+
+**Two promises the wizard never kept**, both unbuilt and both open with the
+owner rather than quietly retired:
+
+- **The grid preview.** UI-Spec M15 Step 1 says *„parser preview of detected
+  grid"* and E2E-M15-01 repeats it. Step 1 is a file button, a paste box and
+  *Analyze*; step 2 shows lists *derived* from the grid and never the grid.
+- **The noise handling is done and never shown.** NFR-4.7's trailing `?`
+  genuinely becomes an item plus an open task — `buildImportPlan` strips it,
+  `commitImport` writes the todo, and both halves are unit-covered. What
+  E2E-M15-02 promises is that the wizard **says so inline**, and no step does;
+  the user meets the tasks inside the trip. Recorded with it, because it is the
+  same sentence: the task's body is a hard-coded English string in
+  `commitImport`, which NFR-4.12 would put on the catalogue.
+
+Two smaller ones went the same way: the confirm names no **target series**
+(the picker is on step 2 and the commit writes `series_id`), and the *„failure
+rolls back completely"* in UI-Spec Step 4 has never been true — the commit is
+an approximation, validated before anything is enqueued, with no rollback and
+no progress. Neither reached the code as a defect; both were sentences describing
+a screen nobody had re-read.
+
+**The defect the new case found, which is not a coverage question at all.**
+E2E-M15-03 needs two imports in one session, and the second one could not be
+driven: after any M15 commit, the `router.replace` onto a tab root leaves that
+tab's page **unhidden in the root outlet**, so a later push renders M15
+*underneath* it — visible, fillable, and every click intercepted. Three probes
+pinned it: M2 → M15 on a fresh boot is fine, and the same click after a commit
+is not, whichever screen the commit landed on. The case reloads between the two
+imports and says why; **M18's restore replaces exactly the same way**, and its
+cases never come back for a second file. Open with the owner.
+
+Two things the reload had to learn. The three rows are re-asserted after it
+because they are also this case's **settled signal** — the dedup step reads
+`master.itemList`, and a boot that has not finished loading offers no
+duplicates at all, which would skip step 3 and leave the case green against
+nothing. And the reload waits for the **G-2 glyph** to read `local` first: in
+Local Mode `syncing` outranks it while a write is open, and reloading without
+that wait dropped the import's last row once in five runs. Both are the seam
+the production code already had; neither is a wait on time.
+
+**One honesty note on a case nobody touched.** E2E-M15-09 promises that a name
+the sheet listed twice *„is there once"*, and its body asserts the name is
+visible without counting. It cannot pass against a duplicate — Playwright's
+strict mode throws on two matches — so it is coverage; it just does not read
+like it, and the next person to relax that locator would silently lose the
+assertion.
+
+**The production diff is five test ids on step 3.** The screen was right about
+everything it does; three of the four things written about what it does *not*
+do were wrong.
 ## The subscription helper was not deterministic, and said it was (2026-08-30)
 
 `wsSubscribed` waited for the hub's `presence` frame to prove a page's trip
