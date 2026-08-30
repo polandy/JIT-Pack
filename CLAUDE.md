@@ -285,7 +285,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    each tab counts rows to buy (E2E-M6-05/06). Log: *„The shop stops asking three times…"*.
    **E2E-G3-04 closed it 2026-08-30**: the two-identity case for the G-3 cluster lock, which found
    that the rule had shipped with no surface saying it — the editor now names the holder.
-   Log: *„A rule that was complete and invisible"*. **FR-25.21 owes nothing further.**
+   Log: *„A rule that was complete and invisible"*. **One further rule came out of the two features
+   meeting (2026-08-30):** a conversion leaves no row claiming a state its own numbers no longer
+   support — FR-25.13f's ✕ writes quantity 0 and *skipped*, per-person floors the amount at 1, and the
+   row was created and hidden in the same breath. The state falls back to *open* exactly when it has
+   stopped being true, and only un-skipping is confirmed (E2E-M5-21). Log: *„A row kept saying it was
+   skipped…"*. **FR-25.21 owes nothing further.**
 
 **Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork

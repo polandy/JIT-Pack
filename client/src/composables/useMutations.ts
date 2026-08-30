@@ -213,7 +213,7 @@ export function useMutations(hlc: HLCGenerator) {
    */
   function setMembershipFields(
     itemId: string,
-    fields: Partial<Pick<TripItem, 'assigned_traveler_id' | 'quantity' | 'packed_count'>>,
+    fields: Partial<Pick<TripItem, 'assigned_traveler_id' | 'quantity' | 'packed_count' | 'state'>>,
   ): Mutation {
     return make('upsert', TABLE.tripItems, itemId, fields)
   }

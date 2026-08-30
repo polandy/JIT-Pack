@@ -66,7 +66,7 @@ export interface MembershipInsert {
 export interface MembershipUpdate {
   id: string
   /** Only the fields that actually differ; an empty object never occurs. */
-  fields: Partial<Pick<TripItem, 'assigned_traveler_id' | 'quantity' | 'packed_count'>>
+  fields: Partial<Pick<TripItem, 'assigned_traveler_id' | 'quantity' | 'packed_count' | 'state'>>
 }
 
 /** A row the plan will delete that is *not* replaceable — what a confirm must name. */
@@ -91,6 +91,12 @@ export interface MembershipPlan {
   survivor: { rowId: string; travelerName: string } | null
   /** What the collapsed row will read, for the same sentence. */
   totals: { quantity: number; packed: number } | null
+  /**
+   * Set when the rewrite takes a *skipped* row along again — the one decision a
+   * conversion can silently undo, so the caller can ask before it does. Packing
+   * progress needs no such report: it is a count, and it survives as one.
+   */
+  unskipped: { rowId: string; travelerName: string } | null
   /** True when the rows already express the target — nothing to write. */
   empty: boolean
 }
@@ -144,6 +150,30 @@ function survivorOf(
   })[0]
 }
 
+/**
+ * The state a row may keep once its numbers have been rewritten, or `undefined`
+ * where it keeps the one it has.
+ *
+ * A conversion changes what a row holds and how much of it is packed, and two
+ * of the states describe exactly those numbers: *skipped* is FR-5.5's quantity
+ * of nothing, *packed* means the count has reached the amount. Left standing
+ * over new numbers, either one makes `isDone` true of a row that is not, and
+ * FR-25.2 then takes it off the list while it is unfinished. This is a
+ * derivation and not a decision: the state falls back to *open* exactly when it
+ * has stopped being true, and is left alone otherwise — an in-progress claim
+ * (`packing_now`) describes a person, not a number, and is none of this
+ * function's business.
+ */
+function stateAfter(
+  row: TripItem,
+  quantity: number,
+  packedCount: number,
+): TripItem['state'] | undefined {
+  if (row.state === 'skipped' && quantity > 0) return 'open'
+  if (row.state === 'packed' && packedCount < quantity) return 'open'
+  return undefined
+}
+
 /** Fields that differ, so a no-op edit writes no mutation. */
 function diff(row: TripItem, next: MembershipUpdate['fields']): MembershipUpdate['fields'] {
   const out: MembershipUpdate['fields'] = {}
@@ -157,6 +187,7 @@ function diff(row: TripItem, next: MembershipUpdate['fields']): MembershipUpdate
   if (next.packed_count !== undefined && next.packed_count !== row.packed_count) {
     out.packed_count = next.packed_count
   }
+  if (next.state !== undefined && next.state !== row.state) out.state = next.state
   return out
 }
 
@@ -193,6 +224,7 @@ export function planMembership(input: MembershipInput): MembershipPlan {
     destructive: [],
     survivor: null,
     totals: null,
+    unskipped: null,
     empty: true,
   }
   // One row is the template every other row of this item is cut from — and
@@ -230,7 +262,12 @@ function planCollapse(
   const keep = survivorOf(rows, withContent, order) ?? template
   const removed = rows.filter((r) => r.id !== keep.id)
 
-  const fields = diff(keep, { assigned_traveler_id: null, quantity, packed_count: packed })
+  const fields = diff(keep, {
+    assigned_traveler_id: null,
+    quantity,
+    packed_count: packed,
+    state: stateAfter(keep, quantity, packed),
+  })
 
   return {
     update: Object.keys(fields).length > 0 ? [{ id: keep.id, fields }] : [],
@@ -239,6 +276,10 @@ function planCollapse(
     destructive: lossesFor(removed, nameOf, withContent),
     survivor: { rowId: keep.id, travelerName: nameOf(keep.assigned_traveler_id) },
     totals: { quantity, packed },
+    unskipped:
+      fields.state === 'open' && keep.state === 'skipped'
+        ? { rowId: keep.id, travelerName: nameOf(keep.assigned_traveler_id) }
+        : null,
     empty: removed.length === 0 && Object.keys(fields).length === 0,
   }
 }
@@ -260,6 +301,7 @@ function planPerPerson(
 
   const update: MembershipUpdate[] = []
   const insert: MembershipInsert[] = []
+  let unskipped: MembershipPlan['unskipped'] = null
   // ADR-036's keep-and-repoint: the shared row becomes the first selected
   // traveler's, so its thread, todos and progress survive the conversion.
   let repointable: TripItem | null = survivorOf(unassigned, withContent, order) ?? null
@@ -272,13 +314,18 @@ function planPerPerson(
       continue
     }
     if (repointable) {
+      // The kept row's progress cannot exceed the amount it now carries.
+      const packedCount = Math.min(repointable.packed_count, m.quantity)
       const fields = diff(repointable, {
         assigned_traveler_id: m.traveler_id,
         quantity: m.quantity,
-        // The kept row's progress cannot exceed the amount it now carries.
-        packed_count: Math.min(repointable.packed_count, m.quantity),
+        packed_count: packedCount,
+        state: stateAfter(repointable, m.quantity, packedCount),
       })
       if (Object.keys(fields).length > 0) update.push({ id: repointable.id, fields })
+      if (fields.state === 'open' && repointable.state === 'skipped') {
+        unskipped = { rowId: repointable.id, travelerName: nameOf(m.traveler_id) }
+      }
       repointable = null
       continue
     }
@@ -304,6 +351,7 @@ function planPerPerson(
     destructive: lossesFor(removed, nameOf, withContent),
     survivor: null,
     totals: null,
+    unskipped,
     empty: update.length === 0 && insert.length === 0 && removed.length === 0,
   }
 }

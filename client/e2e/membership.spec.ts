@@ -277,3 +277,68 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
   })
 })
+
+/**
+ * FR-25.21 / FR-5.5 — a conversion never leaves a row claiming a state its own
+ * numbers no longer support.
+ *
+ * The route is FR-25.13f's ✕ (*„zu Hause gelassen"*), which writes quantity 0
+ * and state *skipped*, followed by FR-25.8's per-person mode, whose smallest
+ * membership is 1. Before this rule the row came back with quantity 1 and the
+ * skipped state intact — and `isDone` reads *skipped* as done, so FR-25.2 took
+ * the row straight off the list. The assertion is therefore that the row is
+ * **on the list**: an invisible row is the defect, and only a visible one
+ * disproves it.
+ */
+test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M5-21: taking a skipped row along again is asked, then visible', async ({ page }) => {
+    await page.goto('/tabs/items')
+    await page.getByTestId('m9-fab').click()
+    await page.getByTestId('m10-name').locator('input').fill(ITEM)
+    await page.getByTestId('m10-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText(ITEM)
+
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-mode-per-person').click()
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await sheet
+      .getByTestId('browse-row-free')
+      .filter({ hasText: ITEM })
+      .getByTestId('browse-skip')
+      .click()
+
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    await page.getByTestId('membership-check-Andy').click()
+
+    // The decision is undone as a side effect of a checkbox, so it is asked —
+    // and cancelling is the positive signal that the question is a gate: the
+    // amount does not appear.
+    const alert = page.locator('ion-alert')
+    await expect(alert).toBeVisible()
+    await expect(alert).toContainText(ITEM)
+    await alert.getByRole('button', { name: /Abbrechen|Cancel/ }).click()
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveCount(0)
+    // The dismissed alert has to be *closed*, not merely answered — the
+    // element stays in the DOM either way. A second one opening while the
+    // first tears down ends up under the modal, and its buttons take no clicks.
+    await expect(alert).toBeHidden()
+
+    await page.getByTestId('membership-check-Andy').click()
+    await page
+      .locator('ion-alert')
+      .getByRole('button', { name: /Bestätigen|Confirm/ })
+      .click()
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
+    await page.getByTestId('membership-close').click()
+
+    // On the list, not hidden as a done row.
+    await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toContainText(`${ITEM} · Andy`)
+  })
+})
+
