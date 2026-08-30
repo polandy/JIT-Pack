@@ -187,6 +187,14 @@ it. Item numbers stay stable even as items close, because the log refers back to
    somebody else's number. **`scripts/case-id-gate.mjs`, landed one PR earlier, cannot find
    this**: each id is used exactly once, so the duplicate check is green, and the totals are
    identical either way — a swap is not a collision. Renumbered, and the two
+   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
+   and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
+   and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
+   decision, and note PRD FR-27.5 argues against fuzzy matching partly *because* M9 can merge).
+   Two real remainders written: **E2E-M9-04**, whose state no test had ever rendered
+   (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
+   word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
+   tests"*.
    **M11 and M12 followed 2026-08-30, and both had every id implemented** — so
    the audit's product was not new cases but a **seventh shape: a clause whose
    assertion cannot fail.** E2E-M12-01 switched to the *Gepäck* dimension and
@@ -202,15 +210,7 @@ it. Item numbers stay stable even as items close, because the log refers back to
    FR-10.3's per-trip imbalance threshold is honoured by the domain and written
    by no screen, and UI-Spec M11's *„and from M12"* edge does not exist. Both
    open with the owner, deliberately untested. Log: *„An assertion that was true
-   before the click"*. And the
-   ids M9 freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
-   and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
-   and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
-   decision, and note PRD FR-27.5 argues against fuzzy matching partly *because* M9 can merge).
-   Two real remainders written: **E2E-M9-04**, whose state no test had ever rendered
-   (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
-   word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
-   tests"*.
+   before the click"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
