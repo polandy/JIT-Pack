@@ -25,7 +25,7 @@ async function resolvedFamily(el: Locator) {
 // through --ion-font-family, the display face through the role classes.
 // Until this PR the client declared no font-family at all and rendered in
 // whatever Ionic's platform stack resolved to.
-test('G-13: the UI face carries the body and the display face the page title @local @g13', async ({
+test('E2E-G13-01: the UI face carries the body and the display face the page title @local @g13', async ({
   page,
   seedMode,
 }) => {
@@ -56,7 +56,7 @@ test('G-13: the UI face carries the body and the display face the page title @lo
 // may have no network at all, and NFR-4.3 rules out a third-party request
 // on every boot — so the regression to guard is the prototype's
 // stylesheet link finding its way back into the app.
-test('G-13: no font is fetched from a third-party host @local @g13', async ({ page, seedMode }) => {
+test('E2E-G13-02: no font is fetched from a third-party host @local @g13', async ({ page, seedMode }) => {
   const offSite: string[] = []
   page.on('request', (req) => {
     const host = new URL(req.url()).hostname
@@ -85,7 +85,7 @@ test('G-13: no font is fetched from a third-party host @local @g13', async ({ pa
 
 // E2E-G13-03 (G-13/FR-21.5): the scale reaches the screen, and icons are
 // sized from their own table rather than from the type scale.
-test('G-13: an icon is sized as a glyph box, not as text @local @g13', async ({
+test('E2E-G13-03: an icon is sized as a glyph box, not as text @local @g13', async ({
   page,
   seedMode,
 }) => {
@@ -107,7 +107,7 @@ test('G-13: an icon is sized as a glyph box, not as text @local @g13', async ({
 
 // E2E-G13-04 (G-13/FR-21.5): the section label renders as the role, on a
 // screen that had written it out by hand.
-test('G-13: a section label renders as the eyebrow role @local @g13', async ({
+test('E2E-G13-04: a section label renders as the eyebrow role @local @g13', async ({
   page,
   seedMode,
 }) => {

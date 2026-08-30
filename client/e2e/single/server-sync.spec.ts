@@ -137,7 +137,7 @@ test.describe('Single-User backend sync @single', () => {
    * Single-User identity in both contexts). Context A packs; context B's
    * open packing list reflects it without a reload, via the WS ping.
    */
-  test('a pack on one device arrives on another without reload', async ({ browser }) => {
+  test('E2E-FLOW-01: a pack on one device arrives on another without reload', async ({ browser }) => {
     const id = uniq()
     const trip = `Elba ${id}`
     const item = `Zelt-${id}`
@@ -180,7 +180,7 @@ test.describe('Single-User backend sync @single', () => {
    * missing, the padlock's name and the sheet's refusal, not the identity
    * semantics the `server` project owns.
    */
-  test('a row another device is packing names its holder and refuses edits', async ({
+  test('E2E-G3-01, E2E-G3-03: a row another device is packing names its holder and refuses edits', async ({
     browser,
   }) => {
     const id = uniq()
@@ -252,7 +252,7 @@ test.describe('Single-User backend sync @single', () => {
    * What is asserted here is the G-8 promise — the surface is *absent*,
    * not shown and then refused.
    */
-  test('a claimed row offers no takeover where there is no second account', async ({ browser }) => {
+  test('E2E-G3-01, E2E-G3-02: a claimed row offers no takeover where there is no second account', async ({ browser }) => {
     const id = uniq()
     const trip = `Maloja ${id}`
     const item = `Pickel-${id}`
@@ -296,7 +296,7 @@ test.describe('Single-User backend sync @single', () => {
    * queue and are announced; the queue drains on the app's next own action
    * once the network is back; the server converges.
    */
-  test('offline edits queue, announce themselves, and drain on reconnect', async ({ browser }) => {
+  test('E2E-FLOW-06, E2E-G2-01: offline edits queue, announce themselves, and drain on reconnect', async ({ browser }) => {
     const id = uniq()
     const trip = `Arosa ${id}`
     const item = `Lampe-${id}`
@@ -349,7 +349,7 @@ test.describe('Single-User backend sync @single', () => {
    * field, the older write loses field-level (NFR-4.2a), both converge, and
    * the loss is a readable line in the trip's conflict log.
    */
-  test('a losing offline edit converges and lands in the conflict log', async ({ browser }) => {
+  test('E2E-FLOW-08, E2E-G2-01, E2E-NFR-04: a losing offline edit converges and lands in the conflict log', async ({ browser }) => {
     const id = uniq()
     const trip = `Tessin ${id}`
     const item = `Seil-${id}`
@@ -442,7 +442,7 @@ test.describe('Single-User backend sync @single', () => {
    * is, because it belongs to no trip. And it is the *server* half of the
    * sheet, not Local Mode's storage story.
    */
-  test('the G-2 detail outside a trip offers the log that belongs to no trip', async ({
+  test('E2E-G2-01: the G-2 detail outside a trip offers the log that belongs to no trip', async ({
     browser,
   }) => {
     const ctx = await browser.newContext()
@@ -472,7 +472,7 @@ test.describe('Single-User backend sync @single', () => {
    * written to a log that was filtered by `trip_id` and so returned nothing
    * for the rows that have none.
    */
-  test('a conflict on the trip itself lands in the master log, which is reachable', async ({
+  test('E2E-G2-06: a conflict on the trip itself lands in the master log, which is reachable', async ({
     browser,
   }) => {
     const id = uniq()
@@ -547,7 +547,7 @@ test.describe('Single-User backend sync @single', () => {
    * on a timer: the revert drains the master partition before it resolves,
    * and the assertion is on the repainted header.
    */
-  test('a loss recorded in the master log can be taken back', async ({ browser }) => {
+  test('E2E-G2-06, E2E-G2-10: a loss recorded in the master log can be taken back', async ({ browser }) => {
     const id = uniq()
     const trip = `Engadin ${id}`
 
@@ -612,7 +612,7 @@ test.describe('Single-User backend sync @single', () => {
    * the PWA's, E2E-PWA-01), the count survives it, and the change reaches
    * the server once the app does something with a network again.
    */
-  test('an offline change survives a reload and still reaches the server', async ({ browser }) => {
+  test('E2E-G2-04, E2E-PWA-01: an offline change survives a reload and still reaches the server', async ({ browser }) => {
     const id = uniq()
     const trip = `Davos ${id}`
     const item = `Ski-${id}`
@@ -690,7 +690,7 @@ test.describe('Single-User backend sync @single', () => {
    * to fail with a 500, which the outbox retries forever — and the client
    * must move it out of the queue and say so.
    */
-  test('parks a refused mutation and reports it on G-2', async ({ browser }) => {
+  test('E2E-G2-05: parks a refused mutation and reports it on G-2', async ({ browser }) => {
     const trip = `Refusal ${uniq()}`
     const item = `Regenjacke ${uniq()}`
 
@@ -771,7 +771,7 @@ test.describe('Single-User backend sync @single', () => {
    * has handed it, and `5` after a push that only ever received `3` is the
    * whole bug in one line.
    */
-  test('never pulls from a cursor the server handed it in a push', async ({ browser }) => {
+  test('E2E-FLOW-10: never pulls from a cursor the server handed it in a push', async ({ browser }) => {
     const id = uniq()
     const trip = `Flims ${id}`
     const mine = `Stirnlampe-${id}`
@@ -859,7 +859,7 @@ test.describe('Single-User backend sync @single', () => {
    * The CSV is the layout the wizard was taught to read: the year above the
    * trip's name (two header rows) and the category in its own column.
    */
-  test('a spreadsheet import lands on the server, not only on the device', async ({ browser }) => {
+  test('E2E-M15-05: a spreadsheet import lands on the server, not only on the device', async ({ browser }) => {
     const id = uniq()
     const trip = `Laos ${id}`
     const net = `Moskitonetz-${id}`
@@ -925,7 +925,7 @@ test.describe('Single-User backend sync @single', () => {
    * (name), so the sheet's second "Regenhosen" was dropped with its amounts.
    * Context B is the only place either shows.
    */
-  test('an imported item reaches the server filed under its category', async ({ browser }) => {
+  test('E2E-M15-09: an imported item reaches the server filed under its category', async ({ browser }) => {
     const id = uniq()
     const tag = `Velo-${id}`
     const item = `Regenhose-${id}`
@@ -1056,7 +1056,7 @@ test.describe('Single-User backend sync @single', () => {
    * decision: the client cannot pre-empt it (it holds the trip partitions it
    * has opened, never every trip's), so its own guess is advisory (ADR-032).
    */
-  test('a group a trip still uses is retired, not refused, and every device agrees', async ({
+  test('E2E-G2-11: a group a trip still uses is retired, not refused, and every device agrees', async ({
     browser,
   }) => {
     const id = uniq()
@@ -1149,7 +1149,7 @@ test.describe('Single-User backend sync @single', () => {
    * surviving row bringing its children back — runs on the retire path here
    * and in `TestApplyMasterMutation_RetiringATemplate_KeepsAndRelogsItsPositions_FR24_3`.
    */
-  test('a trip keeps its rows when the group they came from is retired', async ({ browser }) => {
+  test('E2E-G2-12: a trip keeps its rows when the group they came from is retired', async ({ browser }) => {
     const id = uniq()
     const group = `Waschbeutel-${id}`
     const item = `Seife-${id}`

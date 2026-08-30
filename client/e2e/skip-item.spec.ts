@@ -57,7 +57,7 @@ async function chooseInRowMenu(page: Page, label: RegExp) {
 }
 
 // E2E-M4-37 (FR-5.5): the row can be told to stay at home, and it says so.
-test('M4: a row can be marked deliberately not packed @local @m4', async ({ page, seedMode }) => {
+test('E2E-M4-37: a row can be marked deliberately not packed @local @m4', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
   await tripWithRows(page, ['Zelt', 'Schlafsack'])
@@ -81,7 +81,7 @@ test('M4: a row can be marked deliberately not packed @local @m4', async ({ page
 // E2E-M4-38 (FR-5.5): the snackbar's undo returns the row to the *open*
 // list, not merely to the revealed one — a row recovered into the done
 // section would still read as decided.
-test('M4: the undo puts a skipped row back on the open list @local @m4', async ({
+test('E2E-M4-38: the undo puts a skipped row back on the open list @local @m4', async ({
   page,
   seedMode,
 }) => {
@@ -103,7 +103,7 @@ test('M4: the undo puts a skipped row back on the open list @local @m4', async (
 
 // E2E-M4-39 (FR-5.5): un-skipping reads as the opposite of the decision,
 // not as "undo", and is reachable long after the snackbar is gone.
-test('M4: a skipped row offers to be packed after all @local @m4', async ({ page, seedMode }) => {
+test('E2E-M4-39: a skipped row offers to be packed after all @local @m4', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
   await tripWithRows(page, ['Zelt'])
@@ -129,7 +129,7 @@ test('M4: a skipped row offers to be packed after all @local @m4', async ({ page
 // tap live on the same element, and M7 paid for this once already — the
 // release of a hold usually lands on the overlay rather than the row, so a
 // "swallow the next click" flag goes stale and eats a later, legitimate tap.
-test('M4: the row menu neither opens the sheet nor eats the next tap @local @m4', async ({
+test('E2E-M4-41: the row menu neither opens the sheet nor eats the next tap @local @m4', async ({
   page,
   seedMode,
 }) => {
@@ -149,7 +149,7 @@ test('M4: the row menu neither opens the sheet nor eats the next tap @local @m4'
 // E2E-M4-40 (FR-5.5 with FR-20.2): the cascade is the reason the snackbar
 // carries names at all — a list that shortened itself by two rows on one
 // tap owes the user an account of the second.
-test('M4: skipping a main item names the companion it took along @local @m4', async ({
+test('E2E-M4-40: skipping a main item names the companion it took along @local @m4', async ({
   page,
   seedMode,
 }) => {
@@ -247,7 +247,7 @@ async function assignTraveler(page: Page, row: Locator, travelerName: string) {
 // the ordinary row and the per-person child row inside a cluster. One
 // keeping the gesture says nothing about the other, and the child row is
 // the one a family trip is mostly made of.
-test('M4: a per-person child row can be left behind too @local @m4', async ({ page, seedMode }) => {
+test('E2E-M4-42: a per-person child row can be left behind too @local @m4', async ({ page, seedMode }) => {
   test.slow()
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })

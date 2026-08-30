@@ -202,6 +202,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An assertion that was true before the click (2026-08-30)](#an-assertion-that-was-true-before-the-click-2026-08-30) — backlog item 6, M11/M12. A screen where every id was implemented and two clauses still had no test: an assertion whose locator both dimensions render, a KPI checked where its two halves were equal, and the question that finds the shape. Plus two promises with a reader and no writer.
 - [The debt register empties, and one clause of it was never built (2026-08-30)](#the-debt-register-empties-and-one-clause-of-it-was-never-built-2026-08-30) — the four inherited id collisions read against their screens. Three were plain duplicates; the fourth split three ways and left a promise the quick-add has never kept.
 - [A helper that promised determinism and raced instead (2026-08-30)](#a-helper-that-promised-determinism-and-raced-instead-2026-08-30) — `wsSubscribed` dropped the frame it waited for whenever the caller rendered first, which was always. Why the API's shape was the defect, and how a 3 s probe turned an unreproducible CI failure into a one-line proof.
+- [An id in the title is a case you can run (2026-08-31)](#an-id-in-the-title-is-a-case-you-can-run-2026-08-31) — the 83 comment-only case ids, sorted by where they actually sit. Why 56 were safe, why 18 would have been false coverage, and why the stated reason for doing it was wrong.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
 - [A row that could not count, and a segment nobody filled (2026-08-30)](#a-row-that-could-not-count-and-a-segment-nobody-filled-2026-08-30) — backlog item 6, M7 and M23. Why a case can assert a composition and still not see the one number the row computes, the spec sentence that described an unbuilt menu as built, and the cost one screen declined that the next screen could pay once for both.
 - [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
@@ -9375,11 +9376,10 @@ owner decision with no case, the treatment the M2 audit gave its three unkept
 promises.
 
 **Left undone on purpose, and worth a number.** Of 300 case ids in the suite,
-**78 live only in a comment above a test, not in its title.** Every audit so far
-has leaned on `git grep <id>` to find gaps, and that is precisely the search
-those 78 defeat — the M4 audit already lost time to one. It is a convention
+**78 live only in a comment above a test, not in its title.** It is a convention
 drift across the whole suite rather than four defects, and folding it into a
-four-entry cleanup would bury it.
+four-entry cleanup would bury it. (Done 2026-08-31 — see *An id in the title is
+a case you can run*, where the reason turned out not to be the one written here.)
 
 ## Five numbers, and two sections nobody had built (2026-08-30)
 
@@ -10042,3 +10042,45 @@ red — the same treatment the M2 and M11 audits gave their unkept promises: the
 sentence is struck rather than reworded, because a spec that adopts whatever
 the code does has stopped being a decision.
 
+## An id in the title is a case you can run (2026-08-31)
+
+**The reason written down for this was wrong, and noticing that changed the
+shape of the job.** Three PRs had recorded that 78 comment-only ids "defeat the
+`git grep <id>` every audit leans on". They do not: a comment is in the file,
+so grep finds it. What a comment cannot do is *run* — every audit drove single
+cases with `-g "E2E-M5-05"`, and no comment answers to that. Nor does a CI
+failure name the promise that broke, only the prose title. Smaller than
+claimed, real, and worth an hour.
+
+**The count was never the work.** 83 ids, sorted by where they sit: 56 with one
+id in the comment and none in the title; 9 with several over one untitled test;
+7 titles abbreviating ids they already claimed; 11 over `test.describe` blocks;
+15 in prose. The first three were touched — 72 titles — and the last two were
+not.
+
+**The eleven describes are the sharper of the two refusals.** A `describe`
+groups several cases, so giving it one case's id would say the group *is* that
+case. The first pass caught them only because the regex `test(?:\.\w+)?\(`
+matched `test.describe(` too, and two obviously-wrong entries appeared in the
+dry run's multi-id list. A dry run that prints its work is what found that.
+
+**The eighteen left alone are where the real risk was.** These are tests already
+titled with one id whose comment names others — and nearly all of those others
+are *pointers*, not coverage: E2E-M5-23's comment says FR-20.4's required
+companions "are E2E-M4-40's", which is a cross-reference to a case elsewhere.
+Promoting them would have written false coverage into eighteen titles while the
+number improved. The distinction only shows on reading; no rule separates a
+citation from a claim.
+
+**What was safe was safe because the claim already existed.** For the 56, the
+comment directly above the test already asserted exactly what the title now
+says. Eight were sampled against their test bodies first — all held, and their
+titles turned out to be prose restatements of the id, so the redundant screen
+prefix went with the change: `G-11: the brand and its rgb twin…` became
+`E2E-G11-05: the brand and its rgb twin…`.
+
+**One bug, found by the dry run.** The prefix stripper knew `G11` from the id
+and the titles said `G-11`, so the first output read `E2E-G11-02: G-11: the
+anchor…`. Trivial, and it would have shipped into 65 titles.
+
+317 of 332 ids now sit in a title.

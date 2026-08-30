@@ -31,7 +31,7 @@ function collectPageErrors(page: Page): string[] {
 }
 
 // E2E-G9-03: a drill-down shows exactly one bar, with back and a title.
-test('G9: a drill-down carries one header bar with back and title @local @g9', async ({
+test('E2E-G9-03: a drill-down carries one header bar with back and title @local @g9', async ({
   page,
   seedMode,
 }) => {
@@ -44,7 +44,7 @@ test('G9: a drill-down carries one header bar with back and title @local @g9', a
 })
 
 // E2E-G9-04: a tab root shows the logo and offers no back.
-test('G9: a tab root shows the logo instead of back @local @g9', async ({ page, seedMode }) => {
+test('E2E-G9-04: a tab root shows the logo instead of back @local @g9', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   await page.goto('/tabs/trips')
 
@@ -55,7 +55,7 @@ test('G9: a tab root shows the logo instead of back @local @g9', async ({ page, 
 
 // E2E-G9-05: the control is reachable, not merely rendered — this is the
 // assertion the occluded build failed.
-test('G9: back is clickable and lands on the declared parent @local @g9', async ({
+test('E2E-G9-05: back is clickable and lands on the declared parent @local @g9', async ({
   page,
   seedMode,
 }) => {
@@ -73,7 +73,7 @@ test('G9: back is clickable and lands on the declared parent @local @g9', async 
 // on a nested screen with a one-entry history must still lead to the
 // parent trip — the reason the target comes from the route and not from
 // history.
-test('G9: back from a deep-linked child reaches its parent trip @local @g9', async ({
+test('E2E-G9-06: back from a deep-linked child reaches its parent trip @local @g9', async ({
   page,
   seedMode,
 }) => {
@@ -99,7 +99,7 @@ test('G9: back from a deep-linked child reaches its parent trip @local @g9', asy
 // E2E-G9-07 (G-2/G-1): the right-hand group survives the drill-down —
 // the reason a bar per screen was rejected. Inside a trip the sync glyph
 // is the only route to the conflict log.
-test('G9: sync and settings stay present on a drill-down @local @g9', async ({
+test('E2E-G9-07: sync and settings stay present on a drill-down @local @g9', async ({
   page,
   seedMode,
 }) => {
@@ -114,7 +114,7 @@ test('G9: sync and settings stay present on a drill-down @local @g9', async ({
 // else in this file exercises entering through the list, which is how
 // most navigation actually happens and the only path that reaches
 // Ionic's cross-outlet transition.
-test('G9: list → trip → back returns to the trip list @local @g9', async ({ page, seedMode }) => {
+test('E2E-G9-08: list → trip → back returns to the trip list @local @g9', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   const errors = collectPageErrors(page)
   await createTripViaWizard(page, {

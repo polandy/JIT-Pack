@@ -175,9 +175,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    collisions the same hour (`E2E-M3-11/-12/-13`, `E2E-M4-32`) — **since resolved and the
    register is empty**: three were duplicates of live ids, and the fourth left a promise the
    quick-add has never kept (it pulls required companions **silently**, where the skip names
-   what it took along) which is an open owner decision. **78 of 300 case ids live only in a
-   comment and not in a test title**, so `git grep <id>` understates coverage — a separate,
-   suite-wide cleanup. Log: *„Six numbers that each meant two
+   what it took along) which is an open owner decision. **Done 2026-08-31:** the case ids that lived only in a
+   comment now sit in the test title, so `-g "<id>"` runs the case and a CI failure names the
+   promise. 317 of 332; the rest are prose, `describe` groups, or cross-references, and an id
+   in a title is a **coverage claim** — eighteen tests whose comment merely *cites* another
+   case were deliberately left alone. Log: *„Six numbers that each meant two
    things"*.
    **M9 followed the same day and found a sixth shape: two ids that were simply on the wrong
    tests.** The §3.24 rebuild wrote the spec entries and the tests in one commit and numbered

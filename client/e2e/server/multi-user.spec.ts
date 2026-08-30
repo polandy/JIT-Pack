@@ -45,7 +45,7 @@ test.describe('Two accounts on one instance @server', () => {
    * is the server's answer to "who packed this", not a field Alice's client
    * filled in.
    */
-  test('a shared trip converges, and a packed row says who packed it', async ({ browser }) => {
+  test('E2E-FLOW-01: a shared trip converges, and a packed row says who packed it', async ({ browser }) => {
     const id = uniq()
     const trip = `Sardinien ${id}`
     const item = `Schnorchel-${id}`
@@ -273,7 +273,7 @@ test.describe('Two accounts on one instance @server', () => {
    * `single` proves the mechanism (a foreign claim locks the row); only
    * here can the rendered name be wrong and be caught.
    */
-  test("a claimed row names its holder on the other account's screen", async ({ browser }) => {
+  test("E2E-G3-01, E2E-G3-03: a claimed row names its holder on the other account's screen", async ({ browser }) => {
     const id = uniq()
     const trip = `Engadin ${id}`
     const item = `Steigeisen-${id}`
@@ -320,7 +320,7 @@ test.describe('Two accounts on one instance @server', () => {
    * her name; the row ends up claimed by *Bob*, never free in between, and
    * Alice is told by an FR-6.2 `lock_taken` notification.
    */
-  test('a claim can be taken over, and the holder is told', async ({ browser }) => {
+  test('E2E-G3-02: a claim can be taken over, and the holder is told', async ({ browser }) => {
     const id = uniq()
     const trip = `Lofoten ${id}`
     const item = `Trockenanzug-${id}`
@@ -386,7 +386,7 @@ test.describe('Two accounts on one instance @server', () => {
    * ADR-029. Bob's device is German; Alice's is not, and hers is what fires
    * the notification.
    */
-  test('the notification is written in the recipient’s language', async ({ browser }) => {
+  test('E2E-NOTIFY-01: the notification is written in the recipient’s language', async ({ browser }) => {
     const id = uniq()
     const trip = `Sprachprobe ${id}`
     const item = `Regenjacke-${id}`
@@ -434,7 +434,7 @@ test.describe('Two accounts on one instance @server', () => {
    * notification, the deep link and FR-25.20's filter are one chain rather
    * than four separately-tested pieces.
    */
-  test('a row handed to the other account notifies them, and the notice leads to the row', async ({
+  test('E2E-FLOW-02: a row handed to the other account notifies them, and the notice leads to the row', async ({
     browser,
   }) => {
     const id = uniq()
@@ -532,7 +532,7 @@ test.describe('Two accounts on one instance @server', () => {
    * The positive signal is the same sheet after Alice gives the row back —
    * a frozen editor and a broken one look identical from outside.
    */
-  test('a claim on one instance freezes the membership editor on another', async ({ browser }) => {
+  test('E2E-G3-04: a claim on one instance freezes the membership editor on another', async ({ browser }) => {
     const id = uniq()
     const trip = `Elba ${id}`
     const item = `Kurze-Hosen-${id}`
