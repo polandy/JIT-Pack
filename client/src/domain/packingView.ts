@@ -190,7 +190,9 @@ export function isDone(item: TripItem, hasOpenPrep: boolean): boolean {
  * client makes, `packed_by_user_id` the record the server stamps (invariant 3).
  * A row carries **one** avatar, and the record wins — once a row is packed, who
  * was going to do it has stopped being the useful fact, and rendering both
- * leaves the row claiming an open job it no longer has.
+ * leaves the row claiming an open job it no longer has. Where the two differ,
+ * the revealed row's FR-25.17 stamp names them both — which is where there is
+ * room for it.
  */
 export function rowEdgeAvatar(
   item: TripItem,

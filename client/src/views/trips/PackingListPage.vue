@@ -706,12 +706,6 @@ function ownClaimNote(item: TripItem): string | null {
   return orchestrator.holdsClaim(props.tripId, item) ? t('packing.claimedByMe') : null
 }
 
-/**
- * The one avatar at the right edge (FR-25.19): who packed it once it is
- * packed, who is responsible for it while it is open. Never both — the
- * revealed row's stamp below names them both where they differ, which is
- * where there is room for it.
- */
 /** FR-25.17: "gepackt von Andy · heute 14:32", on revealed rows only. */
 function packedStamp(item: TripItem): string | null {
   if (!item.packed_at && !item.packed_by_user_id) return null
