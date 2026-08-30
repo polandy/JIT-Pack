@@ -260,8 +260,7 @@ it. Item numbers stay stable even as items close, because the log refers back to
    is not an empty one (ADR-033) — which is why this started in the orchestrator, with
    `masterDataLoaded`, and not in M2. E2E-M2-13/13b/13c/13d and E2E-M2-14.
 
-22. **FR-25.21 — the per-person model had no writer** (specified 2026-08-29; **the editor is built,
-   two surfaces still open**).
+22. ~~**FR-25.21 — the per-person model had no writer**~~ — **done** (2026-08-29/30).
    The model has carried per-traveler quantities since FR-25.1 — one `trip_items` row per traveler,
    its own quantity — and M4's cluster, M12 and the FR-27.4 refresh all read it. Nothing in the app could *produce* it: M5's *„Wer braucht das?"* is a single-select, so
    FR-25.10's multi-select was specified in July and shipped as a picker, and FR-25.8's per-traveler
@@ -284,7 +283,9 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `domain/shoppingView.ts` keys the buy row by M4's own `perPersonKey`, sums the amounts, names the
    recipients, and one check-off settles every instance — the reveal aggregates by the same rule and
    each tab counts rows to buy (E2E-M6-05/06). Log: *„The shop stops asking three times…"*.
-   **Still open:** E2E-G3-04 in the `server` project.
+   **E2E-G3-04 closed it 2026-08-30**: the two-identity case for the G-3 cluster lock, which found
+   that the rule had shipped with no surface saying it — the editor now names the holder.
+   Log: *„A rule that was complete and invisible"*. **FR-25.21 owes nothing further.**
 
 **Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
