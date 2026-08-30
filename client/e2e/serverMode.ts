@@ -11,7 +11,7 @@
  * reinvented: its whole point is that it does not wait for a duration.
  */
 
-import { expect, type BrowserContext, type Page, type WebSocket } from '@playwright/test'
+import { expect, type BrowserContext, type Page } from '@playwright/test'
 
 import { seed, visiblePage } from './fixtures'
 
@@ -50,15 +50,37 @@ export async function packItem(page: Page, name: string): Promise<void> {
 }
 
 /**
- * Wait until this page's WebSocket subscription for the trip is registered
- * server-side. Deterministic, not hopeful: the hub answers a subscribe with
- * a `presence` broadcast to the trip's subscribers — the subscriber
- * included — so receiving that frame proves the hub has the connection in
- * the trip's set, and every later `trip.changed` must reach it.
+ * Start watching for this page's trip subscription, and await the returned
+ * promise after the navigation that opens it.
+ *
+ *     const subscribed = watchSubscribed(bob)
+ *     await bob.goto(tripPath)
+ *     await expect(row).toBeVisible()
+ *     await subscribed
+ *
+ * The hub answers a subscribe with a `presence` broadcast to the trip's
+ * subscribers, the subscriber included, so that frame proves the connection
+ * is in the trip's set and every later `trip.changed` must reach it.
+ *
+ * **The page is the whole parameter, and that is the fix** (2026-08-30). This
+ * used to take a `page.waitForEvent('websocket')` promise the caller had made
+ * earlier, and attached the frame listener only once the caller awaited it —
+ * so every caller that did anything slow in between (all of them waited for a
+ * row to render) let the `presence` frame arrive and be dropped, because
+ * Playwright buffers no frames from before a listener exists. The test then
+ * waited out its timeout for a *second* presence broadcast that only another
+ * account's arrival would produce. It passed only while the server round trip
+ * was slower than the render, which is why it failed under CI load and never
+ * locally. Taking the page instead means the listener is attached one
+ * microtask after the socket exists, and no caller can open a window.
  */
-export async function wsSubscribed(page: Page, wsPromise: Promise<WebSocket>): Promise<void> {
-  const ws = await wsPromise
-  await ws.waitForEvent('framereceived', {
-    predicate: (frame) => String(frame.payload).includes('"presence"'),
-  })
+export function watchSubscribed(page: Page): Promise<void> {
+  return page
+    .waitForEvent('websocket')
+    .then((ws) =>
+      ws.waitForEvent('framereceived', {
+        predicate: (frame) => String(frame.payload).includes('"presence"'),
+      }),
+    )
+    .then(() => undefined)
 }

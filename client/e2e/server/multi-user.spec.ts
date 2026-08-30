@@ -6,7 +6,7 @@ import {
   tripSwipeActions,
   visiblePage,
 } from '../fixtures'
-import { packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
+import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
 
@@ -80,10 +80,10 @@ test.describe('Two accounts on one instance @server', () => {
 
     // Bob can now open the trip at all — the membership is what makes the
     // trip partition readable to him (P-3).
-    const wsBob = bob.waitForEvent('websocket')
+    const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(bob, wsBob)
+    await subscribedBob
 
     await alice.goto(tripPath)
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
@@ -213,10 +213,10 @@ test.describe('Two accounts on one instance @server', () => {
     await carol.goto('/tabs/settings')
     await setDelegations(carol, true)
 
-    const wsCarol = carol.waitForEvent('websocket')
+    const subscribedCarol = watchSubscribed(carol)
     await carol.goto(tripPath)
     await expect(visiblePage(carol).getByTestId(`m4-row-${heard}`)).toBeVisible()
-    await wsSubscribed(carol, wsCarol)
+    await subscribedCarol
 
     // With the preference on, the delegation reaches Carol. This is the
     // control: the same chain and the same pages the suppressed one runs on.
@@ -289,10 +289,10 @@ test.describe('Two accounts on one instance @server', () => {
     await alice.goto(tripPath)
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
 
-    const wsBob = bob.waitForEvent('websocket')
+    const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(bob, wsBob)
+    await subscribedBob
 
     await claimRow(alice, `m4-row-${item}`)
 
@@ -336,10 +336,10 @@ test.describe('Two accounts on one instance @server', () => {
     await alice.goto(tripPath)
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
 
-    const wsBob = bob.waitForEvent('websocket')
+    const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(bob, wsBob)
+    await subscribedBob
 
     await claimRow(alice, `m4-row-${item}`)
     const rowBob = visiblePage(bob).getByTestId(`m4-row-${item}`)
@@ -400,10 +400,10 @@ test.describe('Two accounts on one instance @server', () => {
     await quickAddItem(alice, item)
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
-    const wsBob = bob.waitForEvent('websocket')
+    const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(bob, wsBob)
+    await subscribedBob
 
     await alice.goto(tripPath)
     await assignTo(alice, item, ACCOUNT_NAMES.bob)
@@ -450,10 +450,10 @@ test.describe('Two accounts on one instance @server', () => {
     await quickAddItem(alice, item)
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
-    const wsBob = bob.waitForEvent('websocket')
+    const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(bob, wsBob)
+    await subscribedBob
 
     await alice.goto(tripPath)
     await assignTo(alice, item, ACCOUNT_NAMES.bob)
@@ -550,10 +550,10 @@ test.describe('Two accounts on one instance @server', () => {
     await makePerPerson(alice, item, ['Andy', 'Leonardo'])
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
-    const wsBob = bob.waitForEvent('websocket')
+    const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await expect(visiblePage(bob).getByTestId(`m4-child-${item}-Leonardo`)).toBeVisible()
-    await wsSubscribed(bob, wsBob)
+    await subscribedBob
 
     await alice.goto(tripPath)
     await claimRow(alice, `m4-child-${item}-Andy`)

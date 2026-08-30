@@ -13,7 +13,7 @@ import {
   visiblePage,
   tripAction,
 } from '../fixtures'
-import { bootPage, packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
+import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
 // (NFR-4.14, ADR-027), so no single prefix covers them any more.
@@ -150,12 +150,12 @@ test.describe('Single-User backend sync @single', () => {
     const ctxB = await browser.newContext()
     const pageB = await ctxB.newPage()
     await seed(pageB, { mode: 'server' })
-    const wsB = pageB.waitForEvent('websocket')
+    const subscribedB = watchSubscribed(pageB)
     await pageB.goto(tripPath)
     // The row arriving proves the pull; the presence frame proves the
     // subscription — the pull alone would leave the WS half unproven.
     await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(pageB, wsB)
+    await subscribedB
 
     await packItem(pageA, item)
 
@@ -195,10 +195,10 @@ test.describe('Single-User backend sync @single', () => {
     const ctxB = await browser.newContext()
     const pageB = await ctxB.newPage()
     await seed(pageB, { mode: 'server' })
-    const wsB = pageB.waitForEvent('websocket')
+    const subscribedB = watchSubscribed(pageB)
     await pageB.goto(tripPath)
     await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(pageB, wsB)
+    await subscribedB
 
     // A claims the row (FR-5.2), through the row menu M4 offers.
     await visiblePage(pageA).getByTestId(`m4-row-${item}`).dispatchEvent('contextmenu')
@@ -265,10 +265,10 @@ test.describe('Single-User backend sync @single', () => {
     const ctxB = await browser.newContext()
     const pageB = await ctxB.newPage()
     await seed(pageB, { mode: 'server' })
-    const wsB = pageB.waitForEvent('websocket')
+    const subscribedB = watchSubscribed(pageB)
     await pageB.goto(tripPath)
     await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(pageB, wsB)
+    await subscribedB
 
     await visiblePage(pageA).getByTestId(`m4-row-${item}`).dispatchEvent('contextmenu')
     await expect(pageA.locator('ion-action-sheet')).toBeVisible()
