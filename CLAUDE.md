@@ -172,8 +172,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    direction. Owner retirements: M5-01, -03, -04, -09, -06(A), and FR-7.3's never-built
    resolution restriction. **The class is a gate now** — `scripts/case-id-gate.mjs`, in
    `make ci` — because nothing here was catchable by eye; it found **four more** live
-   collisions the same hour (`E2E-M3-11/-12/-13`, `E2E-M4-32`), which are a shrink-only
-   debt register owed to those screens' audits. Log: *„Six numbers that each meant two
+   collisions the same hour (`E2E-M3-11/-12/-13`, `E2E-M4-32`) — **since resolved and the
+   register is empty**: three were duplicates of live ids, and the fourth left a promise the
+   quick-add has never kept (it pulls required companions **silently**, where the skip names
+   what it took along) which is an open owner decision. **78 of 300 case ids live only in a
+   comment and not in a test title**, so `git grep <id>` understates coverage — a separate,
+   suite-wide cleanup. Log: *„Six numbers that each meant two
    things"*.
    **M9 followed the same day and found a sixth shape: two ids that were simply on the wrong
    tests.** The §3.24 rebuild wrote the spec entries and the tests in one commit and numbered
