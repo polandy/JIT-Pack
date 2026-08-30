@@ -200,6 +200,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
+- [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
 
 ## Current state
 
@@ -9020,3 +9021,89 @@ G-7 CTA is the always-present `trips-new` FAB rather than anything the empty
 state itself offers. One sentence naming four screens counted as four, which
 is the same shape as the review rule about one rule written into N
 templates. Recorded against the id; owed to M2's next pass, not built here.
+
+
+## A control nobody had ever clicked (2026-08-30)
+
+Backlog item 6, sixth screen: **M8**. It is the first one that arrived with
+**no unwritten ids** — all twenty-four `E2E-M8-*` numbers already carried a
+test — which sounds like the screen where this audit has nothing to do. The
+opposite: with no gaps to grep for, the only available reading is the one the
+programme is actually about, each id's sentence clause by clause against the
+body of the test underneath it. That reading found a **destructive control
+that nothing in the repository had ever operated**.
+
+`E2E-M8-06` promises *add/remove positions — remove via the row's ✕*. Add is
+asserted by a dozen cases. Remove is asserted by none: `m8-position-remove-*`
+occurs in no test file, and `TemplateEditorPage.vue` has no component test
+either, so the button that deletes a position had never been pressed by
+anything but a person. The list's **name sort** — the second half of the same
+sentence — was in the same state.
+
+**The interesting part is why, because the mechanism generalises.** The ✕ was
+not an oversight; it was a *decision*. The M7 variant pass had just found a
+swipe panel breaking out of the card, so M8's rebuild (`8dc89d8`) replaced the
+swipe with a ✕ and wrote that choice into three places on the same day: UI-Spec
+M8's amendment note, this id's entry, and the ledger row. The entry ends up
+reading *"add/remove positions — remove via the row's ✕ (amended 2026-08-15:
+the M7 variant pass showed a swipe panel breaking out of the card…)"*.
+
+Everything after that bracket is **news**, and news gets read. The clause in
+front of it is the requirement, and it had been sitting there since the v1.0
+catalogue. **A clause that arrives as an amendment is checked; the sentence it
+amends is re-read as already settled.** That is not a reviewer failing — it is
+what an amendment is *for* — which is why the answer is a reading pass rather
+than a resolution to be more careful.
+
+**Nothing mechanical was ever going to see it.** The id is defined once, so
+`case-id-gate.mjs` is green. The ledger names it as covered, so the coverage
+count is green. The tests that *do* exist are green. Every automatic signal
+pointed at a covered promise, and the only artefact that disagreed was the
+absence of a string in a directory nobody greps.
+
+**Four clauses of other ids were unasserted too**, and each went into the case
+that already owns its world rather than becoming a case of its own — the M6
+lesson, that an unasserted clause is not automatically a test:
+
+**M8-12's *„nothing auto-opens"*** is the whole of FR-25.7's one-tap promise:
+an editor that presents itself after every commit turns the defaults into a
+suggestion. The rest of that sentence was asserted; this half was not.
+
+**M8-13's *„autocomplete after two characters"*** had no assertion anywhere —
+not on M8, not on M4, not in `QuickAddItem.spec.ts` — and `MIN_SEARCH_LENGTH`
+is shared with M3 step 3, so a change to it would have moved two screens
+silently. What makes the assertion mean something is the **free-text hint**
+asserted absent beside the suggestions: that hint renders exactly when a
+long-enough query matches nothing, so without it "nothing is offered" is
+equally satisfied by an empty result and the gate goes unproven.
+
+**M8-03's clear-on-retap** is FR-15.2's one-value-per-axis rule seen from the
+chip, and the `delete` branch of `toggleCondition` was the only line in the
+sheet nothing reached. The three condition axes themselves come off one loop,
+so a second axis would have re-asserted a render rather than a rule — the
+distinction the audit keeps having to make.
+
+**M8-05's own sentence was the defect**, the shape M17 produced two screens
+ago. It promised that a followed trip *updates immediately* and that running
+trips are never touched — the FR-27.4 model that was replaced on 2026-08-18 by
+*asking* the trip, with only *past* trips frozen. The screen has said
+*„vorgeschlagen"* ever since and the test asserted that word, so nothing was
+broken; what was broken is that anyone writing a case from this entry would
+have written the old behaviour down as the requirement.
+
+**Three clauses were checked and deliberately left untested**, which is the
+half of this work that produces no diff. *Trip-Global* (M8-02) is the FR-25.7
+default, so E2E-M8-12 asserts it as the state a fresh row is already in.
+*„scrim tap closes"* (M8-14) named Ionic's `backdropDismiss` rather than
+anything of this screen's — both user-reachable paths through the single
+`@did-dismiss` handler are asserted already — so the clause was struck instead
+of tested. And M8-15 drives only the item-name hit because matching a group's
+**own** name, and the diacritics fold under it, are `searchGroups`' rules and
+are covered exhaustively as a unit, `föhn`/`fohn` included.
+
+**One filing oddity, left as it is on purpose.** E2E-M8-20/21/22 are defined
+in the UI-Test-Spec's **M4** block, beside the M4 twins they were written
+with. They are M8's ids on M8's tests, and moving them is the right tidy — but
+five audits are editing this file at once, and a move is a delete plus an
+insert that defines a number twice for the length of a merge. A pointer in the
+M8 block costs nothing and cannot collide.

@@ -191,6 +191,20 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
    word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
    tests"*.
+   **M8 followed the same day and was the first screen with no unwritten ids at all** — all
+   twenty-four already had a test — so the read had to be clause by clause, and that is the only
+   reading that finds this: **E2E-M8-06 had read *implemented* since the M8 rebuild while nothing
+   in the suite ever removed a position** (`m8-position-remove-*` occurred in no test, and the page
+   has no component test). It survived because the ✕ was a *decision* that commit made — the M7
+   variant pass had just rejected the swipe — so it went into three documents as an **amendment**,
+   and the amendment is what everyone then read: **a clause that arrives as news is not checked the
+   way a clause that arrives as a requirement is.** Written, with the name sort and the empty state
+   nothing had rendered. Four unasserted clauses of other ids went in with it (M8-12's *nothing
+   auto-opens*, M8-13's two-character gate — `MIN_SEARCH_LENGTH` had no assertion anywhere and is
+   shared with M3 — M8-03's clear-on-retap, and M8-05's sentence, which specified the pre-2026-08-18
+   FR-27.4 model the screen had already stopped following). Three were checked and deliberately left
+   (M8-02's default, M8-14's *scrim tap* = Ionic's own `backdropDismiss`, M8-15's group-name match =
+   the `searchGroups` unit). **No owner decision owed.** Log: *„A control nobody had ever clicked"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
