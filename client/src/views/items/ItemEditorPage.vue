@@ -630,16 +630,25 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               :src="photoUrl"
               :alt="t('items.editor.photoAlt', { name: item.name })"
               class="photo-preview"
+              data-testid="m10-photo-preview"
             />
-            <div v-else class="photo-placeholder">
+            <div v-else class="photo-placeholder" data-testid="m10-photo-empty">
               <IonIcon :icon="cameraOutline" />
             </div>
 
             <div class="photo-actions">
-              <input ref="photoInput" type="file" accept="image/*" hidden @change="onPhotoFile" />
+              <input
+                ref="photoInput"
+                type="file"
+                accept="image/*"
+                hidden
+                data-testid="m10-photo-file"
+                @change="onPhotoFile"
+              />
               <IonButton
                 expand="block"
                 fill="outline"
+                data-testid="m10-photo-add"
                 :disabled="photoBusy"
                 @click="photoInput?.click()"
               >
@@ -651,6 +660,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 expand="block"
                 fill="clear"
                 color="danger"
+                data-testid="m10-photo-remove"
                 :disabled="photoBusy"
                 @click="removePhoto"
               >
@@ -690,7 +700,12 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             </IonItem>
           </IonList>
 
-          <IonNote v-if="dependencyError" color="danger" class="field-error">
+          <IonNote
+            v-if="dependencyError"
+            color="danger"
+            class="field-error"
+            data-testid="m10-dependency-error"
+          >
             <IonIcon :icon="warningOutline" />
             {{ dependencyErrorText }}
           </IonNote>
@@ -727,7 +742,12 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 <IonLabel color="medium">{{ t('items.editor.dependencyNoMatch') }}</IonLabel>
               </IonItem>
             </IonList>
-            <IonButton fill="clear" expand="block" @click="closeMainPicker()">
+            <IonButton
+              fill="clear"
+              expand="block"
+              data-testid="m10-dependency-cancel"
+              @click="closeMainPicker()"
+            >
               {{ t('common.cancel') }}
             </IonButton>
           </div>
@@ -751,12 +771,19 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           </section>
 
           <template v-if="companions.length > 0">
-            <h2 class="section-title jp-eyebrow">{{ t('items.editor.companions') }}</h2>
+            <h2 class="section-title jp-eyebrow" data-testid="m10-section-companions">
+              {{ t('items.editor.companions') }}
+            </h2>
             <p class="section-hint">
               {{ t('items.editor.companionsHint', { name: item.name }) }}
             </p>
             <IonList>
-              <IonItem v-for="dep in companions" :key="dep.id" lines="none">
+              <IonItem
+                v-for="dep in companions"
+                :key="dep.id"
+                lines="none"
+                :data-testid="`m10-companion-${itemName(dep.item_id)}`"
+              >
                 <IonLabel>{{ itemName(dep.item_id) }}</IonLabel>
                 <IonNote slot="end">{{ modeLabel(dep.mode) }}</IonNote>
               </IonItem>

@@ -51,15 +51,15 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
-| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
-| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M7 template scopes | E2E-M7-04, E2E-M7-05 (the header icon into M18), E2E-M7-06 (both empty states), E2E-M7-07 (three tests here plus the include half in the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (its own test only since the 2026-08-30 audit), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-17, E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
-| M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, E2E-M9-08 (tag-axis clearance, UX-4), E2E-M9-10 (search filters), E2E-M9-04 (empty state → M15), E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
+| M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, E2E-M9-08 (tag-axis clearance, UX-4), E2E-M9-10 (search filters), E2E-M9-04 (empty state → M15), E2E-M10-07, E2E-M10-08, E2E-M10-10 (renumbered 2026-08-30 — they ran as M10-01 … M10-05), E2E-M10-03, E2E-M10-04 (new 2026-08-30), E2E-M10-13 (German-seeded), E2E-M10-16 | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
-| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
+| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03, E2E-M23-04 (the Vorlage half) | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
-| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
-| M12 analytics | E2E-M12-01, E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
+| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit and, since 2026-08-30, FR-25.15's absent Save button), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
+| M12 analytics | E2E-M12-01 (rewritten 2026-08-30: the Gepäck dimension over a real bag, FR-10.4), E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | M2 trip list rows | E2E-M2-12 (locale dates, UX-5) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 row actions (the slide menu) | E2E-M2-06 (no Share without a session), E2E-M2-07 (export, both branches) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 opening segment (FR-2.8) | E2E-M2-13, E2E-M2-13b, E2E-M2-13c, E2E-M2-13d | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
@@ -359,20 +359,39 @@ Two things this unit still does *not* cover, both by decision:
 | M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08 | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
 | M17 data export under a session (NFR-4.5) | E2E-M17-03 | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
 
-**Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
-(create / import). The screen has neither as a button: create is the FAB and
-import is the header icon, both already on screen. The case asserts what the
-empty state does say and that the segment is absent; the UI-Spec now records
-the missing CTAs as a decision rather than an omission.
+**Why E2E-M7-06 stopped being partial (2026-08-30).** The case asks for an
+empty-state *CTA* (create / import). The screen has neither as a button: create
+is the FAB and import is the header icon, both already on screen, and the
+UI-Spec records that as a decision rather than an omission — so the clause is
+retired rather than owed. What the case was missing is the screen's *other*
+empty state: M7's States line has always promised two sentences, and both are
+painted into one element, so *„Keine Vorlage gefunden"* with the segment still
+in place is what tells a narrowed search from an empty instance. Nothing had
+typed into M7's search until this case — the twin of E2E-M9-10, found on the
+next screen the same day, and the same lesson: a screen's search is usually
+covered as far as *opening the field*.
 
-**E2E-M7-07 is complete since the M8 unit.** Its include-dependent half — the
+**E2E-M7-07 was called complete since the M8 unit, and was one clause short
+(corrected 2026-08-30).** The clause is the row's *resolved* item count, which
+is the only arithmetic the row does — and the M8 case cannot see it, because
+every group in the composition it builds is empty, so the raw count and the
+resolved count are both 0. A row that read its own positions instead would have
+been green there for as long as the case has existed. `template-list.spec.ts`
+now gives the group a position and reads the composed row.
+
+The rest of the original note stands: Its include-dependent half — the
 *"N Gruppen ·"* prefix and the *enthält: …* line — needed a Ferien-Vorlage
 that actually includes a group, a write only the M8 rebuild could make; the
 M8-07 case now builds that composition through the app and asserts both lines
-on the M7 row. The resolution arithmetic stays covered where it lives, in
-`client/src/domain/__tests__/templates.spec.ts`. One M7 case stays
-unimplemented because the surface does not exist: **E2E-M7-05** (Import from
-the FAB menu; import is a header icon).
+on the M7 row. The resolution arithmetic itself stays covered where it lives, in
+`client/src/domain/__tests__/templates.spec.ts` — what the new case adds is the
+*wiring*, which no domain test can see. **E2E-M7-05 is the FAB menu's entry, and the FAB has no menu** — the surface
+does not exist and is an open owner decision (build it, or strike the clause).
+The *function* it names does exist, on the header icon, and since 2026-08-30 it
+has a case: nothing in the suite had ever tapped that icon. E2E-G9-12 asserts
+M18's return-to-origin rule for the entrance from M2 and names M7 in its own
+comment without covering it, which is exactly the entrance that could have kept
+returning to M18's declared parent, Settings.
 
 **How E2E-M7-04 is split, and why.** The e2e case drives the menu through
 `contextmenu` — the same handler the touch hold fires into — and asserts the
@@ -615,9 +634,10 @@ Following spec §10, adjusted for what is now built:
 
 ## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
 
-Ten cases, Local Mode; eight landed with the §3.24 tag rebuild and two with the 2026-08-30 audit. What they cover
-is deliberately what a unit test cannot: the *painted* result of the two
-grouping rules, and the shape of the creation form.
+Twelve cases, Local Mode; eight landed with the §3.24 tag rebuild and four with the
+2026-08-30 audits (two M9, two M10). What they cover is deliberately what a unit test
+cannot: the *painted* result of the two grouping rules, the shape of the creation form,
+and the two saved-item sections nothing had ever rendered.
 
 | Case | Spec id | What it pins |
 |---|---|---|
@@ -627,14 +647,17 @@ grouping rules, and the shape of the creation form.
 | creating hides the sections an item cannot have yet | E2E-M10-07 | FR-24.5 "absent, not emptied", plus the "Mehr ▾" fold. |
 | a missing name is answered with a hint, not a dead button | E2E-M10-07 | The button stays live and says why — the failure mode a disabled control hides. |
 | a duplicate name is reported before it reaches the push | E2E-M10-10 | The consequence of `UNIQUE(name)` (ADR-014) reaching the user as a sentence rather than a failed sync. |
-| an unmatched tag name is created and assigned in one step | E2E-M10-08 | Filter-or-create, including the *second* item finding the tag instead of duplicating it. |
+| an unmatched tag name is created and assigned in one step | E2E-M10-08 | Filter-or-create, including the *second* item finding the tag instead of duplicating it. **Since 2026-08-30 it also pins that an assigned chip survives a filtering query** — the clause is stated in the UI-Spec and in the id, and every case had read the chip with an empty query, which is the one state that cannot tell the rule from its absence. |
 | unassigning a tag refiles the item | E2E-M10-08 | The store's cascade mirroring, seen from the list. |
 | an empty tag query offers a capped shelf, and search reaches past it | E2E-M10-16 | UX-14: eight chips plus a tail naming the rest, the cap lifted by a query, the tail handing focus to the search — and, at phone width in German, that the placeholder fits its box, measured by rendering it as the value (`scrollWidth`), not by a canvas re-measure that used the wrong font and could not fail. |
 | the search filters the list and says so when nothing matches | E2E-M9-10 | **New 2026-08-30.** M9-01's sentence carried the word „searchable" and no assertion; G12-02 opens the field on this screen but never types. Also pins that the emptied group's *heading* goes with its rows, and that a miss is the no-match state rather than G-7's empty one. |
 | an empty inventory offers the spreadsheet import | E2E-M9-04 | **New 2026-08-30**, and the first time this state was ever rendered by a test — `m9-empty` existed in the suite only as E2E-G9-13's *absence* assertion. G-7 plus NFR-4.7's return path, which lands on M9 rather than on M15's other parent. |
+| a circular dependency is refused in words, and the reverse list only reads | E2E-M10-03 | **New 2026-08-30.** The *„Hängt ab von"* section has existed since §3.20 with no assertion on any of its rules: two other cases *drive* it as setup and M10-13 reads its heading. Pins the default mode, the read-only companion row, and the cycle named hop by hop — the refusal asserted against the companion row still being there, so „no dependency" cannot come from a page that rendered nothing. |
+| a photo is added, replaced and removed | E2E-M10-04 | **New 2026-08-30**, the second section with no `data-testid` anywhere. The replace is asserted on `naturalWidth` rather than on the object URL, which a rewrite changes whether or not the image did; the item is left and reopened before the removal, which is what says the bytes were stored rather than previewed. The 150 KB cap stays in `imageResize.spec.ts` and the three server layers. |
 | the sections an existing item owns follow the app language | E2E-M10-13 | NFR-4.12 on the half of M10 that only exists after the save. **Seeded in German, and that is the case**: the suite's app language is English, and against English a catalogue lookup and the hard-coded word it replaced render identically — so an English assertion here could not fail. Its negative counterpart above moved off the headings' words onto test ids for the same reason. |
 
-**Two of these tests carried the wrong id until 2026-08-30.** The table above
+**Seven of these tests carried the wrong id until 2026-08-30**, in two batches with
+one cause. The table above
 has always named E2E-M9-05 and E2E-M9-06 correctly; the *test names* in the
 spec file said `E2E-M9-02` and `E2E-M9-03`, which are two entirely different
 promises (the FAB's creation mode, and multi-select merge). Both halves
@@ -644,6 +667,16 @@ behaviours had no test at all. Nothing mechanical could have caught it: each
 id is used exactly once, so a duplicate-id gate is green, and the totals are
 identical either way. **The only check that finds a swap is reading the id's
 sentence against the body of the test under it.**
+
+The M10 half, found the same day, is the same commit and the larger version: five tests
+were written under **E2E-M10-01 … E2E-M10-05** while the spec entries the commit marked
+*implemented* were **M10-07, M10-08 and M10-10** — and M10-01 … M10-05 were live entries
+describing five different promises (the creation form's fields, the FR-2.4 usage footer,
+the dependency section, the photo, the „Enthalten in" list). This table has named 07/08/10
+correctly since the day it was written, which is the part worth keeping: **the ledger was
+right and everything else was wrong**, so a reader checking the suite against the
+UI-Test-Spec would have been misled, and one checking it against this file would not have
+been. Renumbered 2026-08-30, tests unchanged apart from the clause additions noted above.
 
 **Not covered here, on purpose:** the device-local *reload* half of FR-24.4
 is unit-tested in `composables/__tests__/inventoryProperties.spec.ts`, where
@@ -693,12 +726,15 @@ every tag instead of its primary one drops two of those cases.
    inline and so missed the wait the shared helper already had; the two
    cases were byte-for-byte identical in navigation and differed only in
    that. It is now `commitNewItem()`, used by both, so the omission cannot
-   recur silently. That comparison is also what found it: E2E-M10-03 passes
-   the identical sequence, which ruled the navigation itself out.
+   recur silently. That comparison is also what found it: the duplicate-name
+   case (E2E-M10-10 since the 2026-08-30 renumbering, E2E-M10-03 when this
+   was written) passes the identical sequence, which ruled the navigation
+   itself out.
 
 ## M11 — containers (`e2e/containers.spec.ts`, 2026-08-16)
 
-Four cases, Local Mode, landing with the M11 rebuild. The pairing *write
+Six cases, Local Mode: four landed with the M11 rebuild, E2E-M11-07 with the
+UX-8 pass and E2E-M5-22 with the 2026-08-30 audit round. The pairing *write
 semantics* (both sides at once, exclusive, released on delete) are unit
 territory — `src/domain/__tests__/containers.spec.ts` — so the e2e cases
 assert only what the user can see of them: the pair set in one sheet and
@@ -715,7 +751,8 @@ What the unit cost to learn:
    assertion counts.
 2. **An overlay's dismissal is part of the interaction.** A tap that arrives
    while the previous sheet is still animating out lands on the backdrop and
-   is swallowed. `closeSheet()` therefore waits for `ion-modal.show-modal`
+   is swallowed. `closeContainerSheet()` (in `fixtures.ts` since 2026-08-30)
+   therefore waits for `ion-modal.show-modal`
    to be gone, not merely for the sheet's content to detach — the same
    settled-not-arrived rule the M7 unit paid for, one layer down.
 3. **A spec sentence is a list of promises, and each one needs its own
@@ -738,6 +775,20 @@ What the unit cost to learn:
    inherits it by picking the quick-add *suggestion* — which got its
    `data-testid` with this unit; free-text quick-add creates weightless
    items and would have made the FR-10.3 grades untestable.
+
+**Audited 2026-08-30** (backlog item 6). What each promise is kept by:
+
+| Promise | Kept by | Note |
+|---|---|---|
+| create a container, name and limit commit with no Save button | E2E-M11-05 | The *„no Save button"* half was asserted on 2026-08-30; the FR-25.15 matrix row had credited this case with it since the rebuild while the body asserted only that the indicator is present. The indicator is the positive signal the absence stands against. |
+| the carrier can be set … | E2E-M11-05 | Set on the chip, read back off the card. |
+| … and taken off again | `ContainerSheet.spec.ts` (unit) | **New 2026-08-30.** FR-10.1 calls the carrier optional and nothing at any layer had ever cleared one; a chip that could only hand the bag on was indistinguishable from one that toggles. A write rule, so it is asserted at the write layer. |
+| the weight bar's amber and red grades | E2E-M11-02 + `containers.ts` (unit) | The boundary is the domain's; that the grade reaches the painted bar is the e2e's. |
+| paired containers report their imbalance, and a delete releases the survivor | E2E-M11-04 | Both cards, and the skew is what makes the release assertable at all. |
+| **the threshold is configurable per trip** | **nothing — it has no writer** | `imbalanceThreshold()` honours `attributes.imbalance_threshold`, and no screen writes that key: the wizard writes three attributes and `tags`, M16 writes the series' defaults of the same three, M22 touches attributes not at all. Left untested on purpose; owner decision (UI-Test-Spec M11, PRD FR-10.3). |
+| the unassigned bucket is rows, the picker shows loads, a delete unassigns | E2E-M11-06 | FR-25.5's *„never blocks packing"* is not restated here — every M4 case that packs an unassigned row keeps it. |
+| the bucket is absent when there is nothing to say | E2E-M11-07 | UX-8. |
+| moving an item between two bags | E2E-M5-22 | M11 offers no path to it — see E2E-M11-03. |
 
 ## E2E-M5-13 — browser back with the sheet open (2026-08-16)
 
@@ -791,6 +842,46 @@ Landed with the M12 rebuild. What the unit had to get right:
    `wizard-series-name` added for it) and reuses an existing series of the
    same name on later seeds — needed by E2E-M12-03 and by every future
    series-scoped case (M16).
+
+**Audited 2026-08-30** (backlog item 6), and this unit is where the audit paid
+for itself. M12 derives everything it shows, so most of its promises are
+`domain/analytics.ts`'s and only their *rendering* is e2e work — but the
+rendering is exactly where a screen of derived numbers can go quietly wrong,
+and E2E-M12-01 had two clauses that could not fail:
+
+1. **A world where packed equals planned cannot tell you the KPI is the
+   pair it claims.** One weighted item, packed, gave `5.0 kg / 5.0 kg`; a
+   template printing `plannedWeight` on both sides of the slash satisfied it
+   for as long as the case existed. The fix is a second, unpacked row — two
+   different numbers — and it costs nothing.
+2. **A dimension switch asserted against a locator both dimensions
+   render is not an assertion.** The case clicked *Gepäck* and expected
+   `analytics-slice-none`, which the *Kategorie* view it started on already
+   showed for the same uncategorized item: the absence bucket is keyed `''`
+   in every dimension, so the same element was on screen before and after
+   the click. Under that sat **FR-10.4** — containers are the Gepäck
+   dimension's data source — credited to this case since the rebuild while
+   **no test had ever put an item in a bag and opened this screen**. It now
+   creates one through M11's own FAB and asserts two slices where Kategorie
+   had one, the bag named and carrying its load: a segment that changes
+   nothing fails on the count alone.
+
+The M11 helpers (`openLuggage`, `createContainer`, `assignToContainer`,
+`closeContainerSheet`) moved into `fixtures.ts` for it rather than being
+copied — the M9 unit's lesson about two copies of one navigation sequence,
+one of which was missing a wait.
+
+| Promise | Kept by | Note |
+|---|---|---|
+| bars per dimension value, heaviest first | `analytics.ts` (unit) | Order is arithmetic; the e2e asserts the bars are there and what they say. |
+| the switcher reaches Person / Kategorie / Gepäck | E2E-M12-01 (Gepäck, Kategorie), E2E-M12-04/05 (Person) | Rewritten 2026-08-30 — see above. |
+| the KPI is packed *within* planned | E2E-M12-01 | Two different numbers since 2026-08-30. |
+| the value tile stands only with a value | E2E-M12-07 | Unit-less in `local`; the currency half is E2E-M9-09 on `single` (FR-21.9), same `formatValue`. |
+| an unweighted item is counted, never drawn | `analytics.ts` (unit) + E2E-M12-02 | The e2e world has no bars at all, so *„one bar, not two"* is the domain's; the counter and the empty line are the screen's. |
+| a tapped bar becomes M4's facet, clearing the others | E2E-M12-04 + `usePackingFilter.spec.ts` (unit) | The e2e never has a second facet in force, so *„clearing the others"* could not fail there. |
+| per-person rows contribute per person and sum back | E2E-M12-05 + `analytics.ts` (unit) | No `undefined` bucket, totals equal across dimensions. |
+| the series trend and its flags | E2E-M12-03 (both halves) + `analytics.ts` (unit) | |
+| **M11 is reachable from M12** | **nothing — the edge does not exist** | UI-Spec M11 has claimed it since before the rebuild; `AnalyticsPage.vue` pushes one route, `/trips/{id}`. Owner decision, and the UI-Spec sentence is struck. |
 
 ## M14 — review assistant (`e2e/review.spec.ts`, 2026-08-16)
 
@@ -1952,6 +2043,21 @@ Two traps were paid for while writing these, both worth keeping:
   count in the case was still satisfied by it, because one row is one row.
   The input's value is asserted before the button is clicked.
 
+**The fourth case, added 2026-08-30 (backlog item 6).** Reading the three
+against the screen found nothing wrong with them and one thing missing around
+them: all three retire an **item**, and M23 builds its two lists from two
+different row builders. Nothing had ever put a row on the Vorlagen segment —
+E2E-M23-01 asserts that segment *empty* as a positive control, which is only
+worth something if it can be non-empty — and the Vorlage **retire** branch was
+unrendered anywhere, because E2E-M7-11 covers the remove branch and stops
+there, on the stated grounds that reaching the other one costs a whole trip.
+E2E-M23-04 pays that cost once and gets both: the retire confirm's other
+sentence, the Vorlagen list, the purge button correctly absent while the trip
+holds the row, and the restore. It is mutation-proved by pointing the template
+row's `restore` callback at `restoreMasterItem` — the two have the same shape,
+so it is the copy-paste this screen is exposed to — which reddens the new case
+and leaves the three item cases green.
+
 putting the refused row back on the device that tried to delete it — is not in
 this case and not built**; the refusal is announced, not undone.
 
@@ -2704,6 +2810,73 @@ subjects), `commit()` merging every match regardless of the choice (M18-03),
 
 **The production diff is six test ids and four corrected comments.** The screen
 itself was right; only what was written about it was wrong.
+
+
+## M8 — twenty-four ids, and a control nothing had ever clicked (2026-08-30)
+
+Backlog item 6, sixth screen. M8 was the first with **no unwritten ids at
+all**: every one of its twenty-four numbers already carried a test, so the
+read was clause by clause rather than id by id — and that is the only reading
+that could have found what it found.
+
+**E2E-M8-06 has read *implemented* since `8dc89d8`, and nothing in the suite
+ever removed a position.** `m8-position-remove-*` occurs in no test; the page
+has no component test either, so the ✕ on a position row — a destructive
+control — had never been clicked by anything. The name sort beside it was in
+the same state.
+
+Why it survived a year is worth keeping. The ✕ was a **decision** that same
+commit made: the M7 variant pass had just rejected the swipe panel, and the
+replacement went into UI-Spec M8, into this id's amendment note and into the
+ledger row on the day it was chosen. The entry then reads *"add/remove
+positions — remove via the row's ✕ (amended 2026-08-15: …)"*, and everything
+after the bracket is news. **A clause that arrives as news is not checked the
+way a clause that arrives as a requirement is** — the amendment was reviewed,
+the sentence it amended was not.
+
+| Case | What it drives | File |
+|---|---|---|
+| E2E-M8-06 | positions render name-sorted, the row's ✕ takes that row alone, the removal survives reopening, and the last removal reaches the empty state | `template-editor.spec.ts` |
+
+Written out of alphabetical order on purpose: `template_items` has no order
+column, which is *why* the clause says name-sorted, and an insertion-ordered
+list would satisfy any check made on one or two rows.
+
+**Four clauses of other ids were unasserted and went in with it**, each folded
+into the case that already owns its world rather than starting a case of its
+own:
+
+- **E2E-M8-12's „nothing auto-opens"** — the rest of that sentence was
+  covered; this half is the whole of "one tap", since an editor presenting
+  itself after every commit makes the FR-25.7 defaults a suggestion.
+- **E2E-M8-13's „autocomplete after two characters"** — `MIN_SEARCH_LENGTH`
+  had no assertion anywhere, e2e or unit, and it is shared with M3 step 3.
+  The gate is asserted with the **free-text hint absent alongside the
+  suggestions**: that hint renders exactly when a long-enough query matches
+  nothing, so without it "nothing offered" is equally true of an empty result.
+- **E2E-M8-03's clear-on-retap** — FR-15.2 gives each axis one value, so the
+  active chip is also the way to clear it, and that `delete` was the only
+  branch of `toggleCondition` nothing reached.
+- **E2E-M8-05's sentence itself was the defect**, the M17 shape: it promised
+  that a followed trip *updates immediately* and that running trips are never
+  touched, which is the model FR-27.4 replaced on 2026-08-18. The screen has
+  said *proposed* since, and the test asserted that word; only the case
+  sentence still specified the old behaviour.
+
+**Three clauses were checked and left alone**, which is the other half of the
+job. *Trip-Global* (M8-02) is the FR-25.7 default and E2E-M8-12 asserts it as
+the state a fresh row is in. *„scrim tap closes"* (M8-14) named Ionic's
+`backdropDismiss`, not this screen — both user-reachable dismissals of the one
+`@did-dismiss` handler are already asserted — and the clause was struck rather
+than tested. And M8-15 drives the item-name hit only because the **group-name**
+match and the diacritics fold are `searchGroups`' rules, asserted exhaustively
+in `domain/__tests__/templates.spec.ts` down to the `föhn`/`fohn` pair.
+
+**Filing note found while reading:** E2E-M8-20, E2E-M8-21 and E2E-M8-22 are
+defined in the UI-Test-Spec's **M4** block, beside the M4 twins they were
+written with. They are M8's ids on M8's tests; moving them would define a
+number twice for the length of a merge, so the M8 block carries a pointer
+instead.
 
 
 ## The four inherited id collisions, read against their screens (2026-08-30)

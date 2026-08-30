@@ -187,7 +187,7 @@ it. Item numbers stay stable even as items close, because the log refers back to
    somebody else's number. **`scripts/case-id-gate.mjs`, landed one PR earlier, cannot find
    this**: each id is used exactly once, so the duplicate check is green, and the totals are
    identical either way — a swap is not a collision. Renumbered, and the two
-   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
+   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-07 asserts the creation mode
    and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
    and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
    decision, and note PRD FR-27.5 argues against fuzzy matching partly *because* M9 can merge).
@@ -195,6 +195,63 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
    word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
    tests"*.
+   **M11 and M12 followed 2026-08-30, and both had every id implemented** — so
+   the audit's product was not new cases but a **seventh shape: a clause whose
+   assertion cannot fail.** E2E-M12-01 switched to the *Gepäck* dimension and
+   asserted `analytics-slice-none`, which the *Kategorie* view it started on
+   already rendered — the absence bucket is keyed `''` in every dimension, so
+   the same element was on screen before and after the click; and its
+   packed/planned KPI was asserted in a world where the two were equal.
+   Underneath sat FR-10.4, credited to the case while **no test had ever put an
+   item in a bag and opened the screen**. The check that finds this shape:
+   **would the assertion have passed before the action?** Two more clauses were
+   credited and unasserted (M11-05's absent Save button, FR-10.1's carrier being
+   *optional* — nothing had ever cleared one), and **two promises are unbuilt**:
+   FR-10.3's per-trip imbalance threshold is honoured by the domain and written
+   by no screen, and UI-Spec M11's *„and from M12"* edge does not exist. Both
+   open with the owner, deliberately untested. Log: *„An assertion that was true
+   before the click"*.
+   **M7 and M23 followed 2026-08-30.** M7's catalogue predates the 2026-08-15 variant pass that
+   rebuilt the screen, so three of its ids describe surfaces that pass removed or never built:
+   M7-01's my/published split (FR-1.6's simplification — nothing to render) and M7-03's name
+   prompt are **retired**, and **M7-05's FAB import menu is an unbuilt promise** — an owner
+   decision, because import *is* reachable from the header icon and UI-Spec M7's Actions line
+   claimed the menu as built while the same document's amendment listed it as owed. Three
+   remainders written, each a clause of an id that read as covered: the row's **resolved** item
+   count (E2E-M8-07 composes only empty groups, where the raw and resolved counts are both 0, so
+   the one arithmetic the row does was invisible to it), M7's **no-match** state and the search
+   that produces it, and the header icon's trip to M18 and back to M7. M23-01/02/03 keep every
+   clause they promise — but all three retire an *item*, so **E2E-M23-04** renders the Vorlagen
+   half for the first time. Log: *„A row that could not count, and a segment nobody filled"*.
+   **M8 followed the same day and was the first screen with no unwritten ids at all** — all
+   twenty-four already had a test — so the read had to be clause by clause, and that is the only
+   reading that finds this: **E2E-M8-06 had read *implemented* since the M8 rebuild while nothing
+   in the suite ever removed a position** (`m8-position-remove-*` occurred in no test, and the page
+   has no component test). It survived because the ✕ was a *decision* that commit made — the M7
+   variant pass had just rejected the swipe — so it went into three documents as an **amendment**,
+   and the amendment is what everyone then read: **a clause that arrives as news is not checked the
+   way a clause that arrives as a requirement is.** Written, with the name sort and the empty state
+   nothing had rendered. Four unasserted clauses of other ids went in with it (M8-12's *nothing
+   auto-opens*, M8-13's two-character gate — `MIN_SEARCH_LENGTH` had no assertion anywhere and is
+   shared with M3 — M8-03's clear-on-retap, and M8-05's sentence, which specified the pre-2026-08-18
+   FR-27.4 model the screen had already stopped following). Three were checked and deliberately left
+   (M8-02's default, M8-14's *scrim tap* = Ionic's own `backdropDismiss`, M8-15's group-name match =
+   the `searchGroups` unit). **No owner decision owed.** Log: *„A control nobody had ever clicked"*.
+   **M10 followed and is the same commit's larger half**: five tests written under
+   **M10-01 … M10-05**, which were live entries for five other promises, while the three ids
+   the commit marked implemented (07/08/10) had no test carrying them. `e2e-tests.md`'s
+   promise table named them right the whole time and nothing else did — **when two documents
+   disagree about coverage, the one mapping test bodies to ids is the one to trust**.
+   Renumbered. Two real remainders written, both sections that were built in July and had no
+   `data-testid` anywhere: **E2E-M10-03** (the dependency section — its cycle refusal, its
+   default mode, its read-only reverse list; two other cases only *drive* it as setup) and
+   **E2E-M10-04** (the photo, add/replace/remove, read back from the device). Retired: M10-01
+   (clause by clause), M10-02 (its „delete blocked" half was reversed by FR-24.3) and M10-09
+   (a second id over M10-03's section). **Two unbuilt promises, owner decision owed:**
+   „Enthalten in" (FR-27.8) and „Kommentare aus Reisen" (FR-27.9) exist in the prototype and
+   in three specs, and in no build — including inside FR-24.5, which named them as the
+   sections creation mode hides, so a green case asserted the absence of something absent in
+   both modes. Log: *„Five numbers, and two sections nobody had built"*.
    **M18 followed 2026-08-30 and inverted the pattern**: nothing was retired and nothing was
    unbuilt — all four of its unwritten ids describe built behaviour on the **merge preview**,
    the branch a single-document file opens, which no test had ever rendered. It was invisible
