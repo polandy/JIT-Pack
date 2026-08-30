@@ -298,6 +298,20 @@ it. Item numbers stay stable even as items close, because the log refers back to
    filters by nobody, and a filter would empty the screen in the two modes with no account) and
    *"next 3"* (the preview has no order to be next in). Log: *"The check that cannot be written,
    on the screen nobody had clicked"*.
+
+   **M15 followed 2026-08-30** and mixed every shape at once: of four unwritten ids, one was a
+   real remainder (**the dedup step had never been opened by a test** — every fixture imports into
+   an empty device, where there is nothing to be a duplicate *of*, so step 3 is skipped), one was
+   six promises in one sentence now distributed over five cases, and **two describe behaviour the
+   wizard has never had** — there is no grid preview, and NFR-4.7's noise handling is *built and
+   never shown*, which is the one worth carrying: **a rule can be complete, unit-covered at both
+   levels and still unkept, because the promise was about saying it.** Three cases written
+   (E2E-M15-03/11/12). Two further findings: E2E-M15-06's *„no item turned into one"* **cannot
+   fail in its own world** (a category column claims no category rows, so nothing is a candidate)
+   and moved to the rows layout; and the new case found a defect no id could — **M15 opens only
+   once per session**, because the commit's `router.replace` onto a tab root leaves that tab's
+   page unhidden and the next push renders M15 underneath it (M18's restore replaces the same
+   way). Four owner decisions, none built here. Log: *„A wizard that opens once"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
