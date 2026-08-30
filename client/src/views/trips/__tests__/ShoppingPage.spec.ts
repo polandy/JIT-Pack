@@ -24,6 +24,19 @@ const orchestratorFake = {
   quickAddItem: vi.fn(),
 }
 
+function seedTravelers(names: string[]) {
+  const trips = useTripStore()
+  for (const [i, name] of names.entries()) {
+    trips.applyChange({
+      seq: 0,
+      table: 'travelers',
+      id: `tr${i + 1}`,
+      deleted: false,
+      row: { trip_id: 't1', name },
+    })
+  }
+}
+
 function seedTrip(rows: Record<string, unknown>[]) {
   const trips = useTripStore()
   trips.applyChange({
@@ -137,5 +150,100 @@ describe('M6 shopping — buying a row stays reversible (FR-25.11j)', () => {
 
     expect(orchestratorFake.unbuyItem).toHaveBeenCalledTimes(1)
     expect(orchestratorFake.unbuyItem.mock.calls[0]?.[2]).toBe('buy_before')
+  })
+})
+
+/**
+ * FR-25.6 — a per-person item is one thing to buy.
+ *
+ * The row count is the assertion that matters here and it is a *shrinking*
+ * one: three instances render as one row. Under the screen this replaced,
+ * every one of them was its own row with its own check-off, and the amounts
+ * made it plainly wrong rather than merely redundant.
+ */
+describe('M6 shopping — a per-person item is one buy row (FR-25.6)', () => {
+  function seedPerPerson(mode: string) {
+    seedTravelers(['Andy', 'Leonardo', 'Mia'])
+    seedTrip([
+      { name: 'Kurze Hosen', mode, source_item_id: 'm1', assigned_traveler_id: 'tr1', quantity: 2 },
+      { name: 'Kurze Hosen', mode, source_item_id: 'm1', assigned_traveler_id: 'tr2', quantity: 3 },
+      { name: 'Kurze Hosen', mode, source_item_id: 'm1', assigned_traveler_id: 'tr3', quantity: 1 },
+    ])
+  }
+
+  it('renders one row with the summed amount and the recipients', () => {
+    seedPerPerson('buy_before')
+    const page = mountPage()
+
+    const rows = page.findAll('[data-testid="m6-row"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.text()).toContain('Kurze Hosen')
+    expect(rows[0]?.text()).toContain('6×')
+    expect(page.find('[data-testid="m6-row-for"]').text()).toContain(
+      t('shopping.forWhom', { names: 'Andy, Leonardo, Mia' }),
+    )
+  })
+
+  it('the tab counts things to buy, not rows', () => {
+    seedPerPerson('buy_before')
+    const page = mountPage()
+
+    expect(page.find('[data-testid="m6-tab-before"]').text()).toBe(
+      t('shopping.beforeDeparture', { n: 1 }),
+    )
+  })
+
+  it('checking it off settles every instance, not just the first (FR-3.3)', async () => {
+    seedPerPerson('buy_before')
+    const page = mountPage()
+
+    await page.find('[data-testid="m6-row"] ion-checkbox').trigger('ionChange')
+
+    expect(orchestratorFake.buyItem).toHaveBeenCalledTimes(3)
+    const settled = orchestratorFake.buyItem.mock.calls.map((call) => call[1].id)
+    expect(new Set(settled)).toEqual(new Set(['ti1', 'ti2', 'ti3']))
+  })
+
+  it('comes back under the reveal as one row too, and goes back whole', async () => {
+    seedTravelers(['Andy', 'Leonardo'])
+    seedTrip([
+      {
+        name: 'Kurze Hosen',
+        mode: 'pack',
+        bought_from: 'buy_before',
+        source_item_id: 'm1',
+        assigned_traveler_id: 'tr1',
+      },
+      {
+        name: 'Kurze Hosen',
+        mode: 'pack',
+        bought_from: 'buy_before',
+        source_item_id: 'm1',
+        assigned_traveler_id: 'tr2',
+      },
+    ])
+    const page = mountPage()
+
+    // The bar counts purchases, not rows — the same rule as the open tab's
+    // segment, and the number a person compares against what they see.
+    expect(page.find('[data-testid="m6-bought-bar"]').text()).toBe(
+      t('shopping.showBought', { n: 1 }),
+    )
+    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    const rows = page.findAll('[data-testid="m6-bought-row"]')
+    expect(rows).toHaveLength(1)
+
+    await page.find('[data-testid="m6-bought-row"] ion-checkbox').trigger('ionChange')
+    expect(orchestratorFake.unbuyItem).toHaveBeenCalledTimes(2)
+  })
+
+  it('a shared row is left alone: no recipients, one call', async () => {
+    seedTravelers(['Andy', 'Leonardo'])
+    seedTrip([{ name: 'Zelt', mode: 'buy_before', quantity: 2 }])
+    const page = mountPage()
+
+    expect(page.find('[data-testid="m6-row-for"]').exists()).toBe(false)
+    await page.find('[data-testid="m6-row"] ion-checkbox').trigger('ionChange')
+    expect(orchestratorFake.buyItem).toHaveBeenCalledTimes(1)
   })
 })

@@ -10,6 +10,13 @@
  * the reveal below the list can find it again, say where it went, and put
  * it back. Free-text quick-add lands in the open tab's list.
  *
+ * A per-person item (FR-25.1) is aggregated into **one** buy row — the
+ * summed quantity and the recipients' names, derived from membership and
+ * never re-entered (FR-25.6/25.10) — and checking it off settles every
+ * instance, because buying is a single act. The arithmetic is
+ * `domain/shoppingView.ts`; this screen renders it and fans the check-off
+ * out over the row's instances.
+ *
  * Standing destination-checklist entries (FR-13.3) follow once trip
  * series exist in the client.
  */
@@ -30,6 +37,8 @@ import { bagHandleOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import UserAvatar from '@/components/global/UserAvatar.vue'
+import { buildShoppingList, type ShoppingRow } from '@/domain/shoppingView'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { ShoppingMode, TripItem } from '@/types/domain'
@@ -79,27 +88,54 @@ const quickAddExcludeIds = computed(() => [
   ),
 ])
 
-const grouped = computed(() => {
-  const groups = new Map<string, TripItem[]>()
-  for (const item of activeList.value) {
-    const key = item.category_name ?? t('shopping.uncategorized')
-    groups.set(key, [...(groups.get(key) ?? []), item])
-  }
-  return [...groups.entries()]
-})
+const travelers = computed(() => store.getTravelers(props.tripId))
+
+const grouped = computed(() => buildShoppingList(activeList.value, travelers.value))
 
 /**
- * FR-3.3 + FR-25.11j. A BUY_BEFORE row is bought and needs packing, so it
- * leaves this list; a BUY_LOCAL row is bought and thereby packed. The tab is
- * the list it was bought from, and travels with the change.
+ * What each tab's segment counts: **things to buy**, not `trip_items` rows.
+ * An aggregated per-person item is one of them (FR-25.6), so a segment that
+ * counted rows would promise three where the list renders one.
  */
-function checkOff(item: TripItem) {
-  orchestrator.buyItem(props.tripId, item, tab.value)
+function buyRowCount(items: TripItem[]): number {
+  return buildShoppingList(items, travelers.value).reduce((n, group) => n + group.rows.length, 0)
 }
 
-/** FR-25.11j's undo: back onto the list the row was bought from. */
-function undoBuy(item: TripItem) {
-  orchestrator.unbuyItem(props.tripId, item, tab.value)
+/**
+ * What was bought, aggregated by the same rule — otherwise a per-person item
+ * that reads as one row while it is open would come back as N rows under the
+ * reveal, and putting it back would be N taps for a single purchase.
+ * Flattened: the reveal is a short list of what left, not a second screen.
+ */
+const boughtRows = computed(() =>
+  buildShoppingList(boughtList.value, travelers.value).flatMap((group) => group.rows),
+)
+
+/** The recipients, named in roster order (FR-25.6). */
+function recipientNames(row: ShoppingRow): string {
+  return row.recipients.map((traveler) => traveler.name).join(', ')
+}
+
+/**
+ * FR-3.3 + FR-25.11j + FR-25.6. A BUY_BEFORE row is bought and needs packing,
+ * so it leaves this list; a BUY_LOCAL row is bought and thereby packed. The
+ * tab is the list it was bought from, and travels with the change.
+ *
+ * Every instance is settled, not just the first: the row stands for all of
+ * them, and one that names three people while settling one leaves two behind
+ * where nobody is looking for them.
+ */
+function checkOff(row: ShoppingRow) {
+  for (const instance of row.instances) {
+    orchestrator.buyItem(props.tripId, instance, tab.value)
+  }
+}
+
+/** FR-25.11j's undo: back onto the list the row was bought from, all of it. */
+function undoBuy(row: ShoppingRow) {
+  for (const instance of row.instances) {
+    orchestrator.unbuyItem(props.tripId, instance, tab.value)
+  }
 }
 
 /**
@@ -107,8 +143,8 @@ function undoBuy(item: TripItem) {
  * rather than off the tab: a BUY_BEFORE purchase is on the packing list, a
  * BUY_LOCAL one is packed, and a row whose mode changed again since says so.
  */
-function wentTo(item: TripItem): string {
-  return item.mode === 'pack' ? t('shopping.wentToPacking') : t('shopping.wentPacked')
+function wentTo(row: ShoppingRow): string {
+  return row.instances[0]?.mode === 'pack' ? t('shopping.wentToPacking') : t('shopping.wentPacked')
 }
 
 const isActive = computed(() => trip.value?.status === 'active')
@@ -144,30 +180,43 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
         <IonSegmentButton value="buy_before" data-testid="m6-tab-before">
-          <IonLabel>{{ t('shopping.beforeDeparture', { n: lists.buyBefore.length }) }}</IonLabel>
+          <IonLabel>{{
+            t('shopping.beforeDeparture', { n: buyRowCount(lists.buyBefore) })
+          }}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton value="buy_local" data-testid="m6-tab-local">
-          <IonLabel>{{ t('shopping.atDestination', { n: lists.buyLocal.length }) }}</IonLabel>
+          <IonLabel>{{ t('shopping.atDestination', { n: buyRowCount(lists.buyLocal) }) }}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
 
       <QuickAddItem :is-active="isActive" :exclude-item-ids="quickAddExcludeIds" @add="quickAdd" />
 
       <IonList v-if="grouped.length > 0">
-        <IonItemGroup v-for="[category, items] in grouped" :key="category">
+        <IonItemGroup v-for="group in grouped" :key="group.key">
           <IonItemDivider>
-            <IonLabel>{{ category }}</IonLabel>
+            <IonLabel>{{ group.name ?? t('shopping.uncategorized') }}</IonLabel>
           </IonItemDivider>
-          <IonItem v-for="item in items" :key="item.id" data-testid="m6-row">
+          <IonItem v-for="row in group.rows" :key="row.key" data-testid="m6-row">
             <IonCheckbox
               slot="start"
               :checked="false"
-              :aria-label="t('shopping.bought', { name: item.name })"
-              @ionChange="checkOff(item)"
+              :aria-label="t('shopping.bought', { name: row.name })"
+              @ionChange="checkOff(row)"
             />
             <IonLabel>
-              <h3>{{ item.name }}</h3>
-              <p v-if="item.quantity > 1">{{ item.quantity }}×</p>
+              <h3>{{ row.name }}</h3>
+              <p v-if="row.quantity > 1">{{ row.quantity }}×</p>
+              <!-- FR-25.6: for whom, derived from membership — never a control. -->
+              <p v-if="row.recipients.length > 0" class="recipients" data-testid="m6-row-for">
+                <UserAvatar
+                  v-for="recipient in row.recipients"
+                  :key="recipient.id"
+                  :name="recipient.name"
+                  :seed="recipient.id"
+                  :size="18"
+                />
+                <span>{{ t('shopping.forWhom', { names: recipientNames(row) }) }}</span>
+              </p>
             </IonLabel>
           </IonItem>
         </IonItemGroup>
@@ -182,7 +231,7 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
       <!-- FR-25.11j: what was bought from this list. Same affordance as M4's
            FR-25.2 done bar — the count is in the label, and one tap reveals. -->
       <button
-        v-if="boughtList.length > 0"
+        v-if="boughtRows.length > 0"
         class="reveal-bar"
         :class="{ on: showBought }"
         data-testid="m6-bought-bar"
@@ -190,22 +239,22 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
       >
         {{
           showBought
-            ? t('shopping.hideBought', { n: boughtList.length })
-            : t('shopping.showBought', { n: boughtList.length })
+            ? t('shopping.hideBought', { n: boughtRows.length })
+            : t('shopping.showBought', { n: boughtRows.length })
         }}
       </button>
 
-      <IonList v-if="showBought && boughtList.length > 0" data-testid="m6-bought-list">
-        <IonItem v-for="item in boughtList" :key="item.id" data-testid="m6-bought-row">
+      <IonList v-if="showBought && boughtRows.length > 0" data-testid="m6-bought-list">
+        <IonItem v-for="row in boughtRows" :key="row.key" data-testid="m6-bought-row">
           <IonCheckbox
             slot="start"
             :checked="true"
-            :aria-label="t('shopping.undoBought', { name: item.name })"
-            @ionChange="undoBuy(item)"
+            :aria-label="t('shopping.undoBought', { name: row.name })"
+            @ionChange="undoBuy(row)"
           />
           <IonLabel>
-            <h3>{{ item.name }}</h3>
-            <p data-testid="m6-bought-note">{{ wentTo(item) }}</p>
+            <h3>{{ row.name }}</h3>
+            <p data-testid="m6-bought-note">{{ wentTo(row) }}</p>
           </IonLabel>
         </IonItem>
       </IonList>
@@ -232,6 +281,12 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
 .reveal-bar.on {
   border-style: solid;
   color: var(--ct-text);
+}
+
+.recipients {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .empty-state {

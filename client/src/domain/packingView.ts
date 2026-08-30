@@ -184,12 +184,17 @@ export function isDone(item: TripItem, hasOpenPrep: boolean): boolean {
 }
 
 /**
+ * The key every instance of one per-person item shares, or `null` for a row
+ * that is nobody's in particular.
+ *
  * Instances of one per-person item share a source item; ad-hoc rows added
  * during packing (FR-5.6) have none, so they fall back to the name. Both are
  * scoped by traveler-assignment: a row without a traveler is never part of a
- * cluster.
+ * cluster. Exported because M6 keys its aggregated buy row the same way
+ * (FR-25.6) — two screens grouping the same rows by two rules would be two
+ * answers to one question.
  */
-function clusterKeyOf(item: TripItem): string | null {
+export function perPersonKey(item: TripItem): string | null {
   if (!item.assigned_traveler_id) return null
   return item.source_item_id ? `src:${item.source_item_id}` : `name:${item.name.toLowerCase()}`
 }
@@ -353,7 +358,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   const clusterSizes = new Map<string, number>()
   if (groupBy !== 'person') {
     for (const item of items) {
-      const key = clusterKeyOf(item)
+      const key = perPersonKey(item)
       if (key) clusterSizes.set(key, (clusterSizes.get(key) ?? 0) + 1)
     }
   }
@@ -389,7 +394,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
       groups.set(groupKey, group)
     }
 
-    const clusterKey = clusterKeyOf(item)
+    const clusterKey = perPersonKey(item)
     const clustered = clusterKey !== null && (clusterSizes.get(clusterKey) ?? 0) > 1
 
     if (!clustered) {
@@ -422,7 +427,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
 
   // Cluster tallies over the full set, matching the group-header rule.
   for (const item of shown) {
-    const clusterKey = clusterKeyOf(item)
+    const clusterKey = perPersonKey(item)
     if (clusterKey === null || (clusterSizes.get(clusterKey) ?? 0) <= 1) continue
     const { key: groupKey } = groupOf(item, groupBy, travelerById, containerById)
     const cluster = clusters.get(`${groupKey}::${clusterKey}`)
