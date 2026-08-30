@@ -2603,8 +2603,9 @@ one of them defined the same id twice *inside a single commit*, and every
 automatic signal moved the reassuring way — the count of ids with a test rose
 each time. Writing the gate immediately found **four more**, `E2E-M3-11`,
 `-12`, `-13` and `E2E-M4-32`, all live pairs with two different promises. They
-sit in the gate's debt register, owed to those screens' own audits; a new
-collision is simply a failure.
+went into the gate as a shrink-only debt register — **and out of it the same
+day**, see *The four inherited id collisions* below. The register is gone with
+them; the gate carries one rule and no escape hatch.
 
 **Held against the screen, the twelve sorted the way the two earlier audits
 did** — four already asserted elsewhere (the G-3 lock banner, the delegation
@@ -2683,3 +2684,54 @@ is restricted to the item's assignee or the trip owner"* — enforced nowhere,
 client or server, and contradicting the same FR's own sentence two lines
 earlier that todos are visible to every trip member. Struck with the owner's
 decision rather than left standing as a rule the app has never followed.
+
+## The four inherited id collisions, read against their screens (2026-08-30)
+
+The M5 audit's gate opened with a debt register of four: `E2E-M3-11`, `-12`,
+`-13` and `E2E-M4-32`, each a live pair carrying two unrelated promises. This
+is that register emptied. **It is now empty and must stay empty** — a new
+collision is a build failure, not a line here.
+
+**In all four the suite carried the *first* meaning**, and the shadowed half
+was the v1.0 catalogue's. Three of them turned out to be plain duplicates of
+ids that are implemented under their own number: M3-11's date-less trip is
+**E2E-M3-15**, M3-12's *Mehr Optionen* fold is **E2E-M3-16**, M3-13's default
+travellers are **E2E-M3-14**.
+
+**M3-13 is the one worth remembering, because it nearly went through as a
+summary.** Its shadowed text promised three things the live entry states in
+one clause — the M17 configuration, the *order*, and that removing a traveller
+still works. Only reading E2E-M3-14's **test body** showed all three are
+actually asserted there (`names.first()` is Andy; the remove drops the count to
+two). A retirement justified by a sentence that merely sounds equivalent is how
+a promise gets lost.
+
+**M4-32 did not retire cleanly, and its clauses split three ways.** The
+required pull and the co-skip are E2E-M4-40. That *suggested* companions do not
+join unasked became covered only on 2026-08-30 — by **E2E-M5-23**, written the
+day before this — so for as long as the collision stood, that promise was
+genuinely unasserted *and* unreadable as a gap, because the number rendered as
+implemented while the suite carried the FR-19.2 cold-open case instead. That is
+the collision's cost made concrete rather than argued.
+
+**And the third clause was never built.** *„…pulls its required companions onto
+the trip **and reports it**"*: `addRequiredCompanions` returns nothing and no
+caller raises a snackbar, so the companion simply appears on the list. FR-20.2's
+*skip* does name what it took along — which is what makes the silence on the add
+look like an omission rather than a decision. Left as an owner decision with no
+case, the same treatment the M2 audit gave its three unkept promises.
+
+**The gate got a guard on itself.** It reported `ok — 0 case ids` when it found
+nothing, so renaming the spec or changing its bullet character would have
+switched the check off silently while the build stayed green — the same
+false-green shape a test asserting that something did not happen has. It now
+refuses an empty scan. Proved by changing `* **E2E-` to `- **E2E-` throughout:
+exit 1, with a message naming both plausible causes.
+
+**What this pass deliberately did not fix.** Of 300 case ids in the suite, **78
+appear only in a comment above a test rather than in its title**. That breaks
+id-based traceability in the direction this audit keeps relying on — `git grep`
+of an id confirms a gap that reading the suite refutes — but it is a convention
+drift across the whole suite, not four defects, and folding it into a
+four-entry cleanup would bury it. Recorded here so the next person measuring
+coverage by grep knows the number is soft.
