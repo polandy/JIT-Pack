@@ -34,13 +34,11 @@ const SPEC = resolve(root, 'dev-docs/UI_Test_Spec_v1.0.md')
  * fixing them. This is a debt register, not a carve-out: each line is removed
  * by the audit of that screen, and the list may only ever get shorter. A new
  * collision is a failure, never an entry here.
+ *
+ * Empty since 2026-08-30: the four it opened with (E2E-M3-11/-12/-13 and
+ * E2E-M4-32) were read against their screens and resolved. Keep it empty.
  */
-const KNOWN_COLLISIONS = new Map([
-  ['E2E-M3-11', 'M3 — FR-27.1 composition vs FR-2.1b dates'],
-  ['E2E-M3-12', 'M3 — FR-27.3 single items vs FR-2.1c optional inputs'],
-  ['E2E-M3-13', 'M3 — FR-27.7 prep tasks vs FR-2.5a travellers'],
-  ['E2E-M4-32', 'M4 — FR-19.2 cold open vs FR-20.4 companions'],
-])
+const KNOWN_COLLISIONS = new Map([])
 
 /**
  * A line that *defines a live case*: a top-level bullet headed by the id and
