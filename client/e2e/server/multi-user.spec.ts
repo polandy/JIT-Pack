@@ -101,14 +101,6 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
-   * E2E-G3-01 (the identity half, owed since 2026-08-22) + E2E-G3-03's
-   * identity half: a row Alice is packing names *Alice* on Bob's screen —
-   * on the list row and again in the sheet one tap below it.
-   *
-   * `single` proves the mechanism (a foreign claim locks the row); only
-   * here can the rendered name be wrong and be caught.
-   */
-  /**
    * E2E-M2-05 (FR-4.5): the trip's own delete is the owner's alone, and the
    * confirm takes it off every list it was on.
    *
@@ -170,6 +162,117 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(visiblePage(bob).getByTestId(`trip-row-${trip}`)).toHaveCount(0)
   })
 
+  /**
+   * E2E-M17-01 (FR-6.2, M17): a notification preference turned off in the
+   * settings screen actually reaches the rule that suppresses the
+   * notification — and does so **per kind**, not as a global mute.
+   *
+   * The two ends were covered and the wire between them was not: the store
+   * refuses to create a suppressed notification (Go's
+   * `TestNotificationPrefs_DisabledKindSuppressesCreation`) and the client's
+   * toggle PUTs the prefs (`composables/__tests__/settings.spec.ts`), while
+   * nothing said that the switch the user flips is the value the server
+   * then reads.
+   *
+   * The absence is asserted against two positive signals, because a toast
+   * that has not arrived *yet* looks exactly like one that never will: the
+   * same pair of pages produces a delegation toast before the preference is
+   * touched, and afterwards a **mention** — the kind Carol left on — is what
+   * says the channel is still live and the suppressed delegation had its
+   * chance. Each of the three items carries its own unique word, so no
+   * assertion can be answered by another one's toast.
+   *
+   * **Carol rather than Bob, and the preference is put back.** A preference
+   * belongs to the account, not to a trip, so unlike everything else in this
+   * file it is *shared-run state*: leaving Bob's delegations off broke
+   * E2E-NOTIFY-01 and E2E-FLOW-02, which expect him to be told. Carol exists
+   * for exactly this kind of reach-across (see `mockIdp.mjs`), and the
+   * preference is set through a helper that is idempotent in both
+   * directions, so a retry starts from the state the case assumes.
+   */
+  test('E2E-M17-01: a preference turned off in M17 silences that kind and only that kind', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Hardanger ${id}`
+    const heard = `Steigeisen-${id}`
+    const silenced = `Pickel-${id}`
+    const mentioned = `Seil-${id}`
+
+    const ctxCarol = await browser.newContext()
+    const carol = await loginAs(ctxCarol, 'carol')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, heard)
+    await quickAddItem(alice, silenced)
+    await quickAddItem(alice, mentioned)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.carol)
+
+    await carol.goto('/tabs/settings')
+    await setDelegations(carol, true)
+
+    const wsCarol = carol.waitForEvent('websocket')
+    await carol.goto(tripPath)
+    await expect(visiblePage(carol).getByTestId(`m4-row-${heard}`)).toBeVisible()
+    await wsSubscribed(carol, wsCarol)
+
+    // With the preference on, the delegation reaches Carol. This is the
+    // control: the same chain and the same pages the suppressed one runs on.
+    await alice.goto(tripPath)
+    await assignTo(alice, heard, ACCOUNT_NAMES.carol)
+    await expect(carol.locator('ion-toast').filter({ hasText: heard })).toContainText(
+      ACCOUNT_NAMES.alice,
+    )
+
+    // Carol turns delegations off in her own settings, and only those. She
+    // stays on that screen: a notification is addressed to the *user*, so it
+    // reaches whatever page she has open — which is also what makes the
+    // absence below assertable without a second trip subscription.
+    await carol.goto('/tabs/settings')
+    await setDelegations(carol, false)
+    // Persisted rather than merely toggled: the reload reads it back off the
+    // server, which is the half of this case that is about M17 itself.
+    await carol.reload()
+    await expect(delegationToggle(carol)).toHaveAttribute('aria-checked', 'false')
+
+    await alice.goto(tripPath)
+    await assignTo(alice, silenced, ACCOUNT_NAMES.carol)
+    // Alice's own screen proves the delegation happened at all: FR-25.20
+    // hides a row that is somebody else's job, and names them.
+    await expect(visiblePage(alice).getByTestId(`m4-row-${silenced}`)).toHaveCount(0)
+    await expect(visiblePage(alice).getByTestId('m4-others-bar')).toContainText(ACCOUNT_NAMES.carol)
+
+    // A mention, fired after the suppressed delegation and over the same
+    // connection. Its toast is the settled signal that the delegation had
+    // every chance to land — and that the switch is per kind, not a mute.
+    await visiblePage(alice).getByTestId(`m4-row-${mentioned}`).click()
+    await expect(visiblePage(alice).getByTestId('m5-sheet')).toBeVisible()
+    await visiblePage(alice)
+      .getByTestId('m5-note-input')
+      .locator('input')
+      .fill(`@${ACCOUNT_NAMES.carol} ${mentioned}`)
+    await visiblePage(alice).getByTestId('m5-note-add').click()
+
+    await expect(carol.locator('ion-toast').filter({ hasText: mentioned })).toBeVisible()
+    await expect(carol.locator('ion-toast').filter({ hasText: silenced })).toHaveCount(0)
+
+    // Put the account back the way it was found.
+    await setDelegations(carol, true)
+
+    await ctxAlice.close()
+    await ctxCarol.close()
+  })
+
+  /**
+   * E2E-G3-01 (the identity half, owed since 2026-08-22) + E2E-G3-03's
+   * identity half: a row Alice is packing names *Alice* on Bob's screen —
+   * on the list row and again in the sheet one tap below it.
+   *
+   * `single` proves the mechanism (a foreign claim locks the row); only
+   * here can the rendered name be wrong and be caught.
+   */
   test("a claimed row names its holder on the other account's screen", async ({ browser }) => {
     const id = uniq()
     const trip = `Engadin ${id}`
@@ -548,4 +651,26 @@ async function releaseRow(page: import('@playwright/test').Page, testId: string)
     .getByRole('button', { name: /give the item back/i })
     .click()
   await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+}
+
+/** M17's *Delegations* switch on whichever settings page is open. */
+function delegationToggle(page: import('@playwright/test').Page) {
+  return visiblePage(page)
+    .locator('ion-item')
+    .filter({ hasText: 'Delegations' })
+    .locator('ion-toggle')
+}
+
+/**
+ * Put the preference in a known state, clicking only when it is not there
+ * already. Idempotent in both directions on purpose: the preference belongs
+ * to the account rather than to a trip, so a case that toggles blindly
+ * cannot survive its own retry and leaves the account changed for everyone
+ * else in the run.
+ */
+async function setDelegations(page: import('@playwright/test').Page, on: boolean) {
+  const toggle = delegationToggle(page)
+  await expect(toggle).toHaveCount(1)
+  if ((await toggle.getAttribute('aria-checked')) !== String(on)) await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', String(on))
 }
