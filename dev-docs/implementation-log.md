@@ -206,6 +206,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
 - [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 - [The branch the backup never took (2026-08-30)](#the-branch-the-backup-never-took-2026-08-30) — backlog item 6, M18. The screen where every unwritten case was real, why a clause can be stale in four places at once, and the comment that contradicted the line three rows under it.
+- [A wizard that opens once (2026-08-30)](#a-wizard-that-opens-once-2026-08-30) — backlog item 6, M15. The step no test had ever opened, the navigation defect that made the second import undrivable (M18 replaces the same way), and a rule that is complete, tested at both levels and still unkept because the promise was about saying it.
 
 ## Current state
 
@@ -9465,3 +9466,68 @@ That is the second time this backlog item has found a specification
 sentence describing a state nobody can produce, and the shape is the same as
 M17's: **a promise can be wrong in a way only the screen can refute**, and
 reading it against another document will confirm it forever.
+
+## A wizard that opens once (2026-08-30)
+
+M15's turn at backlog item 6. Four unwritten ids, and they sorted into three
+different things — a real remainder, a sentence carrying six promises, and two
+descriptions of behaviour the screen has never had. Three cases written and
+red-proved (E2E-M15-03, -11, -12); the production diff is five test ids on
+step 3.
+
+**The dedup step had never been opened by a test.** It has been on screen since
+the wizard was built, and every fixture in the unit imports into an *empty*
+device — where there is nothing to be a duplicate of, so `enterDedup` jumps
+from step 2 to step 4 and the whole branch is skipped. Nothing about the suite
+looked wrong: the file is named after the screen, four cases drive it, the ids
+line up. The setup that fixes it is the one M18's audit found a day earlier —
+**the screen builds its own precondition**, because M15 is itself what turns a
+sheet into master items, so the second sheet meets exactly what the first left.
+
+**And the second import could not be driven at all.** After any M15 commit the
+`router.replace` onto a tab root leaves that tab's page **unhidden in the root
+outlet**; the next push renders M15 *underneath* it, so the page is visible,
+its textarea is fillable, and every click is intercepted by the page in front.
+Three probes located it rather than guessing: M2 → M15 on a fresh boot is fine,
+the same click after a commit is not, and it does not matter which screen the
+commit landed on. **M18's restore replaces the same way** and no case there ever
+comes back for a second file, which is why a defect on the two screens that
+both replace was invisible on both. Left for the owner — the fix is in the
+landing decision, not in the test — and worked around by a reload the case
+explains.
+
+**The reload then needed two seams, and the code already had both.** The rows
+are re-asserted after it because they are also the *settled* signal: the dedup
+step reads `master.itemList`, and a boot that has not finished loading offers
+no duplicates, which would take the case straight past the thing it exists to
+assert — green, against nothing. And it waits for the G-2 glyph to read `local`
+before reloading, because in Local Mode `syncing` outranks it while a write is
+open; without that wait the import's last row was missing after the reload, one
+run in five. Neither is a wait on time, and both were built for exactly this.
+
+**A clause that could not fail, reached from a new direction.** E2E-M15-06 says
+a detected category *column* files the items under it *„and no item turned into
+one"*. With a category column the analysis claims **no** category rows at all,
+so no item was ever a candidate — the half is green by construction. It is
+falsifiable only in the *rows* layout, and that is where it now lives: the
+mutation that stops claiming heading rows makes E2E-M15-11 read „5 new items,
+0 categories". M12's version of this was an element on screen before the click;
+this one is a world in which the rule has nothing to act on. The check that
+finds both: **ask what would have to be true for the assertion to fail.**
+
+**Two promises the wizard never kept, and neither had reached the code.** The
+*„parser preview of detected grid"* does not exist — step 1 is a button, a box
+and *Analyze*. And NFR-4.7's noise handling is *built and never shown*: a
+trailing `?` genuinely becomes an item plus an open task, unit-covered at the
+rule and at the orchestrator, but no step of the wizard mentions it, so the
+user first meets those tasks inside the trip. That second one is the more
+interesting failure: **a rule can be complete, correct, tested at both levels
+and still unkept**, because the promise was about *saying* it. The same
+sentence hides a third thing — the task's body is a hard-coded English string,
+which is the shape NFR-4.12 spent an ADR removing from notifications.
+
+Two smaller sentences went with them: the confirm names no target series (the
+picker is on step 2, the commit writes `series_id`), and *„failure rolls back
+completely"* has never been true — the commit is validated up front, replays
+idempotently, and rolls nothing back. Four owner decisions in total, none of
+them a test gap, none of them built here.

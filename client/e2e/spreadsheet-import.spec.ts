@@ -121,3 +121,194 @@ test.describe('M15 mapping — category column or category rows @local @m15', ()
     await expect(visiblePage(page).getByText('Handtuch')).toBeVisible()
   })
 })
+
+/**
+ * The classic legacy layout: category *rows* between the items, and a header
+ * that names the trip columns by their year. Everything the suite drove until
+ * now had its category in a column — the branch `analyzeGrid` takes when
+ * `categoryColumn` is null and there is a trip column for a heading row to be
+ * empty in had no rendered coverage at all.
+ */
+const CATEGORY_ROWS_CSV = [
+  ',2016,2017',
+  'Schuhe,,',
+  'Wanderschuhe,1,1',
+  'Sandalen,1,',
+  'Bad,,',
+  'Handtuch,2,2',
+].join('\n')
+
+/**
+ * A trip column the sheet dates but never names. It is preselected — FR-16.1
+ * only leaves out a column carrying *neither* fact — so the mapping cannot be
+ * valid until the user answers for it.
+ */
+const UNNAMED_TRIP_CSV = [',2016,2017', ',Laos,', 'Wanderschuhe,1,1'].join('\n')
+
+/** The near-duplicate sheet, matched against what the inventory import left. */
+const DUPLICATE_CSV = [
+  'Kategorie,Artikel',
+  'Schuhe,Wanderschuhe',
+  ',Wanderschuh',
+  'Bad,Zahnbürste',
+].join('\n')
+
+test.describe('M15 — the layout, the gate and the duplicates @local @m15', () => {
+  /**
+   * E2E-M15-11 (FR-16.1/16.2, FR-24.2): the category-*row* layout, end to end.
+   *
+   * The write half and the read half are two behaviours. Every other M15 case
+   * in this file stops at the summary line, and the one that commits (M15-08)
+   * imports a sheet with no category rows and no trip at all — so the layout
+   * this wizard was built for had never produced a row anybody could see.
+   */
+  test('E2E-M15-11: category rows become tags, and the items land filed under them', async ({
+    page,
+  }) => {
+    await seed(page, { mode: 'local' })
+    await page.goto('/import')
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(CATEGORY_ROWS_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+
+    // No category column here, so the picker is on its own "None" — the two
+    // headings are claimed as rows instead.
+    await expect(
+      visiblePage(page).getByTestId('category-column').locator('.segment-button-checked'),
+    ).toHaveText('None')
+
+    await visiblePage(page).getByTestId('import-next').click()
+    const summary = visiblePage(page).getByTestId('import-summary-line')
+    // Two headings became categories and did not also become items: five
+    // named rows, three of them things to pack.
+    await expect(summary).toContainText('2 categories')
+    await expect(summary).toContainText('3 new items')
+    await expect(summary).toContainText('2 archived trips')
+
+    await visiblePage(page).getByTestId('import-commit').click()
+
+    // FR-16.2: archived trips, named by the only header the sheet has.
+    await expect(visiblePage(page).getByTestId('trip-row-2016')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('trip-row-2017')).toBeVisible()
+
+    // The read half: the heading is a tag *on the item* (FR-24.2), not merely
+    // a tag that exists. Filtering to it is what tells the two apart.
+    await page.getByTestId('rail-items').click()
+    await visiblePage(page).getByTestId('m9-tag-chip-Schuhe').click()
+    await expect(visiblePage(page).getByText('Wanderschuhe')).toBeVisible()
+    await expect(visiblePage(page).getByText('Sandalen')).toBeVisible()
+    await expect(visiblePage(page).getByText('Handtuch')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M15-12 (FR-16.1, NFR-4.7): the mapping gate, and the include toggle
+   * as the way past it.
+   *
+   * "Pre-validation blocks a bad file before commit" was written in 2026-07
+   * and asserted nowhere — the only case that touches the note asserts its
+   * *absence*. Both halves are here: the note that names what is missing, and
+   * the step refusing to advance while it stands.
+   */
+  test('E2E-M15-12: an unnamed trip column blocks the step until it is unticked', async ({
+    page,
+  }) => {
+    await seed(page, { mode: 'local' })
+    await page.goto('/import')
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(UNNAMED_TRIP_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+
+    // The note names the missing fact — there *are* rows to import, so this
+    // is the mapping's own complaint and not "nothing to import".
+    const note = visiblePage(page).getByTestId('import-mapping-note')
+    await expect(note).toContainText('name and a year')
+    await expect(visiblePage(page).getByTestId('import-next')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+
+    // Answering it by dropping the column: FR-16.1's per-trip include toggle,
+    // which nothing had ever clicked.
+    await visiblePage(page).getByTestId('import-trip-2').locator('ion-checkbox').click()
+    await expect(note).toHaveCount(0)
+
+    await visiblePage(page).getByTestId('import-next').click()
+    const summary = visiblePage(page).getByTestId('import-summary-line')
+    await expect(summary).toContainText('1 archived trip')
+    await expect(summary).toContainText('1 new item')
+  })
+
+  /**
+   * E2E-M15-03 (FR-16.3): step 3 decides the inventory.
+   *
+   * The step has existed since the wizard was built and no test had ever
+   * opened it: every fixture here imports into an empty device, where there
+   * is nothing to be a duplicate *of*. The inventory is built by an import of
+   * its own — M15 is the screen that turns a sheet into master items, so the
+   * second sheet meets exactly what the first one left.
+   */
+  test('E2E-M15-03: merge and keep-separate decide what the inventory gets', async ({ page }) => {
+    await seed(page, { mode: 'local' })
+    await page.goto('/import')
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(INVENTORY_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+    await visiblePage(page).getByTestId('import-next').click()
+    await visiblePage(page).getByTestId('import-commit').click()
+    await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(3)
+
+    /*
+     * The reload is not decoration and not a wait: **the app cannot open M15
+     * a second time in one session** (found by this case, 2026-08-30). The
+     * commit's `router.replace` onto a tab root leaves that tab's page
+     * unhidden in the root outlet, so the next push renders M15 *underneath*
+     * it — proved by three probes: M2 → M15 on a fresh boot is fine, and the
+     * same click after any M15 commit is not, whichever screen it landed on.
+     * Open with the owner; M18's restore replaces the same way. The three
+     * rows are re-asserted after it because they are also this case's settled
+     * signal — the dedup step reads `master.itemList`, and a boot that has
+     * not finished loading would offer no duplicates at all.
+     *
+     * The G-2 glyph is what makes the reload safe: in Local Mode it reads
+     * `syncing` while a write is still open and `local` once the device has
+     * it, so reloading on `local` cannot drop the import's last row (it did,
+     * once, before this line existed).
+     */
+    await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
+    await page.reload()
+    await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(3)
+
+    // Back through M2's own entry, so the second import is the app's own path.
+    await page.getByTestId('rail-trips').click()
+    await visiblePage(page).getByTestId('m2-spreadsheet-import').click()
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(DUPLICATE_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+    await visiblePage(page).getByTestId('import-next').click()
+
+    // Exactly the two names the inventory can answer for: the repeat and the
+    // one-letter neighbour. "Zahnbürste" is nobody's near miss.
+    await expect(visiblePage(page).getByTestId('import-dup-list').locator('ion-item')).toHaveCount(
+      2,
+    )
+    await expect(visiblePage(page).getByTestId('import-dup-Wanderschuhe')).toContainText(
+      'exact match',
+    )
+
+    // Both default to merge; the near one is kept apart, which is the answer
+    // the step exists to take.
+    await visiblePage(page)
+      .getByTestId('import-dup-Wanderschuh')
+      .getByTestId('import-dup-separate')
+      .click()
+    await visiblePage(page).getByTestId('import-dup-next').click()
+
+    const summary = visiblePage(page).getByTestId('import-summary-line')
+    await expect(summary).toContainText('2 new items')
+    await expect(summary).toContainText('1 merged')
+    await visiblePage(page).getByTestId('import-commit').click()
+
+    // Five rows, not four and not six: the count is what makes the merge
+    // legible. "No second Wanderschuhe appeared" is equally true of an import
+    // that created nothing at all.
+    await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(5)
+    await expect(visiblePage(page).getByText('Wanderschuh', { exact: true })).toBeVisible()
+    await expect(visiblePage(page).getByText('Zahnbürste')).toBeVisible()
+  })
+})
