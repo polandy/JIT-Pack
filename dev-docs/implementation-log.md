@@ -192,6 +192,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A rule that was complete and invisible (2026-08-30)](#a-rule-that-was-complete-and-invisible-2026-08-30) — E2E-G3-04. The G-3 cluster lock shipped correct and unobservable: every other G-3 surface names its holder, and the one surface that could inherit none of them said nothing at all. Why writing the two-identity case is what found it, and why the release — not the pack — is what the positive half needs.
 - [A row kept saying it was skipped after it had stopped being (2026-08-30)](#a-row-kept-saying-it-was-skipped-after-it-had-stopped-being-2026-08-30) — where FR-25.13f's ✕ meets FR-25.21's editor. Why the fix is a derivation rather than a policy, why only one of the two cases is worth a confirm, and the two fields deliberately left alone.
 - [Seventeen unwritten cases, two worth writing (2026-08-30)](#seventeen-unwritten-cases-two-worth-writing-2026-08-30) — backlog item 6, taken screen by screen instead of by the count. What M6's unwritten ids turned out to be, why a coverage number is not a backlog, and the four promises the app had already reversed.
+- [A blocked case that had quietly unblocked, and one that had quietly been covered (2026-08-30)](#a-blocked-case-that-had-quietly-unblocked-and-one-that-had-quietly-been-covered-2026-08-30) — backlog item 6, M4. A rule that was correct and unreachable, an entry waiting on a blocker that was gone, and nine cases that had been written as unit tests with no E2E id on them.
 - [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 
@@ -8489,3 +8490,81 @@ One thing did have to be *added* rather than asserted: E2E-M6-17 reported that
 a bought row went *„on the packing list"* and never went to look. The note was
 a string. It now visits M4 and finds the row, and pinning the mutation to
 `buy_before` reddens it.
+
+## A blocked case that had quietly unblocked, and one that had quietly been covered (2026-08-30)
+
+M4 through the same audit as M6, and the same seventeen-shaped number sorted
+differently enough to be worth writing down. M6's unwritten ids were mostly
+about a screen nobody had built. M4's were not: the screen is the most-built one
+in the app, and its gaps were bookkeeping.
+
+**Three findings, in the order they cost something.**
+
+**1. A rule can be complete, correct and untestable, and the entry that names
+it then stays open forever.** E2E-M4-30 has specified FR-25.19's "never both"
+since the concept round — the packing record beats the assignment, a row carries
+one right edge. The rule was implemented, and implemented correctly, as
+`edgeAvatar` inside `PackingListPage.vue`. Nothing could reach it. The ledger
+recorded the case as blocked on a second account, which was true of the
+*rendered* half and not of the rule, and the rule is the part that can be got
+wrong. Moving four lines into `domain/packingView.ts` produced five unit cases,
+one of which is the one worth having: the edge is decided by the columns and not
+by doneness, because FR-25.2's undo restores `packed_count` and `state` and
+deliberately not the record — so a row can be open again *and* have been packed
+by somebody, and deriving the edge from `done` swaps the avatar back at exactly
+that moment. That case cannot exist while the function lives in a component.
+
+**2. The blocked entries had been waiting on a blocker that was gone, in two
+different ways, and only one of them was findable by grep.** E2E-M4-24/-30/-31
+waited on a second account: ADR-029 supplied one on 2026-08-24 and nobody went
+back. That much is ordinary. E2E-M4-16, -17 and half of -19 waited on "a screen
+that can produce categorised, assigned rows" — and had in fact been **written
+months earlier as unit tests**, nine of them, in `packingView.spec.ts`, carrying
+no E2E id. So `git grep E2E-M4-16` confirmed a gap that reading the suite
+refuted. This is not the failure recorded under E2E-M4-12/-13, where a case
+unblocked and had to be re-*read*; here a case was covered and had to be
+re-*found*. The ledger's own paragraph asserting the wait was still on is the
+artefact that kept it invisible, and it has been rewritten rather than amended.
+
+**3. Two spec sentences were describing a screen that had argued its way out of
+them.** E2E-M4-05/-06 describe a swipe M4 lost when FR-5.5 replaced the gesture
+rather than repairing it. E2E-M4-09 is sharper: it restates PRD_Base FR-7.2
+("an item cannot be fully marked as ready until all nested tasks are Resolved"),
+which the Addendum's FR-7.3 **overrides** — packing such a row is allowed and
+produces the "packed with open prep" state. Refusing the tap would leave a
+packed rucksack the app insists is empty. A retired sentence and a covered one
+look identical from a coverage report; only reading the screen tells them apart.
+
+**What the five new local cases cost, and what they buy.** Each asserts only the
+half no unit can see. E2E-M4-25 is the one that earns a browser: FR-7.3's
+open-prep must be derived from the todos at read time, and the prototype's
+stored count meant resolving the last todo left the row on the list forever —
+watching the badge go and the row leave is the only assertion that catches it,
+and handing the view an empty `itemsWithOpenPrep` reddens it. E2E-M4-14 pins
+M4's wiring rather than the cluster rule: the screen holds a full set and a
+hidden-done one, and the wrong one flattens the surviving child the instant its
+sibling is packed, moving the control the finger is already on. E2E-M4-24 splits
+by what each mode can reach rather than waiting for the mode that can reach all
+of it — the time and the clearing need no account, the name needs the server.
+
+**Two anchors had to be added to reach any of it**, and both are the same
+signature the M20 audit named: the M4 prep badge had no `data-testid`, and the
+M5 todo checkbox was keyed by a generated id, which nothing could address. An
+element keyed by a uuid is an element nobody ever asserted on.
+
+**Left open for the owner, deliberately unretired.** M4-03 promises a container
+chip the row never grew — M4 answers *which bag* by grouping, and a fifth mark
+on the right edge is what FR-25.19 kept off it. M4-08 promises the amber
+"packed with open prep" cast, which the Addendum realises on M5. Both are
+plausible as features and wrong as silent retirements, so the entries say so and
+no case claims them.
+
+**A postscript the PR wrote about itself.** The entry above was drafted with a
+recount in it — "272 of 383" against the 250/370 the M6 audit had measured the
+same day. Both numbers are right and they are not comparable: the second grep
+used a broader id pattern, so it is a second *method*, not a second
+measurement. And a retired entry stays in the UI-Test-Spec struck through,
+because a reader has to be able to find out why it went — which means every
+naive recount counts it as a gap forever, and the number can only drift
+upwards as the audit does its work. The headline figure was left where it was
+and `CLAUDE.md` now says not to re-derive it. Measure a screen.

@@ -184,6 +184,25 @@ export function isDone(item: TripItem, hasOpenPrep: boolean): boolean {
 }
 
 /**
+ * Who the row's right edge names, or `null` for a row nobody is attached to.
+ *
+ * FR-25.19 splits one column into two: `packer_user_id` is the assignment the
+ * client makes, `packed_by_user_id` the record the server stamps (invariant 3).
+ * A row carries **one** avatar, and the record wins — once a row is packed, who
+ * was going to do it has stopped being the useful fact, and rendering both
+ * leaves the row claiming an open job it no longer has. Where the two differ,
+ * the revealed row's FR-25.17 stamp names them both — which is where there is
+ * room for it.
+ */
+export function rowEdgeAvatar(
+  item: TripItem,
+): { variant: 'assignee' | 'packer'; id: string } | null {
+  if (item.packed_by_user_id) return { variant: 'packer', id: item.packed_by_user_id }
+  if (item.packer_user_id) return { variant: 'assignee', id: item.packer_user_id }
+  return null
+}
+
+/**
  * The key every instance of one per-person item shares, or `null` for a row
  * that is nobody's in particular.
  *
