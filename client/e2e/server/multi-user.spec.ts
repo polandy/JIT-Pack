@@ -170,6 +170,100 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(visiblePage(bob).getByTestId(`trip-row-${trip}`)).toHaveCount(0)
   })
 
+  /**
+   * E2E-M17-01 (FR-6.2, M17): a notification preference turned off in the
+   * settings screen actually reaches the rule that suppresses the
+   * notification — and does so **per kind**, not as a global mute.
+   *
+   * The two ends were covered and the wire between them was not: the store
+   * refuses to create a suppressed notification (Go's
+   * `TestNotificationPrefs_DisabledKindSuppressesCreation`) and the client's
+   * toggle PUTs the prefs (`composables/__tests__/settings.spec.ts`), while
+   * nothing said that the switch the user flips is the value the server
+   * then reads.
+   *
+   * The absence is asserted against two positive signals, because a toast
+   * that has not arrived *yet* looks exactly like one that never will: the
+   * same pair of pages produces a delegation toast before the preference is
+   * touched, and afterwards a **mention** — the kind Bob left on — is what
+   * says the channel is still live and the suppressed delegation had its
+   * chance. Each of the three carries its own unique word, so no assertion
+   * can be answered by another one's toast.
+   */
+  test('E2E-M17-01: a preference turned off in M17 silences that kind and only that kind', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Hardanger ${id}`
+    const heard = `Steigeisen-${id}`
+    const silenced = `Pickel-${id}`
+    const mentioned = `Seil-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, heard)
+    await quickAddItem(alice, silenced)
+    await quickAddItem(alice, mentioned)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    const wsBob = bob.waitForEvent('websocket')
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${heard}`)).toBeVisible()
+    await wsSubscribed(bob, wsBob)
+
+    // With the preference at its default the delegation reaches Bob. This
+    // is the control: the same chain, the same pages, the same connection
+    // the suppressed one below runs on.
+    await alice.goto(tripPath)
+    await assignTo(alice, heard, ACCOUNT_NAMES.bob)
+    await expect(bob.locator('ion-toast').filter({ hasText: heard })).toContainText(
+      ACCOUNT_NAMES.alice,
+    )
+
+    // Bob turns delegations off in his own settings, and only those.
+    await bob.goto('/tabs/settings')
+    const delegationRow = visiblePage(bob).locator('ion-item').filter({ hasText: 'Delegations' })
+    await expect(delegationRow).toHaveCount(1)
+    await delegationRow.locator('ion-toggle').click()
+    // Persisted rather than merely toggled: the reload reads it back off
+    // the server, which is the half of this case that is about M17 itself.
+    await bob.reload()
+    await expect(
+      visiblePage(bob).locator('ion-item').filter({ hasText: 'Delegations' }).locator('ion-toggle'),
+    ).toHaveAttribute('aria-checked', 'false')
+
+    const wsAgain = bob.waitForEvent('websocket')
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${silenced}`)).toBeVisible()
+    await wsSubscribed(bob, wsAgain)
+
+    await alice.goto(tripPath)
+    await assignTo(alice, silenced, ACCOUNT_NAMES.bob)
+    // Alice's own screen proves the delegation happened at all: FR-25.20
+    // hides a row that is somebody else's job, and names them.
+    await expect(visiblePage(alice).getByTestId(`m4-row-${silenced}`)).toHaveCount(0)
+    await expect(visiblePage(alice).getByTestId('m4-others-bar')).toContainText(ACCOUNT_NAMES.bob)
+
+    // A mention, fired after the suppressed delegation and over the same
+    // connection. Its toast is the settled signal that the delegation had
+    // every chance to land — and that the switch is per kind rather than a
+    // mute.
+    await visiblePage(alice).getByTestId(`m4-row-${mentioned}`).click()
+    await expect(visiblePage(alice).getByTestId('m5-sheet')).toBeVisible()
+    await visiblePage(alice)
+      .getByTestId('m5-note-input')
+      .locator('input')
+      .fill(`@${ACCOUNT_NAMES.bob} ${mentioned}`)
+    await visiblePage(alice).getByTestId('m5-note-add').click()
+
+    await expect(bob.locator('ion-toast').filter({ hasText: mentioned })).toBeVisible()
+    await expect(bob.locator('ion-toast').filter({ hasText: silenced })).toHaveCount(0)
+  })
+
   test("a claimed row names its holder on the other account's screen", async ({ browser }) => {
     const id = uniq()
     const trip = `Engadin ${id}`

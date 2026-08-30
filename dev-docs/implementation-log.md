@@ -194,6 +194,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Seventeen unwritten cases, two worth writing (2026-08-30)](#seventeen-unwritten-cases-two-worth-writing-2026-08-30) — backlog item 6, taken screen by screen instead of by the count. What M6's unwritten ids turned out to be, why a coverage number is not a backlog, and the four promises the app had already reversed.
 - [A blocked case that had quietly unblocked, and one that had quietly been covered (2026-08-30)](#a-blocked-case-that-had-quietly-unblocked-and-one-that-had-quietly-been-covered-2026-08-30) — backlog item 6, M4. A rule that was correct and unreachable, an entry waiting on a blocker that was gone, and nine cases that had been written as unit tests with no E2E id on them.
 - [Nine promises, three tests and three things that were never built (2026-08-30)](#nine-promises-three-tests-and-three-things-that-were-never-built-2026-08-30) — backlog item 6, M2. The audit's fifth verdict: an unwritten case that is not a missing test but an unbuilt promise, three times over — including a settled 2026-08-08 decision the screen has never matched.
+- [A promise that was its own defect (2026-08-30)](#a-promise-that-was-its-own-defect-2026-08-30) — backlog item 6, M17. A case sentence describing the bug as the specification, a toggle nobody had ever pressed, and two scope labels that meant a different screen than they said.
 - [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
@@ -8707,3 +8708,78 @@ in the component, which is also what made the first testable and the second
 pass the token gate. The reveal renders the token **as text** and then offers
 to copy it, which is what lets the e2e case assert on what the person sees
 instead of on a browser permission.
+
+## A promise that was its own defect (2026-08-30)
+
+M17 through the same reading as M6, M4 and M2. Seven unwritten case ids;
+five became tests, one was retired with its reason, and one — the avatar
+crop — stays blocked on a seam the production code still owes.
+
+**The finding is E2E-M17-07, and it is a shape the three earlier screens did
+not produce: the case's own wording was the defect.** It promised the
+NFR-4.11 backup warning would be *„cleared after a YAML download"*, and
+NFR-4.11 says, in as many words, that the export it is about is the **whole
+device in one file**. M17 offers two YAML downloads, a single trip and a
+single template, and both stamped `jitpack_last_export`: exporting one trip
+silenced the warning about everything that file did not contain. Nothing
+about it looks wrong in the diff that introduced it, because when it was
+written M17's YAML *was* the only export the app had; the device backup
+arrived beside it with ADR-015 and nobody went back to the stamp. Reading the
+case against the requirement is what separated them, which is the whole
+method — against the *screen* it looks correct, and the screen is not where
+this one was decided.
+
+Its tail is the part worth remembering: once the two partial exports stop
+stamping, **nothing refreshed the banner at all**. It had only ever been
+recomputed by the exports that should not have counted, so a device backup
+taken on the G-2 sheet — a different component — left M17 warning for the
+rest of the session about a backup that had just happened. The reminder now
+recomputes on entering the screen. A wrong caller had been standing in for a
+missing one.
+
+**A control nobody had ever pressed.** Every theme assertion in the suite —
+`colour-anchors`, `surfaces`, `visual` — seeds `jitpack_theme` into
+`localStorage` and then checks the flavour. That proves the palette and says
+nothing about the switch, which is the only way a user has to reach it.
+E2E-M17-06 presses it, reloads, and presses it again; the second press is
+what proves the reloaded toggle came back *on*, since a stale-off control
+would turn Latte on a second time.
+
+**Two scope labels meant a different screen than they said.** E2E-M17-03 was
+`all` and described the JSON export and the CSV — which is the section a
+*server* account sees. In Local Mode the data section is a different section
+entirely (per-trip and per-template YAML, written client-side because there
+is no server to ask), and in `single` there is no token, so the auth header
+the promise is about is never sent. It is a `server` case, and it now says
+so. E2E-M17-08 was `single/local` for a gate whose two halves are both false
+in either.
+
+**One retirement, with its reason.** E2E-M17-02's push registration is
+unit-owned end to end — key fetch, subscribe, reuse, denial, unsupported,
+unregister. What a rendered case would add is *„hides it where unsupported"*,
+and that branch cannot be produced: Chromium and WebKit both carry
+`PushManager`, so the flag is true in every project the suite has. The
+control is *disabled* rather than hidden, and asserting `disabled` on an
+Ionic toggle is the trap E2E-M17-05b was written around — a bound boolean
+reflects onto no DOM attribute, so the case would have passed against the
+branch being deleted.
+
+**And E2E-M17-01, which is what the `server` project is for.** The store
+refuses to create a suppressed notification and Go tests say so; the client's
+toggle PUTs the preferences and a unit test says so; nothing said the switch
+the user flips is the value the server then reads. The case asserts the
+absence against two positives, because a toast that has not arrived yet looks
+exactly like one that never will: the same pair of pages produces a
+delegation toast before the preference is touched, and a **mention**
+afterwards — riding the same connection, fired after the suppressed
+delegation — is what says the channel is live and the delegation had its
+chance. That second positive also proves the switch is per kind rather than a
+mute, which is the actual promise.
+
+**A note on the machine rather than the code**, because it cost real time
+here: two sessions running `make e2e` in different worktrees collide on host
+port 4173. The Playwright container runs `--network host`, so the second
+run fails with *„http://localhost:4173 is already used"* and names neither
+the other worktree nor the container. `docker inspect <id> --format
+'{{range .Mounts}}{{.Source}}{{end}}'` is what answers whose run it is —
+and if it is not yours, waiting is the only correct move.

@@ -144,7 +144,17 @@ it. Item numbers stay stable even as items close, because the log refers back to
    **deliberately have no test**: a case written first would leave a red suite pointing at a
    rebuild nobody scheduled. The general form: **an unwritten case is as likely to be an
    unbuilt promise as a missing test**, and only reading it against the screen tells you
-   which. Log: *„Nine promises, three tests and three things that were never built"*.
+   which. Log: *„Nine promises, three tests and three things that were never built"*. **M17 followed the same day** and produced a fourth: **a promise whose own
+   wording was the defect.** E2E-M17-07 said the backup reminder is *„cleared after a YAML
+   download"*, and NFR-4.11 says the backup it warns about is the **whole device** — so M17's
+   per-trip YAML clearing it was a bug the case had been describing as the specification.
+   Fixed here, with the tail it had (the banner only ever refreshed on the exports that should
+   not have counted). Five cases written (E2E-M17-01/03/06/07/07b/08), one retired with its
+   reason (M17-02: unit-owned, and its remaining branch is unreachable in a suite whose
+   browsers all support Push), and two scope labels corrected against the screen — `all` meant
+   `server` for the data section, which is a *different section* in Local Mode. Also worth
+   carrying: **the theme toggle had never been pressed**, because every colour test seeds
+   `jitpack_theme` and asserts the palette. Log: *„A promise that was its own defect"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
