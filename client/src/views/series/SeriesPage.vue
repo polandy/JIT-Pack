@@ -148,6 +148,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
         <IonList>
           <IonItem>
             <IonInput
+              data-testid="m16-name"
               :label="t('series.name')"
               label-placement="stacked"
               :value="series.name"
@@ -156,6 +157,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           </IonItem>
           <IonItem>
             <IonSelect
+              data-testid="m16-season"
               :label="t('wizard.season')"
               interface="popover"
               :value="attribute('season')"
@@ -171,6 +173,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           </IonItem>
           <IonItem>
             <IonSelect
+              data-testid="m16-transport"
               :label="t('wizard.transport')"
               interface="popover"
               :value="attribute('transport_mode')"
@@ -205,6 +208,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
         <IonList>
           <IonItem>
             <IonTextarea
+              data-testid="m16-notes"
               :placeholder="t('series.notesPlaceholder')"
               :value="profile?.notes ?? ''"
               auto-grow
@@ -215,7 +219,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
 
         <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionChecklist') }}</h2>
         <IonList v-if="checklist.length > 0">
-          <IonItem v-for="entry in checklist" :key="entry.id">
+          <IonItem v-for="entry in checklist" :key="entry.id" data-testid="m16-checklist-row">
             <IonLabel>
               <h3>{{ entry.label }}</h3>
               <p>
@@ -226,6 +230,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
               slot="end"
               fill="clear"
               color="medium"
+              data-testid="m16-checklist-remove"
               :aria-label="t('series.checklistRemove')"
               @click="orchestrator.deleteChecklistItem(entry.id)"
             >
@@ -233,10 +238,11 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             </IonButton>
           </IonItem>
         </IonList>
-        <IonNote v-else>{{ t('series.checklistEmpty') }}</IonNote>
+        <IonNote v-else data-testid="m16-checklist-empty">{{ t('series.checklistEmpty') }}</IonNote>
         <div class="add-row">
           <IonInput
             class="add-input"
+            data-testid="m16-checklist-input"
             :placeholder="t('series.checklistAdd')"
             :value="newLabel"
             @ionInput="(e: CustomEvent) => (newLabel = e.detail.value ?? '')"
@@ -244,6 +250,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           />
           <IonSelect
             interface="popover"
+            data-testid="m16-checklist-mode"
             :value="newMode"
             :aria-label="t('series.checklistMode')"
             @ionChange="(e: CustomEvent) => (newMode = e.detail.value)"
@@ -255,6 +262,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           <IonButton
             fill="outline"
             size="small"
+            data-testid="m16-checklist-add"
             :aria-label="t('common.add')"
             @click="addChecklistEntry"
           >
@@ -268,6 +276,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             v-for="trip in seriesTrips"
             :key="trip.id"
             button
+            :data-testid="`m16-trip-${trip.name}`"
             :router-link="`/trips/${trip.id}`"
           >
             <IonLabel>
@@ -278,6 +287,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
               slot="end"
               fill="clear"
               color="medium"
+              :data-testid="`m16-detach-${trip.name}`"
               :aria-label="t('series.detach')"
               @click.stop.prevent="orchestrator.setTripSeries(trip.id, null)"
             >
@@ -290,6 +300,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
         <IonList v-if="attachableTrips.length > 0">
           <IonItem>
             <IonSelect
+              data-testid="m16-attach"
               :label="t('series.attach')"
               interface="popover"
               :value="''"
@@ -318,6 +329,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           <IonButton
             expand="block"
             :fill="cloneSource ? 'outline' : 'solid'"
+            data-testid="m16-new-trip"
             :router-link="`/trips/new?series=${seriesId}`"
           >
             {{ t('series.newTrip') }}
@@ -326,6 +338,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             v-if="trendTripId"
             expand="block"
             fill="outline"
+            data-testid="m16-trends"
             :router-link="`/trips/${trendTripId}/analytics`"
           >
             <IonIcon slot="start" :icon="trendingUpOutline" />
@@ -352,6 +365,19 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
 
 .add-input {
   flex: 1;
+}
+
+/*
+ * Ionic gives `ion-select` `width: 100%`, which as a flex item is a
+ * flex-basis of the entire row: the free space is already negative, so the
+ * input beside it — basis 0 — grows by nothing and shrinks to nothing. The
+ * checklist input rendered at zero width and FR-13.3's editor could not be
+ * typed into at all (found 2026-08-30, the first time M16 was rendered by a
+ * test). The select is content-sized here, and the input takes the rest.
+ */
+.add-row ion-select {
+  flex: 0 1 auto;
+  width: auto;
 }
 
 .actions {

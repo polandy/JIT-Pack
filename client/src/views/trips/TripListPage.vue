@@ -547,6 +547,7 @@ async function handleRefresh(event: CustomEvent) {
             button
             detail
             class="series-header"
+            :data-testid="`series-header-${group.seriesName}`"
             :router-link="`/series/${group.seriesId}`"
           >
             <IonIcon slot="start" :icon="albumsOutline" />

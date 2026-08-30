@@ -249,6 +249,87 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     expect(blasts[0]!.text()).toContain('1')
   })
 
+  // The why line has two branches, and until 2026-08-30 only the singular
+  // one had ever been rendered: `historyCount` is the page's own function,
+  // the domain takes the count as a *parameter*, and E2E-M14-01's trip is
+  // in no series — so the archived-history branch could not fail there.
+  it('counts the item across the archived trips of the series, not just this one', () => {
+    seedMaster()
+    const trips = seedTrip()
+    trips.applyChange({
+      seq: 0,
+      table: 'trips',
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', status: 'archived', end_date: '2026-08-10', series_id: 's1' },
+    })
+    // Last year's trip in the same series, archived, with the same item
+    // judged unused — the history the wording is about.
+    trips.applyChange({
+      seq: 0,
+      table: 'trips',
+      id: 't0',
+      deleted: false,
+      row: { name: 'Samedan 2025', status: 'archived', end_date: '2025-08-10', series_id: 's1' },
+    })
+    trips.applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti0',
+      deleted: false,
+      row: {
+        trip_id: 't0',
+        name: 'Stativ',
+        quantity: 1,
+        source_item_id: 'item1',
+        source_template_id: 'g1',
+        flag_unused: 1,
+      },
+    })
+
+    const unused = mountPage().findAll('[data-testid="m14-open-row"]')[0]!
+
+    expect(unused.text()).toContain(t('review.whyUnused', { n: 2 }))
+    expect(unused.text()).not.toContain(t('review.whyUnused', { n: 1 }))
+  })
+
+  it('counts only the same series — a foreign archived trip is not this history', () => {
+    seedMaster()
+    const trips = seedTrip()
+    trips.applyChange({
+      seq: 0,
+      table: 'trips',
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', status: 'archived', end_date: '2026-08-10', series_id: 's1' },
+    })
+    trips.applyChange({
+      seq: 0,
+      table: 'trips',
+      id: 't0',
+      deleted: false,
+      row: { name: 'Elba 2025', status: 'archived', end_date: '2025-08-10', series_id: 's2' },
+    })
+    trips.applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti0',
+      deleted: false,
+      row: {
+        trip_id: 't0',
+        name: 'Stativ',
+        quantity: 1,
+        source_item_id: 'item1',
+        source_template_id: 'g1',
+        flag_unused: 1,
+      },
+    })
+
+    const unused = mountPage().findAll('[data-testid="m14-open-row"]')[0]!
+
+    expect(unused.text()).toContain(t('review.whyUnused', { n: 1 }))
+  })
+
   it('shows the empty state when there is nothing to review', () => {
     seedMaster()
     const trips = useTripStore()

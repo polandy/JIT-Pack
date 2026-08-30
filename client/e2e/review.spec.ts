@@ -36,12 +36,30 @@ const OTHER_GROUP = 'Regen'
 const MISSING_ITEM = 'Powerbank'
 
 test.describe('M14 review assistant @local @m14', () => {
-  test('E2E-M14-06: no flags → the honest empty state, framed as a list', async ({
+  test('E2E-M14-06: no flags → archiving skips the assistant, and opening it is honest', async ({
     page,
     seedMode,
   }) => {
     await seedMode({ mode: 'local' })
     const tripPath = await createTripViaWizard(page, TRIP)
+
+    // Nothing was flagged, so the closing pass archives and stops: an
+    // assistant with nothing to propose is worse than no assistant.
+    await startTrip(page)
+    await archiveThroughPass(page)
+    // Filtered by its text, not by being *a* toast: `startTrip` raised one
+    // seconds earlier and the two overlap, which is a strict-mode failure
+    // rather than a wrong assertion — and it is intermittent, so it reads
+    // as a flake.
+    await expect(page.locator('ion-toast', { hasText: 'Nothing to review' })).toBeVisible()
+    // …and the *page* is still the packing list. The toast alone would not
+    // say so: `review.nothingToast` and `review.empty` are the same
+    // sentence in both catalogues, so a case reading only the text would
+    // pass just as well on the screen this clause is about not reaching.
+    // The closing card is the archived trip's own M4, so one locator says
+    // both halves: the trip *was* archived, and the assistant was not opened.
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await expect(visible(page).getByTestId('m14-open-count')).toHaveCount(0)
 
     await page.goto(`${tripPath}/review`)
 
@@ -236,6 +254,23 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     // A missing row may land in any group — but never in a Ferien-Vorlage,
     // which is not offered at all.
     expect(await targetOptions(page, MISSING_ITEM, GROUP)).toEqual([GROUP, OTHER_GROUP])
+
+    // FR-27.12: the chevron beside the picker looks *into* the group the
+    // proposal is about to be written to. It is the one control on this
+    // screen no case had ever clicked, and the question it answers —
+    // "what is in there already?" — is the difference between choosing a
+    // target and guessing one.
+    await row(page, MISSING_ITEM).getByTestId(`m14-peek-${MISSING_ITEM}`).click()
+    const peek = page.getByTestId('group-peek-sheet')
+    await expect(peek.getByTestId('group-peek-name')).toHaveText(GROUP)
+    await expect(peek.getByTestId('group-peek-item')).toHaveText(['Kamera', 'Stativ'])
+    // The item being proposed is not in there yet — which is why there is
+    // a proposal — so the sheet lists the group, not the proposal.
+    await expect(peek.getByTestId('group-peek-item').filter({ hasText: MISSING_ITEM })).toHaveCount(
+      0,
+    )
+    await peek.getByTestId('group-peek-close').click()
+    await expect(page.getByTestId('group-peek-sheet')).toHaveCount(0)
   })
 
   test('E2E-M14-04b: a target a planning trip still follows states its blast radius', async ({
