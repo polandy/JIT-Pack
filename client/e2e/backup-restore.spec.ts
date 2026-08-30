@@ -721,6 +721,11 @@ test.describe('M18 portable import preview @local @m18', () => {
     await expect(visible(page).getByTestId('portable-summary')).toHaveCount(0)
     await expect(visible(page).getByTestId('portable-restore')).toHaveCount(0)
     await expect(visible(page).getByTestId('portable-paste')).toBeVisible()
+    // …with what was pasted still in it, which is what makes the refusal
+    // correctable rather than merely reported.
+    await expect(visible(page).getByTestId('portable-paste').locator('textarea')).toHaveValue(
+      'just some notes I wrote',
+    )
 
     await page.getByTestId('portable-paste').locator('textarea').fill(
       [
