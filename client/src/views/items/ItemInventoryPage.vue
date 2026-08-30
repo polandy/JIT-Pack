@@ -185,7 +185,7 @@ function handleRefresh(event: CustomEvent) {
         <IonIcon :icon="cubeOutline" class="empty-icon" />
         <p>{{ t('items.empty') }}</p>
         <p class="empty-hint">{{ t('items.emptyHint') }}</p>
-        <IonButton fill="outline" size="small" router-link="/import">
+        <IonButton fill="outline" size="small" router-link="/import" data-testid="m9-import">
           <IonIcon slot="start" :icon="cloudUploadOutline" />
           {{ t('items.importSpreadsheet') }}
         </IonButton>

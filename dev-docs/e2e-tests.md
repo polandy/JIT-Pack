@@ -54,7 +54,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-17, E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
-| M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M9-08 (tag-axis clearance, UX-4), E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
+| M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, E2E-M9-08 (tag-axis clearance, UX-4), E2E-M9-10 (search filters), E2E-M9-04 (empty state → M15), E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
 | FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
@@ -612,7 +612,7 @@ Following spec §10, adjusted for what is now built:
 
 ## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
 
-Eight cases, Local Mode, landing with the §3.24 tag rebuild. What they cover
+Ten cases, Local Mode; eight landed with the §3.24 tag rebuild and two with the 2026-08-30 audit. What they cover
 is deliberately what a unit test cannot: the *painted* result of the two
 grouping rules, and the shape of the creation form.
 
@@ -627,7 +627,20 @@ grouping rules, and the shape of the creation form.
 | an unmatched tag name is created and assigned in one step | E2E-M10-08 | Filter-or-create, including the *second* item finding the tag instead of duplicating it. |
 | unassigning a tag refiles the item | E2E-M10-08 | The store's cascade mirroring, seen from the list. |
 | an empty tag query offers a capped shelf, and search reaches past it | E2E-M10-16 | UX-14: eight chips plus a tail naming the rest, the cap lifted by a query, the tail handing focus to the search — and, at phone width in German, that the placeholder fits its box, measured by rendering it as the value (`scrollWidth`), not by a canvas re-measure that used the wrong font and could not fail. |
+| the search filters the list and says so when nothing matches | E2E-M9-10 | **New 2026-08-30.** M9-01's sentence carried the word „searchable" and no assertion; G12-02 opens the field on this screen but never types. Also pins that the emptied group's *heading* goes with its rows, and that a miss is the no-match state rather than G-7's empty one. |
+| an empty inventory offers the spreadsheet import | E2E-M9-04 | **New 2026-08-30**, and the first time this state was ever rendered by a test — `m9-empty` existed in the suite only as E2E-G9-13's *absence* assertion. G-7 plus NFR-4.7's return path, which lands on M9 rather than on M15's other parent. |
 | the sections an existing item owns follow the app language | E2E-M10-13 | NFR-4.12 on the half of M10 that only exists after the save. **Seeded in German, and that is the case**: the suite's app language is English, and against English a catalogue lookup and the hard-coded word it replaced render identically — so an English assertion here could not fail. Its negative counterpart above moved off the headings' words onto test ids for the same reason. |
+
+**Two of these tests carried the wrong id until 2026-08-30.** The table above
+has always named E2E-M9-05 and E2E-M9-06 correctly; the *test names* in the
+spec file said `E2E-M9-02` and `E2E-M9-03`, which are two entirely different
+promises (the FAB's creation mode, and multi-select merge). Both halves
+shipped in the §3.24 rebuild commit, so this was never drift — it was wrong
+from the first day, and for a year two ids read as covered while their
+behaviours had no test at all. Nothing mechanical could have caught it: each
+id is used exactly once, so a duplicate-id gate is green, and the totals are
+identical either way. **The only check that finds a swap is reading the id's
+sentence against the body of the test under it.**
 
 **Not covered here, on purpose:** the device-local *reload* half of FR-24.4
 is unit-tested in `composables/__tests__/inventoryProperties.spec.ts`, where

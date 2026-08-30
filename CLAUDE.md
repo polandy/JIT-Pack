@@ -155,6 +155,21 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `server` for the data section, which is a *different section* in Local Mode. Also worth
    carrying: **the theme toggle had never been pressed**, because every colour test seeds
    `jitpack_theme` and asserts the palette. Log: *„A promise that was its own defect"*.
+   **M9 followed 2026-08-30 and found a fifth shape: two ids that were simply on the wrong
+   tests.** The §3.24 rebuild wrote the spec entries and the tests in one commit and numbered
+   the tests `E2E-M9-02`/`E2E-M9-03`, whose entries describe the FAB's creation mode and a
+   multi-select merge — so for a year the two behaviours those ids promise had no test while
+   reading as covered, and the two that *were* tested (M9-05/06) read as implemented under
+   somebody else's number. **No gate can find this**: each id is used exactly once, so a
+   duplicate check is green, and the totals are identical either way. Renumbered, and the two
+   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
+   and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
+   and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
+   decision, and note PRD FR-27.5 argues against fuzzy matching partly *because* M9 can merge).
+   Two real remainders written: **E2E-M9-04**, whose state no test had ever rendered
+   (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
+   word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
+   tests"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
