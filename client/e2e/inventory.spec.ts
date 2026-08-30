@@ -471,7 +471,7 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
 
     // The editor is open on the Ersatzakku: it depends on the Kamera, and
     // the mode a new relation takes is *nötig* until someone says otherwise
-    // (FR-20.1) — which is what makes E2E-M4-32's cascade the default.
+    // (FR-20.1) — which is what makes E2E-M4-40's cascade the default.
     await visible(page).getByTestId('m10-add-dependency').click()
     await visible(page).getByTestId('m10-dependency-main-Kamera').click()
     await expect(visible(page).getByTestId('m10-dependency-mode-Kamera')).toContainText('Required')
