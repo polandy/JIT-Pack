@@ -95,16 +95,14 @@ Rely on `make ci` alone.
   throwaway branch: `make client-fmt` failed locally and the CI `format` job came back red. A check
   nobody has watched fail is a check nobody knows is wired up, and this one's whole purpose is to be
   the thing that fails.
-- **Enforcement is now weaker than it was, in one specific way, and this is an owner decision.**
-  Branch protection requires `go`, `go-lint`, `client` and `docker-build`; `format` is not among
-  them. The old job *guaranteed* formatted code on main by rewriting it, whereas this one only
-  reports — so a red `format` is now merely something a maintainer must not merge past, rather than
-  something the branch refuses. Neither reason CLAUDE.md gives for leaving a job out applies here:
-  `format` is a single check name (unlike the `e2e` matrix) and has no `needs`, so it can never be
-  skipped (unlike `visual`). Adding it to the required set is the change that would make driver 2
-  hold by construction; it is deliberately *not* done in this PR, because the required-check set is a
-  documented repository configuration and changing it is the maintainer's call, not a side effect of
-  a CI refactor.
+- **`format` is a required status check** (owner decision, 2026-08-30). Without it this ADR would
+  have *weakened* enforcement rather than relocated it: the old job guaranteed formatted code on main
+  by rewriting it, whereas a check that merely reports leaves a red `format` as something a
+  maintainer must not merge past rather than something the branch refuses — and driver 2 asks for
+  more than good intentions. Neither reason CLAUDE.md gives for leaving a job out of the required set
+  applies here: `format` is a single check name (unlike the `e2e` matrix) and has no `needs`, so it
+  can never be skipped into a blocking state (unlike `visual`). The required set is therefore
+  `go`, `go-lint`, `client`, `format`, `docker-build`.
 
 ## Revisit trigger
 

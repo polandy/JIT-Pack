@@ -9584,6 +9584,18 @@ prettier as well as gofmt. **Neither CI job checked formatting at all**; the
 auto-fixing bot was the only thing enforcing it, which is why removing it
 without that addition would have quietly dropped the rule.
 
+The same reasoning went one step further at the owner's decision (2026-08-30):
+**`format` is a required status check.** Replacing a job that *rewrote* main's
+formatting with one that only reports leaves the rule resting on a maintainer
+not merging past a red check, which is a weaker thing than the branch refusing
+it — and this ADR's second driver asks for enforcement, not intent. The two
+reasons CLAUDE.md gives for keeping a job out of the required set both fail to
+apply: `format` is one check name rather than a matrix, and it has no `needs`,
+so it cannot arrive skipped. Worth noting as a pattern rather than a footnote:
+**the required-check set is where "we still enforce this" is either true or
+merely believed**, and a refactor that moves a rule from one mechanism to
+another has to be read against it or the rule quietly becomes advice.
+
 ### The Makefile now diverges from CI in exactly one place, on purpose
 
 `make ci` dropped `-count=1`, so Go's test cache answers for packages whose
