@@ -1,4 +1,11 @@
-import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  openTripSwipe,
+  tripSwipeActions,
+  visiblePage,
+} from '../fixtures'
 import { packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
@@ -101,6 +108,68 @@ test.describe('Two accounts on one instance @server', () => {
    * `single` proves the mechanism (a foreign claim locks the row); only
    * here can the rendered name be wrong and be caught.
    */
+  /**
+   * E2E-M2-05 (FR-4.5): the trip's own delete is the owner's alone, and the
+   * confirm takes it off every list it was on.
+   *
+   * `canDelete` reads the roster for the caller's own role, so the rule is
+   * meaningless with one account: outside a collaborative instance there is
+   * a single account that owns everything and the option is always offered.
+   * Bob is an Editor on Alice's trip, which is the only place the negative
+   * half exists at all.
+   */
+  test('E2E-M2-05: only the owner is offered Delete, and the confirm takes the trip off both lists', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Ponte ${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    // Bob has the trip and every other action on it — and not this one.
+    await bob.goto('/tabs/trips')
+    await visiblePage(bob).getByTestId('trips-filter-planned').click()
+    await expect(visiblePage(bob).getByTestId(`trip-row-${trip}`)).toBeVisible()
+    const bobsOptions = await tripSwipeActions(bob, trip)
+    expect(bobsOptions).toContain('Export trip')
+    expect(bobsOptions).not.toContain('Delete trip')
+
+    await alice.goto('/tabs/trips')
+    await visiblePage(alice).getByTestId('trips-filter-planned').click()
+    expect(await tripSwipeActions(alice, trip)).toContain('Delete trip')
+
+    // Cancelled first: a destructive action that was not confirmed has to
+    // leave the trip exactly where it was, or the confirm below proves
+    // nothing about the confirming.
+    await openTripSwipe(alice, trip)
+    await visiblePage(alice).getByTestId(`m2-delete-${trip}`).click()
+    await alice.locator('ion-alert').getByRole('button', { name: 'Cancel' }).click()
+    await expect(alice.locator('ion-alert')).toHaveCount(0)
+    await expect(visiblePage(alice).getByTestId(`trip-row-${trip}`)).toBeVisible()
+
+    await openTripSwipe(alice, trip)
+    await visiblePage(alice).getByTestId(`m2-delete-${trip}`).click()
+    await alice.locator('ion-alert').getByRole('button', { name: 'Delete' }).click()
+    await expect(visiblePage(alice).getByTestId(`trip-row-${trip}`)).toHaveCount(0)
+
+    // And on the device that had no say in it. The count is asserted first:
+    // it is the settled signal (FR-2.8's `countsKnown`), so the absence
+    // below cannot pass against a list that has not arrived — the ADR-033
+    // rule, which is exactly how a tombstone would look if it never came.
+    await bob.reload()
+    await visiblePage(bob).getByTestId('trips-filter-planned').click()
+    await expect(
+      visiblePage(bob).getByTestId('trips-filter-planned').locator('.segment-count'),
+    ).toBeVisible()
+    await expect(visiblePage(bob).getByTestId(`trip-row-${trip}`)).toHaveCount(0)
+  })
+
   test("a claimed row names its holder on the other account's screen", async ({ browser }) => {
     const id = uniq()
     const trip = `Engadin ${id}`

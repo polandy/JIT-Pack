@@ -367,7 +367,7 @@ One consequence is worth stating where the requirement lives rather than only in
 * **M5 delegation is reversible — realised (2026-07-18):** *Packed by* has an explicit **"niemand"** option that clears the delegation.
 * **M5 comment entry — realised (2026-07-18):** the comment/task thread (FR-7.1) has a **visible composer** input on the sheet.
 * **M5 preparation lifecycle — realised (2026-07-18):** the *Preparation todos* section (FR-7.3) supports add / resolve / reopen inline, and a *packed with open prep* item shows the amber state.
-* **M2 default ordering:** trips are **sorted by date, newest first**, *not* grouped by series by default (series grouping becomes an optional view). Refines the M2 presentation under FR-2.1.
+* **M2 default ordering:** trips are **sorted by date, newest first**, *not* grouped by series by default (series grouping becomes an optional view). Refines the M2 presentation under FR-2.1. **Superseded in its ordering half by the 2026-08-08 concept review** (UI-Spec M2, *Default ordering*), which is the later decision and the one to follow: the active trip leads, then upcoming trips **ascending** by date, then archived descending — pure newest-first buries a trip three weeks away under one in eighteen months. The two agree that the list is **not grouped by series**; the optional grouped view is dropped there too, in favour of a series **chip** on the row. **Neither version is what M2 does (found 2026-08-30, E2E-M2-15):** it groups under series headers and sorts every segment newest-first. Recorded here as well as in the UI-Spec, because reading this bullet alone would say the screen is right.
 
 ### 3.26 Calendar Reminders (iCalendar Subscription)
 

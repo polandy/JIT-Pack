@@ -193,6 +193,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A row kept saying it was skipped after it had stopped being (2026-08-30)](#a-row-kept-saying-it-was-skipped-after-it-had-stopped-being-2026-08-30) — where FR-25.13f's ✕ meets FR-25.21's editor. Why the fix is a derivation rather than a policy, why only one of the two cases is worth a confirm, and the two fields deliberately left alone.
 - [Seventeen unwritten cases, two worth writing (2026-08-30)](#seventeen-unwritten-cases-two-worth-writing-2026-08-30) — backlog item 6, taken screen by screen instead of by the count. What M6's unwritten ids turned out to be, why a coverage number is not a backlog, and the four promises the app had already reversed.
 - [A blocked case that had quietly unblocked, and one that had quietly been covered (2026-08-30)](#a-blocked-case-that-had-quietly-unblocked-and-one-that-had-quietly-been-covered-2026-08-30) — backlog item 6, M4. A rule that was correct and unreachable, an entry waiting on a blocker that was gone, and nine cases that had been written as unit tests with no E2E id on them.
+- [Nine promises, three tests and three things that were never built (2026-08-30)](#nine-promises-three-tests-and-three-things-that-were-never-built-2026-08-30) — backlog item 6, M2. The audit's fifth verdict: an unwritten case that is not a missing test but an unbuilt promise, three times over — including a settled 2026-08-08 decision the screen has never matched.
 - [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 
@@ -8568,3 +8569,70 @@ because a reader has to be able to find out why it went — which means every
 naive recount counts it as a gap forever, and the number can only drift
 upwards as the audit does its work. The headline figure was left where it was
 and `CLAUDE.md` now says not to re-derive it. Measure a screen.
+
+## Nine promises, three tests and three things that were never built (2026-08-30)
+
+M2, taken through the same reading as M6 and M4: every unwritten case id read
+as a promise, checked against the *built* screen, and sorted. Nine ids. Three
+became tests, three were already covered or described something M2 never had,
+and three turned out not to be missing tests at all.
+
+**The whole slide menu had never been operated.** M2's row actions — export,
+share, clone, start, archive, delete — carry `aria-label`s and, until this
+change, one `data-testid` between them: `m2-share-<trip>`, asserted by
+E2E-FLOW-01 as *present in the DOM* and never opened. That is the same
+signature #242 read on M20: an absence of test ids is what a screen nobody
+has driven looks like. Each option has an id now, and `openTripSwipe` /
+`tripSwipeActions` sit in `fixtures.ts` beside the M4 menu's pair — the
+sliding item is opened through its own `open()` rather than by simulating a
+drag, because how far and how fast a swipe must travel is the animation's
+business and a test that has to guess it fails for reasons that are not the
+rule.
+
+The three that were written:
+
+- **E2E-M2-05** (`server`) is the one worth the two identities. `canDelete`
+  reads the roster for the caller's own role, so outside a collaborative
+  instance it is inert by design — the negative half exists nowhere but here.
+  Bob, an Editor on Alice's shared trip, is offered every other action and not
+  *Delete*; Alice is; her cancel leaves the trip where it was and her confirm
+  takes it off both lists. Mutation-proved by making `canDelete` return
+  `true`: red on Bob's half.
+- **E2E-M2-06** is G-8's negative for *Share* on a device with no session,
+  asserted against the row's other options so an empty menu cannot satisfy it.
+- **E2E-M2-07** takes both branches of the export sheet, because one branch
+  alone cannot tell a working choice from a constant. Mutation-proved by
+  making `serializeTrip` always write `packed_count`.
+
+**The finding is the other three.** M6 produced retirements and M4 produced
+cases that were already covered; M2 produced a third kind, and it is the one
+worth naming: **an unwritten case is as likely to be an unbuilt promise as a
+missing test.**
+
+- The list **still groups by series and sorts newest-first**. The concept
+  review of 2026-08-08 decided the opposite — one flat list, the active trip
+  first, upcoming ascending, archived descending, the series a *chip* on the
+  row — and both the UI-Spec and the Addendum say so. `TripListPage` renders
+  tappable series headers and sorts every segment through `tripOrderKey`
+  descending. The case describing the decision had been filed as a second
+  **E2E-M2-06**, colliding with the Share case; it is E2E-M2-15 now, and it
+  stays unwritten, because a case written before the rebuild would leave a red
+  suite pointing at work nobody has scheduled. E2E-M2-02, which describes the
+  series headers, is its other half and is deliberately not written either:
+  writing it would nail down behaviour two documents say should not exist.
+- The row has **no participant avatars**. The UI-Spec removed the presence
+  facepile on 2026-08-28 — G-10 is right that presence is meaningless off a
+  specific trip — and left the words *„and participant avatars"* standing
+  beside the removal. Travellers are not presence and need no subscription, so
+  the question is real; it is an owner decision, not a gap.
+- **`trips.imported` is written and read by nothing.** M15's migration sets
+  it, the store carries it into `Trip.imported`, FR-16.2 and the UI-Spec both
+  promise an *„Imported"* chip, and no surface renders one. It is the exact
+  mirror of FR-25.19's `packer_user_id`, which #194 found with a reader and no
+  writer — and the mirror is worth keeping in mind, because the two are found
+  by opposite methods. A column nothing writes is caught by trying to produce
+  the state through the app; a column nothing reads is caught only by asking
+  what displays it.
+
+None of the three is fixed here. This was an audit, and the audit's job is to
+say which of its findings are tests and which are decisions.
