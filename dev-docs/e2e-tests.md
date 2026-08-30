@@ -2366,3 +2366,55 @@ perfectly.
 **The case id was taken.** E2E-M9-08 already belongs to the UX-4 heading-gap
 case; this is the second time a fresh id has collided with `main`. Grep the
 spec *and* the ledger *and* `client/e2e` before claiming one.
+## M6's twenty-two promises, read against the screen (2026-08-30)
+
+Backlog item 6 says a green `e2e` job is not a verified UI, and M6 is where that
+gap is widest: **17 of its 22 case ids had no test**, and not one of them was
+marked *not implemented* — every one read as a description of built behaviour.
+Before writing any of them, all 22 were held against `ShoppingPage.vue` rather
+than against the spec. They fall into three heaps, and only the first is a
+testing task.
+
+**True and untested (7).** The two tabs with category grouping and their
+FR-25.6 counts (M6-01), the check-off that moves a BUY_BEFORE row to *pack* and
+a BUY_LOCAL row to *packed* (M6-02), the free-text add landing on the open tab
+(M6-03), M4's shopping badge (M6-04), the visible confirm on M6's own template
+(M6-16), the suggestion that adopts a master item's category (M6-19), and the
+negative half of FR-25.10 — recipients are derived and there is no control to
+re-enter them (M6-08).
+
+**Stale wording, corrected in the spec rather than encoded in a test (4).**
+Writing these as specified would have pinned behaviour the app deliberately does
+not have:
+
+- **M6-11** promised *„the ＋ FAB expands an inline quick-add and focuses it …
+  an empty field collapses it on blur"*. M6 has **no FAB** — its composer
+  carries its own trigger — the focus was removed by FR-25.13c because the
+  keyboard covers the chips, and the blur-collapse by FR-25.13a because it
+  reflows the list under the next tap. Three clauses, three deliberate
+  reversals, all still standing in the spec.
+- **M6-04** promised the M4 *„entry/badge hidden"*. The entry stays: the code
+  says why where the count is computed — the destination exists either way and
+  G-12's bar has no overflow to hide it in. A test written to the old sentence
+  would have demanded that an empty trip cannot reach M6 at all.
+- **M6-01**'s separated destination-checklist entries are FR-13.3 standing
+  entries, waiting on trip series.
+- **M6-15** guards a row colliding with the ＋ FAB. M4's half carries the rule;
+  M6 has no FAB for a row to collide with.
+
+**The surface does not exist (8).** M6-07 (a per-row note), M6-09/10/20
+(FR-25.12's row sheet with *Zugewiesen an* and *Beschreibung*, and the edit
+glyph that opens it), M6-12/13 (FR-25.13a's composer with a description field
+and an assignee chip row that carries over), M6-14 (FR-25.11g's filter bar),
+M6-18 (FR-25.11k's search). `ShoppingPage.vue` is 304 lines and imports two
+components; there is one route, no sheet, no filter, no search. These are
+**not a coverage gap** — writing them is building four features — and they are
+marked in the UI-Test-Spec as an open owner decision rather than quietly
+rewritten.
+
+**What this pass is for, beyond M6.** The count of unwritten ids says nothing
+about which of them *should* be written: a third of M6's turned out to describe
+a screen nobody built, and two more would have frozen a rule the app had already
+reversed on purpose. **Reading the promise against the screen has to come before
+reading it against the test** — the id existing means somebody once meant it,
+not that anything answers to it.

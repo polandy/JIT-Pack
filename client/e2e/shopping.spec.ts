@@ -131,6 +131,15 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     await expect(bought.getByTestId('m6-bought-note')).toHaveText('on the packing list')
     await expect(bar).toHaveText('Hide 1 bought')
 
+    // E2E-M6-02 (FR-3.3), and the half the note only *claims*: the row really
+    // is on the packing list now. The sentence above is a string until the
+    // screen it names has been looked at.
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-row-Kaffee')).toBeVisible()
+    await visible(page).getByTestId('m4-nav-shopping').click()
+    await expect(m6(page).getByTestId('m6-bought-bar')).toBeVisible()
+    await m6(page).getByTestId('m6-bought-bar').click()
+
     // And the way back: it returns to the list it was bought from.
     await bought.locator('ion-checkbox').click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
@@ -262,6 +271,13 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     await expect(forWhom.getByTestId('user-avatar')).toHaveCount(3)
     // The tab counts things to buy, so it agrees with what the list shows.
     await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(1)')
+
+    // E2E-M6-08 (FR-25.10): *for whom* is derived and there is nothing here to
+    // re-enter it with. The row's only control is the check-off — asserted as
+    // a count rather than as an absence, so the assertion has something
+    // positive to fail against.
+    await expect(forWhom.locator('button, input, ion-select, ion-checkbox')).toHaveCount(0)
+    await expect(rows.first().locator('ion-checkbox')).toHaveCount(1)
   })
 
   // E2E-M6-06 (FR-25.6/3.3): the half that matters — one act settles every
@@ -293,3 +309,123 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     await expect(back.first()).toContainText('6×')
   })
 })
+
+/**
+ * M6's own spine (UI-Test-Spec E2E-M6-01/04), written 2026-08-30 with the pass
+ * that read all twenty-two M6 promises against the screen.
+ *
+ * The composer is the fixture here rather than the subject: a free-text add on
+ * M6 lands in the **open tab's** mode, which is the only way the app can put a
+ * row on a shopping list by hand, and it is what E2E-M6-03 covers in its own
+ * right.
+ */
+test.describe('M6 shopping — the two lists and their counts @local @m6', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /** M6's own page — see `addOnOpenTab` for why `visiblePage` will not do. */
+  const m6 = (page: Page) => visible(page).getByTestId('m6-page')
+
+  /** A tagged master item, so the trip row carries a real category (FR-24.2). */
+  async function createTaggedItem(page: Page, name: string, tag: string) {
+    await page.goto('/tabs/items')
+    await visible(page).getByTestId('m9-fab').click()
+    await visible(page).getByTestId('m10-name').locator('input').fill(name)
+    await visible(page).getByTestId('m10-tag-search').locator('input').fill(tag)
+    const offer = visible(page).getByTestId(`m10-tag-offer-${tag}`)
+    const create = visible(page).getByTestId('m10-tag-create')
+    await expect(offer.or(create).first()).toBeVisible()
+    if ((await offer.count()) > 0) await offer.click()
+    else await create.click()
+    await expect(visible(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
+    await visible(page).getByTestId('m10-create').click()
+    // The ADR-011 header is outside the router outlet, so it is never scoped.
+    await expect(page.getByTestId('header-title')).toHaveText(name)
+  }
+
+  /**
+   * Add through M6's own composer, into whichever tab is open.
+   *
+   * Scoped through `m6-page`, never `visiblePage`: ADR-012 leaves M4 mounted
+   * and *visible* behind M6, so every shared testid — the composer's above all
+   * — resolves twice there. This file's ledger section already names the trap;
+   * it cost two runs to re-learn.
+   */
+  async function addOnOpenTab(page: Page, name: string, viaSuggestion = false) {
+    // The composer stays open after an add (FR-25.13a), so the collapsed
+    // trigger is there for the first row of a run and gone for the rest.
+    // That tolerance is a fixture convenience only — the rule itself is
+    // asserted in the open, below, so nothing here is covering it.
+    const trigger = m6(page).getByTestId('quick-add-open')
+    const field = m6(page).getByTestId('quick-add-input')
+    await expect(trigger.or(field).first()).toBeVisible()
+    if ((await trigger.count()) > 0) await trigger.click()
+    const input = m6(page).getByTestId('quick-add-input').locator('input')
+    await input.fill(viaSuggestion ? name.slice(0, 5) : name)
+    if (viaSuggestion) {
+      await m6(page).getByTestId('quick-add-suggestion').filter({ hasText: name }).click()
+    } else {
+      await m6(page).getByTestId('quick-add-confirm').click()
+    }
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: name })).toBeVisible()
+  }
+
+  test('E2E-M6-01: two tabs, grouped by category, each counting things to buy', async ({
+    page,
+  }) => {
+    await createTaggedItem(page, 'Sonnencreme', 'Drogerie')
+    await createTripViaWizard(page, TRIP)
+    await visible(page).getByTestId('m4-nav-shopping').click()
+    await expect(m6(page)).toBeVisible()
+
+    // Two rows on the departure tab: one with a category, one without.
+    await addOnOpenTab(page, 'Sonnencreme', true)
+    // Rows are entered in runs: the composer is still open, and its collapsed
+    // trigger is therefore gone (FR-25.13a). Asserted rather than tolerated.
+    await expect(m6(page).getByTestId('quick-add-input')).toBeVisible()
+    await expect(m6(page).getByTestId('quick-add-open')).toHaveCount(0)
+    await addOnOpenTab(page, 'Batterien')
+
+    // Grouped by category — the row sits *inside* its group, which is the
+    // assertion the promise makes; two rows on one screen prove nothing about
+    // where they sit.
+    await expect(
+      m6(page).getByTestId('m6-group-Drogerie').getByTestId('m6-row'),
+    ).toContainText('Sonnencreme')
+    await expect(m6(page).getByTestId('m6-group-none').getByTestId('m6-row')).toContainText(
+      'Batterien',
+    )
+    await expect(m6(page).getByTestId('m6-group-none')).toContainText('Uncategorized')
+
+    // The label counts things to buy (FR-25.6), and the other tab is its own
+    // list — a shared list would show two here.
+    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(2)')
+    await expect(m6(page).getByTestId('m6-tab-local')).toContainText('(0)')
+
+    await m6(page).getByTestId('m6-tab-local').click()
+    await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
+    await addOnOpenTab(page, 'Eis')
+    await expect(m6(page).getByTestId('m6-tab-local')).toContainText('(1)')
+    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(2)')
+  })
+
+  test('E2E-M6-04: an empty shopping list drops M4’s badge, never the entry', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+
+    // The destination exists either way — G-12's bar has no overflow to hide
+    // it in, so hiding the entry would strand M6 on a trip that has yet to
+    // need it. Only the badge answers to the count.
+    const entry = visible(page).getByTestId('m4-nav-shopping')
+    await expect(entry).toBeVisible()
+    await expect(entry.locator('ion-badge')).toHaveCount(0)
+
+    await entry.click()
+    await expect(m6(page)).toBeVisible()
+    await addOnOpenTab(page, 'Batterien')
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-nav-shopping')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-nav-shopping').locator('ion-badge')).toHaveText('1')
+  })
+})
+
