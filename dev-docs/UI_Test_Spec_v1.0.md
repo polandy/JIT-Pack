@@ -684,9 +684,11 @@ decided):
 
 * **The trip's year is not editable anywhere in the app.** FR-2.1b makes the year the one required
   temporal fact, `TripEdit` carries it, and the only writers are M3's wizard and the clone form —
-  so a trip created in the wrong year keeps it for good. **Owner decision:** add the field, or
-  strike the clause. Documents leaning on it: UI-Spec M22's *Elements* line (corrected the same
-  day to say so), and this section, which had no id for it either.
+  so a trip created in the wrong year keeps it for good. FR-2.7's own scope is *name, dates and
+  travellers*, so the clause was UI-Spec M22's addition rather than the PRD's. **Owner decision:**
+  add the field, or strike the clause. Documents leaning on it: UI-Spec M22's *Elements* line
+  (corrected the same day to say so), PRD FR-2.7 (which now records the scope explicitly), and this
+  section, which had no id for it either.
 * **The series a trip belongs to is edited on M16, not here.** UI-Spec M22 lists it among this
   screen's elements; `setTripSeries` has exactly one caller and it is `SeriesPage.vue`, whose
   *detach/attach trips* action UI-Spec M16 already describes. Not an owner decision — the function

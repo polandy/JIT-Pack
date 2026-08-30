@@ -9512,9 +9512,24 @@ series turned out to be built — on M16, whose *detach/attach trips* action is
 moved. The year is not built anywhere: `TripEdit` carries it, and its only
 writers are M3's wizard and the clone form, so a trip created in the wrong
 year keeps it for good, and FR-2.1b makes the year the one *required* temporal
-fact. Owner decision, deliberately untested. **A screen's promises are not
-only its case ids** — the ids describe behaviours somebody thought to number,
-and a field that was never built was also never numbered.
+fact. FR-2.7's own scope is *name, dates and travellers*, so the year was
+UI-Spec M22's addition rather than the PRD's — which makes it an owner
+decision and not a defect of the requirement. Deliberately untested. **A
+screen's promises are not only its case ids** — the ids describe behaviours
+somebody thought to number, and a field that was never built was also never
+numbered.
+
+Reading the PRD to establish that turned up the third stale sentence of the
+pair. PRD FR-2.7 still says removal on a started trip is *„visible but
+disabled with the reason given — hidden, it would be looked for"*. The owner
+overruled that **in the hand on the same day it shipped**, 2026-08-21, and the
+UI-Spec and the case both record the reversal; the PRD kept the first cut, and
+`e2e-tests.md` kept it too, in a paragraph explaining why E2E-M22-04's absence
+assertion is safe — citing as its positive signal the very control that was
+removed. **A reversal is announced where it is decided and lands wherever
+somebody happened to be typing**, and the documents that did not get it are
+not the ones the reversal contradicts loudest; they are the ones that were
+already finished.
 
 **The archived state nobody had rendered, and what rendering it showed.**
 UI-Spec M22 has promised since the screen shipped that an archived trip's

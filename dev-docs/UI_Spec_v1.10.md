@@ -391,9 +391,11 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
   ＋ to add, ✕ to remove. **Two corrections, 2026-08-30 (backlog item 6, read against the
   template):** the **year** was listed here and has no field — FR-2.1b makes it the one *required*
   temporal fact, `TripEdit` carries it, and the only writers are M3's wizard and the clone form, so
-  a trip created in the wrong year keeps it for good. **Owner decision:** add the field, or strike
-  the clause; it may not be tested until it is decided (UI-Test-Spec M22). And the **series** was
-  listed here too: it is edited on **M16**, whose *detach/attach trips* action is its one writer.
+  a trip created in the wrong year keeps it for good. FR-2.7's own scope is *name, dates and
+  travellers*, so the clause was this document's addition rather than the PRD's. **Owner decision:**
+  add the field, or strike the clause; it may not be tested until it is decided (UI-Test-Spec M22).
+  And the **series** was listed here too: it is edited on **M16**, whose *detach/attach trips*
+  action is its one writer — which PRD FR-2.7's opening paragraph already said.
 * **What a traveller change does** is FR-27.4's amended rule, and the screen states it rather than
   performing it silently: adding applies **immediately** and reports the FR-27.10 way — what was
   added, what that person already had, what this trip's conditions excluded. Removing takes their
