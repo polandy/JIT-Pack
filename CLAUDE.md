@@ -263,6 +263,24 @@ it. Item numbers stay stable even as items close, because the log refers back to
    M15" was never true (the shared thing is `findDuplicates`); „rejected before this screen is
    ever shown" misplaces a refusal that is M18's own picker step. Log: *„The branch the backup
    never took"*.
+   **M21 and M22 followed 2026-08-30**, both with every id implemented and no id on the wrong
+   test, so the product was four cases and two owner decisions. M21's finding is about *time*:
+   the FR-1.6 name refusal was added to the screen on 2026-08-25, five days after its cases
+   landed, and **a rule that arrives after a screen's cases do is invisible to every one of
+   them** — nothing had rendered the note, the disabled button, or the rule that exists nowhere
+   else (the Vorlage and the bundle group written in one pass must have different names). Two
+   more clauses could not fail: the word *checked* (no test had ever operated a loose row's
+   checkbox) and the blast note, asserted visible only in the one world where it can produce a
+   single branch. M22's ids are all sound, but reading its **element list** against the template
+   found two fields the screen does not have: the **series** is edited on M16, and **the trip's
+   year cannot be changed anywhere** — an owner decision, since FR-2.1b makes it the one
+   required temporal fact. Two more: the archived editor had never been opened by any test and,
+   opened, says nothing about why it answers no tap (second owner decision); and the rename —
+   one of the roster row's three affordances — had never been operated. The transferable one is
+   procedural: E2E-M22-03's own note records this exact race being fixed in 2026-08-21, and
+   **the fix was written into one case rather than into the file**, so five siblings kept
+   navigating straight after a write and E2E-M22-08 failed against correct code during this
+   audit. Log: *„A rule that arrived after its tests"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

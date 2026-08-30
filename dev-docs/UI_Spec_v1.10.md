@@ -387,9 +387,13 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
   for the same reason.
 * **Elements:** the trip **name** (commits on blur/Enter, the M8 pattern — the header keeps its own
   static title here, unlike M8: this screen is *about* a trip rather than being one, and a bar
-  reading „Samedan 2026" would not say which screen it is); **year and the two dates** (G-17 `DateField`s since 2026-08-26; read-only under G-3's lock), both optional per FR-2.1b with the year required and bounding each other since 2026-08-27 (FR-2.1d); the
-  **series** it belongs to; and the **travellers** section — one row per person, rename in place,
-  ＋ to add, ✕ to remove.
+  reading „Samedan 2026" would not say which screen it is); **the two dates** (G-17 `DateField`s since 2026-08-26; read-only under G-3's lock), both optional per FR-2.1b and bounding each other since 2026-08-27 (FR-2.1d); and the **travellers** section — one row per person, rename in place,
+  ＋ to add, ✕ to remove. **Two corrections, 2026-08-30 (backlog item 6, read against the
+  template):** the **year** was listed here and has no field — FR-2.1b makes it the one *required*
+  temporal fact, `TripEdit` carries it, and the only writers are M3's wizard and the clone form, so
+  a trip created in the wrong year keeps it for good. **Owner decision:** add the field, or strike
+  the clause; it may not be tested until it is decided (UI-Test-Spec M22). And the **series** was
+  listed here too: it is edited on **M16**, whose *detach/attach trips* action is its one writer.
 * **What a traveller change does** is FR-27.4's amended rule, and the screen states it rather than
   performing it silently: adding applies **immediately** and reports the FR-27.10 way — what was
   added, what that person already had, what this trip's conditions excluded. Removing takes their
@@ -406,7 +410,12 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
   broken app instead — and the sentence under the list already answers the question the ✕ raises,
   which is the whole reason the reason is stated once rather than per row)*. Adding
   and renaming stay available on an active trip; on an archived one the whole screen is read-only,
-  consistent with FR-27.4's "past trips are never touched".
+  consistent with FR-27.4's "past trips are never touched" — **and says nothing about it** (found
+  2026-08-30 by rendering that state for the first time, E2E-M22-10). The sentence under the
+  roster is gated on the trip not having started, so an archived trip loses the ✕, the add row and
+  the explanation together: the screen answers no tap and offers no reason, which is the shape the
+  owner ruled against on 2026-08-21 for the started trip, reached by a different route. **Owner
+  decision:** a sentence for the archived state, or the silence accepted on purpose.
 * **Modes:** unchanged in all three. The screen edits trip-level records, not membership — sharing
   and roles remain FR-4.5's roster (`/trips/:tripId/members`), which is hidden outside Server Mode
   per G-8. Local Mode has the full screen: travellers are trip records, not accounts (FR-19.3).

@@ -206,6 +206,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
 - [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 - [The branch the backup never took (2026-08-30)](#the-branch-the-backup-never-took-2026-08-30) — backlog item 6, M18. The screen where every unwritten case was real, why a clause can be stale in four places at once, and the comment that contradicted the line three rows under it.
+- [A rule that arrived after its tests (2026-08-30)](#a-rule-that-arrived-after-its-tests-2026-08-30) — backlog item 6, M21 and M22. A refusal added to a screen five days after its cases and invisible to every one of them; reading an *element list* instead of an id list; and the race fixed once in a case rather than in the file it lived in.
 
 ## Current state
 
@@ -9465,3 +9466,77 @@ That is the second time this backlog item has found a specification
 sentence describing a state nobody can produce, and the shape is the same as
 M17's: **a promise can be wrong in a way only the screen can refute**, and
 reading it against another document will confirm it forever.
+
+## A rule that arrived after its tests (2026-08-30)
+
+Backlog item 6, twelfth and thirteenth screens: **M21** and **M22**. Both had
+every written id implemented and no id on the wrong test, which by now is the
+uninteresting outcome — the interesting part is what a clause-by-clause read
+finds *inside* sentences that are true.
+
+**A rule can be complete, correct, specified in two documents, and invisible
+to every test its screen has.** M21's FR-1.6 name refusal was built on
+2026-08-25: a note naming the holder under the name field, a disabled *Vorlage
+erstellen*, and a rule that exists nowhere else in the app — the Vorlage and
+the optional bundle group are written in one pass, so their two names must
+also differ from *each other*. M21's e2e cases landed on 2026-08-19. Nothing
+went back. The view's own unit spec was no help either, because its
+orchestrator double returns *no collision*, so it only ever paints the
+accepting branch. The generalisation is worth more than the case:
+**a rule added to a screen after its cases exist is checked by none of them**,
+and unlike a *changed* rule it breaks nothing on the way in — the suite stays
+green because the new branch is simply never entered. The place to look is a
+screen whose spec section has a dated amendment younger than its test file.
+
+**Two clauses that could not fail, both of the kinds this backlog item has
+already named.** The word *checked* in „carries the **checked** loose rows as
+own positions": every M21 case leaves the pre-checked state alone, so no test
+had ever operated one of those checkboxes, and a create that took every loose
+row — or a checkbox wired to nothing — was green throughout. And the blast
+note, which spells out what an accepted deviation will reach: E2E-M21-02
+asserts it *visible*, in a world with no trip following the group, where the
+only sentence it can produce is „no trip follows it right now". Same shape as
+E2E-M7-07's resolved count one screen earlier — a case whose world cannot tell
+the rule from its negation — and the fix is the same: assert it where the
+world differs, which is E2E-M21-03c, the one case that has a following trip.
+The mutation confirms the reading rather than just the code: forcing the
+*none* wording reddens 03c and leaves 02 green.
+
+**Reading the element list, not the id list.** M22's ids are all sound, so the
+audit would have ended there. What produced its two findings was reading
+UI-Spec M22's *Elements* bullet against the template: it names the trip's
+**year** and the **series it belongs to**, and the screen renders neither. The
+series turned out to be built — on M16, whose *detach/attach trips* action is
+`setTripSeries`'s only caller — so that clause is on the wrong screen and was
+moved. The year is not built anywhere: `TripEdit` carries it, and its only
+writers are M3's wizard and the clone form, so a trip created in the wrong
+year keeps it for good, and FR-2.1b makes the year the one *required* temporal
+fact. Owner decision, deliberately untested. **A screen's promises are not
+only its case ids** — the ids describe behaviours somebody thought to number,
+and a field that was never built was also never numbered.
+
+**The archived state nobody had rendered, and what rendering it showed.**
+UI-Spec M22 has promised since the screen shipped that an archived trip's
+editor is read-only throughout; the unit spec pins the two `DateField`s and no
+test had ever opened the screen on an archived trip. Opening it showed the
+thing the owner had already ruled on once: `traveler-remove-note` is gated on
+the trip not having *started*, so an archived trip loses the ✕, the add row and
+the sentence together. On 2026-08-21 the owner overruled a present-but-disabled
+✕ precisely because „a control that is visibly there and answers no tap reads
+as a broken app", and the note was the answer. The archived screen reaches the
+same state by a different route and has no note. Second owner decision;
+E2E-M22-10 asserts today's silence and is what has to change either way.
+
+**A fix written into a case is not a fix to the file.** E2E-M22-03's history —
+recorded in `e2e-tests.md` in three numbered steps — ends with „navigate
+straight after confirming: `page.goto` outran the removal and the case failed
+against correct code". That was fixed in 2026-08-21, in that case. Five other
+cases in the same file navigate after a write, and E2E-M22-08 duly failed
+against correct code during this audit's mutation runs: a reload discards the
+optimistic store, the name had not reached IndexedDB, and M2 lists by status,
+so the trip was on no segment at all. Every `page.goto` in the file now waits
+on the G-2 indicator returning to *on this device*, which `restore-retired.spec.ts`
+had already named as the seam. **A note that says what to do is not a repair of
+the places that need it**, and a race repaired in one case leaves the file's
+other callers holding the same loaded gun — visible only when load makes them
+fire.
