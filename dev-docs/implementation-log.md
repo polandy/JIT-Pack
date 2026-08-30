@@ -191,6 +191,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The shop stops asking three times for one purchase (2026-08-29)](#the-shop-stops-asking-three-times-for-one-purchase-2026-08-29) — FR-25.6. The premise that made M6's aggregation invisible for three weeks, why the buy row is keyed by M4's own function rather than a second one, and the two places that had to follow the aggregation once it existed — the reveal and the tab counts.
 - [A rule that was complete and invisible (2026-08-30)](#a-rule-that-was-complete-and-invisible-2026-08-30) — E2E-G3-04. The G-3 cluster lock shipped correct and unobservable: every other G-3 surface names its holder, and the one surface that could inherit none of them said nothing at all. Why writing the two-identity case is what found it, and why the release — not the pack — is what the positive half needs.
 - [A row kept saying it was skipped after it had stopped being (2026-08-30)](#a-row-kept-saying-it-was-skipped-after-it-had-stopped-being-2026-08-30) — where FR-25.13f's ✕ meets FR-25.21's editor. Why the fix is a derivation rather than a policy, why only one of the two cases is worth a confirm, and the two fields deliberately left alone.
+- [Seventeen unwritten cases, two worth writing (2026-08-30)](#seventeen-unwritten-cases-two-worth-writing-2026-08-30) — backlog item 6, taken screen by screen instead of by the count. What M6's unwritten ids turned out to be, why a coverage number is not a backlog, and the four promises the app had already reversed.
 - [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
@@ -8443,6 +8444,52 @@ mode that lacks a server.
 visible symptom — a missing label — which names neither cause nor fix. The
 refusal at start-up names both.
 
+## Seventeen unwritten cases, two worth writing (2026-08-30)
+
+Backlog item 6 has always been a number that grows: 370 case ids in the
+UI-Test-Spec, 250 with a test. M6 was the first screen taken through it, and it
+had the widest gap — 17 of 22 ids unwritten, **none of them marked *not
+implemented***, so every one read as a description of built behaviour.
+
+Two of the 17 needed a new case. The other fifteen split three ways, and the
+split is the point.
+
+**Four were already asserted, under other ids.** M6-03 (free text into either
+list) and M6-19 (a suggestion adopting its master item's category) are what
+E2E-M6-01 does to *set up* its groups; M6-16's M6 half is the confirm button
+every add in that case taps; M6-02's two promises were both in M6-17 and M6-22
+already. Writing them as their own cases would have re-run existing assertions
+for the sake of an id — the mistake this project made once before, when a
+search for a free case *number* found one and the behaviour it described turned
+out to have two cases already.
+
+**Four described behaviour the app had deliberately reversed.** M6-11 still
+promised that the ＋ FAB *„expands the quick-add and focuses it"* and that
+*„an empty field collapses it on blur"*: M6 has no FAB, FR-25.13c removed the
+focus because the keyboard covered the chips, and FR-25.13a removed the
+blur-collapse because it reflowed the list under the next tap. M6-04 promised
+M4's *„entry/badge hidden"* on an empty list, where the code says in its own
+comment why the entry stays. Had these been written as specified, the suite
+would have grown four green tests pinning four rules the app had already
+argued its way out of.
+
+**Eight described a screen nobody built** — FR-25.12's row sheet, FR-25.13a's
+description and assignee fields, FR-25.11g's filter bar, FR-25.11k's search,
+FR-25.6's per-item note. `ShoppingPage.vue` is 300 lines and imports two
+components. That is not a coverage gap; writing those cases is building four
+features. The owner retired all but FR-25.12's sheet, which is being built.
+
+**The lesson is about the number.** A coverage count says how many promises have
+no test; it says nothing about how many are worth one, and on this screen the
+honest answer was two. **Read the promise against the screen before reading it
+against the test** — an id existing means somebody once meant it, not that
+anything answers to it. What made the difference cheap was doing it as one pass
+over one screen rather than case by case across the spec.
+
+One thing did have to be *added* rather than asserted: E2E-M6-17 reported that
+a bought row went *„on the packing list"* and never went to look. The note was
+a string. It now visits M4 and finds the row, and pinning the mutation to
+`buy_before` reddens it.
 ## A credential that nothing remembers (2026-08-30)
 
 FR-23.7, ADR-039. What was asked for was "API tokens, creatable in the UI and
