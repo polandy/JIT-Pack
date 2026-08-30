@@ -200,6 +200,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
+- [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 
 ## Current state
 
@@ -9020,3 +9021,102 @@ G-7 CTA is the always-present `trips-new` FAB rather than anything the empty
 state itself offers. One sentence naming four screens counted as four, which
 is the same shape as the review rule about one rule written into N
 templates. Recorded against the id; owed to M2's next pass, not built here.
+
+## Five numbers, and two sections nobody had built (2026-08-30)
+
+Backlog item 6, sixth screen: **M10**, read straight after M9 and out of the
+same commit. M9's audit found two case ids on the wrong tests. M10's found
+five, and the reason is that `6ea6577` — the §3.24 tag rebuild — wrote the
+spec entries and the tests in one sitting and numbered them against each
+other twice.
+
+`inventory.spec.ts` carried `E2E-M10-01` … `E2E-M10-05`. Those five ids were
+live entries in the UI-Test-Spec describing five *other* promises: the
+creation form's fields, the FR-2.4 usage footer, the dependency section, the
+photo, and the „Enthalten in" list. Meanwhile the three entries the same
+commit marked **implemented** — `M10-07`, `M10-08`, `M10-10` — had no test
+carrying their number at all. So five ids read as unwritten while a green
+test answered to each of them, and three read as covered with nothing
+pointing at them.
+
+**The ledger was right and everything else was wrong.** `e2e-tests.md`'s
+promise table has mapped those test rows to 07, 08 and 10 since the day it
+was written. That is the single most useful thing this audit produced, and
+it generalises: when two documents disagree about coverage, **the one that
+maps a test body to an id outranks the one that maps an id to a claim** —
+the first is a statement about the suite, the second about an intention. A
+reader checking the suite against the UI-Test-Spec would have been misled in
+both directions; one checking it against the ledger would not have been.
+
+**Three ids were retired, and each for a different reason.**
+
+`E2E-M10-01` was retired *clause by clause*, which is the only honest way:
+its name and inline-created tag are `M10-08`, its weight is `M10-07`, and
+its price is asserted where the price is *read* — `M9-09`, the case that can
+tell a formatted amount from a bare number. Its last clause, *no unit
+control*, has nothing to assert against at all: FR-1.8 retired units in
+August and no unit field was ever built, so the promise is the absence of
+something that never existed.
+
+`E2E-M10-02` had one clause **reversed** and one already covered. „Delete
+blocked while referenced" was replaced by FR-24.3's retire (ADR-032), which
+is asserted in `M10-14`/`M10-15`; those same two cases assert the usage
+count from both ends, *1* and *0*. What never shipped is the split the
+sentence promised — „Used in N templates, M archived trips". The card says
+„An N Stellen verwendet", one number over both, and no screen has ever named
+them separately.
+
+`E2E-M10-09` was simply a second id over `E2E-M10-03`'s section, written
+eight weeks later and leading with the other half.
+
+**Two real remainders, and what they had in common.** The dependency section
+and the photo section were both built in July, are both user-visible, and
+between them carried **one `data-testid`** — the heading `M10-13` reads for
+its German word. That is the same signature the M20/G-10 pass named: no test
+id on a built screen means no test has ever rendered it. Two other cases
+*drive* the dependency section (`E2E-M5-23` and the skip-item cascade both
+declare a dependency through M10 to get a companion onto a trip), which is
+exactly how it kept reading as exercised — a fixture is not an assertion.
+
+`E2E-M10-03` now pins the three rules that live on this screen rather than
+on the trip: a new relation is *nötig* until someone says otherwise, the
+reverse list only reads, and a cycle is refused **before** the write with
+the hops named. The refusal is asserted against a positive signal on the
+same page — the companion row is still there afterwards — because "no
+dependency row" is otherwise equally satisfied by a page that rendered
+nothing.
+
+`E2E-M10-04` covers add/replace/remove. Two decisions in it are worth
+keeping. The replace is asserted on `naturalWidth` with two sources of
+different **shape**, because the object URL changes on every write whether
+or not the image did — the obvious assertion is the one that cannot fail.
+And the item is left and reopened before the removal, since the preview is
+resolved from `image_hash` through the device: the round trip is what says
+the bytes were stored rather than previewed.
+
+**A cost taken deliberately:** the id's original sentence promised the
+≤150 KB optimization "asserted via the stored/served image", and this case
+does not assert it. The backoff is measured in `imageResize.spec.ts` against
+an injected encoder and enforced again at handler, store and CHECK
+(invariant 6). An e2e that re-measured it would be asserting a real canvas's
+JPEG encoder — a number that varies by browser build, about a rule three
+other layers already hold.
+
+**Two sections that three documents said were built.** M10 has no „Enthalten
+in" (FR-27.8) and no „Kommentare aus Reisen" (FR-27.9). Both were built in
+the **prototype** — §3.27's fourth and fifth rounds, same day — and never in
+the app. They are an owner decision, not a test gap, and left untested like
+M9-03 and M2's three.
+
+The trap under them is worth more than the finding. **FR-24.5 named those
+two sections first among "the existing-item sections … absent, not
+emptied"**, and `E2E-M10-07` asserted that absence — against sections that
+render in *neither* mode. An absence assertion over something absent
+everywhere is a tautology that reads exactly like coverage, and it had been
+green for a year. The case now asserts the one of the three that exists: the
+delete card. The other two names are gone from both sentences.
+
+That is the second time this backlog item has found a specification
+sentence describing a state nobody can produce, and the shape is the same as
+M17's: **a promise can be wrong in a way only the screen can refute**, and
+reading it against another document will confirm it forever.
