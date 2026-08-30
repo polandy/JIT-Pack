@@ -241,8 +241,13 @@ it. Item numbers stay stable even as items close, because the log refers back to
    E2E-FLOW-01. The three areas it named as owed are all closed: delegation (E2E-FLOW-02)
    2026-08-25 with item 20's control, presence (G-10) and the admin surface (M20) 2026-08-28 —
    the last two found a facepile initialling a random key, a group-sync badge whose state was
-   unreachable, and a deactivated account whose app looked offline instead of saying so. Only
-   real-provider coverage is still open. Log: *„A second account arrives…"*, *„Two screens
+   unreachable, and a deactivated account whose app looked offline instead of saying so.
+   **Real-provider coverage closed it 2026-08-30**, split by what each half can establish: the
+   metadata half is `internal/api/realprovider_test.go` (opt in with `JITPACK_REAL_IDP_ISSUER`,
+   skipped everywhere else, read-only so it is safe against production), and the half that needs
+   a person — the login, the second factor, the refresh grant, the disabled-account asymmetry —
+   is a written procedure in `dev-docs/e2e-tests.md` rather than an intention. **Item 18 owes
+   nothing further.** Log: *„A second account arrives…"*, *„Two screens
    nobody had ever rendered"*.
 
 19. ~~**NFR-4.12 — notifications were the one surface still written in English**~~ — **done**
