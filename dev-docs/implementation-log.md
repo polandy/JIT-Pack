@@ -193,6 +193,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A row kept saying it was skipped after it had stopped being (2026-08-30)](#a-row-kept-saying-it-was-skipped-after-it-had-stopped-being-2026-08-30) — where FR-25.13f's ✕ meets FR-25.21's editor. Why the fix is a derivation rather than a policy, why only one of the two cases is worth a confirm, and the two fields deliberately left alone.
 - [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
+- [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 
 ## Current state
 
@@ -8441,3 +8442,74 @@ mode that lacks a server.
 **A typo stops the server.** Ignoring a malformed code would leave exactly one
 visible symptom — a missing label — which names neither cause nor fix. The
 refusal at start-up names both.
+
+## A credential that nothing remembers (2026-08-30)
+
+FR-23.7, ADR-039. What was asked for was "API tokens, creatable in the UI and
+on the CLI, listable and deletable, never in plaintext, shown once". What
+shipped drops two of those on purpose, and the path from one to the other is
+the part worth recording.
+
+**The premise moved twice.** The first thing checking turned up is that a
+long-lived credential was *already possible*: `authed` trusts any HS256 JWT
+signed with the session secret, and the server names that mode on startup —
+*"multi-user mode (externally minted session tokens)"*. So the feature was
+never "credentials that outlive fifteen minutes". It was a way to make one
+without hand-crafting a JWT, and — the only part that cost anything to decide
+— whether it should be revocable and listable, which a signed token cannot be
+without storage behind it.
+
+**Then a measurement moved it again.** The concept's first draft designed the
+stored version: a table, a two-part token, an indexed lookup, three endpoints,
+a management screen. The argument against the cheap alternative was "you
+cannot revoke", whose escape hatch — rotating `JITPACK_SESSION_SECRET` —
+looked like a blunt instrument because it appeared to log everyone out. It
+does not. Refresh tokens are opaque values stored hashed, not signed, so a
+rotation voids only the fifteen-minute access tokens and every browser
+recovers by itself. **Checking that one sentence deleted a table, a schema
+change, three endpoints and a screen** — and under invariant 2 the schema
+change was the expensive part, because it means every database rebuilt,
+including the one holding real trips.
+
+The caveat is the half that survives: `handleAuthRefresh` answers `501` where
+no IdP is configured, so on such an instance a rotation *does* log everyone
+out. That belongs in `docs/`, not only in an ADR, because the operator reading
+it may not be on the comfortable case.
+
+**The feature found a hole in something older.** `authed` established that a
+subject was *not deactivated*, and the store answered "not deactivated" for an
+id no row carries — so a credential naming nobody passed the gate. At fifteen
+minutes that is almost unreachable. At ninety days it is not, because **a
+token outlives the account it was minted for**. Existence and deactivation are
+now one question, and the shape matters: an enum whose zero value denies,
+rather than a pair of sentinel errors, so a caller that reads the value beside
+a non-nil error cannot thereby grant access. `UserDeactivated` was deleted
+rather than left beside it — an unsafe door that still opens gets used again.
+The unknown subject is refused with the *same* answer a bad signature gets, so
+probing cannot enumerate ids.
+
+**One rule looks like the thing the concept refused, and is not.** §9 rejects
+scopes, for the reason scopes deserve: a rule every handler must check is
+silently wrong wherever it is forgotten. Refusing a token the right to mint
+another token has the same silhouette. The difference is that a scope asks
+*which resources may this credential touch* — open-ended, asked everywhere —
+while this asks *may this credential extend its own life*, which has exactly
+one place to be asked, because exactly one endpoint answers with a credential.
+Without it a leaked token renews itself before its own expiry and `exp` — the
+only bound an unmanaged token has — stops bounding anything.
+
+**Single-User Mode is where invariant 5 had teeth here.** The usual story is
+that an `authed`-gated endpoint is inert in that mode. This one would not have
+been inert, it would have been *open*: `authed` is bypassed entirely there, so
+the handler is reachable with no credential at all. It answers `501` as its
+first statement, before it reads the body, and the test for it was written
+before the handler.
+
+**Two things the client had never done once.** Copying to a clipboard, and
+showing a value in a monospace face. Both went where the invariants put them —
+`client/src/lib/clipboard.ts` with the `execCommand` fallback a plain-http
+instance needs, and a `.jp-mono` role in the type table — rather than inline
+in the component, which is also what made the first testable and the second
+pass the token gate. The reveal renders the token **as text** and then offers
+to copy it, which is what lets the e2e case assert on what the person sees
+instead of on a browser permission.

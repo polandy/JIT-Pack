@@ -116,6 +116,8 @@ Because each refresh replays the stored IdP refresh token, whatever Authelia rej
 - **Ends the session immediately, without waiting for a refresh:** deactivating the account in JIT-Pack itself. Deactivation is checked on every single request, so it is the only lever that bites on the current access token. See [User Management](user-management.md).
 - **Does _not_ end the session:** marking the user `disabled` in Authelia. That blocks new logins, but Authelia keeps honouring refresh tokens it has already issued — per [Authelia ADR1](https://www.authelia.com/reference/architecture-decision-log/1/), authorization policies are evaluated during the Authorization Request and not in any subsequent flow.
 
+- **Not a session at all:** an [API token](api-tokens.md) is a separate credential with its own lifetime, and nothing on this list touches it. Deactivating the account stops it like any other request; ending an IdP session does not.
+
 !!! warning "Disabling an account in Authelia is not enough"
     On its own it stops future logins and nothing else — an already-signed-in client keeps refreshing indefinitely. Pair it with revoking the account's tokens at Authelia, or deactivate the account in JIT-Pack, which cuts access off on the next request.
 
