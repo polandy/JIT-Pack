@@ -380,8 +380,12 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
       <section v-if="step === 3">
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.duplicates') }}</h2>
         <p class="hint">{{ t('import.wizard.duplicatesHint') }}</p>
-        <IonList>
-          <IonItem v-for="match in duplicates" :key="match.imported">
+        <IonList data-testid="import-dup-list">
+          <IonItem
+            v-for="match in duplicates"
+            :key="match.imported"
+            :data-testid="`import-dup-${match.imported}`"
+          >
             <IonLabel>
               <h3>{{ match.imported }}</h3>
               <p>
@@ -397,10 +401,10 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
               :value="mergeChoices.get(match.imported) ? 'merge' : 'separate'"
               @ionChange="(e: CustomEvent) => setMerge(match.imported, e.detail.value === 'merge')"
             >
-              <IonSegmentButton value="merge">
+              <IonSegmentButton value="merge" data-testid="import-dup-merge">
                 <IonLabel>{{ t('import.portable.merge') }}</IonLabel>
               </IonSegmentButton>
-              <IonSegmentButton value="separate">
+              <IonSegmentButton value="separate" data-testid="import-dup-separate">
                 <IonLabel>{{ t('import.portable.keepSeparate') }}</IonLabel>
               </IonSegmentButton>
             </IonSegment>
@@ -408,7 +412,9 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
         </IonList>
         <div class="wizard-nav">
           <IonButton fill="outline" @click="step = 2">{{ t('common.back') }}</IonButton>
-          <IonButton @click="step = 4">{{ t('import.wizard.next') }}</IonButton>
+          <IonButton data-testid="import-dup-next" @click="step = 4">
+            {{ t('import.wizard.next') }}
+          </IonButton>
         </div>
       </section>
 

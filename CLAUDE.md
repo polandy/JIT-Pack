@@ -11,7 +11,7 @@ Read this file fully before touching code. It is the orientation document: what 
 - Test: `go test ./... -race` — fast, no docker or network; store/api tests run against real in-memory SQLite
 - **Verify before finishing any change: `make ci`** — it mirrors the CI jobs 1:1 (gofmt, build, vet, race tests, coverage gates, golangci-lint, client lint/build/vitest), so green here predicts a green pipeline
 - Slow jobs, excluded from `make ci` on purpose: `make e2e` and `make visual` (both need docker and a built bundle — they run inside the pinned Playwright image, `make visual-update` rewrites the baselines, ADR-013) and `make docker-build` (needs a docker daemon). `make all` runs everything.
-- **Run the slow jobs on GitHub, not on this machine** (owner, 2026-08-23): `make ci-remote` pushes the current branch, dispatches `ci.yml` against it and waits for the verdict — no pull request needed. `e2e`, `visual`, `docker-build` and the coverage profile all run there already, and on a two-core laptop they are the largest source of contention between concurrent sessions (measured: foreign load costs ~25 % of wall-clock, about what a hardware upgrade would buy). `make cover` in particular is fully redundant — the CI `go` job runs the same profile and the same `scripts/coverage-gate.sh`. **`make ci` stays local**: at ~80 s it is the fast gate, and GitHub's verdict takes minutes.
+- **Run the slow jobs on GitHub, not on this machine** (owner, 2026-08-23): `make ci-remote` pushes the current branch, dispatches `ci.yml` against it and waits for the verdict — no pull request needed. `e2e`, `visual`, `docker-build` and the coverage profile all run there already, and on a two-core laptop they are the largest source of contention between concurrent sessions (measured: foreign load costs ~25 % of wall-clock, about what a hardware upgrade would buy). `make cover` in particular is fully redundant — the CI `go` job runs the same profile and the same `scripts/coverage-gate.sh`. **`make ci` stays local**: it is the fast gate, and GitHub's verdict takes minutes. Budget **~3 min on an idle machine, and read the load average before trusting a timing** — this box has four cores, and a parallel session running its own suite has been measured turning a 100 s vitest run into 370 s. A slow `make ci` is usually contention, not a regression.
 - Coverage gates live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job: **≥75 % overall, ≥90 % `internal/sync`**
 - Client only: `cd client && npm run dev` (Vite dev server), `npx vitest run`, `npm run build` (type-check + build)
 - **After changing `internal/api/wire.go`: `make wire`** — it regenerates `client/src/api/types.ts` *and* `client/src/api/routes.ts`, both generated and never hand-edited (NFR-4.14, ADR-026/027). `make ci` runs the gate that catches the omission.
@@ -263,6 +263,75 @@ it. Item numbers stay stable even as items close, because the log refers back to
    M15" was never true (the shared thing is `findDuplicates`); „rejected before this screen is
    ever shown" misplaces a refusal that is M18's own picker step. Log: *„The branch the backup
    never took"*.
+   **M20 and G-10 followed 2026-08-30**, the youngest coverage in the repository (both first
+   rendered two days earlier) and therefore read for the opposite error — a promise written to
+   match what was just built. Every id already had a test, so the product is three new cases and
+   an eighth shape: **a sentence declaring that a case cannot be written**, twice, each sitting
+   on a defect. G-10's *„an e2e case could only race it"* was true of *holding* a pull open and
+   false of blocking one — a device whose pull never returns never reports a cursor, so the
+   lagging state is settled (E2E-G10-02, which is also the only thing that ever said the
+   server's `in_sync` is the prop the facepile rings). M20's *„Remove avatar changes no pixel"*
+   was blamed on the fixture and was a **defect**: the row is keyed by account id, so the same
+   `<img>` keeps the same `src` and the browser never re-asks under `max-age=3600` — moderation
+   that shows the moderator nothing (E2E-M20-03b, plus M17's cache-busting query, which M20 was
+   written without). Third, a clause in *no* case at all: FR-23.3's „a re-login does not
+   resurrect a deactivated account", where the app answered the generic „The server rejected the
+   login." — the login-screen twin of the defect the FR's own 2026-08-28 amendment fixed inside
+   the app, and missed by it because the callback is the other place that 403 arrives
+   (E2E-M20-06). Also: **FR-4.6's traceability row named `members.ts`'s role model** — a
+   requirement pointed at the wrong evidence, which no gate can see either. Two clauses are kept
+   and named as unfalsifiable rather than counted (G10-01's exclusive badge, M20-05's mode half).
+   No owner decision owed. Log: *„Two premises that had closed two cases"*.
+   **M1 and M19 closed the pass 2026-08-30**, and they share M18's shape at the scale of the
+   whole suite: **every spec seeds past M19 and lands on M1 on the way somewhere**, so the
+   first-launch choice had never been *made* by any test (M19-01 read *partial* for a year, and
+   the missing part was the action) and the populated dashboard had never been *rendered* by one
+   — three test ids on the screen, all three in its empty state. Three cases written
+   (E2E-M1-01/02 in `dashboard.spec.ts`, E2E-M19-02's Single-User half in
+   `single/mode-discovery.spec.ts`, which asserts invariant 5's own 501). **Four owner
+   decisions**, all unbuilt promises: M1's delegation highlight and badges (M1-03), its Late
+   Packer section (M1-06, whose entry also mis-cited FR-5.4 for FR-5.1), the prep card's jump to
+   M5, and — the one with a real design question in it — **M19's connectivity check (M19-02/03),
+   which cannot be written as specified**: the API sets no CORS headers on purpose, so a probe
+   against another origin cannot tell an unreachable instance from a healthy one, and the inline
+   error would lie. Two clauses were also corrected against the screen: FR-6.1's *"my"* items (M1
+   filters by nobody, and a filter would empty the screen in the two modes with no account) and
+   *"next 3"* (the preview has no order to be next in). Log: *"The check that cannot be written,
+   on the screen nobody had clicked"*.
+
+   **M15 followed 2026-08-30** and mixed every shape at once: of four unwritten ids, one was a
+   real remainder (**the dedup step had never been opened by a test** — every fixture imports into
+   an empty device, where there is nothing to be a duplicate *of*, so step 3 is skipped), one was
+   six promises in one sentence now distributed over five cases, and **two describe behaviour the
+   wizard has never had** — there is no grid preview, and NFR-4.7's noise handling is *built and
+   never shown*, which is the one worth carrying: **a rule can be complete, unit-covered at both
+   levels and still unkept, because the promise was about saying it.** Three cases written
+   (E2E-M15-03/11/12). Two further findings: E2E-M15-06's *„no item turned into one"* **cannot
+   fail in its own world** (a category column claims no category rows, so nothing is a candidate)
+   and moved to the rows layout; and the new case found a defect no id could — **M15 opens only
+   once per session**, because the commit's `router.replace` onto a tab root leaves that tab's
+   page unhidden and the next push renders M15 underneath it (M18's restore replaces the same
+   way). Four owner decisions, none built here. Log: *„A wizard that opens once"*.
+
+   **M21 and M22 followed 2026-08-30**, both with every id implemented and no id on the wrong
+   test, so the product was four cases and two owner decisions. M21's finding is about *time*:
+   the FR-1.6 name refusal was added to the screen on 2026-08-25, five days after its cases
+   landed, and **a rule that arrives after a screen's cases do is invisible to every one of
+   them** — nothing had rendered the note, the disabled button, or the rule that exists nowhere
+   else (the Vorlage and the bundle group written in one pass must have different names). Two
+   more clauses could not fail: the word *checked* (no test had ever operated a loose row's
+   checkbox) and the blast note, asserted visible only in the one world where it can produce a
+   single branch. M22's ids are all sound, but reading its **element list** against the template
+   found two fields the screen does not have: the **series** is edited on M16, and **the trip's
+   year cannot be changed anywhere** — an owner decision, since FR-2.1b makes it the one
+   required temporal fact. Two more: the archived editor had never been opened by any test and,
+   opened, says nothing about why it answers no tap (second owner decision); and the rename —
+   one of the roster row's three affordances — had never been operated. The transferable one is
+   procedural: E2E-M22-03's own note records this exact race being fixed in 2026-08-21, and
+   **the fix was written into one case rather than into the file**, so five siblings kept
+   navigating straight after a write and E2E-M22-08 failed against correct code during this
+   audit. Log: *„A rule that arrived after its tests"*.
+
    **M14 and M16 followed 2026-08-30**, and M16 is the first screen the programme met with
    **no coverage at any layer** — four unwritten ids, no spec file, no unit, and not one
    `data-testid`. Nothing was retired; all four are written, and **rendering the screen found a
@@ -550,8 +619,9 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - Don't grow `CLAUDE.md` with history. It is loaded in full for every session, so a closed backlog item shrinks to one line and a pointer; the narrative belongs in the log.
 - Don't duplicate the schema into docs, and don't duplicate an ADR's rationale into a code comment — a `// see ADR-00N` pointer is enough.
 - Don't judge a UI change from the stylesheet. Render it, look at it, and let the maintainer eyeball it before the Playwright case is finalized.
-- The `autoformat` CI job pushes `style:` commits back onto your branch. Pull before you push, or run `make fmt` yourself and keep it out of the way. **Its push then leaves the PR looking broken in a way nothing explains**: the run that push triggers is attributed to `github-actions[bot]` and comes back `action_required`, so `gh pr checks` reports *no checks at all* and the PR sits at `BLOCKED` — not red, not pending, simply blank. Approve it: `gh api -X POST repos/polandy/JIT-Pack/actions/runs/<run-id>/approve`, with the id from `gh run list --branch <branch>`. Nothing about the state says approval is what it wants (found twice on 2026-08-23, PR #168).
-- **CI/CD layout** (`.github/`): `ci.yml` (go, go-lint, client, visual, e2e, autoformat, docker-build, dependabot-merge), `docker.yml` (ghcr.io on `v*` tags), `release.yml` (release-please). Dependabot merging is gated by the `dependabot-merge` job, which `needs` every check job. **`main` is protected** (configured 2026-08-08, now that the repo is public — the historical note that protection was blocked applied to the free-plan private repo). Required checks: `go`, `go-lint`, `client`, `docker-build`. Force-pushes and deletion are off, linear history is required (squash-merge produces it), admins are **not** exempt. Deliberately not set: `e2e` is not required — it is a four-leg shard matrix (four separate check names that would each need listing) and `dependabot-merge` already waits for it; `visual` is not required because it `needs: [client]`, and a skipped required check blocks a PR with a less useful message than the client failure itself. Review approvals are not required either: with a single maintainer that would block every merge and break Dependabot auto-merge. If a required check ever wedges, lift protection with `gh api -X DELETE repos/polandy/JIT-Pack/branches/main/protection`, merge, then re-apply.
+- **Run `make fmt` before pushing** if `make ci` complains: since ADR-040 the CI `format` job *checks* gofmt and prettier instead of fixing them, so formatting can fail a build. It no longer pushes anything to your branch — the `action_required` state that used to make a PR look checkless is gone with it.
+- **The e2e shard count is a measurement, not a constant.** It is 8 (`ci.yml`), sized 2026-08-30 against ~1920 test-seconds. A suite that grows makes it stale *silently*, because the only symptom is a slower pipeline. When e2e feels slow, read the per-leg times of a recent run before anything else.
+- **CI/CD layout** (`.github/`): `ci.yml` (go, go-lint, client, format, visual, e2e ×8, e2e-single, e2e-server, docker-build, dependabot-merge), `docker.yml` (ghcr.io on `v*` tags), `release.yml` (release-please). A `concurrency` group supersedes a superseded **pull-request** run; a `push` to main is never cancelled, because its run is the record that main was green. Dependabot merging is gated by the `dependabot-merge` job, which `needs` every check job. **`main` is protected** (configured 2026-08-08, now that the repo is public — the historical note that protection was blocked applied to the free-plan private repo). Required checks: `go`, `go-lint`, `client`, `format`, `docker-build` — `format` since ADR-040, because a check that only reports would make formatting weaker than the auto-fixing job it replaced. Force-pushes and deletion are off, linear history is required (squash-merge produces it), admins are **not** exempt. Deliberately not set: `e2e` is not required — it is an eight-leg shard matrix (eight separate check names that would each need listing) and `dependabot-merge` already waits for it; `visual` is not required because it `needs: [client]`, and a skipped required check blocks a PR with a less useful message than the client failure itself. Review approvals are not required either: with a single maintainer that would block every merge and break Dependabot auto-merge. If a required check ever wedges, lift protection with `gh api -X DELETE repos/polandy/JIT-Pack/branches/main/protection`, merge, then re-apply.
 
 ## Deviations
 

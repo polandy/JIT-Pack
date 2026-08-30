@@ -275,12 +275,112 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     const following = await tripFromGroup(page, 'Engadin 2027', 1)
 
     await openM21(page, harvested)
+
+    // The blast note is the screen's own claim about that reach, and this is
+    // the only world in the suite that can tell its two branches apart: with
+    // no following trip it reads "no trip follows it right now", which a note
+    // that never counted anything would produce just as well (E2E-M21-02
+    // asserts it visible in exactly that world). Here one trip follows, so
+    // the number is a fact rather than a shape.
+    await expect(visible(page).getByTestId('m21-blast')).toContainText('1 trip will be asked')
+
     await visible(page).getByTestId('m21-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Samedan Sommer 2027')
 
     await page.goto(following)
     const proposal = visible(page).getByTestId('m4-group-proposal')
     await expect(proposal).toContainText('Stativ')
+  })
+
+  test('E2E-M21-04: an unchecked loose row is left behind, a checked one is carried', async ({
+    page,
+  }) => {
+    // The word the promise turns on is *checked*: "carries the **checked**
+    // loose rows as own positions". Every other case in this file leaves the
+    // pre-checked state alone, so nothing in the suite has ever operated a
+    // loose row's checkbox — a create that simply took every loose row would
+    // have been green throughout, and so would a checkbox wired to nothing.
+    await seedGroup(page)
+    const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
+    await quickAddVerbatim(page, 'Reisefön')
+    await quickAddVerbatim(page, 'Powerbank')
+    await archiveTrip(page)
+
+    await openM21(page, trip)
+    await expect(visible(page).getByTestId('m21-loose-head')).toContainText('2 of 2')
+
+    const powerbank = visible(page).getByTestId('m21-loose').filter({ hasText: 'Powerbank' })
+    await expect(powerbank.locator('ion-checkbox')).toHaveJSProperty('checked', true)
+    await powerbank.locator('ion-checkbox').click()
+
+    // The head's count is the screen's own read-back, and it could not have
+    // been true before the tap — "2 of 2" is what the case just asserted.
+    await expect(visible(page).getByTestId('m21-loose-head')).toContainText('1 of 2')
+    await expect(powerbank.locator('ion-checkbox')).toHaveJSProperty('checked', false)
+
+    await visible(page).getByTestId('m21-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Samedan Sommer 2027')
+
+    // Both directions on the resulting Vorlage: the kept row is the positive
+    // control the dropped one is read against, so "nothing was carried over"
+    // cannot pass for "the unchecked row stayed out".
+    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(
+      1,
+    )
+    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Powerbank' })).toHaveCount(
+      0,
+    )
+  })
+
+  test('E2E-M21-05: a name another template holds is refused where it is typed', async ({
+    page,
+  }) => {
+    // FR-1.6 on M21's own two writers. M7's create sheet has had this case
+    // since 2026-08-25 (E2E-M7-10); M21 writes a Vorlage *and* optionally a
+    // group into the same instance-wide name space, and neither refusal had
+    // ever been rendered. The second half of the rule exists nowhere else in
+    // the app: the two names this one screen writes must also differ from
+    // each other.
+    await seedGroup(page)
+    const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
+    await quickAddVerbatim(page, 'Reisefön')
+    await archiveTrip(page)
+
+    await openM21(page, trip)
+    const name = visible(page).getByTestId('m21-name').locator('input')
+    const create = visible(page).getByTestId('m21-create')
+
+    // Differing only in capitals — the fold is the rule, not the string.
+    await name.fill('makro')
+    await expect(visible(page).getByTestId('m21-name-taken')).toContainText('Makro')
+    await expect(create).toHaveAttribute('aria-disabled', 'true')
+
+    // The positive control: a free name lifts the refusal again, so the
+    // disabled state above is a fact about the name and not about the screen.
+    await name.fill('Samedan Sommer 2027')
+    await expect(visible(page).getByTestId('m21-name-taken')).toHaveCount(0)
+    await expect(create).not.toHaveAttribute('aria-disabled', 'true')
+
+    await visible(page).getByTestId('m21-bundle').click()
+    const bundle = visible(page).getByTestId('m21-bundle-name').locator('input')
+
+    // The group would take the Vorlage's own name — one write, two rows, one
+    // name. Refused with its own sentence rather than with the taken one,
+    // because nothing holds the name yet.
+    await bundle.fill('Samedan Sommer 2027')
+    await expect(visible(page).getByTestId('m21-bundle-name-taken')).toContainText(
+      'different names',
+    )
+    await expect(create).toHaveAttribute('aria-disabled', 'true')
+
+    // And the same field is held to the taken rule as well.
+    await bundle.fill('Makro')
+    await expect(visible(page).getByTestId('m21-bundle-name-taken')).toContainText('Makro')
+    await expect(create).toHaveAttribute('aria-disabled', 'true')
+
+    await bundle.fill('Samedan Extras')
+    await expect(visible(page).getByTestId('m21-bundle-name-taken')).toHaveCount(0)
+    await expect(create).not.toHaveAttribute('aria-disabled', 'true')
   })
 
   test('E2E-M21-03b: the bundle toggle collects the loose rows into a fresh group', async ({
@@ -304,9 +404,15 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     // Two includes now, and the loose row is in the new group rather than
     // sitting as an own position of the Vorlage.
     await expect(page.getByTestId('header-title')).toHaveText('Samedan Sommer 2027')
+    await expect(visible(page).getByTestId('m8-groups-head')).toBeVisible()
     await expect(
       visible(page).locator('ion-item').filter({ hasText: 'Samedan Extras' }),
     ).toHaveCount(1)
+    // "A second include" is what the sentence promises, and a row bearing the
+    // group's name proves only that the name is somewhere on the screen — M8
+    // renders an include and an own position as the same element. The Vorlage
+    // having *no* own positions at all is what separates the two readings.
+    await expect(visible(page).getByTestId('m8-positions-empty')).toBeVisible()
     await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(
       0,
     )
