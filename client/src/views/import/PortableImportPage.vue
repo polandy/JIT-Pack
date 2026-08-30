@@ -203,7 +203,9 @@ function commit() {
           @ionInput="(e: CustomEvent) => (rawText = e.detail.value ?? '')"
         />
         <!-- Malformed files are rejected here, before any preview -->
-        <IonNote v-if="parsed?.error" color="danger">{{ parsed.error }}</IonNote>
+        <IonNote v-if="parsed?.error" color="danger" data-testid="portable-parse-error">{{
+          parsed.error
+        }}</IonNote>
         <IonButton
           expand="block"
           data-testid="portable-preview"
@@ -262,7 +264,7 @@ function commit() {
 
       <!-- Preview (single screen, no wizard) -->
       <template v-else-if="doc">
-        <div class="summary">
+        <div class="summary" data-testid="portable-summary">
           <IonIcon :icon="documentTextOutline" class="summary-icon" />
           <div>
             <h2 class="summary-name">{{ doc.name }}</h2>
@@ -275,7 +277,11 @@ function commit() {
             </p>
           </div>
         </div>
-        <IonNote v-if="parsed?.newerSchema" class="schema-warning">
+        <IonNote
+          v-if="parsed?.newerSchema"
+          class="schema-warning"
+          data-testid="portable-newer-schema"
+        >
           <IonIcon :icon="warningOutline" />
           {{ t('import.portable.newerSchema') }}
         </IonNote>
@@ -285,7 +291,11 @@ function commit() {
         </IonNote>
 
         <IonList>
-          <IonItem v-for="match in matches" :key="match.name">
+          <IonItem
+            v-for="match in matches"
+            :key="match.name"
+            :data-testid="`portable-match-${match.name}`"
+          >
             <IonLabel>
               <h3>{{ match.name }}</h3>
               <p v-if="match.state === 'near'">
@@ -311,10 +321,10 @@ function commit() {
               :value="mergeChoices.get(match.name) ? 'merge' : 'separate'"
               @ionChange="(e: CustomEvent) => setMerge(match.name, e.detail.value === 'merge')"
             >
-              <IonSegmentButton value="merge">
+              <IonSegmentButton value="merge" data-testid="portable-merge">
                 <IonLabel>{{ t('import.portable.merge') }}</IonLabel>
               </IonSegmentButton>
-              <IonSegmentButton value="separate">
+              <IonSegmentButton value="separate" data-testid="portable-separate">
                 <IonLabel>{{ t('import.portable.keepSeparate') }}</IonLabel>
               </IonSegmentButton>
             </IonSegment>

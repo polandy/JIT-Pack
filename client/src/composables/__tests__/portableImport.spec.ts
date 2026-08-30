@@ -1,8 +1,9 @@
 /**
- * M18 commitPortableImport (FR-18.4): template imports become a new
- * private owned template (FR-1.6) with master items merged or created;
- * trip imports become a planning trip with travelers/containers
- * remapped by name and pack progress preserved.
+ * M18 commitPortableImport (FR-18.4): a template import becomes a new
+ * template, shared instance-wide like every other (FR-1.6 MVP), with master
+ * items merged or created; a trip import becomes a trip in the status the
+ * file carries — planning when it carries none (ADR-024) — with
+ * travelers/containers remapped by name and pack progress preserved.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
@@ -39,7 +40,7 @@ items:
     late_packer: true
 `).doc!
 
-  it('creates a private template, merging decided items and creating the rest', () => {
+  it('creates a template shared instance-wide, merging decided items and creating the rest', () => {
     const orch = newOrch()
     const master = useMasterStore()
     master.applyChange({

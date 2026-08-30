@@ -544,3 +544,214 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await fresh.close()
   })
 })
+
+/**
+ * M18's *other* branch — the merge preview a single document opens
+ * (FR-18.4/18.5, FR-16.3).
+ *
+ * The restore list above is the branch a backup file takes; a file holding
+ * one document takes this one, and until this block nothing drove it. The
+ * preview's own promises — the summary header, the three per-item states, the
+ * merge/keep-separate choice, the schema warning and the parse error — were
+ * written in 2026-07 and rendered by no test: the two cases in
+ * `packing-list.spec.ts` that come through here use it as a *fixture* for a
+ * trip with quantities, click straight past the preview and assert nothing
+ * about it.
+ *
+ * The inventory these cases match against is built by an import of their own,
+ * which is both the cheapest path and the honest one: M18 is the screen that
+ * creates master items out of a file, so the file that arrives second meets
+ * exactly what the first one left behind.
+ */
+test.describe('M18 portable import preview @local @m18', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /** One portable template document, the shape `serializeTemplate` writes. */
+  function templateDoc(name: string, items: string[]): string {
+    return [
+      'kind: template',
+      'schema_version: 1',
+      `name: ${name}`,
+      'items:',
+      ...items.flatMap((item) => [`  - name: ${item}`, '    quantity: 1']),
+    ].join('\n')
+  }
+
+  /** The inventory the later documents match against: Zelt and Sonnencreme. */
+  const BASIS = templateDoc('Basis', ['Zelt', 'Sonnencreme'])
+
+  /** Paste a document into M18 and open its preview, the way M18-11 does. */
+  async function pastePreview(page: Page, text: string) {
+    await page.goto('/portable-import')
+    await page.getByTestId('portable-paste').locator('textarea').fill(text)
+    await page.getByTestId('portable-preview').click()
+  }
+
+  // E2E-M18-01 (FR-18.4/18.5): the preview reads the document out loud —
+  // header and per-item state — and Import lands it. The states are the whole
+  // point of the screen: they are what tells the user, before the button,
+  // whether this file is about to add three items or re-use two they have.
+  test('E2E-M18-01: the preview names the document and every item state, then imports it', async ({
+    page,
+  }) => {
+    await pastePreview(page, BASIS)
+    await page.getByTestId('portable-commit').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Basis')
+
+    await pastePreview(page, templateDoc('Fototage', ['Zelt', 'Sonnenkreme', 'Kamera']))
+
+    const summary = visible(page).getByTestId('portable-summary')
+    await expect(summary).toContainText('Fototage')
+    await expect(summary).toContainText('Template')
+    await expect(summary).toContainText('3 items')
+    await expect(summary).toContainText('schema v1')
+
+    // The three states of FR-16.3's matcher, each on its own row.
+    await expect(visible(page).getByTestId('portable-match-Zelt')).toContainText('matched')
+    await expect(visible(page).getByTestId('portable-match-Kamera')).toContainText('new')
+    const near = visible(page).getByTestId('portable-match-Sonnenkreme')
+    await expect(near).toContainText('similar to: Sonnencreme')
+    // Only the ambiguous row is asked about: a decided state offers no choice,
+    // which is what keeps the near row's segment meaningful.
+    await expect(near.getByTestId('portable-separate')).toBeVisible()
+    await expect(
+      visible(page).getByTestId('portable-match-Zelt').getByTestId('portable-separate'),
+    ).toHaveCount(0)
+
+    await page.getByTestId('portable-commit').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Fototage')
+    // Three positions: the template is landed whole, not as a name. Counted on
+    // the head's own number rather than on rows, which is what M8 shows the
+    // user.
+    await expect(visible(page).getByTestId('m8-positions-head')).toContainText('3')
+  })
+
+  // E2E-M18-03 (FR-16.3): the choice on a near-duplicate row is a decision
+  // about the *inventory*, and the only place it becomes visible is M9. Both
+  // branches run in one case on purpose: "no second item appeared" is equally
+  // green against an import that created nothing at all, so the row that was
+  // kept apart is the positive signal for the row that was merged.
+  test('E2E-M18-03: keep-separate creates a second item where merge creates none', async ({
+    page,
+  }) => {
+    await pastePreview(page, BASIS)
+    await page.getByTestId('portable-commit').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Basis')
+
+    await pastePreview(page, templateDoc('Fototage', ['Zelte', 'Sonnenkreme']))
+    // Sonnenkreme keeps the default the screen offers (merge); Zelte is told
+    // to stay apart.
+    await visible(page).getByTestId('portable-match-Zelte').getByTestId('portable-separate').click()
+    await page.getByTestId('portable-commit').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Fototage')
+
+    await page.goto('/tabs/items')
+    const named = (name: string) => visible(page).getByRole('heading', { name, exact: true })
+    await expect(named('Zelte')).toHaveCount(1)
+    await expect(named('Sonnenkreme')).toHaveCount(0)
+    await expect(named('Sonnencreme')).toHaveCount(1)
+    // Three, not two and not four: the count is what stops a merge that
+    // silently dropped the item and a keep-separate that duplicated both.
+    await expect(visible(page).getByTestId('m9-row')).toHaveCount(3)
+  })
+
+  // E2E-M18-02 (FR-18.4, ADR-024): a trip document arrives in the status it
+  // carries. ADR-024 rejected honouring the status only on the restore path
+  // precisely because the same file would then behave differently depending on
+  // which button opened it — and this, the preview branch, is the half that
+  // rejection is about. E2E-M18-09 covers the restore branch; nothing covered
+  // this one.
+  test('E2E-M18-02: a trip document arrives in the status it carries, not as a plan', async ({
+    page,
+  }) => {
+    await pastePreview(
+      page,
+      [
+        'kind: trip',
+        'schema_version: 1',
+        'name: Samedan 2019',
+        'end_date: "2019-12-31"',
+        'status: archived',
+        'travelers:',
+        '  - name: Andy',
+        'containers: []',
+        'items:',
+        '  - name: Zelt',
+        '    quantity: 1',
+        '    traveler: Andy',
+        '    category: Aktivität',
+        '    mode: pack',
+        '    late_packer: false',
+      ].join('\n'),
+    )
+    await expect(visible(page).getByTestId('portable-summary')).toContainText('Trip')
+    await page.getByTestId('portable-commit').click()
+    await expectTripOpen(page, 'Samedan 2019')
+
+    await page.goto('/tabs/trips?status=archived')
+    await expect(visible(page).getByTestId('trip-row-Samedan 2019')).toHaveCount(1)
+    // The negative half, on the segment it used to land on: before ADR-024
+    // every imported trip was planning, so a decade of archived history
+    // imported as a decade of plans.
+    await page.goto('/tabs/trips?status=planned')
+    await expect(visible(page).getByTestId('trip-row-Samedan 2019')).toHaveCount(0)
+  })
+
+  // E2E-M18-04 (FR-18.5): the two ends of the format's tolerance, on the one
+  // screen that has to state both — a file it cannot read at all is refused
+  // here, with its reason, and a file from a newer app is warned about and
+  // imported anyway. Both are rendered by nothing else: the parser's own rules
+  // are exhaustively unit-covered in `domain/__tests__/portable.spec.ts`, and
+  // a rule nobody paints is a rule the user never hears.
+  test('E2E-M18-04: an unreadable file is refused with its reason, a newer one still imports', async ({
+    page,
+  }) => {
+    await page.goto('/portable-import')
+    await page.getByTestId('portable-paste').locator('textarea').fill('just some notes I wrote')
+    await page.getByTestId('portable-preview').click()
+
+    await expect(visible(page).getByTestId('portable-parse-error')).toContainText(
+      'not a portable document',
+    )
+    // Refused *at the picker*: neither branch of the screen opened, and the
+    // form is still there to correct — an error that navigated away would
+    // leave nothing to fix.
+    await expect(visible(page).getByTestId('portable-summary')).toHaveCount(0)
+    await expect(visible(page).getByTestId('portable-restore')).toHaveCount(0)
+    await expect(visible(page).getByTestId('portable-paste')).toBeVisible()
+    // …with what was pasted still in it, which is what makes the refusal
+    // correctable rather than merely reported.
+    await expect(visible(page).getByTestId('portable-paste').locator('textarea')).toHaveValue(
+      'just some notes I wrote',
+    )
+
+    await page.getByTestId('portable-paste').locator('textarea').fill(
+      [
+        'kind: trip',
+        'schema_version: 99',
+        'name: Zukunft',
+        'end_date: "2027-12-31"',
+        // A field this build has never heard of, which FR-18.5 says is
+        // ignored rather than fatal.
+        'mood: hopeful',
+        'travelers: []',
+        'containers: []',
+        'items:',
+        '  - name: Zelt',
+        '    quantity: 1',
+        '    mode: pack',
+        '    late_packer: false',
+      ].join('\n'),
+    )
+    await page.getByTestId('portable-preview').click()
+
+    await expect(visible(page).getByTestId('portable-newer-schema')).toBeVisible()
+    await expect(visible(page).getByTestId('portable-summary')).toContainText('schema v99')
+    await page.getByTestId('portable-commit').click()
+    // Best-effort means the trip is here, unknown field and all.
+    await expectTripOpen(page, 'Zukunft')
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+  })
+})
