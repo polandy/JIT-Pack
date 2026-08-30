@@ -90,4 +90,15 @@ onMounted(async () => {
   padding-top: 96px;
   color: var(--ion-color-medium);
 }
+
+/*
+ * The block is centred, so without a measure the longest sentence decides the
+ * line length: FR-23.3's deactivated-account explanation renders as one
+ * 918 px line on a desktop viewport (measured), where the short refusals it
+ * sits beside never reach the edge.
+ */
+.callback p {
+  max-width: 42ch;
+  text-align: center;
+}
 </style>
