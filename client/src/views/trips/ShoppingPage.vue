@@ -192,7 +192,11 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
       <QuickAddItem :is-active="isActive" :exclude-item-ids="quickAddExcludeIds" @add="quickAdd" />
 
       <IonList v-if="grouped.length > 0">
-        <IonItemGroup v-for="group in grouped" :key="group.key">
+        <IonItemGroup
+          v-for="group in grouped"
+          :key="group.key"
+          :data-testid="`m6-group-${group.name ?? 'none'}`"
+        >
           <IonItemDivider>
             <IonLabel>{{ group.name ?? t('shopping.uncategorized') }}</IonLabel>
           </IonItemDivider>
