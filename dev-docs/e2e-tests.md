@@ -41,8 +41,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
-| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -77,7 +77,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile and badge; the per-person list is unbuilt) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
@@ -435,15 +435,33 @@ the baselines that make "looks right" assertable are the fifth step of
 `design-foundation-plan.md`, and until they land the eyeball pass is the
 gate.
 
-**What the M4 unit deliberately leaves out, and why.** Every facet case
-beyond the panel's own structure — E2E-M4-16 (OR-within/AND-across),
--17 (counts), -19 (the *Gemeinsam* bucket) — needs rows carrying a
-category, a traveler or a buy mode, and **none of those can be set from
-M4**: the quick-add produces uncategorised, unassigned `pack` rows. Spec
-§2.4 forbids injecting such rows around the app, so these cases arrive
-with the screens that can produce them (M5, and the M9/M10 rebuild).
-Likewise E2E-M4-26/-27 need FR-27.10's group add, and -24/-30/-31 need a
-second account: `server`-only today. **E2E-M4-12/-13 arrived 2026-08-29**
+**What the M4 unit deliberately leaves out, and why — rewritten
+2026-08-30.** The paragraph that stood here said the facet cases
+E2E-M4-16/-17/-19 were waiting for a screen that could produce
+categorised, assigned rows, and that -24/-30/-31 were waiting for a
+second account. Both waits ended without anybody noticing, in two
+different ways, and the audit of item 6 is what found it.
+
+The facet cases had **already been written** — as unit tests in
+`domain/__tests__/packingView.spec.ts`, where the arithmetic lives.
+OR-within/AND-across, the counts taken against the other facets, the
+dead-end rule, the selected-at-zero rule, the shared bucket leading its
+facet: all nine of them, none carrying an E2E id, so the ledger went on
+reporting a gap that a `git grep` of the id could confirm and a reading
+of the suite could not. **The blocked entry outlived its blocker and
+nothing connected them**, which is a different failure from the one
+recorded under E2E-M4-12/-13 — there, the case unblocked and had to be
+re-read; here, it was covered and had to be re-*found*.
+
+The second-account cases were genuinely blocked and are now written
+(ADR-029's `server` project). E2E-M4-24 split rather than moved: its
+*name* half is FLOW-01's, its *time and clearing* half needs no account
+at all and is Local Mode's. E2E-M4-30 needed the rule to leave
+`PackingListPage.vue` first — see the entry below. E2E-M4-26/-27 landed
+with FR-27.10 in 2026-08-19.
+
+What is left out of the M4 unit on purpose is now one line: the
+`server`-only cases, which live in `e2e/server/`. **E2E-M4-12/-13 arrived 2026-08-29**
 with FR-25.8's per-person quick-add, and neither landed where it was
 waiting: -12 is one case with -58, because the two entries describe one
 rendered outcome and the second would only re-run it, and -13's premise —
