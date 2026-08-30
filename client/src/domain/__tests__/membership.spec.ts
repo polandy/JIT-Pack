@@ -368,7 +368,12 @@ describe('planMembership — the state follows the numbers', () => {
 
   it('Collapse_OntoAPartlyPackedSum_StopsClaimingTheRowIsPacked', () => {
     const rows = [
-      row('row-andy', { assigned_traveler_id: ANDY.id, quantity: 2, packed_count: 2, state: 'packed' }),
+      row('row-andy', {
+        assigned_traveler_id: ANDY.id,
+        quantity: 2,
+        packed_count: 2,
+        state: 'packed',
+      }),
       row('row-leo', { assigned_traveler_id: LEO.id, quantity: 3, packed_count: 0 }),
     ]
 
@@ -385,8 +390,18 @@ describe('planMembership — the state follows the numbers', () => {
 
   it('Collapse_WhereEveryInstanceIsPacked_KeepsThePackedState', () => {
     const rows = [
-      row('row-andy', { assigned_traveler_id: ANDY.id, quantity: 2, packed_count: 2, state: 'packed' }),
-      row('row-leo', { assigned_traveler_id: LEO.id, quantity: 1, packed_count: 1, state: 'packed' }),
+      row('row-andy', {
+        assigned_traveler_id: ANDY.id,
+        quantity: 2,
+        packed_count: 2,
+        state: 'packed',
+      }),
+      row('row-leo', {
+        assigned_traveler_id: LEO.id,
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+      }),
     ]
 
     const plan = planMembership(input(rows, { kind: 'shared' }))
@@ -395,4 +410,3 @@ describe('planMembership — the state follows the numbers', () => {
     expect(plan.totals).toEqual({ quantity: 3, packed: 3 })
   })
 })
-
