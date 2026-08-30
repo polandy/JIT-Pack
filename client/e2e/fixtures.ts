@@ -235,6 +235,33 @@ export function visiblePage(page: Page) {
 }
 
 /**
+ * Pick a value from an `ion-select`'s popover. The options live in a
+ * detached `ion-popover`, not under the select, so they are addressed from
+ * the page and the popover's disappearance is what says the write landed.
+ */
+export async function chooseInSelect(page: Page, testid: string, label: string) {
+  await page.getByTestId(testid).click()
+  const popover = page.locator('ion-popover ion-select-popover')
+  await expect(popover).toBeVisible()
+  await popover.locator('ion-item', { hasText: label }).click()
+  await expect(page.locator('ion-popover')).toHaveCount(0)
+}
+
+/**
+ * Create a master item through M9/M10's own path (spec §2.4). Ends on the
+ * new item's editor, which is where a dependency is declared — so a caller
+ * building a companion pair calls this twice and wires the second to the
+ * first without navigating again.
+ */
+export async function createMasterItem(page: Page, name: string) {
+  await page.goto('/tabs/items')
+  await visiblePage(page).getByTestId('m9-fab').click()
+  await visiblePage(page).getByTestId('m10-name').locator('input').fill(name)
+  await visiblePage(page).getByTestId('m10-create').click()
+  await expect(page.getByTestId('header-title')).toHaveText(name)
+}
+
+/**
  * Create a template through the app's own path (spec §2.4): M7 FAB → scope
  * chooser → name in the same sheet. Ends on the new template's M8 editor,
  * which is where creating hands over to editing.

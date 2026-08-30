@@ -195,6 +195,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A blocked case that had quietly unblocked, and one that had quietly been covered (2026-08-30)](#a-blocked-case-that-had-quietly-unblocked-and-one-that-had-quietly-been-covered-2026-08-30) — backlog item 6, M4. A rule that was correct and unreachable, an entry waiting on a blocker that was gone, and nine cases that had been written as unit tests with no E2E id on them.
 - [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
+- [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
 
 ## Current state
 
@@ -8568,3 +8569,95 @@ because a reader has to be able to find out why it went — which means every
 naive recount counts it as a gap forever, and the number can only drift
 upwards as the audit does its work. The headline figure was left where it was
 and `CLAUDE.md` now says not to re-derive it. Measure a screen.
+
+## Six numbers that each meant two things (2026-08-30)
+
+M5 is the third screen through the audit of backlog item 6, and the first
+whose central finding is not a missing case.
+
+**Its catalogue defined six ids twice.** `E2E-M5-06`, `-07`, `-09`, `-10`,
+`-11` and `-12` each carried one promise from the original v1.0 list and a
+different one from the §3.25 rebuild, in two blocks of the same section that
+had never been reconciled. The suite implements the rebuild's meaning of
+`-09`…`-12`, so four green tests stood in the ledger as coverage of four
+promises nothing asserted, and the traceability matrix pointed seven FRs at
+the invisible half.
+
+**Neither diff that produced it was reviewable as a mistake.** `19d9826`
+appended the FR-25.14/25.15 entries *above* a catalogue that already used
+`-06` and `-07`, in one commit. `dd560d4`, the M4/M5 rebuild five days
+later, appended `-09`…`-12` on top of an existing `-09`…`-12`. Both are pure
+additions to a long bulleted list, and nothing in the repository compares an
+id against itself. This is the failure mode that a coverage count is
+actively bad at: the count went **up** each time.
+
+**The resolution, and the option rejected.** Renumbering the older block was
+the tidier-looking answer and was rejected: it moves ids that eleven live
+artefacts already cite in their new sense, and it takes away the one thing
+the project's retirement convention exists for — a reader arriving from an
+old commit that names `E2E-M5-10` must land on a line saying what became of
+it. The rule applied instead is that **a number means whatever the suite
+implements**; the loser is struck through in place, re-headed *(v1.0
+catalogue, shadowed)*, and says where its promise actually went. Only a
+promise that survived *and* had nowhere to live took a fresh number, which
+happened twice. The cost is stated rather than hidden: the section grows a
+dozen struck lines that will never be deleted, and every naive recount will
+go on counting them as gaps.
+
+**Sorted against the screen, the twelve went the way M6's and M4's had** —
+four already asserted under other ids, four describing a screen that had
+argued its way out of them, one never built, three real. The owner retired
+the four and the unbuilt one, including FR-14.1's sparkline: leaving it
+marked *owed* would have been the softer call, and it is not owed, because
+the per-item history is offered where the quantity is actually decided.
+
+**The finding underneath the collision is the one worth carrying.** FR-25.15
+exists to say that the sheet's save indicator and G-2's glyph are two
+statements — captured *here* versus reached the server — and that offline
+"that difference is the entire story, so the two indicators must not be
+merged into one". All four sheets that carry the indicator passed it
+`syncStatus.state`: G-2's state, the exact thing named. Its precedence
+returns `offline` before `syncing`, so on a device with no network an open
+write rendered as **saved**, and on a connected one an unrelated background
+pull rendered as *saving*. The requirement's own case was the broken one.
+
+Three things about how it survived, each of which cost something elsewhere:
+
+- **The doc comment quoted the requirement.** `SaveIndicator.vue` opens by
+  restating the distinction in full, directly above the prop that collapses
+  it. A comment agreeing with the spec is evidence about intent and none at
+  all about behaviour, and here it read as a citation.
+- **Its unit test pinned the defect as the rule.** The last case said
+  *"reads every non-syncing state as settled — offline is a G-2 story, not
+  this one"*. Offline is precisely this story. A test written from the
+  implementation rather than from the requirement will always be green, and
+  will always sound reasonable.
+- **The id collision hid the entry that would have asked.** `E2E-M5-07`'s
+  Block-A text — "asserts the indicator is separate from the G-2 sync glyph"
+  — was shadowed by a `server` delegation case that *is* covered elsewhere,
+  so the promise read as satisfied from every direction anyone looked.
+
+**What the fix is.** `capturePending` on the orchestrator, counting this
+device's own open writes — the Local Mode save, and the outbox's append to
+IndexedDB — and blind to the connection. `SaveIndicator` takes a boolean and
+no longer imports `SyncState`, which was the coupling. The signal is
+deliberately narrower than the queue: a mutation the server has taken is
+captured, and a drain rewriting the queue is not an edit, so only `enqueue`
+moves the number.
+
+**No e2e claims it, and that is the honest half.** The ● is transient by
+construction; a browser case could only race it, which this project treats
+as worse than no case. The falsifiable assertions live where the signal is a
+value somebody sets: five cases in `captureState.spec.ts`, three in
+`ItemDetailSheet.spec.ts` — all three redden when the sheet is pointed back
+at `syncStatus.state`, and nothing else moves. What the browser asserts is
+the part that holds still: the sheet carries no save control, asserted
+beside the indicator that stands instead of one.
+
+**A last retirement, for the opposite reason to the others.** FR-7.3 ended
+with "Resolution is restricted to the item's assignee or the trip owner",
+enforced nowhere in client or server, and contradicting its own sentence two
+lines earlier that the todos are visible to every trip member. It was struck
+rather than built: the trip is already membership-gated, and a list where
+anyone may read a preparation task but only two people may tick it is
+friction with nothing behind it.

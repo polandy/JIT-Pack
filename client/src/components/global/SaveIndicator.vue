@@ -6,17 +6,20 @@
  * this says the edit is captured locally, G-2 says whether it reached the
  * server — offline that difference is the entire story.
  *
- * The seam is the orchestrator's sync state: since FR-19.2 an open Local Mode
- * write reports as `syncing`, so "settled" is observable rather than assumed.
+ * The seam is the orchestrator's `capturePending`, which counts this device's
+ * own open writes and nothing else. It used to be `syncStatus.state` — G-2's
+ * own state — which collapsed the two the requirement exists to keep apart:
+ * that state answers `offline` before `syncing`, so an open write on a device
+ * with no network read as settled, and a background pull on one with a
+ * network read as saving (found 2026-08-30, audit of backlog item 6).
  */
 import { computed } from 'vue'
 
-import type { SyncState } from '@/composables/useSyncStatus'
 import { t } from '@/i18n'
 
-const props = defineProps<{ state: SyncState }>()
+const props = defineProps<{ pending: boolean }>()
 
-const saving = computed(() => props.state === 'syncing')
+const saving = computed(() => props.pending)
 const title = computed(() => (saving.value ? t('item.saving') : t('item.saved')))
 </script>
 
