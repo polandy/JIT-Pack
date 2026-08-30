@@ -58,6 +58,8 @@ var (
 // at all rather than a very distant one.
 func ParseAPITokenExpiry(e APITokenExpiry) (time.Duration, error) {
 	switch e {
+	case APITokenExpiry1h:
+		return time.Hour, nil
 	case APITokenExpiry1d:
 		return 24 * time.Hour, nil
 	case APITokenExpiry7d:

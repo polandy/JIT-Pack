@@ -236,6 +236,7 @@ const tokenSheetOpen = ref(false)
  * switch, which is the trap M17 closed once already.
  */
 const tokenExpiryOptions = computed(() => [
+  { value: API_TOKEN_EXPIRY['1h'], label: t('settings.tokenExpiry1h') },
   { value: API_TOKEN_EXPIRY['1d'], label: t('settings.tokenExpiry1d') },
   { value: API_TOKEN_EXPIRY['7d'], label: t('settings.tokenExpiry7d') },
   { value: API_TOKEN_EXPIRY['30d'], label: t('settings.tokenExpiry30d') },

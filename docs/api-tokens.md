@@ -14,7 +14,7 @@ Open **Settings**. Under **API tokens**:
 
 1. Say what the token is for. The name travels inside the token, so keep it short and put nothing
    private in it — anyone holding the token can read it.
-2. Choose how long it should live: a day, a week, 30 days, 90 days, a year, or never. **90 days is
+2. Choose how long it should live: an hour, a day, a week, 30 days, 90 days, a year, or never. **90 days is
    preselected.** For a job that runs once, pick the short end — the credential then dies with the
    task instead of outliving it in a shell history.
    Because a single token cannot be revoked, this expiry is the only thing that ever ends it by
@@ -38,7 +38,7 @@ jitpackd token create --user you@example.com --name "nightly export"
 |---|---|
 | `--user` | The account's id or e-mail address. If two accounts share an address, the command refuses rather than guessing. |
 | `--name` | What the token is for. |
-| `--expires` | `1d`, `7d`, `30d`, `90d`, `365d` or `never`. Defaults to `90d`. |
+| `--expires` | `1h`, `1d`, `7d`, `30d`, `90d`, `365d` or `never`. Defaults to `90d`. |
 | `--print-secret` | Required when output is not a terminal. |
 
 That last flag is on purpose: the token is printed to standard output, which is exactly where a

@@ -137,9 +137,10 @@ export interface MasterDeleteResponse {
  * the CLI's flag and the handler's validation read the same four values from
  * one declaration instead of agreeing by hand (§4a).
  */
-export type APITokenExpiry = '1d' | '7d' | '30d' | '90d' | '365d' | 'never'
+export type APITokenExpiry = '1h' | '1d' | '7d' | '30d' | '90d' | '365d' | 'never'
 
 export const API_TOKEN_EXPIRY = {
+  '1h': '1h',
   '1d': '1d',
   '7d': '7d',
   '30d': '30d',

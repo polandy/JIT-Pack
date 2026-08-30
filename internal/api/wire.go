@@ -135,6 +135,7 @@ type APITokenExpiry string
 // deliberate answer here and not the absence of one — and why the short end
 // matters: a credential for one cleanup run should be able to die with it.
 const (
+	APITokenExpiry1h    APITokenExpiry = "1h"
 	APITokenExpiry1d    APITokenExpiry = "1d"
 	APITokenExpiry7d    APITokenExpiry = "7d"
 	APITokenExpiry30d   APITokenExpiry = "30d"

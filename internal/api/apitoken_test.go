@@ -66,6 +66,7 @@ func TestMintAPIToken_ExpiryFollowsTheChosenLifetime(t *testing.T) {
 		expiry api.APITokenExpiry
 		want   time.Time // zero means: no exp claim at all
 	}{
+		{api.APITokenExpiry1h, now.Add(time.Hour)},
 		{api.APITokenExpiry1d, now.AddDate(0, 0, 1)},
 		{api.APITokenExpiry7d, now.AddDate(0, 0, 7)},
 		{api.APITokenExpiry30d, now.AddDate(0, 0, 30)},

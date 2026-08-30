@@ -648,6 +648,7 @@ export const en = {
   'settings.tokenName': 'What is it for?',
   'settings.tokenNamePlaceholder': 'Cleanup script',
   'settings.tokenExpiry': 'Expires after',
+  'settings.tokenExpiry1h': 'An hour',
   'settings.tokenExpiry1d': 'A day',
   'settings.tokenExpiry7d': 'A week',
   'settings.tokenExpiry30d': '30 days',
