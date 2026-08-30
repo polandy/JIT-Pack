@@ -2929,3 +2929,42 @@ of an id confirms a gap that reading the suite refutes — but it is a conventio
 drift across the whole suite, not four defects, and folding it into a
 four-entry cleanup would bury it. Recorded here so the next person measuring
 coverage by grep knows the number is soft.
+
+## The subscription helper was not deterministic, and said it was (2026-08-30)
+
+`wsSubscribed` waited for the hub's `presence` frame to prove a page's trip
+subscription existed, and its own doc comment called that *"Deterministic, not
+hopeful"*. It was hopeful. Playwright buffers no frames from before a listener
+is attached, and the helper attached one only when the caller awaited it —
+while **every** caller had the same shape:
+
+    const wsBob = bob.waitForEvent('websocket')   // resolves at socket open
+    await bob.goto(tripPath)
+    await expect(row).toBeVisible()               // seconds
+    await wsSubscribed(bob, wsBob)                // listener attaches HERE
+
+The frame arrives during the render wait and is dropped. The test then waits
+out its 180 s timeout for a *second* presence broadcast, which only another
+account's arrival produces — and in E2E-NOTIFY-01 that arrival is on the line
+*after* the wait. So the case passed only while the server round trip was
+slower than the render, which is why it failed on CI under load and never
+locally.
+
+**The fault was the API's shape, not the timing.** The caller created the
+promise and chose when to consume it, so the gap was the caller's to open and
+all twelve opened it. `watchSubscribed(page)` takes the page instead and owns
+both steps, attaching the listener one microtask after the socket exists.
+
+**Proved, not argued.** Locally the race does not occur — the machine wins the
+other way and the case passes in 12.3 s. Inserting a deliberate 3 s wait before
+the old helper reproduces the CI failure exactly; with the same probe in place
+the new helper passes in 15.1 s, which is 12.3 plus the probe. Probe removed
+before landing; both backend projects then run green (17 `server`, 21 `single`).
+
+**The general shape, for the next helper.** This is the third finding this week
+of the same kind — a comment asserting a property the code does not have
+(FR-25.15's indicator, the case-id gate's empty scan, and now this). A doc
+comment agreeing with the intent is evidence about the author, never about the
+behaviour. What makes it worse here is that the claim was *load-bearing*: the
+suite's rule against waiting for durations is exactly what this helper existed
+to satisfy, so nobody looked again.
