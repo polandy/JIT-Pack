@@ -48,7 +48,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
-| Visual baselines | E2E-VIS-01 … E2E-VIS-08 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
+| Visual baselines | E2E-VIS-01 … E2E-VIS-09 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
@@ -3635,6 +3635,24 @@ an empty control checks nothing**.
 **What it does not guard**, stated so it is not discovered again: the ADR-013 tolerance is 0.002,
 which E2E-VIS-08's own entry already documents as blind to a 591 px offset on a full-page shot.
 This gate catches the row collapsing, not a few pixels of drift in it.
+
+### The baseline had recorded a scroll position (2026-08-31)
+
+Two days later `E2E-VIS-09` failed on `visual-mobile` with a 6 % diff — on a **docs-only
+commit**, and stably across both retries, which is what ruled a rendering flake out. The two
+images carry the same screen: the baseline sits 102 px lower.
+
+The cause is in the case, not in M16. `fill()` focuses a field, and the browser scrolls a
+focused field into view on its own schedule, so where the page stood at capture time was a
+race the baseline had frozen one side of — and `settled()` waits for fonts, which says nothing
+about scroll. `visual-desktop` never showed it, because at that height there is nothing to
+scroll.
+
+Fixed by making the scroll a decision instead of an outcome: blur, then set the `ion-content`
+scroller to 0 before the shot, and the mobile baseline re-recorded at the top. **The general
+form — a baseline is only as deterministic as the state the case leaves the screen in**, and a
+capture taken right after typing is not that state. Nothing else in this file's baselines types
+before it shoots.
 
 ### One shard was red, and it was not this change (2026-08-31)
 
