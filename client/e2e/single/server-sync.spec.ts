@@ -1314,4 +1314,75 @@ test.describe('Single-User backend sync @single', () => {
 
     await fresh.close()
   })
+
+  /**
+   * E2E-G5-01 (G-5, FR-25.15): a write is on screen although the server
+   * never accepted it, and the refusal is reported by the glyph alone.
+   *
+   * Both halves are load-bearing and neither had a case. "Before
+   * confirmation" is established without racing anything and without
+   * holding a route open: the push carrying this row is **refused every
+   * time it is attempted**, so a row that is on screen regardless cannot
+   * have been waiting for an answer. (An earlier draft held the request
+   * open to assert the row mid-flight. Do not: an unresolved route handler
+   * wedges the whole run — Playwright's own test timeout never fires, so
+   * the failure it produces is worse than the one it would report.)
+   *
+   * The refusal is then asserted *positively* — the indicator moves to
+   * `offline` and counts the pending write — so "no blocking dialog" is
+   * read on a screen that is known to have noticed, not on one where
+   * nothing happened at all.
+   */
+  test('E2E-G5-01: a refused write stays on screen, and only the glyph says so', async ({
+    browser,
+  }) => {
+    // Its own context, seeded into `server` mode by `bootPage` — the plain
+    // `page` fixture is unseeded here and lands on M19 instead of the app.
+    const context = await browser.newContext()
+    const page = await bootPage(context)
+    const id = uniq()
+    // Only the write this case is about: the trip's own creation push has to
+    // reach the server, or there is no trip to add a row to.
+    let refusing = false
+    let refusals = 0
+
+    await page.route(SYNC_PATH, async (route) => {
+      if (route.request().method() !== 'POST' || !refusing) {
+        // `fetch` + `fulfill`, as E2E-FLOW-10 does: `route.continue()` on
+        // these requests wedges the run outright — no test timeout, no
+        // report — and this pattern is the one the file already proves.
+        await route.fulfill({ response: await route.fetch() })
+        return
+      }
+      refusals += 1
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'internal', message: 'forced' }),
+      })
+    })
+
+    await createTripViaWizard(page, { name: `Optimistisch ${id}` })
+    const indicator = page.getByTestId('sync-indicator')
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+
+    refusing = true
+    const row = `Zelt-${id}`
+    await visiblePage(page).getByTestId('m4-fab').click()
+    await visiblePage(page).getByTestId('quick-add-input').locator('input').fill(row)
+    await page.getByTestId('quick-add-confirm').click()
+
+    // On screen, and the server has never accepted it.
+    await expect(visiblePage(page).getByTestId(`m4-row-${row}`)).toBeVisible()
+
+    // The refusal is reported here and nowhere else.
+    await expect(indicator).toHaveAttribute('data-state', 'offline')
+    await expect(indicator.locator('ion-badge')).toHaveText('1')
+    await expect(page.locator('ion-alert')).toHaveCount(0)
+    // The push really was refused — without this the case would also pass in
+    // a world where nothing was ever sent.
+    expect(refusals).toBeGreaterThan(0)
+
+    await context.close()
+  })
 })

@@ -368,10 +368,20 @@ it. Item numbers stay stable even as items close, because the log refers back to
    not buildable as specified**, because the API sets no CORS headers on purpose and the promised
    inline error would report a healthy instance as unreachable; and **FR-10.3's threshold was
    configurable in the document and fixed in the product**, so the ruling deleted the reader
-   rather than adding a writer. What is left of item 6 is cross-cutting — the G-* patterns,
+   rather than adding a writer. What is left of item 6 is cross-cutting —
    FLOW-*, PWA, SYNC and the NFR rows — plus M2's own next pass, which owes a `data-testid` on
    its empty state and the now-writable E2E-M2-02. Log: *„Twenty-two promises, decided against
    the screen"*.
+   **The G-* patterns closed 2026-08-31**, and the shape they added is a control that is built,
+   unit-tested and *unreachable*: G-6's long-press on the stepper could never fire on M4, because
+   the row arms FR-5.5's press-and-hold on every pointerdown inside it — the row's *click* had
+   been stopped at the control column since the stepper shipped, its *press* never was. Eight
+   cases written, two icons given the name they promised (`header-back`, `header-settings`), five
+   spec sentences corrected against screens that had changed under them (G-12-07's *„no ⋯"*,
+   G-12-04's *„single line"*, G-9-01's width-conditional FAB, G-4-01's scope, G-8-01's
+   already-covered siblings) and three clauses kept as unfalsifiable rather than counted.
+   **One owner decision:** G-12's long-press name bubble on touch is built nowhere.
+   Log: *„A gesture the row was eating"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

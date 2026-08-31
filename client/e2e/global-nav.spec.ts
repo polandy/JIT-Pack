@@ -7,6 +7,7 @@ import {
   openQuickAdd,
   setDateField,
   tripAction,
+  tripActions,
   expectTripActionOffered,
 } from './fixtures'
 import type { Page } from '@playwright/test'
@@ -659,6 +660,122 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // gear — which would only reopen it — is gone from the bar.
     await expect(onVisibleScreen(page, 'settings-language')).toBeVisible()
     await expect(page.getByTestId('header-settings')).toHaveCount(0)
+  })
+
+  /*
+   * E2E-G12-05 (G-12): the destinations wear literal glyphs.
+   *
+   * The regression it guards is one generic icon standing for several
+   * places, which is what makes dropping the labels affordable in the
+   * first place. Asserted as pairwise distinctness of the glyph each
+   * button actually renders — including against the inventory anchor,
+   * because the trip's three neighbours are not the only icons the reader
+   * is holding in their head.
+   */
+  test('E2E-G12-05: shopping, luggage, analytics and the inventory wear four different glyphs', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+
+    const glyph = async (testid: string) => {
+      const icon = page.getByTestId(testid).locator('ion-icon')
+      await expect(icon).toBeVisible()
+      // The chosen glyph, read off the element Ionic renders from. A
+      // rendered-pixel comparison would be the visual suite's job; what
+      // this case has to see is that four destinations did not reach for
+      // one icon.
+      return icon.evaluate((el) => (el as unknown as { icon?: string }).icon ?? '')
+    }
+
+    const glyphs = [
+      await glyph('m4-nav-shopping'),
+      await glyph('m4-nav-luggage'),
+      await glyph('m4-nav-analytics'),
+    ]
+    // The rail is the fourth reader of the same vocabulary.
+    await page.setViewportSize(DESKTOP)
+    await page.goto('/tabs/items')
+    glyphs.push(await glyph('rail-items'))
+
+    for (const g of glyphs) expect(g).not.toBe('')
+    expect(new Set(glyphs).size).toBe(glyphs.length)
+  })
+
+  /*
+   * E2E-G12-06 (G-12): an icon with no label still has a name.
+   *
+   * The spec sentence said "every unlabelled navigation icon", and read
+   * against the app that is a smaller set than it sounds: the four anchors
+   * carry visible labels in both presentations, so the unlabelled icons are
+   * the app bar's and M4's three destinations. Two of them — back and the
+   * settings gear — carried `aria-label` and no `title`, so a pointer
+   * hovering them was told nothing; fixed with this case.
+   *
+   * The clause about a long-press bubble on touch is **not** asserted: no
+   * such bubble is built anywhere, and it is an open owner decision rather
+   * than a missing test.
+   */
+  test('E2E-G12-06: every unlabelled icon names itself, and a plain tap just navigates', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+
+    for (const testid of [
+      'm4-nav-shopping',
+      'm4-nav-luggage',
+      'm4-nav-analytics',
+      'm4-search',
+      'm4-filter',
+      'header-back',
+    ]) {
+      const el = page.getByTestId(testid)
+      await expect(el).toBeVisible()
+      const title = (await el.getAttribute('title')) ?? ''
+      expect(title, testid).not.toBe('')
+      // The two names agree: a hover and a screen reader must not be told
+      // different things about the same button. Read as the *accessible*
+      // name rather than off the attribute — Ionic relays `aria-label` into
+      // its shadow button, so the host element carries none (PR #228).
+      await expect(el, testid).toHaveAccessibleName(title)
+    }
+
+    // One tap, and it is the navigation — no bubble in between to dismiss.
+    await page.getByTestId('m4-nav-shopping').click()
+    await expect(onVisibleScreen(page, 'm6-page')).toBeVisible()
+  })
+
+  /*
+   * E2E-G12-07 (G-12): the trip's three destinations are one tap each.
+   *
+   * The spec sentence closed with "No ⋯ exists", and that half was reversed
+   * on 2026-08-25 by UX-13: M4 does have a ⋮, carrying the once-per-trip
+   * actions as words (E2E-M4-57). What the clause was actually protecting
+   * is untouched and is what this case pins — none of the three *places*
+   * within the trip sits behind a menu, which is what §3.25's
+   * discoverability directive asked for.
+   */
+  test('E2E-G12-07: shopping, luggage and analytics are reachable without opening a menu', async ({
+    page,
+  }) => {
+    const path = await createTripViaWizard(page, TRIP)
+
+    for (const [testid, landing] of [
+      ['m4-nav-shopping', 'm6-page'],
+      ['m4-nav-luggage', 'm11-empty'],
+      ['m4-nav-analytics', 'analytics-dim-category'],
+    ] as const) {
+      await expect(page.getByTestId(testid)).toBeVisible()
+      await page.getByTestId(testid).click()
+      await expect(onVisibleScreen(page, landing)).toBeVisible()
+      await page.goto(path)
+      await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
+    }
+
+    // The menu that does exist is the once-per-trip one, and none of the
+    // three destinations went into it.
+    const offered = await tripActions(page)
+    expect(offered.length).toBeGreaterThan(0)
+    for (const name of ['Shopping', 'Luggage', 'Analytics']) expect(offered).not.toContain(name)
   })
 
   /*
