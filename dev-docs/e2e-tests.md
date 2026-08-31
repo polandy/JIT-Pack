@@ -3634,3 +3634,25 @@ an empty control checks nothing**.
 **What it does not guard**, stated so it is not discovered again: the ADR-013 tolerance is 0.002,
 which E2E-VIS-08's own entry already documents as blind to a 591 px offset on a full-page shot.
 This gate catches the row collapsing, not a few pixels of drift in it.
+
+### One shard was red, and it was not this change (2026-08-31)
+
+Recorded because the *reasoning* is reusable, not because the failure was. `e2e (6)` failed on
+this PR's first run with `E2E-M5-12`: `m4-header` resolving to **two** elements inside the
+visible-page locator — the two-live-pages shape ADR-012's amendment 3 fixed the same morning,
+which is exactly the coincidence that makes a re-run the wrong first move.
+
+What was checked before re-running, in order:
+
+1. **Can this diff reach the e2e projects at all?** `playwright.config.ts` gives `chromium` and
+   `webkit` `testIgnore: ['**/visual.spec.ts', …]`, so a new case in `visual.spec.ts` changes
+   neither their test list nor their **shard boundaries**; the only other edit is a comment in
+   `series.spec.ts`. The answer is no.
+2. **Is `main` red?** Its own run on the identical e2e code is green on all eight shards.
+3. **Does it reproduce here?** `E2E-M5-12` alone, and the whole `item-detail` spec, ran green
+   three times each against `origin/main` in the pinned container.
+
+Only then the re-run, which passed. So: an intermittent under CI load, on code this PR does not
+touch — the third such observation in two days (`E2E-M4-32`, `E2E-M17-01`, and this). **Three
+different cases failing intermittently only under a loaded shard is a pattern worth a
+measurement of its own**, and it is not one a green re-run should be allowed to close.
