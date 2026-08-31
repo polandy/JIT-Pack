@@ -9,6 +9,7 @@ import {
   createTemplate,
   createTripFollowingGroup,
   createTripViaWizard,
+  chooseInSelect,
   expectTripOpen,
   visiblePage,
   tripAction,
@@ -47,6 +48,49 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  *    start, which the durable outbox added (B2). Track C stopped there
  *    deliberately; an `online`-event drain is not built.
  */
+
+/**
+ * Walk M3 to step 4 for a new trip in `series`, carrying `item` as an
+ * FR-27.3 single item, and read FR-14.2's history hint off its row.
+ *
+ * The hint is a button: reading it is half the promise, and taking it is
+ * the other half — "one-tap default" is what the FR actually says.
+ */
+async function expectHistoryHint(
+  page: Page,
+  series: string,
+  item: string,
+  ...expected: string[]
+) {
+  const [...years] = expected.slice(0, -1)
+  const suggested = expected[expected.length - 1]!
+
+  // Reached the way the app reaches it, not by a reload: M3 is where the
+  // person already in the app ends up, and a fresh document would be a
+  // different device than the one the case is about.
+  await page.getByTestId('rail-trips').click()
+  await visiblePage(page).getByTestId('trips-new').click()
+  await expect(visiblePage(page).getByTestId('wizard-step-1')).toBeVisible()
+  await visiblePage(page).getByTestId('wizard-name').locator('input').fill(`Nächstes Jahr ${item}`)
+  await visiblePage(page).getByTestId('wizard-more').click()
+  await chooseInSelect(page, 'wizard-series', series)
+  await visiblePage(page).getByTestId('wizard-next').click()
+  await visiblePage(page).getByTestId('wizard-next').click()
+
+  await visiblePage(page).getByTestId('wizard-item-search').locator('input').fill(item)
+  await visiblePage(page).getByTestId('wizard-item-suggestions').getByText(item).click()
+  await visiblePage(page).getByTestId('wizard-next').click()
+  await expect(visiblePage(page).getByTestId('wizard-step-4')).toBeVisible()
+
+  const hint = visiblePage(page).getByTestId('wizard-history-hint')
+  for (const year of years) await expect(hint).toContainText(year)
+
+  // The generated row starts at one; the tap is what makes the history a
+  // default rather than a remark.
+  await expect(visiblePage(page).getByTestId('wizard-review-qty')).toHaveText('1')
+  await hint.click()
+  await expect(visiblePage(page).getByTestId('wizard-review-qty')).toHaveText(suggested)
+}
 
 /**
  * Assign the item to a traveler through M5's membership sheet — the app's one
@@ -1384,5 +1428,87 @@ test.describe('Single-User backend sync @single', () => {
     expect(refusals).toBeGreaterThan(0)
 
     await context.close()
+  })
+  /**
+   * E2E-FLOW-05 (§5, FR-16.1/16.2, FR-14.2): a migrated history is worth
+   * something on the next trip, and on a device that never did the import.
+   *
+   * The history hint is the only feature that reads *other* trips' rows, and
+   * it read them straight out of the store — which in Server and Single-User
+   * Mode holds a trip's rows only once that trip has been opened (ADR-033).
+   * Every other reader of a foreign partition asks for it first (M2's ring,
+   * M1, the clone page); this one did not, so the whole point of importing a
+   * decade of spreadsheets was invisible on every device but the one that
+   * typed them in, and silently: an unpulled partition reads not as
+   * "unknown" but as a trip that packed none of it.
+   *
+   * Context B is what makes that visible, the same way E2E-M15-05 uses it —
+   * on the importing device the optimistic rows are already in the store, so
+   * the screen there is right for a reason that does not travel.
+   */
+  test('E2E-FLOW-05: an imported history suggests amounts on the next trip, on any device', async ({
+    browser,
+  }) => {
+    test.slow()
+    const id = uniq()
+    const series = `Sommerferien ${id}`
+    const item = `Sonnencreme-${id}`
+    // Two archived years, agreeing on six. The header block is the layout
+    // the wizard reads: the year above the trip's name, one column each. No
+    // category column — the item's name is the whole point here, and a
+    // second text column is a column the mapping has to choose between.
+    const csv = [`,2024,2025`, `,Sommer A ${id},Sommer B ${id}`, `${item},6,6`].join('\n')
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA, '/tabs/trips')
+    // The import can only file a trip under a series that exists, so the
+    // series arrives the way a user makes one: on a trip.
+    await createTripViaWizard(pageA, { name: `Sommer 2026 ${id}`, series })
+
+    await pageA.goto('/import')
+    await visiblePage(pageA).getByTestId('import-paste').locator('textarea').fill(csv)
+    await visiblePage(pageA).getByTestId('import-analyze').click()
+    await chooseInSelect(pageA, 'import-series-1', series)
+    await chooseInSelect(pageA, 'import-series-2', series)
+    await visiblePage(pageA).getByTestId('import-next').click()
+    // The one name in the sheet became one item, not a category: everything
+    // below reads the history through that item.
+    await expect(visiblePage(pageA).getByTestId('import-summary-line')).toContainText('1 new item')
+    await visiblePage(pageA).getByTestId('import-commit').click()
+    await expect(pageA.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+    // FR-16.2: the migration lands in the archive, which is where the
+    // history the hint is about lives.
+    await pageA.goto('/tabs/trips')
+    await visiblePage(pageA).getByTestId('trips-filter-archived').click()
+    await expect(visiblePage(pageA).getByTestId(`trip-row-Sommer A ${id}`)).toBeVisible()
+    await expect(visiblePage(pageA).getByTestId(`trip-row-Sommer B ${id}`)).toBeVisible()
+
+    // The importing device's own inventory, first: FR-16.1 says the sheet's
+    // names become items, and everything below depends on it.
+    await pageA.goto('/tabs/items')
+    await expect(
+      visiblePage(pageA).getByTestId('m9-row').filter({ hasText: item }),
+    ).toHaveCount(1)
+
+    // Device B has pulled the master partition — it can see the trips and
+    // the imported item — and has opened none of those trips.
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, '/tabs/trips')
+    await visiblePage(pageB).getByTestId('trips-filter-archived').click()
+    await expect(visiblePage(pageB).getByTestId(`trip-row-Sommer A ${id}`)).toBeVisible()
+    // FR-16.1: the sheet's names became inventory, which is what the next
+    // trip picks the item from — and what makes the hint findable at all.
+    await pageB.goto('/tabs/items')
+    await expect(
+      visiblePage(pageB).getByTestId('m9-row').filter({ hasText: item }),
+    ).toHaveCount(1)
+    // Device A is done: closing it here leaves B the only page in play, so
+    // a failure below reports B's screen rather than A's.
+    await ctxA.close()
+
+    await expectHistoryHint(pageB, series, item, '2024: 6', '2025: 6', '6')
+
+    await ctxB.close()
   })
 })

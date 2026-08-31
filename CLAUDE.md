@@ -369,7 +369,13 @@ it. Item numbers stay stable even as items close, because the log refers back to
    inline error would report a healthy instance as unreachable; and **FR-10.3's threshold was
    configurable in the document and fixed in the product**, so the ruling deleted the reader
    rather than adding a writer. What is left of item 6 is cross-cutting —
-   FLOW-*, PWA, SYNC and the NFR rows. **The FLOW-* pass started 2026-08-31**, and its first two
+   FLOW-*, PWA, SYNC and the NFR rows. **The FLOW-* pass is running (2026-08-31):** FLOW-03 was
+   already covered by the screen case whose journey it is and owed one clause; FLOW-04 was not,
+   and found M14's harvest coming back per-traveler because the one writer that named no
+   assignment took the mutation's default; FLOW-05 found the migrated history worth something
+   only on the device that typed it in — M3's hint is the app's single reader of *another*
+   trip's rows and asked for none of them, and an unpulled partition reads as a trip that
+   packed none of it, so the median was taken over whatever had arrived. **The FLOW-* pass started 2026-08-31**, and its first two
    sorted opposite ways: **FLOW-03 was already covered** by E2E-M6-17, whose second half is that
    journey, and owed only the state the row arrives in (`0/1` — bought is not packed);
    **FLOW-04 was not, and writing it found the loop open.** M14's harvest took
