@@ -3534,3 +3534,32 @@ the G-2 work. It earns its place a second time as an `aria-label`, so the state 
 gets from the border is also announced. That is the distinction the M22 review drew the same
 day: a `data-value` duplicating text the DOM already exposes is a test seam with no product
 reason, and this is not one.
+
+## Two faces, because three cost a line (2026-08-31)
+
+M2's two row promises, built on the owner's ruling. The chip is a one-line render of a column
+that had a writer and no reader since M15 shipped; the faces are the interesting half.
+
+**The pile's size is a measurement, and the first guess was wrong.** Three faces before the „+N"
+bubble looked obviously right — the presence facepile defaults to four, and the row has an end
+slot doing nothing. Rendered at 390 px with a four-traveller trip it is 64 px wide, and it pushes
+*„Sommerferien im Tessin 2027"* onto a second line: **the row goes from 87 px to 106 px**, on the
+app's main entry, for every long-named trip in the list. Two faces plus „+2" is 61 px and the name
+stays on one.
+
+Three points worth keeping from that:
+
+- **Three pixels decided it.** 64 → 61 is the whole difference, which means this is the wrap
+  *boundary* and not a comfortable margin: a longer name wraps either way. That is fine and it is
+  written into the constant's comment, so the next reader does not mistake the number for headroom.
+- **Nothing would have failed.** Both piles render, both are visible, both are addressable; a case
+  written against the three-face version asserts the wrap as the specification. Only the rendered
+  row and a line count say which is better — the same lesson M10's scope chip taught two PRs
+  earlier, arriving through size rather than through symmetry.
+- **The comparison had to be built.** The measurement is meaningless without the same name on a
+  trip with *no* travellers: 1 line, 288 px. A single number would have said the row is 106 px
+  tall and left the cause unattributed.
+
+**And the chip's case creates its trip through M15.** `trips.imported` has exactly one writer, and
+a fixture setting the column directly would assert the chip against a state the app cannot
+produce — which is the failure this audit programme has now found in five different costumes.

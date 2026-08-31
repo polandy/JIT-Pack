@@ -70,6 +70,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { AppliedChange, Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import SearchRow from '@/components/global/SearchRow.vue'
+import UserAvatar from '@/components/global/UserAvatar.vue'
 import { tripOrderKey } from '@/domain/trips'
 import { t, type MessageKey } from '@/i18n'
 import { formatTripPeriod } from '@/lib/format'
@@ -166,6 +167,31 @@ const {
 setHeaderActions(() => [action()])
 
 /** The temporal line under a trip's name, whatever it actually knows (UX-5). */
+/**
+ * Faces on the row before the „+N" bubble (FR-2.1/8.1).
+ *
+ * **Two, measured rather than chosen.** At 390 px a four-traveller pile of
+ * three faces plus „+1" is 64 px wide and pushes „Sommerferien im Tessin 2027"
+ * onto a second line — the row goes from 87 px to 106 px. Two faces plus „+2"
+ * is 61 px and the name stays on one. It is the wrap *boundary* rather than a
+ * comfortable margin: a longer name still wraps, and that is fine — what is
+ * not fine is paying a line for a face nobody asked for.
+ */
+const TRAVELER_FACES = 2
+
+/** The trip's roster — who it is *for*, not who is connected (that is G-10). */
+function travelersOf(trip: Trip) {
+  return store.getTravelers(trip.id)
+}
+
+function shownTravelers(trip: Trip) {
+  return travelersOf(trip).slice(0, TRAVELER_FACES)
+}
+
+function hiddenTravelers(trip: Trip): number {
+  return Math.max(0, travelersOf(trip).length - TRAVELER_FACES)
+}
+
 const tripWhen = formatTripPeriod
 
 /**
@@ -601,6 +627,18 @@ async function handleRefresh(event: CustomEvent) {
                      A short log is simply written out; a long one folds away,
                      so one busy trip cannot push the rest of the list off the
                      screen (owner, 2026-08-18). -->
+                  <!-- FR-16.2: this trip came out of a spreadsheet rather
+                       than out of the app. `trips.imported` had been written
+                       by M15 and read by nothing until 2026-08-31; on an
+                       instance carrying a decade of migrated history it is
+                       what separates the two kinds of past. -->
+                  <span
+                    v-if="trip.imported"
+                    class="chip imported-chip"
+                    :data-testid="`m2-imported-chip-${trip.name}`"
+                  >
+                    {{ t('trips.importedChip') }}
+                  </span>
                   <!-- FR-27.4: a group changed and this trip has not answered
                        yet. It says so and stops there — the two answers are
                        at the trip, where the list they change is. -->
@@ -646,6 +684,31 @@ async function handleRefresh(event: CustomEvent) {
                     </div>
                   </div>
                 </IonLabel>
+                <!-- FR-2.1/8.1: who the trip is for. The *roster*, not the
+                     presence facepile G-10 removed from here on 2026-08-28,
+                     whose words were left standing in the spec. -->
+                <div
+                  v-if="travelersOf(trip).length > 0"
+                  slot="end"
+                  class="traveler-faces"
+                  :data-testid="`m2-travelers-${trip.name}`"
+                >
+                  <UserAvatar
+                    v-for="traveler in shownTravelers(trip)"
+                    :key="traveler.id"
+                    :name="traveler.name"
+                    :seed="traveler.id"
+                    :size="20"
+                    data-testid="m2-traveler-face"
+                  />
+                  <span
+                    v-if="hiddenTravelers(trip) > 0"
+                    class="traveler-more"
+                    data-testid="m2-traveler-more"
+                  >
+                    {{ t('trips.travelersMore', { n: hiddenTravelers(trip) }) }}
+                  </span>
+                </div>
               </IonItem>
 
               <IonItemOptions side="end">
@@ -840,6 +903,27 @@ ion-segment-button {
    for the lines already below it and takes no interaction at all. */
 .applied {
   margin-top: 6px;
+}
+
+.traveler-faces {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+/* The overflow bubble reads as one of the faces rather than as a chip: it is
+   the rest of the same list, not a different fact about the trip. */
+.traveler-more {
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+  margin-inline-start: 2px;
+}
+
+.imported-chip {
+  background: var(--ct-surface0);
+  color: var(--ct-subtext1);
 }
 
 .proposed-chip {

@@ -924,6 +924,8 @@ export const en = {
   'trips.emptyPlanned': 'No planned trips',
   'trips.emptyArchived': 'No archived trips',
   'trips.seriesFallback': 'Series',
+  'trips.importedChip': 'Imported',
+  'trips.travelersMore': '+{n}',
   'trips.seriesCount': '{n} trip | {n} trips',
   'trips.itemSummary': '{packed}/{total} packed',
   // ADR-033: a trip whose own rows are not on this device yet.
