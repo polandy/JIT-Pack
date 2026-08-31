@@ -1,4 +1,4 @@
-// TSConfig for `jitpack-import` (FR-18.7): the app's own rules, run by Node.
+// TSConfig for the `jitpack` command line (FR-18.7/18.8): the app's own rules, run by Node.
 //
 // It is a separate project rather than a folder inside the app's, because the
 // command needs `@types/node` and the app must not: `process` and `node:fs`
