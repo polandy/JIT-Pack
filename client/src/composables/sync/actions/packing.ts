@@ -307,7 +307,7 @@ export function createPackingActions(ctx: SyncContext) {
       mode?: ItemMode
     },
     isActive: boolean,
-  ): string {
+  ): AddResult {
     const { mutation, id } = mutations.addTripItem(tripId, name, {
       ...opts,
       flagMissing: isActive,
@@ -316,12 +316,13 @@ export function createPackingActions(ctx: SyncContext) {
       mutation,
       optimistic: optimisticInsert(mutation),
     })
-    if (opts.sourceItemId) {
-      addRequiredCompanions(tripId)
-    }
+    // The companions travel out with the id rather than being announced from
+    // here: a snackbar is a screen's, and `skipItem` above already returns
+    // what it affected for the same reason (FR-5.5's own report).
+    const companions = opts.sourceItemId ? addRequiredCompanions(tripId) : []
     // The id is returned so FR-25.8's per-person add can open the membership
     // editor on the row it just wrote; the row is what the editor edits.
-    return id
+    return { id, companions }
   }
 
   /**
@@ -353,7 +354,7 @@ export function createPackingActions(ctx: SyncContext) {
     },
     isActive: boolean,
     decided: AddedItemDecision,
-  ): string {
+  ): AddResult {
     const packed = decided === 'packed'
     const { mutation, id } = mutations.addTripItem(tripId, name, {
       ...opts,
@@ -364,10 +365,8 @@ export function createPackingActions(ctx: SyncContext) {
       mutation,
       optimistic: optimisticInsert(mutation),
     })
-    if (packed && opts.sourceItemId) {
-      addRequiredCompanions(tripId)
-    }
-    return id
+    const companions = packed && opts.sourceItemId ? addRequiredCompanions(tripId) : []
+    return { id, companions }
   }
 
   /**
@@ -388,17 +387,34 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   /**
+   * What an add hands back: the row it wrote, and the required companions it
+   * pulled in with it (FR-20.4). The id is what FR-25.8's per-person add opens
+   * the membership editor on; the names are what the screen says.
+   */
+  interface AddResult {
+    id: string
+    companions: string[]
+  }
+
+  /**
    * addRequiredCompanions pulls the list's missing required companions in
    * (FR-20.4: without prompting, FR-20.3: never duplicating) — called
    * after a quick-add that matched a master item.
+   *
+   * Returns their names, in the order they were added, so the caller can say
+   * what it took along. It returned nothing until 2026-08-31, and no caller
+   * raised anything, so the companions simply appeared on the list — while
+   * FR-20.2's *skip* names exactly what it took with it. That contrast is what
+   * made the silence read as an omission rather than as a decision.
    */
-  function addRequiredCompanions(tripId: string) {
+  function addRequiredCompanions(tripId: string): string[] {
     const onList = tripStore.getItems(tripId)
     const resolution = resolveDependencies({
       onList,
       dependencies: masterStore.dependencyList,
       masterItems: masterStore.itemList,
     })
+    const added: string[] = []
     for (const companion of resolution.required) {
       const { mutation } = mutations.addGeneratedTripItem(
         tripId,
@@ -419,7 +435,9 @@ export function createPackingActions(ctx: SyncContext) {
         mutation,
         optimistic: optimisticInsert(mutation),
       })
+      added.push(companion.name)
     }
+    return added
   }
 
   return {
