@@ -305,4 +305,71 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     await expect(visible(page).getByTestId('trip-row-Allein')).toBeVisible()
     await expect(visible(page).getByTestId('m2-travelers-Allein')).toHaveCount(0)
   })
+
+  /*
+   * E2E-M2-02 (FR-13.1): the list groups under series headers, and the
+   * header leads to M16.
+   *
+   * Writable only since 2026-08-31: the 2026-08-08 concept review had chosen
+   * a flat list, so for a year this id described the option the screen had
+   * *not* taken and no case could be written against it. The owner ruled the
+   * built screen wins (E2E-M2-15 struck), and this is the first test of the
+   * grouping the app has always done.
+   *
+   * ~~destination~~: the header carries the series name and a trip count and
+   * no destination, so the clause is corrected in the spec rather than
+   * asserted here.
+   */
+  test('E2E-M2-02: trips sit under their series header, which leads to M16', async ({ page }) => {
+    test.slow()
+    await createTripViaWizard(page, { name: 'Ostern 25', series: 'Ostern' })
+    await createTripViaWizard(page, { name: 'Ostern 26', series: 'Ostern' })
+    await createTripViaWizard(page, { name: 'Einzelreise' })
+
+    await page.goto('/tabs/trips')
+    const header = visible(page).getByTestId('series-header-Ostern')
+    await expect(header).toBeVisible()
+    // The count is the group's, not the list's — the third trip is in no
+    // series and must not be counted here.
+    await expect(header).toContainText('2 trips')
+
+    // Grouping, not merely a heading: the two series trips are inside the
+    // header's own group and the loose one is not.
+    const grouped = visible(page)
+      .locator('.trip-card')
+      .filter({ has: page.getByTestId('trip-row-Ostern 26') })
+    await expect(grouped.getByTestId('trip-row-Ostern 25')).toBeVisible()
+    await expect(grouped.getByTestId('trip-row-Einzelreise')).toHaveCount(0)
+    // …and the loose trip is on the screen, so its absence above is about
+    // the group rather than about the trip.
+    await expect(visible(page).getByTestId('trip-row-Einzelreise')).toBeVisible()
+
+    await header.click()
+    await expect(visible(page).getByTestId('m16-name')).toBeVisible()
+  })
+
+  /*
+   * E2E-M2-16 (G-7): M2's empty state, which had no test id at all and so
+   * could not be asserted from anywhere — E2E-G7-01 names all four list
+   * screens and only ever tested the Dashboard's. A number of its own rather
+   * than a second definition of that id: the gate allows one, and a shared id
+   * is what the M5 audit spent a day undoing. It carries no CTA — the owner
+   * ruled that on 2026-08-31, for M7's reason: create is the FAB and it is on
+   * screen either way.
+   */
+  test('E2E-M2-16: M2 states that a segment is empty, and the FAB is the way out', async ({
+    page,
+  }) => {
+    await page.goto('/tabs/trips')
+    const empty = visible(page).getByTestId('m2-empty')
+    await expect(empty).toBeVisible()
+    await expect(visible(page).getByTestId('trips-new')).toBeVisible()
+
+    // It goes away when there is something to show — without this the case
+    // would pass against an empty state that is always on screen.
+    await createTripViaWizard(page, { name: 'Elba' })
+    await page.goto('/tabs/trips')
+    await expect(visible(page).getByTestId('trip-row-Elba')).toBeVisible()
+    await expect(visible(page).getByTestId('m2-empty')).toHaveCount(0)
+  })
 })
