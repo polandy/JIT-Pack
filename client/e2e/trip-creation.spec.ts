@@ -35,7 +35,7 @@ async function expectBlocked(button: Locator) {
 // on the name alone — since FR-2.1b the year is the only required
 // temporal fact and it arrives preselected — and the duration is computed
 // from the dates when both are given.
-test('M3: step 1 gates Next on the name, and derives the duration @local @m3', async ({
+test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local @m3', async ({
   page,
   seedMode,
 }) => {
@@ -76,7 +76,7 @@ test('M3: step 1 gates Next on the name, and derives the duration @local @m3', a
 // E2E-M3-14 (FR-2.5a): the household's default travellers are configured
 // once in M17 and are already in the wizard afterwards — as a starting
 // point, so removing one there is still a normal edit.
-test('M3: the wizard starts with the configured default travellers @local @m3 @m17', async ({
+test('E2E-M3-14: the wizard starts with the configured default travellers @local @m3 @m17', async ({
   page,
   seedMode,
 }) => {
@@ -105,7 +105,7 @@ test('M3: the wizard starts with the configured default travellers @local @m3 @m
 
 // E2E-M3-03 (FR-2.5): step 2 adds travelers, and an unnamed traveler
 // blocks the step — the same validation shape as step 1's name.
-test('M3: step 2 requires every added traveler to be named @local @m3', async ({
+test('E2E-M3-03: step 2 requires every added traveler to be named @local @m3', async ({
   page,
   seedMode,
 }) => {
@@ -137,7 +137,7 @@ test('M3: step 2 requires every added traveler to be named @local @m3', async ({
 // E2E-M3-05 (FR-17.3/FR-19.3/G-8): Local Mode has no second account, so
 // the sharing part of step 2 must not render at all — a mode may hide a
 // control, never show one that cannot work.
-test('M3: local mode hides the sharing section @local @m3 @g8', async ({ page, seedMode }) => {
+test('E2E-M3-05: local mode hides the sharing section @local @m3 @g8', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   await page.goto('/trips/new')
 
@@ -155,7 +155,7 @@ test('M3: local mode hides the sharing section @local @m3 @g8', async ({ page, s
 
 // E2E-M3-10 (FR-2.4) + E2E-M1-05 (G-7): the whole path from the dashboard
 // empty-state CTA through all four steps to a persisted trip, no backend.
-test('M3: the dashboard CTA leads through the wizard to a created trip @local @m3 @m1', async ({
+test('E2E-M1-05, E2E-M3-10: M3: the dashboard CTA leads through the wizard to a created trip @local @m3 @m1', async ({
   page,
   seedMode,
 }) => {
@@ -211,7 +211,7 @@ test('M3: a trip created in local mode survives a reload @local @m3', async ({
 // runs first on the same field with the same key, so the advance that
 // follows is the positive proof the keypress was delivered at all;
 // "did not advance" alone would be green on a dead handler too.
-test('M3: Enter in a plain field is the Weiter click, gated like it @local @m3 @g16', async ({
+test('E2E-M3-19: Enter in a plain field is the Weiter click, gated like it @local @m3 @g16', async ({
   page,
   seedMode,
 }) => {
@@ -248,7 +248,7 @@ test('M3: Enter in a plain field is the Weiter click, gated like it @local @m3 @
 // rejects — it is one the calendar never offers. Asserted on the picker
 // itself rather than on a refused submit: the bound is the mechanism, and a
 // message the user has to read is the fallback the mechanism removes.
-test('M3: the end picker offers no day before the start already set @local @m3', async ({
+test('E2E-M3-20: the end picker offers no day before the start already set @local @m3', async ({
   page,
   seedMode,
 }) => {

@@ -67,7 +67,7 @@ test.describe('M11 containers @local @m11', () => {
   // E2E-M11-01/05 (FR-10.1, FR-24.5, FR-25.15): the ＋ FAB creates a
   // container and opens its sheet; name, carrier and limit commit with no
   // save button; pairing is set on both sides at once and cleared on both.
-  test('E2E-M11-05: creating is the FAB, edits commit in the sheet, pairing is symmetric', async ({
+  test('E2E-M11-01, E2E-M11-05: creating is the FAB, edits commit in the sheet, pairing is symmetric', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)

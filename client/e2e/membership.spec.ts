@@ -205,7 +205,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await seedMode({ mode: 'local' })
   })
 
-  test('E2E-M4-12/E2E-M4-58: pro Person adds one cluster, not N items sharing a name', async ({
+  test('E2E-M4-12, E2E-M4-58: pro Person adds one cluster, not N items sharing a name', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
