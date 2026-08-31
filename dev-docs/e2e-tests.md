@@ -3598,6 +3598,15 @@ to `review.spec.ts`, where a group-generated trip is the fixture. The transferab
 that fails on its own setup is telling you the rule's precondition**, and the temptation is to
 weaken the assertion rather than to move the case.
 
+**And the reviewing pass caught a tautology in the new case.** E2E-M14-07's first draft asserted
+`not.toContainText('…and')` to mean *„two, not everything"* — a string the teaser never renders in
+any state, so the assertion could not fail. It asserts **both** of the fixture's proposals now,
+which says the card reads the generator rather than showing the first thing it finds; the *cap
+itself* is deliberately unasserted, because the fixture produces exactly two and a case that
+cannot distinguish two from all is worth less than saying so. This is E2E-M12-01's shape —
+*would the assertion have passed before the action?* — arriving in code written the same hour it
+was read.
+
 **One mutation proof was invalid before it was valid.** The first attempt renamed the catalogue
 key, which broke the type-check — so `npm run build` failed, the *old* bundle stayed on disk, and
 the case went red for a reason that had nothing to do with the change. A mutation has to compile;

@@ -249,6 +249,9 @@ async function reportGroupAnswer(message: string) {
  * It calls the same rule M14 calls (invariant 4): a second, cheaper
  * approximation here would be a rule implemented twice, and the one that
  * drifts is always the summary.
+ *
+ * The computed is read only inside the card's own `v-if`, so on an active
+ * trip — M4's ordinary state — it never runs.
  */
 const CLOSING_TEASER_COUNT = 2
 

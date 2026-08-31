@@ -259,9 +259,10 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     await page.goto(path)
     const teaser = visible(page).getByTestId('m4-closing-teaser')
     await expect(teaser).toBeVisible()
+    // Both of the fixture's proposals, which is what says the card reads the
+    // generator rather than showing the first thing it finds.
     await expect(teaser).toContainText('Stativ')
-    // Two, not everything: the card is a tease and the list is one tap away.
-    await expect(teaser).not.toContainText('…and')
+    await expect(teaser).toContainText(MISSING_ITEM)
   })
 
   test('E2E-M14-04: every row targets a group, and an unused row only where the item is', async ({
