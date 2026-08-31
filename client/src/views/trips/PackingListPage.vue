@@ -112,6 +112,7 @@ import { relativeStamp } from '@/domain/stamp'
 import { canJudgeUnused } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
+import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { useTripStore } from '@/stores/tripStore'
@@ -236,6 +237,32 @@ async function declineGroupChanges() {
 async function reportGroupAnswer(message: string) {
   await presentToast({ message, duration: 3000, positionAnchor: 'm4-fab-anchor' })
 }
+
+/**
+ * FR-9.4: the first proposals the review would offer, for the closing card.
+ *
+ * UI-Spec M14 has promised since the screen shipped that the card *„teases the
+ * first two proposals"*, and it read none — so it said the same thing whether
+ * eleven suggestions were waiting or none, which is the one question the tap
+ * answers. Two, because the card is a tease and the list is one tap away.
+ *
+ * It calls the same rule M14 calls (invariant 4): a second, cheaper
+ * approximation here would be a rule implemented twice, and the one that
+ * drifts is always the summary.
+ *
+ * The computed is read only inside the card's own `v-if`, so on an active
+ * trip — M4's ordinary state — it never runs.
+ */
+const CLOSING_TEASER_COUNT = 2
+
+const closingProposals = computed(() =>
+  buildReviewProposals({
+    items: allItems.value,
+    templates: masterStore.templateList,
+    templateItems: (id) => masterStore.getTemplateItems(id),
+    masterItems: masterStore.itemList,
+  }).slice(0, CLOSING_TEASER_COUNT),
+)
 
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
@@ -1264,7 +1291,7 @@ function onQuickAdd(
     valueCents: item.valueCents,
     categoryName: item.categoryName,
   }
-  const addedId = decided
+  const { id: addedId, companions } = decided
     ? orchestrator.addDecidedItem(props.tripId, item.name, opts, isActive.value, decided)
     : orchestrator.quickAddItem(props.tripId, item.name, opts, isActive.value)
   // Only a row that came from the inventory has a line to offer the undo on;
@@ -1273,6 +1300,21 @@ function onQuickAdd(
     browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
   }
   if (item.perPerson) membershipItemId.value = addedId
+  // FR-20.4: say what came along. Named rather than counted, the way FR-20.2's
+  // skip names what it took with it — a bare number sends the reader looking
+  // for what changed, which is the complaint this answers.
+  if (companions.length > 0) {
+    void presentToast({
+      message: t('packing.companionsAdded', {
+        n: companions.length,
+        names: companions.join(', '),
+      }),
+      duration: 3000,
+      // Above the composer's own anchor, like every other M4 toast: this one
+      // fires while the quick-add is still open for the next entry.
+      positionAnchor: 'm4-fab-anchor',
+    })
+  }
 }
 
 /** Every row the trip carries for one master item (FR-25.21's fan-out). */
@@ -1563,6 +1605,19 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
              and a third glyph decorated rather than told. -->
         <h2>{{ t('packing.tripFinished') }}</h2>
         <p class="closing-hint">{{ t('packing.tripFinishedHint') }}</p>
+        <!-- FR-9.4: what the review would say, before the tap. Named rather
+             than counted: „2 Vorschläge" is the number the button already
+             implies, and the names are what decide whether the trip is worth
+             reviewing now or later. -->
+        <p class="closing-hint" data-testid="m4-closing-teaser">
+          {{
+            closingProposals.length > 0
+              ? t('packing.reviewTeaser', {
+                  names: closingProposals.map((p) => p.itemName).join(', '),
+                })
+              : t('packing.reviewTeaserNone')
+          }}
+        </p>
         <div class="closing-actions">
           <IonButton
             size="small"

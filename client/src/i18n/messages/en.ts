@@ -123,6 +123,8 @@ export const en = {
   'packing.skipAction': 'Do not pack this',
   'packing.unskipAction': 'Pack it after all',
   'packing.skippedToast': '“{name}” stays at home',
+  'packing.companionsAdded':
+    '“{names}” came along — it is required for what you added | “{names}” came along — they are required for what you added',
   'packing.skippedToastWith': '“{name}” stays at home — along with {companions}',
   'packing.packedToast': '“{name}” packed ✓',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
@@ -209,6 +211,8 @@ export const en = {
   'packing.startedToast':
     'Trip is under way — anything added now counts as missed on the plan (FR-9.1).',
   'packing.tripFinished': 'Trip finished',
+  'packing.reviewTeaser': 'For example: {names}',
+  'packing.reviewTeaserNone': 'Nothing to review — every flag has been dealt with.',
   'packing.reviewSuggestions': 'Review suggestions →',
   'packing.tripFinishedHint': "This trip's learning belongs in your templates, not in the archive.",
   'packing.templateFromTrip': 'Create a template from this trip →',

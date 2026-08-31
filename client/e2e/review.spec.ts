@@ -238,6 +238,33 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     await expect(row(page, MISSING_ITEM)).toContainText('was not on the list')
   })
 
+  /**
+   * E2E-M14-07 (FR-9.4): the closing card *teases* the first proposals.
+   *
+   * UI-Spec M14 has promised that since the screen shipped and the card read
+   * none — it rendered a heading, a hint and two buttons, so it said the same
+   * thing whether eleven suggestions were waiting or none, which is the one
+   * question the tap answers. No case id claimed the clause, so nothing was
+   * ever red (found 2026-08-30, the M14 audit).
+   *
+   * Here rather than in `closing-pass.spec.ts` because a proposal needs a row
+   * with **provenance**: an ad-hoc row judged *unused* proposes nothing, since
+   * there is no position to zero. That world is this file's fixture.
+   */
+  test('E2E-M14-07: the closing card names the proposals it would offer', async ({ page }) => {
+    const path = await flaggedTrip(page)
+    await archiveThroughPass(page)
+
+    // Back to the archived trip, where the card lives.
+    await page.goto(path)
+    const teaser = visible(page).getByTestId('m4-closing-teaser')
+    await expect(teaser).toBeVisible()
+    // Both of the fixture's proposals, which is what says the card reads the
+    // generator rather than showing the first thing it finds.
+    await expect(teaser).toContainText('Stativ')
+    await expect(teaser).toContainText(MISSING_ITEM)
+  })
+
   test('E2E-M14-04: every row targets a group, and an unused row only where the item is', async ({
     page,
   }) => {

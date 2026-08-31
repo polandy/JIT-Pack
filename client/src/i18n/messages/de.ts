@@ -126,6 +126,8 @@ export const de: Record<keyof typeof en, string> = {
   'packing.skipAction': 'Nicht einpacken',
   'packing.unskipAction': 'Doch einpacken',
   'packing.skippedToast': '„{name}“ bleibt zu Hause',
+  'packing.companionsAdded':
+    '„{names}“ kam mit — es gehört zwingend dazu | „{names}“ kamen mit — sie gehören zwingend dazu',
   'packing.skippedToastWith': '„{name}“ bleibt zu Hause — mit {companions}',
   'packing.packedToast': '„{name}“ gepackt ✓',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
@@ -215,6 +217,8 @@ export const de: Record<keyof typeof en, string> = {
   'packing.startedToast':
     'Reise läuft — Artikel, die jetzt dazukommen, gelten als vorher vergessen (FR-9.1).',
   'packing.tripFinished': 'Reise abgeschlossen',
+  'packing.reviewTeaser': 'Zum Beispiel: {names}',
+  'packing.reviewTeaserNone': 'Nichts zu prüfen — alle Markierungen sind erledigt.',
   'packing.reviewSuggestions': 'Vorschläge ansehen →',
   'packing.tripFinishedHint':
     'Das Gelernte dieser Reise gehört in die Vorlagen — nicht ins Archiv.',
