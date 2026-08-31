@@ -375,7 +375,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    assignment took the mutation's default; FLOW-05 found the migrated history worth something
    only on the device that typed it in — M3's hint is the app's single reader of *another*
    trip's rows and asked for none of them, and an unpulled partition reads as a trip that
-   packed none of it, so the median was taken over whatever had arrived. **The FLOW-* pass started 2026-08-31**, and its first two
+   packed none of it, so the median was taken over whatever had arrived. **FLOW-07**
+   walked the move off Local Mode and found its first step missing: `jitpack_mode` is written
+   only by M19's first-launch choice, so the migration is device-to-device (file plus a device
+   already in server mode) — the case walks that, and whether M17 grows the move is the one
+   owner decision the FLOW pass has raised. **The FLOW-* pass started 2026-08-31**, and its first two
    sorted opposite ways: **FLOW-03 was already covered** by E2E-M6-17, whose second half is that
    journey, and owed only the state the row arrives in (`0/1` — bought is not packed);
    **FLOW-04 was not, and writing it found the loop open.** M14's harvest took

@@ -89,7 +89,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31), **E2E-FLOW-07** (the move off Local Mode, since 2026-08-31) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -3820,3 +3820,43 @@ rather than the screen:
   *matched* — twice, on the tag heading and the segment the swap had created.
   `getByTestId('m9-row').filter({ hasText })` is the assertion that says what
   it means.
+
+## E2E-FLOW-07 — the migration whose first step is not in the app (2026-08-31)
+
+FLOW-07 is the promise that Local Mode is not a trap: FR-19.5 makes leaving it
+one step — the NFR-4.11 backup carries every template and trip, and importing
+it while the app points at a server moves the lot (ADR-015). Since ADR-025 the
+server has no importer of its own, so what reaches it is exactly what the
+client's restore pushes; that is the whole mechanism, and nothing had ever
+walked it.
+
+Three things came out of writing it.
+
+- **The third device is the case.** E2E-M18-05 already restores a backup, and
+  it restores it *locally*, where the assertion cannot tell a landed row from
+  a pushed one. On the importing device every restored row is in the store
+  optimistically, so its screen is right whether or not a single mutation ever
+  left the outbox — the same trap E2E-M15-05 and E2E-FLOW-05 are built around.
+  A device that has only ever talked to the server can see nothing the server
+  was not told, and it is the only witness that says the migration happened.
+  Mutation-proved: with `drainAfterImport` removed from `commitPortableRestore`
+  the third device's trip row is gone and the case reddens.
+- **The arrow `local`→`server` does not exist in the app.** `jitpack_mode` is
+  written in exactly one place — M19's first-launch choice (`App.vue`) — and
+  M17 only *states* which mode this is; there is no control anywhere that
+  leaves Local Mode. FR-19.1 says the move "goes through the explicit
+  migration path of FR-19.5, never through a toggle", which reads as a
+  restriction and is in fact the entire implementation. The case therefore
+  models the migration the way a user can actually perform it: the file plus a
+  device that is already in server mode (a second device, or a reinstall).
+  **Open owner decision**, deliberately untested: either M17 grows the
+  three-step move (back up → switch → restore) or FR-19.1/FLOW-07 say plainly
+  that the migration is device-to-device.
+- **A restore pushes the master partition and nothing else.**
+  `commitPortableRestore` calls `drainAfterImport(null)`, whose trip half is
+  reached only with a trip id — the single-document import's. The trip
+  partitions the restore just wrote ride out on M2's own ensure-and-drain when
+  the restore lands there, which is why the case asserts G-2 `synced` on the
+  importing device *before* looking at the second one: that assertion is what
+  says the outbox is empty rather than merely quiet.
+
