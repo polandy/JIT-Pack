@@ -147,3 +147,97 @@ test.describe('M1 dashboard @local @m1', () => {
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
   })
 })
+
+/**
+ * M1's three unbuilt promises, built 2026-08-31 on the owner's ruling.
+ *
+ * `DashboardPage.vue` read neither `packer_user_id` nor the Late-Packer flag,
+ * and its prep card's item name was a `<p>`. All three had stood in UI-Spec M1
+ * since the concept round.
+ */
+test.describe('M1 — the three promises @local @m1', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  // E2E-M1-06 (FR-5.1): the Late-Packer section, on the departure day and on
+  // no other. The date is computed by the case rather than waited for —
+  // "today" is an input here, not a race.
+  test('E2E-M1-06: the last things to pack appear on the departure day only', async ({ page }) => {
+    const today = new Date().toISOString().slice(0, 10)
+    await createTripViaWizard(page, { name: 'Abfahrt heute', startDate: today })
+    await tripAction(page, 'start')
+    await quickAdd(page, ['Zahnbürste', 'Zelt'])
+
+    // Flagged through M5's own toggle, which is the only path the app has.
+    await visible(page).getByTestId('m4-row-Zahnbürste').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    // The flag lives behind M5's *Details ▾* (§3.25's progressive disclosure).
+    await page.getByTestId('m5-details').click()
+    await page.getByTestId('m5-late').click()
+    await page.getByTestId('m5-close').click()
+
+    await page.goto('/tabs/dashboard')
+    const late = visible(page).getByTestId('dashboard-late')
+    await expect(late).toBeVisible()
+    await expect(late.getByTestId('dashboard-late-Zahnbürste')).toBeVisible()
+    // Only the flagged row — a section listing everything is a second copy of
+    // the trip card above it.
+    await expect(late.getByTestId('dashboard-late-Zelt')).toHaveCount(0)
+
+    // And the row leads to itself, which is what a list of things to do now is for.
+    await late.getByTestId('dashboard-late-Zahnbürste').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+  })
+
+  // E2E-M1-06b (FR-5.1): the same trip on a day that is not its departure day
+  // shows no section. The positive signal is the trip card, which is on screen
+  // either way — an absence read off a page that failed to load says nothing.
+  test('E2E-M1-06b: a trip departing later contributes no last-things section', async ({ page }) => {
+    await createTripViaWizard(page, { name: 'Abfahrt später', startDate: '2027-06-01' })
+    await tripAction(page, 'start')
+    await quickAdd(page, ['Zahnbürste'])
+    await visible(page).getByTestId('m4-row-Zahnbürste').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await page.getByTestId('m5-details').click()
+    await page.getByTestId('m5-late').click()
+    await page.getByTestId('m5-close').click()
+
+    await page.goto('/tabs/dashboard')
+    await expect(visible(page).getByTestId('dashboard-trip-Abfahrt später')).toBeVisible()
+    await expect(visible(page).getByTestId('dashboard-late')).toHaveCount(0)
+  })
+
+  // E2E-M1-07 (FR-7.3): the prep card's item name is the way into its row.
+  // It was a `<p>` with no handler; UI-Spec M1 has promised the jump since the
+  // screen shipped, and M4's own prep section has always had it.
+  test('E2E-M1-07: the prep card’s item name opens the row it names', async ({ page }) => {
+    await activeTripWith(page, ['Kamera'])
+    await visible(page).getByTestId('m4-row-Kamera').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await page.getByTestId('m5-todo-input').locator('input').fill('Akku laden')
+    await page.getByTestId('m5-todo-add').click()
+    await page.getByTestId('m5-close').click()
+
+    await page.goto('/tabs/dashboard')
+    await visible(page).getByTestId('dashboard-prep-item-Kamera').click()
+
+    // The row's own sheet, not merely the trip: the name names a row.
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await expect(page.getByTestId(`m5-todo-Akku laden`)).toBeVisible()
+  })
+
+  // E2E-M1-03b (FR-6.1, G-8): the delegation section is *absent* in a mode
+  // with no accounts, rather than present and empty. The identity half is
+  // E2E-M1-03, in the `server` project — one browser cannot delegate.
+  test('E2E-M1-03b: Local Mode carries no delegation section, and still lists everything', async ({
+    page,
+  }) => {
+    await activeTripWith(page, ['Zelt'])
+    await page.goto('/tabs/dashboard')
+    // The positive signal: the aggregation is there and unfiltered, which is
+    // the whole reason FR-6.1's personal *filter* was struck.
+    await expect(visible(page).getByTestId('dashboard-preview-Zelt')).toBeVisible()
+    await expect(visible(page).getByTestId('dashboard-delegated')).toHaveCount(0)
+  })
+})
