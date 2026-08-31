@@ -23,9 +23,9 @@ import {
   IonNote,
   IonSegment,
   IonSegmentButton,
+  useIonRouter,
 } from '@ionic/vue'
 import { computed, inject, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import {
   analyzeGrid,
@@ -43,7 +43,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { filterForStatus, TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
 
-const router = useRouter()
+const ionRouter = useIonRouter()
 const master = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
@@ -233,13 +233,18 @@ function commit() {
   // ended on the words "No active trips" (the miss ADR-024 fixed on the
   // restore path) — and an import that created no trip at all has its whole
   // result in the inventory, where the trip list would say the same thing.
-  router.replace(
+  // Landing on a tab root is a root navigation, the same rule the anchors
+  // follow (ADR-012 amendment 3): a commit ends the wizard rather than
+  // stacking a page on top of it.
+  ionRouter.navigate(
     plan.value.trips.length === 0
       ? { path: '/tabs/items' }
       : {
           path: '/tabs/trips',
           query: { [TRIP_FILTER_QUERY]: filterForStatus(TRIP_STATUS_ARCHIVED) },
         },
+    'root',
+    'replace',
   )
 }
 

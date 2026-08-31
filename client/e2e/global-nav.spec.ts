@@ -55,6 +55,18 @@ function atPath(page: Page, path: string) {
   return expect(page).toHaveURL((url) => url.pathname === path)
 }
 
+/**
+ * Every page the outlet is currently showing. Ionic marks the ones it has
+ * stacked away with `ion-page-hidden`, so a healthy outlet shows exactly
+ * one and a leaked stack shows more — which is the only way to see the
+ * ADR-012 defect from outside, since the URL is right either way.
+ */
+const ANCHOR_RUN = ['trips', 'templates', 'items', 'trips', 'dashboard', 'trips'] as const
+
+function visiblePages(page: Page) {
+  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
+}
+
 test.describe('Global navigation @local @g9 @g1 @g12', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
@@ -73,6 +85,68 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     await expect(page).toHaveURL(/\/tabs\/trips$/)
     await expect(onVisibleScreen(page, 'trips-new')).toBeVisible()
+  })
+
+  /**
+   * E2E-G9-17 (G-9/ADR-012): an anchor switch survives being interrupted
+   * by the next one.
+   *
+   * Each anchor was a plain `<router-link>`, so every switch **pushed** —
+   * and a push interrupted mid-transition leaves both pages live. Measured
+   * 2026-08-31: tapping items → trips → templates → items → trips without
+   * waiting leaves M7's page at z-index 101 over M2's at 100, while the URL
+   * says `/tabs/trips`; every tap on the screen the user is looking at goes
+   * to the one two anchors ago. Waiting for each transition hides it
+   * completely, which is why E2E-G9-09 and E2E-G1-01 — one settled switch
+   * each — could not see it.
+   *
+   * The case therefore taps as a person does, without waiting, and asserts
+   * a **settled** outcome afterwards: the number of pages the outlet is
+   * showing. Not a race — the count is read once the URL has arrived, and
+   * an interrupted push leaves its extra page there for good.
+   */
+  test('E2E-G9-17: switching anchors on the rail leaves one page in the outlet', async ({
+    page,
+  }) => {
+    await page.setViewportSize(DESKTOP)
+    await page.goto('/tabs/items')
+    await expect(visiblePages(page)).toHaveCount(1)
+
+    // No settling between taps — that is the case. `noWaitAfter` keeps
+    // Playwright from doing the waiting the user does not do either.
+    for (const anchor of ANCHOR_RUN) {
+      await page.getByTestId(`rail-${anchor}`).click({ noWaitAfter: true })
+      await page.waitForFunction((a) => location.pathname === `/tabs/${a}`, anchor)
+    }
+    await expect(page).toHaveURL(/\/tabs\/trips$/)
+    await expect(visiblePages(page)).toHaveCount(1)
+
+    // The positive signal the count stands against: the screen the URL
+    // names is not merely alone, it still answers a tap. Against the
+    // unfixed build this click is intercepted by a page two anchors old.
+    await onVisibleScreen(page, 'm2-spreadsheet-import').click()
+    await expect(page).toHaveURL(/\/import(\?|$)/)
+  })
+
+  // E2E-G1-06 (G-1): the same rule on the other side of the breakpoint.
+  // One rule expressed in two templates needs two cases — the bar and the
+  // rail render from one anchor list but navigate through their own markup.
+  test('E2E-G1-06: switching anchors on the tab bar leaves one page in the outlet', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/items')
+    await expect(visiblePages(page)).toHaveCount(1)
+
+    for (const anchor of ANCHOR_RUN) {
+      await page.getByTestId(`tab-${anchor}`).click({ noWaitAfter: true })
+      await page.waitForFunction((a) => location.pathname === `/tabs/${a}`, anchor)
+    }
+    await expect(page).toHaveURL(/\/tabs\/trips$/)
+    await expect(visiblePages(page)).toHaveCount(1)
+
+    await onVisibleScreen(page, 'm2-spreadsheet-import').click()
+    await expect(page).toHaveURL(/\/import(\?|$)/)
   })
 
   // E2E-G1-01 (G-1): below the breakpoint the same four anchors are the

@@ -12,7 +12,7 @@
  * to win list height, and its `‹ back` is what leads out of it. Nothing
  * else hides it — a screen you cannot leave is worse than a short list.
  */
-import { IonIcon, IonLabel } from '@ionic/vue'
+import { IonIcon, IonLabel, useIonRouter } from '@ionic/vue'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -21,6 +21,7 @@ import { t } from '@/i18n'
 import { TAB_BAR_ANCHOR_ID } from '@/lib/toast'
 
 const route = useRoute()
+const ionRouter = useIonRouter()
 
 /**
  * The trip screen only — its children (M5, M6, M11) keep the bar, and so
@@ -33,21 +34,45 @@ const fullScreen = computed(
 )
 
 /* A bottom toast is positioned above this bar rather than onto it (FR-9.4). */
+/**
+ * An anchor is a **root** navigation, not a push.
+ *
+ * The four anchors are siblings, not a stack: nothing is "inside" the trip
+ * list relative to the inventory, and there is no back edge between them.
+ * As plain `<router-link>`s each switch pushed onto the one outlet
+ * (ADR-012), and a push interrupted by the next one leaves both pages
+ * live — measured 2026-08-31: tapping through the anchors faster than the
+ * transition leaves two pages on screen, the older one on the higher
+ * z-index, eating every tap meant for the page the URL names.
+ *
+ * `navigate(href, 'root', 'replace')` says what a switch is, so the outlet
+ * keeps one page whether or not the user waited (E2E-G9-17, E2E-G1-06).
+ * The element stays a real link: the href is what makes it middle-clickable
+ * and readable by assistive tech, and only the default action is taken over.
+ */
+function go(href: string, event: MouseEvent): void {
+  // Let the browser have the modified clicks — a new tab is not a
+  // navigation of ours.
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+  event.preventDefault()
+  ionRouter.navigate(href, 'root', 'replace')
+}
 </script>
 
 <template>
   <nav v-if="!fullScreen" :id="TAB_BAR_ANCHOR_ID" class="tab-bar">
-    <router-link
+    <a
       v-for="anchor in NAV_ANCHORS"
       :key="anchor.match"
-      :to="anchor.href"
+      :href="anchor.href"
       class="tab"
       :class="{ active: isAnchorActive(route.path, anchor.match) }"
       :data-testid="`tab-${anchor.match}`"
+      @click="go(anchor.href, $event)"
     >
       <IonIcon :icon="anchor.icon" />
       <IonLabel>{{ t(anchor.nameKey) }}</IonLabel>
-    </router-link>
+    </a>
   </nav>
 </template>
 
