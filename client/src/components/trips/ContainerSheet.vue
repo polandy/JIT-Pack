@@ -41,8 +41,6 @@ const container = computed(() => containers.value.find((c) => c.id === props.con
 const travelers = computed(() => store.getTravelers(props.tripId))
 const items = computed(() => store.getItems(props.tripId))
 
-const threshold = IMBALANCE_THRESHOLD_PERCENT
-
 const load = computed(() => containerWeight(items.value, props.containerId))
 const level = computed(() => budgetLevel(load.value, container.value?.max_weight_grams ?? null))
 
@@ -179,7 +177,7 @@ function onDelete() {
     <section v-if="pairOptions.length" class="sec">
       <h2 class="sl">
         {{ t('container.pairing') }}
-        <span class="n">{{ t('container.pairingHint', { n: threshold }) }}</span>
+        <span class="n">{{ t('container.pairingHint', { n: IMBALANCE_THRESHOLD_PERCENT }) }}</span>
       </h2>
       <div class="chips">
         <button
