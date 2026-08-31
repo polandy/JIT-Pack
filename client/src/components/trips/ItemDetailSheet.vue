@@ -183,6 +183,15 @@ const newCommentText = ref('')
 // so this watches the list and fires once the target appears.
 const route = useRoute()
 const flashedCommentId = ref<string | null>(null)
+/**
+ * The same id, kept after the animation has ended.
+ *
+ * The flash is a 2.4 s window, so it is not something a test can assert
+ * without racing it — and the arrival it reports is exactly what G-4
+ * promises. This records the outcome instead: set once the referenced
+ * comment has been found and scrolled to, never cleared (E2E-G4-01).
+ */
+const deepLinkedCommentId = ref<string | null>(null)
 watch(
   itemComments,
   (comments) => {
@@ -190,6 +199,7 @@ watch(
     if (typeof target !== 'string' || flashedCommentId.value === target) return
     if (!comments.some((c) => c.id === target)) return
     flashedCommentId.value = target
+    deepLinkedCommentId.value = target
     requestAnimationFrame(() => {
       document
         .getElementById(`comment-${target}`)
@@ -375,7 +385,12 @@ const packedStamp = computed(() => {
 </script>
 
 <template>
-  <section v-if="item" class="sheet-body" data-testid="m5-sheet">
+  <section
+    v-if="item"
+    class="sheet-body"
+    data-testid="m5-sheet"
+    :data-flashed-comment="deepLinkedCommentId ?? undefined"
+  >
     <header class="head">
       <!-- Small on purpose (FR-22.1): a photo helps recognise the thing,
            it is not what the screen is about — it used to take 200px of

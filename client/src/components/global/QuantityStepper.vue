@@ -11,6 +11,7 @@ import { removeOutline, addOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 
 import { t } from '@/i18n'
+import { LONG_PRESS_MS } from '@/composables/useLongPress'
 
 const props = defineProps<{
   quantity: number
@@ -37,7 +38,7 @@ function onPlusDown() {
   longPressTimer = setTimeout(() => {
     emit('complete')
     longPressTimer = null
-  }, 500)
+  }, LONG_PRESS_MS)
 }
 
 function onPlusUp() {
@@ -52,7 +53,7 @@ function onMinusDown() {
   longPressTimer = setTimeout(() => {
     emit('zero')
     longPressTimer = null
-  }, 500)
+  }, LONG_PRESS_MS)
 }
 
 function onMinusUp() {

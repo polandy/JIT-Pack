@@ -126,7 +126,12 @@ function goBack() {
   <IonHeader>
     <IonToolbar>
       <IonButtons v-if="back" slot="start">
-        <IonButton data-testid="header-back" :aria-label="t('common.back')" @click="goBack">
+        <IonButton
+          data-testid="header-back"
+          :aria-label="t('common.back')"
+          :title="t('common.back')"
+          @click="goBack"
+        >
           <IonIcon slot="icon-only" :icon="chevronBackOutline" />
         </IonButton>
       </IonButtons>
@@ -186,6 +191,7 @@ function goBack() {
           router-link="/tabs/settings"
           data-testid="header-settings"
           :aria-label="t('settings.title')"
+          :title="t('settings.title')"
         >
           <IonIcon slot="icon-only" :icon="settingsOutline" />
         </IonButton>
