@@ -308,3 +308,38 @@ test('E2E-G2-08, E2E-VIS-08: visual: G-2 sync detail sheet @local @visual', asyn
   await settled(page)
   await expect(page).toHaveScreenshot('g2-sheet.png')
 })
+
+/**
+ * E2E-VIS-09: M16, the series and destination profile.
+ *
+ * The screen that had **no coverage at any layer** until 2026-08-30 — no spec
+ * file, no unit, not one `data-testid` — and whose first render found FR-13.3's
+ * checklist input at **width 0**, because Ionic gives `ion-select` `width:
+ * 100%` and as a flex item that is a basis of the whole row. That is the class
+ * of defect a baseline exists for: every assertion passed, the element was in
+ * the DOM with the right computed flex and height, and only the pixel said the
+ * box was empty (invariant 9b, G-14).
+ *
+ * The row is deliberately in frame *with content on both sides* — a select
+ * carrying a value and an input carrying text — because an empty row of the
+ * same geometry would not show the collapse coming back.
+ */
+test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await createTripViaWizard(page, { name: 'Elba 2026', series: 'Elba' })
+
+  await page.goto('/tabs/trips')
+  await shown(page).getByTestId('series-header-Elba').click()
+  await expect(page.getByTestId('header-title')).toHaveText('Elba')
+
+  // The FR-13.3 editor with something in it: the select beside the input is
+  // the geometry the baseline is here for.
+  await shown(page).getByTestId('m16-notes').locator('textarea').fill('Fähre ab Piombino')
+  await shown(page).getByTestId('m16-checklist-input').locator('input').fill('Reisepässe')
+  await shown(page).getByTestId('m16-checklist-add').click()
+  await expect(shown(page).getByTestId('m16-checklist-row')).toHaveCount(1)
+
+  await settled(page)
+  await expect(page).toHaveScreenshot('m16-series.png')
+})

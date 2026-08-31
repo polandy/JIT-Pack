@@ -3611,3 +3611,48 @@ was read.
 key, which broke the type-check — so `npm run build` failed, the *old* bundle stayed on disk, and
 the case went red for a reason that had nothing to do with the change. A mutation has to compile;
 `if (false && …)` on the report was the one that proved anything.
+
+## The baseline for the screen the pixel found (2026-08-31)
+
+M16 gets a visual baseline — the last thing the screen pass left owed, and deliberately last in
+the batch: every earlier PR could have moved a pixel, and a baseline recorded before them would
+have been rewritten by the next merge.
+
+**Why this screen and not another.** M16 is where the programme's clearest pixel-only defect was
+found: FR-13.3's checklist input rendered at **width 0**, because Ionic gives `ion-select`
+`width: 100%` and as a flex item that is a flex-basis of the entire row. Every assertion passed —
+the input is in the DOM, `getByTestId` resolves it, its computed flex and height are correct — and
+only the rendered box said it was empty. A baseline is the only gate that would have caught it,
+and until now the screen had none.
+
+**The capture has content on both sides on purpose.** An empty row of the same geometry looks
+identical whether the input has width or not; the select carries a value and the input carries
+text, so a collapse shows up as the text disappearing rather than as nothing changing. That is the
+same reasoning E2E-VIS-02's *„the load is real"* note records for the weight bar — **a baseline of
+an empty control checks nothing**.
+
+**What it does not guard**, stated so it is not discovered again: the ADR-013 tolerance is 0.002,
+which E2E-VIS-08's own entry already documents as blind to a 591 px offset on a full-page shot.
+This gate catches the row collapsing, not a few pixels of drift in it.
+
+### One shard was red, and it was not this change (2026-08-31)
+
+Recorded because the *reasoning* is reusable, not because the failure was. `e2e (6)` failed on
+this PR's first run with `E2E-M5-12`: `m4-header` resolving to **two** elements inside the
+visible-page locator — the two-live-pages shape ADR-012's amendment 3 fixed the same morning,
+which is exactly the coincidence that makes a re-run the wrong first move.
+
+What was checked before re-running, in order:
+
+1. **Can this diff reach the e2e projects at all?** `playwright.config.ts` gives `chromium` and
+   `webkit` `testIgnore: ['**/visual.spec.ts', …]`, so a new case in `visual.spec.ts` changes
+   neither their test list nor their **shard boundaries**; the only other edit is a comment in
+   `series.spec.ts`. The answer is no.
+2. **Is `main` red?** Its own run on the identical e2e code is green on all eight shards.
+3. **Does it reproduce here?** `E2E-M5-12` alone, and the whole `item-detail` spec, ran green
+   three times each against `origin/main` in the pinned container.
+
+Only then the re-run, which passed. So: an intermittent under CI load, on code this PR does not
+touch — the third such observation in two days (`E2E-M4-32`, `E2E-M17-01`, and this). **Three
+different cases failing intermittently only under a loaded shard is a pattern worth a
+measurement of its own**, and it is not one a green re-run should be allowed to close.
