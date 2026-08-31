@@ -3680,3 +3680,51 @@ the first navigation; a test that takes the `page` fixture instead lands on M19
 and waits for a screen that will never arrive. It reads as a hang for the same
 reason as above — the reporter is buffered, so the timeout report only appears
 once the run is over, and the run is what is stuck.
+
+## Three intermittents, one signature (2026-08-31)
+
+`E2E-M4-32`, `E2E-M17-01` and `E2E-M5-12` each failed once under a loaded
+shard in two days and each passed on the re-run. The ledger recorded them as
+a pattern worth a measurement rather than something a green re-run should
+close. This is the measurement.
+
+**One of the three has a captured cause, and it is not flakiness.** `main` at
+`4dab0d46` failed `e2e (6)` on E2E-M5-12 under webkit with
+
+```
+strict mode violation: locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
+  .getByTestId('m4-header') resolved to 2 elements
+```
+
+— two **unhidden** M4 pages at once, one listing the row and one not. That is
+ADR-012's page-stacking leak, the same class the four navigation anchors had,
+surviving on a path this pass did not touch. It shows only under load because
+load is what interrupts a transition, which is exactly why three different
+cases have "flaked" and why each green re-run looked like it settled the
+question. The case's own comment records an earlier round of the same thing,
+answered then by scoping the locator to the visible page — and the failure is
+that even the scoped locator now matches two.
+
+**It does not reproduce here.** Fifteen runs of E2E-M5-12 on webkit, up to
+four workers, with the box deliberately loaded to ~9: all green. So the fix is
+not written blind — what is written instead is the thing that makes the next
+occurrence name itself.
+
+**Every case now ends with ADR-012's invariant checked.** `oneLivePage` in
+`fixtures.ts` is an automatic fixture: after each case that passed, the outlet
+must be showing at most one page, and the failure names the pages it found.
+Two properties are load-bearing:
+
+- **It polls.** A page on its way out is unhidden for the length of its
+  animation, so a one-shot read fails every case whose last act was a
+  navigation — measured, on the first run: E2E-G9-17 and E2E-G1-06 both
+  reported two pages, M2 under a just-pushed M15, and both were transitions
+  rather than leaks. A leaked page stays for good; the poll is what tells
+  them apart.
+- **It skips a failed case.** A case that failed has its own story, and this
+  would only bury it.
+
+What it buys: a leak is invisible from inside the case that produces it — the
+URL is right and the screen looks right — and surfaces later as somebody
+else's strict-mode violation. From here it surfaces at the case that caused
+it, with the pages named.
