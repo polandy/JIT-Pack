@@ -393,6 +393,8 @@ export const en = {
   'items.editor.companionsHint': 'These items depend on {name}:',
   'items.editor.containedIn': 'Part of',
   'items.editor.containedPositions': '{n} position | {n} positions',
+  'items.editor.tripCommentsPartial':
+    'Only the trips this device has open. On a server, a trip’s comments arrive when the trip does.',
   'items.editor.containedRetired': 'hidden',
   'items.editor.tripComments': 'Comments from trips',
   'items.editor.tripCommentsHint':

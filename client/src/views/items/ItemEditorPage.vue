@@ -88,9 +88,18 @@ const nameInput = ref<{ $el: HTMLElement } | null>(null)
 onMounted(async () => {
   // FR-27.9's author line. Absent in Local and Single-User Mode, where the
   // call answers nothing and there is nobody to name (G-8).
-  void orchestrator.fetchUsers().then((users) => {
-    directory.value = users
-  })
+  orchestrator
+    .fetchUsers()
+    .then((users) => {
+      directory.value = users
+    })
+    // Local Mode has no directory to fetch and Single-User no accounts to
+    // name, so a refusal here is the expected answer in two of three modes.
+    // Named rather than discarded: the section still renders, with the trip
+    // and the date and no author.
+    .catch(() => {
+      directory.value = []
+    })
   if (!isCreating.value) return
   await nextTick()
   // The name is the only required field, so it takes the caret.
@@ -892,6 +901,20 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 </IonLabel>
               </IonItem>
             </IonList>
+            <!--
+              The same hedge the delete card below carries, for the same
+              reason: in Server Mode a trip partition arrives when its trip is
+              opened, so this list is what *this device* has seen. Claiming
+              completeness beside a count that qualifies itself would be the
+              screen contradicting itself.
+            -->
+            <p
+              v-if="!(deletionOutlook?.certain ?? true)"
+              class="section-hint"
+              data-testid="m10-comments-partial"
+            >
+              {{ t('items.editor.tripCommentsPartial') }}
+            </p>
           </template>
 
           <section class="jp-card delete-card" data-testid="m10-section-delete">

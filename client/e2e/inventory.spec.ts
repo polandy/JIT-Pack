@@ -736,6 +736,10 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
     await expect(comments).toHaveCount(1)
     await expect(comments.first()).toContainText('Spitzen sind stumpf')
     await expect(comments.first()).toContainText('Laos 2025')
+    // Local Mode holds every trip, so the list is complete and says nothing
+    // about being partial — the positive signal the Server-Mode hedge stands
+    // against, and the reason it is asserted here rather than nowhere.
+    await expect(visible(page).getByTestId('m10-comments-partial')).toHaveCount(0)
   })
 
   // E2E-M10-19 (FR-27.9/FR-27.8): an item nothing has used shows neither
