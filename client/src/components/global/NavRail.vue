@@ -3,28 +3,53 @@
  * Desktop navigation rail (G-9, ≥900px).
  * Replaces the bottom tab bar with a persistent left-side rail.
  */
-import { IonIcon, IonLabel } from '@ionic/vue'
+import { IonIcon, IonLabel, useIonRouter } from '@ionic/vue'
 import { useRoute } from 'vue-router'
 
 import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
 import { t } from '@/i18n'
 
 const route = useRoute()
+const ionRouter = useIonRouter()
+/**
+ * An anchor is a **root** navigation, not a push.
+ *
+ * The four anchors are siblings, not a stack: nothing is "inside" the trip
+ * list relative to the inventory, and there is no back edge between them.
+ * As plain `<router-link>`s each switch pushed onto the one outlet
+ * (ADR-012), and a push interrupted by the next one leaves both pages
+ * live — measured 2026-08-31: tapping through the anchors faster than the
+ * transition leaves two pages on screen, the older one on the higher
+ * z-index, eating every tap meant for the page the URL names.
+ *
+ * `navigate(href, 'root', 'replace')` says what a switch is, so the outlet
+ * keeps one page whether or not the user waited (E2E-G9-17, E2E-G1-06).
+ * The element stays a real link: the href is what makes it middle-clickable
+ * and readable by assistive tech, and only the default action is taken over.
+ */
+function go(href: string, event: MouseEvent): void {
+  // Let the browser have the modified clicks — a new tab is not a
+  // navigation of ours.
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+  event.preventDefault()
+  ionRouter.navigate(href, 'root', 'replace')
+}
 </script>
 
 <template>
   <nav class="nav-rail">
-    <router-link
+    <a
       v-for="anchor in NAV_ANCHORS"
       :key="anchor.match"
-      :to="anchor.href"
+      :href="anchor.href"
       class="nav-rail-item"
       :class="{ active: isAnchorActive(route.path, anchor.match) }"
       :data-testid="`rail-${anchor.match}`"
+      @click="go(anchor.href, $event)"
     >
       <IonIcon :icon="anchor.icon" />
       <IonLabel>{{ t(anchor.nameKey) }}</IonLabel>
-    </router-link>
+    </a>
   </nav>
 </template>
 
