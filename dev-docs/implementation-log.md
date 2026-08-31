@@ -223,6 +223,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A field that was there and had no width (2026-08-30)](#a-field-that-was-there-and-had-no-width-2026-08-30) — backlog item 6, M14 and M16. The first screen with no coverage at any layer, the control that turned out not to render at all, why no assertion could have found it, and two clauses on M14 that could not have failed where they stood.
 - [Twenty-two promises, decided against the screen (2026-08-31)](#twenty-two-promises-decided-against-the-screen-2026-08-31) — the owner's rulings on every open decision backlog item 6 raised. Why a promise can be unbuildable rather than merely unbuilt, why one strike deleted a reader instead of adding a writer, and why the screen beat the review that specified it.
 - [A switch nobody had interrupted (2026-08-31)](#a-switch-nobody-had-interrupted-2026-08-31) — the four navigation anchors pushed and nothing popped. Why one settled switch could never see it, why a probe that does not wait measures a different app, and why three builds were spent fixing the symptom.
+- [A traveler had no door but a screen (2026-08-31)](#a-traveler-had-no-door-but-a-screen-2026-08-31) — the command line grows subcommands (ADR-042) rather than the server growing REST resources; why the roster needed two pulls before it could decide anything, and the account directory that carries no address to match on.
 
 ## Current state
 
@@ -10196,3 +10197,44 @@ navigation — `router.replace`, then `navigate` with `root`/`replace`, `back`/`
 rather than at the wizard found it, and M15 then needed no change at all: with the stack no
 longer growing, its commit's `replace` has nothing to collide with, and E2E-M15-03 runs without
 the `page.reload()` it was written with.
+## A traveler had no door but a screen (2026-08-31)
+
+The family instance holds 33 imported trips and **zero travelers** — the
+spreadsheet import never made any — so every per-person feature (FR-25.21's
+quantities, M4's cluster, M12's statistics) was reading an empty axis. Typing
+them into M22 33 times was the alternative this replaces.
+
+**What the question actually was.** The owner asked for "every relevant function
+available through the API too", and the honest answer is that writing already
+is: the app has no write path that is not a sync mutation, so `POST
+/{scope}/sync` is a complete write API and always was. What is missing is not
+reach but **rules and ergonomics** — the caller composes HLCs and column sets by
+hand, and every rule worth automating (generation, dependencies, quantities, the
+FR-27.4 refresh) lives in `client/src/domain` **because Local Mode has no
+server**. A `POST /trips/{id}/travelers` would either be the sync push with
+extra spelling or the second implementation ADR-025 deleted. So the surface grew
+where the rules already are: `client/cli/` becomes `jitpack COMMAND` (ADR-042).
+
+**Two pulls before one decision.** A traveler is a trip-partition row and a trip
+is a master-partition row, so the command cannot know whether it has anything to
+write until it has pulled both. That is what makes the idempotence real rather
+than hopeful: the roster it compares against is the instance's, not a guess, and
+the run that adds nothing pushes nothing at all.
+
+**The directory carries no address.** `--user` was drafted against e-mail,
+because that is how `JITPACK_ADMIN_EMAILS` names a person and how Authelia does.
+`DirectoryUser` is `user_id` and `display_name` and nothing else (FR-4.5), so
+the flag matches a display name or an id. The consequence is worth knowing
+before the vacation rather than during it: **an account exists only after its
+first login**, so a person who has never signed in can be added as an unlinked
+traveler and linked afterwards — there is nothing to link to yet.
+
+**One removal that is deliberately not here.** Taking a person off a trip
+decides what happens to the rows they own (FR-27.4's amendment: untouched rows
+go, packed ones are asked about). A command that answered that silently would be
+the worst place for it, so removal stays on M22.
+
+**The rename is the accepted cost.** `jitpack-import.mjs` became `jitpack.mjs`
+with `import` as a subcommand. Shipping both binaries was rejected — two names
+for one tool is the shape ADR-042 exists to avoid — and the three documents that
+spelled the old invocation were changed with it.

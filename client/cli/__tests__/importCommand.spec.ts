@@ -215,7 +215,7 @@ describe('runImport', () => {
       it0,
     )
 
-    expect(code).toBe(EXIT.documentFailed)
+    expect(code).toBe(EXIT.failed)
     expect(it0.lines.join('\n')).toContain('nonsense')
     expect(instance.tables()).toContain('trips')
   })
@@ -226,7 +226,7 @@ describe('runImport', () => {
       { serverUrl: 'http://x', token: null, dryRun: false, files: ['missing.yaml'] },
       it0,
     )
-    expect(code).toBe(EXIT.documentFailed)
+    expect(code).toBe(EXIT.failed)
     expect(it0.lines.join('\n')).toContain('missing.yaml')
   })
 
@@ -237,7 +237,7 @@ describe('runImport', () => {
       { serverUrl: 'http://x', token: null, dryRun: false, files: ['f.yaml'] },
       it0,
     )
-    expect(code).toBe(EXIT.documentFailed)
+    expect(code).toBe(EXIT.failed)
     expect(it0.lines.join('\n')).toContain('year out of range')
   })
 
@@ -249,7 +249,7 @@ describe('runImport', () => {
     )
 
     expect(instance.pushed).toHaveLength(0)
-    expect(code).toBe(EXIT.documentFailed)
+    expect(code).toBe(EXIT.failed)
     const report = it0.lines.join('\n')
     expect(report).toContain('Ferien')
     expect(report).not.toContain('imported')

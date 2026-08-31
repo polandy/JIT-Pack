@@ -352,11 +352,11 @@ These rules are the same wherever a file goes in: the app's import screen and th
 
 Everything above gets data *out*. To put a portable YAML file back **in** from a shell —
 seeding a new instance, restoring on a machine with no screen, replaying a file you edited
-by hand — use the import command that ships with the repository. Build it once with `npm run build:cli` in `client/`, then:
+by hand — use the import command that ships with the repository. Build it once with `npm run build:cli` in `client/` (see [The Command Line](command-line.md)), then:
 
 ```bash
-node client/dist-cli/jitpack-import.mjs my-template.yaml
-node client/dist-cli/jitpack-import.mjs --server https://jitpack.example.com --token "$TOKEN" backup.yaml
+node client/dist-cli/jitpack.mjs import my-template.yaml
+node client/dist-cli/jitpack.mjs import --server https://jitpack.example.com --token "$TOKEN" backup.yaml
 ```
 
 It needs Node, and it talks to a **running** instance over the same sync API the app uses;
