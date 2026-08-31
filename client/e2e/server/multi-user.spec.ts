@@ -5,6 +5,7 @@ import {
   openTripSwipe,
   tripSwipeActions,
   visiblePage,
+  tripAction,
 } from '../fixtures'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
@@ -434,6 +435,85 @@ test.describe('Two accounts on one instance @server', () => {
    * notification, the deep link and FR-25.20's filter are one chain rather
    * than four separately-tested pieces.
    */
+  /**
+   * E2E-M1-03 (FR-6.1/6.3/4.4): the dashboard's standing surface for a
+   * delegation, and that it arrives without a refresh.
+   *
+   * Delegation has been *delivered* since 2026-08-25 — as an FR-6.2 toast,
+   * which E2E-FLOW-02 above asserts. A toast is gone by the time the app is
+   * next opened, and until 2026-08-31 nothing on M1 read `packer_user_id` at
+   * all: there was no badge of any kind on the screen for FR-4.4 to update.
+   *
+   * The live half is asserted the way this file asserts every live half —
+   * against the settled section, with the WebSocket subscription awaited
+   * first. Bob never reloads after Alice writes.
+   */
+  test('E2E-M1-03: a delegation reaches the dashboard, marked new, without a reload', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Senja ${id}`
+    const item = `Steigeisen-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    // M1 aggregates *active* trips, so the trip has to have started for the
+    // dashboard to carry it at all.
+    await tripAction(alice, 'start')
+    await quickAddItem(alice, item)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    // Bob opens the trip so his device holds its partition, then goes to the
+    // dashboard and stays there — the section has to arrive on its own.
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await subscribedBob
+    await bob.goto('/tabs/dashboard')
+    // The absence stands against a screen that demonstrably rendered: the
+    // trip is on it either way.
+    //
+    // Scoped to *this* row rather than to the section. The instance is shared
+    // and every case here logs in as the same accounts, so a sibling case
+    // delegating something else to Bob puts a section on this screen — the
+    // same reason E2E-FLOW-02 below filters its toast by item.
+    await expect(visiblePage(bob).getByTestId(`dashboard-trip-${trip}`)).toBeVisible()
+    await expect(visiblePage(bob).getByTestId(`dashboard-delegated-${item}`)).toHaveCount(0)
+
+    await alice.goto(tripPath)
+    await assignTo(alice, item, ACCOUNT_NAMES.bob)
+
+    // No reload: the section appears because the row arrived over the socket.
+    const section = visiblePage(bob).getByTestId('dashboard-delegated')
+    await expect(section).toBeVisible()
+    await expect(section.getByTestId(`dashboard-delegated-${item}`)).toBeVisible()
+    // Marked *new*, because this device has never shown it before — the half
+    // FR-6.1 asks for beyond "assigned to me". Read off the row, for the same
+    // reason as above: the card's badge counts every trip's delegations.
+    await expect(visiblePage(bob).getByTestId(`dashboard-delegated-${item}`)).toHaveAttribute(
+      'data-new',
+      'true',
+    )
+
+    // And it is the way to the row.
+    await section.getByTestId(`dashboard-delegated-${item}`).click()
+    await expect(visiblePage(bob).getByTestId('m5-sheet')).toContainText(item)
+
+    // Coming back, the same row is no longer news: leaving the screen is what
+    // marks it read, so the highlight is spent and the row stays listed.
+    await bob.goto('/tabs/dashboard')
+    await expect(
+      visiblePage(bob).getByTestId('dashboard-delegated').getByTestId(`dashboard-delegated-${item}`),
+    ).toBeVisible()
+    await expect(
+      visiblePage(bob).getByTestId(`dashboard-delegated-${item}`),
+    ).not.toHaveAttribute('data-new', 'true')
+  })
+
   test('E2E-FLOW-02: a row handed to the other account notifies them, and the notice leads to the row', async ({
     browser,
   }) => {

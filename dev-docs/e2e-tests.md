@@ -37,7 +37,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Unit | Spec cases | Mode | File |
 |---|---|---|---|
 | Harness smoke | E2E-M19-01 (full since 2026-08-30 — the choice itself, the persistence request and the reload), E2E-M19-04, E2E-G7-01 (the Dashboard's half) | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
-| M1 dashboard (populated) | E2E-M1-01 (card, open count, three previews, the remainder, and the card into M4), E2E-M1-02 (the prep card, and that ticking resolves on the trip) | `local` | [`dashboard.spec.ts`](../client/e2e/dashboard.spec.ts) |
+| M1 dashboard (populated) | E2E-M1-01 (card, open count, three previews, the remainder, and the card into M4), E2E-M1-02 (the prep card, and that ticking resolves on the trip), E2E-M1-06/06b (the departure-day section), E2E-M1-07 (the prep name opens its row), E2E-M1-03b (no delegation section without accounts) | `local` | [`dashboard.spec.ts`](../client/e2e/dashboard.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
@@ -3478,3 +3478,51 @@ reads as a rule about people rather than about the screen, sitting as it does un
 the per-person items straight away"*) went with the controls it explains: on an archived trip it
 describes a capability that no longer exists, which is a second sentence contradicting the first.
 Neither would have failed an assertion — both are correct text in the wrong place.
+
+## A screen that aggregated rows it had never loaded (2026-08-31)
+
+M1's three owner decisions, built — and the largest thing in the commit is none of them.
+
+**The defect the first probe found.** Building the delegation section meant asking, for the
+first time, whether M1's rows are actually *on the device*. They are not. A trip partition
+arrives when its trip is opened (M4 calls `ensureTripData`), and **M1 never asked**: in Server
+Mode every active trip rendered with *„0 offen"*, no preview rows and no prep card, until the
+user had visited each trip in that page session. It survived for two reasons, and both are
+familiar shapes:
+
+- **Local Mode never shows it.** Everything there is rehydrated from IndexedDB on boot, so the
+  whole local suite — which is where M1's two cases live — is green against an aggregation that
+  has nothing to aggregate anywhere else.
+- **The pull-to-refresh already pulled exactly this.** `handleRefresh` calls `drainAll`, so the
+  data path existed and worked; the screen simply never used it on arrival. A capability
+  reachable by a gesture reads, in the code, as a capability the screen has.
+
+Two calls fix it, and the second is what FR-4.4 needed anyway: `ensureTripData` per active trip
+**and** `subscribeTrip`. Only M4 had ever subscribed to a trip channel, so a device sitting on
+the dashboard heard nothing about the trips it was displaying — the *„updates in real time"*
+half of E2E-M1-03 was not merely unbuilt, it was unreachable. A **watcher** rather than a mount
+hook: the trip list arrives with the master partition, which on a cold boot has not landed when
+`onMounted` runs, so a one-shot call would have asked for nothing — and asked *silently*.
+
+**Two more things the writing settled.**
+
+*„Since the last visit" is a set, not a timestamp.* FR-6.1 asks what arrived since the screen was
+last read, and a row carries no assignment time — the HLC that ordered the write is the server's
+and never reaches the client as a date. A device-local **set of row ids** answers the question
+the requirement actually asks (has this device shown me this yet?) and answers it identically
+after a clock change, a timezone move, or a device that was off for a week. It stays small on its
+own, because it is replaced rather than added to: an id whose row was reassigned is simply gone.
+
+*A screen has two exits and Vue knows about one.* Marking the highlights read `onUnmounted`
+covers an in-app navigation and nothing else — the browser leaving the document tears the page
+down without running a single Vue hook, so a delegation stayed *new* for ever on a device whose
+user left by a real link or closed the tab. `pagehide` is the other half. **The e2e case is what
+found it**, because it navigates with `page.goto`, which is a real navigation; every in-app
+assertion would have passed.
+
+**And a trap in the case itself.** The first draft asserted *„no delegation section"* before the
+assignment. The `server` project runs every case against one instance as the same two accounts,
+so a sibling case delegating something else to Bob puts a section on this screen — the assertion
+failed on the retry, not on the first attempt, which is exactly how this kind of coupling
+presents. Scoped to the case's own row now, which is the treatment E2E-FLOW-02's toast filter
+already records one screen away.
