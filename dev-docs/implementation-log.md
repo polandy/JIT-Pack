@@ -231,6 +231,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A default that decided how many rows (2026-08-31)](#a-default-that-decided-how-many-rows-2026-08-31) — the first two cross-screen flows. One was already covered by the screen case it belongs to; writing the other found M14's harvest coming back as one row per traveler, because the only writer in the app that never named an assignment took the mutation's.
 - [The one screen that read somebody else's partition (2026-08-31)](#the-one-screen-that-read-somebody-elses-partition-2026-08-31) — FLOW-05. The migrated history was worth something only on the device that typed it in: M3's hint read other trips' rows without asking for them, and an unpulled partition reads as a trip that packed none of it.
 - [The migration whose first step is not in the app (2026-08-31)](#the-migration-whose-first-step-is-not-in-the-app-2026-08-31) — FLOW-07. Leaving Local Mode is written nowhere but M19's first launch, so the move is device-to-device; and only a third device, which has seen nothing but the server, can tell a restored row from a pushed one.
+- [The world that could not falsify its own clause (2026-08-31)](#the-world-that-could-not-falsify-its-own-clause-2026-08-31) — FLOW-09, and the last §5 flow. An absence assertion was green because the event it denied never happened in that world; the positive signal for an absence has to be the same event reaching somewhere else.
 
 ## Current state
 
@@ -10570,3 +10571,43 @@ push is in flight, never from `pendingCount`, so the indicator said *Synced*
 over a whole queued trip partition. The assertion that says what it means is
 the *absence* of the sheet's queue line, and that is also the settled signal
 the third device needs before it looks.
+
+## The world that could not falsify its own clause (2026-08-31)
+
+FLOW-09 closes the §5 flows. Every one of its seven steps had a case; the **loop** had none —
+M3 generates from a composition, the trip learns something, M21 folds it back into the groups,
+and next year's M3 run has to arrive at the full learned set. A round trip is where a rule that
+is right at each step can still lose something between two of them, and nothing had gone round.
+
+What the case cost was not the chain. It was one clause: **an archived trip is never asked to
+follow its group.** E2E-M21-02's comment has said so since M21 shipped, no test asserted it, and
+the obvious world for it is the one the flow already builds — fold a deviation back, then look at
+the trip it was harvested from.
+
+That world cannot fail. The fold-back's whole purpose is to make the group match what the
+harvested trip carried, so after it that trip is owed no proposal **whatever `followsGroups`
+answers**; the assertion denies a change that does not exist. Measured rather than reasoned:
+with `if (trip.status === TRIP_STATUS_ARCHIVED) return false` deleted, the case stayed green.
+
+The repair is in the setup — the group grows a position *after* the fold-back, one **neither**
+trip carries, so the same change is offered to the still-planning trip and withheld from the
+archived one. Then the mutation turns it red on that exact line, and the status is the only
+difference left between the two.
+
+**The rule worth carrying: for an absence, the positive signal has to be the same event reaching
+somewhere else.** This draft already had the two guards that usually suffice — the page was
+asserted rendered, and a sibling assertion showed the feature working one line earlier — and both
+were satisfied by a world in which nothing had happened. It is E2E-M12-01's *„would the assertion
+have passed before the action?"* asked about the fixture instead of about the click.
+
+Two smaller things only the round trip can say, and they went in with it: M21 recognises **both**
+groups of a composition from provenance alone (the shared camera can point at one of them, so the
+second group is recognised through the item it does not share), and the harvested Vorlage
+*references* its groups rather than copying them — proved by a position added to a group after
+that Vorlage was written turning up in the next generation anyway.
+
+Two clauses of the flow's own sentence were corrected against the app first, neither a defect:
+the mode was `single`, where every rule in the chain runs client-side on one device (invariant
+4); and *„the fold-back appears as an applied change"* is the model FR-27.4 had until
+2026-08-18 — it is asked. The same sentence had already been corrected once, on E2E-M8-05, which
+is the argument for correcting it here rather than in the next reader's head.
