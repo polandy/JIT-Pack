@@ -43,7 +43,7 @@ import {
   budgetLevel,
   containerWeight,
   imbalancePercent,
-  imbalanceThreshold,
+  IMBALANCE_THRESHOLD_PERCENT,
   unassignedItems,
 } from '@/domain/containers'
 import { t } from '@/i18n'
@@ -61,7 +61,6 @@ const containers = computed(() => store.getContainers(props.tripId))
 const travelers = computed(() => store.getTravelers(props.tripId))
 const items = computed(() => store.getItems(props.tripId))
 const unassigned = computed(() => unassignedItems(items.value))
-const threshold = computed(() => imbalanceThreshold(trip.value?.attributes ?? null))
 
 function weightOf(containerId: string): number {
   return containerWeight(items.value, containerId)
@@ -87,7 +86,7 @@ function loadLine(container: Container): string {
 function imbalanceOf(container: Container): number | null {
   if (!container.paired_container_id) return null
   const diff = imbalancePercent(weightOf(container.id), weightOf(container.paired_container_id))
-  return diff > threshold.value ? diff : null
+  return diff > IMBALANCE_THRESHOLD_PERCENT ? diff : null
 }
 
 function carrierName(travelerId: string | null): string | null {

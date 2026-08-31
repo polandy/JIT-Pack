@@ -20,7 +20,7 @@ import {
   budgetLevel,
   containerWeight,
   imbalancePercent,
-  imbalanceThreshold,
+  IMBALANCE_THRESHOLD_PERCENT,
 } from '@/domain/containers'
 import { t } from '@/i18n'
 import { formatWeight } from '@/lib/format'
@@ -36,13 +36,12 @@ const emit = defineEmits<{ close: [] }>()
 const store = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const trip = computed(() => store.getTrip(props.tripId))
 const containers = computed(() => store.getContainers(props.tripId))
 const container = computed(() => containers.value.find((c) => c.id === props.containerId))
 const travelers = computed(() => store.getTravelers(props.tripId))
 const items = computed(() => store.getItems(props.tripId))
 
-const threshold = computed(() => imbalanceThreshold(trip.value?.attributes ?? null))
+const threshold = IMBALANCE_THRESHOLD_PERCENT
 
 const load = computed(() => containerWeight(items.value, props.containerId))
 const level = computed(() => budgetLevel(load.value, container.value?.max_weight_grams ?? null))
@@ -59,7 +58,7 @@ const imbalance = computed(() => {
   const pairedId = container.value?.paired_container_id
   if (!pairedId) return null
   const diff = imbalancePercent(load.value, containerWeight(items.value, pairedId))
-  return diff > threshold.value ? diff : null
+  return diff > IMBALANCE_THRESHOLD_PERCENT ? diff : null
 })
 
 const pairOptions = computed(() => containers.value.filter((c) => c.id !== props.containerId))

@@ -221,6 +221,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A rule that arrived after its tests (2026-08-30)](#a-rule-that-arrived-after-its-tests-2026-08-30) — backlog item 6, M21 and M22. A refusal added to a screen five days after its cases and invisible to every one of them; reading an *element list* instead of an id list; and the race fixed once in a case rather than in the file it lived in.
 
 - [A field that was there and had no width (2026-08-30)](#a-field-that-was-there-and-had-no-width-2026-08-30) — backlog item 6, M14 and M16. The first screen with no coverage at any layer, the control that turned out not to render at all, why no assertion could have found it, and two clauses on M14 that could not have failed where they stood.
+- [Twenty-two promises, decided against the screen (2026-08-31)](#twenty-two-promises-decided-against-the-screen-2026-08-31) — the owner's rulings on every open decision backlog item 6 raised. Why a promise can be unbuildable rather than merely unbuilt, why one strike deleted a reader instead of adding a writer, and why the screen beat the review that specified it.
 
 ## Current state
 
@@ -10095,3 +10096,69 @@ and the titles said `G-11`, so the first output read `E2E-G11-02: G-11: the
 anchor…`. Trivial, and it would have shipped into 65 titles.
 
 319 of 332 ids now sit in a title.
+
+## Twenty-two promises, decided against the screen (2026-08-31)
+
+Backlog item 6's screen pass finished on 2026-08-30 having read every screen
+against what it actually renders. What it left behind was twenty-two questions
+that no amount of further reading could answer, because each was a **choice**
+rather than a finding: a promise nobody had built, and no way to tell from the
+code whether that was an omission or a decision nobody had written down. They
+were deliberately parked rather than retired, on the rule the M2 audit set — *an
+unwritten case is as likely to be an unbuilt promise as a missing test*, and
+retiring one silently is how a product loses a feature to a tidy-up.
+
+All twenty-two were ruled in one sitting. Thirteen are built, nine struck, one
+rewritten. The list is in `CLAUDE.md`'s item 6; what follows is the part the
+diff cannot show.
+
+**A promise can be unbuildable rather than merely unbuilt, and only one of the
+twenty-two was.** M19's connectivity check — *enter a server URL, the app tells
+you inline if it cannot be reached* — reads like ordinary unfinished work. It is
+not: the API sets no CORS headers **on purpose**, so a probe from the
+mode-selection screen against another origin gets the same nothing back whether
+the host is down or perfectly healthy. The promised inline error would therefore
+tell a fraction of users that their running instance is unreachable. That is not
+a test gap and not a scheduling question — it is two decisions contradicting each
+other, and the only honest resolutions are to weaken the CORS stance or to drop
+the check. The check was dropped. Worth carrying because of how it reads from the
+outside: **the case looked unwritten, the requirement looked unimplemented, and
+the actual defect was in neither** — a screen had promised something the API's
+security posture forbids, and nobody had put the two sentences side by side.
+
+**One strike deleted a reader rather than adding a writer.** FR-10.3 says the
+imbalance threshold is *configurable per trip*, defaulting to 15 %.
+`imbalanceThreshold()` honoured `attributes.imbalance_threshold`; nothing has
+ever written that key. The obvious repair is a field on M22 — cheap, and M16
+already writes three attributes of the same shape. It was rejected: a percentage
+field is wanted only by someone who has met a warning they disagree with, and
+nobody has. So the requirement went to a fixed 15 % and the attribute branch went
+with it. The general form is the one worth keeping: **a reader with no writer is
+a requirement that is configurable in the document and fixed in the product**,
+and the fix runs in whichever direction the feature is actually wanted — here,
+neither the code nor the document was wrong about behaviour, only about
+intent. It is the mirror of `packer_user_id`, which had a reader and no writer
+and *was* worth building (FR-25.19); the shape does not tell you which.
+
+**The screen beat the review that specified it.** E2E-M2-15 and UI-Spec M2's
+*Default ordering* paragraph both describe a flat, usefulness-sorted trip list
+with a series chip on the row — the option the 2026-08-08 concept review chose
+after rejecting series grouping. `TripListPage` has grouped by series the whole
+time. The audit reported it as a defect against a settled decision, which is what
+it was on paper. The ruling reverses the decision instead, on the one piece of
+evidence the 2026-08-08 review could not have: **a year of using the built
+one**, on an instance carrying 33 trips. The review's premise was that the list
+is short enough not to need grouping, and that premise expired. The paragraph is
+kept above the reversal rather than deleted, because the record has to show the
+decision was reversed and not merely drifted away from — a spec that adopts
+whatever the code does has stopped being a decision, so this one says the code
+was *chosen*.
+
+**And one thing the batch changed about how these get parked.** Nine of the
+twenty-two had sat as *„open with the owner"* in three or four documents each,
+which is the right treatment for one of them and the wrong treatment for nine:
+read individually they each look like a small pending question, and read together
+they were a backlog nobody could see the size of. The rulings are therefore
+recorded once here and summarised in one paragraph of item 6, with the
+per-document strikes pointing back rather than restating — so the next reader
+counts them in one place.

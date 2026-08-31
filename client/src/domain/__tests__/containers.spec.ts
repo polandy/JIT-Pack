@@ -9,7 +9,7 @@ import {
   budgetLevel,
   containerWeight,
   imbalancePercent,
-  imbalanceThreshold,
+  IMBALANCE_THRESHOLD_PERCENT,
   pairWrites,
   releasePartnersOnDelete,
   unassignedItems,
@@ -199,9 +199,7 @@ describe('pairing imbalance (FR-10.3)', () => {
     expect(imbalancePercent(1000, 0)).toBe(100)
   })
 
-  it('defaults to 15 % and honors the per-trip override', () => {
-    expect(imbalanceThreshold(null)).toBe(15)
-    expect(imbalanceThreshold({ imbalance_threshold: 25 })).toBe(25)
-    expect(imbalanceThreshold({ imbalance_threshold: 'nonsense' })).toBe(15)
+  it('is a fixed 15 % since the per-trip override was struck (FR-10.3)', () => {
+    expect(IMBALANCE_THRESHOLD_PERCENT).toBe(15)
   })
 })
