@@ -136,6 +136,10 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
     const added = master.getTemplateItems('g1').find((ti) => ti.item_id === 'item9')
     expect(added).toBeDefined()
     expect(added?.quantity).toBe(1)
+    // The field nothing asserted, and the only one that decides how many
+    // rows the next trip generates: a harvested item is the trip's, not
+    // each traveler's (E2E-FLOW-04 is what noticed).
+    expect(added?.assignment).toBe('trip_global')
   })
 
   it('missing creates the master item first for an ad-hoc name', () => {
