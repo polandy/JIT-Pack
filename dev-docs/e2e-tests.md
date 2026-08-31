@@ -3560,6 +3560,13 @@ Three points worth keeping from that:
   trip with *no* travellers: 1 line, 288 px. A single number would have said the row is 106 px
   tall and left the cause unattributed.
 
+**The faces follow the ring's honesty rule, found on review.** A trip's travellers arrive with
+its partition, so in Server Mode a fresh boot would have shown every unopened trip as being for
+nobody. The row already draws that distinction for the progress ring — `tripDataKnown`, a „·"
+rather than 0 % — and the pile draws it by being **absent**, which is also what a trip with
+genuinely no travellers looks like. The two are indistinguishable on the row on purpose: neither
+is a claim, and the alternative is a third visual state for „we have not looked yet".
+
 **And the chip's case creates its trip through M15.** `trips.imported` has exactly one writer, and
 a fixture setting the column directly would assert the chip against a state the app cannot
 produce — which is the failure this audit programme has now found in five different costumes.

@@ -179,9 +179,19 @@ setHeaderActions(() => [action()])
  */
 const TRAVELER_FACES = 2
 
-/** The trip's roster — who it is *for*, not who is connected (that is G-10). */
+/**
+ * The trip's roster — who it is *for*, not who is connected (that is G-10).
+ *
+ * Empty where the trip's partition has not arrived, rather than „nobody": in
+ * Server Mode a trip's travellers come with its rows, so a list on a fresh
+ * boot would otherwise say every trip is for no one. That is the same
+ * distinction the progress ring already draws with `tripDataKnown` — it shows
+ * a „·" rather than 0 % — and the pile draws it by being absent, which is what
+ * a trip with genuinely no travellers looks like too. The two cases are
+ * indistinguishable on the row on purpose: neither is a claim.
+ */
 function travelersOf(trip: Trip) {
-  return store.getTravelers(trip.id)
+  return tripDataKnown(trip) ? store.getTravelers(trip.id) : []
 }
 
 function shownTravelers(trip: Trip) {
