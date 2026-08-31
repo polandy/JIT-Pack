@@ -228,3 +228,81 @@ test.describe('M2 row actions @local @m2', () => {
     expect(bare).not.toContain('packed_count')
   })
 })
+
+/**
+ * M2's two unbuilt row promises, built 2026-08-31 on the owner's ruling.
+ *
+ * Both stood in UI-Spec M2 and in E2E-M2-03/08 since the screen shipped: the
+ * *„Importiert"* chip had a column written by M15 and read by nothing, and the
+ * participant avatars were words left standing beside the presence facepile
+ * when that was removed on 2026-08-28.
+ */
+test.describe('M2 — what the row says about a trip @local @m2', () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, { mode: 'local' })
+  })
+
+  /**
+   * E2E-M2-08 (FR-16.2): an imported trip says so, and one made in the app
+   * does not.
+   *
+   * The imported trip is created through M15, which is the only writer of
+   * `trips.imported` — a fixture setting the column directly would assert the
+   * chip against a state the app cannot produce, which is the shape this whole
+   * audit keeps finding.
+   */
+  test('E2E-M2-08: an imported trip carries the chip and a hand-made one does not', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Von Hand' })
+
+    await page.goto('/import')
+    await visible(page)
+      .getByTestId('import-paste')
+      .locator('textarea')
+      .fill(['Artikel,2016', 'Wanderschuhe,1'].join('\n'))
+    await visible(page).getByTestId('import-analyze').click()
+    await visible(page).getByTestId('import-next').click()
+    await visible(page).getByTestId('import-commit').click()
+
+    // The commit lands on the archived segment, where the imported trip is.
+    await expect(visible(page).getByTestId('m2-imported-chip-2016')).toBeVisible()
+
+    // …and the trip made in the app carries no chip. The positive signal
+    // against it is the row itself, on the segment it lives on.
+    await visible(page).getByTestId('trips-filter-planned').click()
+    await expect(visible(page).getByTestId('trip-row-Von Hand')).toBeVisible()
+    await expect(visible(page).getByTestId('m2-imported-chip-Von Hand')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M2-03's fourth part (FR-2.1/8.1): the trip's travellers on the row.
+   *
+   * These are the *roster*, not who is connected — the presence facepile is
+   * G-10's and lives in the app bar. The row shows who the trip is for.
+   */
+  test('E2E-M2-03: the row shows the trip’s travellers, and folds the rest into a count', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, {
+      name: 'Zu viert',
+      travelers: ['Andy', 'Sia', 'Leonardo', 'Mia'],
+    })
+    await page.goto('/tabs/trips')
+
+    const faces = visible(page).getByTestId('m2-travelers-Zu viert')
+    await expect(faces).toBeVisible()
+    // Two faces and a +2, not four faces. Measured: three faces plus „+1" is
+    // 64 px and wraps a long trip name onto a second line at 390 px; two plus
+    // „+2" is 61 px and it stays on one.
+    await expect(faces.getByTestId('m2-traveler-face')).toHaveCount(2)
+    await expect(faces.getByTestId('m2-traveler-more')).toHaveText('+2')
+
+    // A trip with nobody on it shows nothing rather than an empty pile — the
+    // positive signal is the row, which is there either way.
+    await createTripViaWizard(page, { name: 'Allein' })
+    await page.goto('/tabs/trips')
+    await expect(visible(page).getByTestId('trip-row-Allein')).toBeVisible()
+    await expect(visible(page).getByTestId('m2-travelers-Allein')).toHaveCount(0)
+  })
+})

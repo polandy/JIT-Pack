@@ -934,6 +934,8 @@ export const de: Record<keyof typeof en, string> = {
   'trips.emptyPlanned': 'Keine geplanten Reisen',
   'trips.emptyArchived': 'Keine archivierten Reisen',
   'trips.seriesFallback': 'Serie',
+  'trips.importedChip': 'Importiert',
+  'trips.travelersMore': '+{n}',
   'trips.seriesCount': '{n} Reise | {n} Reisen',
   'trips.itemSummary': '{packed}/{total} gepackt',
   // ADR-033: a trip whose own rows are not on this device yet.
