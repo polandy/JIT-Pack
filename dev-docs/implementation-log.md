@@ -226,6 +226,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A screen that aggregated rows it had never loaded (2026-08-31)](#a-screen-that-aggregated-rows-it-had-never-loaded-2026-08-31) — M1's three promises, and the defect underneath them: the dashboard counted a store the trips had never been loaded into. Why Local Mode could not show it, why a mount hook would have asked for nothing, and why "since the last visit" is a set.
 - [A traveler had no door but a screen (2026-08-31)](#a-traveler-had-no-door-but-a-screen-2026-08-31) — the command line grows subcommands (ADR-042) rather than the server growing REST resources; why the roster needed two pulls before it could decide anything, and the account directory that carries no address to match on.
 - [A gesture the row was eating (2026-08-31)](#a-gesture-the-row-was-eating-2026-08-31) — backlog item 6's cross-cutting pass over the G-* patterns. The stepper's long-press was unreachable on the only screen that renders it, two icons had no name, and five promises turned out to describe a screen that had changed under them.
+- [Three flakes with one signature (2026-08-31)](#three-flakes-with-one-signature-2026-08-31) — the intermittent e2e failures read against their logs. Why one of them is a product defect rather than noise, why it could not be reproduced here, and the invariant every case now ends by checking.
 
 ## Current state
 
@@ -10355,3 +10356,48 @@ this week. The sheet now records *which* comment a deep link landed on and keeps
 it (`data-flashed-comment`), so the outcome is a settled state. Same rule as
 `data-scroll-restored`: when there is nothing to wait on, that absence is the
 defect.
+
+## Three flakes with one signature (2026-08-31)
+
+Three cases had each failed once under a loaded shard in two days —
+`E2E-M4-32`, `E2E-M17-01`, `E2E-M5-12` — and each had gone green on the
+re-run. The ledger recorded that as a pattern owed a measurement rather than
+something a green re-run should be allowed to close. Reading the logs is what
+the measurement turned out to be, and it changed the question.
+
+**One of the three is not flaky.** E2E-M5-12 failed on `main` at `4dab0d46`
+with a strict-mode violation: `.ion-page:not(.ion-page-hidden)` matched
+**two** elements, both M4. That is ADR-012's page-stacking leak — the same
+class as the navigation anchors two days earlier — on the M4/M5 replace path,
+which that fix did not touch. Load is not the cause; load is what interrupts
+a transition long enough for the leak to be produced, which is why the symptom
+looks like flakiness and why every re-run "settles" it.
+
+**The honest limit of the finding: it does not reproduce here.** Fifteen runs
+on webkit, up to four workers, with the machine deliberately loaded to ~9 —
+all green. A navigation change written on top of that would be the mistake of
+two days ago repeated: three builds spent fixing a site the probe had not
+established. So the fix is not in this entry.
+
+**What is, is the invariant.** Every case now ends by checking ADR-012's rule
+— at most one page live in the outlet — as an automatic fixture rather than as
+an assertion each case has to remember. Two details decide whether it is worth
+anything:
+
+*It has to poll.* A page on its way out is unhidden for as long as its
+animation runs, so the first version — a single read after the case — failed
+E2E-G9-17 and E2E-G1-06 immediately, both with M2 under a just-pushed M15, and
+both were transitions. **A leaked page stays for good and a leaving one does
+not**, so a bounded retry is the whole difference between an invariant and a
+race. The two cases it "caught" were the two written the day before to assert
+exactly this property, which is a good reminder that a check can be right
+about the condition and wrong about the moment.
+
+*It has to stay quiet on a failing case.* A case that already failed has its
+own story, and a second error on top of it buries the first.
+
+What this buys is where the report lands. A leak is invisible from inside the
+case that produces it — the URL is right, the screen looks right — and it
+surfaces later as somebody else's strict-mode violation, on a case that did
+nothing wrong. From here it surfaces at the case that caused it, naming the
+pages it found.

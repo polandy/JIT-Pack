@@ -65,6 +65,23 @@ export async function seed(page: Page, opts: SeedOptions): Promise<void> {
 interface Fixtures {
   /** Seed run-mode localStorage for the current test's page. */
   seedMode: (opts: SeedOptions) => Promise<void>
+  /**
+   * ADR-012's invariant, checked after every case: the one router outlet
+   * shows exactly one page.
+   *
+   * A leaked page is invisible from inside the case that leaks it — the URL
+   * is right, the screen looks right, and the stale page underneath only
+   * surfaces later, as somebody else's strict-mode violation or as a tap
+   * that goes nowhere. It has happened twice: the four navigation anchors
+   * (2026-08-31, ADR-012 amendment 3) and E2E-M5-12 on `main` at 4dab0d46,
+   * which failed with two unhidden M4s and no way to tell which navigation
+   * had produced them.
+   *
+   * Automatic, so a case cannot forget it, and skipped when the test has
+   * already failed — a failing case has its own story and this would only
+   * bury it.
+   */
+  oneLivePage: void
 }
 
 /** Minimum a trip needs to be creatable — the wizard's step-1 gate. */
@@ -539,6 +556,34 @@ export const test = base.extend<Fixtures>({
   seedMode: async ({ page }, use) => {
     await use((opts: SeedOptions) => seed(page, opts))
   },
+  oneLivePage: [
+    async ({ page }, use, testInfo) => {
+      await use()
+      if (testInfo.status !== testInfo.expectedStatus) return
+      const live = page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
+      // Polled, and that is what separates a leak from a transition: a page
+      // on its way out is unhidden for as long as the animation lasts, so a
+      // one-shot read at the end of a case that navigated last would report
+      // every push as a defect. A *leaked* page stays for good.
+      // Zero is fine — a login screen has no outlet.
+      let count = 0
+      try {
+        await expect
+          .poll(async () => (count = await live.count()), { timeout: 4000 })
+          .toBeLessThan(2)
+      } catch {
+        const named = await live.evaluateAll((nodes) =>
+          nodes.map((n) => n.querySelector('[data-testid]')?.getAttribute('data-testid') ?? '?'),
+        )
+        throw new Error(
+          `ADR-012: the outlet is still showing ${count} pages after this case, ` +
+            `led by [${named.join(', ')}]. A leaked page eats taps meant for the ` +
+            `one on screen, and the case that leaked it is this one.`,
+        )
+      }
+    },
+    { auto: true },
+  ],
 })
 
 export { expect }
