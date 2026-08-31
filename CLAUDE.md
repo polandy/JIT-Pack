@@ -351,6 +351,24 @@ it. Item numbers stay stable even as items close, because the log refers back to
    both ways whose producer was tested nowhere) and the FR-27.12 peek, which no id claimed. One
    owner decision: UI-Spec M14's closing card *„teases the first two proposals"* and reads none.
    Log: *„A field that was there and had no width"*.
+
+   **Every owner decision the screen pass raised was ruled on 2026-08-31, and none is
+   open.** Twenty-two of them, decided in one sitting against the screens rather than the
+   documents: **thirteen are built** (FR-27.8/27.9's rear-view on M10, M22's year field and its
+   archived-state sentence, M1's delegation surface / Late-Packer section / prep jump, M15's
+   inline noise handling / named target series / grid preview, the quick-add's companion report,
+   M14's card reading two proposals, M2's *Importiert* chip and traveller avatars), **nine are
+   struck** (M19's connectivity check, M4's container chip and amber cast, M7's FAB import menu,
+   M9's multi-select merge, the M12→M11 edge, FR-10.3's per-trip threshold, M2's empty-state CTA,
+   FR-6.1's personal filter) and **one is rewritten** — E2E-M2-15's flat list loses to the
+   grouping the screen has always done. Two of the strikes are worth carrying: **M19's check is
+   not buildable as specified**, because the API sets no CORS headers on purpose and the promised
+   inline error would report a healthy instance as unreachable; and **FR-10.3's threshold was
+   configurable in the document and fixed in the product**, so the ruling deleted the reader
+   rather than adding a writer. What is left of item 6 is cross-cutting — the G-* patterns,
+   FLOW-*, PWA, SYNC and the NFR rows — plus M2's own next pass, which owes a `data-testid` on
+   its empty state and the now-writable E2E-M2-02. Log: *„Twenty-two promises, decided against
+   the screen"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

@@ -389,7 +389,8 @@ M8-07 case now builds that composition through the app and asserts both lines
 on the M7 row. The resolution arithmetic itself stays covered where it lives, in
 `client/src/domain/__tests__/templates.spec.ts` — what the new case adds is the
 *wiring*, which no domain test can see. **E2E-M7-05 is the FAB menu's entry, and the FAB has no menu** — the surface
-does not exist and is an open owner decision (build it, or strike the clause).
+does not exist, and the clause was **struck 2026-08-31 (owner decision)**: a
+second door to a function that already has one buys nothing.
 The *function* it names does exist, on the header icon, and since 2026-08-30 it
 has a case: nothing in the suite had ever tapped that icon. E2E-G9-12 asserts
 M18's return-to-origin rule for the entrance from M2 and names M7 in its own
@@ -828,7 +829,7 @@ What the unit cost to learn:
 | … and taken off again | `ContainerSheet.spec.ts` (unit) | **New 2026-08-30.** FR-10.1 calls the carrier optional and nothing at any layer had ever cleared one; a chip that could only hand the bag on was indistinguishable from one that toggles. A write rule, so it is asserted at the write layer. |
 | the weight bar's amber and red grades | E2E-M11-02 + `containers.ts` (unit) | The boundary is the domain's; that the grade reaches the painted bar is the e2e's. |
 | paired containers report their imbalance, and a delete releases the survivor | E2E-M11-04 | Both cards, and the skew is what makes the release assertable at all. |
-| **the threshold is configurable per trip** | **nothing — it has no writer** | `imbalanceThreshold()` honours `attributes.imbalance_threshold`, and no screen writes that key: the wizard writes three attributes and `tags`, M16 writes the series' defaults of the same three, M22 touches attributes not at all. Left untested on purpose; owner decision (UI-Test-Spec M11, PRD FR-10.3). |
+| ~~the threshold is configurable per trip~~ | **nothing, and nothing is owed** | `imbalanceThreshold()` honoured `attributes.imbalance_threshold`, and no screen ever wrote that key: the wizard writes three attributes and `tags`, M16 the series' defaults of the same three, M22 none. **Struck 2026-08-31 (owner decision):** FR-10.3 is a fixed 15 %, and the dead attribute branch went with the clause — the reader is now the constant `IMBALANCE_THRESHOLD_PERCENT`. There was never anything here to test. |
 | the unassigned bucket is rows, the picker shows loads, a delete unassigns | E2E-M11-06 | FR-25.5's *„never blocks packing"* is not restated here — every M4 case that packs an unassigned row keeps it. |
 | the bucket is absent when there is nothing to say | E2E-M11-07 | UX-8. |
 | moving an item between two bags | E2E-M5-22 | M11 offers no path to it — see E2E-M11-03. |
@@ -924,7 +925,7 @@ one of which was missing a wait.
 | a tapped bar becomes M4's facet, clearing the others | E2E-M12-04 + `usePackingFilter.spec.ts` (unit) | The e2e never has a second facet in force, so *„clearing the others"* could not fail there. |
 | per-person rows contribute per person and sum back | E2E-M12-05 + `analytics.ts` (unit) | No `undefined` bucket, totals equal across dimensions. |
 | the series trend and its flags | E2E-M12-03 (both halves) + `analytics.ts` (unit) | |
-| **M11 is reachable from M12** | **nothing — the edge does not exist** | UI-Spec M11 has claimed it since before the rebuild; `AnalyticsPage.vue` pushes one route, `/trips/{id}`. Owner decision, and the UI-Spec sentence is struck. |
+| ~~M11 is reachable from M12~~ | **nothing, and nothing is owed** | UI-Spec M11 claimed it since before the rebuild; `AnalyticsPage.vue` pushes one route, `/trips/{id}`. **Struck 2026-08-31 (owner decision)** — and the route it does push is the more useful landing anyway, since tapping a *Gepäck* bar sets the container facet on M4, putting the reader on the rows the bar was about. |
 
 ## M14 — review assistant (`e2e/review.spec.ts`, 2026-08-16)
 
