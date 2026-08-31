@@ -107,7 +107,7 @@ Every name comparison is trimmed and case-folded, which is what FR-16.3 and `app
 **Positive**
 
 - A restore is repeatable, whole. Measured on a real 57-document file (21 groups, 3 Vorlagen, 33 trips, 1826 positions): the second run reports `57 documents: 0 imported, 57 already here, 0 failed` and the database does not move.
-- The command line is safe to put in a script: `jitpack import backup.yaml` (spelled `jitpack-import backup.yaml` until ADR-041) is idempotent per trip, and `--dry-run` answers what a file would actually do.
+- The command line is safe to put in a script: `jitpack import backup.yaml` (spelled `jitpack-import backup.yaml` until ADR-042) is idempotent per trip, and `--dry-run` answers what a file would actually do.
 - No schema change, no migration, no database deleted, and no new way for a push to be refused.
 
 **Negative / accepted costs**
