@@ -223,6 +223,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A field that was there and had no width (2026-08-30)](#a-field-that-was-there-and-had-no-width-2026-08-30) — backlog item 6, M14 and M16. The first screen with no coverage at any layer, the control that turned out not to render at all, why no assertion could have found it, and two clauses on M14 that could not have failed where they stood.
 - [Twenty-two promises, decided against the screen (2026-08-31)](#twenty-two-promises-decided-against-the-screen-2026-08-31) — the owner's rulings on every open decision backlog item 6 raised. Why a promise can be unbuildable rather than merely unbuilt, why one strike deleted a reader instead of adding a writer, and why the screen beat the review that specified it.
 - [A switch nobody had interrupted (2026-08-31)](#a-switch-nobody-had-interrupted-2026-08-31) — the four navigation anchors pushed and nothing popped. Why one settled switch could never see it, why a probe that does not wait measures a different app, and why three builds were spent fixing the symptom.
+- [A screen that aggregated rows it had never loaded (2026-08-31)](#a-screen-that-aggregated-rows-it-had-never-loaded-2026-08-31) — M1's three promises, and the defect underneath them: the dashboard counted a store the trips had never been loaded into. Why Local Mode could not show it, why a mount hook would have asked for nothing, and why "since the last visit" is a set.
 - [A traveler had no door but a screen (2026-08-31)](#a-traveler-had-no-door-but-a-screen-2026-08-31) — the command line grows subcommands (ADR-042) rather than the server growing REST resources; why the roster needed two pulls before it could decide anything, and the account directory that carries no address to match on.
 
 ## Current state
@@ -10238,3 +10239,47 @@ the worst place for it, so removal stays on M22.
 with `import` as a subcommand. Shipping both binaries was rejected — two names
 for one tool is the shape ADR-042 exists to avoid — and the three documents that
 spelled the old invocation were changed with it.
+
+## A screen that aggregated rows it had never loaded (2026-08-31)
+
+M1's three unbuilt promises were built on the owner's ruling — the delegation section (FR-6.1/6.3
+/4.4), the departure-day Late-Packer section (FR-5.1) and the prep card's jump into a row
+(FR-7.3). The measurements and the case ids are in `dev-docs/e2e-tests.md`. What belongs here is
+the defect the first of them uncovered, which is older and larger than all three.
+
+**M1 aggregated rows it had never loaded.** A trip partition arrives when its trip is opened, and
+the dashboard never asked — so in Server Mode every active trip rendered with *„0 offen"*, no
+previews and no prep, until the user had visited each trip in that page session. Two things kept
+it invisible, and both are worth recognising again:
+
+- **The mode that cannot show it is the mode the tests run in.** Local Mode rehydrates everything
+  from IndexedDB on boot, and M1's two cases are local, so the screen was green against an
+  aggregation that had nothing to aggregate anywhere else. A screen whose coverage lives entirely
+  in one mode is covered *for that mode*.
+- **A capability reachable by a gesture reads as a capability the screen has.** `handleRefresh`
+  already called `drainAll`; the data path existed, worked, and was tested by hand every time
+  anyone pulled to refresh. What was missing was the screen asking on arrival — which no reading
+  of the file reveals, because the call is *there*.
+
+The fix is two lines and the second is the one FR-4.4 needed anyway: `ensureTripData` per active
+trip and `subscribeTrip`. **Only M4 had ever subscribed to a trip channel**, so a device sitting
+on the dashboard heard nothing about the trips it displayed; the *„updates in real time"* half of
+E2E-M1-03 was not unbuilt but unreachable. Both go in a **watcher** rather than in `onMounted`:
+the trip list arrives with the master partition, which on a cold boot has not landed when the
+mount hook runs, so a one-shot call asks for nothing — silently, which is the failure mode that
+put the original defect there.
+
+**Two rules the features themselves settled.**
+
+*„Since the last visit" is a set of row ids, not a timestamp.* A row carries no assignment time —
+the HLC that ordered the write is the server's and never reaches the client as a date — and a set
+answers the question the requirement actually asks (*has this device shown me this yet?*)
+identically after a clock change, a timezone move, or a week switched off. It stays bounded
+because it is replaced rather than appended to.
+
+*A screen has two exits and Vue knows about one.* `onUnmounted` covers an in-app navigation;
+the browser leaving the document tears the page down without running a single Vue hook, so
+without `pagehide` a delegation stayed *new* for ever on a device whose user left by a real link.
+The e2e case is what found it, because `page.goto` is a real navigation — every in-app assertion
+would have passed, and this is the third time in two days that **the way a test travels decided
+what it could see**.
