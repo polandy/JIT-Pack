@@ -8,8 +8,11 @@ import {
 } from './fixtures'
 import {
   addPosition,
+  addToGroup,
   backToTemplateList as backToList,
   createTemplate,
+  createTripFollowingGroup,
+  includeGroup,
   openQuickAdd,
   visiblePage as visible,
 } from './fixtures'
@@ -416,5 +419,164 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(
       0,
     )
+  })
+})
+
+/**
+ * E2E-FLOW-09 — the template round trip, over a year.
+ *
+ * The one §5 flow whose steps all have cases and whose *loop* has none: M3
+ * generates from a composition, the trip learns something, M21 folds that back
+ * into the groups, and the next year's M3 run has to arrive at the full
+ * learned set. Every screen on the way is covered on its own; nothing has ever
+ * closed the circle, and a round trip is exactly where a rule that is right at
+ * each step can still lose something between two of them.
+ *
+ * **Local Mode, where the flow's own line said `single`.** Generation,
+ * recognition, the fold-back plan and the FR-27.4 question all run client-side
+ * (invariant 4) and the flow has one device: a backend would add a partition
+ * to pull and not one rule to this chain. Local is also the stricter run —
+ * anything here that quietly needed a round trip would fail rather than pass
+ * for the wrong reason.
+ */
+test.describe('FLOW-09 — a template learns across a year (FR-27.1–27.5, FR-2.3a)', () => {
+  test.slow()
+
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /** The owner's scenario: two groups sharing a camera, under one Vorlage. */
+  async function seedComposition(page: Page) {
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Makro')
+    await addPosition(page, 'Kamera')
+    await addPosition(page, 'Makro-Objektiv')
+    await backToList(page)
+
+    await createTemplate(page, 'group', 'Wildlife')
+    await addPosition(page, 'Kamera')
+    await addPosition(page, 'Teleobjektiv')
+    await backToList(page)
+
+    await createTemplate(page, 'template', 'Fototage')
+    await includeGroup(page, 'Makro')
+    await includeGroup(page, 'Wildlife')
+    await backToList(page)
+  }
+
+  /** M3 with one Vorlage picked in step 3. Returns the trip's path. */
+  async function tripFromTemplate(page: Page, name: string, vorlage: string, items: number) {
+    await page.goto('/trips/new')
+    await page.getByTestId('wizard-name').locator('input').fill(name)
+    await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+    await page.getByTestId('wizard-next').click()
+
+    await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+    await visible(page)
+      .getByTestId('wizard-section-templates')
+      .locator('ion-item')
+      .filter({ hasText: vorlage })
+      .first()
+      .locator('ion-checkbox')
+      .click()
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText(`${items} items`)
+  }
+
+  test('E2E-FLOW-09: next year’s Vorlage carries what this year’s trip learned', async ({
+    page,
+  }) => {
+    await seedComposition(page)
+
+    // 1 — generation from the composition. The camera arrives once and the
+    // preview names both groups that asked for it (E2E-M3-11 owns that clause
+    // in full; here it is the premise the rest of the year is built on).
+    await tripFromTemplate(page, 'Fototour 2026', 'Fototage', 3)
+    await expect(visible(page).getByTestId('wizard-merges')).toContainText('Makro & Wildlife')
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Fototour 2026')
+    const harvested = new URL(page.url()).pathname
+
+    // 2 — the trip learns something the templates do not know.
+    await quickAddVerbatim(page, 'Reisefön')
+
+    // 3 — and it ends.
+    await archiveTrip(page)
+
+    // 4 — the deviation: the group drops a position the finished trip carried.
+    await removeGroupPosition(page, 'Makro', 'Makro-Objektiv')
+
+    // A trip planned *after* the removal follows the thinner group, so the
+    // fold-back is a real change for it rather than a no-op (the ordering
+    // E2E-M21-03c had to discover).
+    const following = await createTripFollowingGroup(page, 'Fototour Winter 2027', 'Makro')
+
+    // 5 — M21 recognises *both* groups, from provenance alone. Wildlife is the
+    // one worth naming: its camera is shared, so the only row that can point
+    // at it is the telephoto.
+    await openM21(page, harvested)
+    const groups = visible(page).getByTestId('m21-group')
+    await expect(groups).toHaveCount(2)
+    await expect(groups.filter({ hasText: 'Makro' }).first()).toContainText('came from it')
+    await expect(groups.filter({ hasText: 'Wildlife' }).first()).toContainText('came from it')
+    await expect(visible(page).getByTestId('m21-deviation')).toContainText('Makro-Objektiv')
+
+    await visible(page).getByTestId('m21-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Fototour 2027')
+
+    // …and *references* both, rather than copying their positions in: the
+    // second half of the flow's "recognised & referenced", and the reason the
+    // next generation can still learn from the groups.
+    await expect(visible(page).getByTestId('m8-groups-head')).toBeVisible()
+    for (const group of ['Makro', 'Wildlife']) {
+      await expect(visible(page).locator('ion-item').filter({ hasText: group })).toHaveCount(1)
+    }
+    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(1)
+    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' })).toHaveCount(0)
+
+    // 6 — the fold-back reaches the trip that still follows the group, as the
+    // *question* FR-27.4 has asked since 2026-08-18 rather than as the applied
+    // change the flow's own sentence still promised.
+    await page.goto(following)
+    await expect(visible(page).getByTestId('m4-group-proposal')).toContainText('Makro-Objektiv')
+
+    // 6b — and never the trip it was harvested from. E2E-M21-02's note has
+    // stated that rule since M21 shipped ("a past trip is never asked to
+    // follow along") with nothing asserting it: an archived trip is a record
+    // of what was packed, and a proposal on it would offer to edit history.
+    //
+    // The change has to be one *neither* trip carries, which the fold-back
+    // itself can never be: it makes the group match the harvested trip, so
+    // that trip has nothing to be offered whatever the rule says. Proved —
+    // with the archived guard deleted from `followsGroups`, the earlier draft
+    // of this case stayed green. The group therefore grows a position here,
+    // and the two trips are asked about the same one.
+    await addToGroup(page, 'Makro', 'Blitz')
+
+    await page.goto(following)
+    await expect(visible(page).getByTestId('m4-group-proposal')).toContainText('Blitz')
+
+    await page.goto(harvested)
+    // The second positive signal is that this page rendered at all — an
+    // absence asserted on a screen that never painted would pass against
+    // anything.
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-group-proposal')).toHaveCount(0)
+
+    // 7 — the circle closes: next year's run off the harvested Vorlage brings
+    // both groups' items *and* what the trip added, each exactly once. Blitz
+    // is the fifth, and it is the reference proving itself: it was added to
+    // the group after the Vorlage was written, and it arrives anyway.
+    await tripFromTemplate(page, 'Fototour 2027 · Tessin', 'Fototour 2027', 5)
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+    const rows = visible(page).getByTestId('wizard-review-row')
+    for (const learned of ['Kamera', 'Makro-Objektiv', 'Teleobjektiv', 'Reisefön', 'Blitz']) {
+      await expect(rows.filter({ hasText: learned })).toHaveCount(1)
+    }
   })
 })
