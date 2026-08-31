@@ -139,8 +139,32 @@ export function seedSampleTrip(
   const { id } = orchestrator.commitPortableImport(sampleDocument(), merges)
   orchestrator.activateTrip(id)
   buyOneShoppingRow(id, orchestrator)
+  seedItemComment(id, orchestrator)
   return id
 }
+
+/**
+ * One remark on a row that came from the inventory, so FR-27.9's section on
+ * M10 has something to aggregate. It has to hang off a row with a
+ * `source_item_id` — a comment on an ad-hoc row reaches no item, which is the
+ * rule the section is built on.
+ */
+const SEED_COMMENTED_ROW = 'Wanderstöcke'
+const SEED_COMMENT = 'Die Spitzen sind stumpf — vor der nächsten Tour ersetzen'
+
+function seedItemComment(tripId: string, orchestrator: Orchestrator): void {
+  const row = useTripStore()
+    .getItems(tripId)
+    .find((item) => item.name === SEED_COMMENTED_ROW && item.source_item_id !== null)
+  if (row) orchestrator.addComment(tripId, row.id, SEED_AUTHOR_ID, SEED_COMMENT)
+}
+
+/**
+ * The server stamps the real author on insert (invariant 3); in Local Mode
+ * nothing does, and the seed's own placeholder is what the M10 section then
+ * fails to name — which is the correct Local Mode rendering, not a defect.
+ */
+const SEED_AUTHOR_ID = 'dev-seed'
 
 /**
  * FR-25.11j: one row is bought before departure, through the same action the
