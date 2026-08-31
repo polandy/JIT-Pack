@@ -382,8 +382,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    spec sentences corrected against screens that had changed under them (G-12-07's *„no ⋯"*,
    G-12-04's *„single line"*, G-9-01's width-conditional FAB, G-4-01's scope, G-8-01's
    already-covered siblings) and three clauses kept as unfalsifiable rather than counted.
-   **One owner decision:** G-12's long-press name bubble on touch is built nowhere.
-   Log: *„A gesture the row was eating"*.
+   **Both owner decisions are ruled (2026-08-31):** G-12's `title` narrows to the **app bar**,
+   where the label was dropped to buy room — held there by `iconButtonLabels.spec.ts`, which
+   resolves the bar and what is slotted into it from `AppHeader.vue` — and the long-press name
+   bubble is **struck**, because the bar's ⋮ already answers it in words.
+   Log: *„A gesture the row was eating"*, *„A tooltip that only the bar owes"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

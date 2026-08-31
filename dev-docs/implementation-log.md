@@ -226,6 +226,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A screen that aggregated rows it had never loaded (2026-08-31)](#a-screen-that-aggregated-rows-it-had-never-loaded-2026-08-31) — M1's three promises, and the defect underneath them: the dashboard counted a store the trips had never been loaded into. Why Local Mode could not show it, why a mount hook would have asked for nothing, and why "since the last visit" is a set.
 - [A traveler had no door but a screen (2026-08-31)](#a-traveler-had-no-door-but-a-screen-2026-08-31) — the command line grows subcommands (ADR-042) rather than the server growing REST resources; why the roster needed two pulls before it could decide anything, and the account directory that carries no address to match on.
 - [A gesture the row was eating (2026-08-31)](#a-gesture-the-row-was-eating-2026-08-31) — backlog item 6's cross-cutting pass over the G-* patterns. The stepper's long-press was unreachable on the only screen that renders it, two icons had no name, and five promises turned out to describe a screen that had changed under them.
+- [A tooltip that only the bar owes (2026-08-31)](#a-tooltip-that-only-the-bar-owes-2026-08-31) — the two owner decisions the G-* pass left open, ruled: G-12's `title` narrows to the app bar and the long-press name bubble is struck. Writing the gate found the trap it exists for.
 - [Three flakes with one signature (2026-08-31)](#three-flakes-with-one-signature-2026-08-31) — the intermittent e2e failures read against their logs. Why one of them is a product defect rather than noise, why it could not be reproduced here, and the invariant every case now ends by checking.
 
 ## Current state
@@ -10401,3 +10402,44 @@ case that produces it — the URL is right, the screen looks right — and it
 surfaces later as somebody else's strict-mode violation, on a case that did
 nothing wrong. From here it surfaces at the case that caused it, naming the
 pages it found.
+
+## A tooltip that only the bar owes (2026-08-31)
+
+The G-* pass closed with two open questions, both from G-12's line that an
+icon-only control "carries a `title` for desktop hover **and** shows the same
+name as a bubble on **long-press** for touch". Measured, the first half was
+kept by 9 of 62 buttons and the second by none.
+
+**The `title` narrows to the app bar.** The alternative was the attribute on
+all 62, and what settled it is *why* the label is missing in each place. In
+the bar the text was dropped deliberately, to buy room for a cluster — so the
+name has to stay retrievable some other way. Everywhere else the icon sits
+beside the text it belongs to, and the tooltip would repeat what is already on
+screen. Narrowing also costs nothing to keep, because the bar has no
+per-screen markup: `AppHeader.vue` renders back, the G-12 cluster (through
+`useHeaderActions`, whose `label` was already both the accessible name and the
+tooltip), the ⋮ and the gear, and `SyncIndicator.vue` renders G-2. Five call
+sites, all already compliant — the ruling is a gate, not a change.
+
+The gate resolves its own subject rather than taking a list: it slices
+`AppHeader`'s toolbar and collects the components slotted into it, so the next
+control added to the bar is covered by a file nobody has to remember. That is
+the same shape as the `aria-label` rule beside it, and it is the reason both
+live over the source instead of in a per-screen case.
+
+**Writing it found the trap it exists for.** The first version asked whether
+the opening tag `includes('title')`, and the settings gear satisfied that with
+`:aria-label="t('settings.title')"` — a tooltip rule kept by a translation
+key. It surfaced only because the assertion was mutation-proved: stripping
+both tooltips turned up one offender where there should have been two. An
+attribute check has to match an attribute.
+
+**The bubble is struck.** Not deferred — G-12 already answers the same
+question in the same bar, and better: an action whose glyph nobody can read is
+marked `overflow` and rendered behind the ⋮ *as a word*, which is exactly why
+the two M4 controls nobody could name on sight moved there. A bubble would be
+a second, weaker answer, and a third meaning for a gesture the app already
+spends twice — FR-5.5's row menu and G-6's stepper holds, whose collision was
+this week's headline defect. The revisit trigger is a bar glyph that turns out
+to be unlearnable: it moves behind the ⋮, and only if one cannot is the bubble
+back on the table.
