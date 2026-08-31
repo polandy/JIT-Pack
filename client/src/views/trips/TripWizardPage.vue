@@ -37,7 +37,7 @@ import {
   personOutline,
   refreshOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { loadTokens } from '@/auth/tokens'
@@ -437,26 +437,50 @@ function overrideQuantity(index: number, value: string) {
   quantityOverrides.value = { ...quantityOverrides.value, [index]: Math.floor(qty) }
 }
 
+/** The series' own trips — the history FR-14.2's median is taken over. */
+const seriesTrips = computed(() => {
+  const seriesId = seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null
+  return seriesId ? tripStore.tripList.filter((t) => t.series_id === seriesId) : []
+})
+
+/*
+ * Their rows live in each trip's own partition, which Server and
+ * Single-User Mode pull only when a trip is *opened* (ADR-033). Ask for
+ * them here, or the screen reads `getItems` of trips this device never
+ * pulled — which does not read as "unknown" but as "that trip packed none
+ * of it".
+ */
+watchEffect(() => {
+  for (const trip of seriesTrips.value) void orchestrator.ensureTripData(trip.id)
+})
+
+/**
+ * historyReady: every one of those partitions is actually here. Same
+ * doctrine as M2's ring and the clone page — a median taken over the
+ * subset that happens to have arrived is not a weaker suggestion, it is a
+ * different number, and the hint states it with the same confidence.
+ */
+const historyReady = computed(() =>
+  seriesTrips.value.every((trip) => orchestrator.tripDataLoaded(trip.id)),
+)
+
 // FR-14.2: duration-normalized median of the series' recent trips (synced
 // on-device), so step 4 can offer a one-tap history default per item.
 const suggestions = computed(() => {
-  const seriesId = seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null
-  if (!seriesId) return new Map<string, QuantitySuggestion>()
+  if (!historyReady.value) return new Map<string, QuantitySuggestion>()
   // Fall back an unknown duration to the target, making normalization a
   // no-op for that trip rather than distorting it (FR-2.1a spirit).
   const target = duration.value ?? 1
-  const history = tripStore.tripList
-    .filter((t) => t.series_id === seriesId)
-    .map((t) => ({
-      id: t.id,
-      orderKey: tripOrderKey(t),
-      year: t.year,
-      durationDays: durationDays(t.start_date, t.end_date) ?? target,
-      items: tripStore
-        .getItems(t.id)
-        .filter((i) => i.source_item_id)
-        .map((i) => ({ sourceItemId: i.source_item_id as string, quantity: i.quantity })),
-    }))
+  const history = seriesTrips.value.map((t) => ({
+    id: t.id,
+    orderKey: tripOrderKey(t),
+    year: t.year,
+    durationDays: durationDays(t.start_date, t.end_date) ?? target,
+    items: tripStore
+      .getItems(t.id)
+      .filter((i) => i.source_item_id)
+      .map((i) => ({ sourceItemId: i.source_item_id as string, quantity: i.quantity })),
+  }))
   return suggestQuantities(history, target)
 })
 
@@ -1084,6 +1108,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 v-if="suggestionFor(index)"
                 type="button"
                 class="history-hint"
+                data-testid="wizard-history-hint"
                 @click="acceptSuggestion(index)"
               >
                 {{

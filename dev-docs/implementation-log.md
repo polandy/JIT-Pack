@@ -229,6 +229,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A tooltip that only the bar owes (2026-08-31)](#a-tooltip-that-only-the-bar-owes-2026-08-31) — the two owner decisions the G-* pass left open, ruled: G-12's `title` narrows to the app bar and the long-press name bubble is struck. Writing the gate found the trap it exists for.
 - [Three flakes with one signature (2026-08-31)](#three-flakes-with-one-signature-2026-08-31) — the intermittent e2e failures read against their logs. Why one of them is a product defect rather than noise, why it could not be reproduced here, and the invariant every case now ends by checking.
 - [A default that decided how many rows (2026-08-31)](#a-default-that-decided-how-many-rows-2026-08-31) — the first two cross-screen flows. One was already covered by the screen case it belongs to; writing the other found M14's harvest coming back as one row per traveler, because the only writer in the app that never named an assignment took the mutation's.
+- [The one screen that read somebody else's partition (2026-08-31)](#the-one-screen-that-read-somebody-elses-partition-2026-08-31) — FLOW-05. The migrated history was worth something only on the device that typed it in: M3's hint read other trips' rows without asking for them, and an unpulled partition reads as a trip that packed none of it.
 
 ## Current state
 
@@ -10477,3 +10478,55 @@ tell was already in the file — five callers naming the field, one not.
 The fix is one option object. The test that would have failed for a year is
 one line beside the quantity assertion that was already there, in the same
 `it`.
+
+## The one screen that read somebody else's partition (2026-08-31)
+
+FLOW-05 is the migration flow — import a decade of spreadsheets, and the next
+trip proposes what that decade agrees on. Every piece of it was built and
+`suggestions.ts` is exhaustively unit-tested. Nobody had ever walked it.
+
+Walking it found that **M3's history hint is the only feature in the app that
+reads another trip's rows**, and it read them straight out of the store.
+Those rows live in each trip's own partition, and Server and Single-User Mode
+pull a partition only when its trip is *opened* (ADR-033). Every other reader
+of a foreign partition asks first — M2's progress ring, M1's dashboard cards
+and the clone page all call `ensureTripData` — and this one did not. So a
+migrated history was worth something on exactly one device: the one that did
+the import, where the optimistic rows were already in the store.
+
+What makes it worth an entry is the failure's *shape*, which is not the one it
+looks like:
+
+- **An absent partition does not read as absent.** `getItems` of a trip
+  nobody pulled returns `[]`, indistinguishable from a trip that packed none
+  of that item. The symptom is therefore not a missing hint but a hint
+  computed over whichever subset happens to be on the device, offered with
+  the same confidence as one computed over all three years. That is why the
+  fix has two parts rather than one: ask for the partitions (`watchEffect`
+  over the series' trips), and offer nothing until every one of them is here
+  (`historyReady`). The guard alone would have been dead code — a trip with
+  no rows contributes nothing to the median either way — and the request
+  alone would have shown a wrong number until the pulls landed.
+- **The device that did the work is not evidence.** E2E-M15-05 learned this
+  for the wire; it is the same here. On the importing device the screen is
+  right for a reason that does not travel, so only a second browser context
+  can say whether the feature exists for anybody but its author.
+- **A pure function's unit tests can be complete and say nothing about the
+  feature.** `suggestions.spec.ts` covers the median, the normalization and
+  the ordering. The producer that turns the store into its input — the
+  computed in `TripWizardPage.vue` — had no test at any layer, and the whole
+  feature was lost in it. The wizard's own spec file has 28 cases and not one
+  had picked a series.
+
+The generalizable rule: **a screen that reads data it did not put there owes a
+request and a settled guard, and the two are one decision.** ADR-033 wrote it
+for the ring and the clone page as a rule about *emptiness*; the screens that
+arrived later were never held to it, and a grep for `getItems` outside a
+trip's own screens finds exactly one caller, which is how this one should
+have been found a year ago.
+
+Two smaller traps, both about the sheet rather than the screen, are recorded
+in `dev-docs/e2e-tests.md`: a CSV with two text columns lets the mapping
+decide which is the item (it chose wrong, silently), and `getByText` on M9
+matched the name in two places that were not inventory rows.
+

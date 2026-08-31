@@ -89,7 +89,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -3769,3 +3769,54 @@ Three things kept it invisible, and they are the transferable part:
 Fixed at the call site, with the unit assertion beside the quantity one, and
 the e2e case as the outer proof — red against the unfixed build, green after,
 in that order.
+
+## E2E-FLOW-05 — a history worth nothing on the second device (2026-08-31)
+
+FLOW-05 is the migration flow: import a decade of spreadsheets, and the next
+trip proposes the amounts that decade agrees on. Everything in it was built —
+`suggestions.ts` is exhaustively unit-tested, M3 renders the hint, `?series=`
+preselects — and the flow had never been walked.
+
+Walking it found that **the hint is the only feature in the app that reads
+another trip's rows**, and it read them without asking for them. Those rows
+live in each trip's own partition, and Server and Single-User Mode pull a
+partition only when its trip is *opened* (ADR-033). Every other reader of a
+foreign partition asks first — M2's progress ring, M1's dashboard cards, the
+clone page all call `ensureTripData` — and this one went straight to
+`tripStore.getItems`. So the migrated history was worth something on exactly
+one device: the one that did the import, where the optimistic rows were
+already in the store.
+
+Three things about it are worth keeping:
+
+- **An absent partition does not read as absent.** `getItems` of a trip
+  nobody pulled returns `[]`, which is indistinguishable from a trip that
+  packed none of that item. So the failure is not "no hint" — it is a hint
+  computed over whichever subset happens to be on the device, stated with the
+  same confidence as one computed over all three years. That is why the fix
+  is two parts and not one: ask for the partitions, and offer nothing until
+  every one of them has arrived. The guard is the same doctrine ADR-033 wrote
+  for the ring and the clone page; this screen simply had not been told.
+- **The device that did the work is not evidence.** E2E-M15-05 learned this
+  for the wire and it is the same shape here: on the importing device the
+  screen is right for a reason that does not travel. Only a second context
+  can say whether the feature exists for anybody else.
+- **A pure function's unit tests can be complete and prove nothing about the
+  feature.** `suggestions.spec.ts` covers the median, the normalization and
+  the ordering; the producer that turns the store into its input had no test
+  at any layer, and that is where the whole feature was lost.
+
+Two smaller findings came out of writing the case, both about the *sheet*
+rather than the screen:
+
+- **Two text columns are a choice the mapping makes for you.** The first
+  draft's CSV had a category column beside the item column, and the wizard
+  filed the items under the *item* names and made the categories the items —
+  the mapping's detection swapped them, and nothing in the flow says so until
+  the inventory is read back. The case now imports a sheet with one text
+  column and asserts the summary line's "1 new item" before committing.
+- **`getByText` on M9 is not "the item is in the inventory".** The first
+  attempt asserted the item's name was visible on `/tabs/items` and it
+  *matched* — twice, on the tag heading and the segment the swap had created.
+  `getByTestId('m9-row').filter({ hasText })` is the assertion that says what
+  it means.

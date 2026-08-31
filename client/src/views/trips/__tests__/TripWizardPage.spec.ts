@@ -17,6 +17,8 @@ import { setActivePinia, createPinia } from 'pinia'
 import TripWizardPage from '../TripWizardPage.vue'
 import DateField from '@/components/global/DateField.vue'
 import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
+import { TABLE } from '@/types/tables'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('vue-router', () => ({
@@ -28,6 +30,10 @@ const orchestratorFake = {
   // Typed on its parameter so a test can read the draft back: an untyped
   // vi.fn() records a zero-length argument tuple.
   createTripFromWizard: vi.fn((_draft: { sourceTemplateIds?: string[] }) => 'trip-1'),
+  /** Which trip partitions this device has pulled (ADR-033). */
+  loadedTrips: new Set<string>(),
+  tripDataLoaded: vi.fn((tripId: string) => orchestratorFake.loadedTrips.has(tripId)),
+  ensureTripData: vi.fn(() => Promise.resolve()),
 }
 
 function template(id: string, name: string, kind: 'template' | 'group') {
@@ -125,6 +131,7 @@ async function pick(wrapper: Awaited<ReturnType<typeof mountAtStepThree>>, templ
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
+  orchestratorFake.loadedTrips = new Set<string>()
   localStorage.clear()
 })
 
@@ -589,5 +596,130 @@ describe('M3 step 1 — the two dates bound each other (FR-2.1d)', () => {
     // set must not restrict a field the user has not reached yet.
     expect(fields(wrapper).start.props('max')).toBe('')
     expect(fields(wrapper).end.props('min')).toBe('')
+  })
+})
+
+/**
+ * M3 step 4 — the history hint (FR-14.2).
+ *
+ * The suggestion is the duration-normalized median of the series' recent
+ * trips, and those trips' rows live in their own partitions — which Server
+ * and Single-User Mode pull only when a trip is *opened* (ADR-033). The
+ * wizard read them without asking for them, so on any device but the one
+ * that wrote them the history was silently absent, or worse: taken over
+ * whichever subset happened to be on the device.
+ */
+describe('M3 step 4 — the history the series already has (FR-14.2)', () => {
+  const SERIES = 'ser-1'
+
+  function seedSeries() {
+    const master = useMasterStore()
+    master.applyChange({
+      seq: 0,
+      table: TABLE.tripSeries,
+      id: SERIES,
+      deleted: false,
+      row: { name: 'Sommerferien' },
+    })
+    item('sun', 'Sonnencreme')
+  }
+
+  /** One archived trip of the series, carrying `quantity` of the item. */
+  function seedHistoryTrip(id: string, year: number, quantity: number) {
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id,
+      deleted: false,
+      row: { name: `Sommer ${year}`, status: 'archived', year, series_id: SERIES },
+    })
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.tripItems,
+      id: `${id}-sun`,
+      deleted: false,
+      row: {
+        trip_id: id,
+        name: 'Sonnencreme',
+        source_item_id: 'sun',
+        quantity,
+        state: 'packed',
+        mode: 'pack',
+      },
+    })
+  }
+
+  /** Walk to step 4 with the series picked and the item taken along. */
+  async function mountWithSeries() {
+    const wrapper = mount(TripWizardPage, {
+      global: { provide: { orchestrator: orchestratorFake } },
+    })
+    await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
+      detail: { value: 'Sommer 2026' },
+    })
+    await wrapper.get('[data-testid="wizard-more"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-series"]').trigger('ionChange', {
+      detail: { value: SERIES },
+    })
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    // FR-27.3: the single item is what gives step 4 a row to suggest on.
+    await wrapper.get('[data-testid="wizard-item-search"]').trigger('ionInput', {
+      detail: { value: 'Sonnen' },
+    })
+    await wrapper.get('[data-testid="wizard-item-suggestion-sun"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    expect(wrapper.find('[data-testid="wizard-step-4"]').exists()).toBe(true)
+    return wrapper
+  }
+
+  const hint = (w: VueWrapper) => w.find('[data-testid="wizard-history-hint"]')
+
+  it('offers the median of the series’ own trips as a one-tap default', async () => {
+    seedSeries()
+    seedHistoryTrip('t24', 2024, 6)
+    seedHistoryTrip('t25', 2025, 6)
+    orchestratorFake.loadedTrips = new Set(['t24', 't25'])
+
+    const wrapper = await mountWithSeries()
+
+    // The generated row starts at 1; the hint reads the two years and the
+    // number they agree on, and one tap takes it.
+    expect(hint(wrapper).text()).toContain('2024: 6')
+    expect(hint(wrapper).text()).toContain('2025: 6')
+    await hint(wrapper).trigger('click')
+    expect(wrapper.get('[data-testid="wizard-review-qty"]').text()).toBe('6')
+  })
+
+  it('asks for a series trip’s rows instead of reading a partition nobody pulled', async () => {
+    seedSeries()
+    seedHistoryTrip('t24', 2024, 6)
+    seedHistoryTrip('t25', 2025, 6)
+    orchestratorFake.loadedTrips = new Set<string>()
+
+    await mountWithSeries()
+
+    // The positive signal: both partitions were actually requested. Without
+    // this the screen was reading `getItems` of trips it had never pulled.
+    expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('t24')
+    expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('t25')
+  })
+
+  it('says nothing while a series trip is still missing, rather than a number from the rest', async () => {
+    seedSeries()
+    // The one trip on the device is the outlier; the two it has never
+    // pulled agree on six.
+    seedHistoryTrip('t23', 2023, 2)
+    seedHistoryTrip('t24', 2024, 6)
+    seedHistoryTrip('t25', 2025, 6)
+    orchestratorFake.loadedTrips = new Set(['t23'])
+
+    const wrapper = await mountWithSeries()
+
+    // An absent partition reads as a trip that packed none of it, so the
+    // median was taken over whatever happened to be here — the hint did not
+    // merely disappear, it recommended two.
+    expect(hint(wrapper).exists()).toBe(false)
   })
 })
