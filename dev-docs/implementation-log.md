@@ -228,6 +228,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A gesture the row was eating (2026-08-31)](#a-gesture-the-row-was-eating-2026-08-31) — backlog item 6's cross-cutting pass over the G-* patterns. The stepper's long-press was unreachable on the only screen that renders it, two icons had no name, and five promises turned out to describe a screen that had changed under them.
 - [A tooltip that only the bar owes (2026-08-31)](#a-tooltip-that-only-the-bar-owes-2026-08-31) — the two owner decisions the G-* pass left open, ruled: G-12's `title` narrows to the app bar and the long-press name bubble is struck. Writing the gate found the trap it exists for.
 - [Three flakes with one signature (2026-08-31)](#three-flakes-with-one-signature-2026-08-31) — the intermittent e2e failures read against their logs. Why one of them is a product defect rather than noise, why it could not be reproduced here, and the invariant every case now ends by checking.
+- [A default that decided how many rows (2026-08-31)](#a-default-that-decided-how-many-rows-2026-08-31) — the first two cross-screen flows. One was already covered by the screen case it belongs to; writing the other found M14's harvest coming back as one row per traveler, because the only writer in the app that never named an assignment took the mutation's.
 
 ## Current state
 
@@ -10443,3 +10444,36 @@ spends twice — FR-5.5's row menu and G-6's stepper holds, whose collision was
 this week's headline defect. The revisit trigger is a bar glyph that turns out
 to be unlearnable: it moves behind the ⋮, and only if one cannot is the bubble
 back on the table.
+
+
+## A default that decided how many rows (2026-08-31)
+
+Backlog item 6's cross-cutting remainder, first pass: E2E-FLOW-03 and
+E2E-FLOW-04. The coverage story is in `dev-docs/e2e-tests.md`; what belongs
+here is the one thing the diff cannot show.
+
+FLOW-04's chain — flag *missing* on the road, archive, let M14 write it into
+the group, run M3 again next year — had four of its five links tested and the
+fifth was false. `applyReviewProposal` called `addTemplateItem(groupId,
+itemId)` with no options, and the mutation's default is `assignment:
+'per_person'`. That is the single field that decides **how many** rows
+generation makes, so the harvested item came back one-per-traveler, and on a
+trip with no travelers not at all.
+
+Why no review would have caught it: **the call site is silent.** A default
+that is wrong for one caller produces a line with nothing in it to disagree
+with, and the two documents that describe this write — FR-9.2 and FR-27.11 —
+are about *which group* receives the item, a question the code answers
+carefully and visibly. Every other caller in the app passes `trip_global`
+explicitly, so the convention existed; it just was not written anywhere a
+reader of this line would meet it.
+
+The general form, and the reason it is worth a section: **a field with a
+default is only reviewable where the default is the answer to a question
+nobody is asking.** `quantity ?? 1` is that; `assignment ?? 'per_person'` is
+not, because it changes the row count of every trip generated afterwards. The
+tell was already in the file — five callers naming the field, one not.
+
+The fix is one option object. The test that would have failed for a year is
+one line beside the quantity assertion that was already there, in the same
+`it`.

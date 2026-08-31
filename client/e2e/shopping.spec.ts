@@ -142,6 +142,11 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     // screen it names has been looked at.
     await page.getByTestId('header-back').click()
     await expect(visible(page).getByTestId('m4-row-Kaffee')).toBeVisible()
+    // E2E-FLOW-03's last clause: it arrives as something still *to* pack.
+    // Being bought is not being packed, and the mode flip is the only part
+    // of the row buying changes — the progress counter is where that shows,
+    // since a row that arrived packed would be hidden by FR-25.2 instead.
+    await expect(visible(page).getByTestId('m4-progress')).toContainText('0/1')
     await visible(page).getByTestId('m4-nav-shopping').click()
     await expect(m6(page).getByTestId('m6-bought-bar')).toBeVisible()
     await m6(page).getByTestId('m6-bought-bar').click()

@@ -378,3 +378,51 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     await expect(row(page, 'Stativ')).toHaveCount(0)
   })
 })
+
+/**
+ * E2E-FLOW-04 — the feedback loop, closed (UI-Test-Spec §5).
+ *
+ * It lives beside M14's helpers rather than in a file of its own: the
+ * journey is M14's world plus one more M3 run, and a second copy of
+ * `seedGroups`/`flaggedTrip` would be a second definition of the same
+ * world to keep in step.
+ *
+ * The clause the M14 cases could not carry is the last one. E2E-M14-02
+ * asserts the *write* — the group holds the new item and the unused
+ * position reads 0× — and stops at M8. Whether next year's trip is any
+ * different for it is a question only generation answers, and nothing had
+ * ever asked it.
+ */
+test.describe('The feedback loop closes @local @m14', () => {
+  test.slow()
+
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-FLOW-04: a missing item flagged on the road arrives in next year’s trip (FR-9.1/9.2/2.2)', async ({
+    page,
+  }) => {
+    await flaggedTrip(page)
+    await archiveThroughPass(page)
+
+    await row(page, MISSING_ITEM).getByTestId('m14-apply').click()
+    await expect(handledRow(page, MISSING_ITEM).getByTestId('m14-state')).toContainText('applied')
+    await row(page, 'Stativ').getByTestId('m14-apply').click()
+    await expect(handledRow(page, 'Stativ').getByTestId('m14-state')).toContainText('applied')
+
+    // Next year, from the same group — the only thing that changed in
+    // between is what the trip taught it.
+    await tripFromGroup(page, 'Herbst Tessin, ein Jahr später', GROUP)
+
+    // What the road added is packed for from the start.
+    await expect(visible(page).getByTestId(`m4-row-${MISSING_ITEM}`)).toBeVisible()
+    // The positive control: the untouched position is still generated, so
+    // the absence below is a decision and not a failed generation.
+    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
+    // And what went unused is off the list — as knowledge, not as a
+    // deletion: FR-9.2 zeroes the position, generation turns a 0 into
+    // FR-5.5's *skipped* row, and FR-25.2 keeps a skipped row off the list.
+    await expect(visible(page).getByTestId('m4-row-Stativ')).toHaveCount(0)
+  })
+})

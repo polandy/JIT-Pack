@@ -42,7 +42,13 @@ export function createPostTripActions(
       return groupId
     }
     const itemId = proposal.itemId ?? masterDataActions.createMasterItem(proposal.itemName)
-    masterDataActions.addTemplateItem(groupId, itemId)
+    // `trip_global`, spelled out: the harvest is one thing the trip turned
+    // out to need, and M21's fold writes a trip's row back the same way.
+    // Left to the mutation's own default it became `per_person`, which is
+    // the one field that changes *how many* rows generation makes — on a
+    // trip with no travelers, none at all, so the loop this write exists to
+    // close stayed open (E2E-FLOW-04).
+    masterDataActions.addTemplateItem(groupId, itemId, { assignment: 'trip_global' })
     return groupId
   }
 
