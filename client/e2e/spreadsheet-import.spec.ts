@@ -272,8 +272,6 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
      * once, before this line existed).
      */
     await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
-    await page.reload()
-    await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(3)
 
     // Back through M2's own entry, so the second import is the app's own path.
     await page.getByTestId('rail-trips').click()

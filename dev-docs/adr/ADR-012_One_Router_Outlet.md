@@ -120,6 +120,36 @@ obvious from this document:
   about to be re-applied — so the screen stops listening to itself between
   opening the sheet and finishing the restore.
 
+## Amendment (2026-08-31): plain links, but not a plain push
+
+Option A said the anchors become **plain links**, and they were taken literally: four
+`<router-link>`s beside the outlet. That is one word short. A `<router-link>` is a *push*,
+and with one outlet a push between the anchors is wrong in a way the second outlet used to
+hide — the four anchors are siblings, nothing is inside anything, and there is no back edge
+between them, yet each switch stacked a page that nothing ever popped.
+
+The stack only became visible when a switch was **interrupted**. Ionic transitions a push
+over some frames; tapping the next anchor before that finishes leaves *both* pages live, and
+from there the outlet shows two pages at once — measured 2026-08-31: tapping items → trips →
+templates → items → trips without waiting leaves M7's page at z-index 101 over M2's at 100,
+while the URL reads `/tabs/trips`. Every tap on the screen the user is looking at goes to the
+page two anchors ago. Waiting between taps hides it completely, which is why the two cases
+that existed (E2E-G9-09, E2E-G1-01) could not see it: **one settled switch each.**
+
+An anchor is therefore a **root navigation** — `useIonRouter().navigate(href, 'root',
+'replace')` — in both presentations. The element stays a real `<a>` with its `href`, so a
+middle click still opens a tab and assistive technology still reads a link; only the default
+action is taken over, and modified clicks are left to the browser. The stack now holds one
+page per anchor switch instead of one more each time, which is what Option A meant.
+
+**Two things this also settled.** M15's *„the wizard opens only once per session"* (found
+2026-08-30, E2E-M15-03) was the same defect wearing a different symptom: the case reaches the
+wizard through the rail, and the commit's own `replace` collided with the page the rail had
+stacked. The case runs without its reload workaround now, and it is the proof for this
+amendment rather than for one of its own. And the cost Option A accepted — no per-tab
+stacks — is unchanged: a root navigation does not remember a position either, and ADR-011
+already made back a declared route rather than a history entry.
+
 ## Revisit trigger
 
 If a tab grows a drill-down deep enough that users expect it to remember its own position when they come back to that tab — a per-tab stack is what Ionic's `IonTabs` buys, and at that point the trade flips. Nothing in the current screen set is more than two levels deep.
