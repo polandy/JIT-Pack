@@ -1540,6 +1540,12 @@ test.describe('Single-User backend sync @single', () => {
    * is right whether or not a single mutation ever left the outbox — the same
    * trap E2E-M15-05 and E2E-FLOW-05 are built around. A device that has only
    * ever talked to the server can see nothing the server was not told.
+   *
+   * It found the restore pushing the master partition and nothing else: a
+   * trip's rows are their own partition (ADR-033), so every packing list in
+   * the file stayed queued on the importing device — whose own screen looked
+   * exactly like a migration that had worked. Fixed here; the unit that drives
+   * it is in `composables/__tests__/portableImport.spec.ts`.
    */
   test('E2E-FLOW-07: a Local Mode device moves onto a server and its data goes along', async ({
     browser,
@@ -1590,9 +1596,15 @@ test.describe('Single-User backend sync @single', () => {
     await expect(pageA.getByTestId('portable-restore')).toBeVisible()
     await pageA.getByTestId('portable-restore-commit').click()
     await expect(visiblePage(pageA).getByTestId(`trip-row-${trip}`)).toBeVisible()
-    // G-2 says the queue is empty: everything the restore produced has been
-    // pushed, which is the wire half of "the migration is one step".
-    await expect(pageA.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    // The outbox is empty, which is the wire half of "the migration is one
+    // step" — and the settled signal the next device needs. Read off the G-2
+    // sheet's queue line rather than the glyph: `synced` means no push is in
+    // flight, not that nothing is waiting, and it said `synced` over a whole
+    // queued trip partition while this case was red.
+    await pageA.getByTestId('sync-indicator').click()
+    await expect(pageA.getByTestId('sync-detail-sheet')).toBeVisible()
+    await expect(pageA.getByTestId('sync-detail-pending')).toHaveCount(0)
+    await pageA.getByTestId('sync-detail-close').click()
     await ctxA.close()
 
     // --- a device that only ever talked to the server -------------------

@@ -3852,11 +3852,19 @@ Three things came out of writing it.
   **Open owner decision**, deliberately untested: either M17 grows the
   three-step move (back up → switch → restore) or FR-19.1/FLOW-07 say plainly
   that the migration is device-to-device.
-- **A restore pushes the master partition and nothing else.**
-  `commitPortableRestore` calls `drainAfterImport(null)`, whose trip half is
-  reached only with a trip id — the single-document import's. The trip
-  partitions the restore just wrote ride out on M2's own ensure-and-drain when
-  the restore lands there, which is why the case asserts G-2 `synced` on the
-  importing device *before* looking at the second one: that assertion is what
-  says the outbox is empty rather than merely quiet.
+- **The defect it found: a restore pushed the master partition and nothing
+  else.** `commitPortableRestore` called `drainAfterImport(null)`, whose trip
+  half is reached only with a trip id — the single-document import's — so every
+  packing list in the file stayed queued on the importing device, whose own
+  screen looked exactly like a migration that had worked. It passed locally and
+  failed on CI, which is the honest shape of it: the rows travelled only if the
+  device happened to do something else that drained their partition. Fixed by
+  draining the partition of every trip the file brought; driven by a unit in
+  `composables/__tests__/portableImport.spec.ts` (red without the fix).
+- **G-2 `synced` does not mean the outbox is empty.** `state` is computed from
+  the connection and whether a push is in flight, and never from
+  `pendingCount` — so the indicator said *Synced* over a whole queued trip
+  partition. The case therefore reads the sheet's queue line and asserts it is
+  absent, which is both the honest assertion and the settled signal the third
+  device needs before it looks.
 

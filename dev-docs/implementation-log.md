@@ -10552,10 +10552,21 @@ device every restored row is in the store optimistically, which is the same
 trap E2E-M15-05 and E2E-FLOW-05 are built around. Only a device that has never
 seen anything but the server can say the migration happened.
 
-Under it, a detail worth keeping: `commitPortableRestore` drains the **master**
-partition and nothing else (`drainAfterImport(null)` — its trip half needs a
-trip id, which only the single-document import has). The trip partitions the
-restore just wrote leave on M2's own ensure-and-drain, which is where the
-restore lands. That is why the case asserts G-2 `synced` on the importing
-device before it looks at the next one: it is the assertion that says the
-outbox is empty rather than merely quiet.
+Under it sat the defect. `commitPortableRestore` drained the **master**
+partition and nothing else — `drainAfterImport(null)`, whose trip half needs a
+trip id, which only the single-document import has — so every packing list in
+the file stayed queued on the importing device. Nothing on that device says so:
+its screen is the restored data either way, and the trips reached the server,
+carrying their names, their years and no rows. Whether the rows ever followed
+depended on the device doing something else that drained their partition,
+which is why the case passed on this machine and failed on CI. The fix is one
+line of intent — drain the partition of every trip the file brought — and the
+test that drives it is a unit, because the rule is about what leaves the
+outbox, not about a screen.
+
+One more thing the case had to stop trusting: **G-2 `synced` does not mean the
+outbox is empty.** `state` is computed from the connection and from whether a
+push is in flight, never from `pendingCount`, so the indicator said *Synced*
+over a whole queued trip partition. The assertion that says what it means is
+the *absence* of the sheet's queue line, and that is also the settled signal
+the third device needs before it looks.
