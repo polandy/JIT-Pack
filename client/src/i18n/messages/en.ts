@@ -1171,6 +1171,8 @@ export const en = {
   'tripEdit.title': 'Trip properties',
   'tripEdit.sectionTrip': 'Trip',
   'tripEdit.sectionTravelers': 'Travellers',
+  'tripEdit.year': 'Year',
+  'tripEdit.archivedNote': 'This trip is finished, so nothing here can be changed any more.',
   'tripEdit.name': 'Name',
   'tripEdit.startDate': 'Start',
   'tripEdit.endDate': 'End',

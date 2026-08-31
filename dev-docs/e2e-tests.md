@@ -1539,14 +1539,14 @@ What each promise is kept by:
 | M4's cluster opens the editor, its chevron gives the trip back | E2E-M22-06 (`global-nav.spec.ts`) | Getting to a screen and leaving it are global behaviours. |
 | the name commits on blur and comes back through the store | E2E-M22-01 | |
 | the two dates are `DateField`s and bound each other | E2E-M22-01 (the picker and its locale display) + `TripEditPage.spec.ts` (the bound, both directions and an inverted range still repairable) | |
-| **the year** | **nothing — it has no writer after creation** | UI-Spec M22 lists it; the screen has no field and `TripEdit`'s only callers are M3's wizard and the clone form. Owner decision, not a test gap. |
+| the year | **E2E-M22-12** | **Built 2026-08-31.** Until then UI-Spec M22 listed it and `TripEdit`'s only callers were M3's wizard and the clone form, so a wrong year was permanent. The case reads it back through **M2**, not through the field — placing the trip is the year's whole job, and a select repainting its own value satisfies an assertion on itself. |
 | **the series it belongs to** | **M16**, not M22 | `setTripSeries` has one caller, `SeriesPage.vue`. The UI-Spec clause is on the wrong screen and is corrected there. |
 | ＋ extends the per-person rows immediately, and the screen reports it | E2E-M22-02 | The report is the settled state, and since 2026-08-30 it is asserted as its sentence rather than as the digit. |
 | ✕ takes their rows and never a sibling's | E2E-M22-03 | The case this file exists for; three false-green versions are recorded above. |
 | a packed row of theirs is asked about, and *Alles entfernen* deletes | E2E-M22-05 | The count of surviving rows is what separates a delete from an unassign (2026-08-30). |
 | **rename in place** | **E2E-M22-11** | **New 2026-08-30.** The third roster affordance, never operated in a browser; it asserts that a rename is not a removal plus an addition. |
 | removal ends at departure — no ✕, and one sentence saying why | E2E-M22-04 + E2E-M22-07 | The positive half is what keeps „no ✕" from passing against a screen that renders none. |
-| an archived trip's editor is read-only throughout | **E2E-M22-10** | **New 2026-08-30.** And it says nothing about it — owner decision, UI-Spec M22. |
+| an archived trip's editor is read-only throughout | **E2E-M22-10** | **New 2026-08-30, and it says why since 2026-08-31.** The note sits above both cards: rendering it inside the travellers card made a sentence about the whole screen read as a rule about people — found by looking, not by asserting. |
 | an edit is a partial write and the trip stays on M2 | E2E-M22-08 | |
 | the confirmation toast clears the tab bar | E2E-M22-09 | Geometry, because a screenshot cannot tell a covered toast from a translucent one. |
 
@@ -3452,3 +3452,29 @@ wrong later:
   walked includes would answer a different question than the number it sits under. The seeded
   screenshot shows the pairing working: two templates listed, *„Used in 3 places"* on the card
   below, the third being the trip row.
+
+## A picker that had to offer a year outside its own window (2026-08-31)
+
+M22's two owner decisions, built. Both are small, and each left one thing worth keeping.
+
+**The year picker cannot simply offer the same six years the other two do.** M3 and the clone form
+choose a year for a trip that does not exist yet, so *last year through four ahead* covers every
+case. M22 edits a trip that may be **any** year — the owner's instance carries a decade of imported
+history — and a picker offering six years to a 2014 trip is not merely unhelpful: selecting nothing
+is impossible in an `ion-select` that has a value outside its options, so the field would either
+render empty or silently offer to move the trip. It therefore prepends the trip's own year when
+that lies outside the window. The rule the three now share is one function with the current year as
+a *parameter*, so it is testable without a clock — `YEAR_SPAN` had been written three times, once
+as a bare `6`. And the reviewing pass caught two things in the new code: the out-of-window year was
+*prepended*, so a 2040 trip would have sorted before 2025; and the case read the select through a
+`data-value` attribute added to production markup for no product reason, where the suite already had
+the right way (`.select-text`, from `series.spec.ts` — an assertion on the host matches every option,
+not the value).
+
+**And the note found its place by being looked at.** Put in the travellers card — beside the ✕ and
+the add row it explains — the sentence *„this trip is finished, so nothing here can be changed"*
+reads as a rule about people rather than about the screen, sitting as it does under the heading
+*Travellers*. It is above both cards now. The traveller hint below it (*„a traveller who joins gets
+the per-person items straight away"*) went with the controls it explains: on an archived trip it
+describes a capability that no longer exists, which is a second sentence contradicting the first.
+Neither would have failed an assertion — both are correct text in the wrong place.

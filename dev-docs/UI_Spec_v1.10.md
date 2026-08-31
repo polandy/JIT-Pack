@@ -391,12 +391,14 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 * **Elements:** the trip **name** (commits on blur/Enter, the M8 pattern — the header keeps its own
   static title here, unlike M8: this screen is *about* a trip rather than being one, and a bar
   reading „Samedan 2026" would not say which screen it is); **the two dates** (G-17 `DateField`s since 2026-08-26; read-only under G-3's lock), both optional per FR-2.1b and bounding each other since 2026-08-27 (FR-2.1d); and the **travellers** section — one row per person, rename in place,
-  ＋ to add, ✕ to remove. **Two corrections, 2026-08-30 (backlog item 6, read against the
-  template):** the **year** was listed here and has no field — FR-2.1b makes it the one *required*
-  temporal fact, `TripEdit` carries it, and the only writers are M3's wizard and the clone form, so
-  a trip created in the wrong year keeps it for good. FR-2.7's own scope is *name, dates and
-  travellers*, so the clause was this document's addition rather than the PRD's. **Owner decision:**
-  add the field, or strike the clause; it may not be tested until it is decided (UI-Test-Spec M22).
+  ＋ to add, ✕ to remove. Since 2026-08-31 the
+  **year** as well — a picker offering the same span M3 and the clone form offer, from the one rule
+  all three read (`domain/tripYears.ts`), plus the trip's own year where that lies outside the
+  window, so an imported 2014 trip is not silently offered a move. It was listed here and had no
+  field until then: FR-2.1b makes it the one *required* temporal fact and the only writers were M3's
+  wizard and the clone form, so a trip created in the wrong year kept it for good — on the fact M2
+  sorts and groups by. FR-2.7's own scope is *name, dates and travellers*, so the clause was this
+  document's addition rather than the PRD's, and the owner ruled to honour it (E2E-M22-12).
   And the **series** was listed here too: it is edited on **M16**, whose *detach/attach trips*
   action is its one writer — which PRD FR-2.7's opening paragraph already said.
 * **What a traveller change does** is FR-27.4's amended rule, and the screen states it rather than
@@ -408,7 +410,7 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
   hand-edited follows the *behalten* branch either way, because it is evidence of work somebody did
   and no question was asked about it. The report names what stayed, so a row left behind is never a
   surprise found later.
-* **States:** **Removal is offered only while the trip has not started.** On an active or archived
+* **States:** **Removal is offered only while the trip has not started.** On an active or archived **An archived trip says why it answers no tap** (added 2026-08-31): a single note above both cards, because the read-only state is the screen's rather than one section's — rendering it inside the travellers card read as a rule about people. It is its own sentence rather than the started trip's: the reason is that the trip is over, and borrowing that wording would claim it has not left yet. The *„a traveller who joins…"* hint goes with the controls it explains, since the rule no longer applies. Without it an archived trip lost the ✕, the add row and the started-trip note together and explained none of it — the exact shape the owner ruled against on 2026-08-21 for the started trip, reached by a different route (E2E-M22-10).
   trip the ✕ is **not rendered at all**, and one sentence under the roster says why *(revised by the
   owner 2026-08-21, in the hand: it first shipped present-but-disabled, on the reasoning that a
   vanished control gets hunted for. A control that is visibly there and answers no tap reads as a
