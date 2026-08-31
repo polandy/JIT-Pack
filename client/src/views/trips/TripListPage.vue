@@ -557,7 +557,7 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- Empty state (G-7) -->
-      <div v-if="isEmpty" class="empty-state">
+      <div v-if="isEmpty" class="empty-state" data-testid="m2-empty">
         <IonIcon :icon="trainOutline" class="empty-icon" />
         <p v-if="filter === 'active'">{{ t('trips.emptyActive') }}</p>
         <p v-else-if="filter === 'planned'">{{ t('trips.emptyPlanned') }}</p>

@@ -369,8 +369,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    inline error would report a healthy instance as unreachable; and **FR-10.3's threshold was
    configurable in the document and fixed in the product**, so the ruling deleted the reader
    rather than adding a writer. What is left of item 6 is cross-cutting —
-   FLOW-*, PWA, SYNC and the NFR rows — plus M2's own next pass, which owes a `data-testid` on
-   its empty state and the now-writable E2E-M2-02. Log: *„Twenty-two promises, decided against
+   FLOW-*, PWA, SYNC and the NFR rows. **M2's own next pass is done (2026-08-31):** the empty
+   state has a test id and a case of its own (E2E-M2-16 — its own number, because E2E-G7-01 is
+   already defined on the Dashboard and the gate allows one definition per id), and E2E-M2-02 is
+   written, minus the *destination* its header has never carried. Log: *„Twenty-two promises, decided against
    the screen"*.
    **The G-* patterns closed 2026-08-31**, and the shape they added is a control that is built,
    unit-tested and *unreachable*: G-6's long-press on the stepper could never fire on M4, because

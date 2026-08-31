@@ -61,7 +61,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit and, since 2026-08-30, FR-25.15's absent Save button), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01 (rewritten 2026-08-30: the Gepäck dimension over a real bag, FR-10.4), E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
-| M2 trip list rows | E2E-M2-12 (locale dates, UX-5) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
+| M2 trip list rows | E2E-M2-12 (locale dates, UX-5), E2E-M2-08 (the *Imported* chip), E2E-M2-03 (the traveller pile), E2E-M2-02 (series grouping → M16), E2E-M2-16 (the empty state) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 row actions (the slide menu) | E2E-M2-06 (no Share without a session), E2E-M2-07 (export, both branches) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 opening segment (FR-2.8) | E2E-M2-13, E2E-M2-13b, E2E-M2-13c, E2E-M2-13d | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
