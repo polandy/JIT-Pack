@@ -177,9 +177,9 @@ it. Item numbers stay stable even as items close, because the log refers back to
    quick-add has never kept (it pulls required companions **silently**, where the skip names
    what it took along) which is an open owner decision. **Done 2026-08-31:** the case ids that lived only in a
    comment now sit in the test title, so `-g "<id>"` runs the case and a CI failure names the
-   promise. 317 of 332; the rest are prose, `describe` groups, or cross-references, and an id
-   in a title is a **coverage claim** — eighteen tests whose comment merely *cites* another
-   case were deliberately left alone. Log: *„Six numbers that each meant two
+   promise. 319 of 332; the rest are prose, `describe` groups, or cross-references, and an id
+   in a title is a **coverage claim** — sixteen of eighteen tests whose comment merely *cites* another
+   case were left alone, and the two that were real coverage were only found by reading all eighteen. Log: *„Six numbers that each meant two
    things"*.
    **M9 followed the same day and found a sixth shape: two ids that were simply on the wrong
    tests.** The §3.24 rebuild wrote the spec entries and the tests in one commit and numbered

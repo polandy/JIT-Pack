@@ -3306,10 +3306,19 @@ one actually sits split them four ways:
 
 Only the first three were touched. **The fourth and fifth are the point:** an id
 in a title is a claim that the test covers it, so the eighteen cases whose
-comment names *other* ids were left alone — nearly all of those are pointers
-("FR-20.4's required companions are E2E-M4-40's"), not coverage, and promoting
-them would have written false coverage into 18 titles while the number looked
-better.
+comment names *other* ids were held to a reading rather than a rule. **Sixteen
+of the eighteen turned out to be citations** — "covered on M8 (E2E-M8-19)", "the
+*facet* half of the tap is E2E-M12-04", "same second-context rule as
+E2E-M2-10" — and promoting those would have written false coverage into sixteen
+titles while the number improved.
+
+**Two were real, and they were only found by reading all eighteen.** The
+container-creation case covers `E2E-M11-01` as well as `-05` (its comment says
+so in the abbreviated form, which the title expansion never saw because it only
+looked at `test(` lines), and the preparation-lifecycle case covers `E2E-M4-08`
+beside `E2E-M4-25`. Both now say so. A third, `E2E-M1-04`, was deliberately not
+added: its comment claims only *"the built half"*, and a title asserts the
+whole.
 
 **A sample was read before the sweep, not after.** Eight of the 56 were checked
 against their test bodies to confirm the comment's id describes that test rather
@@ -3318,5 +3327,5 @@ restatements of the id — so `G-11: the brand and its rgb twin…` becomes
 `E2E-G11-05: the brand and its rgb twin…`, the redundant screen prefix dropped
 because the id already names the screen.
 
-317 of 332 ids now sit in a title. The remaining 15 are the prose ones, and they
+319 of 332 ids now sit in a title. The remaining 13 are the prose ones, and they
 are right where they belong.

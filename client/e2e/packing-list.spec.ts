@@ -937,7 +937,7 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
    * last todo left the row on the list forever. Resolving the badge away and
    * watching the row leave is the only assertion that catches that.
    */
-  test('E2E-M4-25: a packed row with open prep stays on the list until the todo is resolved', async ({
+  test('E2E-M4-08, E2E-M4-25: a packed row with open prep stays on the list until the todo is resolved', async ({
     page,
   }) => {
     const TODO = 'Akku laden'

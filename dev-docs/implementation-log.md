@@ -10064,13 +10064,24 @@ case. The first pass caught them only because the regex `test(?:\.\w+)?\(`
 matched `test.describe(` too, and two obviously-wrong entries appeared in the
 dry run's multi-id list. A dry run that prints its work is what found that.
 
-**The eighteen left alone are where the real risk was.** These are tests already
-titled with one id whose comment names others — and nearly all of those others
-are *pointers*, not coverage: E2E-M5-23's comment says FR-20.4's required
-companions "are E2E-M4-40's", which is a cross-reference to a case elsewhere.
-Promoting them would have written false coverage into eighteen titles while the
-number improved. The distinction only shows on reading; no rule separates a
-citation from a claim.
+**The eighteen already-titled tests are where the real risk was, and the review
+pass is what settled them.** The first draft of this asserted, without checking,
+that "nearly all" of the extra ids named in their comments were pointers. That
+happened to be true — **sixteen of eighteen** are citations, "covered on M8
+(E2E-M8-19)", "the *facet* half is E2E-M12-04", "same second-context rule as
+E2E-M2-10" — but it was a claim made from a sample, in a PR whose whole subject
+is claims made from samples.
+
+Reading all eighteen found **two that were real**: the container-creation case
+covers `E2E-M11-01` as well as `-05`, and the preparation-lifecycle case covers
+`E2E-M4-08` beside `E2E-M4-25`. The first is the sharper miss — its comment says
+`E2E-M11-01/05` in the abbreviated form, and the expansion pass only rewrote
+abbreviations inside `test(` lines, so a comment written in the same shorthand
+went unseen. A third, `E2E-M1-04`, stays out: its comment claims *"the built
+half"*, and a title asserts the whole.
+
+The distinction never had a rule to it. Only reading separates a citation from a
+claim, which is why the honest number here was not knowable in advance.
 
 **What was safe was safe because the claim already existed.** For the 56, the
 comment directly above the test already asserted exactly what the title now
@@ -10083,4 +10094,4 @@ prefix went with the change: `G-11: the brand and its rgb twin…` became
 and the titles said `G-11`, so the first output read `E2E-G11-02: G-11: the
 anchor…`. Trivial, and it would have shipped into 65 titles.
 
-317 of 332 ids now sit in a title.
+319 of 332 ids now sit in a title.
