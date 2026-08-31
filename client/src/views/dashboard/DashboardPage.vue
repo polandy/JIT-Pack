@@ -24,7 +24,7 @@ import {
 import { trainOutline, addOutline, buildOutline, personOutline, alarmOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { delegatedToMe, latePackersDepartingToday } from '@/domain/dashboardSections'
+import { delegatedToMe, isOpenRow, latePackersDepartingToday } from '@/domain/dashboardSections'
 import { t } from '@/i18n'
 import { loadSeenDelegations, markDelegationsSeen } from '@/local/delegationSeen'
 import { formatTripPeriod } from '@/lib/format'
@@ -98,15 +98,17 @@ function progressFraction(trip: Trip): number {
   return k.packedItems / k.totalItems
 }
 
+/*
+ * `isOpenRow` rather than the predicate written out: the same reading now has
+ * three readers on this screen (the preview, the count and the two sections),
+ * and a rule spelled out per caller is what §4a is about.
+ */
 function previewItems(tripId: string) {
-  return store
-    .getItems(tripId)
-    .filter((i) => i.state !== 'packed' && i.state !== 'skipped')
-    .slice(0, 3)
+  return store.getItems(tripId).filter(isOpenRow).slice(0, 3)
 }
 
 function openItemCount(tripId: string): number {
-  return store.getItems(tripId).filter((i) => i.state !== 'packed' && i.state !== 'skipped').length
+  return store.getItems(tripId).filter(isOpenRow).length
 }
 
 /** All open prep todos across active trips, grouped by item name. */
@@ -264,6 +266,7 @@ async function handleRefresh(event: CustomEvent) {
             :class="{ 'is-new': row.isNew }"
             :data-testid="`dashboard-delegated-${row.itemName}`"
             :data-new="row.isNew ? 'true' : null"
+            :aria-label="row.isNew ? t('dashboard.delegatedNewRow', { name: row.itemName }) : null"
             @click="openItem(row.tripId, row.itemId)"
           >
             <IonLabel>

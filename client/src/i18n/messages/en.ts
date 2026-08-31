@@ -1012,6 +1012,7 @@ export const en = {
   'dashboard.subtitle': 'Your packing tasks',
   'dashboard.planTrip': 'Plan a trip',
   'dashboard.delegated': '{n} thing for you | {n} things for you',
+  'dashboard.delegatedNewRow': '{name} — new',
   'dashboard.delegatedNew': '{n} new',
   'dashboard.latePackers': '{n} last thing to pack | {n} last things to pack',
   'dashboard.prepTodo': 'Prep to do ({n})',

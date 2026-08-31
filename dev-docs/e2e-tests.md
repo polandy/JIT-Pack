@@ -3526,3 +3526,11 @@ so a sibling case delegating something else to Bob puts a section on this screen
 failed on the retry, not on the first attempt, which is exactly how this kind of coupling
 presents. Scoped to the case's own row now, which is the treatment E2E-FLOW-02's toast filter
 already records one screen away.
+
+**One seam was added on purpose and one was removed.** The row carries `data-new`, because the
+highlight it marks is expressed as a **colour** and a colour is the one thing a Playwright
+assertion cannot read honestly — the same reason `sync-indicator` has carried `data-state` since
+the G-2 work. It earns its place a second time as an `aria-label`, so the state a sighted reader
+gets from the border is also announced. That is the distinction the M22 review drew the same
+day: a `data-value` duplicating text the DOM already exposes is a test seam with no product
+reason, and this is not one.

@@ -1024,6 +1024,7 @@ export const de: Record<keyof typeof en, string> = {
   'dashboard.subtitle': 'Was beim Packen ansteht',
   'dashboard.planTrip': 'Reise planen',
   'dashboard.delegated': '{n} Sache für dich | {n} Sachen für dich',
+  'dashboard.delegatedNewRow': '{name} — neu',
   'dashboard.delegatedNew': '{n} neu',
   'dashboard.latePackers': '{n} letzte Sache | {n} letzte Sachen',
   'dashboard.prepTodo': 'Vorzubereiten ({n})',
