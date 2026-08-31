@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+
 import type { Page } from '@playwright/test'
 
 import {
@@ -56,12 +58,7 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  * The hint is a button: reading it is half the promise, and taking it is
  * the other half — "one-tap default" is what the FR actually says.
  */
-async function expectHistoryHint(
-  page: Page,
-  series: string,
-  item: string,
-  ...expected: string[]
-) {
+async function expectHistoryHint(page: Page, series: string, item: string, ...expected: string[]) {
   const [...years] = expected.slice(0, -1)
   const suggested = expected[expected.length - 1]!
 
@@ -181,7 +178,9 @@ test.describe('Single-User backend sync @single', () => {
    * Single-User identity in both contexts). Context A packs; context B's
    * open packing list reflects it without a reload, via the WS ping.
    */
-  test('E2E-FLOW-01: a pack on one device arrives on another without reload', async ({ browser }) => {
+  test('E2E-FLOW-01: a pack on one device arrives on another without reload', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Elba ${id}`
     const item = `Zelt-${id}`
@@ -296,7 +295,9 @@ test.describe('Single-User backend sync @single', () => {
    * What is asserted here is the G-8 promise — the surface is *absent*,
    * not shown and then refused.
    */
-  test('E2E-G3-01, E2E-G3-02: a claimed row offers no takeover where there is no second account', async ({ browser }) => {
+  test('E2E-G3-01, E2E-G3-02: a claimed row offers no takeover where there is no second account', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Maloja ${id}`
     const item = `Pickel-${id}`
@@ -340,7 +341,9 @@ test.describe('Single-User backend sync @single', () => {
    * queue and are announced; the queue drains on the app's next own action
    * once the network is back; the server converges.
    */
-  test('E2E-FLOW-06, E2E-G2-01: offline edits queue, announce themselves, and drain on reconnect', async ({ browser }) => {
+  test('E2E-FLOW-06, E2E-G2-01: offline edits queue, announce themselves, and drain on reconnect', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Arosa ${id}`
     const item = `Lampe-${id}`
@@ -393,7 +396,9 @@ test.describe('Single-User backend sync @single', () => {
    * field, the older write loses field-level (NFR-4.2a), both converge, and
    * the loss is a readable line in the trip's conflict log.
    */
-  test('E2E-FLOW-08, E2E-G2-01, E2E-NFR-04: a losing offline edit converges and lands in the conflict log', async ({ browser }) => {
+  test('E2E-FLOW-08, E2E-G2-01, E2E-NFR-04: a losing offline edit converges and lands in the conflict log', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Tessin ${id}`
     const item = `Seil-${id}`
@@ -591,7 +596,9 @@ test.describe('Single-User backend sync @single', () => {
    * on a timer: the revert drains the master partition before it resolves,
    * and the assertion is on the repainted header.
    */
-  test('E2E-G2-06, E2E-G2-10: a loss recorded in the master log can be taken back', async ({ browser }) => {
+  test('E2E-G2-06, E2E-G2-10: a loss recorded in the master log can be taken back', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Engadin ${id}`
 
@@ -656,7 +663,9 @@ test.describe('Single-User backend sync @single', () => {
    * the PWA's, E2E-PWA-01), the count survives it, and the change reaches
    * the server once the app does something with a network again.
    */
-  test('E2E-G2-04, E2E-PWA-01: an offline change survives a reload and still reaches the server', async ({ browser }) => {
+  test('E2E-G2-04, E2E-PWA-01: an offline change survives a reload and still reaches the server', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Davos ${id}`
     const item = `Ski-${id}`
@@ -815,7 +824,9 @@ test.describe('Single-User backend sync @single', () => {
    * has handed it, and `5` after a push that only ever received `3` is the
    * whole bug in one line.
    */
-  test('E2E-FLOW-10: never pulls from a cursor the server handed it in a push', async ({ browser }) => {
+  test('E2E-FLOW-10: never pulls from a cursor the server handed it in a push', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Flims ${id}`
     const mine = `Stirnlampe-${id}`
@@ -903,7 +914,9 @@ test.describe('Single-User backend sync @single', () => {
    * The CSV is the layout the wizard was taught to read: the year above the
    * trip's name (two header rows) and the category in its own column.
    */
-  test('E2E-M15-05: a spreadsheet import lands on the server, not only on the device', async ({ browser }) => {
+  test('E2E-M15-05: a spreadsheet import lands on the server, not only on the device', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Laos ${id}`
     const net = `Moskitonetz-${id}`
@@ -969,7 +982,9 @@ test.describe('Single-User backend sync @single', () => {
    * (name), so the sheet's second "Regenhosen" was dropped with its amounts.
    * Context B is the only place either shows.
    */
-  test('E2E-M15-09: an imported item reaches the server filed under its category', async ({ browser }) => {
+  test('E2E-M15-09: an imported item reaches the server filed under its category', async ({
+    browser,
+  }) => {
     const id = uniq()
     const tag = `Velo-${id}`
     const item = `Regenhose-${id}`
@@ -1193,7 +1208,9 @@ test.describe('Single-User backend sync @single', () => {
    * surviving row bringing its children back — runs on the retire path here
    * and in `TestApplyMasterMutation_RetiringATemplate_KeepsAndRelogsItsPositions_FR24_3`.
    */
-  test('E2E-G2-12: a trip keeps its rows when the group they came from is retired', async ({ browser }) => {
+  test('E2E-G2-12: a trip keeps its rows when the group they came from is retired', async ({
+    browser,
+  }) => {
     const id = uniq()
     const group = `Waschbeutel-${id}`
     const item = `Seife-${id}`
@@ -1487,9 +1504,7 @@ test.describe('Single-User backend sync @single', () => {
     // The importing device's own inventory, first: FR-16.1 says the sheet's
     // names become items, and everything below depends on it.
     await pageA.goto('/tabs/items')
-    await expect(
-      visiblePage(pageA).getByTestId('m9-row').filter({ hasText: item }),
-    ).toHaveCount(1)
+    await expect(visiblePage(pageA).getByTestId('m9-row').filter({ hasText: item })).toHaveCount(1)
 
     // Device B has pulled the master partition — it can see the trips and
     // the imported item — and has opened none of those trips.
@@ -1500,14 +1515,111 @@ test.describe('Single-User backend sync @single', () => {
     // FR-16.1: the sheet's names became inventory, which is what the next
     // trip picks the item from — and what makes the hint findable at all.
     await pageB.goto('/tabs/items')
-    await expect(
-      visiblePage(pageB).getByTestId('m9-row').filter({ hasText: item }),
-    ).toHaveCount(1)
+    await expect(visiblePage(pageB).getByTestId('m9-row').filter({ hasText: item })).toHaveCount(1)
     // Device A is done: closing it here leaves B the only page in play, so
     // a failure below reports B's screen rather than A's.
     await ctxA.close()
 
     await expectHistoryHint(pageB, series, item, '2024: 6', '2025: 6', '6')
+
+    await ctxB.close()
+  })
+
+  /**
+   * E2E-FLOW-07 (§5, FR-19.5, FR-18.4/18.6, NFR-4.11, ADR-015/ADR-025): a
+   * Local Mode device moves onto a server, and its data goes with it.
+   *
+   * FR-19.5 makes this one step — the backup file carries every template and
+   * trip, and importing it while the app points at a server moves the lot —
+   * and since ADR-025 the server has no importer of its own: the client's
+   * restore is the only implementation, so what reaches the server is
+   * whatever that restore pushes.
+   *
+   * The third device is what makes the promise falsifiable. On the importing
+   * device every restored row is in the store optimistically, so its screen
+   * is right whether or not a single mutation ever left the outbox — the same
+   * trap E2E-M15-05 and E2E-FLOW-05 are built around. A device that has only
+   * ever talked to the server can see nothing the server was not told.
+   *
+   * It found the restore pushing the master partition and nothing else: a
+   * trip's rows are their own partition (ADR-033), so every packing list in
+   * the file stayed queued on the importing device — whose own screen looked
+   * exactly like a migration that had worked. Fixed here; the unit that drives
+   * it is in `composables/__tests__/portableImport.spec.ts`.
+   */
+  test('E2E-FLOW-07: a Local Mode device moves onto a server and its data goes along', async ({
+    browser,
+  }) => {
+    test.slow()
+    const id = uniq()
+    const trip = `Samedan ${id}`
+    const template = `Ferien ${id}`
+    const position = `Schlafsack-${id}`
+    const row = `Stirnlampe-${id}`
+
+    // --- the device with no server -------------------------------------
+    // Both partitions, built the app's own way: a backup of one document is
+    // the merge preview, not the restore branch (E2E-M18-05's reason), and
+    // the trip's own rows are the half that lives outside the master feed.
+    const localCtx = await browser.newContext()
+    const localPage = await localCtx.newPage()
+    await seed(localPage, { mode: 'local' })
+    await localPage.goto('/tabs/templates')
+    await createTemplate(localPage, 'template', template)
+    await addPosition(localPage, position)
+    await backToTemplateList(localPage)
+
+    await createTripViaWizard(localPage, { name: trip, travelers: ['Andy'] })
+    await quickAddItem(localPage, row)
+    // FR-19.2: the write has landed before a backup can hold it.
+    await expect(localPage.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
+
+    // The G-2 detail is the only door to a backup — the one the user has.
+    await localPage.getByTestId('sync-indicator').click()
+    const sheet = localPage.getByTestId('sync-detail-sheet')
+    await expect(sheet).toBeVisible()
+    const downloadPromise = localPage.waitForEvent('download')
+    await sheet.getByTestId('sync-detail-backup').click()
+    const backup = await readFile(await (await downloadPromise).path(), 'utf8')
+    await localCtx.close()
+
+    // --- the same person, now on the server ----------------------------
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA, '/tabs/trips')
+    // Positive proof the server knows none of this yet, so nothing below can
+    // be satisfied by data that was already there.
+    await expect(visiblePage(pageA).getByTestId(`trip-row-${trip}`)).toHaveCount(0)
+
+    await pageA.getByTestId('m2-portable-import').click()
+    await pageA.getByTestId('portable-paste').locator('textarea').fill(backup)
+    await pageA.getByTestId('portable-preview').click()
+    await expect(pageA.getByTestId('portable-restore')).toBeVisible()
+    await pageA.getByTestId('portable-restore-commit').click()
+    await expect(visiblePage(pageA).getByTestId(`trip-row-${trip}`)).toBeVisible()
+    // The outbox is empty, which is the wire half of "the migration is one
+    // step" — and the settled signal the next device needs. Read off the G-2
+    // sheet's queue line rather than the glyph: `synced` means no push is in
+    // flight, not that nothing is waiting, and it said `synced` over a whole
+    // queued trip partition while this case was red.
+    await pageA.getByTestId('sync-indicator').click()
+    await expect(pageA.getByTestId('sync-detail-sheet')).toBeVisible()
+    await expect(pageA.getByTestId('sync-detail-pending')).toHaveCount(0)
+    await pageA.getByTestId('sync-detail-close').click()
+    await ctxA.close()
+
+    // --- a device that only ever talked to the server -------------------
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, '/tabs/trips')
+    await expect(visiblePage(pageB).getByTestId(`trip-row-${trip}`)).toBeVisible()
+    await pageB.getByTestId('rail-templates').click()
+    await expect(visiblePage(pageB).getByRole('heading', { name: template })).toBeVisible()
+
+    // The trip's own partition, which is where the packing list lives — and
+    // the only part of the file that is not master data.
+    await pageB.getByTestId('rail-trips').click()
+    await visiblePage(pageB).getByTestId(`trip-row-${trip}`).click()
+    await expectTripOpen(pageB, trip)
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${row}`)).toBeVisible()
 
     await ctxB.close()
   })

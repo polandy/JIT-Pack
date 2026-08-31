@@ -5,7 +5,7 @@
  * file carries — planning when it carries none (ADR-024) — with
  * travelers/containers remapped by name and pack progress preserved.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
@@ -15,8 +15,11 @@ import { joinDocuments, parsePortable, parsePortableAll } from '@/domain/portabl
 import { buildBackup } from '@/local/backup'
 import { installHarness } from '@/__tests__/harness'
 
+let harness: ReturnType<typeof installHarness>
+
 beforeEach(() => {
-  installHarness().mockDrain()
+  harness = installHarness()
+  harness.mockDrain()
 })
 
 function newOrch() {
@@ -201,6 +204,26 @@ items:
     // the whole point: matching once, up front, would create it twice and
     // turn a restore into a duplicate inventory.
     expect(master.itemList.filter((i) => i.name === 'Kamera')).toHaveLength(1)
+  })
+
+  /*
+   * FR-19.5: the restore *is* the migration off Local Mode, so what it
+   * pushes is what the server ends up with. It drained the master partition
+   * alone until 2026-08-31 — a trip's rows are their own partition
+   * (ADR-033), so every packing list stayed queued on the importing device,
+   * whose own screen looked right either way (E2E-FLOW-07).
+   */
+  it('pushes the partition of every trip it wrote, not the master rows alone', async () => {
+    const orch = newOrch()
+
+    const results = orch.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
+    const tripId = results.find((r) => r.kind === 'trip')!.id
+
+    await vi.waitFor(() =>
+      expect(harness.fetch.mock.calls.map((c) => String(c[0]))).toContain(
+        `http://localhost/api/v1/trips/${tripId}/sync`,
+      ),
+    )
   })
 
   it('carries on when one document is unusable', () => {

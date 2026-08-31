@@ -48,7 +48,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
-| Visual baselines | E2E-VIS-01 … E2E-VIS-08 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
+| Visual baselines | E2E-VIS-01 … E2E-VIS-09 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
@@ -89,7 +89,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31), **E2E-FLOW-07** (the move off Local Mode, since 2026-08-31) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -3636,6 +3636,24 @@ an empty control checks nothing**.
 which E2E-VIS-08's own entry already documents as blind to a 591 px offset on a full-page shot.
 This gate catches the row collapsing, not a few pixels of drift in it.
 
+### The baseline had recorded a scroll position (2026-08-31)
+
+Two days later `E2E-VIS-09` failed on `visual-mobile` with a 6 % diff — on a **docs-only
+commit**, and stably across both retries, which is what ruled a rendering flake out. The two
+images carry the same screen: the baseline sits 102 px lower.
+
+The cause is in the case, not in M16. `fill()` focuses a field, and the browser scrolls a
+focused field into view on its own schedule, so where the page stood at capture time was a
+race the baseline had frozen one side of — and `settled()` waits for fonts, which says nothing
+about scroll. `visual-desktop` never showed it, because at that height there is nothing to
+scroll.
+
+Fixed by making the scroll a decision instead of an outcome: blur, then set the `ion-content`
+scroller to 0 before the shot, and the mobile baseline re-recorded at the top. **The general
+form — a baseline is only as deterministic as the state the case leaves the screen in**, and a
+capture taken right after typing is not that state. Nothing else in this file's baselines types
+before it shoots.
+
 ### One shard was red, and it was not this change (2026-08-31)
 
 Recorded because the *reasoning* is reusable, not because the failure was. `e2e (6)` failed on
@@ -3820,3 +3838,51 @@ rather than the screen:
   *matched* — twice, on the tag heading and the segment the swap had created.
   `getByTestId('m9-row').filter({ hasText })` is the assertion that says what
   it means.
+
+## E2E-FLOW-07 — the migration whose first step is not in the app (2026-08-31)
+
+FLOW-07 is the promise that Local Mode is not a trap: FR-19.5 makes leaving it
+one step — the NFR-4.11 backup carries every template and trip, and importing
+it while the app points at a server moves the lot (ADR-015). Since ADR-025 the
+server has no importer of its own, so what reaches it is exactly what the
+client's restore pushes; that is the whole mechanism, and nothing had ever
+walked it.
+
+Three things came out of writing it.
+
+- **The third device is the case.** E2E-M18-05 already restores a backup, and
+  it restores it *locally*, where the assertion cannot tell a landed row from
+  a pushed one. On the importing device every restored row is in the store
+  optimistically, so its screen is right whether or not a single mutation ever
+  left the outbox — the same trap E2E-M15-05 and E2E-FLOW-05 are built around.
+  A device that has only ever talked to the server can see nothing the server
+  was not told, and it is the only witness that says the migration happened.
+  Mutation-proved: with `drainAfterImport` removed from `commitPortableRestore`
+  the third device's trip row is gone and the case reddens.
+- **The arrow `local`→`server` does not exist in the app.** `jitpack_mode` is
+  written in exactly one place — M19's first-launch choice (`App.vue`) — and
+  M17 only *states* which mode this is; there is no control anywhere that
+  leaves Local Mode. FR-19.1 says the move "goes through the explicit
+  migration path of FR-19.5, never through a toggle", which reads as a
+  restriction and is in fact the entire implementation. The case therefore
+  models the migration the way a user can actually perform it: the file plus a
+  device that is already in server mode (a second device, or a reinstall).
+  **Open owner decision**, deliberately untested: either M17 grows the
+  three-step move (back up → switch → restore) or FR-19.1/FLOW-07 say plainly
+  that the migration is device-to-device.
+- **The defect it found: a restore pushed the master partition and nothing
+  else.** `commitPortableRestore` called `drainAfterImport(null)`, whose trip
+  half is reached only with a trip id — the single-document import's — so every
+  packing list in the file stayed queued on the importing device, whose own
+  screen looked exactly like a migration that had worked. It passed locally and
+  failed on CI, which is the honest shape of it: the rows travelled only if the
+  device happened to do something else that drained their partition. Fixed by
+  draining the partition of every trip the file brought; driven by a unit in
+  `composables/__tests__/portableImport.spec.ts` (red without the fix).
+- **G-2 `synced` does not mean the outbox is empty.** `state` is computed from
+  the connection and whether a push is in flight, and never from
+  `pendingCount` — so the indicator said *Synced* over a whole queued trip
+  partition. The case therefore reads the sheet's queue line and asserts it is
+  absent, which is both the honest assertion and the settled signal the third
+  device needs before it looks.
+

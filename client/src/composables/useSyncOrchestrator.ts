@@ -1127,14 +1127,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       portableImportEnv(),
       restoredTemplates,
     )
-    drainAfterImport(result.kind === 'trip' ? result.id : null)
+    drainAfterImport(result.kind === 'trip' ? [result.id] : [])
     return result
   }
 
   /** Restore a whole backup file (NFR-4.11), then push what it produced. */
   function commitPortableRestore(docs: PortableDocument[]): PortableImportResult[] {
     const imported = importPortableBackup(docs, portableImportEnv())
-    drainAfterImport(null)
+    // Every trip the file brought, not none of them: a restore is the whole
+    // device, and its rows live in one partition per trip (FR-19.5).
+    drainAfterImport(imported.filter((r) => r.kind === 'trip').map((r) => r.id))
     return imported
   }
 
@@ -1142,12 +1144,17 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * An import lands many mutations and drains once at the end, rather than
    * per write: the outbox is what makes that safe, and a push per row would
    * turn a restore into hundreds of requests.
+   *
+   * Master first, then one drain per trip the import wrote — a trip's rows
+   * are their own partition, and the master push does not carry them.
    */
-  function drainAfterImport(tripId: string | null): void {
+  function drainAfterImport(tripIds: string[]): void {
     if (local) return
     syncStatus.setPendingCount(outbox.totalPending())
     drainMaster()
-      .then(() => (tripId ? drainTrip(tripId) : Promise.resolve()))
+      .then(async () => {
+        for (const id of tripIds) await drainTrip(id)
+      })
       .catch(() => {})
   }
 
