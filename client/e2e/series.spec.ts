@@ -27,9 +27,10 @@ const OTHER_SERIES = 'Ticino'
 const UNSET = '—'
 
 /**
- * M2's series header is M16's only door today. It is one locator on
- * purpose: E2E-M2-15 has the grouping open with the owner, and when that
- * lands this helper is the whole of what changes.
+ * M2's series header is M16's only door today. It is one locator on purpose —
+ * and it is now the settled one: E2E-M2-15's flat-list alternative was struck
+ * on 2026-08-31 and the grouping is what M2 keeps, so this helper is no longer
+ * waiting on a decision.
  */
 async function openSeries(page: Page, name: string) {
   await page.goto('/tabs/trips')
