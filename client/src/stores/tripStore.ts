@@ -137,6 +137,11 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return getTodos(tripId).filter((t) => t.task_state === 'open')
   }
 
+  /** Every comment of a trip, row-anchored and trip-level alike (FR-7.1). */
+  function getComments(tripId: string): ItemComment[] {
+    return comments.value.get(tripId) ?? []
+  }
+
   /** Plain comments anchored to one item (FR-7.1). */
   function getItemComments(tripId: string, tripItemId: string): ItemComment[] {
     return (comments.value.get(tripId) ?? []).filter((c) => c.trip_item_id === tripItemId)
@@ -451,6 +456,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     getTodos,
     getItemTodos,
     getOpenTodos,
+    getComments,
     getItemComments,
     getTripComments,
     itemsWithOpenPrep,

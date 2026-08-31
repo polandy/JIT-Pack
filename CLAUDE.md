@@ -559,8 +559,9 @@ it. Item numbers stay stable even as items close, because the log refers back to
    skipped…"*. **FR-25.21 owes nothing further.**
 
 **Parked, specified, do not start:** §3.26 calendar feed,
-the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
-ownership model (each carries a revisit trigger in its stub).
+the North-Star Plan/During phases, FR-27.8's per-trip usage history (its *commented* slice is
+built as FR-27.9; the full „was on trips X, Y, Z" listing stays deferred), and FR-1.6's
+publish/fork ownership model (each carries a revisit trigger in its stub).
 
 ## Packages
 

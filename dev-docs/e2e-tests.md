@@ -3418,3 +3418,37 @@ here the missing docblock threw rather than quietly taking a `catch`.
 *A confirm row that always says the same thing is half a test.* E2E-M15-04b asserts the series
 line **before** choosing a series as well as after, because *„keine Serie"* on every row would
 satisfy the promise's second half on its own.
+
+## Two sections nobody had built, and the pixel that changed one (2026-08-31)
+
+FR-27.8 and FR-27.9 were specified in July, clicked through in the concept prototype's fourth
+and fifth rounds, written into three documents, and existed in no build — found 2026-08-30 by
+the M10 audit, ruled *build it* the next day. What the writing produced beyond the two features:
+
+**A finding only the render could make.** The scope chip was copied from M7, where a *group*
+row wears a filled chip and a Ferien-Vorlage wears nothing — correct there, because the two
+live in separate sections and the section is the label. In M10 they share one list, and the
+first screenshot showed a 42 px unmarked note beside a 20 px chip: an asymmetry that reads as
+an inconsistency rather than as a rule. Both wear the chip now (measured: 65 px and 52 px wide,
+both 20 px high). **No assertion would have found it** — a test written against the copied
+markup asserts the asymmetry as the specification, which is the shape the M5 save-indicator
+audit named a week earlier.
+
+**And a case that could have passed on the wrong screen.** E2E-M10-17's first draft asserted the
+*group* chip alone, which is satisfied by a screen that marks nothing else. It creates a
+Ferien-Vorlage as well now, so the list is mixed and both chips are asserted — the positive
+signal the group chip's presence stands against.
+
+**Three rules settled in the domain rather than in the component**, all of them cheap to get
+wrong later:
+
+- The comment join is the **foreign key and nothing else**. An ad-hoc row has no source item, and
+  matching by name would put one item's remark on another — the argument FR-27.5 already makes
+  against fuzzy folding, arriving here from the other end.
+- An **undated comment sorts last**. `created_at` is nullable; the epoch buries the one row
+  nobody can date at the bottom of a list read from the top, and *now* crowns it. Last, and the
+  row simply carries no date.
+- **Own positions only.** The list is the navigable half of FR-2.4's count, and a list that also
+  walked includes would answer a different question than the number it sits under. The seeded
+  screenshot shows the pairing working: two templates listed, *„Used in 3 places"* on the card
+  below, the third being the trip row.
