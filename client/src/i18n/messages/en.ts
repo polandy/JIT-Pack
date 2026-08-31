@@ -391,6 +391,14 @@ export const en = {
   'items.editor.dependencyCycle': 'That would close a circle: {path}.',
   'items.editor.companions': 'Companions',
   'items.editor.companionsHint': 'These items depend on {name}:',
+  'items.editor.containedIn': 'Part of',
+  'items.editor.containedPositions': '{n} position | {n} positions',
+  'items.editor.tripCommentsPartial':
+    'Only the trips this device has open. On a server, a trip’s comments arrive when the trip does.',
+  'items.editor.containedRetired': 'hidden',
+  'items.editor.tripComments': 'Comments from trips',
+  'items.editor.tripCommentsHint':
+    'Written on this item while packing. Read-only here — the thread lives on the trip.',
   'items.editor.delete': 'Delete item',
   'items.editor.deleteUsage': 'Used in {n} place | Used in {n} places',
   'items.editor.deleteRetire':
@@ -899,6 +907,11 @@ export const en = {
   'import.wizard.summaryItems': '{n} new item | {n} new items',
   'import.wizard.summaryMerged': '{n} merged',
   'import.wizard.summaryCategories': '{n} category | {n} categories',
+  'import.wizard.gridMore': '…and {n} more row | …and {n} more rows',
+  'import.wizard.noiseNote':
+    '{n} entry is marked uncertain in the sheet ({names}) and becomes an open task on its row. | {n} entries are marked uncertain in the sheet ({names}) and become open tasks on their rows.',
+  'import.wizard.summaryTasks': '{n} open task | {n} open tasks',
+  'import.wizard.noiseTodo': "Imported with '?' — clarify: {name}",
   'import.wizard.commit': 'Import',
   // M2 trip list (FR-2.x, FR-13.1). The FR-27.4 chips and log are above.
   'trips.title': 'Trips',

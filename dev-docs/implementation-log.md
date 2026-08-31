@@ -222,6 +222,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 
 - [A field that was there and had no width (2026-08-30)](#a-field-that-was-there-and-had-no-width-2026-08-30) — backlog item 6, M14 and M16. The first screen with no coverage at any layer, the control that turned out not to render at all, why no assertion could have found it, and two clauses on M14 that could not have failed where they stood.
 - [Twenty-two promises, decided against the screen (2026-08-31)](#twenty-two-promises-decided-against-the-screen-2026-08-31) — the owner's rulings on every open decision backlog item 6 raised. Why a promise can be unbuildable rather than merely unbuilt, why one strike deleted a reader instead of adding a writer, and why the screen beat the review that specified it.
+- [A switch nobody had interrupted (2026-08-31)](#a-switch-nobody-had-interrupted-2026-08-31) — the four navigation anchors pushed and nothing popped. Why one settled switch could never see it, why a probe that does not wait measures a different app, and why three builds were spent fixing the symptom.
 - [A traveler had no door but a screen (2026-08-31)](#a-traveler-had-no-door-but-a-screen-2026-08-31) — the command line grows subcommands (ADR-041) rather than the server growing REST resources; why the roster needed two pulls before it could decide anything, and the account directory that carries no address to match on.
 
 ## Current state
@@ -10163,6 +10164,39 @@ they were a backlog nobody could see the size of. The rulings are therefore
 recorded once here and summarised in one paragraph of item 6, with the
 per-document strikes pointing back rather than restating — so the next reader
 counts them in one place.
+
+## A switch nobody had interrupted (2026-08-31)
+
+The four navigation anchors were plain `<router-link>`s — ADR-012 Option A, *„the tab bar is
+plain links"* — so every switch between them **pushed** a page onto the one outlet and nothing
+ever popped it. Interrupt a switch by tapping the next anchor before Ionic's transition
+finishes and both pages stay live, the older one on the higher z-index: the URL names one
+screen, the user sees it, and the taps go to the screen two anchors ago. The full measurement
+and the case ids are in `dev-docs/e2e-tests.md`; the decision is ADR-012's third amendment.
+What belongs here is the three things that made it hard to find.
+
+**Two cases covered this and could not fail.** E2E-G9-09 and E2E-G1-01 each switch anchors
+exactly once and assert the rendered screen — the right assertion, made against the one input
+that cannot produce the defect. This is the *„would it have passed before the action?"* check
+from the M11/M12 audit arriving from a new side: here the assertion could fail in principle,
+but not on the input the case supplies. **A behaviour that only breaks under repetition needs a
+case that repeats**, and neither the count of cases nor their quality says whether one exists.
+
+**A probe that does not wait measures a different app than one that does, and both are real.**
+The first measurement here waited on `location.pathname`, which changes before the transition
+ends, and so it reported a corrupted outlet after four ordinary clicks. That was wrong and it
+was reported to the owner before it was checked — the settled path is clean. The correction
+cuts both ways: interrupting a transition is not an artificial input, it is what tapping
+through a bar *is*. The case now taps without waiting on purpose and asserts a settled state
+afterwards, which is the only shape that is both honest and deterministic.
+
+**When a fix at the reported site keeps missing, the reported site is the symptom.** The defect
+arrived as *„M15 opens only once per session"*, and three builds went into the wizard's own
+navigation — `router.replace`, then `navigate` with `root`/`replace`, `back`/`replace` and
+`back`/`pop`. None fixed it and two made it worse. Only pointing the probe at the anchors
+rather than at the wizard found it, and M15 then needed no change at all: with the stack no
+longer growing, its commit's `replace` has nothing to collide with, and E2E-M15-03 runs without
+the `page.reload()` it was written with.
 ## A traveler had no door but a screen (2026-08-31)
 
 The family instance holds 33 imported trips and **zero travelers** — the

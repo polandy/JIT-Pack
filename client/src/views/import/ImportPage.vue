@@ -23,9 +23,9 @@ import {
   IonNote,
   IonSegment,
   IonSegmentButton,
+  useIonRouter,
 } from '@ionic/vue'
 import { computed, inject, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import {
   analyzeGrid,
@@ -43,7 +43,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { filterForStatus, TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
 
-const router = useRouter()
+const ionRouter = useIonRouter()
 const master = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
@@ -64,6 +64,33 @@ const analysis = ref<GridAnalysis | null>(null)
 async function onFile(file: File) {
   rawText.value = await file.text()
 }
+
+/**
+ * Rows of the sheet shown back before anything is derived from it (FR-16.1,
+ * ADR-041). Six: enough to show a header block and the first real rows, few
+ * enough that step 1 stays one screen.
+ */
+const PREVIEW_ROWS = 6
+
+/**
+ * The grid as the parser read it, live while the text is being pasted.
+ *
+ * This is the one thing a *derived* list cannot show. Step 2 names columns and
+ * trips, and a sheet split on the wrong delimiter produces a mapping step that
+ * is merely puzzling; here the reader sees a quoted comma kept as one cell, or
+ * not, and knows immediately.
+ */
+const parsedPreview = computed(() =>
+  rawText.value.trim() === '' ? [] : parseSpreadsheet(rawText.value),
+)
+
+const previewGrid = computed(() => parsedPreview.value.slice(0, PREVIEW_ROWS))
+
+/** Every preview row is padded to the widest, so a short row keeps its shape. */
+const previewWidth = computed(() => Math.max(0, ...previewGrid.value.map((r) => r.length)))
+
+/** Rows the cap left out, named rather than silently dropped. */
+const previewMore = computed(() => Math.max(0, parsedPreview.value.length - PREVIEW_ROWS))
 
 function analyze() {
   grid.value = parseSpreadsheet(rawText.value)
@@ -170,6 +197,27 @@ const mapping = computed(() => ({
     })),
 }))
 
+/**
+ * NFR-4.7: names the sheet marked with a trailing '?'. The rule that strips it
+ * and writes an open task has been built and unit-covered since the wizard
+ * shipped; what no step did was *say* so, so the user first met the tasks
+ * inside the trip (E2E-M15-02).
+ */
+const noiseNames = computed(() =>
+  buildImportPlan(grid.value, mapping.value, new Map())
+    .items.filter((i) => i.hasOpenTask)
+    .map((i) => i.name),
+)
+
+/** Up to three names, because a bare count sends the reader looking. */
+const NOISE_NAMES_SHOWN = 3
+
+/** The series a trip will join, by name — the confirm's half of FR-16.1. */
+function seriesName(seriesId: string | null): string {
+  if (!seriesId) return t('import.wizard.noSeries')
+  return master.seriesList.find((s) => s.id === seriesId)?.name ?? t('import.wizard.noSeries')
+}
+
 /** Rows the current mapping treats as items, for the category toggle list. */
 const namedRows = computed(() =>
   grid.value
@@ -233,13 +281,18 @@ function commit() {
   // ended on the words "No active trips" (the miss ADR-024 fixed on the
   // restore path) — and an import that created no trip at all has its whole
   // result in the inventory, where the trip list would say the same thing.
-  router.replace(
+  // Landing on a tab root is a root navigation, the same rule the anchors
+  // follow (ADR-012 amendment 3): a commit ends the wizard rather than
+  // stacking a page on top of it.
+  ionRouter.navigate(
     plan.value.trips.length === 0
       ? { path: '/tabs/items' }
       : {
           path: '/tabs/trips',
           query: { [TRIP_FILTER_QUERY]: filterForStatus(TRIP_STATUS_ARCHIVED) },
         },
+    'root',
+    'replace',
   )
 }
 
@@ -263,6 +316,45 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
           :rows="8"
           @ionInput="(e: CustomEvent) => (rawText = e.detail.value ?? '')"
         />
+        <!--
+          The grid the parser read, before anything is derived from it
+          (FR-16.1, ADR-041). Wide sheets scroll inside this box; the page
+          never scrolls sideways.
+        -->
+        <div v-if="previewGrid.length > 0" class="grid-preview" data-testid="import-grid">
+          <table>
+            <thead>
+              <tr data-testid="import-grid-row">
+                <th
+                  v-for="colIdx in previewWidth"
+                  :key="colIdx"
+                  scope="col"
+                  :data-testid="`import-grid-cell-0-${colIdx - 1}`"
+                >
+                  {{ previewGrid[0]?.[colIdx - 1] ?? '' }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, rowIdx) in previewGrid.slice(1)"
+                :key="rowIdx"
+                data-testid="import-grid-row"
+              >
+                <td
+                  v-for="colIdx in previewWidth"
+                  :key="colIdx"
+                  :data-testid="`import-grid-cell-${rowIdx + 1}-${colIdx - 1}`"
+                >
+                  {{ row[colIdx - 1] ?? '' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-if="previewMore > 0" class="hint" data-testid="import-grid-more">
+          {{ t('import.wizard.gridMore', { n: previewMore }) }}
+        </p>
         <IonButton
           expand="block"
           data-testid="import-analyze"
@@ -300,6 +392,7 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
             />
             <IonSelect
               interface="popover"
+              :data-testid="`import-series-${trip.column}`"
               :placeholder="t('import.wizard.series')"
               :value="trip.seriesId"
               :aria-label="t('import.wizard.seriesLabel')"
@@ -312,6 +405,15 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
             </IonSelect>
           </IonItem>
         </IonList>
+        <!-- NFR-4.7: what the sheet marked uncertain, said before it is committed. -->
+        <IonNote v-if="noiseNames.length > 0" class="noise-note" data-testid="import-noise-note">
+          {{
+            t('import.wizard.noiseNote', {
+              n: noiseNames.length,
+              names: noiseNames.slice(0, NOISE_NAMES_SHOWN).join(', '),
+            })
+          }}
+        </IonNote>
         <IonNote v-if="!mappingValid" data-testid="import-mapping-note">
           {{ t(mappingHint) }}
         </IonNote>
@@ -425,6 +527,11 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
           <IonItem lines="none">
             <IonLabel data-testid="import-summary-line">{{ summaryLine }}</IonLabel>
           </IonItem>
+          <IonItem v-if="noiseNames.length > 0" lines="none">
+            <IonLabel data-testid="import-summary-tasks">
+              {{ t('import.wizard.summaryTasks', { n: noiseNames.length }) }}
+            </IonLabel>
+          </IonItem>
           <IonItem
             v-for="trip in plan.trips"
             :key="trip.name"
@@ -435,13 +542,18 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
               <h3>{{ trip.name }}</h3>
               <p>
                 {{ trip.endDate ? formatDay(trip.endDate) : trip.year }} ·
-                {{ t('import.portable.items', { n: trip.items.length }) }}
+                {{ t('import.portable.items', { n: trip.items.length }) }} ·
+                {{ seriesName(trip.seriesId) }}
               </p>
             </IonLabel>
           </IonItem>
         </IonList>
         <div class="wizard-nav">
-          <IonButton fill="outline" @click="step = duplicates.length > 0 ? 3 : 2">
+          <IonButton
+            fill="outline"
+            data-testid="import-back"
+            @click="step = duplicates.length > 0 ? 3 : 2"
+          >
             {{ t('common.back') }}
           </IonButton>
           <IonButton data-testid="import-commit" color="primary" @click="commit">
@@ -461,6 +573,41 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
 .hint {
   color: var(--ion-color-medium);
   font-size: var(--jp-text-base);
+}
+
+.grid-preview {
+  overflow-x: auto;
+  margin-block: var(--jp-space-3, 12px);
+  border: 1px solid var(--ion-border-color);
+  border-radius: var(--jp-r2);
+  background: var(--jp-surface-sunken);
+}
+
+.grid-preview table {
+  border-collapse: collapse;
+  /* The cells size to their content; the box above is what scrolls. */
+  width: max-content;
+  min-width: 100%;
+}
+
+.grid-preview th,
+.grid-preview td {
+  padding: 6px 10px;
+  border-right: 1px solid var(--ion-border-color);
+  white-space: nowrap;
+  font-size: var(--jp-text-sm);
+  color: var(--ion-color-medium);
+}
+
+.grid-preview th {
+  text-align: left;
+  font-weight: var(--jp-weight-medium);
+  color: var(--ion-text-color);
+}
+
+.noise-note {
+  display: block;
+  margin-block: var(--jp-space-2, 8px);
 }
 
 .paste-area {

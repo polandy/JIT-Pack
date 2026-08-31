@@ -40,7 +40,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M1 dashboard (populated) | E2E-M1-01 (card, open count, three previews, the remainder, and the card into M4), E2E-M1-02 (the prep card, and that ticking resolves on the trip) | `local` | [`dashboard.spec.ts`](../client/e2e/dashboard.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
@@ -67,7 +67,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
-| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
+| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30), E2E-M15-13, E2E-M15-02, E2E-M15-04b (the three promises built 2026-08-31) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
@@ -3096,6 +3096,11 @@ be narrowed below that: the branch is one `if` on the app's boot path.
 
 ## M15 — the step nobody had opened, and the screen that opens once (2026-08-30)
 
+> **The „opens once" half is fixed (2026-08-31), and it was not M15's.** The cause was
+> the navigation anchors, which pushed a page nothing popped — see *„The switch nobody
+> interrupted"* at the end of this file and ADR-012's third amendment. E2E-M15-03 runs
+> without the `page.reload()` described below.
+
 Backlog item 6, M15. Four of its ten ids were unwritten, and they sorted into
 three different things at once — which is why the id count said nothing useful
 here: **one was a real remainder, one was six promises in one sentence, and two
@@ -3330,3 +3335,120 @@ because the id already names the screen.
 
 319 of 332 ids now sit in a title. The remaining 13 are the prose ones, and they
 are right where they belong.
+
+## The switch nobody interrupted (2026-08-31)
+
+Found while chasing M15's *„the wizard opens only once per session"* (backlog item 6,
+2026-08-30), and it turned out to be the smaller half of something else.
+
+**What the symptom was.** After any M15 commit, opening the wizard again in the same session
+rendered it *underneath* the page on screen: visible in the DOM, fillable by a script, and
+every click intercepted. E2E-M15-03 needs two imports and could only be written with a
+`page.reload()` between them, carrying a note that said so.
+
+**What it actually was.** Reading the outlet at each step — `ion-router-outlet > .ion-page`
+with its class list and computed `z-index` — the wizard was never the cause. The four
+navigation anchors were plain `<router-link>`s (ADR-012 Option A, *„the tab bar is plain
+links"*), so **every anchor switch pushed a page nothing ever popped**. That alone is
+harmless while each transition finishes. Interrupt one — tap the next anchor before Ionic is
+done — and both pages stay live:
+
+    boot on /tabs/items                      m9-empty   z=0
+    items→trips→templates→items→trips        m9-empty   z=100  (hidden)
+      tapped without waiting                 m2-…       z=100
+                                             m7-…       z=101   ← on top of M2
+
+The URL reads `/tabs/trips`, M2 is the page the user sees, and M7's page is what receives the
+taps. Waiting between taps produces one visible page every time, which is why nothing caught
+it: **E2E-G9-09 and E2E-G1-01 each make exactly one settled switch.**
+
+**Three things worth carrying.**
+
+*A probe that does not wait measures a different app than one that does — and both are real.*
+The first probe run here used `waitForFunction(() => location.pathname === …)`, which resolves
+when the URL changes and not when the transition ends, and it produced a corrupted outlet on
+what looked like four ordinary clicks. That over-stated the defect, and the correction matters
+in both directions: the settled path is clean, and the interrupted path is what a person
+tapping through a bar actually does. The case therefore taps without waiting *on purpose* and
+asserts a settled outcome at the end.
+
+*The routerAction was not the lever.* Four variants of the commit's own navigation were
+measured — `router.replace`, and `navigate` with `root`/`replace`, `back`/`replace`,
+`back`/`pop`. None fixed it and two made it worse, leaving the wizard mounted on top with the
+destination never appearing. Three of those builds were spent before the probe was pointed at
+the *anchors* instead of at the wizard, which is the general lesson: when a fix at the reported
+site keeps missing, the reported site is the symptom.
+
+*A cost accepted in an ADR can be under-specified rather than wrong.* Option A's *„plain
+links"* was the right decision and one word short — a link is a push, and between siblings a
+push is what nothing pops. The amendment says *root navigation* and keeps the element a real
+`<a>`, so the pros the option was chosen for are untouched.
+
+**And M15 needed no fix of its own.** With the anchors resetting the stack, its commit's
+`replace` no longer collides; E2E-M15-03 runs without the reload, and that removal is this
+change's second proof rather than a case of its own.
+
+## Three promises about saying, not doing (2026-08-31)
+
+M15's audit (2026-08-30) left three owner decisions, and all three were ruled *build it*. What
+they have in common is worth naming, because it is not a coverage shape and no gate finds it:
+**each was about the wizard saying something, and in every case the doing was already built and
+unit-covered at both levels.** NFR-4.7's trailing `?` did become an item plus an open task;
+`commitImport` did write `series_id`; the parser did read the grid. Nothing was red, nothing was
+missing from the domain, and the user met none of it.
+
+**The one that needed a decision was the grid** (ADR-041). The other two are a sentence each.
+A grid is wide and a phone is not, so it is the only one where showing the truth costs something:
+measured at 390 px, ten columns render as a 358 px box over 617 px of content. The alternatives
+both fail the question the step exists for — truncation hides the *right-hand* columns, which is
+where a delimiter error shows up, and a column-header list is step 2 written twice and cannot
+show a ragged row at all. The preview therefore renders `parseSpreadsheet` output and nothing
+derived: it has to stay truthful exactly when the analysis is wrong.
+
+**Two things the writing found.**
+
+*A locale assertion in the default locale asserts nothing.* The noise task's body moved from a
+hard-coded English string onto the catalogue (NFR-4.12). Asserted in English, `t()` and the
+literal it replaced are indistinguishable — the test passes against the unfixed code. The unit
+switches to `de` and asserts the German word, which also cost the spec its `node` environment: the
+subject reaches `document.documentElement.lang` through `setLocale`, so the file now declares
+`// @vitest-environment jsdom`. That is CLAUDE.md's rule arriving from its loud side for once —
+here the missing docblock threw rather than quietly taking a `catch`.
+
+*A confirm row that always says the same thing is half a test.* E2E-M15-04b asserts the series
+line **before** choosing a series as well as after, because *„keine Serie"* on every row would
+satisfy the promise's second half on its own.
+
+## Two sections nobody had built, and the pixel that changed one (2026-08-31)
+
+FR-27.8 and FR-27.9 were specified in July, clicked through in the concept prototype's fourth
+and fifth rounds, written into three documents, and existed in no build — found 2026-08-30 by
+the M10 audit, ruled *build it* the next day. What the writing produced beyond the two features:
+
+**A finding only the render could make.** The scope chip was copied from M7, where a *group*
+row wears a filled chip and a Ferien-Vorlage wears nothing — correct there, because the two
+live in separate sections and the section is the label. In M10 they share one list, and the
+first screenshot showed a 42 px unmarked note beside a 20 px chip: an asymmetry that reads as
+an inconsistency rather than as a rule. Both wear the chip now (measured: 65 px and 52 px wide,
+both 20 px high). **No assertion would have found it** — a test written against the copied
+markup asserts the asymmetry as the specification, which is the shape the M5 save-indicator
+audit named a week earlier.
+
+**And a case that could have passed on the wrong screen.** E2E-M10-17's first draft asserted the
+*group* chip alone, which is satisfied by a screen that marks nothing else. It creates a
+Ferien-Vorlage as well now, so the list is mixed and both chips are asserted — the positive
+signal the group chip's presence stands against.
+
+**Three rules settled in the domain rather than in the component**, all of them cheap to get
+wrong later:
+
+- The comment join is the **foreign key and nothing else**. An ad-hoc row has no source item, and
+  matching by name would put one item's remark on another — the argument FR-27.5 already makes
+  against fuzzy folding, arriving here from the other end.
+- An **undated comment sorts last**. `created_at` is nullable; the epoch buries the one row
+  nobody can date at the bottom of a list read from the top, and *now* crowns it. Last, and the
+  row simply carries no date.
+- **Own positions only.** The list is the navigable half of FR-2.4's count, and a list that also
+  walked includes would answer a different question than the number it sits under. The seeded
+  screenshot shows the pairing working: two templates listed, *„Used in 3 places"* on the card
+  below, the third being the trip row.

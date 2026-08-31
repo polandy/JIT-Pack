@@ -402,6 +402,14 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.dependencyCycle': 'Das schlösse einen Kreis: {path}.',
   'items.editor.companions': 'Begleitartikel',
   'items.editor.companionsHint': 'Diese Artikel hängen von {name} ab:',
+  'items.editor.containedIn': 'Enthalten in',
+  'items.editor.containedPositions': '{n} Position | {n} Positionen',
+  'items.editor.tripCommentsPartial':
+    'Nur die Reisen, die dieses Gerät geöffnet hat. Am Server kommen die Kommentare einer Reise mit der Reise.',
+  'items.editor.containedRetired': 'ausgeblendet',
+  'items.editor.tripComments': 'Kommentare aus Reisen',
+  'items.editor.tripCommentsHint':
+    'Beim Packen zu diesem Artikel geschrieben. Hier nur zum Lesen — der Verlauf lebt an der Reise.',
   'items.editor.delete': 'Artikel löschen',
   'items.editor.deleteUsage': 'An {n} Stelle verwendet | An {n} Stellen verwendet',
   'items.editor.deleteRetire':
@@ -909,6 +917,11 @@ export const de: Record<keyof typeof en, string> = {
   'import.wizard.summaryItems': '{n} neuer Artikel | {n} neue Artikel',
   'import.wizard.summaryMerged': '{n} zusammengeführt',
   'import.wizard.summaryCategories': '{n} Kategorie | {n} Kategorien',
+  'import.wizard.gridMore': '…und {n} weitere Zeile | …und {n} weitere Zeilen',
+  'import.wizard.noiseNote':
+    '{n} Eintrag ist im Blatt als unsicher markiert ({names}) und wird zu einer offenen Aufgabe auf seiner Zeile. | {n} Einträge sind im Blatt als unsicher markiert ({names}) und werden zu offenen Aufgaben auf ihren Zeilen.',
+  'import.wizard.summaryTasks': '{n} offene Aufgabe | {n} offene Aufgaben',
+  'import.wizard.noiseTodo': "Mit '?' importiert — klären: {name}",
   'import.wizard.commit': 'Importieren',
   // M2 Reiseliste (FR-2.x, FR-13.1).
   'trips.title': 'Reisen',

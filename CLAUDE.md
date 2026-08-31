@@ -313,7 +313,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    and moved to the rows layout; and the new case found a defect no id could — **M15 opens only
    once per session**, because the commit's `router.replace` onto a tab root leaves that tab's
    page unhidden and the next push renders M15 underneath it (M18's restore replaces the same
-   way). Four owner decisions, none built here. Log: *„A wizard that opens once"*.
+   way). Four owner decisions, none built here. Log: *„A wizard that opens once"*. **The „opens
+   once" defect was not M15's and is fixed (2026-08-31):** the navigation anchors pushed a page
+   nothing popped, so an interrupted switch left two live pages and the older one on top
+   (ADR-012 amendment 3, E2E-G9-17/G1-06).
 
    **M21 and M22 followed 2026-08-30**, both with every id implemented and no id on the wrong
    test, so the product was four cases and two owner decisions. M21's finding is about *time*:
@@ -556,8 +559,9 @@ it. Item numbers stay stable even as items close, because the log refers back to
    skipped…"*. **FR-25.21 owes nothing further.**
 
 **Parked, specified, do not start:** §3.26 calendar feed,
-the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
-ownership model (each carries a revisit trigger in its stub).
+the North-Star Plan/During phases, FR-27.8's per-trip usage history (its *commented* slice is
+built as FR-27.9; the full „was on trips X, Y, Z" listing stays deferred), and FR-1.6's
+publish/fork ownership model (each carries a revisit trigger in its stub).
 
 ## Packages
 

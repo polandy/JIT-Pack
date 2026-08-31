@@ -10,6 +10,7 @@
  */
 
 import { API } from '@/api/routes'
+import { t } from '@/i18n'
 import { TABLE } from '@/types/tables'
 import { computed, reactive, ref } from 'vue'
 
@@ -1054,11 +1055,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
         if (item.hasOpenTask) {
           // Author placeholder — the server stamps author_id on insert.
+          // NFR-4.12: resolved at write time, never a module constant — a
+          // finished string is unreachable by a language switch (ADR-037).
           const todo = mutations.addTodo(
             tripId,
             id,
             'import',
-            `Imported with '?' — clarify: ${item.name}`,
+            t('import.wizard.noiseTodo', { name: item.name }),
           )
           onPullChanges([optimisticInsert(todo.mutation)])
           if (!local) outbox.enqueue('trip', tripId, todo.mutation)

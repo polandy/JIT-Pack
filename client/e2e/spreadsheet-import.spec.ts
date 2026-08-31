@@ -1,4 +1,11 @@
-import { test, expect, seed, visiblePage } from './fixtures'
+import {
+  test,
+  expect,
+  seed,
+  visiblePage,
+  createTripViaWizard,
+  chooseInSelect,
+} from './fixtures'
 
 /**
  * M15 — the mapping step's two category layouts (FR-16.1), Local Mode.
@@ -272,8 +279,6 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
      * once, before this line existed).
      */
     await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
-    await page.reload()
-    await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(3)
 
     // Back through M2's own entry, so the second import is the app's own path.
     await page.getByTestId('rail-trips').click()
@@ -314,5 +319,99 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
     await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(5)
     await expect(visiblePage(page).getByText('Wanderschuh', { exact: true })).toBeVisible()
     await expect(visiblePage(page).getByText('Zahnbürste')).toBeVisible()
+  })
+})
+
+/**
+ * M15's three promises that the wizard has never kept (owner decision
+ * 2026-08-31, backlog item 6). Each was specified, and each is about the
+ * wizard *saying* something rather than doing it — the doing was already
+ * built and unit-covered, which is exactly why nothing was red.
+ */
+test.describe('M15 — what the wizard says about what it read @local @m15', () => {
+  /** A sheet with a mis-parseable shape: quoted commas and a ragged row. */
+  const GRID_CSV = [
+    'Kategorie,Artikel,2016',
+    'Schuhe,"Wanderschuhe, hoch",1',
+    ',Sandalen',
+    'Bad,Handtuch,2',
+  ].join('\n')
+
+  /* NFR-4.7: the trailing '?' is the sheet's own uncertainty. */
+  const NOISE_CSV = ['Artikel,2016', 'Wanderschuhe,1', 'Regenjacke?,1', 'Handtuch,1'].join('\n')
+
+  // E2E-M15-13 (FR-16.1, ADR-041): step 1 shows the grid the parser read, before
+  // anything is derived from it. The step was a file button, a paste box and
+  // Analyze; the grid it promised existed nowhere, so a sheet split on the
+  // wrong delimiter was invisible until the mapping step made no sense.
+  test('E2E-M15-13: step 1 previews the grid the parser actually read', async ({ page }) => {
+    await seed(page, { mode: 'local' })
+    await page.goto('/import')
+    const grid = visiblePage(page).getByTestId('import-grid')
+    await expect(grid).toBeHidden()
+
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(GRID_CSV)
+    await expect(grid).toBeVisible()
+
+    // The quoted comma is one cell, not two — the single thing a derived
+    // list cannot show, and the reason to render the grid at all.
+    await expect(grid.getByTestId('import-grid-cell-1-1')).toHaveText('Wanderschuhe, hoch')
+    // A short row keeps its shape rather than shifting its neighbours left.
+    await expect(grid.getByTestId('import-grid-cell-2-2')).toHaveText('')
+    await expect(grid.getByTestId('import-grid-row')).toHaveCount(4)
+
+    // Wide content scrolls inside its own box; the page never does (G-9).
+    const overflowX = await grid.evaluate((el) => getComputedStyle(el).overflowX)
+    expect(overflowX).toBe('auto')
+  })
+
+  // E2E-M15-02 (NFR-4.7): the wizard says what it treated as noise. The rule
+  // is built and unit-covered at both levels; what was missing is the saying,
+  // so the user first met the tasks inside the trip.
+  test('E2E-M15-02: the wizard names the noise it handled, before committing', async ({ page }) => {
+    await seed(page, { mode: 'local' })
+    await page.goto('/import')
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(NOISE_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+
+    const note = visiblePage(page).getByTestId('import-noise-note')
+    await expect(note).toBeVisible()
+    // Names the item, because "1 uncertain entry" sends the reader looking.
+    await expect(note).toContainText('Regenjacke')
+
+    await visiblePage(page).getByTestId('import-next').click()
+    // The confirm counts the tasks the commit is about to write — the last
+    // screen before an irreversible write says what it will do.
+    await expect(visiblePage(page).getByTestId('import-summary-tasks')).toContainText('1')
+
+    await visiblePage(page).getByTestId('import-commit').click()
+    // The positive signal: the task the note promised exists on the row.
+    // The commit lands on the archived segment itself (ADR-024's landing),
+    // so the row is on screen without choosing a segment first.
+    await visiblePage(page).getByTestId('trip-row-2016').click()
+    await expect(visiblePage(page).getByTestId('m4-prep-badge-Regenjacke')).toBeVisible()
+  })
+
+  // E2E-M15-04b (FR-16.1): the confirm names each trip's target series. The
+  // picker is on step 2 and the commit writes `series_id`; step 4 printed
+  // trips, items, merges and categories and nothing about where they land.
+  test('E2E-M15-04b: the confirm names the series each trip will join', async ({ page }) => {
+    await seed(page, { mode: 'local' })
+    await createTripViaWizard(page, { name: 'Voriges Jahr', series: 'Sommerferien' })
+
+    await page.goto('/import')
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(NOISE_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+
+    // Without a series chosen the row says so rather than staying silent:
+    // "no series" is a destination too, and the reader is deciding.
+    await visiblePage(page).getByTestId('import-next').click()
+    await expect(visiblePage(page).getByTestId('import-summary-2016')).toContainText('No series')
+
+    await visiblePage(page).getByTestId('import-back').click()
+    await chooseInSelect(page, 'import-series-1', 'Sommerferien')
+
+    await visiblePage(page).getByTestId('import-next').click()
+    await expect(visiblePage(page).getByTestId('import-summary-2016')).toContainText('Sommerferien')
   })
 })
