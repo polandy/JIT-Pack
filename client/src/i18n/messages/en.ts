@@ -899,6 +899,11 @@ export const en = {
   'import.wizard.summaryItems': '{n} new item | {n} new items',
   'import.wizard.summaryMerged': '{n} merged',
   'import.wizard.summaryCategories': '{n} category | {n} categories',
+  'import.wizard.gridMore': '…and {n} more row | …and {n} more rows',
+  'import.wizard.noiseNote':
+    '{n} entry is marked uncertain in the sheet ({names}) and becomes an open task on its row. | {n} entries are marked uncertain in the sheet ({names}) and become open tasks on their rows.',
+  'import.wizard.summaryTasks': '{n} open task | {n} open tasks',
+  'import.wizard.noiseTodo': "Imported with '?' — clarify: {name}",
   'import.wizard.commit': 'Import',
   // M2 trip list (FR-2.x, FR-13.1). The FR-27.4 chips and log are above.
   'trips.title': 'Trips',

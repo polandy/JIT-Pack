@@ -1,4 +1,11 @@
+// @vitest-environment jsdom
 /**
+ * jsdom because the subject reaches a DOM global: the noise task's body comes
+ * off the catalogue (NFR-4.12), and switching the language writes
+ * `document.documentElement.lang`. Under `node` that throws inside `setLocale`,
+ * which is the shape CLAUDE.md warns about — a missing docblock is not
+ * reliably a red test, and here it is one only because the throw is unguarded.
+ *
  * M15 commitImport (FR-16.2): the plan lands as ordinary mutations —
  * categories and master items (merged where decided) on the master
  * partition, archived `imported` trips with packed original quantities
@@ -11,6 +18,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import { installHarness } from '@/__tests__/harness'
+import { t, setLocale } from '@/i18n'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -107,6 +115,32 @@ describe('commitImport (FR-16.2)', () => {
     const todos = trips.getItemTodos(t2023.id, regen.id)
     expect(todos).toHaveLength(1)
     expect(todos[0]!.task_state).toBe('open')
+    // NFR-4.12: the body is the catalogue's, in the language that is active.
+    expect(todos[0]!.body).toBe(t('import.wizard.noiseTodo', { name: regen.name }))
+  })
+
+  /**
+   * NFR-4.12/ADR-037: the noise task's body was a hard-coded English string
+   * until 2026-08-31 — the one user-visible sentence the import wrote that no
+   * language switch could reach. Asserted against the *other* locale, because
+   * a body read through `t()` in the default language is equally satisfied by
+   * the literal it replaced.
+   */
+  it('writes the noise task in the active language, not in English', () => {
+    setLocale('de')
+    try {
+      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const trips = useTripStore()
+
+      const result = orch.commitImport(plan)
+
+      const row = trips.getItems(result.tripIds[0]!).find((i) => i.name === 'Regenschutz Rucksack')!
+      const [todo] = trips.getItemTodos(result.tripIds[0]!, row.id)
+      expect(todo!.body).toContain('klären')
+      expect(todo!.body).not.toContain('clarify')
+    } finally {
+      setLocale('en')
+    }
   })
 
   /**

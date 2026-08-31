@@ -67,7 +67,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
-| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
+| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30), E2E-M15-13, E2E-M15-02, E2E-M15-04b (the three promises built 2026-08-31) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
@@ -3387,3 +3387,34 @@ push is what nothing pops. The amendment says *root navigation* and keeps the el
 **And M15 needed no fix of its own.** With the anchors resetting the stack, its commit's
 `replace` no longer collides; E2E-M15-03 runs without the reload, and that removal is this
 change's second proof rather than a case of its own.
+
+## Three promises about saying, not doing (2026-08-31)
+
+M15's audit (2026-08-30) left three owner decisions, and all three were ruled *build it*. What
+they have in common is worth naming, because it is not a coverage shape and no gate finds it:
+**each was about the wizard saying something, and in every case the doing was already built and
+unit-covered at both levels.** NFR-4.7's trailing `?` did become an item plus an open task;
+`commitImport` did write `series_id`; the parser did read the grid. Nothing was red, nothing was
+missing from the domain, and the user met none of it.
+
+**The one that needed a decision was the grid** (ADR-041). The other two are a sentence each.
+A grid is wide and a phone is not, so it is the only one where showing the truth costs something:
+measured at 390 px, ten columns render as a 358 px box over 617 px of content. The alternatives
+both fail the question the step exists for — truncation hides the *right-hand* columns, which is
+where a delimiter error shows up, and a column-header list is step 2 written twice and cannot
+show a ragged row at all. The preview therefore renders `parseSpreadsheet` output and nothing
+derived: it has to stay truthful exactly when the analysis is wrong.
+
+**Two things the writing found.**
+
+*A locale assertion in the default locale asserts nothing.* The noise task's body moved from a
+hard-coded English string onto the catalogue (NFR-4.12). Asserted in English, `t()` and the
+literal it replaced are indistinguishable — the test passes against the unfixed code. The unit
+switches to `de` and asserts the German word, which also cost the spec its `node` environment: the
+subject reaches `document.documentElement.lang` through `setLocale`, so the file now declares
+`// @vitest-environment jsdom`. That is CLAUDE.md's rule arriving from its loud side for once —
+here the missing docblock threw rather than quietly taking a `catch`.
+
+*A confirm row that always says the same thing is half a test.* E2E-M15-04b asserts the series
+line **before** choosing a series as well as after, because *„keine Serie"* on every row would
+satisfy the promise's second half on its own.

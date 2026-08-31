@@ -909,6 +909,11 @@ export const de: Record<keyof typeof en, string> = {
   'import.wizard.summaryItems': '{n} neuer Artikel | {n} neue Artikel',
   'import.wizard.summaryMerged': '{n} zusammengeführt',
   'import.wizard.summaryCategories': '{n} Kategorie | {n} Kategorien',
+  'import.wizard.gridMore': '…und {n} weitere Zeile | …und {n} weitere Zeilen',
+  'import.wizard.noiseNote':
+    '{n} Eintrag ist im Blatt als unsicher markiert ({names}) und wird zu einer offenen Aufgabe auf seiner Zeile. | {n} Einträge sind im Blatt als unsicher markiert ({names}) und werden zu offenen Aufgaben auf ihren Zeilen.',
+  'import.wizard.summaryTasks': '{n} offene Aufgabe | {n} offene Aufgaben',
+  'import.wizard.noiseTodo': "Mit '?' importiert — klären: {name}",
   'import.wizard.commit': 'Importieren',
   // M2 Reiseliste (FR-2.x, FR-13.1).
   'trips.title': 'Reisen',
