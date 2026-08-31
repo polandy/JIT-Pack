@@ -80,19 +80,17 @@ const PREVIEW_ROWS = 6
  * is merely puzzling; here the reader sees a quoted comma kept as one cell, or
  * not, and knows immediately.
  */
-const previewGrid = computed(() =>
-  rawText.value.trim() === '' ? [] : parseSpreadsheet(rawText.value).slice(0, PREVIEW_ROWS),
+const parsedPreview = computed(() =>
+  rawText.value.trim() === '' ? [] : parseSpreadsheet(rawText.value),
 )
+
+const previewGrid = computed(() => parsedPreview.value.slice(0, PREVIEW_ROWS))
 
 /** Every preview row is padded to the widest, so a short row keeps its shape. */
 const previewWidth = computed(() => Math.max(0, ...previewGrid.value.map((r) => r.length)))
 
-const previewMore = computed(() =>
-  Math.max(
-    0,
-    (rawText.value.trim() === '' ? 0 : parseSpreadsheet(rawText.value).length) - PREVIEW_ROWS,
-  ),
-)
+/** Rows the cap left out, named rather than silently dropped. */
+const previewMore = computed(() => Math.max(0, parsedPreview.value.length - PREVIEW_ROWS))
 
 function analyze() {
   grid.value = parseSpreadsheet(rawText.value)
@@ -325,20 +323,33 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
         -->
         <div v-if="previewGrid.length > 0" class="grid-preview" data-testid="import-grid">
           <table>
-            <tr
-              v-for="(row, rowIdx) in previewGrid"
-              :key="rowIdx"
-              data-testid="import-grid-row"
-              :class="{ head: rowIdx === 0 }"
-            >
-              <td
-                v-for="colIdx in previewWidth"
-                :key="colIdx"
-                :data-testid="`import-grid-cell-${rowIdx}-${colIdx - 1}`"
+            <thead>
+              <tr data-testid="import-grid-row">
+                <th
+                  v-for="colIdx in previewWidth"
+                  :key="colIdx"
+                  scope="col"
+                  :data-testid="`import-grid-cell-0-${colIdx - 1}`"
+                >
+                  {{ previewGrid[0]?.[colIdx - 1] ?? '' }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, rowIdx) in previewGrid.slice(1)"
+                :key="rowIdx"
+                data-testid="import-grid-row"
               >
-                {{ row[colIdx - 1] ?? '' }}
-              </td>
-            </tr>
+                <td
+                  v-for="colIdx in previewWidth"
+                  :key="colIdx"
+                  :data-testid="`import-grid-cell-${rowIdx + 1}-${colIdx - 1}`"
+                >
+                  {{ row[colIdx - 1] ?? '' }}
+                </td>
+              </tr>
+            </tbody>
           </table>
         </div>
         <p v-if="previewMore > 0" class="hint" data-testid="import-grid-more">
@@ -579,6 +590,7 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
   min-width: 100%;
 }
 
+.grid-preview th,
 .grid-preview td {
   padding: 6px 10px;
   border-right: 1px solid var(--ion-border-color);
@@ -587,7 +599,8 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
   color: var(--ion-color-medium);
 }
 
-.grid-preview tr.head td {
+.grid-preview th {
+  text-align: left;
   font-weight: var(--jp-weight-medium);
   color: var(--ion-text-color);
 }

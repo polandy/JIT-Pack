@@ -71,7 +71,8 @@ The first six parsed rows as a plain `<table>` inside an `overflow-x: auto` cont
 - Step 1 grows a second surface, and it is the tallest thing on that step. The *Analyze* button stays below it and reachable — measured on a 390 px viewport, where the whole step is one screen with the six preview rows and the note.
 - **The preview is deliberately not the mapping.** It renders `parseSpreadsheet` output and nothing derived, so it stays truthful when the analysis is wrong — which is the case it exists for.
 - The row cap is a named constant (`PREVIEW_ROWS`), not a literal, so the next measurement can move it.
-- A sheet pasted a character at a time re-parses on every keystroke. Acceptable: the parse is a pure string split over text a person can type, and the same call already runs on *Analyze*.
+- The first parsed row is rendered as `<th scope="col">` rather than a `<td>` wearing a class: a screen reader announcing a data table needs the header to *be* one, and the emphasis then follows the element instead of being asserted twice.
+- A sheet pasted a character at a time re-parses on every keystroke — **once**, not twice: the row list and the row count come off one computed, which the first draft had as two calls. Acceptable: the parse is a pure string split over text a person can type, and the same call already runs on *Analyze*.
 
 ## Revisit trigger
 
