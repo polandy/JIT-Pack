@@ -54,6 +54,7 @@ import {
 } from '@/domain/templates'
 import { previewText } from '@/lib/groupPreview'
 import { attributeLabel } from '@/lib/attributeLabels'
+import { tripYearChoices } from '@/domain/tripYears'
 import { resolveDependencies } from '@/domain/dependencies'
 import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
@@ -81,9 +82,8 @@ const name = ref('')
  * or the next, and a preselected value means the required field is
  * already satisfied when the screen opens.
  */
-const YEAR_SPAN = 6
 const thisYear = new Date().getFullYear()
-const yearChoices = Array.from({ length: YEAR_SPAN }, (_, i) => thisYear - 1 + i)
+const yearChoices = tripYearChoices(thisYear)
 const year = ref(thisYear)
 
 /**

@@ -24,12 +24,15 @@ import {
   IonInput,
   IonItem,
   IonList,
+  IonSelect,
+  IonSelectOption,
   alertController,
 } from '@ionic/vue'
 import { addOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, ref, watch } from 'vue'
 
 import DateField from '@/components/global/DateField.vue'
+import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import { useTripStore } from '@/stores/tripStore'
@@ -54,6 +57,23 @@ const readOnly = computed(() => trip.value?.status === TRIP_STATUS_ARCHIVED)
 const canRemove = computed(() => trip.value?.status === TRIP_STATUS_PLANNING)
 
 const name = ref('')
+/**
+ * FR-2.1b: the trip's year, editable here since 2026-08-31.
+ *
+ * `TripEdit`'s only writers were M3's wizard and the clone form, both at
+ * creation, so a typo on the one temporal fact a trip is required to have was
+ * permanent — and it is the fact M2 sorts and groups by. The picker offers
+ * the same years those two do, from the one rule they all read.
+ */
+const thisYear = new Date().getFullYear()
+const yearChoices = computed(() => {
+  const current = trip.value?.year
+  const offered = tripYearChoices(thisYear)
+  // A trip already outside the window keeps its own year on the list, or the
+  // picker would silently offer to move it. An imported 2014 trip is the
+  // ordinary case here, not a curiosity.
+  return current != null && !offered.includes(current) ? [current, ...offered] : offered
+})
 const startDate = ref('')
 const endDate = ref('')
 const newTraveler = ref('')
@@ -81,6 +101,15 @@ async function say(message: string): Promise<void> {
 }
 
 /** Commits on blur/Enter, the M8 pattern — no save button to forget. */
+/**
+ * The year commits on change, like the dates: this screen has no save button
+ * (the M8 pattern), and a select has no blur to commit on.
+ */
+function onYear(value: number): void {
+  if (!Number.isFinite(value) || value === trip.value?.year) return
+  orchestrator.updateTrip(props.tripId, { year: value })
+}
+
 function commitName(): void {
   const value = name.value.trim()
   if (!value || value === trip.value?.name) return
@@ -190,6 +219,20 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
 <template>
   <IonPage>
     <IonContent class="ion-padding">
+      <!--
+        Above both cards, because it is about the screen and not about one of
+        them: an archived trip loses the ✕, the add row and the started-trip
+        note together, so without this it answers no tap and says nothing —
+        the shape the owner ruled against on 2026-08-21 for the started trip,
+        reached here by a different route (owner decision 2026-08-31). Its own
+        sentence, not that one's: the reason is that the trip is over, and
+        borrowing the other wording would claim it has not left yet.
+        Rendering it inside the travellers card read as a rule about people.
+      -->
+      <p v-if="readOnly" class="note page-note" data-testid="trip-edit-archived-note">
+        {{ t('tripEdit.archivedNote') }}
+      </p>
+
       <section class="jp-card block">
         <h2 class="jp-eyebrow">{{ t('tripEdit.sectionTrip') }}</h2>
         <IonList lines="none">
@@ -204,6 +247,22 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
               @ionBlur="commitName"
               @keyup.enter="commitName"
             />
+          </IonItem>
+          <IonItem>
+            <IonSelect
+              data-testid="trip-edit-year"
+              :data-value="trip?.year"
+              :label="t('tripEdit.year')"
+              label-placement="stacked"
+              interface="popover"
+              :disabled="readOnly"
+              :value="trip?.year"
+              @ionChange="(e: CustomEvent) => onYear(Number(e.detail.value))"
+            >
+              <IonSelectOption v-for="option in yearChoices" :key="option" :value="option">
+                {{ option }}
+              </IonSelectOption>
+            </IonSelect>
           </IonItem>
           <IonItem>
             <DateField
@@ -304,13 +363,19 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
           </IonButton>
         </IonItem>
 
-        <p class="note">{{ t('tripEdit.travelerNote') }}</p>
+        <!-- What joining and leaving does — a rule that no longer applies once
+             the trip is over, so it goes with the controls it explains. -->
+        <p v-if="!readOnly" class="note">{{ t('tripEdit.travelerNote') }}</p>
       </section>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
+.page-note {
+  margin-inline: var(--jp-space-4, 16px);
+}
+
 .block {
   margin-bottom: 12px;
   padding: 12px;

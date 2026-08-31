@@ -1185,6 +1185,8 @@ export const de: Record<keyof typeof en, string> = {
   'tripEdit.title': 'Reise-Eigenschaften',
   'tripEdit.sectionTrip': 'Reise',
   'tripEdit.sectionTravelers': 'Reisende',
+  'tripEdit.year': 'Jahr',
+  'tripEdit.archivedNote': 'Diese Reise ist abgeschlossen, hier lässt sich nichts mehr ändern.',
   'tripEdit.name': 'Name',
   'tripEdit.startDate': 'Beginn',
   'tripEdit.endDate': 'Ende',
