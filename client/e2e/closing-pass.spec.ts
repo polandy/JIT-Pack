@@ -208,3 +208,30 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
   })
 })
+
+/**
+ * E2E-M14-06's clause that no code ever kept: the closing card *teases* the
+ * first two proposals.
+ *
+ * It rendered a heading, a hint and two buttons and asked the review generator
+ * nothing — so the card said the same thing whether the trip had eleven
+ * suggestions waiting or none, which is the one question the tap answers.
+ * No case id claimed the clause, so nothing was red (found 2026-08-30).
+ */
+test.describe('M14 — the closing card reads what it offers @local @m14', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M14-08: a trip with nothing to review says so on the card', async ({ page }) => {
+    await tripWithRows(page, ['Stativ'])
+    await startTrip(page)
+    await tripAction(page, 'archive')
+    await page.getByTestId('m4-pass-finish').click()
+
+    // The card is on screen — the positive signal — and it says the review
+    // has nothing rather than listing nothing, which reads as "not loaded".
+    await expect(shown(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await expect(shown(page).getByTestId('m4-closing-teaser')).toContainText(/nothing/i)
+  })
+})

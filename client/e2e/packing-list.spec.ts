@@ -6,6 +6,7 @@ import {
   createTripFollowingGroup,
   addPosition,
   openQuickAdd,
+  createMasterItem,
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
@@ -1095,5 +1096,56 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     // The comparison is the assertion: "a word of its own" is a claim about two
     // labels, and asserting one string alone would pass against a shared one.
     expect(shared).not.toBe(((await category.textContent()) ?? '').trim())
+  })
+})
+
+/**
+ * FR-20.4's missing sentence and FR-9.4's silent card, both ruled *build it*
+ * by the owner on 2026-08-31.
+ */
+test.describe('M4 — what the quick-add says about what it took along @local @m4', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M4-66 (FR-20.4/20.2): quick-adding an item pulls its required
+   * companions **and says so**.
+   *
+   * `addRequiredCompanions` returned nothing and no caller raised anything, so
+   * the companions simply appeared on the list — while FR-20.2's *skip* names
+   * exactly what it took along, and it is that contrast which made the silence
+   * read as an omission rather than as a decision (E2E-M4-32's third clause,
+   * retired 2026-08-30 with the finding).
+   */
+  test('E2E-M4-66: the quick-add names the required companions it pulled in', async ({ page }) => {
+    // Built through M10's own form: a dependency written straight into the
+    // store would assert the pull against a relation the app cannot make.
+    await createMasterItem(page, 'Kamera')
+    await createMasterItem(page, 'Ersatzakku')
+    // The editor is open on the Ersatzakku, which is the side that declares
+    // the relation; *required* is the default mode (FR-20.1).
+    await visible(page).getByTestId('m10-add-dependency').click()
+    await visible(page).getByTestId('m10-dependency-main-Kamera').click()
+    await expect(visible(page).getByTestId('m10-dependency-mode-Kamera')).toBeVisible()
+
+    await createTripViaWizard(page, { name: 'Fotoreise' })
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Kame')
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Kamera' }).click()
+
+    // The companion is on the list…
+    await expect(visible(page).getByTestId('m4-row-Ersatzakku')).toBeVisible()
+    // …and the app said so, naming it. A bare count would send the reader
+    // looking for what changed, which is the whole complaint.
+    const notice = page.locator('ion-toast').filter({ hasText: 'Ersatzakku' })
+    await expect(notice).toBeVisible()
+
+    // An item with no companions says nothing: the positive signal against a
+    // snackbar that always fires.
+    await page.getByTestId('quick-add-input').locator('input').fill('Sonnencreme')
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(visible(page).getByTestId('m4-row-Sonnencreme')).toBeVisible()
+    await expect(page.locator('ion-toast').filter({ hasText: 'Sonnencreme' })).toHaveCount(0)
   })
 })

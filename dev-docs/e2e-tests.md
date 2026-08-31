@@ -3570,3 +3570,35 @@ is a claim, and the alternative is a third visual state for „we have not looke
 **And the chip's case creates its trip through M15.** `trips.imported` has exactly one writer, and
 a fixture setting the column directly would assert the chip against a state the app cannot
 produce — which is the failure this audit programme has now found in five different costumes.
+
+## Two silences, and where each case had to live (2026-08-31)
+
+The last two owner decisions of the screen pass, both about a surface that had the information
+and did not say it.
+
+**The quick-add's companions.** `addRequiredCompanions` returned nothing and no caller raised
+anything, so a required companion simply appeared on the list — while FR-20.2's *skip* names
+exactly what it took with it. The fix is not the snackbar, it is the **shape**: the action returns
+what it added and the *screen* says it, which is what `skipItem` has done since FR-5.5 (it returns
+every row it affected, snapshotted before the write, because the undo needs the same list the
+sentence does). A toast raised from the orchestrator would have been a second pattern for one
+rule, and the one that drifts is the newer one.
+
+**The closing card.** It rendered a heading, a hint and two buttons and asked the review generator
+nothing, so it said the same thing whether eleven suggestions were waiting or none — the one
+question the tap answers. It calls the same `buildReviewProposals` M14 calls: an approximation
+here would be the review implemented twice, and invariant 4's whole argument is that the summary
+is the copy that drifts.
+
+**Where the case had to live turned out to be the finding.** E2E-M14-07 was written first in
+`closing-pass.spec.ts`, whose fixture builds a trip with **ad-hoc** rows, and it failed reporting
+*„Nothing to review"* — correctly. A proposal needs a row with **provenance**: an ad-hoc row
+judged *unused* proposes nothing, because there is no template position to zero. The case moved
+to `review.spec.ts`, where a group-generated trip is the fixture. The transferable form: **a case
+that fails on its own setup is telling you the rule's precondition**, and the temptation is to
+weaken the assertion rather than to move the case.
+
+**One mutation proof was invalid before it was valid.** The first attempt renamed the catalogue
+key, which broke the type-check — so `npm run build` failed, the *old* bundle stayed on disk, and
+the case went red for a reason that had nothing to do with the change. A mutation has to compile;
+`if (false && …)` on the report was the one that proved anything.
