@@ -236,7 +236,7 @@ test.describe('M11 containers @local @m11', () => {
   })
 
   // E2E-M11-04 (FR-10.3): paired containers show the live imbalance once
-  // it exceeds the threshold (default 15 %).
+  // it exceeds the threshold (a fixed 15 %).
   test('E2E-M11-04: a skewed pair shows its imbalance on both cards', async ({ page }) => {
     await page.goto('/tabs/items')
     await visible(page).getByTestId('m9-fab').click()
@@ -262,9 +262,8 @@ test.describe('M11 containers @local @m11', () => {
     await expect(sheetChip(page, 'Links')).toHaveClass(/sel/)
     await closeSheet(page)
 
-    // All of the weight on one side: 100 % against the threshold's 15 — the
-    // *default*, because nothing in the app can write the per-trip override
-    // FR-10.3 promises (see the UI-Test-Spec's M11 block).
+    // All of the weight on one side: 100 % against the fixed threshold of 15.
+    // FR-10.3's per-trip override was struck 2026-08-31 — there is one value.
     await assignToContainer(page, 'Zelt', 'Links')
 
     await expect(card(page, 'Links').getByTestId('m11-imbalance')).toContainText('100 %')
