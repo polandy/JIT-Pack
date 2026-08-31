@@ -1,5 +1,5 @@
 /**
- * `jitpack-import` — put a portable YAML file into a running instance from a
+ * `jitpack import` — put a portable YAML file into a running instance from a
  * shell (FR-18.7).
  *
  * It owns no import rules. It pulls the instance's inventory into the app's
@@ -17,10 +17,18 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMutations } from '@/composables/useMutations'
 import { usePull } from '@/composables/usePull'
 import { usePush } from '@/composables/usePush'
-import { MAX_PUSH_BATCH } from '@/composables/useSyncOutbox'
 import { HLCGenerator } from '@/sync/hlc'
 import { optimisticInsert } from '@/sync/optimistic'
 import { parsePortableAll } from '@/domain/portable'
+import {
+  chunked,
+  message,
+  DEFAULT_SERVER,
+  ENV_SERVER,
+  ENV_TOKEN,
+  EXIT,
+  type CommandIO,
+} from './common'
 import {
   findExistingSubject,
   importPortableDocument,
@@ -28,18 +36,7 @@ import {
   type PortableImportEnv,
 } from '@/domain/portableImport'
 
-/** Where the command looks when a flag is omitted, so a shell can be set up once. */
-export const ENV_SERVER = 'JITPACK_SERVER'
-export const ENV_TOKEN = 'JITPACK_TOKEN'
-
-/** Where a self-hosted instance usually answers; the flag exists because that is a guess. */
-const DEFAULT_SERVER = 'http://localhost:3000'
-
-/**
- * The process's answer. A script has to be able to tell "nothing landed" from
- * "some of it did", and both from "you invoked it wrong".
- */
-export const EXIT = { ok: 0, documentFailed: 1, usage: 2 } as const
+export { EXIT, ENV_SERVER, ENV_TOKEN } from './common'
 
 export interface ImportOptions {
   serverUrl: string
@@ -51,7 +48,7 @@ export interface ImportOptions {
 export type ParsedArgs =
   ({ ok: true } & ImportOptions) | { ok: false; error: string } | { ok: false; help: true }
 
-export const USAGE = `Usage: jitpack-import [flags] FILE...
+export const USAGE = `Usage: jitpack import [flags] FILE...
 
 Imports portable YAML into a running JIT-Pack instance. A file may hold one
 document or many; each is imported in the order the file lists it.
@@ -95,22 +92,13 @@ export function parseImportArgs(
   }
 }
 
-/** Everything the command touches outside itself, so a test can supply all of it. */
-export interface ImportIO {
-  readFile(path: string): Promise<string>
-  write(line: string): void
-  /** Injected so the HLC has no ambient clock (the project forbids one). */
-  now(): number
-  deviceId: string
-}
-
 /** One document's worth of mutations, kept per partition because they push separately. */
 interface PendingWrites {
   master: Mutation[]
   trips: Map<string, Mutation[]>
 }
 
-export async function runImport(opts: ImportOptions, io: ImportIO): Promise<number> {
+export async function runImport(opts: ImportOptions, io: CommandIO): Promise<number> {
   setActivePinia(createPinia())
   const master = useMasterStore()
   // Trips are in the master partition but not in the master store, and
@@ -132,7 +120,7 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
     trips.applyChanges(pulled.changes)
   } catch (e) {
     io.write(`${opts.serverUrl}: ${message(e)}`)
-    return EXIT.documentFailed
+    return EXIT.failed
   }
 
   let total = 0
@@ -242,7 +230,7 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
   io.write(
     `${total} ${total === 1 ? 'document' : 'documents'}: ${total - failed - skipped} ${landed}${alreadyHere}, ${failed} ${lost}`,
   )
-  return failed > 0 ? EXIT.documentFailed : EXIT.ok
+  return failed > 0 ? EXIT.failed : EXIT.ok
 }
 
 /** Master first: a trip's rows reference travelers and items written there. */
@@ -257,13 +245,3 @@ async function pushAll(
   }
 }
 
-/** Sync-API §9 caps a push; a real Vorlage is well past it, and the cap rejects the whole batch. */
-function* chunked(mutations: Mutation[]): Generator<Mutation[]> {
-  for (let offset = 0; offset < mutations.length; offset += MAX_PUSH_BATCH) {
-    yield mutations.slice(offset, offset + MAX_PUSH_BATCH)
-  }
-}
-
-function message(e: unknown): string {
-  return e instanceof Error ? e.message : String(e)
-}

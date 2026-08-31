@@ -122,11 +122,17 @@ test.describe('M5 item detail @local @m5', () => {
     await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
-    await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
+    await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
 
-    await expect(page.getByTestId('m5-panel')).toBeVisible()
+    // Scoped to the visible page, not the document: an M4 the router has
+    // left behind is still in the DOM, so an unscoped `m4-header` matched
+    // two elements and the case failed on strict mode rather than on the
+    // panel (working agreement: assert what is *rendered*).
+    await expect(visible(page).getByTestId('m5-panel')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-header')).toBeVisible()
+    // Deliberately *not* scoped: an IonModal is teleported out of the page,
+    // so a scoped count would be 0 whether one opened or not.
     await expect(page.getByTestId('m5-modal')).toHaveCount(0)
-    await expect(page.getByTestId('m4-header')).toBeVisible()
   })
 
   // E2E-M5-13 (ADR-011 §overlay): the *browser's* back with the sheet open

@@ -2,11 +2,11 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 
 /**
- * Builds the FR-18.7 import command into one Node-runnable file.
+ * Builds the `jitpack` command line into one Node-runnable file.
  *
- * It is an SSR build on purpose: the command imports the app's own stores,
- * mutation builders and import rules, and the point of ADR-025 is that it
- * runs *that* code rather than a second copy of it. Nothing here is bundled
+ * It is an SSR build on purpose: the commands import the app's own stores,
+ * mutation builders and domain rules, and the point of ADR-025 is that they
+ * run *that* code rather than a second copy of it. Nothing here is bundled
  * for a browser, so the web build (`vite.config.ts`) is left alone.
  */
 export default defineConfig({
@@ -20,7 +20,7 @@ export default defineConfig({
     target: 'node24',
     rollupOptions: {
       output: {
-        entryFileNames: 'jitpack-import.mjs',
+        entryFileNames: 'jitpack.mjs',
         banner: '#!/usr/bin/env node',
       },
     },
