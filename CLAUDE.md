@@ -369,7 +369,15 @@ it. Item numbers stay stable even as items close, because the log refers back to
    inline error would report a healthy instance as unreachable; and **FR-10.3's threshold was
    configurable in the document and fixed in the product**, so the ruling deleted the reader
    rather than adding a writer. What is left of item 6 is cross-cutting —
-   FLOW-*, PWA, SYNC and the NFR rows. **M2's own next pass is done (2026-08-31):** the empty
+   FLOW-*, PWA, SYNC and the NFR rows. **The FLOW-* pass started 2026-08-31**, and its first two
+   sorted opposite ways: **FLOW-03 was already covered** by E2E-M6-17, whose second half is that
+   journey, and owed only the state the row arrives in (`0/1` — bought is not packed);
+   **FLOW-04 was not, and writing it found the loop open.** M14's harvest took
+   `addTemplateItem`'s default `per_person` — the one field deciding *how many* rows generation
+   makes — where every other writer in the app passes `trip_global`, so a shared item came back
+   one-per-traveler and, on a trip with no travelers, not at all. The M14 cases could not see it:
+   all of them stop at M8, where the position renders `1×` either way. Log: *„A default that
+   decided how many rows"*. **M2's own next pass is done (2026-08-31):** the empty
    state has a test id and a case of its own (E2E-M2-16 — its own number, because E2E-G7-01 is
    already defined on the Dashboard and the gate allows one definition per id), and E2E-M2-02 is
    written, minus the *destination* its header has never carried. Log: *„Twenty-two promises, decided against

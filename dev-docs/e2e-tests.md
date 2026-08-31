@@ -54,7 +54,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-05 (the header icon into M18), E2E-M7-06 (both empty states), E2E-M7-07 (three tests here plus the include half in the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (its own test only since the 2026-08-30 audit), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
-| M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-17, E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
+| M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-17 (**with E2E-FLOW-03**, whose journey it already was — since 2026-08-31 it also reads the state the row arrives in), E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, E2E-M9-08 (tag-axis clearance, UX-4), E2E-M9-10 (search filters), E2E-M9-04 (empty state → M15), E2E-M10-07, E2E-M10-08, E2E-M10-10 (renumbered 2026-08-30 — they ran as M10-01 … M10-05), E2E-M10-03, E2E-M10-04 (new 2026-08-30), E2E-M10-13 (German-seeded), E2E-M10-16 | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
 | FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03, E2E-M23-04 (the Vorlage half) | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
@@ -78,7 +78,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Profile under an OIDC session: picture editable, name not (FR-17.13, revised 2026-08-29) | E2E-M17-05, E2E-M17-05b | `server` | [`server/settings-profile.spec.ts`](../client/e2e/server/settings-profile.spec.ts) |
 | M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M18 portable import (merge preview) | E2E-M18-01, E2E-M18-02, E2E-M18-03, E2E-M18-04 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
-| M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b, and the FR-27.12 peek since 2026-08-30), E2E-M14-05, E2E-M14-06 (both the archive that skips and the empty state, since 2026-08-30) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
+| M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b, and the FR-27.12 peek since 2026-08-30), E2E-M14-05, E2E-M14-06 (both the archive that skips and the empty state, since 2026-08-30), **E2E-FLOW-04** (the loop closing, since 2026-08-31) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M16 series & destination profile | E2E-M16-01, E2E-M16-02, E2E-M16-03, E2E-M16-04 + a G-9 back case | `local` | [`series.spec.ts`](../client/e2e/series.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M21-04, E2E-M21-05, E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-10, E2E-M22-11, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
@@ -3728,3 +3728,44 @@ What it buys: a leak is invisible from inside the case that produces it — the
 URL is right and the screen looks right — and surfaces later as somebody
 else's strict-mode violation. From here it surfaces at the case that caused
 it, with the pages named.
+## E2E-FLOW-04 — the loop that did not close (2026-08-31)
+
+The cross-screen flows are the last of backlog item 6, and the first two read
+apart in opposite directions.
+
+**FLOW-03 was already covered and did not know it.** Its journey — buy on M6's
+before-departure tab, find the row on M4 — is E2E-M6-17's second half, written
+because the revealed row's *„on the packing list"* is a sentence about a screen
+nobody had looked at. What was missing is one clause: the row arrives as
+**PACK/Open**. Bought is not packed, and `buyItem` flips only the mode, so
+`m4-progress` reading `0/1` is the assertion; a row that had arrived packed
+would have been hidden by FR-25.2 and the visibility check alone would have
+gone on passing for the wrong reason.
+
+**FLOW-04 was not covered, and writing it found the defect the M14 cases could
+not see.** Every one of them stops at M8 — E2E-M14-02 asserts that the group
+holds the harvested item and that the unused position reads `0×`. Whether next
+year's trip is any different for it is a question only *generation* answers,
+and nothing had asked it. It was not: `applyReviewProposal` called
+`addTemplateItem` with no options, so the position took the mutation's default
+`assignment: 'per_person'` — the one field that decides **how many** rows
+generation makes. Every other writer in the app passes `trip_global`
+explicitly (M8's editor, M21's fold); M14 was the only caller living off the
+default. A shared item harvested from a trip therefore came back as one row
+per traveler, and on a trip with no travelers as **nothing at all** — the loop
+the write exists to close, silently open.
+
+Three things kept it invisible, and they are the transferable part:
+
+- **A default is not a decision, and it reads like one.** The call site says
+  nothing, so there is nothing to review; the diff that introduced it is
+  correct in every line it contains.
+- **The unit asserted the neighbouring field.** `review.spec.ts` checked the
+  quantity of the added position and never its assignment — the shape the
+  screen audits kept finding, one clause down.
+- **M8 renders `1×` either way.** The position looks identical in the one
+  screen the existing cases read it back from.
+
+Fixed at the call site, with the unit assertion beside the quantity one, and
+the e2e case as the outer proof — red against the unfixed build, green after,
+in that order.
