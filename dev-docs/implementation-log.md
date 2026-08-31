@@ -230,6 +230,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Three flakes with one signature (2026-08-31)](#three-flakes-with-one-signature-2026-08-31) — the intermittent e2e failures read against their logs. Why one of them is a product defect rather than noise, why it could not be reproduced here, and the invariant every case now ends by checking.
 - [A default that decided how many rows (2026-08-31)](#a-default-that-decided-how-many-rows-2026-08-31) — the first two cross-screen flows. One was already covered by the screen case it belongs to; writing the other found M14's harvest coming back as one row per traveler, because the only writer in the app that never named an assignment took the mutation's.
 - [The one screen that read somebody else's partition (2026-08-31)](#the-one-screen-that-read-somebody-elses-partition-2026-08-31) — FLOW-05. The migrated history was worth something only on the device that typed it in: M3's hint read other trips' rows without asking for them, and an unpulled partition reads as a trip that packed none of it.
+- [The migration whose first step is not in the app (2026-08-31)](#the-migration-whose-first-step-is-not-in-the-app-2026-08-31) — FLOW-07. Leaving Local Mode is written nowhere but M19's first launch, so the move is device-to-device; and only a third device, which has seen nothing but the server, can tell a restored row from a pushed one.
 
 ## Current state
 
@@ -10530,3 +10531,42 @@ in `dev-docs/e2e-tests.md`: a CSV with two text columns lets the mapping
 decide which is the item (it chose wrong, silently), and `getByText` on M9
 matched the name in two places that were not inventory rows.
 
+## The migration whose first step is not in the app (2026-08-31)
+
+E2E-FLOW-07 is the promise that Local Mode is not a trap, and writing it found
+that the flow's own arrow — `local`→`server` — is not something the app can do.
+`jitpack_mode` is written in exactly one place, M19's first-launch choice in
+`App.vue`; M17 states the mode and offers nothing. FR-19.1 reads as a
+restriction ("never through a toggle") and is in fact the whole
+implementation, so the move is device-to-device: back up here, restore on a
+device that is already in server mode. The case walks that, because it is what
+a person can actually perform; whether M17 should grow the three-step move is
+an owner decision, and it is left untested rather than written red.
+
+Two things the case had to get right, both recorded in `dev-docs/e2e-tests.md`:
+the file is the **device backup**, since a single-document YAML opens M18's
+merge preview and never the restore branch; and the assertion has to happen on
+a **third** device. E2E-M18-05 already restores a backup and restores it
+locally, where a landed row and a pushed one look identical — on the importing
+device every restored row is in the store optimistically, which is the same
+trap E2E-M15-05 and E2E-FLOW-05 are built around. Only a device that has never
+seen anything but the server can say the migration happened.
+
+Under it sat the defect. `commitPortableRestore` drained the **master**
+partition and nothing else — `drainAfterImport(null)`, whose trip half needs a
+trip id, which only the single-document import has — so every packing list in
+the file stayed queued on the importing device. Nothing on that device says so:
+its screen is the restored data either way, and the trips reached the server,
+carrying their names, their years and no rows. Whether the rows ever followed
+depended on the device doing something else that drained their partition,
+which is why the case passed on this machine and failed on CI. The fix is one
+line of intent — drain the partition of every trip the file brought — and the
+test that drives it is a unit, because the rule is about what leaves the
+outbox, not about a screen.
+
+One more thing the case had to stop trusting: **G-2 `synced` does not mean the
+outbox is empty.** `state` is computed from the connection and from whether a
+push is in flight, never from `pendingCount`, so the indicator said *Synced*
+over a whole queued trip partition. The assertion that says what it means is
+the *absence* of the sheet's queue line, and that is also the settled signal
+the third device needs before it looks.

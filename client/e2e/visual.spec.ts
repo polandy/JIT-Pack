@@ -340,6 +340,20 @@ test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, see
   await shown(page).getByTestId('m16-checklist-add').click()
   await expect(shown(page).getByTestId('m16-checklist-row')).toHaveCount(1)
 
+  // Where the page sits at capture time is not part of the screen's state:
+  // `fill()` focuses a field, and the browser scrolls a focused field into
+  // view on its own schedule, so the mobile baseline was recorded 102px down
+  // and met a run that had stayed at the top (2026-08-31, a 6 % diff on a
+  // docs-only commit). Blur first, then put the scroller back, so the shot is
+  // of the top of the screen every time rather than of whichever scroll won.
+  await shown(page)
+    .locator('ion-content')
+    .evaluate(async (el) => {
+      ;(document.activeElement as HTMLElement | null)?.blur()
+      const ionContent = el as unknown as { getScrollElement(): Promise<HTMLElement> }
+      ;(await ionContent.getScrollElement()).scrollTop = 0
+    })
+
   await settled(page)
   await expect(page).toHaveScreenshot('m16-series.png')
 })
