@@ -225,6 +225,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A switch nobody had interrupted (2026-08-31)](#a-switch-nobody-had-interrupted-2026-08-31) — the four navigation anchors pushed and nothing popped. Why one settled switch could never see it, why a probe that does not wait measures a different app, and why three builds were spent fixing the symptom.
 - [A screen that aggregated rows it had never loaded (2026-08-31)](#a-screen-that-aggregated-rows-it-had-never-loaded-2026-08-31) — M1's three promises, and the defect underneath them: the dashboard counted a store the trips had never been loaded into. Why Local Mode could not show it, why a mount hook would have asked for nothing, and why "since the last visit" is a set.
 - [A traveler had no door but a screen (2026-08-31)](#a-traveler-had-no-door-but-a-screen-2026-08-31) — the command line grows subcommands (ADR-042) rather than the server growing REST resources; why the roster needed two pulls before it could decide anything, and the account directory that carries no address to match on.
+- [A gesture the row was eating (2026-08-31)](#a-gesture-the-row-was-eating-2026-08-31) — backlog item 6's cross-cutting pass over the G-* patterns. The stepper's long-press was unreachable on the only screen that renders it, two icons had no name, and five promises turned out to describe a screen that had changed under them.
 
 ## Current state
 
@@ -10283,3 +10284,74 @@ without `pagehide` a delegation stayed *new* for ever on a device whose user lef
 The e2e case is what found it, because `page.goto` is a real navigation — every in-app assertion
 would have passed, and this is the third time in two days that **the way a test travels decided
 what it could see**.
+
+
+## A gesture the row was eating (2026-08-31)
+
+Backlog item 6's screen pass finished on 2026-08-30; this is the first of the
+cross-cutting units it left — the **G-\* patterns**. Twelve ids had no test.
+They sorted into the shapes the screen pass had already named, plus one that is
+new, and the new one is the finding.
+
+**A control can be built, unit-tested and unreachable.** G-6 has promised since
+the concept round that holding **+** packs every unit and holding **−** takes
+them all back. `QuantityStepper` implements both, M4 wires both emits, and on M4
+neither has ever been able to fire: the row arms FR-5.5's press-and-hold on
+*every* `pointerdown` inside it, so a press that starts on the stepper opens the
+row menu while the stepper's own hold is lost. What makes it worth an entry is
+where the answer already was — the row's **click** is stopped at the control
+column (`.row-start`, with a comment explaining that Ionic's anchor needs
+`.prevent` as well as `.stop`), added when the stepper shipped. The *press* was
+never given the same guard, because a click is what a component is tested with
+and a press is what a person does. The fix is one line beside the existing one.
+
+It was invisible from every direction: `QuantityStepper.spec.ts` drives the
+component in isolation, where there is no row to compete; `useLongPress` has its
+own fake-timer unit; and both e2e cases that touch the stepper *tap* it. Only a
+case that performs the gesture on the assembled screen can see it, which is the
+same lesson as the navigation anchors two days earlier — **the thing nothing
+had ever done.**
+
+**Two icons had no name.** G-12's "every unlabelled navigation icon exposes its
+name via `title`" is kept by M4's three destinations and by the app-bar cluster,
+and was not kept by `header-back` or `header-settings` — `aria-label` and
+nothing else, so a pointer resting on the back arrow or the gear was told
+nothing. Writing the assertion also cost a trap worth keeping: reading
+`aria-label` off an `IonButton` returns empty, because Ionic relays it into its
+shadow button (the same finding as PR #228, from the other side). The
+*accessible name* is what has to be asserted, not the attribute.
+
+**Five promises had been overtaken by their own screens**, each corrected in the
+spec rather than tested as written:
+
+- G-12-07 closed with *"No ⋯ exists"*. UX-13 built one on 2026-08-25 for the
+  once-per-trip actions (E2E-M4-57). What the clause protected — none of the
+  three *places* within the trip behind a menu — is intact and is what the case
+  now pins.
+- G-12-04 promised *"a single line"* and *"the filter chip row only when
+  active"*. The line is two rows on a phone and one only above the breakpoint,
+  where ADR-011 has taken the trip name off it; and FR-25.11a/b made the chip
+  row the place the grouping is stated, so it is always there. The surviving
+  clause is the search field, and that is the one nothing asserted.
+- G-9-01's *"inline actions"* / *"+ FAB"* asymmetry does not exist: the FAB is
+  on M7 and M9 at every width. What actually changes at 900 px is the content
+  column, the wordmark and M4's header line.
+- G-4-01 was scoped `server` because a notification produces the link. The
+  *landing* reads a query string and nothing else, so it is drivable in Local
+  Mode — `notifications/format.ts` had built that URL since FR-6.3 with a unit
+  on the string, and **no test had ever opened one**.
+- G-8-01's three surfaces were already two-thirds covered elsewhere (Share by
+  E2E-M2-06, notification prefs by E2E-M17-08). The clause with no assertion
+  anywhere was the delegation picker.
+
+**Three clauses are kept and named rather than counted**, because no assertion
+of theirs can fail: G-8's *"no mode banner"* (none is painted in any mode),
+G-11's *"no flash of wrong theme"* (a claim about frames before first paint),
+and G-9-02, which E2E-M5-12 and E2E-M5-09 already assert at both widths.
+
+**And one seam was owed.** G-4's flash is a 2.4 s animation, so asserting the
+class is racing it — the exact shape that produced three intermittent failures
+this week. The sheet now records *which* comment a deep link landed on and keeps
+it (`data-flashed-comment`), so the outcome is a settled state. Same rule as
+`data-scroll-restored`: when there is nothing to wait on, that absence is the
+defect.

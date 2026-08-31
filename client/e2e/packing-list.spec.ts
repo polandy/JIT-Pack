@@ -9,7 +9,7 @@ import {
   createMasterItem,
   visiblePage as visible,
 } from './fixtures'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 /**
  * M4 — packing list (UI-Test-Spec §4, unit "M4 packing list").
@@ -837,6 +837,168 @@ test.describe('M4 packing list — scroll memory @local @m4', () => {
     // list restored under an open line shows different rows at the same
     // number.
     await expect(visible(page).getByTestId('m4-header')).toHaveClass(/collapsed/)
+  })
+
+  /*
+   * E2E-G6-01 (G-6): the hold, which is the half of the stepper no test had
+   * ever performed.
+   *
+   * That qty=1 renders a checkbox and qty>1 a stepper is asserted by
+   * E2E-M4-56, and that a tap counts without opening M5 by E2E-G6-02. What
+   * neither reaches is the shortcut the pattern exists for: holding + packs
+   * the lot, holding − takes it all back. Both are `emit`s the row has to
+   * be wired to, and a row wired to neither passes every other stepper case.
+   *
+   * The hold is a press whose *outcome* is waited on — the count is read
+   * until it changes, with the button still down — rather than a sleep of
+   * the component's own duration.
+   */
+  test('E2E-G6-01: holding + packs every unit and holding − takes them all back', async ({
+    page,
+  }) => {
+    test.slow()
+    // A quantity can only come from a template position (spec §2.4).
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Camping')
+    await addPosition(page, 'Heringe')
+    await page.keyboard.press('Escape')
+    await visible(page).locator('ion-item h2').filter({ hasText: 'Heringe' }).first().click()
+    await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
+    await page.getByTestId('m8-qty-inc').click()
+    await page.getByTestId('m8-qty-inc').click()
+    await page.getByTestId('m8-position-close').click()
+    await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
+
+    await createTripFollowingGroup(page, 'Haltetest', 'Camping')
+
+    const row = visible(page).getByTestId('m4-row-Heringe')
+    const count = row.locator('.stepper-count')
+    await expect(count).toHaveText('0/3')
+
+    // A tap first, so the hold below is demonstrably doing something a tap
+    // does not — one is +1, the other is all of them.
+    await row.getByTestId('row-plus').click()
+    await expect(count).toHaveText('1/3')
+
+    const hold = async (testid: string, until: string, reads: Locator) => {
+      // `hover` first, so the press lands on the button through Playwright's
+      // own hit-target check — `mouse.down` at a computed point does not
+      // check. And the *outcome* is what the press is held for: no sleep of
+      // the component's own duration anywhere.
+      await row.getByTestId(testid).hover()
+      await page.mouse.down()
+      await expect(reads).toContainText(until)
+      await page.mouse.up()
+    }
+
+    // Holding + packs the lot — and a fully packed row leaves the list
+    // (FR-25.2), so the outcome is read on the trip's own counter and on the
+    // reveal that now has something to reveal.
+    await hold('row-plus', '3/3', visible(page).getByTestId('m4-progress'))
+    await expect(visible(page).getByTestId('m4-done-bar')).toBeVisible()
+    await visible(page).getByTestId('m4-done-bar').click()
+    await expect(count).toHaveText('3/3')
+
+    // And holding − takes all three back in one gesture.
+    await hold('row-minus', '0/3', count)
+    await expect(visible(page).getByTestId('m4-progress')).toContainText('0/3')
+  })
+
+  /*
+   * E2E-G12-03 (G-12): the app-bar cluster survives the collapsing header.
+   *
+   * This is the reason the cluster lives in the bar rather than on the trip
+   * line: the line folds to nothing as soon as the list is scrolled, and a
+   * search that folded with it would be reachable only from the top of a
+   * list you are searching *because* it is long. E2E-M4-45 collapses the
+   * same header and asserts what the list does with its offset; nothing had
+   * ever reached for the bar afterwards.
+   *
+   * Tappable is asserted through the *outcome* — the list narrows, the
+   * panel opens — because a button that is present and inert would satisfy
+   * a visibility check.
+   */
+  test('E2E-G12-03: search and filter still act once the header has collapsed', async ({
+    page,
+  }) => {
+    // Sixteen rows through the quick-add, as E2E-M4-45 pays for the same
+    // scroll (spec §2.4).
+    test.slow()
+    await page.setViewportSize({ width: 390, height: 640 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, SCROLL_ROWS)
+
+    const content = visible(page).locator('ion-content.pack-content')
+    await content.evaluate((el) =>
+      (
+        el as unknown as { scrollToPoint(x: number, y: number, d: number): Promise<void> }
+      ).scrollToPoint(0, 200, 0),
+    )
+
+    // Settled, not merely started: the line folds over a transition, and the
+    // rendered end state is the seam this case waits on.
+    const header = visible(page).getByTestId('m4-header')
+    await expect(header).toHaveClass(/collapsed/)
+    await expect(header).toHaveCSS('max-height', '0px')
+
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Sache 1')
+    // It searched: the row that does not match is gone, the one that does
+    // is on screen. Asserting the field alone would pass against a search
+    // whose input never reached the list.
+    await expect(visible(page).getByTestId('m4-row-Sache 1')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-row-Sache 2')).toHaveCount(0)
+
+    // Still open, deliberately: both halves of the cluster have to be
+    // reachable from the same collapsed state.
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
+  })
+
+  /*
+   * E2E-G12-04 (G-12): what the header line carries, and how many lines it
+   * is.
+   *
+   * The spec sentence promised "a single line" unconditionally and named
+   * the filter chip row as absent by default. Read against the screen, both
+   * halves are narrower than that: the line is *two* rows on a phone and
+   * becomes one only above the G-9 breakpoint, where ADR-011's app bar has
+   * already taken the trip name off it; and the chip row is always there,
+   * because FR-25.11a/b made it the place the grouping is stated
+   * (E2E-M4-15). The clause that survives unchanged is the search field,
+   * which is absent until it is opened — and that is what nothing asserted.
+   */
+  test('E2E-G12-04: the header line is two rows on a phone and one above the breakpoint', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 860 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt'])
+
+    const header = visible(page).getByTestId('m4-header')
+    const ids = header.locator('.trip-id')
+    const stats = header.locator('.trip-stats')
+
+    // Default state: no search field. It is the one thing the header gains
+    // rather than always carries.
+    await expect(page.getByTestId('m4-search-input')).toHaveCount(0)
+
+    const phoneIds = (await ids.boundingBox())!
+    const phoneStats = (await stats.boundingBox())!
+    expect(phoneStats.y).toBeGreaterThanOrEqual(phoneIds.y + phoneIds.height)
+
+    await page.setViewportSize({ width: 1280, height: 900 })
+    // The trip name leaves the line here — the app bar carries it (ADR-011)
+    // — which is what makes room for one row.
+    await expect(visible(page).getByTestId('m4-trip-name')).toHaveCount(0)
+    const wideIds = (await ids.boundingBox())!
+    const wideStats = (await stats.boundingBox())!
+    expect(Math.abs(wideStats.y - wideIds.y)).toBeLessThan(wideIds.height)
+
+    // Still no search field at either width; opening it is what produces one.
+    await expect(page.getByTestId('m4-search-input')).toHaveCount(0)
+    await page.getByTestId('m4-search').click()
+    await expect(page.getByTestId('m4-search-input')).toBeVisible()
   })
 
   // E2E-M4-56 (UX pass 2026-08-25, UX-9): the packing control column holds

@@ -457,6 +457,19 @@ watch(openItemId, (open, wasOpen) => {
 const hold = useLongPress<TripItem>(openRowMenu)
 
 /**
+ * FR-5.5's press-and-hold is the *row's*, and the packing control is not the
+ * row. The stepper has holds of its own — G-6's + completes and − zeroes —
+ * and armed together the row's menu opened over a gesture the stepper never
+ * got to finish, so the shortcut was unreachable on the one screen that
+ * renders it. The row's *click* was already stopped at `.row-start` when the
+ * stepper shipped; its press was not (E2E-G6-01).
+ */
+function onRowPress(item: TripItem, event: PointerEvent): void {
+  if ((event.target as Element | null)?.closest('.row-start')) return
+  hold.down(item, event.clientX, event.clientY)
+}
+
+/**
  * Row taps are ignored while the menu lives — same reasoning as M7's: the
  * release of a hold usually lands on the overlay rather than the row, so a
  * "swallow the next click" flag would go stale and eat a later tap.
@@ -1727,7 +1740,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   :class="{ done: child.done, locked: locked(child.item) }"
                   @click="openItem(child.item.id)"
                   @contextmenu.prevent="openRowMenu(child.item)"
-                  @pointerdown="(e: PointerEvent) => hold.down(child.item, e.clientX, e.clientY)"
+                  @pointerdown="(e: PointerEvent) => onRowPress(child.item, e)"
                   @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
                   @pointerup="hold.cancel()"
                   @pointercancel="hold.cancel()"
@@ -1812,7 +1825,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                 :data-testid="`m4-row-${entry.item.name}`"
                 @click="openItem(entry.item.id)"
                 @contextmenu.prevent="openRowMenu(entry.item)"
-                @pointerdown="(e: PointerEvent) => hold.down(entry.item, e.clientX, e.clientY)"
+                @pointerdown="(e: PointerEvent) => onRowPress(entry.item, e)"
                 @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
                 @pointerup="hold.cancel()"
                 @pointercancel="hold.cancel()"

@@ -340,4 +340,75 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
     await expect(page.getByTestId('m5-companions')).toHaveCount(0)
   })
+
+  /*
+   * E2E-G8-01 (G-8/FR-17.3): the delegation picker is the clause of G-8
+   * nothing asserted.
+   *
+   * Its two siblings were already read on their own screens — Share is
+   * E2E-M2-06 and the notification section E2E-M17-08 — and *Zugewiesen an*
+   * is the third collaborative control, absent rather than disabled where
+   * there is nobody to hand a row to. It is asserted from inside an open
+   * Details section that demonstrably rendered its other rows, because a
+   * sheet that failed to open satisfies the absence on its own.
+   *
+   * The pattern's remaining clause, "no mode banner shown", is not asserted
+   * and is named here rather than counted: Local Mode paints no banner at
+   * any width, so nothing distinguishes the promise from an empty page.
+   */
+  test('E2E-G8-01: a device with no members offers no delegation picker', async ({ page }) => {
+    await createTripViaWizard(page, { ...TRIP, travelers: ['Andy', 'Sia'] })
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
+    await page.getByTestId('quick-add-confirm').click()
+    await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
+    await page.getByTestId('m5-details').click()
+
+    // The section is open and populated — the positive signal the absence
+    // below is read against.
+    await expect(page.getByTestId('m5-mode')).toBeVisible()
+    await expect(page.getByTestId('m5-membership')).toBeVisible()
+
+    await expect(page.getByTestId('m5-assignee')).toHaveCount(0)
+  })
+
+  /*
+   * E2E-G4-01 (G-4/FR-6.3): where a notification lands.
+   *
+   * `notifications/format.ts` builds `/trips/{t}/items/{i}?comment={c}` and
+   * a unit covers that string; what no test had done is *open* one. The
+   * landing is mode-independent — the sheet reads the query, not a session
+   * — so it is driven here rather than on the `server` project, where the
+   * spec had placed it because the notification that produces the link is
+   * server-only. The delivery half is E2E-FLOW-02's.
+   *
+   * The flash is asserted through the class the production code sets, and
+   * it is genuinely conditional: the sheet watches the thread and fires
+   * only once the referenced comment has arrived, so a link naming a
+   * comment that is not there leaves every message unflashed.
+   */
+  test('E2E-G4-01: a notification link opens the item and flashes the comment it names', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
+    await page.getByTestId('quick-add-confirm').click()
+    await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
+
+    await page.getByTestId('m5-note-input').locator('input').fill('Beim Nachbarn geliehen')
+    await page.getByTestId('m5-note-add').click()
+    const comment = page.locator('[data-testid^="m5-note-"][id^="comment-"]').first()
+    await expect(comment).toBeVisible()
+    const commentId = (await comment.getAttribute('id'))!.replace('comment-', '')
+    const itemUrl = page.url()
+
+    // A cold arrival, as a tapped notification is.
+    await page.goto(`${itemUrl}?comment=${commentId}`)
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await expect(page.getByTestId('m5-name')).toHaveText('Zelt')
+    // The settled record, not the 2.4 s animation: the sheet reports which
+    // comment the link landed on once it has found and scrolled to it.
+    await expect(page.getByTestId('m5-sheet')).toHaveAttribute('data-flashed-comment', commentId)
+  })
 })
