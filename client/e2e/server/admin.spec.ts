@@ -42,7 +42,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
    * conditions the screen is (`collaborative && is_instance_admin`) — a
    * screen reachable only by URL is not a reachable screen.
    */
-  test('E2E-M17-09/M20-01/M20-04: the admin row leads to an overview that names every account and offers no delete', async ({
+  test('E2E-M17-09, E2E-M20-01, E2E-M20-04: the admin row leads to an overview that names every account and offers no delete', async ({
     browser,
   }) => {
     // Bob first: an account is in the overview once the IdP has vouched for
@@ -143,7 +143,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
    * simply stopped syncing without a word. The client now ends the session on
    * that one error code and the screen is the login again.
    */
-  test('E2E-M20-02/M20-03: a deactivated account is put out and let back in, and a display name can be reset', async ({
+  test('E2E-M20-02, E2E-M20-03: a deactivated account is put out and let back in, and a display name can be reset', async ({
     browser,
   }) => {
     const ctxCarol = await browser.newContext()

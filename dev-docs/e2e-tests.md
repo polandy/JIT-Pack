@@ -3035,12 +3035,8 @@ refuses an empty scan. Proved by changing `* **E2E-` to `- **E2E-` throughout:
 exit 1, with a message naming both plausible causes.
 
 **What this pass deliberately did not fix.** Of 300 case ids in the suite, **78
-appear only in a comment above a test rather than in its title**. That breaks
-id-based traceability in the direction this audit keeps relying on — `git grep`
-of an id confirms a gap that reading the suite refutes — but it is a convention
-drift across the whole suite, not four defects, and folding it into a
-four-entry cleanup would bury it. Recorded here so the next person measuring
-coverage by grep knows the number is soft.
+appeared only in a comment above a test rather than in its title** — done since,
+see *An id in the title is a case you can run* below.
 
 ## M1 and M19 — the front door nobody had opened (2026-08-30)
 
@@ -3289,3 +3285,47 @@ renders a heading, a hint and two buttons and reads no proposal. No case id
 claims it, so nothing is red; the UI-Spec sentence is struck rather than
 reworded, the treatment the M2 and M11 audits gave their unkept promises.
 
+## An id in the title is a case you can run (2026-08-31)
+
+The deferred half of the id work. `git grep <id>` already found a case whose id
+sat in a comment, so traceability was not the problem; what the comment cannot
+do is **run**. Every audit drove single cases with `-g "E2E-M5-05"`, and a case
+whose id is only in a comment does not answer to that — nor does a CI failure
+name the promise that broke, only the prose title.
+
+**The count was not the work.** 83 ids were comment-only, and reading where each
+one actually sits split them four ways:
+
+| | |
+|---|---|
+| 56 | one id in the comment, none in the title — safe, the claim already exists |
+| 9 | several ids over one untitled test — all of them belong, the test covers them |
+| 7 | titles abbreviating the ids they already claimed (`E2E-M8-07/13/12`) |
+| 11 | `test.describe` blocks — a group must not carry one case's id |
+| 15 | prose: file headers, cross-references inside a body, notes on what is *not* built |
+
+Only the first three were touched. **The fourth and fifth are the point:** an id
+in a title is a claim that the test covers it, so the eighteen cases whose
+comment names *other* ids were held to a reading rather than a rule. **Sixteen
+of the eighteen turned out to be citations** — "covered on M8 (E2E-M8-19)", "the
+*facet* half of the tap is E2E-M12-04", "same second-context rule as
+E2E-M2-10" — and promoting those would have written false coverage into sixteen
+titles while the number improved.
+
+**Two were real, and they were only found by reading all eighteen.** The
+container-creation case covers `E2E-M11-01` as well as `-05` (its comment says
+so in the abbreviated form, which the title expansion never saw because it only
+looked at `test(` lines), and the preparation-lifecycle case covers `E2E-M4-08`
+beside `E2E-M4-25`. Both now say so. A third, `E2E-M1-04`, was deliberately not
+added: its comment claims only *"the built half"*, and a title asserts the
+whole.
+
+**A sample was read before the sweep, not after.** Eight of the 56 were checked
+against their test bodies to confirm the comment's id describes that test rather
+than an adjacent one. All eight held, and the titles turned out to be prose
+restatements of the id — so `G-11: the brand and its rgb twin…` becomes
+`E2E-G11-05: the brand and its rgb twin…`, the redundant screen prefix dropped
+because the id already names the screen.
+
+319 of 332 ids now sit in a title. The remaining 13 are the prose ones, and they
+are right where they belong.

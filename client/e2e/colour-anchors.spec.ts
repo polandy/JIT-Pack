@@ -73,7 +73,7 @@ function toBytes(page: Page, value: string): Promise<number[]> {
 
 // E2E-G11-02 (G-11/FR-21.7): the brand marks where you are — in both
 // presentations of the anchors, which are one rule and must not drift.
-test('G-11: the anchor you are on is the brand, in bar and rail alike @local @g11', async ({
+test('E2E-G11-02: the anchor you are on is the brand, in bar and rail alike @local @g11', async ({
   page,
   seedMode,
 }) => {
@@ -101,7 +101,7 @@ test('G-11: the anchor you are on is the brand, in bar and rail alike @local @g1
 
 // E2E-G11-03 (G-11/FR-21.7): done is green and the FAB carries the brand
 // gradient, rather than both being Ionic's flat primary.
-test('G-11: the FAB is the brand and a packed box is done, never the action colour @local @g11', async ({
+test('E2E-G11-03: the FAB is the brand and a packed box is done, never the action colour @local @g11', async ({
   page,
   seedMode,
 }) => {
@@ -130,7 +130,7 @@ test('G-11: the FAB is the brand and a packed box is done, never the action colo
 // flavour switch. Mocha's peach and Latte's are different hues entirely
 // (#fab387 vs #fe640b) — a rule written against a hex would pass here by
 // accident or fail here for the wrong reason.
-test('G-11: the roles hold in Latte, on different hues @local @g11', async ({ page, seedMode }) => {
+test('E2E-G11-04: the roles hold in Latte, on different hues @local @g11', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local', theme: 'latte' })
   await page.setViewportSize(MOBILE)
   await page.goto('/')
@@ -152,7 +152,7 @@ test('G-11: the roles hold in Latte, on different hues @local @g11', async ({ pa
 // so a stale triplet shows up as slightly-off ripples and nothing else.
 // The unit case asserts the two are restated together; only a browser can
 // say whether they agree.
-test('G-11: the brand and its rgb twin resolve to one colour, in both flavours @local @g11', async ({
+test('E2E-G11-05: the brand and its rgb twin resolve to one colour, in both flavours @local @g11', async ({
   page,
   seedMode,
 }) => {

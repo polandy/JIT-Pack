@@ -50,7 +50,7 @@ function check(page: Page, name: string) {
 }
 
 // E2E-M4-33 (FR-25.2): packing says so, and the saying is undoable.
-test('M4: a packed row leaves and the snackbar puts it back @local @m4', async ({
+test('E2E-M4-33: a packed row leaves and the snackbar puts it back @local @m4', async ({
   page,
   seedMode,
 }) => {
@@ -79,7 +79,7 @@ test('M4: a packed row leaves and the snackbar puts it back @local @m4', async (
 })
 
 // E2E-M4-34 (FR-25.2): one snackbar, not a stack.
-test('M4: packing several rows leaves one undo, for the last of them @local @m4', async ({
+test('E2E-M4-34: packing several rows leaves one undo, for the last of them @local @m4', async ({
   page,
   seedMode,
 }) => {
@@ -104,7 +104,7 @@ test('M4: packing several rows leaves one undo, for the last of them @local @m4'
 })
 
 // E2E-M4-35 (FR-25.2): un-packing is not a pack, so it gets no snackbar.
-test('M4: un-checking a revealed row offers no undo @local @m4', async ({ page, seedMode }) => {
+test('E2E-M4-35: un-checking a revealed row offers no undo @local @m4', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
   await tripWithRows(page, ['Zelt'])

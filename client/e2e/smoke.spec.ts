@@ -9,7 +9,7 @@ import { test, expect } from './fixtures'
  */
 
 // E2E-M19-01 (partial): first launch shows the two mode cards.
-test('M19: first launch shows mode selection @smoke @m19', async ({ page }) => {
+test('E2E-M19-01: first launch shows mode selection @smoke @m19', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByTestId('mode-selection')).toBeVisible()
@@ -20,7 +20,7 @@ test('M19: first launch shows mode selection @smoke @m19', async ({ page }) => {
 // E2E-M19-04: the URL field arrives pre-filled with this page's origin —
 // a self-hosted instance serves the SPA from the very origin the server
 // listens on, so Connect is reachable without typing (FR-19.1).
-test('M19: the server URL is pre-filled with the page origin @smoke @m19', async ({
+test('E2E-M19-04: the server URL is pre-filled with the page origin @smoke @m19', async ({
   page,
   baseURL,
 }) => {
@@ -48,7 +48,7 @@ test('M19: the server URL is pre-filled with the page origin @smoke @m19', async
  * `navigator.storage` is left out of it entirely, because whether *this*
  * browser grants persistence is not what the case is about.
  */
-test('M19: choosing Local Mode persists the choice, asks to keep the data, and is not asked twice @smoke @m19', async ({
+test('E2E-M19-01: choosing Local Mode persists the choice, asks to keep the data, and is not asked twice @smoke @m19', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -89,7 +89,7 @@ test('M19: choosing Local Mode persists the choice, asks to keep the data, and i
 
 // E2E-G7-01 / M1 (Local): a seeded Local Mode boots straight into the
 // Dashboard, whose empty state offers the single "Plan a trip" CTA.
-test('M1: local mode boots into an empty dashboard @smoke @local', async ({ page, seedMode }) => {
+test('E2E-G7-01: M1: local mode boots into an empty dashboard @smoke @local', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   await page.goto('/')
 

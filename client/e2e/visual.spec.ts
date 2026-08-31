@@ -108,7 +108,7 @@ for (const [name, path] of [
 
 // E2E-VIS-02: M4 with rows — the product's core screen, and the one every
 // token decision was judged against.
-test('visual: M4 packing list @local @visual', async ({ page, seedMode }) => {
+test('E2E-VIS-02: visual: M4 packing list @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   await packingList(page, ['Zelt', 'Schlafsack', 'Stirnlampe', 'Regenjacke'])
@@ -117,7 +117,7 @@ test('visual: M4 packing list @local @visual', async ({ page, seedMode }) => {
 
 // E2E-VIS-03: the state FR-25.2 creates — some rows gone, the reveal bar up,
 // and the same list with the done rows shown dimmed.
-test('visual: M4 with packed rows hidden and revealed @local @visual', async ({
+test('E2E-VIS-03: visual: M4 with packed rows hidden and revealed @local @visual', async ({
   page,
   seedMode,
 }) => {
@@ -147,7 +147,7 @@ test('visual: M4 with packed rows hidden and revealed @local @visual', async ({
 
 // E2E-VIS-04: the facet sheet — a layer over the list, and the surface the
 // G-14 plane rules are most visible on.
-test('visual: M4 filter sheet @local @visual', async ({ page, seedMode }) => {
+test('E2E-VIS-04: visual: M4 filter sheet @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   await packingList(page, ['Zelt', 'Schlafsack'])
@@ -251,7 +251,7 @@ async function containers(page: Page) {
 // one screen that uses brand, done, both planes and the elevation ink is
 // enough to notice it moving. Doubling the set would double what a digest
 // bump rewrites, for coverage of the same block.
-test('visual: M4 in Latte @local @visual', async ({ page, seedMode }) => {
+test('E2E-VIS-05: visual: M4 in Latte @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local', theme: 'latte' })
   await packingList(page, ['Zelt', 'Schlafsack', 'Stirnlampe'])
@@ -264,7 +264,7 @@ test('visual: M4 in Latte @local @visual', async ({ page, seedMode }) => {
 // whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and
 // the card list itself — and because the rebuild that introduced them was
 // judged on exactly those pixels.
-test('visual: M11 container list @local @visual', async ({ page, seedMode }) => {
+test('E2E-VIS-06: visual: M11 container list @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   await containers(page)
@@ -275,7 +275,7 @@ test('visual: M11 container list @local @visual', async ({ page, seedMode }) => 
 // *plane*, so this is not a second copy of it: the sheet is the M5 grammar
 // applied to a container, and the load line and pairing chips inside it exist
 // on no other surface.
-test('visual: M11 container sheet @local @visual', async ({ page, seedMode }) => {
+test('E2E-VIS-07: visual: M11 container sheet @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   await containers(page)
@@ -294,7 +294,7 @@ test('visual: M11 container sheet @local @visual', async ({ page, seedMode }) =>
  * without anything going red. E2E-G2-08 guards that one measurement; this
  * guards the rest of the header, the state line and the sheet's own plane.
  */
-test('visual: G-2 sync detail sheet @local @visual', async ({ page, seedMode }) => {
+test('E2E-G2-08, E2E-VIS-08: visual: G-2 sync detail sheet @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   await page.goto('/tabs/trips')

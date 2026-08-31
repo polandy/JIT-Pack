@@ -59,7 +59,7 @@ async function cardWithOneRow(page: Page, trip: string) {
 
 // E2E-G14-01 (G-14/FR-21.8): a card is a plane above the page, not a
 // hairline drawn on it.
-test('G-14: the packing card is painted a different plane than its page @local @g14', async ({
+test('E2E-G14-01: the packing card is painted a different plane than its page @local @g14', async ({
   page,
   seedMode,
 }) => {
@@ -100,7 +100,7 @@ test('G-14: the packing card is painted a different plane than its page @local @
 
 // E2E-G14-03 (G-14/FR-21.8): a card gives the *group* an edge, not its
 // entries — the rows inside still need a seam between them.
-test('G-14: rows inside a card keep a seam, and the last one does not @local @g14', async ({
+test('E2E-G14-03: rows inside a card keep a seam, and the last one does not @local @g14', async ({
   page,
   seedMode,
 }) => {
@@ -145,7 +145,7 @@ test('G-14: rows inside a card keep a seam, and the last one does not @local @g1
 // E2E-G14-02 (G-14/FR-21.8): elevation is cast in the flavour's ink. In
 // Latte the shadow is thrown in the darkest neutral, not in crust — which
 // there is a light grey and would cast no shadow at all.
-test('G-14: the card still casts a shadow in Latte @local @g14', async ({ page, seedMode }) => {
+test('E2E-G14-02: the card still casts a shadow in Latte @local @g14', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local', theme: 'latte' })
   await page.setViewportSize(MOBILE)
   const card = await cardWithOneRow(page, 'Helltest')

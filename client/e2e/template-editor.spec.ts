@@ -89,7 +89,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await page.goto('/tabs/templates')
   })
 
-  test('E2E-M8-07/13/12: a Gruppe shows only positions, and the quick-add lands a Standard row', async ({
+  test('E2E-M8-07, E2E-M8-13, E2E-M8-12: a Gruppe shows only positions, and the quick-add lands a Standard row', async ({
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')
@@ -151,7 +151,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(visible(page).getByTestId('m8-fab')).toBeVisible()
   })
 
-  test('E2E-M8-13/04: a duplicate is reported and not added twice; free text created the master item', async ({
+  test('E2E-M8-13, E2E-M8-04: a duplicate is reported and not added twice; free text created the master item', async ({
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')
@@ -438,7 +438,7 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
   })
 
-  test('E2E-M8-01/12/14: Menge and Vorbereitung come first; the stepper allows 0', async ({
+  test('E2E-M8-01, E2E-M8-12, E2E-M8-14: Menge and Vorbereitung come first; the stepper allows 0', async ({
     page,
   }) => {
     // Before the fold: quantity and preparation, nothing else (FR-25.7).
@@ -459,7 +459,7 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await expect(page.getByTestId('m8-qty')).toHaveText('1')
   })
 
-  test('E2E-M8-02/03/12/14: the advanced parameters live behind Details and reach the glance row', async ({
+  test('E2E-M8-02, E2E-M8-03, E2E-M8-12, E2E-M8-14: the advanced parameters live behind Details and reach the glance row', async ({
     page,
   }) => {
     await page.getByTestId('m8-details').click()
