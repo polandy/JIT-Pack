@@ -137,11 +137,18 @@ export const useMasterStore = defineStore('master', () => {
    * — the M7 row count and the M8 resolution footer read the same resolution,
    * so the two can never disagree about what a trip would get.
    */
+  /**
+   * Every template position on the device, flat. One definition, because
+   * resolution and FR-27.8's containment answer the same question about the
+   * same rows and a second flatten would be a second reading of them.
+   */
+  const positionList = computed(() => [...templateItems.value.values()].flat())
+
   function resolve(templateId: string): Resolution {
     return resolveTemplate(templateId, {
       templates: templateList.value,
       includes: includeList.value,
-      positions: [...templateItems.value.values()].flat(),
+      positions: positionList.value,
     })
   }
 
@@ -410,6 +417,7 @@ export const useMasterStore = defineStore('master', () => {
     getTemplate,
     getTemplateItems,
     templateItemCount,
+    positionList,
     templateIncludes,
     includeList,
     getIncludes,

@@ -47,19 +47,23 @@ import {
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { dependencyCycleError, type DependencyCycleError } from '@/domain/dependencies'
+import { containingTemplates, commentsOnItem } from '@/domain/itemHistory'
+import type { DirectoryUser } from '@/api/types'
 import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
-import { t } from '@/i18n'
+import { formatDay, t } from '@/i18n'
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import type { DependencyMode, Tag } from '@/types/domain'
 
 const props = defineProps<{ itemId?: string }>()
 
 const masterStore = useMasterStore()
+const tripStore = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const route = useRoute()
 const router = useRouter()
@@ -82,6 +86,11 @@ const nameError = ref('')
 const nameInput = ref<{ $el: HTMLElement } | null>(null)
 
 onMounted(async () => {
+  // FR-27.9's author line. Absent in Local and Single-User Mode, where the
+  // call answers nothing and there is nobody to name (G-8).
+  void orchestrator.fetchUsers().then((users) => {
+    directory.value = users
+  })
   if (!isCreating.value) return
   await nextTick()
   // The name is the only required field, so it takes the caret.
@@ -374,6 +383,52 @@ function onDependencyModeChange(dependencyId: string, mode: string) {
 
 function onRemoveDependency(dependencyId: string) {
   orchestrator.deleteItemDependency(dependencyId)
+}
+
+// --- FR-27.8 / FR-27.9: the item's rear-view ---
+
+/**
+ * Every group and Ferien-Vorlage holding this item as one of its own
+ * positions (FR-27.8). The navigable counterpart to the delete card's
+ * „An N Stellen verwendet" — the count says how many, this says which, which
+ * is the question actually asked before an item is edited.
+ */
+const containments = computed(() =>
+  props.itemId
+    ? containingTemplates(props.itemId, masterStore.templateList, masterStore.positionList)
+    : [],
+)
+
+/**
+ * Every comment written on a packing row generated from this item, across the
+ * trips this device holds (FR-27.9). Client-side over local rows: no server
+ * round trip, so Local Mode keeps it (invariant 4), and what the device has
+ * not synced it does not claim to know — the M12 honesty rule.
+ */
+const itemComments = computed(() =>
+  props.itemId
+    ? commentsOnItem(
+        props.itemId,
+        tripStore.tripList.map((trip) => ({
+          tripId: trip.id,
+          tripName: trip.name,
+          items: tripStore.getItems(trip.id),
+          comments: tripStore.getComments(trip.id),
+        })),
+      )
+    : [],
+)
+
+/**
+ * The directory, for naming a comment's author. Absent in Local and
+ * Single-User Mode, where there are no accounts — the meta line then carries
+ * the trip and the date and no who, rather than a raw uuid (G-8).
+ */
+const directory = ref<DirectoryUser[]>([])
+
+/** `null` where nobody can be named; the line then says less rather than something untrue. */
+function authorName(userId: string): string | null {
+  return directory.value.find((u) => u.user_id === userId)?.display_name ?? null
 }
 
 /**
@@ -752,6 +807,93 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             </IonButton>
           </div>
 
+          <!--
+            FR-27.8: which groups and Vorlagen hold this item. It sits above
+            the delete card on purpose — the card's count is this list's
+            length, and the reader arriving to decide whether an edit is safe
+            wants the names before the number.
+          -->
+          <template v-if="containments.length > 0">
+            <h2 class="section-title jp-eyebrow" data-testid="m10-section-containment">
+              {{ t('items.editor.containedIn') }}
+            </h2>
+            <IonList>
+              <IonItem
+                v-for="entry in containments"
+                :key="entry.templateId"
+                button
+                :detail="true"
+                :data-testid="`m10-contained-${entry.templateName}`"
+                @click="router.push(`/templates/${entry.templateId}`)"
+              >
+                <IonLabel>
+                  <h3>{{ entry.templateName }}</h3>
+                  <p>
+                    {{ t('items.editor.containedPositions', { n: entry.positions }) }}
+                    <template v-if="entry.retired">
+                      · {{ t('items.editor.containedRetired') }}
+                    </template>
+                  </p>
+                </IonLabel>
+                <!-- The scope chip M7's rows already wear, so the two lists read alike. -->
+                <!--
+                  Both scopes wear the same chip here, unlike M7 where only a
+                  group needs one: there the two live in separate sections, so
+                  the section is the label. In one mixed list an unmarked row
+                  and a chipped one read as an inconsistency rather than as a
+                  rule — found by rendering it (G-14).
+                -->
+                <span
+                  slot="end"
+                  class="scope-chip"
+                  :data-testid="`m10-contained-${entry.kind}-${entry.templateName}`"
+                >
+                  {{
+                    entry.kind === 'group'
+                      ? t('templates.groupChip')
+                      : t('templates.scopeTemplatesShort')
+                  }}
+                </span>
+              </IonItem>
+            </IonList>
+          </template>
+
+          <!--
+            FR-27.9: what people wrote about this item on the trips it went
+            on. Read-only — the thread lives on the trip row; this is the
+            rear-view the improvement loop is curated from. Absent entirely
+            when there is nothing to show, per FR-24.5's stance.
+          -->
+          <template v-if="itemComments.length > 0">
+            <h2 class="section-title jp-eyebrow" data-testid="m10-section-comments">
+              {{ t('items.editor.tripComments') }}
+            </h2>
+            <p class="section-hint">{{ t('items.editor.tripCommentsHint') }}</p>
+            <IonList>
+              <IonItem
+                v-for="entry in itemComments"
+                :key="entry.commentId"
+                lines="none"
+                :data-testid="`m10-comment-${entry.commentId}`"
+              >
+                <IonLabel class="ion-text-wrap">
+                  <p class="comment-body">{{ entry.body }}</p>
+                  <p class="comment-meta">
+                    {{
+                      [
+                        authorName(entry.authorId),
+                        entry.tripName,
+                        entry.createdAt ? formatDay(entry.createdAt) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
+                    }}
+                  </p>
+                </IonLabel>
+              </IonItem>
+            </IonList>
+          </template>
+
           <section class="jp-card delete-card" data-testid="m10-section-delete">
             <h2 class="section-title jp-eyebrow">{{ t('items.editor.delete') }}</h2>
             <p class="section-hint" data-testid="m10-delete-usage">
@@ -796,6 +938,24 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 </template>
 
 <style scoped>
+.scope-chip {
+  align-self: center;
+  padding: 2px 8px;
+  border-radius: var(--jp-r-pill);
+  background: var(--ct-surface0);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+}
+
+.comment-body {
+  color: var(--ion-text-color);
+}
+
+.comment-meta {
+  color: var(--ion-color-medium);
+}
+
 .empty-state {
   display: flex;
   justify-content: center;

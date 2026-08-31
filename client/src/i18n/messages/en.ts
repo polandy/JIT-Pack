@@ -391,6 +391,12 @@ export const en = {
   'items.editor.dependencyCycle': 'That would close a circle: {path}.',
   'items.editor.companions': 'Companions',
   'items.editor.companionsHint': 'These items depend on {name}:',
+  'items.editor.containedIn': 'Part of',
+  'items.editor.containedPositions': '{n} position | {n} positions',
+  'items.editor.containedRetired': 'hidden',
+  'items.editor.tripComments': 'Comments from trips',
+  'items.editor.tripCommentsHint':
+    'Written on this item while packing. Read-only here — the thread lives on the trip.',
   'items.editor.delete': 'Delete item',
   'items.editor.deleteUsage': 'Used in {n} place | Used in {n} places',
   'items.editor.deleteRetire':

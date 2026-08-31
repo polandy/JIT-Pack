@@ -53,6 +53,8 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
     'the resolved lines of a group preview (its offers use the active list)',
   'src/components/templates/GroupPeekSheet.vue': 'FR-27.12 renders what a group resolves to',
   'src/components/trips/ItemDetailSheet.vue': 'FR-20 companion resolution on an existing row',
+  'src/views/items/ItemEditorPage.vue':
+    "FR-27.8's containment list is the navigable half of the delete card's reference count, which reads the complete list for the same reason — a retired Vorlage still holds the item, and a list shorter than the number above it would contradict it. The row says it is retired.",
 }
 
 const COMPLETE_LIST = /\.(itemList|templateList)\b/
@@ -100,6 +102,7 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
       'src/views/trips/ReviewPage.vue', // the FR-27.11 retarget offer
       'src/views/trips/TemplateFromTripPage.vue', // the groups M21 offers
       'src/components/global/QuickAddItem.vue', // chips, group matches, browse door
+      'src/views/items/ItemEditorPage.vue', // dependency picker + FR-27.8's containment
     ]
     const byPath = new Map(sources.map(({ path, source }) => [path, source]))
     for (const path of mixed) {
@@ -133,7 +136,9 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     // FR-24.3 is about: the inventory, the pickers, the autocomplete.
     const offerSurfaces = [
       'src/views/items/ItemInventoryPage.vue',
-      'src/views/items/ItemEditorPage.vue',
+      // ItemEditorPage moved to `mixed` on 2026-08-31: its pickers still read
+      // the active lists, and FR-27.8's containment reads the complete one
+      // for the same reason the delete card's count above it does.
       'src/views/templates/TemplateListPage.vue',
       'src/components/global/InventoryBrowseSheet.vue',
       'src/views/settings/SettingsPage.vue',
