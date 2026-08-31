@@ -20,6 +20,7 @@ import {
   IonSegment,
   IonSegmentButton,
   IonIcon,
+  useIonRouter,
 } from '@ionic/vue'
 import { documentTextOutline, warningOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
@@ -43,6 +44,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const router = useRouter()
+const ionRouter = useIonRouter()
 const master = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const tripStore = useTripStore()
@@ -148,10 +150,12 @@ function commitRestore() {
   restore.value = null
   const firstTrip = results.find((r) => r.kind === 'trip')
   const status = firstTrip ? tripStore.getTrip(firstTrip.id)?.status : undefined
-  router.replace({
-    path: '/tabs/trips',
-    query: { [TRIP_FILTER_QUERY]: filterForStatus(status) },
-  })
+  // A tab root is a root navigation — see the note in `ImportPage.vue`.
+  ionRouter.navigate(
+    { path: '/tabs/trips', query: { [TRIP_FILTER_QUERY]: filterForStatus(status) } },
+    'root',
+    'replace',
+  )
 }
 
 const restorable = computed(() => (restore.value ?? []).filter((r) => r.doc !== null).length)

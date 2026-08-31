@@ -142,6 +142,11 @@ middle click still opens a tab and assistive technology still reads a link; only
 action is taken over, and modified clicks are left to the browser. The stack now holds one
 page per anchor switch instead of one more each time, which is what Option A meant.
 
+**The rule is about the destination, not about the anchor.** Landing on a tab root is a root
+navigation wherever it happens, so M15's and M18's commits navigate the same way — they were the
+other two plain `replace`s onto a tab root, and leaving them would have kept one instance of the
+class alive after finding it.
+
 **Two things this also settled.** M15's *„the wizard opens only once per session"* (found
 2026-08-30, E2E-M15-03) was the same defect wearing a different symptom: the case reaches the
 wizard through the rail, and the commit's own `replace` collided with the page the rail had
