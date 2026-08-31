@@ -80,7 +80,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M18 portable import (merge preview) | E2E-M18-01, E2E-M18-02, E2E-M18-03, E2E-M18-04 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b, and the FR-27.12 peek since 2026-08-30), E2E-M14-05, E2E-M14-06 (both the archive that skips and the empty state, since 2026-08-30), **E2E-FLOW-04** (the loop closing, since 2026-08-31) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M16 series & destination profile | E2E-M16-01, E2E-M16-02, E2E-M16-03, E2E-M16-04 + a G-9 back case | `local` | [`series.spec.ts`](../client/e2e/series.spec.ts) |
-| M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M21-04, E2E-M21-05, E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
+| M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M21-04, E2E-M21-05, E2E-M4-43, **E2E-FLOW-09** (the year-long round trip, since 2026-08-31) | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-10, E2E-M22-11, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
@@ -3886,3 +3886,45 @@ Three things came out of writing it.
   absent, which is both the honest assertion and the settled signal the third
   device needs before it looks.
 
+
+## E2E-FLOW-09 — the world that could not falsify its own clause (2026-08-31)
+
+FLOW-09 is the last of the §5 flows, and the one whose *steps* were all covered while its
+**loop** was not: M3 generates from a composition, the trip learns something, M21 folds that
+back into the groups, and next year's M3 run has to arrive at the full learned set. Seven steps,
+one case, and nothing in the suite had ever gone round.
+
+Two clauses were corrected against the app before a line was written, and neither is a defect:
+
+- **`single` → `local`.** Generation, recognition, the fold-back plan and the FR-27.4 question
+  all run client-side (invariant 4), and the flow has one device — a backend would add a
+  partition to pull and not one rule to this chain. Local is also the stricter run.
+- **"the fold-back appears as an *applied change* on a planning trip"** describes the model
+  FR-27.4 had until 2026-08-18. It arrives as a *question*, and E2E-M21-03c has asserted that
+  since M21 shipped. The same sentence had already been corrected once on E2E-M8-05.
+
+**The finding is the world, not the screen.** The clause with no assertion anywhere was the
+other half of that sentence — *the archived source trip stays untouched* — which
+E2E-M21-02's own comment has stated since M21 shipped ("a past trip is never asked to follow
+along") with nothing behind it. Written the obvious way it is **green and unfalsifiable**:
+deleting the archived guard from `followsGroups` left the case passing. The reason is in the
+setup rather than in the rule — the fold-back makes the group match the harvested trip, so
+that trip has nothing to be offered *whatever* `followsGroups` answers, and the absence being
+asserted was the absence of a change that does not exist.
+
+The fix is a change **neither** trip carries: the group grows a position after the fold-back,
+the still-planning trip is asked about it, and the archived one is not. With that world the
+mutation turns the case red on exactly that line (`Expected: 0, Received: 1`), and the rule is
+the only thing separating the two trips.
+
+**The transferable rule: for an absence, the positive signal has to be the *same event* reaching
+somewhere else.** A rendered page and a sibling assertion are not enough on their own — this
+draft had both — if the event being asserted about never happened in that world. The check that
+finds it is the one E2E-M12-01 produced in a different costume: *would this assertion have
+passed before the rule existed?*
+
+Two smaller things the round trip is the only case that can say: M21 recognises **both** groups
+of a composition from provenance alone (the shared camera can point at only one of them, so
+Wildlife is recognised through the telephoto), and the harvested Vorlage *references* the
+groups rather than copying them — proved by a position added to a group **after** the Vorlage
+was written arriving in next year's generation anyway.

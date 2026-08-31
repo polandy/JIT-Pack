@@ -389,7 +389,15 @@ it. Item numbers stay stable even as items close, because the log refers back to
    makes — where every other writer in the app passes `trip_global`, so a shared item came back
    one-per-traveler and, on a trip with no travelers, not at all. The M14 cases could not see it:
    all of them stop at M8, where the position renders `1×` either way. Log: *„A default that
-   decided how many rows"*. **M2's own next pass is done (2026-08-31):** the empty
+   decided how many rows"*. **FLOW-09 closed the pass 2026-08-31** — the loop
+   nothing had gone round — and its finding is a *world* rather than a screen: the clause that an
+   archived trip is never asked to follow its group could not fail where it naturally sits,
+   because the fold-back makes the group match the trip it was harvested from, so that trip is
+   owed no proposal whatever the rule says. Deleting the guard left the case green; a change
+   **neither** trip carries fixes it. The rule to reuse: **for an absence, the positive signal
+   must be the same event reaching somewhere else** — a rendered page and a sibling assertion are
+   not enough when the event never happened in that world. Log: *„The world that could not
+   falsify its own clause"*. **M2's own next pass is done (2026-08-31):** the empty
    state has a test id and a case of its own (E2E-M2-16 — its own number, because E2E-G7-01 is
    already defined on the Dashboard and the gate allows one definition per id), and E2E-M2-02 is
    written, minus the *destination* its header has never carried. Log: *„Twenty-two promises, decided against
