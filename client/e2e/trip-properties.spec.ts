@@ -5,6 +5,8 @@ import {
   setDateField,
   tripAction,
   expectTripActionOffered,
+  createTripViaWizard,
+  chooseInSelect,
 } from './fixtures'
 import {
   addPosition,
@@ -117,6 +119,13 @@ async function localWriteSettled(page: Page) {
 async function openTripEdit(page: Page) {
   await tripAction(page, 'edit')
   await expect(visible(page).getByTestId('trip-edit-name')).toBeVisible()
+}
+
+/** The same screen, reached from M2 rather than from inside the trip. */
+async function openTripEditFromList(page: Page, name: string) {
+  await page.goto('/tabs/trips')
+  await visible(page).getByTestId(`trip-row-${name}`).click()
+  await openTripEdit(page)
 }
 
 test.describe('FR-2.7 — a trip can be edited after it is created', () => {
@@ -376,17 +385,58 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await expect(
       visible(page).getByTestId('traveler-row-Xenia').locator('input'),
     ).toHaveJSProperty('readOnly', true)
+    // The year joined this screen on 2026-08-31, and "read-only throughout"
+    // has to mean the whole screen or it decays into a list of what was true
+    // when the case was written. A select has no `readonly`; disabled is it.
+    await expect(visible(page).getByTestId('trip-edit-year')).toHaveJSProperty('disabled', true)
     await expect(removeButtons(page)).toHaveCount(0)
     await expect(visible(page).getByTestId('traveler-add')).toHaveCount(0)
     await expect(visible(page).getByTestId('traveler-add-input')).toHaveCount(0)
 
-    // And the finding this case also records: nothing on the screen says why.
-    // E2E-M22-04's note is gated on the trip *not* having started yet, so an
-    // archived trip loses the ✕, the add row and the sentence together — the
-    // one shape the owner ruled against on 2026-08-21 for the started trip
-    // ("a control that answers no tap reads as a broken app"), arrived at
-    // here by a different route. Owner decision, recorded in UI-Spec M22.
+    // And it says why (built 2026-08-31). Until then an archived trip lost
+    // the ✕, the add row and the explanation together — the exact shape the
+    // owner ruled against on 2026-08-21 for the *started* trip ("a control
+    // that answers no tap reads as a broken app"), arrived at by a different
+    // route. It is its own sentence rather than the started trip's: the
+    // reason is different, and reusing that wording would say the trip has
+    // not left yet.
+    await expect(visible(page).getByTestId('trip-edit-archived-note')).toBeVisible()
+    // The started-trip note is *not* what is showing — a shared testid would
+    // let one sentence satisfy both cases.
     await expect(visible(page).getByTestId('traveler-remove-note')).toHaveCount(0)
+  })
+
+  // E2E-M22-12 (FR-2.1b/FR-2.7): the year is editable after creation.
+  //
+  // `TripEdit`'s only writers were M3's wizard and the clone form, both at
+  // creation, so a typo was permanent — on the one temporal fact FR-2.1b makes
+  // required, and the one M2 sorts and groups by. Found 2026-08-30 by reading
+  // UI-Spec M22's element list against the screen.
+  test('E2E-M22-12: a trip’s year can be corrected, and M2 moves it', async ({ page }) => {
+    const thisYear = new Date().getFullYear()
+    await createTripViaWizard(page, { name: 'Falsches Jahr' })
+    await openTripEdit(page)
+
+    await chooseInSelect(page, 'trip-edit-year', String(thisYear + 1))
+
+    // Read back through the list, not through the field: a select repainting
+    // its own value satisfies an assertion on itself, and the year's whole
+    // job is to place the trip. M2 groups by series and sorts by year, so the
+    // row's own year line is what moved.
+    await page.goto('/tabs/trips')
+    await expect(visible(page).getByTestId('trip-row-Falsches Jahr')).toContainText(
+      String(thisYear + 1),
+    )
+
+    // And it survives leaving the screen — the form mirrors the trip, so a
+    // value that only lives in the ref reads identically until a reload.
+    await openTripEditFromList(page, 'Falsches Jahr')
+    // `.select-text`, not the host: an `ion-select`'s own text is every option
+    // it carries, so an assertion on the host passes on a select nobody has
+    // touched (the trap E2E-M16-01 records).
+    await expect(
+      visible(page).getByTestId('trip-edit-year').locator('.select-text'),
+    ).toHaveText(String(thisYear + 1))
   })
 
   test('E2E-M22-11: a traveller renamed in place keeps the rows she already packed', async ({

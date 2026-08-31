@@ -27,6 +27,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import DateField from '@/components/global/DateField.vue'
+import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
 
 const props = defineProps<{ tripId: string }>()
@@ -49,7 +50,7 @@ const name = ref('')
 // FR-2.1b: a clone is a trip of its own year, and the year is the only
 // temporal fact it needs. Defaults to this one, like M3.
 const thisYear = new Date().getFullYear()
-const yearChoices = Array.from({ length: 6 }, (_, i) => thisYear - 1 + i)
+const yearChoices = tripYearChoices(thisYear)
 const year = ref(thisYear)
 
 const startDate = ref('')
