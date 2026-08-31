@@ -858,7 +858,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
 | FR-1.8 | DOC/N-A | retired 2026-08-08 — no units, everything counts in pieces |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 (all four parts — the traveller faces were built 2026-08-31) |
-| FR-2.2 | E2E+UNIT | M3-06, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch); instantiate.ts |
+| FR-2.2 | E2E+UNIT | M3-06, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch), FLOW-04 (a group edited between two runs generates differently); instantiate.ts |
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-2.4 | E2E | M3-10, M8-05 (the note's wording, corrected to the FR-27.4 model 2026-08-30); the M10 usage count is asserted in M10-14/15 (M10-02 retired 2026-08-30 — its „delete blocked" half was reversed by FR-24.3) |
 | FR-2.5 | E2E | M3-03 |
@@ -889,7 +889,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers since 2026-08-30), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |
-| FR-9.2 | E2E+UNIT | M14-01/02/03, M14-06 (the archive that *skips* the assistant, asserted since 2026-08-30); review.ts (resumability — an applied proposal is not recomputed), ReviewPage.spec.ts (the series-history why line, both directions) |
+| FR-9.2 | E2E+UNIT | M14-01/02/03, M14-06 (the archive that *skips* the assistant, asserted since 2026-08-30), **FLOW-04** (the harvest read back where it is supposed to arrive — the next trip generated from the group); review.ts (resumability — an applied proposal is not recomputed), ReviewPage.spec.ts (the series-history why line, both directions) |
 | FR-10.1 | E2E+UNIT | M11-01 (via M11-05/06); ContainerSheet.spec.ts (the carrier is optional — clearing it) |
 | FR-10.2 | E2E | M11-06 (03 folded in, first assignment), M5-22 (re-assignment) |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts — **the threshold is a fixed 15 % since 2026-08-31**, the per-trip override struck together with its dead reader (see the M11 block) |
@@ -996,7 +996,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.8 | E2E | M10-17 (the list, its scope chips and the way into a template), M10-19 (absent on an unused item); `domain/__tests__/itemHistory.spec.ts` (own positions only — the list answers the same question as FR-2.4's count) — **built 2026-08-31** |
 | FR-27.9 | E2E | M10-18 (a trip's remark read at the item), M10-19 (absent when there is none); `domain/__tests__/itemHistory.spec.ts` (the foreign-key join, the trip-level comment that belongs to no item, the ad-hoc row that reaches none, an undated comment sorting last) — **built 2026-08-31** |
 | FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
-| FR-27.11 | E2E+UNIT | M14-04 (group targets, blast radius), M14-05 (list not card stack, marked rows, per-pair dismissal); review.ts, ReviewPage.spec.ts — the applied-change log is owed with the §3.27 refresh package |
+| FR-27.11 | E2E+UNIT | M14-04 (group targets, blast radius), M14-05 (list not card stack, marked rows, per-pair dismissal), FLOW-04 (the shape the write gives the position); review.ts, ReviewPage.spec.ts — the applied-change log is owed with the §3.27 refresh package |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, nothing auto-opening on top of it, Mehr-Optionen disclosure) |
 | FR-28.1 | E2E+UNIT | M9-07, G15-01 (mark set, mark absent — absence is a normal row, not an empty state); Go: the column is nullable and capped, and nothing else |
 | FR-28.2 | E2E+UNIT | M10-11 (keyword search, facets), M10-12 (explicit removal, and its absence on an unmarked item), M8-18 (the *same* picker on a template); `MarkPicker.spec.ts` |
