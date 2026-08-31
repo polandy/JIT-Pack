@@ -1,7 +1,15 @@
 import { test, expect, seed, visiblePage } from '../fixtures'
 
 /**
- * E2E-M19-02, the `single` half (FR-19.1, CLAUDE.md invariant 5).
+ * E2E-M19-02, the `single` half (FR-19.1, CLAUDE.md invariant 5), and
+ * E2E-NFR-02 (NFR-4.8) with it.
+ *
+ * NFR-02's own sentence asks for the instance to boot "with no IdP
+ * reachable (no OIDC env, network to any IdP blocked)". The second half
+ * cannot be driven and does not need to be: a Single-User instance names
+ * no issuer, so there is no host to block, and blocking one would assert
+ * against a request the app never makes. What is left of the promise is
+ * the first half, and it is exactly what this case renders.
  *
  * Single-User Mode is **not a client mode**: the device persists
  * `jitpack_mode = 'server'` like any other server device, and what makes it
@@ -19,7 +27,7 @@ import { test, expect, seed, visiblePage } from '../fixtures'
  * The response status is asserted beside the rendered dashboard, because
  * "no login screen" alone is equally green on a device that never asked.
  */
-test('E2E-M19-02: a Single-User instance offers no OIDC, so the app lands on M1 @single @m19', async ({
+test('E2E-M19-02, E2E-NFR-02: a Single-User instance offers no OIDC, so the app lands on M1 @single @m19', async ({
   browser,
 }) => {
   const context = await browser.newContext()

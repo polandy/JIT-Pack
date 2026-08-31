@@ -67,13 +67,13 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
-| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30), E2E-M15-13, E2E-M15-02, E2E-M15-04b (the three promises built 2026-08-31) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
+| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30), E2E-M15-13, E2E-M15-02, E2E-M15-04b (the three promises built 2026-08-31), **E2E-NFR-07** (the state behind the refusal, 2026-09-01) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | G-5 optimistic write, refused | E2E-G5-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | M2 opening segment, settled guard | E2E-M2-14 | `single` | [`single/opening-segment.spec.ts`](../client/e2e/single/opening-segment.spec.ts) |
-| Single-User is discovered, not configured (invariant 5) | E2E-M19-02 (the `single` destination; the `server` one is `loginAs`) | `single` | [`single/mode-discovery.spec.ts`](../client/e2e/single/mode-discovery.spec.ts) |
+| Single-User is discovered, not configured (invariant 5) | E2E-M19-02 **/ E2E-NFR-02** (the `single` destination; the `server` one is `loginAs`) | `single` | [`single/mode-discovery.spec.ts`](../client/e2e/single/mode-discovery.spec.ts) |
 | Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | Profile under an OIDC session: picture editable, name not (FR-17.13, revised 2026-08-29) | E2E-M17-05, E2E-M17-05b | `server` | [`server/settings-profile.spec.ts`](../client/e2e/server/settings-profile.spec.ts) |
 | M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
@@ -82,7 +82,9 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M16 series & destination profile | E2E-M16-01, E2E-M16-02, E2E-M16-03, E2E-M16-04 + a G-9 back case | `local` | [`series.spec.ts`](../client/e2e/series.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M21-04, E2E-M21-05, E2E-M4-43, **E2E-FLOW-09** (the year-long round trip, since 2026-08-31) | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-10, E2E-M22-11, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
-| App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
+| App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03, **E2E-NFR-01** (the offline *write*, 2026-09-01) | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
+| Storage durability (NFR-4.11) | E2E-NFR-03, E2E-NFR-03b | `local` | [`storage-durability.spec.ts`](../client/e2e/storage-durability.spec.ts) |
+| Web Push registration (NFR-4.6) | E2E-NFR-06 | `server` | [`server/push.spec.ts`](../client/e2e/server/push.spec.ts) |
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
@@ -361,7 +363,7 @@ Two things this unit still does *not* cover, both by decision:
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
 | M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08 | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
-| M17 data export under a session (NFR-4.5) | E2E-M17-03 | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
+| M17 data export under a session (NFR-4.5) | E2E-M17-03 **/ E2E-NFR-05** | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
 
 **Why E2E-M7-06 stopped being partial (2026-08-30).** The case asks for an
 empty-state *CTA* (create / import). The screen has neither as a button: create
@@ -3928,3 +3930,63 @@ of a composition from provenance alone (the shared camera can point at only one 
 Wildlife is recognised through the telephoto), and the harvested Vorlage *references* the
 groups rather than copying them — proved by a position added to a group **after** the Vorlage
 was written arriving in next year's generation anyway.
+
+## The NFR journeys — five modes read off the wrong thing (2026-09-01)
+
+§6's seven non-functional journeys are the last cross-cutting rows of backlog
+item 6. One (NFR-04) was already carried by E2E-FLOW-08; the other six were
+read clause by clause against the app, and the pass produced five cases plus
+a correction to nearly every sentence in the table.
+
+**The recurring error was the mode.** Four of the seven entries named a mode
+that cannot exercise the promise, and each was wrong the same way: the mode was
+read off *the screen the case would use* rather than off *the request the case
+has to make*.
+
+- NFR-05 (export) said `single`. M17's data section exists in all three modes,
+  but the promise is about `downloadExport` and its auth header, and in
+  `single` there is no token to send. It is `server`, and E2E-M17-03 — the case
+  that already drives it — had had exactly this correction applied to it during
+  the M17 audit. The catalogue kept the old answer for its own copy of the same
+  sentence.
+- NFR-07 (import) said `single`. The wizard is client-side by invariant 4, so
+  the assertion is about the device, not the instance: `local`.
+- NFR-01 said `single/local` and was in practice only ever `single`.
+
+**Two sentences described something unbuildable or unbuilt, and both narrow
+rather than grow a test.** NFR-02 asked for the instance to boot "with no IdP
+reachable (no OIDC env, network to any IdP blocked)" — but a Single-User
+instance names no issuer, so there is no host to block and a route rule would
+assert against a request the app never makes. The clause is struck; the 501 on
+`/auth/config` is the whole assertable promise, and E2E-M19-02 already renders
+it. NFR-07's "imports are transactional" is an approximation the NFR itself
+admits to (validate in full, then enqueue; nothing rolls back), so the case
+asserts the clause that *is* built.
+
+**The finding worth carrying is NFR-06's**: the M17 push toggle had **no
+`data-testid`** — by now a reliable signature that no test has ever operated a
+control. Web Push had coverage at both ends and none in between: the browser
+dance is unit-covered with a fake PushManager, and delivery is
+`internal/api/push_test.go` signing against a fake push service. What neither
+could establish is that the subscription produced by the first reaches the
+instance the second reads from. E2E-NFR-06 replaces the push *service* only —
+`subscribe()` would otherwise have to reach an endpoint no CI run can — grants
+the notification permission for real, and asserts the server's own answer on
+the owner-scoped route. Removing `api.registerSubscription(...)` from
+`registerPush` turns it red.
+
+**Three more notes from writing them:**
+
+- **E2E-NFR-01 had to prove its own premise.** A case that flips
+  `setOffline(true)` and then drives the app proves nothing unless the network
+  really is the thing that is gone; dropping the service-worker wait makes it
+  fail on the first navigation, which is the evidence that the flag bites.
+- **E2E-NFR-03 asserts a call, not a pixel.** The three rendered states of the
+  storage block were already unit-covered, and all three look the same whether
+  the app asked for persistence and lost or never asked. The stub counts the
+  asks, which is the only place that clause can live.
+- **E2E-NFR-07 follows the FLOW-09 rule.** Its first half is an absence — the
+  device is untouched behind a blocked mapping — and it is worth something only
+  because the second half commits the identical sheet through the answered
+  gate, with the same locators. The locators are proven by the half that
+  expects them to resolve.
