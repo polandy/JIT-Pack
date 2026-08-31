@@ -3465,7 +3465,11 @@ is impossible in an `ion-select` that has a value outside its options, so the fi
 render empty or silently offer to move the trip. It therefore prepends the trip's own year when
 that lies outside the window. The rule the three now share is one function with the current year as
 a *parameter*, so it is testable without a clock — `YEAR_SPAN` had been written three times, once
-as a bare `6`.
+as a bare `6`. And the reviewing pass caught two things in the new code: the out-of-window year was
+*prepended*, so a 2040 trip would have sorted before 2025; and the case read the select through a
+`data-value` attribute added to production markup for no product reason, where the suite already had
+the right way (`.select-text`, from `series.spec.ts` — an assertion on the host matches every option,
+not the value).
 
 **And the note found its place by being looked at.** Put in the travellers card — beside the ✕ and
 the add row it explains — the sentence *„this trip is finished, so nothing here can be changed"*

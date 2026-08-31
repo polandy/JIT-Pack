@@ -72,7 +72,8 @@ const yearChoices = computed(() => {
   // A trip already outside the window keeps its own year on the list, or the
   // picker would silently offer to move it. An imported 2014 trip is the
   // ordinary case here, not a curiosity.
-  return current != null && !offered.includes(current) ? [current, ...offered] : offered
+  if (current == null || offered.includes(current)) return offered
+  return [...offered, current].sort((a, b) => a - b)
 })
 const startDate = ref('')
 const endDate = ref('')
@@ -251,7 +252,6 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
           <IonItem>
             <IonSelect
               data-testid="trip-edit-year"
-              :data-value="trip?.year"
               :label="t('tripEdit.year')"
               label-placement="stacked"
               interface="popover"

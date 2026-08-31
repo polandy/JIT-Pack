@@ -385,6 +385,10 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await expect(
       visible(page).getByTestId('traveler-row-Xenia').locator('input'),
     ).toHaveJSProperty('readOnly', true)
+    // The year joined this screen on 2026-08-31, and "read-only throughout"
+    // has to mean the whole screen or it decays into a list of what was true
+    // when the case was written. A select has no `readonly`; disabled is it.
+    await expect(visible(page).getByTestId('trip-edit-year')).toHaveJSProperty('disabled', true)
     await expect(removeButtons(page)).toHaveCount(0)
     await expect(visible(page).getByTestId('traveler-add')).toHaveCount(0)
     await expect(visible(page).getByTestId('traveler-add-input')).toHaveCount(0)
@@ -427,10 +431,12 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // And it survives leaving the screen — the form mirrors the trip, so a
     // value that only lives in the ref reads identically until a reload.
     await openTripEditFromList(page, 'Falsches Jahr')
-    await expect(visible(page).getByTestId('trip-edit-year')).toHaveAttribute(
-      'data-value',
-      String(thisYear + 1),
-    )
+    // `.select-text`, not the host: an `ion-select`'s own text is every option
+    // it carries, so an assertion on the host passes on a select nobody has
+    // touched (the trap E2E-M16-01 records).
+    await expect(
+      visible(page).getByTestId('trip-edit-year').locator('.select-text'),
+    ).toHaveText(String(thisYear + 1))
   })
 
   test('E2E-M22-11: a traveller renamed in place keeps the rows she already packed', async ({
