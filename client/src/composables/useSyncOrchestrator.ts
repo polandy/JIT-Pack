@@ -62,6 +62,7 @@ import type {
   VAPIDKeyResponse,
   WSEvent,
 } from '@/api/types'
+import { localIsoDate } from '@/domain/trips'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import { optimizeItemImage } from '@/lib/imageResize'
@@ -120,18 +121,6 @@ export interface CloneDraft {
   startDate: string | null
   endDate: string | null
   options: CloneOptions
-}
-
-/**
- * localIsoDate is `YYYY-MM-DD` in the device's own timezone.
- * `toISOString()` would answer in UTC, which puts a trip a day out for
- * anyone far enough east or west of it on the evening it ends.
- */
-function localIsoDate(): string {
-  const d = new Date()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${month}-${day}`
 }
 
 export interface SyncOrchestratorConfig {
@@ -244,7 +233,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       }
       return cachedSession.subject
     })
-  const today = config.today ?? localIsoDate
+  const today = config.today ?? (() => localIsoDate(Date.now()))
   if (local) syncStatus.setLocal()
 
   // G-10: per-trip presence, fed by the WS presence event.

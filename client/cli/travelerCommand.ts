@@ -2,35 +2,36 @@
  * `jitpack traveler` — read and extend a trip's roster from a shell (FR-2.5,
  * FR-18.8).
  *
- * It owns no rules of its own. A traveler is created by the same insert
- * mutation M3 and M22 write (`useMutations.addTraveler`) and pushed through
- * the ordinary trip sync endpoint, so a person added here is the same row the
- * app would have made and lands in the change log like every other write
- * (invariant 4, ADR-025). There is no REST resource for travelers and this
- * command deliberately does not ask for one.
+ * It owns no rules of its own. Adding runs M22's own action
+ * (`addTravelerToTrip`) against a command-line `SyncContext`, so the person
+ * arrives with the positions a trip that still follows its groups owes them
+ * (FR-2.7/FR-27.4) — and everything it writes is pushed through the ordinary
+ * trip sync endpoint, landing in the change log like every other write
+ * (invariant 4, ADR-025). Calling the insert mutation directly is what this
+ * command used to do, and it is why a traveller added from a shell arrived on
+ * an empty list while the same name typed on M22 did not. There is no REST
+ * resource for travelers and this command deliberately does not ask for one.
  */
 
-import { createPinia, setActivePinia } from 'pinia'
 import { APIClient } from '@/api/client'
 import { API } from '@/api/routes'
-import type { Mutation, UserListResponse } from '@/api/types'
-import { useTripStore } from '@/stores/tripStore'
-import { useMutations } from '@/composables/useMutations'
+import type { UserListResponse } from '@/api/types'
 import { usePull } from '@/composables/usePull'
 import { usePush } from '@/composables/usePush'
 import { HLCGenerator } from '@/sync/hlc'
 import { foldName } from '@/domain/nameCollision'
 import type { Trip } from '@/types/domain'
 import {
-  chunked,
   message,
   DEFAULT_SERVER,
   ENV_SERVER,
   ENV_TOKEN,
   EXIT,
+  pushPending,
   type CommandIO,
   type Connection,
 } from './common'
+import { createCommandContext } from './context'
 
 /** What the command does. Removing a person is M22's job — see the usage note. */
 export type TravelerAction = 'add' | 'list'
@@ -131,27 +132,29 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
     return EXIT.failed
   }
 
-  setActivePinia(createPinia())
-  const trips = useTripStore()
   const hlc = new HLCGenerator(io.now, io.deviceId)
   const client = new APIClient(opts.serverUrl, () => opts.token)
-  const mutations = useMutations(hlc)
+  const ctx = createCommandContext(hlc, io.now)
+  const { trips, pending, tripLifecycle } = ctx
   const { pullMasterAll, pullTripAll } = usePull(client, hlc)
-  const { pushTrip } = usePush(client, hlc)
+  const { pushMaster, pushTrip } = usePush(client, hlc)
 
   // Trips are in the master partition; the roster is in the trip's own. Both
   // have to be here before anything is planned, because both decide whether
   // this run writes at all.
   let trip: Trip
   try {
-    trips.applyChanges((await pullMasterAll(0)).changes)
+    // The whole master partition, not only the trips: the refresh the add
+    // may trigger resolves against the groups and the inventory.
+    ctx.applyPulled('master', (await pullMasterAll(0)).changes)
     const found = resolveTrip(trips.tripList, opts.trip, opts.year)
     if ('error' in found) {
       io.write(found.error)
       return EXIT.failed
     }
     trip = found.trip
-    trips.applyChanges((await pullTripAll(trip.id, 0)).changes)
+    ctx.applyPulled('trip', (await pullTripAll(trip.id, 0)).changes)
+    ctx.markTripLoaded(trip.id)
   } catch (e) {
     io.write(`${opts.serverUrl}: ${message(e)}`)
     return EXIT.failed
@@ -183,9 +186,10 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
     }
   }
 
-  const pending: Mutation[] = []
   let skipped = 0
+  let written = 0
   const taken = new Set(roster.map((p) => foldName(p.name)))
+  const reports: string[] = []
 
   for (const raw of opts.names) {
     const name = raw.trim()
@@ -199,20 +203,32 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
       io.write(`${where}: would add ${name} (dry run, not sent)`)
       continue
     }
-    pending.push(mutations.addTraveler(trip.id, name, linkedUserId).mutation)
+    // M22's action, not the mutation under it: a trip that still follows its
+    // groups owes the new person their positions (FR-2.7/FR-27.4).
+    const report = tripLifecycle.addTravelerToTrip(trip.id, name, linkedUserId)
+    if (!report) {
+      io.write(`${where}: ${name} could not be added — the trip's rows are not here`)
+      return EXIT.failed
+    }
+    written++
+    reports.push(
+      report.added + report.removed + report.kept === 0
+        ? `${where}: added ${name}`
+        : `${where}: added ${name} — ${report.added} rows added, ${report.removed} removed, ${report.kept} kept`,
+    )
   }
 
-  if (!opts.dryRun && pending.length > 0) {
+  if (written > 0) {
     try {
-      for (const chunk of chunked(pending)) await pushTrip(trip.id, chunk)
+      await pushPending(pending, pushMaster, pushTrip)
     } catch (e) {
       io.write(`${where}: failed — ${message(e)}`)
       return EXIT.failed
     }
-    for (const m of pending) io.write(`${where}: added ${String(m.fields?.['name'])}`)
+    for (const line of reports) io.write(line)
   }
 
-  const added = opts.dryRun ? opts.names.length - skipped : pending.length
+  const added = opts.dryRun ? opts.names.length - skipped : written
   io.write(`${where}: ${added} added, ${skipped} already here`)
   return EXIT.ok
 }

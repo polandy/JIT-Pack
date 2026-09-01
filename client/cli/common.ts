@@ -42,6 +42,28 @@ export function* chunked(mutations: Mutation[]): Generator<Mutation[]> {
   }
 }
 
+/**
+ * What a run has to push, in the order the app's rules produced it. Master
+ * first when both are present: a trip's rows reference travelers and items
+ * written there.
+ */
+export interface PendingWrites {
+  master: Mutation[]
+  trips: Map<string, Mutation[]>
+}
+
+/** Send one run's collected writes, chunked past the §9 cap. */
+export async function pushPending(
+  pending: PendingWrites,
+  pushMaster: (m: Mutation[]) => Promise<unknown>,
+  pushTrip: (tripId: string, m: Mutation[]) => Promise<unknown>,
+): Promise<void> {
+  for (const chunk of chunked(pending.master)) await pushMaster(chunk)
+  for (const [tripId, list] of pending.trips) {
+    for (const chunk of chunked(list)) await pushTrip(tripId, chunk)
+  }
+}
+
 export function message(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }

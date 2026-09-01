@@ -37,6 +37,37 @@ class FakeInstance {
     this.trip[id] ??= []
   }
 
+  /** One master row of any table, so a fixture can build a whole group. */
+  addMaster(table: string, id: string, row: Record<string, unknown>): void {
+    this.master.push({ seq: this.master.length + 1, table, id, deleted: false, row: { id, ...row } })
+  }
+
+  /** One row in a trip's own partition. */
+  addTripRow(tripId: string, table: string, id: string, row: Record<string, unknown>): void {
+    const feed = (this.trip[tripId] ??= [])
+    feed.push({ seq: feed.length + 1, table, id, deleted: false, row: { id, trip_id: tripId, ...row } })
+  }
+
+  /**
+   * A trip that follows one group holding one per-person position — the
+   * shape M22's add produces rows for (FR-27.4).
+   */
+  addFollowedGroup(tripId: string, itemName: string): void {
+    this.addMaster('items', 'itm-1', { name: itemName })
+    this.addMaster('templates', 'tpl-1', { owner_id: 'u-1', name: 'Makro', kind: 'group' })
+    this.addMaster('template_items', 'tpi-1', {
+      template_id: 'tpl-1',
+      item_id: 'itm-1',
+      quantity: 1,
+      assignment: 'per_person',
+      dedup: 'max',
+      conditions: null,
+      default_mode: 'pack',
+      late_packer: false,
+    })
+    this.addTripRow(tripId, 'trip_template_sources', 'src-1', { template_id: 'tpl-1' })
+  }
+
   /** One traveler already on a trip, which is what makes a second add a no-op. */
   addTraveler(tripId: string, id: string, name: string): void {
     const feed = (this.trip[tripId] ??= [])
@@ -336,5 +367,62 @@ describe('runTraveler list', () => {
     )
 
     expect(it0.lines.join('\n')).toMatch(/no travell?ers/i)
+  })
+})
+
+/**
+ * The parity this command promises (FR-18.8): what it writes is what the app
+ * would have written. M22's add is not the bare insert — a trip that still
+ * follows its groups gets the new person's positions in the same breath
+ * (FR-2.7, the FR-27.4 amendment of 2026-08-21), and a command that skips
+ * that leaves a traveller on a trip with nothing to pack while the app's own
+ * screen would have filled the list.
+ */
+describe('runTraveler add — the trip follows the roster (FR-2.7/FR-27.4)', () => {
+  it('generates the new traveller\u2019s positions, as M22 does', async () => {
+    instance.addTrip('trip-1', 'Cannobio', 2026)
+    instance.addFollowedGroup('trip-1', 'Zahnbürste')
+    const it0 = io()
+
+    const code = await runTraveler(
+      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: null, dryRun: false },
+      it0,
+    )
+
+    expect(code).toBe(EXIT.ok)
+    const written = instance.mutations.filter((m) => m.table === 'trip_items')
+    expect(written.map((m) => m.fields?.['name'])).toEqual(['Zahnbürste'])
+    // Reported, not left to be discovered: the screen says what appeared and
+    // so must the command (FR-2.7's report).
+    expect(it0.lines.join('\n')).toMatch(/1/)
+  })
+
+  /**
+   * The positive control the case above needs: the rows come from the
+   * refresh, not from something the command always does. A trip that follows
+   * nothing writes the traveller and nothing else.
+   */
+  it('writes only the traveller when the trip follows no group', async () => {
+    instance.addTrip('trip-1', 'Cannobio', 2026)
+    const it0 = io()
+
+    await runTraveler(
+      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: null, dryRun: false },
+      it0,
+    )
+
+    expect(instance.mutations.map((m) => m.table)).toEqual(['travelers'])
+  })
+
+  it('adds nothing when the run is a dry run', async () => {
+    instance.addTrip('trip-1', 'Cannobio', 2026)
+    instance.addFollowedGroup('trip-1', 'Zahnbürste')
+
+    await runTraveler(
+      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: null, dryRun: true },
+      io(),
+    )
+
+    expect(instance.pushed).toHaveLength(0)
   })
 })

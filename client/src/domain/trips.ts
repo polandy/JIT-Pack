@@ -29,6 +29,23 @@ export function tripOrderKey(trip: TripWhen): string {
 }
 
 /**
+ * localIsoDate is `YYYY-MM-DD` at `at`, in the device's own timezone.
+ * `toISOString()` would answer in UTC, which puts a trip a day out for
+ * anyone far enough east or west of it on the evening it ends.
+ *
+ * It lives beside `followsGroups` because that is what consumes it, and it
+ * takes the instant rather than reading a clock so the two callers — the
+ * app's orchestrator and the command line's context — can both supply their
+ * own (the project forbids an ambient clock).
+ */
+export function localIsoDate(at: number): string {
+  const d = new Date(at)
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${month}-${day}`
+}
+
+/**
  * followsGroups answers the one question FR-27.4 turns on: does this trip
  * still listen to the groups it was generated from?
  *

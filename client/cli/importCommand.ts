@@ -11,7 +11,6 @@
 
 import { createPinia, setActivePinia } from 'pinia'
 import { APIClient } from '@/api/client'
-import type { Mutation } from '@/api/types'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useMutations } from '@/composables/useMutations'
@@ -21,13 +20,14 @@ import { HLCGenerator } from '@/sync/hlc'
 import { optimisticInsert } from '@/sync/optimistic'
 import { parsePortableAll } from '@/domain/portable'
 import {
-  chunked,
   message,
   DEFAULT_SERVER,
   ENV_SERVER,
   ENV_TOKEN,
   EXIT,
+  pushPending,
   type CommandIO,
+  type PendingWrites,
 } from './common'
 import {
   findExistingSubject,
@@ -90,12 +90,6 @@ export function parseImportArgs(
     dryRun,
     files,
   }
-}
-
-/** One document's worth of mutations, kept per partition because they push separately. */
-interface PendingWrites {
-  master: Mutation[]
-  trips: Map<string, Mutation[]>
 }
 
 export async function runImport(opts: ImportOptions, io: CommandIO): Promise<number> {
@@ -215,7 +209,7 @@ export async function runImport(opts: ImportOptions, io: CommandIO): Promise<num
       }
 
       try {
-        await pushAll(pending, pushMaster, pushTrip)
+        await pushPending(pending, pushMaster, pushTrip)
       } catch (e) {
         io.write(`${what}: failed — ${message(e)}`)
         failed++
@@ -232,16 +226,3 @@ export async function runImport(opts: ImportOptions, io: CommandIO): Promise<num
   )
   return failed > 0 ? EXIT.failed : EXIT.ok
 }
-
-/** Master first: a trip's rows reference travelers and items written there. */
-async function pushAll(
-  pending: PendingWrites,
-  pushMaster: (m: Mutation[]) => Promise<unknown>,
-  pushTrip: (tripId: string, m: Mutation[]) => Promise<unknown>,
-): Promise<void> {
-  for (const chunk of chunked(pending.master)) await pushMaster(chunk)
-  for (const [tripId, list] of pending.trips) {
-    for (const chunk of chunked(list)) await pushTrip(tripId, chunk)
-  }
-}
-
