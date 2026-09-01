@@ -89,6 +89,17 @@ Cannobio 2026: added Sia
 Cannobio 2026: 2 added, 0 already here
 ```
 
+**Adding someone changes the packing list, exactly as the app does.** While a trip still
+follows the groups it was built from, a new person brings their own per-person positions
+with them — the same thing that happens when you type the name on the trip's own screen.
+The command says what it did, so you do not have to open the app to find out:
+
+```
+Cannobio 2026: added Sia — 14 rows added, 0 removed, 0 kept
+```
+
+A trip that follows no group, or one that is already over, simply gains the person.
+
 **Running it again is safe.** A name the trip already carries is reported and left alone, so
 a loop over a whole season tops up what is missing instead of doubling what is there:
 

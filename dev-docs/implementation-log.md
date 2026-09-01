@@ -234,6 +234,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The world that could not falsify its own clause (2026-08-31)](#the-world-that-could-not-falsify-its-own-clause-2026-08-31) — FLOW-09, and the last §5 flow. An absence assertion was green because the event it denied never happened in that world; the positive signal for an absence has to be the same event reaching somewhere else.
 - [A mode read off the screen instead of the request (2026-09-01)](#a-mode-read-off-the-screen-instead-of-the-request-2026-09-01) — the §6 NFR journeys, and the last cross-cutting rows of backlog item 6. Four of seven named a mode that cannot exercise the promise; Web Push had coverage at both ends and none in between.
 - [An absence with nothing behind it (2026-09-01)](#an-absence-with-nothing-behind-it-2026-09-01) — the PWA and SYNC rows. A never-cache assertion could not fail because the worker caches nothing at all; a requirement's whole update paragraph had no case; and §4's paging rule was written twice, with the guard in the copy the browsers run and not in the one the command line runs.
+- [A command that called the mutation and not the rule (2026-09-01)](#a-command-that-called-the-mutation-and-not-the-rule-2026-09-01) — every one of the 37 routes read for whether the API door runs what the UI door runs. The handlers are shared by construction; the divergence was in the client-side rules that run before the push, where `jitpack traveler add` wrote the row M22's action writes and skipped the consequences it runs.
 
 
 ## Current state
@@ -10718,3 +10719,96 @@ into an out-of-memory crash which takes the runner down without naming
 anything. The fake **refuses a fourth call** instead, so the unfixed loop fails
 by name.
 
+## A command that called the mutation and not the rule (2026-09-01)
+
+The question was whether an operation reaching the instance through the API
+runs what the same operation runs through the app — asked of every one of the
+37 routes `internal/api/wire.go` declares, not of a sample.
+
+Most of the answer is architecture rather than audit, and it holds. There are
+three doors into the database, and two of them are the same door:
+
+- **The sync push** (`POST /{scope}/sync`) is one handler for the app and for
+  the command line. Merge, `stampActor`, the change-log entry, the WebSocket
+  ping and the FR-6.2 notifications are downstream of it, so no caller can
+  reach the rows without them. The column allowlist in `internal/store` bounds
+  a hand-built mutation to the columns the app itself may write.
+- **The four `DELETE /api/v1/master/...` routes** have no caller in this
+  repository at all — the app writes through the push so its writes survive
+  being offline (ADR-038). Checked rather than assumed: `DeleteMasterRow`
+  mints the mutation and calls `ApplyMasterMutation`, so FR-24.3's
+  retire-or-remove decision has one implementation and the REST door runs it.
+- **The server-owned side effects** — item image, avatar, display name, the
+  admin actions, notifications, Web Push — carry their rule in the handler,
+  because there is no client-side rule to skip. `SetItemImage` stamps
+  `image_hash` and appends the change-log entry itself, so a photo uploaded by
+  a script reaches every device the same way one uploaded on M10 does.
+
+Which leaves the place where a divergence can actually live, and where it did:
+**the rules that run *before* the push**. Invariant 4 puts them in the client,
+so „the same backend" is decided by whether the other caller ran the same
+client code — and `jitpack traveler add` did not. It composed
+`mutations.addTraveler` itself. M22 does not: `addTravelerToTrip` writes the
+same insert and then runs `applyTravelerConsequences`, because a trip that
+still follows its groups owes a new person their positions (FR-2.7, the
+FR-27.4 amendment). So a name typed on the screen filled the packing list and
+the same name added from a shell left the person with nothing — on the trips
+most worth automating, the ones built from groups.
+
+The fix costs one file, `client/cli/context.ts`, because the seam already
+existed for another reason: the R-4 extraction put every action group behind a
+`SyncContext` so it could be constructed without the orchestrator. A command
+supplies the two stores, a sink that collects instead of draining, and an
+injected clock; then it calls the action. Nothing about the rule is restated.
+
+One trap came with the wiring, and it is the same shape as the defect: the
+context has to supply `today`, and the obvious `toISOString().slice(0, 10)`
+answers in **UTC**, where the app's own `localIsoDate` answers in the device's
+zone — so a command run in the evening would have decided „this trip is over"
+a day before the screen does. It was already written down, in the comment
+above the function it was being retyped beside. `localIsoDate` now lives once,
+in `domain/trips.ts` beside the `followsGroups` that consumes it, and takes
+the instant instead of reading a clock. Its case turns the day at *local*
+midnight, which is right in every zone and discriminating in all but UTC.
+
+**The rule to carry: a command calls the action, never the mutation factory.**
+A mutation is what a rule ends in, not the rule — and the mistake reads as
+correct in review, because the docstring that claimed „the same insert
+mutation M3 and M22 write" was true. FR-18.8 and ADR-042 both now say the
+action, which is what „runs the app's own code" has to mean.
+
+The second reading was of the tests rather than the code: of the 43
+method-and-path pairs the mux registers, **42 have a Go handler test**, and
+the failure paths are covered across the same files rather than in one place.
+The one that had none is `/health` — which is not an API and is therefore the
+easiest to overlook: it is the liveness gate every shipped compose file runs
+`wget --spider` against, and `docs/getting-started.md` promises an operator a
+200 with an empty body. A rename or a 204 would have surfaced as a container
+that never becomes healthy, at deploy time, on someone else's machine. It has
+a case now, including the method it does not serve.
+
+Worth keeping about the counting itself: a first pass called eight pairs
+untested and seven of those were the matcher's fault — a test that builds its
+URL in a helper, a table-driven case, or `srv.URL + api.RouteInstanceConfig`
+never contains the path as one literal. **A grep over paths measures how
+tests are written, not what they cover**; only opening the seven said which.
+
+Four more things the sweep looked at and left standing, each written down so
+the next sweep does not re-derive them:
+
+- `POST /me/tokens` is the one route that refuses an API token — a token
+  cannot mint a token (ADR-039). That is an asymmetry between the doors on
+  purpose, and the only one.
+- The app optimises a JPEG before `PUT`ting an avatar or an item image; a
+  script can post any JPEG inside the same 100 KB / 150 KB limit, which both
+  doors are held to at handler, store and CHECK. The difference is picture
+  quality, not a rule, and enforcing dimensions server-side would be a new
+  rule rather than a repaired one.
+- An avatar is cache-busted by a counter the *viewing* device holds, so a
+  change made by anybody else is up to an hour stale — equally through either
+  door, so it is not a parity defect. It is the tail of the M20 finding and
+  stays open as its own question.
+- `travelers.linked_user_id` is writable only from the command line
+  (`--user`) and read only by `traveler list`. The API can do something no
+  screen can, which is the mirror image of this section's defect and still an
+  open owner decision.
