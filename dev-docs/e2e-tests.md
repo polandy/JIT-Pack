@@ -75,6 +75,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M2 opening segment, settled guard | E2E-M2-14 | `single` | [`single/opening-segment.spec.ts`](../client/e2e/single/opening-segment.spec.ts) |
 | Single-User is discovered, not configured (invariant 5) | E2E-M19-02 **/ E2E-NFR-02** (the `single` destination; the `server` one is `loginAs`) | `single` | [`single/mode-discovery.spec.ts`](../client/e2e/single/mode-discovery.spec.ts) |
 | Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
+| Avatar pan/zoom crop and upload (FR-17.13) | E2E-M17-12 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | Profile under an OIDC session: picture editable, name not (FR-17.13, revised 2026-08-29) | E2E-M17-05, E2E-M17-05b | `server` | [`server/settings-profile.spec.ts`](../client/e2e/server/settings-profile.spec.ts) |
 | M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M18 portable import (merge preview) | E2E-M18-01, E2E-M18-02, E2E-M18-03, E2E-M18-04 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
@@ -1473,14 +1474,18 @@ itself.
 Mutation-proved: with `nav.trips` set to `Trips` in the German catalogue the
 case fails on the rendered label, twice, including the retry.
 
-**One surface stays out of e2e reach, and is covered instead** (2026-08-22):
-the avatar crop modal (FR-17.13) opens only after the browser's own file
-picker, which Playwright cannot drive through the app. Its shell — placement,
-the canvas crop, the object-URL release on both exits, and its four catalogue
-labels — is pinned in
-[`src/components/settings/__tests__/AvatarCropModal.spec.ts`](../client/src/components/settings/__tests__/AvatarCropModal.spec.ts).
-Named here rather than left silent: the ledger's job is to say what *is not*
-covered by a run as much as what is.
+**A surface that was recorded as out of e2e reach, and was not** (written
+2026-08-22, corrected 2026-09-01): this said the avatar crop modal (FR-17.13)
+opens only after the browser's own file picker, which Playwright cannot drive.
+`setInputFiles` fills a hidden `<input type=file>` without any picker, so the
+modal was always reachable — and the sentence is what kept E2E-M17-12 open for
+ten days while the stage carried a defect no other layer could see. It is
+driven now, from `single/settings-profile.spec.ts`. Its shell — placement, the
+canvas crop, the object-URL release on both exits, and its four catalogue
+labels — stays pinned in
+[`src/components/settings/__tests__/AvatarCropModal.spec.ts`](../client/src/components/settings/__tests__/AvatarCropModal.spec.ts),
+which is the layer that cannot see rendered geometry: it asserts the inline
+`width` the browser then refused to apply.
 
 ## M22 — a trip's properties and its travellers (`e2e/trip-properties.spec.ts`, 2026-08-21)
 
@@ -2460,14 +2465,18 @@ as a component test in `SettingsPage.spec.ts`, both assertions
 mutation-proven — reverting the flag reddens the picture case, making the name
 editable reddens the other.
 
-**What is not:** picking a file, positioning the crop and uploading — the open **E2E-M17-12**, which this revision widens from `single` to both projects. No project
-has ever driven `AvatarCropModal.vue`, and the signature is the familiar one —
-**the component carries no `data-testid` at all**, the same tell that marked M20
-as never-rendered before #242.
-
-**Why it was not added here.** The modal renders the chosen file into a canvas
-and the upload waits on that. There is no settled signal to assert against, so
-a case today could only wait-and-hope, which the testing rules forbid outright.
+**What is not, and why the reason given here was wrong** (corrected
+2026-09-01): picking a file, positioning the crop and uploading was recorded as
+unreachable — no `data-testid` on `AvatarCropModal.vue`, and a canvas with no
+settled signal, so a case *could only wait-and-hope*. Neither held.
+`setInputFiles` needs no dialog and no test id (the modal's own markup is
+addressable — it has ids now, added with the case, because a style class is not
+a seam), and the settled signal is the uploaded picture appearing on the
+profile row. **E2E-M17-12 is implemented** in `single/settings-profile.spec.ts`,
+and rendering the stage for the first time found the defect the owner reported
+the same day. It is not claimed for `server`: what that project owns is whether
+the control is *offered* under an OIDC session (E2E-M17-05); the crop is the
+same component in both.
 The fix belongs in the production code — a completion signal on the modal, the
 same seam the G-2 indicator grew for in-flight Local Mode writes — and that is a
 change of its own rather than a rider on a one-flag PR.
