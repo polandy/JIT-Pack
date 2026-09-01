@@ -238,6 +238,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A column decided by what removing it would cost (2026-09-01)](#a-column-decided-by-what-removing-it-would-cost-2026-09-01) — `travelers.linked_user_id` stays, inert: building a reader costs a notification per generated row, and dropping a column now means rebuilding a live instance, because invariant 2 has no migration path. The defect was the manual's sentence about it.
 - [A premise that had closed a case for ten days (2026-09-01)](#a-premise-that-had-closed-a-case-for-ten-days-2026-09-01) — the avatar crop stage never zoomed, because Ionic caps every `img` at its container. Three layers were green: the geometry is pure and right, and the component spec asserts the inline width the browser then refused to apply. What kept it hidden was a sentence, copied into three documents, saying the case could not be written.
 - [A socket that died was never dialled again (2026-09-01)](#a-socket-that-died-was-never-dialled-again-2026-09-01) — the family instance synced one way. The receiving tab had no WebSocket and the client's whole close handling was `socket = null`; Sync-API P-1's reconnect and §9's ping had been sentences since v1.0. What was built on both sides, the options weighed, and two harness traps `routeWebSocket` set.
+- [The second container was the routing table (2026-09-02)](#the-second-container-was-the-routing-table-2026-09-02) — one image now serves the client and the API. Why the runtime web root beat `go:embed` (a fresh clone must still compile), why a green `docker build` proved nothing about the bundle, and the two decisions the Go file server takes differently from `try_files`.
 
 
 ## Current state
@@ -11003,3 +11004,55 @@ a defect. When a spec sentence describes behaviour, grep for the code that
 does it before trusting the sentence — the same shape as every *„this case
 cannot be written"* this programme has found, from the other side.
 
+
+## The second container was the routing table (2026-09-02)
+
+JIT-Pack shipped as two images: `jit-pack` (the Go binary, three route
+prefixes, no HTML) and `jit-pack-client` (the bundle inside nginx, proxying
+`/api/`, `/ws` and `/health` at an upstream hard-wired to the hostname `app`).
+The question that started this was whether one would do. It would, and the
+reason is worth more than the saved container.
+
+**The proxy existed to satisfy a rule the proxy could break.** The API sets no
+CORS headers and the WebSocket refuses a cross-origin handshake, so the two
+halves must share an origin — which nginx *arranged*, and which nginx could
+therefore get wrong. It did, once, on the family instance: `Host $host` drops
+the port, so every dial from `:3000` was answered 403 while the whole REST
+surface stayed green (#181, and `scripts/proxy-host-gate.mjs` is that repair).
+One server does not arrange the same origin; it is one. The gate now guards
+only the manual's copy-paste blocks, because the shipped configuration it was
+written for is gone.
+
+**Why a runtime directory and not `go:embed`.** Embedding is the better
+headline — one file *is* the app — and it was rejected on driver 3 of ADR-043:
+`go:embed` cannot reach outside its own package, so `client/dist` would have to
+be copied into `internal/webui/` before any Go build, and a fresh clone would
+stop compiling until Node had run. The usual escape, committing a placeholder
+`index.html`, buys exactly the failure the change is against — an image built
+with the placeholder starts, passes its healthcheck, and serves a white page.
+`JITPACK_WEB_ROOT` keeps `go build ./...` a Go-only operation and makes the
+missing bundle a *startup error naming the path*.
+
+**A built image is not a served app.** `docker build .` succeeding says nothing
+about whether the bundle reached `/srv/web`: the COPY could land anywhere, the
+env var could be unset, the client build could emit nothing, and every one of
+those produces an image that starts, reports healthy, answers `/health`, and
+404s every browser. Nothing else in CI would have seen it — the e2e suite runs
+against `vite preview`, never against the image. So `docker-build` now starts
+the container and asks for both halves (`scripts/docker-smoke.sh`), waiting on
+the container's own health status rather than on a sleep.
+
+**Two things the file server decides that nginx decided differently.** A path
+naming a file that is not there is a **404**, where `try_files` hands back
+`index.html` — returning HTML to a request for a script turns a missing asset
+into a syntax error somewhere unrelated; only an extension-less path gets the
+history fallback. And the cache rules are now the app's own and tested:
+`/assets/` is immutable for a year because Vite hashes those names, everything
+else — `index.html`, `sw.js`, the icons — is `no-cache`, which is what NFR-4.13's
+update policy needs from the transport and what nginx was leaving to defaults.
+
+The transferable one: **the README had claimed "One container" since the
+quickstart was written**, and `docker run ghcr.io/polandy/jit-pack` served a 404
+at `/` the whole time. The sentence was not a lie about the image; it was a
+description of the shape the project thought it had. A document that describes
+an *intention* reads exactly like one that describes a fact.

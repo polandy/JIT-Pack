@@ -48,6 +48,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [040](ADR-040_Formatting_Is_Checked_Not_Applied.md) | Formatting is checked, not applied — the bot stops pushing to the branch | Accepted |
 | [041](ADR-041_Grid_Preview_Shows_The_Grid.md) | M15's parser preview shows **the grid itself**, over a summary of what it found (FR-16.2) | Accepted |
 | [042](ADR-042_Automation_Runs_The_Command_Line.md) | Automation reaches the app through **`jitpack COMMAND`** over the client's own rules, over per-entity REST resources (which would need every rule a second time in Go) or documenting the raw sync push (FR-18.7/18.8) | Accepted |
+| [043](ADR-043_One_Container_Serves_Both.md) | **One container serves the client and the API** from `JITPACK_WEB_ROOT`, over embedding the bundle in the binary (which would break `go build` in a fresh clone) or keeping the SPA-plus-nginx image (which left the same-origin rule to the operator, and it failed silently) | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 

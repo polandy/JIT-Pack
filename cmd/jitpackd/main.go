@@ -13,6 +13,7 @@ import (
 
 	"jitpack/internal/api"
 	"jitpack/internal/store"
+	"jitpack/internal/webui"
 )
 
 func main() {
@@ -81,9 +82,22 @@ func main() {
 		srv.SetCurrency(cfg.Currency)
 	}
 
+	// The API first, then the client bundle around it when this process is
+	// also the web server (ADR-043). A configured root that cannot be served
+	// stops the process: an instance answering a white page hides the mistake
+	// until someone opens a browser.
+	handler := srv.Handler()
+	if cfg.WebRoot != "" {
+		handler, err = webui.Handler(cfg.WebRoot, handler, api.APIPrefix, api.RouteWS, api.RouteHealth)
+		if err != nil {
+			log.Fatalf("web ui: %v", err)
+		}
+		log.Printf("serving the client from %s", cfg.WebRoot)
+	}
+
 	httpSrv := &http.Server{
 		Addr:         cfg.Listen,
-		Handler:      srv.Handler(),
+		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,

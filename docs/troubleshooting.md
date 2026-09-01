@@ -112,11 +112,12 @@ keys up by itself — no restart is needed.
 **Symptom:** logging in, loading trips, and saving changes all work, but a change made on
 one device never appears on another until you reload the app.
 
-**Cause:** your reverse proxy is not carrying the WebSocket connection. This one has
-genuinely bitten a deployment, because of a detail that is easy to miss: the socket is
-registered at **`GET /ws`** — at the root, *outside* the `/api/v1` prefix. A proxy rule
-that forwards `/api` to the backend and nothing else leaves the app fully functional and
-silently non-live.
+**Cause:** your reverse proxy is not carrying the WebSocket connection. The default
+deployment forwards everything for one hostname to one container, so there is no route to
+get wrong — but if you split the paths yourself (serving the client from your own web
+server), the socket is registered at **`GET /ws`**, at the root and *outside* the
+`/api/v1` prefix. A rule that forwards `/api` to the backend and nothing else leaves the
+app fully functional and silently non-live.
 
 The second half of the same cause is upgrade headers: even with `/ws` routed, the proxy
 must pass `Upgrade` and `Connection` through and must not impose a short idle timeout that
@@ -131,10 +132,10 @@ even though the hostname matches. Use `$http_host`, which forwards what the brow
 The tell is in the backend log: `request Origin "…:3000" is not authorized for Host "…"`,
 with the two names differing.
 
-**Fix:** route `/ws` to the backend, allow the WebSocket upgrade, and forward the
-browser's `Host` unchanged.
-[Installation](installation.md) has working reverse-proxy configuration; the reference
-Docker setup proxies `/api`, `/ws`, and `/health`.
+**Fix:** allow the WebSocket upgrade, forward the browser's `Host` unchanged, and — if you
+split the paths yourself — route `/ws` to the backend.
+[Installation](installation.md#putting-a-reverse-proxy-in-front) has working reverse-proxy
+configuration.
 
 To confirm the socket is the problem, watch for a `101 Switching Protocols` in your proxy
 access log when the client connects. If you reproduce the handshake with `curl`, send the

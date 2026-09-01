@@ -13,24 +13,20 @@ updates:
     schedule:
       interval: weekly
   - package-ecosystem: docker
-    # Majors included, deliberately: a build-image major is also a toolchain
-    # decision (golang here, node in /client), and letting Dependabot open the
-    # PR is what makes it arrive without anyone remembering. It cannot merge
-    # alone — scripts/toolchain-pins-gate.sh fails the docker-build job until
+    # One Dockerfile, both toolchains (ADR-043): golang and node build the
+    # single published image. Majors included, deliberately — a build-image
+    # major is also a toolchain decision, and letting Dependabot open the PR
+    # is what makes it arrive without anyone remembering. It cannot merge
+    # alone: scripts/toolchain-pins-gate.sh fails the docker-build job until
     # mise.toml, ci.yml and go.mod agree with it.
     directory: /
-    schedule:
-      interval: weekly
-  - package-ecosystem: docker
-    # client/Dockerfile — the SPA/nginx image published beside the backend.
-    directory: /client
     schedule:
       interval: weekly
     ignore:
       # Odd-numbered Node majors never become LTS: they are Current for six
       # months and then end of life. Even majors do reach LTS in the October
       # after their release, so they stay enabled and the toolchain-pins gate
-      # decides when the repo is ready to move — see the root entry above.
+      # decides when the repo is ready to move.
       # Without this, October 2026 points Dependabot at 27 and the bump the
       # repo actually wants (26, LTS from that same month) stops being offered.
       #
