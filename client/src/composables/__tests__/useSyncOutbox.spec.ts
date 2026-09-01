@@ -743,6 +743,49 @@ describe('SyncOutbox durability', () => {
       expect(outbox.getCursor('master', null)).toBe(717)
     })
 
+    /*
+     * Sync-API §3: a pull snapshot is the only place a device meets the clock
+     * of a write it did not make, and advancing to it is what keeps a device
+     * whose wall clock lags from minting HLCs older than writes it has already
+     * seen. The rule was asserted only on `usePull` — the command line's copy
+     * — while the drain every browser actually runs had no case at all, which
+     * is how the step managed to be dead code for a year (the server was not
+     * sending the field) without a single red test.
+     */
+    it('advances the clock to the clocks the pulled rows carry', async () => {
+      const seen = '0000000005000-0001-deadbeef'
+      client.get = vi.fn().mockResolvedValue({
+        changes: [{ seq: 1, table: 'items', id: 'i1', deleted: false, row: { updated_hlc: seen } }],
+        next_cursor: 1,
+        has_more: false,
+      } satisfies PullResponse)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      await outbox.drain('master', null)
+
+      expect(hlc.observe).toHaveBeenCalledWith(seen)
+    })
+
+    it('keeps the rest of a page whose one clock cannot be parsed', async () => {
+      const good = '0000000005000-0001-deadbeef'
+      client.get = vi.fn().mockResolvedValue({
+        changes: [
+          { seq: 1, table: 'items', id: 'i1', deleted: false, row: { updated_hlc: 'not-a-clock' } },
+          { seq: 2, table: 'items', id: 'i2', deleted: false, row: { updated_hlc: good } },
+        ],
+        next_cursor: 2,
+        has_more: false,
+      } satisfies PullResponse)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      await outbox.drain('master', null)
+
+      // The unusable value costs its own row and nothing else: the second row
+      // is still observed, and the page still reached the stores.
+      expect(hlc.observe).toHaveBeenCalledWith(good)
+      expect(onChanges).toHaveBeenCalled()
+    })
+
     it('stops rather than spinning when the server does not advance the cursor', async () => {
       // A server that claims more and hands back nothing would otherwise be an
       // infinite loop on the boot path — a hung tab, not a failed request.

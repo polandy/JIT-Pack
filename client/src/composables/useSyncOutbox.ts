@@ -21,7 +21,8 @@
 import { API } from '@/api/routes'
 import { APIRequestError, type APIClient } from '@/api/client'
 import type { Mutation, PullChange, PullResponse, PushResponse } from '@/api/types'
-import { observeRemote, type HLCGenerator } from '@/sync/hlc'
+import type { HLCGenerator } from '@/sync/hlc'
+import { hasFurtherPage, observePulledClocks } from '@/sync/pullProtocol'
 import type { OutboxStore, ParkedMutation, PartitionKey } from '@/sync/outboxStore'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
 
@@ -404,19 +405,13 @@ export class SyncOutbox {
 
       if (pullResp.changes.length > 0) {
         this.onChanges(pullResp.changes)
-        for (const c of pullResp.changes) {
-          if (c.row && typeof c.row['updated_hlc'] === 'string') {
-            // See observeRemote: one unusable clock must not cost the page.
-            observeRemote(this.hlc, c.row['updated_hlc'])
-          }
-        }
+        observePulledClocks(this.hlc, pullResp.changes)
       }
 
       this.cursors.set(key, pullResp.next_cursor)
-      // A server that claims more and does not move the cursor would spin
-      // this loop for ever — a hung tab on the boot path, which is worse
-      // than a short feed. Progress is the condition, not the claim.
-      hasMore = pullResp.has_more && pullResp.next_cursor > cursor
+      // Progress, not the claim — the rule and its reason live in
+      // pullProtocol.ts, which the command line's pull follows too.
+      hasMore = hasFurtherPage(pullResp, cursor)
     }
   }
 

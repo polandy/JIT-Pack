@@ -369,7 +369,20 @@ it. Item numbers stay stable even as items close, because the log refers back to
    inline error would report a healthy instance as unreachable; and **FR-10.3's threshold was
    configurable in the document and fixed in the product**, so the ruling deleted the reader
    rather than adding a writer. What is left of item 6 is cross-cutting —
-   FLOW-*, PWA, SYNC and the NFR rows. **The FLOW-* pass is running (2026-08-31):** FLOW-03 was
+   FLOW-*, PWA, SYNC and the NFR rows. **The PWA and SYNC rows closed 2026-09-01, and neither
+   product was a missing test.** E2E-PWA-02's absence assertion **could not fail against the rule
+   it named** — the worker writes no runtime cache entries at all, so „nothing was cached for
+   `/health`" stayed green with the whole never-cache rule deleted; it is rewritten around a
+   *planted response*, the seam that makes „the worker never answers this path" falsifiable, and
+   covers all three of `/api`, `/ws`, `/health`. Beside it, NFR-4.13's whole **update policy**
+   paragraph had no case on any id (**E2E-PWA-04**, new: a second worker waits, the G-2 dot and
+   sentence announce it, nothing reloads or takes over the running page, and the next launch —
+   which is a closed page, never a reload — activates it). The SYNC row found §4's paging rule
+   **written twice**: the progress guard against a server that claims another page without moving
+   the cursor had reached `SyncOutbox.drain` and not the command line's `usePull`, and §3's
+   observe step was asserted only on the copy the command line runs while the drain every browser
+   runs had no case at all. Both rules are named once now (`client/src/sync/pullProtocol.ts`) and
+   both callers have cases. Log: *„An absence with nothing behind it"*. **The FLOW-* pass is running (2026-08-31):** FLOW-03 was
    already covered by the screen case whose journey it is and owed one clause; FLOW-04 was not,
    and found M14's harvest coming back per-traveler because the one writer that named no
    assignment took the mutation's default; FLOW-05 found the migrated history worth something

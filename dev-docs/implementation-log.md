@@ -232,6 +232,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The one screen that read somebody else's partition (2026-08-31)](#the-one-screen-that-read-somebody-elses-partition-2026-08-31) — FLOW-05. The migrated history was worth something only on the device that typed it in: M3's hint read other trips' rows without asking for them, and an unpulled partition reads as a trip that packed none of it.
 - [The migration whose first step is not in the app (2026-08-31)](#the-migration-whose-first-step-is-not-in-the-app-2026-08-31) — FLOW-07. Leaving Local Mode is written nowhere but M19's first launch, so the move is device-to-device; and only a third device, which has seen nothing but the server, can tell a restored row from a pushed one.
 - [The world that could not falsify its own clause (2026-08-31)](#the-world-that-could-not-falsify-its-own-clause-2026-08-31) — FLOW-09, and the last §5 flow. An absence assertion was green because the event it denied never happened in that world; the positive signal for an absence has to be the same event reaching somewhere else.
+- [An absence with nothing behind it (2026-09-01)](#an-absence-with-nothing-behind-it-2026-09-01) — the PWA and SYNC rows. A never-cache assertion could not fail because the worker caches nothing at all; a requirement's whole update paragraph had no case; and §4's paging rule was written twice, with the guard in the copy the browsers run and not in the one the command line runs.
 
 ## Current state
 
@@ -10611,3 +10612,65 @@ the mode was `single`, where every rule in the chain runs client-side on one dev
 4); and *„the fold-back appears as an applied change"* is the model FR-27.4 had until
 2026-08-18 — it is asked. The same sentence had already been corrected once, on E2E-M8-05, which
 is the argument for correcting it here rather than in the next reader's head.
+
+
+## An absence with nothing behind it (2026-09-01)
+
+The last two rows of backlog item 6's cross-cutting remainder — **PWA** and
+**SYNC** — read the way the screens were read: clause by clause, against the
+requirement rather than against the test names.
+
+**An absence assertion needs the mechanism that would produce the presence.**
+E2E-PWA-02 guarded NFR-4.13's never-cache rule by asserting that no cache entry
+appeared for `/health` after fetching it with the worker in control. The worker
+**writes no runtime cache entries at all** — install-time `addAll` and nothing
+else — so that assertion is green no matter what the fetch handler does with
+`/health`. Measured, not reasoned: with `bypassed()`'s whole body replaced by
+`return false`, all three PWA cases still passed. The ledger's own red-prove had
+been honest and still missed it, because it mutated **two** things at once —
+the bypass removed *and* a `cache.put` added — and only the second was carrying
+the assertion. What the rule actually promises is that the worker never
+*answers* those paths, and the seam that makes that falsifiable is to give it
+something to answer with: a marker response planted in a cache of the test's
+own, which `caches.match` finds anywhere on the origin. The rewritten case
+covers all three of `/api`, `/ws` and `/health` — where one had stood in for the
+class — and plants the same marker on a path the rule does *not* cover as its
+positive signal.
+
+**A requirement paragraph with no case on any id.** NFR-4.13's *Update policy*
+— a new version installs in the background, is announced through the G-2
+indicator, never reloads the running app, and takes over on the next launch —
+had never been driven end to end; `registerAppServiceWorker`'s unit test drives
+the watcher against a fake container, and no test had ever put a second worker
+on the origin. What makes it drivable is that **a registration is keyed by
+scope**: registering a *different script URL* on `/` installs into the
+registration the app is already holding, so the app's own `updatefound` fires
+and the case can read the screen. Two things had to be asserted positively
+rather than as absences — a `window` marker no reload survives, and a count of
+`controllerchange` events — and the last step has to **close the page**, because
+a reload does not release a controlled client and the waiting worker would never
+activate. The `oneLivePage` fixture grew a `page.isClosed()` guard for it.
+
+**Two implementations of one protocol rule, and the guard reached one of them.**
+The SYNC row's finding was not a missing test. §4's paged pull lives in
+`SyncOutbox.drain` (every browser) and in `usePull.pullMasterAll`/`pullTripAll`
+(the FR-18.7/18.8 command line). The duplication was recorded here the day it
+was created — *„Not fixed, still true"*, 2026-08-25 — and it drifted exactly
+where that note said it would: the progress guard that stops a pull when
+`next_cursor` fails to advance was added to the drain alone, so a server
+claiming another page without moving the cursor left `jitpack import` spinning
+for ever on a machine nobody is watching. The rule is named once now
+(`client/src/sync/pullProtocol.ts`) and both callers ask it.
+
+Its twin is the same defect seen from the other side. §3's observe step — a
+device advancing its clock to every clock a pull carries — was asserted **only
+on the command line's copy**, so the drain every browser runs had no case for
+it at all. That is how the step managed to be dead code for a year (the server
+was not sending the field, found 2026-08-25) with nothing red anywhere: the one
+test that watched it watched the copy nobody ran. Both callers have cases now.
+
+One trap with a price: the command-line cases assert a loop that does not
+terminate against the unfixed code, and a fake that answers for ever turns that
+into an out-of-memory crash which takes the runner down without naming
+anything. The fake **refuses a fourth call** instead, so the unfixed loop fails
+by name.
