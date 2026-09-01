@@ -234,6 +234,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The world that could not falsify its own clause (2026-08-31)](#the-world-that-could-not-falsify-its-own-clause-2026-08-31) — FLOW-09, and the last §5 flow. An absence assertion was green because the event it denied never happened in that world; the positive signal for an absence has to be the same event reaching somewhere else.
 - [A mode read off the screen instead of the request (2026-09-01)](#a-mode-read-off-the-screen-instead-of-the-request-2026-09-01) — the §6 NFR journeys, and the last cross-cutting rows of backlog item 6. Four of seven named a mode that cannot exercise the promise; Web Push had coverage at both ends and none in between.
 - [An absence with nothing behind it (2026-09-01)](#an-absence-with-nothing-behind-it-2026-09-01) — the PWA and SYNC rows. A never-cache assertion could not fail because the worker caches nothing at all; a requirement's whole update paragraph had no case; and §4's paging rule was written twice, with the guard in the copy the browsers run and not in the one the command line runs.
+- [A premise that had closed a case for ten days (2026-09-01)](#a-premise-that-had-closed-a-case-for-ten-days-2026-09-01) — the avatar crop stage never zoomed, because Ionic caps every `img` at its container. Three layers were green: the geometry is pure and right, and the component spec asserts the inline width the browser then refused to apply. What kept it hidden was a sentence, copied into three documents, saying the case could not be written.
 
 
 ## Current state
@@ -10717,4 +10718,47 @@ terminate against the unfixed code, and a fake that answers for ever turns that
 into an out-of-memory crash which takes the runner down without naming
 anything. The fake **refuses a fourth call** instead, so the unfixed loop fails
 by name.
+## A premise that had closed a case for ten days (2026-09-01)
 
+Owner report: the profile picture's crop stage does not zoom — the slider only
+slides the photo around — and the saved picture is not the one the circle
+showed. One cause, both symptoms: Ionic's global reset carries
+`img { max-width: 100% }`, and the stage's `<img>` is a 260 px box's child, so
+the inline `width: 520px` that `coverScale()` asks for is painted as 260. At
+rest the picture is letterboxed rather than covering; every zoom raises a width
+that is already above the cap, so nothing on screen changes while `onZoom()`
+goes on recomputing the offsets — the photo moves. And `sourceRect()` crops at
+the real scale, which the display never applied, so the 256×256 that is saved
+is a different rectangle from the visible one. The fix is one declaration.
+
+**Three layers were green over it, and two of them by construction.**
+`avatarCrop.ts` is pure and right — the arithmetic was never the fault.
+`AvatarCropModal.spec.ts` asserts `style` **contains** `width: 520px`, which is
+exactly the value the browser refused to apply: an assertion on the intent, in
+an environment with no layout. That is invariant 9b from its other side, and
+the same shape as M16's field that was in the DOM with no width.
+
+**What actually kept it hidden is a sentence.** The component spec's header,
+the ledger and the UI-Test-Spec entry all said the same thing in different
+words: the modal opens behind a native file dialog, Playwright cannot drive it,
+the component carries no `data-testid`, the canvas offers no settled signal —
+so E2E-M17-12 *could only wait-and-hope*. Every clause of that was wrong.
+`setInputFiles` fills a hidden `<input type=file>` with no dialog at all; a test
+id is not required to address a modal's own markup; and the settled signal is
+the uploaded picture appearing on the profile row. The entry had even been
+**re-verified** during the M17 audit — but what was re-read was the blocker's
+*symptom* (`data-testid` still absent) rather than its *claim*, and the claim
+was the false part. This is the third time in this programme that a sentence
+declaring a case unwritable was sitting on a defect (G-10's race, M20's
+unchanged pixel), and the first where the sentence was copied into three
+documents, which is what made it read as established.
+
+The case is written, red-proved against the unfixed build (painted 260 where
+the crop math intended 520) and green with the declaration restored. It asserts
+both numbers, because *painted equals intended* is the statement that ties what
+the person positions to what the app saves — the half no unit test can make.
+
+Two spec sentences were corrected against the screen with it: the entry's
+*reflected in the dashboard greeting* (the greeting is a time-of-day line and
+carries neither a name nor a picture) and UI-Spec M17's list of surfaces that
+follow the profile, which claimed the same thing.

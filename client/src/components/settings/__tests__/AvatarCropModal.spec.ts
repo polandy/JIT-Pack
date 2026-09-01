@@ -3,9 +3,16 @@
  * FR-17.13 — the avatar crop modal.
  *
  * The geometry is pure and covered in `lib/__tests__/avatarCrop.spec.ts`;
- * what is pinned here is the shell around it, which nothing reached before:
- * the modal opens only behind a native file dialog, so no Playwright project
- * can drive it, and its four localized strings had no test at all.
+ * what is pinned here is the shell around it: the placement, the two exits and
+ * the four localized strings.
+ *
+ * This header used to say the modal "opens only behind a native file dialog,
+ * so no Playwright project can drive it". That was wrong — `setInputFiles`
+ * fills a hidden `<input type=file>` with no dialog — and it kept E2E-M17-12
+ * closed while the rendered stage carried a defect **this layer cannot see**:
+ * the assertions below read the inline `width` style, and Ionic's global
+ * `img { max-width: 100% }` then clamped it in the browser. The case that can
+ * see it is `e2e/single/settings-profile.spec.ts`.
  *
  * Two of these are leak checks rather than feature checks. `createObjectURL`
  * hands out a reference the browser keeps alive until it is revoked, and both

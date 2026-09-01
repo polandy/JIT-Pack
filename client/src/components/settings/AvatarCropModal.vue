@@ -218,6 +218,10 @@ function cancel() {
   position: absolute;
   user-select: none;
   pointer-events: none;
+  /* Ionic's global reset caps every img at `max-width: 100%`, which is the
+   * stage — so the cover scale and every zoom above it were clamped to 260px
+   * while the crop math went on using the real scale. */
+  max-width: none;
 }
 
 /* Circular cut-out: a huge box-shadow dims everything outside the circle. */
