@@ -22,6 +22,7 @@ import { IonIcon } from '@ionic/vue'
 import {
   closeOutline,
   downloadOutline,
+  flashOutline,
   gitMergeOutline,
   listOutline,
   sparklesOutline,
@@ -62,6 +63,13 @@ const props = withDefaults(
      * awareness, and without it a `merged` push was silent.
      */
     conflictCount?: number
+    /**
+     * Whether the WebSocket is open (Sync-API §7). Server Mode only: the
+     * glyph's state is about this device's own changes reaching the server,
+     * and says nothing about other devices' changes reaching this one — a
+     * dead socket under a green glyph was a deaf device that looked fine.
+     */
+    live?: boolean
     /** Run mode: it, not the state, decides which half of the sheet applies. */
     mode: 'local' | 'server'
     /** Whether a trip is open, i.e. whether its own conflict log exists. */
@@ -82,7 +90,7 @@ const props = withDefaults(
   }>(),
   // Durability is assumed until the outbox reports it lost — a device that
   // never had a queue to keep has not failed to keep one.
-  { queueDurable: true, parkedCount: 0, conflictCount: 0 },
+  { queueDurable: true, parkedCount: 0, conflictCount: 0, live: false },
 )
 
 const emit = defineEmits<{ close: []; conflicts: []; masterConflicts: []; backup: [] }>()
@@ -180,6 +188,18 @@ const backupAge = computed(() => {
     <p v-if="showConflicted" class="note" data-testid="sync-detail-conflicted">
       <IonIcon :icon="gitMergeOutline" />
       <span>{{ t('sync.detail.conflicted', { n: conflictCount ?? 0 }) }}</span>
+    </p>
+
+    <!-- Sync-API §7/§9: whether *other* devices' changes are reaching this
+         one right now. Both lines render on purpose — an absence needs a
+         positive signal to be asserted against. -->
+    <p v-if="!isLocal && live" class="note" data-testid="sync-detail-live">
+      <IonIcon :icon="flashOutline" />
+      <span>{{ t('sync.detail.live') }}</span>
+    </p>
+    <p v-else-if="!isLocal" class="warn" data-testid="sync-detail-live-gap">
+      <IonIcon :icon="warningOutline" />
+      <span>{{ t('sync.detail.liveGap') }}</span>
     </p>
 
     <!-- NFR-4.13: a waiting update concerns every mode — the bundle, not the data. -->

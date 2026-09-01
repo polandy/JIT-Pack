@@ -323,3 +323,35 @@ describe('SyncDetailSheet — the durable queue', () => {
     expect(has(wrapper, 'sync-detail-storage')).toBe(true)
   })
 })
+
+/**
+ * Sync-API §7/§9 — whether other devices' changes are reaching this one. The
+ * glyph's four states are about this device's own changes reaching the
+ * server and say nothing about the socket; a dead one under a green glyph
+ * was a device that looked synced and heard nobody (found 2026-09-01 on the
+ * family instance). Both outcomes render a line, so the gap can be asserted
+ * against the connected line's absence rather than against nothing.
+ */
+describe('SyncDetailSheet — live updates (Sync-API §7/§9)', () => {
+  it('says live updates are connected while the socket is open', () => {
+    const wrapper = mountSheet({ mode: 'server', live: true })
+
+    expect(text(wrapper, 'sync-detail-live')).toContain('Live updates are connected')
+    expect(has(wrapper, 'sync-detail-live-gap')).toBe(false)
+  })
+
+  it('says they are not, and that a reconnect is under way, while it is closed', () => {
+    const wrapper = mountSheet({ mode: 'server', live: false })
+
+    expect(text(wrapper, 'sync-detail-live-gap')).toContain('not connected')
+    expect(text(wrapper, 'sync-detail-live-gap')).toContain('Reconnecting')
+    expect(has(wrapper, 'sync-detail-live')).toBe(false)
+  })
+
+  it('says nothing about a socket in Local Mode, which has none', () => {
+    const wrapper = mountSheet({ mode: 'local', state: 'local', live: false })
+
+    expect(has(wrapper, 'sync-detail-live')).toBe(false)
+    expect(has(wrapper, 'sync-detail-live-gap')).toBe(false)
+  })
+})

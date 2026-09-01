@@ -178,6 +178,11 @@ onMounted(async () => {
 
   // Session ended for real (IdP rejected the refresh token) → log in again.
   window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
+  // Sync-API P-1: the app coming back — a tab unfrozen, the network back, a
+  // page restored from the back-forward cache — is when a socket is most
+  // likely to be dead without having said so, and when a frozen backoff
+  // timer would otherwise keep the device deaf for another half minute.
+  for (const type of RESUME_EVENTS) window.addEventListener(type, onResume)
   // Awaited: in Local Mode this *is* the hydration from IndexedDB, and the
   // FR-27.4 sweep below must not run against a device whose rows have not
   // arrived yet.
@@ -192,11 +197,21 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
+  for (const type of RESUME_EVENTS) window.removeEventListener(type, onResume)
   orchestrator?.disconnect()
 })
 
 function onAuthExpired() {
   router.replace('/login')
+}
+
+/** The three ways a browser says "the app is back" — see `resume()`. */
+const RESUME_EVENTS = ['visibilitychange', 'online', 'pageshow'] as const
+
+function onResume(ev: Event) {
+  // `visibilitychange` fires on the way out too; only coming back matters.
+  if (ev.type === 'visibilitychange' && document.visibilityState !== 'visible') return
+  orchestrator?.resume()
 }
 
 // G-2: tapping the sync indicator opens the detail behind it (FR-19.6).
@@ -317,6 +332,7 @@ async function saveBackup() {
           :parked-count="syncStatus.parkedCount.value"
           :parked-reason="syncStatus.parkedReason.value"
           :conflict-count="syncStatus.conflictCount.value"
+          :live="syncStatus.live.value"
           :mode="mode"
           :can-open-conflicts="mode === 'server' && tripId !== null"
           :storage="storage"
