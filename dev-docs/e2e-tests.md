@@ -2470,7 +2470,8 @@ editable reddens the other.
 unreachable — no `data-testid` on `AvatarCropModal.vue`, and a canvas with no
 settled signal, so a case *could only wait-and-hope*. Neither held.
 `setInputFiles` needs no dialog and no test id (the modal's own markup is
-addressable), and the settled signal is the uploaded picture appearing on the
+addressable — it has ids now, added with the case, because a style class is not
+a seam), and the settled signal is the uploaded picture appearing on the
 profile row. **E2E-M17-12 is implemented** in `single/settings-profile.spec.ts`,
 and rendering the stage for the first time found the defect the owner reported
 the same day. It is not claimed for `server`: what that project owns is whether

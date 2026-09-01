@@ -153,6 +153,7 @@ function cancel() {
     <div class="crop-body">
       <div
         class="stage"
+        data-testid="avatar-crop-stage"
         :style="{ width: `${VIEWPORT}px`, height: `${VIEWPORT}px` }"
         @pointerdown="onPointerDown"
         @pointermove="onPointerMove"
@@ -164,6 +165,7 @@ function cancel() {
           :src="objectUrl"
           alt=""
           class="crop-image"
+          data-testid="avatar-crop-image"
           draggable="false"
           :style="{
             left: `${offsetX}px`,
@@ -182,12 +184,15 @@ function cancel() {
           :step="0.01"
           :value="zoom"
           :aria-label="t('avatarCrop.zoom')"
+          data-testid="avatar-crop-zoom"
           @ionInput="(e: CustomEvent) => onZoom(e.detail.value as number)"
         />
         <IonIcon :icon="addOutline" />
       </div>
 
-      <IonButton expand="block" @click="confirm">{{ t('avatarCrop.use') }}</IonButton>
+      <IonButton expand="block" data-testid="avatar-crop-confirm" @click="confirm">{{
+        t('avatarCrop.use')
+      }}</IonButton>
     </div>
   </IonModal>
 </template>

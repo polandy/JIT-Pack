@@ -88,7 +88,7 @@ const OUTPUT = 256
 /** What the browser paints, and what the crop math believes it painted — the
  * two numbers whose disagreement is the defect. */
 async function stage(page: import('@playwright/test').Page) {
-  return page.locator('ion-modal img.crop-image').evaluate((el) => ({
+  return page.getByTestId('avatar-crop-image').evaluate((el) => ({
     painted: el.getBoundingClientRect().width,
     intended: parseFloat((el as HTMLElement).style.width),
   }))
@@ -109,7 +109,7 @@ test('E2E-M17-12: the crop stage zooms, and it saves the scale it shows', async 
     buffer: Buffer.from(SOURCE_PNG, 'base64'),
   })
 
-  const image = page.locator('ion-modal img.crop-image')
+  const image = page.getByTestId('avatar-crop-image')
   await expect(image).toBeVisible()
 
   // Cover scale places the 8x4 source at 520x260: the shorter edge fills the
@@ -121,7 +121,7 @@ test('E2E-M17-12: the crop stage zooms, and it saves the scale it shows', async 
 
   // Drive the range by its knob's own keyboard interface — deterministic,
   // where a mouse drag would depend on where the track happens to be.
-  const knob = page.locator('ion-modal ion-range').getByRole('slider')
+  const knob = page.getByTestId('avatar-crop-zoom').getByRole('slider')
   await knob.focus()
   for (let i = 0; i < 20; i++) await knob.press('ArrowRight')
 
@@ -136,7 +136,7 @@ test('E2E-M17-12: the crop stage zooms, and it saves the scale it shows', async 
   expect(zoomed.painted).toBeCloseTo(zoomed.intended, 0)
   expect(atRest.painted).toBeCloseTo(atRest.intended, 0)
 
-  await page.locator('ion-modal').getByText(/use photo/i).click()
+  await page.getByTestId('avatar-crop-confirm').click()
 
   // The profile row now carries the picture, and the server kept a 256x256
   // one — the size FR-17.13 names, read back off the endpoint that serves it.
