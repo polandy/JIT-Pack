@@ -10761,6 +10761,16 @@ existed for another reason: the R-4 extraction put every action group behind a
 supplies the two stores, a sink that collects instead of draining, and an
 injected clock; then it calls the action. Nothing about the rule is restated.
 
+One trap came with the wiring, and it is the same shape as the defect: the
+context has to supply `today`, and the obvious `toISOString().slice(0, 10)`
+answers in **UTC**, where the app's own `localIsoDate` answers in the device's
+zone — so a command run in the evening would have decided „this trip is over"
+a day before the screen does. It was already written down, in the comment
+above the function it was being retyped beside. `localIsoDate` now lives once,
+in `domain/trips.ts` beside the `followsGroups` that consumes it, and takes
+the instant instead of reading a clock. Its case turns the day at *local*
+midnight, which is right in every zone and discriminating in all but UTC.
+
 **The rule to carry: a command calls the action, never the mutation factory.**
 A mutation is what a rule ends in, not the rule — and the mistake reads as
 correct in review, because the docstring that claimed „the same insert

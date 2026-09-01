@@ -26,6 +26,7 @@ import { createPackingActions } from '@/composables/sync/actions/packing'
 import { createGroupRefreshActions } from '@/composables/sync/actions/groupRefresh'
 import { createTripLifecycleActions } from '@/composables/sync/actions/tripLifecycle'
 import type { EnqueueAndDrain, SyncContext } from '@/composables/sync/context'
+import { localIsoDate } from '@/domain/trips'
 import type { HLCGenerator } from '@/sync/hlc'
 
 /**
@@ -90,7 +91,9 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
     // Local Mode is a device, never a command line: what this run can see is
     // what it pulled, so FR-24.3's exact reference count is not claimed here.
     local: null,
-    today: () => new Date(now()).toISOString().slice(0, 'YYYY-MM-DD'.length),
+    // The app's own reckoning of today, from the injected clock: UTC would
+    // put a trip a day out for anyone far enough east or west of it.
+    today: () => localIsoDate(now()),
     tripDataLoaded: (tripId) => loaded.has(tripId),
   }
 
