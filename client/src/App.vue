@@ -211,6 +211,9 @@ const RESUME_EVENTS = ['visibilitychange', 'online', 'pageshow'] as const
 function onResume(ev: Event) {
   // `visibilitychange` fires on the way out too; only coming back matters.
   if (ev.type === 'visibilitychange' && document.visibilityState !== 'visible') return
+  // `pageshow` also fires on every ordinary load, where the boot pull is
+  // already running; only a back-forward-cache restore is a return.
+  if (ev.type === 'pageshow' && !(ev as PageTransitionEvent).persisted) return
   orchestrator?.resume()
 }
 
