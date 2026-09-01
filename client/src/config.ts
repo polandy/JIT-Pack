@@ -6,7 +6,7 @@ const DEV_API_URL = 'http://localhost:8080'
  *
  * A self-hosted instance serves the SPA and the API from one origin —
  * the API sets no CORS headers, so same-origin is a hard requirement
- * (see client/nginx.conf). The page's own origin is therefore the right
+ * (ADR-043: one process serves both). The page's own origin is therefore the right
  * answer for every real deployment, and pre-filling it means the
  * first-launch screen needs no typing (FR-19.1).
  *

@@ -352,8 +352,13 @@ jobs:
       # Before building: a build-image major bumped on its own would pass both
       # builds and ship a bundle no other job ever compiled (see the script).
       - run: ./scripts/toolchain-pins-gate.sh
-      - run: docker build .
-      - run: docker build client
+      - run: docker build -t jitpack-ci .
+      # A built image is not a served app: since ADR-043 the same container
+      # answers the API and the client, and the one mistake that ships that
+      # silently is a bundle that never reached /srv/web — the API stays green
+      # and every browser gets a 404. So start it and ask for both.
+      - name: The image serves the API and the app
+        run: ./scripts/docker-smoke.sh jitpack-ci
 
   # Merges patch/minor Dependabot PRs once every check above is green.
   # Branch protection with required status checks is unavailable on a

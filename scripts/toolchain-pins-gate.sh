@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Checks that every place naming a toolchain version names the same one.
 #
-# A major lives in three files at once — the build image that produces the
-# published artifact, mise.toml (what a developer runs) and ci.yml (what the
-# checks run) — and nothing else notices when they disagree: CI compiles
+# A major lives in three files at once — the build stage that produces the
+# published artifact (since ADR-043 both toolchains build the one image, so
+# both stages are in the root Dockerfile), mise.toml (what a developer runs)
+# and ci.yml (what the checks run) — and nothing else notices when they
+# disagree: CI compiles
 # through setup-node/setup-go, never through the image, so a Dockerfile bumped
 # on its own is green while the image ships a bundle no test ever exercised.
 # That happened (node 24 -> 26, PR #121), which is why this file exists.
@@ -44,19 +46,19 @@ check_all_equal() {
 
 # --- node: the image that builds the published SPA, and the two toolchains ---
 
-node_image=$(image_version client/Dockerfile node)
+node_image=$(image_version Dockerfile node)
 node_mise=$(sed -n 's|^node *= *"\([0-9]*\)".*|\1|p' mise.toml | head -1)
 node_ci=$(sed -n 's|^ *node-version: *\([0-9]*\) *$|\1|p' .github/workflows/ci.yml | sort -u)
 
-[ -n "$node_image" ] || fail "node: no digest-pinned FROM node:<major>-alpine in client/Dockerfile"
+[ -n "$node_image" ] || fail "node: no digest-pinned FROM node:<major>-alpine in Dockerfile"
 # `sort -u` collapsed every node-version: line; more than one left means the
 # workflow disagrees with itself, which no single comparison below would show.
 [ "$(printf '%s\n' "$node_ci" | wc -l)" -eq 1 ] ||
 	fail "node: .github/workflows/ci.yml uses more than one node-version ($(echo $node_ci))"
 
 check_all_equal "node" "$node_image" \
-	"Moving the major means changing client/Dockerfile (tag *and* digest), mise.toml and every node-version: in ci.yml together." \
-	"client/Dockerfile=$node_image" "mise.toml=$node_mise" ".github/workflows/ci.yml=$node_ci"
+	"Moving the major means changing Dockerfile (tag *and* digest), mise.toml and every node-version: in ci.yml together." \
+	"Dockerfile(node)=$node_image" "mise.toml=$node_mise" ".github/workflows/ci.yml=$node_ci"
 
 # --- go: the backend build image, go.mod and the two toolchains -------------
 
@@ -69,7 +71,7 @@ go_mod=$(sed -n 's|^go \([0-9]*\.[0-9]*\).*|\1|p' go.mod | head -1)
 
 check_all_equal "go" "$go_image" \
 	"Moving the version means changing Dockerfile (tag *and* digest), mise.toml and the go directive in go.mod together — and golangci-lint with them, see below." \
-	"Dockerfile=$go_image" "mise.toml=$go_mise" "go.mod=$go_mod"
+	"Dockerfile(go)=$go_image" "mise.toml=$go_mise" "go.mod=$go_mod"
 
 # --- golangci-lint: a fourth place the Go language version is named ---------
 #

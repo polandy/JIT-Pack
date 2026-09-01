@@ -7,11 +7,14 @@ networks:
   internal:
 
 services:
+  # One container serves the API and the client on the same origin
+  # (ADR-043), so Traefik routes the whole app to a single service.
   app:
-    image: ghcr.io/polandy/jit-pack:0.2.0
+    image: ghcr.io/polandy/jit-pack:0.4.0
     restart: unless-stopped
     networks:
       - internal
+      - proxy
     expose:
       - "8080"
     volumes:
@@ -25,28 +28,10 @@ services:
       JITPACK_OIDC_CLIENT_SECRET: "${JITPACK_OIDC_CLIENT_SECRET:?set in .env}"
       JITPACK_ADMIN_EMAILS: "${JITPACK_ADMIN_EMAILS:-}"
       JITPACK_PUSH_CONTACT: "${JITPACK_PUSH_CONTACT:-}"
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
-
-  web:
-    image: ghcr.io/polandy/jit-pack-client:0.2.0
-    restart: unless-stopped
-    networks:
-      - internal
-      - proxy
-    expose:
-      - "80"
-    depends_on:
-      app:
-        condition: service_healthy
     labels:
       traefik.enable: "true"
       traefik.http.routers.jitpack.rule: "Host(`jitpack.example.com`)"
       traefik.http.routers.jitpack.entrypoints: "websecure"
       traefik.http.routers.jitpack.tls.certresolver: "letsencrypt"
-      traefik.http.services.jitpack.loadbalancer.server.port: "80"
+      traefik.http.services.jitpack.loadbalancer.server.port: "8080"
       traefik.docker.network: "proxy"

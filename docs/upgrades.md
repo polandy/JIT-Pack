@@ -42,7 +42,7 @@ For a household that has been packing with the instance for a season, that is a 
 Pin the version **and the digest** before a trip and leave it pinned until you are back:
 
 ```yaml
-image: ghcr.io/polandy/jit-pack:0.2.0@sha256:…   # imagetools inspect prints the digest
+image: ghcr.io/polandy/jit-pack:0.4.0@sha256:…   # imagetools inspect prints the digest
 ```
 
 A tag alone can be rebuilt; the digest cannot change under you, so nothing — not a re-pulled tag, not a well-meaning auto-updater like Watchtower — can swap the server out while everyone depends on it. Upgrade after the trip, when lost packing progress is a shrug instead of a problem. The same logic applies to any auto-update mechanism: exclude JIT-Pack from it entirely while pre-1.0, and upgrade deliberately with the routine above.

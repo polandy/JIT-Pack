@@ -6,7 +6,7 @@ JIT-Pack is a web app that installs to the home screen — no app store involved
 
 Browsers only offer installation on a **secure address**: `https://`, or `http://localhost`. A plain-HTTP instance on your LAN (`http://192.168.1.x:3000`) still works fully as a website in the browser tab, but it cannot be installed as an app and does not get offline startup or push notifications.
 
-If your instance is HTTP-only today, put it behind a reverse proxy with a certificate first — see [Installation](installation.md#serving-the-spa-behind-a-reverse-proxy).
+If your instance is HTTP-only today, put it behind a reverse proxy with a certificate first — see [Installation](installation.md#putting-a-reverse-proxy-in-front).
 
 ## Android (Chrome)
 

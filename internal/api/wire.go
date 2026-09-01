@@ -524,3 +524,10 @@ const (
 	RouteWS     = "/ws"
 	RouteHealth = "/health"
 )
+
+// APIPrefix is the path every versioned endpoint above lives under. It is not
+// a Route* constant — nothing calls it, so the client's generated contract has
+// no use for it — but it is the same declaration: it is what tells the SPA
+// server which paths are the API's when both are served from one origin
+// (ADR-043), and the two paths outside it are RouteWS and RouteHealth.
+const APIPrefix = "/api/v1/"

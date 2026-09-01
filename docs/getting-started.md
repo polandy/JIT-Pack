@@ -1,15 +1,16 @@
 # Getting Started
 
-From nothing to a running JIT-Pack in four steps, on your own machine, with no identity provider and no DNS. The stack you end up with is the repository's own local test stack: the `jitpackd` backend plus an nginx container that serves the client and proxies the API to it, so the whole app answers on a single origin.
+From nothing to a running JIT-Pack in four steps, on your own machine, with no identity provider and no DNS. The stack you end up with is the repository's own local test stack: one container, running `jitpackd`, which serves both the client and the API.
 
 ```
-browser ──▶ nginx (:3000) ──┬──▶ /            static SPA files
-                            └──▶ /api, /ws    jitpackd (:8080) ──▶ /data/jitpack.db
+browser ──▶ jitpackd (:3000) ──┬──▶ /            the client, static files
+                               ├──▶ /api, /ws    the API and the sync socket
+                               └──▶              /data/jitpack.db
 ```
 
-That single origin is not a stylistic choice. The API sets no CORS headers and the sync WebSocket rejects cross-origin handshakes, so the SPA and the API must share a hostname — see [Installation](installation.md#serving-the-spa-behind-a-reverse-proxy) for what that means once you put this behind a real domain.
+One server means one origin, and that matters: the API sets no CORS headers and the sync WebSocket rejects cross-origin handshakes, so the client and the API must share a hostname. See [Installation](installation.md#putting-a-reverse-proxy-in-front) for what that means once you put this behind a real domain and TLS.
 
-You need Docker with the Compose plugin, and Git. Nothing else — the images build Go and Node internally.
+You need Docker with the Compose plugin, and Git. Nothing else — the image builds Go and Node internally.
 
 ## Step 1 — Start the stack
 
@@ -19,7 +20,7 @@ cd JIT-Pack
 docker compose up --build
 ```
 
-The first run compiles both halves, so give it a few minutes. It brings up two containers: `jitpack-dev-app` (the backend, reachable only inside the compose network) and `jitpack-dev-web` (nginx, published on port 3000).
+The first run compiles both halves — the Vue client and the Go binary — so give it a few minutes. It brings up one container, `jitpack-dev-app`, published on port 3000.
 
 The backend is configured for **single-user mode** through two environment variables in `docker-compose.yml`:
 
@@ -49,7 +50,7 @@ Two startup failures you might see instead, both fatal and both immediate:
 - `config: JITPACK_LOCAL_USER_ID is required in single-user mode` — `JITPACK_SINGLE_USER` is `true` but the user id is missing.
 - `config: JITPACK_SESSION_SECRET is required in multi-user mode …` — `JITPACK_SINGLE_USER` is not exactly the string `true`, so the server fell through to multi-user mode. Any other value, including `1` or `TRUE`, counts as off.
 
-Now check it over HTTP. All three go through nginx, so a good answer also proves the proxy routes are right:
+Now check it over HTTP:
 
 ```bash
 curl -i http://localhost:3000/health
@@ -68,7 +69,7 @@ curl -i -H "Connection: Upgrade" -H "Upgrade: websocket" \
 
 The display name is a seeded default that you can change later in the app; the `user_id` is the value you configured.
 
-The third is the sync WebSocket, and it answers `101 Switching Protocols`. It is worth running even though nothing in the four steps depends on it, because it is the one part of the stack that fails **silently**: the app loads and every screen works while live updates between devices never arrive. Send the `Origin` header exactly as shown — the handshake is only checked against it, so leaving it off turns this into a test that cannot fail. A `403` naming an `Origin` and a `Host` that differ means the proxy is not forwarding the address the browser used; [Installation](installation.md#serving-the-spa-behind-a-reverse-proxy) has the rule.
+The third is the sync WebSocket, and it answers `101 Switching Protocols`. It is worth running even though nothing in the four steps depends on it, because it is the one part of the stack that fails **silently**: the app loads and every screen works while live updates between devices never arrive. Send the `Origin` header exactly as shown — the handshake is only checked against it, so leaving it off turns this into a test that cannot fail. A `403` naming an `Origin` and a `Host` that differ means a proxy in front is not forwarding the address the browser used — which cannot happen in this stack, where nothing sits in front, but will the moment you add TLS; [Installation](installation.md#putting-a-reverse-proxy-in-front) has the rule.
 
 ## Step 3 — Open the app
 
@@ -83,14 +84,14 @@ http://localhost:3000
 The client stores that URL and reloads. It then asks the server whether OIDC login is available; a single-user server answers that it is not, so the client skips the login screen entirely and drops you straight into the app. There is no password to set and no account to create — you are already the user `local`.
 
 !!! note "Keep the origin, don't swap in the backend port"
-    The pre-filled value is the address the browser itself is on — `http://localhost:3000`. Should you ever change it by hand, it must stay that origin and must not become `http://localhost:8080`. The backend port is not published by this stack, and even if it were, requests to it from a page served on another port would be blocked by the browser and the WebSocket handshake would be refused.
+    The pre-filled value is the address the browser itself is on — `http://localhost:3000`. Should you ever change it by hand, it must stay that origin. The container listens on 8080 internally and the stack publishes it as 3000; a page served on one port talking to another would be blocked by the browser, and the WebSocket handshake would be refused.
 
 ## Step 4 — Know where your data is
 
 Everything lives in a single SQLite file inside the `data` volume, at `/data/jitpack.db`. It survives `docker compose down` and is recreated empty if you ever remove the volume. The schema migrates itself on startup, so pulling a newer version needs no migration step from you.
 
 ```bash
-docker compose down          # stops both containers, keeps the data
+docker compose down          # stops the container, keeps the data
 docker compose up -d         # back up, same database
 ```
 
@@ -98,6 +99,6 @@ docker compose up -d         # back up, same database
 
 You now have a working single-user instance built from source. For anything longer-lived:
 
-- **[Installation](installation.md)** — running the published image instead of a local build, and the reverse-proxy configuration for a real hostname (Traefik and nginx), including the `/ws` routing rule that quietly breaks sync when it is missing.
+- **[Installation](installation.md)** — running the published image instead of a local build, and the reverse-proxy configuration for a real hostname (Traefik and nginx), including the `Host` header rule that quietly breaks sync when it is missing.
 - **[Configuration](configuration.md)** — the full set of environment variables.
 - **[Authentication](authentication.md)** — switching to multi-user mode, where accounts come from your own OIDC identity provider.

@@ -20,19 +20,9 @@ jobs:
       contents: read
       packages: write
 
-    # One release publishes two images from the same tag: the backend from
-    # the repository root Dockerfile, and the SPA-plus-nginx client from
-    # client/Dockerfile as <repo>-client. Both Dockerfiles pin their base
-    # images by digest (invariant 8).
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - context: .
-            suffix: ""
-          - context: client
-            suffix: "-client"
-
+    # One release publishes one image: since ADR-043 the root Dockerfile
+    # builds the client and the backend into a single container that serves
+    # both on one origin. Its base images are pinned by digest (invariant 8).
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -45,7 +35,7 @@ jobs:
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         id: meta
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.suffix }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -54,7 +44,7 @@ jobs:
 
       - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
-          context: ${{ matrix.context }}
+          context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

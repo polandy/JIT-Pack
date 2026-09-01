@@ -250,4 +250,5 @@ e2e-server: client-build
 ## --- docker-build job -----------------------------------------------------
 # Left out of `ci` because it needs a running docker daemon.
 docker-build:
-	docker build .
+	docker build -t jitpack-ci .
+	./scripts/docker-smoke.sh jitpack-ci

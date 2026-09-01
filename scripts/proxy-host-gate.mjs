@@ -4,8 +4,9 @@
 // same-origin check compares the browser's `Origin` (which carries the
 // port) against the request `Host` — so `$host` answers every dial on a
 // non-default port with 403 while the whole REST surface stays green.
-// The shipped client image and the manual's copy-paste blocks are the
-// two places that mistake reaches a running instance from.
+// Since ADR-043 JIT-Pack ships as one container and needs no proxy of its
+// own, so the manual's copy-paste blocks — the TLS terminator an operator
+// puts in front — are where that mistake reaches a running instance from.
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -16,9 +17,9 @@ const WANTED = '$http_host'
 // `client/` — the sibling gates settle that with this line.
 const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
 
-// Files carrying nginx directives: the image's own config, and the
-// manual's fenced blocks (an operator copies those verbatim).
-const SOURCES = ['client/nginx.conf', 'docs/installation.md', 'docs/getting-started.md']
+// Files carrying nginx directives: the manual's fenced blocks, which an
+// operator copies verbatim.
+const SOURCES = ['docs/installation.md', 'docs/getting-started.md']
 
 const DIRECTIVE = /^\s*proxy_set_header\s+Host\s+(\S+?);/gim
 
