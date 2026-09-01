@@ -86,13 +86,13 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02 (rewritten 2026-09-01), E2E-PWA-03, **E2E-PWA-04** (the update policy, new 2026-09-01), **E2E-NFR-01** (the offline *write*, 2026-09-01) | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Storage durability (NFR-4.11) | E2E-NFR-03, E2E-NFR-03b | `local` | [`storage-durability.spec.ts`](../client/e2e/storage-durability.spec.ts) |
 | Web Push registration (NFR-4.6) | E2E-NFR-06 | `server` | [`server/push.spec.ts`](../client/e2e/server/push.spec.ts) |
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), **E2E-FLOW-01b** (the member's pack on the owner's screen, since 2026-09-01), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31), **E2E-FLOW-07** (the move off Local Mode, since 2026-08-31) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31), **E2E-FLOW-07** (the move off Local Mode, since 2026-08-31), **E2E-G2-13** / **E2E-G2-14** (a dead socket is dialled again, and coming back pulls at once — since 2026-09-01) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -4043,3 +4043,35 @@ the owner-scoped route. Removing `api.registerSubscription(...)` from
   because the second half commits the identical sheet through the answered
   gate, with the same locators. The locators are proven by the half that
   expects them to resolve.
+
+**E2E-G2-13/14 and E2E-FLOW-01b — the socket that died was never dialled again, added
+2026-09-01.** Found by using the app, like E2E-SYNC-01: two people packing one trip on the
+family instance, and only one direction arriving. The nginx capture of the repro showed the
+receiving device making *no request at all* after the other's write and holding *no*
+WebSocket — the nightly backup had restarted the backend under its tab, and the client's
+whole handling of a closed socket was `socket = null`. Sync-API P-1 had promised a reconnect
+since v1.0 and §9 a client ping; neither was built, on either side.
+
+Three things worth keeping from writing the cases:
+
+- **The subscription signal is read off the route, not off `page.on('websocket')`.**
+  Whether Playwright reports a routed socket through that event is not something the case
+  should depend on; the presence frame passes through the route's server side anyway
+  (`cuttableSocket` in `single/server-sync.spec.ts`), which is `watchSubscribed`'s signal
+  from the other end of the wire.
+- **A routed socket that is not connected to the server *opens* for the page** — that is
+  what mocking is for — so "refuse the dial" cannot be "do nothing in the handler": the
+  client would see `onopen`, report itself live and run its catch-up. Refusing is
+  `ws.close()` inside the handler, before the page side ever opens, which the client sees
+  as a failed dial exactly as it would a proxy that is restarting.
+- **The gap is held open on purpose while the other device packs.** With a redial allowed
+  straight away, the row could arrive through a live `trip.changed` and the case would be
+  green against a client that pulls nothing on reconnect. Refusing every redial until the
+  pack has happened is what makes the catch-up pull the only path — and E2E-G2-14 then
+  keeps refusing *through* the assertion, so the socket is provably not the reason the
+  row arrived.
+
+E2E-FLOW-01b is the same defect stated as the user states it: E2E-FLOW-01 packs on the
+owner's device and reads the member's, and a year of green runs said nothing about the
+other direction, which is the one that broke.
+

@@ -148,6 +148,22 @@ string at all. An access-log line without `?token=` is correct there, not a stri
 parameter — so on such an instance, look at the routing and the upgrade headers rather
 than at the query string.
 
+**Start on the device itself.** Tap the sync glyph in the app bar: the detail sheet has a
+*Live updates* line that says whether the socket is open right now. If it says live updates
+are not connected and keeps saying so, the socket is not getting through and the causes
+above apply. If it says they are connected and a change from another device still does not
+appear, the socket is fine and the problem is elsewhere — check that both devices are
+members of the trip.
+
+**A dropped connection is not this problem.** The client dials the socket again on its own
+after a restart or a network change (backing off from one second to thirty), pings it every
+30 seconds, and pulls whatever it missed each time it reconnects or the app comes back into
+view — so a socket that dies leaves at most a short gap, not a device that stays silent
+until reload. Two consequences for the proxy: its idle timeout on `/ws` only has to be longer
+than 30 seconds, and the backend closes a connection that stays silent for five minutes, so a
+device that vanished without closing its socket drops out of the trip's presence list on its
+own.
+
 ## `502` with code `idp_unreachable`
 
 **Symptom:** users are suddenly asked to log in again, or a refresh fails with:

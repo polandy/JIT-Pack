@@ -182,6 +182,7 @@ export type WSEventType =
   | 'item.unlocked'
   | 'presence'
   | 'notification.created'
+  | 'pong'
 
 export const WS_EVENT_TYPE = {
   'trip.changed': 'trip.changed',
@@ -190,6 +191,7 @@ export const WS_EVENT_TYPE = {
   'item.unlocked': 'item.unlocked',
   presence: 'presence',
   'notification.created': 'notification.created',
+  pong: 'pong',
 } as const
 
 /**

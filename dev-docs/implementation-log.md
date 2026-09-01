@@ -237,6 +237,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A command that called the mutation and not the rule (2026-09-01)](#a-command-that-called-the-mutation-and-not-the-rule-2026-09-01) — every one of the 37 routes read for whether the API door runs what the UI door runs. The handlers are shared by construction; the divergence was in the client-side rules that run before the push, where `jitpack traveler add` wrote the row M22's action writes and skipped the consequences it runs.
 - [A column decided by what removing it would cost (2026-09-01)](#a-column-decided-by-what-removing-it-would-cost-2026-09-01) — `travelers.linked_user_id` stays, inert: building a reader costs a notification per generated row, and dropping a column now means rebuilding a live instance, because invariant 2 has no migration path. The defect was the manual's sentence about it.
 - [A premise that had closed a case for ten days (2026-09-01)](#a-premise-that-had-closed-a-case-for-ten-days-2026-09-01) — the avatar crop stage never zoomed, because Ionic caps every `img` at its container. Three layers were green: the geometry is pure and right, and the component spec asserts the inline width the browser then refused to apply. What kept it hidden was a sentence, copied into three documents, saying the case could not be written.
+- [A socket that died was never dialled again (2026-09-01)](#a-socket-that-died-was-never-dialled-again-2026-09-01) — the family instance synced one way. The receiving tab had no WebSocket and the client's whole close handling was `socket = null`; Sync-API P-1's reconnect and §9's ping had been sentences since v1.0. What was built on both sides, the options weighed, and two harness traps `routeWebSocket` set.
 
 
 ## Current state
@@ -10897,3 +10898,108 @@ Two spec sentences were corrected against the screen with it: the entry's
 *reflected in the dashboard greeting* (the greeting is a time-of-day line and
 carries neither a name nor a picture) and UI-Spec M17's list of surfaces that
 follow the profile, which claimed the same thing.
+
+## A socket that died was never dialled again (2026-09-01)
+
+Owner report, tested with two people on the family instance: what one packed
+appeared on the other's screen, and the reverse did not. The first suspicion —
+the merge, the HLCs, a permission — was wrong on every count, and the database
+said so before any code was read: both devices' packs were in `trip_items`
+with the right `packed_by_user_id`, and the whole instance's `conflict_log` had
+zero rows. The server had refused nothing. What was missing was *delivery*.
+
+The nginx capture of the repro settled it in four lines. After the second
+device's write, the first device made **no request at all** — and across the
+whole window there was exactly **one** WebSocket connection, the second
+device's. The first device's tab had lost its socket when the nightly restic
+run restarted the `jitpack-app` container under it (that job stops and starts
+the container, so it cuts every open connection every night), and its client's
+entire handling of a closed socket was
+
+```ts
+socket.onclose = () => { socket = null }
+```
+
+No redial, no `onerror`, no `visibilitychange`, no `online`, no ping. A device
+in that state learned of nobody else's change until it wrote something itself
+— the drain pulls after every push — or reloaded. That is exactly the
+asymmetry observed: the device whose socket had survived (freshly opened after
+the restart) heard everything; the one whose socket had not heard nothing, and
+its own writes still went out fine, so nothing looked broken from its side.
+
+**The premise that was wrong is that the reconnect existed.** Sync-API P-1 has
+read *„one code path serves initial load, reconnect, offline catch-up, and
+realtime"* since v1.0, and §9 has promised *„WebSocket idle timeout 5 min with
+client ping"* for as long. Both were design statements that nobody had turned
+into code, on either side: the client never pinged and never redialled, the
+server never timed a read out, so the hub also accumulated ghost connections
+and G-10's presence counted them. Two ledger notes had recorded the absence
+honestly (*„no reconnect loop exists today"*, E2E-G2-01 and E2E-G2-04, both
+2026-08-20/21) and nothing had turned the note into work.
+
+What was built, in four layers because each covers a hole the others do not
+(`useWebSocket.ts`, `ws.go`):
+
+1. **Redial with backoff** (1 s doubling to 30 s, reset on open; no jitter —
+   an instance has a handful of devices) and a **declarative subscription
+   set**: every open sends the whole set and the latest cursor per trip, since
+   a new socket is a new connection to a hub that remembers nothing.
+2. **Catch-up on every open after the first** — pull the master partition and
+   every subscribed trip. The hub replays nothing, and the `trip.changed`
+   frames sent into the gap are gone. P-1 is the recovery; the socket was only
+   ever the notice.
+3. **The §9 keepalive on both sides**: a client `{"ping": true}` every 30 s
+   with a 10 s watchdog that counts *any* frame as life, and a server-side
+   5-minute read deadline that closes and unregisters the silent connection.
+   A half-open TCP peer fires no event at all, so without a ping the client
+   cannot tell a quiet server from a dead socket, and without the deadline the
+   server keeps a presence entry for a phone that left the building.
+4. **`visibilitychange`/`online`/`pageshow` → dial now and pull now.** A mobile
+   browser freezes a background tab's timers; the backoff never fires while it
+   is frozen, and the OS drops the socket meanwhile. Coming back must not wait
+   out a delay scheduled before the freeze, and the pull must not wait for the
+   socket.
+
+And a sentence: the G-2 sheet states whether live updates are connected. The
+glyph's four states describe *this* device's changes reaching the server —
+true of a deaf device — and the affected tab had shown *synchronisiert* the
+whole afternoon.
+
+**Options weighed and set aside.** A *poll interval* as the safety net would
+have covered every case above with less code; rejected because it is a second
+read-path timer running on every device for ever, on battery, to cover a
+condition the socket can report — and it would have left the deaf socket deaf,
+merely less visibly. *Hub-side replay* (buffer the last N events per trip and
+send them on subscribe) would spare the catch-up pull; rejected because the
+pull *is* the replay by design (P-1, P-4) and a second copy of recent state in
+the server's memory is the kind of duplicate ADR-025 removed. *Server-side
+protocol pings* instead of the app-level frame; rejected because a browser
+cannot see a protocol pong, and the client needs a frame it can observe to run
+its own watchdog.
+
+**Two traps with a price, both in the Go test.** coder/websocket fails the
+read on the library side when the read context times out, *before* the
+handler's deferred `hub.Unregister` has run — so asserting the hub the moment
+the client observed the close raced the handler and lost (the other session
+handed this over as the one failing test). The settled signal is the presence
+broadcast `Unregister` itself emits, read on a *second* observing socket,
+which also has to keep pinging or it would be reaped alongside. And the reaped
+socket's own read had to drain its unread presence frames before the close
+arrived as an error — a socket that never read anything still has a mailbox.
+
+**Two things `routeWebSocket` settled.** The subscription signal is read off
+the route's server side rather than `page.on('websocket')` — the presence
+frame passes through the route anyway, and whether Playwright also reports a
+routed socket through that event is nothing a case should lean on. And a routed
+socket the handler does not connect to the server *opens* for the page — so refusing
+a dial cannot be "do nothing": the client would report itself live and run its
+catch-up against the mock. Refusal is `ws.close()` inside the handler. Both
+are in the ledger beside the cases.
+
+The rule to reuse: **a design principle is not a feature.** P-1 named the
+reconnect as served; the spec's wording made it read as built, the ledger's
+two honest notes read as known, and it took a user with two phones to make it
+a defect. When a spec sentence describes behaviour, grep for the code that
+does it before trusting the sentence — the same shape as every *„this case
+cannot be written"* this programme has found, from the other side.
+

@@ -365,11 +365,35 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     onDurabilityChanged: (durable) => syncStatus.setQueueDurable(durable),
   })
 
+  /** Trips this device has asked the hub about — the set every new socket is told. */
+  const subscribedTrips = new Set<string>()
+
   const ws = useWebSocket({
     baseUrl: config.baseUrl,
     getToken: config.getToken,
     onEvent: onWSEvent,
+    onLive: (live) => syncStatus.setLive(live),
+    onOpen: ({ reconnect }) => {
+      // The first open is covered by the boot pull App.vue runs; every later
+      // one follows a gap the hub cannot replay (P-1), so the gap is pulled.
+      if (reconnect) void catchUp()
+    },
   })
+
+  /**
+   * Pull everything this device is watching. The socket only ever says
+   * *that* something changed; after a gap nobody said anything, so the
+   * master partition and every subscribed trip are asked directly.
+   * Background: this is the app catching up, not the user doing something,
+   * and eight trips flickering the glyph through *syncing* would be noise.
+   */
+  async function catchUp(): Promise<void> {
+    if (local) return
+    await drainMaster()
+    for (const tripId of subscribedTrips) {
+      await drainTrip(tripId, { background: true })
+    }
+  }
 
   /**
    * Which trips' rows are actually on this device (FR-27.4). Server Mode
@@ -1385,7 +1409,20 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   function subscribeTrip(tripId: string) {
     if (local) return
+    subscribedTrips.add(tripId)
     ws.subscribe([`trip:${tripId}`])
+  }
+
+  /**
+   * The app is back in view or back online. Makes sure a socket exists — a
+   * frozen tab's backoff never fired, and its socket may be dead without a
+   * close — and pulls what was missed meanwhile, without waiting for the
+   * socket, since the pull is the recovery and the socket only the notice.
+   */
+  function resume() {
+    if (local) return
+    ws.ensureConnected()
+    void catchUp()
   }
 
   function disconnect() {
@@ -1494,6 +1531,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Lifecycle
     connect,
     subscribeTrip,
+    resume,
     disconnect,
   }
 }

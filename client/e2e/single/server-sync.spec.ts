@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 
-import type { Page } from '@playwright/test'
+import type { Page, WebSocketRoute } from '@playwright/test'
 
 import {
   test,
@@ -45,10 +45,12 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  *    multi-context cases prove real-time convergence over the wire, not
  *    multi-identity semantics (locks, attribution) — those live in the
  *    `server` project (e2e/server/, ADR-029).
- *  - There is still no reconnect drain: the queue moves on the app's next
- *    own action (a mutation, a trip open, a WS ping) — or on the next app
- *    start, which the durable outbox added (B2). Track C stopped there
- *    deliberately; an `online`-event drain is not built.
+ *  - A reconnect drain exists since 2026-09-01 (Sync-API P-1): a socket
+ *    that dies is dialled again with backoff, and every open after the first
+ *    pulls the master partition and every subscribed trip; the `online`,
+ *    `visibilitychange` and `pageshow` events do the same without waiting
+ *    for the socket. E2E-G2-13/14 below drive it. The queue still moves on
+ *    the app's next own action as before — that half is unchanged.
  */
 
 /**
@@ -1621,6 +1623,183 @@ test.describe('Single-User backend sync @single', () => {
     await expectTripOpen(pageB, trip)
     await expect(visiblePage(pageB).getByTestId(`m4-row-${row}`)).toBeVisible()
 
+    await ctxB.close()
+  })
+})
+
+/**
+ * A page whose sockets the test can cut and refuse (E2E-G2-13/14). Every
+ * dial the page makes goes through `routeWebSocket`; while `refuse` is set
+ * the page side is closed before it opens, which the client sees as a failed
+ * dial — exactly what a proxy that is restarting answers with.
+ *
+ * `presence` resolves each time the hub confirms a subscription on the
+ * *current* socket, so a test waits on the frame rather than on a duration —
+ * the same signal `watchSubscribed` uses, read off the route's server side,
+ * through which every frame passes anyway.
+ */
+async function cuttableSocket(page: Page) {
+  const state = {
+    refuse: false,
+    dials: 0,
+    live: null as WebSocketRoute | null,
+    server: null as WebSocketRoute | null,
+    presence: null as null | (() => void),
+    nextPresence(): Promise<void> {
+      return new Promise((resolve) => {
+        state.presence = resolve
+      })
+    },
+    cut() {
+      state.refuse = true
+      state.live?.close()
+      state.server?.close()
+      state.live = null
+      state.server = null
+    },
+  }
+  await page.routeWebSocket(/\/ws(\?|$)/, (ws) => {
+    state.dials += 1
+    if (state.refuse) {
+      ws.close()
+      return
+    }
+    const server = ws.connectToServer()
+    state.live = ws
+    state.server = server
+    ws.onMessage((m) => server.send(m))
+    server.onMessage((m) => {
+      if (String(m).includes('"presence"')) state.presence?.()
+      if (state.live === ws) ws.send(m)
+    })
+  })
+  return state
+}
+
+test.describe('The socket dies and the device still converges (Sync-API P-1) @single', () => {
+  test.slow()
+
+  /**
+   * E2E-G2-13 (Sync-API P-1, §9): a device whose WebSocket has died learns
+   * what another device packed **without a reload and without writing
+   * anything itself**. Before 2026-09-01 the client had no reconnect at all —
+   * `onclose` nulled the socket — so a device in this state stayed deaf for
+   * the rest of the session; the family instance found it after the nightly
+   * backup restarted the backend under every open tab.
+   *
+   * The gap is held open on purpose (every redial is refused) while the
+   * other device packs, so the row can only arrive through the catch-up
+   * pull a reconnect runs — a `trip.changed` for it was never delivered.
+   * The G-2 sheet is read on both sides of the gap, because the point of the
+   * line is that a deaf device used to look synced.
+   */
+  test("E2E-G2-13: a pack made while this device's socket was dead arrives once the socket is back", async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Vals ${id}`
+    const item = `Badehose-${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip })
+    await quickAddItem(pageA, item)
+
+    const ctxB = await browser.newContext()
+    const pageB = await ctxB.newPage()
+    await seed(pageB, { mode: 'server' })
+    const socket = await cuttableSocket(pageB)
+    const subscribed = socket.nextPresence()
+    await pageB.goto(tripPath)
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await subscribed
+
+    await pageB.getByTestId('sync-indicator').click()
+    await expect(pageB.getByTestId('sync-detail-live')).toBeVisible()
+    await pageB.getByTestId('sync-detail-close').click()
+    await expect(pageB.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // The socket dies, and every redial is refused: the gap is real and
+    // stays open until this test says otherwise.
+    const dialsBefore = socket.dials
+    socket.cut()
+    // The client is trying — the first refused redial is the settled signal
+    // that it noticed, and that the G-2 line below describes a gap the app
+    // is actually in rather than one it has not seen yet.
+    await expect.poll(() => socket.dials).toBeGreaterThan(dialsBefore)
+    await pageB.getByTestId('sync-indicator').click()
+    await expect(pageB.getByTestId('sync-detail-live-gap')).toBeVisible()
+    await expect(pageB.getByTestId('sync-detail-live')).toHaveCount(0)
+    await pageB.getByTestId('sync-detail-close').click()
+    await expect(pageB.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // A packs while B is deaf. The server broadcasts to nobody on B's side.
+    await packItem(pageA, item)
+    await expect(visiblePage(pageA).getByTestId('m4-done-bar')).toBeVisible()
+
+    // Let the next redial through. It is the client's own backoff timer that
+    // fires it — nothing here nudges the app — and the open that follows
+    // pulls the gap over (Sync-API P-1).
+    const reconnected = socket.nextPresence()
+    socket.refuse = false
+    await reconnected
+    await expect(visiblePage(pageB).getByTestId('m4-done-bar')).toBeVisible({ timeout: 15_000 })
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeHidden()
+
+    await pageB.getByTestId('sync-indicator').click()
+    await expect(pageB.getByTestId('sync-detail-live')).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+
+  /**
+   * E2E-G2-14 (Sync-API P-1): the app coming back — the browser's `online`
+   * event here, the same handler serving `visibilitychange` and `pageshow` —
+   * does not wait for the backoff. A mobile browser freezes a background
+   * tab's timers, so a pending redial can be half a minute away when the
+   * user looks at the screen; the resume pulls at once and redials at once.
+   *
+   * The gap is held the same way as in E2E-G2-13, and the difference is
+   * asserted: the row arrives before any socket is back, because the resume
+   * pull does not depend on one.
+   */
+  test('E2E-G2-14: coming back online pulls at once, without waiting for the socket', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Flims ${id}`
+    const item = `Schlafsack-${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip })
+    await quickAddItem(pageA, item)
+
+    const ctxB = await browser.newContext()
+    const pageB = await ctxB.newPage()
+    await seed(pageB, { mode: 'server' })
+    const socket = await cuttableSocket(pageB)
+    const subscribed = socket.nextPresence()
+    await pageB.goto(tripPath)
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await subscribed
+
+    const dialsBefore = socket.dials
+    socket.cut()
+    await expect.poll(() => socket.dials).toBeGreaterThan(dialsBefore)
+
+    await packItem(pageA, item)
+    await expect(visiblePage(pageA).getByTestId('m4-done-bar')).toBeVisible()
+
+    // Still refusing: the socket cannot be the reason the row arrives.
+    await pageB.evaluate(() => window.dispatchEvent(new Event('online')))
+    await expect(visiblePage(pageB).getByTestId('m4-done-bar')).toBeVisible()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeHidden()
+    await pageB.getByTestId('sync-indicator').click()
+    await expect(pageB.getByTestId('sync-detail-live-gap')).toBeVisible()
+
+    await ctxA.close()
     await ctxB.close()
   })
 })

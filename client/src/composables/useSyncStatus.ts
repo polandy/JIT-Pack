@@ -61,6 +61,14 @@ export interface SyncStatus {
    * safe.
    */
   queueDurable: Ref<boolean>
+  /**
+   * Whether the WebSocket is open right now (Sync-API §7/§9). Independent
+   * of `state`: the HTTP path can be healthy while the socket is dead, and a
+   * device in that condition learns of nobody else's changes until it writes
+   * something itself — "synced" would be true of its own changes and false
+   * of everyone else's. Local Mode has no socket and reads this as false.
+   */
+  live: Ref<boolean>
   /** Human-readable label for the current state. */
   label: ComputedRef<string>
 
@@ -84,6 +92,8 @@ export interface SyncStatus {
   addConflicts(n: number): void
   /** Report whether the queue is still being written to the device. */
   setQueueDurable(durable: boolean): void
+  /** Report whether the WebSocket is open. */
+  setLive(live: boolean): void
 }
 
 export function useSyncStatus(): SyncStatus {
@@ -97,6 +107,7 @@ export function useSyncStatus(): SyncStatus {
   // Optimistic on purpose: the outbox announces the *loss* of durability,
   // and a device that never had a queue to keep has lost nothing.
   const queueDurable = ref(true)
+  const live = ref(false)
 
   // Order matters, and 'syncing' deliberately outranks 'local': Local
   // Mode still writes, and while a write is open the honest answer is
@@ -164,6 +175,10 @@ export function useSyncStatus(): SyncStatus {
     queueDurable.value = durable
   }
 
+  function setLive(isLive: boolean) {
+    live.value = isLive
+  }
+
   return {
     state,
     pendingCount,
@@ -171,6 +186,7 @@ export function useSyncStatus(): SyncStatus {
     parkedReason,
     conflictCount,
     queueDurable,
+    live,
     label,
     setSyncing,
     setSynced,
@@ -180,5 +196,6 @@ export function useSyncStatus(): SyncStatus {
     setParked,
     addConflicts,
     setQueueDurable,
+    setLive,
   }
 }

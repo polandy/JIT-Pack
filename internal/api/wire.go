@@ -176,6 +176,10 @@ const (
 	EventItemUnlocked        WSEventType = "item.unlocked"
 	EventPresence            WSEventType = "presence"
 	EventNotificationCreated WSEventType = "notification.created"
+	// EventPong answers a client {"ping": true} frame (Sync-API §7/§9).
+	// It carries no payload: its arrival is the information — the client's
+	// liveness watchdog eats it, nothing else reads it.
+	EventPong WSEventType = "pong"
 )
 
 // WSEvent is one frame. Which keys the payload carries is decided by Type —

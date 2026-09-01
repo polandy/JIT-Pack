@@ -46,7 +46,9 @@ test.describe('Two accounts on one instance @server', () => {
    * is the server's answer to "who packed this", not a field Alice's client
    * filled in.
    */
-  test('E2E-FLOW-01: a shared trip converges, and a packed row says who packed it', async ({ browser }) => {
+  test('E2E-FLOW-01: a shared trip converges, and a packed row says who packed it', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Sardinien ${id}`
     const item = `Schnorchel-${id}`
@@ -96,6 +98,54 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(
       visiblePage(bob).getByTestId(`m4-row-${item}`).getByTestId('m4-packed-stamp'),
     ).toContainText(ACCOUNT_NAMES.alice)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-FLOW-01b (FR-4.4, Sync-API P-1): the direction E2E-FLOW-01 does not
+   * drive — the **member** packs and the **owner's** open screen reflects it.
+   * The two directions are the same server code, and it was still this one
+   * that failed on the family instance (2026-09-01): the owner's tab had lost
+   * its socket and the member's had not, so one direction converged and the
+   * other did not, and a case that only ever packs on the owner's device
+   * could not have seen it. The stamp names Bob — the server's own attribution
+   * (invariant 3), which a one-account project cannot produce.
+   */
+  test("E2E-FLOW-01b: a member's pack reaches the owner's open screen, named", async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Engadin ${id}`
+    const item = `Sonnenhut-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, item)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    // Alice's screen is the one under test: it is open, subscribed, and then
+    // touched by nothing on her side.
+    const subscribedAlice = watchSubscribed(alice)
+    await alice.goto(tripPath)
+    await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await subscribedAlice
+
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await subscribedBob
+    await packItem(bob, item)
+
+    await expect(visiblePage(alice).getByTestId('m4-done-bar')).toBeVisible()
+    await visiblePage(alice).getByTestId('m4-done-bar').click()
+    await expect(
+      visiblePage(alice).getByTestId(`m4-row-${item}`).getByTestId('m4-packed-stamp'),
+    ).toContainText(ACCOUNT_NAMES.bob)
 
     await ctxAlice.close()
     await ctxBob.close()
@@ -274,7 +324,9 @@ test.describe('Two accounts on one instance @server', () => {
    * `single` proves the mechanism (a foreign claim locks the row); only
    * here can the rendered name be wrong and be caught.
    */
-  test("E2E-G3-01, E2E-G3-03: a claimed row names its holder on the other account's screen", async ({ browser }) => {
+  test("E2E-G3-01, E2E-G3-03: a claimed row names its holder on the other account's screen", async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Engadin ${id}`
     const item = `Steigeisen-${id}`
@@ -387,7 +439,9 @@ test.describe('Two accounts on one instance @server', () => {
    * ADR-029. Bob's device is German; Alice's is not, and hers is what fires
    * the notification.
    */
-  test('E2E-NOTIFY-01: the notification is written in the recipient’s language', async ({ browser }) => {
+  test('E2E-NOTIFY-01: the notification is written in the recipient’s language', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Sprachprobe ${id}`
     const item = `Regenjacke-${id}`
@@ -507,11 +561,14 @@ test.describe('Two accounts on one instance @server', () => {
     // marks it read, so the highlight is spent and the row stays listed.
     await bob.goto('/tabs/dashboard')
     await expect(
-      visiblePage(bob).getByTestId('dashboard-delegated').getByTestId(`dashboard-delegated-${item}`),
+      visiblePage(bob)
+        .getByTestId('dashboard-delegated')
+        .getByTestId(`dashboard-delegated-${item}`),
     ).toBeVisible()
-    await expect(
-      visiblePage(bob).getByTestId(`dashboard-delegated-${item}`),
-    ).not.toHaveAttribute('data-new', 'true')
+    await expect(visiblePage(bob).getByTestId(`dashboard-delegated-${item}`)).not.toHaveAttribute(
+      'data-new',
+      'true',
+    )
   })
 
   test('E2E-FLOW-02: a row handed to the other account notifies them, and the notice leads to the row', async ({
@@ -612,7 +669,9 @@ test.describe('Two accounts on one instance @server', () => {
    * The positive signal is the same sheet after Alice gives the row back —
    * a frozen editor and a broken one look identical from outside.
    */
-  test('E2E-G3-04: a claim on one instance freezes the membership editor on another', async ({ browser }) => {
+  test('E2E-G3-04: a claim on one instance freezes the membership editor on another', async ({
+    browser,
+  }) => {
     const id = uniq()
     const trip = `Elba ${id}`
     const item = `Kurze-Hosen-${id}`

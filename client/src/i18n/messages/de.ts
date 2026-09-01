@@ -49,6 +49,9 @@ export const de: Record<keyof typeof en, string> = {
     'Der Server ist nicht erreichbar. Deine Änderungen bleiben auf diesem Gerät und gehen raus, sobald er wieder da ist.',
   'sync.detail.explain.local':
     'Local Mode: Es gibt keinen Server. Alles, was du erfasst, bleibt in diesem Browser auf diesem Gerät.',
+  'sync.detail.live': 'Live-Updates sind verbunden — Änderungen anderer Geräte kommen sofort an.',
+  'sync.detail.liveGap':
+    'Live-Updates sind gerade nicht verbunden. Verbindung wird wiederhergestellt — bis dahin kommen Änderungen anderer Geräte mit der nächsten Synchronisation.',
   'sync.detail.pending':
     '{n} Änderung wartet auf den Versand | {n} Änderungen warten auf den Versand',
   'sync.detail.conflicts': 'Konflikte in dieser Reise',
