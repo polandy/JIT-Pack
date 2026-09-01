@@ -4,6 +4,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullResponse, PushResponse } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
+import { WS_RECONNECT_BASE_MS } from '../useWebSocket'
 
 // Mock fetch globally
 let fetchMock: ReturnType<typeof vi.fn>
@@ -458,5 +459,79 @@ describe('useSyncOrchestrator', () => {
       expect(after).toHaveLength(1)
       expect(after[0]!.container_id).toBeNull()
     })
+  })
+})
+
+/**
+ * Sync-API P-1: "one code path serves initial load, reconnect, offline
+ * catch-up, and realtime". The hub replays nothing, so a socket that comes
+ * back after a gap has to *pull* the gap — every `trip.changed` sent while
+ * the device was deaf is gone. Before this, a reconnect did not exist at all,
+ * and a device whose socket died learned of nobody else's changes until it
+ * wrote something itself (found 2026-09-01: a member's packs never reached
+ * the owner's open tab).
+ */
+describe('useSyncOrchestrator — reconnect catch-up (Sync-API P-1)', () => {
+  const syncPaths = () =>
+    fetchMock.mock.calls
+      .map(([url]) => String(url))
+      .filter((u) => u.includes('/sync'))
+      .map((u) => u.replace('http://localhost', ''))
+
+  it('pulls the master partition and every subscribed trip after a reconnect, and none after the first open', async () => {
+    vi.useFakeTimers()
+    try {
+      const harness = installHarness()
+      fetchMock = harness.fetch
+      harness.mockDrain()
+      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      await orch.connect()
+      const sockets = () =>
+        harness.webSocket.mock.instances as unknown as Array<{
+          onopen: (() => void) | null
+          onclose: (() => void) | null
+        }>
+      expect(sockets()).toHaveLength(1)
+
+      // The boot pull is App.vue's; the first open must not add one.
+      sockets()[0]!.onopen?.()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(syncPaths()).toEqual([])
+      expect(orch.syncStatus.live.value).toBe(true)
+
+      orch.subscribeTrip('t1')
+      orch.subscribeTrip('t2')
+
+      sockets()[0]!.onclose?.()
+      expect(orch.syncStatus.live.value).toBe(false)
+      await vi.advanceTimersByTimeAsync(WS_RECONNECT_BASE_MS)
+      expect(sockets()).toHaveLength(2)
+
+      sockets()[1]!.onopen?.()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(orch.syncStatus.live.value).toBe(true)
+      expect(syncPaths()).toEqual([
+        '/api/v1/master/sync?cursor=0&limit=500',
+        '/api/v1/trips/t1/sync?cursor=0&limit=500',
+        '/api/v1/trips/t2/sync?cursor=0&limit=500',
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('resume() pulls straight away, without waiting for the socket', async () => {
+    const harness = installHarness()
+    fetchMock = harness.fetch
+    harness.mockDrain()
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    await orch.connect()
+    orch.subscribeTrip('t1')
+
+    orch.resume()
+    await vi.waitFor(() =>
+      expect(syncPaths()).toContain('/api/v1/trips/t1/sync?cursor=0&limit=500'),
+    )
+    expect(syncPaths()[0]).toBe('/api/v1/master/sync?cursor=0&limit=500')
   })
 })

@@ -40,6 +40,9 @@ type Server struct {
 	localUserID string
 	hub         *Hub
 	oidc        *oidcBroker
+	// wsIdleOverride shrinks the §9 WebSocket idle timeout in tests;
+	// zero means the wsIdleTimeout constant.
+	wsIdleOverride time.Duration
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
 	pushContact string

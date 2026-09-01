@@ -51,6 +51,10 @@ export const en = {
     'The server cannot be reached. Your changes are kept on this device and sent as soon as it is back.',
   'sync.detail.explain.local':
     'Local Mode: there is no server. Everything you enter stays in this browser, on this device.',
+  'sync.detail.live':
+    'Live updates are connected — changes from other devices arrive as they happen.',
+  'sync.detail.liveGap':
+    'Live updates are not connected right now. Reconnecting — until then, changes from other devices arrive with the next sync.',
   'sync.detail.pending': '{n} change waiting to be sent | {n} changes waiting to be sent',
   'sync.detail.conflicts': 'Conflicts in this trip',
   'sync.detail.conflictsMaster': 'Conflicts in inventory, groups and trip data',
