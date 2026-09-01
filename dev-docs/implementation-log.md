@@ -232,7 +232,9 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The one screen that read somebody else's partition (2026-08-31)](#the-one-screen-that-read-somebody-elses-partition-2026-08-31) — FLOW-05. The migrated history was worth something only on the device that typed it in: M3's hint read other trips' rows without asking for them, and an unpulled partition reads as a trip that packed none of it.
 - [The migration whose first step is not in the app (2026-08-31)](#the-migration-whose-first-step-is-not-in-the-app-2026-08-31) — FLOW-07. Leaving Local Mode is written nowhere but M19's first launch, so the move is device-to-device; and only a third device, which has seen nothing but the server, can tell a restored row from a pushed one.
 - [The world that could not falsify its own clause (2026-08-31)](#the-world-that-could-not-falsify-its-own-clause-2026-08-31) — FLOW-09, and the last §5 flow. An absence assertion was green because the event it denied never happened in that world; the positive signal for an absence has to be the same event reaching somewhere else.
+- [A mode read off the screen instead of the request (2026-09-01)](#a-mode-read-off-the-screen-instead-of-the-request-2026-09-01) — the §6 NFR journeys, and the last cross-cutting rows of backlog item 6. Four of seven named a mode that cannot exercise the promise; Web Push had coverage at both ends and none in between.
 - [An absence with nothing behind it (2026-09-01)](#an-absence-with-nothing-behind-it-2026-09-01) — the PWA and SYNC rows. A never-cache assertion could not fail because the worker caches nothing at all; a requirement's whole update paragraph had no case; and §4's paging rule was written twice, with the guard in the copy the browsers run and not in the one the command line runs.
+
 
 ## Current state
 
@@ -10614,6 +10616,47 @@ the mode was `single`, where every rule in the chain runs client-side on one dev
 is the argument for correcting it here rather than in the next reader's head.
 
 
+## A mode read off the screen instead of the request (2026-09-01)
+
+The seven §6 non-functional journeys are the last of backlog item 6's cross-cutting rows.
+One was already carried (NFR-04, by E2E-FLOW-08); five cases were written for the rest, and
+the pass corrected more sentences than it added tests.
+
+**Four of the seven entries named the wrong mode, and all four were wrong the same way.**
+The mode had been read off the *screen* a case would use rather than off the *request* the
+case has to make. NFR-4.5's export section exists in all three modes, so the entry said
+`single` — but the promise is the auth header on `downloadExport`, and `single` has no token
+to send. NFR-4.7's import is client-side by invariant 4, so its assertion is about the device
+and not the instance. This is not a new observation: E2E-M17-03 had had this exact
+correction applied during the M17 audit, and §6's own copy of the same sentence kept the
+old answer — **a promise stated twice is corrected once**, which is the general shape and
+the reason to read a catalogue against the suite rather than against itself.
+
+**Two entries were narrowed rather than tested.** NFR-4.8 asked for a boot "with no IdP
+reachable (no OIDC env, network to any IdP blocked)"; a Single-User instance names no
+issuer, so there is no host to block, and a route rule would assert against a request the
+app never makes. The clause is struck and the 501 on `/auth/config` is what is left.
+NFR-4.7's *„imports are transactional"* is an approximation the NFR already admits to, so
+the case asserts what is built — a blocked mapping leaves the device untouched — rather
+than a rollback nobody wrote.
+
+**The one real gap was between two layers that both had coverage.** Web Push is unit-tested
+at the browser end (a fake PushManager) and integration-tested at the delivery end
+(`internal/api/push_test.go`, real VAPID signing against a fake push service). Nothing
+established that the subscription the first produces reaches the instance the second reads
+from — and the M17 toggle had **no `data-testid` at all**, which by now is a dependable
+signature that no test has ever operated a control. E2E-NFR-06 replaces the push service
+and nothing else, grants the permission for real, and asserts the server's own status on the
+owner-scoped route; removing `api.registerSubscription(...)` turns it red.
+
+**Two smaller costs, both worth the line.** An offline case has to prove its own premise —
+`setOffline(true)` establishes nothing about the app unless the network really is what is
+missing, and dropping the service-worker wait is what shows that (it fails on the first
+navigation). And E2E-NFR-03 asserts a *call* rather than a pixel: the storage block's three
+states are unit-covered and all three look identical whether the app asked the browser for
+persistence and lost or never asked at all, so the ask is counted in a stub. That is the
+whole reason the case exists — the requirement's first clause has no screen.
+
 ## An absence with nothing behind it (2026-09-01)
 
 The last two rows of backlog item 6's cross-cutting remainder — **PWA** and
@@ -10674,3 +10717,4 @@ terminate against the unfixed code, and a fake that answers for ever turns that
 into an out-of-memory crash which takes the runner down without naming
 anything. The fake **refuses a fourth call** instead, so the unfixed loop fails
 by name.
+
