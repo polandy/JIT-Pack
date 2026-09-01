@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/polandy/JIT-Pack/compare/v0.3.2...v0.3.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **sync:** a socket that died is dialled again, and the gap is pulled over (Sync-API P-1, §9) ([3402656](https://github.com/polandy/JIT-Pack/commit/34026566b05bd5af079491e509ebe61da97304cf))
+
 ## [0.3.2](https://github.com/polandy/JIT-Pack/compare/v0.3.1...v0.3.2) (2026-09-01)
 
 
