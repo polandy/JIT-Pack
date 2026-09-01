@@ -10777,6 +10777,22 @@ correct in review, because the docstring that claimed „the same insert
 mutation M3 and M22 write" was true. FR-18.8 and ADR-042 both now say the
 action, which is what „runs the app's own code" has to mean.
 
+The second reading was of the tests rather than the code: of the 43
+method-and-path pairs the mux registers, **42 have a Go handler test**, and
+the failure paths are covered across the same files rather than in one place.
+The one that had none is `/health` — which is not an API and is therefore the
+easiest to overlook: it is the liveness gate every shipped compose file runs
+`wget --spider` against, and `docs/getting-started.md` promises an operator a
+200 with an empty body. A rename or a 204 would have surfaced as a container
+that never becomes healthy, at deploy time, on someone else's machine. It has
+a case now, including the method it does not serve.
+
+Worth keeping about the counting itself: a first pass called eight pairs
+untested and seven of those were the matcher's fault — a test that builds its
+URL in a helper, a table-driven case, or `srv.URL + api.RouteInstanceConfig`
+never contains the path as one literal. **A grep over paths measures how
+tests are written, not what they cover**; only opening the seven said which.
+
 Four more things the sweep looked at and left standing, each written down so
 the next sweep does not re-derive them:
 
