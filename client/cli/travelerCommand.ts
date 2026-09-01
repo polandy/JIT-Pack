@@ -43,7 +43,11 @@ export interface TravelerOptions extends Connection {
   /** Only needed when one name means two trips. */
   year: number | null
   names: string[]
-  /** An account to link the person to, by id or display name. */
+  /**
+   * An account to record the person as, by id or display name. Recorded and
+   * not acted on — FR-2.5's 2026-09-01 decision: the link has no reader, and
+   * the built way to make a row somebody's is FR-25.19's assignment.
+   */
   user: string | null
   dryRun: boolean
 }
@@ -63,7 +67,7 @@ rows they own, and that question belongs on the screen that asks it (M22).
 Flags:
   --trip TRIP    trip id, or its name (required)
   --year YEAR    which trip, when one name means several
-  --user WHO     link the person to an account, by id or display name
+  --user WHO     record which account the person is (nothing reads it yet)
   --server URL   instance base URL (default $${ENV_SERVER}, else ${DEFAULT_SERVER})
   --token TOKEN  bearer token for an instance with accounts (default $${ENV_TOKEN})
   --dry-run      report what would be added without adding it`
