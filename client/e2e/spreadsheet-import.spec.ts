@@ -244,6 +244,53 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
   })
 
   /**
+   * E2E-NFR-07 (NFR-4.7): a file that fails pre-validation leaves nothing
+   * behind, and the same file leaves something once it passes.
+   *
+   * NFR-4.7's "imports are transactional" is an approximation and says so
+   * (the plan is validated in full before the first mutation is enqueued;
+   * nothing rolls back). The clause that *is* built is therefore this one,
+   * and E2E-M15-12 stops one step short of it: it asserts the step refuses
+   * to advance, never that the device is unchanged behind the refusal.
+   *
+   * The absence needs the same event arriving somewhere else to be worth
+   * anything, so the second half commits the identical sheet: what the
+   * refusal withheld is exactly what the answered gate delivers.
+   */
+  test('E2E-NFR-07: a blocked mapping writes no rows, and the answered one writes them', async ({
+    page,
+  }) => {
+    await seed(page, { mode: 'local' })
+    await page.goto('/import')
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(UNNAMED_TRIP_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+    await expect(visiblePage(page).getByTestId('import-next')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+
+    // Leaving the wizard is the user's other answer to a gate, and the one
+    // that would expose a half-written import: the inventory and the trip
+    // list are read through their own screens, not through the wizard.
+    await page.goto('/tabs/items')
+    await expect(visiblePage(page).getByText('Wanderschuhe')).toHaveCount(0)
+    await page.goto('/tabs/trips')
+    await expect(visiblePage(page).getByTestId('trip-row-Laos')).toHaveCount(0)
+
+    // The positive half: same sheet, gate answered, and both rows land.
+    await page.goto('/import')
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(UNNAMED_TRIP_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+    await visiblePage(page).getByTestId('import-trip-2').locator('ion-checkbox').click()
+    await visiblePage(page).getByTestId('import-next').click()
+    await visiblePage(page).getByTestId('import-commit').click()
+
+    await expect(visiblePage(page).getByTestId('trip-row-Laos')).toBeVisible()
+    await page.getByTestId('rail-items').click()
+    await expect(visiblePage(page).getByText('Wanderschuhe')).toBeVisible()
+  })
+
+  /**
    * E2E-M15-03 (FR-16.3): step 3 decides the inventory.
    *
    * The step has existed since the wizard was built and no test had ever

@@ -1,6 +1,10 @@
 /**
- * E2E-M17-03 (NFR-4.5): M17's data section, driven under a real OIDC
- * session — the branch that carries the auth header.
+ * E2E-M17-03 and E2E-NFR-05 (NFR-4.5): M17's data section, driven under a
+ * real OIDC session — the branch that carries the auth header.
+ *
+ * NFR-05's catalogue entry said `single`, for the same reason M17-03's did
+ * before the M17 audit corrected it: the mode was read off the screen's
+ * section rather than off the request. Corrected here to `server`.
  *
  * Why `server` and not `all`, which the case used to claim: in Local Mode
  * this section is a different section entirely (per-trip and per-template
@@ -19,7 +23,7 @@ import { quickAddItem, uniq } from '../serverMode'
 
 import { loginAs } from './fixtures'
 
-test('E2E-M17-03: the full export and the trip CSV download and carry the trip', async ({
+test('E2E-M17-03, E2E-NFR-05: the full export and the trip CSV download and carry the trip', async ({
   browser,
 }) => {
   const id = uniq()

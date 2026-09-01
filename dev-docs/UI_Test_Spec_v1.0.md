@@ -671,7 +671,7 @@ against a screen rather than against a stylesheet (G-14).
 
 ### M17 — Settings & Notifications
 * **E2E-M17-01** `server` (FR-6.2) — **implemented 2026-08-30**, in `e2e/server/multi-user.spec.ts`. Four kinds rather than the three this sentence used to name: `lock_taken` joined them with FR-5.7. Bob turns *Delegations* off in his own M17, the choice survives his reload, and Alice's next hand-over produces no toast on his screen — while the same pair of pages produced one before he touched it, and a **mention** afterwards still arrives. The two positives are what make the absence assertable: a toast that has not come yet looks exactly like one that never will, and the mention rides the same connection the suppressed delegation would have. It also proves the switch is *per kind* rather than a mute. The ends were covered and the wire between them was not — Go's `TestNotificationPrefs_DisabledKindSuppressesCreation` for the rule, `composables/__tests__/settings.spec.ts` for the PUT, and nothing saying the switch the user flips is the value the server reads.
-* **E2E-M17-02** ~~`server` (NFR-4.6): "Push on this device" registers via the Push API/VAPID (permission mocked); support detection hides it where unsupported.~~ — **retired as an e2e case (2026-08-30), and covered where it can be.** The browser dance is unit-owned end to end in `notifications/__tests__/push.spec.ts`: the VAPID key is fetched and the subscription registered, an existing subscription is reused rather than resubscribed, a denied permission returns false, an unsupported browser returns false, and the unregister drops it on both sides. The half a rendered case would add is *„hides it where unsupported"*, and that branch cannot be produced in either browser the suite runs: Chromium and WebKit both carry `PushManager`, so `pushAvailable` is true in every project that exists. The control is disabled rather than hidden, and asserting `disabled` on an Ionic toggle is the E2E-M17-05b trap — a bound boolean reflects onto no DOM attribute — so the case would have been green against the branch being gone.
+* **E2E-M17-02** ~~`server` (NFR-4.6): "Push on this device" registers via the Push API/VAPID (permission mocked); support detection hides it where unsupported.~~ — **retired as an e2e case (2026-08-30), and covered where it can be.** The browser dance is unit-owned end to end in `notifications/__tests__/push.spec.ts`: the VAPID key is fetched and the subscription registered, an existing subscription is reused rather than resubscribed, a denied permission returns false, an unsupported browser returns false, and the unregister drops it on both sides. The half a rendered case would add is *„hides it where unsupported"*, and that branch cannot be produced in either browser the suite runs: Chromium and WebKit both carry `PushManager`, so `pushAvailable` is true in every project that exists. The control is disabled rather than hidden, and asserting `disabled` on an Ionic toggle is the E2E-M17-05b trap — a bound boolean reflects onto no DOM attribute — so the case would have been green against the branch being gone. **Amended 2026-09-01:** the retirement's reasoning was one half short. It weighed the *unsupported* branch and concluded a rendered case adds nothing — but the half neither layer had was the **round-trip**, the subscription the browser dance produces actually reaching the instance. That is E2E-NFR-06, and it also found the toggle had no `data-testid` at all. M17-02 stays retired; the clause it was retired *for* is still unreachable.
 * **E2E-M17-03** `server` (NFR-4.5) — **implemented 2026-08-30**, in `e2e/server/data-export.spec.ts`. `server` rather than the `all` it used to claim, for two reasons found by reading it against the screen: in Local Mode this is a **different section** — per-trip and per-template YAML written client-side, because there is no server to ask — and in `single` there is no token, so the auth header the promise is about is never sent. Both files are read back rather than counted: the JSON is parsed and asked for the trip, the CSV for the row. An export is one half of a pair, and the half that matters is the one that has to be readable when it is the only copy left.
 * **E2E-M17-04** `single` (FR-17.13) — **implemented 2026-08-26**, in `e2e/single/settings-profile.spec.ts`: editable display name against a real jitpackd. The untouched field shows no rule note whatever name the server handed out; emptying it is the first touch and the note appears; a name with a space and a diacritic — what the pre-revision `[A-Za-z0-9._-]` rule refused — saves and survives a reload, proving the server accepts it too.
 * **E2E-M17-12** `single` **and** `server` (FR-17.13): avatar upload with pan/zoom crop → 256×256 JPEG; reflected in the dashboard greeting. (Split out of E2E-M17-04 when its name half was implemented; **still open**, and now owed in both projects since the revision of 2026-08-29 made the upload reachable under an OIDC session too.) It stays open for a reason worth naming: `AvatarCropModal.vue` carries no `data-testid` at all — the tell that marked M20 as never-rendered before #242 — and the modal renders the file into a canvas with no settled signal to assert against, so a case written today could only wait-and-hope. The production code owes the seam first. **Re-verified 2026-08-30** during the M17 audit rather than carried forward on trust: `AvatarCropModal.vue` still carries no `data-testid`, so the blocker is current. The M4 audit's lesson is that a blocked entry can outlive its blocker with nobody noticing, which makes re-reading the blocker part of the audit rather than an optional extra.
@@ -833,13 +833,51 @@ These are full end-to-end journeys spanning several screens — the highest-valu
 
 | ID | NFR | Mode | Assertion |
 |---|---|---|---|
-| E2E-NFR-01 | NFR-4.1 Offline-first | single/local | Every read/write works with the network offline; nothing blocks. |
-| E2E-NFR-02 | NFR-4.8 Single-User independence | single | Instance boots and is fully usable with no IdP reachable (no OIDC env, network to any IdP blocked). |
+| E2E-NFR-01 | NFR-4.1 Offline-first | local (+ `single`) | Every read/write works with the network offline; nothing blocks. |
+| E2E-NFR-02 | NFR-4.8 Single-User independence | single | Instance boots and is fully usable with no OIDC configured. |
 | E2E-NFR-03 | NFR-4.11 Persistence | local | Persistent storage requested; storage estimate/persisted surfaced in the G-2 detail. |
 | E2E-NFR-04 | NFR-4.2a Conflict resolution | server | See E2E-FLOW-08 — merge + conflict-log UI. |
-| E2E-NFR-05 | NFR-4.5 Export | single | JSON full + per-trip CSV download and are well-formed. |
+| E2E-NFR-05 | NFR-4.5 Export | server | JSON full + per-trip CSV download and are well-formed. |
 | E2E-NFR-06 | NFR-4.6 Push | server | Web-Push registration round-trip (browser Push API mocked). |
-| E2E-NFR-07 | NFR-4.7 Import transactionality | single | A pre-validation failure aborts the import with no partial rows. |
+| E2E-NFR-07 | NFR-4.7 Import transactionality | local | A pre-validation failure aborts the import with no partial rows. |
+
+**All seven are implemented as of 2026-09-01**, and four of the seven sentences above were
+corrected against the app while writing them — the modes in particular, each of which had been
+read off the screen's section rather than off the request the case has to make.
+
+* **E2E-NFR-01** (`e2e/pwa-offline.spec.ts`): the Local Mode half is the new one. Nothing had
+  ever *written* with the network down — E2E-PWA-01 reloads and asserts the shell, and the
+  `single` half (E2E-FLOW-06, E2E-G2-04) queues against a server that comes back. Here nothing
+  comes back, because in Local Mode there is nothing to come back: a trip is created, an item is
+  added and packed, and the reload is what separates a rendered optimistic store from data the
+  device kept. Dropping the service-worker wait turns the case red, which is what says the
+  network is genuinely down rather than merely flagged.
+* **E2E-NFR-02** (`e2e/single/mode-discovery.spec.ts`, with E2E-M19-02): *„network to any IdP
+  blocked"* is struck rather than tested. A Single-User instance names no issuer, so there is no
+  host to block and blocking one would assert against a request the app never makes; the
+  assertable promise is the 501 on `/auth/config` and the dashboard behind it.
+* **E2E-NFR-03/03b** (`e2e/storage-durability.spec.ts`): the three rendered states of the storage
+  block were unit-covered; the clause no screen can show is that `navigator.storage.persist()` is
+  *asked* at all. The Storage API is replaced rather than driven — a real browser's answer is a
+  policy decision and the case would assert whatever the profile happened to be — and the ask is
+  counted, so a refusal that was never requested is distinguishable from one that was. The
+  granted branch is the pair's positive half and also covers the guard that does not ask twice.
+* **E2E-NFR-05** (`e2e/server/data-export.spec.ts`, with E2E-M17-03): `single` → `server`. In
+  Local Mode this is a different section entirely (per-trip YAML written client-side), and in
+  `single` there is no token, so the auth header the promise is about is never sent.
+* **E2E-NFR-06** (`e2e/server/push.spec.ts`): **the toggle had no `data-testid`** — the signature
+  of a control no test has ever operated. The push *service* is replaced and nothing else is:
+  `subscribe()` would otherwise have to reach a real endpoint no CI run can. What the case buys
+  over the unit is the half only an integration can establish — the subscription reaches the real
+  instance and is accepted against this account, and the opt-out both tells the server and
+  cancels the browser subscription. Delivery from there is `internal/api/push_test.go`.
+* **E2E-NFR-07** (`e2e/spreadsheet-import.spec.ts`): `single` → `local`, and the sentence narrows
+  to what is built. NFR-4.7's *„transactional"* is an approximation and says so — the plan is
+  validated in full before the first mutation is enqueued and nothing rolls back — so the
+  assertable clause is that a blocked mapping leaves the device untouched. E2E-M15-12 stops one
+  step short of it, asserting the refusal and never the state behind it. The absence is worth
+  something only because the second half commits the identical sheet through the answered gate:
+  what the refusal withheld is exactly what it then delivers.
 
 ---
 
@@ -1015,13 +1053,12 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | NFR-4.3 | SERVER | resource footprint — docker/Go, no UI |
 | NFR-4.4 | SERVER | JWT decoupling — Go/api; offline-token touched by FLOW-06 |
 | NFR-4.5 | E2E | M17-03, NFR-05 |
-| NFR-4.6 | E2E | M17-02, NFR-06 |
-| NFR-4.7 | E2E+UNIT | M15-12 (the pre-validation half of M15-04, 2026-08-30), NFR-07, M9-04 (the entry from an empty inventory, and the return to it); spreadsheet.ts + `composables/__tests__/import.spec.ts` carry the `?` rule at both levels. **Two clauses of this NFR are unbuilt and open with the owner** (2026-08-30): the noise handling is never *shown* in the wizard (M15-02) and the commit is an approximation rather than a transaction — no rollback, no progress. |
+| NFR-4.6 | E2E | NFR-06 (the registration round-trip against a real session, 2026-09-01); M17-02 is retired — the branch it kept is unreachable in a suite whose browsers all support Push |
+| NFR-4.7 | E2E+UNIT | M15-12 (the pre-validation half of M15-04, 2026-08-30), NFR-07, M9-04 (the entry from an empty inventory, and the return to it); spreadsheet.ts + `composables/__tests__/import.spec.ts` carry the `?` rule at both levels. The wizard's inline noise notice was the first of two clauses this row carried as unbuilt; it was ruled *build it* on 2026-08-31 and M15-02 asserts it. The second stands and is deliberate: **the commit is an approximation rather than a transaction** — no rollback, no progress — so NFR-07 asserts the clause that *is* built, that a blocked mapping writes nothing. |
 | NFR-4.8 | E2E | NFR-02 |
 | NFR-4.9 | DOC/N-A | operator documentation only |
 | NFR-4.10 | DOC/N-A | retired (demo rate-limit) |
-| NFR-4.11 | E2E | M17-07, NFR-03, M18-05/06/07/08, M19-01 (the persistence request itself, 2026-08-30) |
-| NFR-4.11 | E2E | M17-07, NFR-03 |
+| NFR-4.11 | E2E | M17-07, M18-05/06/07/08, M19-01; **NFR-03/03b** carry the request itself (2026-09-01) — the one clause the sheet cannot show. (This row was written twice, the second copy a subset of the first; merged 2026-09-01.) |
 | NFR-4.12 | E2E+UNIT | M17-10; `i18n/__tests__/i18n.spec.ts` (catalogue key, placeholder and plural-form parity), `lib/__tests__/roleLabels.spec.ts` |
 
 **No requirement with a UI surface is left uncovered.** Rows tagged SERVER or DOC/N-A are intentionally outside the browser suite, with the reason stated.
