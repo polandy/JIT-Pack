@@ -112,7 +112,7 @@ Cannobio 2026: 0 added, 1 already here
 |---|---|
 | `--trip TRIP` | Which trip: its name, or its id. Required. |
 | `--year YEAR` | Which trip, when one name means several. |
-| `--user WHO` | Link this person to an account, by display name or user id. One name only. |
+| `--user WHO` | Record which account this person is, by display name or user id. One name only — and see the note below on what it does not do. |
 | `--dry-run` | Say what would be added without adding it. |
 
 ### Naming the right trip
@@ -129,8 +129,8 @@ Add `--year 2026`, or pass the trip's id, which is never ambiguous.
 
 ### Linking a person to an account
 
-A traveler is a person on a trip; an account is someone who signs in. Linking the two is
-what lets the app show that this row belongs to *you*:
+A traveler is a person on a trip; an account is someone who signs in. The link records
+which account a person is:
 
 ```bash
 node client/dist-cli/jitpack.mjs traveler add --trip "Cannobio" --user "Sia" Sia
@@ -139,6 +139,14 @@ node client/dist-cli/jitpack.mjs traveler add --trip "Cannobio" --user "Sia" Sia
 The account is matched by display name or user id — the directory holds no e-mail addresses.
 Someone who has **never signed in has no account yet**, so link them after their first login.
 Until then, add them as an unlinked traveler; the person is still packed for.
+
+!!! note "The link is recorded, and nothing reads it yet"
+
+    Today the link changes nothing you can see: no screen looks at it, and `traveler list`
+    reporting `(linked)` is the only place it shows up. What you probably want instead is
+    **assigning a row** — that is a separate, working thing, done on the item's detail sheet,
+    and it notifies the person. The link is kept because the data model keeps the
+    person/account distinction whether or not a feature uses it yet.
 
 ### Removing someone
 

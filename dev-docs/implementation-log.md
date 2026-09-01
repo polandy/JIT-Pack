@@ -235,6 +235,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A mode read off the screen instead of the request (2026-09-01)](#a-mode-read-off-the-screen-instead-of-the-request-2026-09-01) — the §6 NFR journeys, and the last cross-cutting rows of backlog item 6. Four of seven named a mode that cannot exercise the promise; Web Push had coverage at both ends and none in between.
 - [An absence with nothing behind it (2026-09-01)](#an-absence-with-nothing-behind-it-2026-09-01) — the PWA and SYNC rows. A never-cache assertion could not fail because the worker caches nothing at all; a requirement's whole update paragraph had no case; and §4's paging rule was written twice, with the guard in the copy the browsers run and not in the one the command line runs.
 - [A command that called the mutation and not the rule (2026-09-01)](#a-command-that-called-the-mutation-and-not-the-rule-2026-09-01) — every one of the 37 routes read for whether the API door runs what the UI door runs. The handlers are shared by construction; the divergence was in the client-side rules that run before the push, where `jitpack traveler add` wrote the row M22's action writes and skipped the consequences it runs.
+- [A column decided by what removing it would cost (2026-09-01)](#a-column-decided-by-what-removing-it-would-cost-2026-09-01) — `travelers.linked_user_id` stays, inert: building a reader costs a notification per generated row, and dropping a column now means rebuilding a live instance, because invariant 2 has no migration path. The defect was the manual's sentence about it.
 
 
 ## Current state
@@ -10812,3 +10813,43 @@ the next sweep does not re-derive them:
   (`--user`) and read only by `traveler list`. The API can do something no
   screen can, which is the mirror image of this section's defect and still an
   open owner decision.
+
+## A column decided by what removing it would cost (2026-09-01)
+
+`travelers.linked_user_id` had been open since it was found with neither a
+writer on any screen nor a reader anywhere — FR-2.5's optional person↔account
+link, set only by `jitpack traveler --user` and reported only by that
+command's own `list`. Decided here, and the decision is **keep it, inert**.
+
+The interesting part is which argument decided it, because it was not the
+first one. **Building a reader** loses on the product: the reader that
+motivated the request — a personal *„my rows"* filter — was struck on
+2026-08-31 for a reason that has not changed, that two of the three modes have
+no accounts; and the reader that would genuinely pay, assigning a per-person
+row to its traveller's account when generation writes it, produces **one
+FR-6.2 delegation notification per generated row** — forty of them for one
+trip. **Dropping it** looked like the doctrinal answer — FR-2.5's own
+paragraph retired `travelers.profile` with the sentence „a field nothing reads
+is a question asked of the user for nothing" — and loses on a price that is
+new since that precedent: invariant 2 has no migration path, so a dropped
+column means rebuilding every database that holds real data, and one of those
+is now a family instance in daily use with a season of history in it. The
+window in which schema removals were free closed when the first instance
+became real, and nobody wrote that down at the time.
+
+What is left is the option that was already decided for this whole class:
+FR-17.3 keeps the multi-user constructs in the data model while they are
+inert, so an instance can grow into them without a migration. This column is
+one of those.
+
+**The defect was never the column; it was the sentence.** `docs/command-line.md`
+told the operator that linking „is what lets the app show that this row
+belongs to *you*" — which no screen does, and which is the same shape as every
+other finding of this programme: a promise that reads as a specification.
+The manual now says the link is recorded and nothing reads it, and points at
+FR-25.19's assignment, which is the built way to say that a row is somebody's.
+
+The rule to reuse: **an unused field is a decision with three answers, and the
+cheap one changes over time.** Strike, build, or keep-and-say-so — and once a
+real instance exists, „strike" stops being free and has to earn its price like
+any other change.
