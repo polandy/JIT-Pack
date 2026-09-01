@@ -73,6 +73,7 @@ Automation reaches JIT-Pack through `jitpack COMMAND`, a Node command line over 
 
 **Positive**
 - A command produces exactly the rows the app produces, and lands in the change log, so every device sees them.
+- **The mechanism that makes that true is `client/cli/context.ts` (added 2026-09-01).** „Runs the app's own code" was first read as „calls the app's mutation factory", and that is a smaller thing: the rules a screen runs live in the action groups above the factory, so `jitpack traveler add` wrote the traveller and not the positions M22 generates with it. A command binds a `SyncContext` — the R-4 spine — and calls the action. The ADR's driver 1 is only discharged where a command does that.
 - Adding the next command is a module and a table entry; the connection flags, exit codes and push chunking are shared.
 - Nothing here is mode-specific: the same binary drives a Single-User instance and a multi-user one.
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/polandy/JIT-Pack/compare/v0.3.0...v0.3.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **cli:** a command calls the action, not the mutation (FR-18.8) ([d781bc9](https://github.com/polandy/JIT-Pack/commit/d781bc9c2edb00a40a92f574e4801a5ccd953427))
+
 ## [0.3.0](https://github.com/polandy/JIT-Pack/compare/v0.2.0...v0.3.0) (2026-09-01)
 
 

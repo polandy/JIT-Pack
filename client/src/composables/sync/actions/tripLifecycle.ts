@@ -181,13 +181,21 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    * Returns what happened, so the screen can report it (FR-27.10's pattern)
    * rather than leave the user guessing which rows appeared. Null when the
    * trip cannot be seen or its data is not loaded.
+   *
+   * `linkedUserId` is the account the person is (FR-2.5). M22 has no control
+   * for it and passes nothing; `jitpack traveler --user` does, and reaches
+   * this rather than the bare mutation so the plan follows there too.
    */
-  function addTravelerToTrip(tripId: string, name: string): TravelerChangeReport | null {
+  function addTravelerToTrip(
+    tripId: string,
+    name: string,
+    linkedUserId: string | null = null,
+  ): TravelerChangeReport | null {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return null
     if (!tripDataLoaded(tripId)) return null
 
-    const { mutation, id } = mutations.addTraveler(tripId, name)
+    const { mutation, id } = mutations.addTraveler(tripId, name, linkedUserId)
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: localChange(TABLE.travelers, id, mutation.fields),
