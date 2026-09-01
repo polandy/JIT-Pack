@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/polandy/JIT-Pack/compare/v0.3.1...v0.3.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **m17:** the avatar crop stage never zoomed (FR-17.13) ([b15f794](https://github.com/polandy/JIT-Pack/commit/b15f794976a757120ace8e11e9f04a77ef39fa3c))
+
 ## [0.3.1](https://github.com/polandy/JIT-Pack/compare/v0.3.0...v0.3.1) (2026-09-01)
 
 
