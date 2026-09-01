@@ -3,6 +3,10 @@
 .claude
 client/node_modules
 client/dist
+client/.vite
+client/coverage
+client/playwright-report
+client/test-results
 docs
 *.md
 *.db

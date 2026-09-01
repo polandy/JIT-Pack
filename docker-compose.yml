@@ -1,5 +1,9 @@
 # Local test stack for the full app (backend + UI) on a single origin.
 #
+# One container: since ADR-043 jitpackd serves the built client itself, so
+# there is no reverse proxy to configure and the same-origin requirement the
+# CORS-less API has is satisfied by there being only one server.
+#
 # Mode: Single-User (no OIDC, no IdP). The server bypasses auth and
 # membership (FR-17.3); the client detects no OIDC (/auth/config → 501)
 # and skips the login screen. So you "log in" simply by opening the app.
@@ -8,10 +12,7 @@
 #   In the first-run screen pick "Server Mode" and enter:
 #       http://localhost:3000
 #
-# The `web` container (nginx) serves the SPA and reverse-proxies /api,
-# /ws and /health to `app` — same origin, so the CORS-less API works.
-#
-# The project and its containers carry a `-dev` name so this stack can run
+# The project and its container carry a `-dev` name so this stack can run
 # beside a deployed JIT-Pack on the same host: container names are unique
 # per daemon, and two compose projects sharing a name would treat each
 # other's containers as orphans.
@@ -27,8 +28,8 @@ services:
     container_name: jitpack-dev-app
     restart: unless-stopped
     mem_limit: 128m
-    expose:
-      - "8080"
+    ports:
+      - "3000:8080"
     volumes:
       - data:/data
     environment:
@@ -36,20 +37,3 @@ services:
       JITPACK_DB_PATH: "/data/jitpack.db"
       JITPACK_SINGLE_USER: "true"
       JITPACK_LOCAL_USER_ID: "local"
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
-
-  web:
-    build: ./client
-    container_name: jitpack-dev-web
-    restart: unless-stopped
-    mem_limit: 64m
-    ports:
-      - "3000:80"
-    depends_on:
-      app:
-        condition: service_healthy

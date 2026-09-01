@@ -44,6 +44,13 @@ type Config struct {
 	// the value is a label on a number, and one number is one currency.
 	Currency string // JITPACK_CURRENCY
 
+	// WebRoot is the built client bundle this process serves beside the
+	// API, on the same origin (ADR-043) — the published image sets it, so
+	// one container is the whole app. Empty ⇒ the binary serves the API
+	// alone, which is what it did before and what a deployment fronting the
+	// SPA with its own web server still wants.
+	WebRoot string // JITPACK_WEB_ROOT
+
 	// Instance admins (FR-23.1): comma-separated e-mail addresses,
 	// matched case-insensitively against the verified email the UserInfo
 	// endpoint reports at login. Empty ⇒ the feature is dormant.
@@ -71,6 +78,8 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		OIDCClientSecret: getenv("JITPACK_OIDC_CLIENT_SECRET"),
 
 		PushContact: getenv("JITPACK_PUSH_CONTACT"),
+
+		WebRoot: getenv("JITPACK_WEB_ROOT"),
 
 		AdminEmails: splitList(getenv("JITPACK_ADMIN_EMAILS")),
 	}

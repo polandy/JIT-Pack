@@ -47,6 +47,22 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
+			// ADR-043: the published image sets this, an operator fronting
+			// the SPA with their own web server leaves it unset, and both
+			// are ordinary configurations rather than modes.
+			name: "web root served beside the API",
+			env: map[string]string{
+				"JITPACK_SESSION_SECRET": "s3cret",
+				"JITPACK_WEB_ROOT":       "/srv/web",
+			},
+			want: Config{
+				Listen:        ":8080",
+				DBPath:        "jitpack.db",
+				SessionSecret: "s3cret",
+				WebRoot:       "/srv/web",
+			},
+		},
+		{
 			name: "single-user mode",
 			env: map[string]string{
 				"JITPACK_SINGLE_USER":   "true",

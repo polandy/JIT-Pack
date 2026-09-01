@@ -76,10 +76,10 @@ export default defineConfig({
   /*
    * `vite preview` is the server the Playwright suite drives. The API sets
    * no CORS headers — same-origin is a hard requirement of every real
-   * deployment (see src/config.ts and nginx.conf) — so the backend-backed
-   * e2e project reaches its jitpackd *through* the preview origin, exactly
-   * the way nginx routes a production instance: /api and /health proxied,
-   * /ws upgraded. Harmless to the backend-free projects: Local Mode never
+   * deployment (see src/config.ts) — so the backend-backed e2e project
+   * reaches its jitpackd *through* the preview origin, standing in for the
+   * one process that serves both in production (ADR-043): /api and /health
+   * proxied, /ws upgraded. Harmless to the backend-free projects: Local Mode never
    * requests these paths, so the proxy target's absence is never observed.
    */
   preview: {

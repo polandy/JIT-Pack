@@ -24,8 +24,9 @@ linters:
       exclude-functions:
         # Idiomatic sites where the error is meaningless or surfaces
         # elsewhere: deferred cleanup (Rollback after Commit, Rows/Body
-        # Close, test-cleanup Store.Close, WebSocket teardown) and HTTP
-        # response writing, where a failure means the client is gone.
+        # Close, test-cleanup Store.Close, WebSocket teardown, the read-only
+        # static files internal/webui serves) and HTTP response writing,
+        # where a failure means the client is gone.
         # csv.Writer errors surface via cw.Error() after Flush.
         - (net/http.ResponseWriter).Write
         - (*encoding/json.Encoder).Encode
@@ -34,6 +35,8 @@ linters:
         - (*database/sql.Rows).Close
         - (io.ReadCloser).Close
         - (*jitpack/internal/store.Store).Close
+        - (*os.File).Close
+        - (*os.Root).Close
         - (*github.com/coder/websocket.Conn).CloseNow
     staticcheck:
       checks:

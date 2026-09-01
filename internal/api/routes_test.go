@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"jitpack/internal/api"
 )
 
 // NFR-4.14 closed its last half here: a path used to be written twice — once as
@@ -217,5 +219,22 @@ func TestEveryPlaceholderIsADeclaredPathParam(t *testing.T) {
 					r.constName, m[1], pathParamPrefix)
 			}
 		}
+	}
+}
+
+// APIPrefix is what the single-origin SPA server routes by (ADR-043), so a
+// declared path outside it would be answered by the file server instead of by
+// its handler — a 404 for the app, and no error anywhere. The two paths that
+// live outside the versioned surface are named here for the same reason: the
+// list the server is handed has to be the whole list.
+func TestAPIPrefixCoversEveryDeclaredRoute(t *testing.T) {
+	outside := map[string]bool{api.RouteWS: true, api.RouteHealth: true}
+	for _, r := range declaredRoutes(t) {
+		if outside[r.pattern] || strings.HasPrefix(r.pattern, api.APIPrefix) {
+			continue
+		}
+		t.Errorf("%s declares %s, which is neither under %s nor one of the two paths "+
+			"outside it — the SPA server would answer it (see webui.Handler)",
+			r.constName, r.pattern, api.APIPrefix)
 	}
 }
