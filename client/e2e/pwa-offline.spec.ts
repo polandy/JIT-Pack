@@ -54,20 +54,71 @@ test.describe('app shell offline (NFR-4.13)', () => {
     await expect(visiblePage(page)).toBeVisible()
   })
 
-  test('E2E-PWA-02: the shell cache holds the bundle and never /health', async ({ page }) => {
+  test('E2E-PWA-02: the worker never answers /api, /ws or /health', async ({ page }) => {
     await page.goto('/tabs/dashboard')
     await serviceWorkerControlsPage(page)
 
-    // Provoke the request the worker must pass through untouched. The
-    // preview server answers *something* for it; what matters is that no
-    // cache entry appears.
-    await page.evaluate(() => fetch('/health').catch(() => undefined))
+    /*
+     * The seam this case needs, and why it is not the cache read it used to
+     * be: the worker caches nothing at runtime, so "no cache entry appeared
+     * for /health" stayed true with the bypass rule deleted outright
+     * (measured 2026-09-01 — `bypassed()`'s whole body replaced by
+     * `return false`, and this case still passed). What the rule promises is
+     * that the worker never *answers* these paths, and the way to make that
+     * falsifiable is to give it something to answer with: a planted response
+     * in a cache of this test's own. `caches.match` searches every cache on
+     * the origin, so a worker that stopped bypassing would serve the plant.
+     */
+    const PLANT = 'PLANTED-BY-E2E'
+    const BYPASSED = ['/health', '/api/v1/auth/config', '/ws']
+    // A path the rule does not cover: the positive signal the three
+    // absences lean on — the plant is reachable, so an absence means the
+    // bypass rule and not a mechanism that never worked.
+    const COVERED = '/e2e-not-bypassed'
 
+    const bodies = await page.evaluate(
+      async ({ plant, bypassed, covered }) => {
+        const cache = await caches.open('e2e-planted')
+        for (const path of [...bypassed, covered]) {
+          await cache.put(path, new Response(plant, { headers: { 'content-type': 'text/plain' } }))
+        }
+        const read = async (path: string) => {
+          try {
+            return await (await fetch(path)).text()
+          } catch {
+            // A path with nothing behind it in this project rejects; that is
+            // still an answer that did not come from the worker.
+            return 'network-error'
+          }
+        }
+        return {
+          bypassed: await Promise.all(bypassed.map(read)),
+          covered: await read(covered),
+        }
+      },
+      { plant: PLANT, bypassed: BYPASSED, covered: COVERED },
+    )
+
+    expect(bodies.covered, 'the plant must be reachable, or the absences below mean nothing').toBe(
+      PLANT,
+    )
+    for (const [i, body] of bodies.bypassed.entries()) {
+      expect(body, `${BYPASSED[i]} must not be answered by the worker`).not.toBe(PLANT)
+    }
+
+    // The cache half of the same rule, beside the positive signal that the
+    // same cache, read the same way, does hold the shell document.
     const cached = await page.evaluate(async () => ({
-      // The positive signal the absence assertion leans on: the same cache,
-      // read the same way, does hold the shell document.
       shell: (await caches.match('/index.html')) !== undefined,
-      health: (await caches.match('/health')) !== undefined,
+      health: await caches
+        .keys()
+        .then((names) => names.filter((n) => n.startsWith('jitpack-shell-')))
+        .then(async (names) => {
+          for (const name of names) {
+            if (await (await caches.open(name)).match('/health')) return true
+          }
+          return false
+        }),
     }))
     expect(cached.shell).toBe(true)
     expect(cached.health).toBe(false)
@@ -137,11 +188,111 @@ test.describe('app shell offline (NFR-4.13)', () => {
     const purposes = manifest.icons.map((icon: { purpose: string }) => icon.purpose)
     expect(purposes).toContain('maskable')
 
+    // NFR-4.13 names the theme-color beside the manifest, and it is the one
+    // tag of the install declaration that is not static: theme.ts repaints it
+    // from the active flavour's own --ct-base (FR-21), so an empty or missing
+    // meta means an installed app whose chrome stops following the palette.
+    const themeColor = await page.locator('meta[name="theme-color"]').getAttribute('content')
+    const base = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--ct-base').trim(),
+    )
+    expect(themeColor).toBe(base)
+
     // Every declared icon must actually exist — the apple one included.
     const urls = [...manifest.icons.map((icon: { src: string }) => icon.src), appleIcon!]
     for (const url of urls) {
       const ok = await page.evaluate(async (u: string) => (await fetch(u)).ok, url)
       expect(ok, `icon ${url} must resolve`).toBe(true)
     }
+  })
+  /**
+   * The update policy (E2E-PWA-04, NFR-4.13 / ADR-019), which had no case of
+   * any kind: a new version installs in the background, is *announced* through
+   * the G-2 glyph and its sheet, never reloads the running app, and takes over
+   * on the next launch. `registerAppServiceWorker`'s unit test drives the
+   * watcher against a fake container; nothing had ever put a second worker on
+   * the origin and read the app.
+   *
+   * Registering a *different* script URL on the same scope is what makes this
+   * drivable: a registration is keyed by scope, so the browser installs the
+   * new script into the registration the app is already holding — its
+   * `updatefound` is the app's own signal — and, because the worker never
+   * calls skipWaiting, the new one waits behind the controlling one exactly as
+   * a real deploy does.
+   */
+  test('E2E-PWA-04: a new version waits, is announced, and takes over on the next launch', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('/tabs/dashboard')
+    await serviceWorkerControlsPage(page)
+
+    // Two positive signals, because "nothing happens to the running app" is
+    // otherwise an absence nobody watched: a marker no reload survives, and a
+    // count of the controllerchange events a skipWaiting() takeover produces.
+    await page.evaluate(() => {
+      const w = window as unknown as { __jitpackAlive?: boolean; __jitpackTakeovers?: number }
+      w.__jitpackAlive = true
+      w.__jitpackTakeovers = 0
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        w.__jitpackTakeovers = (w.__jitpackTakeovers ?? 0) + 1
+      })
+    })
+
+    const UPDATED = '/sw.js?e2e-update=1'
+    const waiting = await page.evaluate(async (url) => {
+      const reg = await navigator.serviceWorker.register(url)
+      // Settled on the worker's own lifecycle: `installed` is the state the
+      // app's watcher listens for, and the state a waiting worker is in.
+      await new Promise<void>((resolve) => {
+        if (reg.waiting) return resolve()
+        const installing = reg.installing
+        if (!installing) return resolve()
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed') resolve()
+        })
+      })
+      return {
+        waiting: reg.waiting?.scriptURL ?? null,
+        controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+      }
+    }, UPDATED)
+
+    // Installed and waiting — and the page is still driven by the old one.
+    expect(waiting.waiting).toContain('e2e-update=1')
+    expect(waiting.controller).not.toContain('e2e-update=1')
+
+    // Announced: the dot on the glyph and the sentence in the G-2 sheet.
+    await expect(page.getByTestId('sync-indicator-update')).toBeVisible()
+    await page.getByTestId('sync-indicator').click()
+    await expect(page.getByTestId('sync-detail-update')).toBeVisible()
+
+    // Nothing reloaded the app to get there, and nothing took the page over
+    // under it — the old worker is still the one answering.
+    const running = await page.evaluate(() => {
+      const w = window as unknown as { __jitpackAlive?: boolean; __jitpackTakeovers?: number }
+      return {
+        alive: w.__jitpackAlive === true,
+        takeovers: w.__jitpackTakeovers,
+        controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+      }
+    })
+    expect(running.alive).toBe(true)
+    expect(running.takeovers).toBe(0)
+    expect(running.controller).not.toContain('e2e-update=1')
+
+    // The next launch: the client that held the old worker goes away, which
+    // is what lets the waiting one activate — a reload would not, because the
+    // old worker keeps controlling the page across it.
+    await page.close()
+    const relaunched = await context.newPage()
+    await relaunched.goto('/tabs/dashboard')
+    const active = await relaunched.evaluate(async () => {
+      const reg = await navigator.serviceWorker.ready
+      return reg.active?.scriptURL ?? null
+    })
+    expect(active).toContain('e2e-update=1')
+    // …and the relaunched app says nothing about an update any more.
+    await expect(relaunched.getByTestId('sync-indicator-update')).toHaveCount(0)
   })
 })
