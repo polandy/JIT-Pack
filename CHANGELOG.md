@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.3.0](https://github.com/polandy/JIT-Pack/compare/v0.2.0...v0.3.0) (2026-09-01)
+
+
+### Features
+
+* **api,client:** the instance names the currency its amounts are in (FR-21.9) ([626e4eb](https://github.com/polandy/JIT-Pack/commit/626e4eb7f3b3b2c10c1263a921a956f871388370))
+* **api:** a master row has a delete endpoint (FR-24.4, ADR-038) ([2a1d0e5](https://github.com/polandy/JIT-Pack/commit/2a1d0e5b5e40ecc026550ada999f8e75019046d5))
+* **api:** API tokens, created in the app and on the CLI (FR-23.7, ADR-039) ([14fe2e1](https://github.com/polandy/JIT-Pack/commit/14fe2e1c39f1b1faeeabf091d92b718d12534721))
+* **cli:** a trip's roster from the shell, and the CLI grows subcommands (FR-18.8, ADR-042) ([1ba43ca](https://github.com/polandy/JIT-Pack/commit/1ba43caa4cad82d6234bfb8aaca9db433b83d8c7))
+* **client:** a per-person item is one buy row in M6 (FR-25.6) ([424dca0](https://github.com/polandy/JIT-Pack/commit/424dca0772095f82e88d16f21a3313dc5b2e58c3))
+* **client:** a trip's year can be corrected, and an archived one says why not ([c4acb91](https://github.com/polandy/JIT-Pack/commit/c4acb917b7d1c662f00f0f869a7d36704c87a58c))
+* **client:** an item can name several people, each with their own amount (FR-25.21) ([1059c9f](https://github.com/polandy/JIT-Pack/commit/1059c9fbfa208bc00fd232da97614a2ea6d899f6))
+* **client:** M15 says what it read, what it flagged and where it lands ([f290f72](https://github.com/polandy/JIT-Pack/commit/f290f724a7cb4b9db18f2f12d98ee57005eca978))
+* **client:** M2 opens where the trips are, and each segment states its count (FR-2.8) ([7fcbfde](https://github.com/polandy/JIT-Pack/commit/7fcbfded295f4e304624368225fb0853095bc441))
+* **client:** the dashboard delegates, warns late and leads into a row ([669a626](https://github.com/polandy/JIT-Pack/commit/669a626f984dbf34b9453c9df336067210455294))
+* **client:** the inventory sheet can put away what is already in (FR-25.13e) ([90ca358](https://github.com/polandy/JIT-Pack/commit/90ca3580ac8f3fa76ba0db1ce3c2ce87d9f1344d))
+* **client:** the inventory sheet decides as well as adds (FR-25.13f) ([8ed3f61](https://github.com/polandy/JIT-Pack/commit/8ed3f615e2a4bc38ec0bc76e30ea5fc98cb36692))
+* **client:** the item gets its rear-view (FR-27.8, FR-27.9) ([ebe9d07](https://github.com/polandy/JIT-Pack/commit/ebe9d073465162a8342edde4e2a9954bf024553a))
+* **client:** the notification speaks the recipient's language (NFR-4.12, ADR-037) ([eaea850](https://github.com/polandy/JIT-Pack/commit/eaea8503d24aa778016b6b4cd9fb110abf81ba1d))
+* **client:** the profile picture is the user's, in every mode with a server (FR-17.13) ([4a4b321](https://github.com/polandy/JIT-Pack/commit/4a4b321b307bea601cbeda2d98f98faefbb63dc5))
+* **client:** the quick-add can add an item pro Person (FR-25.8) ([040d366](https://github.com/polandy/JIT-Pack/commit/040d366b8be4f3cf58b3ae527cbd41e1254651d4))
+* **client:** the quick-add names its companions, and the card reads its own offer ([32e2339](https://github.com/polandy/JIT-Pack/commit/32e233955249c1ce4dfee8f8ca43d928dc2791af))
+* **client:** the trip row says who it is for, and where it came from ([30cc758](https://github.com/polandy/JIT-Pack/commit/30cc7583e44c1fb009f0a930011a5aad58e549a5))
+
+
+### Bug Fixes
+
+* **client:** a rewritten row's state follows its numbers (FR-25.21/FR-5.5) ([4fb1401](https://github.com/polandy/JIT-Pack/commit/4fb14019c4364a6ccc40a6b7cd2841b01af81a8d))
+* **client:** an anchor switch is a root navigation, not a push (ADR-012) ([7431340](https://github.com/polandy/JIT-Pack/commit/74313402c38e0ea433ae769db3d28b4c185bc5a5))
+* **client:** the backup reminder is about the whole device (NFR-4.11) ([7a76501](https://github.com/polandy/JIT-Pack/commit/7a7650174c62cf8a309adc5a64ae6ff8609cf055))
+* **client:** the membership lock covers the cluster, not one row (FR-25.21) ([42730de](https://github.com/polandy/JIT-Pack/commit/42730de09114e2512450f58d51835c7ee926e4d3))
+
 ## 0.2.0 (2026-08-28)
 
 
