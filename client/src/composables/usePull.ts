@@ -3,23 +3,13 @@
 import { API } from '@/api/routes'
 import type { APIClient } from '@/api/client'
 import type { PullChange, PullResponse } from '@/api/types'
-import { observeRemote, type HLCGenerator } from '@/sync/hlc'
+import type { HLCGenerator } from '@/sync/hlc'
+import { hasFurtherPage, observePulledClocks } from '@/sync/pullProtocol'
 
 export interface PullResult {
   changes: PullChange[]
   nextCursor: number
   hasMore: boolean
-}
-
-function observeHLCs(hlc: HLCGenerator, changes: PullChange[]): void {
-  for (const c of changes) {
-    if (c.row && typeof c.row['updated_hlc'] === 'string') {
-      // Tolerant on purpose: a page must survive one row whose clock is
-      // unusable, or that row makes every other one unreachable (see
-      // observeRemote).
-      observeRemote(hlc, c.row['updated_hlc'])
-    }
-  }
 }
 
 export function usePull(client: APIClient, hlc: HLCGenerator) {
@@ -28,7 +18,7 @@ export function usePull(client: APIClient, hlc: HLCGenerator) {
       cursor: String(cursor),
       limit: String(limit),
     })
-    observeHLCs(hlc, resp.changes)
+    observePulledClocks(hlc, resp.changes)
     return { changes: resp.changes, nextCursor: resp.next_cursor, hasMore: resp.has_more }
   }
 
@@ -37,19 +27,19 @@ export function usePull(client: APIClient, hlc: HLCGenerator) {
       cursor: String(cursor),
       limit: String(limit),
     })
-    observeHLCs(hlc, resp.changes)
+    observePulledClocks(hlc, resp.changes)
     return { changes: resp.changes, nextCursor: resp.next_cursor, hasMore: resp.has_more }
   }
 
   async function pullTripAll(tripId: string, cursor: number): Promise<PullResult> {
     const allChanges: PullChange[] = []
     let cur = cursor
-    let hasMore = true
-    while (hasMore) {
+    for (;;) {
+      const askedFrom = cur
       const result = await pullTrip(tripId, cur)
       allChanges.push(...result.changes)
       cur = result.nextCursor
-      hasMore = result.hasMore
+      if (!hasFurtherPage({ has_more: result.hasMore, next_cursor: cur }, askedFrom)) break
     }
     return { changes: allChanges, nextCursor: cur, hasMore: false }
   }
@@ -57,12 +47,12 @@ export function usePull(client: APIClient, hlc: HLCGenerator) {
   async function pullMasterAll(cursor: number): Promise<PullResult> {
     const allChanges: PullChange[] = []
     let cur = cursor
-    let hasMore = true
-    while (hasMore) {
+    for (;;) {
+      const askedFrom = cur
       const result = await pullMaster(cur)
       allChanges.push(...result.changes)
       cur = result.nextCursor
-      hasMore = result.hasMore
+      if (!hasFurtherPage({ has_more: result.hasMore, next_cursor: cur }, askedFrom)) break
     }
     return { changes: allChanges, nextCursor: cur, hasMore: false }
   }

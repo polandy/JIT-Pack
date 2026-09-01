@@ -10,8 +10,9 @@ import (
 
 // Sync-API §3: "on every pull/push response the client advances
 // last_seen_hlc to the maximum observed". The client implements exactly
-// that (usePull.ts, useSyncOutbox.ts both read `row['updated_hlc']`), so
-// the snapshot has to carry the row's clock or the rule is unreachable: a
+// that (sync/pullProtocol.ts's observePulledClocks, asked by both clients
+// that pull), so the snapshot has to carry the row's clock or the rule is
+// unreachable: a
 // device whose wall clock lags would keep minting HLCs older than writes
 // it has already seen, and lose its own later edits to them.
 

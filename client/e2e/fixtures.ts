@@ -560,6 +560,11 @@ export const test = base.extend<Fixtures>({
     async ({ page }, use, testInfo) => {
       await use()
       if (testInfo.status !== testInfo.expectedStatus) return
+      // A case may end its own page on purpose — E2E-PWA-04 closes it to make
+      // the browser drop the last client of the old service worker, which is
+      // what „takes over on the next launch" means. There is no outlet left to
+      // read, and nothing to leak.
+      if (page.isClosed()) return
       const live = page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
       // Polled, and that is what separates a leak from a transition: a page
       // on its way out is unhidden for as long as the animation lasts, so a

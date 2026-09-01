@@ -117,4 +117,43 @@ describe('usePull', () => {
     expect(result.nextCursor).toBe(2)
     expect(client.get).toHaveBeenCalledTimes(2)
   })
+  /*
+   * The command line is a client (invariant 4), so §4's paging rule is its
+   * rule too — including the half that had been the app's alone until
+   * 2026-09-01: a server that claims another page and does not move the
+   * cursor. In a browser that spins a tab; here it is `jitpack import` never
+   * returning, on a machine nobody is watching.
+   *
+   * The fake refuses a fourth call rather than answering for ever, so the
+   * unfixed loop fails this case by name instead of exhausting the heap —
+   * which is what it did when the case was first written against it.
+   */
+  function stuckServer(): APIClient {
+    let calls = 0
+    const stuck: PullResponse = { changes: [], next_cursor: 7, has_more: true }
+    const get = vi.fn(async () => {
+      if (++calls > 3) throw new Error('asked again from a cursor that had not moved')
+      return stuck
+    })
+    return { get, post: vi.fn() } as unknown as APIClient
+  }
+
+  it('stops rather than spinning when the server does not advance the cursor', async () => {
+    const client = stuckServer()
+    const pull = usePull(client, mockHLC())
+
+    await pull.pullMasterAll(7)
+
+    expect(client.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('pages the trip partition too, and stops there for the same reason', async () => {
+    const client = stuckServer()
+    const pull = usePull(client, mockHLC())
+
+    const result = await pull.pullTripAll('trip-1', 7)
+
+    expect(client.get).toHaveBeenCalledTimes(1)
+    expect(result.nextCursor).toBe(7)
+  })
 })

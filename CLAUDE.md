@@ -368,8 +368,8 @@ it. Item numbers stay stable even as items close, because the log refers back to
    not buildable as specified**, because the API sets no CORS headers on purpose and the promised
    inline error would report a healthy instance as unreachable; and **FR-10.3's threshold was
    configurable in the document and fixed in the product**, so the ruling deleted the reader
-   rather than adding a writer. What is left of item 6 is cross-cutting —
-   FLOW-*, PWA, SYNC and the NFR rows. **The FLOW-* pass is running (2026-08-31):** FLOW-03 was
+   rather than adding a writer. What was left of item 6 was cross-cutting —
+   FLOW-*, PWA, SYNC and the NFR rows — and **all four are closed (2026-09-01)**. **The FLOW-* pass is running (2026-08-31):** FLOW-03 was
    already covered by the screen case whose journey it is and owed one clause; FLOW-04 was not,
    and found M14's harvest coming back per-traveler because the one writer that named no
    assignment took the mutation's default; FLOW-05 found the migrated history worth something
@@ -423,6 +423,20 @@ it. Item numbers stay stable even as items close, because the log refers back to
    and integration-tested at the delivery end, and nothing joined them — the M17 toggle had no
    `data-testid`, by now a dependable signature that no test has ever operated a control.
    Log: *„A mode read off the screen instead of the request"*.
+   **The PWA and SYNC rows closed 2026-09-01, and neither
+   product was a missing test.** E2E-PWA-02's absence assertion **could not fail against the rule
+   it named** — the worker writes no runtime cache entries at all, so „nothing was cached for
+   `/health`" stayed green with the whole never-cache rule deleted; it is rewritten around a
+   *planted response*, the seam that makes „the worker never answers this path" falsifiable, and
+   covers all three of `/api`, `/ws`, `/health`. Beside it, NFR-4.13's whole **update policy**
+   paragraph had no case on any id (**E2E-PWA-04**, new: a second worker waits, the G-2 dot and
+   sentence announce it, nothing reloads or takes over the running page, and the next launch —
+   which is a closed page, never a reload — activates it). The SYNC row found §4's paging rule
+   **written twice**: the progress guard against a server that claims another page without moving
+   the cursor had reached `SyncOutbox.drain` and not the command line's `usePull`, and §3's
+   observe step was asserted only on the copy the command line runs while the drain every browser
+   runs had no case at all. Both rules are named once now (`client/src/sync/pullProtocol.ts`) and
+   both callers have cases. Log: *„An absence with nothing behind it"*.
    **Both owner decisions are ruled (2026-08-31):** G-12's `title` narrows to the **app bar**,
    where the label was dropped to buy room — held there by `iconButtonLabels.spec.ts`, which
    resolves the bar and what is slotted into it from `AppHeader.vue` — and the long-press name
