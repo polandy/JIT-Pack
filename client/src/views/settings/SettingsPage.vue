@@ -562,6 +562,7 @@ async function exportTripCSV() {
             </IonLabel>
             <IonToggle
               slot="end"
+              data-testid="settings-push"
               :checked="pushOn"
               :disabled="!pushAvailable"
               :aria-label="t('settings.push')"

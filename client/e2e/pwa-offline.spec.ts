@@ -1,4 +1,4 @@
-import { test, expect, visiblePage } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -71,6 +71,47 @@ test.describe('app shell offline (NFR-4.13)', () => {
     }))
     expect(cached.shell).toBe(true)
     expect(cached.health).toBe(false)
+  })
+
+  test('E2E-NFR-01: a trip is created, packed and read back with the network gone', async ({
+    page,
+    context,
+  }) => {
+    // Two templates' worth of navigation on a cold worker.
+    test.slow()
+
+    // NFR-4.1 is the requirement Local Mode exists for, and no case had ever
+    // *written* with the network down: E2E-PWA-01 reloads and asserts the
+    // shell, and the `single` half (E2E-FLOW-06, E2E-G2-04) queues against a
+    // server that comes back. Here nothing comes back, because in Local Mode
+    // there is nothing to come back — so "nothing blocks" is the assertion.
+    await page.goto('/tabs/dashboard')
+    await serviceWorkerControlsPage(page)
+    await context.setOffline(true)
+
+    await createTripViaWizard(page, { name: 'Sturmwoche' })
+    await openQuickAdd(page)
+    await visiblePage(page).getByTestId('quick-add-input').locator('input').fill('Regenjacke')
+    await visiblePage(page).getByTestId('quick-add-confirm').click()
+    await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toBeVisible()
+    await visiblePage(page).getByTestId('quick-add-close').click()
+
+    // Packing is the write that matters most here: it is the one a user makes
+    // standing in a cellar with no signal. The row leaving the open list is
+    // FR-25.13e, and the settled signal that the write landed.
+    await visiblePage(page)
+      .getByTestId('m4-row-Regenjacke')
+      .getByTestId('row-check')
+      .locator('ion-checkbox')
+      .click()
+    await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toHaveCount(0)
+
+    // Still offline: the reload is what separates a rendered optimistic store
+    // from data the device actually kept.
+    await page.reload()
+    await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toHaveCount(0)
+    await visiblePage(page).getByTestId('m4-done-bar').click()
+    await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toBeVisible()
   })
 
   test('E2E-PWA-03: the install declaration is complete and every icon resolves', async ({
