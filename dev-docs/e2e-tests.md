@@ -83,7 +83,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M16 series & destination profile | E2E-M16-01, E2E-M16-02, E2E-M16-03, E2E-M16-04 + a G-9 back case | `local` | [`series.spec.ts`](../client/e2e/series.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M21-04, E2E-M21-05, E2E-M4-43, **E2E-FLOW-09** (the year-long round trip, since 2026-08-31) | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-10, E2E-M22-11, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
-| App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02 (rewritten 2026-09-01), E2E-PWA-03, **E2E-PWA-04** (the update policy, new 2026-09-01), **E2E-NFR-01** (the offline *write*, 2026-09-01) | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
+| App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02 (rewritten 2026-09-01), E2E-PWA-03, **E2E-PWA-04** (the update policy, new 2026-09-01), **E2E-PWA-05 / E2E-PWA-05b** (FR-19.7 — applying it now, and *Später*, new 2026-09-02), **E2E-NFR-01** (the offline *write*, 2026-09-01) | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Storage durability (NFR-4.11) | E2E-NFR-03, E2E-NFR-03b | `local` | [`storage-durability.spec.ts`](../client/e2e/storage-durability.spec.ts) |
 | Web Push registration (NFR-4.6) | E2E-NFR-06 | `server` | [`server/push.spec.ts`](../client/e2e/server/push.spec.ts) |
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), **E2E-FLOW-01b** (the member's pack on the owner's screen, since 2026-09-01), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
@@ -1294,6 +1294,18 @@ the worker is identical in every engine.
   and after the last client goes the new script is the active one. Red-proved
   twice: `watchForUpdate` unwired (nothing is announced) and `self.skipWaiting()`
   in the install handler (the takeover counter reaches 1).
+* **E2E-PWA-05 / E2E-PWA-05b** (added 2026-09-02, FR-19.7) are PWA-04's mirror:
+  the same waiting worker, applied because somebody pressed for it. **The pair
+  is the policy** — PWA-04 says nothing happens on its own, PWA-05 says the
+  press is what changes that — and neither can stand in for the other, which is
+  the point worth carrying: deleting the worker's `message` handler leaves
+  PWA-04 green, and moving `skipWaiting()` back into `install` leaves PWA-05
+  green. PWA-05's settled state is the bar and the dot being **gone**, which is
+  reached only once the app has come back up with nothing waiting behind it, so
+  nothing here waits on a duration. 05b exists because *Später* could otherwise
+  be wired to the same handler as the press with every other assertion staying
+  green: it asserts the old worker is still the controller and the offer is
+  still on the dot and in the sheet.
 
 **What the 2026-09-01 read of this unit found, and it was in E2E-PWA-02:** the
 old case asserted that no cache entry appeared for `/health`, and **the worker

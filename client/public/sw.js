@@ -43,10 +43,27 @@ function bypassed(pathname) {
   return pathname.startsWith('/api/') || pathname === '/ws' || pathname === '/health'
 }
 
+/**
+ * The one message the app sends this worker (FR-19.7, ADR-044). Kept as a
+ * named constant on both sides of the boundary: the client's twin is
+ * `SW_SKIP_WAITING` in src/pwa/register.ts, and a unit test reads this file
+ * to hold the two equal — a worker cannot import the app's modules (§4a).
+ */
+const MSG_SKIP_WAITING = 'SKIP_WAITING'
+
 self.addEventListener('install', (event) => {
-  // No skipWaiting(): a new version installs in the background and takes
-  // over on the next launch (ADR-019). The running app only announces it.
+  // No skipWaiting() here: a new version installs in the background and takes
+  // over on the next launch (ADR-019). Nothing the *worker* observes may
+  // shorten that — only the message below, which is a person pressing a
+  // button (ADR-044).
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)))
+})
+
+self.addEventListener('message', (event) => {
+  // FR-19.7: the running app asked for this version now. Activation then
+  // claims the open pages (see the activate handler), which is what the app
+  // waits for before it reloads.
+  if (event.data && event.data.type === MSG_SKIP_WAITING) self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
@@ -94,9 +111,7 @@ self.addEventListener('fetch', (event) => {
 
   // Everything else in the bundle is content-hashed, so a cache hit is
   // correct by construction: cache first, network for whatever is not ours.
-  event.respondWith(
-    caches.match(request, matchOpts).then((cached) => cached || fetch(request)),
-  )
+  event.respondWith(caches.match(request, matchOpts).then((cached) => cached || fetch(request)))
 })
 
 /*

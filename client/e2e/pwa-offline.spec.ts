@@ -295,4 +295,97 @@ test.describe('app shell offline (NFR-4.13)', () => {
     // …and the relaunched app says nothing about an update any more.
     await expect(relaunched.getByTestId('sync-indicator-update')).toHaveCount(0)
   })
+
+  /**
+   * E2E-PWA-05 (FR-19.7, ADR-044) — the mirror of the case above: the same
+   * waiting worker, taken over *now* because somebody pressed for it.
+   *
+   * The two cases are the whole policy between them. PWA-04 proves nothing
+   * happens on its own; this one proves the press is the only thing that
+   * changes that, and that it lands on the new build rather than merely
+   * asking for it. Both are needed: deleting the message handler leaves
+   * PWA-04 green, and moving skipWaiting() into `install` leaves this one
+   * green.
+   */
+  test('E2E-PWA-05: the banner applies the waiting version now', async ({ page }) => {
+    await page.goto('/tabs/dashboard')
+    await serviceWorkerControlsPage(page)
+
+    // The positive signal for "the page was actually replaced": a marker that
+    // no reload survives. Asserting only on the controller would stay green
+    // for a takeover that left the old bundle on screen.
+    await page.evaluate(() => {
+      ;(window as unknown as { __jitpackAlive?: boolean }).__jitpackAlive = true
+    })
+
+    const UPDATED = '/sw.js?e2e-update=2'
+    await page.evaluate(async (url) => {
+      const reg = await navigator.serviceWorker.register(url)
+      await new Promise<void>((resolve) => {
+        if (reg.waiting) return resolve()
+        const installing = reg.installing
+        if (!installing) return resolve()
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed') resolve()
+        })
+      })
+    }, UPDATED)
+
+    // The offer is on screen without opening anything — that is the point of
+    // the bar, and the G-2 sheet's dot is still there beside it.
+    const banner = page.getByTestId('update-banner')
+    await expect(banner).toBeVisible()
+    await expect(page.getByTestId('sync-indicator-update')).toBeVisible()
+
+    await page.getByTestId('update-banner-apply').click()
+
+    // Settled state, not a wait: the bar is gone only once the app has come
+    // back up with no worker waiting behind it.
+    await expect(banner).toHaveCount(0)
+    await expect(page.getByTestId('sync-indicator-update')).toHaveCount(0)
+
+    const after = await page.evaluate(() => ({
+      alive: (window as unknown as { __jitpackAlive?: boolean }).__jitpackAlive === true,
+      controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+    }))
+    expect(after.alive).toBe(false)
+    expect(after.controller).toContain('e2e-update=2')
+  })
+
+  /**
+   * E2E-PWA-05b — "Later" is a different outcome from applying. Without this
+   * the dismissal could be wired to the same handler and no case would say so.
+   */
+  test('E2E-PWA-05b: "Later" hides the bar and keeps the offer everywhere else', async ({
+    page,
+  }) => {
+    await page.goto('/tabs/dashboard')
+    await serviceWorkerControlsPage(page)
+
+    await page.evaluate(async () => {
+      const reg = await navigator.serviceWorker.register('/sw.js?e2e-update=3')
+      await new Promise<void>((resolve) => {
+        if (reg.waiting) return resolve()
+        const installing = reg.installing
+        if (!installing) return resolve()
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed') resolve()
+        })
+      })
+    })
+
+    await expect(page.getByTestId('update-banner')).toBeVisible()
+    await page.getByTestId('update-banner-later').click()
+    await expect(page.getByTestId('update-banner')).toHaveCount(0)
+
+    // Dismissed, not applied: the old worker still drives the page, and the
+    // offer is still reachable the way it was before FR-19.7.
+    const controller = await page.evaluate(
+      () => navigator.serviceWorker.controller?.scriptURL ?? null,
+    )
+    expect(controller).not.toContain('e2e-update=3')
+    await expect(page.getByTestId('sync-indicator-update')).toBeVisible()
+    await page.getByTestId('sync-indicator').click()
+    await expect(page.getByTestId('sync-detail-update-apply')).toBeVisible()
+  })
 })

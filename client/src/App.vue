@@ -16,6 +16,7 @@ import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
+import UpdateBanner from '@/components/global/UpdateBanner.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { AUTH_EXPIRED_EVENT, createAuthRefresher } from '@/auth/refresh'
 import { loadTokens } from '@/auth/tokens'
@@ -35,7 +36,7 @@ import { backupFilename, buildBackup } from '@/local/backup'
 import { lastExportAt, markExported } from '@/local/exportReminder'
 import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
 import { saveText } from '@/lib/download'
-import { swUpdateReady } from '@/pwa/register'
+import { applyUpdate, swUpdateApplying, swUpdateDismissed, swUpdateReady } from '@/pwa/register'
 import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
 import { useMasterStore } from '@/stores/masterStore'
@@ -318,6 +319,16 @@ async function saveBackup() {
         :sync-update-ready="swUpdateReady"
         @sync-tap="onSyncTap"
       />
+      <!--
+        FR-19.7: the one-press offer. Under the bar rather than inside the
+        G-2 sheet, because the sheet's offer costs knowing what the dot means.
+      -->
+      <UpdateBanner
+        v-if="swUpdateReady && !swUpdateDismissed"
+        :applying="swUpdateApplying"
+        @apply="applyUpdate()"
+        @later="swUpdateDismissed = true"
+      />
       <div class="app-body">
         <NavRail />
         <main class="app-content">
@@ -342,11 +353,13 @@ async function saveBackup() {
           :last-export-at="lastExport"
           :has-backup-content="hasBackupContent"
           :update-ready="swUpdateReady"
+          :update-applying="swUpdateApplying"
           :now="detailNow"
           @close="syncDetailOpen = false"
           @conflicts="openConflicts"
           @master-conflicts="openMasterConflicts"
           @backup="saveBackup"
+          @apply-update="applyUpdate()"
         />
       </SheetModal>
     </template>

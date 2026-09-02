@@ -74,7 +74,14 @@ export const de: Record<keyof typeof en, string> = {
     'Eine YAML-Datei mit allen Reisen und Vorlagen. Zurückspielen geht über den Import.',
   'sync.detail.backupSaved': 'Sicherung gespeichert: {file}',
   'sync.detail.updateReady':
-    'Eine neue Version von JIT-Pack ist bereit. Sie übernimmt beim nächsten Öffnen der App.',
+    'Eine neue Version von JIT-Pack ist bereit. Sie übernimmt beim nächsten Öffnen der App — oder jetzt.',
+  // FR-19.7 — eine wartende Version anwenden, ohne auf den nächsten Start zu warten.
+  'update.banner.title': 'Neue Version bereit',
+  'update.banner.note': 'Ungesendete Änderungen bleiben erhalten.',
+  'update.apply': 'Aktualisieren',
+  'update.applyLong': 'Jetzt aktualisieren',
+  'update.applying': 'Wird aktualisiert…',
+  'update.later': 'Später',
   // B2/NFR-4.1 — der dauerhafte Ausgangskorb.
   'sync.detail.pendingDurable':
     'Sie sind auf diesem Gerät gespeichert und gehen raus, sobald es wieder online ist.',

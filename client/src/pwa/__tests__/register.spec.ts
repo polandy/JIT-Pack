@@ -5,9 +5,20 @@
  * three situations that matter — supported, unsupported/insecure origin, and
  * a registration that fails — are stated here exactly, without a browser.
  */
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { describe, it, expect, beforeEach } from 'vitest'
 
-import { registerAppServiceWorker, swUpdateReady, SW_URL } from '../register'
+import {
+  applyUpdate,
+  registerAppServiceWorker,
+  swUpdateApplying,
+  swUpdateDismissed,
+  swUpdateReady,
+  SW_SKIP_WAITING,
+  SW_URL,
+} from '../register'
 
 type Listener = (event?: unknown) => void
 
@@ -58,6 +69,8 @@ function fakeWorker(state: string) {
 
 beforeEach(() => {
   swUpdateReady.value = false
+  swUpdateApplying.value = false
+  swUpdateDismissed.value = false
 })
 
 describe('registerAppServiceWorker', () => {
@@ -116,5 +129,113 @@ describe('registerAppServiceWorker', () => {
     reg.emit('updatefound')
     worker.setState('installed')
     expect(swUpdateReady.value).toBe(false)
+  })
+})
+
+/**
+ * A container fake that also carries the `controllerchange` listeners
+ * `applyUpdate` waits on, plus a waiting worker recording what it was sent.
+ */
+function fakeUpdateSeam(hasWaiting = true) {
+  const listeners = new Map<string, Listener[]>()
+  const posted: unknown[] = []
+  const waiting = {
+    postMessage(message: unknown) {
+      posted.push(message)
+    },
+  }
+  const container = {
+    controller: {},
+    register: () => Promise.resolve(null as never),
+    addEventListener(type: string, listener: Listener) {
+      listeners.set(type, [...(listeners.get(type) ?? []), listener])
+    },
+    removeEventListener(type: string, listener: Listener) {
+      listeners.set(
+        type,
+        (listeners.get(type) ?? []).filter((l) => l !== listener),
+      )
+    },
+    emit(type: string) {
+      // Snapshot the list: a listener removes itself, and removeEventListener
+      // replaces the array rather than mutating this one.
+      const current = listeners.get(type) ?? []
+      for (const l of current) l()
+    },
+    listenerCount: (type: string) => (listeners.get(type) ?? []).length,
+  }
+  const registration = { waiting: hasWaiting ? waiting : null }
+  return { container, registration, posted }
+}
+
+describe('applyUpdate — FR-19.7, applying a waiting version now (ADR-044)', () => {
+  it('wakes the waiting worker and reloads only once it controls the page', async () => {
+    const { container, registration, posted } = fakeUpdateSeam()
+    let reloads = 0
+    const done = applyUpdate(registration as never, container as never, () => {
+      reloads += 1
+    })
+
+    // The message went out — and nothing reloaded yet. The reload is the
+    // *consequence* of the takeover, never a guess about how long it takes.
+    expect(posted).toEqual([{ type: SW_SKIP_WAITING }])
+    expect(reloads).toBe(0)
+
+    container.emit('controllerchange')
+    await done
+    expect(reloads).toBe(1)
+    // The one-shot listener is gone, so a later takeover cannot reload again.
+    expect(container.listenerCount('controllerchange')).toBe(0)
+  })
+
+  it('reloads straight away when no worker is waiting any more', async () => {
+    const { container, registration, posted } = fakeUpdateSeam(false)
+    let reloads = 0
+    await applyUpdate(registration as never, container as never, () => {
+      reloads += 1
+    })
+    // A reload lands on whatever is current, which is what was asked for.
+    expect(reloads).toBe(1)
+    expect(posted).toEqual([])
+  })
+
+  it('ignores a second press while the first is still in flight', async () => {
+    const { container, registration, posted } = fakeUpdateSeam()
+    let reloads = 0
+    const reload = () => {
+      reloads += 1
+    }
+    const first = applyUpdate(registration as never, container as never, reload)
+    await applyUpdate(registration as never, container as never, reload)
+
+    expect(swUpdateApplying.value).toBe(true)
+    expect(posted).toHaveLength(1)
+    expect(reloads).toBe(0)
+
+    container.emit('controllerchange')
+    await first
+    expect(reloads).toBe(1)
+  })
+
+  it('names the same message the worker listens for', () => {
+    // The worker cannot import this module (§4a), so the two literals are
+    // held equal here rather than by the type system.
+    const source = readFileSync(
+      fileURLToPath(new URL('../../../public/sw.js', import.meta.url)),
+      'utf8',
+    )
+    expect(source).toContain(`const MSG_SKIP_WAITING = '${SW_SKIP_WAITING}'`)
+
+    const install = source.slice(source.indexOf("addEventListener('install'"))
+    const message = source.slice(source.indexOf("addEventListener('message'"))
+    // The message is answered — a constant both sides agree on says nothing
+    // about a handler that was deleted, and only E2E-PWA-05 would see that.
+    expect(message).toContain('MSG_SKIP_WAITING')
+    expect(message).toContain('self.skipWaiting()')
+    // And it stays out of `install`: an unprompted takeover is exactly what
+    // ADR-019 refuses and ADR-044 kept refusing.
+    expect(install.slice(0, install.indexOf("addEventListener('message'"))).not.toContain(
+      'self.skipWaiting()',
+    )
   })
 })

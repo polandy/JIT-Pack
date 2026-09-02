@@ -1,6 +1,6 @@
 # ADR-019: App-shell caching — a hand-rolled service worker vs. vite-plugin-pwa
 
-**Status:** Accepted (2026-08-20)
+**Status:** Accepted (2026-08-20); update policy amended by ADR-044 (2026-09-02) — `skipWaiting()` is reachable, but only from an explicit press, never from `install`
 **Related:** NFR-4.13 (installable PWA, app shell), NFR-4.6 (Web Push — the same worker script), NFR-4.3 (footprint), NFR-4.2a (why `/api`, `/ws`, `/health` are never cached), invariant 8 (pinning), ADR-005 (push), `client/public/sw.js`, `client/vite.config.ts` (`jitpack-sw-precache`), `client/src/pwa/register.ts`
 
 **Decision Drivers (in priority order):**
@@ -75,7 +75,7 @@ The plugin generates the precache manifest and injects it into a source worker w
 
 ## Decision
 
-Extend the existing `public/sw.js` by hand: precache the built bundle (manifest injected by the `jitpack-sw-precache` plugin in `vite.config.ts`, versioned by a content hash), cache-first for the content-hashed assets, network-first with a cached-shell fallback for navigations, and a hard bypass for `/api/`, `/ws` and `/health`. No `skipWaiting()`: a new version installs in the background and takes over on the next launch; the running app only flips `swUpdateReady` (G-2 detail sheet).
+Extend the existing `public/sw.js` by hand: precache the built bundle (manifest injected by the `jitpack-sw-precache` plugin in `vite.config.ts`, versioned by a content hash), cache-first for the content-hashed assets, network-first with a cached-shell fallback for navigations, and a hard bypass for `/api/`, `/ws` and `/health`. No `skipWaiting()`: a new version installs in the background and takes over on the next launch; the running app only flips `swUpdateReady` (G-2 detail sheet). **Amended by ADR-044:** the worker does call `skipWaiting()` — on one message, sent by a press (FR-19.7). The `install` handler still never does, which is the half of this sentence that carried the meaning.
 
 ## Consequences
 
