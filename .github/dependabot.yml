@@ -8,6 +8,15 @@ updates:
     directory: /client
     schedule:
       interval: weekly
+    groups:
+      # oxlint and eslint-plugin-oxlint are released in lockstep and the plugin
+      # peer-depends on the exact minor, so a PR carrying one of them alone
+      # fails `npm ci` with ERESOLVE and can never go green (#313/#314). They
+      # have to arrive as one PR.
+      oxlint:
+        patterns:
+          - oxlint
+          - eslint-plugin-oxlint
   - package-ecosystem: github-actions
     directory: /
     schedule:
