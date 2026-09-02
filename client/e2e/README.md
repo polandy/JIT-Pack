@@ -148,4 +148,6 @@ Which spec cases are actually implemented is tracked in
   container, minutes later. Adding it found five undefined-index bugs and a
   helper that would have walked the date picker towards `NaN`. Reduced
   motion goes through `useReducedMotion(test)` rather than `test.use({…})`,
-  because Playwright's own option type does not declare the key.
+  because Playwright's own option type does not declare the key. `prettier`
+  covers this directory for the same reason — it checked `client/src/` only,
+  so the suite's formatting was whatever the last author's editor did.
