@@ -45,8 +45,8 @@ type Mutation struct {
 }
 
 // Set writes one field, creating the map when the mutation carries none yet.
-// The server stamps actor columns and the store fills defaults this way
-// (invariant 3), and both used to carry their own copy of the nil check.
+// A mutation decoded from a push may have no Fields at all, so every caller
+// that stamps a column (invariant 3) needs the nil check this holds.
 func (m *Mutation) Set(field string, value any) {
 	if m.Fields == nil {
 		m.Fields = map[string]any{}
