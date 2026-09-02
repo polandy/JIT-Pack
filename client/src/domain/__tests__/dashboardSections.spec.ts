@@ -6,7 +6,12 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { delegatedToMe, latePackersDepartingToday, type DashboardTrip } from '../dashboardSections'
+import {
+  delegatedToMe,
+  latePackersDepartingToday,
+  plannedTripsByDeparture,
+  type DashboardTrip,
+} from '../dashboardSections'
 
 const ME = 'u-andy'
 
@@ -133,5 +138,43 @@ describe('latePackersDepartingToday (FR-5.1)', () => {
       },
     ]
     expect(latePackersDepartingToday(undated, '2026-08-31')).toEqual([])
+  })
+})
+
+describe('plannedTripsByDeparture (FR-6.1, M1 lookahead)', () => {
+  interface T {
+    id: string
+    name: string
+    status: string
+    start_date: string | null
+  }
+  const trips: T[] = [
+    { id: 'a', name: 'Laos', status: 'planning', start_date: '2026-11-02' },
+    { id: 'b', name: 'Elba', status: 'planning', start_date: '2026-09-20' },
+    { id: 'c', name: 'Samedan', status: 'active', start_date: '2026-09-01' },
+    { id: 'd', name: 'Wien', status: 'archived', start_date: '2026-01-01' },
+  ]
+
+  it('keeps only the planned trips, soonest departure first', () => {
+    expect(plannedTripsByDeparture(trips).map((t) => t.id)).toEqual(['b', 'a'])
+  })
+
+  /**
+   * FR-2.1b: a trip is planned long before its dates exist, so an undated
+   * trip is the normal early state — it sorts *after* everything dated
+   * (nothing is known about when it happens) and by name among its own kind,
+   * never off the screen.
+   */
+  it('sorts undated trips last, by name, and never drops them', () => {
+    const undated: T[] = [
+      { id: 'z', name: 'Zermatt', status: 'planning', start_date: null },
+      { id: 'm', name: 'Mailand', status: 'planning', start_date: null },
+      { id: 'd', name: 'Dover', status: 'planning', start_date: '2026-12-24' },
+    ]
+    expect(plannedTripsByDeparture(undated).map((t) => t.id)).toEqual(['d', 'm', 'z'])
+  })
+
+  it('answers with nothing when no trip is planned', () => {
+    expect(plannedTripsByDeparture(trips.filter((t) => t.status !== 'planning'))).toEqual([])
   })
 })

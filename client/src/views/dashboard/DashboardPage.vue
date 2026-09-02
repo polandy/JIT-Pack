@@ -21,10 +21,22 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue'
-import { trainOutline, addOutline, buildOutline, personOutline, alarmOutline } from 'ionicons/icons'
+import {
+  trainOutline,
+  addOutline,
+  buildOutline,
+  personOutline,
+  alarmOutline,
+  calendarOutline,
+} from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { delegatedToMe, isOpenRow, latePackersDepartingToday } from '@/domain/dashboardSections'
+import {
+  delegatedToMe,
+  isOpenRow,
+  latePackersDepartingToday,
+  plannedTripsByDeparture,
+} from '@/domain/dashboardSections'
 import { t } from '@/i18n'
 import { loadSeenDelegations, markDelegationsSeen } from '@/local/delegationSeen'
 import { formatTripPeriod } from '@/lib/format'
@@ -84,7 +96,18 @@ watch(
   { immediate: true },
 )
 
-const isEmpty = computed(() => activeTrips.value.length === 0)
+/**
+ * The lookahead: what is planned but not started (FR-6.1, UI-Spec M1; why
+ * membership needs no filter is in `plannedTripsByDeparture`).
+ *
+ * Deliberately **not** loaded and **not** subscribed the way the active trips
+ * above are: nothing on the row is read out of the trip partition, so a
+ * request per planned trip would buy a count this section does not show — and
+ * a count that has not arrived is the „0 open" defect above.
+ */
+const plannedTrips = computed(() => plannedTripsByDeparture(store.tripList))
+
+const isEmpty = computed(() => activeTrips.value.length === 0 && plannedTrips.value.length === 0)
 
 const greeting = computed(() => t(greetingKey(new Date().getHours())))
 
@@ -204,6 +227,11 @@ onUnmounted(() => {
   window.removeEventListener('pagehide', markSeen)
   markSeen()
 })
+
+/** A planned trip's row leads to the trip, the way its card does. */
+function openTrip(tripId: string): void {
+  void router.push(`/trips/${tripId}`)
+}
 
 /** FR-7.3: the prep card's item name is the way into its row (UI-Spec M1). */
 function openItem(tripId: string, itemId: string): void {
@@ -409,6 +437,35 @@ async function handleRefresh(event: CustomEvent) {
           >
             {{ t('dashboard.moreItems', { n: openItemCount(trip.id) - 3 }) }}
           </p>
+        </IonCardContent>
+      </IonCard>
+      <!--
+        FR-6.1: the trips that have not started yet. Below the active cards,
+        because M1 answers "what do I have to do right now?" first and this is
+        what comes after it.
+      -->
+      <IonCard v-if="plannedTrips.length > 0" data-testid="dashboard-planned">
+        <IonCardHeader>
+          <IonCardTitle>
+            <IonIcon :icon="calendarOutline" />
+            {{ t('dashboard.planned', { n: plannedTrips.length }) }}
+          </IonCardTitle>
+        </IonCardHeader>
+        <IonCardContent>
+          <IonItem
+            v-for="trip in plannedTrips"
+            :key="trip.id"
+            lines="none"
+            button
+            class="dashboard-item"
+            :data-testid="`dashboard-planned-${trip.name}`"
+            @click="openTrip(trip.id)"
+          >
+            <IonLabel>
+              <h3>{{ trip.name }}</h3>
+              <p>{{ formatTripPeriod(trip) }}</p>
+            </IonLabel>
+          </IonItem>
         </IonCardContent>
       </IonCard>
     </IonContent>

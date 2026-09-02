@@ -6,6 +6,8 @@
  * directory — the dashboard renders what these return and decides nothing.
  */
 
+import { TRIP_STATUS_PLANNING } from '@/types/domain'
+
 /** A trip row, reduced to what the two sections need. */
 export interface DashboardRow {
   id: string
@@ -113,4 +115,42 @@ export function latePackersDepartingToday(
     }
   }
   return out.sort((a, b) => a.itemName.localeCompare(b.itemName))
+}
+
+/**
+ * The shape M1's lookahead reads off a trip. A structural subset of `Trip`,
+ * so the screen hands its rows over unmapped and this file keeps importing
+ * no store type.
+ */
+export interface PlannableTrip {
+  status: string
+  start_date: string | null
+  name: string
+}
+
+/**
+ * The trips that are planned but not yet running, soonest departure first
+ * (FR-6.1, UI-Spec M1).
+ *
+ * *Involvement* is not a criterion here and needs none: in Server Mode the
+ * master feed carries only the trips this account is a member of
+ * (`masterVisible` in `internal/store/master.go`), and the two modes without
+ * accounts have nobody to be involved. The device's trip list **is** the list
+ * of trips I am part of, so a membership filter would either be a no-op or
+ * empty the section in Local and Single-User Mode — the same trap FR-6.1's
+ * personal filter was struck for.
+ *
+ * An undated trip sorts last rather than first: FR-2.1b makes the date
+ * optional because a trip is planned long before it has one, so „no date yet"
+ * says the departure is unknown, never that it is imminent.
+ */
+export function plannedTripsByDeparture<T extends PlannableTrip>(trips: readonly T[]): T[] {
+  return trips
+    .filter((trip) => trip.status === TRIP_STATUS_PLANNING)
+    .sort(
+      (a, b) =>
+        Number(a.start_date === null) - Number(b.start_date === null) ||
+        (a.start_date ?? '').localeCompare(b.start_date ?? '') ||
+        a.name.localeCompare(b.name),
+    )
 }
