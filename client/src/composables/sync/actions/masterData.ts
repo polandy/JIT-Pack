@@ -24,6 +24,8 @@ import {
   type RestoreVerdict,
 } from '@/domain/masterRestore'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { cascadeChanges } from '@/sync/cascade'
+import { TABLE } from '@/types/tables'
 import { masterItemRow, templateItemRow, templateRow } from '../rows'
 import { isTakenRename } from '../names'
 import type { MasterItem, Template, TemplateItem, TemplateKind, TripItem } from '@/types/domain'
@@ -145,7 +147,10 @@ export function createMasterDataActions(ctx: SyncContext) {
     const mutation = mutations.deleteMasterItem(itemId)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: optimisticDelete(mutation),
+      optimistic: [
+        ...cascadeChanges(TABLE.items, itemId, { tripStore, masterStore }),
+        optimisticDelete(mutation),
+      ],
     })
   }
 
@@ -269,7 +274,10 @@ export function createMasterDataActions(ctx: SyncContext) {
     const mutation = mutations.deleteTemplateItem(templateItemId)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: optimisticDelete(mutation),
+      optimistic: [
+        ...cascadeChanges(TABLE.templateItems, templateItemId, { tripStore, masterStore }),
+        optimisticDelete(mutation),
+      ],
     })
   }
 
@@ -294,7 +302,10 @@ export function createMasterDataActions(ctx: SyncContext) {
     const mutation = mutations.deleteTemplate(templateId)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: optimisticDelete(mutation),
+      optimistic: [
+        ...cascadeChanges(TABLE.templates, templateId, { tripStore, masterStore }),
+        optimisticDelete(mutation),
+      ],
     })
   }
 

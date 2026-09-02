@@ -14,10 +14,20 @@ import type { useMasterStore } from '@/stores/masterStore'
 import type { NameGuards } from './names'
 import type { IndexedDBPersistence } from '@/local/persistence'
 
-/** One queued write: the mutation itself plus the row it optimistically paints. */
+/**
+ * One queued write: the mutation itself plus the rows it optimistically
+ * paints.
+ *
+ * Usually one row, and a delete that cascades is why it may be several. The
+ * server derives a trip's child tombstones from the schema and sends them
+ * with the one delete it was given (`internal/store/master.go`,
+ * `cascadeChildren`); a client that must mirror that cascade has the same
+ * shape to express — one mutation, several changes — and expressing it as
+ * several *mutations* would push deletes the server never asked for.
+ */
 export interface QueuedMutation {
   mutation: Mutation
-  optimistic?: PullChange
+  optimistic?: PullChange | PullChange[]
 }
 
 /**

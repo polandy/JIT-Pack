@@ -15,6 +15,8 @@ import { useMutations } from '@/composables/useMutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { storeFor } from '@/sync/routing'
+import { changesOf as unfold } from '@/sync/optimistic'
 
 /** One recorded `enqueueAndDrain` call, in the order the group made it. */
 export interface Recorded {
@@ -56,15 +58,17 @@ export function makeSeamContext(
     masterStore,
     mutations: useMutations(new HLCGenerator(() => 1, 'aabbccdd')),
     enqueueAndDrain: (type, id, ...muts) => {
-      // The real one applies the optimistic change before it queues, and a
+      // The real one applies the optimistic changes before it queues, and a
       // group that writes twice reads its own first write back — the FR-20.4
-      // companion resolution is exactly that shape. Routed by partition
-      // rather than by table, which is the one way this double is coarser
-      // than production: the master partition's per-trip tables (P-3) would
-      // land in the wrong store, and no group holding one has moved yet.
+      // companion resolution is exactly that shape. Routed by table through
+      // the same module production routes with: this double used to route by
+      // partition, which put the master partition's per-trip tables (P-3)
+      // into the wrong store the moment a group painted rows of both.
       for (const mut of muts) {
-        if (!mut.optimistic) continue
-        applyTo(type === 'trip' ? tripStore : masterStore, mut.optimistic)
+        for (const change of changesOf(mut)) {
+          const target = storeFor(change.table)
+          if (target) applyTo(target === 'trip' ? tripStore : masterStore, change)
+        }
       }
       queued.push({ type, id, muts })
     },
@@ -74,6 +78,24 @@ export function makeSeamContext(
     tripDataLoaded: opts.tripDataLoaded ?? (() => true),
   }
   return { ctx, queued }
+}
+
+/** The optimistic changes of one queued mutation, none or many alike. */
+export function changesOf(mut: QueuedMutation): PullChange[] {
+  return unfold(mut.optimistic)
+}
+
+/**
+ * The single row one queued write paints. Throws where a write painted none
+ * or several, so a spec reading `.row` cannot silently read the wrong change
+ * of a cascade.
+ */
+export function paintedRow(mut: QueuedMutation): Record<string, unknown> | null {
+  const changes = changesOf(mut)
+  if (changes.length !== 1) {
+    throw new Error(`expected one painted change, got ${changes.length}`)
+  }
+  return changes[0]!.row as Record<string, unknown> | null
 }
 
 /** Hands one change to a store the way the pull router would. */

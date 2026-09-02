@@ -19,6 +19,7 @@
 import { TABLE } from '@/types/tables'
 import { travelerRow, tripRow } from '../rows'
 import { localChange, localTombstone, optimisticDelete, optimisticUpdate } from '@/sync/optimistic'
+import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import { followsGroups } from '@/domain/trips'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/composables/useMutations'
@@ -326,14 +327,26 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     setTripStatus(tripId, TRIP_STATUS_ARCHIVED)
   }
 
-  /** deleteTrip removes a trip entirely (M2, Owner/Admin only — the server
-   * enforces the role, this is the optimistic tombstone). Cascades on the
-   * server; the local store drops the trip and its child rows at once. */
+  /**
+   * deleteTrip removes a trip entirely (M2, Owner/Admin only — the server
+   * enforces the role, this is the optimistic tombstone).
+   *
+   * One mutation, many changes: the delete cascades in the schema, and the
+   * server can announce only the three child tables that travel the master
+   * partition — `change_log.trip_id` cascades too, so the trip partition's
+   * own feed dies with the row it describes. Everything else has to be
+   * tombstoned here, because the change list is what Local Mode persists
+   * (C-3a): a delete naming only the trip left every child row on the device,
+   * where the next start read them back.
+   */
   function deleteTrip(tripId: string) {
     const mutation = mutations.deleteTrip(tripId)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: optimisticDelete(mutation),
+      optimistic: [
+        ...cascadeChanges(TABLE.trips, tripId, { tripStore, masterStore }),
+        optimisticDelete(mutation),
+      ],
     })
   }
 

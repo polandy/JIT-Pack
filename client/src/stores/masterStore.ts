@@ -4,7 +4,7 @@
  * Populated from pull responses on the master partition.
  */
 
-import { TABLE } from '@/types/tables'
+import { TABLE, type SyncTable } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
@@ -252,6 +252,84 @@ export const useMasterStore = defineStore('master', () => {
     return activeItemList.value.filter((i) => i.name.toLowerCase().includes(q))
   }
 
+  /**
+   * childRows names the master-owned rows a delete of this row takes with
+   * it, leaf-first — the client's half of the server's `cascadeChildren`
+   * (`internal/store/master.go`), which this switch mirrors case for case.
+   *
+   * It reads the maps directly rather than through the getters because the
+   * cascade wants row *ids*, and every public getter here resolves its rows
+   * to what a screen needs instead.
+   */
+  function childRows(table: string, id: string): Array<{ table: SyncTable; id: string }> {
+    const rows: Array<{ table: SyncTable; id: string }> = []
+    const tasksOfPosition = (positionId: string) => {
+      for (const [taskId, task] of templateItemTasks.value) {
+        if (task.template_item_id === positionId) {
+          rows.push({ table: TABLE.templateItemTasks, id: taskId })
+        }
+      }
+    }
+
+    switch (table) {
+      case TABLE.items:
+        for (const [assignmentId, a] of itemTags.value) {
+          if (a.item_id === id) rows.push({ table: TABLE.itemTags, id: assignmentId })
+        }
+        for (const [depId, d] of dependencies.value) {
+          if (d.item_id === id || d.depends_on_item_id === id) {
+            rows.push({ table: TABLE.itemDependencies, id: depId })
+          }
+        }
+        break
+
+      case TABLE.tags:
+        // FR-24.1: a deleted tag unassigns itself everywhere.
+        for (const [assignmentId, a] of itemTags.value) {
+          if (a.tag_id === id) rows.push({ table: TABLE.itemTags, id: assignmentId })
+        }
+        break
+
+      case TABLE.templates:
+        for (const position of templateItems.value.get(id) ?? []) {
+          tasksOfPosition(position.id)
+          rows.push({ table: TABLE.templateItems, id: position.id })
+        }
+        // FR-27.1: the include vanishes from both sides of the relation.
+        for (const [includeId, inc] of templateIncludes.value) {
+          if (inc.template_id === id || inc.included_template_id === id) {
+            rows.push({ table: TABLE.templateIncludes, id: includeId })
+          }
+        }
+        break
+
+      case TABLE.templateItems:
+        tasksOfPosition(id)
+        break
+
+      case TABLE.tripSeries:
+        for (const [profileId, p] of profiles.value) {
+          if (p.series_id !== id) continue
+          for (const [checklistId, c] of checklistItems.value) {
+            if (c.profile_id === profileId) {
+              rows.push({ table: TABLE.destinationChecklistItems, id: checklistId })
+            }
+          }
+          rows.push({ table: TABLE.destinationProfiles, id: profileId })
+        }
+        break
+
+      case TABLE.destinationProfiles:
+        for (const [checklistId, c] of checklistItems.value) {
+          if (c.profile_id === id) {
+            rows.push({ table: TABLE.destinationChecklistItems, id: checklistId })
+          }
+        }
+        break
+    }
+    return rows
+  }
+
   // --- Mutations ---
 
   function applyChange(change: PullChange): void {
@@ -438,6 +516,7 @@ export const useMasterStore = defineStore('master', () => {
     getItemTags,
     getPrimaryTag,
     searchItems,
+    childRows,
     applyChange,
     applyChanges,
   }

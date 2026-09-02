@@ -16,6 +16,7 @@
  */
 import { createPinia, setActivePinia } from 'pinia'
 import type { PullChange } from '@/api/types'
+import { changesOf } from '@/sync/optimistic'
 import type { PendingWrites } from './common'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -65,7 +66,7 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
    */
   const enqueueAndDrain: EnqueueAndDrain = (type, id, ...muts) => {
     for (const queued of muts) {
-      if (queued.optimistic) applyPulled(type, [queued.optimistic])
+      applyPulled(type, changesOf(queued.optimistic))
       if (type === 'trip' && id) {
         pending.trips.set(id, [...(pending.trips.get(id) ?? []), queued.mutation])
       } else {
