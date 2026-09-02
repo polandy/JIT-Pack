@@ -11306,9 +11306,21 @@ item's reading was that nothing guarded them.
 
 **That reading was half wrong, and the measurement is the reason to record
 this.** Both hand-rolled merges were *correct*, and both were *covered*: writing
-the fields alone at `updateTrip` turns four tests red, and at the group-refresh
-update site one. Neither was a latent defect waiting to be found; the review had
-inferred exposure from the shape of the code rather than from a mutation.
+the fields alone turns exactly one test red at each — `tripProperties.spec.ts`'s
+*„leaves the fields the editor never showed exactly as they were"* for
+`updateTrip`, and `groupRefresh.spec.ts`'s *„carries a later quantity change onto
+the untouched row"* for the refresh. Neither was a latent defect waiting to be
+found; the review had inferred exposure from the shape of the code rather than
+from a mutation.
+
+**The first count taken here said four, and it was wrong** — worth recording,
+because the mistake is invisible and repeatable. The measurement was a
+`String.replace` of the whole expression, and `optimisticUpdate(mutation,
+tripRow(trip))` occurs **twice** in `tripLifecycle.ts`: at `updateTrip` and at
+`setTripStatus`, which was already correct on `main` and is no part of this
+change. Replacing without a count mutated both, and three of the four reds
+belonged to a site nobody had touched. A mutation proof measures one site or it
+measures nothing: assert the occurrence count, or address the line.
 
 What survives the correction is the other half. The eleven remaining sites are
 inserts and deletes, where fields alone *are* the whole row and nothing is being
