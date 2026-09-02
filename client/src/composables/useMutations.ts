@@ -9,7 +9,8 @@ import { TABLE } from '@/types/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import { REVIEW_FLAG_FIELD, TRIP_STATUS_PLANNING } from '@/types/domain'
+import { REVIEW_FLAG_FIELD, TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
+
 import type { Trip } from '@/types/domain'
 import type {
   AppliedChange,
@@ -605,7 +606,7 @@ export function useMutations(hlc: HLCGenerator) {
       year,
       start_date: null,
       end_date: endDate,
-      status: 'archived',
+      status: TRIP_STATUS_ARCHIVED,
       series_id: seriesId,
       imported: 1,
     })

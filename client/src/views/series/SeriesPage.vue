@@ -24,11 +24,13 @@ import {
 import { addOutline, closeOutline, copyOutline, trendingUpOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
-import { t, type MessageKey } from '@/i18n'
+import { t } from '@/i18n'
 import { formatTripPeriod } from '@/lib/format'
+import { modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemMode, Trip } from '@/types/domain'
+import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
@@ -90,16 +92,12 @@ function saveNotes(notes: string) {
 
 // --- Destination checklist (FR-13.3) ---
 
-/**
- * FR-13.3: a checklist entry carries the same three procurement modes a
- * position does, so it reads them from the one `mode.*` vocabulary rather
- * than spelling its own — two wordings for one concept eventually disagree.
- */
-const CHECKLIST_MODE_KEYS = {
-  pack: 'mode.pack',
-  buy_before: 'mode.buyBefore',
-  buy_local: 'mode.buyLocal',
-} as const satisfies Record<ItemMode, MessageKey>
+/** FR-13.3: a destination checklist is mostly bought there, so that mode leads. */
+const CHECKLIST_MODE_ORDER = [
+  'buy_local',
+  'buy_before',
+  'pack',
+] as const satisfies readonly ItemMode[]
 
 const newLabel = ref('')
 const newMode = ref<ItemMode>('buy_local')
@@ -134,7 +132,9 @@ const tripWhen = formatTripPeriod
 const trendTripId = computed(() => seriesTrips.value[0]?.id ?? null)
 
 /** FR-12.1: the series' most recent archived trip is the default clone source. */
-const cloneSource = computed(() => seriesTrips.value.find((t) => t.status === 'archived') ?? null)
+const cloneSource = computed(
+  () => seriesTrips.value.find((t) => t.status === TRIP_STATUS_ARCHIVED) ?? null,
+)
 
 // ADR-011: the one header bar renders this page's title.
 setHeaderTitle(() => series.value?.name ?? t('series.section'))
@@ -223,7 +223,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             <IonLabel>
               <h3>{{ entry.label }}</h3>
               <p>
-                {{ t(CHECKLIST_MODE_KEYS[entry.mode]) }}
+                {{ modeLabel(entry.mode) }}
               </p>
             </IonLabel>
             <IonButton
@@ -255,9 +255,9 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             :aria-label="t('series.checklistMode')"
             @ionChange="(e: CustomEvent) => (newMode = e.detail.value)"
           >
-            <IonSelectOption value="buy_local">{{ t('mode.buyLocal') }}</IonSelectOption>
-            <IonSelectOption value="buy_before">{{ t('mode.buyBefore') }}</IonSelectOption>
-            <IonSelectOption value="pack">{{ t('mode.pack') }}</IonSelectOption>
+            <IonSelectOption v-for="m in CHECKLIST_MODE_ORDER" :key="m" :value="m">
+              {{ modeLabel(m) }}
+            </IonSelectOption>
           </IonSelect>
           <IonButton
             fill="outline"

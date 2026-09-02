@@ -16,6 +16,7 @@
  */
 
 import type { Container, Traveler, Trip, TripItem } from '@/types/domain'
+import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { tripOrderKey } from './trips'
 
 export type AnalyticsDimension = 'person' | 'category' | 'container'
@@ -133,7 +134,7 @@ export function seriesWeightTrend(
   seriesId: string,
 ): SeriesTrendPoint[] {
   return trips
-    .filter((t) => t.status === 'archived' && t.series_id === seriesId)
+    .filter((t) => t.status === TRIP_STATUS_ARCHIVED && t.series_id === seriesId)
     .sort((a, b) => tripOrderKey(a).localeCompare(tripOrderKey(b)))
     .map((t) => ({
       tripId: t.id,
@@ -165,7 +166,7 @@ export function seriesTopFlagged(
 ): SeriesFlag[] {
   const counts = new Map<string, SeriesFlag>()
   for (const trip of trips) {
-    if (trip.status !== 'archived' || trip.series_id !== seriesId) continue
+    if (trip.status !== TRIP_STATUS_ARCHIVED || trip.series_id !== seriesId) continue
     for (const item of itemsByTrip(trip.id)) {
       for (const flag of ['missing', 'unused'] as const) {
         if (flag === 'missing' ? !item.flag_missing : !item.flag_unused) continue

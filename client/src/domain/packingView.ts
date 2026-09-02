@@ -21,6 +21,7 @@ import type {
   TripParticipant,
   Traveler,
 } from '@/types/domain'
+import { ITEM_MODES } from '@/types/domain'
 
 /**
  * The facets in panel order (FR-25.11b). Every value is a string so the whole
@@ -41,8 +42,7 @@ export const FACET_KEYS: readonly FacetKey[] = [
  */
 export const NO_VALUE = ''
 
-/** Modes are offered in packing order, not alphabetically — 🧳 is the default case. */
-const MODE_VALUES: readonly ItemMode[] = ['pack', 'buy_before', 'buy_local'] as const
+const MODE_VALUES: readonly ItemMode[] = ITEM_MODES
 
 /** The *Merkmale* facet (FR-25.11b): flags that cut across the other axes. */
 const FLAG_VALUES = ['late', 'missing', 'prep'] as const

@@ -21,6 +21,7 @@ import { computed, inject, ref, watchEffect } from 'vue'
 
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
+import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import {
   buildReviewProposals,
   dismissalKey,
@@ -65,7 +66,7 @@ function historyCount(itemName: string, flag: 'unused' | 'missing'): number {
     (other) =>
       other.id !== props.tripId &&
       other.series_id === seriesId &&
-      other.status === 'archived' &&
+      other.status === TRIP_STATUS_ARCHIVED &&
       store
         .getItems(other.id)
         .some(

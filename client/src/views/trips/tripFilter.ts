@@ -11,6 +11,8 @@
  * restored trip via `filterForStatus`.
  */
 
+import { TRIP_STATUS_ACTIVE, TRIP_STATUS_ARCHIVED } from '@/types/domain'
+
 /** The segments M2 offers. `planned` is the display name of DB `planning`. */
 export const TRIP_FILTERS = ['active', 'planned', 'archived'] as const
 
@@ -42,9 +44,9 @@ export function parseTripFilter(value: unknown): TripFilter | null {
  */
 export function filterForStatus(status: string | undefined): TripFilter {
   switch (status) {
-    case 'active':
+    case TRIP_STATUS_ACTIVE:
       return 'active'
-    case 'archived':
+    case TRIP_STATUS_ARCHIVED:
       return 'archived'
     default:
       return 'planned'

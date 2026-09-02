@@ -1,8 +1,21 @@
 /** FR-2.1b: ordering trips whose dates may not exist yet. */
 import { describe, it, expect } from 'vitest'
 
-import { canJudgeUnused, localIsoDate, tripOrderKey } from '../trips'
-import type { Trip } from '@/types/domain'
+import {
+  canJudgeUnused,
+  isActive,
+  localIsoDate,
+  nextLifecycleStep,
+  tripOrderKey,
+  type LifecycleStep,
+} from '../trips'
+import {
+  TRIP_STATUS_ACTIVE,
+  TRIP_STATUS_ARCHIVED,
+  TRIP_STATUS_PLANNING,
+  type Trip,
+  type TripStatus,
+} from '@/types/domain'
 
 const when = (year: number, start: string | null = null, end: string | null = null) => ({
   year,
@@ -75,5 +88,38 @@ describe('localIsoDate', () => {
 
   it('pads the month and the day, so the string sorts as a date', () => {
     expect(localIsoDate(new Date(2026, 8, 5, 12, 0, 0).getTime())).toBe('2026-09-05')
+  })
+})
+
+/**
+ * FR-9.1/FR-9.2 — the lifecycle offers exactly one step at a time, and both
+ * M2 and M4 offer it. The rule was written into each of them separately, so
+ * a status that gained a step would have gained it on one screen only.
+ */
+describe('nextLifecycleStep', () => {
+  const cases: Array<[TripStatus | undefined, LifecycleStep]> = [
+    [TRIP_STATUS_PLANNING, 'start'],
+    [TRIP_STATUS_ACTIVE, 'archive'],
+    [TRIP_STATUS_ARCHIVED, null],
+    [undefined, null],
+  ]
+
+  for (const [status, expected] of cases) {
+    it(`offers ${expected ?? 'nothing'} for a ${status ?? 'trip that has not loaded'}`, () => {
+      const trip = status === undefined ? undefined : ({ status } as Trip)
+      expect(nextLifecycleStep(trip)).toBe(expected)
+    })
+  }
+})
+
+describe('isActive', () => {
+  it('is true only while the trip is being packed', () => {
+    expect(isActive({ status: TRIP_STATUS_ACTIVE } as Trip)).toBe(true)
+    expect(isActive({ status: TRIP_STATUS_PLANNING } as Trip)).toBe(false)
+    expect(isActive({ status: TRIP_STATUS_ARCHIVED } as Trip)).toBe(false)
+  })
+
+  it('is false for a trip that has not loaded', () => {
+    expect(isActive(undefined)).toBe(false)
   })
 })

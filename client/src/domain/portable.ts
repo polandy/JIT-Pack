@@ -33,6 +33,7 @@ import type {
   TripItem,
   TripTemplateSource,
 } from '@/types/domain'
+import { TRIP_STATUSES } from '@/types/domain'
 
 /** The schema this app writes and fully understands (FR-18.5). */
 export const PORTABLE_SCHEMA_VERSION = 1
@@ -675,7 +676,7 @@ function num(v: unknown): number | null {
  * which is what every file written before this field existed produces.
  */
 function toTripStatus(v: unknown): TripStatus | null {
-  return v === 'planning' || v === 'active' || v === 'archived' ? v : null
+  return TRIP_STATUSES.includes(v as TripStatus) ? (v as TripStatus) : null
 }
 
 /** A value outside the two shopping lists is not a list a row can have left. */

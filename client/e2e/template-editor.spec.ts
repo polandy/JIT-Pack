@@ -469,11 +469,15 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await page.getByTestId('m8-assign-person').click()
     await page.getByTestId('m8-dedup-sum').click()
     await page.getByTestId('m8-cond-summer').click()
+    // Procurement is named in M8-12's sentence beside the other four and was
+    // the one of them no test had ever clicked (2026-09-02).
+    await page.getByTestId('m8-mode-buy_local').click()
 
-    // The glance row now carries all three (FR-25.14 idiom).
+    // The glance row now carries all four (FR-25.14 idiom).
     const glance = page.getByTestId('m8-position-sheet').locator('.glance')
     await expect(glance).toContainText('Per person')
     await expect(glance).toContainText('Summer')
+    await expect(glance).toContainText('Buy there')
 
     // FR-15.2 gives each axis one value, so the active chip is also the way
     // to clear it — the only branch of `toggleCondition` that deletes, and
@@ -498,6 +502,7 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     const row = visible(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
     await expect(row).toContainText('Per person')
     await expect(row).toContainText('Summer')
+    await expect(row).toContainText('Buy there')
   })
 
   test('E2E-M8-11: tasks add per Enter, remove per row, and count on the collapsed chip', async ({

@@ -11,6 +11,13 @@ export const TRIP_STATUS_PLANNING = 'planning' satisfies TripStatus
 export const TRIP_STATUS_ACTIVE = 'active' satisfies TripStatus
 export const TRIP_STATUS_ARCHIVED = 'archived' satisfies TripStatus
 
+/** Every status a trip can carry — what a reader validates an unknown against. */
+export const TRIP_STATUSES = [
+  TRIP_STATUS_PLANNING,
+  TRIP_STATUS_ACTIVE,
+  TRIP_STATUS_ARCHIVED,
+] as const satisfies readonly TripStatus[]
+
 export interface Trip {
   id: string
   name: string
@@ -56,6 +63,12 @@ export type ItemMode = 'pack' | 'buy_before' | 'buy_local'
  * spelling of the same vocabulary is one that can drift from the schema's.
  */
 export type ShoppingMode = Exclude<ItemMode, 'pack'>
+
+/**
+ * The modes in packing order, not alphabetically — 🧳 is the default case
+ * (FR-25.4a). Every chooser and every facet offers them in this order.
+ */
+export const ITEM_MODES = ['pack', 'buy_before', 'buy_local'] as const satisfies readonly ItemMode[]
 
 export interface TripItem {
   id: string

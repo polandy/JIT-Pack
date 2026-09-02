@@ -34,15 +34,12 @@ import {
 } from '@ionic/vue'
 import {
   alertCircleOutline,
-  bagHandleOutline,
-  cartOutline,
   chevronForwardOutline,
   closeCircleOutline,
   closeOutline,
   refreshOutline,
   linkOutline,
   lockClosedOutline,
-  locationOutline,
   removeCircleOutline,
   timeOutline,
 } from 'ionicons/icons'
@@ -59,11 +56,13 @@ import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { membershipRows } from '@/domain/membership'
 import { relativeStamp } from '@/domain/stamp'
-import { canJudgeUnused } from '@/domain/trips'
+import { canJudgeUnused, isActive } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
+import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { ITEM_MODES } from '@/types/domain'
 import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
 
 const props = defineProps<{
@@ -85,7 +84,7 @@ const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id ==
 const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
-const isActive = computed(() => trip.value?.status === 'active')
+const active = computed(() => isActive(trip.value))
 /**
  * FR-25.19: who a row can be handed to — the trip's **members**, not every
  * account the instance knows. The `participants` prop is the directory
@@ -245,7 +244,7 @@ function addCompanion(companion: SuggestedCompanion) {
       weightGrams: master?.weight_grams ?? null,
       valueCents: master?.value_cents ?? null,
     },
-    isActive.value,
+    active.value,
   )
 }
 
@@ -329,21 +328,6 @@ function onSkipToggle() {
 }
 
 // --- Presentation helpers ---
-const MODE_LABEL: Record<ItemMode, string> = {
-  pack: 'mode.pack',
-  buy_before: 'mode.buyBefore',
-  buy_local: 'mode.buyLocal',
-}
-
-function modeLabel(mode: ItemMode): string {
-  return t(MODE_LABEL[mode] as Parameters<typeof t>[0])
-}
-
-function modeIcon(mode: ItemMode): string {
-  if (mode === 'buy_before') return cartOutline
-  if (mode === 'buy_local') return locationOutline
-  return bagHandleOutline
-}
 
 /** "Kleidung · 300 g" — what the row is, in one quiet line. */
 const contextLine = computed(() => {
@@ -627,9 +611,9 @@ const packedStamp = computed(() => {
           data-testid="m5-mode"
           @ion-change="(e: CustomEvent) => onModeChange(e.detail.value)"
         >
-          <IonSelectOption value="pack">{{ t('mode.pack') }}</IonSelectOption>
-          <IonSelectOption value="buy_before">{{ t('mode.buyBefore') }}</IonSelectOption>
-          <IonSelectOption value="buy_local">{{ t('mode.buyLocal') }}</IonSelectOption>
+          <IonSelectOption v-for="m in ITEM_MODES" :key="m" :value="m">
+            {{ modeLabel(m) }}
+          </IonSelectOption>
         </IonSelect>
       </IonItem>
       <!-- FR-25.19: the *responsibility*, which is assigned deliberately and
@@ -706,7 +690,7 @@ const packedStamp = computed(() => {
             @ion-change="(e: CustomEvent) => onReviewFlag('unused', e.detail.checked)"
           />
         </IonItem>
-        <IonItem v-if="isActive">
+        <IonItem v-if="active">
           <IonIcon slot="start" :icon="alertCircleOutline" />
           <IonLabel>
             <h3>{{ t('facet.flagMissing') }}</h3>

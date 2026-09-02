@@ -17,6 +17,7 @@ import { closeOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 
 import { t } from '@/i18n'
+import { modeLabel } from '@/lib/modeLabels'
 import { resolvedLines, type ResolvedLine } from '@/domain/templates'
 import { useMasterStore } from '@/stores/masterStore'
 import ItemMark from '@/components/items/ItemMark.vue'
@@ -56,8 +57,7 @@ function marksOf(line: ResolvedLine): string[] {
   const marks: string[] = []
   if (line.merged) marks.push(t('templates.peekMerged'))
   if (line.perPerson) marks.push(t('templates.peekPerPerson'))
-  if (line.mode === 'buy_before') marks.push(t('mode.buyBefore'))
-  if (line.mode === 'buy_local') marks.push(t('mode.buyLocal'))
+  if (line.mode !== 'pack') marks.push(modeLabel(line.mode))
   if (line.conditions) marks.push(t('templates.peekConditional'))
   return marks
 }

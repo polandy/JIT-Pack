@@ -7,6 +7,7 @@ import {
   addPosition,
   openQuickAdd,
   createMasterItem,
+  chooseInSelect,
   visiblePage as visible,
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
@@ -1309,5 +1310,46 @@ test.describe('M4 — what the quick-add says about what it took along @local @m
     await page.getByTestId('quick-add-confirm').click()
     await expect(visible(page).getByTestId('m4-row-Sonnencreme')).toBeVisible()
     await expect(page.locator('ion-toast').filter({ hasText: 'Sonnencreme' })).toHaveCount(0)
+  })
+})
+
+/**
+ * FR-25.4a's quiet default. The mapping mode → glyph moved into
+ * `lib/modeLabels.ts`; the dense-list rule that used to be M4's private
+ * `modeIcon` became an option there, and an option can be forgotten at a
+ * call site in a way a private function cannot.
+ */
+test.describe('M4 — the row says how an item is obtained, unless it is the usual way @local @m4', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M4-67 (FR-25.4a): a row that is bought carries the mode glyph; a row
+   * that is packed carries none, because 🧳 is what every other row means.
+   *
+   * The two halves are one mechanism — the same `title` on the same icon — so
+   * the buy row is the positive signal that makes the pack row's silence
+   * falsifiable rather than merely unrendered.
+   */
+  test('E2E-M4-67: only the unusual mode is drawn on a dense row', async ({ page }) => {
+    await createTripViaWizard(page, { name: 'Samedan Sommer' })
+    await quickAdd(page, ['Zahnpasta', 'Socken'])
+
+    // Set through M5's own select — the only path the app offers.
+    await visible(page).getByTestId('m4-row-Zahnpasta').click()
+    await page.getByTestId('m5-details').click()
+    await chooseInSelect(page, 'm5-mode', 'Buy before')
+    await page.getByTestId('m5-close').click()
+
+    const bought = visible(page).getByTestId('m4-row-Zahnpasta')
+    const packed = visible(page).getByTestId('m4-row-Socken')
+    await expect(bought).toBeVisible()
+
+    // The mode that is worth saying is said…
+    await expect(bought.getByTitle('Buy before')).toHaveCount(1)
+    // …and the one that goes without saying is not, on the very same row
+    // shape that just proved the glyph renders.
+    await expect(packed.getByTitle('Pack')).toHaveCount(0)
   })
 })
