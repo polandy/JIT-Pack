@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/polandy/JIT-Pack/compare/v0.3.3...v0.4.0) (2026-09-01)
+
+
+### Features
+
+* **deploy:** one container serves the client and the API (ADR-043) ([fced346](https://github.com/polandy/JIT-Pack/commit/fced3468d9351ab37a2f11acc68aec9dc1b345ae))
+
 ## [0.3.3](https://github.com/polandy/JIT-Pack/compare/v0.3.2...v0.3.3) (2026-09-01)
 
 
