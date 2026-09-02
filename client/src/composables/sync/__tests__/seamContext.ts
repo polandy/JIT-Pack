@@ -23,6 +23,9 @@ export interface Recorded {
   type: 'trip' | 'master'
   id: string | null
   muts: QueuedMutation[]
+  /** Whether the write pushed itself (`enqueueAndDrain`) or left that to a
+   * cascade's own `drainPartitions`. */
+  drained: boolean
 }
 
 /**
@@ -49,10 +52,23 @@ export function makeSeamContext(
 ): {
   ctx: SyncContext
   queued: Recorded[]
+  /** One entry per `drainPartitions` call, in order — the trips it pushed. */
+  drains: string[][]
 } {
   const queued: Recorded[] = []
+  const drains: string[][] = []
   const masterStore = useMasterStore()
   const tripStore = useTripStore()
+
+  /** The paint half of a write, shared by both funnels. */
+  function applyPainted(muts: QueuedMutation[]): void {
+    for (const mut of muts) {
+      for (const change of changesOf(mut)) {
+        const target = storeFor(change.table)
+        if (target) applyTo(target === 'trip' ? tripStore : masterStore, change)
+      }
+    }
+  }
   const ctx: SyncContext = {
     tripStore,
     masterStore,
@@ -64,20 +80,25 @@ export function makeSeamContext(
       // the same module production routes with: this double used to route by
       // partition, which put the master partition's per-trip tables (P-3)
       // into the wrong store the moment a group painted rows of both.
-      for (const mut of muts) {
-        for (const change of changesOf(mut)) {
-          const target = storeFor(change.table)
-          if (target) applyTo(target === 'trip' ? tripStore : masterStore, change)
-        }
-      }
-      queued.push({ type, id, muts })
+      applyPainted(muts)
+      queued.push({ type, id, muts, drained: true })
+    },
+    enqueue: (type, id, ...muts) => {
+      // A cascade queues without pushing; the paint is the same one, so the
+      // double applies it here too and records the call under `drained:
+      // false` — a spec about ordering reads one log, not two.
+      applyPainted(muts)
+      queued.push({ type, id, muts, drained: false })
+    },
+    drainPartitions: (tripIds) => {
+      drains.push([...tripIds])
     },
     names: createNameGuards(masterStore),
     local: opts.local ?? null,
     today: () => opts.today ?? SEAM_TODAY,
     tripDataLoaded: opts.tripDataLoaded ?? (() => true),
   }
-  return { ctx, queued }
+  return { ctx, queued, drains }
 }
 
 /** The optimistic changes of one queued mutation, none or many alike. */

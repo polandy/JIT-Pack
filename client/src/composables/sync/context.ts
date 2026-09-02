@@ -41,11 +41,31 @@ export type EnqueueAndDrain = (
   ...muts: QueuedMutation[]
 ) => void
 
+/**
+ * enqueue applies the optimistic changes and queues the mutations for the
+ * named partition, without pushing. It is what a cascade writing across both
+ * partitions uses — every row through the funnel, one push at the end.
+ */
+export type Enqueue = (
+  type: 'trip' | 'master',
+  id: string | null,
+  ...muts: QueuedMutation[]
+) => void
+
+/**
+ * drainPartitions pushes what a cascade queued: the master partition first,
+ * then the named trips in order — the order the server's foreign keys
+ * dictate. Fire-and-forget, and inert in Local Mode.
+ */
+export type DrainPartitions = (tripIds: string[]) => void
+
 export interface SyncContext {
   tripStore: ReturnType<typeof useTripStore>
   masterStore: ReturnType<typeof useMasterStore>
   mutations: ReturnType<typeof useMutations>
   enqueueAndDrain: EnqueueAndDrain
+  enqueue: Enqueue
+  drainPartitions: DrainPartitions
   names: NameGuards
   /**
    * The device's own store in Local Mode, null wherever a server answers.
