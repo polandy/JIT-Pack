@@ -22,6 +22,11 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
   }
 }
 
+/** One pulled row, the way the feed delivers it. */
+function row(table: string, id: string, fields: Record<string, unknown>): PullChange {
+  return { seq: 1, table, id, deleted: false, row: fields }
+}
+
 describe('tripStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -62,6 +67,120 @@ describe('tripStore', () => {
     store.removeTrip('t1')
     expect(store.getTrip('t1')).toBeUndefined()
     expect(store.getItems('t1')).toEqual([])
+  })
+
+  /**
+   * A trip's children hang off it in the schema, and the server can announce
+   * only three of them: `change_log.trip_id` cascades too, so the trip
+   * partition's whole feed dies with the row it describes
+   * (`internal/store/master.go`, `cascadeChildren`). Everything else the
+   * client has to drop itself, and until 2026-09-02 it dropped four of nine
+   * tables — the trip vanished from the screen while its rows stayed.
+   */
+  describe('a deleted trip takes its children with it (C-3a)', () => {
+    function seedChildren(store: ReturnType<typeof useTripStore>) {
+      store.setTrip(makeTrip())
+      const rows: PullChange[] = [
+        row(TABLE.tripItems, 'i1', {
+          trip_id: 't1',
+          name: 'Towel',
+          quantity: 1,
+          packed_count: 0,
+          state: 'open',
+          mode: 'pack',
+        }),
+        row(TABLE.travelers, 'trav1', { trip_id: 't1', name: 'Ada' }),
+        row(TABLE.containers, 'c1', { trip_id: 't1', name: 'Rucksack' }),
+        row(TABLE.tripMembers, 'mem1', { trip_id: 't1', user_id: 'u1', role: 'owner' }),
+        row(TABLE.comments, 'com1', { trip_id: 't1', body: 'Vergiss die Karte nicht' }),
+        row(TABLE.comments, 'todo1', {
+          trip_id: 't1',
+          trip_item_id: 'i1',
+          body: 'Akku laden',
+          is_task: true,
+          task_state: 'open',
+        }),
+        row(TABLE.tripTemplateSources, 'src1', { trip_id: 't1', template_id: 'tpl1' }),
+        row(TABLE.tripGeneratedPositions, 'gen1', {
+          trip_id: 't1',
+          template_item_id: 'pos1',
+          trip_item_id: 'i1',
+        }),
+        row(TABLE.tripAppliedChanges, 'app1', {
+          trip_id: 't1',
+          template_id: 'tpl1',
+          created_at: '2026-09-01T10:00:00Z',
+        }),
+      ]
+      store.applyChanges(rows)
+    }
+
+    it('names every child row, so the cascade can tombstone them', () => {
+      const store = useTripStore()
+      seedChildren(store)
+
+      expect(store.childRows('t1')).toEqual(
+        expect.arrayContaining([
+          { table: TABLE.comments, id: 'com1' },
+          { table: TABLE.comments, id: 'todo1' },
+          { table: TABLE.tripGeneratedPositions, id: 'gen1' },
+          { table: TABLE.tripItems, id: 'i1' },
+          { table: TABLE.travelers, id: 'trav1' },
+          { table: TABLE.containers, id: 'c1' },
+          { table: TABLE.tripMembers, id: 'mem1' },
+          { table: TABLE.tripTemplateSources, id: 'src1' },
+          { table: TABLE.tripAppliedChanges, id: 'app1' },
+        ]),
+      )
+      expect(store.childRows('t1')).toHaveLength(9)
+      expect(store.childRows('unknown-trip')).toEqual([])
+    })
+
+    it('names a child before the parent it hangs off', () => {
+      const store = useTripStore()
+      seedChildren(store)
+      const at = (table: string, id: string) =>
+        store.childRows('t1').findIndex((c) => c.table === table && c.id === id)
+
+      // The comment and the generated position hang off the trip item; the
+      // server emits its own cascade leaf-first for the same reason.
+      expect(at(TABLE.comments, 'todo1')).toBeLessThan(at(TABLE.tripItems, 'i1'))
+      expect(at(TABLE.tripGeneratedPositions, 'gen1')).toBeLessThan(at(TABLE.tripItems, 'i1'))
+    })
+
+    it('empties every bucket the trip owned', () => {
+      const store = useTripStore()
+      seedChildren(store)
+
+      store.removeTrip('t1')
+
+      expect(store.getTrip('t1')).toBeUndefined()
+      expect(store.getItems('t1')).toEqual([])
+      expect(store.getTravelers('t1')).toEqual([])
+      expect(store.getContainers('t1')).toEqual([])
+      expect(store.getMembers('t1')).toEqual([])
+      expect(store.getComments('t1')).toEqual([])
+      expect(store.getTodos('t1')).toEqual([])
+      expect(store.getTemplateSources('t1')).toEqual([])
+      expect(store.getGeneratedPositions('t1')).toEqual([])
+      expect(store.getAppliedChanges('t1')).toEqual([])
+      expect(store.childRows('t1')).toEqual([])
+    })
+
+    it("leaves another trip's rows alone", () => {
+      const store = useTripStore()
+      seedChildren(store)
+      store.setTrip(makeTrip({ id: 't2' }))
+      store.applyChanges([
+        row(TABLE.travelers, 'trav2', { trip_id: 't2', name: 'Grace' }),
+        row(TABLE.tripTemplateSources, 'src2', { trip_id: 't2', template_id: 'tpl1' }),
+      ])
+
+      store.removeTrip('t1')
+
+      expect(store.getTravelers('t2')).toHaveLength(1)
+      expect(store.getTemplateSources('t2')).toHaveLength(1)
+    })
   })
 
   it('applies trip pull change', () => {

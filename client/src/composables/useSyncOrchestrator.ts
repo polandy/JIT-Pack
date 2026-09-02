@@ -21,11 +21,13 @@ import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox, type ConflictReport, type RejectionReport } from './useSyncOutbox'
 import {
+  changesOf,
   localChange,
   optimisticDelete,
   optimisticInsert,
   optimisticUpdate,
 } from '@/sync/optimistic'
+import { MASTER_STORE_TABLES, TRIP_STORE_TABLES } from '@/sync/routing'
 import { generateDeviceId, hashBlob, itemRow, masterItemRow, memberRow } from './sync/rows'
 import { createContainerActions } from './sync/actions/containers'
 import { createCommentActions } from './sync/actions/comments'
@@ -185,40 +187,6 @@ export interface SyncOrchestratorConfig {
    */
   onLocalWrite?: () => void
 }
-
-/**
- * Pull routing, by owning **store** rather than by partition: trip_members,
- * trip_template_sources and trip_applied_changes all travel the *master*
- * partition (spec P-3) and are still per-trip state. A table missing from
- * both sets is dropped silently, which is why they are named constants
- * (§4a) rather than literals repeated per call.
- */
-const TRIP_STORE_TABLES: ReadonlySet<string> = new Set<string>([
-  TABLE.trips,
-  TABLE.tripItems,
-  TABLE.travelers,
-  TABLE.containers,
-  TABLE.comments,
-  TABLE.notifications,
-  TABLE.tripMembers,
-  TABLE.tripTemplateSources,
-  TABLE.tripGeneratedPositions,
-  TABLE.tripAppliedChanges,
-])
-
-const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
-  TABLE.tags,
-  TABLE.itemTags,
-  TABLE.items,
-  TABLE.templates,
-  TABLE.templateItems,
-  TABLE.templateIncludes,
-  TABLE.templateItemTasks,
-  TABLE.tripSeries,
-  TABLE.destinationProfiles,
-  TABLE.destinationChecklistItems,
-  TABLE.itemDependencies,
-])
 
 export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const tripStore = useTripStore()
@@ -653,8 +621,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   function enqueueAndDrain(type: 'trip' | 'master', id: string | null, ...muts: QueuedMutation[]) {
     for (const m of muts) {
-      if (m.optimistic) {
-        onPullChanges([m.optimistic])
+      const painted = changesOf(m.optimistic)
+      if (painted.length > 0) {
+        onPullChanges(painted)
       }
       if (!local) {
         outbox.enqueue(type, id, m.mutation)

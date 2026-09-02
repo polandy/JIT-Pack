@@ -242,6 +242,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A listener that could not have been there yet (2026-09-02)](#a-listener-that-could-not-have-been-there-yet-2026-09-02) — the `e2e-server` job read as flaky on a Vue patch bump. Two defects met under one scheduling: a fixture account invented to *prevent* cross-file reach was borrowed by the next case that needed a spare, and App.vue attached its session-end listener after two awaits while a child's `onMounted` had already sent the request that fires it. Why the second one is a design rule, not a test fix.
 - [An announcement with no verb (2026-09-02)](#an-announcement-with-no-verb-2026-09-02) — a waiting version can be applied on a press (FR-19.7, ADR-044). Why the dismissal is deliberately *not* stored, why the press-and-`controllerchange` pair is the only shape that is assertable, and why two e2e cases are needed where one looks like enough.
 - [A guard on a funnel that every launch passes through (2026-09-02)](#a-guard-on-a-funnel-that-every-launch-passes-through-2026-09-02) — leaving Local Mode from M17 (FR-19.8, ADR-045). Why the „last write" stamp must not fire on the startup load, why the guard compares two stamps rather than asking whether a backup exists, and the fixture that puts a device back into the mode it just left.
+- [The screen was right and the disk was not (2026-09-02)](#the-screen-was-right-and-the-disk-was-not-2026-09-02) — a deleted trip left its rows on the device. Why the store dropping its own buckets is what hid it, why the fix cannot live in the store, and the reading that turns one defect into four.
 
 
 ## Current state
@@ -11229,4 +11230,61 @@ would let a stale flag from an earlier switch vanish on the wrong device. The
 Local Mode data itself is left in place (owner): Server Mode never opens the
 IndexedDB store, so it cannot shadow anything, and deleting it would make the
 one file the person downloaded the only copy while the restore is still owed.
+
+
+## The screen was right and the disk was not (2026-09-02)
+
+`tripStore.removeTrip` dropped five of a trip's ten maps. That is the visible
+half of the defect and the least interesting one.
+
+**The premise that was wrong.** The server states the rule in
+`cascadeChildren`'s own comment: a deleted trip is announced for
+`trip_members`, `trip_template_sources` and `trip_applied_changes` *precisely
+because* its other children cannot be — `change_log.trip_id` cascades too, so
+the trip partition's whole feed is deleted with the row it describes, and
+"the client mirrors that cascade optimistically". The client had been read as
+doing that. It was doing it in the **store**, which is the wrong layer: in
+Local Mode the optimistic change list is also what `IndexedDBPersistence`
+writes, and `write` deletes exactly the keys it is handed. A delete naming only
+`trips/<id>` therefore left every child row on the device, and `load` replayed
+them on the next start — for the lifetime of the device, in the one mode whose
+storage the app warns about (NFR-4.11).
+
+**What hid it is the half that worked.** The store had already emptied its
+buckets, so the trip vanished from the screen and every cross-trip reader
+iterates `tripList` first (`masterData`, `TemplateFromTripPage`, `ReviewPage`)
+and the backup serialises per trip. The orphans were unreachable, not absent —
+and unreachable rows produce no symptom at all until something enumerates a
+table. The test that can see it is therefore not a store test: it deletes,
+awaits `whenSettled()`, and reads the rows back out of persistence.
+
+**One defect became four by reading the rule instead of the report.** The
+verification was scoped to trips. Writing the fix made the shape obvious, and a
+throwaway probe against `deleteMasterItem` was red on the first run: master
+items, Vorlagen and trip items have the same cascade and the same missing half.
+Three of them are invisible in Server Mode — the tombstones do arrive — which is
+why only Local Mode ever showed it, and why the spec sentence could not be
+written honestly for one site and not the others. That is what settled the
+scope: a rule you can only half-state is not finished.
+
+**The abstraction the fix is allowed to be.** `client/src/sync/cascade.ts`
+mirrors `cascadeChildren` case for case, and each store answers only for the
+tables it owns. It is deliberately *not* the general table registry the design
+review proposes: that one owns codecs, keys and cascades together, and building
+half of it here would have to be unbuilt again. What this module fixes is the
+shape of a delete — **one mutation, many changes** — which is the server's own
+shape and the reason `QueuedMutation.optimistic` now takes a list. A mutation
+per child would ask the server to repeat a cascade it performs itself, and would
+queue rows whose parent is already gone.
+
+**A dead routing entry found by the same reading.** `TABLE.notifications` sat in
+the trip store's routing set, and the trip store has no case for it — but the
+table is not syncable on the server either, so no pull can carry it. Both
+entries are gone, and the routing sets moved to `client/src/sync/routing.ts`
+with the assertion that was missing: every syncable table routes to exactly one
+store. A table in neither set is dropped silently, which is a failure with no
+symptom and therefore one only a test can hold. The move also fixed the seam
+specs' hand-written `enqueueAndDrain`, whose own comment had predicted this —
+it routed by *partition*, and a group painting rows of both partitions had just
+arrived.
 

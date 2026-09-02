@@ -16,7 +16,7 @@ import { createTripLifecycleActions } from '../actions/tripLifecycle'
 import { createCommentActions } from '../actions/comments'
 import { createPackingActions } from '../actions/packing'
 import { createGroupRefreshActions } from '../actions/groupRefresh'
-import { makeSeamContext, pullIn, type Recorded } from './seamContext'
+import { changesOf, makeSeamContext, pullIn, type Recorded, paintedRow } from './seamContext'
 import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 import { TRIP_STATUS_ACTIVE, TRIP_STATUS_ARCHIVED } from '@/types/domain'
@@ -91,7 +91,7 @@ describe('createTripLifecycleActions without an orchestrator', () => {
     // The paint is the row plus the edit — a field the builder forgot is
     // blanked on every unrelated edit, and no pull comes to fix it in
     // Local Mode (PR #158).
-    expect(queued[0]!.muts[0]!.optimistic?.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       name: 'Samedan Winter',
       year: 2026,
     })
@@ -195,6 +195,33 @@ describe('createTripLifecycleActions without an orchestrator', () => {
     build(ctx).deleteTrip(TRIP_ID)
 
     expect(queued[0]!.type).toBe('master')
-    expect(queued[0]!.muts[0]!.optimistic?.deleted).toBe(true)
+    expect(changesOf(queued[0]!.muts[0]!).at(-1)).toMatchObject({
+      table: TABLE.trips,
+      id: TRIP_ID,
+      deleted: true,
+    })
+  })
+
+  /**
+   * C-3a: the cascade is expressed as changes, never as mutations. Pushing a
+   * delete per child would ask the server to repeat a cascade it performs
+   * itself — and the outbox would carry rows whose parent is already gone.
+   */
+  it('deleteTrip tombstones every child row without queueing a mutation for it', () => {
+    seedTrip()
+    pullIn(ctx.tripStore, TABLE.travelers, TRAVELER_ID, { trip_id: TRIP_ID, name: 'Ada' })
+    pullIn(ctx.tripStore, TABLE.comments, 'com-1', { trip_id: TRIP_ID, body: 'Karte' })
+
+    build(ctx).deleteTrip(TRIP_ID)
+
+    expect(queued).toHaveLength(1)
+    expect(queued[0]!.muts).toHaveLength(1)
+    const changes = changesOf(queued[0]!.muts[0]!)
+    expect(changes.every((c) => c.deleted)).toBe(true)
+    expect(changes.map((c) => `${c.table}/${c.id}`)).toEqual([
+      `${TABLE.comments}/com-1`,
+      `${TABLE.travelers}/${TRAVELER_ID}`,
+      `${TABLE.trips}/${TRIP_ID}`,
+    ])
   })
 })

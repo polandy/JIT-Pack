@@ -580,8 +580,9 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   /** deleteTrip tombstones the trip on the master partition. The server
-   * authorizes this for Owner/Admin only (FR-4.5) and cascades the trip's
-   * items, travelers, containers and members. */
+   * authorizes this for Owner/Admin only (FR-4.5) and cascades every child
+   * row, announcing the three that travel this partition; the client mirrors
+   * the rest itself (see `tripLifecycle.deleteTrip`). */
   function deleteTrip(tripId: string): Mutation {
     return make('delete', TABLE.trips, tripId)
   }

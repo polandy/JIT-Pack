@@ -26,7 +26,6 @@ export const TABLE = {
   travelers: 'travelers',
   containers: 'containers',
   comments: 'comments',
-  notifications: 'notifications',
   /** FR-27.4, the planning-trip refresh (migration 023). */
   tripTemplateSources: 'trip_template_sources',
   tripGeneratedPositions: 'trip_generated_positions',

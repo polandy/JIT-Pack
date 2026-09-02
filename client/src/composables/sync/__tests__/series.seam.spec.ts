@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createSeriesActions } from '../actions/series'
-import { makeSeamContext, pullIn, type Recorded } from './seamContext'
+import { makeSeamContext, pullIn, type Recorded, paintedRow } from './seamContext'
 import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 import type { DestinationChecklistItem, TripSeries } from '@/types/domain'
@@ -62,7 +62,7 @@ describe('createSeriesActions without an orchestrator', () => {
     const series = ctx.masterStore.seriesList[0] as TripSeries
 
     expect(createSeriesActions(ctx).updateSeries(series, { name: 'Sommer' })).toBe(true)
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       name: 'Sommer',
       default_attributes: JSON.stringify({ destination: 'Italien' }),
     })
@@ -79,7 +79,7 @@ describe('createSeriesActions without an orchestrator', () => {
     expect(queued[0]!.type).toBe('master')
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ series_id: 'ser-1' })
     // The whole trip row, not just the column the action names (PR #158).
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       name: 'Elba',
       status: 'planning',
     })
@@ -114,7 +114,7 @@ describe('createSeriesActions without an orchestrator', () => {
     const item = ctx.masterStore.getChecklistItems('prof-1')[0] as DestinationChecklistItem
 
     actions.updateChecklistItem(item, { label: 'Sonnenschutz' })
-    expect(queued[1]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[1]!.muts[0]!)).toMatchObject({
       profile_id: 'prof-1',
       label: 'Sonnenschutz',
       mode: 'pack',
