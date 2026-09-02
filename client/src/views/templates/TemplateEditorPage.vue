@@ -55,6 +55,7 @@ import { foldDismissals } from '@/composables/useFoldDismissals'
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import { attributeLabel } from '@/lib/attributeLabels'
+import { modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { TemplateItem, TemplateKind } from '@/types/domain'
@@ -347,8 +348,7 @@ function removePosition(templateItemId: string) {
 function positionChips(pos: TemplateItem): string[] {
   const chips: string[] = []
   if (pos.assignment === 'per_person') chips.push(t('templates.perPerson'))
-  if (pos.default_mode === 'buy_before') chips.push(t('mode.buyBefore'))
-  if (pos.default_mode === 'buy_local') chips.push(t('mode.buyLocal'))
+  if (pos.default_mode !== 'pack') chips.push(modeLabel(pos.default_mode))
   if (pos.late_packer) chips.push(t('mode.latePacker'))
   const taskCount = masterStore.getTemplateItemTasks(pos.id).length
   if (taskCount) chips.push(t('templates.prepChip', { n: taskCount }))

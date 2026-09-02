@@ -11,7 +11,7 @@
 
 import { API } from '@/api/routes'
 import { markLocalWrite } from '@/local/exportReminder'
-import { clearMigrationPending } from '@/mode'
+import { clearMigrationPending, deviceId } from '@/mode'
 import { t } from '@/i18n'
 import { TABLE } from '@/types/tables'
 import { computed, reactive, ref } from 'vue'
@@ -28,7 +28,7 @@ import {
   optimisticUpdate,
 } from '@/sync/optimistic'
 import { MASTER_STORE_TABLES, TRIP_STORE_TABLES } from '@/sync/routing'
-import { generateDeviceId, hashBlob, itemRow, masterItemRow, memberRow } from './sync/rows'
+import { hashBlob, itemRow, masterItemRow, memberRow } from './sync/rows'
 import { createContainerActions } from './sync/actions/containers'
 import { createCommentActions } from './sync/actions/comments'
 import { createDependencyActions } from './sync/actions/dependencies'
@@ -186,6 +186,12 @@ export interface SyncOrchestratorConfig {
    * last-write stamp). Injected so a test can count the calls.
    */
   onLocalWrite?: () => void
+  /**
+   * The `deviceId` half of every HLC stamp. Defaults to this device's stored
+   * identity; injected so a test can name the device it is standing on
+   * instead of reaching into storage.
+   */
+  deviceId?: string
 }
 
 export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
@@ -318,10 +324,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   const client = new APIClient(config.baseUrl, config.getToken, config.onUnauthorized)
 
-  const deviceId = localStorage.getItem('jitpack_device_id') ?? generateDeviceId()
-  localStorage.setItem('jitpack_device_id', deviceId)
-
-  const hlc = new HLCGenerator(() => Date.now(), deviceId)
+  const hlc = new HLCGenerator(() => Date.now(), config.deviceId ?? deviceId())
   const mutations = useMutations(hlc)
 
   // Local Mode never pushes, so it never queues — building a store there

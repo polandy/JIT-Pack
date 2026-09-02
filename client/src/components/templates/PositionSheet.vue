@@ -15,10 +15,8 @@
 import { IonIcon, IonButton, IonInput, IonToggle } from '@ionic/vue'
 import {
   addOutline,
-  cartOutline,
   chevronForwardOutline,
   closeOutline,
-  locationOutline,
   removeOutline,
   timeOutline,
 } from 'ionicons/icons'
@@ -29,7 +27,9 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { t } from '@/i18n'
 import { ACCOMMODATIONS, SEASONS, TRANSPORT_MODES, attributeLabel } from '@/lib/attributeLabels'
+import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
+import { ITEM_MODES } from '@/types/domain'
 import type { ItemMode, TemplateAssignment, TemplateDedup } from '@/types/domain'
 
 const props = defineProps<{
@@ -130,12 +130,6 @@ function addTask() {
 function removeTask(taskId: string) {
   orchestrator.deleteTemplateItemTask(taskId)
 }
-
-const MODES: Array<{ value: ItemMode; label: () => string }> = [
-  { value: 'pack', label: () => t('mode.pack') },
-  { value: 'buy_before', label: () => t('mode.buyBefore') },
-  { value: 'buy_local', label: () => t('mode.buyLocal') },
-]
 </script>
 
 <template>
@@ -165,8 +159,8 @@ const MODES: Array<{ value: ItemMode; label: () => string }> = [
         {{ t('templates.perPerson') }}
       </span>
       <span v-if="position.default_mode !== 'pack'" class="chip buy">
-        <IonIcon :icon="position.default_mode === 'buy_before' ? cartOutline : locationOutline" />
-        {{ position.default_mode === 'buy_before' ? t('mode.buyBefore') : t('mode.buyLocal') }}
+        <IonIcon :icon="modeIcon(position.default_mode)" />
+        {{ modeLabel(position.default_mode) }}
       </span>
       <span v-if="position.late_packer" class="chip warn">
         <IonIcon :icon="timeOutline" /> {{ t('mode.latePacker') }}
@@ -275,13 +269,13 @@ const MODES: Array<{ value: ItemMode; label: () => string }> = [
         <h3 class="sl">{{ t('templates.procurement') }}</h3>
         <div class="seg" role="group">
           <button
-            v-for="mode in MODES"
-            :key="mode.value"
-            :class="{ sel: position.default_mode === mode.value }"
-            :data-testid="`m8-mode-${mode.value}`"
-            @click="setMode(mode.value)"
+            v-for="mode in ITEM_MODES"
+            :key="mode"
+            :class="{ sel: position.default_mode === mode }"
+            :data-testid="`m8-mode-${mode}`"
+            @click="setMode(mode)"
           >
-            {{ mode.label() }}
+            {{ modeLabel(mode) }}
           </button>
         </div>
       </section>

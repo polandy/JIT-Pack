@@ -4,8 +4,10 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { saveTokens } from '@/auth/tokens'
 import {
   MIGRATION_PENDING_KEY,
+  DEVICE_ID_KEY,
   MODE_KEY,
   SERVER_URL_KEY,
+  deviceId,
   chooseMode,
   clearMigrationPending,
   loadMigrationPending,
@@ -124,5 +126,29 @@ describe('isValidServerUrl', () => {
     ['https://', false],
   ])('%s → %s', (value, valid) => {
     expect(isValidServerUrl(value)).toBe(valid)
+  })
+})
+
+/**
+ * NFR-4.2a — the `deviceId` half of an HLC stamp is minted once. A device
+ * that minted a fresh id per reload would order its own history by chance.
+ */
+describe('deviceId', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('mints an identity on first call and stores it', () => {
+    const minted = deviceId()
+    expect(minted).not.toBe('')
+    expect(localStorage.getItem(DEVICE_ID_KEY)).toBe(minted)
+  })
+
+  it('keeps the stored identity across calls', () => {
+    const first = deviceId()
+    expect(deviceId()).toBe(first)
+  })
+
+  it('returns the identity a previous session stored', () => {
+    localStorage.setItem(DEVICE_ID_KEY, 'cafebabe')
+    expect(deviceId()).toBe('cafebabe')
   })
 })

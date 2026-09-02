@@ -1,4 +1,9 @@
-import { TRIP_STATUS_ACTIVE, TRIP_STATUS_ARCHIVED, type Trip } from '@/types/domain'
+import {
+  TRIP_STATUS_ACTIVE,
+  TRIP_STATUS_ARCHIVED,
+  TRIP_STATUS_PLANNING,
+  type Trip,
+} from '@/types/domain'
 
 /**
  * What a trip *is* in time: how it sorts (FR-2.1b), and whether it is past —
@@ -82,4 +87,27 @@ export function followsGroups(trip: Trip, today: string): boolean {
  */
 export function canJudgeUnused(trip: Trip | undefined): boolean {
   return trip?.status === TRIP_STATUS_ACTIVE || trip?.status === TRIP_STATUS_ARCHIVED
+}
+
+/** The one step a trip's lifecycle offers next, or `null` at the end of it. */
+export type LifecycleStep = 'start' | 'archive' | null
+
+/**
+ * FR-9.1/FR-9.2: `planning` can be started, `active` can be archived, and an
+ * archived trip is done. Both M2's swipe and M4's overflow ask here — the
+ * rule used to be written into each of them, so a screen could offer a step
+ * the other did not.
+ *
+ * A trip that has not loaded offers nothing rather than the first step: an
+ * absent trip is not a planning one.
+ */
+export function nextLifecycleStep(trip: Pick<Trip, 'status'> | undefined | null): LifecycleStep {
+  if (trip?.status === TRIP_STATUS_PLANNING) return 'start'
+  if (trip?.status === TRIP_STATUS_ACTIVE) return 'archive'
+  return null
+}
+
+/** Whether the trip is the one being packed right now — four screens ask. */
+export function isActive(trip: Pick<Trip, 'status'> | undefined | null): boolean {
+  return trip?.status === TRIP_STATUS_ACTIVE
 }
