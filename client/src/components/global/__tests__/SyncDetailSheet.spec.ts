@@ -212,7 +212,7 @@ describe('SyncDetailSheet — Local Mode (FR-19.6, NFR-4.11)', () => {
   })
 })
 
-describe('SyncDetailSheet — a new version waiting (NFR-4.13, ADR-019)', () => {
+describe('SyncDetailSheet — a new version waiting (NFR-4.13, ADR-019/044)', () => {
   it('announces the waiting version and when it takes over — never a forced reload', () => {
     const wrapper = mountSheet({ updateReady: true })
 
@@ -232,6 +232,28 @@ describe('SyncDetailSheet — a new version waiting (NFR-4.13, ADR-019)', () => 
     // The positive signal the absence leans on: the same sheet rendered.
     expect(text(wrapper, 'sync-detail-title')).toBe('Synced')
     expect(has(wrapper, 'sync-detail-update')).toBe(false)
+    // FR-19.7: and the action goes with the sentence, never on its own.
+    expect(has(wrapper, 'sync-detail-update-apply')).toBe(false)
+  })
+
+  it('FR-19.7: offers the action beside the sentence and emits on the press', async () => {
+    const wrapper = mountSheet({ updateReady: true })
+
+    expect(text(wrapper, 'sync-detail-update-apply')).toBe('Update now')
+    await wrapper.get('[data-testid="sync-detail-update-apply"]').trigger('click')
+
+    expect(wrapper.emitted('applyUpdate')).toHaveLength(1)
+  })
+
+  it('FR-19.7: a press in flight refuses a second one and says so', async () => {
+    const wrapper = mountSheet({ updateReady: true, updateApplying: true })
+    const button = wrapper.get('[data-testid="sync-detail-update-apply"]')
+
+    expect(text(wrapper, 'sync-detail-update-apply')).toBe('Updating…')
+    expect(button.attributes('disabled')).toBeDefined()
+    await button.trigger('click')
+
+    expect(wrapper.emitted('applyUpdate')).toBeUndefined()
   })
 })
 

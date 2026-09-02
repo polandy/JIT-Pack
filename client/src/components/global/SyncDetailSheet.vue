@@ -25,6 +25,7 @@ import {
   flashOutline,
   gitMergeOutline,
   listOutline,
+  refreshOutline,
   sparklesOutline,
   warningOutline,
 } from 'ionicons/icons'
@@ -82,18 +83,28 @@ const props = withDefaults(
     hasBackupContent: boolean
     /**
      * A newer build is installed and waiting (NFR-4.13). It takes over on the
-     * next launch — the sheet announces, it never reloads (ADR-019).
+     * next launch (ADR-019) — and, since FR-19.7, on a press of the action
+     * below, which is the only thing that shortens the wait (ADR-044).
      */
     updateReady: boolean
+    /** True from the press until the page is replaced — no second press. */
+    updateApplying?: boolean
     /** Injected clock — the backup age is read against this, never Date.now(). */
     now: number
   }>(),
   // Durability is assumed until the outbox reports it lost — a device that
   // never had a queue to keep has not failed to keep one.
-  { queueDurable: true, parkedCount: 0, conflictCount: 0, live: false },
+  { queueDurable: true, parkedCount: 0, conflictCount: 0, live: false, updateApplying: false },
 )
 
-const emit = defineEmits<{ close: []; conflicts: []; masterConflicts: []; backup: [] }>()
+const emit = defineEmits<{
+  close: []
+  conflicts: []
+  masterConflicts: []
+  backup: []
+  /** FR-19.7: apply the waiting version now. */
+  applyUpdate: []
+}>()
 
 const isLocal = computed(() => props.mode === 'local')
 
@@ -203,10 +214,22 @@ const backupAge = computed(() => {
     </p>
 
     <!-- NFR-4.13: a waiting update concerns every mode — the bundle, not the data. -->
-    <p v-if="updateReady" class="update" data-testid="sync-detail-update">
-      <IonIcon :icon="sparklesOutline" />
-      <span>{{ t('sync.detail.updateReady') }}</span>
-    </p>
+    <template v-if="updateReady">
+      <p class="update" data-testid="sync-detail-update">
+        <IonIcon :icon="sparklesOutline" />
+        <span>{{ t('sync.detail.updateReady') }}</span>
+      </p>
+      <!-- FR-19.7: the sentence stopped being the whole answer. -->
+      <button
+        class="action primary"
+        data-testid="sync-detail-update-apply"
+        :disabled="updateApplying"
+        @click="emit('applyUpdate')"
+      >
+        <IonIcon :icon="refreshOutline" />
+        <span>{{ updateApplying ? t('update.applying') : t('update.applyLong') }}</span>
+      </button>
+    </template>
 
     <!--
       Server Mode: one conflict log per sync partition (NFR-4.2a). The
@@ -421,6 +444,11 @@ const backupAge = computed(() => {
 .action.primary {
   background: var(--jp-action);
   color: var(--ct-base);
+}
+
+.action:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .action ion-icon {
