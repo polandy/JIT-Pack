@@ -243,6 +243,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An announcement with no verb (2026-09-02)](#an-announcement-with-no-verb-2026-09-02) — a waiting version can be applied on a press (FR-19.7, ADR-044). Why the dismissal is deliberately *not* stored, why the press-and-`controllerchange` pair is the only shape that is assertable, and why two e2e cases are needed where one looks like enough.
 - [A guard on a funnel that every launch passes through (2026-09-02)](#a-guard-on-a-funnel-that-every-launch-passes-through-2026-09-02) — leaving Local Mode from M17 (FR-19.8, ADR-045). Why the „last write" stamp must not fire on the startup load, why the guard compares two stamps rather than asking whether a backup exists, and the fixture that puts a device back into the mode it just left.
 - [The screen was right and the disk was not (2026-09-02)](#the-screen-was-right-and-the-disk-was-not-2026-09-02) — a deleted trip left its rows on the device. Why the store dropping its own buckets is what hid it, why the fix cannot live in the store, and the reading that turns one defect into four.
+- [A trap the tests had already covered (2026-09-02)](#a-trap-the-tests-had-already-covered-2026-09-02) — thirteen action call sites built their optimistic change by hand instead of through the builder written to make that impossible. Why the review's premise was half wrong, what the measurement changed about the fix's justification, and why a lint rule is the right shape for a rule nobody can be asked to remember.
 
 
 ## Current state
@@ -11288,3 +11289,49 @@ specs' hand-written `enqueueAndDrain`, whose own comment had predicted this —
 it routed by *partition*, and a group painting rows of both partitions had just
 arrived.
 
+
+## A trap the tests had already covered (2026-09-02)
+
+Item C-2 of the design review: `sync/optimistic.ts` exists so that an optimistic
+change cannot be built from a mutation's fields alone. `applyChange` **replaces**
+the row it is handed, so fields without their row blank every column the mutation
+did not mention — and in Local Mode no pull ever heals it. That is what
+`optimisticUpdate` is for: it performs the merge itself, so a caller has no way
+to pass fields alone.
+
+Thirteen call sites in `groupRefresh.ts` and `tripLifecycle.ts` used
+`localChange` — the escape hatch written for rows that belong to no mutation at
+all — and two of them re-implemented `optimisticUpdate`'s merge by hand. The
+item's reading was that nothing guarded them.
+
+**That reading was half wrong, and the measurement is the reason to record
+this.** Both hand-rolled merges were *correct*, and both were *covered*: writing
+the fields alone at `updateTrip` turns four tests red, and at the group-refresh
+update site one. Neither was a latent defect waiting to be found; the review had
+inferred exposure from the shape of the code rather than from a mutation.
+
+What survives the correction is the other half. The eleven remaining sites are
+inserts and deletes, where fields alone *are* the whole row and nothing is being
+merged — so they are correct today for a reason that has nothing to do with the
+person who wrote them having thought about it. The next site added beside them
+would be written the same way, and it would be an update.
+
+So the fix is not "repair thirteen bugs" — there were none — but "make the shape
+that produces the bug unreachable". All thirteen now build their change from the
+mutation, and `no-restricted-imports` confines `localChange`/`localTombstone` to
+the two places that genuinely have no mutation to build from: `cascade.ts`, which
+paints the children a delete takes with it, and the orchestrator's image sites,
+whose bytes travel outside the sync envelope (ADR-002). A rule an author has to
+remember became one they cannot get past, which is the only version of it that
+survives the next twenty call sites.
+
+The exemptions are worth naming as exemptions rather than as an allowlist that
+happens to have two entries: both are the same case — a store write with no
+mutation behind it — and a third one appearing is the signal to ask whether the
+envelope is still the right boundary, not to add a line.
+
+**A note on the guard's own proof.** A lint rule is trivial to write and easy to
+write inert: `oxlint . --fix` is what the package script runs, and a rule the CLI
+prints but does not fail on would have looked identical in every screenshot. It
+was proved by re-introducing the exact import in `groupRefresh.ts` and reading
+the *exit code* — 1 with the bypass, 0 without — rather than the output.

@@ -10,6 +10,49 @@
   "rules": {
     // Mock types are already checked by vue-tsc from assignment/usage
     // context; annotating every vi.fn() adds noise without safety.
-    "vitest/require-mock-type-parameters": "off"
-  }
+    "vitest/require-mock-type-parameters": "off",
+    // A write shows its effect by handing the stores the row the server will
+    // later send back, and `applyChange` *replaces* that row — so a change
+    // built from a mutation's fields alone blanks every column the mutation
+    // did not mention, until a pull heals it. In Local Mode no pull ever
+    // comes. `optimisticInsert/Update/Delete` take the mutation itself and
+    // cannot be handed fields without their row, which is the whole reason
+    // they exist; `localChange`/`localTombstone` still can, so they are
+    // confined to the two places that have no mutation to build from (see
+    // the overrides below). Thirteen action call sites had drifted back to
+    // them before this rule existed.
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@/sync/optimistic",
+            "importNames": ["localChange", "localTombstone"],
+            "message": "Build the optimistic change from its mutation: optimisticInsert / optimisticUpdate / optimisticDelete."
+          },
+          {
+            "name": "./optimistic",
+            "importNames": ["localChange", "localTombstone"],
+            "message": "Build the optimistic change from its mutation: optimisticInsert / optimisticUpdate / optimisticDelete."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      // The two exemptions, each because there is no mutation to build from.
+      // `cascade.ts` paints the *children* a delete takes with it — rows the
+      // one mutation never names. The orchestrator's image sites carry a hash
+      // whose bytes travel outside the sync envelope (ADR-002), so in Local
+      // Mode nothing else would ever reach the store.
+      "files": ["src/sync/cascade.ts", "src/composables/useSyncOrchestrator.ts"],
+      "rules": { "no-restricted-imports": "off" }
+    },
+    {
+      // A spec may exercise the helpers it is the spec of.
+      "files": ["src/**/__tests__/**"],
+      "rules": { "no-restricted-imports": "off" }
+    }
+  ]
 }
