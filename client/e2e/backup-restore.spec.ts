@@ -543,6 +543,75 @@ test.describe('Local Mode backup and restore @local @m18', () => {
 
     await fresh.close()
   })
+
+  /*
+   * E2E-M18-12 (FR-25.11j, NFR-4.11): a backup gives back *where a row was
+   * bought from*.
+   *
+   * Buying a BUY_BEFORE row moves it to the packing list (FR-3.3), and the
+   * record of which list it left is the only way M6's reveal finds it again.
+   * The portable format carried the mode and the count and not that record,
+   * so a restore put the row back on the packing list with the shopping side
+   * knowing nothing about it — the irreversible state the FR exists to
+   * prevent, reached through the one door Local Mode has.
+   *
+   * The positive signal is M6's bought bar on the restored device: before
+   * the fix the row is neither on the shopping list (its mode is `pack`) nor
+   * under the reveal (nothing says it was bought), so the bar never renders.
+   */
+  test('E2E-M18-12: a restored row still says which shopping list it was bought from', async ({
+    page,
+    browser,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await visible(page).getByTestId('m4-nav-shopping').click()
+    const m6 = () => visible(page).getByTestId('m6-page')
+    await m6().getByTestId('quick-add-open').click()
+    await m6().getByTestId('quick-add-input').locator('input').fill('Kaffee')
+    await m6().getByTestId('quick-add-confirm').click()
+    await m6().getByTestId('quick-add-close').click()
+    await m6().getByTestId('m6-row').filter({ hasText: 'Kaffee' }).locator('ion-checkbox').click()
+    await expect(m6().getByTestId('m6-bought-bar')).toHaveText('Show 1 bought')
+
+    await page.getByTestId('sync-indicator').click()
+    const sheet = page.getByTestId('sync-detail-sheet')
+    await expect(sheet).toBeVisible()
+    const downloadPromise = page.waitForEvent('download')
+    await sheet.getByTestId('sync-detail-backup').click()
+    const backup = await readFile(await (await downloadPromise).path(), 'utf8')
+
+    // --- a device that has never seen this trip -------------------------
+    const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
+    const restored = await fresh.newPage()
+    await seed(restored, { mode: 'local' })
+    await restored.goto('/tabs/trips')
+    await expect(restored.getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
+
+    await restored.getByTestId('m2-portable-import').click()
+    await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
+    await restored.getByTestId('portable-preview').click()
+    // One trip and no template is one document, so the file opens M18's merge
+    // preview rather than the restore list (E2E-M18-11), and Import lands on
+    // the trip itself.
+    await restored.getByTestId('portable-commit').click()
+
+    await expectTripOpen(restored, TRIP.name)
+    // The purchase moved the row to the packing list, and there it stays.
+    await expect(visible(restored).getByTestId('m4-row-Kaffee')).toBeVisible()
+
+    // And the shopping side still knows it was bought from here: not an open
+    // row, but one under the reveal, naming where it went.
+    await visible(restored).getByTestId('m4-nav-shopping').click()
+    const m6r = () => visible(restored).getByTestId('m6-page')
+    await expect(m6r().getByTestId('m6-bought-bar')).toHaveText('Show 1 bought')
+    await expect(m6r().getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)
+    await m6r().getByTestId('m6-bought-bar').click()
+    const bought = m6r().getByTestId('m6-bought-row')
+    await expect(bought).toContainText('Kaffee')
+    await expect(bought.getByTestId('m6-bought-note')).toHaveText('on the packing list')
+
+    await fresh.close()
+  })
 })
 
 /**

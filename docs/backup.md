@@ -29,7 +29,9 @@ Back it up from inside the app:
    **persistent**. If it has not, the browser is allowed to delete the data when space
    runs short, and that warning is the reason this backup matters.
 3. Tap **Back up now**. You get one YAML file — `jitpack-backup-YYYY-MM-DD.yaml` —
-   containing every trip and every template on the device, packing progress included.
+   containing every trip and every template on the device, packing progress included —
+   what is packed, and which shopping list a bought item came from, so the shopping
+   screen's *bought* reveal still finds it after a restore.
 
 Restore it through the **document icon** on the Trips screen (portable import): pick the
 backup file, and the app lists the documents it holds and imports them together. Items are

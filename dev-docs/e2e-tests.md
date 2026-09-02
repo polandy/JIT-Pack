@@ -77,7 +77,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | Avatar pan/zoom crop and upload (FR-17.13) | E2E-M17-12 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | Profile under an OIDC session: picture editable, name not (FR-17.13, revised 2026-08-29) | E2E-M17-05, E2E-M17-05b | `server` | [`server/settings-profile.spec.ts`](../client/e2e/server/settings-profile.spec.ts) |
-| M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
+| M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11, E2E-M18-12 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M18 portable import (merge preview) | E2E-M18-01, E2E-M18-02, E2E-M18-03, E2E-M18-04 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b, and the FR-27.12 peek since 2026-08-30), E2E-M14-05, E2E-M14-06 (both the archive that skips and the empty state, since 2026-08-30), **E2E-FLOW-04** (the loop closing, since 2026-08-31) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M16 series & destination profile | E2E-M16-01, E2E-M16-02, E2E-M16-03, E2E-M16-04 + a G-9 back case | `local` | [`series.spec.ts`](../client/e2e/series.spec.ts) |
@@ -1995,6 +1995,27 @@ Two things it settled:
   half could never match, and the English half happened to appear in one
   catalogue string and not the other. It failed for the right reason and the
   alternation was replaced by the exact text.
+
+**E2E-M18-12 — the record the backup did not carry, added 2026-09-02.** FR-25.11j's
+own text had recorded the gap since 2026-08-25: the portable format wrote the
+mode and the count of a row and not `bought_from`, so a Local Mode backup and
+restore — the one door NFR-4.11 gives that mode — put a bought row back on the
+packing list with the shopping side knowing nothing about it. The case buys
+the half a user sees, M6's bought bar on the restored device; the format and
+the importer are unit-covered in `portable.spec.ts` and `portableImport.spec.ts`.
+
+Two things it settled:
+
+- **Where a row was bought is progress, not composition.** It travels with
+  `packed_count` under `includeProgress` and is dropped with it: a trip shared
+  without progress has nothing bought in it, and a row that comes back on the
+  list it was bought from is the right reading of a file that says nothing.
+- **A device with one trip and no template backs itself up as one document**,
+  so the first draft waited on the restore list's button while the screen had
+  opened the merge preview — the branch E2E-M18-11 already names, walked into
+  from the other side. The fixture is kept that way rather than padded with a
+  template, because the preview's *Import* lands on the trip itself, which is
+  where the assertions are.
 
 ## E2E-FLOW-02 — delegation, and the control it turned out to need (2026-08-25)
 

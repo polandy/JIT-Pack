@@ -22,6 +22,7 @@ import type {
   GeneratedPosition,
   ItemMode,
   MasterItem,
+  ShoppingMode,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -114,6 +115,13 @@ export interface PortableItem {
   traveler: string | null
   container: string | null
   packed_count: number | null
+  /**
+   * FR-25.11j: the shopping list this row was bought from, in `mode`'s own
+   * vocabulary — the record that lets M6's reveal find a row whose purchase
+   * moved it to the packing list. Progress, like `packed_count`: written only
+   * with it, and absent from every file written before the field existed.
+   */
+  bought_from: ShoppingMode | null
 }
 
 /**
@@ -566,6 +574,7 @@ export function serializeTrip(args: {
           : {}),
         ...(item.container_id ? { container: containerNames.get(item.container_id) } : {}),
         ...(args.includeProgress ? { packed_count: item.packed_count } : {}),
+        ...(args.includeProgress && item.bought_from ? { bought_from: item.bought_from } : {}),
         ...(item.late_packer ? { late_packer: true } : {}),
       }
     })
@@ -669,6 +678,11 @@ function toTripStatus(v: unknown): TripStatus | null {
   return v === 'planning' || v === 'active' || v === 'archived' ? v : null
 }
 
+/** A value outside the two shopping lists is not a list a row can have left. */
+function toShoppingMode(raw: unknown): ShoppingMode | null {
+  return raw === 'buy_before' || raw === 'buy_local' ? raw : null
+}
+
 function toItem(entry: unknown): PortableItem | null {
   if (typeof entry !== 'object' || entry === null) return null
   const o = entry as Record<string, unknown>
@@ -699,6 +713,7 @@ function toItem(entry: unknown): PortableItem | null {
     traveler: str(o['traveler']),
     container: str(o['container']),
     packed_count: typeof o['packed_count'] === 'number' ? o['packed_count'] : null,
+    bought_from: toShoppingMode(o['bought_from']),
     // Strings only, for the reason the task list is: a number here would read
     // back as a tag named "1" and claim the user filed it that way.
     tags: Array.isArray(o['tags'])
