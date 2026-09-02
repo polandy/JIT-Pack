@@ -241,6 +241,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The second container was the routing table (2026-09-02)](#the-second-container-was-the-routing-table-2026-09-02) — one image now serves the client and the API. Why the runtime web root beat `go:embed` (a fresh clone must still compile), why a green `docker build` proved nothing about the bundle, and the two decisions the Go file server takes differently from `try_files`.
 - [A listener that could not have been there yet (2026-09-02)](#a-listener-that-could-not-have-been-there-yet-2026-09-02) — the `e2e-server` job read as flaky on a Vue patch bump. Two defects met under one scheduling: a fixture account invented to *prevent* cross-file reach was borrowed by the next case that needed a spare, and App.vue attached its session-end listener after two awaits while a child's `onMounted` had already sent the request that fires it. Why the second one is a design rule, not a test fix.
 - [An announcement with no verb (2026-09-02)](#an-announcement-with-no-verb-2026-09-02) — a waiting version can be applied on a press (FR-19.7, ADR-044). Why the dismissal is deliberately *not* stored, why the press-and-`controllerchange` pair is the only shape that is assertable, and why two e2e cases are needed where one looks like enough.
+- [A guard on a funnel that every launch passes through (2026-09-02)](#a-guard-on-a-funnel-that-every-launch-passes-through-2026-09-02) — leaving Local Mode from M17 (FR-19.8, ADR-045). Why the „last write" stamp must not fire on the startup load, why the guard compares two stamps rather than asking whether a backup exists, and the fixture that puts a device back into the mode it just left.
 
 
 ## Current state
@@ -11182,3 +11183,50 @@ from the other side, an absence checked early rather than a presence waited
 for. PWA-04's closing line, one day older, had the same shape. Both cases now
 end on the positive signals (the reload marker, the controller) and say what
 they do not assert and why.
+
+## A guard on a funnel that every launch passes through (2026-09-02)
+
+**What this is.** E2E-FLOW-07 (2026-08-31) left one owner decision open: the move
+off Local Mode had no first step in the app, so the migration was
+device-to-device. Ruled and built as FR-19.8 (ADR-045): a card on M17 with the
+three steps — back up, point at a server, restore — the switch guarded by the
+backup being newer than the last Local Mode write, and a bar under the app bar
+after the reload that carries the third step until the restore commits or the
+person says they want a fresh start. The options and their weights are in the
+ADR; what follows is what the diff cannot say.
+
+**The guard compares two stamps, and neither existed before.** The obvious
+guard is „a backup exists" (`jitpack_last_export` is already written), and it
+strands data by design: a backup from last week covers nothing typed since. The
+owner ruled the guard as *newer than the last change*, which needs a second
+stamp — `jitpack_last_local_write` — and a place to write it. That place is
+FR-19.2's funnel in the orchestrator, the one path every Local Mode write takes,
+which is what makes the stamp trustworthy. **The trap is that the startup load
+takes the same path**: FR-19.2 routes `local.load()` through `applyChanges` on
+purpose, so a stamp written unconditionally in the funnel fires on every launch,
+and the switch would be closed on every device that had ever been restarted since
+its backup. The stamp is gated on `localHydrated`, and the unit case that pins
+it (`localMode.spec.ts`) seeds a row, connects, and asserts the callback was
+*not* called — a row already on the device is not a change the backup could miss.
+Anyone adding a second reader of „did the device change" to that funnel meets the
+same trap.
+
+**The switch is a reload, the fixture is a re-seed.** `chooseMode` reloads the
+app because the orchestrator is built once per start, and the move inherits
+that. The e2e `seed()` helper writes `jitpack_mode` from an `addInitScript` on
+*every* navigation — the right shape for every other case, which wants a device
+that stays in one mode — and on this case it puts the device back into Local
+Mode on the very reload the switch performs. `single/leave-local-mode.spec.ts`
+therefore carries its own init script that seeds only where nothing is set.
+The general form: a fixture that *asserts* a mode cannot drive a case whose
+subject is *changing* it.
+
+**A restore is the only thing that clears the flag, in Server Mode only.** The
+pending flag is durable because a reload must not forget the third step, and it
+clears in `commitPortableRestore` — but only when the orchestrator is not local:
+a device that restores a file in Local Mode has not moved, and clearing there
+would let a stale flag from an earlier switch vanish on the wrong device. The
+Local Mode data itself is left in place (owner): Server Mode never opens the
+IndexedDB store, so it cannot shadow anything, and deleting it would make the
+one file the person downloaded the only copy while the restore is still owed.
+

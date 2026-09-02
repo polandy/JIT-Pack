@@ -14,6 +14,7 @@ import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
+import { loadMigrationPending, switchToServer } from '@/mode'
 
 let fetchMock: ReturnType<typeof vi.fn>
 let wsMock: ReturnType<typeof vi.fn>
@@ -155,5 +156,40 @@ describe('Local Mode', () => {
     orch.deleteTemplateItemTask(taskId)
     expect(master.getTemplateItemTasks(positionId)).toEqual([])
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('stamps a write only after hydration — the startup load is not a change (FR-19.8)', async () => {
+    const persistence = new IndexedDBPersistence()
+    await persistence.save([
+      { seq: 0, table: 'items', id: 'i1', deleted: false, row: { name: 'Socken' } },
+    ])
+    const onLocalWrite = vi.fn()
+    const orch = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: persistence,
+      onLocalWrite,
+    })
+
+    await orch.connect()
+    expect(useMasterStore().itemList).toHaveLength(1)
+    // The positive signal that the funnel ran: the row is in the store. And
+    // the stamp did not move for it.
+    expect(onLocalWrite).not.toHaveBeenCalled()
+
+    orch.quickAddItem('t1', 'Zahnbürste', {}, false)
+    expect(onLocalWrite).toHaveBeenCalledTimes(1)
+  })
+
+  it('a Local Mode restore does not finish a move that never started (FR-19.8)', () => {
+    // The flag can only be set by the switch, and a device still in Local
+    // Mode has not switched — a restore here is an ordinary restore.
+    switchToServer('http://localhost')
+    localStorage.setItem('jitpack_mode', 'local')
+    const orch = newLocalOrch()
+
+    orch.commitPortableRestore([])
+
+    expect(loadMigrationPending()).toBe(true)
   })
 })

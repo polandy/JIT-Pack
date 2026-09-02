@@ -86,7 +86,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
-import { loadTokens } from '@/auth/tokens'
+import { hasCollaborativeSession } from '@/mode'
 import { presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -968,7 +968,7 @@ function onReleaseClaim(item: TripItem) {
  * there is nobody to take a row from and the surface is absent rather
  * than shown inert (G-8).
  */
-const canTakeOver = localStorage.getItem('jitpack_mode') === 'server' && !!loadTokens()
+const canTakeOver = hasCollaborativeSession()
 
 async function openTakeoverMenu(item: TripItem) {
   rowMenuActive = true

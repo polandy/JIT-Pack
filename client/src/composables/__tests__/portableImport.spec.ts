@@ -14,6 +14,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { joinDocuments, parsePortable, parsePortableAll } from '@/domain/portable'
 import { buildBackup } from '@/local/backup'
 import { installHarness } from '@/__tests__/harness'
+import { loadMigrationPending, switchToServer } from '@/mode'
 
 let harness: ReturnType<typeof installHarness>
 
@@ -738,5 +739,17 @@ describe('backup round trip — status, marks and tags survive (NFR-4.11, ADR-02
     expect(item!.icon).toBe('🥾')
     expect(readerMaster.getItemTags(item!.id).map((t) => t.name)).toEqual(['Schuhe', 'Sommer'])
     expect(readerTrips.getItems(trip.id)[0]!.source_item_id).toBe(item!.id)
+  })
+})
+
+describe('commitPortableRestore — the move off Local Mode (FR-19.8)', () => {
+  it('clears the migration flag once a backup is restored onto a server', () => {
+    switchToServer('http://localhost')
+    expect(loadMigrationPending()).toBe(true)
+
+    const orch = newOrch()
+    orch.commitPortableRestore([])
+
+    expect(loadMigrationPending()).toBe(false)
   })
 })

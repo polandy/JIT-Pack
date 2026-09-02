@@ -378,8 +378,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    packed none of it, so the median was taken over whatever had arrived. **FLOW-07**
    walked the move off Local Mode and found its first step missing: `jitpack_mode` is written
    only by M19's first-launch choice, so the migration is device-to-device (file plus a device
-   already in server mode) — the case walks that, and whether M17 grows the move is the one
-   owner decision the FLOW pass has raised. Under it sat a defect: the restore drained the
+   already in server mode) — the case walks that. **The owner decision it raised is ruled and
+   built (2026-09-02, FR-19.8, ADR-045):** M17 carries the guarded three-step move on the same
+   device — backup, switch, restore — and the switch stays closed while the last Local Mode write
+   is newer than the last backup (E2E-M17-14/14b/14c; log: *„A guard on a funnel that every
+   launch passes through"*). Under it sat a defect: the restore drained the
    **master** partition alone, so every packing list in the file stayed queued on the importing
    device, whose own screen looked like a migration that had worked. **The FLOW-* pass started 2026-08-31**, and its first two
    sorted opposite ways: **FLOW-03 was already covered** by E2E-M6-17, whose second half is that
