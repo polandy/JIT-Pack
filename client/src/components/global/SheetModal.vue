@@ -1,23 +1,41 @@
 <script setup lang="ts">
 /**
- * The app's bottom-sheet chrome, once (§3.25 consistency directive): the modal
- * variables, the scroll box and the grab handle that M5, M8 and the filter
- * sheet all present.
+ * The app's bottom-sheet chrome, once (§3.25 consistency directive): the
+ * modal variables, the scroll box and the grab handle every sheet presents.
  *
- * It exists because the peek sheet (FR-27.12) would otherwise have been the
- * *fifth* copy of the same twenty lines — M4's filter sheet, M8's position
- * sheet, M11's container sheet and M7 each carry their own. Those four are
- * unchanged for now; moving them is mechanical and belongs in its own change,
- * not in the one that introduces the sheet they should share.
+ * The body is a plain box rather than an `IonContent` on purpose: inside an
+ * auto-height modal an `IonContent` has no intrinsic height to give, so the
+ * sheet sizes itself to nothing and swallows the taps meant for its own
+ * controls — M7's kind chooser paid for that once, and its comment is why
+ * this component keeps the box.
+ *
+ * **M4's filter sheet is deliberately not one of these** and keeps its own
+ * chrome: it is 86 % of the viewport rather than as tall as its content, so
+ * its body has to scroll, and its handle is a different width and shade.
+ * Folding it in is a design decision with a rendered cost (measured: 4 217
+ * pixels, the whole panel two pixels lower), not the mechanical move the
+ * other four were — see U-3 in the 2026-09-02 review.
  */
 import { IonModal } from '@ionic/vue'
 
-defineProps<{ isOpen: boolean }>()
+withDefaults(
+  defineProps<{
+    isOpen: boolean
+    /** Put on the modal, for a case that has to address this sheet. */
+    testid?: string
+  }>(),
+  { testid: undefined },
+)
 const emit = defineEmits<{ dismiss: [] }>()
 </script>
 
 <template>
-  <IonModal :is-open="isOpen" class="sheet-modal" @did-dismiss="emit('dismiss')">
+  <IonModal
+    :is-open="isOpen"
+    class="sheet-modal"
+    :data-testid="testid"
+    @did-dismiss="emit('dismiss')"
+  >
     <div class="sheet-box">
       <div class="grab" />
       <slot />

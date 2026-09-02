@@ -21,7 +21,6 @@ import {
   IonFab,
   IonFabButton,
   IonInput,
-  IonModal,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -830,21 +829,14 @@ const mergeLines = computed(() =>
         </IonFab>
 
         <!-- The M5-pattern sheet (§3.25 consistency directive). -->
-        <IonModal
-          :is-open="openPositionId !== null"
-          class="sheet-modal"
-          @did-dismiss="openPositionId = null"
-        >
-          <div class="sheet-box">
-            <div class="grab" />
-            <PositionSheet
-              v-if="openPositionId"
-              :template-id="props.templateId"
-              :position-id="openPositionId"
-              @close="openPositionId = null"
-            />
-          </div>
-        </IonModal>
+        <SheetModal :is-open="openPositionId !== null" @dismiss="openPositionId = null">
+          <PositionSheet
+            v-if="openPositionId"
+            :template-id="props.templateId"
+            :position-id="openPositionId"
+            @close="openPositionId = null"
+          />
+        </SheetModal>
 
         <!-- FR-27.12: look into an included group without leaving the editor -->
         <SheetModal :is-open="peekTemplateId !== null" @dismiss="peekTemplateId = null">
@@ -1262,29 +1254,6 @@ const mergeLines = computed(() =>
 .res-open {
   margin: 8px 0 0;
   color: var(--jp-action);
-}
-
-/* --- the position sheet, in the app's sheet grammar --- */
-.sheet-modal {
-  --height: auto;
-  --border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
-  --background: var(--ct-mantle);
-  --box-shadow: var(--jp-shadow-sheet);
-  --backdrop-opacity: 0.62;
-  align-items: flex-end;
-}
-
-.sheet-box {
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
-.grab {
-  width: 36px;
-  height: 4px;
-  margin: 10px auto 4px;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface1);
 }
 
 /* FR-28.8: the mark sits where the prototype always drew it — left of the

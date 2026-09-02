@@ -24,7 +24,6 @@ import {
   IonIcon,
   IonFab,
   IonFabButton,
-  IonModal,
   IonRefresher,
   IonRefresherContent,
   IonSegment,
@@ -52,6 +51,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { scopeForNewTemplate } from '@/domain/templates'
 import type { Template, TemplateKind } from '@/types/domain'
+import SheetModal from '@/components/global/SheetModal.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
@@ -459,17 +459,8 @@ async function handleRefresh(event: CustomEvent) {
       <!-- FR-27.6: the scope is declared at creation, so the FAB asks rather
            than defaulting — with one line each, because "Gruppe" alone does
            not say what it is for. -->
-      <IonModal
-        :is-open="kindChooserOpen"
-        class="sheet-modal"
-        data-testid="m7-kind-chooser"
-        @did-dismiss="resetChooser"
-      >
-        <!-- A plain box, not an IonContent: inside an auto-height modal
-             IonContent has no intrinsic height to give, so the sheet sized
-             itself to nothing and swallowed the taps meant for the cards. -->
+      <SheetModal :is-open="kindChooserOpen" testid="m7-kind-chooser" @dismiss="resetChooser">
         <div class="sheet">
-          <div class="grab" />
           <header class="head">
             <h2>
               {{
@@ -544,7 +535,7 @@ async function handleRefresh(event: CustomEvent) {
             </IonButton>
           </div>
         </div>
-      </IonModal>
+      </SheetModal>
     </IonContent>
   </IonPage>
 </template>
@@ -629,25 +620,8 @@ ion-segment {
 }
 
 /* --- The create chooser, in the app's sheet grammar (see FilterSheet) --- */
-.sheet-modal {
-  --height: auto;
-  --border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
-  --background: var(--ct-mantle);
-  --box-shadow: var(--jp-shadow-sheet);
-  --backdrop-opacity: 0.62;
-  align-items: flex-end;
-}
-
 .sheet {
   padding: 0 16px 24px;
-}
-
-.grab {
-  width: 36px;
-  height: 4px;
-  margin: 10px auto 4px;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface1);
 }
 
 .head h2 {
