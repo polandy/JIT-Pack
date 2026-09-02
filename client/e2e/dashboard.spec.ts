@@ -240,4 +240,42 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(visible(page).getByTestId('dashboard-preview-Zelt')).toBeVisible()
     await expect(visible(page).getByTestId('dashboard-delegated')).toHaveCount(0)
   })
+
+  /**
+   * E2E-M1-08 (FR-6.1): the lookahead — a trip that is planned but not yet
+   * started is on the dashboard, and it is on it *as* something planned.
+   *
+   * Both halves matter and neither is enough alone. Asserting the section
+   * only would pass on a screen that had simply stopped filtering by status
+   * and listed the trip twice; asserting the absence of the active card only
+   * would pass on the screen this case was written against, which showed the
+   * trip nowhere at all. Starting the trip at the end is the positive signal
+   * behind that absence: the same trip changes sides, so the section is
+   * keyed on the status rather than on being a leftover.
+   */
+  test('E2E-M1-08: a planned trip is listed as planned, and starting it moves it', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Elba', startDate: '2027-05-01' })
+    await page.goto('/tabs/dashboard')
+
+    const planned = visible(page).getByTestId('dashboard-planned')
+    await expect(planned).toContainText('Planned (1)')
+    // The one thing this card says about the trip besides its name: when it
+    // leaves, through the app's single temporal formatter.
+    await expect(planned.getByTestId('dashboard-planned-Elba')).toContainText('from')
+    // Not also a trip card, and not the empty state — a planned trip is
+    // neither running nor nothing.
+    await expect(visible(page).getByTestId('dashboard-trip-Elba')).toHaveCount(0)
+    await expect(visible(page).getByTestId('dashboard-empty')).toHaveCount(0)
+
+    // The row leads to the trip, the way an active card does.
+    await planned.getByTestId('dashboard-planned-Elba').click()
+    await expectTripOpen(page, 'Elba')
+
+    await tripAction(page, 'start')
+    await page.goto('/tabs/dashboard')
+    await expect(visible(page).getByTestId('dashboard-trip-Elba')).toBeVisible()
+    await expect(visible(page).getByTestId('dashboard-planned')).toHaveCount(0)
+  })
 })
