@@ -42,6 +42,7 @@ import { TRIP_FILTER_QUERY, filterForStatus } from '@/views/trips/tripFilter'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { PATH, templatePath, tripPath } from '@/router/paths'
 
 const router = useRouter()
 const ionRouter = useIonRouter()
@@ -102,7 +103,6 @@ function alreadyHere(candidate: PortableDocument | null | undefined): boolean {
 }
 
 /** How long a confirmation stays up, as everywhere else on the app. */
-const TOAST_MS = 3000
 const matches = computed(() => (doc.value ? matchPortableItems(doc.value, master.itemList) : []))
 
 /** Near-duplicates offer merge/keep-separate; exact matches default to merge. */
@@ -144,7 +144,6 @@ function commitRestore() {
   if (untouched > 0) {
     void presentToast({
       message: t('import.portable.restoreAlreadyHere', { n: untouched }),
-      duration: TOAST_MS,
     })
   }
   restore.value = null
@@ -152,7 +151,7 @@ function commitRestore() {
   const status = firstTrip ? tripStore.getTrip(firstTrip.id)?.status : undefined
   // A tab root is a root navigation — see the note in `ImportPage.vue`.
   ionRouter.navigate(
-    { path: '/tabs/trips', query: { [TRIP_FILTER_QUERY]: filterForStatus(status) } },
+    { path: PATH.trips, query: { [TRIP_FILTER_QUERY]: filterForStatus(status) } },
     'root',
     'replace',
   )
@@ -184,9 +183,9 @@ function commit() {
   }
   const result = orchestrator.commitPortableImport(doc.value, decisions)
   if (result.outcome === 'duplicate') {
-    void presentToast({ message: t('import.portable.alreadyHereHint'), duration: TOAST_MS })
+    void presentToast({ message: t('import.portable.alreadyHereHint') })
   }
-  router.replace(result.kind === 'template' ? `/templates/${result.id}` : `/trips/${result.id}`)
+  router.replace(result.kind === 'template' ? templatePath(result.id) : tripPath(result.id))
 }
 </script>
 

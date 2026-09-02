@@ -12,6 +12,7 @@ import {
 import { fillIonic } from './helpers/ionic'
 import type { Locator, Page } from '@playwright/test'
 import { backToInventory, createItem } from './helpers/m9'
+import { PATH } from './routes'
 
 /**
  * M9/M10 — the inventory and the item editor, rebuilt on the tag set
@@ -75,7 +76,7 @@ async function groupHeadings(scope: Locator): Promise<string[]> {
 test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
   })
 
   test('E2E-M9-01: an item on two tags renders once, under its primary tag', async ({ page }) => {
@@ -211,7 +212,7 @@ test.describe('M9 inventory — the empty state (G-7)', () => {
     page,
   }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
 
     const list = visiblePage(page)
     await expect(list.getByTestId('m9-empty')).toBeVisible()
@@ -234,7 +235,7 @@ test.describe('M9 inventory — the empty state (G-7)', () => {
 test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
   })
 
   test('E2E-M10-07: creating hides the sections an item cannot have yet', async ({ page }) => {
@@ -354,7 +355,7 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
 test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local', locale: 'de' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
   })
 
   test('E2E-M10-13: the sections an existing item owns follow the app language', async ({
@@ -385,7 +386,7 @@ test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12
 test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
   })
 
   /** Open an item from the inventory list, settled on its editor. */
@@ -506,7 +507,7 @@ test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
     // suite's default English would leave it unmeasured (the #151 trap —
     // an assertion that never sees the string it is about).
     await seedMode({ mode: 'local', locale: 'de' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
   })
 
   test('E2E-M10-16: an empty query offers a capped shelf, and search reaches past it', async ({
@@ -596,19 +597,19 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
   test('E2E-M10-17: the item names the groups holding it, and leads into one', async ({ page }) => {
     await createMasterItem(page, 'Wanderstöcke')
     // createTemplate starts on M7's FAB; creating the item ended on M10.
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Wandern')
     await addPosition(page, 'Wanderstöcke')
     await backToTemplateList(page)
     // A Ferien-Vorlage as well, so the list is mixed: the two scopes wear the
     // same chip, and a group chip asserted alone would pass on a screen that
     // marks nothing else.
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'template', 'Sommerferien')
     await addPosition(page, 'Wanderstöcke')
     await backToTemplateList(page)
 
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Wanderstöcke' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Wanderstöcke')
 
@@ -653,7 +654,7 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
     await visiblePage(page).getByTestId('m5-note-add').click()
     await expect(visiblePage(page).getByTestId('m5-note-Spitzen sind stumpf')).toBeVisible()
 
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Wanderstöcke' }).click()
     const section = visiblePage(page).getByTestId('m10-section-comments')
     await expect(section).toBeVisible()
@@ -677,7 +678,7 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
     page,
   }) => {
     await createMasterItem(page, 'Regenhut')
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Regenhut' }).click()
     await expect(visiblePage(page).getByTestId('m10-section-delete')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m10-section-containment')).toHaveCount(0)

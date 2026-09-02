@@ -15,6 +15,7 @@
  */
 import { test, expect, visiblePage } from '../fixtures'
 import { loginAs, ACCOUNT_NAMES } from './fixtures'
+import { PATH } from '../routes'
 
 test.describe('API tokens @server', () => {
   test.slow()
@@ -26,7 +27,7 @@ test.describe('API tokens @server', () => {
     const context = await browser.newContext()
     const page = await loginAs(context, 'alice')
 
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
     const screen = visiblePage(page)
     await expect(screen.getByTestId('settings-section-tokens')).toBeVisible()
 
@@ -84,7 +85,7 @@ test.describe('API tokens @server', () => {
     const context = await browser.newContext()
     const page = await loginAs(context, 'alice')
 
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
     const screen = visiblePage(page)
     await screen.getByTestId('token-name').locator('input').fill('e2e once')
     await screen.getByTestId('token-create').click()

@@ -1,5 +1,6 @@
 import { test, expect, visiblePage } from './fixtures'
 import type { Locator } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * Typography (UI-Test-Spec §3, G-13; Addendum FR-21.5/FR-21.6).
@@ -93,7 +94,7 @@ test('E2E-G13-03: an icon is sized as a glyph box, not as text @local @g13', asy
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/tabs/trips')
+  await page.goto(PATH.trips)
   await page.waitForFunction(() => document.fonts.ready.then(() => true))
 
   const size = (el: Locator) => el.evaluate((n) => parseFloat(getComputedStyle(n).fontSize))
@@ -115,7 +116,7 @@ test('E2E-G13-04: a section label renders as the eyebrow role @local @g13', asyn
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/tabs/settings')
+  await page.goto(PATH.settings)
   await page.waitForFunction(() => document.fonts.ready.then(() => true))
 
   // Scoped to the page that is actually painted, not to the document: a

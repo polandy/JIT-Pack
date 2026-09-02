@@ -12,6 +12,7 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { startTrip } from './helpers/m4'
+import { PATH } from './routes'
 
 /**
  * M14 — Post-Trip Review Assistant (UI-Test-Spec §4, unit "M14 review").
@@ -94,7 +95,7 @@ test.describe('M14 review assistant @local @m14', () => {
  * ad-hoc row auto-flagged *missing*.
  */
 async function seedGroups(page: Page) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   await createTemplate(page, 'group', GROUP)
   await addPosition(page, 'Kamera')
   await addPosition(page, 'Stativ')
@@ -106,7 +107,7 @@ async function seedGroups(page: Page) {
 
 /** M3 with one named group picked in step 3 — rows arrive with provenance. */
 async function tripFromGroup(page: Page, name: string, group: string): Promise<string> {
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
   await page.getByTestId('wizard-name').locator('input').fill(name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
   await page.getByTestId('wizard-next').click()
@@ -202,7 +203,7 @@ async function targetOptions(page: Page, item: string, current: string): Promise
 
 /** Open the group in M8 and read its positions back. */
 async function openGroup(page: Page, group: string) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   await visible(page).getByTestId('m7-scope-group').click()
   await visible(page).locator('ion-item').filter({ hasText: group }).first().click()
   await expect(page.getByTestId('header-title')).toHaveText(group)

@@ -7,6 +7,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M3 step 3 — generating a trip from a *composed* template (§3.27).
@@ -24,7 +25,7 @@ import type { Page } from '@playwright/test'
 
 /** One group under one Vorlage — the least composition a case can need. */
 async function seedOneGroup(page: Page) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
 
   await createTemplate(page, 'group', 'Makro')
   await addPosition(page, 'Kamera')
@@ -38,7 +39,7 @@ async function seedOneGroup(page: Page) {
 
 /** The owner's scenario: two photo groups sharing a camera, under one Vorlage. */
 async function seedComposition(page: Page) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
 
   await createTemplate(page, 'group', 'Makro')
   await addPosition(page, 'Kamera')
@@ -58,7 +59,7 @@ async function seedComposition(page: Page) {
 
 /** Hang an FR-27.7 preparation task off the Kamera position of a group. */
 async function addTaskToPosition(page: Page, group: string, item: string, task: string) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   // Filter to the Gruppen scope first: in "Alle" a Ferien-Vorlage row lists
   // the groups it contains, so a row filtered by the group's name would match
   // the Vorlage above it.
@@ -86,7 +87,7 @@ async function addTaskToPosition(page: Page, group: string, item: string, task: 
  * that the model caught up (the same seam E2E-M3-01 uses).
  */
 async function wizardToStepThree(page: Page, name: string) {
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
   await page.getByTestId('wizard-name').locator('input').fill(name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
   await page.getByTestId('wizard-next').click()
@@ -218,7 +219,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await seedComposition(page)
     // An inventory item no picked template carries. It enters the inventory
     // through a group (§2.4: the app's own paths only) that stays unpicked.
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Sonstiges')
     await addPosition(page, 'Drohne')
     await backToList(page)

@@ -42,6 +42,7 @@ import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { filterForStatus, TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
+import { PATH } from '@/router/paths'
 
 const ionRouter = useIonRouter()
 const master = useMasterStore()
@@ -286,9 +287,9 @@ function commit() {
   // stacking a page on top of it.
   ionRouter.navigate(
     plan.value.trips.length === 0
-      ? { path: '/tabs/items' }
+      ? { path: PATH.items }
       : {
-          path: '/tabs/trips',
+          path: PATH.trips,
           query: { [TRIP_FILTER_QUERY]: filterForStatus(TRIP_STATUS_ARCHIVED) },
         },
     'root',

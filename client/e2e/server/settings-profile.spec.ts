@@ -8,12 +8,13 @@
  */
 import { test, expect, visiblePage } from '../fixtures'
 import { loginAs } from './fixtures'
+import { PATH } from '../routes'
 
 test('E2E-M17-05: the picture control is offered to an OIDC account', async ({ browser }) => {
   const context = await browser.newContext()
   const page = await loginAs(context, 'alice')
 
-  await page.goto('/tabs/settings')
+  await page.goto(PATH.settings)
   const screen = visiblePage(page)
   await expect(screen.getByTestId('settings-section-profile')).toBeVisible()
 
@@ -30,7 +31,7 @@ test('E2E-M17-05b: the display name stays the provider’s, and the note says so
   const context = await browser.newContext()
   const page = await loginAs(context, 'alice')
 
-  await page.goto('/tabs/settings')
+  await page.goto(PATH.settings)
   const screen = visiblePage(page)
 
   // The boundary of the change: the name is IdP-sourced, so it is not an

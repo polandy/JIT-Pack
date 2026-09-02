@@ -12,7 +12,7 @@
 import { API } from '@/api/routes'
 import type { InstanceConfigResponse } from '@/api/types'
 import { setCurrency } from '@/lib/currency'
-import { IonApp, IonRouterOutlet, alertController, toastController } from '@ionic/vue'
+import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
@@ -49,6 +49,8 @@ import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
 import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { PATH, tripSubPath } from '@/router/paths'
+import { confirmAction } from '@/lib/confirm'
 
 const mode = ref(readMode())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
@@ -57,22 +59,17 @@ if (mode.value === 'server') loadMigrationPending()
 
 /** Step 3 of the move: M18's restore branch, reached from the bar. */
 function restoreMigration() {
-  router.push('/portable-import')
+  router.push(PATH.importFile)
 }
 
 /** A fresh start is a legitimate outcome — confirmed once, then the bar is gone for good. */
 async function skipMigration() {
-  const alert = await alertController.create({
+  const confirmed = await confirmAction({
     header: t('migration.skipConfirm.title'),
     message: t('migration.skipConfirm.body'),
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      { text: t('migration.skipConfirm.confirm'), role: 'confirm' },
-    ],
+    confirmLabel: t('migration.skipConfirm.confirm'),
   })
-  await alert.present()
-  const { role } = await alert.onDidDismiss()
-  if (role !== 'confirm') return
+  if (!confirmed) return
   clearMigrationPending()
 }
 
@@ -115,8 +112,13 @@ async function showConflictToast(report: ConflictReport) {
       {
         text: t('sync.conflictToastOpen'),
         handler: () => {
+          // `id` is null exactly on the master partition; the builder is
+          // what made that visible, where the template literal used to
+          // push `/trips/null/conflicts` and open an empty trip log.
           router.push(
-            report.type === 'trip' ? `/trips/${report.id}/conflicts` : '/master/conflicts',
+            report.type === 'trip' && report.id
+              ? tripSubPath(report.id, 'conflicts')
+              : PATH.masterConflicts,
           )
         },
       },
@@ -278,12 +280,12 @@ async function onSyncTap() {
 function openConflicts() {
   const id = tripId.value
   syncDetailOpen.value = false
-  if (id) router.push(`/trips/${id}/conflicts`)
+  if (id) router.push(tripSubPath(id, 'conflicts'))
 }
 
 function openMasterConflicts() {
   syncDetailOpen.value = false
-  router.push('/master/conflicts')
+  router.push(PATH.masterConflicts)
 }
 
 const { hasBackupContent, saveBackup: writeDeviceBackup } = useDeviceBackup()

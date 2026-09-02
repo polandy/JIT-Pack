@@ -17,6 +17,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M21 — Vorlage aus Reise (§3.27, FR-27.5), plus the lifecycle step that
@@ -35,7 +36,7 @@ import type { Page } from '@playwright/test'
 
 /** One group with two positions — the least composition M21 can recognise. */
 async function seedGroup(page: Page) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   await createTemplate(page, 'group', 'Makro')
   await addPosition(page, 'Kamera')
   await addPosition(page, 'Stativ')
@@ -44,7 +45,7 @@ async function seedGroup(page: Page) {
 
 /** M3 with the group picked in step 3 — the rows arrive with provenance. */
 async function tripFromGroup(page: Page, name: string, positions = 2): Promise<string> {
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
   await page.getByTestId('wizard-name').locator('input').fill(name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
   await page.getByTestId('wizard-next').click()
@@ -90,7 +91,7 @@ async function archiveTrip(page: Page) {
 
 /** Remove one position from the group, so the trip carries what it lacks. */
 async function removeGroupPosition(page: Page, group: string, item: string) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   await visible(page).getByTestId('m7-scope-group').click()
   await visible(page).locator('ion-item').filter({ hasText: group }).first().click()
   await expect(page.getByTestId('header-title')).toHaveText(group)
@@ -211,7 +212,7 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
     await archiveTrip(page)
     // The group grows a position the trip never had.
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await visible(page).getByTestId('m7-scope-group').click()
     await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
     await addPosition(page, 'Blitz')
@@ -448,7 +449,7 @@ test.describe('FLOW-09 — a template learns across a year (FR-27.1–27.5, FR-2
 
   /** The owner's scenario: two groups sharing a camera, under one Vorlage. */
   async function seedComposition(page: Page) {
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await addPosition(page, 'Makro-Objektiv')
@@ -467,7 +468,7 @@ test.describe('FLOW-09 — a template learns across a year (FR-27.1–27.5, FR-2
 
   /** M3 with one Vorlage picked in step 3. Returns the trip's path. */
   async function tripFromTemplate(page: Page, name: string, vorlage: string, items: number) {
-    await page.goto('/trips/new')
+    await page.goto(PATH.newTrip)
     await page.getByTestId('wizard-name').locator('input').fill(name)
     await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
     await page.getByTestId('wizard-next').click()

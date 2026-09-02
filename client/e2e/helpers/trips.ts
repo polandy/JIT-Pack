@@ -9,6 +9,7 @@ import type { Page } from '@playwright/test'
 
 import { setDateField } from './ionic'
 import { DESKTOP_BREAKPOINT, visiblePage } from './page'
+import { PATH } from '../routes'
 
 /** Minimum a trip needs to be creatable — the wizard's step-1 gate. */
 export interface TripSeed {
@@ -33,7 +34,7 @@ export interface TripSeed {
  * trip comes through here. Call after `seed`/`seedMode` — it navigates.
  */
 export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<string> {
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
 
   await page.getByTestId('wizard-name').locator('input').fill(trip.name)
   // FR-2.1c: the dates and the series live behind the "More options" row,
@@ -136,7 +137,7 @@ export async function createTripFollowingGroup(
   name: string,
   group: string,
 ): Promise<string> {
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
   await page.getByTestId('wizard-name').locator('input').fill(name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
   await page.getByTestId('wizard-next').click()

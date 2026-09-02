@@ -9,6 +9,7 @@
  */
 import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 const TRIP = { name: 'Sommerferien Elba', travelers: ['Andy', 'Leonardo', 'Mia'] }
 const ITEM = 'Kurze Hosen'
@@ -253,7 +254,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
   })
 
   test('E2E-M4-65: a per-person add from the browse-sheet closes it first', async ({ page }) => {
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await page.getByTestId('m9-fab').click()
     await page.getByTestId('m10-name').locator('input').fill('Sonnenhut')
     await page.getByTestId('m10-create').click()
@@ -296,7 +297,7 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
   })
 
   test('E2E-M5-21: taking a skipped row along again is asked, then visible', async ({ page }) => {
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await page.getByTestId('m9-fab').click()
     await page.getByTestId('m10-name').locator('input').fill(ITEM)
     await page.getByTestId('m10-create').click()

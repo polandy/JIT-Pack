@@ -20,7 +20,6 @@ import {
   IonNote,
   IonChip,
   actionSheetController,
-  alertController,
 } from '@ionic/vue'
 import { inject, onMounted, ref } from 'vue'
 
@@ -29,6 +28,7 @@ import { adminActionsFor, type AdminAction, type AdminUserRow } from '@/domain/a
 import { serverBaseUrl } from '@/config'
 import { formatDate, t, type MessageKey } from '@/i18n'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { confirmDestructive } from '@/lib/confirm'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
@@ -116,17 +116,11 @@ async function runAction(action: AdminAction, user: AdminUserRow) {
 
 /** FR-23.3: the confirmation spells out exactly what happens. */
 async function confirmDeactivation(user: AdminUserRow): Promise<boolean> {
-  const alert = await alertController.create({
+  return confirmDestructive({
     header: t('admin.deactivateTitle', { name: user.display_name || user.user_id }),
     message: t('admin.deactivateMessage'),
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      { text: t('admin.actionDeactivate'), role: 'destructive' },
-    ],
+    confirmLabel: t('admin.actionDeactivate'),
   })
-  await alert.present()
-  const { role } = await alert.onDidDismiss()
-  return role === 'destructive'
 }
 
 function avatarUrl(user: AdminUserRow): string {

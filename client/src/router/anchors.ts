@@ -1,6 +1,7 @@
 import { cubeOutline, homeOutline, listOutline, trainOutline } from 'ionicons/icons'
 
 import type { MessageKey } from '@/i18n'
+import { PATH } from '@/router/paths'
 
 /**
  * The four navigation anchors (G-1/G-9), in one place.
@@ -24,22 +25,24 @@ export interface NavAnchor {
 }
 
 export const NAV_ANCHORS: readonly NavAnchor[] = [
-  { match: 'dashboard', nameKey: 'nav.dashboard', href: '/tabs/dashboard', icon: homeOutline },
+  { match: 'dashboard', nameKey: 'nav.dashboard', href: PATH.dashboard, icon: homeOutline },
   // A train, not a plane: this household's trips are ground travel, and
   // the icon is the first thing that says what the app is about.
-  { match: 'trips', nameKey: 'nav.trips', href: '/tabs/trips', icon: trainOutline },
-  { match: 'templates', nameKey: 'nav.templates', href: '/tabs/templates', icon: listOutline },
-  { match: 'items', nameKey: 'nav.items', href: '/tabs/items', icon: cubeOutline },
+  { match: 'trips', nameKey: 'nav.trips', href: PATH.trips, icon: trainOutline },
+  { match: 'templates', nameKey: 'nav.templates', href: PATH.templates, icon: listOutline },
+  { match: 'items', nameKey: 'nav.items', href: PATH.items, icon: cubeOutline },
 ] as const
 
 /**
  * Whether an anchor is the one the current path belongs to.
  *
- * Exact rather than a substring test: `/tabs/items` used to light up on
- * `/trips/:id/items/:itemId` because the old check asked whether the path
- * merely *contained* the segment, which pointed the user at the master
- * inventory while they were inside a trip.
+ * Exact rather than a substring test: the inventory anchor used to light
+ * up inside a trip's item sheet because the old check asked whether the
+ * path merely *contained* the segment, which pointed the user at the
+ * master inventory while they were inside a trip. It compares against the
+ * anchor's own `href` rather than rebuilding the path from `match` —
+ * the two are the same string exactly once (U-9).
  */
-export function isAnchorActive(path: string, match: string): boolean {
-  return path === `/tabs/${match}`
+export function isAnchorActive(path: string, anchor: NavAnchor): boolean {
+  return path === anchor.href
 }

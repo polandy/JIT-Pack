@@ -30,7 +30,6 @@ import {
   IonButton,
   IonSegment,
   IonSegmentButton,
-  alertController,
 } from '@ionic/vue'
 import { archiveOutline, arrowUndoOutline, trashOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
@@ -44,6 +43,7 @@ import { DELETION_REMOVE } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN, type RestoreVerdict } from '@/domain/masterRestore'
 import type { MasterItem, Template } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { confirmDestructive, promptText } from '@/lib/confirm'
 
 const store = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -56,7 +56,6 @@ type Segment = typeof SEGMENT_ITEMS | typeof SEGMENT_TEMPLATES
 const segment = ref<Segment>(SEGMENT_ITEMS)
 
 /** How long the toast a restore raises stays up, in ms — one sentence's worth. */
-const TOAST_MS = 3000
 
 /**
  * One row of either list. The screen renders items and Vorlagen the same
@@ -157,7 +156,7 @@ function takenMessage(row: RetiredRow, name: string): string {
  */
 async function onRestore(row: RetiredRow) {
   if (row.restore()) {
-    await presentToast({ message: t('retired.restored', { name: row.name }), duration: TOAST_MS })
+    await presentToast({ message: t('retired.restored', { name: row.name }) })
     return
   }
   await promptForFreeName(row)
@@ -170,36 +169,23 @@ async function onRestore(row: RetiredRow) {
  * same idiom M7's rename uses — dismissing it would throw the edit away.
  */
 async function promptForFreeName(row: RetiredRow) {
-  const alert = await alertController.create({
+  await promptText({
     header: t('retired.nameTakenTitle'),
     message: takenMessage(row, row.name),
-    inputs: [
-      {
-        name: 'name',
-        value: row.name,
-        placeholder: t('retired.namePlaceholder'),
-        attributes: { 'aria-label': 'name' },
-      },
-    ],
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      {
-        text: t('retired.restore'),
-        handler: async (values: { name?: string }) => {
-          const name = values.name?.trim()
-          if (!name) return false
-          if (!row.restore(name)) {
-            await presentToast({ message: takenMessage(row, name), duration: TOAST_MS })
-            return false
-          }
-          await presentToast({ message: t('retired.restored', { name }), duration: TOAST_MS })
-          return true
-        },
-      },
-    ],
+    value: row.name,
+    placeholder: t('retired.namePlaceholder'),
+    confirmLabel: t('retired.restore'),
+    testid: 'm23-name-taken',
+    onConfirm: async (name) => {
+      if (!name) return false
+      if (!row.restore(name)) {
+        await presentToast({ message: takenMessage(row, name) })
+        return false
+      }
+      await presentToast({ message: t('retired.restored', { name }) })
+      return true
+    },
   })
-  alert.setAttribute('data-testid', 'm23-name-taken')
-  await alert.present()
 }
 
 /**
@@ -209,26 +195,15 @@ async function promptForFreeName(row: RetiredRow) {
  * physical, so the button never does nothing.
  */
 async function onPurge(row: RetiredRow) {
-  const alert = await alertController.create({
+  const confirmed = await confirmDestructive({
     header: t('retired.purgeConfirm', { name: row.name }),
     message: t(row.removeKey),
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      {
-        text: t('retired.purge'),
-        role: 'destructive',
-        handler: () => {
-          row.purge()
-          void presentToast({
-            message: t('retired.purged', { name: row.name }),
-            duration: TOAST_MS,
-          })
-        },
-      },
-    ],
+    confirmLabel: t('retired.purge'),
+    testid: 'm23-purge-confirm',
   })
-  alert.setAttribute('data-testid', 'm23-purge-confirm')
-  await alert.present()
+  if (!confirmed) return
+  row.purge()
+  void presentToast({ message: t('retired.purged', { name: row.name }) })
 }
 
 function hiddenOn(row: RetiredRow): string {

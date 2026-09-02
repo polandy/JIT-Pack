@@ -11,6 +11,7 @@ import {
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import { backToInventory, createItem } from './helpers/m9'
+import { PATH } from './routes'
 
 /**
  * §3.28 — the item mark (FR-28.1–28.11, UI-Spec G-15).
@@ -87,7 +88,7 @@ test.describe('§3.28 the item mark', () => {
 
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
   })
 
   // E2E-M10-11 (FR-28.2/28.3/28.11): the picker and its three cases, which
@@ -190,7 +191,7 @@ test.describe('§3.28 the item mark', () => {
 
     // One edit on the master item, seen on both surfaces — which is only
     // possible because the trip row stores nothing.
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await m9Row(page, 'Zelt').click()
     await openPicker(page)
     await search(page, 'rucksack')
@@ -216,7 +217,7 @@ test.describe('§3.28 the item mark', () => {
     await backToInventory(page)
 
     // A group with Zelt as a per-person position (FR-25.1) …
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Camping')
     await addPosition(page, 'Zelt')
     await visiblePage(page).locator('ion-item h2').filter({ hasText: 'Zelt' }).first().click()
@@ -228,7 +229,7 @@ test.describe('§3.28 the item mark', () => {
     await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
 
     // … generated for two travelers is a cluster of two.
-    await page.goto('/trips/new')
+    await page.goto(PATH.newTrip)
     await page.getByTestId('wizard-name').locator('input').fill('Clusterprobe')
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-2')).toBeVisible()

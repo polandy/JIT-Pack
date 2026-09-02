@@ -9,6 +9,7 @@ import {
   includeGroup,
   visiblePage,
 } from './fixtures'
+import { PATH } from './routes'
 
 /**
  * A tagged master item through M10's own path (E2E-M8-21 needs primary
@@ -76,7 +77,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
 
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
   })
 
   test('E2E-M8-07, E2E-M8-13, E2E-M8-12: a Gruppe shows only positions, and the quick-add lands a Standard row', async ({
@@ -158,7 +159,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
 
     // FR-1.1: the free-text add created the master item — the inventory has it.
     await backToList(page)
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await expect(
       visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first(),
     ).toBeVisible()
@@ -204,12 +205,12 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     page,
   }) => {
     // Tagged inventory through M10's own path: two Hygiene items, one Technik.
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await createTaggedItem(page, 'Zahnbürste', 'Hygiene')
     await createTaggedItem(page, 'Shampoo', 'Hygiene')
     await createTaggedItem(page, 'Ladekabel', 'Technik')
 
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Bad')
     await openQuickAdd(page, 'm8-fab')
 
@@ -282,12 +283,12 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
   test('E2E-M8-22: the browse-sheet assembles a group in a run, carried items turning into a state (FR-25.13d)', async ({
     page,
   }) => {
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await createTaggedItem(page, 'Zahnbürste', 'Hygiene')
     await createTaggedItem(page, 'Shampoo', 'Hygiene')
     await createTaggedItem(page, 'Ladekabel', 'Technik')
 
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Bad')
     await openQuickAdd(page, 'm8-fab')
 
@@ -427,7 +428,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
 test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first().click()
@@ -541,7 +542,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
 
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
   })
 
   test('E2E-M8-08: the footer names every merge with its contributing groups', async ({ page }) => {
@@ -630,7 +631,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await expect(visiblePage(page).getByTestId('m8-blast-note')).toHaveCount(0)
 
     // Generate a trip from the Vorlage through M3 (spec §2.4: the app's own path).
-    await page.goto('/trips/new')
+    await page.goto(PATH.newTrip)
     await page.getByTestId('wizard-name').locator('input').fill('Engadin 2027')
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-2')).toBeVisible()
@@ -643,7 +644,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await expectTripOpen(page, 'Engadin 2027')
 
     // The Vorlage names the trip it reaches (FR-27.4)…
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await visiblePage(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
     const note = visiblePage(page).getByTestId('m8-blast-note')
     await expect(note).toContainText('Engadin 2027')
@@ -679,7 +680,7 @@ test.describe('M8 group picker search (FR-27.13)', () => {
     page,
   }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
 
     // Two groups with content, four empty ones — six searchable candidates.
     await createTemplate(page, 'group', 'Makro')
@@ -770,7 +771,7 @@ test.describe('M8 group recognition (FR-27.15)', () => {
 
   /** Erste Hilfe (two items) + Solo (one), then a Vorlage carrying all three. */
   async function seedWorld(page: Page) {
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Erste Hilfe')
     await addPosition(page, 'Reiseapotheke')
     await addPosition(page, 'Blasenpflaster')
@@ -931,7 +932,7 @@ test.describe('M8 group marks (FR-28.8)', () => {
     page,
   }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
 
     await createTemplate(page, 'group', 'Camping Basis')
     await addPosition(page, 'Zelt')
@@ -980,13 +981,13 @@ test.describe('M8 group marks (FR-28.8)', () => {
     // The mark is master data, so it must survive a reload before surface 4
     // can mean anything — M3 is reached through a fresh navigation, and in
     // Local Mode a reload is a reload of the whole store (FR-19.2).
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await expect(
       groupRow(page, visiblePage(page), 'Camping Basis').getByTestId('item-mark'),
     ).toHaveText('⛺')
 
     // Surface 4 — M3 step 3, where the group is picked into a trip.
-    await page.goto('/trips/new')
+    await page.goto(PATH.newTrip)
     await page.getByTestId('wizard-name').locator('input').fill('Markenreise')
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-2')).toBeVisible()
@@ -1021,7 +1022,7 @@ test.describe('M8 group marks (FR-28.8)', () => {
 test.describe('M8 — the group picker and a taken name (FR-1.6)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
   })
 
   test('E2E-M8-24: a taken group name includes that group, a Vorlage name says so instead', async ({

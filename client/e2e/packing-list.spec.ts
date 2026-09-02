@@ -11,6 +11,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M4 — packing list (UI-Test-Spec §4, unit "M4 packing list").
@@ -130,7 +131,7 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-G6-02: the stepper counts without leaving the list, while the row body opens M5', async ({
     page,
   }) => {
-    await page.goto('/portable-import')
+    await page.goto(PATH.importFile)
     await page
       .getByTestId('portable-paste')
       .locator('textarea')
@@ -303,7 +304,7 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-20: a facet value takes effect immediately, with nothing to confirm', async ({
     page,
   }) => {
-    await page.goto('/portable-import')
+    await page.goto(PATH.importFile)
     await page
       .getByTestId('portable-paste')
       .locator('textarea')
@@ -380,7 +381,7 @@ test.describe('M4 packing list @local @m4', () => {
     page,
   }) => {
     // A weighted master item, because only weighted rows draw a bar.
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await page.getByTestId('m9-fab').click()
     await page.getByTestId('m10-name').locator('input').fill('Zelt')
     await page.getByTestId('m10-more').click()
@@ -414,7 +415,7 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-46: what the trip already carries is not suggested again (FR-25.13c)', async ({
     page,
   }) => {
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await page.getByTestId('m9-fab').click()
     await page.getByTestId('m10-name').locator('input').fill('Zelt')
     await page.getByTestId('m10-create').click()
@@ -442,7 +443,7 @@ test.describe('M4 packing list @local @m4', () => {
     page,
   }) => {
     for (const name of ['Zelt', 'Lampe']) {
-      await page.goto('/tabs/items')
+      await page.goto(PATH.items)
       await page.getByTestId('m9-fab').click()
       await page.getByTestId('m10-name').locator('input').fill(name)
       await page.getByTestId('m10-create').click()
@@ -486,7 +487,7 @@ test.describe('M4 packing list @local @m4', () => {
     page,
   }) => {
     for (const name of ['Zelt', 'Lampe', 'Kocher']) {
-      await page.goto('/tabs/items')
+      await page.goto(PATH.items)
       await page.getByTestId('m9-fab').click()
       await page.getByTestId('m10-name').locator('input').fill(name)
       await page.getByTestId('m10-create').click()
@@ -537,7 +538,7 @@ test.describe('M4 packing list @local @m4', () => {
    */
   async function inventory(page: Page, names: string[]) {
     for (const name of names) {
-      await page.goto('/tabs/items')
+      await page.goto(PATH.items)
       await page.getByTestId('m9-fab').click()
       await page.getByTestId('m10-name').locator('input').fill(name)
       await page.getByTestId('m10-create').click()
@@ -859,7 +860,7 @@ test.describe('M4 packing list — scroll memory @local @m4', () => {
   }) => {
     test.slow()
     // A quantity can only come from a template position (spec §2.4).
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Camping')
     await addPosition(page, 'Heringe')
     await page.keyboard.press('Escape')
@@ -1011,7 +1012,7 @@ test.describe('M4 packing list — scroll memory @local @m4', () => {
     page,
   }) => {
     test.slow()
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Camping')
     await addPosition(page, 'Heringe')
     await addPosition(page, 'Lampe')

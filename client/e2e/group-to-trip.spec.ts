@@ -8,6 +8,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * FR-27.10 — a whole group joins a trip that already exists.
@@ -30,7 +31,7 @@ async function searchQuickAdd(page: Page, query: string) {
 
 /** Add one position to an existing group through M7 → M8. */
 async function addToGroup(page: Page, group: string, item: string) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   await visible(page).getByTestId('m7-scope-group').click()
   await visible(page).locator('ion-item').filter({ hasText: group }).first().click()
   await expect(page.getByTestId('header-title')).toHaveText(group)
@@ -44,7 +45,7 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
 
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await addPosition(page, 'Stativ')
@@ -59,7 +60,7 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
 
   test('E2E-M4-26: the composer offers the group, and one tap expands it', async ({ page }) => {
     // The task is added first, so the row the group generates has to carry it.
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await visible(page).getByTestId('m7-scope-group').click()
     await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
     await visible(page).locator('ion-item').filter({ hasText: 'Kamera' }).first().click()
@@ -143,7 +144,7 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     // nesting one anyway. The absence needs a positive signal beside it: the
     // free-text hint proves the composer is open and searching, and it is the
     // line M4 *hides* when groups match, so it falls if the prop leaks.
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await visible(page).getByTestId('m7-scope-group').click()
     await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
     await expect(page.getByTestId('header-title')).toHaveText('Makro')

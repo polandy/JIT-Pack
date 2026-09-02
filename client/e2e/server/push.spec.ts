@@ -21,6 +21,7 @@
 import { test, expect, visiblePage } from '../fixtures'
 
 import { loginAs } from './fixtures'
+import { PATH } from '../routes'
 
 const ENDPOINT = 'https://push.example/e2e-subscription'
 
@@ -66,7 +67,7 @@ test('E2E-NFR-06: enabling push registers the subscription, disabling drops it',
   }, ENDPOINT)
 
   const page = await loginAs(context, 'alice')
-  await page.goto('/tabs/settings')
+  await page.goto(PATH.settings)
   const screen = visiblePage(page)
   await expect(screen.getByTestId('settings-section-notifications')).toBeVisible()
 

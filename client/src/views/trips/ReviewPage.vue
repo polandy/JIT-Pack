@@ -161,7 +161,7 @@ function blastText(row: Row): string | null {
 }
 
 async function toast(message: string) {
-  await presentToast({ message, duration: 3000 })
+  await presentToast({ message })
 }
 
 function apply(row: Row) {

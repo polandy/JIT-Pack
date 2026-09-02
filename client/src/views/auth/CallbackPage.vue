@@ -13,6 +13,7 @@ import { useRouter } from 'vue-router'
 import { saveTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
 import { t } from '@/i18n'
+import { PATH } from '@/router/paths'
 
 const router = useRouter()
 const error = ref('')
@@ -57,7 +58,7 @@ onMounted(async () => {
     }
     saveTokens((await resp.json()) as SessionTokens)
     // Full reload so the orchestrator starts with the token in place.
-    window.location.replace('/tabs/dashboard')
+    window.location.replace(PATH.dashboard)
   } catch {
     error.value = t('login.failed')
   }

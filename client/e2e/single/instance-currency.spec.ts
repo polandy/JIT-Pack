@@ -1,6 +1,7 @@
 import { expect, test, visiblePage } from '../fixtures'
 import { bootPage, uniq } from '../serverMode'
 import { fillIonic } from '../helpers/ionic'
+import { PATH } from '../routes'
 
 /**
  * E2E-M9-09 (FR-21.9) — an amount carries the currency the instance named.
@@ -23,7 +24,7 @@ test.describe('the instance currency, backend-backed @single @m9', () => {
     const page = await bootPage(await browser.newContext())
 
     // A master item with a price, through M10's own form (FR-24.5).
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await visiblePage(page).getByTestId('m9-fab').click()
     await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
     await fillIonic(visiblePage(page).getByTestId('m10-name'), name)
@@ -34,7 +35,7 @@ test.describe('the instance currency, backend-backed @single @m9', () => {
 
     // M9 keeps the price column off by default (the lean list), so the
     // case turns it on rather than assuming a layout it did not set.
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     // Unscoped: a header action lives in the one app bar (ADR-011), which
     // is outside the router outlet `visiblePage` narrows to.
     await page.getByTestId('m9-properties').click()

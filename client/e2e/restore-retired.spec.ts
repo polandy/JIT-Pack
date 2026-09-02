@@ -10,6 +10,7 @@ import {
   visiblePage,
 } from './fixtures'
 import { backToInventory, createItem } from './helpers/m9'
+import { PATH } from './routes'
 
 /**
  * FR-24.3 / M23 — the way back from a retire.
@@ -42,12 +43,12 @@ async function localWriteSettled(page: Page) {
 
 /** Retire `item` by putting it in `group` first — a reference is what makes a delete a retire. */
 async function retireItemViaGroup(page: Page, group: string, item: string) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   await createTemplate(page, 'group', group)
   await addPosition(page, item)
   await backToTemplateList(page)
 
-  await page.goto('/tabs/items')
+  await page.goto(PATH.items)
   await visiblePage(page).getByTestId('m9-row').filter({ hasText: item }).click()
   await expect(page.getByTestId('header-title')).toHaveText(item)
   await expect(visiblePage(page).getByTestId('m10-delete-outlook')).toContainText(
@@ -74,7 +75,7 @@ async function createItemOnDevice(page: Page, name: string) {
 /** M23 through the door it actually has — the Settings row, not a typed URL. */
 async function openRetired(page: Page) {
   await localWriteSettled(page)
-  await page.goto('/tabs/settings')
+  await page.goto(PATH.settings)
   await visiblePage(page).getByTestId('settings-retired').click()
   await expect(visiblePage(page).getByTestId('m23-segment')).toBeVisible()
 }
@@ -107,7 +108,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
     await localWriteSettled(page)
 
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
       1,
     )
@@ -153,7 +154,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
     await localWriteSettled(page)
 
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     // Both rows, which is the point: the restore had to make room for itself
     // rather than take the name back from the row that holds it.
     await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
@@ -166,7 +167,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     // And the group that kept the row alive still resolves it, under its
     // new name — the retire's own promise, unbroken by the rename.
     await localWriteSettled(page)
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await visiblePage(page).locator('ion-item', { hasText: 'Fotografie' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Fotografie')
     await expect(
@@ -187,7 +188,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     // had no rendered case either (E2E-M7-11 covers the remove branch and
     // says why it stops there); one trip pays for both.
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Fotografie')
     await addPosition(page, 'Kamera')
     await backToTemplateList(page)
@@ -197,7 +198,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     await createTripFollowingGroup(page, 'Wochenende', 'Fotografie')
 
     await localWriteSettled(page)
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     const row = visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })
     await row.dispatchEvent('contextmenu')
     const sheet = page.locator('ion-action-sheet')
@@ -230,7 +231,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
 
     // Back where it was hidden from, and still itself: the group is on M7
     // and still holds the position it was created with.
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await expect(visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(1)
     await visiblePage(page).locator('ion-item', { hasText: 'Fotografie' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Fotografie')
@@ -254,7 +255,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
 
     // Take the group away, which is what makes the row unreferenced.
     await localWriteSettled(page)
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     const row = visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })
     await row.dispatchEvent('contextmenu')
     const sheet = page.locator('ion-action-sheet')
@@ -279,7 +280,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     // free again — which a row still holding it, retired or not, would refuse.
     await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
     await localWriteSettled(page)
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await createItemOnDevice(page, 'Kamera')
     await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
       1,

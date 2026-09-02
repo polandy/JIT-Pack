@@ -22,6 +22,7 @@ import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
 import { quickAddItem, uniq } from '../serverMode'
 
 import { loginAs } from './fixtures'
+import { PATH } from '../routes'
 
 test('E2E-M17-03, E2E-NFR-05: the full export and the trip CSV download and carry the trip', async ({
   browser,
@@ -35,7 +36,7 @@ test('E2E-M17-03, E2E-NFR-05: the full export and the trip CSV download and carr
   await createTripViaWizard(alice, { name: trip })
   await quickAddItem(alice, item)
 
-  await alice.goto('/tabs/settings')
+  await alice.goto(PATH.settings)
   const screen = visiblePage(alice)
 
   const json = alice.waitForEvent('download')

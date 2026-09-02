@@ -88,7 +88,6 @@ setHeaderTitle(() => template.value?.name ?? t('templates.notFound'))
 async function toast(message: string, undo?: { text: string; handler: () => void }) {
   await presentToast({
     message,
-    duration: 3000,
     // Higher than the tab bar the helper would clear, so this screen keeps it.
     positionAnchor: 'm8-fab-anchor',
     buttons: undo ? [{ text: undo.text, role: 'undo', handler: undo.handler }] : undefined,

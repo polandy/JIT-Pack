@@ -66,6 +66,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
+import { tripPath } from '@/router/paths'
 
 const route = useRoute()
 const router = useRouter()
@@ -610,7 +611,7 @@ function createTrip() {
       : [],
     members: shares.value,
   })
-  router.replace(`/trips/${tripId}`)
+  router.replace(tripPath(tripId))
 }
 
 // ADR-011: the one header bar renders this page's title.

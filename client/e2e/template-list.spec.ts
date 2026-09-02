@@ -6,6 +6,7 @@ import {
   includeGroup,
   visiblePage as visible,
 } from './fixtures'
+import { PATH } from './routes'
 
 /**
  * M7 — Template List, scope-shaped (§3.27, FR-27.6).
@@ -34,7 +35,7 @@ import {
 test.describe('M7 template list — scopes (FR-27.6)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
   })
 
   test('E2E-M7-08: the FAB asks which scope to create, and creates that scope', async ({
@@ -323,7 +324,7 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
 test.describe('M7 — a taken name never becomes a write (FR-1.6)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
   })
 
   test('E2E-M7-10: a taken name is named with its scope, offers the row that holds it, and a free one still writes', async ({

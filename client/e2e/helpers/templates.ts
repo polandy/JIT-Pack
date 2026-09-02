@@ -7,6 +7,7 @@ import type { Page } from '@playwright/test'
 
 import { visiblePage } from './page'
 import { openQuickAdd } from './trips'
+import { PATH } from '../routes'
 
 /**
  * Create a master item through M9/M10's own path (spec §2.4). Ends on the
@@ -15,7 +16,7 @@ import { openQuickAdd } from './trips'
  * first without navigating again.
  */
 export async function createMasterItem(page: Page, name: string) {
-  await page.goto('/tabs/items')
+  await page.goto(PATH.items)
   await visiblePage(page).getByTestId('m9-fab').click()
   await visiblePage(page).getByTestId('m10-name').locator('input').fill(name)
   await visiblePage(page).getByTestId('m10-create').click()
@@ -82,7 +83,7 @@ export async function includeGroup(page: Page, groupName: string) {
 
 /** Add one position to an existing group, through M7 → M8. */
 export async function addToGroup(page: Page, group: string, item: string) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   await visiblePage(page).getByTestId('m7-scope-group').click()
   await visiblePage(page).locator('ion-item').filter({ hasText: group }).first().click()
   await expect(page.getByTestId('header-title')).toHaveText(group)

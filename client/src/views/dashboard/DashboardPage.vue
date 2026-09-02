@@ -45,6 +45,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
 import { isActive } from '@/domain/trips'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { PATH, tripItemPath, tripPath } from '@/router/paths'
 
 const store = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -231,12 +232,12 @@ onUnmounted(() => {
 
 /** A planned trip's row leads to the trip, the way its card does. */
 function openTrip(tripId: string): void {
-  void router.push(`/trips/${tripId}`)
+  void router.push(tripPath(tripId))
 }
 
 /** FR-7.3: the prep card's item name is the way into its row (UI-Spec M1). */
 function openItem(tripId: string, itemId: string): void {
-  void router.push(`/trips/${tripId}/items/${itemId}`)
+  void router.push(tripItemPath(tripId, itemId))
 }
 
 async function handleRefresh(event: CustomEvent) {
@@ -263,7 +264,7 @@ async function handleRefresh(event: CustomEvent) {
       <div v-if="isEmpty" class="empty-state" data-testid="dashboard-empty">
         <IonIcon :icon="trainOutline" class="empty-icon" />
         <p>{{ t('trips.emptyActive') }}</p>
-        <IonButton router-link="/trips/new" expand="block" data-testid="dashboard-plan-trip">
+        <IonButton :router-link="PATH.newTrip" expand="block" data-testid="dashboard-plan-trip">
           <IonIcon slot="start" :icon="addOutline" />
           {{ t('dashboard.planTrip') }}
         </IonButton>
@@ -387,7 +388,7 @@ async function handleRefresh(event: CustomEvent) {
         v-for="trip in activeTrips"
         :key="trip.id"
         button
-        :router-link="`/trips/${trip.id}`"
+        :router-link="tripPath(trip.id)"
         :data-testid="`dashboard-trip-${trip.name}`"
       >
         <IonCardHeader>

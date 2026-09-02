@@ -2,6 +2,19 @@ import { createRouter, createWebHistory } from '@ionic/vue-router'
 
 import { installOverlayBackGuard } from './overlayBackGuard'
 import { installOriginStamp } from './originStamp'
+import {
+  ITEM_ID_PARAM,
+  PATH,
+  SERIES_ID_PARAM,
+  TEMPLATE_ID_PARAM,
+  TRIP_ID_PARAM,
+  itemPath,
+  seriesPath,
+  templatePath,
+  tripItemPath,
+  tripPath,
+  tripSubPath,
+} from './paths'
 import type { RouteRecordRaw } from 'vue-router'
 
 /**
@@ -20,7 +33,7 @@ import type { RouteRecordRaw } from 'vue-router'
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/tabs/dashboard',
+    redirect: PATH.dashboard,
   },
   // Flat, deliberately: every route lives in the one router outlet in
   // App.vue. The four anchors used to be children of an `IonTabs`
@@ -31,49 +44,49 @@ export const routes: RouteRecordRaw[] = [
   // layout.
   {
     path: '/tabs/',
-    redirect: '/tabs/dashboard',
+    redirect: PATH.dashboard,
   },
   {
-    path: '/tabs/dashboard',
+    path: PATH.dashboard,
     name: 'dashboard',
     component: () => import('@/views/dashboard/DashboardPage.vue'),
   },
   {
-    path: '/tabs/trips',
+    path: PATH.trips,
     name: 'trips',
     component: () => import('@/views/trips/TripListPage.vue'),
   },
   {
-    path: '/tabs/templates',
+    path: PATH.templates,
     name: 'templates',
     component: () => import('@/views/templates/TemplateListPage.vue'),
   },
   {
-    path: '/tabs/items',
+    path: PATH.items,
     name: 'items',
     component: () => import('@/views/items/ItemInventoryPage.vue'),
   },
   {
-    path: '/tabs/settings',
+    path: PATH.settings,
     name: 'settings',
     // A global action: the gear is offered on every screen, so no one
     // parent is true (ADR-011 amendment).
-    meta: { parent: '/tabs/dashboard', acceptsFrom: true, titleKey: 'settings.title' },
+    meta: { parent: PATH.dashboard, acceptsFrom: true, titleKey: 'settings.title' },
     component: () => import('@/views/settings/SettingsPage.vue'),
   },
   {
-    path: '/login',
+    path: PATH.login,
     name: 'login',
     component: () => import('@/views/auth/LoginPage.vue'),
   },
   {
-    path: '/auth/callback',
+    path: PATH.authCallback,
     name: 'auth-callback',
     component: () => import('@/views/auth/CallbackPage.vue'),
   },
   {
-    path: '/trips/new',
-    meta: { parent: '/tabs/trips', titleKey: 'trips.new' },
+    path: PATH.newTrip,
+    meta: { parent: PATH.trips, titleKey: 'trips.new' },
     name: 'trip-wizard',
     component: () => import('@/views/trips/TripWizardPage.vue'),
   },
@@ -83,77 +96,77 @@ export const routes: RouteRecordRaw[] = [
     // mount a second copy of the list behind the sheet, because Ionic
     // keeps a page per matched record. With an alias only the params
     // change, so the list stays the one the user was already looking at.
-    path: '/trips/:tripId',
-    alias: '/trips/:tripId/items/:itemId',
+    path: tripPath(TRIP_ID_PARAM),
+    alias: tripItemPath(TRIP_ID_PARAM, ITEM_ID_PARAM),
     meta: {
-      parent: '/tabs/trips',
+      parent: PATH.trips,
       // With the sheet open, back closes it rather than leaving the trip.
       overlayParam: 'itemId',
-      overlayParent: '/trips/:tripId',
+      overlayParent: tripPath(TRIP_ID_PARAM),
     },
     name: 'trip-detail',
     component: () => import('@/views/trips/PackingListPage.vue'),
     props: true,
   },
   {
-    path: '/import',
+    path: PATH.importSpreadsheet,
     // A flow: entered from M2 and from M9 (Navigation_Concept §7).
-    meta: { parent: '/tabs/items', acceptsFrom: true, titleKey: 'items.importSpreadsheet' },
+    meta: { parent: PATH.items, acceptsFrom: true, titleKey: 'items.importSpreadsheet' },
     name: 'import-wizard',
     component: () => import('@/views/import/ImportPage.vue'),
   },
   {
-    path: '/portable-import',
+    path: PATH.importFile,
     // A flow: entered from M2, M7 and Settings.
-    meta: { parent: '/tabs/settings', acceptsFrom: true, titleKey: 'nav.title.importFile' },
+    meta: { parent: PATH.settings, acceptsFrom: true, titleKey: 'nav.title.importFile' },
     name: 'portable-import',
     component: () => import('@/views/import/PortableImportPage.vue'),
   },
   {
-    path: '/series/:seriesId',
-    meta: { parent: '/tabs/trips', titleKey: 'nav.title.series' },
+    path: seriesPath(SERIES_ID_PARAM),
+    meta: { parent: PATH.trips, titleKey: 'nav.title.series' },
     name: 'series-profile',
     component: () => import('@/views/series/SeriesPage.vue'),
     props: true,
   },
   {
-    path: '/trips/:tripId/edit',
-    meta: { parent: '/trips/:tripId', titleKey: 'tripEdit.title' },
+    path: tripSubPath(TRIP_ID_PARAM, 'edit'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'tripEdit.title' },
     name: 'trip-edit',
     component: () => import('@/views/trips/TripEditPage.vue'),
     props: true,
   },
   {
-    path: '/trips/:tripId/clone',
-    meta: { parent: '/trips/:tripId', titleKey: 'trips.actionClone' },
+    path: tripSubPath(TRIP_ID_PARAM, 'clone'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'trips.actionClone' },
     name: 'trip-clone',
     component: () => import('@/views/trips/ClonePage.vue'),
     props: true,
   },
   {
-    path: '/trips/:tripId/review',
-    meta: { parent: '/trips/:tripId', titleKey: 'review.title' },
+    path: tripSubPath(TRIP_ID_PARAM, 'review'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'review.title' },
     name: 'trip-review',
     component: () => import('@/views/trips/ReviewPage.vue'),
     props: true,
   },
   {
-    path: '/trips/:tripId/template',
-    meta: { parent: '/trips/:tripId', titleKey: 'templateFromTrip.title' },
+    path: tripSubPath(TRIP_ID_PARAM, 'template'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'templateFromTrip.title' },
     name: 'trip-template',
     component: () => import('@/views/trips/TemplateFromTripPage.vue'),
     props: true,
   },
   {
-    path: '/trips/:tripId/analytics',
-    meta: { parent: '/trips/:tripId' },
+    path: tripSubPath(TRIP_ID_PARAM, 'analytics'),
+    meta: { parent: tripPath(TRIP_ID_PARAM) },
     name: 'trip-analytics',
     component: () => import('@/views/trips/AnalyticsPage.vue'),
     props: true,
   },
   {
-    path: '/trips/:tripId/containers',
-    meta: { parent: '/trips/:tripId', titleKey: 'container.title' },
+    path: tripSubPath(TRIP_ID_PARAM, 'containers'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'container.title' },
     name: 'trip-containers',
     component: () => import('@/views/trips/ContainerPage.vue'),
     props: true,
@@ -162,50 +175,50 @@ export const routes: RouteRecordRaw[] = [
     // The master partition's log belongs to no trip, so it is offered on
     // every screen and returns to the one it was opened from (ADR-011
     // amendment) — the same shape as the settings gear.
-    path: '/master/conflicts',
+    path: PATH.masterConflicts,
     name: 'master-conflicts',
-    meta: { parent: '/tabs/dashboard', acceptsFrom: true, titleKey: 'conflicts.titleMaster' },
+    meta: { parent: PATH.dashboard, acceptsFrom: true, titleKey: 'conflicts.titleMaster' },
     component: () => import('@/views/trips/ConflictLogPage.vue'),
   },
   {
     // M23 (FR-24.3). Like the master conflict log beside it, it belongs to
     // no one screen — a retire can start in M9 or in M7 — so it is offered
     // from Settings and returns where it was opened from (ADR-011 amendment).
-    path: '/master/retired',
+    path: PATH.masterRetired,
     name: 'master-retired',
-    meta: { parent: '/tabs/settings', acceptsFrom: true, titleKey: 'retired.title' },
+    meta: { parent: PATH.settings, acceptsFrom: true, titleKey: 'retired.title' },
     component: () => import('@/views/master/RetiredMasterPage.vue'),
   },
   {
-    path: '/trips/:tripId/conflicts',
-    meta: { parent: '/trips/:tripId', titleKey: 'conflicts.title' },
+    path: tripSubPath(TRIP_ID_PARAM, 'conflicts'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'conflicts.title' },
     name: 'trip-conflicts',
     component: () => import('@/views/trips/ConflictLogPage.vue'),
     props: true,
   },
   {
-    path: '/trips/:tripId/members',
-    meta: { parent: '/trips/:tripId', titleKey: 'members.title' },
+    path: tripSubPath(TRIP_ID_PARAM, 'members'),
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'members.title' },
     name: 'trip-members',
     component: () => import('@/views/trips/TripMembersPage.vue'),
     props: true,
   },
   {
-    path: '/admin',
-    meta: { parent: '/tabs/settings', acceptsFrom: true, titleKey: 'admin.title' },
+    path: PATH.admin,
+    meta: { parent: PATH.settings, acceptsFrom: true, titleKey: 'admin.title' },
     name: 'admin',
     component: () => import('@/views/settings/AdminPage.vue'),
   },
   {
-    path: '/trips/:tripId/shopping',
-    meta: { parent: '/trips/:tripId' },
+    path: tripSubPath(TRIP_ID_PARAM, 'shopping'),
+    meta: { parent: tripPath(TRIP_ID_PARAM) },
     name: 'trip-shopping',
     component: () => import('@/views/trips/ShoppingPage.vue'),
     props: true,
   },
   {
-    path: '/templates/:templateId',
-    meta: { parent: '/tabs/templates', titleKey: 'nav.title.template' },
+    path: templatePath(TEMPLATE_ID_PARAM),
+    meta: { parent: PATH.templates, titleKey: 'nav.title.template' },
     name: 'template-editor',
     component: () => import('@/views/templates/TemplateEditorPage.vue'),
     props: true,
@@ -214,14 +227,14 @@ export const routes: RouteRecordRaw[] = [
     // FR-24.5: creation is the editor in its minimal mode, so it is a route
     // rather than a prompt — and it must precede /items/:itemId, or "new"
     // would be read as an item id.
-    path: '/items/new',
-    meta: { parent: '/tabs/items', titleKey: 'nav.title.newItem' },
+    path: PATH.newItem,
+    meta: { parent: PATH.items, titleKey: 'nav.title.newItem' },
     name: 'item-create',
     component: () => import('@/views/items/ItemEditorPage.vue'),
   },
   {
-    path: '/items/:itemId',
-    meta: { parent: '/tabs/items', titleKey: 'nav.title.item' },
+    path: itemPath(ITEM_ID_PARAM),
+    meta: { parent: PATH.items, titleKey: 'nav.title.item' },
     name: 'item-editor',
     component: () => import('@/views/items/ItemEditorPage.vue'),
     props: true,
@@ -236,8 +249,8 @@ export const routes: RouteRecordRaw[] = [
  */
 if (import.meta.env.DEV) {
   routes.push({
-    path: '/dev/gallery',
-    meta: { parent: '/tabs/settings', acceptsFrom: true, titleKey: 'nav.title.gallery' },
+    path: PATH.devGallery,
+    meta: { parent: PATH.settings, acceptsFrom: true, titleKey: 'nav.title.gallery' },
     name: 'dev-gallery',
     component: () => import('@/dev/GalleryPage.vue'),
   })

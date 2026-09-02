@@ -55,6 +55,7 @@ import { UNTAGGED_KEY } from '@/domain/tags'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
 import type { MasterItem } from '@/types/domain'
+import { PATH, itemPath } from '@/router/paths'
 
 const store = useMasterStore()
 const router = useRouter()
@@ -130,7 +131,7 @@ function propertyLabel(key: InventoryProperty): string {
 function newItem() {
   // FR-24.5: creation is the editor in its minimal mode, not a prompt —
   // a name typed into an alert cannot carry tags or a weight.
-  router.push('/items/new')
+  router.push(PATH.newItem)
 }
 
 function handleRefresh(event: CustomEvent) {
@@ -185,7 +186,12 @@ function handleRefresh(event: CustomEvent) {
         <IonIcon :icon="cubeOutline" class="empty-icon" />
         <p>{{ t('items.empty') }}</p>
         <p class="empty-hint">{{ t('items.emptyHint') }}</p>
-        <IonButton fill="outline" size="small" router-link="/import" data-testid="m9-import">
+        <IonButton
+          fill="outline"
+          size="small"
+          :router-link="PATH.importSpreadsheet"
+          data-testid="m9-import"
+        >
           <IonIcon slot="start" :icon="cloudUploadOutline" />
           {{ t('items.importSpreadsheet') }}
         </IonButton>
@@ -208,7 +214,7 @@ function handleRefresh(event: CustomEvent) {
               :key="item.id"
               button
               :detail="false"
-              :router-link="`/items/${item.id}`"
+              :router-link="itemPath(item.id)"
               data-testid="m9-row"
             >
               <!-- FR-28.4: photo → mark → the tag initial. The inventory is

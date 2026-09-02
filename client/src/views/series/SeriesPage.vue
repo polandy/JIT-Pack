@@ -35,6 +35,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
 import { presentToast } from '@/lib/toast'
+import { PATH, tripPath, tripSubPath } from '@/router/paths'
 
 const props = defineProps<{ seriesId: string }>()
 
@@ -61,7 +62,7 @@ async function saveName(field: HTMLIonInputElement) {
   const taken = orchestrator.seriesNameCollision(name, current.id)
   if (taken) {
     field.value = current.name
-    await presentToast({ message: t('series.nameTaken', { name: taken.name }), duration: 3000 })
+    await presentToast({ message: t('series.nameTaken', { name: taken.name }) })
     return
   }
   orchestrator.updateSeries(current, { name })
@@ -277,7 +278,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             :key="trip.id"
             button
             :data-testid="`m16-trip-${trip.name}`"
-            :router-link="`/trips/${trip.id}`"
+            :router-link="tripPath(trip.id)"
           >
             <IonLabel>
               <h3>{{ trip.name }}</h3>
@@ -321,7 +322,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           <IonButton
             v-if="cloneSource"
             expand="block"
-            :router-link="`/trips/${cloneSource.id}/clone`"
+            :router-link="tripSubPath(cloneSource.id, 'clone')"
           >
             <IonIcon slot="start" :icon="copyOutline" />
             {{ t('series.clone', { name: cloneSource.name }) }}
@@ -330,7 +331,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             expand="block"
             :fill="cloneSource ? 'outline' : 'solid'"
             data-testid="m16-new-trip"
-            :router-link="`/trips/new?series=${seriesId}`"
+            :router-link="`${PATH.newTrip}?series=${seriesId}`"
           >
             {{ t('series.newTrip') }}
           </IonButton>
@@ -339,7 +340,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             expand="block"
             fill="outline"
             data-testid="m16-trends"
-            :router-link="`/trips/${trendTripId}/analytics`"
+            :router-link="tripSubPath(trendTripId, 'analytics')"
           >
             <IonIcon slot="start" :icon="trendingUpOutline" />
             {{ t('series.trends') }}

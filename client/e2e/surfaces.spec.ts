@@ -1,5 +1,6 @@
 import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * Surfaces (UI-Test-Spec §3, G-14; Addendum FR-21.8).
@@ -108,7 +109,7 @@ test('E2E-G14-03: rows inside a card keep a seam, and the last one does not @loc
   await page.setViewportSize(MOBILE)
   for (const name of ['Erste Reise', 'Zweite Reise', 'Dritte Reise']) {
     await createTripViaWizard(page, { name, travelers: ['Andy'] })
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
   }
   await page.getByTestId('trips-filter-planned').click({ force: true })
 
