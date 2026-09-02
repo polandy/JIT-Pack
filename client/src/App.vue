@@ -37,6 +37,7 @@ import { lastExportAt, markExported } from '@/local/exportReminder'
 import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
 import { saveText } from '@/lib/download'
 import { applyUpdate, swUpdateApplying, swUpdateDismissed, swUpdateReady } from '@/pwa/register'
+import { chooseMode as persistMode, readMode, type ClientMode } from '@/mode'
 import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
 import { useMasterStore } from '@/stores/masterStore'
@@ -44,14 +45,10 @@ import { useTripStore } from '@/stores/tripStore'
 import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-const MODE_KEY = 'jitpack_mode'
-const SERVER_URL_KEY = 'jitpack_server_url'
+const mode = ref(readMode())
 
-const mode = ref(localStorage.getItem(MODE_KEY) as 'local' | 'server' | null)
-
-function chooseMode(selected: 'local' | 'server', serverUrl: string | null) {
-  localStorage.setItem(MODE_KEY, selected)
-  if (serverUrl) localStorage.setItem(SERVER_URL_KEY, serverUrl)
+function chooseMode(selected: ClientMode, serverUrl: string | null) {
+  persistMode(selected, serverUrl)
   mode.value = selected
   // Clean re-init: the orchestrator is constructed once per app start.
   window.location.reload()

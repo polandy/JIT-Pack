@@ -51,6 +51,7 @@ import { computed, inject, onMounted, ref } from 'vue'
 import { EXPORT_REMINDER_DAYS, lastExportAt, reminderState } from '@/local/exportReminder'
 
 import { loadTokens } from '@/auth/tokens'
+import { hasCollaborativeSession, readMode } from '@/mode'
 import { serverBaseUrl } from '@/config'
 import type { NotificationPrefs } from '@/notifications/format'
 import { pushRegistered, pushSupported, registerPush, unregisterPush } from '@/notifications/push'
@@ -71,7 +72,7 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
 
-const mode = localStorage.getItem('jitpack_mode') as 'local' | 'server' | null
+const mode = readMode()
 /** OIDC session → profile is IdP-sourced and read-only (UI-Spec M17). */
 /**
  * The display name is IdP-sourced with an OIDC session, so editing it there
@@ -86,7 +87,7 @@ const nameEditable = mode === 'server' && !loadTokens()
  */
 const pictureEditable = mode === 'server'
 /** Multi-user instance → notifications exist (FR-17.3/FR-19.3 hide them otherwise). */
-const collaborative = mode === 'server' && !!loadTokens()
+const collaborative = hasCollaborativeSession()
 
 const me = ref<MeResponse | null>(null)
 const nameDraft = ref('')
