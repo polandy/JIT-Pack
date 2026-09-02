@@ -5,6 +5,7 @@ import {
   createMasterItem,
   openQuickAdd,
   visiblePage,
+  useReducedMotion,
 } from './fixtures'
 import { assignTraveler, chooseInRowMenu, openRowMenu, tripWithRows } from './helpers/m4'
 
@@ -24,7 +25,7 @@ import { assignTraveler, chooseInRowMenu, openRowMenu, tripWithRows } from './he
  * production code takes its own no-motion path, so what is asserted is the
  * outcome rather than the length of a transition.
  */
-test.use({ reducedMotion: 'reduce' })
+useReducedMotion(test)
 
 // E2E-M4-37 (FR-5.5): the row can be told to stay at home, and it says so.
 test('E2E-M4-37: a row can be marked deliberately not packed @local @m4', async ({

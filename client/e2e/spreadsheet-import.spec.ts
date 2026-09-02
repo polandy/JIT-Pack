@@ -1,11 +1,4 @@
-import {
-  test,
-  expect,
-  seed,
-  visiblePage,
-  createTripViaWizard,
-  chooseInSelect,
-} from './fixtures'
+import { test, expect, seed, visiblePage, createTripViaWizard, chooseInSelect } from './fixtures'
 import { PATH } from './routes'
 
 /**

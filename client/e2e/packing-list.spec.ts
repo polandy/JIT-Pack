@@ -9,6 +9,7 @@ import {
   createMasterItem,
   chooseInSelect,
   visiblePage as visible,
+  useReducedMotion,
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -759,7 +760,7 @@ test.describe('M4 packing list @local @m4', () => {
  * that turns off the thing it should be watching.
  */
 test.describe('M4 packing list — scroll memory @local @m4', () => {
-  test.use({ reducedMotion: 'reduce' })
+  useReducedMotion(test)
 
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })

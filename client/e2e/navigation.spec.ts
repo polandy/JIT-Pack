@@ -45,7 +45,10 @@ test('E2E-G9-03: a drill-down carries one header bar with back and title @local 
 })
 
 // E2E-G9-04: a tab root shows the logo and offers no back.
-test('E2E-G9-04: a tab root shows the logo instead of back @local @g9', async ({ page, seedMode }) => {
+test('E2E-G9-04: a tab root shows the logo instead of back @local @g9', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local' })
   await page.goto(PATH.trips)
 
@@ -115,7 +118,10 @@ test('E2E-G9-07: sync and settings stay present on a drill-down @local @g9', asy
 // else in this file exercises entering through the list, which is how
 // most navigation actually happens and the only path that reaches
 // Ionic's cross-outlet transition.
-test('E2E-G9-08: list → trip → back returns to the trip list @local @g9', async ({ page, seedMode }) => {
+test('E2E-G9-08: list → trip → back returns to the trip list @local @g9', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local' })
   const errors = collectPageErrors(page)
   await createTripViaWizard(page, {

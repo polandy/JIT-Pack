@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+import { installHarness } from '@/__tests__/harness'
 import { useAuth } from '../useAuth'
 
 describe('useAuth — Single-User Mode', () => {
@@ -14,8 +16,7 @@ describe('useAuth — OIDC Mode', () => {
   let fetchSpy: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    fetchSpy = vi.fn()
-    vi.stubGlobal('fetch', fetchSpy)
+    fetchSpy = installHarness().fetch
   })
 
   afterEach(() => {

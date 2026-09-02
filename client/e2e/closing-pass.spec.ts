@@ -1,4 +1,11 @@
-import { test, expect, tripAction, expectTripActionOffered, visiblePage } from './fixtures'
+import {
+  test,
+  expect,
+  tripAction,
+  expectTripActionOffered,
+  visiblePage,
+  useReducedMotion,
+} from './fixtures'
 import { chooseInRowMenu, openRowMenu, packRow, startTrip, tripWithRows } from './helpers/m4'
 
 /**
@@ -16,7 +23,7 @@ import { chooseInRowMenu, openRowMenu, packRow, startTrip, tripWithRows } from '
  * takes its own no-motion path, so what is asserted is the outcome rather
  * than the length of a transition.
  */
-test.use({ reducedMotion: 'reduce' })
+useReducedMotion(test)
 
 test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
   test.slow()

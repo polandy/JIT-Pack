@@ -393,9 +393,9 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     // Grouped by category — the row sits *inside* its group, which is the
     // assertion the promise makes; two rows on one screen prove nothing about
     // where they sit.
-    await expect(
-      m6(page).getByTestId('m6-group-Drogerie').getByTestId('m6-row'),
-    ).toContainText('Sonnencreme')
+    await expect(m6(page).getByTestId('m6-group-Drogerie').getByTestId('m6-row')).toContainText(
+      'Sonnencreme',
+    )
     await expect(m6(page).getByTestId('m6-group-none').getByTestId('m6-row')).toContainText(
       'Batterien',
     )
@@ -431,4 +431,3 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await expect(visible(page).getByTestId('m4-nav-shopping').locator('ion-badge')).toHaveText('1')
   })
 })
-

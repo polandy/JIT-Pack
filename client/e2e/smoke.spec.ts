@@ -89,7 +89,10 @@ test('E2E-M19-01: choosing Local Mode persists the choice, asks to keep the data
 
 // E2E-G7-01 / M1 (Local): a seeded Local Mode boots straight into the
 // Dashboard, whose empty state offers the single "Plan a trip" CTA.
-test('E2E-G7-01: M1: local mode boots into an empty dashboard @smoke @local', async ({ page, seedMode }) => {
+test('E2E-G7-01: M1: local mode boots into an empty dashboard @smoke @local', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local' })
   await page.goto('/')
 

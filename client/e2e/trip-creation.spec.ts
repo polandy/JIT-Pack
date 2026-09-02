@@ -138,7 +138,10 @@ test('E2E-M3-03: step 2 requires every added traveler to be named @local @m3', a
 // E2E-M3-05 (FR-17.3/FR-19.3/G-8): Local Mode has no second account, so
 // the sharing part of step 2 must not render at all — a mode may hide a
 // control, never show one that cannot work.
-test('E2E-M3-05: local mode hides the sharing section @local @m3 @g8', async ({ page, seedMode }) => {
+test('E2E-M3-05: local mode hides the sharing section @local @m3 @g8', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local' })
   await page.goto(PATH.newTrip)
 

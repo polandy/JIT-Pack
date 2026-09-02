@@ -1,4 +1,11 @@
-import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+  visiblePage,
+  useReducedMotion,
+} from './fixtures'
 import type { Page } from '@playwright/test'
 import { openRowMenu } from './helpers/m4'
 
@@ -16,7 +23,7 @@ import { openRowMenu } from './helpers/m4'
  * 2026-08-23), so both behaviours run here with no server in the way. What
  * a *second* device sees of a claim is E2E-FLOW-01's business.
  */
-test.use({ reducedMotion: 'reduce' })
+useReducedMotion(test)
 
 async function tripWithRow(page: Page, name: string) {
   await createTripViaWizard(page, { name: 'Sperrprobe', travelers: ['Andy'] })

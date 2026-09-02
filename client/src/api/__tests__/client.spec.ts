@@ -3,13 +3,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { APIClient, APIRequestError } from '../client'
 import { AUTH_EXPIRED_EVENT } from '@/auth/refresh'
 import { saveTokens, loadTokens } from '@/auth/tokens'
+import { installHarness } from '@/__tests__/harness'
 
 describe('APIClient', () => {
   let fetchSpy: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    fetchSpy = vi.fn()
-    vi.stubGlobal('fetch', fetchSpy)
+    fetchSpy = installHarness().fetch
   })
 
   afterEach(() => {
