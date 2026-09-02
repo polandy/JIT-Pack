@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { reminderState, EXPORT_REMINDER_DAYS } from '../exportReminder'
+import { backupCoversDevice, reminderState, EXPORT_REMINDER_DAYS } from '../exportReminder'
 
 // NFR-4.11: in Local Mode the portable YAML export is the only backup, so
 // the app nudges the user when it has been too long (or never).
@@ -40,5 +40,29 @@ describe('reminderState', () => {
       lastAt: now + 5_000,
       daysSince: 0,
     })
+  })
+})
+
+/**
+ * FR-19.8: the switch off Local Mode is allowed only while the backup is at
+ * least as new as the last write — an edit after the backup closes it again.
+ */
+describe('backupCoversDevice', () => {
+  it('holds a device that never wrote to nothing', () => {
+    expect(backupCoversDevice(null, null)).toBe(true)
+    expect(backupCoversDevice(now, null)).toBe(true)
+  })
+
+  it('refuses a device that wrote and never backed up', () => {
+    expect(backupCoversDevice(null, now)).toBe(false)
+  })
+
+  it('is covered when the backup is newer than the last write, and at the same instant', () => {
+    expect(backupCoversDevice(now, now - 1)).toBe(true)
+    expect(backupCoversDevice(now, now)).toBe(true)
+  })
+
+  it('is uncovered the moment a write lands after the backup', () => {
+    expect(backupCoversDevice(now, now + 1)).toBe(false)
   })
 })

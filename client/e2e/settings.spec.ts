@@ -1,4 +1,5 @@
 import { test, expect, seed, createTripViaWizard } from './fixtures'
+import { quickAddItem } from './serverMode'
 import type { Page } from '@playwright/test'
 
 /**
@@ -126,5 +127,42 @@ test.describe('M17 device settings @local @m17', () => {
     await expect(visible(page).getByTestId('settings-backup-reminder')).toContainText(
       'Last backup was 40 days ago',
     )
+  })
+
+  /**
+   * E2E-M17-14b (FR-19.8, ADR-045): the guard on the switch, both directions.
+   * A guard that only ever enables is a delay, not a rule — so the case takes
+   * it closed → open → closed again, with a write in between that happened on
+   * another screen. The walk itself is E2E-M17-14, in the `single` project.
+   */
+  test('E2E-M17-14b: the switch is refused until the backup covers the device, and refused again after a write', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Bergell' })
+    await page.goto('/tabs/settings')
+    const card = visible(page).getByTestId('settings-move-card')
+    await expect(card).toBeVisible()
+
+    // Closed: the trip is newer than any backup, and the card says so.
+    await expect(card.getByTestId('settings-move-guard')).toBeVisible()
+    await expect(card.getByTestId('settings-move-switch')).toHaveAttribute('disabled', '')
+
+    const downloadPromise = page.waitForEvent('download')
+    await card.getByTestId('settings-move-backup').click()
+    expect((await downloadPromise).suggestedFilename()).toMatch(/^jitpack-backup-.*\.yaml$/)
+
+    // Open: the card's own backup is what enables it.
+    await expect(card.getByTestId('settings-move-guard')).toHaveCount(0)
+    await expect(card.getByTestId('settings-move-switch')).not.toHaveAttribute('disabled')
+
+    // Closed again: a write on M4, stamped by the orchestrator, and M17 reads
+    // it on re-entry (the same trigger the reminder uses).
+    await page.goto('/tabs/trips')
+    await visible(page).getByTestId('trip-row-Bergell').click()
+    await quickAddItem(page, 'Regenjacke')
+    await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
+    await reenterSettings(page)
+    await expect(card.getByTestId('settings-move-guard')).toBeVisible()
+    await expect(card.getByTestId('settings-move-switch')).toHaveAttribute('disabled', '')
   })
 })

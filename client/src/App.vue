@@ -12,10 +12,11 @@
 import { API } from '@/api/routes'
 import type { InstanceConfigResponse } from '@/api/types'
 import { setCurrency } from '@/lib/currency'
-import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
+import { IonApp, IonRouterOutlet, alertController, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
+import MigrationBanner from '@/components/global/MigrationBanner.vue'
 import UpdateBanner from '@/components/global/UpdateBanner.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { createAuthRefresher, onSessionEnded } from '@/auth/refresh'
@@ -32,26 +33,51 @@ import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SyncDetailSheet from '@/components/global/SyncDetailSheet.vue'
-import { backupFilename, buildBackup } from '@/local/backup'
-import { lastExportAt, markExported } from '@/local/exportReminder'
+import { useDeviceBackup } from '@/composables/useDeviceBackup'
+import { lastExportAt } from '@/local/exportReminder'
 import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
-import { saveText } from '@/lib/download'
 import { applyUpdate, swUpdateApplying, swUpdateDismissed, swUpdateReady } from '@/pwa/register'
+import {
+  chooseMode as persistMode,
+  clearMigrationPending,
+  loadMigrationPending,
+  migrationPending,
+  readMode,
+  type ClientMode,
+} from '@/mode'
 import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
-import { useMasterStore } from '@/stores/masterStore'
-import { useTripStore } from '@/stores/tripStore'
 import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-const MODE_KEY = 'jitpack_mode'
-const SERVER_URL_KEY = 'jitpack_server_url'
+const mode = ref(readMode())
+// FR-19.8: only the switch off Local Mode sets this, so only a server client
+// can have it to read.
+if (mode.value === 'server') loadMigrationPending()
 
-const mode = ref(localStorage.getItem(MODE_KEY) as 'local' | 'server' | null)
+/** Step 3 of the move: M18's restore branch, reached from the bar. */
+function restoreMigration() {
+  router.push('/portable-import')
+}
 
-function chooseMode(selected: 'local' | 'server', serverUrl: string | null) {
-  localStorage.setItem(MODE_KEY, selected)
-  if (serverUrl) localStorage.setItem(SERVER_URL_KEY, serverUrl)
+/** A fresh start is a legitimate outcome — confirmed once, then the bar is gone for good. */
+async function skipMigration() {
+  const alert = await alertController.create({
+    header: t('migration.skipConfirm.title'),
+    message: t('migration.skipConfirm.body'),
+    buttons: [
+      { text: t('common.cancel'), role: 'cancel' },
+      { text: t('migration.skipConfirm.confirm'), role: 'confirm' },
+    ],
+  })
+  await alert.present()
+  const { role } = await alert.onDidDismiss()
+  if (role !== 'confirm') return
+  clearMigrationPending()
+}
+
+function chooseMode(selected: ClientMode, serverUrl: string | null) {
+  persistMode(selected, serverUrl)
   mode.value = selected
   // Clean re-init: the orchestrator is constructed once per app start.
   window.location.reload()
@@ -260,49 +286,14 @@ function openMasterConflicts() {
   router.push('/master/conflicts')
 }
 
-const masterStore = useMasterStore()
-const tripStore = useTripStore()
+const { hasBackupContent, saveBackup: writeDeviceBackup } = useDeviceBackup()
 
-/** Whether a backup would contain anything (NFR-4.11). */
-const hasBackupContent = computed(
-  () => masterStore.templateList.length > 0 || tripStore.tripList.length > 0,
-)
-
-/** FR-19.6's one-tap backup: the whole device as one portable file. */
+/** FR-19.6's one-tap backup from the G-2 sheet; the file is the composable's. */
 async function saveBackup() {
-  const now = Date.now()
-  const yaml = buildBackup({
-    templates: masterStore.templateList.map((template) => ({
-      template,
-      items: masterStore.getTemplateItems(template.id),
-    })),
-    trips: tripStore.tripList.map((trip) => ({
-      trip,
-      items: tripStore.getItems(trip.id),
-      travelers: tripStore.getTravelers(trip.id),
-      containers: tripStore.getContainers(trip.id),
-      // FR-27.4: how the trip follows its groups travels with it, or a
-      // restored device starts asking questions the user already answered.
-      sources: tripStore.getTemplateSources(trip.id),
-      generated: tripStore.getGeneratedPositions(trip.id),
-      appliedChanges: tripStore.getAppliedChanges(trip.id),
-    })),
-    ...masterStore.portableResolvers(),
-    template: (id) => masterStore.getTemplate(id),
-    composition: masterStore.compositionSource(),
-  })
-  const filename = backupFilename(now)
-  saveText(yaml, filename)
-  markExported(now)
+  const now = await writeDeviceBackup()
   lastExport.value = now
   // The sheet's clock advances with the write it is describing.
   detailNow.value = now
-  const toast = await toastController.create({
-    message: t('sync.detail.backupSaved', { file: filename }),
-    duration: 4000,
-    position: 'top',
-  })
-  await toast.present()
 }
 </script>
 
@@ -328,6 +319,12 @@ async function saveBackup() {
         :applying="swUpdateApplying"
         @apply="applyUpdate()"
         @later="swUpdateDismissed = true"
+      />
+      <!-- FR-19.8: step three of the move, until the restore commits or is declined. -->
+      <MigrationBanner
+        v-if="mode === 'server' && migrationPending"
+        @restore="restoreMigration"
+        @skip="skipMigration"
       />
       <div class="app-body">
         <NavRail />

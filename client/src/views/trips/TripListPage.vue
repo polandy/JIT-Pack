@@ -51,7 +51,7 @@ import {
   type ComponentPublicInstance,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { loadTokens } from '@/auth/tokens'
+import { hasCollaborativeSession } from '@/mode'
 import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import {
@@ -369,7 +369,7 @@ const router = useRouter()
 
 // Share is omitted without an OIDC session — Single-User and Local
 // Mode have no second account to share with (FR-17.3/FR-19.3/G-8).
-const collaborative = localStorage.getItem('jitpack_mode') === 'server' && !!loadTokens()
+const collaborative = hasCollaborativeSession()
 
 // Delete is Owner-only (destructive, FR-4.5). Outside collaborative mode
 // there is a single account that owns everything, so it's always allowed;

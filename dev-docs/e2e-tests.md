@@ -363,7 +363,8 @@ Two things this unit still does *not* cover, both by decision:
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
-| M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08 | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
+| M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08, **E2E-M17-14b** (FR-19.8's guard, both directions, since 2026-09-02) | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
+| M17 leaving Local Mode (FR-19.8, ADR-045) | **E2E-M17-14** (the whole move on one device, read back from the server), **E2E-M17-14c** (skip is not restore) — both since 2026-09-02 | `single` | [`single/leave-local-mode.spec.ts`](../client/e2e/single/leave-local-mode.spec.ts) |
 | M17 data export under a session (NFR-4.5) | E2E-M17-03 **/ E2E-NFR-05** | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
 
 **Why E2E-M7-06 stopped being partial (2026-08-30).** The case asks for an
@@ -3941,9 +3942,12 @@ Three things came out of writing it.
   restriction and is in fact the entire implementation. The case therefore
   models the migration the way a user can actually perform it: the file plus a
   device that is already in server mode (a second device, or a reinstall).
-  **Open owner decision**, deliberately untested: either M17 grows the
-  three-step move (back up → switch → restore) or FR-19.1/FLOW-07 say plainly
-  that the migration is device-to-device.
+  **Ruled 2026-09-02 (owner): M17 grows the three-step move** — FR-19.8,
+  ADR-045, E2E-M17-14/14b/14c. The switch is a function of two device-local
+  stamps (the last backup, the last Local Mode write), so it cannot happen
+  before a backup that covers the device; a bar in the FR-19.7 shape carries
+  the restore after the reload. This case keeps the third-device assertion,
+  which is still the only witness that a restore reached the server.
 - **The defect it found: a restore pushed the master partition and nothing
   else.** `commitPortableRestore` called `drainAfterImport(null)`, whose trip
   half is reached only with a trip id — the single-document import's — so every

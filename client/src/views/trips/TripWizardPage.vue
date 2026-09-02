@@ -40,7 +40,7 @@ import {
 import { computed, inject, onMounted, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { loadTokens } from '@/auth/tokens'
+import { hasCollaborativeSession } from '@/mode'
 import DateField from '@/components/global/DateField.vue'
 import { t, formatDay, formatDayRange } from '@/i18n'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
@@ -153,8 +153,7 @@ function removeTraveler(index: number) {
 }
 
 // --- Step 2: sharing & roles (FR-4.5/4.7) ---
-const mode = localStorage.getItem('jitpack_mode') as 'local' | 'server' | null
-const collaborative = mode === 'server' && !!loadTokens()
+const collaborative = hasCollaborativeSession()
 
 const directory = ref<DirectoryUser[]>([])
 const myUserId = ref<string | null>(null)

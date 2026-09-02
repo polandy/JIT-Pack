@@ -1,3 +1,5 @@
+import { SERVER_URL_KEY } from '@/mode'
+
 /** Fallback for the Vite dev server, where the SPA and the API split origins. */
 const DEV_API_URL = 'http://localhost:8080'
 
@@ -23,5 +25,5 @@ export function defaultServerBaseUrl(): string {
 
 /** Server base URL: the M19 choice wins over the build-time default. */
 export function serverBaseUrl(): string {
-  return localStorage.getItem('jitpack_server_url') ?? defaultServerBaseUrl()
+  return localStorage.getItem(SERVER_URL_KEY) ?? defaultServerBaseUrl()
 }

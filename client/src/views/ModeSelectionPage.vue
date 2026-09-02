@@ -24,6 +24,7 @@ import { phonePortraitOutline, serverOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 import BrandMark from '@/components/global/BrandMark.vue'
 import { defaultServerBaseUrl } from '@/config'
+import { isValidServerUrl } from '@/mode'
 import { t } from '@/i18n'
 
 const emit = defineEmits<{
@@ -33,14 +34,7 @@ const emit = defineEmits<{
 // Pre-filled rather than merely placeheld — see defaultServerBaseUrl().
 const serverUrl = ref(defaultServerBaseUrl())
 
-const serverUrlValid = computed(() => {
-  try {
-    const url = new URL(serverUrl.value)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
-  }
-})
+const serverUrlValid = computed(() => isValidServerUrl(serverUrl.value))
 </script>
 
 <template>

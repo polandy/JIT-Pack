@@ -67,9 +67,27 @@ declined is not offered again. A trip restored from an older backup file — one
 before this existed — starts following its groups from scratch instead, so it may ask
 again about a change you have already answered.
 
-The same file is how you move to a server instance: point the app at the server, then
-import the backup there through the same screen. You can also feed it in from a shell with
-the [import command](#importing-yaml-from-the-command-line) below.
+### Moving to a server
+
+The same file is how you move to a server instance, and the app walks you through it on
+the **Settings** screen, in the card *Move to a server* at the end of the data section:
+
+1. **Download a backup.** The same whole-device file as the status glyph's.
+2. **Connect to a server.** The field is pre-filled with the address the app is running
+   from, which is the right one for a self-hosted instance. The button stays disabled — and
+   says why — while anything on the device is newer than the last backup, so take the
+   backup right before you switch. Confirming reloads the app in Server Mode; on an
+   instance with login you sign in first.
+3. **Restore the backup.** A bar under the app bar asks you to finish the move: *Restore*
+   opens the import screen for the file from step 1, and once it is imported the bar is
+   gone. *Skip* is for starting fresh on the server — the app asks once, and your data
+   then lives only in the file.
+
+The data in the browser is left where it was. Server Mode never reads it, so it cannot get
+mixed up with what is on the server; it simply stays until you clear the site's data.
+
+You can also feed the file in from a shell with the
+[import command](#importing-yaml-from-the-command-line) below.
 
 !!! warning "The device is the only copy"
     Nothing syncs anywhere in Local Mode. A cleared browser profile, a reset device or a

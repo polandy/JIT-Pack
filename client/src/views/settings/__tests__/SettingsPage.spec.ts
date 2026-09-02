@@ -152,3 +152,36 @@ describe('M17 profile with an OIDC session (FR-17.13)', () => {
     expect(note.text()).not.toContain('identity provider')
   })
 })
+
+/**
+ * FR-19.8 / G-8 — the move off Local Mode is offered in Local Mode and
+ * nowhere else. The e2e projects cannot render the absence (`local` has no
+ * Server Mode M17 and `single` no Local Mode one), so it lives here.
+ */
+describe('M17 leaving Local Mode (FR-19.8)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    setLocale('en')
+  })
+
+  it('offers the three-step move in Local Mode', async () => {
+    localStorage.setItem('jitpack_mode', 'local')
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="settings-move-card"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Move to a server')
+  })
+
+  it('offers nothing of the kind on a server client', async () => {
+    localStorage.setItem('jitpack_mode', 'server')
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="settings-move-card"]').exists()).toBe(false)
+  })
+})

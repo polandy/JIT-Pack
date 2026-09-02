@@ -10,6 +10,8 @@
  */
 
 import { API } from '@/api/routes'
+import { markLocalWrite } from '@/local/exportReminder'
+import { clearMigrationPending } from '@/mode'
 import { t } from '@/i18n'
 import { TABLE } from '@/types/tables'
 import { computed, reactive, ref } from 'vue'
@@ -177,6 +179,11 @@ export interface SyncOrchestratorConfig {
    * to IndexedDB, and Local Mode never builds one — it has no outbox.
    */
   outboxStore?: OutboxStore
+  /**
+   * Called once per Local Mode write that lands after hydration (FR-19.8's
+   * last-write stamp). Injected so a test can count the calls.
+   */
+  onLocalWrite?: () => void
 }
 
 /**
@@ -352,6 +359,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // Local Mode never pushes, so it never queues — building a store there
   // would create a database that nothing ever writes to.
   const outboxStore = local ? null : (config.outboxStore ?? new IndexedDBOutboxStore())
+  const onLocalWrite = config.onLocalWrite ?? markLocalWrite
 
   const outbox = new SyncOutbox(client, hlc, onPullChanges, {
     store: outboxStore ?? undefined,
@@ -452,6 +460,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // told the user it was safe while the transaction was still open,
     // and a reload in that window lost the row.
     if (local && changes.length > 0) {
+      // FR-19.8: the startup load passes through here too, and re-saving what
+      // was already on the device is not a change the backup could miss.
+      if (localHydrated.value) onLocalWrite()
       localWrites += 1
       localUncaptured.value += 1
       syncStatus.setSyncing()
@@ -1147,6 +1158,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   /** Restore a whole backup file (NFR-4.11), then push what it produced. */
   function commitPortableRestore(docs: PortableDocument[]): PortableImportResult[] {
     const imported = importPortableBackup(docs, portableImportEnv())
+    // FR-19.8: a restore onto a server is the third step of the move; in
+    // Local Mode there is no move to finish.
+    if (!local) clearMigrationPending()
     // Every trip the file brought, not none of them: a restore is the whole
     // device, and its rows live in one partition per trip (FR-19.5).
     drainAfterImport(imported.filter((r) => r.kind === 'trip').map((r) => r.id))
