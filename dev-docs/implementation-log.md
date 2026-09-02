@@ -11170,3 +11170,15 @@ literals equal, the technique ADR-037 used for the notification templates. The
 same test asserts `skipWaiting()` is absent from the `install` handler: the one
 line of ADR-019 this change must not accidentally repeal is now checked by a
 unit test rather than by remembering.
+
+**An absence the fixture could not keep (review, 2026-09-02).** The first
+draft of E2E-PWA-05 ended on the bar and the dot being *gone* after the reload,
+and called that its settled state. Measured in the container, the dot comes
+back: the relaunched app registers `/sw.js` again, which in a fixture that
+manufactures versions by changing the script URL is a *third* URL on the scope,
+so the browser installs it as a fresh waiting worker. The assertion was green
+only because it ran before that install landed — the no-timing rule broken
+from the other side, an absence checked early rather than a presence waited
+for. PWA-04's closing line, one day older, had the same shape. Both cases now
+end on the positive signals (the reload marker, the controller) and say what
+they do not assert and why.

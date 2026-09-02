@@ -1300,9 +1300,16 @@ the worker is identical in every engine.
   press is what changes that — and neither can stand in for the other, which is
   the point worth carrying: deleting the worker's `message` handler leaves
   PWA-04 green, and moving `skipWaiting()` back into `install` leaves PWA-05
-  green. PWA-05's settled state is the bar and the dot being **gone**, which is
-  reached only once the app has come back up with nothing waiting behind it, so
-  nothing here waits on a duration. 05b exists because *Später* could otherwise
+  green. PWA-05's settled state is the **reload** — a `window` marker no reload
+  survives, then the controller of the page that came up — so nothing here waits
+  on a duration. Its first draft asserted the bar and the dot *gone* after the
+  reload instead, and that was green only by being early: the relaunched app
+  registers `/sw.js` again, a *third* script URL in this fixture, which installs
+  as a new waiting worker and brings the dot back (measured 2026-09-02, and
+  PWA-04's closing assertion had the same shape — both dropped). **A fixture
+  that produces a version by changing the script URL produces another one
+  every time the app boots**, so „nothing is announced" cannot be asserted in
+  that world. 05b exists because *Später* could otherwise
   be wired to the same handler as the press with every other assertion staying
   green: it asserts the old worker is still the controller and the offer is
   still on the dot and in the sheet.

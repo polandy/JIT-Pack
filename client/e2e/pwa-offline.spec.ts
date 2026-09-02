@@ -292,8 +292,9 @@ test.describe('app shell offline (NFR-4.13)', () => {
       return reg.active?.scriptURL ?? null
     })
     expect(active).toContain('e2e-update=1')
-    // …and the relaunched app says nothing about an update any more.
-    await expect(relaunched.getByTestId('sync-indicator-update')).toHaveCount(0)
+    // Not asserted: that the relaunched app announces nothing. It re-registers
+    // `/sw.js`, a third script URL in this fixture, which installs as a new
+    // waiting worker and brings the dot back — see E2E-PWA-05 for the measurement.
   })
 
   /**
@@ -339,17 +340,21 @@ test.describe('app shell offline (NFR-4.13)', () => {
 
     await page.getByTestId('update-banner-apply').click()
 
-    // Settled state, not a wait: the bar is gone only once the app has come
-    // back up with no worker waiting behind it.
-    await expect(banner).toHaveCount(0)
-    await expect(page.getByTestId('sync-indicator-update')).toHaveCount(0)
-
-    const after = await page.evaluate(() => ({
-      alive: (window as unknown as { __jitpackAlive?: boolean }).__jitpackAlive === true,
-      controller: navigator.serviceWorker.controller?.scriptURL ?? null,
-    }))
-    expect(after.alive).toBe(false)
-    expect(after.controller).toContain('e2e-update=2')
+    // The settled state is the *reload*, read off the marker: the page that
+    // pressed is gone, and the one that replaced it is driven by the new
+    // script. Deliberately not "the bar and the dot are gone": the relaunched
+    // app registers `/sw.js` again, which in this fixture is a *third* script
+    // URL on the scope, so the browser installs it as a fresh waiting worker
+    // and the announcement comes back a moment later (measured 2026-09-02).
+    // An absence asserted in that window is green only by being early.
+    await page.waitForFunction(
+      () => (window as unknown as { __jitpackAlive?: boolean }).__jitpackAlive !== true,
+    )
+    await expect(visiblePage(page)).toBeVisible()
+    const controller = await page.evaluate(
+      () => navigator.serviceWorker.controller?.scriptURL ?? null,
+    )
+    expect(controller).toContain('e2e-update=2')
   })
 
   /**
