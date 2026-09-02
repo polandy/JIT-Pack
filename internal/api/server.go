@@ -397,7 +397,7 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 		// client produces should get.
 		delete(m.Fields, "author_id")
 		if m.Op == syncpkg.OpInsert {
-			setMutationField(m, "author_id", userID)
+			m.Set("author_id", userID)
 		}
 	case store.TableTripItems:
 		// FR-25.19: packer_user_id is the *assignment* and belongs to the
@@ -427,27 +427,27 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 		claimed, _ := m.Fields["packing_now_at"].(string)
 		delete(m.Fields, "packing_now_at")
 
-		state, hasState := m.Fields["state"].(string)
+		state, hasState := m.Fields[syncpkg.FieldState].(string)
 		switch {
-		case state == store.StatePackingNow:
-			setMutationField(m, "packing_now_by", userID)
-			setMutationField(m, "packing_now_at", tapTime(claimed))
-			setMutationField(m, "packed_by_user_id", nil)
-			setMutationField(m, "packed_at", nil)
-		case state == "packed":
-			setMutationField(m, "packing_now_by", nil)
-			setMutationField(m, "packing_now_at", nil)
-			setMutationField(m, "packed_by_user_id", userID)
-			setMutationField(m, "packed_at", tapTime(tapped))
+		case state == syncpkg.StatePackingNow:
+			m.Set("packing_now_by", userID)
+			m.Set("packing_now_at", tapTime(claimed))
+			m.Set("packed_by_user_id", nil)
+			m.Set("packed_at", nil)
+		case state == syncpkg.StatePacked:
+			m.Set("packing_now_by", nil)
+			m.Set("packing_now_at", nil)
+			m.Set("packed_by_user_id", userID)
+			m.Set("packed_at", tapTime(tapped))
 		case hasState:
 			// Un-packed in any way (open, partial, skipped): both stamps
 			// are cleared with the state they described (FR-25.17/FR-5.3),
 			// never left to outlive it. The client used to null the claim
 			// itself; a released claim may not depend on it doing so.
-			setMutationField(m, "packing_now_by", nil)
-			setMutationField(m, "packing_now_at", nil)
-			setMutationField(m, "packed_by_user_id", nil)
-			setMutationField(m, "packed_at", nil)
+			m.Set("packing_now_by", nil)
+			m.Set("packing_now_at", nil)
+			m.Set("packed_by_user_id", nil)
+			m.Set("packed_at", nil)
 		}
 	}
 }
@@ -462,13 +462,6 @@ func tapTime(tapped string) string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
-func setMutationField(m *syncpkg.Mutation, field string, value any) {
-	if m.Fields == nil {
-		m.Fields = map[string]any{}
-	}
-	m.Fields[field] = value
-}
-
 // notifyLockEvents emits item.locked/item.unlocked for state changes
 // that touched packing_now. Over-notifying on merges is fine — the
 // events are ephemeral hints, clients converge via pull (§7).
@@ -477,15 +470,15 @@ func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation
 		if i >= len(results) || m.Table != store.TableTripItems {
 			continue
 		}
-		if results[i].Outcome != "applied" && results[i].Outcome != "merged" {
+		if results[i].Outcome != OutcomeApplied && results[i].Outcome != OutcomeMerged {
 			continue
 		}
-		state, ok := m.Fields["state"].(string)
+		state, ok := m.Fields[syncpkg.FieldState].(string)
 		if !ok {
 			continue
 		}
 		name, _ := m.Fields["name"].(string)
-		if state == store.StatePackingNow {
+		if state == syncpkg.StatePackingNow {
 			s.hub.NotifyItemLocked(tripID, m.ID, userID, name)
 		} else {
 			s.hub.NotifyItemUnlocked(tripID, m.ID, userID, name)
