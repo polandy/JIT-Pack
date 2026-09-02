@@ -151,6 +151,33 @@ items:
     expect(new Set(tripRows.map((r) => r.tripId))).toEqual(new Set([result.id]))
   })
 
+  // FR-25.11j: the restored row keeps the list it was bought from, or the
+  // shopping side no longer knows it was bought and the undo has nothing to
+  // put back. Asserted on the row the importer writes, beside the count it
+  // already carried.
+  it('restores which shopping list a row was bought from (FR-25.11j)', () => {
+    const { env, recorded } = fakeEnv()
+    const doc = parse(`kind: trip
+name: Cannobio
+year: 2024
+items:
+  - name: Kaffee
+    quantity: 1
+    mode: pack
+    bought_from: buy_before
+  - name: Zelt
+    quantity: 1
+    mode: pack
+`)
+
+    importPortableDocument(doc, new Map(), env)
+
+    expect(rowsFor(recorded, TABLE.tripItems)).toEqual([
+      expect.objectContaining({ name: 'Kaffee', mode: 'pack', bought_from: 'buy_before' }),
+      expect.objectContaining({ name: 'Zelt', mode: 'pack', bought_from: null }),
+    ])
+  })
+
   it('matches a later document against the items an earlier one just created', () => {
     const { env, recorded } = fakeEnv()
     const template = parse(`kind: template
