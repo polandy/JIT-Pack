@@ -22,7 +22,7 @@
   * *Unit* — merge algorithm, HLC, instantiation/dedup: pure functions, no I/O, exhaustive cases.
   * *Integration* — repositories and sync endpoints against a **real in-memory SQLite** (`:memory:`), never mocks of the database.
   * *End-to-end* — the walking-skeleton scenario: two simulated clients, concurrent offline edits, convergence per NFR-4.2a.
-* **Coverage target:** ≥ 90 % for `internal/sync` and `internal/domain`, ≥ 75 % overall. Coverage is a smoke detector, not a goal — an uncovered branch in merge logic fails review regardless of the total.
+* **Coverage target:** ≥ 90 % for `internal/sync`, ≥ 75 % overall — the two numbers live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job. (An `internal/domain` was planned and never built; the pure rules are `client/src/domain`, see §3.) Coverage is a smoke detector, not a goal — an uncovered branch in merge logic fails review regardless of the total.
 * **Always run with `-race`.** CI and local: `go test -race ./...`.
 * **Standard library testing only** (`testing`, `httptest`); a tiny diff helper (`go-cmp`) is allowed. No mocking frameworks — use hand-written fakes behind small interfaces.
 * Tests are deterministic: fake clock injected (`Clock` interface), seeded randomness, no sleeps — synchronization via channels.
@@ -122,7 +122,7 @@ Naming them turned "did I catch every switch?" into a compile-time question.
 ## 5. Dependencies (footprint-guarded)
 
 * **Standard library first.** Every new module requires a one-line justification in `go.mod` comment form.
-* Approved starting set: `modernc.org/sqlite` (pure Go, keeps the static binary CGO-free), `github.com/golang-jwt/jwt/v5`, `github.com/coder/websocket`, `github.com/google/go-cmp` (tests only). Router: `net/http` `ServeMux` (Go ≥ 1.22 patterns suffice).
+* The direct dependencies, as `go.mod` has them: `modernc.org/sqlite` (pure Go, keeps the static binary CGO-free), `github.com/golang-jwt/jwt/v5`, `github.com/coder/websocket`, `github.com/SherClockHolmes/webpush-go` (VAPID signing for FR-6.2). Tests use the standard library alone — `go-cmp` is *permitted* by the rule above and has not been needed. Router: `net/http` `ServeMux` (Go ≥ 1.22 patterns suffice).
 * No ORM. SQL lives as named constants next to the repository that uses it.
 
 ## 6. Workflow
