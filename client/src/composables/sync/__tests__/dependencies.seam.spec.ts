@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createDependencyActions } from '../actions/dependencies'
-import { makeSeamContext, pullIn, type Recorded } from './seamContext'
+import { makeSeamContext, pullIn, type Recorded, paintedRow } from './seamContext'
 import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 import type { ItemDependency } from '@/types/domain'
@@ -55,7 +55,7 @@ describe('createDependencyActions without an orchestrator', () => {
 
     createDependencyActions(ctx).updateItemDependency(dependency, { quantity: 3 })
 
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       item_id: 'item-a',
       depends_on_item_id: 'item-b',
       mode: 'suggested',

@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createMasterDataActions } from '../actions/masterData'
-import { makeSeamContext, pullIn, type Recorded } from './seamContext'
+import { makeSeamContext, pullIn, type Recorded, paintedRow } from './seamContext'
 import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 import { DELETION_REMOVE, DELETION_RETIRE, RETIRED_FIELD } from '@/domain/masterDeletion'
@@ -117,7 +117,7 @@ describe('createMasterDataActions without an orchestrator', () => {
 
     createMasterDataActions(ctx).updateMasterItem(item, { name: 'renamed' })
 
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       name: 'renamed',
       weight_grams: 250,
       value_cents: 1900,

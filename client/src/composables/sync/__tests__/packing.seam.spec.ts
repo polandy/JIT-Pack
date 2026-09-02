@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createPackingActions } from '../actions/packing'
-import { makeSeamContext, pullIn as seedRow, type Recorded } from './seamContext'
+import { makeSeamContext, pullIn as seedRow, type Recorded, paintedRow } from './seamContext'
 import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 import type { TripItem } from '@/types/domain'
@@ -58,7 +58,7 @@ describe('createPackingActions without an orchestrator', () => {
     expect(queued[0]!.muts[0]!.mutation.id).toBe('ti-1')
     // The paint carries the fields the mutation does not touch — a builder
     // that forgot one blanks it on every unrelated edit (PR #158).
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       name: 'row ti-1',
       quantity: 3,
       category_name: 'Kleidung',
@@ -84,7 +84,7 @@ describe('createPackingActions without an orchestrator', () => {
     // The undo restores only what the pack wrote; the traveler that arrived
     // in between is still on the painted row.
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ packed_count: 1, state: 'open' })
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({ assigned_traveler_id: 'trav-1' })
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({ assigned_traveler_id: 'trav-1' })
   })
 
   it('restorePack leaves a row that has since been deleted deleted', () => {
@@ -163,7 +163,7 @@ describe('createPackingActions without an orchestrator', () => {
     createPackingActions(ctx).setReviewFlag(TRIP_ID, item, 'unused', true)
 
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ flag_unused: 1 })
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({ packed_count: 3, state: 'packed' })
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({ packed_count: 3, state: 'packed' })
   })
 
   it('quickAddItem pulls the required companions in when it matched a master item (FR-20.4)', () => {

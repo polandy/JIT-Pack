@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createCommentActions } from '../actions/comments'
-import { makeSeamContext, pullIn, type Recorded } from './seamContext'
+import { makeSeamContext, pullIn, type Recorded, paintedRow } from './seamContext'
 import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 import type { ItemComment, ItemTodo } from '@/types/domain'
@@ -58,7 +58,7 @@ describe('createCommentActions without an orchestrator', () => {
 
     createCommentActions(ctx).flagCommentAsTask(TRIP_ID, comment)
 
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       body: 'Ladekabel fehlt',
       author_id: AUTHOR,
       created_at: '2026-08-01T10:00:00Z',
@@ -98,7 +98,7 @@ describe('createCommentActions without an orchestrator', () => {
     createCommentActions(ctx).resolvePrepTodo(TRIP_ID, todo)
 
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ task_state: 'resolved' })
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       is_task: 1,
       body: 'Akku laden',
     })

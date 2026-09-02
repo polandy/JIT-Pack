@@ -5,7 +5,7 @@
  * The store itself is a plain data cache; sync orchestration lives elsewhere.
  */
 
-import { TABLE } from '@/types/tables'
+import { TABLE, type SyncTable } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
@@ -213,12 +213,123 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     trips.value.set(trip.id, trip)
   }
 
+  /**
+   * itemChildRows names what a delete of one trip item takes with it: its
+   * comments and its FR-7.3 todos, which are one table at two layers. A
+   * trip-level comment carries a null `trip_item_id` and is untouched — the
+   * same distinction the server's query makes.
+   */
+  function itemChildRows(tripItemId: string): Array<{ table: SyncTable; id: string }> {
+    const rows: Array<{ table: SyncTable; id: string }> = []
+    for (const list of comments.value.values()) {
+      for (const c of list) {
+        if (c.trip_item_id === tripItemId) rows.push({ table: TABLE.comments, id: c.id })
+      }
+    }
+    for (const list of todos.value.values()) {
+      for (const t of list) {
+        if (t.trip_item_id === tripItemId) rows.push({ table: TABLE.comments, id: t.id })
+      }
+    }
+    return rows
+  }
+
+  /**
+   * templateSourceRows names the FR-27.4 registrations that point at one
+   * template. The rows live here and travel the *master* partition (spec
+   * P-3), which is why a deleted group's cascade has to reach into this store.
+   */
+  function templateSourceRows(templateId: string): Array<{ table: SyncTable; id: string }> {
+    return [...templateSources.value.values()]
+      .filter((s) => s.template_id === templateId)
+      .map((s) => ({ table: TABLE.tripTemplateSources, id: s.id }))
+  }
+
+  /**
+   * childRows names every row a delete of this trip takes with it, leaf-first
+   * — a child before the parent it hangs off, the order the server emits its
+   * own cascade in (`internal/store/master.go`, `cascadeChildren`).
+   *
+   * The client has to derive this itself because the server can only announce
+   * three of these tables. `change_log.trip_id` cascades along with the trip,
+   * so the trip partition's whole feed is deleted with the row it describes
+   * and the master feed carries the news for `trip_members`,
+   * `trip_template_sources` and `trip_applied_changes` alone. Everything else
+   * would otherwise stay on the device forever — in Local Mode durably, since
+   * nothing tombstones a key nobody names.
+   */
+  function childRows(tripId: string): Array<{ table: SyncTable; id: string }> {
+    const rows: Array<{ table: SyncTable; id: string }> = []
+    const push = (table: SyncTable, ids: Iterable<string>) => {
+      for (const id of ids) rows.push({ table, id })
+    }
+    // Comments and todos are one table seen at two layers (`is_task`).
+    push(
+      TABLE.comments,
+      getComments(tripId).map((c) => c.id),
+    )
+    push(
+      TABLE.comments,
+      getTodos(tripId).map((t) => t.id),
+    )
+    push(
+      TABLE.tripGeneratedPositions,
+      getGeneratedPositions(tripId).map((g) => g.id),
+    )
+    push(
+      TABLE.tripItems,
+      getItems(tripId).map((i) => i.id),
+    )
+    push(
+      TABLE.travelers,
+      getTravelers(tripId).map((t) => t.id),
+    )
+    push(
+      TABLE.containers,
+      getContainers(tripId).map((c) => c.id),
+    )
+    push(
+      TABLE.tripMembers,
+      getMembers(tripId).map((m) => m.id),
+    )
+    push(
+      TABLE.tripTemplateSources,
+      getTemplateSources(tripId).map((s) => s.id),
+    )
+    push(
+      TABLE.tripAppliedChanges,
+      getAppliedChanges(tripId).map((c) => c.id),
+    )
+    return rows
+  }
+
+  /**
+   * removeTrip drops the trip and everything that hung off it. It is the
+   * in-memory half of the cascade `childRows` describes: a second device
+   * receives only the trip's own tombstone for the feed-less tables, so the
+   * mirror has to happen here rather than at the caller.
+   */
   function removeTrip(id: string): void {
+    for (const child of childRows(id)) {
+      switch (child.table) {
+        case TABLE.tripTemplateSources:
+          templateSources.value.delete(child.id)
+          break
+        case TABLE.tripGeneratedPositions:
+          generatedPositions.value.delete(child.id)
+          break
+        case TABLE.tripAppliedChanges:
+          appliedChanges.value.delete(child.id)
+          break
+      }
+    }
     trips.value.delete(id)
     tripItems.value.delete(id)
     travelers.value.delete(id)
     containers.value.delete(id)
     todos.value.delete(id)
+    comments.value.delete(id)
+    members.value.delete(id)
   }
 
   /** Apply a pull change to the local store. */
@@ -462,6 +573,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     itemsWithOpenPrep,
     kpis,
     setTrip,
+    childRows,
+    itemChildRows,
+    templateSourceRows,
     removeTrip,
     applyChange,
     applyChanges,

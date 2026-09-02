@@ -11,6 +11,8 @@
  * this group never touches.
  */
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { cascadeChanges } from '@/sync/cascade'
+import { TABLE } from '@/types/tables'
 import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planMembership, type MembershipTarget } from '@/domain/membership'
@@ -245,7 +247,13 @@ export function createPackingActions(ctx: SyncContext) {
     }
     for (const id of plan.delete) {
       const mut = mutations.deleteTripItem(id)
-      muts.push({ mutation: mut, optimistic: optimisticDelete(mut) })
+      muts.push({
+        mutation: mut,
+        optimistic: [
+          ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),
+          optimisticDelete(mut),
+        ],
+      })
     }
 
     enqueueAndDrain('trip', tripId, ...muts)
@@ -382,7 +390,10 @@ export function createPackingActions(ctx: SyncContext) {
     const mut = mutations.deleteTripItem(itemId)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: optimisticDelete(mut),
+      optimistic: [
+        ...cascadeChanges(TABLE.tripItems, itemId, { tripStore, masterStore }),
+        optimisticDelete(mut),
+      ],
     })
   }
 

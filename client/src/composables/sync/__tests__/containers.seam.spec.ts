@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createContainerActions } from '../actions/containers'
-import { makeSeamContext, pullIn as seedRow, type Recorded } from './seamContext'
+import { makeSeamContext, pullIn as seedRow, type Recorded, paintedRow } from './seamContext'
 import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 
@@ -60,7 +60,7 @@ describe('createContainerActions without an orchestrator', () => {
 
     createContainerActions(ctx).updateContainer(TRIP_ID, container, { name: 'Rear' })
 
-    expect(queued[0]!.muts[0]!.optimistic!.row).toMatchObject({
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       name: 'Rear',
       max_weight_grams: 8000,
       carrier_traveler_id: 'trav-1',

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import type { Mutation } from '@/api/types'
 import {
+  changesOf,
   localChange,
   localTombstone,
   optimisticDelete,
@@ -104,6 +105,25 @@ describe('localChange / localTombstone', () => {
       id: 'item-1',
       deleted: true,
       row: null,
+    })
+  })
+
+  // A delete that cascades paints several rows for one mutation, so every
+  // consumer of `QueuedMutation.optimistic` unfolds it through here rather
+  // than each deciding what a missing or plural value means.
+  describe('changesOf', () => {
+    it('is empty for a write that paints nothing', () => {
+      expect(changesOf(undefined)).toEqual([])
+    })
+
+    it('wraps the single change of an ordinary write', () => {
+      const one = localTombstone('items', 'item-1')
+      expect(changesOf(one)).toEqual([one])
+    })
+
+    it('passes a cascade through in order', () => {
+      const many = [localTombstone('item_tags', 'a1'), localTombstone('items', 'item-1')]
+      expect(changesOf(many)).toEqual(many)
     })
   })
 })

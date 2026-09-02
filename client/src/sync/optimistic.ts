@@ -79,3 +79,15 @@ export function localChange(table: string, id: string, row: Row | undefined): Pu
 export function localTombstone(table: string, id: string): PullChange {
   return { seq: OPTIMISTIC_SEQ, table, id, deleted: true, row: null }
 }
+
+/**
+ * changesOf is the one place that unfolds a queued write's optimistic side.
+ * A delete that cascades paints several rows for one mutation (see
+ * `cascade.ts`), so every consumer — the orchestrator's funnel, the FR-18.7
+ * command line, the seam doubles — reads it through this rather than each
+ * deciding what a missing or plural value means.
+ */
+export function changesOf(optimistic: PullChange | PullChange[] | undefined): PullChange[] {
+  if (!optimistic) return []
+  return Array.isArray(optimistic) ? optimistic : [optimistic]
+}
