@@ -10,6 +10,9 @@
  * the tab bar, and since the suite made a DOM opt-in a missing declaration is
  * a `ReferenceError` here rather than a quietly green run.
  */
+import { globSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const create = vi.fn(async (options: Record<string, unknown>) => ({
@@ -87,5 +90,47 @@ describe('presentToast', () => {
   it('presents the toast it created', async () => {
     const el = await presentToast({ message: 'gespeichert' })
     expect(el.present).toHaveBeenCalled()
+  })
+})
+
+/**
+ * The default only reaches a toast that goes through `presentToast`. M4's
+ * snackbar deliberately does not — it is created, checked and armed before
+ * it is presented — so it has to name a lifetime itself, and when it lost
+ * one it sat over the row menu until the page moved (found by E2E-M4-39,
+ * not by any unit test).
+ */
+describe('a toast created outside the helper names its own duration', () => {
+  const sources = globSync('src/**/*.{ts,vue}', { cwd: process.cwd() })
+    .map((path) => path.replace(/\\/g, '/'))
+    .filter((path) => path !== 'src/lib/toast.ts' && !path.includes('__tests__/'))
+    .map((path) => ({ path, source: readFileSync(resolve(process.cwd(), path), 'utf8') }))
+
+  it('finds the sources to check at all', () => {
+    expect(sources.length).toBeGreaterThan(100)
+  })
+
+  it('leaves no direct creation without a duration', () => {
+    const offenders = sources.flatMap(({ path, source }) => {
+      const hits: string[] = []
+      const create = /toastController\.create\(\{/g
+      let match: RegExpExecArray | null
+      while ((match = create.exec(source)) !== null) {
+        // The options object ends at its closing brace; nesting here is one
+        // level deep at most (`buttons: [{ … }]`), which the counter handles.
+        let depth = 0
+        let end = match.index + match[0].length - 1
+        for (; end < source.length; end += 1) {
+          if (source[end] === '{') depth += 1
+          else if (source[end] === '}' && (depth -= 1) === 0) break
+        }
+        const options = source.slice(match.index, end)
+        if (!/\bduration:/.test(options)) {
+          hits.push(`${path}:${source.slice(0, match.index).split('\n').length}`)
+        }
+      }
+      return hits
+    })
+    expect(offenders).toEqual([])
   })
 })

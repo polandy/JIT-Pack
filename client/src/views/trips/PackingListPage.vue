@@ -86,7 +86,7 @@ import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { DENSE_LIST, modeIcon, modeLabel } from '@/lib/modeLabels'
 import { hasCollaborativeSession } from '@/mode'
-import { presentToast } from '@/lib/toast'
+import { TOAST_DURATION_MS, presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
@@ -1174,6 +1174,10 @@ async function announce(message: string) {
   // put the snackbar on screen before the check that decides it must not be.
   const toast = await toastController.create({
     message,
+    // Named rather than defaulted: this is the one toast that does not go
+    // through `presentToast`, so nothing else would give it a lifetime —
+    // and a snackbar with none sits over the row menu until the page moves.
+    duration: TOAST_DURATION_MS,
     position: 'bottom',
     // Above the FAB rather than behind it — see the anchor's own note.
     positionAnchor: 'm4-fab-anchor',
