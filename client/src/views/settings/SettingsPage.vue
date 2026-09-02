@@ -708,7 +708,12 @@ async function exportTripCSV() {
           {{ t('settings.administration') }}
         </h2>
         <IonList>
-          <IonItem button lines="none" data-testid="settings-admin" @click="$router.push(PATH.admin)">
+          <IonItem
+            button
+            lines="none"
+            data-testid="settings-admin"
+            @click="$router.push(PATH.admin)"
+          >
             <IonLabel>
               <h3>{{ t('settings.userAdmin') }}</h3>
               <p>{{ t('settings.userAdminHint') }}</p>

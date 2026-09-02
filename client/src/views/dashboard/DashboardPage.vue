@@ -264,7 +264,7 @@ async function handleRefresh(event: CustomEvent) {
       <div v-if="isEmpty" class="empty-state" data-testid="dashboard-empty">
         <IonIcon :icon="trainOutline" class="empty-icon" />
         <p>{{ t('trips.emptyActive') }}</p>
-        <IonButton router-link=PATH.newTrip expand="block" data-testid="dashboard-plan-trip">
+        <IonButton router-link="PATH.newTrip" expand="block" data-testid="dashboard-plan-trip">
           <IonIcon slot="start" :icon="addOutline" />
           {{ t('dashboard.planTrip') }}
         </IonButton>

@@ -110,7 +110,7 @@ describe('router paths', () => {
     const offenders = specs.flatMap(({ path, source }) =>
       source
         .split('\n')
-        .map((line, index) => (/goto\((['\`])\/[a-z]/.test(line) ? `${path}:${index + 1}` : null))
+        .map((line, index) => (/goto\(['`]\/[a-z]/.test(line) ? `${path}:${index + 1}` : null))
         .filter((hit): hit is string => hit !== null),
     )
     expect(offenders).toEqual([])

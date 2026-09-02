@@ -515,7 +515,7 @@ async function handleRefresh(event: CustomEvent) {
               size="small"
               :aria-label="t('trips.importPortable')"
               data-testid="m2-portable-import"
-              router-link=PATH.importFile
+              router-link="PATH.importFile"
             >
               <IonIcon slot="icon-only" :icon="documentTextOutline" />
             </IonButton>
@@ -525,7 +525,7 @@ async function handleRefresh(event: CustomEvent) {
               size="small"
               data-testid="m2-spreadsheet-import"
               :aria-label="t('items.importSpreadsheet')"
-              router-link=PATH.importSpreadsheet
+              router-link="PATH.importSpreadsheet"
             >
               <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
             </IonButton>
@@ -784,7 +784,11 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FAB: New Trip -->
       <IonFab id="m2-fab-anchor" vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
-        <IonFabButton data-testid="trips-new" :aria-label="t('trips.new')" router-link=PATH.newTrip>
+        <IonFabButton
+          data-testid="trips-new"
+          :aria-label="t('trips.new')"
+          router-link="PATH.newTrip"
+        >
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>

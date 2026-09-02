@@ -189,7 +189,7 @@ function goBack() {
         />
         <IonButton
           v-if="!onSettings"
-          router-link=PATH.settings
+          router-link="PATH.settings"
           data-testid="header-settings"
           :aria-label="t('settings.title')"
           :title="t('settings.title')"
