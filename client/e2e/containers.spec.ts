@@ -8,7 +8,9 @@ import {
   createTripViaWizard,
   openLuggage,
   openQuickAdd,
+  visiblePage,
 } from './fixtures'
+import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
 
 /**
@@ -25,28 +27,13 @@ import type { Page } from '@playwright/test'
 
 const TRIP = { name: 'Veloferien Elba', travelers: ['Andy', 'Sia'] }
 
-/** The visible page, per the working agreement: assert what is rendered. */
-function visible(page: Page) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-}
-
-/** Ionic inputs hydrate late; filling before that goes nowhere. */
-async function fillIonic(field: ReturnType<Page['locator']>, value: string) {
-  await expect(field).toHaveClass(/hydrated/)
-  const input = field.locator('input')
-  await input.click()
-  await input.fill('')
-  await input.pressSequentially(value)
-  await expect(input).toHaveValue(value)
-}
-
 // openLuggage, createContainer, closeSheet and assignToContainer live in
 // fixtures.ts: the M12 unit needs the same three to render the Gepäck
 // dimension over a real bag (FR-10.4), and one navigation sequence copied
 // into two specs is how the M9 unit lost a wait.
 
 function card(page: Page, name: string) {
-  return visible(page).getByTestId('m11-container-card').filter({ hasText: name })
+  return visiblePage(page).getByTestId('m11-container-card').filter({ hasText: name })
 }
 
 async function openCard(page: Page, name: string) {
@@ -73,7 +60,7 @@ test.describe('M11 containers @local @m11', () => {
     await createTripViaWizard(page, TRIP)
     await openLuggage(page)
 
-    await expect(visible(page).getByTestId('m11-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m11-empty')).toBeVisible()
 
     await createContainer(page, 'Links', '9')
     await expect(card(page, 'Links')).toContainText('9.0 kg')
@@ -122,15 +109,15 @@ test.describe('M11 containers @local @m11', () => {
     await createTripViaWizard(page, TRIP)
     await openLuggage(page)
 
-    await expect(visible(page).getByTestId('m11-empty')).toBeVisible()
-    await expect(visible(page).getByTestId('m11-unassigned-title')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m11-unassigned-none')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m11-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m11-unassigned-title')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m11-unassigned-none')).toHaveCount(0)
 
     await createContainer(page, 'Duffel')
-    await expect(visible(page).getByTestId('m11-unassigned-title')).toContainText(
+    await expect(visiblePage(page).getByTestId('m11-unassigned-title')).toContainText(
       'Unassigned items (0)',
     )
-    await expect(visible(page).getByTestId('m11-unassigned-none')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m11-unassigned-none')).toBeVisible()
   })
 
   // E2E-M11-02 (FR-10.3): the weight bar grades against the limit —
@@ -141,12 +128,12 @@ test.describe('M11 containers @local @m11', () => {
   }) => {
     // A master item with weight, created in M10's minimal form.
     await page.goto('/tabs/items')
-    await visible(page).getByTestId('m9-fab').click()
-    await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Zelt')
-    await visible(page).getByTestId('m10-more').click()
-    await fillIonic(visible(page).getByTestId('m10-weight'), '5000')
-    await visible(page).getByTestId('m10-create').click()
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
+    await visiblePage(page).getByTestId('m10-more').click()
+    await fillIonic(visiblePage(page).getByTestId('m10-weight'), '5000')
+    await visiblePage(page).getByTestId('m10-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Zelt')
 
     await createTripViaWizard(page, TRIP)
@@ -191,12 +178,12 @@ test.describe('M11 containers @local @m11', () => {
   // both card assertions would still pass.
   test('E2E-M5-22: the sheet moves an item from one bag to another', async ({ page }) => {
     await page.goto('/tabs/items')
-    await visible(page).getByTestId('m9-fab').click()
-    await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Zelt')
-    await visible(page).getByTestId('m10-more').click()
-    await fillIonic(visible(page).getByTestId('m10-weight'), '3000')
-    await visible(page).getByTestId('m10-create').click()
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
+    await visiblePage(page).getByTestId('m10-more').click()
+    await fillIonic(visiblePage(page).getByTestId('m10-weight'), '3000')
+    await visiblePage(page).getByTestId('m10-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Zelt')
 
     await createTripViaWizard(page, TRIP)
@@ -215,8 +202,8 @@ test.describe('M11 containers @local @m11', () => {
     await expect(card(page, 'Packsack')).toContainText('3.0 kg')
 
     await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-    await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
+    await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await visiblePage(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
     await page.getByTestId('m5-details').click()
     await chooseInSelect(page, 'm5-container', 'Seesack')
     // The glance row renders off the stored row, so it is the write being
@@ -232,19 +219,19 @@ test.describe('M11 containers @local @m11', () => {
     // screen actually uses.
     await expect(card(page, 'Packsack')).toContainText('0 g')
     // It moved between bags — it did not fall out of both.
-    await expect(visible(page).getByTestId('m11-unassigned-row')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m11-unassigned-row')).toHaveCount(0)
   })
 
   // E2E-M11-04 (FR-10.3): paired containers show the live imbalance once
   // it exceeds the threshold (a fixed 15 %).
   test('E2E-M11-04: a skewed pair shows its imbalance on both cards', async ({ page }) => {
     await page.goto('/tabs/items')
-    await visible(page).getByTestId('m9-fab').click()
-    await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Zelt')
-    await visible(page).getByTestId('m10-more').click()
-    await fillIonic(visible(page).getByTestId('m10-weight'), '5000')
-    await visible(page).getByTestId('m10-create').click()
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
+    await visiblePage(page).getByTestId('m10-more').click()
+    await fillIonic(visiblePage(page).getByTestId('m10-weight'), '5000')
+    await visiblePage(page).getByTestId('m10-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Zelt')
 
     await createTripViaWizard(page, TRIP)
@@ -307,13 +294,13 @@ test.describe('M11 containers @local @m11', () => {
     // rejected wall was one ion-select per row (concept round 2026-08-08).
     // Not `button`: Playwright CSS pierces shadow DOM, where ion-item's
     // own tap surface is a native button.
-    await expect(visible(page).getByTestId('m11-unassigned-row')).toHaveCount(2)
-    await expect(visible(page).getByTestId('m11-unassigned-row').locator('ion-select')).toHaveCount(
-      0,
-    )
+    await expect(visiblePage(page).getByTestId('m11-unassigned-row')).toHaveCount(2)
+    await expect(
+      visiblePage(page).getByTestId('m11-unassigned-row').locator('ion-select'),
+    ).toHaveCount(0)
 
     // The picker answers "which bag?" where the load is visible.
-    await visible(page).getByTestId('m11-unassigned-row').filter({ hasText: 'Zelt' }).click()
+    await visiblePage(page).getByTestId('m11-unassigned-row').filter({ hasText: 'Zelt' }).click()
     await expect(page.getByTestId('m11-picker')).toBeVisible()
     await expect(page.getByTestId('m11-picker-option')).toContainText(['Kiste'])
     await expect(page.getByTestId('m11-picker-option').filter({ hasText: 'Kiste' })).toContainText(
@@ -323,19 +310,19 @@ test.describe('M11 containers @local @m11', () => {
     await expect(page.getByTestId('m11-picker')).toHaveCount(0)
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
-    await expect(visible(page).getByTestId('m11-unassigned-row')).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m11-unassigned-row')).toHaveCount(1)
 
     // Deleting the container frees its item — back in the bucket…
     await openCard(page, 'Kiste')
     await page.getByTestId('m11-delete').click()
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page.getByTestId('m11-sheet')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m11-container-card')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m11-unassigned-row')).toHaveCount(2)
+    await expect(visiblePage(page).getByTestId('m11-container-card')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m11-unassigned-row')).toHaveCount(2)
 
     // …and still on the packing list (the rule the delete wording states).
     await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-row-Kocher')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-row-Kocher')).toBeVisible()
   })
 })

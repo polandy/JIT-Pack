@@ -1,7 +1,6 @@
 import { expect, test, visiblePage } from '../fixtures'
 import { bootPage, uniq } from '../serverMode'
-
-import type { Page } from '@playwright/test'
+import { fillIonic } from '../helpers/ionic'
 
 /**
  * E2E-M9-09 (FR-21.9) — an amount carries the currency the instance named.
@@ -16,13 +15,6 @@ import type { Page } from '@playwright/test'
  * the endpoint, the client's fetch at boot, and `formatValue` — and a unit
  * test covers only the last of them.
  */
-async function fillIonic(page: Page, testId: string, value: string) {
-  const input = visiblePage(page).getByTestId(testId).locator('input')
-  await input.click()
-  await input.fill(value)
-  await expect(input).toHaveValue(value)
-}
-
 test.describe('the instance currency, backend-backed @single @m9', () => {
   test('E2E-M9-09: an item price is shown with the currency the instance named', async ({
     browser,
@@ -34,9 +26,9 @@ test.describe('the instance currency, backend-backed @single @m9', () => {
     await page.goto('/tabs/items')
     await visiblePage(page).getByTestId('m9-fab').click()
     await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
-    await fillIonic(page, 'm10-name', name)
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), name)
     await visiblePage(page).getByTestId('m10-more').click()
-    await fillIonic(page, 'm10-price', '129.50')
+    await fillIonic(visiblePage(page).getByTestId('m10-price'), '129.50')
     await visiblePage(page).getByTestId('m10-create').click()
     await expect(page.getByTestId('header-title')).toHaveText(name)
 

@@ -7,9 +7,11 @@ import {
   openLuggage,
   openQuickAdd,
   tripAction,
-  expectTripActionOffered,
+  visiblePage,
 } from './fixtures'
+import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
+import { assignTraveler, packRow, row, startTrip } from './helpers/m4'
 
 /**
  * M12 — Analytics (UI-Test-Spec §4, unit "M12 analytics").
@@ -22,31 +24,16 @@ import type { Page } from '@playwright/test'
 
 const TRIP = { name: 'Veloferien Elba', travelers: ['Andy', 'Sia'] }
 
-/** The visible page, per the working agreement: assert what is rendered. */
-function visible(page: Page) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-}
-
-/** Ionic inputs hydrate late; filling before that goes nowhere. */
-async function fillIonic(field: ReturnType<Page['locator']>, value: string) {
-  await expect(field).toHaveClass(/hydrated/)
-  const input = field.locator('input')
-  await input.click()
-  await input.fill('')
-  await input.pressSequentially(value)
-  await expect(input).toHaveValue(value)
-}
-
 /** A master item with weight (and optionally a price), created in M10's minimal form (FR-24.5). */
 async function createMasterItem(page: Page, name: string, weightGrams: number, price?: string) {
   await page.goto('/tabs/items')
-  await visible(page).getByTestId('m9-fab').click()
-  await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-  await fillIonic(visible(page).getByTestId('m10-name'), name)
-  await visible(page).getByTestId('m10-more').click()
-  await fillIonic(visible(page).getByTestId('m10-weight'), String(weightGrams))
-  if (price) await fillIonic(visible(page).getByTestId('m10-price'), price)
-  await visible(page).getByTestId('m10-create').click()
+  await visiblePage(page).getByTestId('m9-fab').click()
+  await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+  await fillIonic(visiblePage(page).getByTestId('m10-name'), name)
+  await visiblePage(page).getByTestId('m10-more').click()
+  await fillIonic(visiblePage(page).getByTestId('m10-weight'), String(weightGrams))
+  if (price) await fillIonic(visiblePage(page).getByTestId('m10-price'), price)
+  await visiblePage(page).getByTestId('m10-create').click()
   await expect(page.getByTestId('header-title')).toHaveText(name)
 }
 
@@ -72,48 +59,9 @@ async function quickAddVerbatim(page: Page, name: string) {
 
 /** M4 → M12 via the 📊 button on the trip line (E2E-M4-01's entry). */
 async function openAnalytics(page: Page) {
-  await visible(page).getByTestId('m4-nav-analytics').click()
-  await expect(visible(page).getByTestId('analytics-dim-person')).toBeVisible()
-  await expect(visible(page).getByTestId('m4-nav-analytics')).toHaveCount(0)
-}
-
-/**
- * Assign the item to a traveler through M5's membership sheet — the
- * app's one way of making a row somebody's (FR-25.1).
- */
-async function assignTraveler(page: Page, itemName: string, travelerName: string) {
-  await page.getByTestId(`m4-row-${itemName}`).click()
-  await expect(page.getByTestId('m5-sheet')).toBeVisible()
-  await page.getByTestId('m5-details').click()
-  await page.getByTestId('m5-membership').click()
-  await expect(page.getByTestId('membership-sheet')).toBeVisible()
-  // The roster is a view, not a write: only the checkbox converts the row
-  // (FR-25.21). Asserting the amount is the settled signal that it landed.
-  await page.getByTestId('membership-per-person').click()
-  await page.getByTestId(`membership-check-${travelerName}`).click()
-  await expect(page.getByTestId(`membership-qty-${travelerName}`)).toHaveText('1')
-  await page.getByTestId('membership-close').click()
-  await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
-  await page.getByTestId('m5-close').click()
-  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-}
-
-/**
- * Drive the trip through its lifecycle to *archived* (E2E-M4-43's step).
- * Each expectation is the settled signal that the status write landed — the
- * pair of actions swaps, which a fixed wait could only probably catch.
- */
-async function startTrip(page: Page) {
-  await tripAction(page, 'start')
-  await expectTripActionOffered(page, 'archive')
-}
-
-/** Pack a row, which is what a trend column actually counts. */
-async function packRow(page: Page, name: string) {
-  await page.getByTestId(`m4-row-${name}`).getByTestId('row-check').locator('ion-checkbox').click()
-  // The row leaves the open list once it is done (FR-25.2) — the rendered
-  // evidence that the pack was written rather than merely clicked.
-  await expect(page.getByTestId(`m4-row-${name}`)).toHaveCount(0)
+  await visiblePage(page).getByTestId('m4-nav-analytics').click()
+  await expect(visiblePage(page).getByTestId('analytics-dim-person')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m4-nav-analytics')).toHaveCount(0)
 }
 
 test.describe('M12 analytics @local @m12', () => {
@@ -147,7 +95,7 @@ test.describe('M12 analytics @local @m12', () => {
     await createContainer(page, 'Packsack')
     await assignToContainer(page, 'Zelt', 'Packsack')
     await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toBeVisible()
 
     // Pack one of the two, so packed and planned differ.
     await page.getByTestId('m4-row-Zelt').getByTestId('row-check').locator('ion-checkbox').click()
@@ -157,18 +105,20 @@ test.describe('M12 analytics @local @m12', () => {
 
     // Kategorie (the default): both items are uncategorized, so one bucket
     // holds the pair — and it states the packed kilos inside the planned.
-    const slice = visible(page).getByTestId('analytics-slice-none')
+    const slice = visiblePage(page).getByTestId('analytics-slice-none')
     await expect(slice).toBeVisible()
     await expect(slice).toContainText('5.0 kg')
     await expect(slice).toContainText('6.0 kg')
-    await expect(visible(page).getByTestId('analytics-kpi-weight')).toContainText('5.0 kg / 6.0 kg')
+    await expect(visiblePage(page).getByTestId('analytics-kpi-weight')).toContainText(
+      '5.0 kg / 6.0 kg',
+    )
 
     // Gepäck (FR-8.2's third dimension, FR-10.4's data source): the same two
     // rows fall apart into the bag that carries one and the absence bucket
     // holding the other. Two slices where Kategorie had one, and the bag is
     // named — a segment that changed nothing fails on the count alone.
-    await visible(page).getByTestId('analytics-dim-container').click()
-    const bags = visible(page).locator('[data-testid^="analytics-slice-"]')
+    await visiblePage(page).getByTestId('analytics-dim-container').click()
+    const bags = visiblePage(page).locator('[data-testid^="analytics-slice-"]')
     await expect(bags).toHaveCount(2)
     await expect(bags.filter({ hasText: 'Packsack' })).toContainText('5.0 kg')
     await expect(bags.filter({ hasText: 'No luggage' })).toContainText('1.0 kg')
@@ -184,14 +134,14 @@ test.describe('M12 analytics @local @m12', () => {
 
     await openAnalytics(page)
 
-    await expect(visible(page).getByTestId('analytics-unweighted')).toContainText('1')
+    await expect(visiblePage(page).getByTestId('analytics-unweighted')).toContainText('1')
     // No weighted rows → no bars, and the empty state says why.
-    await expect(visible(page).getByTestId('analytics-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('analytics-empty')).toBeVisible()
     // UX-11: with the explainer up, no zero tiles restate the absence —
     // "0 g / 0 g" and a unit-less "0.00" under it doubled the empty state.
     // The two visible assertions above are the settled positive signal.
-    await expect(visible(page).getByTestId('analytics-kpi-weight')).toHaveCount(0)
-    await expect(visible(page).getByTestId('analytics-kpi-value')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('analytics-kpi-weight')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('analytics-kpi-value')).toHaveCount(0)
   })
 
   // E2E-M12-07 (FR-8.1, UX-11): the value KPI exists only when something
@@ -206,8 +156,8 @@ test.describe('M12 analytics @local @m12', () => {
 
     await openAnalytics(page)
 
-    await expect(visible(page).getByTestId('analytics-kpi-weight')).toBeVisible()
-    await expect(visible(page).getByTestId('analytics-kpi-value')).toContainText('120.50')
+    await expect(visiblePage(page).getByTestId('analytics-kpi-weight')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('analytics-kpi-value')).toContainText('120.50')
   })
 
   // E2E-M12-03 (FR-14.3), the absence half: a series with no archived
@@ -222,9 +172,9 @@ test.describe('M12 analytics @local @m12', () => {
 
     await openAnalytics(page)
 
-    await expect(visible(page).getByTestId('analytics-slice-none')).toBeVisible()
-    await expect(visible(page).getByTestId('analytics-trend')).toHaveCount(0)
-    await expect(visible(page).getByTestId('analytics-flagged')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('analytics-slice-none')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('analytics-trend')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('analytics-flagged')).toHaveCount(0)
   })
 
   // E2E-M12-03 (FR-14.3), the positive half — owed since 2026-08-19 and
@@ -279,21 +229,21 @@ test.describe('M12 analytics @local @m12', () => {
 
     // The trend counts the weight actually *carried*: one column, the year
     // it was carried in, and the packed kilos rather than the planned ones.
-    const trend = visible(page).getByTestId('analytics-trend')
+    const trend = visiblePage(page).getByTestId('analytics-trend')
     await expect(trend).toBeVisible()
     await expect(trend.locator('.col')).toHaveCount(1)
     await expect(trend).toContainText('2025')
     await expect(trend).toContainText('5.0')
 
     // And the series' flags are named with their count, not merely counted.
-    const flagged = visible(page).getByTestId('analytics-flagged')
+    const flagged = visiblePage(page).getByTestId('analytics-flagged')
     await expect(flagged).toContainText('Powerbank')
     await expect(flagged).toContainText('1× missing')
 
     // The other half of the case still holds beside it: this trip's own
     // slices are the trip's, not the series' — a trend that leaked into the
     // bars would show last year's tent here.
-    await expect(visible(page).getByTestId('analytics-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('analytics-empty')).toBeVisible()
   })
 
   // E2E-M12-04 (FR-8.2/25.11): tapping a bar lands on M4 *filtered* to
@@ -307,11 +257,11 @@ test.describe('M12 analytics @local @m12', () => {
     await createTripViaWizard(page, TRIP)
     await quickAddFromMaster(page, 'Zelt')
     await quickAddFromMaster(page, 'Sonnenbrille')
-    await assignTraveler(page, 'Sonnenbrille', 'Sia')
+    await assignTraveler(page, row(page, 'Sonnenbrille'), 'Sia')
 
     await openAnalytics(page)
-    await visible(page).getByTestId('analytics-dim-person').click()
-    await visible(page)
+    await visiblePage(page).getByTestId('analytics-dim-person').click()
+    await visiblePage(page)
       .locator('[data-testid^="analytics-slice-"]')
       .filter({ hasText: 'Sia' })
       .click()
@@ -342,24 +292,24 @@ test.describe('M12 analytics @local @m12', () => {
     await quickAddFromMaster(page, 'Zelt')
     await quickAddFromMaster(page, 'Sonnenbrille')
     await quickAddFromMaster(page, 'Kocher')
-    await assignTraveler(page, 'Sonnenbrille', 'Sia')
-    await assignTraveler(page, 'Kocher', 'Andy')
+    await assignTraveler(page, row(page, 'Sonnenbrille'), 'Sia')
+    await assignTraveler(page, row(page, 'Kocher'), 'Andy')
 
     await openAnalytics(page)
-    await visible(page).getByTestId('analytics-dim-person').click()
+    await visiblePage(page).getByTestId('analytics-dim-person').click()
 
-    const slices = visible(page).locator('[data-testid^="analytics-slice-"]')
+    const slices = visiblePage(page).locator('[data-testid^="analytics-slice-"]')
     await expect(slices).toHaveCount(3)
     await expect(slices.filter({ hasText: 'Andy' })).toContainText('1.0 kg')
     await expect(slices.filter({ hasText: 'Sia' })).toContainText('100 g')
     await expect(slices.filter({ hasText: 'Shared' })).toContainText('5.0 kg')
-    await expect(visible(page)).not.toContainText('undefined')
+    await expect(visiblePage(page)).not.toContainText('undefined')
 
     // The same rows, summed back into one bucket: totals match.
     const total = '6.1 kg'
-    await expect(visible(page).getByTestId('analytics-kpi-weight')).toContainText(total)
-    await visible(page).getByTestId('analytics-dim-category').click()
-    await expect(visible(page).getByTestId('analytics-slice-none')).toContainText(total)
-    await expect(visible(page).getByTestId('analytics-kpi-weight')).toContainText(total)
+    await expect(visiblePage(page).getByTestId('analytics-kpi-weight')).toContainText(total)
+    await visiblePage(page).getByTestId('analytics-dim-category').click()
+    await expect(visiblePage(page).getByTestId('analytics-slice-none')).toContainText(total)
+    await expect(visiblePage(page).getByTestId('analytics-kpi-weight')).toContainText(total)
   })
 })

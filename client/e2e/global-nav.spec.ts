@@ -9,6 +9,7 @@ import {
   tripAction,
   tripActions,
   expectTripActionOffered,
+  visiblePage,
 } from './fixtures'
 import type { Page } from '@playwright/test'
 
@@ -40,7 +41,7 @@ const MOBILE = { width: 400, height: 860 }
  * the project forbids anywhere in its suites.
  */
 function onVisibleScreen(page: Page, testid: string) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)').getByTestId(testid)
+  return visiblePage(page).getByTestId(testid)
 }
 
 /**
@@ -65,7 +66,7 @@ function atPath(page: Page, path: string) {
 const ANCHOR_RUN = ['trips', 'templates', 'items', 'trips', 'dashboard', 'trips'] as const
 
 function visiblePages(page: Page) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
+  return visiblePage(page)
 }
 
 test.describe('Global navigation @local @g9 @g1 @g12', () => {

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, visiblePage } from './fixtures'
 import type { Locator } from '@playwright/test'
 
 /**
@@ -56,7 +56,10 @@ test('E2E-G13-01: the UI face carries the body and the display face the page tit
 // may have no network at all, and NFR-4.3 rules out a third-party request
 // on every boot — so the regression to guard is the prototype's
 // stylesheet link finding its way back into the app.
-test('E2E-G13-02: no font is fetched from a third-party host @local @g13', async ({ page, seedMode }) => {
+test('E2E-G13-02: no font is fetched from a third-party host @local @g13', async ({
+  page,
+  seedMode,
+}) => {
   const offSite: string[] = []
   page.on('request', (req) => {
     const host = new URL(req.url()).hostname
@@ -118,9 +121,7 @@ test('E2E-G13-04: a section label renders as the eyebrow role @local @g13', asyn
   // Scoped to the page that is actually painted, not to the document: a
   // route that does not repaint leaves the previous screen's markup in the
   // outlet, and every assertion below would read it happily.
-  const label = page
-    .locator('ion-router-outlet > .ion-page:not(.ion-page-hidden) .section-title')
-    .first()
+  const label = visiblePage(page).locator('.section-title').first()
   await expect(label).toBeVisible()
 
   const style = await label.evaluate((n) => {

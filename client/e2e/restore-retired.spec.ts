@@ -7,8 +7,9 @@ import {
   createTripFollowingGroup,
   test,
   expect,
-  visiblePage as visible,
+  visiblePage,
 } from './fixtures'
+import { backToInventory, createItem } from './helpers/m9'
 
 /**
  * FR-24.3 / M23 — the way back from a retire.
@@ -47,32 +48,26 @@ async function retireItemViaGroup(page: Page, group: string, item: string) {
   await backToTemplateList(page)
 
   await page.goto('/tabs/items')
-  await visible(page).getByTestId('m9-row').filter({ hasText: item }).click()
+  await visiblePage(page).getByTestId('m9-row').filter({ hasText: item }).click()
   await expect(page.getByTestId('header-title')).toHaveText(item)
-  await expect(visible(page).getByTestId('m10-delete-outlook')).toContainText('hidden, not removed')
-  await visible(page).getByTestId('m10-delete').click()
+  await expect(visiblePage(page).getByTestId('m10-delete-outlook')).toContainText(
+    'hidden, not removed',
+  )
+  await visiblePage(page).getByTestId('m10-delete').click()
 
   const alert = page.locator('ion-alert')
   await expect(alert).toBeVisible()
   await alert.getByRole('button', { name: 'Delete', exact: true }).click()
   await expect(alert).toHaveCount(0)
-  await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
-  await expect(visible(page).getByTestId('m9-row').filter({ hasText: item })).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId('m9-fab')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: item })).toHaveCount(0)
   await localWriteSettled(page)
 }
 
-/** A bare master item through M10, ending back on M9. */
-async function createItem(page: Page, name: string) {
-  await visible(page).getByTestId('m9-fab').click()
-  await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-  const input = visible(page).getByTestId('m10-name').locator('input')
-  await input.click()
-  await input.pressSequentially(name)
-  await visible(page).getByTestId('m10-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-  await page.getByTestId('header-back').click()
-  await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
-  await expect(visible(page).getByTestId('m10-name')).toHaveCount(0)
+/** A bare master item through M10, ending back on M9 with the write settled. */
+async function createItemOnDevice(page: Page, name: string) {
+  await createItem(page, name)
+  await backToInventory(page)
   await localWriteSettled(page)
 }
 
@@ -80,8 +75,8 @@ async function createItem(page: Page, name: string) {
 async function openRetired(page: Page) {
   await localWriteSettled(page)
   await page.goto('/tabs/settings')
-  await visible(page).getByTestId('settings-retired').click()
-  await expect(visible(page).getByTestId('m23-segment')).toBeVisible()
+  await visiblePage(page).getByTestId('settings-retired').click()
+  await expect(visiblePage(page).getByTestId('m23-segment')).toBeVisible()
 }
 
 test.describe('FR-24.3 — a retired row can come back', () => {
@@ -96,25 +91,29 @@ test.describe('FR-24.3 — a retired row can come back', () => {
 
     // A second, untouched item: "the inventory grew by one" must not be
     // satisfiable by the list simply repainting from nothing.
-    await createItem(page, 'Stativ')
+    await createItemOnDevice(page, 'Stativ')
 
     await openRetired(page)
-    await expect(visible(page).getByTestId('m23-row')).toHaveCount(1)
-    await expect(visible(page).getByTestId('m23-row-name')).toHaveText('Kamera')
+    await expect(visiblePage(page).getByTestId('m23-row')).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m23-row-name')).toHaveText('Kamera')
     // The Vorlagen segment is empty, which is the positive control for the
     // list above: both halves read the same store and only one has rows.
-    await visible(page).getByTestId('m23-segment-templates').click()
-    await expect(visible(page).getByTestId('m23-empty')).toBeVisible()
-    await visible(page).getByTestId('m23-segment-items').click()
+    await visiblePage(page).getByTestId('m23-segment-templates').click()
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
+    await visiblePage(page).getByTestId('m23-segment-items').click()
 
-    await visible(page).getByTestId('m23-restore').click()
+    await visiblePage(page).getByTestId('m23-restore').click()
     // Settled by the row leaving the list it was on, not by a timer.
-    await expect(visible(page).getByTestId('m23-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
     await localWriteSettled(page)
 
     await page.goto('/tabs/items')
-    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(1)
-    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Stativ' })).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
+      1,
+    )
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Stativ' })).toHaveCount(
+      1,
+    )
   })
 
   test('E2E-M23-02: a restore whose name was taken meanwhile is refused, and renamed back in', async ({
@@ -126,19 +125,21 @@ test.describe('FR-24.3 — a retired row can come back', () => {
 
     // Allowed, and the whole reason the unique index is partial: the name a
     // hidden row was created with is a name taken by nothing.
-    await createItem(page, 'Kamera')
-    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(1)
+    await createItemOnDevice(page, 'Kamera')
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
+      1,
+    )
 
     await openRetired(page)
-    await expect(visible(page).getByTestId('m23-row-name')).toHaveText('Kamera')
-    await visible(page).getByTestId('m23-restore').click()
+    await expect(visiblePage(page).getByTestId('m23-row-name')).toHaveText('Kamera')
+    await visiblePage(page).getByTestId('m23-restore').click()
 
     // Met before the mutation: the row is still on M23 behind the alert,
     // rather than having been restored and then reversed.
     const alert = page.locator('ion-alert')
     await expect(alert).toBeVisible()
     await expect(alert).toContainText('Another item is called “Kamera” now')
-    await expect(visible(page).getByTestId('m23-row')).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m23-row')).toHaveCount(1)
 
     // The way out is part of the refusal.
     const input = alert.locator('input')
@@ -149,25 +150,27 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     await expect(input).toHaveValue('Kamera (alt)')
     await alert.getByRole('button', { name: 'Restore', exact: true }).click()
     await expect(alert).toHaveCount(0)
-    await expect(visible(page).getByTestId('m23-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
     await localWriteSettled(page)
 
     await page.goto('/tabs/items')
     // Both rows, which is the point: the restore had to make room for itself
     // rather than take the name back from the row that holds it.
-    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(2)
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
+      2,
+    )
     await expect(
-      visible(page).getByTestId('m9-row').filter({ hasText: 'Kamera (alt)' }),
+      visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera (alt)' }),
     ).toHaveCount(1)
 
     // And the group that kept the row alive still resolves it, under its
     // new name — the retire's own promise, unbroken by the rename.
     await localWriteSettled(page)
     await page.goto('/tabs/templates')
-    await visible(page).locator('ion-item', { hasText: 'Fotografie' }).click()
+    await visiblePage(page).locator('ion-item', { hasText: 'Fotografie' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Fotografie')
     await expect(
-      visible(page).locator('ion-item h2').filter({ hasText: 'Kamera (alt)' }),
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Kamera (alt)' }),
     ).toHaveCount(1)
   })
 
@@ -195,7 +198,7 @@ test.describe('FR-24.3 — a retired row can come back', () => {
 
     await localWriteSettled(page)
     await page.goto('/tabs/templates')
-    const row = visible(page).locator('ion-item', { hasText: 'Fotografie' })
+    const row = visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })
     await row.dispatchEvent('contextmenu')
     const sheet = page.locator('ion-action-sheet')
     await expect(sheet).toBeVisible()
@@ -206,32 +209,34 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     const confirm = page.locator('ion-alert')
     await expect(confirm).toContainText('hidden, not removed')
     await confirm.getByRole('button', { name: 'Delete', exact: true }).click()
-    await expect(visible(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(0)
+    await expect(visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(0)
 
     await openRetired(page)
     // The items segment is empty, so a row on the Vorlagen list is a fact
     // about which list it landed on — the mirror of E2E-M23-01's control.
-    await expect(visible(page).getByTestId('m23-empty')).toBeVisible()
-    await visible(page).getByTestId('m23-segment-templates').click()
-    await expect(visible(page).getByTestId('m23-row')).toHaveCount(1)
-    await expect(visible(page).getByTestId('m23-row-name')).toHaveText('Fotografie')
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
+    await visiblePage(page).getByTestId('m23-segment-templates').click()
+    await expect(visiblePage(page).getByTestId('m23-row')).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m23-row-name')).toHaveText('Fotografie')
     // Still used by the trip, so a permanent delete would silently be
     // another retire and is not offered — the same rule E2E-M23-03 pins for
     // an item, asserted here against the restore button's presence.
-    await expect(visible(page).getByTestId('m23-restore')).toHaveCount(1)
-    await expect(visible(page).getByTestId('m23-purge')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m23-restore')).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m23-purge')).toHaveCount(0)
 
-    await visible(page).getByTestId('m23-restore').click()
-    await expect(visible(page).getByTestId('m23-empty')).toBeVisible()
+    await visiblePage(page).getByTestId('m23-restore').click()
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
     await localWriteSettled(page)
 
     // Back where it was hidden from, and still itself: the group is on M7
     // and still holds the position it was created with.
     await page.goto('/tabs/templates')
-    await expect(visible(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(1)
-    await visible(page).locator('ion-item', { hasText: 'Fotografie' }).click()
+    await expect(visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(1)
+    await visiblePage(page).locator('ion-item', { hasText: 'Fotografie' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Fotografie')
-    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' })).toHaveCount(1)
+    await expect(
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Kamera' }),
+    ).toHaveCount(1)
   })
 
   test('E2E-M23-03: a hidden row nothing uses any more can be removed for good', async ({
@@ -244,13 +249,13 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     // While the group still holds it, M23 offers only the restore: a
     // permanent delete would silently be another retire.
     await openRetired(page)
-    await expect(visible(page).getByTestId('m23-restore')).toHaveCount(1)
-    await expect(visible(page).getByTestId('m23-purge')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m23-restore')).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m23-purge')).toHaveCount(0)
 
     // Take the group away, which is what makes the row unreferenced.
     await localWriteSettled(page)
     await page.goto('/tabs/templates')
-    const row = visible(page).locator('ion-item', { hasText: 'Fotografie' })
+    const row = visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })
     await row.dispatchEvent('contextmenu')
     const sheet = page.locator('ion-action-sheet')
     await expect(sheet).toBeVisible()
@@ -258,11 +263,11 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     const confirm = page.locator('ion-alert')
     await expect(confirm).toBeVisible()
     await confirm.getByRole('button', { name: 'Delete', exact: true }).click()
-    await expect(visible(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(0)
+    await expect(visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(0)
 
     await openRetired(page)
-    await expect(visible(page).getByTestId('m23-purge')).toHaveCount(1)
-    await visible(page).getByTestId('m23-purge').click()
+    await expect(visiblePage(page).getByTestId('m23-purge')).toHaveCount(1)
+    await visiblePage(page).getByTestId('m23-purge').click()
 
     const purge = page.locator('ion-alert')
     await expect(purge).toBeVisible()
@@ -272,10 +277,12 @@ test.describe('FR-24.3 — a retired row can come back', () => {
 
     // Gone rather than hidden: the list it was on is empty, and the name is
     // free again — which a row still holding it, retired or not, would refuse.
-    await expect(visible(page).getByTestId('m23-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
     await localWriteSettled(page)
     await page.goto('/tabs/items')
-    await createItem(page, 'Kamera')
-    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(1)
+    await createItemOnDevice(page, 'Kamera')
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
+      1,
+    )
   })
 })
