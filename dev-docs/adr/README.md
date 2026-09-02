@@ -49,6 +49,8 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [041](ADR-041_Grid_Preview_Shows_The_Grid.md) | M15's parser preview shows **the grid itself**, over a summary of what it found (FR-16.2) | Accepted |
 | [042](ADR-042_Automation_Runs_The_Command_Line.md) | Automation reaches the app through **`jitpack COMMAND`** over the client's own rules, over per-entity REST resources (which would need every rule a second time in Go) or documenting the raw sync push (FR-18.7/18.8) | Accepted |
 | [043](ADR-043_One_Container_Serves_Both.md) | **One container serves the client and the API** from `JITPACK_WEB_ROOT`, over embedding the bundle in the binary (which would break `go build` in a fresh clone) or keeping the SPA-plus-nginx image (which left the same-origin rule to the operator, and it failed silently) | Accepted |
+| [044](ADR-044_An_Update_The_User_Asked_For.md) | A waiting PWA version is applied **on a press** — `skipWaiting()` reached from a message, never from `install` — over automatic takeover (reloads unasked) or announce-only (a reader and no verb) (FR-19.7, NFR-4.13) | Accepted |
+| [045](ADR-045_Leaving_Local_Mode_Through_The_Backup_File.md) | Leaving Local Mode is a **guarded three-step move on M17 through the backup file**, over device-to-device (needs a second phone), a native replay of the local store as sync mutations (a second writer of the feed) or a guarded toggle (strands by design) (FR-19.8, FR-19.5) | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 
