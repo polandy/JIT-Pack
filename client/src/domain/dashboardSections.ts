@@ -120,7 +120,7 @@ export function latePackersDepartingToday(
 /**
  * The shape M1's lookahead reads off a trip. A structural subset of `Trip`,
  * so the screen hands its rows over unmapped and this file keeps importing
- * nothing.
+ * no store type.
  */
 export interface PlannableTrip {
   status: string

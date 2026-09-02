@@ -926,7 +926,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-5.5 | E2E | M4-06 |
 | FR-5.6 | E2E | M4-04, M6-03 |
 | FR-5.7 | E2E | G3-02 (mode gate), M4-49/50 |
-| FR-6.1 | E2E | M1-01 (the aggregation, deliberately unfiltered), M1-03 (the delegation *section* beside it, built 2026-08-31), M1-03b (absent where there is no account); `domain/__tests__/dashboardSections.spec.ts`, `local/__tests__/delegationSeen.spec.ts` |
+| FR-6.1 | E2E | M1-01 (the aggregation, deliberately unfiltered), M1-03 (the delegation *section* beside it, built 2026-08-31), M1-03b (absent where there is no account), M1-08 (the planned-trips section, built 2026-09-02); `domain/__tests__/dashboardSections.spec.ts`, `local/__tests__/delegationSeen.spec.ts` |
 | FR-6.2 | E2E | FLOW-02, NOTIFY-01, M17-01 |
 | FR-6.3 | E2E | G4-01, FLOW-02 (M1-04's *at the item* is retired — M1 has no per-item link, 2026-08-30) |
 | FR-7.1 | E2E | M5-05 |
