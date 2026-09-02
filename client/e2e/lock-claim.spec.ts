@@ -1,5 +1,6 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
 import type { Page } from '@playwright/test'
+import { openRowMenu } from './helpers/m4'
 
 /**
  * G-3 — a packing claim can be given back, and an abandoned one says so
@@ -16,18 +17,6 @@ import type { Page } from '@playwright/test'
  * a *second* device sees of a claim is E2E-FLOW-01's business.
  */
 test.use({ reducedMotion: 'reduce' })
-
-const shown = (page: Page) => page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-
-/**
- * Open a row's menu. The pointer-held gesture is unit-tested with fake
- * timers in `useLongPress`; driving a real hold here would be a clock in a
- * Playwright case, so the case uses the other opener the row binds.
- */
-async function openRowMenu(page: Page, name: string) {
-  await page.getByTestId(`m4-row-${name}`).dispatchEvent('contextmenu')
-  await expect(page.locator('ion-action-sheet')).toBeVisible()
-}
 
 async function tripWithRow(page: Page, name: string) {
   await createTripViaWizard(page, { name: 'Sperrprobe', travelers: ['Andy'] })
@@ -56,7 +45,7 @@ test.describe('G-3 — a claim can be given back', () => {
     // The claim is mine, so nothing is locked *for me* — which is exactly
     // why the row has to say it out loud, or I cannot tell that I am
     // holding it against everybody else.
-    const row = shown(page).getByTestId('m4-row-Zelt')
+    const row = visiblePage(page).getByTestId('m4-row-Zelt')
     await expect(row.getByTestId('m4-own-claim')).toBeVisible()
 
     await openRowMenu(page, 'Zelt')
@@ -85,6 +74,8 @@ test.describe('G-3 — a claim can be given back', () => {
     // the middle of packing is not a thing anyone means. Asserted as a
     // count as well as by name, so an added third option is not silent.
     await expect(buttons).toHaveCount(2)
-    await expect(page.locator('ion-action-sheet button', { hasText: /give the item back/i })).toBeVisible()
+    await expect(
+      page.locator('ion-action-sheet button', { hasText: /give the item back/i }),
+    ).toBeVisible()
   })
 })

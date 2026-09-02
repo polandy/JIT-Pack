@@ -65,7 +65,7 @@ userland there, which a tag cannot guarantee.
 per-image tolerance** — `maxDiffPixelRatio: 0.002` in `playwright.config.ts`,
 so about 650 pixels of the 390×844 mobile shot — and says nothing about the
 rest. A layout change that stays under it therefore leaves `make visual` green
-*and* reports nothing to write, which has twice now hidden a real defect: most
+_and_ reports nothing to write, which has twice now hidden a real defect: most
 recently three segment labels truncated at 390 px, which is a smaller number
 of pixels than it sounds like. When you changed a layout and the baselines do
 not move, force them and look at the picture:
@@ -78,7 +78,26 @@ scripts/visual.sh --update-snapshots=all -g "trips"    # the screens you touched
 
 - `fixtures.ts` — the shared `test`/`expect` plus run-mode seeding
   (`seedMode`), which writes the same localStorage keys the app uses
-  (`jitpack_mode`, `jitpack_server_url`, `jitpack_theme`) before boot.
+  (`jitpack_mode`, `jitpack_server_url`, `jitpack_theme`) before boot. It
+  re-exports every helper below, so a spec keeps one import.
+- `helpers/` — one module per seam, and **the only place a shared step is
+  written**: `page.ts` (`visiblePage`, `DESKTOP_BREAKPOINT`), `ionic.ts`
+  (`fillIonic`, `chooseInSelect`, `setDateField`), `trips.ts` (M2/M3: create a
+  trip, act on it, its swipe), `templates.ts` (M7/M8/M10 master data),
+  `containers.ts` (M11 luggage), `m4.ts` (a trip with rows, start it, pack a
+  row, its menu, assign a traveller) and `m9.ts` (create an item, get back to
+  the list).
+
+  Write a step there rather than in your spec, and import it. This is
+  enforced: `scripts/e2e-helpers-gate.mjs` (in `make ci` and the CI client
+  job) fails on a re-declared helper or on the visible-page selector spelled
+  out anywhere else. The reason is not tidiness — before it existed the
+  selector had fifteen copies under three names, `fillIonic` seven and
+  `createItem` four, and the copies had already drifted in _which_ settle
+  step they waited for. Two copies of one navigation sequence are how the M9
+  unit lost a wait, and no e2e job can see it: both copies run, both pass,
+  until one of them stops.
+
 - `smoke.spec.ts` — the backend-free floor: M19 mode selection + Local
   Mode dashboard. Proves the harness works end to end.
 - `trip-creation.spec.ts` — M3 in Local Mode, and the origin of
@@ -114,7 +133,7 @@ Which spec cases are actually implemented is tracked in
   breakpoint, where `TabBar` is `display: none` and `NavRail` takes over.
   Both are always in the DOM, so a case that leaves a screen by clicking
   `tab-items` does not fail fast: it times out after 60 s on an element that
-  *resolves* and is never visible, in both browsers. Either leave the screen
+  _resolves_ and is never visible, in both browsers. Either leave the screen
   the way the app does at that width — a drill-down and back out through the
   `header-back` chevron (ADR-011) — or click the rail's own `rail-<anchor>`
   instead. A case that genuinely needs the bar sets

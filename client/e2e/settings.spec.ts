@@ -1,4 +1,4 @@
-import { test, expect, seed, createTripViaWizard } from './fixtures'
+import { test, expect, seed, createTripViaWizard, visiblePage } from './fixtures'
 import { quickAddItem } from './serverMode'
 import type { Page } from '@playwright/test'
 
@@ -13,17 +13,12 @@ import type { Page } from '@playwright/test'
  * the switch the user actually has.
  */
 
-/** The visible page, per the working agreement: assert what is rendered. */
-function visible(page: Page) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-}
-
 /** Leave M17 and come back — the entry the reminder is recomputed on. */
 async function reenterSettings(page: Page) {
   await page.goto('/tabs/trips')
-  await expect(visible(page).getByTestId('trips-new')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('trips-new')).toBeVisible()
   await page.goto('/tabs/settings')
-  await expect(visible(page).getByTestId('settings-section-data')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('settings-section-data')).toBeVisible()
 }
 
 test.describe('M17 device settings @local @m17', () => {
@@ -39,7 +34,7 @@ test.describe('M17 device settings @local @m17', () => {
     page,
   }) => {
     await page.goto('/tabs/settings')
-    const toggle = visible(page).getByTestId('settings-theme')
+    const toggle = visiblePage(page).getByTestId('settings-theme')
     await expect(toggle).toBeVisible()
     await expect(page.locator('html')).not.toHaveClass(/jitpack-latte/)
 
@@ -49,7 +44,7 @@ test.describe('M17 device settings @local @m17', () => {
     await page.reload()
     await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
 
-    await visible(page).getByTestId('settings-theme').click()
+    await visiblePage(page).getByTestId('settings-theme').click()
     await expect(page.locator('html')).not.toHaveClass(/jitpack-latte/)
   })
 
@@ -60,9 +55,9 @@ test.describe('M17 device settings @local @m17', () => {
   test('E2E-M17-08: a device with no session carries no notification section', async ({ page }) => {
     await page.goto('/tabs/settings')
 
-    await expect(visible(page).getByTestId('settings-section-appearance')).toBeVisible()
-    await expect(visible(page).getByTestId('settings-section-data')).toBeVisible()
-    await expect(visible(page).getByTestId('settings-section-notifications')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('settings-section-appearance')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('settings-section-data')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('settings-section-notifications')).toHaveCount(0)
   })
 
   // E2E-M17-07 (NFR-4.11): the backup the reminder is about is the *whole
@@ -73,14 +68,14 @@ test.describe('M17 device settings @local @m17', () => {
     await createTripViaWizard(page, { name: 'Elba' })
     await page.goto('/tabs/settings')
 
-    const reminder = visible(page).getByTestId('settings-backup-reminder')
+    const reminder = visiblePage(page).getByTestId('settings-backup-reminder')
     await expect(reminder).toContainText("You haven't backed up yet")
 
     // One trip, downloaded for real — the file arrives, and the warning
     // about the device stays exactly where it was. The picker first: the
     // button is inert until a trip is named, which is the shape of every
     // per-document export in this section.
-    const yamlRow = visible(page).locator('ion-item').filter({ hasText: 'Trip (YAML)' })
+    const yamlRow = visiblePage(page).locator('ion-item').filter({ hasText: 'Trip (YAML)' })
     await yamlRow.locator('ion-select').click()
     await page
       .locator('ion-popover ion-select-popover ion-item')
@@ -92,7 +87,7 @@ test.describe('M17 device settings @local @m17', () => {
     await yamlRow.getByRole('button', { name: 'Download' }).click()
     expect((await tripYaml).suggestedFilename()).toBe('Elba.yaml')
     await reenterSettings(page)
-    await expect(visible(page).getByTestId('settings-backup-reminder')).toContainText(
+    await expect(visiblePage(page).getByTestId('settings-backup-reminder')).toContainText(
       "You haven't backed up yet",
     )
 
@@ -109,7 +104,7 @@ test.describe('M17 device settings @local @m17', () => {
     await expect(page.getByTestId('sync-detail-sheet')).toHaveCount(0)
 
     await reenterSettings(page)
-    await expect(visible(page).getByTestId('settings-backup-reminder')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('settings-backup-reminder')).toHaveCount(0)
   })
 
   // E2E-M17-07b (NFR-4.11): a stamp older than the threshold says how old.
@@ -124,7 +119,7 @@ test.describe('M17 device settings @local @m17', () => {
 
     await page.goto('/tabs/settings')
 
-    await expect(visible(page).getByTestId('settings-backup-reminder')).toContainText(
+    await expect(visiblePage(page).getByTestId('settings-backup-reminder')).toContainText(
       'Last backup was 40 days ago',
     )
   })
@@ -140,7 +135,7 @@ test.describe('M17 device settings @local @m17', () => {
   }) => {
     await createTripViaWizard(page, { name: 'Bergell' })
     await page.goto('/tabs/settings')
-    const card = visible(page).getByTestId('settings-move-card')
+    const card = visiblePage(page).getByTestId('settings-move-card')
     await expect(card).toBeVisible()
 
     // Closed: the trip is newer than any backup, and the card says so.
@@ -158,7 +153,7 @@ test.describe('M17 device settings @local @m17', () => {
     // Closed again: a write on M4, stamped by the orchestrator, and M17 reads
     // it on re-entry (the same trigger the reminder uses).
     await page.goto('/tabs/trips')
-    await visible(page).getByTestId('trip-row-Bergell').click()
+    await visiblePage(page).getByTestId('trip-row-Bergell').click()
     await quickAddItem(page, 'Regenjacke')
     await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
     await reenterSettings(page)

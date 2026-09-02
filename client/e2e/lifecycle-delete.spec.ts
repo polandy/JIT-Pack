@@ -7,8 +7,9 @@ import {
   openQuickAdd,
   test,
   expect,
-  visiblePage as visible,
+  visiblePage,
 } from './fixtures'
+import { backToInventory, createItem } from './helpers/m9'
 
 /**
  * FR-24.3 — lifecycle-aware deletion of master items and Vorlagen.
@@ -25,38 +26,10 @@ import {
  * client-side rule has nowhere to hide (invariant 4).
  */
 
-/** Fill an Ionic input by typing — the account is on inventory.spec.ts. */
-async function fillIonic(field: ReturnType<typeof visible>, value: string) {
-  await expect(field).toHaveClass(/hydrated/)
-  const input = field.locator('input')
-  await input.click()
-  await input.fill('')
-  await input.pressSequentially(value)
-  await expect(input).toHaveValue(value)
-}
-
-/** A bare master item through M10's own path, ending back on the M9 list. */
-async function createItem(page: Page, name: string) {
-  await visible(page).getByTestId('m9-fab').click()
-  await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-  await fillIonic(visible(page).getByTestId('m10-name'), name)
-  await visible(page).getByTestId('m10-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-  await backToInventory(page)
-}
-
-async function backToInventory(page: Page) {
-  await page.getByTestId('header-back').click()
-  await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
-  // Settled, not merely arriving: the outgoing editor still counts as
-  // visible while it fades.
-  await expect(visible(page).getByTestId('m10-name')).toHaveCount(0)
-}
-
 async function openItem(page: Page, name: string) {
-  await visible(page).getByTestId('m9-row').filter({ hasText: name }).click()
+  await visiblePage(page).getByTestId('m9-row').filter({ hasText: name }).click()
   await expect(page.getByTestId('header-title')).toHaveText(name)
-  await expect(visible(page).getByTestId('m10-section-delete')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m10-section-delete')).toBeVisible()
 }
 
 /** Confirm the destructive alert the delete opens. */
@@ -84,30 +57,36 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await backToTemplateList(page)
 
     await page.goto('/tabs/items')
-    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
+      1,
+    )
     await openItem(page, 'Kamera')
 
     // Stated before the confirm, which is the half of FR-24.3 that is about
     // the user rather than about the row.
-    await expect(visible(page).getByTestId('m10-delete-usage')).toContainText('1')
-    await expect(visible(page).getByTestId('m10-delete-outlook')).toContainText(
+    await expect(visiblePage(page).getByTestId('m10-delete-usage')).toContainText('1')
+    await expect(visiblePage(page).getByTestId('m10-delete-outlook')).toContainText(
       'hidden, not removed',
     )
 
-    await visible(page).getByTestId('m10-delete').click()
+    await visiblePage(page).getByTestId('m10-delete').click()
     await confirmDelete(page)
 
     // Gone from the inventory…
-    await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
-    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m9-fab')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
+      0,
+    )
 
     // …and still there for everything that resolves against it. This is the
     // positive signal the assertion above is made against: without it,
     // "absent from M9" is equally satisfied by the row having been destroyed.
     await page.goto('/tabs/templates')
-    await visible(page).locator('ion-item', { hasText: 'Fotografie' }).click()
+    await visiblePage(page).locator('ion-item', { hasText: 'Fotografie' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Fotografie')
-    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' })).toHaveCount(1)
+    await expect(
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Kamera' }),
+    ).toHaveCount(1)
 
     // FR-24.3 names the quick-add autocomplete as a surface a retired item
     // leaves. The row above proves it still exists; this proves it is no
@@ -117,12 +96,12 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await backToTemplateList(page)
     await createTemplate(page, 'group', 'Zweite Gruppe')
     await openQuickAdd(page, 'm8-fab')
-    await visible(page).getByTestId('quick-add-input').locator('input').pressSequentially('Kam')
+    await visiblePage(page).getByTestId('quick-add-input').locator('input').pressSequentially('Kam')
     // The settled signal is the free-text confirm, which the composer always
     // offers: waiting on it means the suggestion list has been recomputed, so
     // "no suggestion" is an outcome rather than a race.
-    await expect(visible(page).getByTestId('quick-add-confirm')).toBeVisible()
-    await expect(visible(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('quick-add-confirm')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
   })
 
   test('E2E-M10-15: an item nothing has ever used is removed for good', async ({
@@ -133,26 +112,31 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await page.goto('/tabs/items')
 
     await createItem(page, 'Fernglas')
+    await backToInventory(page)
     await createItem(page, 'Feldstecher')
-    await expect(visible(page).getByTestId('m9-row')).toHaveCount(2)
+    await backToInventory(page)
+    await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(2)
 
     await openItem(page, 'Fernglas')
-    await expect(visible(page).getByTestId('m10-delete-usage')).toContainText('0')
-    await expect(visible(page).getByTestId('m10-delete-outlook')).toContainText('removed for good')
+    await expect(visiblePage(page).getByTestId('m10-delete-usage')).toContainText('0')
+    await expect(visiblePage(page).getByTestId('m10-delete-outlook')).toContainText(
+      'removed for good',
+    )
 
-    await visible(page).getByTestId('m10-delete').click()
+    await visiblePage(page).getByTestId('m10-delete').click()
     await confirmDelete(page)
 
-    await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m9-fab')).toBeVisible()
     // The counter-signal: the *other* item is untouched, so "one row fewer"
     // cannot be produced by the list simply failing to render.
-    await expect(visible(page).getByTestId('m9-row')).toHaveCount(1)
-    await expect(visible(page).getByTestId('m9-row')).toContainText('Feldstecher')
+    await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(1)
+    await expect(visiblePage(page).getByTestId('m9-row')).toContainText('Feldstecher')
 
     // Really gone rather than hidden: re-creating the name succeeds, which a
     // retired row holding it would refuse (the active-only UNIQUE).
     await createItem(page, 'Fernglas')
-    await expect(visible(page).getByTestId('m9-row')).toHaveCount(2)
+    await backToInventory(page)
+    await expect(visiblePage(page).getByTestId('m9-row')).toHaveCount(2)
   })
 
   test('E2E-M7-11: M7 says which deletion a Vorlage will get before it happens', async ({
@@ -165,7 +149,7 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await createTemplate(page, 'group', 'Fotografie')
     await backToTemplateList(page)
 
-    const row = visible(page).locator('ion-item', { hasText: 'Fotografie' })
+    const row = visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })
     // contextmenu is the handler the touch long-press fires into — the seam
     // that keeps the case free of a real 500 ms hold (E2E-M7-04's account).
     await row.dispatchEvent('contextmenu')
@@ -179,6 +163,6 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await expect(alert).toContainText('removed for good')
     await alert.getByRole('button', { name: 'Delete', exact: true }).click()
 
-    await expect(visible(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(0)
+    await expect(visiblePage(page).locator('ion-item', { hasText: 'Fotografie' })).toHaveCount(0)
   })
 })
