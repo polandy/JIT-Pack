@@ -70,7 +70,10 @@ type PushRequest struct {
 // and was dropped instead of parked.
 type MutationOutcome string
 
-// The four outcomes a mutation can have.
+// The four outcomes a mutation can have. They are string literals and must
+// stay literals: cmd/wiregen reads this file as source, and a value it cannot
+// see as a literal drops out of the generated TypeScript union without a word.
+// TestWireOutcomes_MirrorSync is what keeps them equal to internal/sync's.
 const (
 	OutcomeApplied   MutationOutcome = "applied"
 	OutcomeMerged    MutationOutcome = "merged"
