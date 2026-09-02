@@ -203,7 +203,7 @@ client-test: $(CLIENT_DEPS)
 	cd client && $(RUN) npx vitest run
 
 client-fmt: $(CLIENT_DEPS)
-	cd client && $(RUN) npx prettier --check --experimental-cli src/
+	cd client && $(RUN) npx prettier --check --experimental-cli src/ e2e/
 
 ## --- visual baselines (ADR-013) -------------------------------------------
 # The invocation lives in scripts/visual.sh, which CI calls directly: a

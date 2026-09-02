@@ -146,7 +146,10 @@ test('E2E-G14-03: rows inside a card keep a seam, and the last one does not @loc
 // E2E-G14-02 (G-14/FR-21.8): elevation is cast in the flavour's ink. In
 // Latte the shadow is thrown in the darkest neutral, not in crust — which
 // there is a light grey and would cast no shadow at all.
-test('E2E-G14-02: the card still casts a shadow in Latte @local @g14', async ({ page, seedMode }) => {
+test('E2E-G14-02: the card still casts a shadow in Latte @local @g14', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local', theme: 'latte' })
   await page.setViewportSize(MOBILE)
   const card = await cardWithOneRow(page, 'Helltest')
@@ -157,7 +160,9 @@ test('E2E-G14-02: the card still casts a shadow in Latte @local @g14', async ({ 
   const shadow = await computed(card, 'box-shadow')
   const drop = /rgba?\(([^)]+)\)(?!.*inset)/.exec(shadow.split('inset').pop() ?? '')
   expect(drop, `no drop shadow in ${shadow}`).not.toBeNull()
-  const ink = drop![1]
+  const channels = drop?.[1]
+  expect(channels, `no colour channels in ${shadow}`).toBeDefined()
+  const ink = channels!
     .split(',')
     .slice(0, 3)
     .reduce((sum, n) => sum + Number(n.trim()), 0)

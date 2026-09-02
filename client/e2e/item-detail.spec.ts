@@ -158,9 +158,14 @@ test.describe('M5 item detail @local @m5', () => {
     // race Ionic's transition queue (the M7 lesson, one layer down).
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(1)
     await page.waitForFunction(() =>
-      document
-        .getAnimations()
-        .every((a) => a.playState !== 'running' || a.effect?.target?.closest?.('ion-spinner')),
+      document.getAnimations().every((a) => {
+        if (a.playState !== 'running') return true
+        // `AnimationEffect` declares no target; only `KeyframeEffect` has one,
+        // and a spinner's endless rotation must not hold the wait open.
+        const effect = a.effect
+        const target = effect instanceof KeyframeEffect ? effect.target : null
+        return target instanceof Element && target.closest('ion-spinner') !== null
+      }),
     )
 
     await page.goBack()

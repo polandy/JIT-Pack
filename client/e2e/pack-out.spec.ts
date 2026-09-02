@@ -1,4 +1,4 @@
-import { test, expect, visiblePage } from './fixtures'
+import { test, expect, visiblePage, useReducedMotion } from './fixtures'
 import type { Page } from '@playwright/test'
 import { tripWithRows } from './helpers/m4'
 
@@ -16,7 +16,7 @@ import { tripWithRows } from './helpers/m4'
  * took. Asserting a 300 ms collapse would be the timing dependency this
  * project forbids, and it would be testing CSS rather than behaviour.
  */
-test.use({ reducedMotion: 'reduce' })
+useReducedMotion(test)
 
 /**
  * How many packs this screen has announced. A counter rather than a look

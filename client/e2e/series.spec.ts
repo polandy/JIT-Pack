@@ -66,7 +66,8 @@ test.describe('M16 series & destination profile @local @m16', () => {
     // option it carries, so `toContainText('Summer')` is true of a season
     // select that has never been touched — the second series below is what
     // caught that, and it is why the untouched value is asserted first.
-    const seasonOf = (p: typeof page) => visible(p).getByTestId('m16-season').locator('.select-text')
+    const seasonOf = (p: typeof page) =>
+      visible(p).getByTestId('m16-season').locator('.select-text')
     await openSeries(page, OTHER_SERIES)
     await expect(seasonOf(page)).toHaveText(UNSET)
     await openSeries(page, SERIES)

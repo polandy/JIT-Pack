@@ -34,7 +34,13 @@ export async function fillIonic(field: Locator, value: string): Promise<void> {
  * never a wait.
  */
 export async function setDateField(page: Page, testid: string, iso: string): Promise<void> {
+  // Destructuring an array is `T | undefined` under `noUncheckedIndexedAccess`,
+  // and the compiler is right: `setDateField(page, id, 'tomorrow')` would have
+  // walked the calendar towards `NaN` until the hop budget ran out.
   const [year, month, day] = iso.split('-').map(Number)
+  if (year === undefined || month === undefined || day === undefined) {
+    throw new Error(`setDateField expects an ISO date, got ${iso}`)
+  }
   await page.getByTestId(testid).click()
   const picker = page.getByTestId(`${testid}-picker`)
   await expect(picker).toBeVisible()
@@ -52,7 +58,7 @@ export async function setDateField(page: Page, testid: string, iso: string): Pro
     const shown = (await picker.locator('.calendar-month-year').innerText()).trim()
     if (shown === target) break
     if (hop === MAX_HOPS) throw new Error(`date picker never reached ${target}, still at ${shown}`)
-    const [shownMonth, shownYear] = shown.split(' ')
+    const [shownMonth = '', shownYear = ''] = shown.split(' ')
     const forward = Number(shownYear) * 12 + monthIndex(shownMonth) < year * 12 + month
     const arrows = picker.locator('.calendar-next-prev ion-button')
     await arrows.nth(forward ? 1 : 0).click()

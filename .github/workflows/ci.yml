@@ -344,7 +344,7 @@ jobs:
       - run: npm ci
         working-directory: client
       - name: Check client formatting
-        run: npx prettier --check --experimental-cli src/
+        run: npx prettier --check --experimental-cli src/ e2e/
         working-directory: client
 
   # Verifies both images still build on every change; docker.yml only

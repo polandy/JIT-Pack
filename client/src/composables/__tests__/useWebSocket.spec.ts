@@ -9,6 +9,7 @@ import {
   type WSOptions,
 } from '../useWebSocket'
 import type { WSEvent } from '@/api/types'
+import { installHarness } from '@/__tests__/harness'
 
 class MockWebSocket {
   static instances: MockWebSocket[] = []
@@ -63,6 +64,10 @@ const latest = () => MockWebSocket.instances.at(-1)!
 
 describe('useWebSocket', () => {
   beforeEach(() => {
+    // The harness first, then the override: this spec needs a *constructible*
+    // socket that records its instances, which is the bespoke case CLAUDE.md
+    // names — a reason to stub after the harness, never instead of it.
+    installHarness()
     MockWebSocket.instances = []
     vi.stubGlobal('WebSocket', MockWebSocket)
   })

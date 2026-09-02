@@ -1,0 +1,24 @@
+{
+  // The Playwright suite, which no other project covered: `tsconfig.app.json`
+  // excludes it, `tsconfig.vitest.json` includes only `src/**/__tests__`, and
+  // `tsconfig.cli.json` is the CLI's. So a typo in a spec — a renamed helper,
+  // a dropped argument — surfaced only when Playwright reached that line, in
+  // a container, minutes later (found while doing T-3, 2026-09-02).
+  //
+  // Separate from the app project rather than folded into it because the two
+  // want different globals: the suite is Node plus Playwright, and the app is
+  // the browser. `vue-tsc --build` walks the references, so `npm run build`
+  // now type-checks the suite too.
+  "extends": "./tsconfig.app.json",
+
+  "include": ["e2e/**/*.ts", "playwright.config.ts"],
+  "exclude": [],
+
+  "compilerOptions": {
+    // Playwright drives a browser from Node: the spec's own code runs in
+    // Node, and everything inside `page.evaluate` is typed against the DOM.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node", "@playwright/test", "@ionic/core"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.e2e.tsbuildinfo"
+  }
+}

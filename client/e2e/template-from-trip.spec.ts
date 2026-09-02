@@ -536,7 +536,9 @@ test.describe('FLOW-09 — a template learns across a year (FR-27.1–27.5, FR-2
     for (const group of ['Makro', 'Wildlife']) {
       await expect(visible(page).locator('ion-item').filter({ hasText: group })).toHaveCount(1)
     }
-    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(1)
+    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(
+      1,
+    )
     await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' })).toHaveCount(0)
 
     // 6 — the fold-back reaches the trip that still follows the group, as the
