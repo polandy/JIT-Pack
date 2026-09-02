@@ -428,6 +428,7 @@ export function importPortableDocument(
         packedCount: item.packed_count ?? 0,
         mode: item.mode === 'buy_before' || item.mode === 'buy_local' ? item.mode : 'pack',
         latePacker: item.late_packer,
+        boughtFrom: item.bought_from,
       },
       item.traveler ? (travelerIDs.get(item.traveler) ?? null) : null,
       item.container ? (containerIDs.get(item.container) ?? null) : null,

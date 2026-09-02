@@ -114,7 +114,9 @@ describe('parsePortable (FR-18.5)', () => {
     const before = parsePortable(tripYAML).doc!
     expect(before.items[0]!.bought_from).toBeNull()
 
-    const bought = parsePortable(tripYAML.replace('packed_count: 1', 'bought_from: buy_before')).doc!
+    const bought = parsePortable(
+      tripYAML.replace('packed_count: 1', 'bought_from: buy_before'),
+    ).doc!
     expect(bought.items[0]!.bought_from).toBe('buy_before')
 
     const unknown = parsePortable(tripYAML.replace('packed_count: 1', 'bought_from: online')).doc!

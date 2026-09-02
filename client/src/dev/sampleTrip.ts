@@ -59,6 +59,7 @@ function row(name: string, category: string, over: Partial<PortableItem> = {}): 
     traveler: null,
     container: null,
     packed_count: 0,
+    bought_from: null,
     ...over,
   }
 }
@@ -168,9 +169,9 @@ const SEED_AUTHOR_ID = 'dev-seed'
 
 /**
  * FR-25.11j: one row is bought before departure, through the same action the
- * screen calls. The portable document has no field for it — the format does
- * not carry `bought_from` yet — and a seed that wrote the row directly would
- * be a second way of buying something, which is the one that would drift.
+ * screen calls. The portable document could carry `bought_from` since the
+ * backup learned it, but a seed that wrote the row directly would be a second
+ * way of buying something, which is the one that would drift.
  */
 const SEED_BOUGHT_ROW = 'Kaffee'
 
