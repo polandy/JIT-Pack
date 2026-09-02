@@ -18,7 +18,7 @@ import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
 import UpdateBanner from '@/components/global/UpdateBanner.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
-import { AUTH_EXPIRED_EVENT, createAuthRefresher } from '@/auth/refresh'
+import { createAuthRefresher, onSessionEnded } from '@/auth/refresh'
 import { loadTokens } from '@/auth/tokens'
 import {
   describeNotification,
@@ -177,8 +177,6 @@ onMounted(async () => {
     }
   }
 
-  // Session ended for real (IdP rejected the refresh token) → log in again.
-  window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
   // Sync-API P-1: the app coming back — a tab unfrozen, the network back, a
   // page restored from the back-forward cache — is when a socket is most
   // likely to be dead without having said so, and when a frozen backoff
@@ -197,14 +195,10 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
+  stopSessionEnd()
   for (const type of RESUME_EVENTS) window.removeEventListener(type, onResume)
   orchestrator?.disconnect()
 })
-
-function onAuthExpired() {
-  router.replace('/login')
-}
 
 /** The three ways a browser says "the app is back" — see `resume()`. */
 const RESUME_EVENTS = ['visibilitychange', 'online', 'pageshow'] as const
@@ -224,6 +218,12 @@ function onResume(ev: Event) {
 // and Local Mode without the storage detail NFR-4.11 requires.
 const route = useRoute()
 const router = useRouter()
+
+// A session that ends — the IdP refusing the refresh, or the account
+// deactivated (FR-23.3) — returns to the login. Attached here, in setup,
+// because a child's `onMounted` makes the request that can end it before
+// this component's own `onMounted` gets past its awaits (see `onSessionEnded`).
+const stopSessionEnd = onSessionEnded(() => router.replace('/login'))
 
 const syncDetailOpen = ref(false)
 const storage = ref<StorageStatus | null>(null)

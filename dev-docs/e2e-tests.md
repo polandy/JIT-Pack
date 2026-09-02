@@ -4087,3 +4087,50 @@ E2E-FLOW-01b is the same defect stated as the user states it: E2E-FLOW-01 packs 
 owner's device and reads the member's, and a year of green runs said nothing about the
 other direction, which is the one that broke.
 
+
+## Two files, one account, two workers (2026-09-02)
+
+The `e2e-server` job went red twice on a Dependabot PR that changed one Vue
+patch version, and green on the same tree a third time. Not the patch: **two
+defects that only meet under a particular scheduling**, which is what made it
+look like a flake.
+
+**The first is in the fixture.** `carol` was added on 2026-08-30 with one
+stated job — to be administered by the M20 cases, so that deactivating an
+account would not reach sideways into `multi-user.spec.ts`'s trips. Two days
+later E2E-M17-01 needed an account whose notification preference it could
+switch without breaking Bob's cases, and took Carol *because* she was the
+spare — its comment says she "exists for exactly this kind of reach-across",
+the original reason turned on its head. The `server` project runs its files
+on two workers, so when `admin.spec.ts` and `multi-user.spec.ts` overlap,
+E2E-M20-02's *Deactivate* ends Carol's session under E2E-M17-01 (her socket
+dies — the `webSocket.waitForEvent: Socket error` in the first red run), and
+every later `loginAs(…, 'carol')` is refused with the FR-23.3 sentence until
+M20-02 reaches its *Reactivate* step — which, on the failing run, it never
+did. That is the cascade: one red case, then three more at the login, each
+one's error-context snapshot showing *„This account is deactivated"*.
+
+The rule the fixture now states in `mockIdp.mjs`: **an account a file
+*changes* is logged in by that file alone.** `dave` is the fourth account and
+belongs to `admin.spec.ts`; Carol is E2E-M17-01's. Nothing about what the
+cases assert changed.
+
+**The second is in the app, and it is why M20-02 itself failed first.** The
+case reloads the deactivated account's page and expects the login. What it
+got was the dashboard with the G-2 glyph on *Offline*. `App.vue` attached
+its `AUTH_EXPIRED_EVENT` listener inside `onMounted`, after two awaited
+fetches — and M1's `onMounted` runs *before* App's (children mount first)
+and sends `me`, the first authed request. When that 403 came back before
+App's second fetch had, `endSession()` cleared the tokens and dispatched an
+event nobody was listening to; the boot then went on without a token, every
+request failed as if the network were gone, and the screen said so. Which of
+two round trips lands first is not a property a test can pin, so the seam is
+`onSessionEnded` in `auth/refresh.ts`: a latch that hands the end to a
+handler attached after the fact, plus App attaching in setup. The unit case
+is the ordering the screen could not fix — *a handler attached after the
+session ended is still reached* — and it is red without the latch.
+
+Worth carrying: **a job that is red on a dependency bump and green on
+`main` is not evidence about the bump** when the job is scheduled on two
+workers. The green `main` runs had the same two defects; the bump's runs
+were the first to hit the overlap twice in a row.
