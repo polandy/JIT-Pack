@@ -8,6 +8,7 @@ import {
   tripAction,
   tripSwipeActions,
   expectTripActionOffered,
+  visiblePage,
 } from './fixtures'
 import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
@@ -19,11 +20,6 @@ import type { Page } from '@playwright/test'
  * German shapes are unit-owned in `lib/__tests__/format.spec.ts` — one
  * formatter serves every surface (UX-5).
  */
-
-/** The visible page, per the working agreement: assert what is rendered. */
-function visible(page: Page) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-}
 
 test.describe('M2 trip list @local @m2', () => {
   test.beforeEach(async ({ page }) => {
@@ -44,8 +40,8 @@ test.describe('M2 trip list @local @m2', () => {
     await page.goto('/tabs/trips')
     // A fresh trip is *planning*. Since FR-2.8 the list opens there by
     // itself; the tap stays, so this case keeps testing the dates alone.
-    await visible(page).getByTestId('trips-filter-planned').click()
-    const when = visible(page).getByTestId('trip-row-Elba').getByTestId('trip-when')
+    await visiblePage(page).getByTestId('trips-filter-planned').click()
+    const when = visiblePage(page).getByTestId('trip-row-Elba').getByTestId('trip-when')
     // Whitespace-tolerant: Intl is free to use thin spaces around the dash.
     await expect(when).toHaveText(/^Aug 22\s*–\s*Sep 5, 2026$/)
   })
@@ -72,7 +68,7 @@ test.describe('M2 opening segment @local @m2', () => {
     value: string,
   ) {
     await expect(
-      visible(page).getByTestId(`trips-filter-${segment}`).locator('.segment-count'),
+      visiblePage(page).getByTestId(`trips-filter-${segment}`).locator('.segment-count'),
     ).toHaveText(`(${value})`)
   }
 
@@ -82,7 +78,7 @@ test.describe('M2 opening segment @local @m2', () => {
     await expectTripActionOffered(page, 'archive')
     await tripAction(page, 'archive')
     await page.getByTestId('m4-pass-finish').click()
-    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-template-from-trip')).toBeVisible()
   }
 
   test('E2E-M2-13: an empty Active is left for the planned trip, and each segment states its count', async ({
@@ -94,7 +90,7 @@ test.describe('M2 opening segment @local @m2', () => {
 
     // No tap on a segment anywhere in this case: the row being visible is
     // the assertion, since *Active* is where the list used to open.
-    await expect(visible(page).getByTestId('trip-row-Elba')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('trip-row-Elba')).toBeVisible()
     await expectCount(page, 'active', '0')
     await expectCount(page, 'planned', '1')
     await expectCount(page, 'archived', '0')
@@ -108,7 +104,7 @@ test.describe('M2 opening segment @local @m2', () => {
 
     await page.goto('/tabs/trips')
 
-    await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
     await expectCount(page, 'archived', '1')
   })
 
@@ -121,20 +117,20 @@ test.describe('M2 opening segment @local @m2', () => {
 
     // Opens on *Planned* — Active is empty — and the user goes to the archive.
     await page.goto('/tabs/trips')
-    await expect(visible(page).getByTestId('trip-row-Elba')).toBeVisible()
-    await visible(page).getByTestId('trips-filter-archived').click()
-    await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('trip-row-Elba')).toBeVisible()
+    await visiblePage(page).getByTestId('trips-filter-archived').click()
+    await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
 
     // Away and back: this is the re-entry the walk runs on, and *Archived*
     // holds a trip, so it is left alone. Through the trip and the ADR-011
     // chevron rather than the tab bar, which the desktop projects do not
     // render — the re-entry is the point, not which door it came through.
-    await visible(page).getByTestId('trip-row-Kreta').click()
-    await expect(visible(page).getByTestId('m4-header')).toBeVisible()
+    await visiblePage(page).getByTestId('trip-row-Kreta').click()
+    await expect(visiblePage(page).getByTestId('m4-header')).toBeVisible()
     await page.getByTestId('header-back').click()
 
-    await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
-    await expect(visible(page).getByTestId('trip-row-Elba')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('trip-row-Elba')).toHaveCount(0)
   })
 
   test('E2E-M2-13d: a caller naming the segment outranks the walk', async ({ page }) => {
@@ -147,7 +143,7 @@ test.describe('M2 opening segment @local @m2', () => {
     // The count first: it is the settled signal, and an absence asserted
     // against a screen that is still loading passes for the wrong reason.
     await expectCount(page, 'planned', '1')
-    await expect(visible(page).getByTestId('trip-row-Elba')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trip-row-Elba')).toHaveCount(0)
   })
 })
 
@@ -173,17 +169,17 @@ test.describe('M2 row actions @local @m2', () => {
     await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
     await page.getByTestId('quick-add-confirm').click()
-    await expect(visible(page).getByTestId(`m4-row-${ITEM}`)).toBeVisible()
-    await visible(page)
+    await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toBeVisible()
+    await visiblePage(page)
       .getByTestId(`m4-row-${ITEM}`)
       .getByTestId('row-check')
       .locator('ion-checkbox')
       .click()
     // The row leaves the working list once it is done (FR-25.2) — which is
     // this case's settled signal for the write having landed.
-    await expect(visible(page).getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
     await page.goto('/tabs/trips')
-    await expect(visible(page).getByTestId(`trip-row-${TRIP}`)).toBeVisible()
+    await expect(visiblePage(page).getByTestId(`trip-row-${TRIP}`)).toBeVisible()
   }
 
   // E2E-M2-06 (G-8/FR-17.3): without a session there is nobody to share
@@ -210,7 +206,7 @@ test.describe('M2 row actions @local @m2', () => {
 
     await openTripSwipe(page, TRIP)
     const withProgress = page.waitForEvent('download')
-    await visible(page).getByTestId(`m2-export-${TRIP}`).click()
+    await visiblePage(page).getByTestId(`m2-export-${TRIP}`).click()
     await page.locator('ion-action-sheet').getByText('With pack progress').click()
     const carried = await withProgress
     expect(carried.suggestedFilename()).toBe('Elba.yaml')
@@ -220,7 +216,7 @@ test.describe('M2 row actions @local @m2', () => {
 
     await openTripSwipe(page, TRIP)
     const clean = page.waitForEvent('download')
-    await visible(page).getByTestId(`m2-export-${TRIP}`).click()
+    await visiblePage(page).getByTestId(`m2-export-${TRIP}`).click()
     await page.locator('ion-action-sheet').getByText('Clean list (unpacked)').click()
     const bare = await readFile((await (await clean).path())!, 'utf8')
     // The same trip, the same row — and no record of anyone having packed it.
@@ -257,22 +253,22 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     await createTripViaWizard(page, { name: 'Von Hand' })
 
     await page.goto('/import')
-    await visible(page)
+    await visiblePage(page)
       .getByTestId('import-paste')
       .locator('textarea')
       .fill(['Artikel,2016', 'Wanderschuhe,1'].join('\n'))
-    await visible(page).getByTestId('import-analyze').click()
-    await visible(page).getByTestId('import-next').click()
-    await visible(page).getByTestId('import-commit').click()
+    await visiblePage(page).getByTestId('import-analyze').click()
+    await visiblePage(page).getByTestId('import-next').click()
+    await visiblePage(page).getByTestId('import-commit').click()
 
     // The commit lands on the archived segment, where the imported trip is.
-    await expect(visible(page).getByTestId('m2-imported-chip-2016')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m2-imported-chip-2016')).toBeVisible()
 
     // …and the trip made in the app carries no chip. The positive signal
     // against it is the row itself, on the segment it lives on.
-    await visible(page).getByTestId('trips-filter-planned').click()
-    await expect(visible(page).getByTestId('trip-row-Von Hand')).toBeVisible()
-    await expect(visible(page).getByTestId('m2-imported-chip-Von Hand')).toHaveCount(0)
+    await visiblePage(page).getByTestId('trips-filter-planned').click()
+    await expect(visiblePage(page).getByTestId('trip-row-Von Hand')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m2-imported-chip-Von Hand')).toHaveCount(0)
   })
 
   /**
@@ -290,7 +286,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     })
     await page.goto('/tabs/trips')
 
-    const faces = visible(page).getByTestId('m2-travelers-Zu viert')
+    const faces = visiblePage(page).getByTestId('m2-travelers-Zu viert')
     await expect(faces).toBeVisible()
     // Two faces and a +2, not four faces. Measured: three faces plus „+1" is
     // 64 px and wraps a long trip name onto a second line at 390 px; two plus
@@ -302,8 +298,8 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     // positive signal is the row, which is there either way.
     await createTripViaWizard(page, { name: 'Allein' })
     await page.goto('/tabs/trips')
-    await expect(visible(page).getByTestId('trip-row-Allein')).toBeVisible()
-    await expect(visible(page).getByTestId('m2-travelers-Allein')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trip-row-Allein')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m2-travelers-Allein')).toHaveCount(0)
   })
 
   /*
@@ -327,7 +323,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     await createTripViaWizard(page, { name: 'Einzelreise' })
 
     await page.goto('/tabs/trips')
-    const header = visible(page).getByTestId('series-header-Ostern')
+    const header = visiblePage(page).getByTestId('series-header-Ostern')
     await expect(header).toBeVisible()
     // The count is the group's, not the list's — the third trip is in no
     // series and must not be counted here.
@@ -335,17 +331,17 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
 
     // Grouping, not merely a heading: the two series trips are inside the
     // header's own group and the loose one is not.
-    const grouped = visible(page)
+    const grouped = visiblePage(page)
       .locator('.trip-card')
       .filter({ has: page.getByTestId('trip-row-Ostern 26') })
     await expect(grouped.getByTestId('trip-row-Ostern 25')).toBeVisible()
     await expect(grouped.getByTestId('trip-row-Einzelreise')).toHaveCount(0)
     // …and the loose trip is on the screen, so its absence above is about
     // the group rather than about the trip.
-    await expect(visible(page).getByTestId('trip-row-Einzelreise')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('trip-row-Einzelreise')).toBeVisible()
 
     await header.click()
-    await expect(visible(page).getByTestId('m16-name')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m16-name')).toBeVisible()
   })
 
   /*
@@ -361,15 +357,15 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     page,
   }) => {
     await page.goto('/tabs/trips')
-    const empty = visible(page).getByTestId('m2-empty')
+    const empty = visiblePage(page).getByTestId('m2-empty')
     await expect(empty).toBeVisible()
-    await expect(visible(page).getByTestId('trips-new')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('trips-new')).toBeVisible()
 
     // It goes away when there is something to show — without this the case
     // would pass against an empty state that is always on screen.
     await createTripViaWizard(page, { name: 'Elba' })
     await page.goto('/tabs/trips')
-    await expect(visible(page).getByTestId('trip-row-Elba')).toBeVisible()
-    await expect(visible(page).getByTestId('m2-empty')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trip-row-Elba')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m2-empty')).toHaveCount(0)
   })
 })

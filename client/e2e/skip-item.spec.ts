@@ -1,5 +1,12 @@
-import { test, expect, createTripViaWizard, createMasterItem, openQuickAdd } from './fixtures'
-import type { Locator, Page } from '@playwright/test'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  createMasterItem,
+  openQuickAdd,
+  visiblePage,
+} from './fixtures'
+import { assignTraveler, chooseInRowMenu, openRowMenu, tripWithRows } from './helpers/m4'
 
 /**
  * "Deliberately not packed" (UI-Test-Spec §3, M4/M5; Addendum FR-5.5, FR-20.2).
@@ -19,48 +26,14 @@ import type { Locator, Page } from '@playwright/test'
  */
 test.use({ reducedMotion: 'reduce' })
 
-/** The visible page, never the document — a route that does not repaint
- *  leaves the previous screen's markup in the outlet. */
-const shown = (page: Page) => page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-
-async function tripWithRows(page: Page, names: string[]) {
-  await createTripViaWizard(page, { name: 'Weglassprobe', travelers: ['Andy'] })
-  for (const name of names) {
-    await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
-    await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
-  }
-  await page.keyboard.press('Escape')
-  await expect(page.getByTestId('quick-add-input')).toBeHidden()
-}
-
-/**
- * Open a row's menu.
- *
- * `contextmenu` rather than a held pointer: the 500 ms themselves are unit
- * tested with fake timers in `useLongPress`, and driving a real hold here
- * would be a duration this suite is not allowed to depend on. Both events
- * reach the same handler, so what the case covers is the menu and what it
- * does — not which input produced it.
- */
-async function openRowMenu(page: Page, name: string) {
-  await page.getByTestId(`m4-row-${name}`).dispatchEvent('contextmenu')
-  await expect(page.locator('ion-action-sheet')).toBeVisible()
-}
-
-/** Dismissal is part of the interaction: the next tap lands on the overlay
- *  until the sheet is gone. */
-async function chooseInRowMenu(page: Page, label: RegExp) {
-  await page.locator('ion-action-sheet').getByRole('button', { name: label }).click()
-  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
-}
-
 // E2E-M4-37 (FR-5.5): the row can be told to stay at home, and it says so.
-test('E2E-M4-37: a row can be marked deliberately not packed @local @m4', async ({ page, seedMode }) => {
+test('E2E-M4-37: a row can be marked deliberately not packed @local @m4', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await tripWithRows(page, ['Zelt', 'Schlafsack'])
+  await tripWithRows(page, ['Zelt', 'Schlafsack'], 'Weglassprobe')
 
   await openRowMenu(page, 'Zelt')
   await chooseInRowMenu(page, /do not pack this/i)
@@ -87,7 +60,7 @@ test('E2E-M4-38: the undo puts a skipped row back on the open list @local @m4', 
 }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await tripWithRows(page, ['Zelt'])
+  await tripWithRows(page, ['Zelt'], 'Weglassprobe')
 
   await openRowMenu(page, 'Zelt')
   await chooseInRowMenu(page, /do not pack this/i)
@@ -103,10 +76,13 @@ test('E2E-M4-38: the undo puts a skipped row back on the open list @local @m4', 
 
 // E2E-M4-39 (FR-5.5): un-skipping reads as the opposite of the decision,
 // not as "undo", and is reachable long after the snackbar is gone.
-test('E2E-M4-39: a skipped row offers to be packed after all @local @m4', async ({ page, seedMode }) => {
+test('E2E-M4-39: a skipped row offers to be packed after all @local @m4', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await tripWithRows(page, ['Zelt'])
+  await tripWithRows(page, ['Zelt'], 'Weglassprobe')
 
   await openRowMenu(page, 'Zelt')
   await chooseInRowMenu(page, /do not pack this/i)
@@ -135,7 +111,7 @@ test('E2E-M4-41: the row menu neither opens the sheet nor eats the next tap @loc
 }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await tripWithRows(page, ['Zelt'])
+  await tripWithRows(page, ['Zelt'], 'Weglassprobe')
 
   await openRowMenu(page, 'Zelt')
   // Holding must not also open the detail — one gesture, one outcome.
@@ -162,9 +138,9 @@ test('E2E-M4-40: skipping a main item names the companion it took along @local @
   await createMasterItem(page, 'Drohne')
   await createMasterItem(page, 'Akku')
   // The editor is already open on the Akku: it depends on the Drohne.
-  await shown(page).getByTestId('m10-add-dependency').click()
-  await shown(page).getByTestId('m10-dependency-main-Drohne').click()
-  await expect(shown(page).getByTestId('m10-add-dependency')).toBeVisible()
+  await visiblePage(page).getByTestId('m10-add-dependency').click()
+  await visiblePage(page).getByTestId('m10-dependency-main-Drohne').click()
+  await expect(visiblePage(page).getByTestId('m10-add-dependency')).toBeVisible()
 
   await createTripViaWizard(page, { name: 'Cascade', travelers: ['Andy'] })
   await openQuickAdd(page)
@@ -203,7 +179,7 @@ test('E2E-M5-16: the sheet says a thing is not coming, and takes it back @local 
 }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await tripWithRows(page, ['Zelt'])
+  await tripWithRows(page, ['Zelt'], 'Weglassprobe')
 
   await page.getByTestId('m4-row-Zelt').click()
   await expect(page.getByTestId('m5-sheet')).toBeVisible()
@@ -221,33 +197,14 @@ test('E2E-M5-16: the sheet says a thing is not coming, and takes it back @local 
   await expect(page.getByTestId('m5-sheet')).not.toContainText(/skipped/i)
 })
 
-/**
- * Assign a row to a traveler through M5's membership sheet — the app's one way
- * of making a row somebody's (FR-25.1), and the only way to reach the
- * per-person child rows below.
- */
-async function assignTraveler(page: Page, row: Locator, travelerName: string) {
-  await row.click()
-  await expect(page.getByTestId('m5-sheet')).toBeVisible()
-  await page.getByTestId('m5-details').click()
-  await page.getByTestId('m5-membership').click()
-  await expect(page.getByTestId('membership-sheet')).toBeVisible()
-  // The roster is a view, not a write: only the checkbox converts the row
-  // (FR-25.21). Asserting the amount is the settled signal that it landed.
-  await page.getByTestId('membership-per-person').click()
-  await page.getByTestId(`membership-check-${travelerName}`).click()
-  await expect(page.getByTestId(`membership-qty-${travelerName}`)).toHaveText('1')
-  await page.getByTestId('membership-close').click()
-  await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
-  await page.getByTestId('m5-close').click()
-  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-}
-
 // E2E-M4-42 (FR-5.5, FR-25.1): the menu is written into *two* templates —
 // the ordinary row and the per-person child row inside a cluster. One
 // keeping the gesture says nothing about the other, and the child row is
 // the one a family trip is mostly made of.
-test('E2E-M4-42: a per-person child row can be left behind too @local @m4', async ({ page, seedMode }) => {
+test('E2E-M4-42: a per-person child row can be left behind too @local @m4', async ({
+  page,
+  seedMode,
+}) => {
   test.slow()
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })

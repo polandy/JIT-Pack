@@ -1,5 +1,6 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { test, expect, visiblePage } from './fixtures'
 import type { Page } from '@playwright/test'
+import { tripWithRows } from './helpers/m4'
 
 /**
  * Pack-out and undo (UI-Test-Spec §3, M4; Addendum FR-25.2).
@@ -17,28 +18,12 @@ import type { Page } from '@playwright/test'
  */
 test.use({ reducedMotion: 'reduce' })
 
-/** The visible page, never the document: a route that does not repaint keeps
- *  the previous screen's markup in the outlet. */
-const shown = (page: Page) => page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-
-async function tripWithRows(page: Page, names: string[]) {
-  await createTripViaWizard(page, { name: 'Packprobe', travelers: ['Andy'] })
-  for (const name of names) {
-    await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
-    await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
-  }
-  await page.keyboard.press('Escape')
-  await expect(page.getByTestId('quick-add-input')).toBeHidden()
-}
-
 /**
  * How many packs this screen has announced. A counter rather than a look
  * for a toast: see the note at its only assertion.
  */
 async function announcements(page: Page): Promise<number> {
-  const value = await shown(page)
+  const value = await visiblePage(page)
     .locator('ion-content.pack-content')
     .getAttribute('data-pack-announcements')
   return Number(value)
@@ -56,7 +41,7 @@ test('E2E-M4-33: a packed row leaves and the snackbar puts it back @local @m4', 
 }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await tripWithRows(page, ['Zelt', 'Schlafsack'])
+  await tripWithRows(page, ['Zelt', 'Schlafsack'], 'Packprobe')
 
   await check(page, 'Schlafsack')
 
@@ -71,7 +56,7 @@ test('E2E-M4-33: a packed row leaves and the snackbar puts it back @local @m4', 
   // And back. Before this, recovering a mistap meant finding the reveal
   // bar, showing the done rows, finding yours, and un-checking it.
   await toast.getByRole('button').click()
-  await expect(shown(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
 
   // Restored to *open*, not merely visible: a row that came back still
   // marked done would sit under the reveal bar rather than in the list.
@@ -85,7 +70,7 @@ test('E2E-M4-34: packing several rows leaves one undo, for the last of them @loc
 }) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await tripWithRows(page, ['Zelt', 'Schlafsack', 'Stirnlampe'])
+  await tripWithRows(page, ['Zelt', 'Schlafsack', 'Stirnlampe'], 'Packprobe')
 
   await check(page, 'Zelt')
   await check(page, 'Schlafsack')
@@ -98,16 +83,19 @@ test('E2E-M4-34: packing several rows leaves one undo, for the last of them @loc
   await expect(toast).toContainText('Schlafsack')
 
   await toast.getByRole('button').click()
-  await expect(shown(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
   // The earlier pack stays packed — undo is one step, not a rewind.
   await expect(page.getByTestId('m4-row-Zelt')).toBeHidden()
 })
 
 // E2E-M4-35 (FR-25.2): un-packing is not a pack, so it gets no snackbar.
-test('E2E-M4-35: un-checking a revealed row offers no undo @local @m4', async ({ page, seedMode }) => {
+test('E2E-M4-35: un-checking a revealed row offers no undo @local @m4', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await tripWithRows(page, ['Zelt'])
+  await tripWithRows(page, ['Zelt'], 'Packprobe')
 
   await check(page, 'Zelt')
   await expect(page.locator('ion-toast.pack-toast')).toBeVisible()
@@ -125,7 +113,7 @@ test('E2E-M4-35: un-checking a revealed row offers no undo @local @m4', async ({
   // is already on screen — the row stays put — so a snackbar would announce
   // something the user can see, and offer to undo an undo.
   await page.getByTestId('m4-done-bar').click()
-  const row = shown(page).getByTestId('m4-row-Zelt')
+  const row = visiblePage(page).getByTestId('m4-row-Zelt')
   await expect(row).toBeVisible()
   await check(page, 'Zelt')
 

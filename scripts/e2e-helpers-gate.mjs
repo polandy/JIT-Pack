@@ -1,0 +1,103 @@
+/**
+ * Holds the e2e suite to its shared helpers.
+ *
+ * Two things are checked, and both are the same defect seen from either end:
+ * a spec that spells out a sequence the suite already owns.
+ *
+ * 1. **The visible-page selector.** `ion-router-outlet > .ion-page:not(...)`
+ *    is the suite's answer to "assert what is rendered, never the URL", and
+ *    it was written out fifteen times under three different names. A copy is
+ *    not wrong on the day it is made — it is wrong on the day the selector
+ *    has to change, because nothing points at the fourteen that did not.
+ * 2. **A helper the suite already exports.** `fillIonic` existed seven times,
+ *    `tripWithRows` three, `createItem` four. The copies had already drifted
+ *    in their settle steps, which is the drift that costs a flake and names
+ *    no cause.
+ *
+ * Both are allowed inside `client/e2e/helpers/` and `client/e2e/fixtures.ts`,
+ * which is where the one copy lives.
+ *
+ * Node built-ins only, so it needs no install; wired into `make ci` and the
+ * CI client job beside the other node gates.
+ */
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
+
+/* Run from the repository root (`make ci`) or from `client/` (CI job). */
+const root = resolve(process.cwd().endsWith("client") ? ".." : ".");
+const E2E = resolve(root, "client/e2e");
+
+/** The selector that says which page is painted. It lives in `visiblePage`. */
+const VISIBLE_PAGE_SELECTOR =
+  "ion-router-outlet > .ion-page:not(.ion-page-hidden)";
+
+/**
+ * Helpers a spec must import rather than re-declare. Each is exported from
+ * `client/e2e/helpers/`; the gate matches a *declaration*, so calling one is
+ * always fine.
+ */
+const SHARED_HELPERS = [
+  "fillIonic",
+  "tripWithRows",
+  "startTrip",
+  "packRow",
+  "openRowMenu",
+  "chooseInRowMenu",
+  "assignTraveler",
+  "createItem",
+  "backToInventory",
+];
+
+/** Where the one copy of each of the above is allowed to live. */
+function isHome(file) {
+  const rel = relative(E2E, file);
+  return rel === "fixtures.ts" || rel.startsWith("helpers/");
+}
+
+function walk(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) out.push(...walk(full));
+    else if (entry.endsWith(".ts")) out.push(full);
+  }
+  return out;
+}
+
+const declaration = new RegExp(
+  `(?:function|const)\\s+(${SHARED_HELPERS.join("|")})\\b\\s*[(=]`,
+  "g",
+);
+
+const findings = [];
+for (const file of walk(E2E)) {
+  if (isHome(file)) continue;
+  const source = readFileSync(file, "utf8");
+  const where = relative(root, file);
+
+  source.split("\n").forEach((line, i) => {
+    if (line.includes(VISIBLE_PAGE_SELECTOR)) {
+      findings.push(
+        `${where}:${i + 1}: the visible-page selector — import \`visiblePage\``,
+      );
+    }
+  });
+
+  for (const hit of source.matchAll(declaration)) {
+    const line = source.slice(0, hit.index).split("\n").length;
+    findings.push(
+      `${where}:${line}: \`${hit[1]}\` is declared again — import it from e2e/helpers`,
+    );
+  }
+}
+
+if (findings.length > 0) {
+  console.error(
+    "e2e helpers gate: a spec re-declares what the suite already owns\n",
+  );
+  for (const f of findings) console.error(`  ${f}`);
+  console.error(
+    "\nThe shared copies live in client/e2e/helpers/ and client/e2e/fixtures.ts.",
+  );
+  process.exit(1);
+}

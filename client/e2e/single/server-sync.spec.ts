@@ -16,6 +16,7 @@ import {
   visiblePage,
   tripAction,
 } from '../fixtures'
+import { assignTraveler, row } from '../helpers/m4'
 import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
@@ -89,27 +90,6 @@ async function expectHistoryHint(page: Page, series: string, item: string, ...ex
   await expect(visiblePage(page).getByTestId('wizard-review-qty')).toHaveText('1')
   await hint.click()
   await expect(visiblePage(page).getByTestId('wizard-review-qty')).toHaveText(suggested)
-}
-
-/**
- * Assign the item to a traveler through M5's membership sheet — the app's one
- * way of making a row somebody's (FR-25.1). Same driving as the M12 unit.
- */
-async function assignTraveler(page: Page, itemName: string, travelerName: string) {
-  await visiblePage(page).getByTestId(`m4-row-${itemName}`).click()
-  await expect(page.getByTestId('m5-sheet')).toBeVisible()
-  await page.getByTestId('m5-details').click()
-  await page.getByTestId('m5-membership').click()
-  await expect(page.getByTestId('membership-sheet')).toBeVisible()
-  // The roster is a view, not a write: only the checkbox converts the row
-  // (FR-25.21). Asserting the amount is the settled signal that it landed.
-  await page.getByTestId('membership-per-person').click()
-  await page.getByTestId(`membership-check-${travelerName}`).click()
-  await expect(page.getByTestId(`membership-qty-${travelerName}`)).toHaveText('1')
-  await page.getByTestId('membership-close').click()
-  await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
-  await page.getByTestId('m5-close').click()
-  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 }
 
 /**
@@ -421,10 +401,10 @@ test.describe('Single-User backend sync @single', () => {
     // B edits first, offline — the strictly older HLC, so B is the side
     // that must lose. A's same-field edit happens visibly later.
     await ctxB.setOffline(true)
-    await assignTraveler(pageB, item, 'Mia')
+    await assignTraveler(pageB, row(pageB, item), 'Mia')
     await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'offline')
 
-    await assignTraveler(pageA, item, 'Andy')
+    await assignTraveler(pageA, row(pageA, item), 'Andy')
     // The server having A's value is a precondition of B's push losing, so
     // it is proven, not assumed: a fresh context reads it back.
     const ctxCheck = await browser.newContext()
@@ -756,7 +736,7 @@ test.describe('Single-User backend sync @single', () => {
       travelers: ['Andy', 'Mia'],
     })
     await quickAddItem(pageA, item)
-    await assignTraveler(pageA, item, 'Mia')
+    await assignTraveler(pageA, row(pageA, item), 'Mia')
     // Packed while online, so both devices agree it is packed. Only a packed
     // row is *deleted* when its traveller leaves — an untouched one is merely
     // detached, which is why this case has to pack first.

@@ -1,24 +1,14 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 import { test, expect, openQuickAdd, expectTripOpen } from './fixtures'
+import { fillIonic } from './helpers/ionic'
 import {
   addPosition,
   backToTemplateList as backToList,
   createTemplate,
   includeGroup,
-  visiblePage as visible,
+  visiblePage,
 } from './fixtures'
-
-/** Types instead of fill(): WebKit loses fill()'s one input event on Ionic
- * fields — the full account is on inventory.spec.ts's fillIonic. */
-async function fillIonic(field: ReturnType<typeof visible>, value: string) {
-  await expect(field).toHaveClass(/hydrated/)
-  const input = field.locator('input')
-  await input.click()
-  await input.fill('')
-  await input.pressSequentially(value)
-  await expect(input).toHaveValue(value)
-}
 
 /**
  * A tagged master item through M10's own path (E2E-M8-21 needs primary
@@ -27,29 +17,29 @@ async function fillIonic(field: ReturnType<typeof visible>, value: string) {
  * settled offer-or-create branch, painted editor, chevron back.
  */
 async function createTaggedItem(page: Page, name: string, tag: string) {
-  await visible(page).getByTestId('m9-fab').click()
-  await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-  await fillIonic(visible(page).getByTestId('m10-name'), name)
+  await visiblePage(page).getByTestId('m9-fab').click()
+  await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+  await fillIonic(visiblePage(page).getByTestId('m10-name'), name)
 
-  await fillIonic(visible(page).getByTestId('m10-tag-search'), tag)
-  const offer = visible(page).getByTestId(`m10-tag-offer-${tag}`)
-  const create = visible(page).getByTestId('m10-tag-create')
+  await fillIonic(visiblePage(page).getByTestId('m10-tag-search'), tag)
+  const offer = visiblePage(page).getByTestId(`m10-tag-offer-${tag}`)
+  const create = visiblePage(page).getByTestId('m10-tag-create')
   await expect(offer.or(create).first()).toBeVisible()
   if ((await offer.count()) > 0) await offer.click()
   else await create.click()
-  await expect(visible(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
+  await expect(visiblePage(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
 
-  await visible(page).getByTestId('m10-create').click()
+  await visiblePage(page).getByTestId('m10-create').click()
   await expect(page.getByTestId('header-title')).toHaveText(name)
   await page.getByTestId('header-back').click()
-  await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m9-fab')).toBeVisible()
   // Settled, not merely arriving (the backToInventory account).
-  await expect(visible(page).getByTestId('m10-tag-search')).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId('m10-tag-search')).toHaveCount(0)
 }
 
 /** Every position row of the open editor, in the order the screen renders them. */
 function positionRows(page: Page) {
-  return visible(page).locator('ion-item[data-testid^="m8-position-"] h2')
+  return visiblePage(page).locator('ion-item[data-testid^="m8-position-"] h2')
 }
 
 /**
@@ -58,7 +48,7 @@ function positionRows(page: Page) {
  * merely mentions it.
  */
 function positionRow(page: Page, name: string) {
-  return visible(page)
+  return visiblePage(page)
     .locator('ion-item[data-testid^="m8-position-"]')
     .filter({ has: page.getByRole('heading', { name, exact: true }) })
 }
@@ -95,8 +85,8 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await createTemplate(page, 'group', 'Makro')
 
     // Scope shape: no groups section, positions headed "Positions".
-    await expect(visible(page).getByTestId('m8-groups-head')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m8-positions-head')).toContainText('Positions')
+    await expect(visiblePage(page).getByTestId('m8-groups-head')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m8-positions-head')).toContainText('Positions')
 
     // FR-25.13c: the FAB expands the quick-add but no longer focuses it —
     // the empty composer leads with chips, and an auto-raised keyboard
@@ -104,16 +94,16 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     // old open()'s awaited focus would have landed by now and the unfixed
     // build fails here rather than racing past.
     await openQuickAdd(page, 'm8-fab')
-    const input = visible(page).getByTestId('quick-add-input').locator('input')
+    const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
 
     // The confirm is labelled for the scope (E2E-M8-13).
-    await expect(visible(page).getByTestId('quick-add-confirm')).toContainText('Add to group')
+    await expect(visiblePage(page).getByTestId('quick-add-confirm')).toContainText('Add to group')
     await expect(input).not.toBeFocused()
 
     // FR-25.7: one commit lands a collapsed row with the defaults.
     await input.fill('Kamera')
     await input.press('Enter')
-    const row = visible(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
+    const row = visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
     await expect(row).toContainText('Standard')
     await expect(row).toContainText('1×')
 
@@ -133,22 +123,22 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
   }) => {
     await createTemplate(page, 'group', 'Makro')
 
-    await expect(visible(page).getByTestId('m8-fab')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m8-fab')).toBeVisible()
     await openQuickAdd(page, 'm8-fab')
-    await expect(visible(page).getByTestId('quick-add-input')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('quick-add-input')).toBeVisible()
 
     // Nothing left for it to do, and the composer needs the room.
-    await expect(visible(page).getByTestId('m8-fab')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m8-fab')).toHaveCount(0)
 
     // The anchor survives, and that is the point: toasts on this screen are
     // positioned against the fab *container*. Hiding the whole IonFab would
     // have dropped the anchor and let toasts fall behind the tab bar — the
     // M7/M8 defect from 2026-08-15, nearly rebuilt while fixing this one.
-    await expect(visible(page).locator('#m8-fab-anchor')).toHaveCount(1)
+    await expect(visiblePage(page).locator('#m8-fab-anchor')).toHaveCount(1)
 
     // And it comes back once the composer closes.
-    await visible(page).getByTestId('quick-add-close').click()
-    await expect(visible(page).getByTestId('m8-fab')).toBeVisible()
+    await visiblePage(page).getByTestId('quick-add-close').click()
+    await expect(visiblePage(page).getByTestId('m8-fab')).toBeVisible()
   })
 
   test('E2E-M8-13, E2E-M8-04: a duplicate is reported and not added twice; free text created the master item', async ({
@@ -157,18 +147,20 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
 
-    const input = visible(page).getByTestId('quick-add-input').locator('input')
+    const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
     await input.fill('Kamera')
     await input.press('Enter')
     // Positive signal for the "nothing happened" claim: the report itself.
     await expect(page.locator('ion-toast').last()).toContainText('not added twice')
-    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' })).toHaveCount(1)
+    await expect(
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Kamera' }),
+    ).toHaveCount(1)
 
     // FR-1.1: the free-text add created the master item — the inventory has it.
     await backToList(page)
     await page.goto('/tabs/items')
     await expect(
-      visible(page).locator('ion-item').filter({ hasText: 'Kamera' }).first(),
+      visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first(),
     ).toBeVisible()
   })
 
@@ -184,21 +176,19 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await addPosition(page, 'Kamera')
     await addPosition(page, 'Ringlicht')
     await expect(positionRows(page)).toHaveText(['Kamera', 'Ringlicht', 'Stativ'])
-    await expect(visible(page).getByTestId('m8-positions-head')).toContainText('3')
+    await expect(visiblePage(page).getByTestId('m8-positions-head')).toContainText('3')
 
     // The ✕ takes its own row and no other — the two that stay are the
     // positive signal, and the section count is the model's own answer
     // rather than a second reading of the same list.
-    await positionRow(page, 'Ringlicht')
-      .locator('[data-testid^="m8-position-remove-"]')
-      .click()
+    await positionRow(page, 'Ringlicht').locator('[data-testid^="m8-position-remove-"]').click()
     await expect(positionRows(page)).toHaveText(['Kamera', 'Stativ'])
-    await expect(visible(page).getByTestId('m8-positions-head')).toContainText('2')
+    await expect(visiblePage(page).getByTestId('m8-positions-head')).toContainText('2')
 
     // A write, not a rendering: leaving and coming back re-derives the
     // editor from the store, so a removal held in the view would return.
     await backToList(page)
-    await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
     await expect(page.getByTestId('header-title')).toHaveText('Makro')
     await expect(positionRows(page)).toHaveText(['Kamera', 'Stativ'])
 
@@ -207,7 +197,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await positionRow(page, 'Kamera').locator('[data-testid^="m8-position-remove-"]').click()
     await positionRow(page, 'Stativ').locator('[data-testid^="m8-position-remove-"]').click()
     await expect(positionRows(page)).toHaveCount(0)
-    await expect(visible(page).getByTestId('m8-positions-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m8-positions-empty')).toBeVisible()
   })
 
   test('E2E-M8-21: the empty composer offers chips, never the already chosen, and a chip lands a row (FR-25.13c)', async ({
@@ -224,11 +214,11 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await openQuickAdd(page, 'm8-fab')
 
     // Nothing chosen, nothing used on this device yet: no chips to offer.
-    await expect(visible(page).getByTestId('quick-add-confirm')).toBeVisible()
-    await expect(visible(page).getByTestId('quick-add-chips')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('quick-add-confirm')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('quick-add-chips')).toHaveCount(0)
 
     // First position via the typed autocomplete — this also feeds the trail.
-    const input = visible(page).getByTestId('quick-add-input').locator('input')
+    const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
 
     // E2E-M8-13's "autocomplete after two characters" (clause asserted from
     // 2026-08-30; `MIN_SEARCH_LENGTH` had no test in the suite or the units).
@@ -236,29 +226,29 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     // exactly when a query of two characters or more matches nothing, so its
     // absence is what separates the gate from an empty result.
     await input.fill('Z')
-    await expect(visible(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
-    await expect(visible(page).locator('.no-match')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
+    await expect(visiblePage(page).locator('.no-match')).toHaveCount(0)
     await input.fill('Za')
     await expect(
-      visible(page).getByTestId('quick-add-suggestion').filter({ hasText: 'Zahnbürste' }),
+      visiblePage(page).getByTestId('quick-add-suggestion').filter({ hasText: 'Zahnbürste' }),
     ).toBeVisible()
 
     await input.fill('Zahn')
-    await visible(page)
+    await visiblePage(page)
       .getByTestId('quick-add-suggestion')
       .filter({ hasText: 'Zahnbürste' })
       .click()
     await expect(
-      visible(page).locator('ion-item').filter({ hasText: 'Zahnbürste' }).first(),
+      visiblePage(page).locator('ion-item').filter({ hasText: 'Zahnbürste' }).first(),
     ).toBeVisible()
 
     // The emptied composer now offers the related row: the other Hygiene
     // item, headed by the tag — and the chosen Zahnbürste is not offered
     // again in it (the positive signal for that absence is Shampoo,
     // rendered in the very same row).
-    const chipArea = visible(page).getByTestId('quick-add-chips')
+    const chipArea = visiblePage(page).getByTestId('quick-add-chips')
     await expect(chipArea).toContainText('Goes with Hygiene')
-    const related = visible(page).getByTestId('quick-add-chip-related')
+    const related = visiblePage(page).getByTestId('quick-add-chip-related')
     await expect(related.filter({ hasText: 'Shampoo' })).toBeVisible()
     await expect(related.filter({ hasText: 'Zahnbürste' })).toHaveCount(0)
     // Technik shares no tag with the group's contents.
@@ -266,26 +256,26 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
 
     // One tap on the chip lands a Standard row (FR-25.7 defaults).
     await related.filter({ hasText: 'Shampoo' }).click()
-    const row = visible(page).locator('ion-item').filter({ hasText: 'Shampoo' }).first()
+    const row = visiblePage(page).locator('ion-item').filter({ hasText: 'Shampoo' }).first()
     await expect(row).toContainText('Standard')
     // Both Hygiene items are chosen now, so the composer has nothing left
     // to offer — the rows above are the positive signal.
-    await expect(visible(page).getByTestId('quick-add-chips')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('quick-add-chips')).toHaveCount(0)
 
     // The trail crosses scopes: a fresh group offers the two items just
     // used, recency first, under the recent heading.
     await backToList(page)
     await createTemplate(page, 'group', 'Kulturbeutel')
     await openQuickAdd(page, 'm8-fab')
-    await expect(visible(page).getByTestId('quick-add-chips')).toContainText('Recently used')
-    const recent = visible(page).getByTestId('quick-add-chip-recent')
+    await expect(visiblePage(page).getByTestId('quick-add-chips')).toContainText('Recently used')
+    const recent = visiblePage(page).getByTestId('quick-add-chip-recent')
     await expect(recent.first()).toHaveText('Shampoo')
     await expect(recent.filter({ hasText: 'Zahnbürste' })).toBeVisible()
 
     // And a recent chip adds just the same.
     await recent.filter({ hasText: 'Zahnbürste' }).click()
     await expect(
-      visible(page).locator('ion-item').filter({ hasText: 'Zahnbürste' }).first(),
+      visiblePage(page).locator('ion-item').filter({ hasText: 'Zahnbürste' }).first(),
     ).toBeVisible()
   })
 
@@ -302,7 +292,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await openQuickAdd(page, 'm8-fab')
 
     // The door sits in the empty composer, beside the chips' offers.
-    await visible(page).getByTestId('quick-add-browse-open').click()
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
     const sheet = page.getByTestId('inventory-browse-sheet')
     await expect(sheet).toBeVisible()
 
@@ -326,10 +316,10 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(sheet.locator('input')).toHaveCount(0)
     await sheet.getByTestId('browse-free-text').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
-    await expect(visible(page).getByTestId('quick-add-input').locator('input')).toBeFocused()
+    await expect(visiblePage(page).getByTestId('quick-add-input').locator('input')).toBeFocused()
 
     // The run landed as positions with the FR-25.7 defaults.
-    const rows = visible(page).locator('ion-item')
+    const rows = visiblePage(page).locator('ion-item')
     await expect(rows.filter({ hasText: 'Zahnbürste' }).first()).toContainText('Standard')
     await expect(rows.filter({ hasText: 'Shampoo' }).first()).toBeVisible()
   })
@@ -344,40 +334,46 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await createTemplate(page, 'template', 'Fototage')
 
     // Groups only: the other Ferien-Vorlage is not on offer.
-    await visible(page).getByTestId('m8-include-open').click()
-    const picker = visible(page).getByTestId('m8-group-picker')
+    await visiblePage(page).getByTestId('m8-include-open').click()
+    const picker = visiblePage(page).getByTestId('m8-group-picker')
     await expect(picker.locator('.pick').filter({ hasText: 'Makro' })).toBeVisible()
     await expect(picker.locator('.pick').filter({ hasText: 'Fotoreise' })).toHaveCount(0)
 
     // Including removes it from the next offer.
     await picker.locator('.pick').filter({ hasText: 'Makro' }).click()
     await expect(
-      visible(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Makro' }),
+      visiblePage(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Makro' }),
     ).toBeVisible()
-    await visible(page).getByTestId('m8-include-open').click()
+    await visiblePage(page).getByTestId('m8-include-open').click()
     await expect(
-      visible(page).getByTestId('m8-group-picker').locator('.pick').filter({ hasText: 'Makro' }),
+      visiblePage(page)
+        .getByTestId('m8-group-picker')
+        .locator('.pick')
+        .filter({ hasText: 'Makro' }),
     ).toHaveCount(0)
 
     // "Neue Gruppe anlegen…": created and included in one step (FR-27.6).
-    await visible(page).getByTestId('m8-new-group').click()
-    await visible(page).getByTestId('m8-new-group-name').locator('input').fill('Wildlife')
-    await visible(page).getByTestId('m8-new-group-name').locator('input').press('Enter')
+    await visiblePage(page).getByTestId('m8-new-group').click()
+    await visiblePage(page).getByTestId('m8-new-group-name').locator('input').fill('Wildlife')
+    await visiblePage(page).getByTestId('m8-new-group-name').locator('input').press('Enter')
     await expect(
-      visible(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Wildlife' }),
+      visiblePage(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Wildlife' }),
     ).toBeVisible()
     // And it exists as a real group on M7 — where the composed row now shows
     // the include-dependent half of E2E-M7-07 that waited for this write:
     // the "N groups ·" prefix and the "contains: …" line.
     await backToList(page)
-    const composedRow = visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first()
+    const composedRow = visiblePage(page)
+      .locator('ion-item')
+      .filter({ hasText: 'Fototage' })
+      .first()
     await expect(composedRow).toContainText('2 groups')
     await expect(composedRow).toContainText('contains:')
     await expect(composedRow).toContainText('Makro')
     await expect(composedRow).toContainText('Wildlife')
-    await visible(page).getByTestId('m7-scope-group').click()
+    await visiblePage(page).getByTestId('m7-scope-group').click()
     await expect(
-      visible(page).locator('ion-item').filter({ hasText: 'Wildlife' }).first(),
+      visiblePage(page).locator('ion-item').filter({ hasText: 'Wildlife' }).first(),
     ).toBeVisible()
   })
 
@@ -387,44 +383,44 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await createTemplate(page, 'group', 'Makro')
     await backToList(page)
     await createTemplate(page, 'template', 'Fototage')
-    await visible(page).getByTestId('m8-include-open').click()
-    await visible(page)
+    await visiblePage(page).getByTestId('m8-include-open').click()
+    await visiblePage(page)
       .getByTestId('m8-group-picker')
       .locator('.pick')
       .filter({ hasText: 'Makro' })
       .click()
 
     // Demotion refused while groups are included — and nothing switched.
-    await visible(page).getByTestId('m8-scope-group').click()
+    await visiblePage(page).getByTestId('m8-scope-group').click()
     await expect(page.locator('ion-toast').last()).toContainText('Remove the included groups')
-    await expect(visible(page).getByTestId('m8-scope-template')).toHaveAttribute(
+    await expect(visiblePage(page).getByTestId('m8-scope-template')).toHaveAttribute(
       'aria-pressed',
       'true',
     )
 
     // The included group refuses promotion and names its consumer.
     await backToList(page)
-    await visible(page).getByTestId('m7-scope-group').click()
-    await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
-    await expect(visible(page).getByTestId('m8-included-in')).toContainText('Fototage')
-    await visible(page).getByTestId('m8-scope-template').click()
+    await visiblePage(page).getByTestId('m7-scope-group').click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
+    await expect(visiblePage(page).getByTestId('m8-included-in')).toContainText('Fototage')
+    await visiblePage(page).getByTestId('m8-scope-template').click()
     await expect(page.locator('ion-toast').last()).toContainText('Fototage')
-    await expect(visible(page).getByTestId('m8-scope-group')).toHaveAttribute(
+    await expect(visiblePage(page).getByTestId('m8-scope-group')).toHaveAttribute(
       'aria-pressed',
       'true',
     )
 
     // Unconstrained, the switch is free — and reshapes the editor.
     await backToList(page)
-    await visible(page).getByTestId('m7-scope-all').click()
-    await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
-    await visible(page).locator('[data-testid^="m8-group-remove-"]').click()
-    await visible(page).getByTestId('m8-scope-group').click()
-    await expect(visible(page).getByTestId('m8-scope-group')).toHaveAttribute(
+    await visiblePage(page).getByTestId('m7-scope-all').click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
+    await visiblePage(page).locator('[data-testid^="m8-group-remove-"]').click()
+    await visiblePage(page).getByTestId('m8-scope-group').click()
+    await expect(visiblePage(page).getByTestId('m8-scope-group')).toHaveAttribute(
       'aria-pressed',
       'true',
     )
-    await expect(visible(page).getByTestId('m8-groups-head')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m8-groups-head')).toHaveCount(0)
   })
 })
 
@@ -434,7 +430,7 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await page.goto('/tabs/templates')
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
-    await visible(page).locator('ion-item').filter({ hasText: 'Kamera' }).first().click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first().click()
     await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
   })
 
@@ -499,7 +495,7 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await expect(page.getByTestId('m8-details-body')).toHaveCount(0)
     await page.getByTestId('m8-position-close').click()
     await expect(page.getByTestId('m8-position-sheet')).not.toBeVisible()
-    const row = visible(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
+    const row = visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
     await expect(row).toContainText('Per person')
     await expect(row).toContainText('Summer')
     await expect(row).toContainText('Buy there')
@@ -519,7 +515,7 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await expect(page.getByTestId('m8-task-row')).toHaveCount(2)
 
     await page.getByTestId('m8-position-close').click()
-    const row = visible(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
+    const row = visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
     await expect(row).toContainText('📋 2')
 
     // Removing brings the chip down — and the remove is the positive signal
@@ -563,11 +559,11 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await includeGroup(page, 'Wildlife')
     await addPosition(page, 'Reiseapotheke')
 
-    const footer = visible(page).getByTestId('m8-resolution')
+    const footer = visiblePage(page).getByTestId('m8-resolution')
     // 4 unique items over 2 groups + 1 own position — the deduped count.
     await expect(footer).toContainText('4 items resolved')
     await expect(footer).toContainText('2 groups + 1 own position')
-    const merge = visible(page).getByTestId('m8-merge-line')
+    const merge = visiblePage(page).getByTestId('m8-merge-line')
     await expect(merge).toHaveCount(1)
     await expect(merge).toContainText('Kamera only 1×')
     await expect(merge).toContainText('Makro & Wildlife')
@@ -588,7 +584,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await addPosition(page, 'Reiseapotheke')
 
     // FR-27.14: the count is the door. Before this it was the whole answer.
-    const footer = visible(page).getByTestId('m8-resolution')
+    const footer = visiblePage(page).getByTestId('m8-resolution')
     await expect(footer).toContainText('3 items resolved')
     await footer.click()
 
@@ -612,7 +608,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await expect(sheet.locator('button')).toHaveCount(1)
     await sheet.getByTestId('group-peek-close').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m8-resolution')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m8-resolution')).toBeVisible()
   })
 
   test('E2E-M8-05: a template a trip still follows shows the blast-radius note', async ({
@@ -629,9 +625,9 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await backToList(page)
 
     // No trip yet — no note. The positive counterpart follows.
-    await visible(page).getByTestId('m7-scope-all').click()
-    await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
-    await expect(visible(page).getByTestId('m8-blast-note')).toHaveCount(0)
+    await visiblePage(page).getByTestId('m7-scope-all').click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
+    await expect(visiblePage(page).getByTestId('m8-blast-note')).toHaveCount(0)
 
     // Generate a trip from the Vorlage through M3 (spec §2.4: the app's own path).
     await page.goto('/trips/new')
@@ -648,8 +644,8 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
 
     // The Vorlage names the trip it reaches (FR-27.4)…
     await page.goto('/tabs/templates')
-    await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
-    const note = visible(page).getByTestId('m8-blast-note')
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
+    const note = visiblePage(page).getByTestId('m8-blast-note')
     await expect(note).toContainText('Engadin 2027')
     // …and says what will actually happen there. The note used to promise an
     // immediate change and a freeze on departure; both were retired
@@ -658,9 +654,9 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
 
     // …and so does the group, reached through the include.
     await backToList(page)
-    await visible(page).getByTestId('m7-scope-group').click()
-    await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
-    await expect(visible(page).getByTestId('m8-blast-note')).toContainText('Engadin 2027')
+    await visiblePage(page).getByTestId('m7-scope-group').click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
+    await expect(visiblePage(page).getByTestId('m8-blast-note')).toContainText('Engadin 2027')
   })
 })
 
@@ -703,8 +699,8 @@ test.describe('M8 group picker search (FR-27.13)', () => {
 
     // At six searchable groups the field stays away — scanning chips wins.
     // Positive signal beside the absence: the chips are rendered.
-    await visible(page).getByTestId('m8-include-open').click()
-    const picker = visible(page).getByTestId('m8-group-picker')
+    await visiblePage(page).getByTestId('m8-include-open').click()
+    const picker = visiblePage(page).getByTestId('m8-group-picker')
     await expect(picker.locator('.pick').filter({ hasText: 'Wildlife' })).toBeVisible()
     await expect(picker.getByTestId('m8-picker-search')).toHaveCount(0)
     await picker.locator('.picker-close').click()
@@ -713,10 +709,10 @@ test.describe('M8 group picker search (FR-27.13)', () => {
     await backToList(page)
     await createTemplate(page, 'group', 'Sieben')
     await backToList(page)
-    await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
     await expect(page.getByTestId('header-title')).toHaveText('Fototage')
-    await visible(page).getByTestId('m8-include-open').click()
-    const search = visible(page).getByTestId('m8-picker-search')
+    await visiblePage(page).getByTestId('m8-include-open').click()
+    const search = visiblePage(page).getByTestId('m8-picker-search')
     await expect(search).toBeVisible()
     // Deliberately not auto-focused: this picker exists to be tapped.
     await expect(search.locator('input')).not.toBeFocused()
@@ -724,13 +720,13 @@ test.describe('M8 group picker search (FR-27.13)', () => {
     // An item name finds the groups that carry it; each row states the
     // reason ("via Kamera") and the FR-27.12 summary.
     await fillIonic(search, 'Kamera')
-    const wildlifeHit = visible(page).locator('button.result').filter({ hasText: 'Wildlife' })
+    const wildlifeHit = visiblePage(page).locator('button.result').filter({ hasText: 'Wildlife' })
     await expect(wildlifeHit).toBeVisible()
     await expect(wildlifeHit).toContainText('via Kamera')
     await expect(wildlifeHit.locator('.preview')).toContainText('Kamera · Stativ')
 
     // The included Makro is reported, not silently absent.
-    const includedHit = visible(page).locator('.result.included').filter({ hasText: 'Makro' })
+    const includedHit = visiblePage(page).locator('.result.included').filter({ hasText: 'Makro' })
     await expect(includedHit).toBeVisible()
     await expect(includedHit).toContainText('Already included')
     await expect(includedHit).toContainText('via Kamera')
@@ -738,7 +734,7 @@ test.describe('M8 group picker search (FR-27.13)', () => {
     // A result row includes like a chip does.
     await wildlifeHit.click()
     await expect(
-      visible(page)
+      visiblePage(page)
         .locator('ion-item')
         .filter({ hasText: 'Wildlife' })
         .filter({ hasText: 'Kamera · Stativ' }),
@@ -746,16 +742,16 @@ test.describe('M8 group picker search (FR-27.13)', () => {
 
     // No match ends in creation with the typed name (the M7 rule: no row
     // without a name), prefilled from the query.
-    await visible(page).getByTestId('m8-include-open').click()
-    await fillIonic(visible(page).getByTestId('m8-picker-search'), 'Schnorchel')
-    await expect(visible(page).getByTestId('m8-search-empty')).toBeVisible()
-    await visible(page).getByTestId('m8-new-group').click()
-    await expect(visible(page).getByTestId('m8-new-group-name').locator('input')).toHaveValue(
+    await visiblePage(page).getByTestId('m8-include-open').click()
+    await fillIonic(visiblePage(page).getByTestId('m8-picker-search'), 'Schnorchel')
+    await expect(visiblePage(page).getByTestId('m8-search-empty')).toBeVisible()
+    await visiblePage(page).getByTestId('m8-new-group').click()
+    await expect(visiblePage(page).getByTestId('m8-new-group-name').locator('input')).toHaveValue(
       'Schnorchel',
     )
-    await visible(page).getByTestId('m8-new-group-commit').click()
+    await visiblePage(page).getByTestId('m8-new-group-commit').click()
     await expect(
-      visible(page).locator('ion-item h2').filter({ hasText: 'Schnorchel' }),
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Schnorchel' }),
     ).toBeVisible()
   })
 })
@@ -791,7 +787,7 @@ test.describe('M8 group recognition (FR-27.15)', () => {
 
   /** Reopen the Vorlage from M7 — what a reload or a detour comes back to. */
   async function reopenVorlage(page: Page) {
-    await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
     await expect(page.getByTestId('header-title')).toHaveText('Fototage')
   }
 
@@ -804,7 +800,7 @@ test.describe('M8 group recognition (FR-27.15)', () => {
 
     // A deviating quantity does not block the match — it is stated (FR-27.15).
     // The prep task rides along so the undo has an FR-27.7 child to lose.
-    await visible(page).locator('ion-item').filter({ hasText: 'Reiseapotheke' }).first().click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Reiseapotheke' }).first().click()
     await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
     await page.getByTestId('m8-qty-inc').click()
     await expect(page.getByTestId('m8-qty')).toHaveText('2')
@@ -816,12 +812,12 @@ test.describe('M8 group recognition (FR-27.15)', () => {
     await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
-    const hint = visible(page).locator('.fold-hint')
+    const hint = visiblePage(page).locator('.fold-hint')
     await expect(hint).toContainText('2 positions match the group “Erste Hilfe”')
     await expect(hint).toContainText('1 position defines something differently')
     // The one-item group never claims the list that mentions its item — with
     // the Erste Hilfe row beside it as the proof the detector ran at all.
-    await expect(visible(page).locator('.fold-hint').filter({ hasText: 'Solo' })).toHaveCount(0)
+    await expect(visiblePage(page).locator('.fold-hint').filter({ hasText: 'Solo' })).toHaveCount(0)
 
     // FR-27.12: what the group would bring is one tap away, before the tap.
     await hint.locator('.fold-peek').click()
@@ -833,28 +829,28 @@ test.describe('M8 group recognition (FR-27.15)', () => {
 
     // An already-included group is never offered — its items are covered.
     await includeGroup(page, 'Erste Hilfe')
-    await expect(visible(page).locator('.fold-hint')).toHaveCount(0)
-    const resolved = await visible(page)
+    await expect(visiblePage(page).locator('.fold-hint')).toHaveCount(0)
+    const resolved = await visiblePage(page)
       .getByTestId('m8-resolution')
       .locator('.res-big')
       .innerText()
-    await visible(page)
+    await visiblePage(page)
       .locator('ion-item')
       .filter({ hasText: 'Erste Hilfe' })
       .locator('.rm')
       .click()
-    await expect(visible(page).locator('.fold-hint')).toHaveCount(1)
+    await expect(visiblePage(page).locator('.fold-hint')).toHaveCount(1)
 
     // Zusammenfassen: the positions become the include, and the resolution is
     // the proof nothing was gained or lost.
-    await visible(page).locator('.fold-accept').click()
+    await visiblePage(page).locator('.fold-accept').click()
     await expect(
-      visible(page).locator('ion-item h2').filter({ hasText: 'Reiseapotheke' }),
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Reiseapotheke' }),
     ).toHaveCount(0)
     await expect(
-      visible(page).locator('ion-item h2').filter({ hasText: 'Erste Hilfe' }),
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Erste Hilfe' }),
     ).toBeVisible()
-    await expect(visible(page).getByTestId('m8-resolution').locator('.res-big')).toHaveText(
+    await expect(visiblePage(page).getByTestId('m8-resolution').locator('.res-big')).toHaveText(
       resolved,
     )
 
@@ -862,12 +858,12 @@ test.describe('M8 group recognition (FR-27.15)', () => {
     // quantity and the FR-27.7 task, and the include goes again.
     await page.locator('ion-toast').getByRole('button', { name: 'Undo' }).click()
     await expect(
-      visible(page).locator('ion-item h2').filter({ hasText: 'Erste Hilfe' }),
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Erste Hilfe' }),
     ).toHaveCount(0)
     await expect(
-      visible(page).locator('ion-item h2').filter({ hasText: 'Blasenpflaster' }),
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Blasenpflaster' }),
     ).toBeVisible()
-    await visible(page).locator('ion-item').filter({ hasText: 'Reiseapotheke' }).first().click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Reiseapotheke' }).first().click()
     await expect(page.getByTestId('m8-qty')).toHaveText('2')
     await expect(page.getByTestId('m8-task-row')).toContainText('Ablaufdaten prüfen')
   })
@@ -879,27 +875,27 @@ test.describe('M8 group recognition (FR-27.15)', () => {
     await seedMode({ mode: 'local' })
     await seedWorld(page)
 
-    await expect(visible(page).locator('.fold-hint')).toHaveCount(1)
-    await visible(page).locator('.fold-dismiss').click()
+    await expect(visiblePage(page).locator('.fold-hint')).toHaveCount(1)
+    await visiblePage(page).locator('.fold-dismiss').click()
     // The positive signal beside the absence: the positions are untouched.
-    await expect(visible(page).locator('.fold-hint')).toHaveCount(0)
+    await expect(visiblePage(page).locator('.fold-hint')).toHaveCount(0)
     await expect(
-      visible(page).locator('ion-item h2').filter({ hasText: 'Reiseapotheke' }),
+      visiblePage(page).locator('ion-item h2').filter({ hasText: 'Reiseapotheke' }),
     ).toBeVisible()
 
     // Device-local memory: a reload does not re-ask.
     await page.reload()
     await expect(page.getByTestId('header-title')).toHaveText('Fototage')
-    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Zelt' })).toBeVisible()
-    await expect(visible(page).locator('.fold-hint')).toHaveCount(0)
+    await expect(visiblePage(page).locator('ion-item h2').filter({ hasText: 'Zelt' })).toBeVisible()
+    await expect(visiblePage(page).locator('.fold-hint')).toHaveCount(0)
 
     // A changed item set is a new question, so it is asked again.
     await page.getByTestId('header-back').click()
-    await visible(page).locator('ion-item').filter({ hasText: 'Erste Hilfe' }).first().click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Erste Hilfe' }).first().click()
     await addPosition(page, 'Zelt')
     await backToList(page)
     await reopenVorlage(page)
-    await expect(visible(page).locator('.fold-hint')).toContainText(
+    await expect(visiblePage(page).locator('.fold-hint')).toContainText(
       '3 positions match the group “Erste Hilfe”',
     )
   })
@@ -911,7 +907,7 @@ test.describe('M8 group recognition (FR-27.15)', () => {
  * `hasText` filter matches that too — which is how E2E-M8-18 first went red
  * on a screen that was rendering correctly.
  */
-function groupRow(page: Page, scope: ReturnType<typeof visible>, name: string) {
+function groupRow(page: Page, scope: Locator, name: string) {
   return scope
     .locator('ion-item')
     .filter({ has: page.getByRole('heading', { name, exact: true }) })
@@ -941,13 +937,13 @@ test.describe('M8 group marks (FR-28.8)', () => {
     await addPosition(page, 'Zelt')
 
     // Set from the same picker M10 uses — one component, not two.
-    await visible(page).getByTestId('m8-mark').click()
+    await visiblePage(page).getByTestId('m8-mark').click()
     await expect(page.getByTestId('mark-picker')).toBeVisible()
     // A plain <input>, not an Ionic field.
     await page.getByTestId('mark-search').fill('camping')
     await page.getByTestId('mark-tile').filter({ hasText: '⛺' }).click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m8-mark')).toContainText('⛺')
+    await expect(visiblePage(page).getByTestId('m8-mark')).toContainText('⛺')
 
     // Surface 1 — the M7 list row. Asserted on the unfiltered list, and
     // before the Vorlage below exists: the scope segment changes what the
@@ -956,7 +952,7 @@ test.describe('M8 group marks (FR-28.8)', () => {
     // subtitle, which a `hasText` filter would happily match instead.
     await backToList(page)
     await expect(
-      groupRow(page, visible(page), 'Camping Basis').getByTestId('item-mark'),
+      groupRow(page, visiblePage(page), 'Camping Basis').getByTestId('item-mark'),
     ).toHaveText('⛺')
 
     // Surface 2 — M8's Gruppen section of a Vorlage that includes it. The
@@ -965,13 +961,13 @@ test.describe('M8 group marks (FR-28.8)', () => {
     // about the other — which is exactly how this case found the missing
     // slot on its first run.
     await createTemplate(page, 'template', 'Sommer')
-    await visible(page).getByTestId('m8-mark').click()
+    await visiblePage(page).getByTestId('m8-mark').click()
     await expect(page.getByTestId('mark-picker')).toBeVisible()
     await page.getByTestId('mark-search').fill('sonne')
     await page.getByTestId('mark-tile').filter({ hasText: '🧴' }).click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await includeGroup(page, 'Camping Basis')
-    const includeRow = groupRow(page, visible(page), 'Camping Basis')
+    const includeRow = groupRow(page, visiblePage(page), 'Camping Basis')
     await expect(includeRow.getByTestId('item-mark')).toHaveText('⛺')
 
     // Surface 3 — the FR-27.12 peek sheet's own header.
@@ -986,7 +982,7 @@ test.describe('M8 group marks (FR-28.8)', () => {
     // Local Mode a reload is a reload of the whole store (FR-19.2).
     await page.goto('/tabs/templates')
     await expect(
-      groupRow(page, visible(page), 'Camping Basis').getByTestId('item-mark'),
+      groupRow(page, visiblePage(page), 'Camping Basis').getByTestId('item-mark'),
     ).toHaveText('⛺')
 
     // Surface 4 — M3 step 3, where the group is picked into a trip.
@@ -996,12 +992,20 @@ test.describe('M8 group marks (FR-28.8)', () => {
     await expect(page.getByTestId('wizard-step-2')).toBeVisible()
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-3')).toBeVisible()
-    const pick = groupRow(page, visible(page).getByTestId('wizard-section-groups'), 'Camping Basis')
+    const pick = groupRow(
+      page,
+      visiblePage(page).getByTestId('wizard-section-groups'),
+      'Camping Basis',
+    )
     await expect(pick.getByTestId('item-mark')).toHaveText('⛺')
 
     // …and the Vorlagen column beside it, which is a second template in the
     // same view and had to be wired separately.
-    const vorlage = groupRow(page, visible(page).getByTestId('wizard-section-templates'), 'Sommer')
+    const vorlage = groupRow(
+      page,
+      visiblePage(page).getByTestId('wizard-section-templates'),
+      'Sommer',
+    )
     await expect(vorlage.getByTestId('item-mark')).toHaveText('🧴')
   })
 })
@@ -1028,14 +1032,14 @@ test.describe('M8 — the group picker and a taken name (FR-1.6)', () => {
     await createTemplate(page, 'template', 'Fotoreise')
 
     // The group exists, so "create" means "the one you already have".
-    await visible(page).getByTestId('m8-include-open').click()
-    await visible(page).getByTestId('m8-new-group').click()
-    await fillIonic(visible(page).getByTestId('m8-new-group-name'), 'kamera')
-    await visible(page).getByTestId('m8-new-group-commit').click()
+    await visiblePage(page).getByTestId('m8-include-open').click()
+    await visiblePage(page).getByTestId('m8-new-group').click()
+    await fillIonic(visiblePage(page).getByTestId('m8-new-group-name'), 'kamera')
+    await visiblePage(page).getByTestId('m8-new-group-commit').click()
 
     await expect(page.locator('ion-toast').last()).toContainText('“Kamera” already exists')
     await expect(
-      visible(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Kamera' }),
+      visiblePage(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Kamera' }),
     ).toBeVisible()
 
     // No second group was written — counted on M7, which is the only place
@@ -1044,28 +1048,28 @@ test.describe('M8 — the group picker and a taken name (FR-1.6)', () => {
     // On the row's own title, not anywhere in the row: the Fotoreise row now
     // names Kamera in its "contains: …" line, which is the include working.
     await expect(
-      visible(page)
+      visiblePage(page)
         .locator('ion-item h2')
         .filter({ hasText: /^Kamera$/ }),
     ).toHaveCount(1)
 
     // A Vorlage holding the name is the cross-scope case: it is reported as
     // the fact it is, and nothing is included or created.
-    await visible(page).locator('ion-item').filter({ hasText: 'Fotoreise' }).first().click()
-    await visible(page).getByTestId('m8-include-open').click()
-    await visible(page).getByTestId('m8-new-group').click()
-    await fillIonic(visible(page).getByTestId('m8-new-group-name'), 'Fotoreise')
-    await visible(page).getByTestId('m8-new-group-commit').click()
+    await visiblePage(page).locator('ion-item').filter({ hasText: 'Fotoreise' }).first().click()
+    await visiblePage(page).getByTestId('m8-include-open').click()
+    await visiblePage(page).getByTestId('m8-new-group').click()
+    await fillIonic(visiblePage(page).getByTestId('m8-new-group-name'), 'Fotoreise')
+    await visiblePage(page).getByTestId('m8-new-group-commit').click()
 
     await expect(page.locator('ion-toast').last()).toContainText(
       'A template already carries this name',
     )
     // The picker is still open — nothing was committed — and the positive
     // signal beside it: a free name in the same field does create and include.
-    await fillIonic(visible(page).getByTestId('m8-new-group-name'), 'Wildlife')
-    await visible(page).getByTestId('m8-new-group-commit').click()
+    await fillIonic(visiblePage(page).getByTestId('m8-new-group-name'), 'Wildlife')
+    await visiblePage(page).getByTestId('m8-new-group-commit').click()
     await expect(
-      visible(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Wildlife' }),
+      visiblePage(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Wildlife' }),
     ).toBeVisible()
   })
 
@@ -1076,20 +1080,20 @@ test.describe('M8 — the group picker and a taken name (FR-1.6)', () => {
     await backToList(page)
     await createTemplate(page, 'template', 'Fotoreise')
 
-    await fillIonic(visible(page).getByTestId('m8-name'), 'Kamera')
-    await visible(page).getByTestId('m8-name').locator('input').blur()
+    await fillIonic(visiblePage(page).getByTestId('m8-name'), 'Kamera')
+    await visiblePage(page).getByTestId('m8-name').locator('input').blur()
 
     await expect(page.locator('ion-toast').last()).toContainText(
       'The name “Kamera” is already taken.',
     )
     // Not merely "the store was not written": the field itself is back to
     // what the row is still called, which is what the user sees.
-    await expect(visible(page).getByTestId('m8-name').locator('input')).toHaveValue('Fotoreise')
+    await expect(visiblePage(page).getByTestId('m8-name').locator('input')).toHaveValue('Fotoreise')
     await expect(page.getByTestId('header-title')).toHaveText('Fotoreise')
 
     // Positive signal: a free name in the same field does save.
-    await fillIonic(visible(page).getByTestId('m8-name'), 'Fotoreise 2027')
-    await visible(page).getByTestId('m8-name').locator('input').blur()
+    await fillIonic(visiblePage(page).getByTestId('m8-name'), 'Fotoreise 2027')
+    await visiblePage(page).getByTestId('m8-name').locator('input').blur()
     await expect(page.getByTestId('header-title')).toHaveText('Fotoreise 2027')
   })
 })

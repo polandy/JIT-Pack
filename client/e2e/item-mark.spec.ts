@@ -7,7 +7,10 @@ import {
   createTemplate,
   addPosition,
   openQuickAdd,
+  visiblePage,
 } from './fixtures'
+import { fillIonic } from './helpers/ionic'
+import { backToInventory, createItem } from './helpers/m9'
 
 /**
  * §3.28 — the item mark (FR-28.1–28.11, UI-Spec G-15).
@@ -26,20 +29,6 @@ import {
  */
 test.use({ reducedMotion: 'reduce' })
 
-/** The page that is actually painted — a route change alone proves nothing. */
-const visible = (page: Page) => page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-
-/** Types instead of fill(): WebKit loses fill()'s one input event on Ionic
- *  fields — the full account is on inventory.spec.ts's fillIonic. */
-async function fillIonic(field: ReturnType<typeof visible>, value: string) {
-  await expect(field).toHaveClass(/hydrated/)
-  const input = field.locator('input')
-  await input.click()
-  await input.fill('')
-  await input.pressSequentially(value)
-  await expect(input).toHaveValue(value)
-}
-
 /** The picker's search is a plain <input>, not an Ionic field — no hydration
  *  to wait for, and fillIonic's `hydrated` guard would never resolve. */
 async function search(page: Page, value: string) {
@@ -50,7 +39,7 @@ async function search(page: Page, value: string) {
 
 /** Open M10's picker from the mark row and wait for it to have presented. */
 async function openPicker(page: Page) {
-  await visible(page).getByTestId('m10-mark').click()
+  await visiblePage(page).getByTestId('m10-mark').click()
   await expect(page.getByTestId('mark-picker')).toBeVisible()
 }
 
@@ -90,31 +79,8 @@ async function addAdHoc(page: Page, name: string) {
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
 }
 
-/** A named item through M10, optionally marked from the suggestion band. */
-async function createItem(page: Page, name: string, opts: { mark?: string } = {}) {
-  await visible(page).getByTestId('m9-fab').click()
-  await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-  await fillIonic(visible(page).getByTestId('m10-name'), name)
-
-  if (opts.mark) {
-    await openPicker(page)
-    await page.getByTestId('mark-suggestion').filter({ hasText: opts.mark }).click()
-    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m10-mark')).toContainText(opts.mark)
-  }
-
-  await visible(page).getByTestId('m10-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-}
-
-async function backToInventory(page: Page) {
-  await page.getByTestId('header-back').click()
-  await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
-  await expect(visible(page).getByTestId('m10-name')).toHaveCount(0)
-}
-
 const m9Row = (page: Page, name: string) =>
-  visible(page).getByTestId('m9-row').filter({ hasText: name })
+  visiblePage(page).getByTestId('m9-row').filter({ hasText: name })
 
 test.describe('§3.28 the item mark', () => {
   test.slow()
@@ -130,8 +96,8 @@ test.describe('§3.28 the item mark', () => {
     page,
   }) => {
     // The hit.
-    await visible(page).getByTestId('m9-fab').click()
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Zahnbürste')
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zahnbürste')
     await openPicker(page)
     await expect(page.getByTestId('mark-suggestion').first()).toHaveText('🪥')
 
@@ -157,21 +123,21 @@ test.describe('§3.28 the item mark', () => {
     // and the item is saved unmarked because nothing was tapped. The empty
     // slot on the row is the positive signal — the case cannot pass by the
     // picker merely being slow.
-    await visible(page).getByTestId('m10-create').click()
+    await visiblePage(page).getByTestId('m10-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Zahnbürste')
     await backToInventory(page)
     await expect(m9Row(page, 'Zahnbürste').getByTestId('item-mark')).toHaveCount(0)
 
-    await visible(page).getByTestId('m9-fab').click()
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Stirnlampe')
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Stirnlampe')
     await openPicker(page)
     await expect(page.getByTestId('mark-suggestion').first()).toHaveText('🔦')
     await closePicker(page)
     // Untapped means unset: the editor's row still says „none".
-    await expect(visible(page).getByTestId('m10-mark')).not.toContainText('🔦')
+    await expect(visiblePage(page).getByTestId('m10-mark')).not.toContainText('🔦')
 
     // The empty result of a *name*, said out loud rather than rendered blank.
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Zwischenringe')
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zwischenringe')
     await openPicker(page)
     await expect(page.getByTestId('mark-suggestion')).toHaveCount(0)
     await expect(page.getByTestId('mark-no-suggestion')).toBeVisible()
@@ -253,7 +219,7 @@ test.describe('§3.28 the item mark', () => {
     await page.goto('/tabs/templates')
     await createTemplate(page, 'group', 'Camping')
     await addPosition(page, 'Zelt')
-    await visible(page).locator('ion-item h2').filter({ hasText: 'Zelt' }).first().click()
+    await visiblePage(page).locator('ion-item h2').filter({ hasText: 'Zelt' }).first().click()
     await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
     await page.getByTestId('m8-details').click()
     await page.getByTestId('m8-assign-person').click()
@@ -272,7 +238,7 @@ test.describe('§3.28 the item mark', () => {
     }
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-3')).toBeVisible()
-    await visible(page)
+    await visiblePage(page)
       .getByTestId('wizard-section-groups')
       .locator('ion-item')
       .filter({ hasText: 'Camping' })
@@ -374,7 +340,7 @@ test.describe('§3.28 the item mark', () => {
     // M4 pages sit in the outlet for a moment, neither yet hidden — so the
     // row is awaited to be unique before it is clicked (strict mode does not
     // retry on its own).
-    const adHocRow = visible(page).getByTestId('m4-row-Zwischenringe')
+    const adHocRow = visiblePage(page).getByTestId('m4-row-Zwischenringe')
     await expect(adHocRow).toHaveCount(1)
     await adHocRow.click()
     await expect(page.getByTestId('m5-sheet').getByTestId('m5-name')).toHaveText('Zwischenringe')

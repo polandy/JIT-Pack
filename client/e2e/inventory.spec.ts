@@ -7,8 +7,11 @@ import {
   backToTemplateList,
   createTripViaWizard,
   openQuickAdd,
+  visiblePage,
 } from './fixtures'
-import type { Page } from '@playwright/test'
+import { fillIonic } from './helpers/ionic'
+import type { Locator, Page } from '@playwright/test'
+import { backToInventory, createItem } from './helpers/m9'
 
 /**
  * M9/M10 — the inventory and the item editor, rebuilt on the tag set
@@ -40,74 +43,6 @@ const TALL_PNG = Buffer.from(
   'base64',
 )
 
-/** The page that is actually painted — a route change alone proves nothing. */
-function visible(page: Page) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-}
-
-/**
- * Fill an Ionic input whose *bound state* the test then depends on.
- *
- * `fill()` sets the inner `<input>` and dispatches a single DOM `input`
- * event, which the Ionic component has to re-emit as `ionInput` for Vue to
- * see it. On WebKit that one event is sometimes lost, and the field then
- * shows the text while the bound ref stays empty — which on the tag search
- * means neither a match chip nor a create chip is rendered, since both are
- * derived from the query. It surfaces 30 s later as "element not found",
- * with a screen that looks perfectly filled in.
- *
- * Waiting for Ionic's own `hydrated` class was not enough (one run in
- * fourteen still lost it), so this types instead: real key events give the
- * component one `input` per character, and losing all of them is not a race
- * that exists. The cost is a few milliseconds per character.
- */
-async function fillIonic(field: ReturnType<typeof visible>, value: string) {
-  await expect(field).toHaveClass(/hydrated/)
-  const input = field.locator('input')
-  await input.click()
-  await input.fill('')
-  await input.pressSequentially(value)
-  await expect(input).toHaveValue(value)
-}
-
-/** Create through the app's own path: FAB → minimal form → commit. */
-async function createItem(
-  page: Page,
-  name: string,
-  tags: string[] = [],
-  extra?: { weight?: string },
-) {
-  await visible(page).getByTestId('m9-fab').click()
-  await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
-
-  await fillIonic(visible(page).getByTestId('m10-name'), name)
-
-  for (const tag of tags) {
-    await fillIonic(visible(page).getByTestId('m10-tag-search'), tag)
-
-    // Filter-or-create: an existing tag is offered, an unmatched name is
-    // created. Which of the two is on screen has to be *settled* before we
-    // branch — a one-shot isVisible() runs before Vue has re-rendered the
-    // chips and then picks the wrong arm, which surfaces 30 s later as a
-    // missing chip rather than as a race.
-    const offer = visible(page).getByTestId(`m10-tag-offer-${tag}`)
-    const create = visible(page).getByTestId('m10-tag-create')
-    await expect(offer.or(create).first()).toBeVisible()
-
-    if ((await offer.count()) > 0) await offer.click()
-    else await create.click()
-
-    await expect(visible(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
-  }
-
-  if (extra?.weight) {
-    await visible(page).getByTestId('m10-more').click()
-    await fillIonic(visible(page).getByTestId('m10-weight'), extra.weight)
-  }
-
-  await commitNewItem(page, name)
-}
-
 /**
  * Commit the creation form and wait for the *edit* page to be painted.
  *
@@ -121,23 +56,10 @@ async function createItem(
  * not the form it replaced — is the one now on screen.
  */
 async function commitNewItem(page: Page, name: string) {
-  await visible(page).getByTestId('m10-create').click()
+  await visiblePage(page).getByTestId('m10-create').click()
   // Creating ends where editing continues — the saved item, by name.
   await expect(page.getByTestId('header-title')).toHaveText(name)
-  await expect(visible(page).getByTestId('save-indicator')).toBeVisible()
-}
-
-/**
- * Back to the list via the ADR-011 header chevron rather than page.goBack():
- * history-back across the root→tabs outlet boundary trips the known
- * pre-existing Ionic transition defect (see navigation.spec.ts).
- */
-async function backToInventory(page: Page) {
-  await page.getByTestId('header-back').click()
-  await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
-  // Settled, not merely arriving: while the outgoing editor still fades it
-  // counts as visible, and a one-shot read would see both pages at once.
-  await expect(visible(page).getByTestId('m10-tag-search')).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId('save-indicator')).toBeVisible()
 }
 
 /**
@@ -145,7 +67,7 @@ async function backToInventory(page: Page) {
  * the `.jp-eyebrow` role, which uppercases in CSS, so the rendered casing is
  * a styling decision and not the data these cases are about.
  */
-async function groupHeadings(scope: ReturnType<typeof visible>): Promise<string[]> {
+async function groupHeadings(scope: Locator): Promise<string[]> {
   const heads = await scope.getByTestId('m9-group-head').allInnerTexts()
   return heads.map((h) => h.split('\n')[0]!.trim().toLowerCase())
 }
@@ -157,10 +79,10 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   })
 
   test('E2E-M9-01: an item on two tags renders once, under its primary tag', async ({ page }) => {
-    await createItem(page, 'Badehose', ['Kleidung', 'Sommer'])
+    await createItem(page, 'Badehose', { tags: ['Kleidung', 'Sommer'] })
     await backToInventory(page)
 
-    const list = visible(page)
+    const list = visiblePage(page)
     // The row exists exactly once across the whole list — the guarantee
     // FR-24.2 buys, and the one a naive "file under every tag" would break.
     await expect(list.getByTestId('m9-row').filter({ hasText: 'Badehose' })).toHaveCount(1)
@@ -171,12 +93,12 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   })
 
   test('E2E-M9-06: the tag axis filters on any tag, not only the primary one', async ({ page }) => {
-    await createItem(page, 'Badehose', ['Kleidung', 'Sommer'])
+    await createItem(page, 'Badehose', { tags: ['Kleidung', 'Sommer'] })
     await backToInventory(page)
-    await createItem(page, 'Kabel', ['Technik'])
+    await createItem(page, 'Kabel', { tags: ['Technik'] })
     await backToInventory(page)
 
-    const list = visible(page)
+    const list = visiblePage(page)
     await expect(list.getByTestId('m9-row')).toHaveCount(2)
 
     // Sommer is the swimsuit's *second* tag; filtering by it must still
@@ -189,10 +111,10 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   test('E2E-M9-05: the list is lean until the properties sheet says otherwise', async ({
     page,
   }) => {
-    await createItem(page, 'Wanderschuhe', ['Schuhe'], { weight: '900' })
+    await createItem(page, 'Wanderschuhe', { tags: ['Schuhe'], weight: '900' })
     await backToInventory(page)
 
-    const row = visible(page).getByTestId('m9-row').first()
+    const row = visiblePage(page).getByTestId('m9-row').first()
     // Lean by default: the weight exists on the item but not on the row.
     await expect(row).not.toContainText('900 g')
     // ...and the eye carries no badge while nothing is shown. This is the
@@ -207,7 +129,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.keyboard.press('Escape')
 
     // The painted row changed — not merely the stored preference.
-    const shown = visible(page).getByTestId('m9-row').first()
+    const shown = visiblePage(page).getByTestId('m9-row').first()
     await expect(shown).toContainText('900 g')
     // *Exactly* those: enabling one property must not paint the other two,
     // which is the whole reason FR-24.4 is three switches and not one.
@@ -218,10 +140,10 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   test('E2E-M9-08: the first group heading clears the tag axis instead of touching it', async ({
     page,
   }) => {
-    await createItem(page, 'Badehose', ['Kleidung'])
+    await createItem(page, 'Badehose', { tags: ['Kleidung'] })
     await backToInventory(page)
 
-    const list = visible(page)
+    const list = visiblePage(page)
     const axis = list.getByTestId('m9-tag-axis')
     await expect(axis).toBeVisible()
     const head = list.getByTestId('m9-group-head').first()
@@ -244,12 +166,12 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   test('E2E-M9-10: the search filters the list and says so when nothing matches', async ({
     page,
   }) => {
-    await createItem(page, 'Badehose', ['Kleidung'])
+    await createItem(page, 'Badehose', { tags: ['Kleidung'] })
     await backToInventory(page)
-    await createItem(page, 'Kabel', ['Technik'])
+    await createItem(page, 'Kabel', { tags: ['Technik'] })
     await backToInventory(page)
 
-    const list = visible(page)
+    const list = visiblePage(page)
     await expect(list.getByTestId('m9-row')).toHaveCount(2)
 
     await page.getByTestId('search').click()
@@ -291,7 +213,7 @@ test.describe('M9 inventory — the empty state (G-7)', () => {
     await seedMode({ mode: 'local' })
     await page.goto('/tabs/items')
 
-    const list = visible(page)
+    const list = visiblePage(page)
     await expect(list.getByTestId('m9-empty')).toBeVisible()
     // G-7 is an offer, not a shrug: the tag axis and the no-match state are
     // both absent, so what is on screen is the empty state and not a list
@@ -300,12 +222,12 @@ test.describe('M9 inventory — the empty state (G-7)', () => {
     await expect(list.getByTestId('m9-no-match')).toHaveCount(0)
 
     await list.getByTestId('m9-import').click()
-    await expect(visible(page).getByTestId('import-paste')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('import-paste')).toBeVisible()
 
     // NFR-4.7: the way back is the way in reversed, and it lands on the
     // inventory rather than on M15's other parent, the trip list.
     await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m9-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m9-empty')).toBeVisible()
   })
 })
 
@@ -316,9 +238,9 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
   })
 
   test('E2E-M10-07: creating hides the sections an item cannot have yet', async ({ page }) => {
-    await visible(page).getByTestId('m9-fab').click()
+    await visiblePage(page).getByTestId('m9-fab').click()
 
-    const form = visible(page)
+    const form = visiblePage(page)
     await expect(form.getByTestId('m10-new-hint')).toBeVisible()
     await expect(form.getByTestId('m10-name')).toBeVisible()
     await expect(form.getByTestId('m10-tag-search')).toBeVisible()
@@ -348,74 +270,74 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
   test('E2E-M10-07: a missing name is answered with a hint, not a dead button', async ({
     page,
   }) => {
-    await visible(page).getByTestId('m9-fab').click()
-    await visible(page).getByTestId('m10-create').click()
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await visiblePage(page).getByTestId('m10-create').click()
 
     // The button is live and says why nothing happened — the user should
     // not have to diagnose a disabled control (FR-24.5).
-    await expect(visible(page).getByTestId('m10-name-error')).toBeVisible()
-    await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-name-error')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
   })
 
   test('E2E-M10-10: a duplicate name is reported before it reaches the push', async ({ page }) => {
     await createItem(page, 'Sackmesser')
     await backToInventory(page)
 
-    await visible(page).getByTestId('m9-fab').click()
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Sackmesser')
-    await visible(page).getByTestId('m10-create').click()
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Sackmesser')
+    await visiblePage(page).getByTestId('m10-create').click()
 
     // FR-24.1 dropped the category from the item's UNIQUE, so the name is
     // the identity — and the clash is answered here, not by a rejection.
-    await expect(visible(page).getByTestId('m10-name-error')).toContainText('Sackmesser')
-    await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-name-error')).toContainText('Sackmesser')
+    await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
   })
 
   test('E2E-M10-08: an unmatched tag name is created and assigned in one step', async ({
     page,
   }) => {
-    await visible(page).getByTestId('m9-fab').click()
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Zelt')
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
 
-    await fillIonic(visible(page).getByTestId('m10-tag-search'), 'Camping')
+    await fillIonic(visiblePage(page).getByTestId('m10-tag-search'), 'Camping')
     // Nothing matches, so the offer is to create it.
-    await expect(visible(page).getByTestId('m10-tag-create')).toBeVisible()
-    await visible(page).getByTestId('m10-tag-create').click()
+    await expect(visiblePage(page).getByTestId('m10-tag-create')).toBeVisible()
+    await visiblePage(page).getByTestId('m10-tag-create').click()
 
-    const assigned = visible(page).getByTestId('m10-tag-assigned-Camping')
+    const assigned = visiblePage(page).getByTestId('m10-tag-assigned-Camping')
     await expect(assigned).toBeVisible()
     // The summary names it as primary — what M9 will file the item under.
-    await expect(visible(page).getByTestId('m10-tag-summary')).toContainText('Camping')
+    await expect(visiblePage(page).getByTestId('m10-tag-summary')).toContainText('Camping')
 
     // Assigned tags stay pinned above the matches: the filter may narrow
     // what is *offered* and must never hide what the item already carries.
     // The ＋ chip is the positive signal that the query is live — without
     // it, "the chip is still there" is equally satisfied by a search field
     // that filters nothing at all.
-    await fillIonic(visible(page).getByTestId('m10-tag-search'), 'Winter')
-    await expect(visible(page).getByTestId('m10-tag-create')).toBeVisible()
+    await fillIonic(visiblePage(page).getByTestId('m10-tag-search'), 'Winter')
+    await expect(visiblePage(page).getByTestId('m10-tag-create')).toBeVisible()
     await expect(assigned).toBeVisible()
 
     // The second item finds it as an existing tag rather than making a
     // duplicate: the same field, now filtering instead of creating.
     await commitNewItem(page, 'Zelt')
     await backToInventory(page)
-    await visible(page).getByTestId('m9-fab').click()
-    await fillIonic(visible(page).getByTestId('m10-name'), 'Schlafsack')
-    await fillIonic(visible(page).getByTestId('m10-tag-search'), 'Camping')
-    await expect(visible(page).getByTestId('m10-tag-offer-Camping')).toBeVisible()
-    await expect(visible(page).getByTestId('m10-tag-create')).toHaveCount(0)
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Schlafsack')
+    await fillIonic(visiblePage(page).getByTestId('m10-tag-search'), 'Camping')
+    await expect(visiblePage(page).getByTestId('m10-tag-offer-Camping')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-tag-create')).toHaveCount(0)
   })
 
   test('E2E-M10-08: unassigning a tag refiles the item in the inventory', async ({ page }) => {
-    await createItem(page, 'Badehose', ['Kleidung'])
+    await createItem(page, 'Badehose', { tags: ['Kleidung'] })
 
     // The editor is open on the saved item; drop its only tag.
-    await visible(page).getByTestId('m10-tag-assigned-Kleidung').click()
-    await expect(visible(page).getByTestId('m10-tag-assigned-Kleidung')).toHaveCount(0)
+    await visiblePage(page).getByTestId('m10-tag-assigned-Kleidung').click()
+    await expect(visiblePage(page).getByTestId('m10-tag-assigned-Kleidung')).toHaveCount(0)
 
     await backToInventory(page)
-    expect(await groupHeadings(visible(page))).toEqual(['untagged'])
+    expect(await groupHeadings(visiblePage(page))).toEqual(['untagged'])
   })
 })
 
@@ -442,7 +364,7 @@ test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12
 
     // The positive counterpart to E2E-M10-07's absence assertions: present,
     // and worded by the catalogue rather than by the template.
-    const form = visible(page)
+    const form = visiblePage(page)
     await expect(form.getByTestId('m10-section-photo')).toHaveText('Foto')
     await expect(form.getByTestId('m10-section-depends')).toHaveText('Hängt ab von')
     await expect(form.getByTestId('m10-add-dependency')).toContainText('Abhängigkeit hinzufügen')
@@ -450,7 +372,7 @@ test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12
     // The dependency picker is behind a tap, and carried three literals of
     // its own — the search, the empty answer, and the way out.
     await form.getByTestId('m10-add-dependency').click()
-    await expect(visible(page).getByPlaceholder('Artikel durchsuchen…')).toBeVisible()
+    await expect(visiblePage(page).getByPlaceholder('Artikel durchsuchen…')).toBeVisible()
   })
 })
 
@@ -468,7 +390,7 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
 
   /** Open an item from the inventory list, settled on its editor. */
   async function openItem(page: Page, name: string) {
-    await visible(page).getByTestId('m9-row').filter({ hasText: name }).click()
+    await visiblePage(page).getByTestId('m9-row').filter({ hasText: name }).click()
     await expect(page.getByTestId('header-title')).toHaveText(name)
   }
 
@@ -484,9 +406,11 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     // The editor is open on the Ersatzakku: it depends on the Kamera, and
     // the mode a new relation takes is *nötig* until someone says otherwise
     // (FR-20.1) — which is what makes E2E-M4-40's cascade the default.
-    await visible(page).getByTestId('m10-add-dependency').click()
-    await visible(page).getByTestId('m10-dependency-main-Kamera').click()
-    await expect(visible(page).getByTestId('m10-dependency-mode-Kamera')).toContainText('Required')
+    await visiblePage(page).getByTestId('m10-add-dependency').click()
+    await visiblePage(page).getByTestId('m10-dependency-main-Kamera').click()
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Kamera')).toContainText(
+      'Required',
+    )
 
     await backToInventory(page)
     await openItem(page, 'Kamera')
@@ -494,17 +418,17 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     // The reverse list: the items that need this one. It only reads — the
     // relation is owned by the item that declared it, so this row offers
     // neither the mode select nor the removal the other side has (FR-20.4).
-    const companion = visible(page).getByTestId('m10-companion-Ersatzakku')
+    const companion = visiblePage(page).getByTestId('m10-companion-Ersatzakku')
     await expect(companion).toContainText('Required')
     await expect(companion.locator('ion-select')).toHaveCount(0)
     await expect(companion.locator('ion-button')).toHaveCount(0)
 
     // The circle: the Kamera cannot in turn depend on the Ersatzakku.
-    await visible(page).getByTestId('m10-add-dependency').click()
-    await visible(page).getByTestId('m10-dependency-main-Ersatzakku').click()
+    await visiblePage(page).getByTestId('m10-add-dependency').click()
+    await visiblePage(page).getByTestId('m10-dependency-main-Ersatzakku').click()
     // Readable, and it names the hops rather than saying "invalid": the
     // path is the only part of the refusal the user can act on.
-    await expect(visible(page).getByTestId('m10-dependency-error')).toContainText(
+    await expect(visiblePage(page).getByTestId('m10-dependency-error')).toContainText(
       'Kamera → Ersatzakku → Kamera',
     )
 
@@ -512,15 +436,15 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     // absent afterwards. The companion row above is the positive signal
     // that assertion is made against — this screen does render the pair,
     // so "no dependency row" cannot be produced by it rendering nothing.
-    await visible(page).getByTestId('m10-dependency-cancel').click()
-    await expect(visible(page).getByTestId('m10-dependency-mode-Ersatzakku')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m10-companion-Ersatzakku')).toBeVisible()
+    await visiblePage(page).getByTestId('m10-dependency-cancel').click()
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Ersatzakku')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m10-companion-Ersatzakku')).toBeVisible()
   })
 
   test('E2E-M10-04: a photo is added, replaced, and removed on the item', async ({ page }) => {
     await createItem(page, 'Fernglas')
 
-    const form = visible(page)
+    const form = visiblePage(page)
     await expect(form.getByTestId('m10-photo-empty')).toBeVisible()
     await expect(form.getByTestId('m10-photo-add')).toContainText('Add photo')
     // Nothing to remove yet, and the control says so by not being there.
@@ -551,16 +475,16 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     // device by `image_hash`, so leaving and returning proves the write.
     await backToInventory(page)
     await openItem(page, 'Fernglas')
-    await expect(visible(page).getByTestId('m10-photo-preview')).toHaveJSProperty(
+    await expect(visiblePage(page).getByTestId('m10-photo-preview')).toHaveJSProperty(
       'naturalWidth',
       16,
     )
 
-    await visible(page).getByTestId('m10-photo-remove').click()
-    await expect(visible(page).getByTestId('m10-photo-empty')).toBeVisible()
-    await expect(visible(page).getByTestId('m10-photo-preview')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m10-photo-add')).toContainText('Add photo')
-    await expect(visible(page).getByTestId('m10-photo-remove')).toHaveCount(0)
+    await visiblePage(page).getByTestId('m10-photo-remove').click()
+    await expect(visiblePage(page).getByTestId('m10-photo-empty')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-photo-preview')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m10-photo-add')).toContainText('Add photo')
+    await expect(visiblePage(page).getByTestId('m10-photo-remove')).toHaveCount(0)
   })
 })
 
@@ -604,28 +528,28 @@ test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
       'Werkzeug',
       'Zubehör',
     ]
-    await createItem(page, 'Träger', tags)
+    await createItem(page, 'Träger', { tags })
     await backToInventory(page)
 
     // A fresh form: all ten are unassigned, the query is empty.
-    await visible(page).getByTestId('m9-fab').click()
-    await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
 
-    const offers = visible(page).locator('[data-testid^="m10-tag-offer-"]')
+    const offers = visiblePage(page).locator('[data-testid^="m10-tag-offer-"]')
     await expect(offers).toHaveCount(8)
-    await expect(visible(page).getByTestId('m10-tag-offer-Werkzeug')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeug')).toHaveCount(0)
     // The tail names what the shelf holds back, so the cap is visible state
     // rather than a silently shorter vocabulary.
-    await expect(visible(page).getByTestId('m10-tag-more')).toContainText('2')
+    await expect(visiblePage(page).getByTestId('m10-tag-more')).toContainText('2')
 
     // The search reaches past the cap…
-    await fillIonic(visible(page).getByTestId('m10-tag-search'), 'Werkzeug')
-    await expect(visible(page).getByTestId('m10-tag-offer-Werkzeug')).toBeVisible()
+    await fillIonic(visiblePage(page).getByTestId('m10-tag-search'), 'Werkzeug')
+    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeug')).toBeVisible()
 
     // …and clearing it returns to the shelf. Cleared by keys, not fill(''):
     // deleting through the keyboard dispatches an input event per keystroke,
     // the same reason fillIonic types (see its comment).
-    const searchInput = visible(page).getByTestId('m10-tag-search').locator('input')
+    const searchInput = visiblePage(page).getByTestId('m10-tag-search').locator('input')
     await searchInput.click()
     await searchInput.press('ControlOrMeta+a')
     await searchInput.press('Backspace')
@@ -633,8 +557,8 @@ test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
     await expect(offers).toHaveCount(8)
 
     // The tail hands over to the search: after the tap, typing starts there.
-    await visible(page).getByTestId('m10-tag-more').click()
-    await expect(visible(page).getByTestId('m10-tag-search').locator('input')).toBeFocused()
+    await visiblePage(page).getByTestId('m10-tag-more').click()
+    await expect(visiblePage(page).getByTestId('m10-tag-search').locator('input')).toBeFocused()
 
     // The placeholder fits its box at phone width — the de string used to run
     // out of the searchbar. Measured by rendering, not by reproducing the
@@ -685,21 +609,21 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
     await backToTemplateList(page)
 
     await page.goto('/tabs/items')
-    await visible(page).getByTestId('m9-row').filter({ hasText: 'Wanderstöcke' }).click()
+    await visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Wanderstöcke' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Wanderstöcke')
 
-    const row = visible(page).getByTestId('m10-contained-Wandern')
+    const row = visiblePage(page).getByTestId('m10-contained-Wandern')
     await expect(row).toBeVisible()
     // The scope chip M7's own rows wear, so the two lists read alike.
     // Anchored on the test id rather than on the word, because this suite's
     // language is a setting and an assertion on text goes green the moment
     // the chip is translated (the trap E2E-M10-07 records).
-    await expect(visible(page).getByTestId('m10-contained-group-Wandern')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-contained-group-Wandern')).toBeVisible()
     // Both scopes wear the same chip, so a mixed list reads as one rule. The
     // positive signal against the group chip is a *vacation* row carrying its
     // own — an assertion on the group alone passes on a screen that marks
     // nothing else.
-    await expect(visible(page).getByTestId('m10-contained-template-Sommerferien')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-contained-template-Sommerferien')).toBeVisible()
 
     // Tappable straight into that template's editor — the whole point of a
     // list over a count — and the way back lands on the item again.
@@ -707,7 +631,7 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
     await expect(page.getByTestId('header-title')).toHaveText('Wandern')
     await page.goBack()
     await expect(page.getByTestId('header-title')).toHaveText('Wanderstöcke')
-    await expect(visible(page).getByTestId('m10-contained-Wandern')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-contained-Wandern')).toBeVisible()
   })
 
   // E2E-M10-18 (FR-27.9): what was said about this item while packing, across
@@ -722,24 +646,27 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
     await expect(page.getByTestId('m4-row-Wanderstöcke')).toBeVisible()
 
     await page.getByTestId('m4-row-Wanderstöcke').click()
-    await visible(page).getByTestId('m5-note-input').locator('input').fill('Spitzen sind stumpf')
-    await visible(page).getByTestId('m5-note-add').click()
-    await expect(visible(page).getByTestId('m5-note-Spitzen sind stumpf')).toBeVisible()
+    await visiblePage(page)
+      .getByTestId('m5-note-input')
+      .locator('input')
+      .fill('Spitzen sind stumpf')
+    await visiblePage(page).getByTestId('m5-note-add').click()
+    await expect(visiblePage(page).getByTestId('m5-note-Spitzen sind stumpf')).toBeVisible()
 
     await page.goto('/tabs/items')
-    await visible(page).getByTestId('m9-row').filter({ hasText: 'Wanderstöcke' }).click()
-    const section = visible(page).getByTestId('m10-section-comments')
+    await visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Wanderstöcke' }).click()
+    const section = visiblePage(page).getByTestId('m10-section-comments')
     await expect(section).toBeVisible()
     // The body, and the trip it was written on — a remark with no trip is a
     // remark you cannot weigh.
-    const comments = visible(page).locator('[data-testid^="m10-comment-"]')
+    const comments = visiblePage(page).locator('[data-testid^="m10-comment-"]')
     await expect(comments).toHaveCount(1)
     await expect(comments.first()).toContainText('Spitzen sind stumpf')
     await expect(comments.first()).toContainText('Laos 2025')
     // Local Mode holds every trip, so the list is complete and says nothing
     // about being partial — the positive signal the Server-Mode hedge stands
     // against, and the reason it is asserted here rather than nowhere.
-    await expect(visible(page).getByTestId('m10-comments-partial')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m10-comments-partial')).toHaveCount(0)
   })
 
   // E2E-M10-19 (FR-27.9/FR-27.8): an item nothing has used shows neither
@@ -751,9 +678,9 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
   }) => {
     await createMasterItem(page, 'Regenhut')
     await page.goto('/tabs/items')
-    await visible(page).getByTestId('m9-row').filter({ hasText: 'Regenhut' }).click()
-    await expect(visible(page).getByTestId('m10-section-delete')).toBeVisible()
-    await expect(visible(page).getByTestId('m10-section-containment')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m10-section-comments')).toHaveCount(0)
+    await visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Regenhut' }).click()
+    await expect(visiblePage(page).getByTestId('m10-section-delete')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-section-containment')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m10-section-comments')).toHaveCount(0)
   })
 })

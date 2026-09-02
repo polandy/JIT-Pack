@@ -102,6 +102,10 @@ jobs:
       # reverse proxy that drops the port from Host refuses every WebSocket
       # handshake while the whole REST surface stays green.
       - run: node ../scripts/proxy-host-gate.mjs
+      # Same job again: a spec that re-declares a shared helper gets a copy
+      # that drifts in its waits, and the e2e jobs cannot see that — they run
+      # both copies and both pass, until one of them stops.
+      - run: node ../scripts/e2e-helpers-gate.mjs
       - run: npx vitest run
 
   # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned

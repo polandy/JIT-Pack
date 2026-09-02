@@ -1,4 +1,5 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
+import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
 
 /**
@@ -68,9 +69,6 @@ async function freeze(page: Page) {
   })
 }
 
-/** The visible page. A hidden outlet page would otherwise be in the shot. */
-const shown = (page: Page) => page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-
 /** Settled: fonts loaded, so no baseline is taken mid-swap. */
 async function settled(page: Page) {
   await page.waitForFunction(() => document.fonts.ready.then(() => true))
@@ -100,7 +98,7 @@ for (const [name, path] of [
     await freeze(page)
     await seedMode({ mode: 'local' })
     await page.goto(path)
-    await expect(shown(page)).toBeVisible()
+    await expect(visiblePage(page)).toBeVisible()
     await settled(page)
     await expect(page).toHaveScreenshot(`tab-${name}.png`)
   })
@@ -140,7 +138,7 @@ test('E2E-VIS-03: visual: M4 with packed rows hidden and revealed @local @visual
   await expect(page).toHaveScreenshot('m4-done-hidden.png')
 
   await page.getByTestId('m4-done-bar').click()
-  await expect(shown(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
   await settled(page)
   await expect(page).toHaveScreenshot('m4-done-revealed.png')
 })
@@ -158,21 +156,6 @@ test('E2E-VIS-04: visual: M4 filter sheet @local @visual', async ({ page, seedMo
   await expect(page).toHaveScreenshot('m4-filter-sheet.png')
 })
 
-/**
- * Ionic inputs hydrate late; filling before that goes nowhere. Same helper
- * the M11 behaviour unit carries — kept local rather than shared, because a
- * baseline file that imports from a behaviour spec couples two suites that
- * are run by different commands.
- */
-async function fillIonic(field: ReturnType<Page['locator']>, value: string) {
-  await expect(field).toHaveClass(/hydrated/)
-  const input = field.locator('input')
-  await input.click()
-  await input.fill('')
-  await input.pressSequentially(value)
-  await expect(input).toHaveValue(value)
-}
-
 /** Close the M11 sheet and wait for the overlay to be *gone*, not merely detached. */
 async function closeSheet(page: Page) {
   await page.getByTestId('m11-sheet-close').click()
@@ -189,12 +172,12 @@ async function closeSheet(page: Page) {
  */
 async function containers(page: Page) {
   await page.goto('/tabs/items')
-  await shown(page).getByTestId('m9-fab').click()
-  await expect(shown(page).getByTestId('m10-new-hint')).toBeVisible()
-  await fillIonic(shown(page).getByTestId('m10-name'), 'Zelt')
-  await shown(page).getByTestId('m10-more').click()
-  await fillIonic(shown(page).getByTestId('m10-weight'), '5000')
-  await shown(page).getByTestId('m10-create').click()
+  await visiblePage(page).getByTestId('m9-fab').click()
+  await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+  await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
+  await visiblePage(page).getByTestId('m10-more').click()
+  await fillIonic(visiblePage(page).getByTestId('m10-weight'), '5000')
+  await visiblePage(page).getByTestId('m10-create').click()
   await expect(page.getByTestId('header-title')).toHaveText('Zelt')
 
   await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] })
@@ -209,15 +192,15 @@ async function containers(page: Page) {
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
 
-  await shown(page).getByTestId('m4-nav-luggage').click()
-  await expect(shown(page).getByTestId('m11-fab')).toBeVisible()
-  await expect(shown(page).getByTestId('m4-nav-luggage')).toHaveCount(0)
+  await visiblePage(page).getByTestId('m4-nav-luggage').click()
+  await expect(visiblePage(page).getByTestId('m11-fab')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m4-nav-luggage')).toHaveCount(0)
 
   for (const [name, limit] of [
     ['Links', '5.5'],
     ['Rechts', '9'],
   ] as const) {
-    await shown(page).getByTestId('m11-fab').click()
+    await visiblePage(page).getByTestId('m11-fab').click()
     await expect(page.getByTestId('m11-sheet')).toBeVisible()
     await fillIonic(page.getByTestId('m11-name-input'), name)
     await page.getByTestId('m11-name-input').locator('input').press('Enter')
@@ -238,7 +221,7 @@ async function containers(page: Page) {
 
   // 5 kg of 5.5 kg is 91 % — amber — and against an empty partner it is
   // also the imbalance the pair reports.
-  await shown(page).getByTestId('m11-unassigned-row').filter({ hasText: 'Zelt' }).click()
+  await visiblePage(page).getByTestId('m11-unassigned-row').filter({ hasText: 'Zelt' }).click()
   await expect(page.getByTestId('m11-picker')).toBeVisible()
   await page.getByTestId('m11-picker-option').filter({ hasText: 'Links' }).click()
   await expect(page.getByTestId('m11-picker')).toHaveCount(0)
@@ -280,7 +263,7 @@ test('E2E-VIS-07: visual: M11 container sheet @local @visual', async ({ page, se
   await seedMode({ mode: 'local' })
   await containers(page)
 
-  await shown(page).getByTestId('m11-container-card').filter({ hasText: 'Links' }).click()
+  await visiblePage(page).getByTestId('m11-container-card').filter({ hasText: 'Links' }).click()
   await expect(page.getByTestId('m11-sheet')).toBeVisible()
   await expect(page.getByTestId('m11-sheet-load')).toBeVisible()
   await settled(page)
@@ -294,11 +277,14 @@ test('E2E-VIS-07: visual: M11 container sheet @local @visual', async ({ page, se
  * without anything going red. E2E-G2-08 guards that one measurement; this
  * guards the rest of the header, the state line and the sheet's own plane.
  */
-test('E2E-G2-08, E2E-VIS-08: visual: G-2 sync detail sheet @local @visual', async ({ page, seedMode }) => {
+test('E2E-G2-08, E2E-VIS-08: visual: G-2 sync detail sheet @local @visual', async ({
+  page,
+  seedMode,
+}) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
   await page.goto('/tabs/trips')
-  await expect(shown(page)).toBeVisible()
+  await expect(visiblePage(page)).toBeVisible()
 
   await page.getByTestId('sync-indicator').click()
   await expect(page.getByTestId('sync-detail-sheet')).toBeVisible()
@@ -330,15 +316,15 @@ test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, see
   await createTripViaWizard(page, { name: 'Elba 2026', series: 'Elba' })
 
   await page.goto('/tabs/trips')
-  await shown(page).getByTestId('series-header-Elba').click()
+  await visiblePage(page).getByTestId('series-header-Elba').click()
   await expect(page.getByTestId('header-title')).toHaveText('Elba')
 
   // The FR-13.3 editor with something in it: the select beside the input is
   // the geometry the baseline is here for.
-  await shown(page).getByTestId('m16-notes').locator('textarea').fill('Fähre ab Piombino')
-  await shown(page).getByTestId('m16-checklist-input').locator('input').fill('Reisepässe')
-  await shown(page).getByTestId('m16-checklist-add').click()
-  await expect(shown(page).getByTestId('m16-checklist-row')).toHaveCount(1)
+  await visiblePage(page).getByTestId('m16-notes').locator('textarea').fill('Fähre ab Piombino')
+  await visiblePage(page).getByTestId('m16-checklist-input').locator('input').fill('Reisepässe')
+  await visiblePage(page).getByTestId('m16-checklist-add').click()
+  await expect(visiblePage(page).getByTestId('m16-checklist-row')).toHaveCount(1)
 
   // Where the page sits at capture time is not part of the screen's state:
   // `fill()` focuses a field, and the browser scrolls a focused field into
@@ -346,7 +332,7 @@ test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, see
   // and met a run that had stayed at the top (2026-08-31, a 6 % diff on a
   // docs-only commit). Blur first, then put the scroller back, so the shot is
   // of the top of the screen every time rather than of whichever scroll won.
-  await shown(page)
+  await visiblePage(page)
     .locator('ion-content')
     .evaluate(async (el) => {
       ;(document.activeElement as HTMLElement | null)?.blur()

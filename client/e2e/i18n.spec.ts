@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, visiblePage } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -28,7 +28,7 @@ const MOBILE = { width: 390, height: 844 }
 const DESKTOP = { width: 1280, height: 900 }
 
 function onVisibleScreen(page: Page, testid: string) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)').getByTestId(testid)
+  return visiblePage(page).getByTestId(testid)
 }
 
 /** Drive M17's language select the way a user does — through its popover. */

@@ -2,7 +2,7 @@
 # Each target maps 1:1 to a CI job or step, so a green `make ci` predicts a
 # green pipeline. When you change a job in ci.yml, change its target here.
 # The `test` target carries the one deliberate divergence, and says why.
-.PHONY: ci ci-remote pins log-index case-ids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
+.PHONY: ci ci-remote pins log-index case-ids e2e-helpers wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-build client-test client-fmt \
         e2e e2e-single e2e-server visual visual-update docker-build all
 
@@ -35,7 +35,7 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: pins log-index case-ids wire-check proxy-host fmt-check test tidy-check go-lint client
+ci: pins log-index case-ids e2e-helpers wire-check proxy-host fmt-check test tidy-check go-lint client
 
 # Cheap and first: the toolchain majors are named in three files each, and a
 # disagreement is invisible to every other check (see the script's header).
@@ -53,6 +53,12 @@ log-index:
 # reassuring way while it happens (found on M5, 2026-08-30).
 case-ids:
 	@$(RUN) node scripts/case-id-gate.mjs
+
+# And beside that again: a spec that re-declares a shared e2e helper gets a
+# copy that drifts in its waits, and a drifted wait fails as a flake naming
+# no cause (fifteen copies of one selector, seven of `fillIonic`).
+e2e-helpers:
+	@$(RUN) node scripts/e2e-helpers-gate.mjs
 
 # The client's wire types are generated, so a Go-side change that the client
 # has not followed is a red build rather than a hand-test later (ADR-026).

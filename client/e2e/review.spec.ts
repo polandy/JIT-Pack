@@ -9,9 +9,9 @@ import {
   openQuickAdd,
   visiblePage as visible,
   tripAction,
-  expectTripActionOffered,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { startTrip } from './helpers/m4'
 
 /**
  * M14 — Post-Trip Review Assistant (UI-Test-Spec §4, unit "M14 review").
@@ -150,12 +150,6 @@ async function quickAddMissing(page: Page, name: string) {
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
-}
-
-/** Start the trip; the archive action appearing is the settled signal. */
-async function startTrip(page: Page) {
-  await tripAction(page, 'start')
-  await expectTripActionOffered(page, 'archive')
 }
 
 /**

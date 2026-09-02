@@ -1,12 +1,5 @@
-import {
-  test,
-  expect,
-  createTripViaWizard,
-  openQuickAdd,
-  tripAction,
-  expectTripActionOffered,
-} from './fixtures'
-import type { Page } from '@playwright/test'
+import { test, expect, tripAction, expectTripActionOffered, visiblePage } from './fixtures'
+import { chooseInRowMenu, openRowMenu, packRow, startTrip, tripWithRows } from './helpers/m4'
 
 /**
  * The closing pass and the judgement that feeds it (FR-9.3; UI-Spec M4).
@@ -25,51 +18,6 @@ import type { Page } from '@playwright/test'
  */
 test.use({ reducedMotion: 'reduce' })
 
-const shown = (page: Page) => page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-
-async function tripWithRows(page: Page, names: string[]): Promise<string> {
-  const path = await createTripViaWizard(page, { name: 'Abschlussprobe', travelers: ['Andy'] })
-  for (const name of names) {
-    await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
-    await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
-  }
-  await page.keyboard.press('Escape')
-  await expect(page.getByTestId('quick-add-input')).toBeHidden()
-  return path
-}
-
-/** Planning → active. The archive action appearing is the settled signal. */
-async function startTrip(page: Page) {
-  await tripAction(page, 'start')
-  await expectTripActionOffered(page, 'archive')
-}
-
-/**
- * `contextmenu` rather than a held pointer, for skip-item.spec.ts's
- * reason: the 500 ms are unit tested in `useLongPress`, and driving a real
- * hold here would be a duration this suite must not depend on.
- */
-async function openRowMenu(page: Page, name: string) {
-  await page.getByTestId(`m4-row-${name}`).dispatchEvent('contextmenu')
-  await expect(page.locator('ion-action-sheet')).toBeVisible()
-}
-
-async function chooseInRowMenu(page: Page, label: RegExp) {
-  await page.locator('ion-action-sheet').getByRole('button', { name: label }).click()
-  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
-}
-
-/**
- * Pack a quantity-1 row from the list, without opening M5. A packed row
- * leaves the list (FR-25.2), which is this write's settled signal.
- */
-async function packRow(page: Page, name: string) {
-  await page.getByTestId(`m4-row-${name}`).getByTestId('row-check').locator('ion-checkbox').click()
-  await expect(page.getByTestId(`m4-row-${name}`)).toHaveCount(0)
-}
-
 test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
   test.slow()
 
@@ -82,7 +30,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
   test('E2E-M4-51: a row is marked unused from its press-and-hold menu, and says so', async ({
     page,
   }) => {
-    await tripWithRows(page, ['Stativ'])
+    await tripWithRows(page, ['Stativ'], 'Abschlussprobe')
     await startTrip(page)
 
     await openRowMenu(page, 'Stativ')
@@ -102,12 +50,12 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
   // and false of correcting one — and M14, which is the first place anyone
   // sees what a flag was worth, runs on the archived trip.
   test('E2E-M4-52: the unused window stays open on the archived trip', async ({ page }) => {
-    await tripWithRows(page, ['Stativ'])
+    await tripWithRows(page, ['Stativ'], 'Abschlussprobe')
     await startTrip(page)
     await tripAction(page, 'archive')
     await page.getByTestId('m4-pass-finish').click()
     // The closing card is the archived trip's own marker (UI-Spec M4).
-    await expect(shown(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-template-from-trip')).toBeVisible()
 
     await openRowMenu(page, 'Stativ')
     await chooseInRowMenu(page, /mark as unused/i)
@@ -126,17 +74,17 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
   test('E2E-M4-53: the archive action opens the pass and archives nothing until it is finished', async ({
     page,
   }) => {
-    await tripWithRows(page, ['Stativ'])
+    await tripWithRows(page, ['Stativ'], 'Abschlussprobe')
     await startTrip(page)
 
     await tripAction(page, 'archive')
-    await expect(shown(page).getByTestId('m4-pass-banner')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-pass-banner')).toBeVisible()
 
     await page.getByTestId('m4-pass-cancel').click()
-    await expect(shown(page).getByTestId('m4-pass-banner')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m4-pass-banner')).toHaveCount(0)
     // Still active: the archived trip's closing card is what would say
     // otherwise, and the archive action is still on offer.
-    await expect(shown(page).getByTestId('m4-template-from-trip')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m4-template-from-trip')).toHaveCount(0)
     await expectTripActionOffered(page, 'archive')
   })
 
@@ -145,14 +93,14 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
   test('E2E-M4-54: the pass lists what was packed, and marking there reaches M14', async ({
     page,
   }) => {
-    const path = await tripWithRows(page, ['Stativ', 'Regenjacke', 'Drohne'])
+    const path = await tripWithRows(page, ['Stativ', 'Regenjacke', 'Drohne'], 'Abschlussprobe')
     await startTrip(page)
     await packRow(page, 'Stativ')
     await openRowMenu(page, 'Drohne')
     await chooseInRowMenu(page, /do not pack this/i)
 
     await tripAction(page, 'archive')
-    await expect(shown(page).getByTestId('m4-pass-banner')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-pass-banner')).toBeVisible()
 
     await expect(page.getByTestId('m4-row-Stativ')).toBeVisible()
     await expect(page.getByTestId('m4-row-Regenjacke')).toHaveCount(0)
@@ -169,7 +117,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     // back the list you just finished with is not a closing pass. (What the
     // assistant then *proposes* needs a row with provenance, which is
     // review.spec.ts's world; here the promise is the ending.)
-    await expect(shown(page).getByTestId('m14-open-count')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m14-open-count')).toBeVisible()
 
     // …and the mark it wrote is on the row afterwards, which is what the
     // assistant reads: the control's own state would prove nothing.
@@ -182,7 +130,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
   // E2E-M4-55: one posture asks one question. The two menu entries are
   // reachable a second earlier, on the same rows, before the pass starts.
   test('E2E-M4-55: press-and-hold is inert inside the pass', async ({ page }) => {
-    await tripWithRows(page, ['Stativ'])
+    await tripWithRows(page, ['Stativ'], 'Abschlussprobe')
     await startTrip(page)
 
     // The positive control first, and before the row is packed: a packed
@@ -198,7 +146,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
 
     await packRow(page, 'Stativ')
     await tripAction(page, 'archive')
-    await expect(shown(page).getByTestId('m4-pass-banner')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-pass-banner')).toBeVisible()
 
     await page.getByTestId('m4-row-Stativ').dispatchEvent('contextmenu')
     await expect(page.locator('ion-action-sheet')).toHaveCount(0)
@@ -224,14 +172,14 @@ test.describe('M14 — the closing card reads what it offers @local @m14', () =>
   })
 
   test('E2E-M14-08: a trip with nothing to review says so on the card', async ({ page }) => {
-    await tripWithRows(page, ['Stativ'])
+    await tripWithRows(page, ['Stativ'], 'Abschlussprobe')
     await startTrip(page)
     await tripAction(page, 'archive')
     await page.getByTestId('m4-pass-finish').click()
 
     // The card is on screen — the positive signal — and it says the review
     // has nothing rather than listing nothing, which reads as "not loaded".
-    await expect(shown(page).getByTestId('m4-template-from-trip')).toBeVisible()
-    await expect(shown(page).getByTestId('m4-closing-teaser')).toContainText(/nothing/i)
+    await expect(visiblePage(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m4-closing-teaser')).toContainText(/nothing/i)
   })
 })
