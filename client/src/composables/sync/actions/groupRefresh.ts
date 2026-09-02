@@ -17,9 +17,8 @@
  * is a named object because the next group along needed three of them.
  */
 import { computed, shallowRef } from 'vue'
-import { TABLE } from '@/types/tables'
 import { itemRow } from '../rows'
-import { localChange, localTombstone } from '@/sync/optimistic'
+import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import {
   declinePlan,
   isEmptyPlan,
@@ -159,7 +158,7 @@ export function createGroupRefreshActions(
       )
       enqueueAndDrain('trip', tripId, {
         mutation,
-        optimistic: localChange(TABLE.tripItems, id, mutation.fields),
+        optimistic: optimisticInsert(mutation),
       })
       // FR-27.7: the position's tasks arrive as ordinary prep todos, the
       // same shape generation writes — enqueued after the row they hang
@@ -174,27 +173,26 @@ export function createGroupRefreshActions(
         const mutation = mutations.updateGeneratedTripItem(update.item.id, update.fields)
         enqueueAndDrain('trip', tripId, {
           mutation,
-          optimistic: localChange(TABLE.tripItems, update.item.id, {
-            ...itemRow(update.item),
-            ...mutation.fields,
-          }),
+          optimistic: optimisticUpdate(mutation, itemRow(update.item)),
         })
       }
       for (const body of update.addTasks) {
         commentActions.addPrepTodo(tripId, update.item.id, CLIENT_ACTOR_PLACEHOLDER, body)
       }
       for (const todo of update.removeTodos) {
+        const todoDeletion = mutations.deleteTodo(todo.id)
         enqueueAndDrain('trip', tripId, {
-          mutation: mutations.deleteTodo(todo.id),
-          optimistic: localTombstone(TABLE.comments, todo.id),
+          mutation: todoDeletion,
+          optimistic: optimisticDelete(todoDeletion),
         })
       }
     }
 
     for (const removal of plan.remove) {
+      const removalMutation = mutations.deleteTripItem(removal.item.id)
       enqueueAndDrain('trip', tripId, {
-        mutation: mutations.deleteTripItem(removal.item.id),
-        optimistic: localTombstone(TABLE.tripItems, removal.item.id),
+        mutation: removalMutation,
+        optimistic: optimisticDelete(removalMutation),
       })
     }
 
@@ -202,24 +200,25 @@ export function createGroupRefreshActions(
       const mutation = mutations.writeGeneratedPosition(entry)
       enqueueAndDrain('trip', tripId, {
         mutation,
-        optimistic: localChange(TABLE.tripGeneratedPositions, entry.id, mutation.fields),
+        optimistic: optimisticInsert(mutation),
       })
     }
 
     for (const entryId of plan.ledgerDelete) {
+      const ledgerDeletion = mutations.deleteGeneratedPosition(entryId)
       enqueueAndDrain('trip', tripId, {
-        mutation: mutations.deleteGeneratedPosition(entryId),
-        optimistic: localTombstone(TABLE.tripGeneratedPositions, entryId),
+        mutation: ledgerDeletion,
+        optimistic: optimisticDelete(ledgerDeletion),
       })
     }
 
     // The log travels the master partition so M2 can render the chip
     // without this trip's partition being loaded (P-3, migration 023).
     for (const entry of plan.log) {
-      const { mutation, id } = mutations.logAppliedChange(entry)
+      const { mutation } = mutations.logAppliedChange(entry)
       enqueueAndDrain('master', null, {
         mutation,
-        optimistic: localChange(TABLE.tripAppliedChanges, id, mutation.fields),
+        optimistic: optimisticInsert(mutation),
       })
     }
   }

@@ -18,7 +18,7 @@
  */
 import { TABLE } from '@/types/tables'
 import { travelerRow, tripRow } from '../rows'
-import { localChange, localTombstone, optimisticDelete, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import { followsGroups } from '@/domain/trips'
@@ -103,7 +103,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       )
       enqueueAndDrain('trip', tripId, {
         mutation,
-        optimistic: localChange(TABLE.tripItems, id, mutation.fields),
+        optimistic: optimisticInsert(mutation),
       })
       // FR-27.7 tasks become ordinary FR-7.3 todos, enqueued after the row
       // they hang off — pushed ahead of it, the server rejects the key.
@@ -124,10 +124,10 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       .getTemplateSources(tripId)
       .some((s) => s.template_id === templateId)
     if (!registered && followsGroups(trip, today())) {
-      const { mutation, id } = mutations.registerTripSource(tripId, templateId)
+      const { mutation } = mutations.registerTripSource(tripId, templateId)
       enqueueAndDrain('master', null, {
         mutation,
-        optimistic: localChange(TABLE.tripTemplateSources, id, mutation.fields),
+        optimistic: optimisticInsert(mutation),
       })
     }
 
@@ -148,7 +148,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     const mutation = mutations.updateTrip(tripId, fields)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: localChange(TABLE.trips, tripId, { ...tripRow(trip), ...mutation.fields }),
+      optimistic: optimisticUpdate(mutation, tripRow(trip)),
     })
   }
 
@@ -164,10 +164,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     const mutation = mutations.renameTraveler(travelerId, name)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: localChange(TABLE.travelers, travelerId, {
-        ...travelerRow(traveler),
-        ...mutation.fields,
-      }),
+      optimistic: optimisticUpdate(mutation, travelerRow(traveler)),
     })
   }
 
@@ -199,7 +196,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     const { mutation, id } = mutations.addTraveler(tripId, name, linkedUserId)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: localChange(TABLE.travelers, id, mutation.fields),
+      optimistic: optimisticInsert(mutation),
     })
 
     return { travelerId: id, ...applyTravelerConsequences(tripId, trip) }
@@ -249,9 +246,10 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
         // Deleted here rather than left to the refresh: FR-27.4 protects a row
         // packing has begun on, and that protection is exactly what the user
         // just overruled for this person.
+        const deletion = mutations.deleteTripItem(item.id)
         enqueueAndDrain('trip', tripId, {
-          mutation: mutations.deleteTripItem(item.id),
-          optimistic: localTombstone(TABLE.tripItems, item.id),
+          mutation: deletion,
+          optimistic: optimisticDelete(deletion),
         })
         takenPacked += 1
         continue

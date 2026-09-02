@@ -243,6 +243,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An announcement with no verb (2026-09-02)](#an-announcement-with-no-verb-2026-09-02) — a waiting version can be applied on a press (FR-19.7, ADR-044). Why the dismissal is deliberately *not* stored, why the press-and-`controllerchange` pair is the only shape that is assertable, and why two e2e cases are needed where one looks like enough.
 - [A guard on a funnel that every launch passes through (2026-09-02)](#a-guard-on-a-funnel-that-every-launch-passes-through-2026-09-02) — leaving Local Mode from M17 (FR-19.8, ADR-045). Why the „last write" stamp must not fire on the startup load, why the guard compares two stamps rather than asking whether a backup exists, and the fixture that puts a device back into the mode it just left.
 - [The screen was right and the disk was not (2026-09-02)](#the-screen-was-right-and-the-disk-was-not-2026-09-02) — a deleted trip left its rows on the device. Why the store dropping its own buckets is what hid it, why the fix cannot live in the store, and the reading that turns one defect into four.
+- [A trap the tests had already covered (2026-09-02)](#a-trap-the-tests-had-already-covered-2026-09-02) — thirteen action call sites built their optimistic change by hand instead of through the builder written to make that impossible. Why the review's premise was half wrong, what the measurement changed about the fix's justification, and why a lint rule is the right shape for a rule nobody can be asked to remember.
 
 
 ## Current state
@@ -11288,3 +11289,76 @@ specs' hand-written `enqueueAndDrain`, whose own comment had predicted this —
 it routed by *partition*, and a group painting rows of both partitions had just
 arrived.
 
+
+## A trap the tests had already covered (2026-09-02)
+
+Item C-2 of the design review: `sync/optimistic.ts` exists so that an optimistic
+change cannot be built from a mutation's fields alone. `applyChange` **replaces**
+the row it is handed, so fields without their row blank every column the mutation
+did not mention — and in Local Mode no pull ever heals it. That is what
+`optimisticUpdate` is for: it performs the merge itself, so a caller has no way
+to pass fields alone.
+
+Thirteen call sites in `groupRefresh.ts` and `tripLifecycle.ts` used
+`localChange` — the escape hatch written for rows that belong to no mutation at
+all — and two of them re-implemented `optimisticUpdate`'s merge by hand. The
+item's reading was that nothing guarded them.
+
+**That reading was half wrong, and the measurement is the reason to record
+this.** Both hand-rolled merges were *correct*, and both were *covered*: writing
+the fields alone turns exactly one test red at each — `tripProperties.spec.ts`'s
+*„leaves the fields the editor never showed exactly as they were"* for
+`updateTrip`, and `groupRefresh.spec.ts`'s *„carries a later quantity change onto
+the untouched row"* for the refresh. Neither was a latent defect waiting to be
+found; the review had inferred exposure from the shape of the code rather than
+from a mutation.
+
+**The first count taken here said four, and it was wrong** — worth recording,
+because the mistake is invisible and repeatable. The measurement was a
+`String.replace` of the whole expression, and `optimisticUpdate(mutation,
+tripRow(trip))` occurs **twice** in `tripLifecycle.ts`: at `updateTrip` and at
+`setTripStatus`, which was already correct on `main` and is no part of this
+change. Replacing without a count mutated both, and three of the four reds
+belonged to a site nobody had touched. A mutation proof measures one site or it
+measures nothing: assert the occurrence count, or address the line.
+
+What survives the correction is the other half. The eleven remaining sites are
+inserts and deletes, where fields alone *are* the whole row and nothing is being
+merged — so they are correct today for a reason that has nothing to do with the
+person who wrote them having thought about it. The next site added beside them
+would be written the same way, and it would be an update.
+
+So the fix is not "repair thirteen bugs" — there were none — but "make the shape
+that produces the bug unreachable". All thirteen now build their change from the
+mutation, and `no-restricted-imports` confines `localChange`/`localTombstone` to
+the two places that genuinely have no mutation to build from: `cascade.ts`, which
+paints the children a delete takes with it, and the orchestrator's image sites,
+whose bytes travel outside the sync envelope (ADR-002). A rule an author has to
+remember became one they cannot get past, which is the only version of it that
+survives the next twenty call sites.
+
+The exemptions are worth naming as exemptions rather than as an allowlist that
+happens to have two entries: both are the same case — a store write with no
+mutation behind it — and a third one appearing is the signal to ask whether the
+envelope is still the right boundary, not to add a line.
+
+**A note on the guard's own proof, which is the part worth carrying forward.** A
+lint rule is trivial to write and easy to write inert, in two separate ways, and
+the first review of this change found both.
+
+It is easy to write *silent*: `oxlint . --fix` is what the package script runs,
+and a rule the CLI prints but does not fail on looks identical in any screenshot
+of the output. So it was proved by re-introducing the import and reading the
+**exit code** — 1 with the bypass, 0 without.
+
+And it is easy to write *evadable*. The rule was first written with
+`no-restricted-imports`' `paths`, naming `@/sync/optimistic` and `./optimistic`.
+`paths` compares the **written specifier**, so `../../../sync/optimistic` — the
+same module, one directory walk instead of an alias — walked straight past it,
+and so did the `.ts` suffix. The rule was green, the bypass was back, and
+nothing said so. It is now a `patterns` glob over every spelling of the module,
+and each of the four was planted and measured rather than reasoned about.
+
+The general shape: **a guard that matches how something is written rather than
+what it is has an escape hatch per spelling.** The way to find it is to attack
+the guard with the variants an author would reach for anyway, not to read it.
