@@ -240,6 +240,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A socket that died was never dialled again (2026-09-01)](#a-socket-that-died-was-never-dialled-again-2026-09-01) — the family instance synced one way. The receiving tab had no WebSocket and the client's whole close handling was `socket = null`; Sync-API P-1's reconnect and §9's ping had been sentences since v1.0. What was built on both sides, the options weighed, and two harness traps `routeWebSocket` set.
 - [The second container was the routing table (2026-09-02)](#the-second-container-was-the-routing-table-2026-09-02) — one image now serves the client and the API. Why the runtime web root beat `go:embed` (a fresh clone must still compile), why a green `docker build` proved nothing about the bundle, and the two decisions the Go file server takes differently from `try_files`.
 - [A listener that could not have been there yet (2026-09-02)](#a-listener-that-could-not-have-been-there-yet-2026-09-02) — the `e2e-server` job read as flaky on a Vue patch bump. Two defects met under one scheduling: a fixture account invented to *prevent* cross-file reach was borrowed by the next case that needed a spare, and App.vue attached its session-end listener after two awaits while a child's `onMounted` had already sent the request that fires it. Why the second one is a design rule, not a test fix.
+- [An announcement with no verb (2026-09-02)](#an-announcement-with-no-verb-2026-09-02) — a waiting version can be applied on a press (FR-19.7, ADR-044). Why the dismissal is deliberately *not* stored, why the press-and-`controllerchange` pair is the only shape that is assertable, and why two e2e cases are needed where one looks like enough.
 
 
 ## Current state
@@ -11109,4 +11110,75 @@ worker's case), and the error-context snapshots — which say *„This account
 is deactivated"* on every retry — were in the artifact the whole time. A
 retry that fails *differently* from the first attempt is the cascade telling
 you it is a cascade.
+## An announcement with no verb (2026-09-02)
 
+NFR-4.13's update policy has been complete since 2026-08-20 and correct for a
+browser tab: a new version installs behind the running one, a dot lands on the
+G-2 glyph, its sheet carries a sentence, and the new build takes over on the
+next launch. E2E-PWA-04 proves every clause of it.
+
+The owner's report is that on an **installed PWA** the sentence is the end of
+the road. A phone app is resumed, not launched; "the next time you open the
+app" can be a fortnight away, and the app cannot bring that moment about — a
+manual can write *close it fully and open it again*, a screen cannot do it. So
+the requirement had a reader and no verb. The whole change is the verb.
+
+**What ADR-019 actually decided, and what it did not.** Its decision line says
+"No `skipWaiting()`", which reads like a ban on the API. The content is
+narrower and is worth stating separately, because reversing the wrong half
+would have cost the thing the sentence exists to protect: the app must never
+yank the page out from under someone because *a download finished*. That rule
+lives entirely in the `install` handler. `skipWaiting()` reached from a
+**message** is a different event with a different author — a person — and
+leaves the rule standing. ADR-044 therefore amends one clause and the worker's
+`install` handler is byte-for-byte what it was.
+
+**The shape that is testable is also the shape that is correct.** The press
+posts the message and then waits for `controllerchange` — the event that says
+the new worker controls *this page* — before reloading. That was chosen for the
+no-timing rule, and it turned out to be the only honest ordering anyway: a
+reload fired optimistically after the message lands on whichever worker happens
+to be in charge, which on a slow activation is the old one, and the button then
+appears to do nothing. The alternative that was weighed and rejected (Option D
+in the ADR: apply now, reload at the next navigation) fails for the same reason
+from the other side — an unbounded window with new-worker caches under old-app
+code, and no moment a test can name.
+
+**Two cases where one looks like enough.** E2E-PWA-05 is PWA-04's mirror, and
+the pair is what pins the policy: delete the worker's `message` handler and
+PWA-04 stays green; move `skipWaiting()` into `install` and PWA-05 stays green.
+Either mutation alone repeals half the requirement, and either case alone
+would let it through. 05b covers the third thing that can quietly collapse —
+*Später* wired to the same handler as the press, which every other assertion in
+both cases survives.
+
+**The dismissal is not stored, and that is the finding.** The obvious build is
+a `localStorage` key holding the dismissed version, which needs a version
+identity for the *waiting* worker — reachable, over a `MessageChannel` to
+`self.__JITPACK_VERSION`, and about thirty lines. It buys nothing. A full page
+load is the launch the waiting version takes over on anyway, so on the next
+load the announcement is either gone (it activated) or genuinely new. A stored
+dismissal can only ever suppress an announcement that has stopped being true.
+The in-memory ref is not the cheap version of the feature; it is the correct
+one.
+
+**A boundary an import cannot cross.** The message name is a constant on both
+sides — `SW_SKIP_WAITING` in `register.ts`, `MSG_SKIP_WAITING` in
+`public/sw.js` — because a worker script cannot import the app's modules. §4a
+still applies, so `register.spec.ts` reads the worker source and holds the two
+literals equal, the technique ADR-037 used for the notification templates. The
+same test asserts `skipWaiting()` is absent from the `install` handler: the one
+line of ADR-019 this change must not accidentally repeal is now checked by a
+unit test rather than by remembering.
+
+**An absence the fixture could not keep (review, 2026-09-02).** The first
+draft of E2E-PWA-05 ended on the bar and the dot being *gone* after the reload,
+and called that its settled state. Measured in the container, the dot comes
+back: the relaunched app registers `/sw.js` again, which in a fixture that
+manufactures versions by changing the script URL is a *third* URL on the scope,
+so the browser installs it as a fresh waiting worker. The assertion was green
+only because it ran before that install landed — the no-timing rule broken
+from the other side, an absence checked early rather than a presence waited
+for. PWA-04's closing line, one day older, had the same shape. Both cases now
+end on the positive signals (the reload marker, the controller) and say what
+they do not assert and why.

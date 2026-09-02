@@ -72,7 +72,16 @@ applies.
 
 ## Updates
 
-The app updates itself: whenever it is opened with a connection, it fetches the current version in the background. A newly downloaded version does not interrupt you — the sync indicator in the app bar shows a small dot, and its detail view says a new version is ready. It takes over the next time you open the app.
+The app updates itself: whenever it is opened with a connection, it fetches the current version in the background. A newly downloaded version never interrupts you — nothing reloads on its own.
+
+Once one is ready, the app says so in two places and lets you decide when to switch:
+
+- A bar appears under the app bar: **New version ready**, with **Update** beside it. **Later** hides the bar; the offer stays where the second place is.
+- The sync indicator in the app bar carries a small dot. Tap it, and the detail view says a new version is ready and offers **Update now**.
+
+Either button switches immediately: the app reloads onto the new version, which takes a moment. **Changes you have made are kept** — anything not yet sent to the server is stored on this device and goes out afterwards. What is not kept is text you were still typing into a form you had not saved, so finish that first.
+
+If you press neither, the new version takes over the next time you open the app — a real launch, not a page reload: close the app fully and open it again.
 
 ## Troubleshooting
 

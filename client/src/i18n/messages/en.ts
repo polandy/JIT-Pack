@@ -73,7 +73,14 @@ export const en = {
   'sync.detail.backupHint': 'One YAML file with every trip and template. Restore it under Import.',
   'sync.detail.backupSaved': 'Backup saved: {file}',
   'sync.detail.updateReady':
-    'A new version of JIT-Pack is ready. It takes over the next time you open the app.',
+    'A new version of JIT-Pack is ready. It takes over the next time you open the app — or now.',
+  // FR-19.7 — applying a waiting version without waiting for the next launch.
+  'update.banner.title': 'New version ready',
+  'update.banner.note': 'Unsent changes are kept.',
+  'update.apply': 'Update',
+  'update.applyLong': 'Update now',
+  'update.applying': 'Updating…',
+  'update.later': 'Later',
   // B2/NFR-4.1 — the durable outbox.
   'sync.detail.pendingDurable':
     'They are saved on this device and go out as soon as it is back online.',
