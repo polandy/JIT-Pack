@@ -77,7 +77,7 @@ import { formatTripPeriod } from '@/lib/format'
 import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
-import { seriesPath, tripPath, tripSubPath } from '@/router/paths'
+import { PATH, seriesPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
 
 const store = useTripStore()
@@ -515,7 +515,7 @@ async function handleRefresh(event: CustomEvent) {
               size="small"
               :aria-label="t('trips.importPortable')"
               data-testid="m2-portable-import"
-              router-link="PATH.importFile"
+              :router-link="PATH.importFile"
             >
               <IonIcon slot="icon-only" :icon="documentTextOutline" />
             </IonButton>
@@ -525,7 +525,7 @@ async function handleRefresh(event: CustomEvent) {
               size="small"
               data-testid="m2-spreadsheet-import"
               :aria-label="t('items.importSpreadsheet')"
-              router-link="PATH.importSpreadsheet"
+              :router-link="PATH.importSpreadsheet"
             >
               <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
             </IonButton>
@@ -787,7 +787,7 @@ async function handleRefresh(event: CustomEvent) {
         <IonFabButton
           data-testid="trips-new"
           :aria-label="t('trips.new')"
-          router-link="PATH.newTrip"
+          :router-link="PATH.newTrip"
         >
           <IonIcon :icon="addOutline" />
         </IonFabButton>

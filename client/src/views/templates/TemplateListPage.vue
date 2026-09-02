@@ -60,7 +60,7 @@ import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import { presentToast } from '@/lib/toast'
-import { templatePath } from '@/router/paths'
+import { PATH, templatePath } from '@/router/paths'
 import { confirmDestructive, promptText } from '@/lib/confirm'
 
 const store = useMasterStore()
@@ -358,7 +358,7 @@ async function handleRefresh(event: CustomEvent) {
             size="small"
             :aria-label="t('templates.import')"
             data-testid="m7-portable-import"
-            router-link="PATH.importFile"
+            :router-link="PATH.importFile"
           >
             <IonIcon slot="icon-only" :icon="documentTextOutline" />
           </IonButton>

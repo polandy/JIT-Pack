@@ -116,6 +116,24 @@ describe('router paths', () => {
     expect(offenders).toEqual([])
   })
 
+  it('leaves no constant sitting in a static attribute', () => {
+    // `router-link="PATH.items"` is a link to the literal text; Vue never
+    // evaluates it, nothing type-checks it, and the page simply does not
+    // navigate. Five of them were introduced while writing this module and
+    // found by one e2e case rather than by the build.
+    const offenders = sources.flatMap(({ path, source }) =>
+      source
+        .split('\n')
+        .map((line, index) =>
+          /(?<!:)(?:router-link|href|to)="(?:PATH\.|\w+Path\()/.test(line)
+            ? `${path}:${index + 1}`
+            : null,
+        )
+        .filter((hit): hit is string => hit !== null),
+    )
+    expect(offenders).toEqual([])
+  })
+
   it('accepts the parameters the router itself uses', () => {
     expect(tripItemPath(TRIP_ID_PARAM, ITEM_ID_PARAM)).toBe('/trips/:tripId/items/:itemId')
   })

@@ -189,7 +189,7 @@ function handleRefresh(event: CustomEvent) {
         <IonButton
           fill="outline"
           size="small"
-          router-link="PATH.importSpreadsheet"
+          :router-link="PATH.importSpreadsheet"
           data-testid="m9-import"
         >
           <IonIcon slot="start" :icon="cloudUploadOutline" />
