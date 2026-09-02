@@ -19,6 +19,13 @@ export const MODE_KEY = 'jitpack_mode'
 /** `localStorage` key holding the server URL a `server` client talks to. */
 export const SERVER_URL_KEY = 'jitpack_server_url'
 
+/**
+ * `localStorage` key set by FR-19.8's switch and cleared once the backup has
+ * been restored (or the person declined to). Durable on purpose: the restore
+ * is a task the reload must not forget (ADR-045).
+ */
+export const MIGRATION_PENDING_KEY = 'jitpack_migration_pending'
+
 /** The persisted mode, or `null` before M19 has been answered. */
 export function readMode(): ClientMode | null {
   const raw = localStorage.getItem(MODE_KEY)
@@ -33,6 +40,15 @@ export function readMode(): ClientMode | null {
 export function chooseMode(mode: ClientMode, serverUrl: string | null): void {
   localStorage.setItem(MODE_KEY, mode)
   if (serverUrl) localStorage.setItem(SERVER_URL_KEY, serverUrl)
+}
+
+/**
+ * FR-19.8's switch: the second writer of the mode, and the only one that
+ * leaves Local Mode. Sets the pending flag with it; the caller reloads.
+ */
+export function switchToServer(serverUrl: string): void {
+  chooseMode('server', serverUrl)
+  localStorage.setItem(MIGRATION_PENDING_KEY, '1')
 }
 
 /**

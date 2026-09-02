@@ -7,28 +7,62 @@
 
 const KEY = 'jitpack_last_export'
 
+/**
+ * FR-19.8: when this device last wrote a Local Mode row. Compared against
+ * the export stamp to decide whether the backup still covers the device.
+ */
+const LAST_WRITE_KEY = 'jitpack_last_local_write'
+
 /** Nudge once a backup is this many days stale. */
 export const EXPORT_REMINDER_DAYS = 30
 
-/** markExported stamps "now" as the last successful export time. */
-export function markExported(now: number = Date.now()): void {
+function writeStamp(key: string, now: number): void {
   try {
-    localStorage.setItem(KEY, String(now))
+    localStorage.setItem(key, String(now))
   } catch {
     /* storage unavailable → no reminder tracking, not fatal */
   }
 }
 
-/** lastExportAt returns the last export epoch-ms, or null if never. */
-export function lastExportAt(): number | null {
+function readStamp(key: string): number | null {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = localStorage.getItem(key)
     if (!raw) return null
     const n = Number(raw)
     return Number.isFinite(n) ? n : null
   } catch {
     return null
   }
+}
+
+/** markExported stamps "now" as the last successful export time. */
+export function markExported(now: number = Date.now()): void {
+  writeStamp(KEY, now)
+}
+
+/** lastExportAt returns the last export epoch-ms, or null if never. */
+export function lastExportAt(): number | null {
+  return readStamp(KEY)
+}
+
+/** markLocalWrite stamps "now" as the last Local Mode write (FR-19.8). */
+export function markLocalWrite(now: number = Date.now()): void {
+  writeStamp(LAST_WRITE_KEY, now)
+}
+
+/** lastLocalWriteAt returns the last Local Mode write epoch-ms, or null if none. */
+export function lastLocalWriteAt(): number | null {
+  return readStamp(LAST_WRITE_KEY)
+}
+
+/**
+ * backupCoversDevice is FR-19.8's guard: the switch off Local Mode is allowed
+ * only while the last backup is at least as new as the last write. A device
+ * that never wrote has nothing to lose and is not held.
+ */
+export function backupCoversDevice(lastAt: number | null, lastWriteAt: number | null): boolean {
+  if (lastWriteAt === null) return true
+  return lastAt !== null && lastAt >= lastWriteAt
 }
 
 export interface ReminderState {

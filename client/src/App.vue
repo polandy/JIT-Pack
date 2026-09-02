@@ -32,16 +32,13 @@ import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SyncDetailSheet from '@/components/global/SyncDetailSheet.vue'
-import { backupFilename, buildBackup } from '@/local/backup'
-import { lastExportAt, markExported } from '@/local/exportReminder'
+import { useDeviceBackup } from '@/composables/useDeviceBackup'
+import { lastExportAt } from '@/local/exportReminder'
 import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
-import { saveText } from '@/lib/download'
 import { applyUpdate, swUpdateApplying, swUpdateDismissed, swUpdateReady } from '@/pwa/register'
 import { chooseMode as persistMode, readMode, type ClientMode } from '@/mode'
 import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
-import { useMasterStore } from '@/stores/masterStore'
-import { useTripStore } from '@/stores/tripStore'
 import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -257,49 +254,14 @@ function openMasterConflicts() {
   router.push('/master/conflicts')
 }
 
-const masterStore = useMasterStore()
-const tripStore = useTripStore()
+const { hasBackupContent, saveBackup: writeDeviceBackup } = useDeviceBackup()
 
-/** Whether a backup would contain anything (NFR-4.11). */
-const hasBackupContent = computed(
-  () => masterStore.templateList.length > 0 || tripStore.tripList.length > 0,
-)
-
-/** FR-19.6's one-tap backup: the whole device as one portable file. */
+/** FR-19.6's one-tap backup from the G-2 sheet; the file is the composable's. */
 async function saveBackup() {
-  const now = Date.now()
-  const yaml = buildBackup({
-    templates: masterStore.templateList.map((template) => ({
-      template,
-      items: masterStore.getTemplateItems(template.id),
-    })),
-    trips: tripStore.tripList.map((trip) => ({
-      trip,
-      items: tripStore.getItems(trip.id),
-      travelers: tripStore.getTravelers(trip.id),
-      containers: tripStore.getContainers(trip.id),
-      // FR-27.4: how the trip follows its groups travels with it, or a
-      // restored device starts asking questions the user already answered.
-      sources: tripStore.getTemplateSources(trip.id),
-      generated: tripStore.getGeneratedPositions(trip.id),
-      appliedChanges: tripStore.getAppliedChanges(trip.id),
-    })),
-    ...masterStore.portableResolvers(),
-    template: (id) => masterStore.getTemplate(id),
-    composition: masterStore.compositionSource(),
-  })
-  const filename = backupFilename(now)
-  saveText(yaml, filename)
-  markExported(now)
+  const now = await writeDeviceBackup()
   lastExport.value = now
   // The sheet's clock advances with the write it is describing.
   detailNow.value = now
-  const toast = await toastController.create({
-    message: t('sync.detail.backupSaved', { file: filename }),
-    duration: 4000,
-    position: 'top',
-  })
-  await toast.present()
 }
 </script>
 

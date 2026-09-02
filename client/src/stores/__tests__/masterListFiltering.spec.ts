@@ -25,7 +25,7 @@ import { describe, it, expect } from 'vitest'
  * here for one of its reads and uses the active list for the rest.
  */
 const COMPLETE_LIST_READERS: Record<string, string> = {
-  'src/App.vue': 'the NFR-4.11 device backup — fidelity, not a listing',
+  'src/composables/useDeviceBackup.ts': 'the NFR-4.11 device backup — fidelity, not a listing',
   'src/composables/useSyncOrchestrator.ts':
     'generation, the FR-27.4 refresh, FR-27.10, clone and M21 all resolve positions that may name a retired row',
   'src/composables/sync/actions/masterData.ts':

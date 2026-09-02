@@ -48,11 +48,17 @@ import {
   warningOutline,
 } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
-import { EXPORT_REMINDER_DAYS, lastExportAt, reminderState } from '@/local/exportReminder'
+import {
+  EXPORT_REMINDER_DAYS,
+  backupCoversDevice,
+  lastExportAt,
+  lastLocalWriteAt,
+  reminderState,
+} from '@/local/exportReminder'
 
 import { loadTokens } from '@/auth/tokens'
-import { hasCollaborativeSession, readMode } from '@/mode'
-import { serverBaseUrl } from '@/config'
+import { hasCollaborativeSession, readMode, switchToServer } from '@/mode'
+import { defaultServerBaseUrl, serverBaseUrl } from '@/config'
 import type { NotificationPrefs } from '@/notifications/format'
 import { pushRegistered, pushSupported, registerPush, unregisterPush } from '@/notifications/push'
 import { isValidDisplayName } from '@/domain/displayName'
@@ -65,6 +71,8 @@ import { type Locale, type MessageKey, currentLocale, formatNumber, setLocale, t
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import ApiTokenSheet from '@/components/settings/ApiTokenSheet.vue'
+import LeaveLocalModeCard from '@/components/settings/LeaveLocalModeCard.vue'
+import { useDeviceBackup } from '@/composables/useDeviceBackup'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
@@ -318,8 +326,30 @@ const modeText = computed(() =>
  */
 function refreshReminder() {
   exportReminder.value = reminderState(lastExportAt(), Date.now())
+  backupCovered.value = backupCoversDevice(lastExportAt(), lastLocalWriteAt())
 }
 onIonViewWillEnter(refreshReminder)
+
+// --- FR-19.8: leaving Local Mode (ADR-045) ---
+
+const { saveBackup: writeDeviceBackup } = useDeviceBackup()
+
+/**
+ * The guard on the switch: re-read with the reminder, because the last write
+ * is stamped by the orchestrator from whatever screen made it.
+ */
+const backupCovered = ref(backupCoversDevice(lastExportAt(), lastLocalWriteAt()))
+
+async function backupForMove() {
+  await writeDeviceBackup()
+  refreshReminder()
+}
+
+/** Step 2: the mode, the URL and the pending flag, then the reload M19's choice also needs. */
+function moveToServer(url: string) {
+  switchToServer(url)
+  window.location.reload()
+}
 
 /** One trip as portable YAML, written client-side: there is no server to ask.
  *  Not the NFR-4.11 backup — see the note on `exportReminder`. */
@@ -635,6 +665,13 @@ async function exportTripCSV() {
             <IonNote slot="end">{{ t('settings.storageDetailsHint') }}</IonNote>
           </IonItem>
         </IonList>
+        <LeaveLocalModeCard
+          :last-backup-at="exportReminder.lastAt"
+          :covered="backupCovered"
+          :default-url="defaultServerBaseUrl()"
+          @backup="backupForMove"
+          @switch="moveToServer"
+        />
       </template>
       <template v-else>
         <IonList>

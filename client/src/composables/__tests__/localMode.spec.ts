@@ -156,4 +156,27 @@ describe('Local Mode', () => {
     expect(master.getTemplateItemTasks(positionId)).toEqual([])
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  it('stamps a write only after hydration — the startup load is not a change (FR-19.8)', async () => {
+    const persistence = new IndexedDBPersistence()
+    await persistence.save([
+      { seq: 0, table: 'items', id: 'i1', deleted: false, row: { name: 'Socken' } },
+    ])
+    const onLocalWrite = vi.fn()
+    const orch = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: persistence,
+      onLocalWrite,
+    })
+
+    await orch.connect()
+    expect(useMasterStore().itemList).toHaveLength(1)
+    // The positive signal that the funnel ran: the row is in the store. And
+    // the stamp did not move for it.
+    expect(onLocalWrite).not.toHaveBeenCalled()
+
+    orch.quickAddItem('t1', 'Zahnbürste', {}, false)
+    expect(onLocalWrite).toHaveBeenCalledTimes(1)
+  })
 })

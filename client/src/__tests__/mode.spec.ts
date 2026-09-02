@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { saveTokens } from '@/auth/tokens'
 import {
+  MIGRATION_PENDING_KEY,
   MODE_KEY,
   SERVER_URL_KEY,
   chooseMode,
+  switchToServer,
   hasCollaborativeSession,
   isValidServerUrl,
   readMode,
@@ -48,6 +50,24 @@ describe('chooseMode', () => {
     chooseMode('local', null)
     expect(readMode()).toBe('local')
     expect(localStorage.getItem(SERVER_URL_KEY)).toBe('https://earlier.example.com')
+  })
+})
+
+/** FR-19.8 — leaving Local Mode is the one write that also flags the restore. */
+describe('switchToServer', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('moves the client to Server Mode and leaves the restore pending', () => {
+    localStorage.setItem(MODE_KEY, 'local')
+    switchToServer('https://packing.example.com')
+    expect(readMode()).toBe('server')
+    expect(localStorage.getItem(SERVER_URL_KEY)).toBe('https://packing.example.com')
+    expect(localStorage.getItem(MIGRATION_PENDING_KEY)).not.toBeNull()
+  })
+
+  it('is the only writer that sets the flag — M19 never does', () => {
+    chooseMode('server', 'https://packing.example.com')
+    expect(localStorage.getItem(MIGRATION_PENDING_KEY)).toBeNull()
   })
 })
 
