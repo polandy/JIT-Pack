@@ -399,6 +399,8 @@ export function useMutations(hlc: HLCGenerator) {
       packedCount: number
       mode: string
       latePacker: boolean
+      /** FR-25.11j: the shopping list the row was bought from, if any. */
+      boughtFrom: ShoppingMode | null
     },
     assignedTravelerId: string | null,
     containerId: string | null,
@@ -422,6 +424,7 @@ export function useMutations(hlc: HLCGenerator) {
       packed_count: packed,
       state,
       mode: item.mode,
+      bought_from: item.boughtFrom,
       late_packer: item.latePacker ? 1 : 0,
       assigned_traveler_id: assignedTravelerId,
       container_id: containerId,

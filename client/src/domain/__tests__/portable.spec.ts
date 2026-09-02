@@ -107,6 +107,22 @@ describe('parsePortable (FR-18.5)', () => {
     })
   })
 
+  // FR-25.11j: `bought_from` says which shopping list a row left. A file
+  // written before the field existed carries none, and reads back as none;
+  // a value outside `mode`'s own vocabulary is not a list the app has.
+  it('reads bought_from only when it names a shopping list (FR-25.11j, FR-18.5)', () => {
+    const before = parsePortable(tripYAML).doc!
+    expect(before.items[0]!.bought_from).toBeNull()
+
+    const bought = parsePortable(
+      tripYAML.replace('packed_count: 1', 'bought_from: buy_before'),
+    ).doc!
+    expect(bought.items[0]!.bought_from).toBe('buy_before')
+
+    const unknown = parsePortable(tripYAML.replace('packed_count: 1', 'bought_from: online')).doc!
+    expect(unknown.items[0]!.bought_from).toBeNull()
+  })
+
   it.each([
     ['not YAML at all', '::: {{{'],
     ['unknown kind', 'kind: recipe\nschema_version: 1\nname: X\nitems: []'],
@@ -264,7 +280,9 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
         container_id: 'c1',
         packing_now_by: null,
         packing_now_at: null,
-        bought_from: null,
+        // FR-25.11j: bought on the shopping side, hence `pack` now — the
+        // record is what lets the shopping side find the row again.
+        bought_from: 'buy_before',
         flag_unused: false,
         flag_missing: false,
         updated_hlc: '',
@@ -294,12 +312,16 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       traveler: 'Andy',
       container: 'Radtasche',
       packed_count: 1,
+      bought_from: 'buy_before',
     })
 
     const clean = parsePortable(
       serializeTrip({ trip, items, travelers, containers, includeProgress: false, ...noResolvers }),
     ).doc!
     expect(clean.items[0]!.packed_count).toBeNull()
+    // Where a row was bought is progress on the trip, like the count: a file
+    // shared without progress has nothing bought in it.
+    expect(clean.items[0]!.bought_from).toBeNull()
   })
 })
 
