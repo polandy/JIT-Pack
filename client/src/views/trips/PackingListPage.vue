@@ -85,7 +85,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
-import { modeIcon, modeLabel } from '@/lib/modeLabels'
+import { DENSE_LIST, modeIcon, modeLabel } from '@/lib/modeLabels'
 import { hasCollaborativeSession } from '@/mode'
 import { presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
@@ -1702,8 +1702,8 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   />
                   <span class="cluster-name">{{ entry.name }}</span>
                   <IonIcon
-                    v-if="modeIcon(entry.mode)"
-                    :icon="modeIcon(entry.mode)!"
+                    v-if="modeIcon(entry.mode, DENSE_LIST)"
+                    :icon="modeIcon(entry.mode, DENSE_LIST)!"
                     class="mode-icon"
                     :title="modeLabel(entry.mode)"
                   />
@@ -1904,8 +1904,8 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     :data-testid="`m4-unused-${entry.item.name}`"
                   />
                   <IonIcon
-                    v-if="modeIcon(entry.item.mode)"
-                    :icon="modeIcon(entry.item.mode)!"
+                    v-if="modeIcon(entry.item.mode, DENSE_LIST)"
+                    :icon="modeIcon(entry.item.mode, DENSE_LIST)!"
                     class="mode-icon"
                     :title="modeLabel(entry.item.mode)"
                   />

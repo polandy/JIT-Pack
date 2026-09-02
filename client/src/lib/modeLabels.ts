@@ -33,6 +33,13 @@ export function modeLabel(mode: string): string {
  * than repeating the obvious on every line. A sheet or a detail view, where
  * one row is the whole subject, asks for the bag instead.
  */
+/**
+ * The options a dense row list asks with: one line per item, so the dominant
+ * 🧳 is left unsaid. Named here rather than spelled at each call site —
+ * M4 lost the rule in exactly that way, by omitting the argument.
+ */
+export const DENSE_LIST = { silentPack: true } as const
+
 export function modeIcon(mode: string, options: { silentPack?: boolean } = {}): string | null {
   if (mode === 'buy_before') return cartOutline
   if (mode === 'buy_local') return locationOutline
