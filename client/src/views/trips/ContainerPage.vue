@@ -23,7 +23,6 @@ import {
   IonIcon,
   IonFab,
   IonFabButton,
-  IonModal,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -35,6 +34,7 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
+import SheetModal from '@/components/global/SheetModal.vue'
 import ContainerSheet from '@/components/trips/ContainerSheet.vue'
 
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -205,51 +205,37 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
       </IonFab>
 
       <!-- The M5-pattern edit sheet. -->
-      <IonModal
-        :is-open="openContainerId !== null"
-        class="sheet-modal"
-        @did-dismiss="openContainerId = null"
-      >
-        <div class="sheet-box">
-          <div class="grab" />
-          <ContainerSheet
-            v-if="openContainerId"
-            :trip-id="props.tripId"
-            :container-id="openContainerId"
-            @close="openContainerId = null"
-          />
-        </div>
-      </IonModal>
+      <SheetModal :is-open="openContainerId !== null" @dismiss="openContainerId = null">
+        <ContainerSheet
+          v-if="openContainerId"
+          :trip-id="props.tripId"
+          :container-id="openContainerId"
+          @close="openContainerId = null"
+        />
+      </SheetModal>
 
       <!-- The same sheet surface as a container picker (FR-10.2). -->
-      <IonModal
-        :is-open="pickingItemId !== null"
-        class="sheet-modal"
-        @did-dismiss="pickingItemId = null"
-      >
-        <div class="sheet-box">
-          <div class="grab" />
-          <section class="picker" data-testid="m11-picker">
-            <h1 class="jp-sheet-title">{{ t('container.assignTitle') }}</h1>
-            <p class="picker-item">{{ pickingItem?.name }}</p>
-            <p v-if="containers.length === 0" class="picker-none">
-              {{ t('container.assignNone') }}
-            </p>
-            <button
-              v-for="container in containers"
-              :key="container.id"
-              class="picker-row"
-              data-testid="m11-picker-option"
-              @click="assignTo(container.id)"
-            >
-              <span class="picker-name">{{ container.name }}</span>
-              <span class="picker-load" :class="{ over: levelOf(container) === 'over' }">
-                {{ loadLine(container) }}
-              </span>
-            </button>
-          </section>
-        </div>
-      </IonModal>
+      <SheetModal :is-open="pickingItemId !== null" @dismiss="pickingItemId = null">
+        <section class="picker" data-testid="m11-picker">
+          <h1 class="jp-sheet-title">{{ t('container.assignTitle') }}</h1>
+          <p class="picker-item">{{ pickingItem?.name }}</p>
+          <p v-if="containers.length === 0" class="picker-none">
+            {{ t('container.assignNone') }}
+          </p>
+          <button
+            v-for="container in containers"
+            :key="container.id"
+            class="picker-row"
+            data-testid="m11-picker-option"
+            @click="assignTo(container.id)"
+          >
+            <span class="picker-name">{{ container.name }}</span>
+            <span class="picker-load" :class="{ over: levelOf(container) === 'over' }">
+              {{ loadLine(container) }}
+            </span>
+          </button>
+        </section>
+      </SheetModal>
     </IonContent>
   </IonPage>
 </template>
@@ -372,29 +358,6 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
 .empty-icon {
   font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
-}
-
-/* --- the sheets, in the app's sheet grammar --- */
-.sheet-modal {
-  --height: auto;
-  --border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
-  --background: var(--ct-mantle);
-  --box-shadow: var(--jp-shadow-sheet);
-  --backdrop-opacity: 0.62;
-  align-items: flex-end;
-}
-
-.sheet-box {
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
-.grab {
-  width: 36px;
-  height: 4px;
-  margin: 10px auto 4px;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface1);
 }
 
 /* --- assign picker --- */

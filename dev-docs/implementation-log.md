@@ -245,6 +245,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The screen was right and the disk was not (2026-09-02)](#the-screen-was-right-and-the-disk-was-not-2026-09-02) — a deleted trip left its rows on the device. Why the store dropping its own buckets is what hid it, why the fix cannot live in the store, and the reading that turns one defect into four.
 - [A trap the tests had already covered (2026-09-02)](#a-trap-the-tests-had-already-covered-2026-09-02) — thirteen action call sites built their optimistic change by hand instead of through the builder written to make that impossible. Why the review's premise was half wrong, what the measurement changed about the fix's justification, and why a lint rule is the right shape for a rule nobody can be asked to remember.
 - [Three sentences the screens were each translating (2026-09-02)](#three-sentences-the-screens-were-each-translating-2026-09-02) — M4's row facts, the confirm dialog and the app's paths each got one home. Why `rowFacts` is in `lib/` and not `domain/`, why route *names* were the wrong answer to the path literals, and the defect that only appeared once a path had a type.
+- [Four sheets that were already the same, and one that was not (2026-09-02)](#four-sheets-that-were-already-the-same-and-one-that-was-not-2026-09-02) — U-3's five copies of the sheet chrome. Why the M4 filter sheet stays out of `SheetModal`, measured rather than argued, and what that says about calling a migration mechanical.
 
 
 ## Current state
@@ -11416,3 +11417,38 @@ One consequence worth carrying: the paths gate covers `client/e2e` as well as
 re-exports the module, which is import-free for exactly that reason). It is
 scoped to `goto(...)` on purpose — a case asserting `toHaveURL('/tabs/items')`
 is checking where the app went, and that literal is the assertion itself.
+
+## Four sheets that were already the same, and one that was not (2026-09-02)
+
+`SheetModal.vue` shipped in August with a note saying the four hand-written
+copies of its twenty lines were "unchanged for now; moving them is mechanical".
+Four of them were. The fifth was not, and the difference is only visible in a
+rendered pixel.
+
+M4's filter sheet is not `--height: auto` like the others: it is 86 % of the
+viewport, so its body has to scroll, which makes it an `IonContent` where the
+others are a plain box — and that inversion is itself load-bearing in both
+directions. Inside an auto-height modal an `IonContent` has no intrinsic
+height to give, so the sheet sizes itself to nothing and swallows the taps
+meant for its own controls (M7's kind chooser paid for that). And a fixed
+height cannot come from Ionic's drag breakpoints, because with breakpoints the
+modal box stays full-height and is translated down, pushing the panel's own
+controls off screen (the filter sheet paid for that one).
+
+A `height` prop reconciled all of it and the component compiled. What it could
+not reconcile was the handle: 38 px on `--ct-surface2` with a 2 px gap in the
+filter sheet, 36 px on `--ct-surface1` with a 4 px gap in the shared one. The
+visual suite put a number on the difference — **4 217 pixels on mobile, 4 429
+on desktop**, because the 2 px gap moves the whole panel down and every line of
+text lands on a different row. That is not a migration; it is a small design
+decision about what the app's grab handle is, and it belongs to the owner.
+
+So the filter sheet keeps its own chrome and `SheetModal` says why, in the
+component rather than in a review document nobody reads twice. The other four
+moved with the baselines untouched — 24 of 24 visual cases green.
+
+**The transferable part:** "the same twenty lines" was true of the markup and
+false of the rendering, and only `make visual` could tell the two apart. A copy
+that has drifted by two pixels looks exactly like a copy that has not, in the
+diff and in the review — which is the same trap invariant 9b was written for,
+one level up.
