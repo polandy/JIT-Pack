@@ -12,10 +12,11 @@
 import { API } from '@/api/routes'
 import type { InstanceConfigResponse } from '@/api/types'
 import { setCurrency } from '@/lib/currency'
-import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
+import { IonApp, IonRouterOutlet, alertController, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
+import MigrationBanner from '@/components/global/MigrationBanner.vue'
 import UpdateBanner from '@/components/global/UpdateBanner.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { createAuthRefresher, onSessionEnded } from '@/auth/refresh'
@@ -36,13 +37,44 @@ import { useDeviceBackup } from '@/composables/useDeviceBackup'
 import { lastExportAt } from '@/local/exportReminder'
 import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
 import { applyUpdate, swUpdateApplying, swUpdateDismissed, swUpdateReady } from '@/pwa/register'
-import { chooseMode as persistMode, readMode, type ClientMode } from '@/mode'
+import {
+  chooseMode as persistMode,
+  clearMigrationPending,
+  loadMigrationPending,
+  migrationPending,
+  readMode,
+  type ClientMode,
+} from '@/mode'
 import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
 import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const mode = ref(readMode())
+// FR-19.8: only the switch off Local Mode sets this, so only a server client
+// can have it to read.
+if (mode.value === 'server') loadMigrationPending()
+
+/** Step 3 of the move: M18's restore branch, reached from the bar. */
+function restoreMigration() {
+  router.push('/portable-import')
+}
+
+/** A fresh start is a legitimate outcome — confirmed once, then the bar is gone for good. */
+async function skipMigration() {
+  const alert = await alertController.create({
+    header: t('migration.skipConfirm.title'),
+    message: t('migration.skipConfirm.body'),
+    buttons: [
+      { text: t('common.cancel'), role: 'cancel' },
+      { text: t('migration.skipConfirm.confirm'), role: 'confirm' },
+    ],
+  })
+  await alert.present()
+  const { role } = await alert.onDidDismiss()
+  if (role !== 'confirm') return
+  clearMigrationPending()
+}
 
 function chooseMode(selected: ClientMode, serverUrl: string | null) {
   persistMode(selected, serverUrl)
@@ -287,6 +319,12 @@ async function saveBackup() {
         :applying="swUpdateApplying"
         @apply="applyUpdate()"
         @later="swUpdateDismissed = true"
+      />
+      <!-- FR-19.8: step three of the move, until the restore commits or is declined. -->
+      <MigrationBanner
+        v-if="mode === 'server' && migrationPending"
+        @restore="restoreMigration"
+        @skip="skipMigration"
       />
       <div class="app-body">
         <NavRail />

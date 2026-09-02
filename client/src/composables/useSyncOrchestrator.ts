@@ -11,6 +11,7 @@
 
 import { API } from '@/api/routes'
 import { markLocalWrite } from '@/local/exportReminder'
+import { clearMigrationPending } from '@/mode'
 import { t } from '@/i18n'
 import { TABLE } from '@/types/tables'
 import { computed, reactive, ref } from 'vue'
@@ -1157,6 +1158,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   /** Restore a whole backup file (NFR-4.11), then push what it produced. */
   function commitPortableRestore(docs: PortableDocument[]): PortableImportResult[] {
     const imported = importPortableBackup(docs, portableImportEnv())
+    // FR-19.8: a restore onto a server is the third step of the move; in
+    // Local Mode there is no move to finish.
+    if (!local) clearMigrationPending()
     // Every trip the file brought, not none of them: a restore is the whole
     // device, and its rows live in one partition per trip (FR-19.5).
     drainAfterImport(imported.filter((r) => r.kind === 'trip').map((r) => r.id))

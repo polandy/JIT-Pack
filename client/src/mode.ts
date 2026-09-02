@@ -8,6 +8,8 @@
  * Before this module the key was a literal in six files, each with its own
  * cast; §4a wants it named once.
  */
+import { ref, type Ref } from 'vue'
+
 import { loadTokens } from '@/auth/tokens'
 
 /** The two modes a client can be in. */
@@ -49,6 +51,27 @@ export function chooseMode(mode: ClientMode, serverUrl: string | null): void {
 export function switchToServer(serverUrl: string): void {
   chooseMode('server', serverUrl)
   localStorage.setItem(MIGRATION_PENDING_KEY, '1')
+  migrationPending.value = true
+}
+
+/**
+ * True while FR-19.8's restore is still owed. Reactive so the bar follows it
+ * within a page load; `loadMigrationPending()` reads the stored flag at boot,
+ * because this module is imported by code that runs where there is no
+ * storage at all.
+ */
+export const migrationPending: Ref<boolean> = ref(false)
+
+/** Reads the stored flag into `migrationPending` and returns it. */
+export function loadMigrationPending(): boolean {
+  migrationPending.value = localStorage.getItem(MIGRATION_PENDING_KEY) !== null
+  return migrationPending.value
+}
+
+/** The restore was done, or declined: the bar has nothing left to say. */
+export function clearMigrationPending(): void {
+  localStorage.removeItem(MIGRATION_PENDING_KEY)
+  migrationPending.value = false
 }
 
 /**

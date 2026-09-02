@@ -82,6 +82,14 @@ export const de: Record<keyof typeof en, string> = {
   'update.applyLong': 'Jetzt aktualisieren',
   'update.applying': 'Wird aktualisiert…',
   'update.later': 'Später',
+  'migration.banner.title': 'Umzug abschliessen',
+  'migration.banner.note':
+    'Stelle die Sicherung wieder her, die du vor dem Wechsel heruntergeladen hast.',
+  'migration.banner.restore': 'Wiederherstellen',
+  'migration.banner.skip': 'Überspringen',
+  'migration.skipConfirm.title': 'Ohne Wiederherstellung fortfahren?',
+  'migration.skipConfirm.body': 'Die Daten bleiben dann nur in der Sicherungsdatei.',
+  'migration.skipConfirm.confirm': 'Neu beginnen',
   // B2/NFR-4.1 — der dauerhafte Ausgangskorb.
   'sync.detail.pendingDurable':
     'Sie sind auf diesem Gerät gespeichert und gehen raus, sobald es wieder online ist.',

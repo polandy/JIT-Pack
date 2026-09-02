@@ -81,6 +81,13 @@ export const en = {
   'update.applyLong': 'Update now',
   'update.applying': 'Updating…',
   'update.later': 'Later',
+  'migration.banner.title': 'Finish the move',
+  'migration.banner.note': 'Restore the backup you downloaded before switching.',
+  'migration.banner.restore': 'Restore',
+  'migration.banner.skip': 'Skip',
+  'migration.skipConfirm.title': 'Continue without restoring?',
+  'migration.skipConfirm.body': 'Your data then lives only in the backup file.',
+  'migration.skipConfirm.confirm': 'Start fresh',
   // B2/NFR-4.1 — the durable outbox.
   'sync.detail.pendingDurable':
     'They are saved on this device and go out as soon as it is back online.',

@@ -7,6 +7,9 @@ import {
   MODE_KEY,
   SERVER_URL_KEY,
   chooseMode,
+  clearMigrationPending,
+  loadMigrationPending,
+  migrationPending,
   switchToServer,
   hasCollaborativeSession,
   isValidServerUrl,
@@ -68,6 +71,17 @@ describe('switchToServer', () => {
   it('is the only writer that sets the flag — M19 never does', () => {
     chooseMode('server', 'https://packing.example.com')
     expect(localStorage.getItem(MIGRATION_PENDING_KEY)).toBeNull()
+  })
+
+  it('is remembered across a load and forgotten once cleared', () => {
+    switchToServer('https://packing.example.com')
+    migrationPending.value = false
+    expect(loadMigrationPending()).toBe(true)
+    expect(migrationPending.value).toBe(true)
+
+    clearMigrationPending()
+    expect(migrationPending.value).toBe(false)
+    expect(loadMigrationPending()).toBe(false)
   })
 })
 

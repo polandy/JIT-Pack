@@ -14,6 +14,7 @@ import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
+import { loadMigrationPending, switchToServer } from '@/mode'
 
 let fetchMock: ReturnType<typeof vi.fn>
 let wsMock: ReturnType<typeof vi.fn>
@@ -178,5 +179,17 @@ describe('Local Mode', () => {
 
     orch.quickAddItem('t1', 'Zahnbürste', {}, false)
     expect(onLocalWrite).toHaveBeenCalledTimes(1)
+  })
+
+  it('a Local Mode restore does not finish a move that never started (FR-19.8)', () => {
+    // The flag can only be set by the switch, and a device still in Local
+    // Mode has not switched — a restore here is an ordinary restore.
+    switchToServer('http://localhost')
+    localStorage.setItem('jitpack_mode', 'local')
+    const orch = newLocalOrch()
+
+    orch.commitPortableRestore([])
+
+    expect(loadMigrationPending()).toBe(true)
   })
 })
