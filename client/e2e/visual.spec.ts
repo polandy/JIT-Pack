@@ -1,4 +1,11 @@
-import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+  visiblePage,
+  useReducedMotion,
+} from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -27,7 +34,7 @@ import { PATH } from './routes'
  * synchronously instead of waiting for a `transitionend` a screenshot would
  * race.
  */
-test.use({ reducedMotion: 'reduce' })
+useReducedMotion(test)
 
 /**
  * Ids are `crypto.randomUUID()`, and `UserAvatar` hashes its seed — the

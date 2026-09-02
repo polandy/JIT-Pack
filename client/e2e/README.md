@@ -140,3 +140,12 @@ Which spec cases are actually implemented is tracked in
   `page.setViewportSize(MOBILE)` first, as `global-nav.spec.ts` does.
 - **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per
   screen — run a slice with `npm run test:e2e -- --grep @local`.
+- **The suite is type-checked** (`client/tsconfig.e2e.json`, referenced from
+  `tsconfig.json`, so `npm run build` covers it). Until 2026-09-03 it was in
+  no project at all: `tsconfig.app.json` excludes it, `tsconfig.vitest.json`
+  includes only `src/**/__tests__`, and a typo in a spec — a renamed helper,
+  a dropped argument — surfaced only when Playwright reached that line, in a
+  container, minutes later. Adding it found five undefined-index bugs and a
+  helper that would have walked the date picker towards `NaN`. Reduced
+  motion goes through `useReducedMotion(test)` rather than `test.use({…})`,
+  because Playwright's own option type does not declare the key.

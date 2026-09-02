@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createAuthRefresher, AUTH_EXPIRED_EVENT } from '../refresh'
 import { loadTokens } from '../tokens'
+import { installHarness } from '@/__tests__/harness'
 
 const KEY = 'jitpack_tokens'
 
@@ -28,8 +29,7 @@ describe('createAuthRefresher', () => {
 
   beforeEach(() => {
     localStorage.clear()
-    fetchSpy = vi.fn()
-    vi.stubGlobal('fetch', fetchSpy)
+    fetchSpy = installHarness().fetch
   })
 
   afterEach(() => {

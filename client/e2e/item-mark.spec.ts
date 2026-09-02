@@ -8,6 +8,7 @@ import {
   addPosition,
   openQuickAdd,
   visiblePage,
+  useReducedMotion,
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import { backToInventory, createItem } from './helpers/m9'
@@ -28,7 +29,7 @@ import { PATH } from './routes'
  * Reduced motion, like the other sheet-driven units: what is asserted is the
  * outcome, never the length of a transition.
  */
-test.use({ reducedMotion: 'reduce' })
+useReducedMotion(test)
 
 /** The picker's search is a plain <input>, not an Ionic field — no hydration
  *  to wait for, and fillIonic's `hydrated` guard would never resolve. */

@@ -12,6 +12,9 @@
     },
     {
       "path": "./tsconfig.cli.json"
+    },
+    {
+      "path": "./tsconfig.e2e.json"
     }
   ]
 }

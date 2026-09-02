@@ -47,9 +47,9 @@ test('E2E-M17-04: a human display name is accepted, and the rule only speaks whe
   await screen.getByTestId('settings-name-save').click()
 
   await page.reload()
-  await expect(
-    visiblePage(page).getByTestId('settings-name-input').locator('input'),
-  ).toHaveValue(name)
+  await expect(visiblePage(page).getByTestId('settings-name-input').locator('input')).toHaveValue(
+    name,
+  )
   // …and the circle is initialled from that name, so the two halves of the
   // profile cannot drift apart.
   await expect(visiblePage(page).getByTestId('user-avatar')).toHaveText('BM')

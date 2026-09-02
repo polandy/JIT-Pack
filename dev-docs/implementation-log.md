@@ -246,6 +246,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A trap the tests had already covered (2026-09-02)](#a-trap-the-tests-had-already-covered-2026-09-02) — thirteen action call sites built their optimistic change by hand instead of through the builder written to make that impossible. Why the review's premise was half wrong, what the measurement changed about the fix's justification, and why a lint rule is the right shape for a rule nobody can be asked to remember.
 - [Three sentences the screens were each translating (2026-09-02)](#three-sentences-the-screens-were-each-translating-2026-09-02) — M4's row facts, the confirm dialog and the app's paths each got one home. Why `rowFacts` is in `lib/` and not `domain/`, why route *names* were the wrong answer to the path literals, and the defect that only appeared once a path had a type.
 - [Four sheets that were already the same, and one that was not (2026-09-02)](#four-sheets-that-were-already-the-same-and-one-that-was-not-2026-09-02) — U-3's five copies of the sheet chrome. Why the M4 filter sheet stays out of `SheetModal`, measured rather than argued, and what that says about calling a migration mechanical.
+- [Three gates that were measuring less than they claimed (2026-09-03)](#three-gates-that-were-measuring-less-than-they-claimed-2026-09-03) — T-4, T-10 and the tsconfig nothing covered. Why the case-id gate saw 80 % of the ids, why the harness rule stops at two globals, and the five defects that surfaced the moment the Playwright suite was type-checked at all.
 
 
 ## Current state
@@ -11452,3 +11453,56 @@ false of the rendering, and only `make visual` could tell the two apart. A copy
 that has drifted by two pixels looks exactly like a copy that has not, in the
 diff and in the review — which is the same trap invariant 9b was written for,
 one level up.
+
+## Three gates that were measuring less than they claimed (2026-09-03)
+
+Three items from the review's tooling half, and all three had the same
+shape: a check that existed, passed, and covered less than its name said.
+
+**The case-id gate read 333 of 429 ids.** It matched `* **E2E-…` bullets,
+and the spec defines its cross-screen cases as *table rows* — §4's G-* and
+§6's NFR-*, 87 of them. A duplicate among those, or between a row and a
+bullet, was invisible to the one script written to make duplicates
+impossible. Rows are now counted, and separately from bullets on purpose:
+`E2E-NFR-01` is legitimately both a row and a commentary bullet under it,
+so a collision is a duplicate *within one kind*, which is the shape that
+cost four green tests their meaning on M5.
+
+The second half is new and is the more useful one: **an id in a test title
+is a coverage claim, and nothing compared the two documents.** Six ids in
+test titles named no entry the spec defines. None of them was a fabrication
+— every one is described inside a sibling's paragraph — but a promise you
+can only find by reading prose is not a promise a script can hold anyone
+to. The fix is the notation the file already uses: a heading may name
+several ids (`E2E-M17-07/07b`), and four headings now say what their
+paragraph already did.
+
+**The harness rule stops at two globals, and that is the point.** T-10 asked
+for a gate on `fetch`, `WebSocket` *and* `localStorage`. The third would have
+been wrong: the harness stubs `localStorage` only under `node`, because
+replacing jsdom's real one means asserting against the stub instead of the
+environment the spec declared — so a spec that wants a storage which throws
+is doing the right thing by not going through the harness. The rule as
+built is "a spec that stubs `fetch` or `WebSocket` installs the harness
+first", which leaves the documented bespoke case (`useWebSocket.spec.ts`'s
+constructible recording socket) legal *and* still under the harness.
+
+**The Playwright suite was in no tsconfig at all.** `tsconfig.app.json`
+excludes it, `tsconfig.vitest.json` includes only `src/**/__tests__`,
+`tsconfig.cli.json` is the CLI's. Nothing type-checked 44 spec files, so a
+renamed helper or a dropped argument surfaced when Playwright reached that
+line — in a container, minutes later, as a failure that reads like a flake.
+Adding `tsconfig.e2e.json` to the project references found five real
+defects on the first run, four of them in the helper T-3 had just extracted:
+`setDateField` destructured `iso.split('-')` without checking, so
+`setDateField(page, id, 'tomorrow')` would have walked the calendar towards
+`NaN` until the hop budget ran out and thrown a message about a month it
+never sought.
+
+One thing it could not be made to accept: `test.use({ reducedMotion })`.
+Playwright honours the key at runtime — it is forwarded into the browser
+context — and its `PlaywrightTestOptions` declares `locale`, `offline` and
+`timezoneId` but not this one. Eight call sites would have meant eight
+casts, so there is one, in `useReducedMotion(test)`, with the reason beside
+it. **A library's typing gap is worth exactly one documented cast; what it
+must never buy is turning the check off.**

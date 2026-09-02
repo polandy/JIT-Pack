@@ -130,7 +130,10 @@ test('E2E-G11-03: the FAB is the brand and a packed box is done, never the actio
 // flavour switch. Mocha's peach and Latte's are different hues entirely
 // (#fab387 vs #fe640b) — a rule written against a hex would pass here by
 // accident or fail here for the wrong reason.
-test('E2E-G11-04: the roles hold in Latte, on different hues @local @g11', async ({ page, seedMode }) => {
+test('E2E-G11-04: the roles hold in Latte, on different hues @local @g11', async ({
+  page,
+  seedMode,
+}) => {
   await seedMode({ mode: 'local', theme: 'latte' })
   await page.setViewportSize(MOBILE)
   await page.goto('/')
