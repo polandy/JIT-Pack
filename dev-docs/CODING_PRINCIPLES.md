@@ -22,7 +22,7 @@
   * *Unit* — merge algorithm, HLC, instantiation/dedup: pure functions, no I/O, exhaustive cases.
   * *Integration* — repositories and sync endpoints against a **real in-memory SQLite** (`:memory:`), never mocks of the database.
   * *End-to-end* — the walking-skeleton scenario: two simulated clients, concurrent offline edits, convergence per NFR-4.2a.
-* **Coverage target:** ≥ 90 % for `internal/sync` and `internal/domain`, ≥ 75 % overall. Coverage is a smoke detector, not a goal — an uncovered branch in merge logic fails review regardless of the total.
+* **Coverage target:** ≥ 90 % for `internal/sync`, ≥ 75 % overall — the two numbers live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job. (An `internal/domain` was planned and never built; the pure rules are `client/src/domain`, see §3.) Coverage is a smoke detector, not a goal — an uncovered branch in merge logic fails review regardless of the total.
 * **Always run with `-race`.** CI and local: `go test -race ./...`.
 * **Standard library testing only** (`testing`, `httptest`); a tiny diff helper (`go-cmp`) is allowed. No mocking frameworks — use hand-written fakes behind small interfaces.
 * Tests are deterministic: fake clock injected (`Clock` interface), seeded randomness, no sleeps — synchronization via channels.
@@ -32,20 +32,21 @@
 ```
 cmd/jitpackd/                main: wiring only (flags/env, DI, serve) — no logic
 internal/sync/               HLC, merge algorithm, change-log semantics — zero I/O deps
-internal/portable/           YAML wire types for export/import — zero I/O deps
+internal/wiregen/            the wire contract turned into the client's TypeScript — zero I/O deps
 internal/store/              SQLite repositories; the only package importing database/sql
 internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-018)
-internal/api/                HTTP handlers, WebSocket hub, auth middleware, push
+internal/api/                HTTP handlers, WebSocket hub, auth middleware, push; wire.go is the contract
+internal/webui/              serves the built client beside the API on one origin (ADR-043) — stdlib only
 client/src/domain/           entities, state machine, generation/analytics — pure, no I/O
 client/src/sync/             the client's half of the wire: HLC, the optimistic change builder, the durable outbox's IndexedDB store
 client/src/local/            Local Mode's own storage: the row store, backup, export reminder
 ```
 
-* **Dependency rule:** `api → store, sync, portable`; `store → sync, portable`; **`sync` and `portable` import nothing internal, ever.** This makes the riskiest packages trivially unit-testable.
+* **Dependency rule**, as `go list -deps` reports it: `api → store, sync`; `store → sync`; `webui → nothing internal` (it takes the API prefixes as parameters rather than importing the handler); **`sync` and `wiregen` import nothing internal, ever.** This makes the riskiest packages trivially unit-testable. `internal/portable` was a third such leaf until 2026-08-23; it went with the server's half of the portable format, which is now the client's alone (ADR-025).
 * `client/src/sync/` is **not** a pure leaf the way Go's `internal/sync` is — the name is shared, the rule is not. It holds what the client needs to speak the sync protocol: since B2 that includes an IndexedDB adapter for the outbox queue, and since 2026-08-25 the builder for the optimistic twin of a write — pure functions over `PullChange`, which is why they live here rather than under `composables/`, where nothing that declines Vue's reactivity belongs. It lives there rather than in `client/src/local/` because that directory means *Local Mode*, and the outbox exists only in the mode that has a server. Purity is preserved where it is claimed: `client/src/domain/` imports nothing from `sync/`.
 * The pure domain rules deliberately live in `client/src/domain/` rather than an `internal/domain/`: Local Mode runs with no backend, so generation, dependency resolution, analytics and review have to execute on the client to exist in that mode at all. Push lives in `internal/api/push.go` rather than a separate `internal/notify/` — it is small enough that the package boundary would buy nothing.
 * **Accept interfaces, return structs.** Interfaces are declared where they are *consumed*, kept small (1–3 methods).
-* **Testability is an architectural acceptance criterion, not a property tests add later.** Where a new behaviour lands is decided by where its driving test can live: decision logic goes into pure functions a table-driven unit test can state exhaustively; I/O stays at the edges (handlers and repositories thin, calling into the logic rather than containing it); every external effect enters through a small consumer-side interface with a hand-written fake behind it; time, randomness and completion are injected seams, never ambient. The test pyramid in §2 is the consequence: if a rule can only be asserted by standing up HTTP + database + goroutines, that is not a call for a bigger integration test — the cut is wrong, and the rule moves out until a unit test can reach it. (`internal/sync` and `internal/portable` are the proof: zero-dependency leaves precisely so their risk is trivially testable.)
+* **Testability is an architectural acceptance criterion, not a property tests add later.** Where a new behaviour lands is decided by where its driving test can live: decision logic goes into pure functions a table-driven unit test can state exhaustively; I/O stays at the edges (handlers and repositories thin, calling into the logic rather than containing it); every external effect enters through a small consumer-side interface with a hand-written fake behind it; time, randomness and completion are injected seams, never ambient. The test pyramid in §2 is the consequence: if a rule can only be asserted by standing up HTTP + database + goroutines, that is not a call for a bigger integration test — the cut is wrong, and the rule moves out until a unit test can reach it. (`internal/sync` and `internal/wiregen` are the proof: zero-dependency leaves precisely so their risk is trivially testable.)
 * **No ordering races in production code** (owner, 2026-09-02). A behaviour must not depend on which of two asynchronous things completes first — a response against a listener's registration, an event against its subscriber, a child's mount against its parent's. No test can pin that ordering, so the case reads as flaky and the defect is blamed on whatever changed last (it was blamed on a Vue patch bump the day this rule was written). The fix is a seam in the implementation, never a wait or a retry in the test: make the thing a **state** rather than a one-shot **event** — a latch, a settled flag, a replay on subscribe — so a consumer that arrives late still sees it, and write the unit case *"a subscriber attached after the fact is still reached"*. In Vue specifically, children's `onMounted` run before the parent's, so anything a child can trigger is wired in the parent's *setup*, never after an `await` in its `onMounted` (`onSessionEnded` in `client/src/auth/refresh.ts` is the shape). This is the production-side twin of §2's ban on timing-dependent tests.
 * **No global state.** Everything enters through constructors (`New…`); `main` is the only place that wires.
 * Config exclusively via environment variables (PRD Section 2, declarative), parsed once at startup into a typed `Config` struct with validation.
@@ -121,7 +122,7 @@ Naming them turned "did I catch every switch?" into a compile-time question.
 ## 5. Dependencies (footprint-guarded)
 
 * **Standard library first.** Every new module requires a one-line justification in `go.mod` comment form.
-* Approved starting set: `modernc.org/sqlite` (pure Go, keeps the static binary CGO-free), `github.com/golang-jwt/jwt/v5`, `github.com/coder/websocket`, `github.com/google/go-cmp` (tests only). Router: `net/http` `ServeMux` (Go ≥ 1.22 patterns suffice).
+* The direct dependencies, as `go.mod` has them: `modernc.org/sqlite` (pure Go, keeps the static binary CGO-free), `github.com/golang-jwt/jwt/v5`, `github.com/coder/websocket`, `github.com/SherClockHolmes/webpush-go` (VAPID signing for FR-6.2). Tests use the standard library alone — `go-cmp` is *permitted* by the rule above and has not been needed. Router: `net/http` `ServeMux` (Go ≥ 1.22 patterns suffice).
 * No ORM. SQL lives as named constants next to the repository that uses it.
 
 ## 6. Workflow

@@ -7,8 +7,8 @@ Read this file fully before touching code. It is the orientation document: what 
 ## Commands
 
 - Toolchain: pinned once in `mise.toml` (go, node, golangci-lint, at the versions CI resolves). Run `mise install` per machine; the Makefile re-execs through `mise exec` when they are not already on PATH, so `make ci` works from a plain shell in a fresh clone.
-- Build: `go build ./...` (binary: `go build -o jitpackd ./cmd/jitpackd`)
-- Test: `go test ./... -race` — fast, no docker or network; store/api tests run against real in-memory SQLite
+- Build: `make build` (binary: `go build -o jitpackd ./cmd/jitpackd`)
+- Test: `make test` — fast, no docker or network; store/api tests run against real in-memory SQLite. **Not `go test ./...`**: `client/node_modules` ships Go source (the npm package `flatted` vendors a Go implementation), so `./...` picks it up once the client is installed and drags coverage under the gate. The Makefile's `GO_PKGS` is the one place that scope is decided, and CI never sees the divergence because its runner is a fresh checkout.
 - **Verify before finishing any change: `make ci`** — it mirrors the CI jobs 1:1 (gofmt, build, vet, race tests, coverage gates, golangci-lint, client lint/build/vitest), so green here predicts a green pipeline
 - Slow jobs, excluded from `make ci` on purpose: `make e2e` and `make visual` (both need docker and a built bundle — they run inside the pinned Playwright image, `make visual-update` rewrites the baselines, ADR-013) and `make docker-build` (needs a docker daemon; it builds the image *and* runs `scripts/docker-smoke.sh` against it, because a green build says nothing about whether the bundle reached `/srv/web`). `make all` runs everything.
 - **Run the slow jobs on GitHub, not on this machine** (owner, 2026-08-23): `make ci-remote` pushes the current branch, dispatches `ci.yml` against it and waits for the verdict — no pull request needed. `e2e`, `visual`, `docker-build` and the coverage profile all run there already; `make cover` is fully redundant with the CI `go` job. **`make ci` stays local**: it is the fast gate. Budget **~3 min on an idle machine, and read the load average before trusting a timing** — a parallel session has been measured turning a 100 s vitest run into 370 s, so a slow `make ci` is usually contention, not a regression.
@@ -31,7 +31,7 @@ Read this file fully before touching code. It is the orientation document: what 
 |---|---|
 | What does the product do? | `dev-docs/PRD_Base.md` (original vision) |
 | What changed or was added since? | `dev-docs/PRD_Addendum_v2.10.md` — **always authoritative over PRD_Base.md where they differ** |
-| What do the screens look like? | `dev-docs/UI_Spec_v1.10.md` — screens M1–M21, global patterns G-1–G-16 |
+| What do the screens look like? | `dev-docs/UI_Spec_v1.10.md` — screens M1–M23, global patterns G-1–G-17 |
 | What is the packing concept supposed to feel like? | `dev-docs/UI_Concept_Prototype.html` — the clickable mockup every §3.25/§3.27 decision was tested against; **`node dev-docs/UI_Concept_Prototype.verify.mjs` drives it headless and must stay green** |
 | What's the wire protocol? | `dev-docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
 | What's the DB schema? | `internal/store/schema.sql` — one always-current file, **single source of truth, never duplicated into docs/** (ADR-018) |

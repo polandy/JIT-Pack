@@ -27,9 +27,10 @@ replace the file and update its own revision note.
   **„What earns an entry"**: if the diff and the commit message tell the same story,
   no entry is owed. What belongs here is what the code cannot show — a rejected
   option, a wrong premise, a cost accepted on purpose, a trap with a price.
-- [`design-foundation-plan.md`](design-foundation-plan.md) — the five token-level PRs
-  that come **before** the remaining screen rebuilds, with the measured gap between
-  the prototype and the client that motivates each. Delete it once they have landed.
+- [`design-foundation-plan.md`](design-foundation-plan.md) — the token-level PRs that
+  came **before** the remaining screen rebuilds, with the measured gap between the
+  prototype and the client that motivated each. All six are merged (2026-08-15); it is
+  kept for the measurements, not as a plan.
 - [`mvp-plan.md`](mvp-plan.md) — the tracks that stand between today and the family
   packing a real vacation with it, and which of them may run in parallel. Delete it
   once the vacation has happened.
@@ -38,8 +39,8 @@ replace the file and update its own revision note.
 
 - [`Sync_API_Spec_v1.3.md`](Sync_API_Spec_v1.3.md) — the wire protocol: pull/push
   envelopes, HLC format, the merge algorithm, WebSocket events, RPC endpoints.
-- [`UI_Spec_v1.10.md`](UI_Spec_v1.10.md) — screens M1–M21 and the global patterns
-  G-1–G-15.
+- [`UI_Spec_v1.10.md`](UI_Spec_v1.10.md) — screens M1–M23 and the global patterns
+  G-1–G-17.
 - [`Navigation_Concept_v1.0.md`](Navigation_Concept_v1.0.md) — how the screens hang
   together.
 - [`UI_Test_Spec_v1.0.md`](UI_Test_Spec_v1.0.md) — the Playwright scope: per-screen
@@ -71,7 +72,7 @@ generated — edit the builder, not the HTML:
 - [`UI_Concept_ResolvedList_variants.html`](UI_Concept_ResolvedList_variants.html) — showing
   a Vorlage its resulting items (FR-27.14); `node dev-docs/build-resolved-list-variants.mjs`.
 - [`UI_Concept_ReviewStep_variants.html`](UI_Concept_ReviewStep_variants.html) — how much
-  editing M3's review step should carry (FR-2.6, **variant not yet chosen**);
+  editing M3's review step should carry (FR-2.6, **variant A chosen 2026-08-17**);
   `node dev-docs/build-review-step-variants.mjs`.
 - [`UI_Concept_M4Title_variants.html`](UI_Concept_M4Title_variants.html) — where M4's trip
   name lives once the G-12 cluster fills the app bar (UI-Spec M4, **B chosen without its
