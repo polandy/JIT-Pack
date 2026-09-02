@@ -5,9 +5,8 @@
  * owns the rows, this group owns the trip they hang off.
  *
  * Creation is not here. `createTripFromWizard` and `cloneTrip` write across
- * both partitions in an order the server's foreign keys dictate and drain
- * between them; they belong to the transport, not to the trip, and stay on
- * the orchestrator until that is cut.
+ * both partitions in an order the server's foreign keys dictate and push
+ * once at the end; that order is a group of its own, `tripCreation`.
  *
  * It is the group with the most edges to other groups — the roster reaches
  * FR-27.4 through the refresh, a group addition writes FR-27.7 tasks through

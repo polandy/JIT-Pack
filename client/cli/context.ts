@@ -26,7 +26,7 @@ import { createCommentActions } from '@/composables/sync/actions/comments'
 import { createPackingActions } from '@/composables/sync/actions/packing'
 import { createGroupRefreshActions } from '@/composables/sync/actions/groupRefresh'
 import { createTripLifecycleActions } from '@/composables/sync/actions/tripLifecycle'
-import type { EnqueueAndDrain, SyncContext } from '@/composables/sync/context'
+import type { Enqueue, SyncContext } from '@/composables/sync/context'
 import { localIsoDate } from '@/domain/trips'
 import type { HLCGenerator } from '@/sync/hlc'
 
@@ -64,7 +64,7 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
    * the groups read their own writes back (the refresh resolves against the
    * roster the traveller was just added to).
    */
-  const enqueueAndDrain: EnqueueAndDrain = (type, id, ...muts) => {
+  const enqueue: Enqueue = (type, id, ...muts) => {
     for (const queued of muts) {
       applyPulled(type, changesOf(queued.optimistic))
       if (type === 'trip' && id) {
@@ -87,7 +87,11 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
     tripStore: trips,
     masterStore: master,
     mutations,
-    enqueueAndDrain,
+    // A command collects and pushes once, so both funnels are the collector
+    // and there is nothing left for a cascade's push to do.
+    enqueueAndDrain: enqueue,
+    enqueue,
+    drainPartitions: () => {},
     names: createNameGuards(master),
     // Local Mode is a device, never a command line: what this run can see is
     // what it pulled, so FR-24.3's exact reference count is not claimed here.
