@@ -139,3 +139,34 @@ describe('createAuthRefresher', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('onSessionEnded', () => {
+  // The latch is module state, so every case starts from a fresh module.
+  async function freshModule() {
+    vi.resetModules()
+    return await import('../refresh')
+  }
+
+  it('reaches a handler attached before the session ends, once, until disposed', async () => {
+    const { endSession, onSessionEnded } = await freshModule()
+    const handler = vi.fn()
+    const dispose = onSessionEnded(handler)
+
+    endSession()
+    expect(handler).toHaveBeenCalledOnce()
+
+    dispose()
+    endSession()
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  it('reaches a handler attached after the session ended — FR-23.3: the request that ends it can answer before the app is listening', async () => {
+    const { endSession, onSessionEnded } = await freshModule()
+    endSession()
+
+    const handler = vi.fn()
+    onSessionEnded(handler)
+
+    expect(handler).toHaveBeenCalledOnce()
+  })
+})

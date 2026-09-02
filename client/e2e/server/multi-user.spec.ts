@@ -236,8 +236,9 @@ test.describe('Two accounts on one instance @server', () => {
    * **Carol rather than Bob, and the preference is put back.** A preference
    * belongs to the account, not to a trip, so unlike everything else in this
    * file it is *shared-run state*: leaving Bob's delegations off broke
-   * E2E-NOTIFY-01 and E2E-FLOW-02, which expect him to be told. Carol exists
-   * for exactly this kind of reach-across (see `mockIdp.mjs`), and the
+   * E2E-NOTIFY-01 and E2E-FLOW-02, which expect him to be told. Carol is
+   * this file's own (see `mockIdp.mjs` — the admin cases used to share her,
+   * and deactivated her under this case on a second worker), and the
    * preference is set through a helper that is idempotent in both
    * directions, so a retry starts from the state the case assumes.
    */
