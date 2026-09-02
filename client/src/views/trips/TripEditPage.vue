@@ -98,7 +98,7 @@ watch(
 )
 
 async function say(message: string): Promise<void> {
-  await presentToast({ message, duration: 3000 })
+  await presentToast({ message })
 }
 
 /** Commits on blur/Enter, the M8 pattern — no save button to forget. */

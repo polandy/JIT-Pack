@@ -1,6 +1,7 @@
 import { test, expect, seed, createTripViaWizard, visiblePage } from './fixtures'
 import { quickAddItem } from './serverMode'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M17 — the settings a device keeps to itself (UI-Test-Spec §4, unit
@@ -15,9 +16,9 @@ import type { Page } from '@playwright/test'
 
 /** Leave M17 and come back — the entry the reminder is recomputed on. */
 async function reenterSettings(page: Page) {
-  await page.goto('/tabs/trips')
+  await page.goto(PATH.trips)
   await expect(visiblePage(page).getByTestId('trips-new')).toBeVisible()
-  await page.goto('/tabs/settings')
+  await page.goto(PATH.settings)
   await expect(visiblePage(page).getByTestId('settings-section-data')).toBeVisible()
 }
 
@@ -33,7 +34,7 @@ test.describe('M17 device settings @local @m17', () => {
   test('E2E-M17-06: the theme toggle switches the flavour, and the choice survives a reload', async ({
     page,
   }) => {
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
     const toggle = visiblePage(page).getByTestId('settings-theme')
     await expect(toggle).toBeVisible()
     await expect(page.locator('html')).not.toHaveClass(/jitpack-latte/)
@@ -53,7 +54,7 @@ test.describe('M17 device settings @local @m17', () => {
   // against the sections that *are* there — a screen that failed to render
   // would satisfy the absence on its own.
   test('E2E-M17-08: a device with no session carries no notification section', async ({ page }) => {
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
 
     await expect(visiblePage(page).getByTestId('settings-section-appearance')).toBeVisible()
     await expect(visiblePage(page).getByTestId('settings-section-data')).toBeVisible()
@@ -66,7 +67,7 @@ test.describe('M17 device settings @local @m17', () => {
   // trip silenced the warning about everything the file did not contain.
   test('E2E-M17-07: one trip is not a backup, and the device backup is', async ({ page }) => {
     await createTripViaWizard(page, { name: 'Elba' })
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
 
     const reminder = visiblePage(page).getByTestId('settings-backup-reminder')
     await expect(reminder).toContainText("You haven't backed up yet")
@@ -117,7 +118,7 @@ test.describe('M17 device settings @local @m17', () => {
       localStorage.setItem('jitpack_last_export', String(stamp))
     }, fortyDaysAgo)
 
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
 
     await expect(visiblePage(page).getByTestId('settings-backup-reminder')).toContainText(
       'Last backup was 40 days ago',
@@ -134,7 +135,7 @@ test.describe('M17 device settings @local @m17', () => {
     page,
   }) => {
     await createTripViaWizard(page, { name: 'Bergell' })
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
     const card = visiblePage(page).getByTestId('settings-move-card')
     await expect(card).toBeVisible()
 
@@ -152,7 +153,7 @@ test.describe('M17 device settings @local @m17', () => {
 
     // Closed again: a write on M4, stamped by the orchestrator, and M17 reads
     // it on re-entry (the same trigger the reminder uses).
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await visiblePage(page).getByTestId('trip-row-Bergell').click()
     await quickAddItem(page, 'Regenjacke')
     await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')

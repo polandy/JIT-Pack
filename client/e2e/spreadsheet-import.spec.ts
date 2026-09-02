@@ -6,6 +6,7 @@ import {
   createTripViaWizard,
   chooseInSelect,
 } from './fixtures'
+import { PATH } from './routes'
 
 /**
  * M15 — the mapping step's two category layouts (FR-16.1), Local Mode.
@@ -32,7 +33,7 @@ const CSV = [
 
 async function openMapping(page: import('@playwright/test').Page) {
   await seed(page, { mode: 'local' })
-  await page.goto('/import')
+  await page.goto(PATH.importSpreadsheet)
   await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(CSV)
   await visiblePage(page).getByTestId('import-analyze').click()
   await expect(visiblePage(page).getByTestId('import-trip-2')).toBeVisible()
@@ -54,7 +55,7 @@ test.describe('M15 mapping — category column or category rows @local @m15', ()
     page,
   }) => {
     await seed(page, { mode: 'local' })
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await expect(visiblePage(page).getByTestId('import-file')).toHaveText('Choose file')
     await visiblePage(page)
       .getByTestId('import-file-input')
@@ -108,7 +109,7 @@ test.describe('M15 mapping — category column or category rows @local @m15', ()
     page,
   }) => {
     await seed(page, { mode: 'local' })
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(INVENTORY_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
 
@@ -173,7 +174,7 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
     page,
   }) => {
     await seed(page, { mode: 'local' })
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(CATEGORY_ROWS_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
 
@@ -219,7 +220,7 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
     page,
   }) => {
     await seed(page, { mode: 'local' })
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(UNNAMED_TRIP_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
 
@@ -261,7 +262,7 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
     page,
   }) => {
     await seed(page, { mode: 'local' })
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(UNNAMED_TRIP_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
     await expect(visiblePage(page).getByTestId('import-next')).toHaveAttribute(
@@ -272,13 +273,13 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
     // Leaving the wizard is the user's other answer to a gate, and the one
     // that would expose a half-written import: the inventory and the trip
     // list are read through their own screens, not through the wizard.
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await expect(visiblePage(page).getByText('Wanderschuhe')).toHaveCount(0)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(visiblePage(page).getByTestId('trip-row-Laos')).toHaveCount(0)
 
     // The positive half: same sheet, gate answered, and both rows land.
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(UNNAMED_TRIP_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
     await visiblePage(page).getByTestId('import-trip-2').locator('ion-checkbox').click()
@@ -301,7 +302,7 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
    */
   test('E2E-M15-03: merge and keep-separate decide what the inventory gets', async ({ page }) => {
     await seed(page, { mode: 'local' })
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(INVENTORY_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
     await visiblePage(page).getByTestId('import-next').click()
@@ -393,7 +394,7 @@ test.describe('M15 — what the wizard says about what it read @local @m15', () 
   // wrong delimiter was invisible until the mapping step made no sense.
   test('E2E-M15-13: step 1 previews the grid the parser actually read', async ({ page }) => {
     await seed(page, { mode: 'local' })
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     const grid = visiblePage(page).getByTestId('import-grid')
     await expect(grid).toBeHidden()
 
@@ -417,7 +418,7 @@ test.describe('M15 — what the wizard says about what it read @local @m15', () 
   // so the user first met the tasks inside the trip.
   test('E2E-M15-02: the wizard names the noise it handled, before committing', async ({ page }) => {
     await seed(page, { mode: 'local' })
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(NOISE_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
 
@@ -446,7 +447,7 @@ test.describe('M15 — what the wizard says about what it read @local @m15', () 
     await seed(page, { mode: 'local' })
     await createTripViaWizard(page, { name: 'Voriges Jahr', series: 'Sommerferien' })
 
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(NOISE_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
 

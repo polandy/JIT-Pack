@@ -55,15 +55,15 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { membershipRows } from '@/domain/membership'
-import { relativeStamp } from '@/domain/stamp'
 import { canJudgeUnused, isActive } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { modeIcon, modeLabel } from '@/lib/modeLabels'
-import { currentLocale, t } from '@/i18n'
+import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { ITEM_MODES } from '@/types/domain'
 import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
+import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 
 const props = defineProps<{
   tripId: string
@@ -126,10 +126,9 @@ const lockedByUserId = computed(() =>
   item.value ? orchestrator.lockHolder(props.tripId, item.value) : null,
 )
 const isLocked = computed(() => lockedByUserId.value !== null)
-const lockNotice = computed(() => {
-  const who = nameOf(lockedByUserId.value || null)
-  return who ? t('packing.lockedBy', { who }) : t('packing.lockedByUnknown')
-})
+// Read only while `isLocked`, so the null branch of `lockNoteText` is
+// unreachable here — the sheet says nothing rather than an empty sentence.
+const lockNotice = computed(() => lockNoteText(lockedByUserId.value, nameOf) ?? '')
 
 /** Folded by default: the sheet opens on what is used, not on everything. */
 const detailsOpen = ref(false)
@@ -150,8 +149,7 @@ const containerName = computed(
 )
 
 function nameOf(userId: string | null): string | null {
-  if (!userId) return null
-  return props.participants.find((p) => p.user_id === userId)?.display_name ?? null
+  return nameFrom(props.participants, userId)
 }
 
 // --- Preparation (FR-7.3) ---
@@ -351,20 +349,18 @@ const stateLabel = computed(() => {
   return t(key as Parameters<typeof t>[0])
 })
 
-/** FR-25.17/25.19: who packed it and when, and who was responsible. */
+/**
+ * FR-25.17/25.19: who packed it and when, and who was responsible. The
+ * sheet joins the two with a `·` where M4's list gives the second its own
+ * span — the composition is the screen's, the wording is shared (U-2).
+ */
 const packedStamp = computed(() => {
   const row = item.value
-  if (!row?.packed_by_user_id && !row?.packed_at) return null
-  const stamp = row?.packed_at ? relativeStamp(row.packed_at, new Date(), currentLocale()) : null
-  const when = stamp
-    ? `${stamp.dayKey ? t(stamp.dayKey === 'today' ? 'stamp.today' : 'stamp.yesterday') : stamp.date} ${stamp.time}`
-    : ''
-  const who = nameOf(row?.packed_by_user_id ?? null)
-  const line = who ? t('packing.packedBy', { who, when }) : t('packing.packedByUnknown', { when })
-  const responsible = nameOf(row?.packer_user_id ?? null)
-  return responsible && row?.packer_user_id !== row?.packed_by_user_id
-    ? `${line} · ${t('packing.responsibleWas', { who: responsible })}`
-    : line
+  if (!row) return null
+  const line = packedStampText(row, nameOf)
+  if (!line) return null
+  const responsible = responsibleNote(row, nameOf)
+  return responsible ? `${line} · ${responsible}` : line
 })
 </script>
 

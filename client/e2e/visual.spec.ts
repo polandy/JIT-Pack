@@ -1,6 +1,7 @@
 import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * Visual baselines (ADR-013; UI-Test-Spec §3).
@@ -171,7 +172,7 @@ async function closeSheet(page: Page) {
  * with no load grades nothing.
  */
 async function containers(page: Page) {
-  await page.goto('/tabs/items')
+  await page.goto(PATH.items)
   await visiblePage(page).getByTestId('m9-fab').click()
   await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
   await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
@@ -283,7 +284,7 @@ test('E2E-G2-08, E2E-VIS-08: visual: G-2 sync detail sheet @local @visual', asyn
 }) => {
   await freeze(page)
   await seedMode({ mode: 'local' })
-  await page.goto('/tabs/trips')
+  await page.goto(PATH.trips)
   await expect(visiblePage(page)).toBeVisible()
 
   await page.getByTestId('sync-indicator').click()
@@ -315,7 +316,7 @@ test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, see
   await seedMode({ mode: 'local' })
   await createTripViaWizard(page, { name: 'Elba 2026', series: 'Elba' })
 
-  await page.goto('/tabs/trips')
+  await page.goto(PATH.trips)
   await visiblePage(page).getByTestId('series-header-Elba').click()
   await expect(page.getByTestId('header-title')).toHaveText('Elba')
 

@@ -23,6 +23,14 @@ import type { ToastOptions } from '@ionic/core'
 export const TAB_BAR_ANCHOR_ID = 'jp-tab-bar'
 
 /**
+ * How long a confirmation stays. Fifteen call sites had written `3000` and
+ * two views a private `TOAST_MS` of the same value, so the number was a
+ * decision nobody could make once. A caller that needs longer — the sync
+ * failures in `App.vue`, which carry an action — still names its own.
+ */
+export const TOAST_DURATION_MS = 3000
+
+/**
  * The bottom navigation, but only while it is actually laid out.
  *
  * Two states have to read as "no bar": M4 is full-screen and does not render
@@ -43,13 +51,19 @@ function laidOutTabBar(): HTMLElement | undefined {
  * `position` defaults to `'bottom'`, which is what every in-page confirmation
  * uses; a caller that names its own `positionAnchor` keeps it, because a FAB
  * sits higher than the bar and some screens deliberately clear that instead.
+ * `duration` defaults the same way, to `TOAST_DURATION_MS`.
  */
 export async function presentToast(options: ToastOptions): Promise<HTMLIonToastElement> {
   const position = options.position ?? 'bottom'
   const positionAnchor =
     position === 'bottom' ? (options.positionAnchor ?? laidOutTabBar()) : options.positionAnchor
 
-  const toast = await toastController.create({ ...options, position, positionAnchor })
+  const toast = await toastController.create({
+    duration: TOAST_DURATION_MS,
+    ...options,
+    position,
+    positionAnchor,
+  })
   await toast.present()
   return toast
 }

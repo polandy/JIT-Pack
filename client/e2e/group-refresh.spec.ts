@@ -8,6 +8,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * FR-27.4 — a group changes, and the trip that follows it is *asked*.
@@ -25,7 +26,7 @@ import type { Page } from '@playwright/test'
 
 /** Open the trip the way a user does — through M2, in-SPA. */
 async function openTripFromList(page: Page, name: string) {
-  await page.goto('/tabs/trips?status=planned')
+  await page.goto(`${PATH.trips}?status=planned`)
   await visible(page).getByTestId(`trip-row-${name}`).click()
   await expectTripOpen(page, name)
 }
@@ -37,7 +38,7 @@ test.describe('FR-27.4 — the group asks before it changes a trip', () => {
 
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
@@ -51,7 +52,7 @@ test.describe('FR-27.4 — the group asks before it changes a trip', () => {
     // the chip there proves the *app's own* startup sweep found the change —
     // not M4's on-open derivation. It is also the positive half of M8-19's
     // "no chip after a refusal", which alone would pass against no chip ever.
-    await page.goto('/tabs/trips?status=planned')
+    await page.goto(`${PATH.trips}?status=planned`)
     await expect(visible(page).getByTestId('m2-proposed-chip-Fototour 2026')).toContainText('1')
 
     await openTripFromList(page, 'Fototour 2026')
@@ -70,7 +71,7 @@ test.describe('FR-27.4 — the group asks before it changes a trip', () => {
     await expect(visible(page).locator('ion-item').filter({ hasText: 'Stativ' })).toHaveCount(1)
 
     // M2 keeps the record of what the trip took over (the FR-27.4 log).
-    await page.goto('/tabs/trips?status=planned')
+    await page.goto(`${PATH.trips}?status=planned`)
     const chip = visible(page).getByTestId('m2-applied-chip-Fototour 2026')
     await expect(chip).toContainText('1')
     await expect(visible(page).getByTestId('m2-applied-log-Fototour 2026')).toContainText('Stativ')
@@ -89,7 +90,7 @@ test.describe('FR-27.4 — the group asks before it changes a trip', () => {
     // Leaving and coming back is the test that the refusal was recorded: the
     // trip re-derives on every open, so a refusal held only in memory would
     // ask again right here.
-    await page.goto('/tabs/trips?status=planned')
+    await page.goto(`${PATH.trips}?status=planned`)
     await expect(visible(page).getByTestId('m2-proposed-chip-Fototour 2026')).toHaveCount(0)
     await visible(page).getByTestId('trip-row-Fototour 2026').click()
     await expectTripOpen(page, 'Fototour 2026')

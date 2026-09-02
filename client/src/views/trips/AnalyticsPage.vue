@@ -28,6 +28,7 @@ import { formatValue, formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setStoredFacet, setStoredGroupBy } from '@/composables/usePackingFilter'
+import { tripPath } from '@/router/paths'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -67,7 +68,7 @@ function sliceLabel(slice: DimensionSlice): string {
 function openSlice(slice: DimensionSlice) {
   setStoredFacet(props.tripId, dimension.value, slice.key)
   setStoredGroupBy(props.tripId, dimension.value)
-  router.push(`/trips/${props.tripId}`)
+  router.push(tripPath(props.tripId))
 }
 
 // --- Series trends (FR-14.3) ---

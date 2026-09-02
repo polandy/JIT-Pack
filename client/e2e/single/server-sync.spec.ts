@@ -18,6 +18,7 @@ import {
 } from '../fixtures'
 import { assignTraveler, row } from '../helpers/m4'
 import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
+import { PATH } from '../routes'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
 // (NFR-4.14, ADR-027), so no single prefix covers them any more.
@@ -1067,7 +1068,7 @@ test.describe('Single-User backend sync @single', () => {
       if (r.method() === 'GET' && /\/api\/v1\/master\/sync/.test(r.url())) pulls++
     })
     await seed(page, { mode: 'server' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
 
     // The last row of the feed, on screen. Before the fix it was unreachable:
     // it sits past the first page, and the pull stopped there.
@@ -1280,7 +1281,7 @@ test.describe('Single-User backend sync @single', () => {
       if (r.method() === 'GET' && /\/api\/v1\/trips\/[^/]+\/sync/.test(r.url())) tripPulls++
     })
     await seed(page, { mode: 'server' })
-    await page.goto('/tabs/trips?status=planned')
+    await page.goto(`${PATH.trips}?status=planned`)
 
     const row = visiblePage(page).getByTestId(`trip-row-${tripName}`)
     await expect(row).toBeVisible({ timeout: 30_000 })
@@ -1464,7 +1465,7 @@ test.describe('Single-User backend sync @single', () => {
     // series arrives the way a user makes one: on a trip.
     await createTripViaWizard(pageA, { name: `Sommer 2026 ${id}`, series })
 
-    await pageA.goto('/import')
+    await pageA.goto(PATH.importSpreadsheet)
     await visiblePage(pageA).getByTestId('import-paste').locator('textarea').fill(csv)
     await visiblePage(pageA).getByTestId('import-analyze').click()
     await chooseInSelect(pageA, 'import-series-1', series)
@@ -1478,14 +1479,14 @@ test.describe('Single-User backend sync @single', () => {
 
     // FR-16.2: the migration lands in the archive, which is where the
     // history the hint is about lives.
-    await pageA.goto('/tabs/trips')
+    await pageA.goto(PATH.trips)
     await visiblePage(pageA).getByTestId('trips-filter-archived').click()
     await expect(visiblePage(pageA).getByTestId(`trip-row-Sommer A ${id}`)).toBeVisible()
     await expect(visiblePage(pageA).getByTestId(`trip-row-Sommer B ${id}`)).toBeVisible()
 
     // The importing device's own inventory, first: FR-16.1 says the sheet's
     // names become items, and everything below depends on it.
-    await pageA.goto('/tabs/items')
+    await pageA.goto(PATH.items)
     await expect(visiblePage(pageA).getByTestId('m9-row').filter({ hasText: item })).toHaveCount(1)
 
     // Device B has pulled the master partition — it can see the trips and
@@ -1496,7 +1497,7 @@ test.describe('Single-User backend sync @single', () => {
     await expect(visiblePage(pageB).getByTestId(`trip-row-Sommer A ${id}`)).toBeVisible()
     // FR-16.1: the sheet's names became inventory, which is what the next
     // trip picks the item from — and what makes the hint findable at all.
-    await pageB.goto('/tabs/items')
+    await pageB.goto(PATH.items)
     await expect(visiblePage(pageB).getByTestId('m9-row').filter({ hasText: item })).toHaveCount(1)
     // Device A is done: closing it here leaves B the only page in play, so
     // a failure below reports B's screen rather than A's.
@@ -1546,7 +1547,7 @@ test.describe('Single-User backend sync @single', () => {
     const localCtx = await browser.newContext()
     const localPage = await localCtx.newPage()
     await seed(localPage, { mode: 'local' })
-    await localPage.goto('/tabs/templates')
+    await localPage.goto(PATH.templates)
     await createTemplate(localPage, 'template', template)
     await addPosition(localPage, position)
     await backToTemplateList(localPage)

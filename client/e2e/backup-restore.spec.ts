@@ -19,6 +19,7 @@ import {
 } from './fixtures'
 import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * Backup and restore — the Local Mode round trip (NFR-4.11, FR-19.6, ADR-015).
@@ -40,7 +41,7 @@ const TRIP = { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] }
 
 /** Open a trip the way a user does — through M2, in-SPA. */
 async function openTripFromList(page: Page, name: string) {
-  await page.goto('/tabs/trips?status=planned')
+  await page.goto(`${PATH.trips}?status=planned`)
   await visible(page).getByTestId(`trip-row-${name}`).click()
   await expectTripOpen(page, name)
 }
@@ -62,7 +63,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // M8 composition unit, and for the same reason (see the e2e ledger).
     test.slow()
 
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
@@ -92,7 +93,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
     const restored = await fresh.newPage()
     await seed(restored, { mode: 'local' })
-    await restored.goto('/tabs/trips')
+    await restored.goto(PATH.trips)
     // Positive proof that it *is* empty, so the assertions below cannot be
     // satisfied by data that was already there.
     await expect(restored.getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
@@ -167,7 +168,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // A template as well as the trip: a single-document file is the merge
     // preview, not the restore branch, and a *device* backup always has both
     // (the same reason E2E-M18-05 builds two partitions).
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
@@ -192,7 +193,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
     const restored = await fresh.newPage()
     await seed(restored, { mode: 'local' })
-    await restored.goto('/tabs/trips')
+    await restored.goto(PATH.trips)
     await expect(restored.getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
 
     await restored.getByTestId('m2-portable-import').click()
@@ -234,7 +235,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
   }) => {
     test.slow()
 
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
@@ -259,7 +260,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await seed(restored, { mode: 'local' })
 
     const restoreOnce = async () => {
-      await restored.goto('/tabs/trips')
+      await restored.goto(PATH.trips)
       await restored.getByTestId('m2-portable-import').click()
       await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
       await restored.getByTestId('portable-preview').click()
@@ -329,7 +330,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await sheet.getByTestId('sync-detail-backup').click()
     const oneDocument = await readFile(await (await downloadPromise).path(), 'utf8')
 
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await page.getByTestId('m2-portable-import').click()
     await page.getByTestId('portable-paste').locator('textarea').fill(oneDocument)
     await page.getByTestId('portable-preview').click()
@@ -345,7 +346,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // It opened the trip that was already here rather than a copy of it.
     await expectTripOpen(page, TRIP.name)
 
-    await page.goto('/tabs/trips?status=planned')
+    await page.goto(`${PATH.trips}?status=planned`)
     await expect(visible(page).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
   })
 
@@ -359,7 +360,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
   }) => {
     test.slow()
 
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
@@ -376,10 +377,10 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
     const restored = await fresh.newPage()
     await seed(restored, { mode: 'local' })
-    await restored.goto('/tabs/templates')
+    await restored.goto(PATH.templates)
     await expect(visible(restored).getByRole('heading', { name: 'Makro' })).toHaveCount(0)
 
-    await restored.goto('/tabs/trips')
+    await restored.goto(PATH.trips)
     await restored.getByTestId('m2-portable-import').click()
     await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
     await restored.getByTestId('portable-preview').click()
@@ -438,7 +439,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
       '',
     ].join('\n')
 
-    await page.goto('/portable-import')
+    await page.goto(PATH.importFile)
     await page.getByTestId('portable-paste').locator('textarea').fill(damaged)
     await page.getByTestId('portable-preview').click()
 
@@ -470,7 +471,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // M7/M8 twice, M3, M4 and a two-context restore: declared rather than raced.
     test.slow()
 
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
@@ -500,7 +501,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
     const restored = await fresh.newPage()
     await seed(restored, { mode: 'local' })
-    await restored.goto('/tabs/trips')
+    await restored.goto(PATH.trips)
     await expect(restored.getByTestId('trip-row-Fototour 2026')).toHaveCount(0)
 
     await restored.getByTestId('m2-portable-import').click()
@@ -584,7 +585,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
     const restored = await fresh.newPage()
     await seed(restored, { mode: 'local' })
-    await restored.goto('/tabs/trips')
+    await restored.goto(PATH.trips)
     await expect(restored.getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
 
     await restored.getByTestId('m2-portable-import').click()
@@ -653,7 +654,7 @@ test.describe('M18 portable import preview @local @m18', () => {
 
   /** Paste a document into M18 and open its preview, the way M18-11 does. */
   async function pastePreview(page: Page, text: string) {
-    await page.goto('/portable-import')
+    await page.goto(PATH.importFile)
     await page.getByTestId('portable-paste').locator('textarea').fill(text)
     await page.getByTestId('portable-preview').click()
   }
@@ -716,7 +717,7 @@ test.describe('M18 portable import preview @local @m18', () => {
     await page.getByTestId('portable-commit').click()
     await expect(page.getByTestId('header-title')).toHaveText('Fototage')
 
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     const named = (name: string) => visible(page).getByRole('heading', { name, exact: true })
     await expect(named('Zelte')).toHaveCount(1)
     await expect(named('Sonnenkreme')).toHaveCount(0)
@@ -759,12 +760,12 @@ test.describe('M18 portable import preview @local @m18', () => {
     await page.getByTestId('portable-commit').click()
     await expectTripOpen(page, 'Samedan 2019')
 
-    await page.goto('/tabs/trips?status=archived')
+    await page.goto(`${PATH.trips}?status=archived`)
     await expect(visible(page).getByTestId('trip-row-Samedan 2019')).toHaveCount(1)
     // The negative half, on the segment it used to land on: before ADR-024
     // every imported trip was planning, so a decade of archived history
     // imported as a decade of plans.
-    await page.goto('/tabs/trips?status=planned')
+    await page.goto(`${PATH.trips}?status=planned`)
     await expect(visible(page).getByTestId('trip-row-Samedan 2019')).toHaveCount(0)
   })
 
@@ -777,7 +778,7 @@ test.describe('M18 portable import preview @local @m18', () => {
   test('E2E-M18-04: an unreadable file is refused with its reason, a newer one still imports', async ({
     page,
   }) => {
-    await page.goto('/portable-import')
+    await page.goto(PATH.importFile)
     await page.getByTestId('portable-paste').locator('textarea').fill('just some notes I wrote')
     await page.getByTestId('portable-preview').click()
 

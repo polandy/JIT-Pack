@@ -1,5 +1,6 @@
 import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
 import { bootPage, uniq } from '../serverMode'
+import { PATH } from '../routes'
 
 /**
  * E2E-M2-14 (FR-2.8, ADR-033) — the opening walk waits for a settled list.
@@ -38,7 +39,7 @@ test.describe('M2 opening segment, backend-backed @single @m2', () => {
       }
       await route.fulfill({ response: await route.fetch() })
     })
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
 
     const segments = visiblePage(page).locator('ion-segment-button')
     await expect(segments).toHaveCount(3)

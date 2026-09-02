@@ -32,7 +32,6 @@ import {
   IonIcon,
   IonNote,
   IonSearchbar,
-  alertController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -59,6 +58,8 @@ import MarkPicker from '@/components/items/MarkPicker.vue'
 import { formatDay, t } from '@/i18n'
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import type { DependencyMode, Tag } from '@/types/domain'
+import { itemPath, templatePath } from '@/router/paths'
+import { confirmDestructive } from '@/lib/confirm'
 
 const props = defineProps<{ itemId?: string }>()
 
@@ -227,7 +228,7 @@ async function createItem() {
   //
   // replace, not push: "back" from the saved item belongs on the
   // inventory, not on a creation form for an item that now exists.
-  await router.replace(`/items/${id}`)
+  await router.replace(itemPath(id))
 }
 
 // --- Editing an existing item ---
@@ -459,22 +460,14 @@ const deletionSentence = computed(() => {
 async function onDelete() {
   const current = item.value
   if (!current) return
-  const alert = await alertController.create({
+  const confirmed = await confirmDestructive({
     header: t('items.editor.deleteConfirm', { name: current.name }),
     message: deletionSentence.value,
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      {
-        text: t('common.delete'),
-        role: 'destructive',
-        handler: () => {
-          orchestrator.deleteMasterItem(current.id)
-          router.replace({ name: 'items' })
-        },
-      },
-    ],
+    confirmLabel: t('common.delete'),
   })
-  await alert.present()
+  if (!confirmed) return
+  orchestrator.deleteMasterItem(current.id)
+  router.replace({ name: 'items' })
 }
 
 // ADR-011: the one header bar renders this page's title.
@@ -833,7 +826,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 button
                 :detail="true"
                 :data-testid="`m10-contained-${entry.templateName}`"
-                @click="router.push(`/templates/${entry.templateId}`)"
+                @click="router.push(templatePath(entry.templateId))"
               >
                 <IonLabel>
                   <h3>{{ entry.templateName }}</h3>

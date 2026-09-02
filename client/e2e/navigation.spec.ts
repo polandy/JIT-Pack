@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures'
 import { createTripViaWizard } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * G-9 / ADR-011 — the one header bar and the back-target contract.
@@ -36,7 +37,7 @@ test('E2E-G9-03: a drill-down carries one header bar with back and title @local 
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
 
   await expect(page.locator('ion-header')).toHaveCount(1)
   await expect(page.getByTestId('header-title')).toHaveText('New trip · step 1/4')
@@ -46,7 +47,7 @@ test('E2E-G9-03: a drill-down carries one header bar with back and title @local 
 // E2E-G9-04: a tab root shows the logo and offers no back.
 test('E2E-G9-04: a tab root shows the logo instead of back @local @g9', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/tabs/trips')
+  await page.goto(PATH.trips)
 
   await expect(page.locator('ion-header')).toHaveCount(1)
   await expect(page.getByTestId('header-logo')).toBeVisible()
@@ -61,7 +62,7 @@ test('E2E-G9-05: back is clickable and lands on the declared parent @local @g9',
 }) => {
   await seedMode({ mode: 'local' })
   const errors = collectPageErrors(page)
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
 
   await page.getByTestId('header-back').click()
 
@@ -104,7 +105,7 @@ test('E2E-G9-07: sync and settings stay present on a drill-down @local @g9', asy
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
 
   await expect(page.locator('ion-header').getByLabel('Settings')).toBeVisible()
   await expect(page.locator('ion-header .sync-indicator')).toBeVisible()
@@ -123,7 +124,7 @@ test('E2E-G9-08: list → trip → back returns to the trip list @local @g9', as
     travelers: ['Andy'],
   })
 
-  await page.goto('/tabs/trips')
+  await page.goto(PATH.trips)
   await page
     .locator('ion-segment-button')
     .filter({ hasText: /planned/i })

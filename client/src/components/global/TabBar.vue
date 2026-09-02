@@ -19,6 +19,7 @@ import { useRoute } from 'vue-router'
 import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
 import { t } from '@/i18n'
 import { TAB_BAR_ANCHOR_ID } from '@/lib/toast'
+import { PATH } from '@/router/paths'
 
 const route = useRoute()
 const ionRouter = useIonRouter()
@@ -30,7 +31,7 @@ const ionRouter = useIonRouter()
  * one screen a first-time user starts on.
  */
 const fullScreen = computed(
-  () => /^\/trips\/[^/]+$/.test(route.path) && route.path !== '/trips/new',
+  () => /^\/trips\/[^/]+$/.test(route.path) && route.path !== PATH.newTrip,
 )
 
 /* A bottom toast is positioned above this bar rather than onto it (FR-9.4). */
@@ -66,7 +67,7 @@ function go(href: string, event: MouseEvent): void {
       :key="anchor.match"
       :href="anchor.href"
       class="tab"
-      :class="{ active: isAnchorActive(route.path, anchor.match) }"
+      :class="{ active: isAnchorActive(route.path, anchor) }"
       :data-testid="`tab-${anchor.match}`"
       @click="go(anchor.href, $event)"
     >

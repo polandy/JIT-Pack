@@ -244,6 +244,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A guard on a funnel that every launch passes through (2026-09-02)](#a-guard-on-a-funnel-that-every-launch-passes-through-2026-09-02) — leaving Local Mode from M17 (FR-19.8, ADR-045). Why the „last write" stamp must not fire on the startup load, why the guard compares two stamps rather than asking whether a backup exists, and the fixture that puts a device back into the mode it just left.
 - [The screen was right and the disk was not (2026-09-02)](#the-screen-was-right-and-the-disk-was-not-2026-09-02) — a deleted trip left its rows on the device. Why the store dropping its own buckets is what hid it, why the fix cannot live in the store, and the reading that turns one defect into four.
 - [A trap the tests had already covered (2026-09-02)](#a-trap-the-tests-had-already-covered-2026-09-02) — thirteen action call sites built their optimistic change by hand instead of through the builder written to make that impossible. Why the review's premise was half wrong, what the measurement changed about the fix's justification, and why a lint rule is the right shape for a rule nobody can be asked to remember.
+- [Three sentences the screens were each translating (2026-09-02)](#three-sentences-the-screens-were-each-translating-2026-09-02) — M4's row facts, the confirm dialog and the app's paths each got one home. Why `rowFacts` is in `lib/` and not `domain/`, why route *names* were the wrong answer to the path literals, and the defect that only appeared once a path had a type.
 
 
 ## Current state
@@ -11362,3 +11363,56 @@ and each of the four was planted and measured rather than reasoned about.
 The general shape: **a guard that matches how something is written rather than
 what it is has an escape hatch per spelling.** The way to find it is to attack
 the guard with the variants an author would reach for anyway, not to read it.
+
+## Three sentences the screens were each translating (2026-09-02)
+
+Three items of the design review's UI half — U-2, U-4, U-9 — turned out to be
+one shape three times: a rule that is short enough to retype, retyped at every
+screen that needs it, and then quietly diverging. What is worth recording is
+not the extraction but the three decisions taken while doing it.
+
+**`rowFacts` lives in `lib/`, and the review said `domain/`.** The five
+sentences a packing row says about itself ("packed by Andy · today 14:32",
+"Nina is packing this right now") are wording, so they read the catalogue, and
+`domain/` must not import the i18n layer — the same wall U-7 hit a week earlier
+when the item-mode labels went to `lib/modeLabels.ts` and only the *order*
+tuple went to `types/domain.ts`. The alternative was to pass `t` in as a
+parameter and keep the module in `domain/`, which is what the review proposed;
+it was rejected because every call site would then carry the argument, and the
+first one to forget would get a compile error rather than a decision. A
+directory boundary that is enforced by an import is worth more than one that is
+enforced by an argument.
+
+**M4 and M5 had already drifted, and the finding named the wrong half.** The
+review noted that M5 appends the responsible person to the packed line while M4
+gives it its own span — a real difference, and a deliberate one, so it stayed:
+the sheet composes, the list lays out. The difference nobody had noticed is
+that for a row whose `packed_at` does not parse, M5 rendered `packed · ` with
+an empty time and M4 rendered nothing at all. Neither was a decision. The
+shared rule takes M4's, because the state badge above has already said the row
+is packed, and a sentence that says only "packed" under it is noise.
+
+**Route names were the obvious answer to the path literals and are not the
+answer.** The router names 27 routes and exactly one navigation used a name, so
+"use the names" looks like the whole fix. It is not available: `router-link`
+takes a path, and the back-target contract (`meta.parent`, ADR-011) is a path
+*pattern* filled from the current route's params — there is no name that
+expresses `/trips/:tripId`. So the single declaration is a builder, and the
+route table is its first consumer: `path: tripSubPath(TRIP_ID_PARAM, 'review')`
+means a renamed parameter cannot leave a parent pointing at the old spelling.
+
+The builder paid for itself before the sweep finished. `App.vue`'s conflict
+toast opened the log for the partition the conflict happened on, written as
+`` `/trips/${report.id}/conflicts` ``. `report.id` is `string | null` — null is
+exactly what the *master* partition reports — so the master case pushed
+`/trips/null/conflicts`, which the router happily matches as a trip whose id is
+the word "null" and renders as an empty log. A template literal stringifies
+null without a word; a function with a `string` parameter does not compile. The
+defect had been reachable since the master conflict log existed, and no test
+had a way to see it, because the wrong screen still rendered.
+
+One consequence worth carrying: the paths gate covers `client/e2e` as well as
+`client/src`, so the suite navigates by the same constants (`e2e/routes.ts`
+re-exports the module, which is import-free for exactly that reason). It is
+scoped to `goto(...)` on purpose — a case asserting `toHaveURL('/tabs/items')`
+is checking where the app went, and that literal is the assertion itself.

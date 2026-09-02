@@ -10,6 +10,7 @@ import {
   visiblePage,
 } from './fixtures'
 import { backToInventory, createItem } from './helpers/m9'
+import { PATH } from './routes'
 
 /**
  * FR-24.3 — lifecycle-aware deletion of master items and Vorlagen.
@@ -48,7 +49,7 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     page,
   }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
 
     // The quick-add's free-text confirm creates the master item *and* the
     // position, so the item is referenced by construction (FR-25.13).
@@ -56,7 +57,7 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await addPosition(page, 'Kamera')
     await backToTemplateList(page)
 
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
       1,
     )
@@ -81,7 +82,7 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     // …and still there for everything that resolves against it. This is the
     // positive signal the assertion above is made against: without it,
     // "absent from M9" is equally satisfied by the row having been destroyed.
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
     await visiblePage(page).locator('ion-item', { hasText: 'Fotografie' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Fotografie')
     await expect(
@@ -109,7 +110,7 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     page,
   }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
 
     await createItem(page, 'Fernglas')
     await backToInventory(page)
@@ -144,7 +145,7 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     page,
   }) => {
     await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
 
     await createTemplate(page, 'group', 'Fotografie')
     await backToTemplateList(page)

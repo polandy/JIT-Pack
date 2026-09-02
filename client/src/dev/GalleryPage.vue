@@ -26,6 +26,7 @@ import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { seedReviewFixture } from '@/dev/reviewFixture'
+import { tripSubPath } from '@/router/paths'
 
 /** Stepper state, so the control can be exercised rather than only seen. */
 const packed = ref(2)
@@ -35,7 +36,7 @@ const router = useRouter()
 /** M14 is unreachable populated (see reviewFixture.ts) — seed and go. */
 function openReviewFixture() {
   const tripId = seedReviewFixture()
-  router.push(`/trips/${tripId}/review`)
+  router.push(tripSubPath(tripId, 'review'))
 }
 
 /** G-10 fixtures — the three states the pattern has (FR-4.6). */

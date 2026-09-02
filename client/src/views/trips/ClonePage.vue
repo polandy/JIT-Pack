@@ -29,6 +29,7 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import DateField from '@/components/global/DateField.vue'
 import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
+import { tripPath } from '@/router/paths'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -109,7 +110,7 @@ function clone() {
     endDate: endDate.value || null,
     options: options.value,
   })
-  if (tripId) router.replace(`/trips/${tripId}`)
+  if (tripId) router.replace(tripPath(tripId))
 }
 
 // ADR-011: the one header bar renders this page's title.

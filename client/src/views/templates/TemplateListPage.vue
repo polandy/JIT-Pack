@@ -32,7 +32,6 @@ import {
   IonButton,
   IonInput,
   actionSheetController,
-  alertController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -61,6 +60,8 @@ import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import { presentToast } from '@/lib/toast'
+import { PATH, templatePath } from '@/router/paths'
+import { confirmDestructive, promptText } from '@/lib/confirm'
 
 const store = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -184,7 +185,7 @@ function openCollision() {
   const taken = createCollision.value
   if (!taken) return
   resetChooser()
-  router.push(`/templates/${taken.id}`)
+  router.push(templatePath(taken.id))
 }
 
 function commitCreate() {
@@ -194,7 +195,7 @@ function commitCreate() {
   const id = orchestrator.createTemplate(name, kind)
   if (id === null) return
   resetChooser()
-  router.push(`/templates/${id}`)
+  router.push(templatePath(id))
 }
 
 // --- Row actions (FR-18.2): long-press / right-click menu ------------------
@@ -220,7 +221,7 @@ let rowMenuActive = false
 
 function openTemplate(tpl: Template) {
   if (rowMenuActive) return
-  router.push(`/templates/${tpl.id}`)
+  router.push(templatePath(tpl.id))
 }
 
 async function openRowMenu(tpl: Template) {
@@ -264,32 +265,22 @@ async function openRowMenu(tpl: Template) {
 
 /** Rename in place — the row keeps only what identifies it (M7 decision). */
 async function renameTemplate(tpl: Template) {
-  const alert = await alertController.create({
+  await promptText({
     header: t('templates.rename'),
-    inputs: [{ name: 'name', value: tpl.name, attributes: { 'aria-label': 'name' } }],
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      {
-        text: t('common.save'),
-        handler: async (values: { name?: string }) => {
-          const name = values.name?.trim()
-          if (!name || name === tpl.name) return
-          const taken = orchestrator.templateNameCollision(name, tpl.id)
-          if (taken) {
-            await presentToast({
-              message: t('templates.renameTaken', { name: taken.name }),
-              duration: 3000,
-            })
-            // Keeping the alert open leaves the typed name where it can be
-            // corrected; dismissing it would throw the edit away.
-            return false
-          }
-          orchestrator.updateTemplate(tpl, { name })
-        },
-      },
-    ],
+    value: tpl.name,
+    confirmLabel: t('common.save'),
+    onConfirm: async (name) => {
+      if (!name || name === tpl.name) return
+      const taken = orchestrator.templateNameCollision(name, tpl.id)
+      if (taken) {
+        await presentToast({ message: t('templates.renameTaken', { name: taken.name }) })
+        // Keeping the alert open leaves the typed name where it can be
+        // corrected; dismissing it would throw the edit away.
+        return false
+      }
+      orchestrator.updateTemplate(tpl, { name })
+    },
   })
-  await alert.present()
 }
 
 /**
@@ -303,7 +294,6 @@ async function deleteTemplate(tpl: Template) {
   if (consumers.length > 0) {
     await presentToast({
       message: t('templates.includedBlocked', { name: consumers[0]!.name }),
-      duration: 3000,
       // Higher than the tab bar the helper would clear, so this screen keeps it.
       positionAnchor: 'm7-fab-anchor',
     })
@@ -319,18 +309,11 @@ async function deleteTemplate(tpl: Template) {
       : outlook.certain
         ? t('templates.deleteRemove')
         : t('templates.deleteRemoveMaybe')
-  const alert = await alertController.create({
+  const confirmed = await confirmDestructive({
     message: `${t('templates.deleteConfirm', { name: tpl.name })} ${sentence}`,
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      {
-        text: t('common.delete'),
-        role: 'destructive',
-        handler: () => orchestrator.deleteTemplate(tpl.id),
-      },
-    ],
+    confirmLabel: t('common.delete'),
   })
-  await alert.present()
+  if (confirmed) orchestrator.deleteTemplate(tpl.id)
 }
 
 /** FR-18.2: client-side export — works identically in Local Mode. */
@@ -375,7 +358,7 @@ async function handleRefresh(event: CustomEvent) {
             size="small"
             :aria-label="t('templates.import')"
             data-testid="m7-portable-import"
-            router-link="/portable-import"
+            :router-link="PATH.importFile"
           >
             <IonIcon slot="icon-only" :icon="documentTextOutline" />
           </IonButton>

@@ -1,5 +1,6 @@
 import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * The app shell survives losing the network (E2E-PWA-01, NFR-4.13).
@@ -42,7 +43,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
   })
 
   test('E2E-PWA-01: a reload without network still paints the app', async ({ page, context }) => {
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await serviceWorkerControlsPage(page)
 
     await context.setOffline(true)
@@ -55,7 +56,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
   })
 
   test('E2E-PWA-02: the worker never answers /api, /ws or /health', async ({ page }) => {
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await serviceWorkerControlsPage(page)
 
     /*
@@ -136,7 +137,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
     // shell, and the `single` half (E2E-FLOW-06, E2E-G2-04) queues against a
     // server that comes back. Here nothing comes back, because in Local Mode
     // there is nothing to come back — so "nothing blocks" is the assertion.
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await serviceWorkerControlsPage(page)
     await context.setOffline(true)
 
@@ -168,7 +169,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
   test('E2E-PWA-03: the install declaration is complete and every icon resolves', async ({
     page,
   }) => {
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
 
     // The head tags a browser reads before offering installation. A typo'd
     // path here ships silently — nothing else in the app ever fetches these.
@@ -224,7 +225,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
     page,
     context,
   }) => {
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await serviceWorkerControlsPage(page)
 
     // Two positive signals, because "nothing happens to the running app" is
@@ -286,7 +287,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
     // old worker keeps controlling the page across it.
     await page.close()
     const relaunched = await context.newPage()
-    await relaunched.goto('/tabs/dashboard')
+    await relaunched.goto(PATH.dashboard)
     const active = await relaunched.evaluate(async () => {
       const reg = await navigator.serviceWorker.ready
       return reg.active?.scriptURL ?? null
@@ -309,7 +310,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
    * green.
    */
   test('E2E-PWA-05: the banner applies the waiting version now', async ({ page }) => {
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await serviceWorkerControlsPage(page)
 
     // The positive signal for "the page was actually replaced": a marker that
@@ -364,7 +365,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
   test('E2E-PWA-05b: "Later" hides the bar and keeps the offer everywhere else', async ({
     page,
   }) => {
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await serviceWorkerControlsPage(page)
 
     await page.evaluate(async () => {

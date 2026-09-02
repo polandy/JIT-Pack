@@ -16,6 +16,7 @@ import {
   notificationDetail,
   notificationParams,
 } from './messages'
+import { tripItemPath, tripPath } from '@/router/paths'
 
 /**
  * The server's notification row. Generated from internal/api/wire.go — this
@@ -47,9 +48,9 @@ export function notificationRoute(n: ServerNotification): string | null {
   const tripId = str(n.payload, 'trip_id')
   if (!tripId) return null
   const itemId = str(n.payload, 'item_id')
-  if (!itemId) return `/trips/${tripId}`
+  if (!itemId) return tripPath(tripId)
   const commentId = str(n.payload, 'comment_id')
   return commentId
-    ? `/trips/${tripId}/items/${itemId}?comment=${commentId}`
-    : `/trips/${tripId}/items/${itemId}`
+    ? `${tripItemPath(tripId, itemId)}?comment=${commentId}`
+    : tripItemPath(tripId, itemId)
 }

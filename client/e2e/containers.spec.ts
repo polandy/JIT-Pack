@@ -12,6 +12,7 @@ import {
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M11 — Container Management (UI-Test-Spec §4, unit "M11 containers").
@@ -127,7 +128,7 @@ test.describe('M11 containers @local @m11', () => {
     page,
   }) => {
     // A master item with weight, created in M10's minimal form.
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await visiblePage(page).getByTestId('m9-fab').click()
     await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
     await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
@@ -177,7 +178,7 @@ test.describe('M11 containers @local @m11', () => {
   // old assignment without writing the new one leaves the item nowhere, and
   // both card assertions would still pass.
   test('E2E-M5-22: the sheet moves an item from one bag to another', async ({ page }) => {
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await visiblePage(page).getByTestId('m9-fab').click()
     await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
     await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
@@ -225,7 +226,7 @@ test.describe('M11 containers @local @m11', () => {
   // E2E-M11-04 (FR-10.3): paired containers show the live imbalance once
   // it exceeds the threshold (a fixed 15 %).
   test('E2E-M11-04: a skewed pair shows its imbalance on both cards', async ({ page }) => {
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await visiblePage(page).getByTestId('m9-fab').click()
     await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
     await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')

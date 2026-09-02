@@ -46,6 +46,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { templatePath } from '@/router/paths'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -166,7 +167,7 @@ const canCreate = computed(
 )
 
 async function toast(message: string) {
-  await presentToast({ message, duration: 3000 })
+  await presentToast({ message })
 }
 
 /**
@@ -193,7 +194,7 @@ async function create() {
     return
   }
   await toast(t('templateFromTrip.created', { name: templateName.value.trim() }))
-  await router.replace(`/templates/${templateId}`)
+  await router.replace(templatePath(templateId))
 }
 
 // ADR-011: the one header bar renders this page's title.

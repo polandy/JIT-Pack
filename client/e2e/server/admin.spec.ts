@@ -1,6 +1,7 @@
 import { test, expect, seed, visiblePage } from '../fixtures'
 
 import { ACCOUNT_NAMES, loginAs } from './fixtures'
+import { PATH } from '../routes'
 
 /**
  * A 1×1 JPEG, small enough to write inline and real enough to decode — the
@@ -58,7 +59,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
 
-    await alice.goto('/tabs/settings')
+    await alice.goto(PATH.settings)
     await expect(visiblePage(alice).getByTestId('settings-admin')).toBeVisible()
     await visiblePage(alice).getByTestId('settings-admin').click()
 
@@ -156,7 +157,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
 
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
-    await alice.goto('/admin')
+    await alice.goto(PATH.admin)
 
     const list = visiblePage(alice).getByTestId('admin-list')
     const daveRow = list.getByTestId(`admin-row-${ACCOUNT_NAMES.dave}`)
@@ -267,7 +268,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
 
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
-    await alice.goto('/admin')
+    await alice.goto(PATH.admin)
 
     const daveRow = visiblePage(alice)
       .getByTestId('admin-list')
@@ -319,7 +320,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
 
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
-    await alice.goto('/admin')
+    await alice.goto(PATH.admin)
 
     const daveRow = visiblePage(alice)
       .getByTestId('admin-list')
@@ -378,13 +379,13 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     const ctxBob = await browser.newContext()
     const bob = await loginAs(ctxBob, 'bob')
 
-    await bob.goto('/tabs/settings')
+    await bob.goto(PATH.settings)
     // A positive on the same screen, so "not there" cannot be satisfied by a
     // Settings page that never rendered.
     await expect(visiblePage(bob).getByTestId('settings-section-retired')).toBeVisible()
     await expect(visiblePage(bob).getByTestId('settings-admin')).toHaveCount(0)
 
-    await bob.goto('/admin')
+    await bob.goto(PATH.admin)
     await expect(visiblePage(bob).getByTestId('admin-unavailable')).toBeVisible()
     await expect(visiblePage(bob).getByTestId('admin-list')).toHaveCount(0)
 
