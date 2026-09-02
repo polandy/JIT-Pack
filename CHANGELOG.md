@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0](https://github.com/polandy/JIT-Pack/compare/v0.4.0...v0.5.0) (2026-09-02)
+
+
+### Features
+
+* **m17:** leave Local Mode on the same device through the backup file (FR-19.8, ADR-045) ([1af066c](https://github.com/polandy/JIT-Pack/commit/1af066cb59da8f6d7d3627640afa4b55f9fafc52))
+* **m1:** the dashboard shows the trips that have not started yet (FR-6.1) ([2da8593](https://github.com/polandy/JIT-Pack/commit/2da8593135ee5f83adc06bcb768e54c6775afee5))
+* **pwa:** a waiting version can be applied on a press (FR-19.7, ADR-044) ([bdf9bb9](https://github.com/polandy/JIT-Pack/commit/bdf9bb902945a31be21ef92e5db82892857d2d04))
+
+
+### Bug Fixes
+
+* **e2e-server:** a session's end is a state, and an administered account belongs to one file ([85d0d10](https://github.com/polandy/JIT-Pack/commit/85d0d10b80cec0673316b5000a226bdcaa78ff45))
+* **portable:** the Local Mode backup carries where a row was bought from (FR-25.11j) ([3d60367](https://github.com/polandy/JIT-Pack/commit/3d60367fc8e72de5734fb7bbf6170ed0a3b72f2a))
+* **sync:** a delete takes its children off the device, not just off the screen ([e9b2636](https://github.com/polandy/JIT-Pack/commit/e9b26369aefeb278c797c4d85030db16bfae7a24))
+
 ## [0.4.0](https://github.com/polandy/JIT-Pack/compare/v0.3.3...v0.4.0) (2026-09-01)
 
 
