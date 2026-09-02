@@ -21,17 +21,16 @@
     // confined to the two places that have no mutation to build from (see
     // the overrides below). Thirteen action call sites had drifted back to
     // them before this rule existed.
+    // Matched as a *pattern*, not as two literal specifiers: `paths` compares
+    // the written string, so `../../../sync/optimistic` walks straight past a
+    // rule that names `@/sync/optimistic`. A guard an author evades by
+    // spelling the import differently is not a guard.
     "no-restricted-imports": [
       "error",
       {
-        "paths": [
+        "patterns": [
           {
-            "name": "@/sync/optimistic",
-            "importNames": ["localChange", "localTombstone"],
-            "message": "Build the optimistic change from its mutation: optimisticInsert / optimisticUpdate / optimisticDelete."
-          },
-          {
-            "name": "./optimistic",
+            "group": ["**/optimistic", "*/optimistic", "**/optimistic.ts", "*/optimistic.ts"],
             "importNames": ["localChange", "localTombstone"],
             "message": "Build the optimistic change from its mutation: optimisticInsert / optimisticUpdate / optimisticDelete."
           }

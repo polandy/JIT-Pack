@@ -11330,8 +11330,23 @@ happens to have two entries: both are the same case — a store write with no
 mutation behind it — and a third one appearing is the signal to ask whether the
 envelope is still the right boundary, not to add a line.
 
-**A note on the guard's own proof.** A lint rule is trivial to write and easy to
-write inert: `oxlint . --fix` is what the package script runs, and a rule the CLI
-prints but does not fail on would have looked identical in every screenshot. It
-was proved by re-introducing the exact import in `groupRefresh.ts` and reading
-the *exit code* — 1 with the bypass, 0 without — rather than the output.
+**A note on the guard's own proof, which is the part worth carrying forward.** A
+lint rule is trivial to write and easy to write inert, in two separate ways, and
+the first review of this change found both.
+
+It is easy to write *silent*: `oxlint . --fix` is what the package script runs,
+and a rule the CLI prints but does not fail on looks identical in any screenshot
+of the output. So it was proved by re-introducing the import and reading the
+**exit code** — 1 with the bypass, 0 without.
+
+And it is easy to write *evadable*. The rule was first written with
+`no-restricted-imports`' `paths`, naming `@/sync/optimistic` and `./optimistic`.
+`paths` compares the **written specifier**, so `../../../sync/optimistic` — the
+same module, one directory walk instead of an alias — walked straight past it,
+and so did the `.ts` suffix. The rule was green, the bypass was back, and
+nothing said so. It is now a `patterns` glob over every spelling of the module,
+and each of the four was planted and measured rather than reasoned about.
+
+The general shape: **a guard that matches how something is written rather than
+what it is has an escape hatch per spelling.** The way to find it is to attack
+the guard with the variants an author would reach for anyway, not to read it.
