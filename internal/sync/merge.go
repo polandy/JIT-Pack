@@ -44,6 +44,16 @@ type Mutation struct {
 	HLC        HLC
 }
 
+// Set writes one field, creating the map when the mutation carries none yet.
+// A mutation decoded from a push may have no Fields at all, so every caller
+// that stamps a column (invariant 3) needs the nil check this holds.
+func (m *Mutation) Set(field string, value any) {
+	if m.Fields == nil {
+		m.Fields = map[string]any{}
+	}
+	m.Fields[field] = value
+}
+
 // FieldClocks records, per field, the HLC of the write that last set it —
 // the "row.updated_hlc(f-group)" of Sync-API Spec §6. A field that is
 // missing here is as old as the row itself (Row.HLC): rows written before
@@ -140,7 +150,7 @@ func Merge(row Row, m Mutation) MergeResult {
 
 	for f, v := range m.Fields {
 		switch {
-		case additiveFields[f] && isTruthy(v):
+		case additiveFields[f] && IsTruthy(v):
 			res.apply(f, v, m.HLC)
 		case stateGroup[f] && applyGroup:
 			res.apply(f, v, m.HLC)
@@ -272,7 +282,11 @@ func outcomeFor(applied bool) Outcome {
 	return OutcomeMerged
 }
 
-func isTruthy(v any) bool {
+// IsTruthy reports whether a field value carries a "yes". It accepts every
+// shape one arrives in — a decoded JSON number is a float64, a scanned SQLite
+// integer an int64 — so a caller never has to know which door the mutation
+// came through.
+func IsTruthy(v any) bool {
 	switch x := v.(type) {
 	case bool:
 		return x

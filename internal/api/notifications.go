@@ -122,7 +122,7 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 	}
 
 	for i, m := range muts {
-		if i >= len(results) || (results[i].Outcome != "applied" && results[i].Outcome != "merged") {
+		if i >= len(results) || (results[i].Outcome != OutcomeApplied && results[i].Outcome != OutcomeMerged) {
 			continue
 		}
 		switch m.Table {
@@ -186,7 +186,7 @@ func (s *Server) notifyComment(ctx context.Context, tripID, actor, actorName str
 		}
 		payload[payloadItemID] = itemID
 		payload[payloadItemName] = itemName
-		if isTruthy(m.Fields["is_task"]) && packer != "" && packer != actor {
+		if syncpkg.IsTruthy(m.Fields["is_task"]) && packer != "" && packer != actor {
 			s.createAndNotify(ctx, packer, store.NotifyTask, payload)
 			notified[packer] = true
 		}
@@ -248,19 +248,6 @@ func mentionTargets(body string, members []store.MemberName) []string {
 
 func isNameRune(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r)
-}
-
-func isTruthy(v any) bool {
-	switch t := v.(type) {
-	case bool:
-		return t
-	case float64: // JSON numbers decode as float64
-		return t != 0
-	case int:
-		return t != 0
-	default:
-		return false
-	}
 }
 
 func truncate(s string, max int) string {

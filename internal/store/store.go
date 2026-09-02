@@ -64,12 +64,6 @@ const (
 	TableTripAppliedChanges     = "trip_applied_changes"
 )
 
-// StatePackingNow is the `trip_items.state` value that carries a G-3
-// claim (FR-5.3). Three layers compare against it — the push's actor
-// stamping, the lock events it emits, and the FR-5.7 takeover — so it is
-// named once (CODING_PRINCIPLES §4a).
-const StatePackingNow = "packing_now"
-
 // The item mark (§3.28), named once because three layers compare against
 // it: the schema's CHECK, the handler's cap, and the sync whitelist.
 const (

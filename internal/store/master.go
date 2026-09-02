@@ -192,7 +192,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 
 	case TableItems:
 		if !exists && m.Op != sync.OpDelete {
-			setField(m, "created_by", userID)
+			m.Set("created_by", userID)
 		}
 		return ReasonNone, nil
 
@@ -208,7 +208,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		// editor is not an owner, and the FR-1.6 stub needs the creator back
 		// if the parked ownership model returns.
 		if !exists && m.Op != sync.OpDelete {
-			setField(m, "owner_id", userID)
+			m.Set("owner_id", userID)
 			return ReasonNone, nil
 		}
 		if m.Op == sync.OpDelete {
@@ -235,7 +235,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 	case TableTripSeries:
 		if !exists {
 			if m.Op != sync.OpDelete {
-				setField(m, "owner_id", userID)
+				m.Set("owner_id", userID)
 			}
 			return ReasonNone, nil
 		}
@@ -257,7 +257,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 	case TableTrips:
 		if !exists {
 			if m.Op != sync.OpDelete {
-				setField(m, "created_by", userID)
+				m.Set("created_by", userID)
 			}
 			return ReasonNone, nil
 		}
@@ -535,13 +535,6 @@ func ownsAll(ctx context.Context, tx *sql.Tx, userID, ownerQuery string, ids map
 		}
 	}
 	return true, nil
-}
-
-func setField(m *sync.Mutation, field, value string) {
-	if m.Fields == nil {
-		m.Fields = map[string]any{}
-	}
-	m.Fields[field] = value
 }
 
 // cascadeRow identifies one child row an FK cascade will delete.

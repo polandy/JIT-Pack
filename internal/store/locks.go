@@ -72,7 +72,7 @@ func (s *Store) TakeOverClaim(ctx context.Context, tripID, itemID, takerUserID s
 	} else if err != nil {
 		return LockEvent{}, fmt.Errorf("load claim of %s: %w", itemID, err)
 	}
-	if state != StatePackingNow || holder == nil || *holder == "" {
+	if state != sync.StatePackingNow || holder == nil || *holder == "" {
 		return LockEvent{}, ErrClaimNotHeld
 	}
 	if *holder == takerUserID {
@@ -97,7 +97,7 @@ func (s *Store) TakeOverClaim(ctx context.Context, tripID, itemID, takerUserID s
 		Table: TableTripItems,
 		ID:    itemID,
 		Fields: map[string]any{
-			"state":          StatePackingNow,
+			sync.FieldState:  sync.StatePackingNow,
 			"packing_now_by": takerUserID,
 			"packing_now_at": time.Now().UTC().Format(time.RFC3339),
 		},
