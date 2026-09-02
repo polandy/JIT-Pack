@@ -26,16 +26,20 @@ import { createServer } from 'node:http'
  * The accounts the suite logs in as. `alice` is the instance admin
  * (JITPACK_ADMIN_EMAILS names her address); `bob` is an ordinary member.
  *
- * `carol` is an ordinary member too, and exists for one reason: the M20
- * cases *change* the account they act on — deactivating it, resetting its
- * display name — while one backend serves the whole run. Administering
- * `bob` would reach across into the multi-user unit's trips, so the admin
- * unit is given somebody of its own to administer.
+ * `carol` and `dave` are ordinary members too, and each exists for one
+ * file: one backend serves the whole run and the files land on two workers,
+ * so an account a case *changes* must be logged in by that file alone.
+ * `carol` carries E2E-M17-01's notification preference (multi-user.spec.ts);
+ * `dave` is administered by the M20 cases (admin.spec.ts) — deactivated,
+ * stripped of his picture, his name reset. Sharing one of them between the
+ * two files is a red suite whenever the workers overlap: a deactivation
+ * ends the other file's session mid-case and refuses its next login.
  */
 export const IDP_USERS = {
   alice: { sub: 'alice', name: 'Alice', email: 'alice@example.test' },
   bob: { sub: 'bob', name: 'Bob', email: 'bob@example.test' },
   carol: { sub: 'carol', name: 'Carol', email: 'carol@example.test' },
+  dave: { sub: 'dave', name: 'Dave', email: 'dave@example.test' },
 }
 
 const KEY_ID = 'jitpack-e2e'
