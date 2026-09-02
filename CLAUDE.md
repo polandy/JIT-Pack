@@ -11,7 +11,7 @@ Read this file fully before touching code. It is the orientation document: what 
 - Test: `go test ./... -race` — fast, no docker or network; store/api tests run against real in-memory SQLite
 - **Verify before finishing any change: `make ci`** — it mirrors the CI jobs 1:1 (gofmt, build, vet, race tests, coverage gates, golangci-lint, client lint/build/vitest), so green here predicts a green pipeline
 - Slow jobs, excluded from `make ci` on purpose: `make e2e` and `make visual` (both need docker and a built bundle — they run inside the pinned Playwright image, `make visual-update` rewrites the baselines, ADR-013) and `make docker-build` (needs a docker daemon; it builds the image *and* runs `scripts/docker-smoke.sh` against it, because a green build says nothing about whether the bundle reached `/srv/web`). `make all` runs everything.
-- **Run the slow jobs on GitHub, not on this machine** (owner, 2026-08-23): `make ci-remote` pushes the current branch, dispatches `ci.yml` against it and waits for the verdict — no pull request needed. `e2e`, `visual`, `docker-build` and the coverage profile all run there already, and on a two-core laptop they are the largest source of contention between concurrent sessions (measured: foreign load costs ~25 % of wall-clock, about what a hardware upgrade would buy). `make cover` in particular is fully redundant — the CI `go` job runs the same profile and the same `scripts/coverage-gate.sh`. **`make ci` stays local**: it is the fast gate, and GitHub's verdict takes minutes. Budget **~3 min on an idle machine, and read the load average before trusting a timing** — this box has four cores, and a parallel session running its own suite has been measured turning a 100 s vitest run into 370 s. A slow `make ci` is usually contention, not a regression.
+- **Run the slow jobs on GitHub, not on this machine** (owner, 2026-08-23): `make ci-remote` pushes the current branch, dispatches `ci.yml` against it and waits for the verdict — no pull request needed. `e2e`, `visual`, `docker-build` and the coverage profile all run there already; `make cover` is fully redundant with the CI `go` job. **`make ci` stays local**: it is the fast gate. Budget **~3 min on an idle machine, and read the load average before trusting a timing** — a parallel session has been measured turning a 100 s vitest run into 370 s, so a slow `make ci` is usually contention, not a regression.
 - Coverage gates live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job: **≥75 % overall, ≥90 % `internal/sync`**
 - Client only: `cd client && npm run dev` (Vite dev server), `npx vitest run`, `npm run build` (type-check + build)
 - **After changing `internal/api/wire.go`: `make wire`** — it regenerates `client/src/api/types.ts` *and* `client/src/api/routes.ts`, both generated and never hand-edited (NFR-4.14, ADR-026/027). `make ci` runs the gate that catches the omission.
@@ -38,6 +38,8 @@ Read this file fully before touching code. It is the orientation document: what 
 | Why was X chosen over Y? | `dev-docs/adr/ADR-00N_*.md` — options considered, weighted decision matrix, consequences, revisit trigger |
 | How do I run and operate this? | `docs/` — the published user manual; `docs/index.md` is its landing page |
 | What must the UI test suite cover? | `dev-docs/UI_Test_Spec_v1.0.md` — Playwright scope: per-screen cases, cross-screen flows, FR/NFR traceability matrix |
+| What does the suite actually cover, and what is owed? | `dev-docs/e2e-tests.md` — the ledger; read and update it, a green `e2e` job is not a verified UI |
+| How do I run and write an e2e case? | `client/e2e/README.md` — helpers, projects, running a single case |
 | How do I write code here? | `dev-docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
 | What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history. **It opens with an index**: one line per section, so scan that and open only what it names. |
 
@@ -64,572 +66,79 @@ Rules that follow from this:
 ## Not built yet
 
 The packing concept is **closed as a concept** — mocked in the prototype and written up in
-PRD §3.25/§3.27, UI-Spec and UI-Test-Spec — and open as implementation. Owner decision
-2026-08-08 on sequencing: **finish the concept before implementing**, then start with the
-domain-free basics (login, users, code base) rather than with packing features. The reasoning
-for each item below is in `dev-docs/implementation-log.md`, section "Concept phase".
+PRD §3.25/§3.27, UI-Spec and UI-Test-Spec. Owner decision 2026-08-08 on sequencing: **finish the
+concept before implementing**, then start with the domain-free basics (login, users, code base)
+rather than with packing features. Log: *„Concept phase"*.
 
 **How to read this list.** It is a backlog, not a history: **a closed item is one line and a
-pointer**, and only what is still open carries enough detail to act on. The reasoning behind
-any item — options rejected, premises that turned out wrong, costs accepted — is in
-`dev-docs/implementation-log.md`; its index names every section, so scan that before opening
-it. Item numbers stay stable even as items close, because the log refers back to them.
+pointer**, and only what is still open carries enough detail to act on. Every item below is
+closed. The reasoning behind any of them — options rejected, premises that turned out wrong,
+costs accepted — is in `dev-docs/implementation-log.md`; **its index names every section, so
+scan that and open only what it names.** Item numbers stay stable as items close, because the
+log and the specs refer back to them.
 
-1. ~~**The basics first**~~ — **done** (2026-08-09, PRs #54–#58, #60). Auth/authorization
-   (ADR-007), failure-path coverage, supply-chain pinning, the two migrations in item 5, and
-   `mise.toml` as the single toolchain pinning. Log: the five *„Basics audit"* sections.
-2. ~~**§3.27 client package**~~ — **done, §3.27 owes nothing more** (2026-08-16 … 08-19):
-   generation from composed Vorlagen, the FR-27.4 group refresh (ADR-016) and its
-   same-day revision to *asking* at the trip, FR-27.3 single items in M3, FR-27.10 whole
-   groups onto a running trip, portable YAML carrying the composition (ADR-017), and M21
-   folding a finished trip back into its groups (FR-27.5). Log: seven sections, from
-   *„§3.27 generation"* to *„M21 — Vorlage aus Reise"*.
-   The gap that stood open here is closed too (2026-08-21): the Local Mode backup carries
-   the three FR-27.4 tables, named in the trip document and re-keyed on restore against the
-   ids it just created (ADR-015 amendment). Log: *„The device backup carries the FR-27.4
-   refresh state"*.
-3. ~~**The design foundation, then the remaining screen rebuilds**~~ — **both complete**
-   (2026-08-14 … 08-16). The foundation is the three token tables plus the gate (invariants
-   9/9b), the FR-25.2 pack-out and the ADR-013 visual baselines; the rebuilds are M4, M5, M7,
-   M8, M9/M10, M11, M12 and M14, all localized with `t()`. Plan:
-   `dev-docs/design-foundation-plan.md`. Log: eleven sections, from *„The app gets its own two
-   faces"* to *„M14 — review assistant rebuilt"*.
-   **What was still owed from it is paid** (2026-08-24): M14 has been eyeballed with real
-   proposals, first from the dev fixture and then from a trip built through the app — what it
-   showed became FR-9.4, and item 15 built the answers.
-   E2E-M12-03's positive half is **written since 2026-08-21**, and the cost M4 carried from
-   the M5 rebuild — losing its scroll position when a detail opened — is **paid** with it:
-   `lib/scrollMemory.ts` holds the offset *and* the header-line state across the replace
-   (E2E-M4-45, ADR-012's second amendment).
-4. ~~**i18n migration**~~ — **done** (2026-08-22). Every screen is on the catalogue; the rule
-   it was run by is that a **section is the unit**, because a half-translated screen is worse
-   than an untranslated one. M17 Settings was the last, and the trap it closed is worth keeping:
-   **finished text in a module-level constant is unreachable by a language switch**, the same
-   shape that had stranded the nav anchors and the route titles. Log: *„The i18n migration…"*
-   and *„M17 was the last screen…"*.
-5. ~~**Two migrations owed by concept decisions**~~ — **done** (2026-08-11): `travelers.profile`
-   dropped, `trip_items.packed_by_user_id` carries the packing record and `packer_user_id` the
-   assignment (FR-25.9/25.19). Log: *„Migrations 018/019"*.
-6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written and the per-screen cases
-   are landing screen by screen. **`dev-docs/e2e-tests.md` is the ledger of what is actually
-   covered, and it is the file to read and update** — a green `e2e` job is not the same as a
-   verified UI (log: *„What ‚covered by e2e' was not covering"*). Measured 2026-08-30:
-   **250 of 370 case ids have a test.** The count is not the backlog, though — **M6 was the
-   first screen taken through it**, and of its 17 unwritten ids only two needed a new case:
-   four were already asserted by cases that existed, four described behaviour the app had
-   deliberately reversed, and eight described a screen nobody built. Retired that day
-   (owner): M6's filter bar, search field, composer fields and per-item note; **owed and
-   decided to be built:** FR-25.12's row sheet. Log: *„Seventeen unwritten cases, two worth
-   writing"*. **M4 followed 2026-08-30**, and its 17 unwritten ids sorted differently again:
-   four were already asserted with no id on them — three of those as *unit* tests, which is
-   why grepping the id confirmed a gap that reading the suite refuted — four described a
-   removed gesture or a reversed rule, and eight were real, small remainders now written.
-   The rule the two screens agree on: **a coverage count says how many promises have no
-   test, never how many deserve one**, and the order is promise → screen → test. **Do not
-   re-derive the headline number to compare against it** — a second grep is a second
-   *method*, not a second measurement (a broader id pattern turns 250/370 into 272/383 on the
-   same tree), and a retired entry stays in the file struck through, so it goes on being
-   counted as a gap forever. Measure a screen, not the repository. Two owner decisions are
-   open (M4's container chip, the amber prep cast on M4); worth carrying forward:
-   **`rowEdgeAvatar` had been a rule inside a component since the concept round**, so its
-   case could not be written at all until it moved. Log: *„A blocked case that had quietly
-   unblocked, and one that had quietly been covered"*. **M2 followed 2026-08-30 and sorted a
-   fifth way**: three of its nine unwritten ids were real and are written (E2E-M2-05/06/07 —
-   the whole slide menu had never been *operated* by any test, only asserted present), three
-   were already covered elsewhere or described a gesture M2 never had, and **three are
-   promises the screen never kept** — the list still groups by series and sorts newest-first
-   where the 2026-08-08 review decided flat-with-a-chip (E2E-M2-15, renumbered off a
-   duplicated id), the row has no participant avatars (E2E-M2-03), and `trips.imported` is
-   written by M15 and read by nothing (E2E-M2-08). Those three are open with the owner and
-   **deliberately have no test**: a case written first would leave a red suite pointing at a
-   rebuild nobody scheduled. The general form: **an unwritten case is as likely to be an
-   unbuilt promise as a missing test**, and only reading it against the screen tells you
-   which. Log: *„Nine promises, three tests and three things that were never built"*. **M17 followed the same day** and produced a fourth: **a promise whose own
-   wording was the defect.** E2E-M17-07 said the backup reminder is *„cleared after a YAML
-   download"*, and NFR-4.11 says the backup it warns about is the **whole device** — so M17's
-   per-trip YAML clearing it was a bug the case had been describing as the specification.
-   Fixed here, with the tail it had (the banner only ever refreshed on the exports that should
-   not have counted). Five cases written (E2E-M17-01/03/06/07/07b/08), one retired with its
-   reason (M17-02: unit-owned, and its remaining branch is unreachable in a suite whose
-   browsers all support Push), and two scope labels corrected against the screen — `all` meant
-   `server` for the data section, which is a *different section* in Local Mode. Also worth
-   carrying: **the theme toggle had never been pressed**, because every colour test seeds
-   `jitpack_theme` and asserts the palette. Log: *„A promise that was its own defect"*.
-   **M5 followed as well**, and
-   found the failure mode the other two could not: **an id can mean two things**. Six
-   `E2E-M5-*` numbers were each defined twice — the v1.0 catalogue and the §3.25 rebuild,
-   in one section, never reconciled — so four *green* tests read as coverage of four
-   promises nothing asserted. Neither commit that caused it is reviewable as a mistake
-   (both are pure additions to a long list) and the coverage count went **up** each time.
-   The rule that resolved it, and the one to reuse: **a number means what the suite
-   implements**; the loser is struck through in place and says where its promise went,
-   never renumbered, because a reader arriving from an old commit has to land somewhere
-   that explains it. Under the collision sat the audit's real finding: FR-25.15's save
-   indicator was a relabelled G-2 glyph on all four sheets carrying it, so offline — the
-   one case the requirement exists for — an open write said *saved*. It had survived
-   because the component's doc comment quoted the requirement, its unit test pinned the
-   defect as the rule, and the shadowed id made the promise look answered from every
-   direction. Owner retirements: M5-01, -03, -04, -09, -06(A), and FR-7.3's never-built
-   resolution restriction. **The class is a gate now** — `scripts/case-id-gate.mjs`, in
-   `make ci` — because nothing here was catchable by eye; it found **four more** live
-   collisions the same hour (`E2E-M3-11/-12/-13`, `E2E-M4-32`) — **since resolved and the
-   register is empty**: three were duplicates of live ids, and the fourth left a promise the
-   quick-add has never kept (it pulls required companions **silently**, where the skip names
-   what it took along) which is an open owner decision. **Done 2026-08-31:** the case ids that lived only in a
-   comment now sit in the test title, so `-g "<id>"` runs the case and a CI failure names the
-   promise. 319 of 332; the rest are prose, `describe` groups, or cross-references, and an id
-   in a title is a **coverage claim** — sixteen of eighteen tests whose comment merely *cites* another
-   case were left alone, and the two that were real coverage were only found by reading all eighteen. Log: *„Six numbers that each meant two
-   things"*.
-   **M9 followed the same day and found a sixth shape: two ids that were simply on the wrong
-   tests.** The §3.24 rebuild wrote the spec entries and the tests in one commit and numbered
-   the tests `E2E-M9-02`/`E2E-M9-03`, whose entries describe the FAB's creation mode and a
-   multi-select merge — so for a year the two behaviours those ids promise had no test while
-   reading as covered, and the two that *were* tested (M9-05/06) read as implemented under
-   somebody else's number. **`scripts/case-id-gate.mjs`, landed one PR earlier, cannot find
-   this**: each id is used exactly once, so the duplicate check is green, and the totals are
-   identical either way — a swap is not a collision. Renumbered, and the two
-   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-07 asserts the creation mode
-   and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
-   and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
-   decision, and note PRD FR-27.5 argues against fuzzy matching partly *because* M9 can merge).
-   Two real remainders written: **E2E-M9-04**, whose state no test had ever rendered
-   (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
-   word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
-   tests"*.
-   **M11 and M12 followed 2026-08-30, and both had every id implemented** — so
-   the audit's product was not new cases but a **seventh shape: a clause whose
-   assertion cannot fail.** E2E-M12-01 switched to the *Gepäck* dimension and
-   asserted `analytics-slice-none`, which the *Kategorie* view it started on
-   already rendered — the absence bucket is keyed `''` in every dimension, so
-   the same element was on screen before and after the click; and its
-   packed/planned KPI was asserted in a world where the two were equal.
-   Underneath sat FR-10.4, credited to the case while **no test had ever put an
-   item in a bag and opened the screen**. The check that finds this shape:
-   **would the assertion have passed before the action?** Two more clauses were
-   credited and unasserted (M11-05's absent Save button, FR-10.1's carrier being
-   *optional* — nothing had ever cleared one), and **two promises are unbuilt**:
-   FR-10.3's per-trip imbalance threshold is honoured by the domain and written
-   by no screen, and UI-Spec M11's *„and from M12"* edge does not exist. Both
-   open with the owner, deliberately untested. Log: *„An assertion that was true
-   before the click"*.
-   **M7 and M23 followed 2026-08-30.** M7's catalogue predates the 2026-08-15 variant pass that
-   rebuilt the screen, so three of its ids describe surfaces that pass removed or never built:
-   M7-01's my/published split (FR-1.6's simplification — nothing to render) and M7-03's name
-   prompt are **retired**, and **M7-05's FAB import menu is an unbuilt promise** — an owner
-   decision, because import *is* reachable from the header icon and UI-Spec M7's Actions line
-   claimed the menu as built while the same document's amendment listed it as owed. Three
-   remainders written, each a clause of an id that read as covered: the row's **resolved** item
-   count (E2E-M8-07 composes only empty groups, where the raw and resolved counts are both 0, so
-   the one arithmetic the row does was invisible to it), M7's **no-match** state and the search
-   that produces it, and the header icon's trip to M18 and back to M7. M23-01/02/03 keep every
-   clause they promise — but all three retire an *item*, so **E2E-M23-04** renders the Vorlagen
-   half for the first time. Log: *„A row that could not count, and a segment nobody filled"*.
-   **M8 followed the same day and was the first screen with no unwritten ids at all** — all
-   twenty-four already had a test — so the read had to be clause by clause, and that is the only
-   reading that finds this: **E2E-M8-06 had read *implemented* since the M8 rebuild while nothing
-   in the suite ever removed a position** (`m8-position-remove-*` occurred in no test, and the page
-   has no component test). It survived because the ✕ was a *decision* that commit made — the M7
-   variant pass had just rejected the swipe — so it went into three documents as an **amendment**,
-   and the amendment is what everyone then read: **a clause that arrives as news is not checked the
-   way a clause that arrives as a requirement is.** Written, with the name sort and the empty state
-   nothing had rendered. Four unasserted clauses of other ids went in with it (M8-12's *nothing
-   auto-opens*, M8-13's two-character gate — `MIN_SEARCH_LENGTH` had no assertion anywhere and is
-   shared with M3 — M8-03's clear-on-retap, and M8-05's sentence, which specified the pre-2026-08-18
-   FR-27.4 model the screen had already stopped following). Three were checked and deliberately left
-   (M8-02's default, M8-14's *scrim tap* = Ionic's own `backdropDismiss`, M8-15's group-name match =
-   the `searchGroups` unit). **No owner decision owed.** Log: *„A control nobody had ever clicked"*.
-   **M10 followed and is the same commit's larger half**: five tests written under
-   **M10-01 … M10-05**, which were live entries for five other promises, while the three ids
-   the commit marked implemented (07/08/10) had no test carrying them. `e2e-tests.md`'s
-   promise table named them right the whole time and nothing else did — **when two documents
-   disagree about coverage, the one mapping test bodies to ids is the one to trust**.
-   Renumbered. Two real remainders written, both sections that were built in July and had no
-   `data-testid` anywhere: **E2E-M10-03** (the dependency section — its cycle refusal, its
-   default mode, its read-only reverse list; two other cases only *drive* it as setup) and
-   **E2E-M10-04** (the photo, add/replace/remove, read back from the device). Retired: M10-01
-   (clause by clause), M10-02 (its „delete blocked" half was reversed by FR-24.3) and M10-09
-   (a second id over M10-03's section). **Two unbuilt promises, owner decision owed:**
-   „Enthalten in" (FR-27.8) and „Kommentare aus Reisen" (FR-27.9) exist in the prototype and
-   in three specs, and in no build — including inside FR-24.5, which named them as the
-   sections creation mode hides, so a green case asserted the absence of something absent in
-   both modes. Log: *„Five numbers, and two sections nobody had built"*.
-   **M18 followed 2026-08-30 and inverted the pattern**: nothing was retired and nothing was
-   unbuilt — all four of its unwritten ids describe built behaviour on the **merge preview**,
-   the branch a single-document file opens, which no test had ever rendered. It was invisible
-   because the suite *uses* that branch: two `packing-list.spec.ts` cases click through it as a
-   fixture and assert nothing, and **a screen that appears as a fixture reads like a screen that
-   is covered**. All four written. The finding was in the clauses: „creates a trip in *planning*
-   status" was reversed by ADR-024 a year earlier and still stood in five places, one of them a
-   comment three lines above the code that reads `doc.status`; „the same dedup component as
-   M15" was never true (the shared thing is `findDuplicates`); „rejected before this screen is
-   ever shown" misplaces a refusal that is M18's own picker step. Log: *„The branch the backup
-   never took"*.
-   **M20 and G-10 followed 2026-08-30**, the youngest coverage in the repository (both first
-   rendered two days earlier) and therefore read for the opposite error — a promise written to
-   match what was just built. Every id already had a test, so the product is three new cases and
-   an eighth shape: **a sentence declaring that a case cannot be written**, twice, each sitting
-   on a defect. G-10's *„an e2e case could only race it"* was true of *holding* a pull open and
-   false of blocking one — a device whose pull never returns never reports a cursor, so the
-   lagging state is settled (E2E-G10-02, which is also the only thing that ever said the
-   server's `in_sync` is the prop the facepile rings). M20's *„Remove avatar changes no pixel"*
-   was blamed on the fixture and was a **defect**: the row is keyed by account id, so the same
-   `<img>` keeps the same `src` and the browser never re-asks under `max-age=3600` — moderation
-   that shows the moderator nothing (E2E-M20-03b, plus M17's cache-busting query, which M20 was
-   written without). Third, a clause in *no* case at all: FR-23.3's „a re-login does not
-   resurrect a deactivated account", where the app answered the generic „The server rejected the
-   login." — the login-screen twin of the defect the FR's own 2026-08-28 amendment fixed inside
-   the app, and missed by it because the callback is the other place that 403 arrives
-   (E2E-M20-06). Also: **FR-4.6's traceability row named `members.ts`'s role model** — a
-   requirement pointed at the wrong evidence, which no gate can see either. Two clauses are kept
-   and named as unfalsifiable rather than counted (G10-01's exclusive badge, M20-05's mode half).
-   No owner decision owed. Log: *„Two premises that had closed two cases"*.
-   **M1 and M19 closed the pass 2026-08-30**, and they share M18's shape at the scale of the
-   whole suite: **every spec seeds past M19 and lands on M1 on the way somewhere**, so the
-   first-launch choice had never been *made* by any test (M19-01 read *partial* for a year, and
-   the missing part was the action) and the populated dashboard had never been *rendered* by one
-   — three test ids on the screen, all three in its empty state. Three cases written
-   (E2E-M1-01/02 in `dashboard.spec.ts`, E2E-M19-02's Single-User half in
-   `single/mode-discovery.spec.ts`, which asserts invariant 5's own 501). **Four owner
-   decisions**, all unbuilt promises: M1's delegation highlight and badges (M1-03), its Late
-   Packer section (M1-06, whose entry also mis-cited FR-5.4 for FR-5.1), the prep card's jump to
-   M5, and — the one with a real design question in it — **M19's connectivity check (M19-02/03),
-   which cannot be written as specified**: the API sets no CORS headers on purpose, so a probe
-   against another origin cannot tell an unreachable instance from a healthy one, and the inline
-   error would lie. Two clauses were also corrected against the screen: FR-6.1's *"my"* items (M1
-   filters by nobody, and a filter would empty the screen in the two modes with no account) and
-   *"next 3"* (the preview has no order to be next in). Log: *"The check that cannot be written,
-   on the screen nobody had clicked"*.
-
-   **M15 followed 2026-08-30** and mixed every shape at once: of four unwritten ids, one was a
-   real remainder (**the dedup step had never been opened by a test** — every fixture imports into
-   an empty device, where there is nothing to be a duplicate *of*, so step 3 is skipped), one was
-   six promises in one sentence now distributed over five cases, and **two describe behaviour the
-   wizard has never had** — there is no grid preview, and NFR-4.7's noise handling is *built and
-   never shown*, which is the one worth carrying: **a rule can be complete, unit-covered at both
-   levels and still unkept, because the promise was about saying it.** Three cases written
-   (E2E-M15-03/11/12). Two further findings: E2E-M15-06's *„no item turned into one"* **cannot
-   fail in its own world** (a category column claims no category rows, so nothing is a candidate)
-   and moved to the rows layout; and the new case found a defect no id could — **M15 opens only
-   once per session**, because the commit's `router.replace` onto a tab root leaves that tab's
-   page unhidden and the next push renders M15 underneath it (M18's restore replaces the same
-   way). Four owner decisions, none built here. Log: *„A wizard that opens once"*. **The „opens
-   once" defect was not M15's and is fixed (2026-08-31):** the navigation anchors pushed a page
-   nothing popped, so an interrupted switch left two live pages and the older one on top
-   (ADR-012 amendment 3, E2E-G9-17/G1-06).
-
-   **M21 and M22 followed 2026-08-30**, both with every id implemented and no id on the wrong
-   test, so the product was four cases and two owner decisions. M21's finding is about *time*:
-   the FR-1.6 name refusal was added to the screen on 2026-08-25, five days after its cases
-   landed, and **a rule that arrives after a screen's cases do is invisible to every one of
-   them** — nothing had rendered the note, the disabled button, or the rule that exists nowhere
-   else (the Vorlage and the bundle group written in one pass must have different names). Two
-   more clauses could not fail: the word *checked* (no test had ever operated a loose row's
-   checkbox) and the blast note, asserted visible only in the one world where it can produce a
-   single branch. M22's ids are all sound, but reading its **element list** against the template
-   found two fields the screen does not have: the **series** is edited on M16, and **the trip's
-   year cannot be changed anywhere** — an owner decision, since FR-2.1b makes it the one
-   required temporal fact. Two more: the archived editor had never been opened by any test and,
-   opened, says nothing about why it answers no tap (second owner decision); and the rename —
-   one of the roster row's three affordances — had never been operated. The transferable one is
-   procedural: E2E-M22-03's own note records this exact race being fixed in 2026-08-21, and
-   **the fix was written into one case rather than into the file**, so five siblings kept
-   navigating straight after a write and E2E-M22-08 failed against correct code during this
-   audit. Log: *„A rule that arrived after its tests"*.
-
-   **M14 and M16 followed 2026-08-30**, and M16 is the first screen the programme met with
-   **no coverage at any layer** — four unwritten ids, no spec file, no unit, and not one
-   `data-testid`. Nothing was retired; all four are written, and **rendering the screen found a
-   control that did not render**: FR-13.3's checklist field had zero width, because Ionic's
-   `ion-select` is `width: 100%` and as a flex item that is a basis of the whole row, so the input
-   beside it shrank to nothing. **No assertion could have caught it** — the input is in the DOM,
-   `getByTestId` resolves it, its computed flex and height are right, and only the *visible*
-   precondition and the screenshot say the box is empty (invariant 9b from the other side). Two
-   more traps came with it: **`toContainText` on an `ion-select` matches its options, not its
-   value**, so the first draft's assertion was true of a select nobody had touched; and M14's
-   *„nothing to review"* toast and its empty state are the **same sentence** in both catalogues, so
-   asserting the text alone passes on the screen the clause is about not reaching. On M14 all six
-   ids were implemented and three clauses still had no assertion, two of them unable to fail where
-   they stood: the why line's plural branch (the trip is in no series — a *parameter* unit-tested
-   both ways whose producer was tested nowhere) and the FR-27.12 peek, which no id claimed. One
-   owner decision: UI-Spec M14's closing card *„teases the first two proposals"* and reads none.
-   Log: *„A field that was there and had no width"*.
-
-   **Every owner decision the screen pass raised was ruled on 2026-08-31, and none is
-   open.** Twenty-two of them, decided in one sitting against the screens rather than the
-   documents: **thirteen are built** (FR-27.8/27.9's rear-view on M10, M22's year field and its
-   archived-state sentence, M1's delegation surface / Late-Packer section / prep jump, M15's
-   inline noise handling / named target series / grid preview, the quick-add's companion report,
-   M14's card reading two proposals, M2's *Importiert* chip and traveller avatars), **nine are
-   struck** (M19's connectivity check, M4's container chip and amber cast, M7's FAB import menu,
-   M9's multi-select merge, the M12→M11 edge, FR-10.3's per-trip threshold, M2's empty-state CTA,
-   FR-6.1's personal filter) and **one is rewritten** — E2E-M2-15's flat list loses to the
-   grouping the screen has always done. Two of the strikes are worth carrying: **M19's check is
-   not buildable as specified**, because the API sets no CORS headers on purpose and the promised
-   inline error would report a healthy instance as unreachable; and **FR-10.3's threshold was
-   configurable in the document and fixed in the product**, so the ruling deleted the reader
-   rather than adding a writer. What was left of item 6 was cross-cutting —
-   FLOW-*, PWA, SYNC and the NFR rows — and **all four are closed (2026-09-01)**. **The FLOW-* pass is running (2026-08-31):** FLOW-03 was
-   already covered by the screen case whose journey it is and owed one clause; FLOW-04 was not,
-   and found M14's harvest coming back per-traveler because the one writer that named no
-   assignment took the mutation's default; FLOW-05 found the migrated history worth something
-   only on the device that typed it in — M3's hint is the app's single reader of *another*
-   trip's rows and asked for none of them, and an unpulled partition reads as a trip that
-   packed none of it, so the median was taken over whatever had arrived. **FLOW-07**
-   walked the move off Local Mode and found its first step missing: `jitpack_mode` is written
-   only by M19's first-launch choice, so the migration is device-to-device (file plus a device
-   already in server mode) — the case walks that. **The owner decision it raised is ruled and
-   built (2026-09-02, FR-19.8, ADR-045):** M17 carries the guarded three-step move on the same
-   device — backup, switch, restore — and the switch stays closed while the last Local Mode write
-   is newer than the last backup (E2E-M17-14/14b/14c; log: *„A guard on a funnel that every
-   launch passes through"*). Under it sat a defect: the restore drained the
-   **master** partition alone, so every packing list in the file stayed queued on the importing
-   device, whose own screen looked like a migration that had worked. **The FLOW-* pass started 2026-08-31**, and its first two
-   sorted opposite ways: **FLOW-03 was already covered** by E2E-M6-17, whose second half is that
-   journey, and owed only the state the row arrives in (`0/1` — bought is not packed);
-   **FLOW-04 was not, and writing it found the loop open.** M14's harvest took
-   `addTemplateItem`'s default `per_person` — the one field deciding *how many* rows generation
-   makes — where every other writer in the app passes `trip_global`, so a shared item came back
-   one-per-traveler and, on a trip with no travelers, not at all. The M14 cases could not see it:
-   all of them stop at M8, where the position renders `1×` either way. Log: *„A default that
-   decided how many rows"*. **FLOW-09 closed the pass 2026-08-31** — the loop
-   nothing had gone round — and its finding is a *world* rather than a screen: the clause that an
-   archived trip is never asked to follow its group could not fail where it naturally sits,
-   because the fold-back makes the group match the trip it was harvested from, so that trip is
-   owed no proposal whatever the rule says. Deleting the guard left the case green; a change
-   **neither** trip carries fixes it. The rule to reuse: **for an absence, the positive signal
-   must be the same event reaching somewhere else** — a rendered page and a sibling assertion are
-   not enough when the event never happened in that world. Log: *„The world that could not
-   falsify its own clause"*. **M2's own next pass is done (2026-08-31):** the empty
-   state has a test id and a case of its own (E2E-M2-16 — its own number, because E2E-G7-01 is
-   already defined on the Dashboard and the gate allows one definition per id), and E2E-M2-02 is
-   written, minus the *destination* its header has never carried. Log: *„Twenty-two promises, decided against
-   the screen"*.
-   **The G-* patterns closed 2026-08-31**, and the shape they added is a control that is built,
-   unit-tested and *unreachable*: G-6's long-press on the stepper could never fire on M4, because
-   the row arms FR-5.5's press-and-hold on every pointerdown inside it — the row's *click* had
-   been stopped at the control column since the stepper shipped, its *press* never was. Eight
-   cases written, two icons given the name they promised (`header-back`, `header-settings`), five
-   spec sentences corrected against screens that had changed under them (G-12-07's *„no ⋯"*,
-   G-12-04's *„single line"*, G-9-01's width-conditional FAB, G-4-01's scope, G-8-01's
-   already-covered siblings) and three clauses kept as unfalsifiable rather than counted.
-   **The NFR journeys closed 2026-09-01**, and their shape is a *mode read off the screen
-   instead of the request*: four of §6's seven entries named a mode that cannot exercise the
-   promise they state (export in `single`, which has no token to send; the client-side import
-   in `single`), and one of the four had already been corrected once on the screen case that
-   drives it — a promise stated twice is corrected once. Five cases written (NFR-01, 03/03b,
-   06, 07), one narrowed and struck rather than tested (**NFR-02's *„network to any IdP
-   blocked"*** — a Single-User instance names no issuer, so there is no host to block), and
-   one clause left standing as the deliberate approximation it is (NFR-4.7 does not roll
-   back; the case asserts that a blocked mapping writes nothing). The gap worth carrying was
-   **between two layers that both had coverage**: Web Push is unit-tested at the browser end
-   and integration-tested at the delivery end, and nothing joined them — the M17 toggle had no
-   `data-testid`, by now a dependable signature that no test has ever operated a control.
-   Log: *„A mode read off the screen instead of the request"*.
-   **The PWA and SYNC rows closed 2026-09-01, and neither
-   product was a missing test.** E2E-PWA-02's absence assertion **could not fail against the rule
-   it named** — the worker writes no runtime cache entries at all, so „nothing was cached for
-   `/health`" stayed green with the whole never-cache rule deleted; it is rewritten around a
-   *planted response*, the seam that makes „the worker never answers this path" falsifiable, and
-   covers all three of `/api`, `/ws`, `/health`. Beside it, NFR-4.13's whole **update policy**
-   paragraph had no case on any id (**E2E-PWA-04**, new: a second worker waits, the G-2 dot and
-   sentence announce it, nothing reloads or takes over the running page, and the next launch —
-   which is a closed page, never a reload — activates it). The SYNC row found §4's paging rule
-   **written twice**: the progress guard against a server that claims another page without moving
-   the cursor had reached `SyncOutbox.drain` and not the command line's `usePull`, and §3's
-   observe step was asserted only on the copy the command line runs while the drain every browser
-   runs had no case at all. Both rules are named once now (`client/src/sync/pullProtocol.ts`) and
-   both callers have cases. Log: *„An absence with nothing behind it"*.
-   **Both owner decisions are ruled (2026-08-31):** G-12's `title` narrows to the **app bar**,
-   where the label was dropped to buy room — held there by `iconButtonLabels.spec.ts`, which
-   resolves the bar and what is slotted into it from `AppHeader.vue` — and the long-press name
-   bubble is **struck**, because the bar's ⋮ already answers it in words.
-   Log: *„A gesture the row was eating"*, *„A tooltip that only the bar owes"*.
-7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
-   items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
-   alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
-8. ~~**FR-27.13 — the M8 group picker cannot be searched**~~ — **done** (2026-08-22): the
-   picker card carries a search above six groups, matching group and resolved item names;
-   results are FR-27.12 summary rows. Three points settled while building are recorded in
-   the FR itself, including that the promised diacritics folding existed nowhere else yet.
-9. ~~**FR-27.14 — a Vorlage cannot show its resulting items**~~ — **done** (2026-08-17): M8's
-   resolution footer opens the FR-27.12 peek sheet on the Vorlage itself, each line naming its
-   source. Log: *„FR-27.14: the footer stops being the whole answer"*.
-10. ~~**FR-2.6 — M3's review step only reviews the amount**~~ — **done** (2026-08-17, variant A):
-   the row carries the amount and a ✕ that drops it as FR-5.5 *skipped* rather than deleting it.
+1. ~~**The basics first**~~ — done 2026-08-09 (PRs #54–#58, #60): auth/authorization (ADR-007),
+   failure-path coverage, supply-chain pinning, `mise.toml`. Log: the five *„Basics audit"* sections.
+2. ~~**§3.27 client package**~~ — done 2026-08-16 … 08-21, §3.27 owes nothing more. Log: seven
+   sections from *„§3.27 generation"* to *„M21 — Vorlage aus Reise"*, plus *„The device backup
+   carries the FR-27.4 refresh state"*.
+3. ~~**The design foundation, then the remaining screen rebuilds**~~ — done 2026-08-14 … 08-24.
+   Plan: `dev-docs/design-foundation-plan.md`. Log: eleven sections from *„The app gets its own
+   two faces"* to *„M14 — review assistant rebuilt"*.
+4. ~~**i18n migration**~~ — done 2026-08-22; the unit is a **section**, because a half-translated
+   screen is worse than an untranslated one. Log: *„The i18n migration…"*, *„M17 was the last screen…"*.
+5. ~~**Two migrations owed by concept decisions**~~ — done 2026-08-11. Log: *„Migrations 018/019"*.
+6. ~~**Playwright suite**~~ — done 2026-09-01: every screen, the G-* patterns and the FLOW-*, PWA,
+   SYNC and NFR rows were read promise by promise against the build, and all owner decisions it
+   raised were ruled on 2026-08-31. **`dev-docs/e2e-tests.md` is the ledger of what is actually
+   covered — it is the file to read and update.** Log: 24 sections, from *„What ‚covered by e2e'
+   was not covering"* to *„A tooltip that only the bar owes"*; the rules the pass left behind are
+   in **Testing** below.
+7. ~~**Looking inside a group**~~ — done 2026-08-16 (FR-27.12). M8's picker chips still offer
+   names alone — deliberate; revisit trigger in FR-27.12, fired by item 8.
+8. ~~**FR-27.13 — the M8 group picker cannot be searched**~~ — done 2026-08-22; three points
+   settled while building are recorded in the FR itself.
+9. ~~**FR-27.14 — a Vorlage cannot show its resulting items**~~ — done 2026-08-17.
+   Log: *„FR-27.14: the footer stops being the whole answer"*.
+10. ~~**FR-2.6 — M3's review step only reviews the amount**~~ — done 2026-08-17 (variant A).
    Log: *„FR-2.6 variant A"*.
-11. ~~**FR-5.5's „bewusst nicht einpacken" has no control**~~ — **done** (2026-08-18): the row's
-   press-and-hold menu plus the spelled-out M5 control (variants A + C); the swipe was removed
-   rather than repaired. Five e2e cases in `client/e2e/skip-item.spec.ts`. Log: *„FR-5.5"*.
-12. ~~**§3.28 — the item mark**~~ — **done** (2026-08-22, ADR-021): one optional emoji on
-   `items.icon` and `templates.icon`, a curated searchable index that answers both the search
-   and the name suggestion, a shared picker used by M10 and M8, and one `ItemMark` component
-   owning the per-surface fallback ladder. The face is self-hosted and subsetted (80 KB, 103
-   code points) and held to the index by `scripts/mark-font-gate.mjs`. The deliberate
-   `make visual-update` and the seed extension shipped with it — and the baseline cost the
-   spec predicted did **not** arrive: four of twenty-two moved, none of them for the face.
-   Log: *„§3.28: the mark gets built"*.
-
-13. ~~**FR-27.15 — M8 does not notice when loose positions are a group**~~ — **done**
-   (2026-08-22): a non-blocking suggestion row per recognised group, *Zusammenfassen* on the
-   picker's write path with *Rückgängig*, *Ignorieren* device-local and keyed to the group's
-   item set. Three widenings settled while building are recorded in the FR itself — the most
-   consequential being that the stated deviation covers every generation-relevant field, not
-   only the quantity. Log: *„FR-27.15: the editor learns to recognise its own duplicates"*.
-
-14. ~~**The multi-user concept's unfinished half**~~ — **closed 2026-08-30** — the concept itself is built and holds
-   (NFR-4.2a: HLC + field-level LWW, additive fields, terminal precedence, the `conflict_log`,
-   G-3's lock, presence, FR-25.19/25.20's assignment). Five places did not do what the spec said,
-   each verified in the code, worst first — all five are closed:
-   **(a)** ~~`groupDecision` let *any* incoming `packed` win regardless of HLC~~ — **done**
-   (2026-08-22, ADR-022): the real fault under it was one `updated_hlc` per row where §6 says
-   per field-group; `field_hlcs` now carries a clock per field, rule 2 is the two pairs §6
-   names, and a conflict entry names the losing `mutation_id` and `actor_user_id`.
-   Log: *„Field-level LWW was row-level, and ‚packed always wins' was hiding it"*.
-   **(b)** ~~Master-partition conflicts were write-only~~ — **done** (2026-08-22): one query
-   serves both partitions, so a conflict on a trip's name or dates is reachable.
-   Log: *„The conflict log had two partitions and one query"*.
-   **(c)** ~~The push response's `conflicts[]` was read by nothing~~ — **done** (2026-08-22):
-   a `merged` push raises one toast per push naming how many fields were overwritten, and the
-   G-2 sheet carries the count as a standing line. Log: *„`merged` was a quieter `applied`"*.
-   ~~**(d)** G-3's lock ends at the row~~ — **done**
-   (2026-08-22): the sheet goes read-only and names the holder, and M4's row names them too. (The
-   staleness window this item added is gone again — see item 17.) The fourth part of
-   that finding — the server neither expiring a lock nor refusing a push for one — **is not a
-   defect and was not built**: §7 makes the lock advisory on purpose, and refusal would wedge an
-   offline device's outbox — reaffirmed by the owner 2026-08-23, the lock stays a client-side
-   courtesy. **Decided 2026-08-30 (owner): it stays advisory** — the question was reopened and
-   closed unchanged, so item 14 owes nothing. What refusal would buy is prevention of a collision
-   the field-level merge and the conflict log already survive; what it would cost is the one case
-   the app is built for, a device that packed rows offline and meets a claim taken while it was
-   away, whose outbox has no answer to a permanent rejection. What was still missing is that a claim could only *end* by packing the row or by
-   ageing out: it can be **released** now, and an aged claim says it aged instead of letting the
-   row go quiet. Log: *„The lock stopped at the row"*, *„A claim had no way out"*.
-   ~~**(e)** NFR-4.2a promises audit **and manual revert**~~ — **done** (2026-08-22,
-   ADR-023): a revert is an ordinary mutation with a fresh server HLC, not an undo, so
-   the merge rules can refuse it and each refusal has its own sentence. No schema change
-   was owed — `losing_value` and an unused `reverted` flag were already there.
-   Found 2026-08-22 while answering how concurrent packers are kept from overwriting each other.
-
+11. ~~**FR-5.5's „bewusst nicht einpacken" has no control**~~ — done 2026-08-18 (variants A + C;
+   the swipe was removed rather than repaired). Log: *„FR-5.5"*.
+12. ~~**§3.28 — the item mark**~~ — done 2026-08-22 (ADR-021). Log: *„§3.28: the mark gets built"*.
+13. ~~**FR-27.15 — M8 does not notice when loose positions are a group**~~ — done 2026-08-22;
+   three widenings are recorded in the FR itself. Log: *„FR-27.15: the editor learns to recognise
+   its own duplicates"*.
+14. ~~**The multi-user concept's unfinished half**~~ — closed 2026-08-30, all five parts (ADR-022
+   field clocks, master conflicts readable, `merged` surfaced, the G-3 lock beyond the row,
+   ADR-023 manual revert). **The lock stays advisory by decision** — reaffirmed by the owner
+   2026-08-30; refusal would wedge an offline device's outbox. Log: five sections, from
+   *„Field-level LWW was row-level…"* to *„A claim had no way out"*.
 15. ~~**FR-9.3/9.4 — the trip's feedback is expensive to give and impossible to correct**~~ —
-   **done** (2026-08-24). *ungenutzt* joins M4's press-and-hold menu beside FR-5.5's entry and the
-   row carries the mark; the window stays open on the **archived** trip, where M14 runs, while
-   *missing* keeps its live-trip gate; and *„Reise abschliessen"* opens the closing pass — a mode of
-   M4 over the packed rows whose *„Fertig"* archives and opens M14. FR-9.4's three points went with
-   it: a handled proposal leaves *Offen* for an *Erledigt* block, the finished state is reachable by
-   finishing, and *„Nie mehr fragen"* is worded. Five e2e cases in `client/e2e/closing-pass.spec.ts`.
-   Log: *„A trip could be judged only one row at a time"*.
-
-16. ~~**NFR-4.14 — the client/server contract is written twice and checked nowhere**~~ —
-   **done** (2026-08-23/24). The mechanism is ADR-026: `internal/api/wire.go` is the one
-   declaration, `make wire` generates `client/src/api/types.ts` from it, and
-   `scripts/wire-contract-gate.sh` (in `make ci` and the CI `go` job) fails the build when they
-   differ; the 16 error codes are `ErrorCode` constants generated into a frozen `ERROR_CODE`
-   object. The **route shapes** are ADR-027: **a path names its scope first, then the resource**,
-   the master partition's scope segment is the literal `master`, and an export names its format
-   (`/trips/{id}/sync`, `/master/sync`, `/master/conflicts`, `/me/export.json`). Log: *„The wire
-   was described twice…"* and *„A route names its scope first"*.
-   Coverage closed 2026-08-24: **every response body is a declared type**, held there by
-   `TestEveryResponseBodyIsADeclaredType` (an AST check over `internal/api`, so the next response
-   cannot be a map literal) and, for the blind spot that check has, by
-   `TestWire_NotificationPrefsNamesEveryKindTheStoreKnows`.
-   The **routes** followed the same day: `wire.go` declares every path and every path variable,
-   the mux registers from those constants, `cmd/wiregen` writes `client/src/api/routes.ts`, and
-   four AST rules refuse a route or a path variable taken from a literal. ADR-027's second
-   revisit trigger is discharged, and NFR-4.14 owes nothing further. Log: *„A path stopped being
-   written twice"*.
-
-17. ~~**FR-5.7 — a claim is broken by a person, not by a clock**~~ — **done** (2026-08-24,
-   ADR-028): the staleness window and everything serving it are deleted, and a claim now ends
-   only by being packed, released, or **taken over** — confirmed against the holder's name,
-   stamped by the server, recorded in `lock_events`, and notified to the holder as a fourth
-   FR-6.2 kind. It reverses 14(d)'s "client-side courtesy" for the takeover alone. What building
-   it settled is in FR-5.7 itself. Its e2e case became reachable the next day, with the mock-IdP
-   `server` project (item 18) — which found that a takeover left the *loser's* device still
-   believing it held the row. Log: *„A claim stops having a lifetime"*.
-
-18. ~~**A second identity was unreachable in the e2e suite**~~ — **done** (2026-08-24, ADR-029):
-   the `server` Playwright project runs jitpackd in OIDC mode against a mock IdP fixture
-   (`client/e2e/server/`), with two browser contexts logged in as two accounts through the app's
-   own login. `make e2e-server`, its own CI job, gated on `E2E_SERVER` the way `single` is on
-   `E2E_BACKEND`. It closes MVP-plan blocker B3 and the identity halves of E2E-G3-01/02/03 and
-   E2E-FLOW-01. The three areas it named as owed are all closed: delegation (E2E-FLOW-02)
-   2026-08-25 with item 20's control, presence (G-10) and the admin surface (M20) 2026-08-28 —
-   the last two found a facepile initialling a random key, a group-sync badge whose state was
-   unreachable, and a deactivated account whose app looked offline instead of saying so.
-   **Real-provider coverage closed it 2026-08-30**, split by what each half can establish: the
-   metadata half is `internal/api/realprovider_test.go` (opt in with `JITPACK_REAL_IDP_ISSUER`,
-   skipped everywhere else, read-only so it is safe against production), and the half that needs
-   a person — the login, the second factor, the refresh grant, the disabled-account asymmetry —
-   is a written procedure in `dev-docs/e2e-tests.md` rather than an intention. **Item 18 owes
-   nothing further.** Log: *„A second account arrives…"*, *„Two screens
-   nobody had ever rendered"*.
-
-19. ~~**NFR-4.12 — notifications were the one surface still written in English**~~ — **done**
-   (2026-08-29, ADR-037). The bodies come off the catalogue, and the service worker's second copy
-   is gone: the app mirrors the finished templates for the active language into IndexedDB and
-   `sw.js` reads them there — the one mechanism that still works when a push wakes a worker with
-   no page open. The *selection* is written twice by necessity and held equal by a test that loads
-   the worker source and drives both renderers; the worker keeps exactly one English sentence, for
-   a device that has never written the mirror.
-
-20. ~~**FR-25.19 — responsibility was read everywhere and written nowhere**~~ — **done**
-   (2026-08-25). UI-Spec M5 had promised *„Zugewiesen an" → notification (FR-6.2)* since the
-   concept round; `packer_user_id` was written once when a row was generated and never again, so
-   M4's edge avatar, the „zuständig war …" stamp and FR-25.20's filter all described a state
-   nobody could produce, and the delegation notification the server fires could not be produced
-   by using the app. The picker sits in M5's *Details ▾* with *„niemand"* as its clear, absent
-   where there is nobody to assign to (G-8) and silent on a locked row (G-3). E2E-FLOW-02 covers
-   the chain. Log: *„A column everything read and nothing wrote"*.
-
-19. ~~**FR-24.3 — a delete of a referenced master row was refused, not decided**~~ — **done**
-   (2026-08-25, ADR-032), for master items **and** Vorlagen: `retired_at` on both tables, the
-   server's `stillReferenced` check turned from a refusal into the choice, M10's delete card (which
-   did not exist) and M7's confirm stating which of the two happens *before* it does, and
-   `itemList`/`templateList` deliberately still meaning everything while display surfaces opt into
-   the active lists. §3.24 is closed. **Restore followed the same day** (ADR-034): M23 lists the
-   retired rows off M17, and the collision the partial name index makes possible — the freed name
-   taken by a new row — is refused on the client before the mutation, with a replacement name
-   written in the same write. A retired row nothing references any more can still be removed for
-   good. Log: *„A delete that could only be refused"*, *„The restore was free, the name was not"*.
-
-21. ~~**FR-2.8 — M2 opens on the one segment that is usually empty**~~ — **done**
-   (2026-08-29): the opening segment is derived from what the list holds and each segment states
-   its count. The clause that carried the cost is the settled guard — a list that has not arrived
-   is not an empty one (ADR-033) — which is why this started in the orchestrator, with
-   `masterDataLoaded`, and not in M2. E2E-M2-13/13b/13c/13d and E2E-M2-14.
-
-22. ~~**FR-25.21 — the per-person model had no writer**~~ — **done** (2026-08-29/30).
-   The model has carried per-traveler quantities since FR-25.1 — one `trip_items` row per traveler,
-   its own quantity — and M4's cluster, M12 and the FR-27.4 refresh all read it. Nothing in the app could *produce* it: M5's *„Wer braucht das?"* is a single-select, so
-   FR-25.10's multi-select was specified in July and shipped as a picker, and FR-25.8's per-traveler
-   quick-add was never built. **M6 is a second unbuilt promise found with it**: FR-25.6's
-   aggregated buy row was decided 2026-08-07 and `ShoppingPage.vue` groups by category
-   only, so a per-person item is N identical rows — inside this FR, not a separate one.
-   The editor is one component on two surfaces, membership is a checkbox
-   (0 stays FR-5.5's *skipped*), and the write path is ADR-036: keep-and-repoint with ADR-016-derived
-   ids, which makes the hand-made row and the generated row the same row. Three points decided rather
-   than parked — the cluster head counts people, collapsing sums, and the ADR was owed. No schema,
-   server or sync-contract change. Full finding in FR-25.21; UI-Spec M5/M4; E2E-M5-18/19/20, M4-58,
-   G3-04.
-   **Built 2026-08-29:** `domain/membership.ts` (the ADR-036 planner, 19 unit cases),
-   `MembershipSheet.vue` behind M5's *Details ▾*, and E2E-M5-18/19/20 — red-proved, and the five e2e
-   callers of the deleted `m5-traveler` picker rewired with them. Log: *„The per-person model finally
-   gets a writer"*. **FR-25.8's *Pro Person* quick-add followed 2026-08-29**: a *Gemeinsam*/*Pro Person*
-   segment on the shared composer, offered only where there is somebody to distribute over (G-8, so
-   never on M8), writing the row first and opening the editor on it — E2E-M4-12/58, M4-13, M4-64/65.
-   Log: *„The quick-add gets a mode…"*. **FR-25.6's aggregated M6 buy row followed 2026-08-29**:
-   `domain/shoppingView.ts` keys the buy row by M4's own `perPersonKey`, sums the amounts, names the
-   recipients, and one check-off settles every instance — the reveal aggregates by the same rule and
-   each tab counts rows to buy (E2E-M6-05/06). Log: *„The shop stops asking three times…"*.
-   **E2E-G3-04 closed it 2026-08-30**: the two-identity case for the G-3 cluster lock, which found
-   that the rule had shipped with no surface saying it — the editor now names the holder.
-   Log: *„A rule that was complete and invisible"*. **One further rule came out of the two features
-   meeting (2026-08-30):** a conversion leaves no row claiming a state its own numbers no longer
-   support — FR-25.13f's ✕ writes quantity 0 and *skipped*, per-person floors the amount at 1, and the
-   row was created and hidden in the same breath. The state falls back to *open* exactly when it has
-   stopped being true, and only un-skipping is confirmed (E2E-M5-21). Log: *„A row kept saying it was
-   skipped…"*. **FR-25.21 owes nothing further.**
+   done 2026-08-24. Log: *„A trip could be judged only one row at a time"*.
+16. ~~**NFR-4.14 — the client/server contract is written twice and checked nowhere**~~ — done
+   2026-08-23/24 (ADR-026 shapes, ADR-027 routes; `make wire` + `scripts/wire-contract-gate.sh`).
+   Log: *„The wire was described twice…"*, *„A route names its scope first"*, *„A path stopped
+   being written twice"*.
+17. ~~**FR-5.7 — a claim is broken by a person, not by a clock**~~ — done 2026-08-24 (ADR-028).
+   Log: *„A claim stops having a lifetime"*.
+18. ~~**A second identity was unreachable in the e2e suite**~~ — done 2026-08-24 (ADR-029): the
+   `server` Playwright project with a mock IdP; real-provider coverage closed it 2026-08-30.
+   Log: *„A second account arrives…"*, *„Two screens nobody had ever rendered"*.
+19. ~~**NFR-4.12 — notifications were the one surface still written in English**~~ — done
+   2026-08-29 (ADR-037): the worker reads the mirrored catalogue from IndexedDB, and keeps exactly
+   one English sentence for a device that has never written the mirror.
+20. ~~**FR-25.19 — responsibility was read everywhere and written nowhere**~~ — done 2026-08-25.
+   Log: *„A column everything read and nothing wrote"*.
+21. ~~**FR-2.8 — M2 opens on the one segment that is usually empty**~~ — done 2026-08-29; the
+   clause that carried the cost is the settled guard (ADR-033) — a list that has not arrived is
+   not an empty one.
+22. ~~**FR-25.21 — the per-person model had no writer**~~ — done 2026-08-29/30 (ADR-036
+   keep-and-repoint). Log: five sections, from *„The per-person model finally gets a writer"* to
+   *„A row kept saying it was skipped…"*.
+23. ~~**FR-24.3 — a delete of a referenced master row was refused, not decided**~~ — done
+   2026-08-25 (ADR-032 retire, ADR-034 restore via M23); §3.24 is closed. Log: *„A delete that
+   could only be refused"*, *„The restore was free, the name was not"*. (Numbered 23 since
+   2026-09-02: it had been a second item 19, and the specs' „item 19" means NFR-4.12.)
 
 **Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history (its *commented* slice is
@@ -655,13 +164,9 @@ publish/fork ownership model (each carries a revisit trigger in its stub).
 5. **Three modes, one artifact.** Behaviour is selected at runtime, never by a separate build — but note where each switch lives: the client's `jitpack_mode` is only `local` or `server`; **Single-User is a server-side configuration** (`api.NewSingleUser`) that a `server`-mode client discovers by being offered no OIDC. There is no third client mode. Every feature must answer: what happens in Single-User Mode (auth and membership are bypassed — anything gated on `authed` is inert) and in Local Mode (no network)? Server-only surfaces are hidden per G-8, not left broken.
 6. **Item image BLOBs stay outside the sync envelope** (ADR-002). Only `items.image_hash` flows through the master feed; the bytes move over their own endpoints. The 150 KB / JPEG limit is enforced at handler, store and CHECK constraint — three layers on purpose.
 7. **Coverage gates are enforced, not aspirational**: ≥75 % overall, ≥90 % `internal/sync`. An uncovered branch in merge logic fails review regardless of the total.
-8. **Everything resolves to an exact version verified by hash.** npm via `package-lock.json`, Go via `go.sum`, Docker base images by `@sha256:` digest, GitHub Actions by full commit SHA with the tag as a readable comment. Never a bare tag. Dependabot updates the digests, so pinning costs no freshness — **except where a version is also a toolchain decision, and then it is made by hand.** Two such places — and the first of them has a tail:
+8. **Everything resolves to an exact version verified by hash.** npm via `package-lock.json`, Go via `go.sum`, Docker base images by `@sha256:` digest, GitHub Actions by full commit SHA with the tag as a readable comment. Never a bare tag. Dependabot updates the digests, so pinning costs no freshness — **except where a version is also a toolchain decision, and then it is made by hand**, because CI compiles through `setup-node`/`setup-go` and never through the build image, so a lone bump would ship an artifact built by a version nothing tested. A **node** major is named in the root `Dockerfile`, `mise.toml` and every `node-version:` in `ci.yml`; a **Go** major in the `Dockerfile`, `mise.toml`, `go.mod` and — because the linter refuses a config for a newer Go than it was built with — the `golangci-lint` pins in `mise.toml` and `ci.yml`. `scripts/toolchain-pins-gate.sh` (in `make ci`, first in `docker-build`) compares them and fails naming the files still to change; Dependabot's majors therefore arrive red on purpose. It deliberately does **not** judge whether a pinned linter release is new enough for the go directive — no file records that; `make ci` running the binary is what says. Log: *„A version that was named in a fourth place"*.
 
-   **A build image's version is also a toolchain version, and `scripts/toolchain-pins-gate.sh` holds them together** (added 2026-08-21 after a `node:24-alpine` → `26-alpine` bump merged green). Since ADR-043 the root `Dockerfile` carries *both* stages — its node builds the client, its golang the binary — and each major is named a second and third time — in `mise.toml`, in every `node-version:` in `ci.yml`, in `go.mod`. A bump in one file alone passes **every** other check, because CI compiles through `setup-node`/`setup-go` and never through the image, so the published artifact would be built by a version nothing tested. The gate compares all of them (run by `make ci` and first in the `docker-build` job) and fails naming the files still to change. **Dependabot therefore keeps proposing majors on purpose**: the PR arrives by itself, the gate turns it red, and moving a major stays one deliberate change across the files that name it — remembered by the pipeline rather than by the maintainer.
-
-   **A Go major is named in a fourth place: `golangci-lint`** (2026-08-28, #239). The linter refuses to load a config for a module targeting a newer Go than the one it was itself built with, so `go 1.27.0` in `go.mod` also means bumping the `version:` under `golangci-lint-action` and the `golangci-lint` pin in `mise.toml`. The gate holds *those two* to each other — a lint that differs between `make ci` and the pipeline is the same defect in a smaller costume — but it deliberately does **not** try to decide whether the pinned release is new enough for the go directive: that depends on the toolchain the release was built with, which no file in the repo records. golangci-lint's own `go.mod` stays a major behind on purpose and answers a different question, so reading it would mislead. Only running the binary says, and `make ci` does that one step later. The coupling lives in the gate's failure hints instead.
-
-   **The Playwright image** in `scripts/playwright-image.sh` — sourced by `scripts/visual.sh` and `scripts/e2e.sh` — is bumped by hand, because Dependabot's docker ecosystem reads Dockerfiles rather than shell scripts, and because a bump there rewrites every visual baseline and should be a decision rather than a Tuesday (ADR-013). That exception is **checked rather than trusted**: both scripts compare the pinned version against `@playwright/test` in `client/package-lock.json` before starting the container and fail with the fix, because Dependabot bumps the lockfile and cannot see the image — the drift otherwise surfaces as Playwright's own "Executable doesn't exist", which names neither cause nor remedy.
+   **The Playwright image** in `scripts/playwright-image.sh` — sourced by `scripts/visual.sh` and `scripts/e2e.sh` — is bumped by hand, because Dependabot's docker ecosystem reads Dockerfiles rather than shell scripts, and because a bump rewrites every visual baseline and should be a decision rather than a Tuesday (ADR-013). Both scripts compare the pin against `@playwright/test` in `client/package-lock.json` before starting the container, because Dependabot bumps the lockfile and cannot see the image.
 9. **Colors come from one token table** — `client/src/theme/catppuccin.css` (`--ct-*`, Mocha as the dark default, Latte behind `jitpack-latte`). Ionic's variables consume those tokens; there is no parallel color system and no hard-coded color — **not even as a `var(--x, #fallback)`**, which is a second unreviewed palette that only paints when something is already wrong. (One written exception: the §3.28 item mark's glyphs paint their own colours, because they come from the emoji face; it stays an exception because FR-28.5/G-15 confine the mark to content and `markRendering.spec.ts` confines the face to two components — ADR-021.) Above the palette sit the three **role anchors** (`--jp-brand` peach, `--jp-action` blue, `--jp-done` green/teal, G-11/FR-21.7): a component asks for the role, and only that block decides which hue a role is. **Type comes from a second table beside it**, `client/src/theme/typography.css` (the two self-hosted faces, the `--jp-text-*` scale, the `.jp-*` role classes): which face and size a piece of text takes is decided by its role, each role is defined once there, and a view never sets its own `font-family`, `font-size`, `font-weight` or `letter-spacing` — the gate in 9b rejects all four. **Icons are a second table beside the type scale** (`--jp-icon-*`): `font-size` on an `ion-icon` is a glyph box, not a text size, and sharing one scale would tie an empty-state illustration to whatever body copy does next (G-13, FR-21.5/21.6).
 9b. **Shape comes from a third table, and the three are enforced by a gate** — `client/src/theme/surfaces.css` (the `--jp-r*` radius scale, the three elevation casts, `.jp-card`). Depth is a role like brand and action: **page → card → sunken**, named once as `--jp-surface-*`, and Ionic's background variables resolve *through* those roles. Elevation is **one geometry cast in the flavour's ink** — the offsets live in `surfaces.css`, the ink and its weight in `catppuccin.css`, because a shadow that reads as depth on near-black reads as dirt on near-white. `scripts/design-tokens-gate.mjs` (run by `make client` and the CI `client` job) rejects a raw colour, a raw type declaration, a raw `border-radius` length or a raw `box-shadow` anywhere in `client/src` outside the three theme files. Four carve-outs, each **by rule and not by allowlist**: `50%` (a circle is a shape, not a size), a `0 0 0 <n>px` ring (casts no light, so it is not elevation), `letter-spacing: 0`/`normal` (a reset declines a decision rather than making one), and SVG text — inside a `viewBox` a font-size is in *user units*, so it lives as an attribute in the template beside the other geometry and never reaches CSS. **What this invariant is actually for:** the M4 group card painted itself `--ct-mantle` — a valid palette token, passing invariant 9 — which was the exact colour of the page behind it. A card can satisfy every colour rule and still not be a card, and only a rendered pixel can tell you (G-14, FR-21.8).
 
@@ -687,6 +192,18 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
   stays, because replacing it means asserting against the stub instead of the environment
   the spec declared. A spec still owns anything bespoke (a constructible `WebSocket` that
   records instances, a storage that throws) by stubbing after the call.
+- **A coverage count says how many promises have no test, never how many deserve one.** Measure a
+  screen, not the repository, and **never re-derive the headline number to compare against it** —
+  a second grep is a second *method*, not a second measurement. An unwritten case is as likely to
+  be an unbuilt promise as a missing test; only reading it against the screen says which.
+- **Before crediting an assertion, ask whether it would have passed before the action.** A clause
+  can be green and unfalsifiable — an absence needs a positive signal (a recorded call, a settled
+  state, a planted response), and for an absence the signal must be the same event reaching
+  somewhere else. A `data-testid` that occurs in no test is a dependable sign that no test has
+  ever operated that control.
+- **A case id in a test title is a coverage claim**, and `scripts/case-id-gate.mjs` (in `make ci`)
+  refuses a duplicate definition. Run one case with `-g "E2E-M5-05"`; the ledger is
+  `dev-docs/e2e-tests.md`.
 - **Always `-race`.**
 
 ## Working agreement (see CODING_PRINCIPLES.md for the full detail)
@@ -719,7 +236,7 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - Don't judge a UI change from the stylesheet. Render it, look at it, and let the maintainer eyeball it before the Playwright case is finalized.
 - **Run `make fmt` before pushing** if `make ci` complains: since ADR-040 the CI `format` job *checks* gofmt and prettier instead of fixing them, so formatting can fail a build. It no longer pushes anything to your branch — the `action_required` state that used to make a PR look checkless is gone with it.
 - **The e2e shard count is a measurement, not a constant.** It is 8 (`ci.yml`), sized 2026-08-30 against ~1920 test-seconds. A suite that grows makes it stale *silently*, because the only symptom is a slower pipeline. When e2e feels slow, read the per-leg times of a recent run before anything else.
-- **CI/CD layout** (`.github/`): `ci.yml` (go, go-lint, client, format, visual, e2e ×8, e2e-single, e2e-server, docker-build, dependabot-merge), `docker.yml` (one image to ghcr.io on `v*` tags, ADR-043), `release.yml` (release-please). A `concurrency` group supersedes a superseded **pull-request** run; a `push` to main is never cancelled, because its run is the record that main was green. Dependabot merging is gated by the `dependabot-merge` job, which `needs` every check job. **`main` is protected** (configured 2026-08-08, now that the repo is public — the historical note that protection was blocked applied to the free-plan private repo). Required checks: `go`, `go-lint`, `client`, `format`, `docker-build` — `format` since ADR-040, because a check that only reports would make formatting weaker than the auto-fixing job it replaced. Force-pushes and deletion are off, linear history is required (squash-merge produces it), admins are **not** exempt. Deliberately not set: `e2e` is not required — it is an eight-leg shard matrix (eight separate check names that would each need listing) and `dependabot-merge` already waits for it; `visual` is not required because it `needs: [client]`, and a skipped required check blocks a PR with a less useful message than the client failure itself. Review approvals are not required either: with a single maintainer that would block every merge and break Dependabot auto-merge. If a required check ever wedges, lift protection with `gh api -X DELETE repos/polandy/JIT-Pack/branches/main/protection`, merge, then re-apply.
+- **CI/CD layout** (`.github/`): `ci.yml` (go, go-lint, client, format, visual, e2e ×8, e2e-single, e2e-server, docker-build, dependabot-merge), `docker.yml` (one image to ghcr.io on `v*` tags, ADR-043), `release.yml` (release-please). A `concurrency` group supersedes a superseded **pull-request** run; a `push` to main is never cancelled, because its run is the record that main was green. Dependabot merging is gated by `dependabot-merge`, which `needs` every check job. **`main` is protected**: required checks are `go`, `go-lint`, `client`, `format` (since ADR-040) and `docker-build`; force-pushes and deletion are off, linear history is required, admins are not exempt, review approvals are not required. `e2e` and `visual` are deliberately **not** required — an eight-leg matrix would need eight listed names and `dependabot-merge` already waits for it, and a skipped required check reports worse than the failure under it. If a required check wedges, lift protection with `gh api -X DELETE repos/polandy/JIT-Pack/branches/main/protection`, merge, then re-apply.
 
 ## Deviations
 
