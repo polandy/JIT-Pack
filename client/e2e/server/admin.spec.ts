@@ -23,11 +23,16 @@ const TINY_JPEG_BASE64 =
  * Until this unit the whole screen carried no `data-testid` at all, which is
  * the plainest possible statement that nothing had ever driven it.
  *
- * **Why `carol` exists.** These cases change the account they act on, and one
- * backend serves the whole run with `admin.spec.ts` and `multi-user.spec.ts`
- * free to land on two workers. Administering `bob` would reach sideways into
- * that unit's trips mid-test, so the mock IdP carries a third ordinary
- * account whose only job is to be administered.
+ * **Why `dave` exists, and why nobody else may log in as him.** These cases
+ * change the account they act on — deactivate it, take its picture, reset its
+ * name — and one backend serves the whole run with this file and
+ * `multi-user.spec.ts` free to land on two workers. Deactivating an account
+ * another file is logged in as at that moment ends *its* session mid-case
+ * (FR-23.3 does exactly what it promises), and every later login as that
+ * account is refused until this file reaches its reactivate step. That is
+ * what happened with `carol` on 2026-09-02, after E2E-M17-01 had borrowed
+ * her: one red case, then three more at the login. The rule the fixture now
+ * states: an account a file *changes* is logged in by that file alone.
  */
 test.describe('M20 — the instance admin surface @server @m20', () => {
   // Two or three real logins through the broker per case (§2.4's cost).
@@ -136,9 +141,9 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
    * E2E-M20-02 + E2E-M20-03: deactivation ends the account's access where it
    * is sitting, reactivation gives it back, and a display name can be reset.
    *
-   * The access half is asserted on Carol's *own screen*, which is what makes
+   * The access half is asserted on Dave's *own screen*, which is what makes
    * it worth running: FR-23.3 is enforced per request in the auth middleware,
-   * and her tokens go on looking valid in localStorage — so before this case
+   * and his tokens go on looking valid in localStorage — so before this case
    * a deactivated account's app was indistinguishable from an offline one and
    * simply stopped syncing without a word. The client now ends the session on
    * that one error code and the screen is the login again.
@@ -146,19 +151,19 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
   test('E2E-M20-02, E2E-M20-03: a deactivated account is put out and let back in, and a display name can be reset', async ({
     browser,
   }) => {
-    const ctxCarol = await browser.newContext()
-    const carol = await loginAs(ctxCarol, 'carol')
+    const ctxDave = await browser.newContext()
+    const dave = await loginAs(ctxDave, 'dave')
 
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
     await alice.goto('/admin')
 
     const list = visiblePage(alice).getByTestId('admin-list')
-    const carolRow = list.getByTestId(`admin-row-${ACCOUNT_NAMES.carol}`)
-    await expect(carolRow).toBeVisible()
-    await expect(carolRow.getByTestId('admin-deactivated-chip')).toHaveCount(0)
+    const daveRow = list.getByTestId(`admin-row-${ACCOUNT_NAMES.dave}`)
+    await expect(daveRow).toBeVisible()
+    await expect(daveRow.getByTestId('admin-deactivated-chip')).toHaveCount(0)
 
-    await carolRow.click()
+    await daveRow.click()
     await alice
       .locator('ion-action-sheet')
       .getByRole('button', { name: /^Deactivate$/ })
@@ -168,33 +173,35 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     // that it is immediate, that what they made stays, and that logging in
     // again is not the way back.
     const confirm = alice.locator('ion-alert')
-    await expect(confirm).toContainText(ACCOUNT_NAMES.carol)
+    await expect(confirm).toContainText(ACCOUNT_NAMES.dave)
     await expect(confirm).toContainText(/loses all access immediately/i)
     await expect(confirm).toContainText(/remain visible to others/i)
     await expect(confirm).toContainText(/only Reactivate/i)
     await confirm.getByRole('button', { name: /^Deactivate$/ }).click()
 
-    await expect(carolRow.getByTestId('admin-deactivated-chip')).toBeVisible()
+    await expect(daveRow.getByTestId('admin-deactivated-chip')).toBeVisible()
 
-    // Carol's next request is refused, and her screen says so by being the
-    // login again — the app boots, its first pull comes back 403 and the
-    // session ends. Asserted on the rendered page: the tokens are still in
-    // her localStorage at the moment of the reload, so a URL assertion alone
+    // Dave's next request is refused, and his screen says so by being the
+    // login again — the app boots, M1's `me` comes back 403 and the session
+    // ends. That request is sent from a child's `onMounted`, so it can answer
+    // before App.vue is listening, which is what `onSessionEnded`'s latch is
+    // for. Asserted on the rendered page: the tokens are still in his
+    // localStorage at the moment of the reload, so a URL assertion alone
     // would pass against a client that ignored the refusal.
-    await carol.reload()
-    await expect(visiblePage(carol).getByTestId('login-action')).toBeVisible()
+    await dave.reload()
+    await expect(visiblePage(dave).getByTestId('login-action')).toBeVisible()
 
     // …and the way back is the one the confirmation named.
-    await carolRow.click()
+    await daveRow.click()
     await alice
       .locator('ion-action-sheet')
       .getByRole('button', { name: /^Reactivate$/ })
       .click()
-    await expect(carolRow.getByTestId('admin-deactivated-chip')).toHaveCount(0)
+    await expect(daveRow.getByTestId('admin-deactivated-chip')).toHaveCount(0)
 
-    const ctxCarolAgain = await browser.newContext()
-    const carolAgain = await loginAs(ctxCarolAgain, 'carol')
-    await expect(visiblePage(carolAgain).getByTestId('dashboard-greeting')).toBeVisible()
+    const ctxDaveAgain = await browser.newContext()
+    const daveAgain = await loginAs(ctxDaveAgain, 'dave')
+    await expect(visiblePage(daveAgain).getByTestId('dashboard-greeting')).toBeVisible()
 
     // FR-23.4: the name the IdP supplied can be taken away. It is done last
     // on purpose — the row is addressed by that name, and a reset is the one
@@ -202,17 +209,17 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     // account id, so its disappearance is asserted beside the list still
     // holding an unnamed row rather than on its own.
     const before = await list.locator('ion-item').count()
-    await carolRow.click()
+    await daveRow.click()
     await alice
       .locator('ion-action-sheet')
       .getByRole('button', { name: /^Reset display name$/ })
       .click()
-    await expect(list.getByTestId(`admin-row-${ACCOUNT_NAMES.carol}`)).toHaveCount(0)
+    await expect(list.getByTestId(`admin-row-${ACCOUNT_NAMES.dave}`)).toHaveCount(0)
     await expect(list.locator('ion-item')).toHaveCount(before)
 
     await ctxAlice.close()
-    await ctxCarol.close()
-    await ctxCarolAgain.close()
+    await ctxDave.close()
+    await ctxDaveAgain.close()
   })
 
   /**
@@ -228,19 +235,19 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
    * Moderation whose whole point is that the picture goes has to show it
    * going on the screen that did it.
    *
-   * The picture is put on Carol's account through the app's own endpoint
+   * The picture is put on Dave's account through the app's own endpoint
    * rather than through M17's control: the crop modal renders into a canvas
    * with no settled signal to wait on, which is why E2E-M17-12 is still
    * open, and this case is about M20's row rather than about the crop.
    */
   test('E2E-M20-03b: a picture on the row is what Remove avatar removes', async ({ browser }) => {
-    const ctxCarol = await browser.newContext()
-    const carol = await loginAs(ctxCarol, 'carol')
+    const ctxDave = await browser.newContext()
+    const dave = await loginAs(ctxDave, 'dave')
 
     // A 1×1 JPEG. `PUT /users/{id}/avatar` is `self`-guarded, so it is sent
-    // from inside Carol's own session — an admin cannot put one there, only
+    // from inside Dave's own session — an admin cannot put one there, only
     // take it away, which is FR-23.4's whole shape.
-    const uploaded = await carol.evaluate(async (jpegBase64) => {
+    const uploaded = await dave.evaluate(async (jpegBase64) => {
       const stored = localStorage.getItem('jitpack_tokens')
       if (!stored) return 'no session'
       const token = (JSON.parse(stored) as { access_token: string }).access_token
@@ -262,15 +269,15 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     const alice = await loginAs(ctxAlice, 'alice')
     await alice.goto('/admin')
 
-    const carolRow = visiblePage(alice)
+    const daveRow = visiblePage(alice)
       .getByTestId('admin-list')
-      .getByTestId(`admin-row-${ACCOUNT_NAMES.carol}`)
-    const face = carolRow.getByTestId('user-avatar')
+      .getByTestId(`admin-row-${ACCOUNT_NAMES.dave}`)
+    const face = daveRow.getByTestId('user-avatar')
     // The picture is laid over the initials (FR-23.4a), so its presence is
     // the state this case then takes away.
     await expect(face.getByTestId('user-avatar-picture')).toBeVisible()
 
-    await carolRow.click()
+    await daveRow.click()
     await alice
       .locator('ion-action-sheet')
       .getByRole('button', { name: /^Remove avatar$/ })
@@ -280,10 +287,10 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     // where FR-23.4a says they always were — asserted together, because an
     // avatar that stopped rendering at all would satisfy the absence alone.
     await expect(face.getByTestId('user-avatar-picture')).toHaveCount(0)
-    await expect(face).toHaveText('CA')
+    await expect(face).toHaveText('DA')
 
     await ctxAlice.close()
-    await ctxCarol.close()
+    await ctxDave.close()
   })
 
   /**
@@ -304,20 +311,20 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
   test('E2E-M20-06: a deactivated account signing in again is refused, and told why', async ({
     browser,
   }) => {
-    const ctxCarol = await browser.newContext()
-    // Carol logs in first: it provisions her, and it re-stamps the display
+    const ctxDave = await browser.newContext()
+    // Dave logs in first: it provisions her, and it re-stamps the display
     // name the row is addressed by (FR-23.4) in case a sibling case reset it.
-    await loginAs(ctxCarol, 'carol')
-    await ctxCarol.close()
+    await loginAs(ctxDave, 'dave')
+    await ctxDave.close()
 
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
     await alice.goto('/admin')
 
-    const carolRow = visiblePage(alice)
+    const daveRow = visiblePage(alice)
       .getByTestId('admin-list')
-      .getByTestId(`admin-row-${ACCOUNT_NAMES.carol}`)
-    await carolRow.click()
+      .getByTestId(`admin-row-${ACCOUNT_NAMES.dave}`)
+    await daveRow.click()
     await alice
       .locator('ion-action-sheet')
       .getByRole('button', { name: /^Deactivate$/ })
@@ -326,7 +333,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
       .locator('ion-alert')
       .getByRole('button', { name: /^Deactivate$/ })
       .click()
-    await expect(carolRow.getByTestId('admin-deactivated-chip')).toBeVisible()
+    await expect(daveRow.getByTestId('admin-deactivated-chip')).toBeVisible()
 
     // A fresh device, a real login, all the way through the IdP.
     const ctxAgain = await browser.newContext()
@@ -335,7 +342,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await again.goto('/')
     await expect(visiblePage(again).getByTestId('login-action')).toBeVisible()
     await again.getByTestId('login-action').click()
-    await again.getByTestId('idp-login-carol').click()
+    await again.getByTestId('idp-login-dave').click()
 
     // The sentence, not merely a refusal: "rejected the login" is what every
     // other failed exchange says, so a regex that matched it would pass
@@ -347,12 +354,12 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
 
     // Put the account back, because the next case in this file expects an
     // ordinary account to administer.
-    await carolRow.click()
+    await daveRow.click()
     await alice
       .locator('ion-action-sheet')
       .getByRole('button', { name: /^Reactivate$/ })
       .click()
-    await expect(carolRow.getByTestId('admin-deactivated-chip')).toHaveCount(0)
+    await expect(daveRow.getByTestId('admin-deactivated-chip')).toHaveCount(0)
 
     await ctxAlice.close()
   })

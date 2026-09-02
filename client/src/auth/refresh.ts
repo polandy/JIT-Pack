@@ -22,6 +22,20 @@ const EXPIRY_SKEW_MS = 30_000
 export const AUTH_EXPIRED_EVENT = 'jitpack:auth-expired'
 
 /**
+ * Whether `endSession` has run in this page's lifetime.
+ *
+ * A DOM event reaches only the listeners that exist when it is dispatched,
+ * and the first request a deactivated account's app makes is M1's `me`, sent
+ * from a child's `onMounted` — it answered before App.vue had finished the
+ * awaits ahead of its listener, the event was lost, and the dashboard stood
+ * there saying *offline* (E2E-M20-02, 2026-09-02). The latch lets a handler
+ * attached afterwards still learn that the session is over. It is never
+ * reset on purpose: a new session is only ever entered through a full reload
+ * (CallbackPage), which starts a fresh module.
+ */
+let sessionEnded = false
+
+/**
  * End the session for good: drop the tokens and tell the app to go back to
  * the login page.
  *
@@ -32,7 +46,19 @@ export const AUTH_EXPIRED_EVENT = 'jitpack:auth-expired'
  */
 export function endSession(): void {
   clearTokens()
+  sessionEnded = true
   window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
+}
+
+/**
+ * Run `handler` when the session ends — including when it already has, so
+ * an end that fired before anybody was listening is not lost. Returns the
+ * disposer.
+ */
+export function onSessionEnded(handler: () => void): () => void {
+  window.addEventListener(AUTH_EXPIRED_EVENT, handler)
+  if (sessionEnded) handler()
+  return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handler)
 }
 
 export interface AuthRefresher {

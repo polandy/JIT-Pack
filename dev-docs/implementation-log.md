@@ -239,6 +239,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A premise that had closed a case for ten days (2026-09-01)](#a-premise-that-had-closed-a-case-for-ten-days-2026-09-01) — the avatar crop stage never zoomed, because Ionic caps every `img` at its container. Three layers were green: the geometry is pure and right, and the component spec asserts the inline width the browser then refused to apply. What kept it hidden was a sentence, copied into three documents, saying the case could not be written.
 - [A socket that died was never dialled again (2026-09-01)](#a-socket-that-died-was-never-dialled-again-2026-09-01) — the family instance synced one way. The receiving tab had no WebSocket and the client's whole close handling was `socket = null`; Sync-API P-1's reconnect and §9's ping had been sentences since v1.0. What was built on both sides, the options weighed, and two harness traps `routeWebSocket` set.
 - [The second container was the routing table (2026-09-02)](#the-second-container-was-the-routing-table-2026-09-02) — one image now serves the client and the API. Why the runtime web root beat `go:embed` (a fresh clone must still compile), why a green `docker build` proved nothing about the bundle, and the two decisions the Go file server takes differently from `try_files`.
+- [A listener that could not have been there yet (2026-09-02)](#a-listener-that-could-not-have-been-there-yet-2026-09-02) — the `e2e-server` job read as flaky on a Vue patch bump. Two defects met under one scheduling: a fixture account invented to *prevent* cross-file reach was borrowed by the next case that needed a spare, and App.vue attached its session-end listener after two awaits while a child's `onMounted` had already sent the request that fires it. Why the second one is a design rule, not a test fix.
 
 
 ## Current state
@@ -11056,3 +11057,56 @@ quickstart was written**, and `docker run ghcr.io/polandy/jit-pack` served a 404
 at `/` the whole time. The sentence was not a lie about the image; it was a
 description of the shape the project thought it had. A document that describes
 an *intention* reads exactly like one that describes a fact.
+
+## A listener that could not have been there yet (2026-09-02)
+
+The `e2e-server` job failed twice on #318, a Dependabot PR moving Vue 3.5.41 →
+3.5.42, and passed on `main` and on a sibling PR from the same commit. The
+obvious reading — the patch broke the login — was wrong, and the evidence for
+it was of the kind that cannot distinguish a regression from a coincidence: a
+job scheduled on two workers, green whenever the workers happened not to
+overlap. The full account, with both defects and the fixture rule, is in
+`dev-docs/e2e-tests.md`, *„Two files, one account, two workers"*. What
+belongs here is what the diff cannot say.
+
+**A fixture's reason inverted between two commits, and both commits are
+correct on their own.** `carol` was created with a single stated purpose —
+to be the account the admin cases deactivate, so that they would not reach
+across into another file. The next case that needed an account of its own
+read her as *the spare*, and its comment cites her for "exactly this kind of
+reach-across": the original sentence, turned around, in a commit that was a
+pure addition to a test file. The `case-id-gate` cannot see it; a review
+reading the diff alone cannot either, because the premise being inverted is
+in a different file. The form to recognise: **a fixture that exists to keep
+two things apart is the first thing the third thing borrows.** The rule that
+survives it names the invariant instead of the account: an account a file
+*changes* is logged in by that file alone.
+
+**The second defect is the one that decides how to write the fix.** The
+session-end listener was attached in `App.vue`'s `onMounted`, after two
+awaited fetches. Vue mounts children before parents, so `DashboardPage`'s
+`onMounted` had already sent `me` — the first request that carries the token
+and the first to be refused for a deactivated account — before `App.vue`'s
+hook began. Whether the refusal or App's second fetch answered first decided
+between *login* and *a dashboard that says offline*. Two things were on the
+table: move the registration into setup, which is enough by construction,
+or make the end of a session a **state** rather than an **event**, so that a
+listener attached late still learns of it. Both are in, and the second is
+the one the owner's standing rule asks for (2026-09-02, recorded in
+`CODING_PRINCIPLES.md` §3): a behaviour that depends on which of two requests
+lands first has no deterministic test, and the fix for that is a seam in the
+production code — a latch, a settled state — never a test that waits. The
+unit case pins the ordering the screen could not: a handler attached after
+`endSession()` is still reached, red without the latch.
+
+**What this cost the reading of the red runs.** Two of the same job's runs
+were red at 1.2–1.3 minutes against 4.6 healthy, all failures at the login,
+`ECONNRESET` all over the log — and the `ECONNRESET` was ruled out early by
+finding it in the green `main` run too. The right ruling-out was the right
+method applied to the wrong noise: the *Socket error* one line above it was
+the signal (a deactivated account's WebSocket being closed under the other
+worker's case), and the error-context snapshots — which say *„This account
+is deactivated"* on every retry — were in the artifact the whole time. A
+retry that fails *differently* from the first attempt is the cascade telling
+you it is a cascade.
+
