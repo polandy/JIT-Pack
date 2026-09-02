@@ -89,8 +89,9 @@ log and the specs refer back to them.
    screen is worse than an untranslated one. Log: *„The i18n migration…"*, *„M17 was the last screen…"*.
 5. ~~**Two migrations owed by concept decisions**~~ — done 2026-08-11. Log: *„Migrations 018/019"*.
 6. ~~**Playwright suite**~~ — done 2026-09-01: every screen, the G-* patterns and the FLOW-*, PWA,
-   SYNC and NFR rows were read promise by promise against the build, and all owner decisions it
-   raised were ruled on 2026-08-31. **`dev-docs/e2e-tests.md` is the ledger of what is actually
+   SYNC and NFR rows were read promise by promise against the build. The owner decisions it raised
+   were ruled on 2026-08-31, the last one on 2026-09-02 — FR-19.8/ADR-045, M17's guarded three-step
+   move off Local Mode. **`dev-docs/e2e-tests.md` is the ledger of what is actually
    covered — it is the file to read and update.** Log: 24 sections, from *„What ‚covered by e2e'
    was not covering"* to *„A tooltip that only the bar owes"*; the rules the pass left behind are
    in **Testing** below.
@@ -202,8 +203,10 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
   somewhere else. A `data-testid` that occurs in no test is a dependable sign that no test has
   ever operated that control.
 - **A case id in a test title is a coverage claim**, and `scripts/case-id-gate.mjs` (in `make ci`)
-  refuses a duplicate definition. Run one case with `-g "E2E-M5-05"`; the ledger is
-  `dev-docs/e2e-tests.md`.
+  refuses a duplicate definition. When two entries have collided, **a number means what the suite
+  implements**: the loser is struck through in place and says where its promise went, never
+  renumbered, because a reader arriving from an old commit has to land somewhere that explains it.
+  Run one case with `-g "E2E-M5-05"`; the ledger is `dev-docs/e2e-tests.md`.
 - **Always `-race`.**
 
 ## Working agreement (see CODING_PRINCIPLES.md for the full detail)
