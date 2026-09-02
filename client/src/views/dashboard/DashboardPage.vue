@@ -97,19 +97,13 @@ watch(
 )
 
 /**
- * The lookahead: what is planned but not started (FR-6.1, UI-Spec M1).
- *
- * Only the trips this device holds, which in Server Mode is exactly the ones
- * this account is a member of — the master feed is membership-scoped, so
- * „the trips I am involved in" needs no filter here (see
- * `plannedTripsByDeparture`).
+ * The lookahead: what is planned but not started (FR-6.1, UI-Spec M1; why
+ * membership needs no filter is in `plannedTripsByDeparture`).
  *
  * Deliberately **not** loaded and **not** subscribed the way the active trips
- * above are: the card names the trip and when it leaves, and nothing on it is
- * read out of the trip partition. Calling `ensureTripData` for every planned
- * trip would spend one request each to render numbers this section does not
- * show — and a count that has not arrived yet is the „0 offen" defect this
- * screen already paid for once.
+ * above are: nothing on the row is read out of the trip partition, so a
+ * request per planned trip would buy a count this section does not show — and
+ * a count that has not arrived is the „0 open" defect above.
  */
 const plannedTrips = computed(() => plannedTripsByDeparture(store.tripList))
 
