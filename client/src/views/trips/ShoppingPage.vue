@@ -42,6 +42,7 @@ import { buildShoppingList, type ShoppingRow } from '@/domain/shoppingView'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { ShoppingMode, TripItem } from '@/types/domain'
+import { isActive } from '@/domain/trips'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
@@ -147,7 +148,7 @@ function wentTo(row: ShoppingRow): string {
   return row.instances[0]?.mode === 'pack' ? t('shopping.wentToPacking') : t('shopping.wentPacked')
 }
 
-const isActive = computed(() => trip.value?.status === 'active')
+const active = computed(() => isActive(trip.value))
 
 function quickAdd(item: {
   name: string
@@ -166,7 +167,7 @@ function quickAdd(item: {
       categoryName: item.categoryName,
       mode: tab.value,
     },
-    isActive.value,
+    active.value,
   )
 }
 
@@ -189,7 +190,7 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
         </IonSegmentButton>
       </IonSegment>
 
-      <QuickAddItem :is-active="isActive" :exclude-item-ids="quickAddExcludeIds" @add="quickAdd" />
+      <QuickAddItem :is-active="active" :exclude-item-ids="quickAddExcludeIds" @add="quickAdd" />
 
       <IonList v-if="grouped.length > 0">
         <IonItemGroup

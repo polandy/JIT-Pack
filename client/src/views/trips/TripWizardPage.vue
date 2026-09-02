@@ -54,6 +54,7 @@ import {
 } from '@/domain/templates'
 import { previewText } from '@/lib/groupPreview'
 import { attributeLabel } from '@/lib/attributeLabels'
+import { modeLabel } from '@/lib/modeLabels'
 import { tripYearChoices } from '@/domain/tripYears'
 import { resolveDependencies } from '@/domain/dependencies'
 import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/instantiate'
@@ -1092,7 +1093,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                   {{ t('wizard.perPerson') }}
                 </span>
                 <span v-if="item.mode !== 'pack'" class="mark">
-                  {{ item.mode === 'buy_before' ? t('mode.buyBefore') : t('mode.buyLocal') }}
+                  {{ modeLabel(item.mode) }}
                 </span>
                 <span v-if="isDropped(index)" class="mark">{{ t('wizard.dropped') }}</span>
               </h3>

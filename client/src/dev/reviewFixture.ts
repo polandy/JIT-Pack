@@ -10,6 +10,7 @@
  * Local persistence, so a reload clears it — and the gallery links to
  * the *real* route so the eyeball sees the true screen.
  */
+import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -57,7 +58,7 @@ export function seedReviewFixture(): string {
 
   seed(trips, TABLE.trips, REVIEW_FIXTURE_TRIP_ID, {
     name: 'Samedan (Review-Fixture)',
-    status: 'archived',
+    status: TRIP_STATUS_ARCHIVED,
     end_date: '2026-08-10',
   })
   // Unused, from group dev-g1 → an "ungenutzt" proposal with a
@@ -80,7 +81,7 @@ export function seedReviewFixture(): string {
   // A planning trip using dev-g1, so the FR-27.4 blast-radius line renders.
   seed(trips, TABLE.trips, 'dev-planning', {
     name: 'Engadin 2027',
-    status: 'planning',
+    status: TRIP_STATUS_PLANNING,
     end_date: '2027-08-10',
   })
   seed(trips, TABLE.tripItems, 'dev-ti-planning', {

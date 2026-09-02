@@ -11,6 +11,7 @@
 import { ref, type Ref } from 'vue'
 
 import { loadTokens } from '@/auth/tokens'
+import { generateDeviceId } from '@/composables/sync/rows'
 
 /** The two modes a client can be in. */
 export type ClientMode = 'local' | 'server'
@@ -20,6 +21,12 @@ export const MODE_KEY = 'jitpack_mode'
 
 /** `localStorage` key holding the server URL a `server` client talks to. */
 export const SERVER_URL_KEY = 'jitpack_server_url'
+
+/**
+ * `localStorage` key holding this device's sync identity — the `deviceId`
+ * half of every HLC stamp (NFR-4.2a).
+ */
+export const DEVICE_ID_KEY = 'jitpack_device_id'
 
 /**
  * `localStorage` key set by FR-19.8's switch and cleared once the backup has
@@ -72,6 +79,19 @@ export function loadMigrationPending(): boolean {
 export function clearMigrationPending(): void {
   localStorage.removeItem(MIGRATION_PENDING_KEY)
   migrationPending.value = false
+}
+
+/**
+ * This device's sync identity, minted on first call and kept from then on.
+ * It has to survive a reload: two HLC stamps from one device must never
+ * order by a fresh random id (Sync-API §3).
+ */
+export function deviceId(): string {
+  const stored = localStorage.getItem(DEVICE_ID_KEY)
+  if (stored) return stored
+  const minted = generateDeviceId()
+  localStorage.setItem(DEVICE_ID_KEY, minted)
+  return minted
 }
 
 /**

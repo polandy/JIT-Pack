@@ -66,7 +66,6 @@ import {
   briefcaseOutline,
   lockClosedOutline,
   lockOpenOutline,
-  locationOutline,
   playOutline,
   sparklesOutline,
   statsChartOutline,
@@ -86,6 +85,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
+import { DENSE_LIST, modeIcon, modeLabel } from '@/lib/modeLabels'
 import { hasCollaborativeSession } from '@/mode'
 import { presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
@@ -109,7 +109,7 @@ import {
   rowEdgeAvatar,
 } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
-import { canJudgeUnused } from '@/domain/trips'
+import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { buildReviewProposals } from '@/domain/review'
@@ -125,6 +125,7 @@ import type {
   TripItem,
   TripParticipant,
 } from '@/types/domain'
+import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
@@ -266,7 +267,7 @@ const closingProposals = computed(() =>
 
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
-const isActive = computed(() => trip.value?.status === 'active')
+const active = computed(() => isActive(trip.value))
 /** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
 const judgeable = computed(() => canJudgeUnused(trip.value))
 
@@ -682,7 +683,8 @@ setHeaderActions(() => {
   // Without the first, *active* was unreachable in the whole app — and with
   // it the archive action below, FR-9.1's Missing flagging and everything
   // downstream of an archived trip (M14, M21).
-  if (trip.value?.status === 'planning') {
+  const step = nextLifecycleStep(trip.value)
+  if (step === 'start') {
     items.push({
       id: 'm4-start',
       icon: playOutline,
@@ -691,7 +693,7 @@ setHeaderActions(() => {
       onClick: onStart,
     })
   }
-  if (isActive.value) {
+  if (step === 'archive') {
     items.push({
       id: 'm4-archive',
       icon: archiveOutline,
@@ -704,17 +706,6 @@ setHeaderActions(() => {
 })
 
 // --- Rows ---------------------------------------------------------------
-
-/** 🛒 / 📍 only: 🧳 is the dominant case and stays silent (FR-25.4a). */
-function modeIcon(mode: TripItem['mode']): string | null {
-  if (mode === 'buy_before') return cartOutline
-  if (mode === 'buy_local') return locationOutline
-  return null
-}
-
-function modeLabel(mode: TripItem['mode']): string {
-  return mode === 'buy_before' ? t('mode.buyBefore') : t('mode.buyLocal')
-}
 
 function openTodoCount(itemId: string): number {
   return store.getItemTodos(props.tripId, itemId).filter((todo) => todo.task_state === 'open')
@@ -857,12 +848,6 @@ const GROUP_ICONS: Record<GroupBy, string> = {
   status: contrastOutline,
 }
 
-const MODE_LABELS: Record<string, string> = {
-  pack: 'mode.pack',
-  buy_before: 'mode.buyBefore',
-  buy_local: 'mode.buyLocal',
-}
-
 const FLAG_LABELS: Record<string, string> = {
   late: 'facet.flagLate',
   missing: 'facet.flagMissing',
@@ -882,7 +867,7 @@ function optionLabel(key: FacetKey, value: string, label: string | null): string
     if (key === 'container') return t('facet.noLuggage')
     return t('facet.noCategory')
   }
-  if (key === 'mode') return t(MODE_LABELS[value] as Parameters<typeof t>[0])
+  if (key === 'mode') return modeLabel(value)
   if (key === 'flag') return t(FLAG_LABELS[value] as Parameters<typeof t>[0])
   return value
 }
@@ -1305,8 +1290,8 @@ function onQuickAdd(
     categoryName: item.categoryName,
   }
   const { id: addedId, companions } = decided
-    ? orchestrator.addDecidedItem(props.tripId, item.name, opts, isActive.value, decided)
-    : orchestrator.quickAddItem(props.tripId, item.name, opts, isActive.value)
+    ? orchestrator.addDecidedItem(props.tripId, item.name, opts, active.value, decided)
+    : orchestrator.quickAddItem(props.tripId, item.name, opts, active.value)
   // Only a row that came from the inventory has a line to offer the undo on;
   // a typed name is not in the sheet at all.
   if (item.sourceItemId) {
@@ -1610,7 +1595,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
 
       <!-- The one real remnant of the dropped "Danach" phase: an archived
            trip leads with what to do next with it. -->
-      <div v-if="trip?.status === 'archived'" class="closing-card">
+      <div v-if="trip?.status === TRIP_STATUS_ARCHIVED" class="closing-card">
         <!-- No pictorial mark. The puzzle emoji came from the prototype,
              where §3.27 was about composition; it said nothing about a
              finished trip. Nothing replaced it: every other heading in the
@@ -1650,7 +1635,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
       <QuickAddItem
         v-if="!closingPass"
         ref="quickAdd"
-        :is-active="isActive"
+        :is-active="active"
         :offer-groups="true"
         :offer-per-person="travelers.length > 1"
         :exclude-item-ids="quickAddExcludeIds"
@@ -1717,8 +1702,8 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   />
                   <span class="cluster-name">{{ entry.name }}</span>
                   <IonIcon
-                    v-if="modeIcon(entry.mode)"
-                    :icon="modeIcon(entry.mode)!"
+                    v-if="modeIcon(entry.mode, DENSE_LIST)"
+                    :icon="modeIcon(entry.mode, DENSE_LIST)!"
                     class="mode-icon"
                     :title="modeLabel(entry.mode)"
                   />
@@ -1919,8 +1904,8 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     :data-testid="`m4-unused-${entry.item.name}`"
                   />
                   <IonIcon
-                    v-if="modeIcon(entry.item.mode)"
-                    :icon="modeIcon(entry.item.mode)!"
+                    v-if="modeIcon(entry.item.mode, DENSE_LIST)"
+                    :icon="modeIcon(entry.item.mode, DENSE_LIST)!"
                     class="mode-icon"
                     :title="modeLabel(entry.item.mode)"
                   />

@@ -43,6 +43,7 @@ import { formatTripPeriod } from '@/lib/format'
 import { greetingKey } from '@/lib/greeting'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
+import { isActive } from '@/domain/trips'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const store = useTripStore()
@@ -63,7 +64,7 @@ onMounted(() => {
     })
 })
 
-const activeTrips = computed(() => store.tripList.filter((t) => t.status === 'active'))
+const activeTrips = computed(() => store.tripList.filter((t) => isActive(t)))
 
 /*
  * The rows this screen aggregates have to *be here*. A trip partition arrives

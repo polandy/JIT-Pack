@@ -68,10 +68,11 @@ import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { AppliedChange, Trip } from '@/types/domain'
+import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import SearchRow from '@/components/global/SearchRow.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { tripOrderKey } from '@/domain/trips'
+import { isActive, nextLifecycleStep, tripOrderKey } from '@/domain/trips'
 import { t, type MessageKey } from '@/i18n'
 import { formatTripPeriod } from '@/lib/format'
 import { presentToast } from '@/lib/toast'
@@ -106,11 +107,11 @@ watch(
 function matchesFilter(trip: Trip): boolean {
   switch (filter.value) {
     case 'active':
-      return trip.status === 'active'
+      return isActive(trip)
     case 'planned':
-      return trip.status === 'planning'
+      return trip.status === TRIP_STATUS_PLANNING
     case 'archived':
-      return trip.status === 'archived'
+      return trip.status === TRIP_STATUS_ARCHIVED
   }
 }
 
@@ -599,7 +600,7 @@ async function handleRefresh(event: CustomEvent) {
                 button
                 :data-testid="`trip-row-${trip.name}`"
                 :router-link="`/trips/${trip.id}`"
-                :class="{ archived: trip.status === 'archived' }"
+                :class="{ archived: trip.status === TRIP_STATUS_ARCHIVED }"
               >
                 <div slot="start" class="progress-ring">
                   <svg viewBox="0 0 36 36" class="ring-svg">
@@ -743,7 +744,7 @@ async function handleRefresh(event: CustomEvent) {
                 </IonItemOption>
                 <!-- FR-12.1: clone from archive -->
                 <IonItemOption
-                  v-if="trip.status === 'archived'"
+                  v-if="trip.status === TRIP_STATUS_ARCHIVED"
                   color="primary"
                   :aria-label="t('trips.actionClone')"
                   @click="$router.push(`/trips/${trip.id}/clone`)"
@@ -753,7 +754,7 @@ async function handleRefresh(event: CustomEvent) {
                 <!-- Start: planning → active, the step that makes archiving
                      (and with it M14/M21) reachable at all. -->
                 <IonItemOption
-                  v-if="trip.status === 'planning'"
+                  v-if="nextLifecycleStep(trip) === 'start'"
                   color="primary"
                   :aria-label="t('trips.actionStart')"
                   @click="startTrip(trip.id)"
@@ -762,7 +763,7 @@ async function handleRefresh(event: CustomEvent) {
                 </IonItemOption>
                 <!-- Archive → M14 review (FR-9.2) -->
                 <IonItemOption
-                  v-else-if="trip.status === 'active'"
+                  v-else-if="nextLifecycleStep(trip) === 'archive'"
                   color="medium"
                   :aria-label="t('trips.actionArchive')"
                   @click="archiveTrip(trip.id)"
