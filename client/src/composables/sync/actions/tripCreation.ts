@@ -235,6 +235,12 @@ export function createTripCreationActions(ctx: SyncContext) {
     return tripId
   }
 
+  /** Record one item↔tag assignment on the import path. */
+  function queueTagAssignment(itemId: string, tagId: string, position: number): void {
+    const { mutation } = mutations.assignTag(itemId, tagId, position)
+    enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+  }
+
   /**
    * commitImport lands an M15 import plan (FR-16.2): categories and
    * master items on the master partition (merging where the dedup step
@@ -246,16 +252,6 @@ export function createTripCreationActions(ctx: SyncContext) {
    * mutation replay is idempotent — there is no server-side transaction
    * across a push batch.
    */
-  /**
-   * Record one item↔tag assignment on the import path, which enqueues
-   * directly rather than through enqueueAndDrain: an import lands many
-   * mutations and drains once at the end.
-   */
-  function assignTagLocally(itemId: string, tagId: string, position: number): void {
-    const { mutation } = mutations.assignTag(itemId, tagId, position)
-    enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
-  }
-
   function commitImport(plan: ImportPlan): { tripIds: string[] } {
     // The spreadsheet's category column becomes a tag (FR-24.1): reuse by
     // (case-insensitive) name, create the rest.
@@ -279,7 +275,7 @@ export function createTripCreationActions(ctx: SyncContext) {
       // first, every one of them is refused by a server that has not seen the
       // item yet — invisibly, because this device already holds both.
       const tagID = item.categoryName ? tagIDs.get(item.categoryName.toLowerCase()) : undefined
-      if (tagID) assignTagLocally(id, tagID, 0)
+      if (tagID) queueTagAssignment(id, tagID, 0)
       return id
     })
 
