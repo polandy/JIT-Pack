@@ -1,6 +1,7 @@
 import { test, expect, openQuickAdd, expectTripOpen } from './fixtures'
 import { visiblePage as visible } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * Writing on a plain-HTTP instance (E2E-NFR-SEC-01).
@@ -34,7 +35,7 @@ test.describe('a plain-HTTP instance can still write (NFR-4.2a)', () => {
   })
 
   test('E2E-NFR-SEC-01: the id source survives an insecure context', async ({ page }) => {
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
 
     // The premise, asserted rather than assumed — if a future browser or a
     // future config made randomUUID available here, this case would otherwise
@@ -44,18 +45,18 @@ test.describe('a plain-HTTP instance can still write (NFR-4.2a)', () => {
   })
 
   test('E2E-NFR-SEC-02: a new inventory item is created and listed (FR-24.5)', async ({ page }) => {
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await visible(page).getByTestId('m9-fab').click()
 
     await page.getByTestId('m10-name').locator('input').fill('Hosen')
     await page.getByTestId('m10-create').click()
 
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await expect(visible(page).getByText('Hosen')).toBeVisible()
   })
 
   test('E2E-NFR-SEC-03: a trip is created through M3 (FR-2.1b)', async ({ page }) => {
-    await page.goto('/trips/new')
+    await page.goto(PATH.newTrip)
 
     await page.getByTestId('wizard-name').locator('input').fill('Ohne HTTPS')
     await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
@@ -70,7 +71,7 @@ test.describe('a plain-HTTP instance can still write (NFR-4.2a)', () => {
   })
 
   test('E2E-NFR-SEC-04: a group and its position are created (FR-27.1)', async ({ page }) => {
-    await page.goto('/tabs/templates')
+    await page.goto(PATH.templates)
 
     await page.getByTestId('m7-fab').click()
     await page.getByTestId('m7-kind-group').click()

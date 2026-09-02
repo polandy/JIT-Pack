@@ -1,5 +1,6 @@
 import { test, expect, visiblePage } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * E2E-M17-10 (NFR-4.12): choosing German actually changes the app.
@@ -53,7 +54,7 @@ test.describe('Language choice @local @nfr412', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(page.getByTestId('tab-trips')).toBeVisible()
 
     // The positive English signal first: without it, "the German word is
@@ -63,7 +64,7 @@ test.describe('Language choice @local @nfr412', () => {
     ).toHaveText('Planned')
     await expect(page.getByTestId('tab-trips')).toHaveText('Trips')
 
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
     await chooseLanguage(page, 'German')
 
     // The chrome: the anchor label used to be a stored English string, so
@@ -106,7 +107,7 @@ test.describe('Language choice @local @nfr412', () => {
    */
   test('E2E-M17-11: the settings screen follows its own language switch', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
 
     // English first, so the German assertions below cannot pass vacuously.
     await expect(onVisibleScreen(page, 'settings-section-profile')).toHaveText('Profile')

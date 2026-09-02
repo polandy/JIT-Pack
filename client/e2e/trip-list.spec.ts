@@ -12,6 +12,7 @@ import {
 } from './fixtures'
 import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M2 — the trip list's row content (UI-Test-Spec §4, unit "M2 trip list").
@@ -37,7 +38,7 @@ test.describe('M2 trip list @local @m2', () => {
       endDate: '2026-09-05',
     })
 
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     // A fresh trip is *planning*. Since FR-2.8 the list opens there by
     // itself; the tap stays, so this case keeps testing the dates alone.
     await visiblePage(page).getByTestId('trips-filter-planned').click()
@@ -86,7 +87,7 @@ test.describe('M2 opening segment @local @m2', () => {
   }) => {
     await createTripViaWizard(page, { name: 'Elba' })
 
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
 
     // No tap on a segment anywhere in this case: the row being visible is
     // the assertion, since *Active* is where the list used to open.
@@ -102,7 +103,7 @@ test.describe('M2 opening segment @local @m2', () => {
     await createTripViaWizard(page, { name: 'Kreta' })
     await archiveTrip(page)
 
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
 
     await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
     await expectCount(page, 'archived', '1')
@@ -116,7 +117,7 @@ test.describe('M2 opening segment @local @m2', () => {
     await createTripViaWizard(page, { name: 'Elba' })
 
     // Opens on *Planned* — Active is empty — and the user goes to the archive.
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(visiblePage(page).getByTestId('trip-row-Elba')).toBeVisible()
     await visiblePage(page).getByTestId('trips-filter-archived').click()
     await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
@@ -138,7 +139,7 @@ test.describe('M2 opening segment @local @m2', () => {
     // even when that is an empty segment (ADR-024).
     await createTripViaWizard(page, { name: 'Elba' })
 
-    await page.goto('/tabs/trips?status=active')
+    await page.goto(`${PATH.trips}?status=active`)
 
     // The count first: it is the settled signal, and an absence asserted
     // against a screen that is still loading passes for the wrong reason.
@@ -178,7 +179,7 @@ test.describe('M2 row actions @local @m2', () => {
     // The row leaves the working list once it is done (FR-25.2) — which is
     // this case's settled signal for the write having landed.
     await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(visiblePage(page).getByTestId(`trip-row-${TRIP}`)).toBeVisible()
   }
 
@@ -188,7 +189,7 @@ test.describe('M2 row actions @local @m2', () => {
   // a device that has no second account.
   test('E2E-M2-06: a device with no second account is offered no Share', async ({ page }) => {
     await createTripViaWizard(page, { name: TRIP })
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
 
     const offered = await tripSwipeActions(page, TRIP)
     // Against a populated list: an empty menu would satisfy the absence.
@@ -252,7 +253,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
   }) => {
     await createTripViaWizard(page, { name: 'Von Hand' })
 
-    await page.goto('/import')
+    await page.goto(PATH.importSpreadsheet)
     await visiblePage(page)
       .getByTestId('import-paste')
       .locator('textarea')
@@ -284,7 +285,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
       name: 'Zu viert',
       travelers: ['Andy', 'Sia', 'Leonardo', 'Mia'],
     })
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
 
     const faces = visiblePage(page).getByTestId('m2-travelers-Zu viert')
     await expect(faces).toBeVisible()
@@ -297,7 +298,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     // A trip with nobody on it shows nothing rather than an empty pile — the
     // positive signal is the row, which is there either way.
     await createTripViaWizard(page, { name: 'Allein' })
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(visiblePage(page).getByTestId('trip-row-Allein')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m2-travelers-Allein')).toHaveCount(0)
   })
@@ -322,7 +323,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     await createTripViaWizard(page, { name: 'Ostern 26', series: 'Ostern' })
     await createTripViaWizard(page, { name: 'Einzelreise' })
 
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     const header = visiblePage(page).getByTestId('series-header-Ostern')
     await expect(header).toBeVisible()
     // The count is the group's, not the list's — the third trip is in no
@@ -356,7 +357,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
   test('E2E-M2-16: M2 states that a segment is empty, and the FAB is the way out', async ({
     page,
   }) => {
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     const empty = visiblePage(page).getByTestId('m2-empty')
     await expect(empty).toBeVisible()
     await expect(visiblePage(page).getByTestId('trips-new')).toBeVisible()
@@ -364,7 +365,7 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     // It goes away when there is something to show — without this the case
     // would pass against an empty state that is always on screen.
     await createTripViaWizard(page, { name: 'Elba' })
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(visiblePage(page).getByTestId('trip-row-Elba')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m2-empty')).toHaveCount(0)
   })

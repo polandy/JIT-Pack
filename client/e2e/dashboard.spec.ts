@@ -8,6 +8,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M1 — Dashboard (UI-Test-Spec §4, unit "M1 dashboard").
@@ -70,7 +71,7 @@ test.describe('M1 dashboard @local @m1', () => {
     page,
   }) => {
     await activeTripWith(page, ITEMS)
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
 
     const card = visible(page).getByTestId(`dashboard-trip-${TRIP.name}`)
     await expect(card).toBeVisible()
@@ -127,7 +128,7 @@ test.describe('M1 dashboard @local @m1', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
 
     const prep = visible(page).getByTestId('dashboard-prep')
     await expect(prep).toContainText('Prep to do (1)')
@@ -163,7 +164,7 @@ test.describe('M1 dashboard @local @m1', () => {
     page,
   }) => {
     await createTripViaWizard(page, { name: 'Elba', startDate: '2027-05-01' })
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
 
     const planned = visible(page).getByTestId('dashboard-planned')
     await expect(planned).toContainText('Planned (1)')
@@ -180,7 +181,7 @@ test.describe('M1 dashboard @local @m1', () => {
     await expectTripOpen(page, 'Elba')
 
     await tripAction(page, 'start')
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await expect(visible(page).getByTestId('dashboard-trip-Elba')).toBeVisible()
     await expect(visible(page).getByTestId('dashboard-planned')).toHaveCount(0)
   })
@@ -215,7 +216,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await page.getByTestId('m5-late').click()
     await page.getByTestId('m5-close').click()
 
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     const late = visible(page).getByTestId('dashboard-late')
     await expect(late).toBeVisible()
     await expect(late.getByTestId('dashboard-late-Zahnbürste')).toBeVisible()
@@ -243,7 +244,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await page.getByTestId('m5-late').click()
     await page.getByTestId('m5-close').click()
 
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await expect(visible(page).getByTestId('dashboard-trip-Abfahrt später')).toBeVisible()
     await expect(visible(page).getByTestId('dashboard-late')).toHaveCount(0)
   })
@@ -259,7 +260,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await page.getByTestId('m5-todo-add').click()
     await page.getByTestId('m5-close').click()
 
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await visible(page).getByTestId('dashboard-prep-item-Kamera').click()
 
     // The row's own sheet, not merely the trip: the name names a row.
@@ -274,7 +275,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     page,
   }) => {
     await activeTripWith(page, ['Zelt'])
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     // The positive signal: the aggregation is there and unfiltered, which is
     // the whole reason FR-6.1's personal *filter* was struck.
     await expect(visible(page).getByTestId('dashboard-preview-Zelt')).toBeVisible()

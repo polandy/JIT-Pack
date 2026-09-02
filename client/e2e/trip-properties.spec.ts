@@ -15,6 +15,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * FR-2.7 / M22 — a trip's properties and its travellers, changed after the
@@ -37,7 +38,7 @@ import type { Page } from '@playwright/test'
  * many people travel, which is not the case this file exists for.
  */
 async function seedGroup(page: Page) {
-  await page.goto('/tabs/templates')
+  await page.goto(PATH.templates)
   await createTemplate(page, 'group', 'Wandern')
   await addPosition(page, 'Regenhose')
 
@@ -58,7 +59,7 @@ async function seedGroup(page: Page) {
 
 /** M3 with two travellers and that group, so the trip carries two sibling rows. */
 async function tripWithTwoTravellers(page: Page, name: string): Promise<string> {
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
   await page.getByTestId('wizard-name').locator('input').fill(name)
   await page.getByTestId('wizard-next').click()
 
@@ -123,7 +124,7 @@ async function openTripEdit(page: Page) {
 
 /** The same screen, reached from M2 rather than from inside the trip. */
 async function openTripEditFromList(page: Page, name: string) {
-  await page.goto('/tabs/trips')
+  await page.goto(PATH.trips)
   await visible(page).getByTestId(`trip-row-${name}`).click()
   await openTripEdit(page)
 }
@@ -293,7 +294,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // Asserted on the list rather than on the trip screen, which the defect
     // leaves intact.
     await localWriteSettled(page)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await visible(page).getByTestId('trips-filter-planned').click()
     await expect(visible(page).getByTestId('trip-row-Pfingsten Tessin')).toBeVisible()
   })
@@ -423,7 +424,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // its own value satisfies an assertion on itself, and the year's whole
     // job is to place the trip. M2 groups by series and sorts by year, so the
     // row's own year line is what moved.
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(visible(page).getByTestId('trip-row-Falsches Jahr')).toContainText(
       String(thisYear + 1),
     )

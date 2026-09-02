@@ -6,6 +6,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M16 — Series & Destination Profile (UI-Test-Spec §4, unit "M16 series").
@@ -33,7 +34,7 @@ const UNSET = '—'
  * waiting on a decision.
  */
 async function openSeries(page: Page, name: string) {
-  await page.goto('/tabs/trips')
+  await page.goto(PATH.trips)
   await visible(page).getByTestId(`series-header-${name}`).click()
   await expect(page.getByTestId('header-title')).toHaveText(name)
 }
@@ -152,7 +153,7 @@ test.describe('M16 series & destination profile @local @m16', () => {
 
     // Read back on M2, the screen that groups by series: the attach wrote
     // the trip's `series_id`, not a list local to this page.
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(visible(page).getByTestId(`series-header-${SERIES}`)).toContainText('2 trips')
   })
 

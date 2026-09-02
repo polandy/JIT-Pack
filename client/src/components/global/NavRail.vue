@@ -43,7 +43,7 @@ function go(href: string, event: MouseEvent): void {
       :key="anchor.match"
       :href="anchor.href"
       class="nav-rail-item"
-      :class="{ active: isAnchorActive(route.path, anchor.match) }"
+      :class="{ active: isAnchorActive(route.path, anchor) }"
       :data-testid="`rail-${anchor.match}`"
       @click="go(anchor.href, $event)"
     >

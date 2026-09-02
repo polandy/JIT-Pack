@@ -41,7 +41,6 @@ import {
   IonFabButton,
   IonModal,
   actionSheetController,
-  alertController,
   toastController,
 } from '@ionic/vue'
 import {
@@ -97,7 +96,6 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { useRowUndo, type RowUndoRecord } from '@/composables/useRowUndo'
-import { skippedVia } from '@/domain/dependencies'
 import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/composables/useMutations'
 import {
@@ -108,10 +106,9 @@ import {
   type PackingRow,
   rowEdgeAvatar,
 } from '@/domain/packingView'
-import { relativeStamp } from '@/domain/stamp'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
-import { currentLocale, t } from '@/i18n'
+import { t } from '@/i18n'
 import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
 import ItemMark from '@/components/items/ItemMark.vue'
@@ -126,6 +123,15 @@ import type {
   TripParticipant,
 } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
+import { tripItemPath, tripPath, tripSubPath } from '@/router/paths'
+import { confirmAction } from '@/lib/confirm'
+import {
+  lockNoteText,
+  nameFrom,
+  packedStampText,
+  responsibleNote,
+  skippedNote,
+} from '@/lib/rowFacts'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
@@ -186,8 +192,7 @@ const participants = computed<TripParticipant[]>(() => {
 
 /** `null` where nobody is named — the stamp then states the act without a who. */
 function nameOf(userId: string | null): string | null {
-  if (!userId) return null
-  return participants.value.find((p) => p.user_id === userId)?.display_name ?? null
+  return nameFrom(participants.value, userId)
 }
 
 // --- View state ---------------------------------------------------------
@@ -236,7 +241,7 @@ async function declineGroupChanges() {
 
 /** A plain toast: both answers are final, and neither has an undo to offer. */
 async function reportGroupAnswer(message: string) {
-  await presentToast({ message, duration: 3000, positionAnchor: 'm4-fab-anchor' })
+  await presentToast({ message, positionAnchor: 'm4-fab-anchor' })
 }
 
 /**
@@ -365,7 +370,7 @@ function openItem(itemId: string) {
   if (closingPass.value) return
   rememberScroll(props.tripId, { top: currentScrollTop, headerCollapsed: headCollapsed.value })
   restorePending = true
-  router.replace(`/trips/${props.tripId}/items/${itemId}`)
+  router.replace(tripItemPath(props.tripId, itemId))
 }
 
 /**
@@ -557,7 +562,7 @@ async function openRowMenu(item: TripItem) {
 }
 
 function closeItem() {
-  router.replace(`/trips/${props.tripId}`)
+  router.replace(tripPath(props.tripId))
 }
 
 /**
@@ -677,7 +682,7 @@ setHeaderActions(() => {
     icon: createOutline,
     label: t('tripEdit.title'),
     overflow: true,
-    onClick: () => router.push(`/trips/${props.tripId}/edit`),
+    onClick: () => router.push(tripSubPath(props.tripId, 'edit')),
   })
   // The two lifecycle steps, each offered only where it is the next one.
   // Without the first, *active* was unreachable in the whole app — and with
@@ -716,16 +721,9 @@ function locked(item: TripItem): boolean {
   return orchestrator.isLockedByOther(props.tripId, item)
 }
 
-/**
- * G-3 asks the row to name the locker, not only to wear a padlock — "in
- * progress by Andy". A padlock alone says a row is unavailable without
- * saying who to ask, which is the one question it raises.
- */
+/** G-3's "in progress by Andy", worded in `lib/rowFacts.ts` (U-2). */
 function lockNote(item: TripItem): string | null {
-  const holder = orchestrator.lockHolder(props.tripId, item)
-  if (holder === null) return null
-  const who = nameOf(holder)
-  return who ? t('packing.lockedBy', { who }) : t('packing.lockedByUnknown')
+  return lockNoteText(orchestrator.lockHolder(props.tripId, item), nameOf)
 }
 
 /**
@@ -739,36 +737,22 @@ function ownClaimNote(item: TripItem): string | null {
 
 /** FR-25.17: "gepackt von Andy · heute 14:32", on revealed rows only. */
 function packedStamp(item: TripItem): string | null {
-  if (!item.packed_at && !item.packed_by_user_id) return null
-  const stamp = item.packed_at ? relativeStamp(item.packed_at, new Date(), currentLocale()) : null
-  const when = stamp
-    ? `${stamp.dayKey ? t(stamp.dayKey === 'today' ? 'stamp.today' : 'stamp.yesterday') : stamp.date} ${stamp.time}`
-    : ''
-  const who = nameOf(item.packed_by_user_id)
-  if (!who) return when ? t('packing.packedByUnknown', { when }) : null
-  return t('packing.packedBy', { who, when })
+  return packedStampText(item, nameOf)
 }
 
 /**
- * What a revealed *skipped* row says of itself (FR-5.5) — and, where the
- * FR-20.2 cascade put it there, which decision took it along.
- *
- * A row that is done because it was left behind used to be revealed with
- * nothing at all where a packed row carries its FR-25.17 stamp, which is
- * exactly the "forgot it" / "decided against it" confusion FR-5.5 exists
- * to remove.
+ * FR-5.5, worded in `lib/rowFacts.ts`. A row that is done because it was
+ * left behind used to be revealed with nothing at all where a packed row
+ * carries its FR-25.17 stamp, which is exactly the "forgot it" / "decided
+ * against it" confusion FR-5.5 exists to remove.
  */
-function skippedNote(item: TripItem): string | null {
-  if (item.state !== 'skipped') return null
-  const via = skippedVia(item, allItems.value, masterStore.dependencyList)
-  return via ? t('packing.skippedVia', { name: via.name }) : t('packing.skipped')
+function skippedNoteFor(item: TripItem): string | null {
+  return skippedNote(item, allItems.value, masterStore.dependencyList)
 }
 
 /** Named only where it differs from the packer — otherwise it is noise. */
-function responsibleNote(item: TripItem): string | null {
-  if (!item.packer_user_id || item.packer_user_id === item.packed_by_user_id) return null
-  const who = nameOf(item.packer_user_id)
-  return who ? t('packing.responsibleWas', { who }) : null
+function responsibleNoteFor(item: TripItem): string | null {
+  return responsibleNote(item, nameOf)
 }
 
 // --- Empty states (FR-25.11e) ------------------------------------------
@@ -984,19 +968,14 @@ async function openTakeoverMenu(item: TripItem) {
 async function onTakeOver(item: TripItem) {
   const holderId = orchestrator.lockHolder(props.tripId, item)
   const who = holderId ? nameOf(holderId) : ''
-  const alert = await alertController.create({
+  const confirmed = await confirmAction({
     header: t('packing.takeoverConfirmTitle'),
     message: who
       ? t('packing.takeoverConfirmBody', { who, item: item.name })
       : t('packing.takeoverConfirmBodyUnknown', { item: item.name }),
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      { text: t('packing.takeoverAction'), role: 'confirm' },
-    ],
+    confirmLabel: t('packing.takeoverAction'),
   })
-  await alert.present()
-  const { role } = await alert.onDidDismiss()
-  if (role !== 'confirm') return
+  if (!confirmed) return
 
   try {
     const previous = await orchestrator.takeOverClaim(props.tripId, item)
@@ -1005,7 +984,6 @@ async function onTakeOver(item: TripItem) {
       message: previousName
         ? t('packing.takeoverDone', { who: previousName })
         : t('packing.takeoverDoneUnknown'),
-      duration: 3000,
       positionAnchor: 'm4-fab-anchor',
     })
   } catch {
@@ -1014,7 +992,6 @@ async function onTakeOver(item: TripItem) {
     // was open. Saying so beats a silent no-op.
     await presentToast({
       message: t('packing.takeoverFailed'),
-      duration: 3000,
       positionAnchor: 'm4-fab-anchor',
     })
   }
@@ -1052,7 +1029,6 @@ async function onFlagUnused(item: TripItem, value: boolean) {
     message: value
       ? t('packing.flagUnusedToast', { item: item.name })
       : t('packing.unflagUnusedToast', { item: item.name }),
-    duration: 3000,
   })
 }
 
@@ -1198,7 +1174,6 @@ async function announce(message: string) {
   // put the snackbar on screen before the check that decides it must not be.
   const toast = await toastController.create({
     message,
-    duration: 3000,
     position: 'bottom',
     // Above the FAB rather than behind it — see the anchor's own note.
     positionAnchor: 'm4-fab-anchor',
@@ -1307,7 +1282,6 @@ function onQuickAdd(
         n: companions.length,
         names: companions.join(', '),
       }),
-      duration: 3000,
       // Above the composer's own anchor, like every other M4 toast: this one
       // fires while the quick-add is still open for the next entry.
       positionAnchor: 'm4-fab-anchor',
@@ -1383,7 +1357,7 @@ async function onQuickAddGroup(templateId: string) {
  */
 async function onStart() {
   orchestrator.activateTrip(props.tripId)
-  await presentToast({ message: t('packing.startedToast'), duration: 3000 })
+  await presentToast({ message: t('packing.startedToast') })
 }
 
 /**
@@ -1417,10 +1391,10 @@ async function archiveAndReview() {
   orchestrator.archiveTrip(props.tripId)
   const flagged = store.getItems(props.tripId).some((item) => item.flag_unused || item.flag_missing)
   if (!flagged) {
-    await presentToast({ message: t('review.nothingToast'), duration: 3000 })
+    await presentToast({ message: t('review.nothingToast') })
     return
   }
-  router.push(`/trips/${props.tripId}/review`)
+  router.push(tripSubPath(props.tripId, 'review'))
 }
 
 async function handleRefresh(event: CustomEvent) {
@@ -1473,7 +1447,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
             <IonButton
               fill="clear"
               size="small"
-              :router-link="`/trips/${tripId}/shopping`"
+              :router-link="tripSubPath(tripId, 'shopping')"
               data-testid="m4-nav-shopping"
               :aria-label="t('packing.shopping')"
               :title="t('packing.shopping')"
@@ -1486,7 +1460,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
             <IonButton
               fill="clear"
               size="small"
-              :router-link="`/trips/${tripId}/containers`"
+              :router-link="tripSubPath(tripId, 'containers')"
               data-testid="m4-nav-luggage"
               :aria-label="t('packing.luggage')"
               :title="t('packing.luggage')"
@@ -1496,7 +1470,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
             <IonButton
               fill="clear"
               size="small"
-              :router-link="`/trips/${tripId}/analytics`"
+              :router-link="tripSubPath(tripId, 'analytics')"
               data-testid="m4-nav-analytics"
               :aria-label="t('packing.analytics')"
               :title="t('packing.analytics')"
@@ -1620,12 +1594,12 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
           <IonButton
             size="small"
             data-testid="m4-template-from-trip"
-            :router-link="`/trips/${tripId}/template`"
+            :router-link="tripSubPath(tripId, 'template')"
           >
             <IonIcon slot="start" :icon="albumsOutline" />
             {{ t('packing.templateFromTrip') }}
           </IonButton>
-          <IonButton size="small" fill="outline" :router-link="`/trips/${tripId}/review`">
+          <IonButton size="small" fill="outline" :router-link="tripSubPath(tripId, 'review')">
             <IonIcon slot="start" :icon="sparklesOutline" />
             {{ t('packing.reviewSuggestions') }}
           </IonButton>
@@ -1779,8 +1753,8 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     >
                       {{ ownClaimNote(child.item) }}
                     </p>
-                    <p v-else-if="skippedNote(child.item)" class="stamp">
-                      {{ skippedNote(child.item) }}
+                    <p v-else-if="skippedNoteFor(child.item)" class="stamp">
+                      {{ skippedNoteFor(child.item) }}
                     </p>
                     <p
                       v-else-if="child.done && packedStamp(child.item)"
@@ -1788,8 +1762,8 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                       data-testid="m4-packed-stamp"
                     >
                       {{ packedStamp(child.item) }}
-                      <span v-if="responsibleNote(child.item)" class="muted">
-                        · {{ responsibleNote(child.item) }}
+                      <span v-if="responsibleNoteFor(child.item)" class="muted">
+                        · {{ responsibleNoteFor(child.item) }}
                       </span>
                     </p>
                   </IonLabel>
@@ -1879,8 +1853,8 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   <p v-else-if="ownClaimNote(entry.item)" class="stamp" data-testid="m4-own-claim">
                     {{ ownClaimNote(entry.item) }}
                   </p>
-                  <p v-else-if="skippedNote(entry.item)" class="stamp">
-                    {{ skippedNote(entry.item) }}
+                  <p v-else-if="skippedNoteFor(entry.item)" class="stamp">
+                    {{ skippedNoteFor(entry.item) }}
                   </p>
                   <p
                     v-else-if="entry.done && packedStamp(entry.item)"
@@ -1888,8 +1862,8 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     data-testid="m4-packed-stamp"
                   >
                     {{ packedStamp(entry.item) }}
-                    <span v-if="responsibleNote(entry.item)" class="muted">
-                      · {{ responsibleNote(entry.item) }}
+                    <span v-if="responsibleNoteFor(entry.item)" class="muted">
+                      · {{ responsibleNoteFor(entry.item) }}
                     </span>
                   </p>
                 </IonLabel>

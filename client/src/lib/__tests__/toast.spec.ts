@@ -19,7 +19,7 @@ const create = vi.fn(async (options: Record<string, unknown>) => ({
 
 vi.mock('@ionic/vue', () => ({ toastController: { create: (o: never) => create(o) } }))
 
-const { TAB_BAR_ANCHOR_ID, presentToast } = await import('../toast')
+const { TAB_BAR_ANCHOR_ID, TOAST_DURATION_MS, presentToast } = await import('../toast')
 
 /** A tab bar that is actually laid out — jsdom reports 0 unless told otherwise. */
 function mountTabBar(height: number): HTMLElement {
@@ -41,6 +41,16 @@ describe('presentToast', () => {
     await presentToast({ message: 'gespeichert' })
     expect(create.mock.calls[0]![0]!.positionAnchor).toBe(nav)
     expect(create.mock.calls[0]![0]!.position).toBe('bottom')
+  })
+
+  it('gives a toast the shared duration when the caller names none (U-4)', async () => {
+    await presentToast({ message: 'gespeichert' })
+    expect(create.mock.calls[0]![0]!.duration).toBe(TOAST_DURATION_MS)
+  })
+
+  it('leaves a caller-named duration alone — a toast with an action needs longer', async () => {
+    await presentToast({ message: 'gespeichert', duration: 6000 })
+    expect(create.mock.calls[0]![0]!.duration).toBe(6000)
   })
 
   it('leaves a caller-named anchor alone — a FAB sits higher than the bar', async () => {

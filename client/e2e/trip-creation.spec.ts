@@ -1,6 +1,7 @@
 import { test, expect, expectTripOpen } from './fixtures'
 import { createTripViaWizard, setDateField } from './fixtures'
 import type { Locator } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * M3 — Trip Creation Wizard, Local Mode.
@@ -40,7 +41,7 @@ test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local 
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
 
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
 
@@ -81,7 +82,7 @@ test('E2E-M3-14: the wizard starts with the configured default travellers @local
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/tabs/settings')
+  await page.goto(PATH.settings)
 
   for (const name of ['Andy', 'Sia', 'Leonardo']) {
     await page.getByTestId('default-traveler-input').locator('input').fill(name)
@@ -89,7 +90,7 @@ test('E2E-M3-14: the wizard starts with the configured default travellers @local
     await expect(page.getByTestId(`default-traveler-remove-${name}`)).toBeVisible()
   }
 
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
   await page.getByTestId('wizard-name').locator('input').fill('Samedan')
   await page.getByTestId('wizard-next').click()
 
@@ -110,7 +111,7 @@ test('E2E-M3-03: step 2 requires every added traveler to be named @local @m3', a
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await page.getByTestId('wizard-more').click()
@@ -139,7 +140,7 @@ test('E2E-M3-03: step 2 requires every added traveler to be named @local @m3', a
 // control, never show one that cannot work.
 test('E2E-M3-05: local mode hides the sharing section @local @m3 @g8', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await page.getByTestId('wizard-more').click()
@@ -216,7 +217,7 @@ test('E2E-M3-19: Enter in a plain field is the Weiter click, gated like it @loca
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
 
   // Empty name: the gate holds and Enter does nothing, silently.
@@ -253,7 +254,7 @@ test('E2E-M3-20: the end picker offers no day before the start already set @loca
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
-  await page.goto('/trips/new')
+  await page.goto(PATH.newTrip)
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
   await page.getByTestId('wizard-more').click()
 

@@ -75,6 +75,7 @@ import LeaveLocalModeCard from '@/components/settings/LeaveLocalModeCard.vue'
 import { useDeviceBackup } from '@/composables/useDeviceBackup'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
+import { PATH } from '@/router/paths'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const tripStore = useTripStore()
@@ -707,7 +708,7 @@ async function exportTripCSV() {
           {{ t('settings.administration') }}
         </h2>
         <IonList>
-          <IonItem button lines="none" data-testid="settings-admin" @click="$router.push('/admin')">
+          <IonItem button lines="none" data-testid="settings-admin" @click="$router.push(PATH.admin)">
             <IonLabel>
               <h3>{{ t('settings.userAdmin') }}</h3>
               <p>{{ t('settings.userAdminHint') }}</p>
@@ -782,7 +783,7 @@ async function exportTripCSV() {
           button
           lines="none"
           data-testid="settings-retired"
-          @click="$router.push('/master/retired')"
+          @click="$router.push(PATH.masterRetired)"
         >
           <IonLabel>
             <h3>{{ t('settings.retiredRow') }}</h3>

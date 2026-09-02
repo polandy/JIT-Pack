@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * NFR-4.11 — the app asks the browser to keep its storage, and says so when
@@ -47,7 +48,7 @@ const asksSeen = (page: Page) =>
   page.evaluate(() => (window as unknown as { __persistAsks: number }).__persistAsks)
 
 async function openStorageDetail(page: Page) {
-  await page.goto('/tabs/dashboard')
+  await page.goto(PATH.dashboard)
   await page.getByTestId('sync-indicator').click()
   await expect(page.getByTestId('sync-detail-sheet')).toBeVisible()
   await expect(page.getByTestId('sync-detail-storage')).toBeVisible()

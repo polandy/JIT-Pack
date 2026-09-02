@@ -12,6 +12,7 @@ import {
   visiblePage,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { PATH } from './routes'
 
 /**
  * Global navigation and the app bar (UI-Test-Spec §3: G-1, G-9, G-12).
@@ -80,7 +81,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await expect(page.getByTestId('rail-trips')).toBeVisible()
 
     await page.getByTestId('rail-trips').click()
@@ -111,7 +112,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await expect(visiblePages(page)).toHaveCount(1)
 
     // No settling between taps — that is the case. `noWaitAfter` keeps
@@ -137,7 +138,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     await expect(visiblePages(page)).toHaveCount(1)
 
     for (const anchor of ANCHOR_RUN) {
@@ -155,7 +156,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // bottom bar. Mobile had no way between them at all.
   test('E2E-G1-01: the mobile tab bar carries the four anchors and navigates', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
 
     await expect(page.getByTestId('rail-trips')).toBeHidden()
     for (const anchor of ['dashboard', 'trips', 'templates', 'items']) {
@@ -188,7 +189,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
 
     await page.getByTestId('trips-new').click()
 
@@ -273,7 +274,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
 
     await page.getByTestId('search').click()
     await expect(onVisibleScreen(page, 'items-search-input')).toBeVisible()
@@ -309,7 +310,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // and the trip then reads by its year where a date would have stood.
   test('E2E-M3-15: a trip can be created with no dates at all', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/trips/new')
+    await page.goto(PATH.newTrip)
 
     await page.getByTestId('wizard-name').locator('input').fill('Samedan irgendwann')
     // No date touched anywhere: straight through the wizard.
@@ -334,7 +335,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // away, but never hides *state*: a set value appears on the folded row.
   test('E2E-M3-16: the optional trip fields are folded, and say so when set', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/trips/new')
+    await page.goto(PATH.newTrip)
 
     // Folded: the optional inputs are absent, not merely invisible.
     await expect(page.getByTestId('wizard-start-date')).toHaveCount(0)
@@ -355,7 +356,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // no trip, which is exactly where it used to be silent.
   test('E2E-G2-02: the sync glyph explains its state on any screen', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
 
     // The distinct device glyph is half of what G-2 promises in this mode —
     // the detail is what the other half is *behind*.
@@ -423,7 +424,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // The width every design decision is made against; the offset is
     // width-independent, but the number below is not a desktop artefact.
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await page.getByTestId('sync-indicator').click()
 
     const sheet = page.getByTestId('sync-detail-sheet')
@@ -465,7 +466,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    */
   test('E2E-G2-09: the empty master conflict log is inset from both edges', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/master/conflicts')
+    await page.goto(PATH.masterConflicts)
 
     const empty = page.getByTestId('conflict-empty')
     await expect(empty).toBeVisible()
@@ -485,7 +486,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // must not exist at all.
   test('E2E-G8-02: no dev seeding affordance exists in a production build', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
 
     await expect(page.getByTestId('trips-new')).toBeVisible()
     await expect(page.getByTestId('dev-sample-trip')).toHaveCount(0)
@@ -551,7 +552,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    */
   test('E2E-G1-05: settings opened cold falls back to its declared parent', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
     await expect(onVisibleScreen(page, 'settings-language')).toBeVisible()
 
     await page.getByTestId('header-back').click()
@@ -570,7 +571,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(onVisibleScreen(page, 'm2-portable-import')).toBeVisible()
 
     await page.getByTestId('m2-portable-import').click()
@@ -596,7 +597,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/trips')
+    await page.goto(PATH.trips)
     await expect(onVisibleScreen(page, 'm2-spreadsheet-import')).toBeVisible()
 
     await page.getByTestId('m2-spreadsheet-import').click()
@@ -624,7 +625,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
     await expect(onVisibleScreen(page, 'settings-retired')).toBeVisible()
 
     await onVisibleScreen(page, 'settings-retired').click()
@@ -651,7 +652,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    */
   test('E2E-G9-15: the settings gear is everywhere but on settings itself', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/tabs/dashboard')
+    await page.goto(PATH.dashboard)
     await expect(onVisibleScreen(page, 'dashboard-greeting')).toBeVisible()
     await expect(page.getByTestId('header-settings')).toBeVisible()
 
@@ -695,7 +696,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     ]
     // The rail is the fourth reader of the same vocabulary.
     await page.setViewportSize(DESKTOP)
-    await page.goto('/tabs/items')
+    await page.goto(PATH.items)
     glyphs.push(await glyph('rail-items'))
 
     for (const g of glyphs) expect(g).not.toBe('')
@@ -789,7 +790,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto('/tabs/settings')
+    await page.goto(PATH.settings)
     // A block that spans whatever the content is given — a section heading,
     // not a control that would sit at one edge whatever the width is.
     const row = onVisibleScreen(page, 'settings-section-appearance')

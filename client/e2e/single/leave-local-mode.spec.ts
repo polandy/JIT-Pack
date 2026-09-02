@@ -4,6 +4,7 @@ import type { Page } from '@playwright/test'
 
 import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
 import { quickAddItem, uniq } from '../serverMode'
+import { PATH } from '../routes'
 
 /**
  * FR-19.8 (ADR-045) — leaving Local Mode on the same device, against the
@@ -32,7 +33,7 @@ async function serverExport(page: Page): Promise<string> {
 
 /** Steps 1 and 2 on M17: a fresh backup, then the switch. Returns the file. */
 async function backUpAndSwitch(page: Page): Promise<string> {
-  await page.goto('/tabs/settings')
+  await page.goto(PATH.settings)
   const card = visiblePage(page).getByTestId('settings-move-card')
   await expect(card).toBeVisible()
   const downloadPromise = page.waitForEvent('download')

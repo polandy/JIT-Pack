@@ -23,7 +23,6 @@ import {
   IonItemOption,
   IonButton,
   actionSheetController,
-  alertController,
   onIonViewWillEnter,
 } from '@ionic/vue'
 import {
@@ -78,6 +77,8 @@ import { formatTripPeriod } from '@/lib/format'
 import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
+import { seriesPath, tripPath, tripSubPath } from '@/router/paths'
+import { confirmDestructive } from '@/lib/confirm'
 
 const store = useTripStore()
 const masterStore = useMasterStore()
@@ -145,7 +146,7 @@ async function addSampleData() {
     const { seedSampleData } = await import('@/dev/sampleData')
     const outcome = await seedSampleData(orchestrator)
     await report(outcome.summary)
-    router.push(`/trips/${outcome.tripId}`)
+    router.push(tripPath(outcome.tripId))
   } catch (error) {
     // Dev-only surface, so the message is the developer's — untranslated and
     // as specific as the failure was.
@@ -438,17 +439,12 @@ function canDelete(trip: Trip): boolean {
 
 /** Delete removes the trip entirely after an explicit confirm (M2). */
 async function deleteTrip(trip: Trip) {
-  const alert = await alertController.create({
+  const confirmed = await confirmDestructive({
     header: t('trips.deleteTitle', { name: trip.name }),
     message: t('trips.deleteMessage'),
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      { text: t('common.delete'), role: 'destructive' },
-    ],
+    confirmLabel: t('common.delete'),
   })
-  await alert.present()
-  const { role } = await alert.onDidDismiss()
-  if (role === 'destructive') orchestrator.deleteTrip(trip.id)
+  if (confirmed) orchestrator.deleteTrip(trip.id)
 }
 
 /** Start moves a planning trip into packing — see M4's onStart. */
@@ -459,7 +455,7 @@ function startTrip(tripId: string) {
 /** Archive completes the trip and launches the M14 review (FR-9.2). */
 function archiveTrip(tripId: string) {
   orchestrator.archiveTrip(tripId)
-  router.push(`/trips/${tripId}/review`)
+  router.push(tripSubPath(tripId, 'review'))
 }
 
 /** FR-18.3: the user chooses progress vs clean; generated client-side. */
@@ -519,7 +515,7 @@ async function handleRefresh(event: CustomEvent) {
               size="small"
               :aria-label="t('trips.importPortable')"
               data-testid="m2-portable-import"
-              router-link="/portable-import"
+              router-link=PATH.importFile
             >
               <IonIcon slot="icon-only" :icon="documentTextOutline" />
             </IonButton>
@@ -529,7 +525,7 @@ async function handleRefresh(event: CustomEvent) {
               size="small"
               data-testid="m2-spreadsheet-import"
               :aria-label="t('items.importSpreadsheet')"
-              router-link="/import"
+              router-link=PATH.importSpreadsheet
             >
               <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
             </IonButton>
@@ -585,7 +581,7 @@ async function handleRefresh(event: CustomEvent) {
             detail
             class="series-header"
             :data-testid="`series-header-${group.seriesName}`"
-            :router-link="`/series/${group.seriesId}`"
+            :router-link="seriesPath(group.seriesId)"
           >
             <IonIcon slot="start" :icon="albumsOutline" />
             <IonLabel>
@@ -599,7 +595,7 @@ async function handleRefresh(event: CustomEvent) {
                 :ref="(el) => watchRow(el as Element | ComponentPublicInstance | null, trip.id)"
                 button
                 :data-testid="`trip-row-${trip.name}`"
-                :router-link="`/trips/${trip.id}`"
+                :router-link="tripPath(trip.id)"
                 :class="{ archived: trip.status === TRIP_STATUS_ARCHIVED }"
               >
                 <div slot="start" class="progress-ring">
@@ -738,7 +734,7 @@ async function handleRefresh(event: CustomEvent) {
                   color="secondary"
                   :data-testid="`m2-share-${trip.name}`"
                   :aria-label="t('trips.actionShare')"
-                  @click="$router.push(`/trips/${trip.id}/members`)"
+                  @click="$router.push(tripSubPath(trip.id, 'members'))"
                 >
                   <IonIcon slot="icon-only" :icon="peopleOutline" />
                 </IonItemOption>
@@ -747,7 +743,7 @@ async function handleRefresh(event: CustomEvent) {
                   v-if="trip.status === TRIP_STATUS_ARCHIVED"
                   color="primary"
                   :aria-label="t('trips.actionClone')"
-                  @click="$router.push(`/trips/${trip.id}/clone`)"
+                  @click="$router.push(tripSubPath(trip.id, 'clone'))"
                 >
                   <IonIcon slot="icon-only" :icon="copyOutline" />
                 </IonItemOption>
@@ -788,7 +784,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FAB: New Trip -->
       <IonFab id="m2-fab-anchor" vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
-        <IonFabButton data-testid="trips-new" :aria-label="t('trips.new')" router-link="/trips/new">
+        <IonFabButton data-testid="trips-new" :aria-label="t('trips.new')" router-link=PATH.newTrip>
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>

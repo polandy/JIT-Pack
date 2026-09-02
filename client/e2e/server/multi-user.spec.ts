@@ -10,6 +10,7 @@ import {
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
+import { PATH } from '../routes'
 
 /**
  * Two accounts on one instance (UI-Test-Spec §2.3, mode `server`) — the
@@ -66,7 +67,7 @@ test.describe('Two accounts on one instance @server', () => {
     // G-8's positive half: with a real session the trip offers Share at all.
     // Presence in the DOM, not visibility — the option lives behind M2's
     // slide gesture, and what is asserted here is the `collaborative` gate.
-    await alice.goto('/tabs/trips')
+    await alice.goto(PATH.trips)
     await visiblePage(alice).getByTestId('trips-filter-planned').click()
     await expect(visiblePage(alice).getByTestId(`m2-share-${trip}`)).toHaveCount(1)
 
@@ -176,14 +177,14 @@ test.describe('Two accounts on one instance @server', () => {
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
     // Bob has the trip and every other action on it — and not this one.
-    await bob.goto('/tabs/trips')
+    await bob.goto(PATH.trips)
     await visiblePage(bob).getByTestId('trips-filter-planned').click()
     await expect(visiblePage(bob).getByTestId(`trip-row-${trip}`)).toBeVisible()
     const bobsOptions = await tripSwipeActions(bob, trip)
     expect(bobsOptions).toContain('Export trip')
     expect(bobsOptions).not.toContain('Delete trip')
 
-    await alice.goto('/tabs/trips')
+    await alice.goto(PATH.trips)
     await visiblePage(alice).getByTestId('trips-filter-planned').click()
     expect(await tripSwipeActions(alice, trip)).toContain('Delete trip')
 
@@ -262,7 +263,7 @@ test.describe('Two accounts on one instance @server', () => {
     await quickAddItem(alice, mentioned)
     await shareWith(alice, tripPath, ACCOUNT_NAMES.carol)
 
-    await carol.goto('/tabs/settings')
+    await carol.goto(PATH.settings)
     await setDelegations(carol, true)
 
     const subscribedCarol = watchSubscribed(carol)
@@ -282,7 +283,7 @@ test.describe('Two accounts on one instance @server', () => {
     // stays on that screen: a notification is addressed to the *user*, so it
     // reaches whatever page she has open — which is also what makes the
     // absence below assertable without a second trip subscription.
-    await carol.goto('/tabs/settings')
+    await carol.goto(PATH.settings)
     await setDelegations(carol, false)
     // Persisted rather than merely toggled: the reload reads it back off the
     // server, which is the half of this case that is about M17 itself.
@@ -528,7 +529,7 @@ test.describe('Two accounts on one instance @server', () => {
     await bob.goto(tripPath)
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
     await subscribedBob
-    await bob.goto('/tabs/dashboard')
+    await bob.goto(PATH.dashboard)
     // The absence stands against a screen that demonstrably rendered: the
     // trip is on it either way.
     //
@@ -560,7 +561,7 @@ test.describe('Two accounts on one instance @server', () => {
 
     // Coming back, the same row is no longer news: leaving the screen is what
     // marks it read, so the highlight is spent and the row stays listed.
-    await bob.goto('/tabs/dashboard')
+    await bob.goto(PATH.dashboard)
     await expect(
       visiblePage(bob)
         .getByTestId('dashboard-delegated')

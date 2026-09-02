@@ -31,6 +31,7 @@ import { actionsFor } from '@/composables/useHeaderActions'
 import { titleFor } from '@/composables/useHeaderTitle'
 import { t } from '@/i18n'
 import type { SyncState } from '@/composables/useSyncStatus'
+import { PATH } from '@/router/paths'
 
 withDefaults(
   defineProps<{
@@ -97,10 +98,10 @@ async function openOverflow() {
 
 // G-9: the gear is on every screen — except M17 itself, where it would
 // only reopen the screen it is on.
-const onSettings = computed(() => route.path === '/tabs/settings')
+const onSettings = computed(() => route.path === PATH.settings)
 
 function goHome() {
-  ionRouter.navigate('/tabs/dashboard', 'back', 'replace')
+  ionRouter.navigate(PATH.dashboard, 'back', 'replace')
 }
 
 /**
@@ -188,7 +189,7 @@ function goBack() {
         />
         <IonButton
           v-if="!onSettings"
-          router-link="/tabs/settings"
+          router-link=PATH.settings
           data-testid="header-settings"
           :aria-label="t('settings.title')"
           :title="t('settings.title')"
