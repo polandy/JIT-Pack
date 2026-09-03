@@ -247,6 +247,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Three sentences the screens were each translating (2026-09-02)](#three-sentences-the-screens-were-each-translating-2026-09-02) — M4's row facts, the confirm dialog and the app's paths each got one home. Why `rowFacts` is in `lib/` and not `domain/`, why route *names* were the wrong answer to the path literals, and the defect that only appeared once a path had a type.
 - [Four sheets that were already the same, and one that was not (2026-09-02)](#four-sheets-that-were-already-the-same-and-one-that-was-not-2026-09-02) — U-3's five copies of the sheet chrome. Why the M4 filter sheet stays out of `SheetModal`, measured rather than argued, and what that says about calling a migration mechanical.
 - [Three gates that were measuring less than they claimed (2026-09-03)](#three-gates-that-were-measuring-less-than-they-claimed-2026-09-03) — T-4, T-10 and the tsconfig nothing covered. Why the case-id gate saw 80 % of the ids, why the harness rule stops at two globals, and the five defects that surfaced the moment the Playwright suite was type-checked at all.
+- [The empty state had four spacings and one name (2026-09-03)](#the-empty-state-had-four-spacings-and-one-name-2026-09-03) — U-8. Why the majority rule was the right one to keep, what a zero-pixel visual diff is worth as evidence, and the three shapes that share the word "empty" and are not the same component.
 
 
 ## Current state
@@ -11506,3 +11507,54 @@ context — and its `PlaywrightTestOptions` declares `locale`, `offline` and
 casts, so there is one, in `useReducedMotion(test)`, with the reason beside
 it. **A library's typing gap is worth exactly one documented cast; what it
 must never buy is turning the check off.**
+
+## The empty state had four spacings and one name (2026-09-03)
+
+Ten screens rendered the G-7 empty state, all of them with a class called
+`.empty-state`, and the review had them down as "medium, mechanical". They
+carried **four different rules**: `margin-top: 48px` with a side inset, the
+same without one, `padding: 48px 24px`, and that plus a `justify-content` that
+does nothing on an auto-height column. `.empty-hint` was two different sizes.
+So the shared component could not be written without first deciding which of
+the four the app actually has — the same shape as U-3's filter sheet, one item
+earlier in the same review.
+
+**The rule kept is the majority one**, `padding: 48px 24px`, chosen so that the
+six screens already spelling it are unchanged to the pixel and the four using
+`margin-top` keep the same air above while gaining the inset two of them never
+had. The colour was left as `--ion-color-medium` even though the newest screens
+use `--ct-subtext0`: the item is a deduplication, and repainting nine screens
+for a legibility preference is a different decision that nobody asked for.
+
+The evidence is a **zero-pixel visual diff**. Four of the baselines are the tab
+roots, seeded into a fresh Local Mode, which means all four render an empty
+state — so the suite was already photographing this component on four screens
+without anyone having written it. All 24 cases passed with the baselines
+untouched. That is worth more here than a green test: it says the chosen rule
+is the one the app was already rendering, which is exactly the claim the four
+different stylesheets made impossible to check by reading.
+
+**What the word "empty" was hiding.** Three of the fifteen sites the review
+listed are not this component and now say so in its docblock: M14's is a
+*success* state (a smaller glyph in `--jp-done`, followed by the handled rows
+rather than owning the screen), M8's and M10's is a *not-found* line about one
+record, and the `.empty-hint` notes annotate a section inside a screen that has
+content. Those three renamed their classes rather than being exempted, so the
+gate that refuses a screen its own `.empty-state` needs no allowlist — an
+allowlist is where the fourth exception goes unnoticed.
+
+**One thing M4 gave up.** Its three branches used `<strong>` heads with 6 px
+gaps; the shared component's title is regular weight. An empty state is one
+sentence on an otherwise blank screen, nothing competes with it, and where a
+second line exists the hint's smaller size carries the hierarchy — which is
+what the other nine were already doing. It is the one place the migration
+changes a rendering nobody asked to change, so it was rendered and looked at
+rather than reasoned about.
+
+**The gate is in two halves on purpose.** A vitest source scan refuses any
+screen that declares `.empty-state` or `.empty-icon` again; a Playwright case
+(E2E-G7-02) reads the *computed* inset on two unrelated screens. The first
+cannot see a global stylesheet reaching in from outside the component, and the
+second cannot see a copy that has not been rendered yet. Neither one alone is
+the invariant.
+

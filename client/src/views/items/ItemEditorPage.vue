@@ -477,7 +477,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 <template>
   <IonPage>
     <IonContent class="ion-padding">
-      <div v-if="!isCreating && !item" class="empty-state">
+      <div v-if="!isCreating && !item" class="not-found">
         <p>{{ t('items.editor.notFound') }}</p>
       </div>
 
@@ -972,7 +972,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   color: var(--ion-color-medium);
 }
 
-.empty-state {
+.not-found {
   display: flex;
   justify-content: center;
   padding: 48px;

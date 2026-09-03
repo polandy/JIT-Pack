@@ -34,6 +34,7 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
+import EmptyState from '@/components/global/EmptyState.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ContainerSheet from '@/components/trips/ContainerSheet.vue'
 
@@ -122,10 +123,12 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
     <IonContent>
       <div class="page-pad">
         <!-- G-7 empty state: create is the FAB, already on screen. -->
-        <div v-if="containers.length === 0" class="empty-state" data-testid="m11-empty">
-          <IonIcon :icon="bagHandleOutline" class="empty-icon" />
-          <p>{{ t('container.empty') }}</p>
-        </div>
+        <EmptyState
+          v-if="containers.length === 0"
+          :icon="bagHandleOutline"
+          :title="t('container.empty')"
+          testid="m11-empty"
+        />
 
         <!-- Container cards (FR-10.1/10.3) -->
         <button
@@ -346,19 +349,6 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
 }
 
 /* --- empty state (G-7) --- */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
-}
 
 /* --- assign picker --- */
 .picker {

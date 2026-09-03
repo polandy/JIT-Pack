@@ -37,6 +37,7 @@ import {
   latePackersDepartingToday,
   plannedTripsByDeparture,
 } from '@/domain/dashboardSections'
+import EmptyState from '@/components/global/EmptyState.vue'
 import { t } from '@/i18n'
 import { loadSeenDelegations, markDelegationsSeen } from '@/local/delegationSeen'
 import { formatTripPeriod } from '@/lib/format'
@@ -261,14 +262,17 @@ async function handleRefresh(event: CustomEvent) {
       <p class="dashboard-subtitle">{{ t('dashboard.subtitle') }}</p>
 
       <!-- Empty state (G-7) -->
-      <div v-if="isEmpty" class="empty-state" data-testid="dashboard-empty">
-        <IonIcon :icon="trainOutline" class="empty-icon" />
-        <p>{{ t('trips.emptyActive') }}</p>
+      <EmptyState
+        v-if="isEmpty"
+        :icon="trainOutline"
+        :title="t('trips.emptyActive')"
+        testid="dashboard-empty"
+      >
         <IonButton :router-link="PATH.newTrip" expand="block" data-testid="dashboard-plan-trip">
           <IonIcon slot="start" :icon="addOutline" />
           {{ t('dashboard.planTrip') }}
         </IonButton>
-      </div>
+      </EmptyState>
 
       <!--
         FR-6.1/6.3: what somebody handed me. Absent where there is no account
@@ -482,21 +486,6 @@ async function handleRefresh(event: CustomEvent) {
 .dashboard-subtitle {
   color: var(--ion-color-medium);
   margin: 0 0 24px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
 }
 
 .trip-dates {

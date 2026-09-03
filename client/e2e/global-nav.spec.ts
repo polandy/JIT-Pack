@@ -481,6 +481,38 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     expect(MOBILE.width - (box.x + box.width)).toBeGreaterThanOrEqual(16)
   })
 
+  /*
+   * E2E-G7-02 (G-7, U-8): every empty state is the same object, so the inset
+   * above is a property of all of them rather than of the screen that was
+   * repaired. Ten screens used to spell it themselves in four different ways.
+   *
+   * Read from the *rendered* box rather than from the source: a vitest gate
+   * already refuses a screen that declares its own `.empty-state` rule, and
+   * what it cannot see is a global stylesheet overriding the component from
+   * outside. Two unrelated screens agreeing is what says the rule survived
+   * the cascade — and the numbers are named, because an equality on its own
+   * would be just as happy with two screens that both inset by nothing.
+   */
+  test('E2E-G7-02: two unrelated screens inset their empty state identically', async ({ page }) => {
+    await page.setViewportSize(MOBILE)
+
+    const insetOf = async (path: string, testid: string) => {
+      await page.goto(path)
+      const empty = visiblePage(page).getByTestId(testid)
+      await expect(empty).toBeVisible()
+      return empty.evaluate((node) => {
+        const style = getComputedStyle(node)
+        return { top: style.paddingTop, left: style.paddingLeft, right: style.paddingRight }
+      })
+    }
+
+    const master = await insetOf(PATH.masterConflicts, 'conflict-empty')
+    const inventory = await insetOf(PATH.items, 'm9-empty')
+
+    expect(master).toEqual({ top: '48px', left: '24px', right: '24px' })
+    expect(inventory).toEqual(master)
+  })
+
   // E2E-G8-02: the dev sample-trip seed is a development affordance, not
   // Demo Mode returning. This suite runs the production build, where it
   // must not exist at all.
