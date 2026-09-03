@@ -252,6 +252,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A guard called untestable was one `unmount()` away (2026-09-03)](#a-guard-called-untestable-was-one-unmount-away-2026-09-03) — U-1.2. M4's snackbar machinery as `usePackAnnouncer`; the `live` guard's own comment said a case was impossible, and it was impossible only in a view.
 - [The partition was a value nobody had written down (2026-09-03)](#the-partition-was-a-value-nobody-had-written-down-2026-09-03) — G-1. One push pipeline for both partitions; `tripID any` had two call sites beyond the five the review found, and the revert's gate is deliberately not the push's.
 - [The pull's two halves were one page and two questions (2026-09-03)](#the-pulls-two-halves-were-one-page-and-two-questions-2026-09-03) — G-9. One pagination for both pulls; the feed is the WHERE clause (NULL cannot be bound), and the pull filter's two answers are not one.
+- [Nine registries, and a table could be in eight of them (2026-09-03)](#nine-registries-and-a-table-could-be-in-eight-of-them-2026-09-03) — G-2 first half. One `tableSpec` per table, five maps become views; the completeness guard has to read the source because Go cannot enumerate constants.
 - [Two of the menu's five answers were no menu (2026-09-03)](#two-of-the-menus-five-answers-were-no-menu-2026-09-03) — U-1.5, and U-1 closed. `domain/rowMenu.ts`; an outcome that is *nothing happens* cannot be read off a running screen, and the pass banner carried a class no stylesheet defined.
 - [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
 
@@ -11821,3 +11822,40 @@ from the last entry *read*, not the last one delivered, and a client handed
 back the invisible entry re-reads it forever. It was true in both copies and
 never asserted in either; `TestPullPage_CursorPassesTheEntriesTheFilterDropped`
 now pins it, proved by moving the assignment into the delivery loop.
+
+## Nine registries, and a table could be in eight of them (2026-09-03)
+
+G-2 of the design review, first half. Per-table knowledge lived in five maps
+and two switches across `store.go` and `master.go`: the push whitelist, the
+two partition sets, FR-24.3's lifecycle set, the blocking references and the
+cascade switch. Adding a table meant editing all of them, and missing one is
+**not a build error** — it is a rule that quietly does not apply. CLAUDE.md
+§4a is there because a sixth switch was once simply missed.
+
+`internal/store/tables.go` now declares one `tableSpec{partition, columns,
+retirable, blockedBy, cascades}` per table, and `syncableColumns`,
+`tripPartitionTables`, `masterPartitionTables`, `lifecycleTables` and
+`blockingReferences` are derived views of it. `cascadeChildren`'s eight-case
+switch is a lookup. −250 lines of registry, no behaviour change.
+
+**A zero field had to become a statement.** Four of the five fields are
+legitimately empty for most tables — no cascade, nothing blocking the delete,
+not retirable — so "the entry is short" and "the entry is unfinished" look
+identical. Two fields cannot be empty and were the ones worth asserting:
+a table on no partition reaches no endpoint, and a table with no columns
+refuses every push. Both would surface as a refusal a client cannot read,
+somewhere far from the missing line.
+
+**The guard has to read the source, because Go cannot enumerate constants.**
+`TestEveryTableConstantHasASpec` parses the package's own files for
+`Table<Name> = "<table>"` and requires a spec for each, and a spec for nothing
+else. A hand-kept list in the test would have been the tenth registry — the
+exact thing being removed. It follows `TestEveryResponseBodyIsADeclaredType`
+in `internal/api`; note that `parser.ParseDir` is deprecated as of Go 1.25 and
+`golangci-lint` fails on it, so the walk is `filepath.Glob` plus `ParseFile`
+like its predecessor.
+
+Still outside the spec and owed by G-2's second half: `authorizeMaster` and
+`masterVisible` (per-table switches that are rules rather than data),
+`ExportFull`'s ordered query list, and `markedTables`/`stampActor` in
+`internal/api`.
