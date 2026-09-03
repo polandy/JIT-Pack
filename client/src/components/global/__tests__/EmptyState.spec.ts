@@ -67,21 +67,23 @@ describe('EmptyState', () => {
     expect(sources.map((file) => file.path)).toContain('src/views/trips/TripListPage.vue')
   })
 
-  it('no screen declares its own empty-state rule', () => {
+  it('no screen styles the shared empty state itself', () => {
+    // Scoped to the `<style>` block rather than to a line that looks like a
+    // rule: a selector list broken over two lines, a `.card .empty-icon`
+    // descendant or a `:deep()` from a parent are all the same violation,
+    // and a line-shaped pattern sees none of them.
+    //
     // `.empty-hint` is deliberately not in this list: outside an empty state
     // it is a different thing — a note inside a populated section (M11's
     // unassigned box, M8's group and position lists, the wizard's steps).
-    const owned = /^\.empty-(state|icon)\b[^{]*\{/
+    const owned = /\.empty-(state|icon)\b/g
 
     const offenders = sources.flatMap(({ path, source }) =>
-      source
-        .split('\n')
-        .map((line, index) => ({ line, at: `${path}:${index + 1}` }))
-        // A rule *declaring* the class, not the class being used: the shared
-        // component carries `empty-icon` into every screen's DOM, and a case
-        // may still address it there (E2E-G13-03 does).
-        .filter(({ line }) => owned.test(line))
-        .map(({ at, line }) => `${at}: ${line.trim()}`),
+      [...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].flatMap((block) =>
+        [...block[1].matchAll(owned)].map(
+          (hit) => `${path}: .empty-${hit[1]} in <style> at offset ${hit.index}`,
+        ),
+      ),
     )
 
     expect(offenders).toEqual([])
