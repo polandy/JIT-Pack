@@ -63,7 +63,6 @@ import {
   expandOutline,
   funnelOutline,
   briefcaseOutline,
-  lockClosedOutline,
   lockOpenOutline,
   playOutline,
   sparklesOutline,
@@ -79,17 +78,19 @@ import FilterSheet, {
   type FilterOption,
 } from '@/components/global/FilterSheet.vue'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
+import PackingRow, {
+  type PackingRowNotes,
+  type RowEdgeAvatar,
+} from '@/components/trips/PackingRow.vue'
 import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
-import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { DENSE_LIST, modeIcon, modeLabel } from '@/lib/modeLabels'
 import { hasCollaborativeSession } from '@/mode'
 import { TOAST_DURATION_MS, presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
-import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -104,7 +105,6 @@ import {
   FACET_KEYS,
   NO_VALUE,
   type PackingCluster,
-  type PackingRow,
   rowEdgeAvatar,
 } from '@/domain/packingView'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
@@ -756,6 +756,27 @@ function responsibleNoteFor(item: TripItem): string | null {
   return responsibleNote(item, nameOf)
 }
 
+/**
+ * The four sentences a row can put under its name, all of them — `PackingRow`
+ * owns the order it prefers them in, because both kinds of row prefer the
+ * same one and that is the rule worth having in one place.
+ */
+function rowNotes(item: TripItem): PackingRowNotes {
+  return {
+    lock: lockNote(item),
+    ownClaim: ownClaimNote(item),
+    skipped: skippedNoteFor(item),
+    packed: packedStamp(item),
+    responsible: responsibleNoteFor(item),
+  }
+}
+
+/** FR-25.19's edge avatar, with the name the row shows resolved here. */
+function edgeAvatarFor(item: TripItem): RowEdgeAvatar | null {
+  const edge = rowEdgeAvatar(item)
+  return edge ? { ...edge, name: nameOf(edge.id) } : null
+}
+
 // --- Empty states (FR-25.11e) ------------------------------------------
 
 const visibleOpenRows = computed(
@@ -763,7 +784,7 @@ const visibleOpenRows = computed(
     view.value.groups
       .flatMap((group) => group.entries)
       .flatMap((entry) => (entry.kind === 'item' ? [entry] : entry.children))
-      .filter((row: PackingRow) => !row.done).length,
+      .filter((row) => !row.done).length,
 )
 
 const openTotal = computed(() => Math.max(kpis.value.totalItems - kpis.value.packedItems, 0))
@@ -1695,213 +1716,59 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   <span class="cluster-count">{{ entry.doneCount }}/{{ entry.totalCount }}</span>
                 </div>
 
-                <IonItem
+                <PackingRow
                   v-for="child in entry.children"
                   :key="child.item.id"
-                  button
                   class="child-row"
-                  :data-testid="`m4-child-${entry.name}-${child.traveler?.name ?? ''}`"
-                  :class="{ done: child.done, locked: locked(child.item) }"
-                  @click="openItem(child.item.id)"
-                  @contextmenu.prevent="openRowMenu(child.item)"
-                  @pointerdown="(e: PointerEvent) => onRowPress(child.item, e)"
-                  @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                  @pointerup="hold.cancel()"
-                  @pointercancel="hold.cancel()"
-                >
-                  <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
-                         an anchor, and an anchor's jump is a *default action* — stopping
-                         propagation never cancelled it, so every tap on the stepper opened
-                         the sheet instead of counting. -->
-                  <div slot="start" class="row-start" @click.stop.prevent>
-                    <!-- A per-person row is judged like any other (FR-9.3). -->
-                    <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
-                    <button
-                      v-else-if="closingPass"
-                      class="pass-toggle"
-                      :class="{ on: child.item.flag_unused }"
-                      :aria-pressed="child.item.flag_unused"
-                      :aria-label="t('facet.flagUnused')"
-                      :data-testid="`m4-pass-toggle-${entry.name}-${child.traveler?.name ?? ''}`"
-                      @click="onPassToggle(child.item)"
-                    >
-                      <IonIcon :icon="removeCircleOutline" />
-                    </button>
-                    <QuantityStepper
-                      v-else
-                      :quantity="child.item.quantity"
-                      :packed="child.item.packed_count"
-                      @increment="onIncrement(child.item)"
-                      @decrement="onDecrement(child.item)"
-                      @complete="onComplete(child.item)"
-                      @zero="onZero(child.item)"
-                      @toggle="onToggle(child.item)"
-                    />
-                  </div>
-                  <!-- Outside the fixed-width control column (UX-9): beside
-                       the name it sits where a top-level row's mark does, so
-                       the label column stays straight across both kinds. -->
-                  <UserAvatar
-                    class="row-avatar"
-                    :name="child.traveler?.name"
-                    :seed="child.traveler?.id"
-                  />
-                  <IonLabel>
-                    <h3>{{ child.traveler?.name ?? child.label }}</h3>
-                    <p v-if="lockNote(child.item)" class="stamp" data-testid="m4-lock-note">
-                      {{ lockNote(child.item) }}
-                    </p>
-                    <p
-                      v-else-if="ownClaimNote(child.item)"
-                      class="stamp"
-                      data-testid="m4-own-claim"
-                    >
-                      {{ ownClaimNote(child.item) }}
-                    </p>
-                    <p v-else-if="skippedNoteFor(child.item)" class="stamp">
-                      {{ skippedNoteFor(child.item) }}
-                    </p>
-                    <p
-                      v-else-if="child.done && packedStamp(child.item)"
-                      class="stamp"
-                      data-testid="m4-packed-stamp"
-                    >
-                      {{ packedStamp(child.item) }}
-                      <span v-if="responsibleNoteFor(child.item)" class="muted">
-                        · {{ responsibleNoteFor(child.item) }}
-                      </span>
-                    </p>
-                  </IonLabel>
-                  <UserAvatar
-                    v-if="rowEdgeAvatar(child.item)"
-                    slot="end"
-                    :variant="rowEdgeAvatar(child.item)!.variant"
-                    :name="nameOf(rowEdgeAvatar(child.item)!.id)"
-                    :seed="rowEdgeAvatar(child.item)!.id"
-                  />
-                </IonItem>
+                  variant="child"
+                  :item="child.item"
+                  :label="child.traveler?.name ?? child.label"
+                  :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
+                  :done="child.done"
+                  :locked="locked(child.item)"
+                  :closing-pass="closingPass"
+                  :notes="rowNotes(child.item)"
+                  :traveler="child.traveler"
+                  :edge-avatar="edgeAvatarFor(child.item)"
+                  @open="openItem(child.item.id)"
+                  @menu="openRowMenu(child.item)"
+                  @press-start="(e: PointerEvent) => onRowPress(child.item, e)"
+                  @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                  @press-end="hold.cancel()"
+                  @pass-toggle="onPassToggle(child.item)"
+                  @increment="onIncrement(child.item)"
+                  @decrement="onDecrement(child.item)"
+                  @complete="onComplete(child.item)"
+                  @zero="onZero(child.item)"
+                  @toggle="onToggle(child.item)"
+                />
               </div>
 
-              <IonItem
+              <PackingRow
                 v-else
-                button
-                :class="{ done: entry.done, locked: locked(entry.item) }"
-                :data-testid="`m4-row-${entry.item.name}`"
-                @click="openItem(entry.item.id)"
-                @contextmenu.prevent="openRowMenu(entry.item)"
-                @pointerdown="(e: PointerEvent) => onRowPress(entry.item, e)"
-                @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                @pointerup="hold.cancel()"
-                @pointercancel="hold.cancel()"
-              >
-                <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
-                         an anchor, and an anchor's jump is a *default action* — stopping
-                         propagation never cancelled it, so every tap on the stepper opened
-                         the sheet instead of counting. -->
-                <div slot="start" class="row-start" @click.stop.prevent>
-                  <!-- FR-9.3: one posture, one gesture. The stepper counts
-                       what is packed, which is not what the pass asks — and
-                       a checkbox is M4's *packed* idiom, so the mark gets a
-                       control of its own that renders off the row rather
-                       than off its own internal state. -->
-                  <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
-                  <button
-                    v-else-if="closingPass"
-                    class="pass-toggle"
-                    :class="{ on: entry.item.flag_unused }"
-                    :aria-pressed="entry.item.flag_unused"
-                    :aria-label="t('facet.flagUnused')"
-                    :data-testid="`m4-pass-toggle-${entry.item.name}`"
-                    @click="onPassToggle(entry.item)"
-                  >
-                    <IonIcon :icon="removeCircleOutline" />
-                  </button>
-                  <QuantityStepper
-                    v-else
-                    :quantity="entry.item.quantity"
-                    :packed="entry.item.packed_count"
-                    @increment="onIncrement(entry.item)"
-                    @decrement="onDecrement(entry.item)"
-                    @complete="onComplete(entry.item)"
-                    @zero="onZero(entry.item)"
-                    @toggle="onToggle(entry.item)"
-                  />
-                </div>
-                <UserAvatar
-                  v-if="entry.traveler"
-                  class="row-avatar"
-                  :name="entry.traveler.name"
-                  :seed="entry.traveler.id"
-                />
-                <ItemMark
-                  :mark="masterOf(entry.item)?.icon ?? null"
-                  surface="packing"
-                  :photo-item="masterOf(entry.item)"
-                  :size="22"
-                  class="row-mark"
-                />
-                <IonLabel>
-                  <h3>
-                    {{ entry.label }}
-                    <IonBadge
-                      v-if="openTodoCount(entry.item.id) > 0"
-                      color="brand"
-                      class="prep"
-                      :data-testid="`m4-prep-badge-${entry.item.name}`"
-                    >
-                      <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
-                    </IonBadge>
-                  </h3>
-                  <p v-if="lockNote(entry.item)" class="stamp" data-testid="m4-lock-note">
-                    {{ lockNote(entry.item) }}
-                  </p>
-                  <p v-else-if="ownClaimNote(entry.item)" class="stamp" data-testid="m4-own-claim">
-                    {{ ownClaimNote(entry.item) }}
-                  </p>
-                  <p v-else-if="skippedNoteFor(entry.item)" class="stamp">
-                    {{ skippedNoteFor(entry.item) }}
-                  </p>
-                  <p
-                    v-else-if="entry.done && packedStamp(entry.item)"
-                    class="stamp"
-                    data-testid="m4-packed-stamp"
-                  >
-                    {{ packedStamp(entry.item) }}
-                    <span v-if="responsibleNoteFor(entry.item)" class="muted">
-                      · {{ responsibleNoteFor(entry.item) }}
-                    </span>
-                  </p>
-                </IonLabel>
-                <div slot="end" class="row-end">
-                  <!-- FR-9.3: a judgement made from the row's menu has to be
-                       visible on the row, or the pass cannot be reviewed. -->
-                  <IonIcon
-                    v-if="entry.item.flag_unused && !closingPass"
-                    :icon="removeCircleOutline"
-                    class="unused-mark"
-                    :aria-label="t('facet.flagUnused')"
-                    :data-testid="`m4-unused-${entry.item.name}`"
-                  />
-                  <IonIcon
-                    v-if="modeIcon(entry.item.mode, DENSE_LIST)"
-                    :icon="modeIcon(entry.item.mode, DENSE_LIST)!"
-                    class="mode-icon"
-                    :title="modeLabel(entry.item.mode)"
-                  />
-                  <IonIcon
-                    v-if="entry.item.late_packer"
-                    :icon="timeOutline"
-                    class="late-icon"
-                    :title="t('mode.latePacker')"
-                  />
-                  <UserAvatar
-                    v-if="rowEdgeAvatar(entry.item)"
-                    :variant="rowEdgeAvatar(entry.item)!.variant"
-                    :name="nameOf(rowEdgeAvatar(entry.item)!.id)"
-                    :seed="rowEdgeAvatar(entry.item)!.id"
-                  />
-                </div>
-              </IonItem>
+                :item="entry.item"
+                :label="entry.label"
+                :test-key="entry.item.name"
+                :done="entry.done"
+                :locked="locked(entry.item)"
+                :closing-pass="closingPass"
+                :notes="rowNotes(entry.item)"
+                :traveler="entry.traveler"
+                :master="masterOf(entry.item)"
+                :prep-count="openTodoCount(entry.item.id)"
+                :edge-avatar="edgeAvatarFor(entry.item)"
+                @open="openItem(entry.item.id)"
+                @menu="openRowMenu(entry.item)"
+                @press-start="(e: PointerEvent) => onRowPress(entry.item, e)"
+                @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                @press-end="hold.cancel()"
+                @pass-toggle="onPassToggle(entry.item)"
+                @increment="onIncrement(entry.item)"
+                @decrement="onDecrement(entry.item)"
+                @complete="onComplete(entry.item)"
+                @zero="onZero(entry.item)"
+                @toggle="onToggle(entry.item)"
+              />
             </template>
           </TransitionGroup>
         </template>
@@ -2239,10 +2106,6 @@ ion-content.pack-content::part(scroll) {
   font-size: var(--jp-text-sm);
 }
 
-.prep {
-  color: var(--ct-yellow);
-}
-
 .trip-nav {
   display: flex;
   align-items: center;
@@ -2364,25 +2227,6 @@ ion-content.pack-content::part(scroll) {
   transform: rotate(180deg);
 }
 
-.row-start {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  /* UX-9: the control column holds one width whatever it carries (checkbox,
-     stepper, pass toggle, lock), so item names line up in a straight column.
-     Sized to its widest resident, the G-6 stepper (two 28px buttons, the
-     36px count, two 4px gaps, plus tap headroom); min- rather than fixed
-     width so an outsized count degrades to one misaligned row instead of an
-     overlap. */
-  min-width: 108px;
-}
-
-.row-end {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .mode-icon {
   color: var(--ct-peach);
   font-size: var(--jp-icon-sm);
@@ -2391,20 +2235,6 @@ ion-content.pack-content::part(scroll) {
 .late-icon {
   color: var(--ct-yellow);
   font-size: var(--jp-icon-sm);
-}
-
-.lock {
-  font-size: var(--jp-icon-md);
-  color: var(--ct-blue);
-  padding: 8px;
-}
-
-.done {
-  opacity: 0.55;
-}
-
-.locked {
-  opacity: 0.65;
 }
 
 .pass-banner {
@@ -2425,38 +2255,6 @@ ion-content.pack-content::part(scroll) {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-}
-
-.pass-toggle {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-md);
-  cursor: pointer;
-}
-
-.pass-toggle.on {
-  color: var(--ct-mauve);
-}
-
-.unused-mark {
-  font-size: var(--jp-icon-sm);
-  color: var(--ct-mauve);
-}
-
-.stamp {
-  font-size: var(--jp-text-xs);
-}
-
-.prep {
-  font-size: var(--jp-text-3xs);
-  vertical-align: middle;
-  margin-left: 6px;
 }
 
 /* --- Per-person cluster ----------------------------------------------- */
@@ -2640,10 +2438,6 @@ ion-content.pack-content::part(scroll) {
 /* The traveler avatar shares the mark's column (24px + 8px = the mark slot's
    22px + 10px), so child rows and top-level rows start their names at the
    same x. */
-.row-avatar {
-  flex: none;
-  margin-inline-end: 8px;
-}
 
 /* FR-25.8's membership editor, given the same room M5 gives it. */
 .membership-wrap {
