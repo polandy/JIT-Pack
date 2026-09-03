@@ -4,6 +4,113 @@ Which cases from [`UI_Test_Spec_v1.0.md`](UI_Test_Spec_v1.0.md) are actually imp
 
 The implementation lives in [`client/e2e/`](../client/e2e/), whose README holds the running instructions and selector conventions.
 
+## Index
+
+One line per section, so this file can be scanned before any of it is read. The
+reference sections come first, then the Status table, then the dated narratives in
+the order they were written; the parenthesised note says what you would come looking
+for. `scripts/log-index-gate.mjs` holds this list against the file.
+
+- [The rule that comes before the units](#the-rule-that-comes-before-the-units) — why a UI change ships a *passing* case in the same PR, and the two rules the four navigation defects paid for.
+- [Working rule: one unit per PR](#working-rule-one-unit-per-pr) — why two case-adding PRs collide even when git merges both cleanly.
+- [Conventions that matter](#conventions-that-matter) — the binding selector rules — `data-testid` only, Ionic's inner `<input>`, scoped `row-*`, no sleeps, the two clicks an archived trip takes.
+- [Order of attack](#order-of-attack) — the §10 sequence, and why an order of attack goes stale silently.
+- [What the suite costs, measured](#what-the-suite-costs-measured) — the 2026-08-19 measurement behind the 60 s budget; what a §2.4 unit costs on WebKit.
+- [Status](#status) — **the table** — which spec cases are implemented, in which mode, in which file.
+- [E2E-M15-05 — the spreadsheet import, and M15's first case of any kind (2026-08-23)](#e2e-m15-05--the-spreadsheet-import-and-m15s-first-case-of-any-kind-2026-08-23) — what four written-but-unimplemented cases and fake-backed unit tests hid.
+- [E2E-G2-04 — the durable outbox (2026-08-21)](#e2e-g2-04--the-durable-outbox-2026-08-21) — the queue survives a reload while still offline.
+- [E2E-G2-05 — a refused mutation is parked (2026-08-22)](#e2e-g2-05--a-refused-mutation-is-parked-2026-08-22) — the first case to drive the parked surface against a real `jitpackd`, and the two honesty notes on it.
+- [E2E-M4-49/50 — a claim can be given back (2026-08-23)](#e2e-m4-4950--a-claim-can-be-given-back-2026-08-23) — the G-3 claim gains an end; why the note is asserted at all.
+- [E2E-G2-07 — a merge announces itself (2026-08-22)](#e2e-g2-07--a-merge-announces-itself-2026-08-22) — `merged` was on the wire and in no client code path.
+- [E2E-M18-09 — the status survives the round trip (2026-08-23)](#e2e-m18-09--the-status-survives-the-round-trip-2026-08-23) — the backup's read half was dropping every trip to `planning`; the marks-and-tags half deliberately left out.
+- [E2E-G2-08/09 — what the eyeball found (2026-08-23)](#e2e-g2-0809--what-the-eyeball-found-2026-08-23) — two defects that came from rendering a PR rather than reading it, and the sheet that was in no baseline.
+- [E2E-G2-06 — the master partition's conflict log (2026-08-22)](#e2e-g2-06--the-master-partitions-conflict-log-2026-08-22) — reading a loss from outside the losing device; how the row is asserted as *read*.
+- [E2E-G2-10 — the loss can be taken back (2026-08-22)](#e2e-g2-10--the-loss-can-be-taken-back-2026-08-22) — manual revert; what costs nothing to wait for, and the scoping rule read backwards.
+- [E2E-M22-08 — an edited trip is still on M2 (2026-08-22)](#e2e-m22-08--an-edited-trip-is-still-on-m2-2026-08-22) — the partial upsert, and why where the assertion goes is the whole case.
+- [E2E-FLOW-10 — the pull cursor only comes from a pull (2026-08-22)](#e2e-flow-10--the-pull-cursor-only-comes-from-a-pull-2026-08-22) — a push hint adopted as a pull cursor; the case asserts the request, not the screen.
+- [E2E-M7-06 — why it stopped being partial (2026-08-30)](#e2e-m7-06--why-it-stopped-being-partial-2026-08-30) — an empty-state CTA the screen deliberately does not have — the clause was retired, not owed.
+- [E2E-M7-07 — one clause short of what it claimed (2026-08-30)](#e2e-m7-07--one-clause-short-of-what-it-claimed-2026-08-30) — the row's resolved count, the only arithmetic the row does, untested while the id read as complete.
+- [E2E-M7-04 — how the case is split, and why](#e2e-m7-04--how-the-case-is-split-and-why) — the `contextmenu` handler, and the guard asserted both ways.
+- [The visual unit — the only one that asserts appearance](#the-visual-unit--the-only-one-that-asserts-appearance) — why it is a separate project outside `npm run test:e2e`, and what surfaces, colour and typography each do *not* prove.
+- [What the M4 unit deliberately leaves out (rewritten 2026-08-30)](#what-the-m4-unit-deliberately-leaves-out-rewritten-2026-08-30) — two waits that ended without anybody noticing — the paragraph that stood here was wrong in both halves.
+- [Corrected 2026-08-13 — an empty screen that read as lost data](#corrected-2026-08-13--an-empty-screen-that-read-as-lost-data) — a wrong diagnosis worth keeping: a render crash read as lost rows, with a real fire-and-forget write underneath.
+- [M21 — template from trip (`e2e/template-from-trip.spec.ts`, 2026-08-19)](#m21--template-from-trip-e2etemplate-from-tripspects-2026-08-19) — the unit had to build the lifecycle step it needed.
+- [M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)](#m9m10--inventory-and-item-editor-e2einventoryspects-2026-08-16) — the painted result of the two grouping rules, and the two saved-item sections nothing had rendered.
+- [M11 — containers (`e2e/containers.spec.ts`, 2026-08-16)](#m11--containers-e2econtainersspects-2026-08-16) — pairing write semantics — both sides at once, exclusive, released.
+- [E2E-M5-13 — browser back with the sheet open (2026-08-16)](#e2e-m5-13--browser-back-with-the-sheet-open-2026-08-16) — why the history must be built in-SPA rather than by `page.goto`.
+- [M12 — analytics (`e2e/analytics.spec.ts`, 2026-08-16)](#m12--analytics-e2eanalyticsspects-2026-08-16) — the facet handoff asserted by what disappears, not by the chip.
+- [M14 — review assistant (`e2e/review.spec.ts`, 2026-08-16)](#m14--review-assistant-e2ereviewspects-2026-08-16) — why the count was deliberately two, and what blocked the positive cases.
+- [M14 — the positive half, and the two blocks that hid a defect (2026-08-20)](#m14--the-positive-half-and-the-two-blocks-that-hid-a-defect-2026-08-20) — a second, unrecorded block — and the defect underneath it.
+- [M3 — composed templates (`e2e/trip-composition.spec.ts`, 2026-08-16)](#m3--composed-templates-e2etrip-compositionspects-2026-08-16) — why Local Mode is where a missing client-side rule shows.
+- [FR-27.12 — looking inside a group (2026-08-16)](#fr-2712--looking-inside-a-group-2026-08-16) — one behaviour on three screens, covered where its absence hurt most.
+- [Plain-HTTP instances (`e2e/insecure-context.spec.ts`, 2026-08-16)](#plain-http-instances-e2einsecure-contextspects-2026-08-16) — `crypto.randomUUID` does not exist outside a secure context — found from an iPad, not from a test.
+- [FR-27.14 — a Vorlage's resulting items (2026-08-17)](#fr-2714--a-vorlages-resulting-items-2026-08-17) — why the case joins M8's unit instead of starting one.
+- [E2E-M5-14 — the sheet header's two round controls (2026-08-16)](#e2e-m5-14--the-sheet-headers-two-round-controls-2026-08-16) — an owner-flagged 4 px, and what only a rendered phone showed.
+- [G-2 — the sync detail (2026-08-17)](#g-2--the-sync-detail-2026-08-17) — why a global pattern's cases live in `global-nav.spec.ts`.
+- [M18 — the restore half of the backup (2026-08-17)](#m18--the-restore-half-of-the-backup-2026-08-17) — written as a coverage audit of merged PRs: the restore branch had shipped with nothing driving it.
+- [FR-5.5 — deliberately not packed (`e2e/skip-item.spec.ts`, 2026-08-18)](#fr-55--deliberately-not-packed-e2eskip-itemspects-2026-08-18) — two paths and one cascade, each able to break unnoticed.
+- [FR-27.10 — a whole group onto a running trip (`e2e/group-to-trip.spec.ts`, 2026-08-19)](#fr-2710--a-whole-group-onto-a-running-trip-e2egroup-to-tripspects-2026-08-19) — one tap with three outcomes, two of them reports rather than rows.
+- [App shell offline (`e2e/pwa-offline.spec.ts`, 2026-08-20)](#app-shell-offline-e2epwa-offlinespects-2026-08-20) — the NFR-4.13 shell cache, and why the unit is Chromium-only.
+- [Single-User backend sync (`e2e/single/server-sync.spec.ts`, 2026-08-20)](#single-user-backend-sync-e2esingleserver-syncspects-2026-08-20) — the first backend-backed unit: a real `jitpackd` behind the client's `server` mode.
+- [M4 — the scroll position across the M5 overlay (2026-08-21)](#m4--the-scroll-position-across-the-m5-overlay-2026-08-21) — ADR-012's carried cost, paid.
+- [M12 — the positive trend half (2026-08-21)](#m12--the-positive-trend-half-2026-08-21) — a whole past trip built by hand, because the trend needs one.
+- [NFR-4.12 — the language actually changes the app (`e2e/i18n.spec.ts`, 2026-08-21)](#nfr-412--the-language-actually-changes-the-app-e2ei18nspects-2026-08-21) — two strings the migration had to move that were on no screen.
+- [M22 — a trip's properties and its travellers (`e2e/trip-properties.spec.ts`, 2026-08-21)](#m22--a-trips-properties-and-its-travellers-e2etrip-propertiesspects-2026-08-21) — the consequence rule runs client-side, so a break shows here rather than in Go.
+- [Fixed: the losing-offline-edit case was never flaky (2026-08-22)](#fixed-the-losing-offline-edit-case-was-never-flaky-2026-08-22) — a case marked flaky was a product defect — read this before writing off an intermittent.
+- [M8/M4 — the composer's chip rows (2026-08-21)](#m8m4--the-composers-chip-rows-2026-08-21) — FR-25.13c, and the focus assertion that turned around with it.
+- [M8/M4/M6 — the inventory browse-sheet (2026-08-22)](#m8m4m6--the-inventory-browse-sheet-2026-08-22) — FR-25.13d, and the division of labour it repeats.
+- [FR-27.15 — the fold suggestion (2026-08-22)](#fr-2715--the-fold-suggestion-2026-08-22) — why one sentence became two tests sharing one world.
+- [§3.28 — the item mark (`e2e/item-mark.spec.ts`, 2026-08-22)](#328--the-item-mark-e2eitem-markspects-2026-08-22) — three things the first red run taught, none visible from the source.
+- [E2E-G3-01 (partial) + E2E-G3-03 — the lock goes one tap deeper (2026-08-22)](#e2e-g3-01-partial--e2e-g3-03--the-lock-goes-one-tap-deeper-2026-08-22) — backlog 14(d): a padlock that named nobody and stopped at the row.
+- [E2E-G3-02 — the half of a takeover that a single identity can prove (2026-08-24)](#e2e-g3-02--the-half-of-a-takeover-that-a-single-identity-can-prove-2026-08-24) — what was left to assert once FR-5.7 removed the staleness window.
+- [The `server` project — two accounts, and what one identity was hiding (2026-08-24)](#the-server-project--two-accounts-and-what-one-identity-was-hiding-2026-08-24) — ADR-029's harness, and the two screens nobody had ever rendered.
+- [FR-9.3/9.4 — the closing pass, and what its cases had to be careful about (2026-08-24)](#fr-9394--the-closing-pass-and-what-its-cases-had-to-be-careful-about-2026-08-24) — three drafts that were green against the unfixed build.
+- [E2E-FLOW-02 — delegation, and the control it turned out to need (2026-08-25)](#e2e-flow-02--delegation-and-the-control-it-turned-out-to-need-2026-08-25) — writing the case is what found that `packer_user_id` had no writer.
+- [FR-1.6 — a name that is already taken (2026-08-25)](#fr-16--a-name-that-is-already-taken-2026-08-25) — why the duplicate-name cases are `local`: no constraint behind the client there.
+- [The refusal lost its only UI path (2026-08-25)](#the-refusal-lost-its-only-ui-path-2026-08-25) — `still_referenced` — the client learns to say it, then to undo it.
+- [The restore's hard case is the one only a rendered test could show (2026-08-25)](#the-restores-hard-case-is-the-one-only-a-rendered-test-could-show-2026-08-25) — retire frees the name, and what that does to a restore.
+- [M20 and G-10 — the two areas the `server` project named as owed (2026-08-28)](#m20-and-g-10--the-two-areas-the-server-project-named-as-owed-2026-08-28) — the admin surface and presence, both rendered for the first time.
+- [What rendering it found](#what-rendering-it-found) — the facepile initialled a random hex id — a defect no unit test could see.
+- [G-10 was rebuilt rather than completed (2026-08-28)](#g-10-was-rebuilt-rather-than-completed-2026-08-28) — an owner call answered by not building the thing that was asked for.
+- [What is deliberately not covered](#what-is-deliberately-not-covered) — and the one entry that was reversed once the seam turned out to point the other way.
+- [The avatar upload itself has never been driven](#the-avatar-upload-itself-has-never-been-driven) — recorded rather than quietly left: what is covered, and what is not.
+- [E2E-M4-59 — hiding what is already in (FR-25.13e, 2026-08-29)](#e2e-m4-59--hiding-what-is-already-in-fr-2513e-2026-08-29) — what the component test pins, and what only e2e can.
+- [FR-25.21 — the three cases, and the four traps they cost (2026-08-29)](#fr-2521--the-three-cases-and-the-four-traps-they-cost-2026-08-29) — all three red-proved; the four traps are the reusable part.
+- [FR-25.6 — one buy row for a per-person item (2026-08-29)](#fr-256--one-buy-row-for-a-per-person-item-2026-08-29) — the item is made per-person the way a person makes one.
+- [E2E-G3-04 — the lock reaches the cluster, and says whose it is (2026-08-30)](#e2e-g3-04--the-lock-reaches-the-cluster-and-says-whose-it-is-2026-08-30) — one claimed child row, read from a different unclaimed one.
+- [FR-21.9 — the amount finally says what it is in (2026-08-30)](#fr-219--the-amount-finally-says-what-it-is-in-2026-08-30) — a four-link chain only a real backend can drive.
+- [M6's twenty-two promises, read against the screen (2026-08-30)](#m6s-twenty-two-promises-read-against-the-screen-2026-08-30) — 17 of 22 ids had no test and none was marked unimplemented — the audit shape the later screens follow.
+- [The real provider — what a machine checks, and what a person must (2026-08-30)](#the-real-provider--what-a-machine-checks-and-what-a-person-must-2026-08-30) — ADR-029's accepted cost, paid: the opt-in Go test, and the checklist a person runs before a release.
+- [The mechanical half](#the-mechanical-half) — `realprovider_test.go` — four read-only GETs behind an issuer env var.
+- [The half that needs a person](#the-half-that-needs-a-person) — the pre-release manual pass against the family instance.
+- [M5 — six numbers that each meant two things (2026-08-30)](#m5--six-numbers-that-each-meant-two-things-2026-08-30) — a catalogue with two blocks that never met; the first audit whose finding was not a missing case.
+- [M18 — the branch the backup never took (2026-08-30)](#m18--the-branch-the-backup-never-took-2026-08-30) — seven ids all driving one branch, four unwritten ones all on the other.
+- [M8 — twenty-four ids, and a control nothing had ever clicked (2026-08-30)](#m8--twenty-four-ids-and-a-control-nothing-had-ever-clicked-2026-08-30) — the first screen with no unwritten ids — read clause by clause instead.
+- [The four inherited id collisions, read against their screens (2026-08-30)](#the-four-inherited-id-collisions-read-against-their-screens-2026-08-30) — the debt register emptied, and why a loser is struck through rather than renumbered.
+- [M1 and M19 — the front door nobody had opened (2026-08-30)](#m1-and-m19--the-front-door-nobody-had-opened-2026-08-30) — every spec passes through both screens and none of them asserts either.
+- [M15 — the step nobody had opened, and the screen that opens once (2026-08-30)](#m15--the-step-nobody-had-opened-and-the-screen-that-opens-once-2026-08-30) — and the correction: the „opens once" half was the navigation anchors, not M15.
+- [The subscription helper was not deterministic, and said it was (2026-08-30)](#the-subscription-helper-was-not-deterministic-and-said-it-was-2026-08-30) — a doc comment claiming determinism over a buffered frame — the race and its fix.
+- [M14 and M16 read against their screens (backlog item 6, 2026-08-30)](#m14-and-m16-read-against-their-screens-backlog-item-6-2026-08-30) — two screens at opposite ends: everything implemented, and nothing at any layer.
+- [An id in the title is a case you can run (2026-08-31)](#an-id-in-the-title-is-a-case-you-can-run-2026-08-31) — a comment cannot be run with `-g`; 16 of 18 ids were quotations rather than coverage.
+- [The switch nobody interrupted (2026-08-31)](#the-switch-nobody-interrupted-2026-08-31) — a page pushed that nothing popped — the larger half of an M15 symptom.
+- [Three promises about saying, not doing (2026-08-31)](#three-promises-about-saying-not-doing-2026-08-31) — three owner decisions with one shape that no gate finds.
+- [Two sections nobody had built, and the pixel that changed one (2026-08-31)](#two-sections-nobody-had-built-and-the-pixel-that-changed-one-2026-08-31) — FR-27.8/27.9 specified in July, in three documents, in no build.
+- [A picker that had to offer a year outside its own window (2026-08-31)](#a-picker-that-had-to-offer-a-year-outside-its-own-window-2026-08-31) — why M22's year picker cannot reuse the other two.
+- [A screen that aggregated rows it had never loaded (2026-08-31)](#a-screen-that-aggregated-rows-it-had-never-loaded-2026-08-31) — M1's largest finding was none of its three owner decisions.
+- [Two faces, because three cost a line (2026-08-31)](#two-faces-because-three-cost-a-line-2026-08-31) — a column with a writer and no reader, and how the pile is sized.
+- [Two silences, and where each case had to live (2026-08-31)](#two-silences-and-where-each-case-had-to-live-2026-08-31) — a helper that returned nothing and a caller that asked nobody.
+- [The baseline for the screen the pixel found (2026-08-31)](#the-baseline-for-the-screen-the-pixel-found-2026-08-31) — why M16's baseline was deliberately recorded last.
+- [The baseline had recorded a scroll position (2026-08-31)](#the-baseline-had-recorded-a-scroll-position-2026-08-31) — a 6 % diff on a docs-only commit — what a baseline must not capture.
+- [One shard was red, and it was not this change (2026-08-31)](#one-shard-was-red-and-it-was-not-this-change-2026-08-31) — kept for the reasoning: a strict-mode violation visible only in the artefact.
+- [Two ways to wedge the `single` project (2026-08-31)](#two-ways-to-wedge-the-single-project-2026-08-31) — two hangs that name nothing — the run simply never ends.
+- [Three intermittents, one signature (2026-08-31)](#three-intermittents-one-signature-2026-08-31) — measured rather than retried; what a loaded shard does to three specific cases.
+- [E2E-FLOW-04 — the loop that did not close (2026-08-31)](#e2e-flow-04--the-loop-that-did-not-close-2026-08-31) — and FLOW-03, which was covered and did not know it.
+- [E2E-FLOW-05 — a history worth nothing on the second device (2026-08-31)](#e2e-flow-05--a-history-worth-nothing-on-the-second-device-2026-08-31) — every part built and unit-tested, the journey broken.
+- [E2E-FLOW-07 — the migration whose first step is not in the app (2026-08-31)](#e2e-flow-07--the-migration-whose-first-step-is-not-in-the-app-2026-08-31) — FR-19.5's promise that Local Mode is not a trap.
+- [E2E-FLOW-09 — the world that could not falsify its own clause (2026-08-31)](#e2e-flow-09--the-world-that-could-not-falsify-its-own-clause-2026-08-31) — every step covered, the loop not — and a clause the world could not falsify.
+- [The NFR journeys — five modes read off the wrong thing (2026-09-01)](#the-nfr-journeys--five-modes-read-off-the-wrong-thing-2026-09-01) — §6's journeys, and the difference between reading a mode off the screen and off the request.
+- [Two files, one account, two workers (2026-09-02)](#two-files-one-account-two-workers-2026-09-02) — a red `e2e-server` that was not the Dependabot patch: two defects that only meet on a schedule.
+
 ## The rule that comes before the units
 
 **A UI change ships a *passing* Playwright case in the same PR — and the
@@ -31,6 +138,82 @@ paid for by one of those defects:
 A "unit" is one spec file covering one screen or one flow. A feature PR that adds UI adds its unit in the same PR — never as a follow-up.
 
 Keeping it to one unit per PR is not a style preference: two PRs that each add cases tend to collide on the same `data-testid` names and the same shared fixture, and git merges both cleanly while the suite breaks. **After merging `main` into a long-lived branch, re-check that the testids and helper names you added are still unique.**
+
+## Conventions that matter
+
+- **`data-testid` only.** Never text or CSS-class selectors. Adding the missing testids to a component is part of writing the case, and the attribute is the contract — renaming one is a breaking change to the suite.
+- **Ionic inputs need `.locator('input')`.** `getByTestId('x')` finds the `<ion-input>` host; the fillable element is the `<input>` inside it.
+- **Seed through the app, not around it** (spec §2.4). Use `createTripViaWizard` and friends. A fast-path that writes rows directly is allowed only for `server`-mode preconditions that are not themselves under test.
+- **No sleeps, ever.** Playwright's `expect` retries on its own; assert the outcome, never wait a fixed time for it. If a case can only pass by waiting and hoping, the fault is in the production code — give it a deterministic seam. This is the same rule the Go suite follows and it is not negotiable in either.
+- **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen. Run a slice with `npm run test:e2e -- --grep @local`.
+- **A `row-*` locator is always scoped** (2026-08-30). `QuantityStepper` renders `row-check`/`row-minus`/`row-plus` and is used by M4's rows, M5's packing block and M8 alike — the ids name the *control*, not the screen, which is right, and a rename would be a breaking change across three units. While M5 is open the list behind it is still painted, so an unscoped `getByTestId('row-check')` is genuinely ambiguous. Scope to `m5-sheet` or to `m4-row-<name>`, never to the page. The suite has always done this; it was a habit rather than a rule until the M5 audit found no line saying so.
+- **A uuid in a DOM `id` is not always a missing testid** (2026-08-30). `ItemDetailSheet`'s note articles carry `id="comment-<uuid>"` because that is production's own scroll target for the G-4 `?comment=` deep link. It stays, and the addressable handle sits beside it as `m5-note-<body>`. Recorded so the next audit does not re-file it as the pattern the M4 audit named.
+- **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the `server` cases that were still owed when this was written — delegation, presence, M20, all landed since — will all reach for an archived trip eventually.
+
+## Order of attack
+
+Following spec §10, adjusted for what is now built:
+
+1. ~~Playwright scaffold + smoke per mode~~ — done.
+2. ~~A data-producing unit, so later units have a trip to work with~~ — done (M3; `createTripViaWizard` in `fixtures.ts` is the seed helper).
+3. ~~M4 packing list~~ — done; the `data-testid` pass on `PackingListPage.vue` landed with it. **Superseded by the screen audits** (2026-08-30): this list was written when the work was "write the missing cases", and it has been overtaken by reading each screen's promises against the screen — M6, then M4, then M5. The sentence that stood here, *„Next: M5, which both completes its own cases and unlocks the M4 facet cases parked above"*, was wrong in both halves by the time anyone read it again: the M4 facet cases turned out to have been covered as unit tests all along, and M5 had been worked on repeatedly without its catalogue ever being read. **An order of attack goes stale silently** — nothing fails when it does.
+4. Global patterns (§3) — they underpin every screen.
+5. Local Mode delta: persistence across reload, serverless export, M19 switching.
+6. ~~`jitpackd` harness~~ → Single-User cases (largest surface, simplest
+   infra). The harness is built (the `single` project, 2026-08-20 — see the
+   unit at the end of this file); the per-screen `single` cases remain.
+7. Mock IdP → Server/collaboration multi-client cases.
+8. Cross-screen flows + non-functional journeys.
+
+## What the suite costs, measured
+
+Numbers from 2026-08-19, taken inside the pinned image on the maintainer's
+machine with 2 workers, because the sharding decision needed them:
+
+| | Chromium | WebKit |
+|---|---|---|
+| Tests | 123 | 123 |
+| Wall clock | 3.8 min | 10.6 min |
+
+WebKit is where the budget matters. **16 of its 123 tests take 20 s or more**,
+and the slowest passing one took 31.9 s — against Playwright's 30 s default,
+which the config had never overridden. That is the cost of §2.4: a unit that
+builds its world through M7 → M8 → M3 is worth far more than one that seeds
+storage directly, and on WebKit it costs real seconds. The budget is now set
+explicitly at 60 s in `playwright.config.ts` with that measurement written
+beside it.
+
+Two consequences worth keeping in mind when adding a unit: a new §2.4 unit is
+not free, and a WebKit failure reading *"Test timeout of 60000ms exceeded"* at
+a different line on each attempt is a unit that outgrew its budget, not a
+broken assertion.
+
+**What the FR-27.4 unit covers since 2026-08-18.** E2E-M8-09 runs the whole
+question: a group edited after the trip was generated shows up as M2's proposal chip on
+a freshly booted app and is *offered* on the trip's next open — the card names the change while the list has not moved —
+accepting puts the row on the list, and M2 then carries the "⟳ N Änderungen"
+chip naming the group and the item. E2E-M8-19 runs the refusal, and its real
+assertion is the return trip: the trip re-derives on every open, so a refusal
+held only in memory would ask again the moment you come back. Both were
+mutation-proved — restoring the old apply-on-open behaviour turns M8-09 red at
+the "offered, not applied" assertion, and a decline that applies the plan
+instead of its ledger half turns M8-19 red. The unit moved out of
+`template-editor.spec.ts` with the model change: the surface under test is M4
+and M2, not the editor.
+
+One thing it does *not* prove: that a **past** trip is never asked. Reaching
+one in the browser needs either the planning→active transition no UI ships or
+a trip whose end date has gone by, and the wizard's dates are the user's, not
+the clock's — so the boundary lives where it can be stood on from both sides,
+in the `followsGroups` unit with an injected `today`. E2E-M8-11's
+propagation-log half is covered generically by M8-09; the task-specific line
+lives in the `groupRefresh` unit. E2E-M8-05 covers the warning surface
+that exists today, in both directions (the Vorlage names the trip, and the
+group reaches it through the include), plus the absence case *before* the trip
+exists — a positive-signal pairing, not a lone not-there assertion. The sheet's
+FR-25.15 ●→✓ flip is unit-tested on `SaveIndicator` against a controlled
+state; e2e asserts presence and the settled tooltip — racing the transient
+● would be a forbidden timing dependency (M8-14 amendment 2026-08-15).
 
 ## Status
 
@@ -93,6 +276,22 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31), **E2E-FLOW-07** (the move off Local Mode, since 2026-08-31), **E2E-G2-13** / **E2E-G2-14** (a dead socket is dialled again, and coming back pulls at once — since 2026-09-01) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
+| M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08, **E2E-M17-14b** (FR-19.8's guard, both directions, since 2026-09-02) | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
+| M17 leaving Local Mode (FR-19.8, ADR-045) | **E2E-M17-14** (the whole move on one device, read back from the server), **E2E-M17-14c** (skip is not restore) — both since 2026-09-02 | `single` | [`single/leave-local-mode.spec.ts`](../client/e2e/single/leave-local-mode.spec.ts) |
+| M17 data export under a session (NFR-4.5) | E2E-M17-03 **/ E2E-NFR-05** | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
+
+**What this table does and does not say.** Every row names the cases that exist; it
+does not claim the screen behind it is finished. Since the 2026-08-30/09-02 audits
+every screen has been read promise by promise against the build, and spec §3's global
+patterns, §5's ten flows and §6's non-functional journeys all have cases — but a
+promise that turned out not to be assertable through the UI was **retired in the
+spec** rather than covered here, and each retirement is recorded in the sections
+below. Read those before concluding that a missing case is owed.
+
+**A green `e2e` job is not a verified UI.** It says the implemented cases passed.
+
+## E2E-M15-05 — the spreadsheet import, and M15's first case of any kind (2026-08-23)
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -111,6 +310,8 @@ Two smaller things the case had to learn about the screen it drives: an
 are addressed as `ion-input` and not as `input`; and FR-16.2 imports rows
 already packed, so on M4 they are behind the done bar rather than in the list.
 
+## E2E-G2-04 — the durable outbox (2026-08-21)
+
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
 offline*, and the queue is still there — count on the glyph, sentence in the
@@ -120,6 +321,8 @@ offline reload is the PWA's (E2E-PWA-01); the case asserts the back button
 rather than E2E-PWA-01's logo, because inside a trip the app bar carries no
 logo. **Proved red against the unfixed build**: with the outbox store
 unwired the count is simply absent after the reload.
+
+## E2E-G2-05 — a refused mutation is parked (2026-08-22)
 
 **E2E-G2-05 — a refused mutation is parked, added 2026-08-22.** The first case
 that ever drove the parked surface against a real `jitpackd`. It could not
@@ -141,6 +344,8 @@ wrong and the run corrected. The destructive alert button is located by its
 Ionic role class rather than its label, so the case does not depend on which
 catalogue the alert renders in.
 
+## E2E-M4-49/50 — a claim can be given back (2026-08-23)
+
 **E2E-M4-49/50 — a claim can be given back, added 2026-08-23.** The G-3
 claim has worked for a long time; what it could not do was *end*. Nothing
 released it but packing the row or the §7 window passing, so a tap made by
@@ -158,6 +363,8 @@ added later cannot slip in unnoticed; what it excludes is *skip*, which on a
 row you are mid-way through packing is not a thing anyone means. Both
 mutation-proved by making the menu blind to its own claim.
 
+## E2E-G2-07 — a merge announces itself (2026-08-22)
+
 **E2E-G2-07 — a merge announces itself, added 2026-08-22.** `merged` is an
 outcome the wire has always carried and the client read in no code path: a
 mutation that lost a field left the queue exactly like one that applied
@@ -171,6 +378,8 @@ a timer, so asserting it after the case's M5 steps would race that timer —
 the first draft did exactly that. Nothing after the dismissal depends on it;
 what the later steps assert is the sheet's standing line, which has no
 timer.
+
+## E2E-M18-09 — the status survives the round trip (2026-08-23)
 
 **E2E-M18-09 — the status survives the round trip, added 2026-08-23.** The
 backup's read half gained the thing it had been quietly dropping: every
@@ -197,6 +406,8 @@ unit-covered at the same boundary this case crosses — `buildBackup` into
 inventory item through M10 would double this case to assert what is already
 asserted. Recorded rather than assumed, so nobody reads the id list as a claim
 that the whole ADR is e2e-covered.
+
+## E2E-G2-08/09 — what the eyeball found (2026-08-23)
 
 **E2E-G2-08 and E2E-G2-09 — what the eyeball found, added 2026-08-23.** Both
 came out of rendering PR #160 rather than out of reading its diff, and both are
@@ -231,6 +442,8 @@ the 0.002 the gate allows. That tolerance is the owner's deliberate 2026-08-19
 setting — *"this gate catches layout changes, not small ones"* — so the offset
 is the geometry case's job and the baseline guards the sheet around it.
 
+## E2E-G2-06 — the master partition's conflict log (2026-08-22)
+
 **E2E-G2-06 — the master partition's conflict log, added 2026-08-22.** The
 audit NFR-4.2a promises had one endpoint and two partitions: every
 master-partition loser — a group renamed twice, a trip's own dates — was
@@ -264,6 +477,8 @@ green while it said the wrong thing.
 
 Each of the three was mutation-proved separately, because the first two live
 in one test and the earlier failure hides the later assertion.
+
+## E2E-G2-10 — the loss can be taken back (2026-08-22)
 
 **E2E-G2-10 — the loss can be taken back, added 2026-08-22.** NFR-4.2a
 promises audit *and* manual revert in one sentence; only the audit existed,
@@ -308,6 +523,7 @@ unscoped.
 replaces it), `conflict-revert-error` (the per-row refusal sentence) and
 `conflict-revert-hint` (the line saying a revert is a new change).
 
+## E2E-M22-08 — an edited trip is still on M2 (2026-08-22)
 
 **E2E-M22-08 — an edited trip is still on M2, added 2026-08-22.** The trip
 editor sends a partial upsert on purpose — an upsert of the whole row would
@@ -324,6 +540,8 @@ stays green against the defect. Only M2 can see it. The vitest sibling in
 remembering: it asserted `year === 2026` under the comment *"untouched fields
 stay"*, and `rowToTrip` defaults a missing year to the current one, so the
 assertion held while the field was being dropped. It reads `2031` now.
+
+## E2E-FLOW-10 — the pull cursor only comes from a pull (2026-08-22)
 
 **E2E-FLOW-10 — the pull cursor only comes from a pull, added 2026-08-22.**
 The push response's `pull_hint.next_cursor` names the seq *that push* wrote;
@@ -360,12 +578,8 @@ Two things this unit still does *not* cover, both by decision:
   UI (it only ever sends columns the server knows). The parking rules are
   covered in `client/src/composables/__tests__/useSyncOutbox.spec.ts`
   instead, and G-2's rendering of them in the SyncDetailSheet component test.
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
-| Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
-| M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08, **E2E-M17-14b** (FR-19.8's guard, both directions, since 2026-09-02) | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
-| M17 leaving Local Mode (FR-19.8, ADR-045) | **E2E-M17-14** (the whole move on one device, read back from the server), **E2E-M17-14c** (skip is not restore) — both since 2026-09-02 | `single` | [`single/leave-local-mode.spec.ts`](../client/e2e/single/leave-local-mode.spec.ts) |
-| M17 data export under a session (NFR-4.5) | E2E-M17-03 **/ E2E-NFR-05** | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
+
+## E2E-M7-06 — why it stopped being partial (2026-08-30)
 
 **Why E2E-M7-06 stopped being partial (2026-08-30).** The case asks for an
 empty-state *CTA* (create / import). The screen has neither as a button: create
@@ -378,6 +592,8 @@ in place is what tells a narrowed search from an empty instance. Nothing had
 typed into M7's search until this case — the twin of E2E-M9-10, found on the
 next screen the same day, and the same lesson: a screen's search is usually
 covered as far as *opening the field*.
+
+## E2E-M7-07 — one clause short of what it claimed (2026-08-30)
 
 **E2E-M7-07 was called complete since the M8 unit, and was one clause short
 (corrected 2026-08-30).** The clause is the row's *resolved* item count, which
@@ -402,6 +618,8 @@ M18's return-to-origin rule for the entrance from M2 and names M7 in its own
 comment without covering it, which is exactly the entrance that could have kept
 returning to M18's declared parent, Settings.
 
+## E2E-M7-04 — how the case is split, and why
+
 **How E2E-M7-04 is split, and why.** The e2e case drives the menu through
 `contextmenu` — the same handler the touch hold fires into — and asserts the
 guard both ways: a row click is inert while the menu lives (the sheet staying
@@ -420,6 +638,8 @@ in fact wrong (a stale one-shot swallow-next-click flag that ate the next
 legitimate tap because the hold's release click usually lands on the
 overlay, not the row); the red case that caught it is the dismissed-then-tap
 assertion that survives in the contextmenu case.
+
+## The visual unit — the only one that asserts appearance
 
 **The visual unit is the only one that asserts appearance, and it is not
 part of `npm run test:e2e`.** It is a separate Playwright project, run by
@@ -468,6 +688,8 @@ the baselines that make "looks right" assertable are the fifth step of
 `design-foundation-plan.md`, and until they land the eyeball pass is the
 gate.
 
+## What the M4 unit deliberately leaves out (rewritten 2026-08-30)
+
 **What the M4 unit deliberately leaves out, and why — rewritten
 2026-08-30.** The paragraph that stood here said the facet cases
 E2E-M4-16/-17/-19 were waiting for a screen that could produce
@@ -509,6 +731,8 @@ E2E-M4-28 covers the *session* half of FR-25.18 by leaving M4 and coming
 back; the *fresh session* half is a unit test on `usePackingFilter`,
 because reaching it in the browser needs a reload — see the finding
 below.
+
+## Corrected 2026-08-13 — an empty screen that read as lost data
 
 **Corrected 2026-08-13.** An earlier version of this file reported that
 Local Mode loses a trip's items on reload. That diagnosis was wrong, and
@@ -601,85 +825,6 @@ the 2026-08-30 audit. Notes worth carrying forward:
 | a taken name is refused where it is typed, for **both** names this screen writes | **E2E-M21-05** | **New 2026-08-30.** Added to the screen 2026-08-25, five days after its cases; nothing had rendered the note, the disabled button, or the two-names-must-differ rule. |
 | pressing create twice writes one Vorlage | `TemplateFromTripPage.spec.ts` (unit) | A real thumb can provoke it; an e2e case cannot, reliably. |
 
-**Not yet covered:** everything else in spec §3 (global patterns G-1–G-15), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` mode has its first unit since 2026-08-20 (the harness and its four cases, see below) — everything screen-shaped in `single` beyond it is still open. The `server` mode (mock IdP, multiple identities) has no coverage at all (spec §10 step 5).
-
-This is a small fraction of the specified suite. Do not read a green `e2e` job as "the UI is verified".
-
-## What the suite costs, measured
-
-Numbers from 2026-08-19, taken inside the pinned image on the maintainer's
-machine with 2 workers, because the sharding decision needed them:
-
-| | Chromium | WebKit |
-|---|---|---|
-| Tests | 123 | 123 |
-| Wall clock | 3.8 min | 10.6 min |
-
-WebKit is where the budget matters. **16 of its 123 tests take 20 s or more**,
-and the slowest passing one took 31.9 s — against Playwright's 30 s default,
-which the config had never overridden. That is the cost of §2.4: a unit that
-builds its world through M7 → M8 → M3 is worth far more than one that seeds
-storage directly, and on WebKit it costs real seconds. The budget is now set
-explicitly at 60 s in `playwright.config.ts` with that measurement written
-beside it.
-
-Two consequences worth keeping in mind when adding a unit: a new §2.4 unit is
-not free, and a WebKit failure reading *"Test timeout of 60000ms exceeded"* at
-a different line on each attempt is a unit that outgrew its budget, not a
-broken assertion.
-
-**What the FR-27.4 unit covers since 2026-08-18.** E2E-M8-09 runs the whole
-question: a group edited after the trip was generated shows up as M2's proposal chip on
-a freshly booted app and is *offered* on the trip's next open — the card names the change while the list has not moved —
-accepting puts the row on the list, and M2 then carries the "⟳ N Änderungen"
-chip naming the group and the item. E2E-M8-19 runs the refusal, and its real
-assertion is the return trip: the trip re-derives on every open, so a refusal
-held only in memory would ask again the moment you come back. Both were
-mutation-proved — restoring the old apply-on-open behaviour turns M8-09 red at
-the "offered, not applied" assertion, and a decline that applies the plan
-instead of its ledger half turns M8-19 red. The unit moved out of
-`template-editor.spec.ts` with the model change: the surface under test is M4
-and M2, not the editor.
-
-One thing it does *not* prove: that a **past** trip is never asked. Reaching
-one in the browser needs either the planning→active transition no UI ships or
-a trip whose end date has gone by, and the wizard's dates are the user's, not
-the clock's — so the boundary lives where it can be stood on from both sides,
-in the `followsGroups` unit with an injected `today`. E2E-M8-11's
-propagation-log half is covered generically by M8-09; the task-specific line
-lives in the `groupRefresh` unit. E2E-M8-05 covers the warning surface
-that exists today, in both directions (the Vorlage names the trip, and the
-group reaches it through the include), plus the absence case *before* the trip
-exists — a positive-signal pairing, not a lone not-there assertion. The sheet's
-FR-25.15 ●→✓ flip is unit-tested on `SaveIndicator` against a controlled
-state; e2e asserts presence and the settled tooltip — racing the transient
-● would be a forbidden timing dependency (M8-14 amendment 2026-08-15).
-
-## Order of attack
-
-Following spec §10, adjusted for what is now built:
-
-1. ~~Playwright scaffold + smoke per mode~~ — done.
-2. ~~A data-producing unit, so later units have a trip to work with~~ — done (M3; `createTripViaWizard` in `fixtures.ts` is the seed helper).
-3. ~~M4 packing list~~ — done; the `data-testid` pass on `PackingListPage.vue` landed with it. **Superseded by the screen audits** (2026-08-30): this list was written when the work was "write the missing cases", and it has been overtaken by reading each screen's promises against the screen — M6, then M4, then M5. The sentence that stood here, *„Next: M5, which both completes its own cases and unlocks the M4 facet cases parked above"*, was wrong in both halves by the time anyone read it again: the M4 facet cases turned out to have been covered as unit tests all along, and M5 had been worked on repeatedly without its catalogue ever being read. **An order of attack goes stale silently** — nothing fails when it does.
-4. Global patterns (§3) — they underpin every screen.
-5. Local Mode delta: persistence across reload, serverless export, M19 switching.
-6. ~~`jitpackd` harness~~ → Single-User cases (largest surface, simplest
-   infra). The harness is built (the `single` project, 2026-08-20 — see the
-   unit at the end of this file); the per-screen `single` cases remain.
-7. Mock IdP → Server/collaboration multi-client cases.
-8. Cross-screen flows + non-functional journeys.
-
-## Conventions that matter
-
-- **`data-testid` only.** Never text or CSS-class selectors. Adding the missing testids to a component is part of writing the case, and the attribute is the contract — renaming one is a breaking change to the suite.
-- **Ionic inputs need `.locator('input')`.** `getByTestId('x')` finds the `<ion-input>` host; the fillable element is the `<input>` inside it.
-- **Seed through the app, not around it** (spec §2.4). Use `createTripViaWizard` and friends. A fast-path that writes rows directly is allowed only for `server`-mode preconditions that are not themselves under test.
-- **No sleeps, ever.** Playwright's `expect` retries on its own; assert the outcome, never wait a fixed time for it. If a case can only pass by waiting and hoping, the fault is in the production code — give it a deterministic seam. This is the same rule the Go suite follows and it is not negotiable in either.
-- **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen. Run a slice with `npm run test:e2e -- --grep @local`.
-- **A `row-*` locator is always scoped** (2026-08-30). `QuantityStepper` renders `row-check`/`row-minus`/`row-plus` and is used by M4's rows, M5's packing block and M8 alike — the ids name the *control*, not the screen, which is right, and a rename would be a breaking change across three units. While M5 is open the list behind it is still painted, so an unscoped `getByTestId('row-check')` is genuinely ambiguous. Scope to `m5-sheet` or to `m4-row-<name>`, never to the page. The suite has always done this; it was a habit rather than a rule until the M5 audit found no line saying so.
-- **A uuid in a DOM `id` is not always a missing testid** (2026-08-30). `ItemDetailSheet`'s note articles carry `id="comment-<uuid>"` because that is production's own scroll target for the G-4 `?comment=` deep link. It stays, and the addressable handle sits beside it as `m5-note-<body>`. Recorded so the next audit does not re-file it as the pattern the M4 audit named.
-- **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the `server` cases that were still owed when this was written — delegation, presence, M20, all landed since — will all reach for an archived trip eventually.
 
 ## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
 

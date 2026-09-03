@@ -38,7 +38,7 @@ Read this file fully before touching code. It is the orientation document: what 
 | Why was X chosen over Y? | `dev-docs/adr/ADR-00N_*.md` — options considered, weighted decision matrix, consequences, revisit trigger |
 | How do I run and operate this? | `docs/` — the published user manual; `docs/index.md` is its landing page |
 | What must the UI test suite cover? | `dev-docs/UI_Test_Spec_v1.0.md` — Playwright scope: per-screen cases, cross-screen flows, FR/NFR traceability matrix |
-| What does the suite actually cover, and what is owed? | `dev-docs/e2e-tests.md` — the ledger; read and update it, a green `e2e` job is not a verified UI |
+| What does the suite actually cover, and what is owed? | `dev-docs/e2e-tests.md` — the ledger; read and update it, a green `e2e` job is not a verified UI. **It opens with an index**, like the log: scan that and open only what it names. |
 | How do I run and write an e2e case? | `client/e2e/README.md` — helpers, projects, running a single case |
 | How do I write code here? | `dev-docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
 | What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history. **It opens with an index**: one line per section, so scan that and open only what it names. |

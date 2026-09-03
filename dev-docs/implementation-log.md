@@ -255,6 +255,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Nine registries, and a table could be in eight of them (2026-09-03)](#nine-registries-and-a-table-could-be-in-eight-of-them-2026-09-03) — G-2 first half. One `tableSpec` per table, five maps become views; the completeness guard has to read the source because Go cannot enumerate constants.
 - [Two of the menu's five answers were no menu (2026-09-03)](#two-of-the-menus-five-answers-were-no-menu-2026-09-03) — U-1.5, and U-1 closed. `domain/rowMenu.ts`; an outcome that is *nothing happens* cannot be read off a running screen, and the pass banner carried a class no stylesheet defined.
 - [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
+- [A table with a second half nobody could see (2026-09-03)](#a-table-with-a-second-half-nobody-could-see-2026-09-03) — T-5. `e2e-tests.md` gets an index and the gate learns a second document; the two duplicated rows found on the way, and why the narratives did not move into this file.
 
 
 ## Current state
@@ -11737,6 +11738,7 @@ of any kind, which is the ordinary state of markup that lives in a view: the
 seven cases it has now include the one that says why the head exists at all —
 it carries the mark so the traveler rows under it carry none.
 
+
 ## The partition was a value nobody had written down (2026-09-03)
 
 G-1. `ApplyMutation` and `ApplyMasterMutation` ran the same twelve steps in
@@ -11787,6 +11789,7 @@ red where it is written rather than only in an end-to-end pull. Both flags
 were mutation-proved; removing `relogScopeRefusal` also turns
 `TestPullMaster_AfterARefusedInsert_OffersATombstoneForThePhantomRow` red,
 which is the end-to-end half.
+
 
 ## The pull's two halves were one page and two questions (2026-09-03)
 
@@ -11859,3 +11862,54 @@ Still outside the spec and owed by G-2's second half: `authorizeMaster` and
 `masterVisible` (per-table switches that are rules rather than data),
 `ExportFull`'s ordered query list, and `markedTables`/`stampActor` in
 `internal/api`.
+
+
+## A table with a second half nobody could see (2026-09-03)
+
+Design-review item T-5. `dev-docs/e2e-tests.md` had grown to 4 143 lines: a
+status table, and behind it seventy dated narrative sections with no index and
+no gate — the exact shape this log has had a gate for since the day it got one.
+The review offered two ways out and left the choice open: fold the narratives
+into this file, which already has both, or give the ledger its own index and
+teach `scripts/log-index-gate.mjs` a second document.
+
+**The second was chosen, and the argument that decided it was not the tidier
+one.** Every merged PR appends to this file *and* to its index, so a change
+that inserts 3 500 lines plus seventy index entries collides with every branch
+open at the time — and it collides in the one place git resolves additively and
+wrongly. The ledger is appended to far less often. Two supporting reasons: this
+file's index is meant to be read *instead of* the file, and 189 entries plus
+seventy is past the point where that works; and the review's "several already
+have twins there" did not survive being measured — **exactly two** titles occur
+in both files.
+
+**What the restructure found is the part worth recording.** The status table
+was not one table. Six rows sat 270 lines below the other fifty-seven, after a
+run of narrative prose, with **no header row of their own** — so GitHub rendered
+them as a paragraph of pipe characters rather than as table rows, and had done
+since they were added. Two of the six were stale duplicates of rows that also
+appear in the real table, carrying the shorter, older case lists; four were
+unique, and two of those were written the day before this was found (FR-19.8's
+`single` unit and M17's device settings). Nothing could have caught it: the
+file is valid Markdown either way, no gate reads the table, and the rows are
+findable with `grep`, which is how everyone who added one checked their work.
+Reuniting the table is what dropped the two stale rows.
+
+The other thing that moved is the summary paragraph under the table, which had
+drifted behind the file it summarises: it claimed the `server` mode had *„no
+coverage at all"* and named §3, §5 and §6 as entirely uncovered, all of which
+the sections *below it in the same file* contradict. It had been stranded
+underneath the M21 narrative — pushed there when M21 was inserted into the
+middle of the table's section — which is a fair explanation of why nobody
+reading the table ever saw it.
+
+Seventeen of the narratives inside the status section had no heading at all,
+only a bolded lead-in; they now carry `##` headings so the index can name them.
+The three reference sections — conventions, order of attack, the cost
+measurement — moved above the table: the binding selector rules had been
+sitting at line 673, behind thirty narratives.
+
+The gate keeps its name. Renaming it to `doc-index-gate.mjs` would touch the
+Makefile, the CI client job and two prose references for no behaviour, and it
+is still a gate the implementation log owns first.
+
