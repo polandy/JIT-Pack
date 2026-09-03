@@ -107,7 +107,7 @@ func (s *Store) TakeOverClaim(ctx context.Context, tripID, itemID, takerUserID s
 	if err := updateRow(ctx, tx, m.Table, m.ID, merged); err != nil {
 		return LockEvent{}, err
 	}
-	seq, err := appendChangeLog(ctx, tx, tripID, m, false)
+	seq, err := appendChangeLog(ctx, tx, tripFeed(tripID), m, false)
 	if err != nil {
 		return LockEvent{}, err
 	}

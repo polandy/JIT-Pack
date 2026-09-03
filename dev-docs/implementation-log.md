@@ -250,6 +250,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The empty state had four spacings and one name (2026-09-03)](#the-empty-state-had-four-spacings-and-one-name-2026-09-03) — U-8. Why the majority rule was the right one to keep, what a zero-pixel visual diff is worth as evidence, and the three shapes that share the word "empty" and are not the same component.
 - [The row was written twice, and the copies had stopped being copies (2026-09-03)](#the-row-was-written-twice-and-the-copies-had-stopped-being-copies-2026-09-03) — U-1.1. The two M4 rows as one component with two named differences, a third that is load-bearing, and two `.prep` rules in one scoped stylesheet that the badge resolved to both of.
 - [A guard called untestable was one `unmount()` away (2026-09-03)](#a-guard-called-untestable-was-one-unmount-away-2026-09-03) — U-1.2. M4's snackbar machinery as `usePackAnnouncer`; the `live` guard's own comment said a case was impossible, and it was impossible only in a view.
+- [The partition was a value nobody had written down (2026-09-03)](#the-partition-was-a-value-nobody-had-written-down-2026-09-03) — G-1. One push pipeline for both partitions; `tripID any` had two call sites beyond the five the review found, and the revert's gate is deliberately not the push's.
 - [Two of the menu's five answers were no menu (2026-09-03)](#two-of-the-menus-five-answers-were-no-menu-2026-09-03) — U-1.5, and U-1 closed. `domain/rowMenu.ts`; an outcome that is *nothing happens* cannot be read off a running screen, and the pass banner carried a class no stylesheet defined.
 - [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
 
@@ -11733,3 +11734,44 @@ component, and the visual baselines agreed. And `ClusterHead` had no unit test
 of any kind, which is the ordinary state of markup that lives in a view: the
 seven cases it has now include the one that says why the head exists at all —
 it carries the mark so the traveler rows under it carry none.
+
+## The partition was a value nobody had written down (2026-09-03)
+
+G-1. `ApplyMutation` and `ApplyMasterMutation` ran the same twelve steps in
+two files. They are now one `applyMutation(ctx, m, p)` over a `partition`
+value, and the two entry points are one line each.
+
+**Four differences, and they were nowhere.** Reading the two functions side
+by side is how you learned that the master partition re-logs a scope refusal
+and the trip partition must not — the trip path simply built its own
+`MutationResult` without calling `relogRefused`, so the rule was expressed by
+an *absence of a call*, in a file that never mentions the other partition.
+It is now `relogScopeRefusal bool` with the reason on it (`out_of_scope`
+means the row is not this partition's, and re-delivering it would hand the
+pusher a foreign row's snapshot — P-3). Same for FR-24.3's retire, which is
+now `retirable map[string]bool`, nil on the trip side.
+
+**The `any` had more call sites than the review found.** It named five
+(`appendChangeLog`, `relogRefused`, `relogCascadeChildren`, `logConflicts`,
+`applyRevert`); `itemimage.go` and `locks.go` were passing `nil` and a bare
+`tripID` to the same helper. That is the ordinary shape of this defect: a
+parameter whose type says *anything* is not greppable by type, so a survey
+finds the sites that happen to be near the code it was reading. The type is
+now `feed`, with `tripFeed(id)` and `masterFeed` — and `appendChangeLog(ctx,
+tx, masterFeed, …)` in the item-image path says which feed it writes to,
+where `nil` said nothing.
+
+**One thing deliberately not unified.** `applyRevert` keeps its authorizer as
+a parameter rather than taking `p.scope`. They look interchangeable — for the
+master partition they are literally the same call — but the trip partition's
+push gate is `belongsToTrip`, and a revert passes no gate at all because the
+`member` middleware has already applied the only one the trip partition has.
+Folding `p.scope` in would have added a gate to a path that deliberately has
+none, which is a behaviour change wearing a refactor's clothes.
+
+The new `partition_test.go` pins the four differences as properties of the
+two values, so a fifth difference or a flag that drifts to the other side is
+red where it is written rather than only in an end-to-end pull. Both flags
+were mutation-proved; removing `relogScopeRefusal` also turns
+`TestPullMaster_AfterARefusedInsert_OffersATombstoneForThePhantomRow` red,
+which is the end-to-end half.
