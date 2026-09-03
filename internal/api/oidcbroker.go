@@ -77,12 +77,12 @@ func newOIDCBroker(cfg OIDCConfig) *oidcBroker {
 	}
 }
 
-// identity is what the IdP says about an account after a round-trip:
+// idpIdentity is what the IdP says about an account after a round-trip:
 // the subject the session is keyed by, the UserInfo claims the users row
 // is provisioned from, and the IdP refresh token to store alongside.
 // A zero sub means the IdP vouched for the session without saying
 // anything new about the account — see refresh.
-type identity struct {
+type idpIdentity struct {
 	sub             string
 	info            map[string]any
 	idpRefreshToken string
@@ -92,7 +92,7 @@ type identity struct {
 // in: token set, ID-token verification, UserInfo, and the OIDC Core
 // §5.3.2 subject check. Every failure is one of the sentinels above, so
 // the handler decides the HTTP answer in one place.
-func (b *oidcBroker) exchange(ctx context.Context, code, verifier, redirectURI string) (identity, error) {
+func (b *oidcBroker) exchange(ctx context.Context, code, verifier, redirectURI string) (idpIdentity, error) {
 	tokens, err := b.tokenRequest(ctx, url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code},
@@ -100,10 +100,10 @@ func (b *oidcBroker) exchange(ctx context.Context, code, verifier, redirectURI s
 		"redirect_uri":  {redirectURI},
 	})
 	if err != nil {
-		return identity{}, err
+		return idpIdentity{}, err
 	}
 	if tokens.IDToken == "" {
-		return identity{}, errNoIDToken
+		return idpIdentity{}, errNoIDToken
 	}
 
 	// The ID token is the credential minted *for this broker*: audience
@@ -114,23 +114,23 @@ func (b *oidcBroker) exchange(ctx context.Context, code, verifier, redirectURI s
 		jwt.WithValidMethods([]string{"RS256"}),
 		jwt.WithIssuer(b.issuer),
 		jwt.WithAudience(b.clientID)); err != nil {
-		return identity{}, errIDTokenInvalid
+		return idpIdentity{}, errIDTokenInvalid
 	}
 	sub, err := idClaims.GetSubject()
 	if err != nil || sub == "" {
-		return identity{}, errNoSubject
+		return idpIdentity{}, errNoSubject
 	}
 
 	info, err := b.userinfo(ctx, tokens.AccessToken)
 	if err != nil {
-		return identity{}, errUserinfoUnreachable
+		return idpIdentity{}, errUserinfoUnreachable
 	}
 	// OIDC Core §5.3.2: the UserInfo sub MUST match the ID token's —
 	// this is the defense against a swapped-in access token.
 	if infoSub, _ := info["sub"].(string); infoSub != sub {
-		return identity{}, errSubjectMismatch
+		return idpIdentity{}, errSubjectMismatch
 	}
-	return identity{sub: sub, info: info, idpRefreshToken: tokens.RefreshToken}, nil
+	return idpIdentity{sub: sub, info: info, idpRefreshToken: tokens.RefreshToken}, nil
 }
 
 // refresh re-validates a session at the IdP once per refresh, so an
@@ -143,15 +143,15 @@ func (b *oidcBroker) exchange(ctx context.Context, code, verifier, redirectURI s
 // refresh token the caller must keep. A returned identity therefore
 // carries an empty sub when UserInfo said nothing usable, and the
 // caller re-stamps only when it did.
-func (b *oidcBroker) refresh(ctx context.Context, idpRefreshToken string) (identity, error) {
+func (b *oidcBroker) refresh(ctx context.Context, idpRefreshToken string) (idpIdentity, error) {
 	tokens, err := b.tokenRequest(ctx, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {idpRefreshToken},
 	})
 	if err != nil {
-		return identity{}, err
+		return idpIdentity{}, err
 	}
-	id := identity{idpRefreshToken: tokens.RefreshToken}
+	id := idpIdentity{idpRefreshToken: tokens.RefreshToken}
 	info, err := b.userinfo(ctx, tokens.AccessToken)
 	if err != nil {
 		return id, nil
