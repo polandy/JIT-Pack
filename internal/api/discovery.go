@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 )
 
 // Discovery holds the OIDC endpoints resolved from the issuer's
@@ -24,7 +23,7 @@ type Discovery struct {
 // OIDC Discovery spec makes that check mandatory, and it is what stops
 // a misrouted URL from silently wiring the broker to the wrong IdP.
 func FetchDiscovery(issuer string) (Discovery, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: idpTimeout}
 	resp, err := client.Get(issuer + "/.well-known/openid-configuration")
 	if err != nil {
 		return Discovery{}, fmt.Errorf("fetch OIDC discovery: %w", err)
@@ -33,7 +32,7 @@ func FetchDiscovery(issuer string) (Discovery, error) {
 	if resp.StatusCode != http.StatusOK {
 		return Discovery{}, fmt.Errorf("fetch OIDC discovery: %s returned %d", issuer, resp.StatusCode)
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, idpMaxBody))
 	if err != nil {
 		return Discovery{}, fmt.Errorf("read OIDC discovery: %w", err)
 	}

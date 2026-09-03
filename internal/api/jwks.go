@@ -55,7 +55,7 @@ type JWKSProvider struct {
 func NewJWKSProvider(url string) (*JWKSProvider, error) {
 	p := &JWKSProvider{
 		url:    url,
-		client: &http.Client{Timeout: 10 * time.Second},
+		client: &http.Client{Timeout: idpTimeout},
 		done:   make(chan struct{}),
 	}
 	if err := p.refresh(); err != nil {
