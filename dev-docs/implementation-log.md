@@ -258,6 +258,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
 - [A table with a second half nobody could see (2026-09-03)](#a-table-with-a-second-half-nobody-could-see-2026-09-03) — T-5. `e2e-tests.md` gets an index and the gate learns a second document; the two duplicated rows found on the way, and why the narratives did not move into this file.
 - [A setter that simulated something the operator cannot do (2026-09-03)](#a-setter-that-simulated-something-the-operator-cannot-do-2026-09-03) — G-13. `api.Options` replaces four setters and a test-only field; the allowlist test was asserting a mid-session edit that no instance can perform, and why `Now` is not in the struct yet.
+- [The broker could only be tested by logging in (2026-09-03)](#the-broker-could-only-be-tested-by-logging-in-2026-09-03) — G-5. `oidcBroker.exchange`/`.refresh` with typed errors and one `writeAuthError` table; the review's premise about what was unit-tested was wrong, and one rule had never been readable outside a full login.
 
 
 ## Current state
@@ -11976,3 +11977,47 @@ that field and that constructor; adding a sixth field fails the count.
 `Options.Now`, which the review's text lists, is deliberately **not** here.
 Nothing would read it until G-4 replaces the ambient `time.Now()` calls, and a
 knob no code consults is worse than a later two-line addition.
+
+## The broker could only be tested by logging in (2026-09-03)
+
+Design-review item G-5: the OIDC login broker threaded `http.ResponseWriter`
+five calls deep — `handleAuthToken` → `idpTokenRequest(w, …)` →
+`fetchUserinfo(w, …)` → `provisionFromUserinfo(w, ctx, …)` → `issueSession(w,
+ctx, …)` → `writeSessionTokens(w, …)`, with `ctx` behind `w` in two of them.
+Everything the broker knows was therefore expressed as an HTTP response at the
+point it was learned, and the only way to observe any of it was a complete
+login against a fake IdP.
+
+It is now `oidcBroker.exchange(ctx, code, verifier, redirect) (identity,
+error)` and `.refresh(ctx, idpRefreshToken) (identity, error)`, in
+`oidcbroker.go`, returning sentinel errors; the handlers own every
+`ResponseWriter`, and `writeAuthError` is the one place a broker failure
+becomes a status. The `idpStatus` enum is gone — `classifyTokenResponse`
+returns `errIDPRejected`, `errIDPUnreachable` or nil, which is the same three
+answers with the property that a caller cannot forget to handle one.
+
+**The review's premise was wrong on one point.** It says
+`classifyTokenResponse` "is the only unit-tested piece". It had no unit test at
+all: the rule was covered by `TestAuthRefresh_ClassifiesIdPFailures`, ten cases
+that each perform a full login, break the IdP, refresh, count session rows, heal
+the IdP and refresh again. Excellent coverage of the *consequence* — a session
+that must survive an outage — and no statement anywhere of the rule itself. Both
+now exist, at their own layers, and the end-to-end table did not shrink.
+
+The rule that had never been readable outside a login is the one that costs the
+most when it breaks: **a refresh must survive a UserInfo that says nothing.**
+Authelia answers 200 with the standard claims stripped for an account disabled
+after its token was issued, and treating that as a failure would discard the
+rotated IdP refresh token the caller has to store. It was one `if err == nil`
+buried in the middle of the refresh handler. It is now `oidcBroker.refresh`
+returning an identity whose `sub` is empty, asserted directly.
+
+Two costs taken on purpose. The ID-token verification failures (bad signature,
+wrong issuer, wrong audience) still have no broker-level test, because the JWKS
+signing helpers live in `package api_test` and an internal test cannot reach
+them — duplicating them would be a second fixture for one assertion, and those
+cases are covered end-to-end. And `writeAuthError`'s table is guarded by an AST
+test that reads the sentinels out of `oidcbroker.go`, because Go cannot
+enumerate a package's variables at runtime: a new failure with no table row
+would still answer, with a 500 saying "login failed", which no end-to-end test
+would call wrong.

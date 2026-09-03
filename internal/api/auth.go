@@ -16,11 +16,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -39,46 +36,12 @@ const (
 	sessionRefreshTTL = 90 * 24 * time.Hour
 )
 
-// oidcBroker holds the confidential-client configuration resolved from
-// discovery. The client secret lives only here, server-side.
-type oidcBroker struct {
-	issuer       string
-	clientID     string
-	clientSecret string
-	authorizeURL string
-	tokenURL     string
-	userinfoURL  string
-	jwks         *JWKSProvider
-}
-
-// newOIDCBroker flattens the operator's OIDCConfig onto the endpoints
-// discovery resolved, which is all the broker itself reads.
-func newOIDCBroker(cfg OIDCConfig) *oidcBroker {
-	return &oidcBroker{
-		issuer:       cfg.Discovery.Issuer,
-		clientID:     cfg.ClientID,
-		clientSecret: cfg.ClientSecret,
-		authorizeURL: cfg.Discovery.AuthorizeURL,
-		tokenURL:     cfg.Discovery.TokenURL,
-		userinfoURL:  cfg.Discovery.UserinfoURL,
-		jwks:         cfg.JWKS,
-	}
-}
-
-// idpTokenSet is the IdP's token-endpoint response. Only the broker
-// ever sees it; the session tokens handed to the client are JIT-Pack's
-// own (see issueSession).
-type idpTokenSet struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	IDToken      string `json:"id_token"`
-}
-
-// sessionTokens is what the client receives: a short-lived HS256 access
-// token and the current link of the refresh chain.
+// handleAuthToken completes a login: the client's code and PKCE
+// verifier go to the broker, and what comes back is JIT-Pack's own
+// session token pair.
 func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, ErrNotConfigured, "OIDC login is not configured")
+		writeError(w, http.StatusNotImplemented, ErrNotConfigured, msgOIDCNotConfigured)
 		return
 	}
 	var req struct {
@@ -91,58 +54,22 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, ok := s.idpTokenRequest(w, url.Values{
-		"grant_type":    {"authorization_code"},
-		"code":          {req.Code},
-		"code_verifier": {req.CodeVerifier},
-		"redirect_uri":  {req.RedirectURI},
-	})
-	if !ok {
+	id, err := s.oidc.exchange(r.Context(), req.Code, req.CodeVerifier, req.RedirectURI)
+	if err != nil {
+		writeAuthError(w, err)
 		return
 	}
-	if tokens.IDToken == "" {
-		writeError(w, http.StatusBadGateway, ErrIDPError, "IdP returned no id_token — is the openid scope configured for this client?")
+	userID, err := s.provisionFromUserinfo(r.Context(), id.sub, id.info)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, ErrInternal, msgProvisioningFailed)
 		return
 	}
-
-	// The ID token is the credential minted *for this broker*: audience
-	// is our client id, issuer is the configured IdP, signature is in
-	// the discovered JWKS. Everything identity-shaped rides on it.
-	idClaims := jwt.MapClaims{}
-	if _, err := jwt.ParseWithClaims(tokens.IDToken, idClaims, s.oidc.jwks.KeyFunc,
-		jwt.WithValidMethods([]string{"RS256"}),
-		jwt.WithIssuer(s.oidc.issuer),
-		jwt.WithAudience(s.oidc.clientID)); err != nil {
-		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "ID token failed verification")
-		return
-	}
-	sub, err := idClaims.GetSubject()
-	if err != nil || sub == "" {
-		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "ID token has no subject")
-		return
-	}
-
-	info, ok := s.fetchUserinfo(w, tokens.AccessToken)
-	if !ok {
-		return
-	}
-	// OIDC Core §5.3.2: the UserInfo sub MUST match the ID token's —
-	// this is the defense against a swapped-in access token.
-	if infoSub, _ := info["sub"].(string); infoSub != sub {
-		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "UserInfo subject does not match ID token")
-		return
-	}
-
-	userID, ok := s.provisionFromUserinfo(w, r.Context(), sub, info)
-	if !ok {
-		return
-	}
-	s.issueSession(w, r.Context(), userID, tokens.RefreshToken)
+	s.issueSession(r.Context(), w, userID, id.idpRefreshToken)
 }
 
 func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, ErrNotConfigured, "OIDC login is not configured")
+		writeError(w, http.StatusNotImplemented, ErrNotConfigured, msgOIDCNotConfigured)
 		return
 	}
 	var req struct {
@@ -169,35 +96,28 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 
 	newIDPRefresh := sess.IDPRefreshToken
 	if sess.IDPRefreshToken != "" {
-		// Re-validate the account at the IdP once per refresh: a user
-		// disabled or logged out at Authelia is cut off at refresh
-		// cadence rather than never (ADR-007).
-		idpTokens, status := s.idpRefresh(sess.IDPRefreshToken)
-		switch status {
-		case idpOK:
-			if idpTokens.RefreshToken != "" {
-				newIDPRefresh = idpTokens.RefreshToken
-			}
-			// Freshen identity and the FR-23.1 admin stamp from
-			// UserInfo. Best-effort: the IdP already vouched for the
-			// account above, and failing the whole refresh now would
-			// discard the rotated IdP refresh token we must keep.
-			if info, err := s.userinfoRequest(idpTokens.AccessToken); err == nil {
-				if infoSub, _ := info["sub"].(string); infoSub != "" {
-					if _, ok := s.provisionFromUserinfo(w, r.Context(), infoSub, info); !ok {
-						return
-					}
-				}
-			}
-		case idpRejected:
+		id, err := s.oidc.refresh(r.Context(), sess.IDPRefreshToken)
+		switch {
+		case errors.Is(err, errIDPRejected):
 			// The IdP disowned the session — only this ends it (§2).
 			s.endSession(r.Context(), oldHash, sessionEndIDPRejected)
 			writeError(w, http.StatusUnauthorized, ErrUnauthorized, sessionEndIDPRejected)
 			return
-		case idpUnreachable:
+		case err != nil:
 			// Offline is normal, not a logout: leave the chain intact.
-			writeError(w, http.StatusBadGateway, ErrIDPUnreachable, "IdP token endpoint unreachable")
+			writeAuthError(w, err)
 			return
+		}
+		if id.idpRefreshToken != "" {
+			newIDPRefresh = id.idpRefreshToken
+		}
+		// Freshen identity and the FR-23.1 admin stamp from what the
+		// IdP just said, when it said anything (see oidcBroker.refresh).
+		if id.sub != "" {
+			if _, err := s.provisionFromUserinfo(r.Context(), id.sub, id.info); err != nil {
+				writeError(w, http.StatusInternalServerError, ErrInternal, msgProvisioningFailed)
+				return
+			}
 		}
 	}
 
@@ -241,9 +161,47 @@ const (
 	sessionEndAccountGone = "account no longer exists"
 )
 
-// msgSessionCleanupFailed is asserted by the tests, so it is named once
-// (CODING_PRINCIPLES §4a).
-const msgSessionCleanupFailed = "session cleanup failed"
+// Messages more than one handler answers with, named once
+// (CODING_PRINCIPLES §4a); msgSessionCleanupFailed is also asserted by
+// the tests.
+const (
+	msgSessionCleanupFailed = "session cleanup failed"
+	msgOIDCNotConfigured    = "OIDC login is not configured"
+	msgProvisioningFailed   = "user provisioning failed"
+)
+
+// authErrorResponses is the one place a broker failure becomes an HTTP
+// answer. A table rather than a switch per handler, because the same
+// failure must read the same way whichever endpoint met it — and
+// because the pair that must never be conflated (rejection vs outage)
+// is then two adjacent lines rather than two files apart.
+var authErrorResponses = []struct {
+	err    error
+	status int
+	code   ErrorCode
+	msg    string
+}{
+	{errIDPRejected, http.StatusUnauthorized, ErrUnauthorized, "IdP rejected the request"},
+	{errIDPUnreachable, http.StatusBadGateway, ErrIDPUnreachable, "IdP token endpoint unreachable"},
+	{errNoIDToken, http.StatusBadGateway, ErrIDPError, "IdP returned no id_token — is the openid scope configured for this client?"},
+	{errIDTokenInvalid, http.StatusUnauthorized, ErrUnauthorized, "ID token failed verification"},
+	{errNoSubject, http.StatusUnauthorized, ErrUnauthorized, "ID token has no subject"},
+	{errSubjectMismatch, http.StatusUnauthorized, ErrUnauthorized, "UserInfo subject does not match ID token"},
+	{errUserinfoUnreachable, http.StatusBadGateway, ErrIDPUnreachable, "IdP UserInfo endpoint unreachable"},
+}
+
+// writeAuthError answers a broker failure. An error the table does not
+// know is a bug in this package rather than anything the caller did, so
+// it answers 500 instead of guessing a status.
+func writeAuthError(w http.ResponseWriter, err error) {
+	for _, r := range authErrorResponses {
+		if errors.Is(err, r.err) {
+			writeError(w, r.status, r.code, r.msg)
+			return
+		}
+	}
+	writeError(w, http.StatusInternalServerError, ErrInternal, "login failed")
+}
 
 // endSession deletes the refresh row behind a session that has just been
 // refused. The refusal has already been decided and does not depend on
@@ -258,13 +216,10 @@ func (s *Server) endSession(ctx context.Context, refreshHash, reason string) {
 
 func (s *Server) handleAuthConfig(w http.ResponseWriter, _ *http.Request) {
 	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, ErrNotConfigured, "OIDC login is not configured")
+		writeError(w, http.StatusNotImplemented, ErrNotConfigured, msgOIDCNotConfigured)
 		return
 	}
-	writeJSON(w, AuthConfigResponse{
-		AuthorizeURL: s.oidc.authorizeURL,
-		ClientID:     s.oidc.clientID,
-	})
+	writeJSON(w, s.oidc.authorizeConfig())
 }
 
 // provisionFromUserinfo maps UserInfo claims onto the users row: JIT
@@ -281,25 +236,20 @@ func (s *Server) handleAuthConfig(w http.ResponseWriter, _ *http.Request) {
 // refresh, with no error raised and only a fresh login to recover.
 // Revocation still works whenever the IdP does supply an address: that
 // is the case FR-23.1 is about.
-func (s *Server) provisionFromUserinfo(w http.ResponseWriter, ctx context.Context, sub string, info map[string]any) (string, bool) {
+func (s *Server) provisionFromUserinfo(ctx context.Context, sub string, info map[string]any) (string, error) {
 	email := stringClaim(info, "email")
 	var isAdmin *bool
 	if email != "" {
 		admin := s.isAdminEmail(email, emailVerifiedClaim(info))
 		isAdmin = &admin
 	}
-	userID, err := s.store.EnsureOIDCUser(ctx, sub, displayNameClaim(info), email, isAdmin)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, ErrInternal, "user provisioning failed")
-		return "", false
-	}
-	return userID, true
+	return s.store.EnsureOIDCUser(ctx, sub, displayNameClaim(info), email, isAdmin)
 }
 
 // issueSession opens a refresh chain and hands the client its first
 // token pair. Login of a deactivated account is refused outright rather
 // than issuing tokens that every endpoint would 403 anyway (FR-23.3).
-func (s *Server) issueSession(w http.ResponseWriter, ctx context.Context, userID, idpRefreshToken string) {
+func (s *Server) issueSession(ctx context.Context, w http.ResponseWriter, userID, idpRefreshToken string) {
 	state, err := s.store.AccountStatus(ctx, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
@@ -343,182 +293,6 @@ func (s *Server) writeSessionTokens(w http.ResponseWriter, userID, refresh strin
 		RefreshToken: refresh,
 		ExpiresIn:    int(sessionAccessTTL.Seconds()),
 	})
-}
-
-// --- IdP round-trips ------------------------------------------------------
-
-type idpStatus int
-
-const (
-	idpOK idpStatus = iota
-	idpRejected
-	idpUnreachable
-)
-
-// oauthErrorResponse is the token endpoint's error body (RFC 6749
-// §5.2). Its presence is the signal that the IdP itself answered:
-// proxies and error pages serve HTML or plain text, IdPs serve this.
-type oauthErrorResponse struct {
-	Code        string `json:"error"`
-	Description string `json:"error_description"`
-}
-
-const (
-	// errInvalidGrant is the only RFC 6749 §5.2 code that says anything
-	// about *this user's* grant — the refresh token or code is expired,
-	// revoked, or was never valid. It is what Authelia returns (400)
-	// once a token is revoked or the login it belongs to is gone.
-	errInvalidGrant = "invalid_grant"
-	// errInvalidClient means the broker's own credentials were refused
-	// (Authelia answers 401). Identical for every user, so it is a
-	// deployment fault, never a per-user rejection.
-	errInvalidClient = "invalid_client"
-)
-
-// idpTokenRequest posts to the IdP token endpoint as a confidential
-// client and decodes the token set. Reports ok=false after writing the
-// error response.
-func (s *Server) idpTokenRequest(w http.ResponseWriter, form url.Values) (idpTokenSet, bool) {
-	tokens, status := s.idpTokenPost(form)
-	switch status {
-	case idpRejected:
-		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "IdP rejected the request")
-		return idpTokenSet{}, false
-	case idpUnreachable:
-		writeError(w, http.StatusBadGateway, ErrIDPUnreachable, "IdP token endpoint unreachable")
-		return idpTokenSet{}, false
-	}
-	return tokens, true
-}
-
-// idpRefresh runs the refresh_token grant; the caller maps the status
-// onto its own error semantics (rejection ends the session, outage
-// does not).
-func (s *Server) idpRefresh(refreshToken string) (idpTokenSet, idpStatus) {
-	return s.idpTokenPost(url.Values{
-		"grant_type":    {"refresh_token"},
-		"refresh_token": {refreshToken},
-	})
-}
-
-func (s *Server) idpTokenPost(form url.Values) (idpTokenSet, idpStatus) {
-	req, err := http.NewRequest(http.MethodPost, s.oidc.tokenURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return idpTokenSet{}, idpUnreachable
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	// client_secret_basic (RFC 6749 §2.3.1) — the auth method Authelia
-	// defaults to for confidential clients. Credentials are form-encoded
-	// inside the Basic header per OAuth 2.0, hence the QueryEscape.
-	req.SetBasicAuth(url.QueryEscape(s.oidc.clientID), url.QueryEscape(s.oidc.clientSecret))
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return idpTokenSet{}, idpUnreachable
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return idpTokenSet{}, idpUnreachable
-	}
-	if status := classifyTokenResponse(resp.StatusCode, body); status != idpOK {
-		return idpTokenSet{}, status
-	}
-	var tokens idpTokenSet
-	if err := json.Unmarshal(body, &tokens); err != nil || tokens.AccessToken == "" {
-		// A 200 that is not a token set never came from a token
-		// endpoint — a captive portal or a misrouted proxy, not a grant.
-		return idpTokenSet{}, idpUnreachable
-	}
-	return tokens, idpOK
-}
-
-// classifyTokenResponse decides whether the token endpoint said no or
-// was never reached — the distinction that decides whether a session
-// survives (ADR-007, spec §2), so it must never collapse into
-// rejection.
-//
-// A rejection is only an RFC 6749 §5.2 error response: 400 (or 401,
-// which some IdPs use) carrying a JSON object with an `error` field,
-// and among those codes only `invalid_grant`. Everything else is an
-// outage:
-//
-//   - Status codes outside 400/401, and any body that is not a JSON
-//     OAuth error. Behind a reverse proxy — the reference deployment —
-//     the IdP going down does not produce a 5xx at all: Traefik drops
-//     the router with the container and the POST lands on the catch-all
-//     error page, which answers 404 with HTML. That is the ordinary
-//     shape of "Authelia is down".
-//   - `invalid_client` and the remaining §5.2 codes. They describe the
-//     broker's registration or request, are identical for every user,
-//     and would turn one wrong secret into a fleet-wide permanent
-//     logout. Logged instead, because nothing else surfaces them.
-//
-// The asymmetry is deliberate. Reading a rejection as an outage costs a
-// session row that lingers to its absolute expiry while the user is cut
-// off anyway (no refresh ever succeeds); reading an outage as a
-// rejection destroys the session for good. Only the latter is
-// unrecoverable, so anything ambiguous resolves to outage.
-func classifyTokenResponse(statusCode int, body []byte) idpStatus {
-	if statusCode == http.StatusOK {
-		return idpOK
-	}
-	var oauthErr oauthErrorResponse
-	if err := json.Unmarshal(body, &oauthErr); err != nil || oauthErr.Code == "" {
-		return idpUnreachable
-	}
-	if statusCode != http.StatusBadRequest && statusCode != http.StatusUnauthorized {
-		return idpUnreachable
-	}
-	if oauthErr.Code != errInvalidGrant {
-		if oauthErr.Code == errInvalidClient {
-			slog.Error("IdP refused the broker's client credentials — check JITPACK_OIDC_CLIENT_ID and JITPACK_OIDC_CLIENT_SECRET",
-				"error", oauthErr.Code, "description", oauthErr.Description)
-		}
-		return idpUnreachable
-	}
-	return idpRejected
-}
-
-// fetchUserinfo wraps userinfoRequest with the broker's error
-// responses; reports ok=false after writing them.
-func (s *Server) fetchUserinfo(w http.ResponseWriter, accessToken string) (map[string]any, bool) {
-	info, err := s.userinfoRequest(accessToken)
-	if err != nil {
-		writeError(w, http.StatusBadGateway, ErrIDPUnreachable, "IdP UserInfo endpoint unreachable")
-		return nil, false
-	}
-	return info, true
-}
-
-// userinfoRequest reads the identity claims the IdP holds for the
-// access token. Plain JSON per the reference deployment (Authelia,
-// userinfo_signed_response_alg "none").
-func (s *Server) userinfoRequest(accessToken string) (map[string]any, error) {
-	req, err := http.NewRequest(http.MethodGet, s.oidc.userinfoURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("userinfo endpoint refused the access token")
-	}
-	var info map[string]any
-	if err := json.Unmarshal(body, &info); err != nil {
-		return nil, err
-	}
-	return info, nil
 }
 
 // --- refresh-token material ----------------------------------------------
