@@ -4,6 +4,7 @@
  * Populated from pull responses on the master partition.
  */
 
+import { bucketedRows } from '@/stores/bucketedRows'
 import { TABLE, type SyncTable } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
@@ -40,6 +41,7 @@ export const useMasterStore = defineStore('master', () => {
   const items = ref<Map<string, MasterItem>>(new Map())
   const templates = ref<Map<string, Template>>(new Map())
   const templateItems = ref<Map<string, TemplateItem[]>>(new Map())
+  const templateItemRows = bucketedRows(templateItems, (r) => r.template_id)
   const templateIncludes = ref<Map<string, TemplateInclude>>(new Map())
   const templateItemTasks = ref<Map<string, TemplateItemTask>>(new Map())
   const series = ref<Map<string, TripSeries>>(new Map())
@@ -396,14 +398,14 @@ export const useMasterStore = defineStore('master', () => {
 
       case TABLE.templateItems:
         if (change.deleted) {
-          removeTemplateItem(change.id)
+          templateItemRows.remove(change.id)
           // ON DELETE CASCADE removes the tasks server-side; mirror it so a
           // count chip cannot outlive its own position between two pulls.
           for (const [id, task] of templateItemTasks.value) {
             if (task.template_item_id === change.id) templateItemTasks.value.delete(id)
           }
         } else if (row) {
-          upsertTemplateItem(rowToTemplateItem(change.id, row))
+          templateItemRows.upsert(rowToTemplateItem(change.id, row))
         }
         break
 
@@ -452,29 +454,6 @@ export const useMasterStore = defineStore('master', () => {
   function applyChanges(changes: PullChange[]): void {
     for (const c of changes) {
       applyChange(c)
-    }
-  }
-
-  // --- Internal helpers ---
-
-  function upsertTemplateItem(ti: TemplateItem): void {
-    const list = templateItems.value.get(ti.template_id) ?? []
-    const idx = list.findIndex((t) => t.id === ti.id)
-    if (idx >= 0) {
-      list[idx] = ti
-    } else {
-      list.push(ti)
-    }
-    templateItems.value.set(ti.template_id, list)
-  }
-
-  function removeTemplateItem(id: string): void {
-    for (const [templateId, list] of templateItems.value) {
-      const filtered = list.filter((t) => t.id !== id)
-      if (filtered.length !== list.length) {
-        templateItems.value.set(templateId, filtered)
-        break
-      }
     }
   }
 
