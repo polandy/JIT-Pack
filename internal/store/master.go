@@ -571,67 +571,6 @@ func memberTrip(current map[string]any, m sync.Mutation) (string, bool) {
 	return "", false
 }
 
-// PullMaster returns master-partition changes after the cursor, filtered
-// to what userID may see (spec §4): tags, items and templates are
-// instance-wide (FR-1.6 MVP), trips require membership, series follow
-// ownership. Tombstones are always delivered — they carry only the entity
-// id.
-func (s *Store) PullMaster(ctx context.Context, userID string, cursor int64, limit int) (PullPage, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT seq, entity_table, entity_id, deleted FROM change_log
-		 WHERE trip_id IS NULL AND seq > ? ORDER BY seq LIMIT ?`,
-		cursor, limit+1)
-	if err != nil {
-		return PullPage{}, fmt.Errorf("pull master change_log: %w", err)
-	}
-	defer rows.Close()
-
-	entries, err := scanChanges(rows)
-	if err != nil {
-		return PullPage{}, err
-	}
-
-	page := PullPage{HasMore: len(entries) > limit}
-	if page.HasMore {
-		entries = entries[:limit]
-	}
-	if len(entries) > 0 {
-		page.NextCursor = entries[len(entries)-1].Seq
-	} else {
-		page.NextCursor = cursor
-	}
-
-	for _, c := range compact(entries) {
-		if !c.Deleted {
-			visible, err := s.masterVisible(ctx, userID, c.Table, c.ID)
-			if err != nil {
-				return PullPage{}, err
-			}
-			if !visible {
-				continue
-			}
-			c.Row, err = s.loadSnapshot(ctx, c.Table, c.ID)
-			if err != nil {
-				return PullPage{}, err
-			}
-		}
-		page.Changes = append(page.Changes, c)
-	}
-	return page, nil
-}
-
-// HeadSeqMaster returns the highest master-partition change_log sequence,
-// or 0 if there are no master changes yet.
-func (s *Store) HeadSeqMaster(ctx context.Context) (int64, error) {
-	var seq int64
-	err := s.db.QueryRowContext(ctx,
-		`SELECT COALESCE(MAX(seq), 0) FROM change_log WHERE trip_id IS NULL`).Scan(&seq)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, nil
-	}
-	return seq, err
-}
-
 func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bool, error) {
 	switch table {
 	case TableTags, TableItemTags, TableItems, TableItemDependencies:
