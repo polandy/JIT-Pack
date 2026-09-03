@@ -330,44 +330,6 @@ func owned(ctx context.Context, tx *sql.Tx, userID, ownerQuery string, ids map[s
 	return authorized(ok), nil
 }
 
-// blockingReference is one child column that refuses its parent's delete,
-// i.e. a foreign key deliberately declared without ON DELETE.
-type blockingReference struct {
-	table  string
-	column string
-}
-
-// blockingReferences lists, per deletable table, the references that keep a
-// row alive. It exists so the refusal can be *asked for* instead of inferred
-// from a driver error string, which is not a stable contract across driver
-// versions (CODING_PRINCIPLES §4a: the situation is named once, here).
-//
-// Only the restricting foreign keys belong here — a reference declared
-// ON DELETE CASCADE takes the child with the parent and blocks nothing, and
-// cascadeChildren is the list of those.
-var blockingReferences = map[string][]blockingReference{
-	// FR-9.2: an archived trip keeps naming the Vorlage its rows came from,
-	// so the Vorlage cannot be deleted while any trip item names it.
-	TableTemplates: {
-		{TableTripItems, "source_template_id"},
-	},
-	TableItems: {
-		{TableTemplateItems, "item_id"},
-		{TableTripItems, "source_item_id"},
-	},
-	TableTripSeries: {
-		{TableTrips, "series_id"},
-	},
-	TableTravelers: {
-		{TableTripItems, "assigned_traveler_id"},
-		{TableContainers, "carrier_traveler_id"},
-	},
-	TableContainers: {
-		{TableTripItems, "container_id"},
-		{TableContainers, "paired_container_id"},
-	},
-}
-
 // retireInstead turns a delete FR-24.3 will not perform into the write that
 // records the decision behind it: the row survives, the marker is stamped,
 // and the mutation keeps its own id and clock so the merge treats it as the
@@ -444,87 +406,14 @@ func ownsAll(ctx context.Context, tx *sql.Tx, userID, ownerQuery string, ids map
 // cascadeRow identifies one child row an FK cascade will delete.
 type cascadeRow struct{ table, id string }
 
-// childQuery names one child table and the query that finds its rows for a
-// parent id. `?1` may repeat — an include hangs off both of its endpoints.
-type childQuery struct{ table, query string }
-
 // cascadeChildren returns the child rows a delete will cascade to, in
 // leaf-first order so clients can apply the tombstones verbatim.
 func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, exists bool) ([]cascadeRow, error) {
 	if !deleted || !exists {
 		return nil, nil
 	}
-	// The queries per parent table, in the order their tombstones must be
-	// emitted: a child before the parent it hangs off, always.
-	var children []childQuery
-	switch m.Table {
-	case TableTemplates:
-		children = []childQuery{
-			// Leaf-first: the position tasks (FR-27.7) hang off the
-			// positions, which hang off the template, and the group
-			// includes (FR-27.1) vanish from both sides of the relation.
-			{TableTemplateItemTasks, `SELECT t.id FROM template_item_tasks t
-			 JOIN template_items ti ON ti.id = t.template_item_id WHERE ti.template_id = ?`},
-			{TableTemplateItems, `SELECT id FROM template_items WHERE template_id = ?`},
-			{TableTemplateIncludes,
-				`SELECT id FROM template_includes WHERE template_id = ?1 OR included_template_id = ?1`},
-			// FR-27.4: a deleted template stops being a trip's source.
-			// Without the tombstone a client keeps re-resolving a group the
-			// server no longer has and reports its positions as removed on
-			// every open.
-			{TableTripTemplateSources, `SELECT id FROM trip_template_sources WHERE template_id = ?`},
-		}
-	case TableTrips:
-		// A deleted trip takes three master-partition tables with it. They
-		// need tombstones of their own precisely because the trip's *other*
-		// children cannot have any: change_log.trip_id cascades too, so the
-		// trip partition's whole feed is deleted with the row it describes,
-		// and only the master feed survives to carry the news.
-		children = []childQuery{
-			{TableTripMembers, `SELECT id FROM trip_members WHERE trip_id = ?`},
-			{TableTripTemplateSources, `SELECT id FROM trip_template_sources WHERE trip_id = ?`},
-			{TableTripAppliedChanges, `SELECT id FROM trip_applied_changes WHERE trip_id = ?`},
-		}
-	case TableTemplateItems:
-		children = []childQuery{
-			{TableTemplateItemTasks, `SELECT id FROM template_item_tasks WHERE template_item_id = ?`},
-		}
-	case TableItems:
-		children = []childQuery{
-			{TableItemTags, `SELECT id FROM item_tags WHERE item_id = ?`},
-			{TableItemDependencies,
-				`SELECT id FROM item_dependencies WHERE item_id = ?1 OR depends_on_item_id = ?1`},
-		}
-	case TableTags:
-		// A deleted tag unassigns itself everywhere (FR-24.1). Without the
-		// tombstones a client keeps grouping items under a heading the
-		// server no longer has.
-		children = []childQuery{
-			{TableItemTags, `SELECT id FROM item_tags WHERE tag_id = ?`},
-		}
-	case TableTripSeries:
-		children = []childQuery{
-			{TableDestinationChecklistItems, `SELECT ci.id FROM destination_checklist_items ci
-			 JOIN destination_profiles p ON p.id = ci.profile_id WHERE p.series_id = ?`},
-			{TableDestinationProfiles, `SELECT id FROM destination_profiles WHERE series_id = ?`},
-		}
-	case TableDestinationProfiles:
-		children = []childQuery{
-			{TableDestinationChecklistItems, `SELECT id FROM destination_checklist_items WHERE profile_id = ?`},
-		}
-	case TableTripItems:
-		// The one cascade of the *trip* partition: a row's comments and
-		// FR-7.3 todos hang off it (comments.trip_item_id ON DELETE
-		// CASCADE). Trip-level comments have a NULL trip_item_id and are
-		// untouched by the delete, so the query names the row explicitly
-		// rather than matching on the trip.
-		children = []childQuery{
-			{TableComments, `SELECT id FROM comments WHERE trip_item_id = ?`},
-		}
-	}
-
 	var rows []cascadeRow
-	for _, child := range children {
+	for _, child := range tableSpecs[m.Table].cascades {
 		ids, err := childIDs(ctx, tx, child.query, m.ID)
 		if err != nil {
 			return nil, err
