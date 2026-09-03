@@ -249,6 +249,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Three gates that were measuring less than they claimed (2026-09-03)](#three-gates-that-were-measuring-less-than-they-claimed-2026-09-03) — T-4, T-10 and the tsconfig nothing covered. Why the case-id gate saw 80 % of the ids, why the harness rule stops at two globals, and the five defects that surfaced the moment the Playwright suite was type-checked at all.
 - [The empty state had four spacings and one name (2026-09-03)](#the-empty-state-had-four-spacings-and-one-name-2026-09-03) — U-8. Why the majority rule was the right one to keep, what a zero-pixel visual diff is worth as evidence, and the three shapes that share the word "empty" and are not the same component.
 - [The row was written twice, and the copies had stopped being copies (2026-09-03)](#the-row-was-written-twice-and-the-copies-had-stopped-being-copies-2026-09-03) — U-1.1. The two M4 rows as one component with two named differences, a third that is load-bearing, and two `.prep` rules in one scoped stylesheet that the badge resolved to both of.
+- [A guard called untestable was one `unmount()` away (2026-09-03)](#a-guard-called-untestable-was-one-unmount-away-2026-09-03) — U-1.2. M4's snackbar machinery as `usePackAnnouncer`; the `live` guard's own comment said a case was impossible, and it was impossible only in a view.
 
 
 ## Current state
@@ -11603,3 +11604,40 @@ in `make ci` compares two rules for the same selector in one file.
 three glyphs the row does and the head did not move. Three declarations, each
 carrying a pointer to the other site. The clean version of this is a
 `ClusterHead` component, which is U-1's PR 5 territory, not its first.
+
+## A guard called untestable was one `unmount()` away (2026-09-03)
+
+U-1's second cut: M4's snackbar machinery — the row undo, the toast reference,
+the announcement counter and `announce()` — moves to
+`composables/usePackAnnouncer.ts`. Mechanically it is a move; two things in it
+are not.
+
+**The comment that said a case was impossible was true only about the place
+the code was in.** The `live` flag carried this justification: *"guarded rather
+than covered by a case: the window is a single await, and widening it enough to
+hit reliably would mean putting a delay into production code to make a test
+possible, which is the wrong way round."* Both halves are correct — and the
+conclusion still did not follow. What made the window unhittable was that the
+only way to leave the screen was to leave the *screen*; the await is not the
+obstacle, the mounting is. In a composable the test owns both ends: a fake
+`toastController.create` that resolves when the test says so, and `unmount()`
+called in between. The rule now has a case, and the absence is read against
+the announcement counter rather than against "no toast", for the reason that
+counter was added in the first place.
+
+The general form is worth keeping: **"this cannot be tested" is a claim about a
+seam, and a seam is a choice.** Before accepting one, ask what the code would
+have to be attached to for the test to be writable.
+
+**The extraction is what made a magic string visible.** `'m4-fab-anchor'` was
+written five times in one file — four toast anchors and the `IonFab` that is
+the anchor — which is exactly the shape §4a is about and exactly the shape that
+survives a review, because inside one file a repeated literal reads as local
+detail. Splitting the file put it across a module boundary, where it had to be
+named: `M4_FAB_ANCHOR_ID`, exported beside the composable that anchors to it.
+
+Nine unit cases, including the two the comments had described in prose: the
+second pack keeping its own undo when the first snackbar reports its dismissal
+late, and the snackbar whose screen was left mid-`create` never being presented.
+Both were mutation-proved — identity check to `if (true)`, `live` guard deleted
+— and both went red.
