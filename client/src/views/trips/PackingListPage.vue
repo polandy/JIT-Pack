@@ -41,7 +41,6 @@ import {
   IonFabButton,
   IonModal,
   actionSheetController,
-  toastController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -89,7 +88,7 @@ import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { DENSE_LIST, modeIcon, modeLabel } from '@/lib/modeLabels'
 import { hasCollaborativeSession } from '@/mode'
-import { TOAST_DURATION_MS, presentToast } from '@/lib/toast'
+import { presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -97,7 +96,8 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
-import { useRowUndo, type RowUndoRecord } from '@/composables/useRowUndo'
+import { M4_FAB_ANCHOR_ID, usePackAnnouncer } from '@/composables/usePackAnnouncer'
+import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/composables/useMutations'
 import {
@@ -242,7 +242,7 @@ async function declineGroupChanges() {
 
 /** A plain toast: both answers are final, and neither has an undo to offer. */
 async function reportGroupAnswer(message: string) {
-  await presentToast({ message, positionAnchor: 'm4-fab-anchor' })
+  await presentToast({ message, positionAnchor: M4_FAB_ANCHOR_ID })
 }
 
 /**
@@ -1006,7 +1006,7 @@ async function onTakeOver(item: TripItem) {
       message: previousName
         ? t('packing.takeoverDone', { who: previousName })
         : t('packing.takeoverDoneUnknown'),
-      positionAnchor: 'm4-fab-anchor',
+      positionAnchor: M4_FAB_ANCHOR_ID,
     })
   } catch {
     // The claim did not move, and the likeliest reason is that the screen
@@ -1014,7 +1014,7 @@ async function onTakeOver(item: TripItem) {
     // was open. Saying so beats a silent no-op.
     await presentToast({
       message: t('packing.takeoverFailed'),
-      positionAnchor: 'm4-fab-anchor',
+      positionAnchor: M4_FAB_ANCHOR_ID,
     })
   }
 }
@@ -1124,7 +1124,7 @@ function onRowLeave(el: Element, done: () => void) {
   node.addEventListener('transitionend', done, { once: true })
 }
 
-const rowUndo = useRowUndo()
+const { rowUndo, packAnnouncements, announcePacked, announceSkipped } = usePackAnnouncer()
 
 /** Put back what a pack changed, and only that (FR-25.2). */
 function restorePacked(records: RowUndoRecord[]) {
@@ -1132,102 +1132,6 @@ function restorePacked(records: RowUndoRecord[]) {
     orchestrator.restorePack(props.tripId, record.itemId, record.packedCount, record.state)
   }
 }
-
-/** The snackbar currently on screen, so a second action replaces it. */
-let packToast: HTMLIonToastElement | null = null
-
-/**
- * How many packs have been announced on this screen. Rendered onto the
- * content element as `data-pack-announcements`.
- *
- * It exists because one of FR-25.2's rules is an *absence*: un-packing a
- * revealed row must not announce anything. Checking for "no toast" straight
- * after the tap proves nothing — the toast is created asynchronously, so the
- * assertion simply arrives first and passes on a page that was about to show
- * one. It did exactly that, on the build with the guard removed.
- *
- * A counter that only ever goes up turns the absence into a comparison
- * against a number, which is the same reasoning that gave the G-2 indicator
- * its in-flight signal.
- */
-const packAnnouncements = ref(0)
-
-/**
- * False once the screen is gone. `toastController.create` is awaited, and
- * tapping back inside that window would otherwise present the snackbar over
- * whatever screen came next — with an undo for a trip the user has left.
- *
- * Guarded rather than covered by a case: the window is a single await, and
- * widening it enough to hit reliably would mean putting a delay into
- * production code to make a test possible, which is the wrong way round.
- */
-let live = true
-
-async function announcePacked(name: string) {
-  await announce(t('packing.packedToast', { name }))
-}
-
-/**
- * FR-5.5 with FR-20.2: the companions that went along are named, because a
- * list that shortened itself by three rows on one tap owes an explanation.
- */
-async function announceSkipped(name: string, companions: string[]) {
-  await announce(
-    companions.length > 0
-      ? t('packing.skippedToastWith', { name, companions: companions.join(', ') })
-      : t('packing.skippedToast', { name }),
-  )
-}
-
-async function announce(message: string) {
-  // Cleared *before* dismissing, not after. The dismiss handler below
-  // disarms the undo, and an outgoing toast resolves its dismissal after
-  // the incoming one has already armed a new record — so with the order
-  // reversed, packing two rows in a row left the second with no undo at
-  // all. Nulling first makes the outgoing handler's identity check fail,
-  // which is exactly what it is for.
-  const outgoing = packToast
-  packToast = null
-  void outgoing?.dismiss()
-
-  // The one place that does not go through `presentToast`: the order below is
-  // load-bearing — created, checked against `live`, armed with its dismiss
-  // handler, and only then presented. A helper that presents on creation would
-  // put the snackbar on screen before the check that decides it must not be.
-  const toast = await toastController.create({
-    message,
-    // Named rather than defaulted: this is the one toast that does not go
-    // through `presentToast`, so nothing else would give it a lifetime —
-    // and a snackbar with none sits over the row menu until the page moves.
-    duration: TOAST_DURATION_MS,
-    position: 'bottom',
-    // Above the FAB rather than behind it — see the anchor's own note.
-    positionAnchor: 'm4-fab-anchor',
-    cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => rowUndo.undo() }],
-  })
-  if (!live) {
-    void toast.dismiss()
-    return
-  }
-  packToast = toast
-  packAnnouncements.value += 1
-  // The undo outlives the snackbar only by its dismiss animation; disarming
-  // on dismiss is what keeps a stale record from being applied later.
-  void toast.onDidDismiss().then(() => {
-    if (packToast === toast) {
-      packToast = null
-      rowUndo.clear()
-    }
-  })
-  await toast.present()
-}
-
-onUnmounted(() => {
-  live = false
-  rowUndo.clear()
-  void packToast?.dismiss()
-})
 
 function onToggle(item: TripItem) {
   // Only a pack is announced. The same control un-packs a revealed done row
@@ -1310,7 +1214,7 @@ function onQuickAdd(
       }),
       // Above the composer's own anchor, like every other M4 toast: this one
       // fires while the quick-add is still open for the next entry.
-      positionAnchor: 'm4-fab-anchor',
+      positionAnchor: M4_FAB_ANCHOR_ID,
     })
   }
 }
@@ -1870,7 +1774,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
       <!-- The id is the snackbar's anchor: FR-25.2's undo is the one control
            the FAB must never sit on top of (the same rule as FR-25.11h, one
            layer up). -->
-      <IonFab id="m4-fab-anchor" slot="fixed" vertical="bottom" horizontal="end">
+      <IonFab :id="M4_FAB_ANCHOR_ID" slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton
           v-if="!quickAddExpanded && !closingPass"
           data-testid="m4-fab"
