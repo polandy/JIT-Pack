@@ -248,6 +248,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Four sheets that were already the same, and one that was not (2026-09-02)](#four-sheets-that-were-already-the-same-and-one-that-was-not-2026-09-02) — U-3's five copies of the sheet chrome. Why the M4 filter sheet stays out of `SheetModal`, measured rather than argued, and what that says about calling a migration mechanical.
 - [Three gates that were measuring less than they claimed (2026-09-03)](#three-gates-that-were-measuring-less-than-they-claimed-2026-09-03) — T-4, T-10 and the tsconfig nothing covered. Why the case-id gate saw 80 % of the ids, why the harness rule stops at two globals, and the five defects that surfaced the moment the Playwright suite was type-checked at all.
 - [The empty state had four spacings and one name (2026-09-03)](#the-empty-state-had-four-spacings-and-one-name-2026-09-03) — U-8. Why the majority rule was the right one to keep, what a zero-pixel visual diff is worth as evidence, and the three shapes that share the word "empty" and are not the same component.
+- [The row was written twice, and the copies had stopped being copies (2026-09-03)](#the-row-was-written-twice-and-the-copies-had-stopped-being-copies-2026-09-03) — U-1.1. The two M4 rows as one component with two named differences, a third that is load-bearing, and two `.prep` rules in one scoped stylesheet that the badge resolved to both of.
 
 
 ## Current state
@@ -11558,3 +11559,47 @@ cannot see a global stylesheet reaching in from outside the component, and the
 second cannot see a copy that has not been rendered yet. Neither one alone is
 the invariant.
 
+
+## The row was written twice, and the copies had stopped being copies (2026-09-03)
+
+U-1's first cut: `components/trips/PackingRow.vue` replaces the two `IonItem`
+blocks in `PackingListPage.vue` — the top-level row and the per-person child
+row — which shared the UX-9 control column, the four-way stamp chain and the
+FR-25.19 edge avatar, and had no unit test between them.
+
+**The two are not one row with a flag; they are one row with two named
+differences, and saying so is the whole design.** A child row carries no mark
+and no prep badge, because the cluster head above it names the item once and
+carries both (FR-28.4/25.1); and its end column is the edge avatar alone,
+because the item's own glyphs — unused, mode, late — belong to the head too.
+Everything else the component computes from data, so `variant` decides exactly
+those two things and nothing else. The first draft of the docblock claimed the
+prep badge was one of them while the template still rendered it for a child
+whose caller passed a count; the test written to state the rule is what caught
+that the rule was not implemented. The parent never passes one, so no screen
+would ever have shown it — which is why only a test could find it.
+
+**A third difference turned out to be load-bearing and stayed.** A child row
+renders its traveler avatar even when the traveler is unknown; a top-level row
+renders none. Read as a copy that had drifted, it looks like a bug in one of
+them. It is not: the avatar occupies the mark's column, and a child row has no
+mark to hold that column open, so dropping it would let a nameless child row's
+label slide left out of the shared column. It is now one `v-if` with the reason
+written beside it.
+
+**Two `.prep` rules stood in one scoped stylesheet, and the badge resolved to
+both.** One was `color: var(--ct-yellow)`, written for a header-line element
+that no longer exists; nothing but the FR-27.7 badge was left to inherit it,
+so the badge has been rendering yellow-on-peach by accident for as long as the
+yellow's owner has been gone. Moving the badge into a component would have
+dropped the colour silently — a pixel change nobody asked for, inside a PR
+whose whole claim is that it changes no pixel. It is merged into the
+component's one `.prep` with the history in a comment. **The finding is not the
+colour; it is that a scoped stylesheet is not scoped against itself.** Nothing
+in `make ci` compares two rules for the same selector in one file.
+
+**What the cut could not deduplicate.** `.mode-icon`, `.late-icon` and
+`.row-mark` now exist in both files, because the cluster head shows the same
+three glyphs the row does and the head did not move. Three declarations, each
+carrying a pointer to the other site. The clean version of this is a
+`ClusterHead` component, which is U-1's PR 5 territory, not its first.
