@@ -450,95 +450,7 @@ type MutationResult struct {
 // idempotency memo, merge per NFR-4.2a, persistence, conflict_log,
 // change_log.
 func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync.Mutation) (MutationResult, error) {
-	if err := validate(m, tripPartitionTables); err != nil {
-		return MutationResult{}, err
-	}
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return MutationResult{}, fmt.Errorf("begin: %w", err)
-	}
-	defer tx.Rollback()
-
-	if recorded, found, err := recordedResult(ctx, tx, m.MutationID); err != nil {
-		return MutationResult{}, err
-	} else if found {
-		return recorded, nil
-	}
-
-	row, err := loadRow(ctx, tx, m.Table, m.ID)
-	if err != nil {
-		return MutationResult{}, err
-	}
-
-	if !belongsToTrip(tripID, m, row.Fields, row.Exists) {
-		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonOutOfScope}
-		return res, finalize(ctx, tx, res)
-	}
-
-	merged := sync.Merge(row, m)
-
-	// Asked before the delete rather than read out of the failure it would
-	// cause: the driver's constraint error is a message, and a message is
-	// not a contract to branch on.
-	if blocked, err := stillReferenced(ctx, tx, m, merged.Deleted, row.Exists); err != nil {
-		return MutationResult{}, err
-	} else if blocked {
-		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonStillReferenced}
-		if res.Seq, err = relogRefused(ctx, tx, tripID, m, row); err != nil {
-			return MutationResult{}, err
-		}
-		return res, finalize(ctx, tx, res)
-	}
-
-	// FK cascades delete child rows inside SQLite, where the change feed
-	// cannot see them; collect their ids before the delete so they can be
-	// tombstoned like any other change (same reason as the master path).
-	cascaded, err := cascadeChildren(ctx, tx, m, merged.Deleted, row.Exists)
-	if err != nil {
-		return MutationResult{}, err
-	}
-
-	res := MutationResult{MutationID: m.MutationID, Outcome: merged.Outcome, Conflicts: merged.Conflicts}
-	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
-	if err != nil {
-		if isConstraintViolation(err) {
-			// Ordinary offline traffic reaches this: a container deleted on
-			// another device, a quantity cut below what is already packed, a
-			// partial upsert whose row is gone. The statement failed and the
-			// transaction survives, so it is a refusal the client can park —
-			// where an error would become a 500, and a 5xx is the one answer
-			// the outbox keeps retrying, wedging the whole partition behind
-			// the bad row. Same treatment as the master partition.
-			res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonConstraintViolated}
-			if res.Seq, err = relogRefused(ctx, tx, tripID, m, row); err != nil {
-				return MutationResult{}, err
-			}
-			return res, finalize(ctx, tx, res)
-		}
-		return MutationResult{}, err
-	}
-	if changed {
-		res.Seq, err = appendChangeLog(ctx, tx, tripID, m, merged.Deleted)
-		if err != nil {
-			return MutationResult{}, err
-		}
-		for _, c := range cascaded {
-			tombstone := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
-			if _, err := appendChangeLog(ctx, tx, tripID, tombstone, true); err != nil {
-				return MutationResult{}, err
-			}
-		}
-	}
-	if err := logConflicts(ctx, tx, tripID, userID, m, merged.Conflicts); err != nil {
-		return MutationResult{}, err
-	}
-	if err := recordResult(ctx, tx, res); err != nil {
-		return MutationResult{}, err
-	}
-	if err := tx.Commit(); err != nil {
-		return MutationResult{}, fmt.Errorf("commit: %w", err)
-	}
-	return res, nil
+	return s.applyMutation(ctx, m, tripPartition(tripID, userID))
 }
 
 // belongsToTrip reports whether m may be applied on tripID's endpoint.
@@ -763,12 +675,12 @@ func updateRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.Me
 	return nil
 }
 
-// appendChangeLog writes one change feed entry; tripID is a string for
-// the trip partition or nil for the master partition (spec §4).
-func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, deleted bool) (int64, error) {
+// appendChangeLog writes one change feed entry, under the feed of the
+// partition it belongs to (spec §4).
+func appendChangeLog(ctx context.Context, tx *sql.Tx, f feed, m sync.Mutation, deleted bool) (int64, error) {
 	res, err := tx.ExecContext(ctx,
 		`INSERT INTO change_log (trip_id, entity_table, entity_id, deleted, hlc) VALUES (?, ?, ?, ?, ?)`,
-		tripID, m.Table, m.ID, boolToInt(deleted), string(m.HLC))
+		f.tripID, m.Table, m.ID, boolToInt(deleted), string(m.HLC))
 	if err != nil {
 		return 0, fmt.Errorf("append change_log: %w", err)
 	}
@@ -792,21 +704,21 @@ func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutatio
 // It is deliberately not called for `out_of_scope`: the row is not this
 // partition's, and an entry for it here would hand the pusher a foreign
 // row's snapshot on the next pull (P-3). That one is repaired client-side.
-func relogRefused(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, row sync.Row) (int64, error) {
+func relogRefused(ctx context.Context, tx *sql.Tx, f feed, m sync.Mutation, row sync.Row) (int64, error) {
 	entry := sync.Mutation{Table: m.Table, ID: m.ID, HLC: m.HLC}
 	if row.Exists {
 		// The row's own clock, not the refused mutation's: the entry
 		// describes what the server holds, and nothing about it changed.
 		entry.HLC = row.HLC
 	}
-	seq, err := appendChangeLog(ctx, tx, tripID, entry, !row.Exists)
+	seq, err := appendChangeLog(ctx, tx, f, entry, !row.Exists)
 	if err != nil {
 		return 0, err
 	}
 	if m.Op != sync.OpDelete || !row.Exists {
 		return seq, nil
 	}
-	return relogCascadeChildren(ctx, tx, tripID, m, seq)
+	return relogCascadeChildren(ctx, tx, f, m, seq)
 }
 
 // relogCascadeChildren names every child a delete of m would have taken,
@@ -815,14 +727,14 @@ func relogRefused(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, 
 // delete, whether because it was refused (ADR-031) or because FR-24.3
 // retired it instead, comes back on that device with none of its children
 // unless they are re-logged too.
-func relogCascadeChildren(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, seq int64) (int64, error) {
+func relogCascadeChildren(ctx context.Context, tx *sql.Tx, f feed, m sync.Mutation, seq int64) (int64, error) {
 	children, err := cascadeChildren(ctx, tx, sync.Mutation{Table: m.Table, ID: m.ID, HLC: m.HLC}, true, true)
 	if err != nil {
 		return 0, err
 	}
 	for _, c := range children {
 		child := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
-		if seq, err = appendChangeLog(ctx, tx, tripID, child, false); err != nil {
+		if seq, err = appendChangeLog(ctx, tx, f, child, false); err != nil {
 			return 0, err
 		}
 	}
@@ -831,13 +743,13 @@ func relogCascadeChildren(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mu
 
 // logConflicts records every field the merge dropped, naming the mutation
 // that lost them and the user who pushed it (NFR-4.2a).
-func logConflicts(ctx context.Context, tx *sql.Tx, tripID any, userID string, m sync.Mutation, conflicts []sync.Conflict) error {
+func logConflicts(ctx context.Context, tx *sql.Tx, f feed, actorID string, m sync.Mutation, conflicts []sync.Conflict) error {
 	for _, c := range conflicts {
 		losing, winning := jsonValue(c.LosingValue), jsonValue(c.WinningValue)
 		_, err := tx.ExecContext(ctx,
 			`INSERT INTO conflict_log (trip_id, entity_table, entity_id, field, losing_value, winning_value, mutation_id, actor_user_id)
 			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			tripID, m.Table, m.ID, c.Field, losing, winning, m.MutationID, userID)
+			f.tripID, m.Table, m.ID, c.Field, losing, winning, m.MutationID, actorID)
 		if err != nil {
 			return fmt.Errorf("log conflict on %s: %w", c.Field, err)
 		}
