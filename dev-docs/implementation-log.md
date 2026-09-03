@@ -251,6 +251,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The row was written twice, and the copies had stopped being copies (2026-09-03)](#the-row-was-written-twice-and-the-copies-had-stopped-being-copies-2026-09-03) — U-1.1. The two M4 rows as one component with two named differences, a third that is load-bearing, and two `.prep` rules in one scoped stylesheet that the badge resolved to both of.
 - [A guard called untestable was one `unmount()` away (2026-09-03)](#a-guard-called-untestable-was-one-unmount-away-2026-09-03) — U-1.2. M4's snackbar machinery as `usePackAnnouncer`; the `live` guard's own comment said a case was impossible, and it was impossible only in a view.
 - [The partition was a value nobody had written down (2026-09-03)](#the-partition-was-a-value-nobody-had-written-down-2026-09-03) — G-1. One push pipeline for both partitions; `tripID any` had two call sites beyond the five the review found, and the revert's gate is deliberately not the push's.
+- [The pull's two halves were one page and two questions (2026-09-03)](#the-pulls-two-halves-were-one-page-and-two-questions-2026-09-03) — G-9. One pagination for both pulls; the feed is the WHERE clause (NULL cannot be bound), and the pull filter's two answers are not one.
+- [Nine registries, and a table could be in eight of them (2026-09-03)](#nine-registries-and-a-table-could-be-in-eight-of-them-2026-09-03) — G-2 first half. One `tableSpec` per table, five maps become views; the completeness guard has to read the source because Go cannot enumerate constants.
 - [Two of the menu's five answers were no menu (2026-09-03)](#two-of-the-menus-five-answers-were-no-menu-2026-09-03) — U-1.5, and U-1 closed. `domain/rowMenu.ts`; an outcome that is *nothing happens* cannot be read off a running screen, and the pass banner carried a class no stylesheet defined.
 - [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
 - [A table with a second half nobody could see (2026-09-03)](#a-table-with-a-second-half-nobody-could-see-2026-09-03) — T-5. `e2e-tests.md` gets an index and the gate learns a second document; the two duplicated rows found on the way, and why the narratives did not move into this file.
@@ -11787,6 +11789,79 @@ red where it is written rather than only in an end-to-end pull. Both flags
 were mutation-proved; removing `relogScopeRefusal` also turns
 `TestPullMaster_AfterARefusedInsert_OffersATombstoneForThePhantomRow` red,
 which is the end-to-end half.
+
+
+## The pull's two halves were one page and two questions (2026-09-03)
+
+G-9 of the design review, and the second half of G-1: `Pull` and `PullMaster`
+ran the same pagination — cursor, `limit+1`, `HasMore`, `NextCursor`,
+compaction, snapshot loop — in two copies, one per file. Both now call
+`pullPage(ctx, feed, filter, cursor, limit)` in the new `internal/store/pull.go`,
+which also took `Change`, `PullPage`, `scanChanges`, `compact` and
+`loadSnapshot` off `store.go` and `HeadSeq`/`HeadSeqMaster` off two more
+places.
+
+**The feed *is* the WHERE clause, and that is why it needed a method rather
+than a field.** G-1 turned `tripID any` into `feed`, but the pull still spelled
+its half of the predicate out: `trip_id = ?` on one side, `trip_id IS NULL` on
+the other. The obvious fold — one clause with `f.tripID` bound to it — does not
+exist, because SQL equality never matches NULL. So `feed.where()` returns the
+clause *and* its arguments, and the fact that the two are different shapes is
+written down once instead of being the reason the two functions could not be
+merged.
+
+**The filter answers two questions, and folding them would have been a
+behaviour change.** The trip pull loaded a snapshot only for a table in
+`syncableColumns`, delivering anything else with no row; the master pull
+dropped an entry the user may not see and loaded every one it kept. Read
+quickly those are the same guard, and a single `visible bool` looks like the
+parameter. They are not the same: *invisible* removes the entry from the page,
+*unsyncable* keeps the entry and sends no row. `pullFilter` returns both, and
+`tripVisible` is `(true, syncable)` where the master's is `(masterVisible, true)`.
+
+**The cursor advances over the entries the filter dropped**, which is the one
+rule in that loop with a cost if it is got wrong: the page's `NextCursor` comes
+from the last entry *read*, not the last one delivered, and a client handed
+back the invisible entry re-reads it forever. It was true in both copies and
+never asserted in either; `TestPullPage_CursorPassesTheEntriesTheFilterDropped`
+now pins it, proved by moving the assignment into the delivery loop.
+
+## Nine registries, and a table could be in eight of them (2026-09-03)
+
+G-2 of the design review, first half. Per-table knowledge lived in five maps
+and two switches across `store.go` and `master.go`: the push whitelist, the
+two partition sets, FR-24.3's lifecycle set, the blocking references and the
+cascade switch. Adding a table meant editing all of them, and missing one is
+**not a build error** — it is a rule that quietly does not apply. CLAUDE.md
+§4a is there because a sixth switch was once simply missed.
+
+`internal/store/tables.go` now declares one `tableSpec{partition, columns,
+retirable, blockedBy, cascades}` per table, and `syncableColumns`,
+`tripPartitionTables`, `masterPartitionTables`, `lifecycleTables` and
+`blockingReferences` are derived views of it. `cascadeChildren`'s eight-case
+switch is a lookup. −250 lines of registry, no behaviour change.
+
+**A zero field had to become a statement.** Four of the five fields are
+legitimately empty for most tables — no cascade, nothing blocking the delete,
+not retirable — so "the entry is short" and "the entry is unfinished" look
+identical. Two fields cannot be empty and were the ones worth asserting:
+a table on no partition reaches no endpoint, and a table with no columns
+refuses every push. Both would surface as a refusal a client cannot read,
+somewhere far from the missing line.
+
+**The guard has to read the source, because Go cannot enumerate constants.**
+`TestEveryTableConstantHasASpec` parses the package's own files for
+`Table<Name> = "<table>"` and requires a spec for each, and a spec for nothing
+else. A hand-kept list in the test would have been the tenth registry — the
+exact thing being removed. It follows `TestEveryResponseBodyIsADeclaredType`
+in `internal/api`; note that `parser.ParseDir` is deprecated as of Go 1.25 and
+`golangci-lint` fails on it, so the walk is `filepath.Glob` plus `ParseFile`
+like its predecessor.
+
+Still outside the spec and owed by G-2's second half: `authorizeMaster` and
+`masterVisible` (per-table switches that are rules rather than data),
+`ExportFull`'s ordered query list, and `markedTables`/`stampActor` in
+`internal/api`.
 
 
 ## A table with a second half nobody could see (2026-09-03)

@@ -39,6 +39,17 @@ func tripFeed(tripID string) feed { return feed{tripID: tripID} }
 // masterFeed is the instance-wide change feed.
 var masterFeed = feed{}
 
+// where returns the change_log predicate that selects this feed, with its
+// arguments. The two cannot share one parameterised clause: SQL equality
+// never matches NULL, so the master feed needs `IS NULL` where the trip
+// feed needs `= ?`.
+func (f feed) where() (string, []any) {
+	if f.tripID == nil {
+		return "trip_id IS NULL", nil
+	}
+	return "trip_id = ?", []any{f.tripID}
+}
+
 // scopeRule decides whether a mutation may be applied at all, and may stamp
 // server-owned columns while it looks (which is why it takes a pointer).
 // ReasonNone means the mutation proceeds.
