@@ -185,10 +185,10 @@ func writeJSONTo(t *testing.T, w http.ResponseWriter, v any) {
 }
 
 // newBrokerParts wires an api.Server against the fake IdP the way
-// cmd/jitpackd does — discovery, JWKS from the discovered URI,
-// EnableOIDC — and exposes the pieces for tests that configure more
-// (e.g. the FR-23.1 allowlist).
-func newBrokerParts(t *testing.T, idp *fakeIDP) (*httptest.Server, *store.Store, *api.Server) {
+// cmd/jitpackd does — discovery, JWKS from the discovered URI, the
+// resolved endpoints in api.Options.OIDC — and takes the FR-23.1
+// allowlist, which is a startup-time choice like the broker itself.
+func newBrokerParts(t *testing.T, idp *fakeIDP, adminEmails ...string) (*httptest.Server, *store.Store, *api.Server) {
 	t.Helper()
 	d, err := api.FetchDiscovery(idp.srv.URL)
 	if err != nil {
@@ -206,8 +206,15 @@ func newBrokerParts(t *testing.T, idp *fakeIDP) (*httptest.Server, *store.Store,
 	}
 	t.Cleanup(func() { st.Close() })
 
-	apiSrv := api.New(st, testSecret)
-	apiSrv.EnableOIDC(d, idp.clientID, idp.clientSecret, jwks)
+	apiSrv := api.New(st, testSecret, api.Options{
+		AdminEmails: adminEmails,
+		OIDC: &api.OIDCConfig{
+			Discovery:    d,
+			ClientID:     idp.clientID,
+			ClientSecret: idp.clientSecret,
+			JWKS:         jwks,
+		},
+	})
 	srv := httptest.NewServer(apiSrv.Handler())
 	t.Cleanup(srv.Close)
 	return srv, st, apiSrv
@@ -415,8 +422,7 @@ func TestAuthToken_DeactivatedAccountRefused(t *testing.T) {
 // it; only an address the IdP actually supplies may revoke.
 func TestAuthRefresh_StrippedUserinfoKeepsAdminRole(t *testing.T) {
 	idp := newFakeIDP(t)
-	srv, _, apiSrv := newBrokerParts(t, idp)
-	apiSrv.SetAdminEmails([]string{"sarah@example.com"})
+	srv, _, _ := newBrokerParts(t, idp, "sarah@example.com")
 
 	access, refresh := login(t, srv.URL)
 	isAdmin := func(token string) bool {
@@ -457,9 +463,10 @@ func TestAuthRefresh_StrippedUserinfoKeepsAdminRole(t *testing.T) {
 		t.Error("a UserInfo response without an email claim must not revoke the admin role")
 	}
 
-	// An address the IdP does supply still revokes (FR-23.1).
-	apiSrv.SetAdminEmails(nil)
-	idp.userinfo = map[string]any{"name": "Sarah", "email": "sarah@example.com", "email_verified": true}
+	// An address the IdP does supply still revokes (FR-23.1). The
+	// allowlist is fixed at startup, so the revoking case is an account
+	// whose address is not on it — not one the operator edits mid-session.
+	idp.userinfo = map[string]any{"name": "Mallory", "email": "mallory@example.com", "email_verified": true}
 	resp, raw = doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
 		"refresh_token": rotated.RefreshToken,
 	})
@@ -470,7 +477,7 @@ func TestAuthRefresh_StrippedUserinfoKeepsAdminRole(t *testing.T) {
 		t.Fatal(err)
 	}
 	if isAdmin(rotated.AccessToken) {
-		t.Error("removal from the allowlist must still revoke when UserInfo supplies the address")
+		t.Error("a supplied address that is not allowlisted must still revoke")
 	}
 }
 

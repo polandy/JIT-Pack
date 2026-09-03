@@ -40,6 +40,20 @@ func main() {
 	}
 	defer st.Close()
 
+	// Every startup-time choice in one value, so the shape of a
+	// configured instance is readable in one place (api.Options).
+	opts := api.Options{
+		Currency:    cfg.Currency,
+		PushContact: cfg.PushContact,
+		AdminEmails: cfg.AdminEmails,
+	}
+	if len(cfg.AdminEmails) > 0 {
+		log.Printf("instance admins: %d address(es) (FR-23.1)", len(cfg.AdminEmails))
+	}
+	if cfg.Currency != "" {
+		log.Printf("amounts are labelled %s (FR-21.9)", cfg.Currency)
+	}
+
 	var srv *api.Server
 	if cfg.SingleUser {
 		log.Printf("starting in single-user mode (user=%s)", cfg.LocalUserID)
@@ -48,9 +62,8 @@ func main() {
 		if err := st.EnsureLocalSingleUserID(context.Background(), cfg.LocalUserID); err != nil {
 			log.Fatalf("seed local user: %v", err)
 		}
-		srv = api.NewSingleUser(st, cfg.LocalUserID)
+		srv = api.NewSingleUser(st, cfg.LocalUserID, opts)
 	} else {
-		srv = api.New(st, []byte(cfg.SessionSecret))
 		if cfg.OIDCIssuer != "" {
 			// One configured endpoint, everything else discovered —
 			// authorize/token/userinfo for the broker, jwks_uri for the
@@ -64,22 +77,17 @@ func main() {
 				log.Fatalf("jwks: %v", err)
 			}
 			defer jwks.Close()
-			srv.EnableOIDC(d, cfg.OIDCClientID, cfg.OIDCClientSecret, jwks)
+			opts.OIDC = &api.OIDCConfig{
+				Discovery:    d,
+				ClientID:     cfg.OIDCClientID,
+				ClientSecret: cfg.OIDCClientSecret,
+				JWKS:         jwks,
+			}
 			log.Printf("starting in multi-user mode (OIDC broker: %s)", cfg.OIDCIssuer)
 		} else {
 			log.Print("starting in multi-user mode (externally minted session tokens)")
 		}
-	}
-	if cfg.PushContact != "" {
-		srv.SetPushContact(cfg.PushContact)
-	}
-	if len(cfg.AdminEmails) > 0 {
-		log.Printf("instance admins: %d address(es) (FR-23.1)", len(cfg.AdminEmails))
-		srv.SetAdminEmails(cfg.AdminEmails)
-	}
-	if cfg.Currency != "" {
-		log.Printf("amounts are labelled %s (FR-21.9)", cfg.Currency)
-		srv.SetCurrency(cfg.Currency)
+		srv = api.New(st, []byte(cfg.SessionSecret), opts)
 	}
 
 	// The API first, then the client bundle around it when this process is
