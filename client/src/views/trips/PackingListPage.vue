@@ -97,7 +97,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { M4_FAB_ANCHOR_ID, usePackAnnouncer } from '@/composables/usePackAnnouncer'
-import { type RowUndoRecord } from '@/composables/useRowUndo'
+import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/composables/useMutations'
 import {
