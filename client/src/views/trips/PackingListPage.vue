@@ -49,10 +49,7 @@ import {
   contrastOutline,
   closeCircleOutline,
   removeCircleOutline,
-  flagOutline,
   refreshOutline,
-  personOutline,
-  pricetagOutline,
   buildOutline,
   cartOutline,
   chevronDownOutline,
@@ -71,10 +68,7 @@ import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from '
 import { useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
-import FilterSheet, {
-  type FilterFacet,
-  type FilterOption,
-} from '@/components/global/FilterSheet.vue'
+import FilterSheet from '@/components/global/FilterSheet.vue'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import PackingRow, {
   type PackingRowNotes,
@@ -86,6 +80,14 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { DENSE_LIST, modeIcon, modeLabel } from '@/lib/modeLabels'
+import {
+  activeChips as chipsFor,
+  emptyReason as emptyReasonFor,
+  filterFacets as facetsFor,
+  filterSwitches as switchesFor,
+  groupingAxis,
+  onlyOthersHidden as isOnlyOthersHidden,
+} from '@/lib/packingFilterPanel'
 import { hasCollaborativeSession } from '@/mode'
 import { presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
@@ -100,13 +102,7 @@ import { M4_FAB_ANCHOR_ID, usePackAnnouncer } from '@/composables/usePackAnnounc
 import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/composables/useMutations'
-import {
-  buildPackingView,
-  FACET_KEYS,
-  NO_VALUE,
-  type PackingCluster,
-  rowEdgeAvatar,
-} from '@/domain/packingView'
+import { buildPackingView, type PackingCluster, rowEdgeAvatar } from '@/domain/packingView'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
@@ -744,31 +740,9 @@ const visibleOpenRows = computed(
 const openTotal = computed(() => Math.max(kpis.value.totalItems - kpis.value.packedItems, 0))
 const hiddenOpenCount = computed(() => Math.max(openTotal.value - visibleOpenRows.value, 0))
 
-/**
- * FR-25.20's hiding is not a filter anybody set, so it must not be
- * reported as one. Reachable since FR-25.19 gave the assignment a writer:
- * a list whose rows are all somebody else's said „no matches · 1 open item
- * is behind the filter" and offered to clear a search and facets that were
- * never there.
- */
-const onlyOthersHidden = computed(
-  () =>
-    search.value.trim() === '' &&
-    view.value.activeFacetCount === 0 &&
-    view.value.hiddenOtherCount > 0,
-)
+const onlyOthersHidden = computed(() => isOnlyOthersHidden(view.value, search.value))
 
-const emptyReason = computed(() => {
-  const term = search.value.trim()
-  if (term && view.value.activeFacetCount > 0) return t('packing.noMatchesBoth', { term })
-  if (term) return t('packing.noMatchesSearch', { term })
-  if (onlyOthersHidden.value)
-    return t('packing.emptyOthers', {
-      n: view.value.hiddenOtherCount,
-      who: view.value.hiddenOtherNames.join(' · '),
-    })
-  return t('packing.noMatchesFilter', { n: hiddenOpenCount.value })
-})
+const emptyReason = computed(() => emptyReasonFor(view.value, search.value, hiddenOpenCount.value))
 
 /**
  * FR-25.11e: a reset that leaves part of the narrowing behind re-renders
@@ -784,117 +758,25 @@ function resetNarrowing() {
 
 // --- The filter panel (FR-25.11) ---------------------------------------
 
-const FACET_LABELS: Record<FacetKey, string> = {
-  person: 'facet.person',
-  category: 'facet.category',
-  mode: 'facet.mode',
-  container: 'facet.container',
-  flag: 'facet.flag',
-}
+const filterFacets = computed(() => facetsFor(view.value))
 
-/** One glyph per axis, so the panel is scannable before it is read. */
-const FACET_ICONS: Record<FacetKey, string> = {
-  person: personOutline,
-  category: pricetagOutline,
-  mode: cartOutline,
-  container: briefcaseOutline,
-  flag: flagOutline,
-}
+const grouping = computed(() => groupingAxis(groupBy.value))
 
-const GROUP_ICONS: Record<GroupBy, string> = {
-  category: pricetagOutline,
-  person: personOutline,
-  container: briefcaseOutline,
-  status: contrastOutline,
-}
-
-const FLAG_LABELS: Record<string, string> = {
-  late: 'facet.flagLate',
-  missing: 'facet.flagMissing',
-  prep: 'facet.flagPrep',
-}
-
-/**
- * The view model labels what is data (a person's name, a category) and
- * leaves everything that is UI copy to be worded here — the absence
- * buckets above all. "Gemeinsam" rather than "Alle": an option labelled
- * *all* reads as *select everything* rather than *the shared items*.
- */
-function optionLabel(key: FacetKey, value: string, label: string | null): string {
-  if (label !== null) return label
-  if (value === NO_VALUE) {
-    if (key === 'person') return t('facet.shared')
-    if (key === 'container') return t('facet.noLuggage')
-    return t('facet.noCategory')
-  }
-  if (key === 'mode') return modeLabel(value)
-  if (key === 'flag') return t(FLAG_LABELS[value] as Parameters<typeof t>[0])
-  return value
-}
-
-const filterFacets = computed<FilterFacet[]>(() =>
-  FACET_KEYS.map((key) => ({
-    key,
-    label: t(FACET_LABELS[key] as Parameters<typeof t>[0]),
-    icon: FACET_ICONS[key],
-    options: view.value.facetValues[key].map<FilterOption>((value) => ({
-      value: value.value,
-      label: optionLabel(key, value.value, value.label),
-      count: value.count,
-      selected: value.selected,
-    })),
-  })).filter((facet) => facet.options.length > 0),
+const filterSwitches = computed(() =>
+  switchesFor({
+    showDone: showDone.value,
+    showOthers: showOthers.value,
+    packedCount: kpis.value.packedItems,
+    hiddenOtherCount: view.value.hiddenOtherCount,
+  }),
 )
-
-const GROUPINGS: GroupBy[] = ['category', 'person', 'container', 'status']
-
-const grouping = computed(() => ({
-  value: groupBy.value,
-  options: GROUPINGS.map((value) => ({
-    value,
-    label: t(`group.${value}` as const),
-    icon: GROUP_ICONS[value],
-  })),
-}))
-
-/** Both switches hide a class of rows, so they render from one shape. */
-const filterSwitches = computed(() => [
-  {
-    key: 'done',
-    label: t('filter.doneLabel'),
-    hint: t('filter.doneHint'),
-    on: showDone.value,
-    count: kpis.value.packedItems,
-  },
-  {
-    key: 'others',
-    label: t('filter.othersLabel'),
-    hint: t('filter.othersHint'),
-    on: showOthers.value,
-    count: view.value.hiddenOtherCount,
-  },
-])
 
 function onToggleSwitch(key: string) {
   if (key === 'done') showDone.value = !showDone.value
   else showOthers.value = !showOthers.value
 }
 
-/** The chip row (FR-25.11a): an active filter must never be invisible. */
-const activeChips = computed(() =>
-  FACET_KEYS.flatMap((key) =>
-    facets.value[key].map((value) => ({
-      key,
-      value,
-      facetLabel: t(FACET_LABELS[key] as Parameters<typeof t>[0]),
-      label: optionLabel(
-        key,
-        value,
-        view.value.facetValues[key].find((option) => option.value === value)?.label ?? null,
-      ),
-    })),
-  ),
-)
+const activeChips = computed(() => chipsFor(view.value, facets.value))
 
 // --- Actions ------------------------------------------------------------
 

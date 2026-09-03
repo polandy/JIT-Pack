@@ -45,7 +45,7 @@ export const NO_VALUE = ''
 const MODE_VALUES: readonly ItemMode[] = ITEM_MODES
 
 /** The *Merkmale* facet (FR-25.11b): flags that cut across the other axes. */
-const FLAG_VALUES = ['late', 'missing', 'prep'] as const
+export const FLAG_VALUES = ['late', 'missing', 'prep'] as const
 export type FlagFacetValue = (typeof FLAG_VALUES)[number]
 
 /** An unfiltered facet set — the state every fresh session starts from (FR-25.18). */
