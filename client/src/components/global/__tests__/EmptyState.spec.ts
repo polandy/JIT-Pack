@@ -79,8 +79,8 @@ describe('EmptyState', () => {
     const owned = /\.empty-(state|icon)\b/g
 
     const offenders = sources.flatMap(({ path, source }) =>
-      [...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].flatMap((block) =>
-        [...block[1].matchAll(owned)].map(
+      [...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].flatMap(([, block = '']) =>
+        [...block.matchAll(owned)].map(
           (hit) => `${path}: .empty-${hit[1]} in <style> at offset ${hit.index}`,
         ),
       ),
