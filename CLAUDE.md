@@ -148,7 +148,7 @@ publish/fork ownership model (each carries a revisit trigger in its stub).
 
 ## Packages
 
-- `cmd/jitpackd` — wiring only: env-parsed `Config`, picks `api.New` (+ `EnableOIDC` after discovery) / `api.NewSingleUser`, graceful shutdown. No logic.
+- `cmd/jitpackd` — wiring only: env-parsed `Config` turned into one `api.Options` (the OIDC half filled in after discovery), passed to `api.New` / `api.NewSingleUser`; graceful shutdown. No logic.
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O, zero internal imports.
 - `internal/wiregen` — turns `internal/api/wire.go` into the client's TypeScript: the shapes (`types.ts`, ADR-026) and the paths (`routes.ts`, ADR-027). A second pure leaf beside `sync`: `go/ast` in, a string out, zero I/O. `cmd/wiregen` is the thin main that reads the contract and writes both files.
 - `internal/store` — the only package that imports `database/sql`. SQLite repositories, change-log/conflict-log, the two sync partitions (`master.go` for tags/items/templates/trips/series/members, the trip partition for trip_items/travelers/containers/comments), the schema applied from `schema.sql` and fingerprinted in `PRAGMA user_version` (ADR-018).

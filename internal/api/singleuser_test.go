@@ -32,7 +32,7 @@ func newSingleUserTestServer(t *testing.T) (*httptest.Server, string) {
 		t.Fatalf("seed trip: %v", err)
 	}
 
-	srv := httptest.NewServer(api.NewSingleUser(st, localID).Handler())
+	srv := httptest.NewServer(api.NewSingleUser(st, localID, api.Options{}).Handler())
 	t.Cleanup(srv.Close)
 	return srv, localID
 }

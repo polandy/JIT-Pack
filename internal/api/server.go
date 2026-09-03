@@ -40,8 +40,8 @@ type Server struct {
 	localUserID string
 	hub         *Hub
 	oidc        *oidcBroker
-	// wsIdleOverride shrinks the §9 WebSocket idle timeout in tests;
-	// zero means the wsIdleTimeout constant.
+	// wsIdleOverride shrinks the §9 WebSocket idle timeout
+	// (Options.WSIdle); zero means the wsIdleTimeout constant.
 	wsIdleOverride time.Duration
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
@@ -49,21 +49,9 @@ type Server struct {
 	vapidMu     sync.Mutex
 	vapidPub    string
 	vapidPriv   string
-	// adminEmails (FR-23.1): lowercased e-mail addresses holding the
-	// instance-admin role, from JITPACK_ADMIN_EMAILS — declarative,
-	// matched against the token's email claim and stamped on login.
+	// adminEmails (FR-23.1): the lowercased Options.AdminEmails
+	// allowlist, matched against the token's email claim.
 	adminEmails map[string]bool
-}
-
-// SetAdminEmails declares which accounts hold the instance-admin role
-// (FR-23.1), matched case-insensitively against the token's email
-// claim. The list is authoritative in both directions and is stamped
-// into users.is_instance_admin at every login.
-func (s *Server) SetAdminEmails(emails []string) {
-	s.adminEmails = make(map[string]bool, len(emails))
-	for _, e := range emails {
-		s.adminEmails[strings.ToLower(e)] = true
-	}
 }
 
 // isAdminEmail resolves the FR-23.1 allowlist; a token without an
@@ -78,20 +66,35 @@ func (s *Server) isAdminEmail(email string, verified bool) bool {
 	return verified && email != "" && s.adminEmails[strings.ToLower(email)]
 }
 
-// New creates the multi-user Server. The secret signs and validates
-// JIT-Pack's own HS256 session tokens (ADR-007): with the OIDC broker
-// enabled (EnableOIDC) the login flow issues them; without it, tokens
-// minted externally with the same secret are accepted — which is how
-// the tests drive authenticated endpoints directly.
-func New(st *store.Store, secret []byte) *Server {
-	hub := NewHub(st.HeadSeq)
-	return &Server{
-		store:         st,
-		sessionSecret: secret,
-		keyFunc:       func(*jwt.Token) (any, error) { return secret, nil },
-		validMethods:  []string{"HS256"},
-		hub:           hub,
+// newServer applies the Options both modes share. It is the one place a
+// field of Options reaches the Server, so a field cannot be honoured by
+// one constructor and forgotten by the other.
+func newServer(st *store.Store, opts Options) *Server {
+	s := &Server{
+		store:          st,
+		hub:            NewHub(st.HeadSeq),
+		currency:       opts.Currency,
+		pushContact:    opts.PushContact,
+		wsIdleOverride: opts.WSIdle,
+		adminEmails:    emailSet(opts.AdminEmails),
 	}
+	if opts.OIDC != nil {
+		s.oidc = newOIDCBroker(*opts.OIDC)
+	}
+	return s
+}
+
+// New creates the multi-user Server. The secret signs and validates
+// JIT-Pack's own HS256 session tokens (ADR-007): with Options.OIDC set
+// the login flow issues them; without it, tokens minted externally with
+// the same secret are accepted — which is how the tests drive
+// authenticated endpoints directly.
+func New(st *store.Store, secret []byte, opts Options) *Server {
+	s := newServer(st, opts)
+	s.sessionSecret = secret
+	s.keyFunc = func(*jwt.Token) (any, error) { return secret, nil }
+	s.validMethods = []string{"HS256"}
+	return s
 }
 
 // NewSingleUser builds a Server for Single-User Mode (Addendum FR-17.2):
@@ -99,9 +102,11 @@ func New(st *store.Store, secret []byte) *Server {
 // every request is attributed to localUserID. This is a startup-time
 // choice (FR-17.11), never a per-request toggle — there is exactly one
 // constructor path for each mode, not a runtime flag inside Server.
-func NewSingleUser(st *store.Store, localUserID string) *Server {
-	hub := NewHub(st.HeadSeq)
-	return &Server{store: st, singleUserMode: true, localUserID: localUserID, hub: hub}
+func NewSingleUser(st *store.Store, localUserID string, opts Options) *Server {
+	s := newServer(st, opts)
+	s.singleUserMode = true
+	s.localUserID = localUserID
+	return s
 }
 
 // pattern is the mux's "METHOD /path" spelling. The method stays at the

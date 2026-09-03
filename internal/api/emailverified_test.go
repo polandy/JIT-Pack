@@ -62,8 +62,7 @@ func TestLogin_AdminEmail_GrantsRoleOnlyWhenVerified(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			idp := newFakeIDP(t)
 			idp.userinfo = tc.userinfo
-			srv, _, apiSrv := newBrokerParts(t, idp)
-			apiSrv.SetAdminEmails([]string{adminEmail})
+			srv, _, _ := newBrokerParts(t, idp, adminEmail)
 
 			access, _ := login(t, srv.URL)
 			resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/admin/users", access, nil)
@@ -81,8 +80,7 @@ func TestRefresh_AdminRoleIsRevokedWhenVerificationDisappears(t *testing.T) {
 	const adminEmail = "andy@example.com"
 	idp := newFakeIDP(t)
 	idp.userinfo = map[string]any{"email": adminEmail, "email_verified": true}
-	srv, _, apiSrv := newBrokerParts(t, idp)
-	apiSrv.SetAdminEmails([]string{adminEmail})
+	srv, _, _ := newBrokerParts(t, idp, adminEmail)
 
 	access, refresh := login(t, srv.URL)
 	if resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/admin/users", access, nil); resp.StatusCode != http.StatusOK {

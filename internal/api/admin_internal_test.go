@@ -10,8 +10,7 @@ import (
 // case-insensitively; no claim ⇒ no role. The address must additionally
 // be verified by the IdP (OIDC Core §5.7) — see isAdminEmail.
 func TestIsAdminEmail(t *testing.T) {
-	s := &Server{}
-	s.SetAdminEmails([]string{"Andy@Example.com"})
+	s := &Server{adminEmails: emailSet([]string{"Andy@Example.com"})}
 
 	tests := []struct {
 		email    string

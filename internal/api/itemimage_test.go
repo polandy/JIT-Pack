@@ -31,7 +31,7 @@ func newItemImageServer(t *testing.T) (*httptest.Server, *store.Store, string) {
 		t.Fatalf("seed item: %v", err)
 	}
 
-	srv := httptest.NewServer(api.NewSingleUser(st, localID).Handler())
+	srv := httptest.NewServer(api.NewSingleUser(st, localID, api.Options{}).Handler())
 	t.Cleanup(srv.Close)
 	return srv, st, localID
 }

@@ -48,7 +48,7 @@ func newTestServerWithStore(t *testing.T) (*httptest.Server, *store.Store) {
 			t.Fatalf("seed %q: %v", q, err)
 		}
 	}
-	srv := httptest.NewServer(api.New(st, testSecret).Handler())
+	srv := httptest.NewServer(api.New(st, testSecret, api.Options{}).Handler())
 	t.Cleanup(srv.Close)
 	return srv, st
 }
