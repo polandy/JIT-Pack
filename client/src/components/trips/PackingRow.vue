@@ -18,13 +18,13 @@
  * branch chain is testable without a trip.
  */
 import { IonBadge, IonIcon, IonItem, IonLabel } from '@ionic/vue'
-import { buildOutline, lockClosedOutline, removeCircleOutline, timeOutline } from 'ionicons/icons'
+import { buildOutline, lockClosedOutline, removeCircleOutline } from 'ionicons/icons'
 
 import ItemMark from '@/components/items/ItemMark.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
+import RowGlyphs from '@/components/trips/RowGlyphs.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
-import { DENSE_LIST, modeIcon, modeLabel } from '@/lib/modeLabels'
 import type { MasterItem, Traveler, TripItem } from '@/types/domain'
 
 /** The one sentence under the name, in the order the row prefers them. */
@@ -190,18 +190,7 @@ const emit = defineEmits<{
         :aria-label="t('facet.flagUnused')"
         :data-testid="`m4-unused-${testKey}`"
       />
-      <IonIcon
-        v-if="modeIcon(item.mode, DENSE_LIST)"
-        :icon="modeIcon(item.mode, DENSE_LIST)!"
-        class="mode-icon"
-        :title="modeLabel(item.mode)"
-      />
-      <IonIcon
-        v-if="item.late_packer"
-        :icon="timeOutline"
-        class="late-icon"
-        :title="t('mode.latePacker')"
-      />
+      <RowGlyphs :mode="item.mode" :late="item.late_packer" />
       <UserAvatar
         v-if="edgeAvatar"
         :variant="edgeAvatar.variant"
@@ -269,19 +258,6 @@ const emit = defineEmits<{
   color: var(--ct-mauve);
 }
 
-/* The mode and late glyphs are also on the cluster head in
-   `PackingListPage.vue`: the head shows the item's pair once for a
-   per-person item (FR-25.4a), an item row shows its own. */
-.mode-icon {
-  color: var(--ct-peach);
-  font-size: var(--jp-icon-sm);
-}
-
-.late-icon {
-  color: var(--ct-yellow);
-  font-size: var(--jp-icon-sm);
-}
-
 .done {
   opacity: 0.55;
 }
@@ -311,8 +287,9 @@ const emit = defineEmits<{
 }
 
 /* FR-28.4: the slot holds its width even when empty, so the names stay in
-   one column on a list where most rows carry no mark. Also on the cluster
-   head, for the same column. */
+   one column on a list where most rows carry no mark. `ClusterHead` states
+   the same rule for the same column; the two are scoped stylesheets on two
+   components, so the sentence is written twice on purpose. */
 .row-mark {
   margin-inline-end: 10px;
 }

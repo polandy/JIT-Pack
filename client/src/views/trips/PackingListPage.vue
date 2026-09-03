@@ -43,7 +43,6 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
-  albumsOutline,
   archiveOutline,
   bagHandleOutline,
   contrastOutline,
@@ -60,15 +59,16 @@ import {
   briefcaseOutline,
   lockOpenOutline,
   playOutline,
-  sparklesOutline,
   statsChartOutline,
-  timeOutline,
 } from 'ionicons/icons'
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import FilterSheet from '@/components/global/FilterSheet.vue'
+import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
+import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
+import ClusterHead from '@/components/trips/ClusterHead.vue'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import PackingRow, {
   type PackingRowNotes,
@@ -79,7 +79,6 @@ import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
-import { DENSE_LIST, modeIcon, modeLabel } from '@/lib/modeLabels'
 import {
   activeChips as chipsFor,
   emptyReason as emptyReasonFor,
@@ -103,12 +102,12 @@ import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/composables/useMutations'
 import { buildPackingView, type PackingCluster, rowEdgeAvatar } from '@/domain/packingView'
+import { rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
-import { t } from '@/i18n'
+import { t, type MessageKey } from '@/i18n'
 import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
-import ItemMark from '@/components/items/ItemMark.vue'
 import { useTripStore } from '@/stores/tripStore'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import type { FacetKey, GroupBy, ItemTodo, MasterItem, TripItem } from '@/types/domain'
@@ -433,73 +432,66 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
  */
 let rowMenuActive = false
 
+/**
+ * Label and glyph for each entry `rowMenuEntries` can return — the wording
+ * and the icons are the screen's, the decision is the domain's.
+ */
+const ROW_MENU_BUTTONS: Record<RowMenuAction, { labelKey: MessageKey; icon: string }> = {
+  takeover: { labelKey: 'packing.takeoverAction', icon: lockOpenOutline },
+  release: { labelKey: 'packing.releaseAction', icon: lockOpenOutline },
+  unskip: { labelKey: 'packing.unskipAction', icon: refreshOutline },
+  packingNow: { labelKey: 'mode.pack', icon: contrastOutline },
+  skip: { labelKey: 'packing.skipAction', icon: closeCircleOutline },
+  flagUnused: { labelKey: 'packing.flagUnusedAction', icon: removeCircleOutline },
+  unflagUnused: { labelKey: 'packing.unflagUnusedAction', icon: removeCircleOutline },
+}
+
+function runRowMenu(action: RowMenuAction, item: TripItem): void {
+  switch (action) {
+    case 'takeover':
+      void onTakeOver(item)
+      return
+    case 'release':
+      onReleaseClaim(item)
+      return
+    case 'unskip':
+      onUnskipItem(item)
+      return
+    case 'packingNow':
+      onPackingNow(item)
+      return
+    case 'skip':
+      onSkipItem(item)
+      return
+    case 'flagUnused':
+      void onFlagUnused(item, true)
+      return
+    case 'unflagUnused':
+      void onFlagUnused(item, false)
+  }
+}
+
 async function openRowMenu(item: TripItem) {
   hold.cancel()
-  // FR-9.3's stated price: in the review posture the row's press-and-hold
-  // goes inert. Both of its entries are reachable a second earlier, on the
-  // same rows, before the pass is entered.
-  if (closingPass.value) return
-  // A locked row is somebody else's (G-3), so every action on it belongs
-  // to its holder — except the one that makes it mine (FR-5.7). In the
-  // modes where there is nobody to take it from, the menu still opens
-  // onto nothing.
-  if (locked(item)) {
-    if (canTakeOver) await openTakeoverMenu(item)
-    return
-  }
+  const entries = rowMenuEntries(item, {
+    closingPass: closingPass.value,
+    locked: locked(item),
+    canTakeOver,
+    mine: orchestrator.holdsClaim(props.tripId, item),
+    judgeable: judgeable.value,
+  })
+  if (entries.length === 0) return
+
   rowMenuActive = true
   try {
-    const skipped = item.state === 'skipped'
-    // A row I am holding offers the way out of that and nothing else:
-    // packing it is already the checkbox's job, and skipping something you
-    // are in the middle of packing is not a thing anyone means.
-    const mine = orchestrator.holdsClaim(props.tripId, item)
     const sheet = await actionSheetController.create({
       header: item.name,
       buttons: [
-        ...(mine
-          ? [
-              {
-                text: t('packing.releaseAction'),
-                icon: lockOpenOutline,
-                handler: () => onReleaseClaim(item),
-              },
-            ]
-          : skipped
-            ? [
-                {
-                  text: t('packing.unskipAction'),
-                  icon: refreshOutline,
-                  handler: () => onUnskipItem(item),
-                },
-              ]
-            : [
-                {
-                  text: t('mode.pack'),
-                  icon: contrastOutline,
-                  handler: () => onPackingNow(item),
-                },
-                {
-                  text: t('packing.skipAction'),
-                  icon: closeCircleOutline,
-                  handler: () => onSkipItem(item),
-                },
-              ]),
-        // FR-9.3: the judgement leaves the fold. *Unused* used to cost
-        // three taps into M5's *Details* block, which nothing ever asks
-        // for — one gesture from the list is the idiom this app already
-        // uses for a one-word judgement about a row (FR-5.5).
-        ...(judgeable.value
-          ? [
-              {
-                text: item.flag_unused
-                  ? t('packing.unflagUnusedAction')
-                  : t('packing.flagUnusedAction'),
-                icon: removeCircleOutline,
-                handler: () => onFlagUnused(item, !item.flag_unused),
-              },
-            ]
-          : []),
+        ...entries.map((action) => ({
+          text: t(ROW_MENU_BUTTONS[action].labelKey),
+          icon: ROW_MENU_BUTTONS[action].icon,
+          handler: () => runRowMenu(action, item),
+        })),
         { text: t('common.cancel'), role: 'cancel' },
       ],
     })
@@ -796,27 +788,6 @@ function onReleaseClaim(item: TripItem) {
  * than shown inert (G-8).
  */
 const canTakeOver = hasCollaborativeSession()
-
-async function openTakeoverMenu(item: TripItem) {
-  rowMenuActive = true
-  try {
-    const sheet = await actionSheetController.create({
-      header: item.name,
-      buttons: [
-        {
-          text: t('packing.takeoverAction'),
-          icon: lockOpenOutline,
-          handler: () => void onTakeOver(item),
-        },
-        { text: t('common.cancel'), role: 'cancel' },
-      ],
-    })
-    await sheet.present()
-    await sheet.onDidDismiss()
-  } finally {
-    rowMenuActive = false
-  }
-}
 
 /**
  * The confirmation is the requirement, not politeness: it names whom you
@@ -1269,27 +1240,11 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
         </div>
       </div>
 
-      <!-- FR-9.3: the pass says what it is asking and how to leave, and
-           *Fertig* is the archive step itself — never a gate in front of it. -->
-      <div v-if="closingPass" class="jp-card pass-banner" data-testid="m4-pass-banner">
-        <div class="grow">
-          <h2 class="jp-eyebrow">{{ t('packing.passTitle') }}</h2>
-          <p>{{ t('packing.passHint') }}</p>
-        </div>
-        <div class="pass-actions">
-          <IonButton size="small" data-testid="m4-pass-finish" @click="onFinishClosingPass">
-            {{ t('packing.passFinish') }}
-          </IonButton>
-          <IonButton
-            size="small"
-            fill="clear"
-            data-testid="m4-pass-cancel"
-            @click="onCancelClosingPass"
-          >
-            {{ t('common.cancel') }}
-          </IonButton>
-        </div>
-      </div>
+      <ClosingPassBanner
+        v-if="closingPass"
+        @finish="onFinishClosingPass"
+        @cancel="onCancelClosingPass"
+      />
 
       <!-- FR-25.11k: the field exists only while it is being used. -->
       <SearchRow
@@ -1333,44 +1288,11 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
         @decline="declineGroupChanges"
       />
 
-      <!-- The one real remnant of the dropped "Danach" phase: an archived
-           trip leads with what to do next with it. -->
-      <div v-if="trip?.status === TRIP_STATUS_ARCHIVED" class="closing-card">
-        <!-- No pictorial mark. The puzzle emoji came from the prototype,
-             where §3.27 was about composition; it said nothing about a
-             finished trip. Nothing replaced it: every other heading in the
-             app is plain text, the card already carries two button icons,
-             and a third glyph decorated rather than told. -->
-        <h2>{{ t('packing.tripFinished') }}</h2>
-        <p class="closing-hint">{{ t('packing.tripFinishedHint') }}</p>
-        <!-- FR-9.4: what the review would say, before the tap. Named rather
-             than counted: „2 Vorschläge" is the number the button already
-             implies, and the names are what decide whether the trip is worth
-             reviewing now or later. -->
-        <p class="closing-hint" data-testid="m4-closing-teaser">
-          {{
-            closingProposals.length > 0
-              ? t('packing.reviewTeaser', {
-                  names: closingProposals.map((p) => p.itemName).join(', '),
-                })
-              : t('packing.reviewTeaserNone')
-          }}
-        </p>
-        <div class="closing-actions">
-          <IonButton
-            size="small"
-            data-testid="m4-template-from-trip"
-            :router-link="tripSubPath(tripId, 'template')"
-          >
-            <IonIcon slot="start" :icon="albumsOutline" />
-            {{ t('packing.templateFromTrip') }}
-          </IonButton>
-          <IonButton size="small" fill="outline" :router-link="tripSubPath(tripId, 'review')">
-            <IonIcon slot="start" :icon="sparklesOutline" />
-            {{ t('packing.reviewSuggestions') }}
-          </IonButton>
-        </div>
-      </div>
+      <ArchivedTripCard
+        v-if="trip?.status === TRIP_STATUS_ARCHIVED"
+        :trip-id="tripId"
+        :proposal-names="closingProposals.map((proposal) => proposal.itemName)"
+      />
 
       <QuickAddItem
         v-if="!closingPass"
@@ -1428,33 +1350,14 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
               <!-- FR-25.1: a per-person item is named once, with one child
                    row per traveler under it. -->
               <div v-if="entry.kind === 'cluster'" class="cluster">
-                <div class="cluster-head" :data-testid="`m4-cluster-${entry.name}`">
-                  <!-- FR-28.4/25.1: a per-person item is named once, here —
-                       so this is its row, and this is where its mark goes.
-                       The children name travelers, not things, and carry
-                       none: one tent, not three. -->
-                  <ItemMark
-                    :mark="clusterMaster(entry)?.icon ?? null"
-                    surface="packing"
-                    :photo-item="clusterMaster(entry)"
-                    :size="22"
-                    class="row-mark"
-                  />
-                  <span class="cluster-name">{{ entry.name }}</span>
-                  <IonIcon
-                    v-if="modeIcon(entry.mode, DENSE_LIST)"
-                    :icon="modeIcon(entry.mode, DENSE_LIST)!"
-                    class="mode-icon"
-                    :title="modeLabel(entry.mode)"
-                  />
-                  <IonIcon
-                    v-if="entry.latePacker"
-                    :icon="timeOutline"
-                    class="late-icon"
-                    :title="t('mode.latePacker')"
-                  />
-                  <span class="cluster-count">{{ entry.doneCount }}/{{ entry.totalCount }}</span>
-                </div>
+                <ClusterHead
+                  :name="entry.name"
+                  :mode="entry.mode"
+                  :late="entry.latePacker"
+                  :done-count="entry.doneCount"
+                  :total-count="entry.totalCount"
+                  :master="clusterMaster(entry)"
+                />
 
                 <PackingRow
                   v-for="child in entry.children"
@@ -1967,64 +1870,10 @@ ion-content.pack-content::part(scroll) {
   transform: rotate(180deg);
 }
 
-.mode-icon {
-  color: var(--ct-peach);
-  font-size: var(--jp-icon-sm);
-}
-
-.late-icon {
-  color: var(--ct-yellow);
-  font-size: var(--jp-icon-sm);
-}
-
-.pass-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  margin-bottom: 10px;
-}
-
-.pass-banner p {
-  margin: 4px 0 0;
-  font-size: var(--jp-text-sm);
-  color: var(--ct-subtext0);
-}
-
-.pass-actions {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-}
-
 /* --- Per-person cluster ----------------------------------------------- */
 .cluster {
   border-inline-start: 2px solid var(--ct-surface1);
   margin-inline-start: 12px;
-}
-
-.cluster-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px 2px;
-  /* Three levels, three weights: the category heads the block, the
-     per-person item names itself once inside it, and the traveler rows
-     under that are plain. Two of them at the same size read as two
-     groups rather than as a group and its contents. */
-  font-size: var(--jp-text-base);
-  font-weight: var(--jp-weight-semibold);
-  color: var(--ct-subtext1);
-}
-
-.cluster-name {
-  flex: 1;
-}
-
-.cluster-count {
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-xs);
-  font-weight: var(--jp-weight-medium);
 }
 
 .child-row {
@@ -2123,28 +1972,6 @@ ion-content.pack-content::part(scroll) {
   color: var(--ct-text);
 }
 
-.closing-card {
-  margin: 12px;
-  padding: 14px;
-  border-radius: var(--jp-r);
-  background: var(--ct-surface0);
-}
-
-.closing-card h2 {
-  margin: 0 0 4px;
-  font-size: var(--jp-text-lg);
-}
-.closing-hint {
-  margin: 0 0 10px;
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-sm);
-}
-.closing-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .prep-section {
   margin-top: 16px;
   border-top: 1px solid var(--ct-surface0);
@@ -2168,16 +1995,6 @@ ion-content.pack-content::part(scroll) {
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
 }
-
-/* FR-28.4: the slot holds its width even when empty, so the names stay in
-   one column on a list where most rows carry no mark. */
-.row-mark {
-  margin-inline-end: 10px;
-}
-
-/* The traveler avatar shares the mark's column (24px + 8px = the mark slot's
-   22px + 10px), so child rows and top-level rows start their names at the
-   same x. */
 
 /* FR-25.8's membership editor, given the same room M5 gives it. */
 .membership-wrap {
