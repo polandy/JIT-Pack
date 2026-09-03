@@ -11,7 +11,7 @@
  * completing the wizard.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, type VueWrapper } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import TripWizardPage from '../TripWizardPage.vue'
@@ -21,6 +21,12 @@ import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
+/** Step 2's sharing block exists only for an OIDC session (G-8), so it is a switch. */
+let collaborative = false
+vi.mock('@/mode', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/mode')>()),
+  hasCollaborativeSession: () => collaborative,
+}))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {} }),
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
@@ -132,6 +138,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
   orchestratorFake.loadedTrips = new Set<string>()
+  collaborative = false
   localStorage.clear()
 })
 
@@ -721,5 +728,65 @@ describe('M3 step 4 — the history the series already has (FR-14.2)', () => {
     // median was taken over whatever happened to be here — the hint did not
     // merely disappear, it recommended two.
     expect(hint(wrapper).exists()).toBe(false)
+  })
+})
+
+/**
+ * FR-4.5's sharing step, which no test had ever operated: it carried no
+ * `data-testid` at all, which in this suite is the dependable signature of a
+ * control nothing drives. Reached here because U-1's identity cut changed the
+ * lines that feed it.
+ */
+describe('M3 step 2 — sharing (FR-4.5, G-8)', () => {
+  const fetchUsers = vi.fn(async () => [
+    { user_id: 'me', display_name: 'Andy' },
+    { user_id: 'user-b', display_name: 'Sarah' },
+  ])
+  const fetchMe = vi.fn(async () => ({ user_id: 'me' }))
+
+  async function mountAtStepTwo(): Promise<VueWrapper> {
+    const wrapper = mount(TripWizardPage, {
+      global: { provide: { orchestrator: { ...orchestratorFake, fetchUsers, fetchMe } } },
+    })
+    await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
+      detail: { value: 'Fototour' },
+    })
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    await flushPromises()
+    return wrapper
+  }
+
+  it('offers every account but the creator, who is Owner already', async () => {
+    collaborative = true
+
+    const wrapper = await mountAtStepTwo()
+
+    const offered = wrapper
+      .get('[data-testid="wizard-share-add"]')
+      .findAll('ion-select-option')
+      .map((option) => option.text())
+    expect(offered).toEqual(['Sarah'])
+  })
+
+  it('drops an account from the picker once it has been added', async () => {
+    collaborative = true
+    const wrapper = await mountAtStepTwo()
+
+    await wrapper
+      .get('[data-testid="wizard-share-add"]')
+      .trigger('ionChange', { detail: { value: 'user-b' } })
+
+    expect(wrapper.get('[data-testid="wizard-share-user-b"]').text()).toContain('Sarah')
+    expect(wrapper.find('[data-testid="wizard-share-add"]').exists()).toBe(false)
+  })
+
+  it('asks the server nothing without a session, and offers no sharing at all', async () => {
+    // G-8: hidden rather than offered-and-broken. The two calls are the
+    // positive signal — an absent section could equally mean a failed render.
+    const wrapper = await mountAtStepTwo()
+
+    expect(fetchUsers).not.toHaveBeenCalled()
+    expect(fetchMe).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="wizard-share-add"]').exists()).toBe(false)
   })
 })

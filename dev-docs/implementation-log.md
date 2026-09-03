@@ -11675,6 +11675,17 @@ would have left the roster's copy behind, with no gate to say so, because the
 contract gate compares `types.ts` against `wire.go` and knows nothing about a
 third declaration. `domain/members.ts` now re-exports the generated one.
 
+**Filling the coverage table found a screen nobody had ever driven.** The §4.0
+rule — one row per changed file, naming the test that drives *its* changed
+lines — left the wizard's row empty. Its step-2 sharing block (FR-4.5) had no
+unit case, no e2e case, and **no `data-testid` anywhere in it**, which is this
+project's own signature for a control nothing has ever operated: not "a testid
+that occurs in no test", but no handle at all. It is reachable only with an
+OIDC session, and the one e2e project that has two identities shares its trip
+through the member roster instead. Three cases now, mutation-proved against the
+"not me" filter and the G-8 guard; the two handles they needed are the first
+this block has carried.
+
 **The composable owns the *what*, not the *when*.** It registers no
 `onMounted`; `load()` is awaited by the screen. The three callers each have a
 reason for their ordering that is theirs and not identity's: M4 loads between

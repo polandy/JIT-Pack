@@ -822,7 +822,11 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
         <template v-if="collaborative">
           <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionShare') }}</h2>
           <IonList v-if="shares.length > 0">
-            <IonItem v-for="(share, index) in shares" :key="share.userId">
+            <IonItem
+              v-for="(share, index) in shares"
+              :key="share.userId"
+              :data-testid="`wizard-share-${share.userId}`"
+            >
               <IonLabel>{{ shareName(share.userId) }}</IonLabel>
               <IonSelect
                 interface="popover"
@@ -846,6 +850,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
           </IonList>
           <IonItem v-if="shareCandidates.length > 0" lines="none">
             <IonSelect
+              data-testid="wizard-share-add"
               interface="popover"
               :placeholder="t('wizard.shareAdd')"
               :aria-label="t('wizard.shareAddLabel')"
