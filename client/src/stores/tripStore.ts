@@ -5,6 +5,7 @@
  * The store itself is a plain data cache; sync orchestration lives elsewhere.
  */
 
+import { bucketedRows } from '@/stores/bucketedRows'
 import { TABLE, type SyncTable } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
@@ -39,6 +40,14 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const templateSources = ref<Map<string, TripTemplateSource>>(new Map())
   const generatedPositions = ref<Map<string, GeneratedPosition>>(new Map())
   const appliedChanges = ref<Map<string, AppliedChange>>(new Map())
+
+  // The six per-trip buckets, all one shape (see bucketedRows).
+  const itemRows = bucketedRows(tripItems, (r) => r.trip_id)
+  const travelerRows = bucketedRows(travelers, (r) => r.trip_id)
+  const containerRows = bucketedRows(containers, (r) => r.trip_id)
+  const memberRows = bucketedRows(members, (r) => r.trip_id)
+  const commentRows = bucketedRows(comments, (r) => r.trip_id)
+  const todoRows = bucketedRows(todos, (r) => r.trip_id)
 
   // --- Getters ---
 
@@ -347,33 +356,33 @@ export const useTripStore = defineStore(TABLE.trips, () => {
 
       case TABLE.tripItems:
         if (change.deleted) {
-          removeTripItem(change.id)
+          itemRows.remove(change.id)
         } else if (row) {
-          upsertTripItem(rowToTripItem(change.id, row))
+          itemRows.upsert(rowToTripItem(change.id, row))
         }
         break
 
       case TABLE.travelers:
         if (change.deleted) {
-          removeTraveler(change.id)
+          travelerRows.remove(change.id)
         } else if (row) {
-          upsertTraveler(rowToTraveler(change.id, row))
+          travelerRows.upsert(rowToTraveler(change.id, row))
         }
         break
 
       case TABLE.containers:
         if (change.deleted) {
-          removeContainer(change.id)
+          containerRows.remove(change.id)
         } else if (row) {
-          upsertContainer(rowToContainer(change.id, row))
+          containerRows.upsert(rowToContainer(change.id, row))
         }
         break
 
       case TABLE.tripMembers:
         if (change.deleted) {
-          removeMember(change.id)
+          memberRows.remove(change.id)
         } else if (row) {
-          upsertMember(rowToMember(change.id, row))
+          memberRows.upsert(rowToMember(change.id, row))
         }
         break
 
@@ -406,14 +415,14 @@ export const useTripStore = defineStore(TABLE.trips, () => {
         // (FR-7.2/7.3), the rest plain comments (FR-7.1). Flagging
         // moves a row between the two, so always clear the other side.
         if (change.deleted) {
-          removeTodo(change.id)
-          removeComment(change.id)
+          todoRows.remove(change.id)
+          commentRows.remove(change.id)
         } else if (row && row['is_task']) {
-          upsertTodo(rowToTodo(change.id, row))
-          removeComment(change.id)
+          todoRows.upsert(rowToTodo(change.id, row))
+          commentRows.remove(change.id)
         } else if (row) {
-          upsertComment(rowToComment(change.id, row))
-          removeTodo(change.id)
+          commentRows.upsert(rowToComment(change.id, row))
+          todoRows.remove(change.id)
         }
         break
     }
@@ -422,133 +431,6 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   function applyChanges(changes: PullChange[]): void {
     for (const c of changes) {
       applyChange(c)
-    }
-  }
-
-  // --- Internal helpers ---
-
-  function upsertTripItem(item: TripItem): void {
-    const items = tripItems.value.get(item.trip_id) ?? []
-    const idx = items.findIndex((i) => i.id === item.id)
-    if (idx >= 0) {
-      items[idx] = item
-    } else {
-      items.push(item)
-    }
-    tripItems.value.set(item.trip_id, items)
-  }
-
-  function removeTripItem(id: string): void {
-    for (const [tripId, items] of tripItems.value) {
-      const filtered = items.filter((i) => i.id !== id)
-      if (filtered.length !== items.length) {
-        tripItems.value.set(tripId, filtered)
-        break
-      }
-    }
-  }
-
-  function upsertTraveler(traveler: Traveler): void {
-    const list = travelers.value.get(traveler.trip_id) ?? []
-    const idx = list.findIndex((t) => t.id === traveler.id)
-    if (idx >= 0) {
-      list[idx] = traveler
-    } else {
-      list.push(traveler)
-    }
-    travelers.value.set(traveler.trip_id, list)
-  }
-
-  function removeTraveler(id: string): void {
-    for (const [tripId, list] of travelers.value) {
-      const filtered = list.filter((t) => t.id !== id)
-      if (filtered.length !== list.length) {
-        travelers.value.set(tripId, filtered)
-        break
-      }
-    }
-  }
-
-  function upsertMember(member: TripMember): void {
-    const list = members.value.get(member.trip_id) ?? []
-    const idx = list.findIndex((m) => m.id === member.id)
-    if (idx >= 0) {
-      list[idx] = member
-    } else {
-      list.push(member)
-    }
-    members.value.set(member.trip_id, list)
-  }
-
-  function removeMember(id: string): void {
-    for (const [tripId, list] of members.value) {
-      const filtered = list.filter((m) => m.id !== id)
-      if (filtered.length !== list.length) {
-        members.value.set(tripId, filtered)
-        break
-      }
-    }
-  }
-
-  function upsertContainer(container: Container): void {
-    const list = containers.value.get(container.trip_id) ?? []
-    const idx = list.findIndex((c) => c.id === container.id)
-    if (idx >= 0) {
-      list[idx] = container
-    } else {
-      list.push(container)
-    }
-    containers.value.set(container.trip_id, list)
-  }
-
-  function removeContainer(id: string): void {
-    for (const [tripId, list] of containers.value) {
-      const filtered = list.filter((c) => c.id !== id)
-      if (filtered.length !== list.length) {
-        containers.value.set(tripId, filtered)
-        break
-      }
-    }
-  }
-
-  function upsertComment(comment: ItemComment): void {
-    const list = comments.value.get(comment.trip_id) ?? []
-    const idx = list.findIndex((c) => c.id === comment.id)
-    if (idx >= 0) {
-      list[idx] = comment
-    } else {
-      list.push(comment)
-    }
-    comments.value.set(comment.trip_id, list)
-  }
-
-  function removeComment(id: string): void {
-    for (const [tripId, list] of comments.value) {
-      const filtered = list.filter((c) => c.id !== id)
-      if (filtered.length !== list.length) {
-        comments.value.set(tripId, filtered)
-      }
-    }
-  }
-
-  function upsertTodo(todo: ItemTodo): void {
-    const list = todos.value.get(todo.trip_id) ?? []
-    const idx = list.findIndex((t) => t.id === todo.id)
-    if (idx >= 0) {
-      list[idx] = todo
-    } else {
-      list.push(todo)
-    }
-    todos.value.set(todo.trip_id, list)
-  }
-
-  function removeTodo(id: string): void {
-    for (const [tripId, list] of todos.value) {
-      const filtered = list.filter((t) => t.id !== id)
-      if (filtered.length !== list.length) {
-        todos.value.set(tripId, filtered)
-        break
-      }
     }
   }
 
