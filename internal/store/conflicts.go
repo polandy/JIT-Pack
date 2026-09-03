@@ -149,7 +149,9 @@ func (s *Store) RevertTripConflict(ctx context.Context, tripID, conflictID strin
 	if !e.tripID.Valid || e.tripID.String != tripID {
 		return 0, ErrConflictNotFound
 	}
-	return s.applyRevert(ctx, conflictID, e, tripPartitionTables, tripID, nil)
+	// No actor: a revert is attributed to nobody because it logs no
+	// conflict of its own, and this endpoint is never told who tapped it.
+	return s.applyRevert(ctx, conflictID, e, tripPartition(tripID, ""), nil)
 }
 
 // RevertMasterConflict restores the logged losing value of one
@@ -180,7 +182,7 @@ func (s *Store) RevertMasterConflict(ctx context.Context, userID, conflictID str
 		reason, err := authorizeMaster(ctx, tx, userID, m, current, true)
 		return reason == ReasonNone, err
 	}
-	return s.applyRevert(ctx, conflictID, e, masterPartitionTables, nil, authorize)
+	return s.applyRevert(ctx, conflictID, e, masterPartition(userID), authorize)
 }
 
 func (s *Store) loadConflictEntry(ctx context.Context, conflictID string) (revertEntry, error) {
@@ -260,14 +262,18 @@ type revertAuthorizer func(*sql.Tx, *sync.Mutation, map[string]any) (bool, error
 
 // applyRevert writes the restore and the entry's reverted flag in one
 // transaction, so a refusal further down rolls the flag back with it and
-// the two can never disagree. changeTripID is the trip id for the trip
-// partition's change feed and nil for the master partition (§4).
+// the two can never disagree. p says which partition's tables the entry may
+// name and which feed the restore is written to (§4).
+//
+// The authorizer stays a parameter rather than `p.scope`: the push's gate
+// and the revert's are not the same question. The trip partition's write
+// gate is membership, which the `member` middleware has already applied by
+// the time a revert reaches here, so a revert passes none.
 func (s *Store) applyRevert(
 	ctx context.Context,
 	conflictID string,
 	e revertEntry,
-	partition map[string]bool,
-	changeTripID any,
+	p partition,
 	authorize revertAuthorizer,
 ) (int64, error) {
 	fields, groupIDs, err := s.revertGroup(ctx, e)
@@ -280,7 +286,7 @@ func (s *Store) applyRevert(
 		ID:     e.entityID,
 		Fields: fields,
 	}
-	if err := validate(m, partition); err != nil {
+	if err := validate(m, p.tables); err != nil {
 		return 0, err
 	}
 
@@ -344,7 +350,7 @@ func (s *Store) applyRevert(
 		}
 		return 0, err
 	}
-	seq, err := appendChangeLog(ctx, tx, changeTripID, m, false)
+	seq, err := appendChangeLog(ctx, tx, p.feed, m, false)
 	if err != nil {
 		return 0, err
 	}

@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"jitpack/internal/sync"
 )
@@ -24,145 +23,50 @@ import (
 // mutations return outcome "rejected" instead of an error so the push
 // batch continues (spec §5).
 func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.Mutation) (MutationResult, error) {
-	if err := validate(m, masterPartitionTables); err != nil {
-		return MutationResult{}, err
-	}
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return MutationResult{}, fmt.Errorf("begin: %w", err)
-	}
-	defer tx.Rollback()
+	return s.applyMutation(ctx, m, masterPartition(userID))
+}
 
-	if recorded, found, err := recordedResult(ctx, tx, m.MutationID); err != nil {
-		return MutationResult{}, err
-	} else if found {
-		return recorded, nil
-	}
-
-	row, err := loadRow(ctx, tx, m.Table, m.ID)
-	if err != nil {
-		return MutationResult{}, err
-	}
-
-	res := MutationResult{MutationID: m.MutationID}
-	refused, err := authorizeMaster(ctx, tx, userID, &m, row.Fields, row.Exists)
-	if err != nil {
-		return MutationResult{}, err
-	}
-	if refused != ReasonNone {
-		res.Outcome = sync.OutcomeRejected
-		res.Reason = refused
-		if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
-			return MutationResult{}, err
+// masterAfterChange writes the three extra change_log entries only the
+// master partition owes, each of them a row a device would otherwise never
+// learn about.
+func masterAfterChange(ctx context.Context, tx *sql.Tx, p partition, w writeOutcome) (int64, error) {
+	seq := w.seq
+	if w.retired {
+		// The device that asked for the delete already drew its cascade
+		// (ADR-031). Nothing was cascaded, so every child has to be named
+		// again — alive — or a retired Vorlage comes back with none of its
+		// positions.
+		var err error
+		if seq, err = relogCascadeChildren(ctx, tx, p.feed, w.m, seq); err != nil {
+			return 0, err
 		}
-		return res, finalize(ctx, tx, res)
 	}
-
-	merged := sync.Merge(row, m)
-	res.Outcome = merged.Outcome
-	res.Conflicts = merged.Conflicts
-
-	// Asked before the delete rather than read out of the failure it would
-	// cause: the driver's constraint error is a message, and a message is
-	// not a contract to branch on. FR-9.2 is why the reference blocks at all
-	// — an archived trip keeps knowing which Vorlage its rows came from.
-	var retiring bool
-	if blocked, err := stillReferenced(ctx, tx, m, merged.Deleted, row.Exists); err != nil {
-		return MutationResult{}, err
-	} else if blocked && lifecycleTables[m.Table] {
-		// FR-24.3: for a master item or a Vorlage the reference does not
-		// refuse the delete, it decides which delete this is. The row is
-		// kept so history keeps resolving against it and marked so no
-		// display surface offers it again.
-		retiring = true
-		m = retireInstead(m, time.Now().UTC().Format(time.RFC3339))
-		merged = sync.Merge(row, m)
-		res.Outcome = merged.Outcome
-		res.Conflicts = merged.Conflicts
-	} else if blocked {
-		res.Outcome = sync.OutcomeRejected
-		res.Reason = ReasonStillReferenced
-		res.Conflicts = nil
-		if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
-			return MutationResult{}, err
+	if w.m.Table == TableTrips && !w.row.Exists && !w.deleted {
+		// The creator becomes the trip's Owner (FR-4.5); the membership row
+		// syncs like any other so every device learns the roster.
+		memberID := randomID()
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc) VALUES (?, ?, ?, ?, ?)`,
+			memberID, w.m.ID, p.actorID, RoleOwner, string(w.m.HLC)); err != nil {
+			return 0, fmt.Errorf("creator membership: %w", err)
 		}
-		return res, finalize(ctx, tx, res)
+		member := sync.Mutation{Table: TableTripMembers, ID: memberID, HLC: w.m.HLC}
+		if _, err := appendChangeLog(ctx, tx, p.feed, member, false); err != nil {
+			return 0, err
+		}
 	}
-
-	// FK cascades delete child rows silently; collect their ids up front
-	// so the whole cascade can be tombstoned for clients.
-	cascaded, err := cascadeChildren(ctx, tx, m, merged.Deleted, row.Exists)
-	if err != nil {
-		return MutationResult{}, err
-	}
-
-	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
-	if err != nil {
-		if isConstraintViolation(err) {
-			// What is left after the pre-check above: two admins racing to
-			// add the same member (UNIQUE), a mutation naming a parent that
-			// is gone (FK), values a CHECK refuses. The statement failed and
-			// the transaction survives — reject cleanly.
-			res.Outcome = sync.OutcomeRejected
-			res.Reason = ReasonConstraintViolated
-			res.Conflicts = nil
-			if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
-				return MutationResult{}, err
-			}
-			return res, finalize(ctx, tx, res)
-		}
-		return MutationResult{}, err
-	}
-	if changed {
-		res.Seq, err = appendChangeLog(ctx, tx, nil, m, merged.Deleted)
-		if err != nil {
-			return MutationResult{}, err
-		}
-		for _, c := range cascaded {
-			tombstone := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
-			if _, err := appendChangeLog(ctx, tx, nil, tombstone, true); err != nil {
-				return MutationResult{}, err
-			}
-		}
-		if retiring {
-			// The device that asked for the delete already drew its
-			// cascade (ADR-031). Nothing was cascaded, so every child has
-			// to be named again — alive — or a retired Vorlage comes back
-			// with none of its positions.
-			if res.Seq, err = relogCascadeChildren(ctx, tx, nil, m, res.Seq); err != nil {
-				return MutationResult{}, err
-			}
-		}
-		if m.Table == TableTrips && !row.Exists && !merged.Deleted {
-			// The creator becomes the trip's Owner (FR-4.5); the membership
-			// row syncs like any other so every device learns the roster.
-			memberID := randomID()
-			if _, err := tx.ExecContext(ctx,
-				`INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc) VALUES (?, ?, ?, ?, ?)`,
-				memberID, m.ID, userID, RoleOwner, string(m.HLC)); err != nil {
-				return MutationResult{}, fmt.Errorf("creator membership: %w", err)
-			}
-			member := sync.Mutation{Table: TableTripMembers, ID: memberID, HLC: m.HLC}
-			if _, err := appendChangeLog(ctx, tx, nil, member, false); err != nil {
-				return MutationResult{}, err
-			}
-		}
-		if m.Table == TableTripMembers && !merged.Deleted {
-			// A grant must resurface the trips row: the new member's pull
-			// cursor is already past the trip's original change_log entry,
-			// so without a fresh one they would never see the trip.
-			if tripID, ok := memberTrip(row.Fields, m); ok {
-				touch := sync.Mutation{Table: TableTrips, ID: tripID, HLC: m.HLC}
-				if _, err := appendChangeLog(ctx, tx, nil, touch, false); err != nil {
-					return MutationResult{}, err
-				}
+	if w.m.Table == TableTripMembers && !w.deleted {
+		// A grant must resurface the trips row: the new member's pull cursor
+		// is already past the trip's original change_log entry, so without a
+		// fresh one they would never see the trip.
+		if tripID, ok := memberTrip(w.row.Fields, w.m); ok {
+			touch := sync.Mutation{Table: TableTrips, ID: tripID, HLC: w.m.HLC}
+			if _, err := appendChangeLog(ctx, tx, p.feed, touch, false); err != nil {
+				return 0, err
 			}
 		}
 	}
-	if err := logConflicts(ctx, tx, nil, userID, m, merged.Conflicts); err != nil {
-		return MutationResult{}, err
-	}
-	return res, finalize(ctx, tx, res)
+	return seq, nil
 }
 
 // finalize records the idempotency memo and commits.
