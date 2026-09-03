@@ -257,6 +257,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two of the menu's five answers were no menu (2026-09-03)](#two-of-the-menus-five-answers-were-no-menu-2026-09-03) — U-1.5, and U-1 closed. `domain/rowMenu.ts`; an outcome that is *nothing happens* cannot be read off a running screen, and the pass banner carried a class no stylesheet defined.
 - [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
 - [A table with a second half nobody could see (2026-09-03)](#a-table-with-a-second-half-nobody-could-see-2026-09-03) — T-5. `e2e-tests.md` gets an index and the gate learns a second document; the two duplicated rows found on the way, and why the narratives did not move into this file.
+- [A setter that simulated something the operator cannot do (2026-09-03)](#a-setter-that-simulated-something-the-operator-cannot-do-2026-09-03) — G-13. `api.Options` replaces four setters and a test-only field; the allowlist test was asserting a mid-session edit that no instance can perform, and why `Now` is not in the struct yet.
 
 
 ## Current state
@@ -11943,3 +11944,35 @@ This is the plumbing C-3b's registry needs rather than the registry itself:
 with one bucket implementation, every table's apply step is "put this row
 somewhere by its id", which is what a per-table codec can be written against.
 The two `applyChange` switches and the 18 `rowTo*` functions are still owed.
+
+## A setter that simulated something the operator cannot do (2026-09-03)
+
+Design-review item G-13: `Server` was configured by four post-construction
+setters (`SetAdminEmails`, `SetPushContact`, `SetCurrency`, `EnableOIDC`) plus
+`wsIdleOverride`, a field three tests reached into directly. `api.Options`
+replaces all five, and both constructors apply it through one `newServer`.
+
+What the diff does not show is what the setters were being used *for*. Four of
+the five call sites were `cmd/jitpackd` doing startup configuration, which is
+what the struct is. The fifth was `auth_test.go` calling `SetAdminEmails(nil)`
+halfway through a running server to assert that "removal from the allowlist
+still revokes the role at the next refresh" — and that is a scenario the
+product has no way to reach: the allowlist comes from `JITPACK_ADMIN_EMAILS`
+and changing it means restarting the process. The test was green against a
+capability only the test had. The promise it was reaching for is the reachable
+one — an address the IdP *does* supply that the allowlist does not contain — so
+the case now changes the IdP's answer instead of the server's configuration,
+and exercises the same `isAdminEmail` branch through a door an operator has.
+
+The guard against the failure this shape invites — a field honoured by `New`
+and dropped by `NewSingleUser`, invisible because each mode is tested through
+its own server — is `TestOptions_EveryFieldReachesBothConstructors`. It builds
+both servers from one fully-populated `Options` and asserts each field arrived,
+and it compares `reflect.TypeOf(Options{}).NumField()` against the number of
+expectations, so a field added without one fails rather than shipping untested.
+Both halves were mutation-proved: unthreading `OIDC` in `NewSingleUser` names
+that field and that constructor; adding a sixth field fails the count.
+
+`Options.Now`, which the review's text lists, is deliberately **not** here.
+Nothing would read it until G-4 replaces the ambient `time.Now()` calls, and a
+knob no code consults is worse than a later two-line addition.

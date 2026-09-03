@@ -40,8 +40,7 @@ func newKeepaliveServer(t *testing.T, idle time.Duration) (*Server, *httptest.Se
 		}
 	}
 	secret := []byte("keepalive-test-secret")
-	s := New(st, secret)
-	s.wsIdleOverride = idle
+	s := New(st, secret, Options{WSIdle: idle})
 	srv := httptest.NewServer(s.Handler())
 	t.Cleanup(srv.Close)
 	return s, srv

@@ -39,8 +39,7 @@ func TestInstanceConfig_NamesTheCurrencyTheOperatorSet(t *testing.T) {
 	}
 	t.Cleanup(func() { st.Close() })
 
-	s := api.New(st, testSecret)
-	s.SetCurrency("CHF")
+	s := api.New(st, testSecret, api.Options{Currency: "CHF"})
 	srv := httptest.NewServer(s.Handler())
 	t.Cleanup(srv.Close)
 
@@ -67,8 +66,7 @@ func TestInstanceConfig_AnswersInSingleUserModeWithoutASession(t *testing.T) {
 	}
 	t.Cleanup(func() { st.Close() })
 
-	s := api.NewSingleUser(st, "local-user")
-	s.SetCurrency("EUR")
+	s := api.NewSingleUser(st, "local-user", api.Options{Currency: "EUR"})
 	srv := httptest.NewServer(s.Handler())
 	t.Cleanup(srv.Close)
 

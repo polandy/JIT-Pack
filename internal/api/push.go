@@ -25,12 +25,6 @@ const (
 	pushTTLSeconds     = 3600
 )
 
-// SetPushContact sets the VAPID contact (RFC 8292 sub claim) shown to
-// push services, e.g. "mailto:ops@example.com".
-func (s *Server) SetPushContact(contact string) {
-	s.pushContact = contact
-}
-
 // vapidKeys returns the server's VAPID keypair, generating and
 // persisting it on first use. SetServerKey is first-writer-wins, so
 // racing instances converge on one keypair — the values are re-read

@@ -51,18 +51,17 @@ type oidcBroker struct {
 	jwks         *JWKSProvider
 }
 
-// EnableOIDC turns on the /auth/token, /auth/refresh and /auth/config
-// endpoints, brokering logins against the discovered IdP endpoints as a
-// confidential client (client_secret_basic).
-func (s *Server) EnableOIDC(d Discovery, clientID, clientSecret string, jwks *JWKSProvider) {
-	s.oidc = &oidcBroker{
-		issuer:       d.Issuer,
-		clientID:     clientID,
-		clientSecret: clientSecret,
-		authorizeURL: d.AuthorizeURL,
-		tokenURL:     d.TokenURL,
-		userinfoURL:  d.UserinfoURL,
-		jwks:         jwks,
+// newOIDCBroker flattens the operator's OIDCConfig onto the endpoints
+// discovery resolved, which is all the broker itself reads.
+func newOIDCBroker(cfg OIDCConfig) *oidcBroker {
+	return &oidcBroker{
+		issuer:       cfg.Discovery.Issuer,
+		clientID:     cfg.ClientID,
+		clientSecret: cfg.ClientSecret,
+		authorizeURL: cfg.Discovery.AuthorizeURL,
+		tokenURL:     cfg.Discovery.TokenURL,
+		userinfoURL:  cfg.Discovery.UserinfoURL,
+		jwks:         cfg.JWKS,
 	}
 }
 
