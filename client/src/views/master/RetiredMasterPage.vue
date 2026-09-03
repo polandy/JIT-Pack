@@ -34,6 +34,7 @@ import {
 import { archiveOutline, arrowUndoOutline, trashOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
+import EmptyState from '@/components/global/EmptyState.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { t, formatDate } from '@/i18n'
 import type { MessageKey } from '@/i18n'
@@ -234,10 +235,12 @@ function hiddenOn(row: RetiredRow): string {
         </IonSegmentButton>
       </IonSegment>
 
-      <div v-if="rows.length === 0" class="empty-state" data-testid="m23-empty">
-        <IonIcon :icon="archiveOutline" class="empty-icon" />
-        <p>{{ t(emptyKey) }}</p>
-      </div>
+      <EmptyState
+        v-if="rows.length === 0"
+        :icon="archiveOutline"
+        :title="t(emptyKey)"
+        testid="m23-empty"
+      />
 
       <IonList v-else class="jp-card list-card" lines="full">
         <IonItem v-for="row in rows" :key="row.id" data-testid="m23-row">
@@ -308,20 +311,5 @@ function hiddenOn(row: RetiredRow): string {
   display: flex;
   align-items: center;
   gap: 2px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--ion-color-medium);
-  margin-top: 48px;
-  padding: 0 24px;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
 }
 </style>

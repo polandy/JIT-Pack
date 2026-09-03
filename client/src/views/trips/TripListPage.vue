@@ -50,6 +50,7 @@ import {
   type ComponentPublicInstance,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import EmptyState from '@/components/global/EmptyState.vue'
 import { hasCollaborativeSession } from '@/mode'
 import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
@@ -554,11 +555,18 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- Empty state (G-7) -->
-      <div v-if="isEmpty" class="empty-state" data-testid="m2-empty">
-        <IonIcon :icon="trainOutline" class="empty-icon" />
-        <p v-if="filter === 'active'">{{ t('trips.emptyActive') }}</p>
-        <p v-else-if="filter === 'planned'">{{ t('trips.emptyPlanned') }}</p>
-        <p v-else>{{ t('trips.emptyArchived') }}</p>
+      <EmptyState
+        v-if="isEmpty"
+        :icon="trainOutline"
+        :title="
+          filter === 'active'
+            ? t('trips.emptyActive')
+            : filter === 'planned'
+              ? t('trips.emptyPlanned')
+              : t('trips.emptyArchived')
+        "
+        testid="m2-empty"
+      >
         <!-- Dev only, and gone from any build — see addSampleData. -->
         <IonButton
           v-if="isDev"
@@ -569,7 +577,7 @@ async function handleRefresh(event: CustomEvent) {
         >
           Beispieldaten anlegen (Dev)
         </IonButton>
-      </div>
+      </EmptyState>
 
       <!-- Trip list, grouped by series (FR-13.1) -->
       <IonList v-else class="trip-list">
@@ -832,21 +840,6 @@ ion-segment-button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
 }
 
 .archived {

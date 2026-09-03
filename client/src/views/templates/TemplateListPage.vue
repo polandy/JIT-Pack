@@ -45,6 +45,7 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import EmptyState from '@/components/global/EmptyState.vue'
 import { compositionFrom, serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
@@ -386,11 +387,13 @@ async function handleRefresh(event: CustomEvent) {
       </IonSegment>
 
       <!-- Empty state (G-7) -->
-      <div v-if="isEmpty" class="empty-state" data-testid="m7-empty">
-        <IonIcon :icon="listOutline" class="empty-icon" />
-        <p>{{ hasTemplates ? t('templates.noMatch') : t('templates.empty') }}</p>
-        <p v-if="!hasTemplates" class="empty-hint">{{ t('templates.emptyHint') }}</p>
-      </div>
+      <EmptyState
+        v-if="isEmpty"
+        :icon="listOutline"
+        :title="hasTemplates ? t('templates.noMatch') : t('templates.empty')"
+        :hint="hasTemplates ? undefined : t('templates.emptyHint')"
+        testid="m7-empty"
+      />
 
       <template v-else>
         <template v-for="section in sections" :key="section.key">
@@ -598,25 +601,6 @@ ion-segment {
   align-self: center;
   color: var(--ct-overlay0);
   font-size: var(--jp-icon-sm);
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
-}
-
-.empty-hint {
-  font-size: var(--jp-text-sm);
-  margin-top: 8px;
 }
 
 /* --- The create chooser, in the app's sheet grammar (see FilterSheet) --- */

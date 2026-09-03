@@ -30,6 +30,7 @@ import {
 import { gitMergeOutline, arrowUndoOutline } from 'ionicons/icons'
 import { inject, onMounted, ref } from 'vue'
 
+import EmptyState from '@/components/global/EmptyState.vue'
 import { t, formatDate } from '@/i18n'
 import type { MessageKey } from '@/i18n'
 import { describeConflictValue } from '@/domain/conflictValues'
@@ -328,11 +329,16 @@ function formatTime(iso: string): string {
       </IonList>
 
       <!-- Empty state (G-7) -->
-      <div v-else class="empty-state" data-testid="conflict-empty">
-        <IonIcon :icon="gitMergeOutline" class="empty-icon" />
-        <p v-if="failed">{{ t('conflicts.unavailable') }}</p>
-        <p v-else>{{ t(props.tripId ? 'conflicts.empty' : 'conflicts.emptyMaster') }}</p>
-      </div>
+      <EmptyState
+        v-else
+        :icon="gitMergeOutline"
+        :title="
+          failed
+            ? t('conflicts.unavailable')
+            : t(props.tripId ? 'conflicts.empty' : 'conflicts.emptyMaster')
+        "
+        testid="conflict-empty"
+      />
 
       <section v-if="lockEvents.length > 0" class="takeovers">
         <h2 class="jp-eyebrow">{{ t('conflicts.takeoverSection') }}</h2>
@@ -385,18 +391,4 @@ function formatTime(iso: string): string {
  * shrink-to-fit looked centred; the master log's names three things, wraps,
  * and ran edge to edge (E2E-G2-09).
  */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--ion-color-medium);
-  margin-top: 48px;
-  padding: 0 24px;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
-}
 </style>
