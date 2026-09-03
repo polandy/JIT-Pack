@@ -266,8 +266,8 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
         </article>
       </template>
 
-      <div v-else class="empty" data-testid="m14-empty">
-        <IonIcon :icon="checkmarkCircleOutline" class="empty-icon" />
+      <div v-else class="done-note" data-testid="m14-empty">
+        <IonIcon :icon="checkmarkCircleOutline" class="done-icon" />
         <!-- Two different facts, and the pass must not claim the wrong one:
              a trip that produced no proposal at all, and one whose
              proposals have all been handled (FR-9.4). -->
@@ -430,13 +430,13 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
   flex: 1;
 }
 
-.empty {
+.done-note {
   text-align: center;
   margin-top: 32px;
   color: var(--ct-subtext0);
 }
 
-.empty-icon {
+.done-icon {
   font-size: var(--jp-icon-xl);
   color: var(--jp-done);
 }

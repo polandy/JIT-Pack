@@ -25,6 +25,7 @@ import {
 import { closeOutline, peopleOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 
+import EmptyState from '@/components/global/EmptyState.vue'
 import { buildRosterView, type DirectoryUser } from '@/domain/members'
 import { t } from '@/i18n'
 import { roleLabel } from '@/lib/roleLabels'
@@ -108,10 +109,7 @@ setHeaderTitle(() =>
       </IonList>
 
       <!-- Empty state (G-7): roster not synced yet, or a pre-sync trip -->
-      <div v-else class="empty-state">
-        <IonIcon :icon="peopleOutline" class="empty-icon" />
-        <p>{{ t('members.empty') }}</p>
-      </div>
+      <EmptyState v-else :icon="peopleOutline" :title="t('members.empty')" />
 
       <template v-if="view.canManage">
         <IonItem v-if="view.candidates.length > 0" lines="none">
@@ -147,18 +145,5 @@ setHeaderTitle(() =>
   display: block;
   font-size: var(--jp-text-sm);
   margin: 8px 16px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--ion-color-medium);
-  margin-top: 48px;
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
 }
 </style>

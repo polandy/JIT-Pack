@@ -31,11 +31,11 @@ import {
   IonItemDivider,
   IonItem,
   IonCheckbox,
-  IonIcon,
 } from '@ionic/vue'
 import { bagHandleOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
+import EmptyState from '@/components/global/EmptyState.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { buildShoppingList, type ShoppingRow } from '@/domain/shoppingView'
@@ -228,10 +228,11 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
       </IonList>
 
       <!-- Empty state (G-7) -->
-      <div v-else class="empty-state">
-        <IonIcon :icon="bagHandleOutline" class="empty-icon" />
-        <p>{{ t(tab === 'buy_before' ? 'shopping.emptyBefore' : 'shopping.emptyLocal') }}</p>
-      </div>
+      <EmptyState
+        v-else
+        :icon="bagHandleOutline"
+        :title="t(tab === 'buy_before' ? 'shopping.emptyBefore' : 'shopping.emptyLocal')"
+      />
 
       <!-- FR-25.11j: what was bought from this list. Same affordance as M4's
            FR-25.2 done bar — the count is in the label, and one tap reveals. -->
@@ -292,18 +293,5 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--ion-color-medium);
-  margin-top: 48px;
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
 }
 </style>

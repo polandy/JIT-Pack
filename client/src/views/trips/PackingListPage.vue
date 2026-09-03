@@ -73,6 +73,7 @@ import {
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import EmptyState from '@/components/global/EmptyState.vue'
 import FilterSheet, {
   type FilterFacet,
   type FilterOption,
@@ -1908,32 +1909,37 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
 
       <!-- An empty list means one of two things, and conflating them is how
            a packing app tells someone they are finished when they are not. -->
-      <div v-else class="empty" data-testid="packing-empty">
-        <template v-if="view.narrowed">
-          <strong>{{
-            onlyOthersHidden ? t('packing.emptyOthersHead') : t('packing.noMatches')
-          }}</strong>
-          <p>{{ emptyReason }}</p>
-          <IonButton size="small" fill="outline" data-testid="m4-reset" @click="resetNarrowing">
-            {{
-              onlyOthersHidden
-                ? t('packing.emptyOthersAction')
-                : search.trim() && view.activeFacetCount === 0
-                  ? t('packing.resetSearch')
-                  : t('packing.resetAll')
-            }}
-          </IonButton>
-        </template>
-        <template v-else-if="allItems.length === 0">
-          <IonIcon :icon="bagHandleOutline" class="empty-icon" />
-          <strong>{{ t('packing.empty') }}</strong>
-          <p>{{ t('packing.emptyHint') }}</p>
-        </template>
-        <template v-else>
-          <strong>{{ t('packing.allDone') }}</strong>
-          <p>{{ t('packing.allDoneHint') }}</p>
-        </template>
-      </div>
+      <EmptyState
+        v-else-if="view.narrowed"
+        :title="onlyOthersHidden ? t('packing.emptyOthersHead') : t('packing.noMatches')"
+        :hint="emptyReason"
+        testid="packing-empty"
+      >
+        <IonButton size="small" fill="outline" data-testid="m4-reset" @click="resetNarrowing">
+          {{
+            onlyOthersHidden
+              ? t('packing.emptyOthersAction')
+              : search.trim() && view.activeFacetCount === 0
+                ? t('packing.resetSearch')
+                : t('packing.resetAll')
+          }}
+        </IonButton>
+      </EmptyState>
+
+      <EmptyState
+        v-else-if="allItems.length === 0"
+        :icon="bagHandleOutline"
+        :title="t('packing.empty')"
+        :hint="t('packing.emptyHint')"
+        testid="packing-empty"
+      />
+
+      <EmptyState
+        v-else
+        :title="t('packing.allDone')"
+        :hint="t('packing.allDoneHint')"
+        testid="packing-empty"
+      />
 
       <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
            state the count, name the people, one tap to reveal. -->
@@ -2599,25 +2605,6 @@ ion-content.pack-content::part(scroll) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 48px 24px;
-  color: var(--ct-subtext0);
-  text-align: center;
-}
-
-.empty p {
-  margin: 0;
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 8px;
 }
 
 .prep-section {

@@ -449,7 +449,7 @@ const mergeLines = computed(() =>
 <template>
   <IonPage>
     <IonContent>
-      <div v-if="!template" class="empty-state">
+      <div v-if="!template" class="not-found">
         <p>{{ t('templates.notFound') }}</p>
       </div>
 
@@ -1227,7 +1227,7 @@ const mergeLines = computed(() =>
   font-size: var(--jp-text-sm);
 }
 
-.empty-state {
+.not-found {
   display: flex;
   justify-content: center;
   padding: 24px;

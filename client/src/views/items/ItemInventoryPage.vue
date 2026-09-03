@@ -42,6 +42,7 @@ import {
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
+import EmptyState from '@/components/global/EmptyState.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
@@ -182,10 +183,13 @@ function handleRefresh(event: CustomEvent) {
       </IonSegment>
 
       <!-- G-7 empty state — M15 is the way in from here. -->
-      <div v-if="isEmpty" class="empty-state" data-testid="m9-empty">
-        <IonIcon :icon="cubeOutline" class="empty-icon" />
-        <p>{{ t('items.empty') }}</p>
-        <p class="empty-hint">{{ t('items.emptyHint') }}</p>
+      <EmptyState
+        v-if="isEmpty"
+        :icon="cubeOutline"
+        :title="t('items.empty')"
+        :hint="t('items.emptyHint')"
+        testid="m9-empty"
+      >
         <IonButton
           fill="outline"
           size="small"
@@ -195,11 +199,9 @@ function handleRefresh(event: CustomEvent) {
           <IonIcon slot="start" :icon="cloudUploadOutline" />
           {{ t('items.importSpreadsheet') }}
         </IonButton>
-      </div>
+      </EmptyState>
 
-      <div v-else-if="noResults" class="empty-state" data-testid="m9-no-match">
-        <p>{{ t('items.noMatch') }}</p>
-      </div>
+      <EmptyState v-else-if="noResults" :title="t('items.noMatch')" testid="m9-no-match" />
 
       <template v-else>
         <section v-for="[key, groupItems] in groups" :key="key" class="tag-group">
@@ -352,25 +354,6 @@ ion-segment {
   color: var(--ion-color-medium);
   font-size: var(--jp-icon-sm);
   margin-inline-start: 6px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.empty-icon {
-  font-size: var(--jp-icon-2xl);
-  margin-bottom: 16px;
-}
-
-.empty-hint {
-  font-size: var(--jp-text-sm);
-  margin-top: 8px;
 }
 
 .sheet-hint {
