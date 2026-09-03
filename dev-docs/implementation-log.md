@@ -253,6 +253,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The partition was a value nobody had written down (2026-09-03)](#the-partition-was-a-value-nobody-had-written-down-2026-09-03) — G-1. One push pipeline for both partitions; `tripID any` had two call sites beyond the five the review found, and the revert's gate is deliberately not the push's.
 - [The pull's two halves were one page and two questions (2026-09-03)](#the-pulls-two-halves-were-one-page-and-two-questions-2026-09-03) — G-9. One pagination for both pulls; the feed is the WHERE clause (NULL cannot be bound), and the pull filter's two answers are not one.
 - [Nine registries, and a table could be in eight of them (2026-09-03)](#nine-registries-and-a-table-could-be-in-eight-of-them-2026-09-03) — G-2 first half. One `tableSpec` per table, five maps become views; the completeness guard has to read the source because Go cannot enumerate constants.
+- [Seven copies of one bucket, and they did not agree (2026-09-03)](#seven-copies-of-one-bucket-and-they-did-not-agree-2026-09-03) — C-3 first step. `bucketedRows` replaces seven hand-written pairs; six stopped at the first bucket and one did not, and only an unreachable state tells them apart.
 - [Two of the menu's five answers were no menu (2026-09-03)](#two-of-the-menus-five-answers-were-no-menu-2026-09-03) — U-1.5, and U-1 closed. `domain/rowMenu.ts`; an outcome that is *nothing happens* cannot be read off a running screen, and the pass banner carried a class no stylesheet defined.
 - [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
 
@@ -11859,3 +11860,33 @@ Still outside the spec and owed by G-2's second half: `authorizeMaster` and
 `masterVisible` (per-table switches that are rules rather than data),
 `ExportFull`'s ordered query list, and `markedTables`/`stampActor` in
 `internal/api`.
+
+## Seven copies of one bucket, and they did not agree (2026-09-03)
+
+C-3 of the design review, first step. `tripStore` and `masterStore` between
+them held seven `Map<parentId, Row[]>` collections, each with a hand-written
+`upsertX`/`removeX` pair: find-or-push into the bucket, filter the id out of
+whichever bucket has it. Twenty lines apiece, 166 lines removed for
+`client/src/stores/bucketedRows.ts`.
+
+**The seven were not identical, and nothing said which one was right.**
+`removeComment` scanned every bucket; the other six `break`ed at the first
+bucket that changed. Nothing depended on the difference — every bucket key is
+a parent id (`trip_id`, `template_id`) and none of them can change, so a row
+is in exactly one bucket and both versions do the same thing. That is what
+made the divergence survive: it was invisible, in both directions, for as long
+as the keys stay immutable.
+
+The fold keeps the scanning version, because the two are only equal while that
+holds. If a bucket key ever becomes mutable, stopping early leaves the row in
+its old bucket as well as its new one — a duplicate that no screen reports and
+no test would have caught, since every reader asks for one bucket at a time.
+The spec pins it with a fixture that plants the same id in two buckets, which
+is a state the production code cannot reach today: it is a test of the *rule*,
+not of a reachable case, and it is the only clause of the eight that the
+`break` version fails.
+
+This is the plumbing C-3b's registry needs rather than the registry itself:
+with one bucket implementation, every table's apply step is "put this row
+somewhere by its id", which is what a per-table codec can be written against.
+The two `applyChange` switches and the 18 `rowTo*` functions are still owed.
