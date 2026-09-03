@@ -11769,6 +11769,16 @@ push gate is `belongsToTrip`, and a revert passes no gate at all because the
 Folding `p.scope` in would have added a gate to a path that deliberately has
 none, which is a behaviour change wearing a refactor's clothes.
 
+**And typing the argument found a false green.** `locks.go` writes the FR-5.7
+takeover to the change feed, and `TestTakeOverClaim_MovesTheClaimToTheTaker`
+asserted `ev.Seq != 0` under the comment *"the other devices learn of the
+takeover by pulling, so it must be in the change feed"*. A non-zero seq does
+not say that: `change_log` is **one table for both partitions**, so an entry
+written to the master feed by mistake still yields a seq — and the takeover
+would reach nobody in the trip. Pointing that call at `masterFeed` turned
+*nothing* red in either the store or the api suite. The clause now pulls the
+trip and looks for the row.
+
 The new `partition_test.go` pins the four differences as properties of the
 two values, so a fifth difference or a flag that drifts to the other side is
 red where it is written rather than only in an end-to-end pull. Both flags

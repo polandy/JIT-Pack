@@ -39,6 +39,24 @@ func TestTakeOverClaim_MovesTheClaimToTheTaker(t *testing.T) {
 	if ev.Seq == 0 {
 		t.Error("seq = 0: the other devices learn of the takeover by pulling, so it must be in the change feed")
 	}
+	// …and in *this trip's* feed. A non-zero seq alone does not say that:
+	// change_log is one table for both partitions, so an entry written to
+	// the master feed by mistake still yields a seq, and the takeover would
+	// then reach nobody in the trip. Found 2026-09-03 by mutating the feed
+	// argument, which turned nothing red (G-1).
+	page, err := s.Pull(ctx, testTrip, 0, 100)
+	if err != nil {
+		t.Fatalf("Pull: %v", err)
+	}
+	var offered bool
+	for _, c := range page.Changes {
+		if c.Table == TableTripItems && c.ID == "item-1" {
+			offered = true
+		}
+	}
+	if !offered {
+		t.Errorf("the trip's pull offers %v, want the taken-over row", page.Changes)
+	}
 
 	var state, by string
 	if err := s.db.QueryRow(`SELECT state, packing_now_by FROM trip_items WHERE id = 'item-1'`).Scan(&state, &by); err != nil {
