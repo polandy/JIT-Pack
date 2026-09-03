@@ -24,7 +24,6 @@
  *    packed" from "nothing matches" (FR-25.11e) — announcing completion
  *    over a narrowed list is the failure that rule exists to prevent.
  */
-import type { DirectoryUser } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -96,6 +95,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
+import { useTripIdentity } from '@/composables/useTripIdentity'
 import { M4_FAB_ANCHOR_ID, usePackAnnouncer } from '@/composables/usePackAnnouncer'
 import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
@@ -115,24 +115,11 @@ import { useMasterStore } from '@/stores/masterStore'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { useTripStore } from '@/stores/tripStore'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
-import type {
-  FacetKey,
-  GroupBy,
-  ItemTodo,
-  MasterItem,
-  TripItem,
-  TripParticipant,
-} from '@/types/domain'
+import type { FacetKey, GroupBy, ItemTodo, MasterItem, TripItem } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { tripItemPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction } from '@/lib/confirm'
-import {
-  lockNoteText,
-  nameFrom,
-  packedStampText,
-  responsibleNote,
-  skippedNote,
-} from '@/lib/rowFacts'
+import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
@@ -142,11 +129,12 @@ const router = useRouter()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 // --- Identity, for FR-25.19/25.20 ---------------------------------------
-// Both come from the server and both are simply absent in Local Mode, which
-// is the correct answer there: nothing is assignable, so nothing is hidden
-// and no row can name a packer.
-const myUserId = ref<string | null>(null)
-const directory = ref<DirectoryUser[]>([])
+const {
+  myUserId,
+  participants,
+  nameOf,
+  load: loadIdentity,
+} = useTripIdentity(props.tripId, orchestrator)
 
 onMounted(async () => {
   orchestrator.subscribeTrip(props.tripId)
@@ -156,45 +144,11 @@ onMounted(async () => {
   // rows the pull just brought, or it would offer what another device already
   // applied.
   orchestrator.proposeTripRefresh(props.tripId)
-  const [users, me] = await Promise.all([orchestrator.fetchUsers(), orchestrator.fetchMe()])
-  directory.value = users
-  myUserId.value = me?.user_id ?? null
+  await loadIdentity()
   // After the drain, not before: restoring onto a list whose rows have not
   // arrived yet would clamp the offset to a shorter page.
   await restoreScroll()
 })
-
-/**
- * Everyone a row could name. Deliberately the directory *and* the member
- * rows rather than membership alone: Single-User Mode bypasses membership
- * entirely, so a trip there has no member rows at all and every packing
- * record would otherwise render as a raw user id.
- */
-const participants = computed<TripParticipant[]>(() => {
-  const members = new Map(store.getMembers(props.tripId).map((m) => [m.user_id, m.role]))
-  const known = new Map<string, TripParticipant>()
-  for (const user of directory.value) {
-    known.set(user.user_id, {
-      user_id: user.user_id,
-      display_name: user.display_name,
-      avatar_url: null,
-      role: members.get(user.user_id) ?? 'editor',
-    })
-  }
-  for (const [user_id, role] of members) {
-    // A member the directory does not carry (removed account, offline
-    // first paint): countable, nameable only by id.
-    if (!known.has(user_id)) {
-      known.set(user_id, { user_id, display_name: user_id, avatar_url: null, role })
-    }
-  }
-  return [...known.values()]
-})
-
-/** `null` where nobody is named — the stamp then states the act without a who. */
-function nameOf(userId: string | null): string | null {
-  return nameFrom(participants.value, userId)
-}
 
 // --- View state ---------------------------------------------------------
 // The filter, the two reveal switches and the grouping live in their own

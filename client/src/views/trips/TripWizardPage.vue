@@ -13,7 +13,6 @@
  * Single-User and Local Mode there is no second account to share with
  * (FR-17.3/FR-19.3/G-8).
  */
-import type { DirectoryUser } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -41,6 +40,7 @@ import { computed, inject, onMounted, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { hasCollaborativeSession } from '@/mode'
+import { useIdentity } from '@/composables/useTripIdentity'
 import DateField from '@/components/global/DateField.vue'
 import { t, formatDay, formatDayRange } from '@/i18n'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
@@ -157,15 +157,14 @@ function removeTraveler(index: number) {
 // --- Step 2: sharing & roles (FR-4.5/4.7) ---
 const collaborative = hasCollaborativeSession()
 
-const directory = ref<DirectoryUser[]>([])
-const myUserId = ref<string | null>(null)
+const { directory, myUserId, load: loadIdentity } = useIdentity(orchestrator)
 const shares = ref<{ userId: string; role: 'admin' | 'editor' }[]>([])
 
 onMounted(async () => {
+  // Step 2 is the only reader, and it does not exist without a session to
+  // share with — so the fetch is skipped rather than answered with nothing.
   if (!collaborative) return
-  const [users, me] = await Promise.all([orchestrator.fetchUsers(), orchestrator.fetchMe()])
-  directory.value = users
-  myUserId.value = me?.user_id ?? null
+  await loadIdentity()
 })
 
 /** Accounts still shareable: not me (Owner anyway), not already added. */
@@ -823,7 +822,11 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
         <template v-if="collaborative">
           <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionShare') }}</h2>
           <IonList v-if="shares.length > 0">
-            <IonItem v-for="(share, index) in shares" :key="share.userId">
+            <IonItem
+              v-for="(share, index) in shares"
+              :key="share.userId"
+              :data-testid="`wizard-share-${share.userId}`"
+            >
               <IonLabel>{{ shareName(share.userId) }}</IonLabel>
               <IonSelect
                 interface="popover"
@@ -847,6 +850,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
           </IonList>
           <IonItem v-if="shareCandidates.length > 0" lines="none">
             <IonSelect
+              data-testid="wizard-share-add"
               interface="popover"
               :placeholder="t('wizard.shareAdd')"
               :aria-label="t('wizard.shareAddLabel')"
