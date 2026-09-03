@@ -1,6 +1,6 @@
 /**
- * Holds the implementation log's index against the log itself: every section
- * has an index line, and every index line points at a section that exists.
+ * Holds a document's index against the document itself: every section has an
+ * index line, and every index line points at a section that exists.
  *
  * The index is what makes a 275 KB append-only file usable — it is meant to be
  * read *instead of* the log, so that a reader can tell in one screen whether
@@ -22,10 +22,24 @@ import { resolve } from 'node:path'
  * does too rather than inventing a third convention.
  */
 const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
-const LOG = resolve(root, 'dev-docs/implementation-log.md')
 
-/** Headings above the index describe the file itself and are not entries in it. */
-const PREAMBLE = new Set(['What earns an entry', 'Index'])
+/**
+ * Every document that claims to have an index. `preamble` names the headings
+ * that describe the file itself rather than being entries in it — the index
+ * heading always counts as one.
+ *
+ * `e2e-tests.md` joined on 2026-09-03: it had grown 70 undated narrative
+ * sections behind its status table with nothing naming them, which is the
+ * failure this gate already existed for. Two documents rather than one is what
+ * turned the hard-coded path into this list.
+ */
+const DOCUMENTS = [
+  { path: 'dev-docs/implementation-log.md', preamble: ['What earns an entry'] },
+  { path: 'dev-docs/e2e-tests.md', preamble: [] },
+]
+
+/** The heading whose body holds the index lines, in every document. */
+const INDEX_HEADING = '## Index'
 
 /**
  * GitHub's heading-anchor rules: lowercase, drop everything that is not a
@@ -47,38 +61,52 @@ function anchorsOf(lines) {
     const seen = used.get(anchor)
     used.set(anchor, seen === undefined ? 0 : seen + 1)
     if (seen !== undefined) anchor = `${anchor}-${seen + 1}`
-    anchors.push({ title, anchor, preamble: PREAMBLE.has(title) })
+    anchors.push({ title, anchor })
   }
   return anchors
 }
 
-const text = readFileSync(LOG, 'utf8')
-const lines = text.split('\n')
+/**
+ * Checks one document. Returns the number of indexed sections, or null when the
+ * document and its index disagree — the disagreement is reported as it is found.
+ */
+function check({ path, preamble }) {
+  const file = resolve(root, path)
+  const lines = readFileSync(file, 'utf8').split('\n')
 
-const indexStart = lines.findIndex((l) => l === '## Index')
-if (indexStart === -1) {
-  console.error('log-index-gate: dev-docs/implementation-log.md has no "## Index" section.')
-  process.exit(1)
-}
-const indexEnd = lines.findIndex((l, i) => i > indexStart && /^## /.test(l))
-const indexBody = lines.slice(indexStart, indexEnd === -1 ? undefined : indexEnd).join('\n')
+  const indexStart = lines.findIndex((l) => l === INDEX_HEADING)
+  if (indexStart === -1) {
+    console.error(`log-index-gate: ${path} has no "${INDEX_HEADING}" section.`)
+    return null
+  }
+  const indexEnd = lines.findIndex((l, i) => i > indexStart && /^## /.test(l))
+  const indexBody = lines.slice(indexStart, indexEnd === -1 ? undefined : indexEnd).join('\n')
 
-const linked = new Set([...indexBody.matchAll(/\]\(#([^)]+)\)/g)].map((m) => m[1]))
-const sections = anchorsOf(lines).filter((s) => !s.preamble)
+  const linked = new Set([...indexBody.matchAll(/\]\(#([^)]+)\)/g)].map((m) => m[1]))
+  const skip = new Set([...preamble, 'Index'])
+  const sections = anchorsOf(lines).filter((s) => !skip.has(s.title))
 
-const missing = sections.filter((s) => !linked.has(s.anchor))
-const dangling = [...linked].filter((a) => !sections.some((s) => s.anchor === a))
+  const missing = sections.filter((s) => !linked.has(s.anchor))
+  const dangling = [...linked].filter((a) => !sections.some((s) => s.anchor === a))
+  if (!missing.length && !dangling.length) return sections.length
 
-if (missing.length || dangling.length) {
-  console.error('log-index-gate: the implementation log and its index disagree.\n')
+  console.error(`log-index-gate: ${path} and its index disagree.\n`)
   for (const s of missing) {
     console.error(`  no index line for section:  ${s.title}\n    add:  - [${s.title}](#${s.anchor}) — <what you would come looking for>`)
   }
   for (const a of dangling) {
     console.error(`  index points at a section that does not exist:  #${a}`)
   }
-  console.error('\nThe index is read instead of the log; a section missing from it is unreachable.')
+  console.error('')
+  return null
+}
+
+const results = DOCUMENTS.map((doc) => [doc.path, check(doc)])
+if (results.some(([, n]) => n === null)) {
+  console.error('The index is read instead of the document; a section missing from it is unreachable.')
   process.exit(1)
 }
 
-console.log(`log-index-gate: ok (${sections.length} sections, all indexed)`)
+console.log(
+  `log-index-gate: ok (${results.map(([p, n]) => `${p}: ${n} sections`).join(', ')}, all indexed)`,
+)
