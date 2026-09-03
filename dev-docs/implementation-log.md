@@ -250,6 +250,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The empty state had four spacings and one name (2026-09-03)](#the-empty-state-had-four-spacings-and-one-name-2026-09-03) — U-8. Why the majority rule was the right one to keep, what a zero-pixel visual diff is worth as evidence, and the three shapes that share the word "empty" and are not the same component.
 - [The row was written twice, and the copies had stopped being copies (2026-09-03)](#the-row-was-written-twice-and-the-copies-had-stopped-being-copies-2026-09-03) — U-1.1. The two M4 rows as one component with two named differences, a third that is load-bearing, and two `.prep` rules in one scoped stylesheet that the badge resolved to both of.
 - [A guard called untestable was one `unmount()` away (2026-09-03)](#a-guard-called-untestable-was-one-unmount-away-2026-09-03) — U-1.2. M4's snackbar machinery as `usePackAnnouncer`; the `live` guard's own comment said a case was impossible, and it was impossible only in a view.
+- [Two of the menu's five answers were no menu (2026-09-03)](#two-of-the-menus-five-answers-were-no-menu-2026-09-03) — U-1.5, and U-1 closed. `domain/rowMenu.ts`; an outcome that is *nothing happens* cannot be read off a running screen, and the pass banner carried a class no stylesheet defined.
 - [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
 
 
@@ -11694,3 +11695,41 @@ earlier defects), the wizard only when the session is collaborative, and the
 member roster on its own. A composable-owned lifecycle hook would have quietly
 taken all three. The shared loader that *does* belong is U-10's
 `useTripScreen`, which is about `ensureTripData` and the ADR-033 guard.
+
+## Two of the menu's five answers were no menu (2026-09-03)
+
+U-1.5, the last of the five cuts. `PackingListPage.vue` ends the series at
+2004 lines, from 2703.
+
+The row menu (FR-5.5/5.7/9.3, G-3) was a nested ternary built inside
+`actionSheetController.create`, and its five outcomes include **two empty
+ones**: the closing pass takes the menu away entirely, and a locked row in
+Local or Single-User Mode has nobody to take it from. A screen renders both
+of those as *the press does nothing*, which is indistinguishable from a
+press that missed, a hold that was too short, or a defect. That is the
+argument for the cut, not the line count: `rowMenuEntries` returns a list,
+an empty list is a value a test can assert, and the two guards are now
+`want: []` rows in a table.
+
+One parameter the review named was dropped on the way in. It proposed
+`rowMenuEntries(item, {mine, skipped, judgeable})`, and `skipped` is read off
+the row instead — a caller that can disagree with an item about its own state
+is a caller that eventually will.
+
+The `ClusterHead` that PR 1 deferred came with it, and the pair of glyphs it
+shares with `PackingRow` (mode, late) became `RowGlyphs` — a **fragment
+component on purpose**: both callers place the glyphs inside their own flex
+row, so a wrapper element would be a third box in a layout that counts them.
+What did *not* de-duplicate is `.row-mark`'s one-line margin: it states the
+FR-28.4 column in two scoped stylesheets, because two components cannot share
+one. That is written down in both, so the next reader does not "fix" one of
+them.
+
+Two smaller things the pixels and the greps disagreed about. The closing-pass
+banner's inner `<div class="grow">` resolved to **nothing** — `PackingListPage.vue`'s
+scoped stylesheet never defined `.grow`, and no global one does; two other
+views define their own. It was dropped rather than carried into the new
+component, and the visual baselines agreed. And `ClusterHead` had no unit test
+of any kind, which is the ordinary state of markup that lives in a view: the
+seven cases it has now include the one that says why the head exists at all —
+it carries the mark so the traveler rows under it carry none.
