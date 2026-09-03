@@ -250,6 +250,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The empty state had four spacings and one name (2026-09-03)](#the-empty-state-had-four-spacings-and-one-name-2026-09-03) — U-8. Why the majority rule was the right one to keep, what a zero-pixel visual diff is worth as evidence, and the three shapes that share the word "empty" and are not the same component.
 - [The row was written twice, and the copies had stopped being copies (2026-09-03)](#the-row-was-written-twice-and-the-copies-had-stopped-being-copies-2026-09-03) — U-1.1. The two M4 rows as one component with two named differences, a third that is load-bearing, and two `.prep` rules in one scoped stylesheet that the badge resolved to both of.
 - [A guard called untestable was one `unmount()` away (2026-09-03)](#a-guard-called-untestable-was-one-unmount-away-2026-09-03) — U-1.2. M4's snackbar machinery as `usePackAnnouncer`; the `live` guard's own comment said a case was impossible, and it was impossible only in a view.
+- [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`; a fixture in every consumer is the reliable sign that a rule has no producer test, and `DirectoryUser` was declared twice.
 
 
 ## Current state
@@ -11641,3 +11642,44 @@ second pack keeping its own undo when the first snackbar reports its dismissal
 late, and the snackbar whose screen was left mid-`create` never being presented.
 Both were mutation-proved — identity check to `if (true)`, `live` guard deleted
 — and both went red.
+
+## A rule three screens depended on and none of them tested (2026-09-03)
+
+U-1's third cut: `directory`, `myUserId`, `participants` and `nameOf` move to
+`composables/useTripIdentity.ts`, and the merge rule under `participants` moves
+further, into `domain/members.ts` beside `buildRosterView`, which is what it
+belongs with.
+
+**The rule had no driving test, and the coverage looked fine.** Three specs
+mention `participants` — `packingView`, `ItemDetailSheet`, `MembershipSheet` —
+and all three hand it in as a fixture. Nothing built one. What went untested is
+not incidental: it is the two lines that make the screen work in the modes
+without a server. Single-User Mode bypasses membership entirely, so a trip
+there has *no* member rows and a screen reading only those would render every
+packing stamp as a raw uuid; and a member the directory does not carry — a
+removed account, an offline first paint — has to stay countable, named by its
+id rather than dropped from a facepile. As a pure function over two arrays both
+are one line of table each. Six cases now, two of them mutation-proved.
+
+The general shape is the one this project keeps meeting from a new angle: **a
+fixture is the reliable sign that a rule has no test.** Every consumer being
+handed the finished value is exactly what a well-factored screen looks like,
+and also exactly what a rule with no producer test looks like.
+
+**`DirectoryUser` was declared twice.** `client/src/api/types.ts` has it,
+generated from `wire.go` (ADR-026), and `client/src/domain/members.ts` had a
+hand-written twin of the same two fields. Two other `domain/` modules already
+import their types from `@/api/types`, so the copy bought nothing — and cost
+the one thing generation exists for: a `make wire` change to the wire shape
+would have left the roster's copy behind, with no gate to say so, because the
+contract gate compares `types.ts` against `wire.go` and knows nothing about a
+third declaration. `domain/members.ts` now re-exports the generated one.
+
+**The composable owns the *what*, not the *when*.** It registers no
+`onMounted`; `load()` is awaited by the screen. The three callers each have a
+reason for their ordering that is theirs and not identity's: M4 loads between
+its drain and its scroll restore (both orderings are already paid for by
+earlier defects), the wizard only when the session is collaborative, and the
+member roster on its own. A composable-owned lifecycle hook would have quietly
+taken all three. The shared loader that *does* belong is U-10's
+`useTripScreen`, which is about `ensureTripData` and the ADR-033 guard.

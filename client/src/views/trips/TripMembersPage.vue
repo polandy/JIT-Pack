@@ -23,29 +23,25 @@ import {
   IonChip,
 } from '@ionic/vue'
 import { closeOutline, peopleOutline } from 'ionicons/icons'
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
-import { buildRosterView, type DirectoryUser } from '@/domain/members'
+import { buildRosterView } from '@/domain/members'
 import { t } from '@/i18n'
 import { roleLabel } from '@/lib/roleLabels'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { useIdentity } from '@/composables/useTripIdentity'
 
 const props = defineProps<{ tripId: string }>()
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const tripStore = useTripStore()
 
-const directory = ref<DirectoryUser[]>([])
-const myUserId = ref<string | null>(null)
+const { directory, myUserId, load: loadIdentity } = useIdentity(orchestrator)
 
-onMounted(async () => {
-  const [users, me] = await Promise.all([orchestrator.fetchUsers(), orchestrator.fetchMe()])
-  directory.value = users
-  myUserId.value = me?.user_id ?? null
-})
+onMounted(loadIdentity)
 
 const view = computed(() =>
   buildRosterView(tripStore.getMembers(props.tripId), directory.value, myUserId.value),
