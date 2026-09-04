@@ -42,6 +42,7 @@ import type {
   TripSeries,
   TripTemplateSource,
 } from '@/types/domain'
+import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 import { TABLE, type SyncTable } from '@/types/tables'
 import { durationDays } from '@/domain/instantiate'
 import { parseJsonColumn } from './columns'
@@ -159,7 +160,7 @@ function rowToChecklistItem(id: string, row: Record<string, unknown>): Destinati
     id,
     profile_id: row['profile_id'] as string,
     label: row['label'] as string,
-    mode: (row['mode'] as DestinationChecklistItem['mode']) ?? 'buy_local',
+    mode: (row['mode'] as DestinationChecklistItem['mode']) ?? ITEM_MODE_BUY_LOCAL,
   }
 }
 
@@ -182,7 +183,7 @@ function rowToTemplateItem(id: string, row: Record<string, unknown>): TemplateIt
     assignment: (row['assignment'] as TemplateItem['assignment']) ?? 'per_person',
     dedup: (row['dedup'] as TemplateItem['dedup']) ?? 'max',
     conditions: parseJsonColumn<TemplateItem['conditions']>(row['conditions'], null),
-    default_mode: (row['default_mode'] as TemplateItem['default_mode']) ?? 'pack',
+    default_mode: (row['default_mode'] as TemplateItem['default_mode']) ?? ITEM_MODE_PACK,
     late_packer: Boolean(row['late_packer']),
   }
 }
@@ -264,7 +265,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     quantity: (row['quantity'] as number) ?? 1,
     packed_count: (row['packed_count'] as number) ?? 0,
     state: (row['state'] as TripItem['state']) ?? 'open',
-    mode: (row['mode'] as TripItem['mode']) ?? 'pack',
+    mode: (row['mode'] as TripItem['mode']) ?? ITEM_MODE_PACK,
     late_packer: Boolean(row['late_packer']),
     assigned_traveler_id: (row['assigned_traveler_id'] as string) ?? null,
     packer_user_id: (row['packer_user_id'] as string) ?? null,

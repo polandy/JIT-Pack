@@ -42,6 +42,7 @@ import { buildShoppingList, type ShoppingRow } from '@/domain/shoppingView'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { ShoppingMode, TripItem } from '@/types/domain'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 import { isActive } from '@/domain/trips'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -51,7 +52,7 @@ const props = defineProps<{ tripId: string }>()
 const store = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const tab = ref<ShoppingMode>('buy_before')
+const tab = ref<ShoppingMode>(ITEM_MODE_BUY_BEFORE)
 
 /**
  * FR-25.11j's reveal, shaped like M4's *Erledigte* bar (FR-25.2): off by
@@ -67,10 +68,10 @@ const showBought = ref(false)
 const trip = computed(() => store.getTrip(props.tripId))
 const lists = computed(() => store.getShoppingItems(props.tripId))
 const activeList = computed(() =>
-  tab.value === 'buy_before' ? lists.value.buyBefore : lists.value.buyLocal,
+  tab.value === ITEM_MODE_BUY_BEFORE ? lists.value.buyBefore : lists.value.buyLocal,
 )
 const boughtList = computed(() =>
-  tab.value === 'buy_before' ? lists.value.boughtBefore : lists.value.boughtLocal,
+  tab.value === ITEM_MODE_BUY_BEFORE ? lists.value.boughtBefore : lists.value.boughtLocal,
 )
 
 /**
@@ -145,7 +146,9 @@ function undoBuy(row: ShoppingRow) {
  * BUY_LOCAL one is packed, and a row whose mode changed again since says so.
  */
 function wentTo(row: ShoppingRow): string {
-  return row.instances[0]?.mode === 'pack' ? t('shopping.wentToPacking') : t('shopping.wentPacked')
+  return row.instances[0]?.mode === ITEM_MODE_PACK
+    ? t('shopping.wentToPacking')
+    : t('shopping.wentPacked')
 }
 
 const active = computed(() => isActive(trip.value))
@@ -180,12 +183,12 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
     <IonContent data-testid="m6-page">
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
-        <IonSegmentButton value="buy_before" data-testid="m6-tab-before">
+        <IonSegmentButton :value="ITEM_MODE_BUY_BEFORE" data-testid="m6-tab-before">
           <IonLabel>{{
             t('shopping.beforeDeparture', { n: buyRowCount(lists.buyBefore) })
           }}</IonLabel>
         </IonSegmentButton>
-        <IonSegmentButton value="buy_local" data-testid="m6-tab-local">
+        <IonSegmentButton :value="ITEM_MODE_BUY_LOCAL" data-testid="m6-tab-local">
           <IonLabel>{{ t('shopping.atDestination', { n: buyRowCount(lists.buyLocal) }) }}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
@@ -231,7 +234,7 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
       <EmptyState
         v-else
         :icon="bagHandleOutline"
-        :title="t(tab === 'buy_before' ? 'shopping.emptyBefore' : 'shopping.emptyLocal')"
+        :title="t(tab === ITEM_MODE_BUY_BEFORE ? 'shopping.emptyBefore' : 'shopping.emptyLocal')"
       />
 
       <!-- FR-25.11j: what was bought from this list. Same affordance as M4's

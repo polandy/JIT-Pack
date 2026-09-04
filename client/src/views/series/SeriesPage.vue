@@ -32,6 +32,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemMode, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
@@ -96,13 +97,13 @@ function saveNotes(notes: string) {
 
 /** FR-13.3: a destination checklist is mostly bought there, so that mode leads. */
 const CHECKLIST_MODE_ORDER = [
-  'buy_local',
-  'buy_before',
-  'pack',
+  ITEM_MODE_BUY_LOCAL,
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODE_PACK,
 ] as const satisfies readonly ItemMode[]
 
 const newLabel = ref('')
-const newMode = ref<ItemMode>('buy_local')
+const newMode = ref<ItemMode>(ITEM_MODE_BUY_LOCAL)
 
 function addChecklistEntry() {
   const label = newLabel.value.trim()

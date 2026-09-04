@@ -20,6 +20,7 @@ import { t } from '@/i18n'
 import { modeLabel } from '@/lib/modeLabels'
 import { resolvedLines, type ResolvedLine } from '@/domain/templates'
 import { useMasterStore } from '@/stores/masterStore'
+import { isShoppingMode } from '@/types/domain'
 import ItemMark from '@/components/items/ItemMark.vue'
 
 const props = defineProps<{ templateId: string }>()
@@ -57,7 +58,7 @@ function marksOf(line: ResolvedLine): string[] {
   const marks: string[] = []
   if (line.merged) marks.push(t('templates.peekMerged'))
   if (line.perPerson) marks.push(t('templates.peekPerPerson'))
-  if (line.mode !== 'pack') marks.push(modeLabel(line.mode))
+  if (isShoppingMode(line.mode)) marks.push(modeLabel(line.mode))
   if (line.conditions) marks.push(t('templates.peekConditional'))
   return marks
 }

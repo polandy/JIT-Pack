@@ -18,6 +18,7 @@ import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planMembership, type MembershipTarget } from '@/domain/membership'
 import type { AddedItemDecision } from '@/composables/useMutations'
 import type { ItemMode, ReviewFlag, ShoppingMode, TripItem } from '@/types/domain'
+import { ITEM_MODE_PACK } from '@/types/domain'
 import type { SyncContext } from '../context'
 
 /** createPackingActions binds the packing group to one sync context. */
@@ -437,7 +438,7 @@ export function createPackingActions(ctx: SyncContext) {
           weight_grams: companion.weight_grams,
           value_cents: companion.value_cents,
           quantity: companion.quantity,
-          mode: 'pack',
+          mode: ITEM_MODE_PACK,
           late_packer: false,
         },
         null,

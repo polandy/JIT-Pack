@@ -11,7 +11,13 @@ import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import { defaultNowIso, type NowIso } from '@/lib/clock'
-import { REVIEW_FLAG_FIELD, TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_LOCAL,
+  ITEM_MODE_PACK,
+  REVIEW_FLAG_FIELD,
+  TRIP_STATUS_ARCHIVED,
+  TRIP_STATUS_PLANNING,
+} from '@/types/domain'
 
 import type { Trip } from '@/types/domain'
 import type {
@@ -183,13 +189,13 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
    * left the shopping side with nothing saying which list it left.
    */
   function buyItem(itemId: string, from: ShoppingMode, quantity: number): Mutation {
-    if (from === 'buy_local') {
+    if (from === ITEM_MODE_BUY_LOCAL) {
       // Bought at the destination: that is its packed state, and the mode
       // stays what it was — the row never leaves its own list.
       const packed = packItem(itemId, quantity, 'packed')
       return { ...packed, fields: { bought_from: from, ...packed.fields } }
     }
-    return make('upsert', TABLE.tripItems, itemId, { bought_from: from, mode: 'pack' })
+    return make('upsert', TABLE.tripItems, itemId, { bought_from: from, mode: ITEM_MODE_PACK })
   }
 
   /**
@@ -197,7 +203,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
    * bought from, and the record that sent it there is cleared with it.
    */
   function unbuyItem(itemId: string, from: ShoppingMode): Mutation {
-    if (from === 'buy_local') {
+    if (from === ITEM_MODE_BUY_LOCAL) {
       const unpacked = packItem(itemId, 0, 'open')
       return { ...unpacked, fields: { bought_from: null, ...unpacked.fields } }
     }
@@ -283,7 +289,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       packed_count: packed ? 1 : 0,
       state: opts.decided ?? 'open',
       packed_at: packed ? nowIso() : null,
-      mode: opts.mode ?? 'pack',
+      mode: opts.mode ?? ITEM_MODE_PACK,
       flag_missing: dbBool(opts.flagMissing),
     })
     return { mutation, id }
@@ -400,7 +406,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       categoryName: string | null
       quantity: number
       packedCount: number
-      mode: string
+      mode: ItemMode
       latePacker: boolean
       /** FR-25.11j: the shopping list the row was bought from, if any. */
       boughtFrom: ShoppingMode | null
@@ -634,7 +640,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       quantity: item.quantity,
       packed_count: item.quantity,
       state: 'packed',
-      mode: 'pack',
+      mode: ITEM_MODE_PACK,
     })
     return { mutation, id }
   }
@@ -761,7 +767,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       quantity?: number
       assignment?: string
       dedup?: string
-      defaultMode?: string
+      defaultMode?: ItemMode
       latePacker?: boolean
       conditions?: Record<string, unknown> | null
     } = {},
@@ -773,7 +779,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       quantity: opts.quantity ?? 1,
       assignment: opts.assignment ?? 'per_person',
       dedup: opts.dedup ?? 'max',
-      default_mode: opts.defaultMode ?? 'pack',
+      default_mode: opts.defaultMode ?? ITEM_MODE_PACK,
       late_packer: dbBool(opts.latePacker),
       conditions: jsonColumn(opts.conditions),
     })

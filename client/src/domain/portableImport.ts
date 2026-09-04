@@ -23,6 +23,7 @@ import type {
   TemplateKind,
   Trip,
 } from '@/types/domain'
+import { ITEM_MODE_PACK } from '@/types/domain'
 import type { useMutations } from '@/composables/useMutations'
 
 /**
@@ -141,7 +142,7 @@ function importPositions(
       quantity: item.quantity,
       assignment: item.assignment ?? 'per_person',
       dedup: item.dedup ?? 'max',
-      defaultMode: item.default_mode ?? 'pack',
+      defaultMode: item.default_mode ?? ITEM_MODE_PACK,
       latePacker: item.late_packer,
       conditions: item.conditions,
     })
@@ -426,7 +427,7 @@ export function importPortableDocument(
         categoryName: item.category,
         quantity: Math.max(0, Math.ceil(Number(item.quantity) || 0)),
         packedCount: item.packed_count ?? 0,
-        mode: item.mode === 'buy_before' || item.mode === 'buy_local' ? item.mode : 'pack',
+        mode: item.mode ?? ITEM_MODE_PACK,
         latePacker: item.late_packer,
         boughtFrom: item.bought_from,
       },

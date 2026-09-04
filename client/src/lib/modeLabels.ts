@@ -13,6 +13,7 @@ import { bagHandleOutline, cartOutline, locationOutline } from 'ionicons/icons'
 
 import { t, type MessageKey } from '@/i18n'
 import type { ItemMode } from '@/types/domain'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 
 /** The catalogue key for each `mode` value. */
 export const MODE_KEYS = {
@@ -41,7 +42,7 @@ export function modeLabel(mode: string): string {
 export const DENSE_LIST = { silentPack: true } as const
 
 export function modeIcon(mode: string, options: { silentPack?: boolean } = {}): string | null {
-  if (mode === 'buy_before') return cartOutline
-  if (mode === 'buy_local') return locationOutline
+  if (mode === ITEM_MODE_BUY_BEFORE) return cartOutline
+  if (mode === ITEM_MODE_BUY_LOCAL) return locationOutline
   return options.silentPack ? null : bagHandleOutline
 }

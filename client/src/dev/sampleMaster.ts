@@ -1,5 +1,6 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import type { TemplateKind } from '@/types/domain'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_PACK } from '@/types/domain'
 
 /**
  * A ready-made master partition to test against — inventory, tags, groups and
@@ -211,7 +212,7 @@ function addPositions(
     const positionId = orchestrator.addTemplateItem(templateId, itemId, {
       quantity: pos.quantity ?? 1,
       assignment: pos.perPerson ? 'per_person' : 'trip_global',
-      defaultMode: pos.buyBefore ? 'buy_before' : 'pack',
+      defaultMode: pos.buyBefore ? ITEM_MODE_BUY_BEFORE : ITEM_MODE_PACK,
     })
     if (pos.task) orchestrator.addTemplateItemTask(positionId, pos.task)
   }
