@@ -13,7 +13,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 
 - [The rule that comes before the units](#the-rule-that-comes-before-the-units) — why a UI change ships a *passing* case in the same PR, and the two rules the four navigation defects paid for.
 - [Working rule: one unit per PR](#working-rule-one-unit-per-pr) — why two case-adding PRs collide even when git merges both cleanly.
-- [Conventions that matter](#conventions-that-matter) — the binding selector rules — `data-testid` only, Ionic's inner `<input>`, scoped `row-*`, no sleeps, the two clicks an archived trip takes.
+- [Conventions that matter](#conventions-that-matter) — the binding selector rules — `data-testid` only, Ionic's inner `<input>`, scoped `row-*`, no sleeps, the two clicks …
 - [Order of attack](#order-of-attack) — the §10 sequence, and why an order of attack goes stale silently.
 - [What the suite costs, measured](#what-the-suite-costs-measured) — the 2026-08-19 measurement behind the 60 s budget; what a §2.4 unit costs on WebKit.
 - [Status](#status) — **the table** — which spec cases are implemented, in which mode, in which file.
