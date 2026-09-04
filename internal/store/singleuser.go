@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -28,29 +27,6 @@ var displayNamePattern = regexp.MustCompile(`^[^\p{C}\s]([^\p{C}]{0,48}[^\p{C}\s
 
 const localSingleUserDefaultName = "Demo User"
 
-// EnsureLocalSingleUser returns the id of the implicit local user
-// (Addendum FR-17.2), creating it on first call. Idempotent: subsequent
-// calls return the same id without creating a second row.
-func (s *Store) EnsureLocalSingleUser(ctx context.Context) (string, error) {
-	var id string
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id FROM users WHERE is_local_singleuser = 1 LIMIT 1`).Scan(&id)
-	if err == nil {
-		return id, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return "", fmt.Errorf("look up local single user: %w", err)
-	}
-
-	err = s.db.QueryRowContext(ctx,
-		`INSERT INTO users (is_local_singleuser, display_name) VALUES (1, ?) RETURNING id`,
-		localSingleUserDefaultName).Scan(&id)
-	if err != nil {
-		return "", fmt.Errorf("create local single user: %w", err)
-	}
-	return id, nil
-}
-
 // EnsureLocalSingleUserID seeds the implicit local user under a caller-
 // supplied id (Addendum FR-17.2). The single-user server attributes every
 // request to JITPACK_LOCAL_USER_ID, so that exact row must exist or
@@ -58,6 +34,11 @@ func (s *Store) EnsureLocalSingleUser(ctx context.Context) (string, error) {
 // EnsureLocalSingleUser, which mints its own id, this honours the operator's
 // configured id. Idempotent: an existing row (by id) is left untouched, so a
 // display name the user later changed is preserved across restarts.
+//
+// This is the only way the row comes into being. A second constructor that
+// minted its own id existed until 2026-09-04 (G-10) and had no production
+// caller: an id the operator did not configure is an id no request is ever
+// attributed to.
 func (s *Store) EnsureLocalSingleUserID(ctx context.Context, id string) error {
 	if _, err := s.db.ExecContext(ctx,
 		`INSERT INTO users (id, is_local_singleuser, display_name)
