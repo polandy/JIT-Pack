@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strings"
 	"testing"
 
 	"jitpack/internal/store"
@@ -257,5 +258,107 @@ func TestPlanNotifications_EveryFR62Trigger(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestPlanNotifications_PayloadCarriesTheDeepLink pins FR-6.3: the payload
+// is what the notification list and the OS toast render from, and it
+// resolves nothing for itself — every id and every name it needs is in
+// here. The rules build it, so the rules are where it is stated.
+func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
+	const zelt, comment = "ti-zelt", "c-1"
+	resolve := resolverFor(map[string]itemFacts{zelt: {Name: "Zelt", PackerUserID: "u-sarah"}})
+
+	t.Run("delegation", func(t *testing.T) {
+		plan := planNotifications("trip-1", "u-actor",
+			[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"packer_user_id": "u-sarah"})},
+			allApplied(1), notificationRuleMembers, resolve)
+		if len(plan) != 1 {
+			t.Fatalf("plan = %v, want one delegation", recipients(plan))
+		}
+		wantPayload(t, plan[0].Payload, map[string]any{
+			payloadTripID: "trip-1", payloadItemID: zelt, payloadItemName: "Zelt",
+			payloadActorID: "u-actor", payloadActorName: "Andy",
+		})
+	})
+
+	t.Run("task on a commented item", func(t *testing.T) {
+		plan := planNotifications("trip-1", "u-actor",
+			[]syncpkg.Mutation{commentMutation(comment, map[string]any{
+				"body": "seal the seams", "trip_item_id": zelt, "is_task": true,
+			})},
+			allApplied(1), notificationRuleMembers, resolve)
+		if len(plan) != 1 {
+			t.Fatalf("plan = %v, want one task", recipients(plan))
+		}
+		wantPayload(t, plan[0].Payload, map[string]any{
+			payloadTripID: "trip-1", payloadCommentID: comment,
+			payloadItemID: zelt, payloadItemName: "Zelt",
+			payloadActorID: "u-actor", payloadActorName: "Andy",
+			payloadPreview: "seal the seams",
+		})
+	})
+
+	t.Run("a comment on no item carries no item keys", func(t *testing.T) {
+		plan := planNotifications("trip-1", "u-actor",
+			[]syncpkg.Mutation{commentMutation(comment, map[string]any{"body": "@Sarah hi"})},
+			allApplied(1), notificationRuleMembers, resolve)
+		if len(plan) != 1 {
+			t.Fatalf("plan = %v, want one mention", recipients(plan))
+		}
+		wantPayload(t, plan[0].Payload, map[string]any{
+			payloadTripID: "trip-1", payloadCommentID: comment,
+			payloadActorID: "u-actor", payloadActorName: "Andy",
+			payloadPreview: "@Sarah hi",
+		})
+	})
+
+	t.Run("an actor who has left the trip is unnamed, not missing", func(t *testing.T) {
+		plan := planNotifications("trip-1", "u-ghost",
+			[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"packer_user_id": "u-sarah"})},
+			allApplied(1), notificationRuleMembers, resolve)
+		if len(plan) != 1 {
+			t.Fatalf("plan = %v, want one delegation", recipients(plan))
+		}
+		if got, ok := plan[0].Payload[payloadActorName]; !ok || got != "" {
+			t.Errorf("actor_name = %v (present %v), want an empty string", got, ok)
+		}
+	})
+}
+
+// wantPayload asserts the payload is exactly want — extra keys included,
+// because a key the client does not expect is as much of a contract change
+// as a missing one.
+func wantPayload(t *testing.T, got, want map[string]any) {
+	t.Helper()
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("payload[%q] = %v, want %v", k, got[k], v)
+		}
+	}
+	for k := range got {
+		if _, ok := want[k]; !ok {
+			t.Errorf("payload carries an unexpected key %q = %v", k, got[k])
+		}
+	}
+}
+
+// TestPlanNotifications_PreviewIsTruncated pins the teaser length: the
+// payload rides an OS notification, the deep link carries the rest.
+func TestPlanNotifications_PreviewIsTruncated(t *testing.T) {
+	body := strings.Repeat("ä", previewLen+10)
+	plan := planNotifications("trip-1", "u-actor",
+		[]syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": body + " @Sarah"})},
+		allApplied(1), notificationRuleMembers, resolverFor(nil))
+	if len(plan) != 1 {
+		t.Fatalf("plan = %v, want one mention", recipients(plan))
+	}
+	preview, _ := plan[0].Payload[payloadPreview].(string)
+	// Runes, not bytes: a two-byte character must not be cut in half.
+	if got := len([]rune(preview)); got != previewLen {
+		t.Errorf("preview = %d runes, want %d", got, previewLen)
+	}
+	if !strings.HasPrefix(body, preview) {
+		t.Errorf("preview %q is not the head of the body", preview)
 	}
 }

@@ -12485,12 +12485,14 @@ input a parameter, and the one piece of I/O they need — an item's name and
 packer — entering as an `itemResolver` seam the caller builds from the store
 and a `slog` line.
 
-**The number that made the case.** Twelve mutations, one per rule, each run
-against both suites. All twelve turn the new table red. **Three turn the
-existing integration suite red.** The nine that did not include self-assignment
+**The number that made the case.** Sixteen mutations, one per rule, each run
+against both suites. All sixteen turn the new table red. **Five turn the
+existing integration suite red.** The eleven that did not include self-assignment
 suppression, FR-17.3's solo short-circuit, the own-row task rule, the
 insert-only rule for comments, the `@Sarahs`/`@Sarah` word boundary, and both
-resolver-failure paths. Two of those nine have tests whose *names* claim them —
+resolver-failure paths, the preview's rune-safe truncation, and the rule that a
+comment on no item carries no item keys. Two of those eleven have tests whose
+*names* claim them —
 `TestNotifications_SelfPackDoesNotNotify` pushes `state`/`packed_count` and
 never writes `packer_user_id` at all, so it says nothing about assigning a row
 to yourself; `TestNotifications_SingleUserMode_Inert` pushes a mutation that
