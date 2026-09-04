@@ -5,10 +5,14 @@
 // FR-24.3 lifecycle set, the blocking references and the cascade switch. A
 // table added to four of them and missed in the fifth is not a build error —
 // it is a rule that silently does not apply, which is the failure
-// CODING_PRINCIPLES §4a was written after. They are now views derived from
-// one `tableSpecs` map, and `tables_test.go` refuses a `Table*` constant
-// without an entry.
+// CODING_PRINCIPLES §4a was written after. Since G-2's second half the
+// master pull's visibility filter, the NFR-4.5 backup's query list and the
+// API layer's mark whitelist are declared here too. They are all views
+// derived from one `tableSpecs` map, and `tables_test.go` refuses a `Table*`
+// constant without an entry.
 package store
+
+import "sort"
 
 // partitionKind names which sync partition carries a table (Sync-API P-3).
 // A mutation is only valid on its own partition's endpoint, or changes
@@ -33,6 +37,31 @@ type blockingReference struct {
 // childQuery names one child table and the query that finds its rows for a
 // parent id. `?1` may repeat — an include hangs off both of its endpoints.
 type childQuery struct{ table, query string }
+
+// visibilityRule decides who may pull one row of a master-partition table
+// (Sync-API §4). It is a value rather than a switch arm so that the answer
+// for a table is readable beside the table's other rules; exactly one of the
+// three fields is set, which `tables_test.go` asserts.
+type visibilityRule struct {
+	// everyone marks the instance-wide master data (FR-1.6 MVP
+	// simplification, 2026-08-08 — everybody sees everything).
+	everyone bool
+	// tripQuery resolves the row's trip id, and every member of that trip
+	// may see the row. A missing row denies: its tombstone follows in the
+	// feed, and a tombstone carries only the entity id.
+	tripQuery string
+	// ownerQuery resolves the row's owning user; nobody else sees it.
+	ownerQuery string
+}
+
+// exportQuery is how the NFR-4.5 full export selects one table's rows.
+// scoped queries take the requesting user's id as their single argument;
+// unscoped ones are the instance-wide master data every user may pull
+// anyway, so filtering them would drop rows the caller can see.
+type exportQuery struct {
+	query  string
+	scoped bool
+}
 
 // tableSpec is everything the sync layer knows about one table. A field left
 // zero is a statement — no cascade, nothing that blocks a delete, not
@@ -60,10 +89,20 @@ type tableSpec struct {
 	// their tombstones must be emitted: a child before the parent it hangs
 	// off, always.
 	cascades []childQuery
+	// visible is the master pull's filter for this table, and is set on
+	// master-partition tables alone: the trip partition's whole gate is
+	// membership in the trip whose endpoint was called, applied before the
+	// feed is read at all.
+	visible visibilityRule
+	// export selects the table's rows for the NFR-4.5 backup. Every
+	// syncable table has one — a backup is a promise about everything the
+	// caller can see, and a table left out of it is data that survives no
+	// disaster.
+	export exportQuery
 }
 
-// tableSpecs declares every syncable table. The five maps below are views of
-// it; nothing else may be keyed by table name.
+// tableSpecs declares every syncable table. The maps and lookups below are
+// views of it; nothing else may be keyed by table name.
 var tableSpecs = map[string]tableSpec{
 	// --- master partition ---------------------------------------------
 
@@ -72,6 +111,8 @@ var tableSpecs = map[string]tableSpec{
 	TableTags: {
 		partition: partitionMaster,
 		columns:   toSet("name", "sort_order"),
+		visible:   visibilityRule{everyone: true},
+		export:    exportQuery{query: `SELECT * FROM tags`},
 		// A deleted tag unassigns itself everywhere (FR-24.1). Without the
 		// tombstones a client keeps grouping items under a heading the
 		// server no longer has.
@@ -86,6 +127,11 @@ var tableSpecs = map[string]tableSpec{
 	TableItemTags: {
 		partition: partitionMaster,
 		columns:   toSet("item_id", "tag_id", "position"),
+		visible:   visibilityRule{everyone: true},
+		// The assignments travel with the items in the backup too — an item
+		// restored without them is untagged and vanishes from every M9
+		// grouping.
+		export: exportQuery{query: `SELECT * FROM item_tags`},
 	},
 
 	// category_id is gone with FR-24.1 (migration 022) — a client still
@@ -104,6 +150,8 @@ var tableSpecs = map[string]tableSpec{
 			{TableTemplateItems, "item_id"},
 			{TableTripItems, "source_item_id"},
 		},
+		visible: visibilityRule{everyone: true},
+		export:  exportQuery{query: `SELECT * FROM items`},
 		cascades: []childQuery{
 			{TableItemTags, `SELECT id FROM item_tags WHERE item_id = ?`},
 			{TableItemDependencies,
@@ -114,6 +162,8 @@ var tableSpecs = map[string]tableSpec{
 	TableItemDependencies: {
 		partition: partitionMaster,
 		columns:   toSet("item_id", "depends_on_item_id", "mode", "quantity"),
+		visible:   visibilityRule{everyone: true},
+		export:    exportQuery{query: `SELECT * FROM item_dependencies`},
 	},
 
 	// is_published stays in the schema but off this list: the publish gate
@@ -124,6 +174,10 @@ var tableSpecs = map[string]tableSpec{
 		partition: partitionMaster,
 		columns:   toSet("owner_id", "name", "kind", MarkColumn, RetiredColumn),
 		retirable: true,
+		// Instance-wide like the master items they are built from, so they
+		// export unfiltered as well (FR-1.6 MVP).
+		visible: visibilityRule{everyone: true},
+		export:  exportQuery{query: `SELECT * FROM templates`},
 		// FR-9.2: an archived trip keeps naming the Vorlage its rows came
 		// from, so the Vorlage cannot be deleted while any trip item names it.
 		blockedBy: []blockingReference{
@@ -152,6 +206,8 @@ var tableSpecs = map[string]tableSpec{
 			"template_id", "item_id", "quantity", "assignment",
 			"dedup", "conditions", "default_mode", "late_packer",
 		),
+		visible: visibilityRule{everyone: true},
+		export:  exportQuery{query: `SELECT * FROM template_items`},
 		cascades: []childQuery{
 			{TableTemplateItemTasks, `SELECT id FROM template_item_tasks WHERE template_item_id = ?`},
 		},
@@ -160,16 +216,22 @@ var tableSpecs = map[string]tableSpec{
 	TableTemplateIncludes: {
 		partition: partitionMaster,
 		columns:   toSet("template_id", "included_template_id"),
+		visible:   visibilityRule{everyone: true},
+		export:    exportQuery{query: `SELECT * FROM template_includes`},
 	},
 
 	TableTemplateItemTasks: {
 		partition: partitionMaster,
 		columns:   toSet("template_item_id", "task"),
+		visible:   visibilityRule{everyone: true},
+		export:    exportQuery{query: `SELECT * FROM template_item_tasks`},
 	},
 
 	TableTripSeries: {
 		partition: partitionMaster,
 		columns:   toSet("owner_id", "name", "default_attributes"),
+		visible:   visibilityRule{ownerQuery: `SELECT owner_id FROM trip_series WHERE id = ?`},
+		export:    exportQuery{query: `SELECT * FROM trip_series WHERE owner_id = ?`, scoped: true},
 		blockedBy: []blockingReference{
 			{TableTrips, "series_id"},
 		},
@@ -183,6 +245,12 @@ var tableSpecs = map[string]tableSpec{
 	TableDestinationProfiles: {
 		partition: partitionMaster,
 		columns:   toSet("series_id", "notes"),
+		// Ownership follows the series chain (FR-13.2), for reading as for
+		// writing.
+		visible: visibilityRule{ownerQuery: `SELECT s.owner_id FROM destination_profiles p
+			 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`},
+		export: exportQuery{query: `SELECT p.* FROM destination_profiles p
+			JOIN trip_series s ON s.id = p.series_id WHERE s.owner_id = ?`, scoped: true},
 		cascades: []childQuery{
 			{TableDestinationChecklistItems, `SELECT id FROM destination_checklist_items WHERE profile_id = ?`},
 		},
@@ -191,6 +259,12 @@ var tableSpecs = map[string]tableSpec{
 	TableDestinationChecklistItems: {
 		partition: partitionMaster,
 		columns:   toSet("profile_id", "label", "mode"),
+		visible: visibilityRule{ownerQuery: `SELECT s.owner_id FROM destination_checklist_items ci
+			 JOIN destination_profiles p ON p.id = ci.profile_id
+			 JOIN trip_series s ON s.id = p.series_id WHERE ci.id = ?`},
+		export: exportQuery{query: `SELECT ci.* FROM destination_checklist_items ci
+			JOIN destination_profiles p ON p.id = ci.profile_id
+			JOIN trip_series s ON s.id = p.series_id WHERE s.owner_id = ?`, scoped: true},
 	},
 
 	TableTrips: {
@@ -199,6 +273,9 @@ var tableSpecs = map[string]tableSpec{
 			"series_id", "name", "year", "start_date", "end_date", "status",
 			"attributes", "imported", "created_by",
 		),
+		visible: visibilityRule{tripQuery: `SELECT id FROM trips WHERE id = ?`},
+		export: exportQuery{query: `SELECT t.* FROM trips t
+			JOIN trip_members m ON m.trip_id = t.id WHERE m.user_id = ?`, scoped: true},
 		// A deleted trip takes three master-partition tables with it. They
 		// need tombstones of their own precisely because the trip's *other*
 		// children cannot have any: change_log.trip_id cascades too, so the
@@ -214,6 +291,14 @@ var tableSpecs = map[string]tableSpec{
 	TableTripMembers: {
 		partition: partitionMaster,
 		columns:   toSet("trip_id", "user_id", "role"),
+		// The roster is visible to every member of its trip — including the
+		// row's subject, who becomes a member through this very row.
+		visible: visibilityRule{tripQuery: `SELECT trip_id FROM trip_members WHERE id = ?`},
+		// It is in the backup for the same reason it is in the feed: a trip
+		// restored without its roster is a trip nobody owns. The users it
+		// points at are not exported — identity belongs to the IdP.
+		export: exportQuery{query: `SELECT x.* FROM trip_members x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
 	// trip_template_sources and trip_applied_changes are trip-scoped but
@@ -226,6 +311,11 @@ var tableSpecs = map[string]tableSpec{
 	TableTripTemplateSources: {
 		partition: partitionMaster,
 		columns:   toSet("trip_id", "template_id"),
+		visible:   visibilityRule{tripQuery: `SELECT trip_id FROM trip_template_sources WHERE id = ?`},
+		// FR-27.4: a restore without this would leave a planning trip
+		// following nothing.
+		export: exportQuery{query: `SELECT x.* FROM trip_template_sources x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
 	// FR-27.4: the log behind M2's applied-changes chip. created_at is
@@ -237,6 +327,12 @@ var tableSpecs = map[string]tableSpec{
 			"trip_id", "source_template_id", "source_template_name",
 			"kind", "item_name", "detail", "created_at",
 		),
+		visible: visibilityRule{tripQuery: `SELECT trip_id FROM trip_applied_changes WHERE id = ?`},
+		// FR-27.4: without the log a restored trip follows its groups with
+		// no record of what it already produced, which reads every existing
+		// row as a manual edit and every position as new.
+		export: exportQuery{query: `SELECT x.* FROM trip_applied_changes x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
 	// --- trip partition -----------------------------------------------
@@ -268,6 +364,8 @@ var tableSpecs = map[string]tableSpec{
 		cascades: []childQuery{
 			{TableComments, `SELECT id FROM comments WHERE trip_item_id = ?`},
 		},
+		export: exportQuery{query: `SELECT x.* FROM trip_items x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
 	// profile is gone with FR-25.9 (migration 018) — a client still
@@ -275,6 +373,8 @@ var tableSpecs = map[string]tableSpec{
 	TableTravelers: {
 		partition: partitionTrip,
 		columns:   toSet("trip_id", "name", "linked_user_id"),
+		export: exportQuery{query: `SELECT x.* FROM travelers x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 		blockedBy: []blockingReference{
 			{TableTripItems, "assigned_traveler_id"},
 			{TableContainers, "carrier_traveler_id"},
@@ -287,6 +387,8 @@ var tableSpecs = map[string]tableSpec{
 			"trip_id", "name", "carrier_traveler_id", "max_weight_grams",
 			"paired_container_id",
 		),
+		export: exportQuery{query: `SELECT x.* FROM containers x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 		blockedBy: []blockingReference{
 			{TableTripItems, "container_id"},
 			{TableContainers, "paired_container_id"},
@@ -299,6 +401,8 @@ var tableSpecs = map[string]tableSpec{
 			"trip_id", "trip_item_id", "author_id", "body",
 			"is_task", "task_state",
 		),
+		export: exportQuery{query: `SELECT x.* FROM comments x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
 	// trip_generated_positions is trip-partition state: it is only ever read
@@ -313,6 +417,8 @@ var tableSpecs = map[string]tableSpec{
 			"traveler_id", "name", "quantity", "mode", "late_packer",
 			"weight_grams", "value_cents", "category_name", "tasks",
 		),
+		export: exportQuery{query: `SELECT x.* FROM trip_generated_positions x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 }
 
@@ -336,6 +442,24 @@ var (
 	// keep a row alive.
 	blockingReferences = derivedBlockers()
 )
+
+// TableHasMark reports whether table carries the FR-28.1 item mark. The API
+// layer asks rather than keeping a second list: the mark is a column, and
+// which tables have it is already stated once, above.
+func TableHasMark(table string) bool {
+	return tableSpecs[table].columns[MarkColumn]
+}
+
+// exportTables returns the NFR-4.5 backup's tables in a stable order, so a
+// failing export names the same table on every run.
+func exportTables() []string {
+	out := make([]string, 0, len(tableSpecs))
+	for table := range tableSpecs {
+		out = append(out, table)
+	}
+	sort.Strings(out)
+	return out
+}
 
 func derivedColumns() map[string]map[string]bool {
 	out := make(map[string]map[string]bool, len(tableSpecs))

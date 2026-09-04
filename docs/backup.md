@@ -261,8 +261,10 @@ The response is served as an attachment named `jitpack-export.json`, shaped like
     "tags": [ … ],
     "items": [ … ],
     "item_tags": [ … ],
+    "item_dependencies": [ … ],
     "templates": [ … ],
     "trips": [ … ],
+    "trip_members": [ … ],
     "trip_items": [ … ],
     "comments": [ … ],
     "trip_template_sources": [ … ],
@@ -272,7 +274,11 @@ The response is served as an attachment named `jitpack-export.json`, shaped like
 }
 ```
 
-The last three describe how a trip that is still being planned follows the
+Every table the sync feed carries is in there — the keys above are the ones
+worth naming, not the whole list. `trip_members` is the roster: who is on a
+trip and in which role, without which a restored trip has no owner.
+
+The last three of the trip keys describe how a trip that is still being planned follows the
 templates it was created from: which templates it follows, what the app last
 generated for each position, and the changes it has taken over since. They
 travel with the trip so that a restored planning trip keeps following its
