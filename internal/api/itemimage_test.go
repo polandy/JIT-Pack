@@ -23,9 +23,9 @@ func newItemImageServer(t *testing.T) (*httptest.Server, *store.Store, string) {
 	}
 	t.Cleanup(func() { st.Close() })
 
-	localID, err := st.EnsureLocalSingleUser(context.Background())
-	if err != nil {
-		t.Fatalf("EnsureLocalSingleUser: %v", err)
+	const localID = "local-user"
+	if err := st.EnsureLocalSingleUserID(context.Background(), localID); err != nil {
+		t.Fatalf("EnsureLocalSingleUserID: %v", err)
 	}
 	if _, err := st.DB().Exec(`INSERT INTO items (id, name) VALUES ('item-camera', 'Kamera')`); err != nil {
 		t.Fatalf("seed item: %v", err)

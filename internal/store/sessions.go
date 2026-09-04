@@ -30,7 +30,7 @@ type Session struct {
 // purge per login is plenty at this scale, and taking the clock as a
 // parameter keeps every expiry decision deterministic under test.
 func (s *Store) CreateSession(ctx context.Context, userID, refreshHash, idpRefreshToken string, expiresAt, now time.Time) (string, error) {
-	if err := s.PurgeExpiredSessions(ctx, now); err != nil {
+	if err := s.purgeExpiredSessions(ctx, now); err != nil {
 		return "", err
 	}
 	id := newSessionID()
@@ -116,8 +116,10 @@ func (s *Store) DeleteSession(ctx context.Context, refreshHash string) error {
 	return nil
 }
 
-// PurgeExpiredSessions removes rows whose absolute expiry has passed.
-func (s *Store) PurgeExpiredSessions(ctx context.Context, now time.Time) error {
+// purgeExpiredSessions removes rows whose absolute expiry has passed. It is
+// unexported because its only caller is in this package: an exported method
+// nothing outside can reach reads as an API somebody is expected to use.
+func (s *Store) purgeExpiredSessions(ctx context.Context, now time.Time) error {
 	if _, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE expires_at < ?`,
 		now.UTC().Format(time.RFC3339)); err != nil {
 		return fmt.Errorf("purge sessions: %w", err)

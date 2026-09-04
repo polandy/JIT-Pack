@@ -22,9 +22,9 @@ func newSingleUserTestServer(t *testing.T) (*httptest.Server, string) {
 	}
 	t.Cleanup(func() { st.Close() })
 
-	localID, err := st.EnsureLocalSingleUser(context.Background())
-	if err != nil {
-		t.Fatalf("EnsureLocalSingleUser: %v", err)
+	const localID = "local-user"
+	if err := st.EnsureLocalSingleUserID(context.Background(), localID); err != nil {
+		t.Fatalf("EnsureLocalSingleUserID: %v", err)
 	}
 	if _, err := st.DB().Exec(
 		`INSERT INTO trips (id, name, year, start_date, end_date) VALUES ('trip-samedan', 'Samedan 2026', 2026, '2026-07-10', '2026-07-20')`,
