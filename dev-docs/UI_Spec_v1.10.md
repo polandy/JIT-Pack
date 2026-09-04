@@ -2,37 +2,125 @@
 
 **Document Status:** Proposed for Review
 **Basis:** Base PRD + Addendum v2.10 (Consolidated)
-**Revision Note (v1.10):** Demo Mode removed (Addendum v2.10): G-8 loses the demo reset banner and is now Single-User/Local only. No other changes from v1.9.
+**Revision Note (v1.10):** Demo Mode removed (Addendum v2.10): G-8 loses the demo reset banner and is now
+Single-User/Local only. No other changes from v1.9.
 
-**Amendment (2026-09-02, leaving Local Mode):** **M17** gains the FR-19.8 card — back up, point at a server, restore — with a switch that is disabled until the backup is newer than the last local write; a **migration bar** in the FR-19.7 shape carries the third step after the reload. **M19** is unchanged and still shown once. ADR-045 records the shape chosen over a second device and over a native replay.
+**Amendment (2026-09-02, leaving Local Mode):** **M17** gains the FR-19.8 card — back up, point at a server, restore —
+with a switch that is disabled until the backup is newer than the last local write; a **migration bar** in the FR-19.7
+shape carries the third step after the reload. **M19** is unchanged and still shown once. ADR-045 records the shape
+chosen over a second device and over a native replay.
 
-**Amendment (2026-08-13, M4 built):** M4 is implemented from this spec, and three points are corrected against what the screen actually does — a spec that disagrees with the running code is worse than no spec. (1) M4's *"Consciously skipped"* collapsed section is **superseded by FR-25.2**: a skipped row *is* a done row, revealed by the same *Erledigte* switch as a packed one. Two mechanisms for one class of rows would show them twice with both switched on. (2) The header line **no longer migrates the trip name into the app bar** on scroll; the line simply yields on the way down and returns on any upward scroll. *(Its reasoning — "ADR-011 put the name there permanently" — was itself superseded on 2026-08-19: the bar had no room for the name and now carries none. The conclusion stands, the premise is gone; see M4.)* (3) M4's app-bar cluster carries **archive** beside search, filter and fold-all: it is not in the mock, which never modelled archiving anywhere, and it is the only path to M14 today. It moves when the M2 trip actions are rebuilt.
+**Amendment (2026-08-13, M4 built):** M4 is implemented from this spec, and three points are corrected against what the
+screen actually does — a spec that disagrees with the running code is worse than no spec. (1) M4's *"Consciously
+skipped"* collapsed section is **superseded by FR-25.2**: a skipped row *is* a done row, revealed by the same
+*Erledigte* switch as a packed one. Two mechanisms for one class of rows would show them twice with both switched on.
+(2) The header line **no longer migrates the trip name into the app bar** on scroll; the line simply yields on the way
+down and returns on any upward scroll. *(Its reasoning — "ADR-011 put the name there permanently" — was itself
+superseded on 2026-08-19: the bar had no room for the name and now carries none. The conclusion stands, the premise is
+gone; see M4.)* (3) M4's app-bar cluster carries **archive** beside search, filter and fold-all: it is not in the mock,
+which never modelled archiving anywhere, and it is the only path to M14 today. It moves when the M2 trip actions are
+rebuilt.
 
-**Amendment (2026-08-27, the name column is straight):** **M4** (UX-9): the row's leading control column holds one fixed width whatever it carries — checkbox, stepper, closing-pass toggle or lock — and the traveler avatar shares the mark slot's column, so item names line up straight instead of starting at a different x per control. A deliberate `make visual-update` rewrote the ten M4 baselines with it.
+**Amendment (2026-08-27, the name column is straight):** **M4** (UX-9): the row's leading control column holds one fixed
+width whatever it carries — checkbox, stepper, closing-pass toggle or lock — and the traveler avatar shares the mark
+slot's column, so item names line up straight instead of starting at a different x per control. A deliberate `make
+visual-update` rewrote the ten M4 baselines with it.
 
-**Amendment (2026-08-27, empty-state and sheet clarity):** Two corrections from the 2026-08-25 UX review. **M11** (UX-8): the unassigned bucket renders only when it has something to say — with no containers and nothing unassigned, "everything is assigned to a container" stood directly under "no containers yet". **M5** (UX-10): the packing block carries the same eyebrow label as *Vorbereitung* and *Notizen* („Einpacken") — on a quantity-1 row it was an unlabelled box holding only a checkbox and the state chip.
+**Amendment (2026-08-27, empty-state and sheet clarity):** Two corrections from the 2026-08-25 UX review. **M11**
+(UX-8): the unassigned bucket renders only when it has something to say — with no containers and nothing unassigned,
+"everything is assigned to a container" stood directly under "no containers yet". **M5** (UX-10): the packing block
+carries the same eyebrow label as *Vorbereitung* and *Notizen* („Einpacken") — on a quantity-1 row it was an unlabelled
+box holding only a checkbox and the state chip.
 
-**Amendment (2026-08-26, form controls wear the theme):** **G-17 is added** (ADR-035, UX review 2026-08-25 UX-6) — a control the browser renders in its own chrome and language (date entry, the visible file trigger) is presented by the app instead. Decided against "deliberately native" because the browser's control text is unreachable by NFR-4.12 and its chrome by the token tables; the accepted cost — a date can no longer be typed — is recorded in the ADR with its revisit trigger.
+**Amendment (2026-08-26, form controls wear the theme):** **G-17 is added** (ADR-035, UX review 2026-08-25 UX-6) — a
+control the browser renders in its own chrome and language (date entry, the visible file trigger) is presented by the
+app instead. Decided against "deliberately native" because the browser's control text is unreachable by NFR-4.12 and its
+chrome by the token tables; the accepted cost — a date can no longer be typed — is recorded in the ADR with its revisit
+trigger.
 
-**Amendment (2026-08-21, the default action):** **G-16 is added** — at most one default action per form context, and Enter in a plain text field triggers it on desktop. It generalises what FR-25.13a already ruled for the quick-add composers — the visible button is the primary commit, Enter is the desktop accelerator — into a pattern any screen can adopt. The gap it names is FR-25.13a's, seen from the other side: M3's step 1 took a trip name and answered Enter with nothing. First implemented on M3; a field that owns its Enter (commit-on-Enter names, filter-or-create inputs, the composers themselves) is exempt by rule.
+**Amendment (2026-08-21, the default action):** **G-16 is added** — at most one default action per form context, and
+Enter in a plain text field triggers it on desktop. It generalises what FR-25.13a already ruled for the quick-add
+composers — the visible button is the primary commit, Enter is the desktop accelerator — into a pattern any screen can
+adopt. The gap it names is FR-25.13a's, seen from the other side: M3's step 1 took a trip name and answered Enter with
+nothing. First implemented on M3; a field that owns its Enter (commit-on-Enter names, filter-or-create inputs, the
+composers themselves) is exempt by rule.
 
-**Amendment (2026-08-17, the item mark):** **G-15 is added** — one optional emoji per item and per template (Addendum 3.28), in a fixed leading slot with a per-surface fallback ladder. Decided on a rendered four-way round rather than in prose: the icon-library option is the one that fits the token tables and it still lost, because at 34 px its strokes stop being distinguishable and its substitute rate was the *higher* of the two. The pattern's real job is containment — the mark is the one thing on screen whose colours do not come from G-11's table, so G-15 states where it may and may not appear.
+**Amendment (2026-08-17, the item mark):** **G-15 is added** — one optional emoji per item and per template (Addendum
+3.28), in a fixed leading slot with a per-surface fallback ladder. Decided on a rendered four-way round rather than in
+prose: the icon-library option is the one that fits the token tables and it still lost, because at 34 px its strokes
+stop being distinguishable and its substitute rate was the *higher* of the two. The pattern's real job is containment —
+the mark is the one thing on screen whose colours do not come from G-11's table, so G-15 states where it may and may not
+appear.
 
-**Amendment (2026-08-14, colour anchors):** **G-11 gains the three anchors** — brand, action, done (Addendum FR-21.7). The pattern already said where colour comes from; it did not say what each hue *means*, and the built screens showed the cost: Ionic's own primary painted the tabs, the FAB and the checkboxes, so the app read as a stock Ionic app while the concept prototype puts peach on identity and keeps blue for what you act on. Second of the five design-foundation steps.
+**Amendment (2026-08-14, colour anchors):** **G-11 gains the three anchors** — brand, action, done (Addendum FR-21.7).
+The pattern already said where colour comes from; it did not say what each hue *means*, and the built screens showed the
+cost: Ionic's own primary painted the tabs, the FAB and the checkboxes, so the app read as a stock Ionic app while the
+concept prototype puts peach on identity and keeps blue for what you act on. Second of the five design-foundation steps.
 
-**Amendment (2026-08-15, M8 built):** M8 is implemented from this spec, and two points are settled against the running screen. (1) The **FR-25.15 indicator exists as one shared component** (`SaveIndicator`): amber pulsing ● while a write is open, green ✓ once it settled on this device, meaning on the tooltip — its seam is the orchestrator's `capturePending`, which counts this device's own open writes — **corrected 2026-08-30**: it used to be the orchestrator's *sync* state, which is G-2's, and FR-25.15 exists to keep those two apart. That state answers `offline` before `syncing`, so offline an open write rendered as settled — see FR-25.15 and the log. It sits in **both** sheets now: the M5 rebuild had quietly shipped without it, which this PR closes rather than rationalises — FR-25.15 explicitly rejects "G-2 already says it" (offline, captured-here versus reached-the-server is the entire story). (2) Positions are removed by the row's ✕, not by swipe — the M7 variant pass showed a swipe panel breaking out of the card, and M8's rows sit in the same card. Blast-radius refinement settled while building: the note also appears on a **group** reached through a Vorlage such a trip was generated from — that is where FR-27.4 edits actually land. The FR-27.4 applied-changes *log* on M2 is not part of the screen; it belongs to the group refresh (§3.27 client package) — **built 2026-08-18**, revised the same day into a question asked at the trip; see M2's and M4's States and ADR-016.
+**Amendment (2026-08-15, M8 built):** M8 is implemented from this spec, and two points are settled against the running
+screen. (1) The **FR-25.15 indicator exists as one shared component** (`SaveIndicator`): amber pulsing ● while a write
+is open, green ✓ once it settled on this device, meaning on the tooltip — its seam is the orchestrator's
+`capturePending`, which counts this device's own open writes — **corrected 2026-08-30**: it used to be the
+orchestrator's *sync* state, which is G-2's, and FR-25.15 exists to keep those two apart. That state answers `offline`
+before `syncing`, so offline an open write rendered as settled — see FR-25.15 and the log. It sits in **both** sheets
+now: the M5 rebuild had quietly shipped without it, which this PR closes rather than rationalises — FR-25.15 explicitly
+rejects "G-2 already says it" (offline, captured-here versus reached-the-server is the entire story). (2) Positions are
+removed by the row's ✕, not by swipe — the M7 variant pass showed a swipe panel breaking out of the card, and M8's rows
+sit in the same card. Blast-radius refinement settled while building: the note also appears on a **group** reached
+through a Vorlage such a trip was generated from — that is where FR-27.4 edits actually land. The FR-27.4
+applied-changes *log* on M2 is not part of the screen; it belongs to the group refresh (§3.27 client package) — **built
+2026-08-18**, revised the same day into a question asked at the trip; see M2's and M4's States and ADR-016.
 
-**Amendment (2026-08-15, M7 scopes):** M7 is implemented from this spec and its *Elements* line is corrected on three points the screen only settled once rendered: the middle segment tab carries the short scope name, an empty section is absent rather than shown empty, and the empty state hides the segment. The screen's own **States** line is new — it had none. ~~Still owed on M7: the FAB's *Import from file* entry~~ — **struck 2026-08-31 (owner decision): the header icon is the entrance.** A second door to a function that already has one buys nothing, and this screen's empty state was settled on the same reasoning (create is the FAB, import is the header icon, both already on screen). The long-press context menu was owed here too and is now built (owner decision 2026-08-15, after a rendered variant pass A1/A2/A3 — swipe was rejected on sight, its panel breaks out of the card), together with the name-in-sheet create flow (variant pass B1/B2/B3).
+**Amendment (2026-08-15, M7 scopes):** M7 is implemented from this spec and its *Elements* line is corrected on three
+points the screen only settled once rendered: the middle segment tab carries the short scope name, an empty section is
+absent rather than shown empty, and the empty state hides the segment. The screen's own **States** line is new — it had
+none. ~~Still owed on M7: the FAB's *Import from file* entry~~ — **struck 2026-08-31 (owner decision): the header icon
+is the entrance.** A second door to a function that already has one buys nothing, and this screen's empty state was
+settled on the same reasoning (create is the FAB, import is the header icon, both already on screen). The long-press
+context menu was owed here too and is now built (owner decision 2026-08-15, after a rendered variant pass A1/A2/A3 —
+swipe was rejected on sight, its panel breaks out of the card), together with the name-in-sheet create flow (variant
+pass B1/B2/B3).
 
-**Amendment (2026-08-17, the G-2 detail built):** **G-2's detail exists now**, which the pattern had specified since v1.0 and the app had never had: tapping the glyph navigated to a trip's conflict log when a trip happened to be open, and did nothing whatsoever anywhere else — so on M2, M7, M9 and every other screen the glyph was a symbol with no way to ask what it meant. The detail is a sheet (`SheetModal`, the shared chrome) that titles the state, explains it in a sentence, and then splits by **run mode rather than by state**: Server Mode names the queue and leads to the conflict log; **there are two, one per sync partition** (amended 2026-08-22): the trip's, offered only while one is open, and the master partition's — inventory, groups, series and a trip's own fields, which merge there — offered always, because it belongs to no trip. The sentence this replaces was a hint saying the log "belongs to a trip", which was true of one log and hid the other: the master partition's losers were reachable through nothing at all; Local Mode shows the FR-19.6/NFR-4.11 storage section — usage against quota, the eviction warning while the browser has not marked the data persistent — and the one-tap backup, and **never** offers the conflict log, since one writer produces none. Two things only the rendered pixel settled: the storage facts are read *before* the sheet opens, because an auto-height sheet is measured once at presentation and a section arriving a tick later pushed its last line under the tab bar; and the backup age is clamped at zero, because the sheet captures `now` when it opens while the stamp is written when the user taps, which read as *"Last backup -1 days ago"*. The glyph's tooltip is on the catalogue now (NFR-4.12) rather than four English literals. **A third thing only the rendered pixel settled (2026-08-23):** the state glyph belongs to the *title*, so the two share a row and are centred on each other, with the explanation below them indented to the title's edge. Aligning the circle to the top of a block that also held the explanation left it 14.5 px high — the `h1` inside carried a margin nothing had asked for — and resetting that margin alone was measured too and rejected, since a 38 px circle and a 29 px line flush at the top cannot centre on each other. The ✕ therefore sits on the title's line rather than pinned to the top. The sheet is in a visual baseline now (E2E-VIS-08); it was in none, which is how an offset that size survived on the one surface every screen can open.
+**Amendment (2026-08-17, the G-2 detail built):** **G-2's detail exists now**, which the pattern had specified since
+v1.0 and the app had never had: tapping the glyph navigated to a trip's conflict log when a trip happened to be open,
+and did nothing whatsoever anywhere else — so on M2, M7, M9 and every other screen the glyph was a symbol with no way to
+ask what it meant. The detail is a sheet (`SheetModal`, the shared chrome) that titles the state, explains it in a
+sentence, and then splits by **run mode rather than by state**: Server Mode names the queue and leads to the conflict
+log; **there are two, one per sync partition** (amended 2026-08-22): the trip's, offered only while one is open, and the
+master partition's — inventory, groups, series and a trip's own fields, which merge there — offered always, because it
+belongs to no trip. The sentence this replaces was a hint saying the log "belongs to a trip", which was true of one log
+and hid the other: the master partition's losers were reachable through nothing at all; Local Mode shows the
+FR-19.6/NFR-4.11 storage section — usage against quota, the eviction warning while the browser has not marked the data
+persistent — and the one-tap backup, and **never** offers the conflict log, since one writer produces none. Two things
+only the rendered pixel settled: the storage facts are read *before* the sheet opens, because an auto-height sheet is
+measured once at presentation and a section arriving a tick later pushed its last line under the tab bar; and the backup
+age is clamped at zero, because the sheet captures `now` when it opens while the stamp is written when the user taps,
+which read as *"Last backup -1 days ago"*. The glyph's tooltip is on the catalogue now (NFR-4.12) rather than four
+English literals. **A third thing only the rendered pixel settled (2026-08-23):** the state glyph belongs to the
+*title*, so the two share a row and are centred on each other, with the explanation below them indented to the title's
+edge. Aligning the circle to the top of a block that also held the explanation left it 14.5 px high — the `h1` inside
+carried a margin nothing had asked for — and resetting that margin alone was measured too and rejected, since a 38 px
+circle and a 29 px line flush at the top cannot centre on each other. The ✕ therefore sits on the title's line rather
+than pinned to the top. The sheet is in a visual baseline now (E2E-VIS-08); it was in none, which is how an offset that
+size survived on the one surface every screen can open.
 
-**Amendment (2026-08-15, the type migration):** **G-13 gains the icon scale and the section-label role.** The scale shipped in the typography step landed ahead of its callers; the 123 hand-written sizes across 31 screens have now moved onto it. Two things only became visible by doing it: `font-size` on an icon is a glyph box and needed its own table, and the section label was written out by hand on eleven screens at two different sizes — which is a role nobody had named.
+**Amendment (2026-08-15, the type migration):** **G-13 gains the icon scale and the section-label role.** The scale
+shipped in the typography step landed ahead of its callers; the 123 hand-written sizes across 31 screens have now moved
+onto it. Two things only became visible by doing it: `font-size` on an icon is a glyph box and needed its own table, and
+the section label was written out by hand on eleven screens at two different sizes — which is a role nobody had named.
 
-**Amendment (2026-08-14, surfaces):** **G-14 is added** — shape and depth (Addendum FR-21.8), the third design-foundation step and the one that closes the trio with G-11 and G-13. The gap it names was found the only way it could be: rendered. A card painted in a valid palette token that matched the page behind it passes every colour rule and still is not a card.
+**Amendment (2026-08-14, surfaces):** **G-14 is added** — shape and depth (Addendum FR-21.8), the third
+design-foundation step and the one that closes the trio with G-11 and G-13. The gap it names was found the only way it
+could be: rendered. A card painted in a valid palette token that matched the page behind it passes every colour rule and
+still is not a card.
 
-**Amendment (2026-08-14, typography):** **G-13** is added — the type counterpart to G-11, written after the built M4/M5 were compared with the concept prototype and the gap turned out to be form language rather than structure. It is the first of the five design-foundation steps in `dev-docs/design-foundation-plan.md`.
+**Amendment (2026-08-14, typography):** **G-13** is added — the type counterpart to G-11, written after the built M4/M5
+were compared with the concept prototype and the gap turned out to be form language rather than structure. It is the
+first of the five design-foundation steps in `dev-docs/design-foundation-plan.md`.
 
-**Platform Targets:** Mobile-first (Capacitor iOS/Android), responsive web — mobile is the primary design target, but every screen must remain fully and comfortably usable on desktop (G-9). All screens must function fully offline (NFR-4.1); sync state is surfaced globally, not per screen.
+**Platform Targets:** Mobile-first (Capacitor iOS/Android), responsive web — mobile is the primary design target, but
+every screen must remain fully and comfortably usable on desktop (G-9). All screens must function fully offline
+(NFR-4.1); sync state is surfaced globally, not per screen.
 
 ---
 
@@ -40,71 +128,407 @@
 
 These patterns apply to every screen and are specified once.
 
-* **G-1 (Navigation Model):** Bottom tab bar with four tabs: *Dashboard*, *Trips*, *Templates*, *Items*. Everything else is reached contextually (drill-down, bottom sheets, wizards). Settings via avatar in the top bar. In Single-User Mode (Addendum FR-17.2), there is no account to display, so the avatar is replaced by a plain settings-gear icon; it still opens M17.
-* **G-2 (Sync Indicator):** A persistent, unobtrusive status glyph in the top bar: synced / syncing / offline (queued changes count). Tapping it opens the sync detail incl. the conflict log (NFR-4.2a). **Local Mode (Addendum 3.19):** the glyph shows a distinct *local* state (device icon) instead of the three network states — but it reports *syncing* while a write to IndexedDB is still open (added 2026-08-14): FR-19.2 calls an applied change durable, and saying "on this device" before the transaction closed was a promise made before it was kept, which a reload in that window turned into apparent data loss; tapping it opens the storage & backup detail (FR-19.6: persistence status per NFR-4.11, last portable export, one-tap export) instead of the conflict log — conflicts cannot occur in Local Mode. A write that *fails* shows the offline state, since there is no truthful "on this device" to show; **the next write that lands clears it again** (added 2026-08-14). Local Mode has no connection to lose, so the state means only "the last write did not stick", and leaving it set stranded the glyph on offline for the rest of the session. **Durable queue (B2/NFR-4.1, added 2026-08-21):** the queued-changes count is now a property of the *queue* rather than of the offline state — it stays on the glyph whenever something is unsent, because since the outbox became durable a queue outlives the connection state that produced it (a reload, or a trip partition still waiting for its trip to be opened), and hiding it the moment the glyph said *synced* claimed everything had been sent while it had not. The detail sheet adds two lines beneath the count: that the changes are **saved on this device**, or — when the browser refused to keep them — that closing the app now would lose them; and, when the server has refused a change outright, that it was taken out of the queue so the rest could go, is kept on the device and will not be retried. Both are Server-Mode-only: Local Mode has no queue and no server to refuse anything. There is no screen listing the refused changes individually (revisit trigger in Sync-API §5.1). **The refusal says why (added 2026-08-25):** a third line names the reason of the most recent one — not allowed, sent for another trip, other data still refers to it, the two-level template rule, or something it refers to is gone — because a count on its own describes a divergence nobody can act on: the app has usually already removed the row the server kept. Only the closed vocabulary Sync-API §5 lists is rendered; anything else the server says is a diagnostic, and the general line above is what the user gets. **And the refusal is undone, not only reported (added 2026-08-25, ADR-031):** the row the server refused goes back to what the server holds — it arrives through the ordinary pull, because the refusal re-logs it — so the change disappears from the screen by itself. That is why it is also **said**: one toast per push, naming how many changes were refused and, where the vocabulary above has a sentence for it, why. One per push for the same reason the merge toast below is, and without an *Ansehen* action, because there is no screen listing refused changes to lead to; the detail sheet's reason line is the record. Server Mode only: Local Mode has no server to refuse anything. **A merge is announced, not only logged (NFR-4.2a, added 2026-08-22):** when a push comes back `merged` — the server kept another device's value and dropped a field of this one's — the app raises **one toast per push** naming how many fields were overwritten, with *Ansehen* leading to that partition's conflict log; the detail sheet carries the same count as a standing line for the rest of the session. One per push rather than one per conflict, because a reconnect drains a whole queue at once. The toast is the *telling* and the log is the record: before this the outcome was indistinguishable from `applied`, so the only way to learn an edit had been overwritten was to go looking for a log nothing gave you a reason to suspect. **Live updates have a line (added 2026-09-01, Sync-API P-1/§9):** in Server Mode the detail sheet states whether the WebSocket is open — *„Live-Updates sind verbunden"* or, while it is not, that they are not and a reconnect is under way, with the other devices' changes arriving on the next sync until then. Not a fifth state and not on the glyph: the four states describe *this* device's changes reaching the server, which stays true of a device whose socket is dead — and that device used to look synced while hearing nobody, which is how a one-directional sync on the family instance went unexplained for an afternoon. Both outcomes render a sentence, so the absence of live updates is a line and not a blank. Local Mode has no socket and shows neither. **Waiting update (NFR-4.13, added 2026-08-20):** when a newer build of the app is installed and waiting for the next launch, the glyph carries a small action-coloured dot and the detail sheet states, above the mode-specific half, that a new version is ready and takes over the next time the app is opened. It is an annotation on the glyph, not a fifth state — the sync story is untouched. **The announcement carries an action (FR-19.7, added 2026-09-02, reversing the clause that there is no reload button):** the sheet's sentence gains *„Jetzt aktualisieren“* beneath it, and — because reaching that sentence costs knowing what the dot means, which was the whole complaint — a **bar under the app bar** carries the same action on every screen, with a *Später* that hides the bar for this load while the dot and the sheet keep the offer. The bar says that unsent changes are kept, because the press reloads the page. It is the only thing that shortens the wait: nothing still takes over unprompted, and an origin with no service worker renders neither surface (ADR-019, amended by ADR-044). **The conflict log takes a loss back (added 2026-08-22, NFR-4.2a's second half):** each open entry carries a *Revert* control beside the losing → winning line; an entry already reverted says so instead, because a revert is spent once. The page states in one line that reverting writes the losing value **again, as a new change that reaches every device**; where a value is one half of a coupled pair (a pack's state and its count, FR-5.4) both halves come back and both rows read *reverted* afterwards — the word „revert“ invites the expectation of an undo, and it is not one (ADR-023). Every refusal is rendered **on its own row** rather than as a snackbar: the entry was already reverted, the row has since been deleted, the merge rules outrank the restore (an item packed meanwhile), or the caller may not write that row. The row is where the reader is already looking, and a sentence there stays readable — unlike a snackbar, which on this app lands on the tab bar. Local Mode never shows the log at all, so the control cannot appear there.  **An entry is written for a reader (added 2026-08-24):** the row names the *thing* — the trip, the item, the inventory article — and the *column* in the app's language, not the table and field of the schema; both values are rendered decoded, so a name arrives without the JSON quotes it is stored in and a flag reads as a word rather than as `true`; and the timestamp follows the app's language rather than the device's. A column whose value **is** a foreign key resolves too — an assignment reads *Mia → Andy*, not one uuid to another. Two deliberate limits, each a case of saying less over saying something untrue: anything this device cannot name — a row deleted since, one never pulled, an id belonging to a partition it has not loaded — falls back to the *kind* of thing, or to the id itself; and a column with no word for it keeps its own name. The first rendered log said `trips · year — 2026 → 2026`, and the first rendered *trip* log put two uuids either side of an arrow.
-* **G-3 (Presence & Locks):** Items locked via *Packing Now* (FR-5.3) render with the locker's avatar and name ("In progress by Andy") and are non-interactive for others except viewing. **The lock reaches M5, not only M4's row** (clarified 2026-08-22): a locked row opens its sheet — viewing is the half G-3 keeps — but the sheet leads with a banner naming the holder and every control that writes is gone or disabled, the *Details* fold included. It is all-or-nothing on purpose: a sheet where the quantity is frozen and the container is not would be a third state with no model behind it, and the accepted cost is that a note cannot be left on a row while somebody packs it. A row that names no holder still says it is being packed. **A claim has no lifetime** (FR-5.7, ADR-028): nothing about a row's age changes how it renders, and the row keeps naming its holder however long they take. **A claim can be ended by the person holding it (added 2026-08-23):** the row I claimed says so to *me* — nothing is locked for my own device, so without a word there I cannot tell that I am holding it against everyone else — and its press-and-hold menu offers *Artikel wieder freigeben* and nothing else, since packing it is already the checkbox's job and skipping something you are mid-way through packing is not a thing anyone means. The state it returns to is derived from the packed count rather than remembered, because the claim overwrote whatever was there. **And a claim can be ended by somebody else, by taking it over (added 2026-08-24):** a locked row's press-and-hold menu — which used to open onto nothing, because every action on it belonged to the holder — carries exactly one entry, *Übernehmen*, and it confirms first, naming the holder and the row ("Sia packt „Zelt" gerade. Übernehmen?"). Confirming makes the row *mine*: it does not pass through free, because a takeover happens in order to pack the thing. The holder is told (FR-6.2, its own M17 toggle) and the trip records it. **What went with the window:** the yellow "started over 15 minutes ago — you can take over" line, which existed only because a row silently stopped being locked. **The takeover is the one server-side part of the lock** (reversing the 2026-08-23 decision that the lock stays a client-side courtesy): only the server can stamp who took over and notify another account. It is therefore absent in Local Mode and in Single-User Mode, per G-8 — there is nobody to take a row from — while the release stays in all three.
-* **G-4 (Deep Linking):** Every notification and dashboard entry resolves to `trip/{id}/item/{id}`; the target screen scrolls to the item, flashes it once, and expands attached comments/tasks (FR-6.3).
-* **G-5 (Optimistic UI):** All mutations commit locally first and render immediately; server confirmation is silent. Failures surface via the sync indicator, never as blocking dialogs.
-* **G-6 (Quantity Stepper):** Wherever quantities appear, a unified stepper component is used: tap = ±1, long-press = complete/zero (units retired with FR-1.8, 2026-08-08 — quantities are bare numbers). **Decided: items with quantity = 1 use a plain checkbox instead of the stepper**; the stepper itself only ever appears for quantity > 1.
-* **G-7 (Empty States):** Every list screen defines an empty state with a single primary action (e.g., Templates empty → "Create first template" / "Import from spreadsheet"). **One component renders all of them** (`components/global/EmptyState.vue`, 2026-09-03): a centred column of illustration, the one sentence that names the state, an optional second line in the smaller size, and the control that leads out of it. **The spacing is `48px` above and below and `24px` from each edge** — the inset is not decorative, it is what keeps a sentence that wraps from running edge to edge under a centred glyph (E2E-G2-09, found on a hand-copied empty state that had dropped it). **The sentence is regular weight**: nothing else is on the screen to compete with it, and where a second line is needed the hint's smaller size carries the whole hierarchy. Three shapes are deliberately *not* this: M14's "everything reviewed" is a success state and paints its glyph in `--jp-done`; M8's and M10's "not found" line is an error about one record; and the inline hints inside a populated section (M11's unassigned box, M8's group and position lists, M3's steps) annotate a section rather than replace a screen.
-* **G-1 icons (2026-08-14):** the four anchors are Dashboard · **Trips (a train)** · Templates · Items. The plane it shipped with said something untrue about the household: these are ground journeys, and the anchor icon is the first statement the app makes about itself. The same list feeds the desktop rail and the mobile bar (`router/anchors.ts`), so the two cannot drift.
-* **G-8 (Single-User Mode):** Single-User Mode (Addendum FR-17.1) shows no banner — it is visually indistinguishable from normal operation except for the absence of sharing, delegation, and notification UI, hidden per screen as noted in M2, M3, M5, and M17 below. **Local Mode (Addendum FR-19.3)** hides the same collaboration UI the same way and likewise shows no banner; its only visible marker is the G-2 *local* glyph. (A demo reset banner lived here through v1.9; Demo Mode was removed in Addendum v2.10.)
-* **An anchor switch is a root navigation, not a push (added 2026-08-31, ADR-012 amendment).** The four anchors — in the bottom bar below the breakpoint and in the rail above it — are siblings with no back edge between them, so a switch *replaces* the outlet's page instead of stacking one on top. As plain pushes an interrupted switch left two pages live and the older one on top, so a tap on the screen the URL named went to the screen two anchors ago (E2E-G9-17, E2E-G1-06). The anchors stay real links: the `href` is what makes them middle-clickable and readable as links, and only the default action is taken over.
-* **G-9 (Header & Desktop Navigation):** The top bar shows, left to right: the app logo — a compact mark on mobile, full wordmark from the desktop breakpoint up — followed by the sync glyph (G-2) and the avatar/settings control (G-1) on the right. The logo is a link/tap-target to M1 (Dashboard) and occupies the bar's left slot **on the four tab roots**. On every other screen that slot carries **`‹ back` and the page title** instead, and the way out is the back-target contract rather than the logo (ADR-011; the earlier "from anywhere, including from within a trip, template, or wizard" is superseded). **A screen may register no title, and then the slot carries the chevron alone** (added 2026-08-19): M4 does so **below the desktop breakpoint**, because its G-12 cluster fills the bar there — a title which survives as one letter names nothing, so the screen puts its name where there is room instead. The bar renders *no* title element in that case rather than an empty one. Above the breakpoint the bar is wide enough and M4 registers its title like every other screen; a screen's title may therefore depend on the width, but the thing it names is never written twice at once. The right-hand group — sync glyph and avatar/settings — is present on **every** screen, which is what keeps the conflict log reachable inside a trip. **One exception (2026-08-26, UX review):** the gear hides on M17 itself, where it would only reopen the screen it is on; the sync glyph stays. **And because it is on every screen, M17 gives back the screen it was opened from** (added 2026-08-21): a control offered everywhere cannot declare one true parent, so the route records where it was entered from and `‹` returns there — the gear tapped inside a trip comes back to that trip, not to the dashboard. The same holds for the two import flows (M15, M18), which are each entered from more than one screen. An entry that carries no origin — a notification deep link, a pasted URL — falls back to the declared parent as before (ADR-011 amendment, Navigation_Concept §7). There is exactly one header bar in the app; no screen supplies its own. **Desktop breakpoint (≥ 900 px, resolving Open UI Decision #4):** the bottom tab bar (G-1) is replaced by a persistent left-side navigation rail carrying the same four tabs (Dashboard/Trips/Templates/Items); the top bar then spans the remaining width and additionally hosts page-level primary actions inline (e.g., M2's "New trip" FAB, M4's G-12 action cluster) instead of floating over content. Below the breakpoint, the mobile layout (bottom tabs, floating FAB, compact logo mark) applies unchanged. **The content stops at a column (added 2026-08-27, UX-17):** beside the rail the content area is capped at **960 px and centred**, one rule in `App.vue` for every screen rather than a decision each view has to remember. Edge to edge a settings row put its label and its control 1100 px apart and M9's tag segment spread three chips across 1176 px — lines that read as several things rather than one. The cap needs no breakpoint of its own: below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays full width**, because it is the app's frame rather than its content — the logo belongs at the window's corner and the gear at the opposite one. Accepted cost: on a very wide screen a long packing row no longer uses the space it could; the revisit trigger is the first screen whose content genuinely wants more than the column.
-* **G-10 (Trip Presence & Group Sync):** Distinct from G-2, which reflects only *your own* device's connection state, this pattern shows who else is currently on the same trip and whether the *group* is caught up. It lives in the trip-level header (M4's sticky header, not the global app header of G-9), since presence is meaningless outside a specific trip — **and only there** (2026-08-28): an earlier M2 line put the facepile on the trip rows too, which contradicted that sentence two lines above it and was never built. It is removed rather than implemented; presence is scoped to a subscribed trip on the wire as well, so M2 would have had to subscribe every listed trip to draw circles.
+* **G-1 (Navigation Model):** Bottom tab bar with four tabs: *Dashboard*, *Trips*, *Templates*, *Items*. Everything else
+  is reached contextually (drill-down, bottom sheets, wizards). Settings via avatar in the top bar. In Single-User Mode
+  (Addendum FR-17.2), there is no account to display, so the avatar is replaced by a plain settings-gear icon; it still
+  opens M17.
+* **G-2 (Sync Indicator):** A persistent, unobtrusive status glyph in the top bar: synced / syncing / offline (queued
+  changes count). Tapping it opens the sync detail incl. the conflict log (NFR-4.2a). **Local Mode (Addendum 3.19):**
+  the glyph shows a distinct *local* state (device icon) instead of the three network states — but it reports *syncing*
+  while a write to IndexedDB is still open (added 2026-08-14): FR-19.2 calls an applied change durable, and saying "on
+  this device" before the transaction closed was a promise made before it was kept, which a reload in that window turned
+  into apparent data loss; tapping it opens the storage & backup detail (FR-19.6: persistence status per NFR-4.11, last
+  portable export, one-tap export) instead of the conflict log — conflicts cannot occur in Local Mode. A write that
+  *fails* shows the offline state, since there is no truthful "on this device" to show; **the next write that lands
+  clears it again** (added 2026-08-14). Local Mode has no connection to lose, so the state means only "the last write
+  did not stick", and leaving it set stranded the glyph on offline for the rest of the session. **Durable queue
+  (B2/NFR-4.1, added 2026-08-21):** the queued-changes count is now a property of the *queue* rather than of the offline
+  state — it stays on the glyph whenever something is unsent, because since the outbox became durable a queue outlives
+  the connection state that produced it (a reload, or a trip partition still waiting for its trip to be opened), and
+  hiding it the moment the glyph said *synced* claimed everything had been sent while it had not. The detail sheet adds
+  two lines beneath the count: that the changes are **saved on this device**, or — when the browser refused to keep them
+  — that closing the app now would lose them; and, when the server has refused a change outright, that it was taken out
+  of the queue so the rest could go, is kept on the device and will not be retried. Both are Server-Mode-only: Local
+  Mode has no queue and no server to refuse anything. There is no screen listing the refused changes individually
+  (revisit trigger in Sync-API §5.1). **The refusal says why (added 2026-08-25):** a third line names the reason of the
+  most recent one — not allowed, sent for another trip, other data still refers to it, the two-level template rule, or
+  something it refers to is gone — because a count on its own describes a divergence nobody can act on: the app has
+  usually already removed the row the server kept. Only the closed vocabulary Sync-API §5 lists is rendered; anything
+  else the server says is a diagnostic, and the general line above is what the user gets. **And the refusal is undone,
+  not only reported (added 2026-08-25, ADR-031):** the row the server refused goes back to what the server holds — it
+  arrives through the ordinary pull, because the refusal re-logs it — so the change disappears from the screen by
+  itself. That is why it is also **said**: one toast per push, naming how many changes were refused and, where the
+  vocabulary above has a sentence for it, why. One per push for the same reason the merge toast below is, and without an
+  *Ansehen* action, because there is no screen listing refused changes to lead to; the detail sheet's reason line is the
+  record. Server Mode only: Local Mode has no server to refuse anything. **A merge is announced, not only logged
+  (NFR-4.2a, added 2026-08-22):** when a push comes back `merged` — the server kept another device's value and dropped a
+  field of this one's — the app raises **one toast per push** naming how many fields were overwritten, with *Ansehen*
+  leading to that partition's conflict log; the detail sheet carries the same count as a standing line for the rest of
+  the session. One per push rather than one per conflict, because a reconnect drains a whole queue at once. The toast is
+  the *telling* and the log is the record: before this the outcome was indistinguishable from `applied`, so the only way
+  to learn an edit had been overwritten was to go looking for a log nothing gave you a reason to suspect. **Live updates
+  have a line (added 2026-09-01, Sync-API P-1/§9):** in Server Mode the detail sheet states whether the WebSocket is
+  open — *„Live-Updates sind verbunden"* or, while it is not, that they are not and a reconnect is under way, with the
+  other devices' changes arriving on the next sync until then. Not a fifth state and not on the glyph: the four states
+  describe *this* device's changes reaching the server, which stays true of a device whose socket is dead — and that
+  device used to look synced while hearing nobody, which is how a one-directional sync on the family instance went
+  unexplained for an afternoon. Both outcomes render a sentence, so the absence of live updates is a line and not a
+  blank. Local Mode has no socket and shows neither. **Waiting update (NFR-4.13, added 2026-08-20):** when a newer build
+  of the app is installed and waiting for the next launch, the glyph carries a small action-coloured dot and the detail
+  sheet states, above the mode-specific half, that a new version is ready and takes over the next time the app is
+  opened. It is an annotation on the glyph, not a fifth state — the sync story is untouched. **The announcement carries
+  an action (FR-19.7, added 2026-09-02, reversing the clause that there is no reload button):** the sheet's sentence
+  gains *„Jetzt aktualisieren“* beneath it, and — because reaching that sentence costs knowing what the dot means, which
+  was the whole complaint — a **bar under the app bar** carries the same action on every screen, with a *Später* that
+  hides the bar for this load while the dot and the sheet keep the offer. The bar says that unsent changes are kept,
+  because the press reloads the page. It is the only thing that shortens the wait: nothing still takes over unprompted,
+  and an origin with no service worker renders neither surface (ADR-019, amended by ADR-044). **The conflict log takes a
+  loss back (added 2026-08-22, NFR-4.2a's second half):** each open entry carries a *Revert* control beside the losing →
+  winning line; an entry already reverted says so instead, because a revert is spent once. The page states in one line
+  that reverting writes the losing value **again, as a new change that reaches every device**; where a value is one half
+  of a coupled pair (a pack's state and its count, FR-5.4) both halves come back and both rows read *reverted*
+  afterwards — the word „revert“ invites the expectation of an undo, and it is not one (ADR-023). Every refusal is
+  rendered **on its own row** rather than as a snackbar: the entry was already reverted, the row has since been deleted,
+  the merge rules outrank the restore (an item packed meanwhile), or the caller may not write that row. The row is where
+  the reader is already looking, and a sentence there stays readable — unlike a snackbar, which on this app lands on the
+  tab bar. Local Mode never shows the log at all, so the control cannot appear there.  **An entry is written for a
+  reader (added 2026-08-24):** the row names the *thing* — the trip, the item, the inventory article — and the *column*
+  in the app's language, not the table and field of the schema; both values are rendered decoded, so a name arrives
+  without the JSON quotes it is stored in and a flag reads as a word rather than as `true`; and the timestamp follows
+  the app's language rather than the device's. A column whose value **is** a foreign key resolves too — an assignment
+  reads *Mia → Andy*, not one uuid to another. Two deliberate limits, each a case of saying less over saying something
+  untrue: anything this device cannot name — a row deleted since, one never pulled, an id belonging to a partition it
+  has not loaded — falls back to the *kind* of thing, or to the id itself; and a column with no word for it keeps its
+  own name. The first rendered log said `trips · year — 2026 → 2026`, and the first rendered *trip* log put two uuids
+  either side of an arrow.
+* **G-3 (Presence & Locks):** Items locked via *Packing Now* (FR-5.3) render with the locker's avatar and name ("In
+  progress by Andy") and are non-interactive for others except viewing. **The lock reaches M5, not only M4's row**
+  (clarified 2026-08-22): a locked row opens its sheet — viewing is the half G-3 keeps — but the sheet leads with a
+  banner naming the holder and every control that writes is gone or disabled, the *Details* fold included. It is
+  all-or-nothing on purpose: a sheet where the quantity is frozen and the container is not would be a third state with
+  no model behind it, and the accepted cost is that a note cannot be left on a row while somebody packs it. A row that
+  names no holder still says it is being packed. **A claim has no lifetime** (FR-5.7, ADR-028): nothing about a row's
+  age changes how it renders, and the row keeps naming its holder however long they take. **A claim can be ended by the
+  person holding it (added 2026-08-23):** the row I claimed says so to *me* — nothing is locked for my own device, so
+  without a word there I cannot tell that I am holding it against everyone else — and its press-and-hold menu offers
+  *Artikel wieder freigeben* and nothing else, since packing it is already the checkbox's job and skipping something you
+  are mid-way through packing is not a thing anyone means. The state it returns to is derived from the packed count
+  rather than remembered, because the claim overwrote whatever was there. **And a claim can be ended by somebody else,
+  by taking it over (added 2026-08-24):** a locked row's press-and-hold menu — which used to open onto nothing, because
+  every action on it belonged to the holder — carries exactly one entry, *Übernehmen*, and it confirms first, naming the
+  holder and the row ("Sia packt „Zelt" gerade. Übernehmen?"). Confirming makes the row *mine*: it does not pass through
+  free, because a takeover happens in order to pack the thing. The holder is told (FR-6.2, its own M17 toggle) and the
+  trip records it. **What went with the window:** the yellow "started over 15 minutes ago — you can take over" line,
+  which existed only because a row silently stopped being locked. **The takeover is the one server-side part of the
+  lock** (reversing the 2026-08-23 decision that the lock stays a client-side courtesy): only the server can stamp who
+  took over and notify another account. It is therefore absent in Local Mode and in Single-User Mode, per G-8 — there is
+  nobody to take a row from — while the release stays in all three.
+* **G-4 (Deep Linking):** Every notification and dashboard entry resolves to `trip/{id}/item/{id}`; the target screen
+  scrolls to the item, flashes it once, and expands attached comments/tasks (FR-6.3).
+* **G-5 (Optimistic UI):** All mutations commit locally first and render immediately; server confirmation is silent.
+  Failures surface via the sync indicator, never as blocking dialogs.
+* **G-6 (Quantity Stepper):** Wherever quantities appear, a unified stepper component is used: tap = ±1, long-press =
+  complete/zero (units retired with FR-1.8, 2026-08-08 — quantities are bare numbers). **Decided: items with quantity =
+  1 use a plain checkbox instead of the stepper**; the stepper itself only ever appears for quantity > 1.
+* **G-7 (Empty States):** Every list screen defines an empty state with a single primary action (e.g., Templates empty →
+  "Create first template" / "Import from spreadsheet"). **One component renders all of them**
+  (`components/global/EmptyState.vue`, 2026-09-03): a centred column of illustration, the one sentence that names the
+  state, an optional second line in the smaller size, and the control that leads out of it. **The spacing is `48px`
+  above and below and `24px` from each edge** — the inset is not decorative, it is what keeps a sentence that wraps from
+  running edge to edge under a centred glyph (E2E-G2-09, found on a hand-copied empty state that had dropped it). **The
+  sentence is regular weight**: nothing else is on the screen to compete with it, and where a second line is needed the
+  hint's smaller size carries the whole hierarchy. Three shapes are deliberately *not* this: M14's "everything reviewed"
+  is a success state and paints its glyph in `--jp-done`; M8's and M10's "not found" line is an error about one record;
+  and the inline hints inside a populated section (M11's unassigned box, M8's group and position lists, M3's steps)
+  annotate a section rather than replace a screen.
+* **G-1 icons (2026-08-14):** the four anchors are Dashboard · **Trips (a train)** · Templates · Items. The plane it
+  shipped with said something untrue about the household: these are ground journeys, and the anchor icon is the first
+  statement the app makes about itself. The same list feeds the desktop rail and the mobile bar (`router/anchors.ts`),
+  so the two cannot drift.
+* **G-8 (Single-User Mode):** Single-User Mode (Addendum FR-17.1) shows no banner — it is visually indistinguishable
+  from normal operation except for the absence of sharing, delegation, and notification UI, hidden per screen as noted
+  in M2, M3, M5, and M17 below. **Local Mode (Addendum FR-19.3)** hides the same collaboration UI the same way and
+  likewise shows no banner; its only visible marker is the G-2 *local* glyph. (A demo reset banner lived here through
+  v1.9; Demo Mode was removed in Addendum v2.10.)
+* **An anchor switch is a root navigation, not a push (added 2026-08-31, ADR-012 amendment).** The four anchors — in the
+  bottom bar below the breakpoint and in the rail above it — are siblings with no back edge between them, so a switch
+  *replaces* the outlet's page instead of stacking one on top. As plain pushes an interrupted switch left two pages live
+  and the older one on top, so a tap on the screen the URL named went to the screen two anchors ago (E2E-G9-17,
+  E2E-G1-06). The anchors stay real links: the `href` is what makes them middle-clickable and readable as links, and
+  only the default action is taken over.
+* **G-9 (Header & Desktop Navigation):** The top bar shows, left to right: the app logo — a compact mark on mobile, full
+  wordmark from the desktop breakpoint up — followed by the sync glyph (G-2) and the avatar/settings control (G-1) on
+  the right. The logo is a link/tap-target to M1 (Dashboard) and occupies the bar's left slot **on the four tab roots**.
+  On every other screen that slot carries **`‹ back` and the page title** instead, and the way out is the back-target
+  contract rather than the logo (ADR-011; the earlier "from anywhere, including from within a trip, template, or wizard"
+  is superseded). **A screen may register no title, and then the slot carries the chevron alone** (added 2026-08-19): M4
+  does so **below the desktop breakpoint**, because its G-12 cluster fills the bar there — a title which survives as one
+  letter names nothing, so the screen puts its name where there is room instead. The bar renders *no* title element in
+  that case rather than an empty one. Above the breakpoint the bar is wide enough and M4 registers its title like every
+  other screen; a screen's title may therefore depend on the width, but the thing it names is never written twice at
+  once. The right-hand group — sync glyph and avatar/settings — is present on **every** screen, which is what keeps the
+  conflict log reachable inside a trip. **One exception (2026-08-26, UX review):** the gear hides on M17 itself, where
+  it would only reopen the screen it is on; the sync glyph stays. **And because it is on every screen, M17 gives back
+  the screen it was opened from** (added 2026-08-21): a control offered everywhere cannot declare one true parent, so
+  the route records where it was entered from and `‹` returns there — the gear tapped inside a trip comes back to that
+  trip, not to the dashboard. The same holds for the two import flows (M15, M18), which are each entered from more than
+  one screen. An entry that carries no origin — a notification deep link, a pasted URL — falls back to the declared
+  parent as before (ADR-011 amendment, Navigation_Concept §7). There is exactly one header bar in the app; no screen
+  supplies its own. **Desktop breakpoint (≥ 900 px, resolving Open UI Decision #4):** the bottom tab bar (G-1) is
+  replaced by a persistent left-side navigation rail carrying the same four tabs (Dashboard/Trips/Templates/Items); the
+  top bar then spans the remaining width and additionally hosts page-level primary actions inline (e.g., M2's "New trip"
+  FAB, M4's G-12 action cluster) instead of floating over content. Below the breakpoint, the mobile layout (bottom tabs,
+  floating FAB, compact logo mark) applies unchanged. **The content stops at a column (added 2026-08-27, UX-17):**
+  beside the rail the content area is capped at **960 px and centred**, one rule in `App.vue` for every screen rather
+  than a decision each view has to remember. Edge to edge a settings row put its label and its control 1100 px apart and
+  M9's tag segment spread three chips across 1176 px — lines that read as several things rather than one. The cap needs
+  no breakpoint of its own: below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays full
+  width**, because it is the app's frame rather than its content — the logo belongs at the window's corner and the gear
+  at the opposite one. Accepted cost: on a very wide screen a long packing row no longer uses the space it could; the
+  revisit trigger is the first screen whose content genuinely wants more than the column.
+* **G-10 (Trip Presence & Group Sync):** Distinct from G-2, which reflects only *your own* device's connection state,
+  this pattern shows who else is currently on the same trip and whether the *group* is caught up. It lives in the
+  trip-level header (M4's sticky header, not the global app header of G-9), since presence is meaningless outside a
+  specific trip — **and only there** (2026-08-28): an earlier M2 line put the facepile on the trip rows too, which
+  contradicted that sentence two lines above it and was never built. It is removed rather than implemented; presence is
+  scoped to a subscribed trip on the wire as well, so M2 would have had to subscribe every listed trip to draw circles.
   **Everything the pattern knows is on screen** (2026-08-28, rebuilt with E2E-G10-01 — the first test to render it):
-  * **Facepile:** overlapping circular avatars of everyone currently viewing/editing this trip (sourced from the `presence` WebSocket event, Sync-API Spec §7). Mobile shows up to 2 avatars plus a "+N" overflow bubble; desktop (≥ 900 px) shows up to 4 before overflow, simply reflecting the wider header — the host screen passes the count, because it is a question about the header's width. **Whoever is still catching up sorts first**, so the overflow can only ever hide people nothing can be done about. A face is the FR-25.3 avatar, initialled from the person's display name and coloured from their account: the presence event carries the account id alone, and that id is a random hex key. Below two people the pile is absent entirely rather than shrinking to a lone face of oneself.
-  * **Per-face state:** an **amber ring marks somebody still catching up**; a caught-up face is plain. The ring marks the exception rather than the norm — decided by rendering it both ways: ringing everyone who *is* caught up repeats what the badge beside it already says, and leaves the one person worth noticing marked by an absence, which is harder to see. Best-effort by nature (it reflects only devices currently connected over WebSocket, never a fully offline one) and never used to block anything.
-  * **Group-sync badge:** beside the pile, always present, and rendered in **the app's own indicator grammar rather than as a labelled chip** (owner, 2026-08-28) — a glyph, with the count in a bubble on its corner where there is something to count, exactly as G-2's `SyncIndicator` carries its queue. Green ✓✓ and no bubble when every present device's last-acknowledged pull cursor matches the trip's `change_log` head; the amber sync glyph with an amber count otherwise. The two are exclusive by construction. **The words are the element's accessible name**, not text beside it: the pile lives in a header next to the trip's own name, and a spelled-out sentence there competes with it — but nothing is lost to a reader who cannot see the colour.
-  * **Tap/click on a face** spells that person out in a line under the pile — *„Bob · holt auf"* — with a ✕, and a second tap on the same face puts it away. This **replaces the per-person sheet** earlier revisions specified (a bottom sheet on mobile, a popover on desktop, listing everyone). The sheet was rejected on 2026-08-28: its entire content is three fields, one of which — the device count — nobody packing acts on, and it put the single actionable fact (*who* is behind) one tap deeper than a pile that is already on screen. What the tap keeps is the half a hover cannot give a touch device: the name. **The device count is no longer rendered anywhere**, though the wire still carries it.
-* **G-11 (Theming, Addendum 3.21):** The app defaults to a dark theme styled on the Catppuccin **Mocha** palette (catppuccin.com), in every mode including Local Mode, independent of OS color-scheme preference. Background depth (`crust`/`mantle`/`base`), surfaces (`surface0`–`surface2`), and text hierarchy (`text`/`subtext0`/`subtext1`) follow Catppuccin's own layering; the accent set is mapped onto the app's existing color-coded states rather than introducing new colors — e.g. G-6's packed state, G-3's lock chip, M11's amber/red weight thresholds, and M4's mode chips all draw from the same token set. A light theme (Catppuccin **Latte**) is available as an opt-in toggle in M17 (Addendum FR-21.3); the choice is a device-local preference, applied before first paint to avoid a flash of the wrong theme (FR-21.4).
-  * **Three anchors, and a role is what a component asks for (added 2026-08-14, Addendum FR-21.7).** **Peach = brand**, **blue = action**, **green/teal = done**. The palette says which hues exist; the anchors say what they mean, and only one block decides. A screen never names a hue.
-  * **The brand is not the primary.** Ionic paints `--ion-color-primary` on buttons and links — things you act on — so it stays blue. Identity gets the few surfaces that actually carry it: the anchor you are on in the tab bar and the desktop rail (one rule, two presentations), the create FAB, the eyebrows, the preparation and shopping marks.
-  * **Done is never the brand, and neither is progress.** A checked box, a progress bar and a completion ring run the teal→green ramp. A peach progress bar reads as an alert rather than as headway — the trip ring used to be peach below half, which told a user with an unpacked trip that something was wrong.
-  * **Caution keeps its own hue.** Yellow, not peach. While peach served as `warning`, a container over its weight limit and the product's own identity were the same colour, and the louder reading won.
-  * **A role is flavour-relative.** Mocha and Latte are not each other's inverse, so the same token can arrive at a different volume in each: Latte's peach is a saturated orange on a near-white ground where Mocha's is a pastel on a near-black one. Latte reads the brand **deeper** — on a light ground quieter and more legible are the same direction, and the stock value managed only 2.45:1 as an 11 px tab label. Restate the role per flavour when it lands differently; never average the two into one value that suits neither.
-  * **The components Ionic would paint itself are told once.** FAB, checkbox, toggle and progress bar are set in the token table as element rules, not per screen — so a FAB added six rebuilds from now is not a fresh decision about what colour the brand is.
-* **G-12 (Screen Actions in the App Bar — new 2026-08-07, from concept testing of M6 and M4):** A screen carries its actions as a **compact icon cluster in the global app bar (G-9)**, never as additional full-width rows of controls below it. Established on M6, adopted as the house pattern, and **M4 was converted to it**: two stacked control rows (a labelled filter bar plus a "grouped by" line) made the product's core working screen restless beside it. **Every icon-only control names itself (2026-08-27, UX-13):** a button whose body renders no text carries an `aria-label` — a `title` alone is a tooltip, not a name. The rule is held over the source by `iconButtonLabels.spec.ts`, because the bars had grown unlabeled glyphs faster than per-screen cases could chase them. **And a cluster has an overflow (added 2026-08-27, the same finding's second half):** a page may mark an action `overflow`, and the bar then renders it behind a single **⋮** that opens the action sheet the row menus already use, where each entry is a **word**. The bar decides nothing itself — an unmarked action is always a glyph. **M4 is the first user:** *Suchen*, *Filter* and *Zuklappen* stay on the bar because they are tapped while packing; *„Reise-Eigenschaften"* and the one lifecycle step (*„Reise starten"* / *„Reise abschliessen"*) move behind the ⋮, being once-per-trip actions whose meaning a glyph never carried. Eight controls in the bar became seven, and the two that left were the two nobody could name on sight. **An overflow entry runs after the sheet closes, never inside its handler:** while an overlay is up Ionic marks the router outlet `aria-hidden`, and an action that navigates from within the handler leaves that flag behind — the screen then renders and responds to every tap while being absent from the accessibility tree.
-  * **Placement — the app bar, beside the gear.** On any screen reached with the back chevron (M4, M6, …) the cluster occupies the app bar's right side. The original intent to hide the gear on those screens was superseded by G-9's origin-return amendment (2026-08-21): the gear stays on every screen except M17 itself, because "back returns to where the gear was tapped" only works if the gear can be tapped anywhere. The cost — M4's bar carrying the cluster *and* the gear — is a known crowding finding (UX review 2026-08-25, UX-13) and is decided there, not here. Root/tab screens show no cluster. Rationale beyond tidiness: M4's sub-header **collapses on scroll** (Addendum §3.25), so a cluster living in that sub-header would slide away mid-task — in the app bar the actions stay reachable while packing.
-  * **Order and meaning:** 🔍 **search**, collapsed — the field appears below only when the icon is tapped, and its ✕ *closes* it rather than merely emptying it, since an empty open field gives back the row the icon just reclaimed. Then the **filter** icon, carrying its active-value count as a badge (Addendum FR-25.11a/k).
-  * **Two clusters, split by what they act on (refined 2026-08-07).** The app bar carries actions on **this list** — search and filter. Navigation to **other views of the same entity** sits as icons on the screen's own header line instead: on M4 that is Shopping (with its open count), Luggage and Analytics, on the trip title line. **No overflow menu.** Hiding three destinations behind an unlabelled ⋯ is precisely the discoverability failure §3.25 recorded, and testing confirmed it: an ⋯ tells you nothing about what is inside, so nobody opens it.
-  * **Icon-only controls must still be nameable — in the app bar (narrowed by the owner, 2026-08-31).** Every icon-only control carries an `aria-label`, instance-wide and held over the source by `iconButtonLabels.spec.ts`; the **`title`** for desktop hover is the **bar's** rule alone. The wider promise was read against the app the day before (E2E-G12-06) and measured at **9 of 62**, and the ruling narrowed the promise rather than spreading the attribute to 53 more call sites: the bar is the one place where the label was dropped *to buy room*, so it is the one place where the name has to stay retrievable some other way — everywhere else an icon sits beside the text it belongs to, and a tooltip repeats what is already on screen. It costs nothing to keep, because the bar has no per-screen markup: `AppHeader.vue` renders back, the G-12 cluster (through `useHeaderActions`, whose `label` is already the accessible name), the ⋮ and the gear, and `SyncIndicator.vue` renders G-2 — five call sites, all already compliant. The gate asserts it over the toolbar and over **whatever is slotted into it**, resolved from `AppHeader`'s own markup rather than listed, so the next bar control is covered without anyone remembering the file. Writing that assertion found the trap it exists for: matching the attribute as a *substring* let the settings gear satisfy the tooltip rule with `:aria-label="t('settings.title')"`. ~~shows the same name as a bubble on **long-press** for touch~~ — **struck 2026-08-31, not built.** G-12 already answers this question better in the same bar: an action whose glyph nobody can read is marked `overflow` and rendered behind the ⋮ **as a word**, which is why the two M4 controls nobody could name on sight moved there. A bubble would be a second, weaker answer — and a *third* meaning for a gesture the app already spends twice (FR-5.5's row menu, G-6's stepper holds), whose collision was this week's headline defect. **Revisit trigger:** a bar glyph that turns out to be unlearnable moves behind the ⋮; if one ever cannot, the bubble is back on the table. Note also that the *four navigation anchors* are not subject to the naming rule at all: both the rail and the tab bar render a visible label.
-  * **What stays out of the cluster:** identity and progress. The screen's own header line keeps the trip name, packed/total, weight and open-prep, **unfiltered** — real progress must remain visible regardless of the current view.
-  * **Active state still shows below.** When a filter is set, the removable chip row (FR-25.11a) appears under the header; when nothing is filtered, no row is drawn at all. The cluster is an entry point, not a status display — the badge says *that* something is filtered, the chips say *what*.
-  * **Icons must be literal.** Concept testing rejected a generic cube standing in for both Shopping and Luggage: a cart means buying, a suitcase means luggage, and one glyph for two destinations defeats the point of shrinking labels away.
-  * **Budget.** With back chevron, logo, title and the cluster, M4 reaches six elements in the bar — treat that as the ceiling. A screen needing more moves the surplus behind ⋯ rather than widening the cluster.
-* **G-13 (Typography — new 2026-08-14, from comparing the built M4/M5 with the concept prototype):** The app has two faces, and which one a piece of text takes is decided by its **role**, never by the screen it happens to be on (Addendum FR-21.5). This is the counterpart to G-11: G-11 says where colour comes from, G-13 says where type does. It exists because the rebuilt M4 and M5 landed the information architecture faithfully and still did not look like the prototype — the client declared **no `font-family` at all** and rendered in whatever Ionic's platform stack resolved to.
-  * **Two faces, one job each.** **Fraunces** — a serif with an optical-size axis — carries titles and headline figures. **Hanken Grotesk** carries everything else, including every control. Nothing is set in a third face.
-  * **The display face has five roles, and only those.** Page title (a tab root's own heading, e.g. *Trips*), hero/greeting (M1), sheet title (M5's item name), app-bar title (G-9), headline figure (a KPI number — `.jp-figure`, written with the M12 rebuild 2026-08-16 as its first user; M1's stats adopt it when that screen is rebuilt). Everything else — item names, group headings, chips, labels, buttons, body copy — is the UI face. A trip row's name is **not** a title: it is a list entry, and setting it in the serif would flatten the very hierarchy the serif exists to state.
-  * **Roles are defined once.** Family, size, weight, line height and tracking live in one place per role; a screen applies the role and adds nothing. A screen that wants a size the scale does not have is a signal about the scale, not a licence for a magic number.
-  * **Figures that change in place are tabular.** Counters, quantities and weights are set in tabular figures — M4's `12/48` reflows on every pack otherwise, which is exactly the moment the number needs to be readable.
-  * **Icons have their own scale.** `font-size` on an icon is a glyph box, not type; the two tables are separate so that a change to body copy cannot resize an empty-state illustration, and so that neither table has to compromise for the other.
-  * **The section label is a role, not a heading.** Small uppercase in the UI face, opened up, recessive — as the prototype sets it. It reads as a label *above* content rather than as a competing line of text, which is what eleven hand-written copies of it were doing at two different sizes.
-  * **The faces are served from the instance, never from a font CDN** (Addendum FR-21.6). Local Mode may have no network at all, so a face fetched at boot is a face that is sometimes absent.
+  * **Facepile:** overlapping circular avatars of everyone currently viewing/editing this trip (sourced from the
+    `presence` WebSocket event, Sync-API Spec §7). Mobile shows up to 2 avatars plus a "+N" overflow bubble; desktop (≥
+    900 px) shows up to 4 before overflow, simply reflecting the wider header — the host screen passes the count,
+    because it is a question about the header's width. **Whoever is still catching up sorts first**, so the overflow can
+    only ever hide people nothing can be done about. A face is the FR-25.3 avatar, initialled from the person's display
+    name and coloured from their account: the presence event carries the account id alone, and that id is a random hex
+    key. Below two people the pile is absent entirely rather than shrinking to a lone face of oneself.
+  * **Per-face state:** an **amber ring marks somebody still catching up**; a caught-up face is plain. The ring marks
+    the exception rather than the norm — decided by rendering it both ways: ringing everyone who *is* caught up repeats
+    what the badge beside it already says, and leaves the one person worth noticing marked by an absence, which is
+    harder to see. Best-effort by nature (it reflects only devices currently connected over WebSocket, never a fully
+    offline one) and never used to block anything.
+  * **Group-sync badge:** beside the pile, always present, and rendered in **the app's own indicator grammar rather than
+    as a labelled chip** (owner, 2026-08-28) — a glyph, with the count in a bubble on its corner where there is
+    something to count, exactly as G-2's `SyncIndicator` carries its queue. Green ✓✓ and no bubble when every present
+    device's last-acknowledged pull cursor matches the trip's `change_log` head; the amber sync glyph with an amber
+    count otherwise. The two are exclusive by construction. **The words are the element's accessible name**, not text
+    beside it: the pile lives in a header next to the trip's own name, and a spelled-out sentence there competes with it
+    — but nothing is lost to a reader who cannot see the colour.
+  * **Tap/click on a face** spells that person out in a line under the pile — *„Bob · holt auf"* — with a ✕, and a
+    second tap on the same face puts it away. This **replaces the per-person sheet** earlier revisions specified (a
+    bottom sheet on mobile, a popover on desktop, listing everyone). The sheet was rejected on 2026-08-28: its entire
+    content is three fields, one of which — the device count — nobody packing acts on, and it put the single actionable
+    fact (*who* is behind) one tap deeper than a pile that is already on screen. What the tap keeps is the half a hover
+    cannot give a touch device: the name. **The device count is no longer rendered anywhere**, though the wire still
+    carries it.
+* **G-11 (Theming, Addendum 3.21):** The app defaults to a dark theme styled on the Catppuccin **Mocha** palette
+  (catppuccin.com), in every mode including Local Mode, independent of OS color-scheme preference. Background depth
+  (`crust`/`mantle`/`base`), surfaces (`surface0`–`surface2`), and text hierarchy (`text`/`subtext0`/`subtext1`) follow
+  Catppuccin's own layering; the accent set is mapped onto the app's existing color-coded states rather than introducing
+  new colors — e.g. G-6's packed state, G-3's lock chip, M11's amber/red weight thresholds, and M4's mode chips all draw
+  from the same token set. A light theme (Catppuccin **Latte**) is available as an opt-in toggle in M17 (Addendum
+  FR-21.3); the choice is a device-local preference, applied before first paint to avoid a flash of the wrong theme
+  (FR-21.4).
+  * **Three anchors, and a role is what a component asks for (added 2026-08-14, Addendum FR-21.7).** **Peach = brand**,
+    **blue = action**, **green/teal = done**. The palette says which hues exist; the anchors say what they mean, and
+    only one block decides. A screen never names a hue.
+  * **The brand is not the primary.** Ionic paints `--ion-color-primary` on buttons and links — things you act on — so
+    it stays blue. Identity gets the few surfaces that actually carry it: the anchor you are on in the tab bar and the
+    desktop rail (one rule, two presentations), the create FAB, the eyebrows, the preparation and shopping marks.
+  * **Done is never the brand, and neither is progress.** A checked box, a progress bar and a completion ring run the
+    teal→green ramp. A peach progress bar reads as an alert rather than as headway — the trip ring used to be peach
+    below half, which told a user with an unpacked trip that something was wrong.
+  * **Caution keeps its own hue.** Yellow, not peach. While peach served as `warning`, a container over its weight limit
+    and the product's own identity were the same colour, and the louder reading won.
+  * **A role is flavour-relative.** Mocha and Latte are not each other's inverse, so the same token can arrive at a
+    different volume in each: Latte's peach is a saturated orange on a near-white ground where Mocha's is a pastel on a
+    near-black one. Latte reads the brand **deeper** — on a light ground quieter and more legible are the same
+    direction, and the stock value managed only 2.45:1 as an 11 px tab label. Restate the role per flavour when it lands
+    differently; never average the two into one value that suits neither.
+  * **The components Ionic would paint itself are told once.** FAB, checkbox, toggle and progress bar are set in the
+    token table as element rules, not per screen — so a FAB added six rebuilds from now is not a fresh decision about
+    what colour the brand is.
+* **G-12 (Screen Actions in the App Bar — new 2026-08-07, from concept testing of M6 and M4):** A screen carries its
+  actions as a **compact icon cluster in the global app bar (G-9)**, never as additional full-width rows of controls
+  below it. Established on M6, adopted as the house pattern, and **M4 was converted to it**: two stacked control rows (a
+  labelled filter bar plus a "grouped by" line) made the product's core working screen restless beside it. **Every
+  icon-only control names itself (2026-08-27, UX-13):** a button whose body renders no text carries an `aria-label` — a
+  `title` alone is a tooltip, not a name. The rule is held over the source by `iconButtonLabels.spec.ts`, because the
+  bars had grown unlabeled glyphs faster than per-screen cases could chase them. **And a cluster has an overflow (added
+  2026-08-27, the same finding's second half):** a page may mark an action `overflow`, and the bar then renders it
+  behind a single **⋮** that opens the action sheet the row menus already use, where each entry is a **word**. The bar
+  decides nothing itself — an unmarked action is always a glyph. **M4 is the first user:** *Suchen*, *Filter* and
+  *Zuklappen* stay on the bar because they are tapped while packing; *„Reise-Eigenschaften"* and the one lifecycle step
+  (*„Reise starten"* / *„Reise abschliessen"*) move behind the ⋮, being once-per-trip actions whose meaning a glyph
+  never carried. Eight controls in the bar became seven, and the two that left were the two nobody could name on sight.
+  **An overflow entry runs after the sheet closes, never inside its handler:** while an overlay is up Ionic marks the
+  router outlet `aria-hidden`, and an action that navigates from within the handler leaves that flag behind — the screen
+  then renders and responds to every tap while being absent from the accessibility tree.
+  * **Placement — the app bar, beside the gear.** On any screen reached with the back chevron (M4, M6, …) the cluster
+    occupies the app bar's right side. The original intent to hide the gear on those screens was superseded by G-9's
+    origin-return amendment (2026-08-21): the gear stays on every screen except M17 itself, because "back returns to
+    where the gear was tapped" only works if the gear can be tapped anywhere. The cost — M4's bar carrying the cluster
+    *and* the gear — is a known crowding finding (UX review 2026-08-25, UX-13) and is decided there, not here. Root/tab
+    screens show no cluster. Rationale beyond tidiness: M4's sub-header **collapses on scroll** (Addendum §3.25), so a
+    cluster living in that sub-header would slide away mid-task — in the app bar the actions stay reachable while
+    packing.
+  * **Order and meaning:** 🔍 **search**, collapsed — the field appears below only when the icon is tapped, and its ✕
+    *closes* it rather than merely emptying it, since an empty open field gives back the row the icon just reclaimed.
+    Then the **filter** icon, carrying its active-value count as a badge (Addendum FR-25.11a/k).
+  * **Two clusters, split by what they act on (refined 2026-08-07).** The app bar carries actions on **this list** —
+    search and filter. Navigation to **other views of the same entity** sits as icons on the screen's own header line
+    instead: on M4 that is Shopping (with its open count), Luggage and Analytics, on the trip title line. **No overflow
+    menu.** Hiding three destinations behind an unlabelled ⋯ is precisely the discoverability failure §3.25 recorded,
+    and testing confirmed it: an ⋯ tells you nothing about what is inside, so nobody opens it.
+  * **Icon-only controls must still be nameable — in the app bar (narrowed by the owner, 2026-08-31).** Every icon-only
+    control carries an `aria-label`, instance-wide and held over the source by `iconButtonLabels.spec.ts`; the
+    **`title`** for desktop hover is the **bar's** rule alone. The wider promise was read against the app the day before
+    (E2E-G12-06) and measured at **9 of 62**, and the ruling narrowed the promise rather than spreading the attribute to
+    53 more call sites: the bar is the one place where the label was dropped *to buy room*, so it is the one place where
+    the name has to stay retrievable some other way — everywhere else an icon sits beside the text it belongs to, and a
+    tooltip repeats what is already on screen. It costs nothing to keep, because the bar has no per-screen markup:
+    `AppHeader.vue` renders back, the G-12 cluster (through `useHeaderActions`, whose `label` is already the accessible
+    name), the ⋮ and the gear, and `SyncIndicator.vue` renders G-2 — five call sites, all already compliant. The gate
+    asserts it over the toolbar and over **whatever is slotted into it**, resolved from `AppHeader`'s own markup rather
+    than listed, so the next bar control is covered without anyone remembering the file. Writing that assertion found
+    the trap it exists for: matching the attribute as a *substring* let the settings gear satisfy the tooltip rule with
+    `:aria-label="t('settings.title')"`. ~~shows the same name as a bubble on **long-press** for touch~~ — **struck
+    2026-08-31, not built.** G-12 already answers this question better in the same bar: an action whose glyph nobody can
+    read is marked `overflow` and rendered behind the ⋮ **as a word**, which is why the two M4 controls nobody could
+    name on sight moved there. A bubble would be a second, weaker answer — and a *third* meaning for a gesture the app
+    already spends twice (FR-5.5's row menu, G-6's stepper holds), whose collision was this week's headline defect.
+    **Revisit trigger:** a bar glyph that turns out to be unlearnable moves behind the ⋮; if one ever cannot, the bubble
+    is back on the table. Note also that the *four navigation anchors* are not subject to the naming rule at all: both
+    the rail and the tab bar render a visible label.
+  * **What stays out of the cluster:** identity and progress. The screen's own header line keeps the trip name,
+    packed/total, weight and open-prep, **unfiltered** — real progress must remain visible regardless of the current
+    view.
+  * **Active state still shows below.** When a filter is set, the removable chip row (FR-25.11a) appears under the
+    header; when nothing is filtered, no row is drawn at all. The cluster is an entry point, not a status display — the
+    badge says *that* something is filtered, the chips say *what*.
+  * **Icons must be literal.** Concept testing rejected a generic cube standing in for both Shopping and Luggage: a cart
+    means buying, a suitcase means luggage, and one glyph for two destinations defeats the point of shrinking labels
+    away.
+  * **Budget.** With back chevron, logo, title and the cluster, M4 reaches six elements in the bar — treat that as the
+    ceiling. A screen needing more moves the surplus behind ⋯ rather than widening the cluster.
+* **G-13 (Typography — new 2026-08-14, from comparing the built M4/M5 with the concept prototype):** The app has two
+  faces, and which one a piece of text takes is decided by its **role**, never by the screen it happens to be on
+  (Addendum FR-21.5). This is the counterpart to G-11: G-11 says where colour comes from, G-13 says where type does. It
+  exists because the rebuilt M4 and M5 landed the information architecture faithfully and still did not look like the
+  prototype — the client declared **no `font-family` at all** and rendered in whatever Ionic's platform stack resolved
+  to.
+  * **Two faces, one job each.** **Fraunces** — a serif with an optical-size axis — carries titles and headline figures.
+    **Hanken Grotesk** carries everything else, including every control. Nothing is set in a third face.
+  * **The display face has five roles, and only those.** Page title (a tab root's own heading, e.g. *Trips*),
+    hero/greeting (M1), sheet title (M5's item name), app-bar title (G-9), headline figure (a KPI number — `.jp-figure`,
+    written with the M12 rebuild 2026-08-16 as its first user; M1's stats adopt it when that screen is rebuilt).
+    Everything else — item names, group headings, chips, labels, buttons, body copy — is the UI face. A trip row's name
+    is **not** a title: it is a list entry, and setting it in the serif would flatten the very hierarchy the serif
+    exists to state.
+  * **Roles are defined once.** Family, size, weight, line height and tracking live in one place per role; a screen
+    applies the role and adds nothing. A screen that wants a size the scale does not have is a signal about the scale,
+    not a licence for a magic number.
+  * **Figures that change in place are tabular.** Counters, quantities and weights are set in tabular figures — M4's
+    `12/48` reflows on every pack otherwise, which is exactly the moment the number needs to be readable.
+  * **Icons have their own scale.** `font-size` on an icon is a glyph box, not type; the two tables are separate so that
+    a change to body copy cannot resize an empty-state illustration, and so that neither table has to compromise for the
+    other.
+  * **The section label is a role, not a heading.** Small uppercase in the UI face, opened up, recessive — as the
+    prototype sets it. It reads as a label *above* content rather than as a competing line of text, which is what eleven
+    hand-written copies of it were doing at two different sizes.
+  * **The faces are served from the instance, never from a font CDN** (Addendum FR-21.6). Local Mode may have no network
+    at all, so a face fetched at boot is a face that is sometimes absent.
 
-* **The pack-out (M4, Addendum FR-25.2).** Packing is the app's most repeated act, and on M4 its result is that the row *leaves*. Three beats say so: the done colour washes over the row, it collapses to nothing, and a snackbar names it with one **Rückgängig**. The snackbar is the correction path the screen otherwise lacks — a mistap removes its own evidence, and recovering it through the reveal bar costs four deliberate actions. **One undo at a time:** packing is a run of taps, so a second pack replaces the snackbar rather than queueing behind it. **Un-packing announces nothing** — its result is already on screen. Under `prefers-reduced-motion` the row still leaves and the snackbar still appears; only the travel is dropped.
+* **The pack-out (M4, Addendum FR-25.2).** Packing is the app's most repeated act, and on M4 its result is that the row
+  *leaves*. Three beats say so: the done colour washes over the row, it collapses to nothing, and a snackbar names it
+  with one **Rückgängig**. The snackbar is the correction path the screen otherwise lacks — a mistap removes its own
+  evidence, and recovering it through the reveal bar costs four deliberate actions. **One undo at a time:** packing is a
+  run of taps, so a second pack replaces the snackbar rather than queueing behind it. **Un-packing announces nothing** —
+  its result is already on screen. Under `prefers-reduced-motion` the row still leaves and the snackbar still appears;
+  only the travel is dropped.
 
-* **G-14 (Surfaces — new 2026-08-14, third of the design-foundation steps):** The third of the pattern trio: G-11 says where colour comes from, G-13 where type does, G-14 where **shape and depth** do (Addendum FR-21.8). It exists because of a defect none of the other rules could see — the packing list's group card was painted in a legitimate palette token that was the *same colour as the page behind it*, which is invisible in a stylesheet and obvious in a screenshot.
-  * **Three planes, asked for by role.** **Page**, **card** — one step up, and where every list row lives — and **sunken**, one step down. A card is not a hairline: it is a lighter plane with a rim and a lift, and a component asks for `card` rather than for a palette token that happens to look right today.
-  * **One card class, not a card per screen.** `.jp-card` carries the plane, the border, the radius and the elevation together; a screen positions it and adds nothing. Its children defer to it, so no row can repaint itself a shade off the surface it sits in.
-  * **Radius is a five-step scale**: inline control, block, card, sheet, pill. A radius that is half its own element's height is a **pill**, not a small step — that is what the client's stray 2/4/7 px values all actually meant. A circle keeps `50%`, because a circle is a shape rather than a size.
-  * **Elevation is one geometry in the flavour's ink.** Offsets and blur are written once; which colour a shadow is cast in and how hard is restated per flavour, exactly as G-11 restates the brand. Reusing the dark theme's ink in the light one produces a shadow the same lightness as a surface — which is to say, no shadow. And the two do not come out symmetrical: a dark palette is compressed at its dark end, so **Mocha lifts a card mostly by the plane step and Latte mostly by the shadow**. Rendering a card edge and reading the pixels is what establishes that; it is not visible in the tokens.
-  * **A round control has one diameter** (`--jp-control-round`, added 2026-08-16). A sheet header carries a *pair* of them — the FR-25.15 save indicator beside the ✕ — and two sizes hung from a shared top edge put their centres on different lines: 26 px against 34 px read as a crooked header on a phone, which is how the owner found it. The size is a shape decision, so it lives in `surfaces.css` with the radii rather than being restated per sheet, and E2E-M5-14 measures the two rendered boxes rather than trusting the stylesheet.
-  * **The rule is enforced, not stated.** A view that writes a raw colour, radius or shadow fails the build (`scripts/design-tokens-gate.mjs`, invariant 9b). Six screen rebuilds are queued behind this pattern, and without the gate each would invent its own numbers again — which is precisely how the nine radii got there.
+* **G-14 (Surfaces — new 2026-08-14, third of the design-foundation steps):** The third of the pattern trio: G-11 says
+  where colour comes from, G-13 where type does, G-14 where **shape and depth** do (Addendum FR-21.8). It exists because
+  of a defect none of the other rules could see — the packing list's group card was painted in a legitimate palette
+  token that was the *same colour as the page behind it*, which is invisible in a stylesheet and obvious in a
+  screenshot.
+  * **Three planes, asked for by role.** **Page**, **card** — one step up, and where every list row lives — and
+    **sunken**, one step down. A card is not a hairline: it is a lighter plane with a rim and a lift, and a component
+    asks for `card` rather than for a palette token that happens to look right today.
+  * **One card class, not a card per screen.** `.jp-card` carries the plane, the border, the radius and the elevation
+    together; a screen positions it and adds nothing. Its children defer to it, so no row can repaint itself a shade off
+    the surface it sits in.
+  * **Radius is a five-step scale**: inline control, block, card, sheet, pill. A radius that is half its own element's
+    height is a **pill**, not a small step — that is what the client's stray 2/4/7 px values all actually meant. A
+    circle keeps `50%`, because a circle is a shape rather than a size.
+  * **Elevation is one geometry in the flavour's ink.** Offsets and blur are written once; which colour a shadow is cast
+    in and how hard is restated per flavour, exactly as G-11 restates the brand. Reusing the dark theme's ink in the
+    light one produces a shadow the same lightness as a surface — which is to say, no shadow. And the two do not come
+    out symmetrical: a dark palette is compressed at its dark end, so **Mocha lifts a card mostly by the plane step and
+    Latte mostly by the shadow**. Rendering a card edge and reading the pixels is what establishes that; it is not
+    visible in the tokens.
+  * **A round control has one diameter** (`--jp-control-round`, added 2026-08-16). A sheet header carries a *pair* of
+    them — the FR-25.15 save indicator beside the ✕ — and two sizes hung from a shared top edge put their centres on
+    different lines: 26 px against 34 px read as a crooked header on a phone, which is how the owner found it. The size
+    is a shape decision, so it lives in `surfaces.css` with the radii rather than being restated per sheet, and
+    E2E-M5-14 measures the two rendered boxes rather than trusting the stylesheet.
+  * **The rule is enforced, not stated.** A view that writes a raw colour, radius or shadow fails the build
+    (`scripts/design-tokens-gate.mjs`, invariant 9b). Six screen rebuilds are queued behind this pattern, and without
+    the gate each would invent its own numbers again — which is precisely how the nine radii got there.
 
-* **G-15 (The Item Mark — new 2026-08-17, built 2026-08-22, ADR-021, Addendum 3.28):** An item may carry **one emoji** as its mark, and that mark is drawn in a **fixed slot at the row's leading edge** — one geometry across M4, M5, M9 and M10, so a list stays aligned whether its rows are marked or not. Decided on a rendered four-way round (`dev-docs/UI_Concept_ItemMark_variants.html`); the losing options and their measured costs are in Addendum 3.28.
-  * **The slot holds its width when it is empty.** An item with no mark is the normal case (FR-28.1), and a column that collapses on unmarked rows re-ragged the names on every list the round rendered.
-  * **The ladder is per surface, not global.** M9 falls back photo → mark → primary-tag initial; M4 and M5 fall back photo → mark → *nothing*. The inventory identifies an item and already owns the initial tile (ADR-014); the packing row is scanned, and a coloured letter repeating the name beside it is noise — that was the null variant of the round, and it lost to *no mark at all*.
-  * **A photo wins wherever one exists.** It is the more specific answer (FR-22.1). The accepted cost is a mixed column: on a realistic list three rows in fifteen are photographed, and they pull the eye harder than the twelve beside them.
-  * **The mark is content, never chrome** (FR-28.5). It is the one thing on screen whose colours do not come from the token table (G-11, invariant 9), and it stays confined to item and template rows for exactly that reason: no emoji in buttons, headings, status pills, progress or empty states, and never as a stand-in for a tag or state colour. It is presentational for assistive technology — the row's name is its accessible name, and no count, filter or state is ever expressed by a mark alone. The FR-25.4 procurement glyphs (🧳/🛒/📍) and the ⏰ late flag are **not** marks: they are a fixed app-owned state vocabulary, and they are the ceiling rather than a precedent.
-  * **The emoji face is served by the instance**, subsetted to the picker's curated set (FR-28.6) — the same rule as the two text faces (G-13). Platform emoji would render a *shared* list as a different picture per device, which is the failure this pattern exists to avoid; being available offline is the second reason, not the first.
-* **G-16 (Default Action — new 2026-08-21):** A screen, or a self-contained form context within one (a wizard step, a sheet, a composer), has **at most one default action** — the single button the context exists to reach, painted in the action role (G-11) like everything else you act on. **On desktop, Enter in one of the context's plain single-line fields triggers that action** exactly as if the button had been clicked: same handler, same validity gate, so the key can never do more than the click could — a disabled default action means Enter does nothing, silently. This generalises FR-25.13a's ruling beyond the composers: the **visible button remains the primary commit** (a phone has no reachable Enter), and Enter is an accelerator, never the only path.
-  * **A field that owns its Enter is exempt by rule.** Commit-on-blur/Enter name fields (M8's template name, M22's trip name), the filter-or-create tag input (FR-24.1), the quick-add composers (FR-25.13 family), and any search field whose result list Enter may later pick from (M3's single-item search, FR-27.13's picker search): there Enter belongs to the field, and the default action is reached by its button alone. Multi-line fields are never wired — Enter inserts a newline.
-  * **Opt-in per field, never a global key capture.** The binding sits on the field itself, not on a document- or container-level listener — a context-wide capture is precisely how an exempt field gets its Enter stolen, and per-field wiring keeps *which* fields fire the default action a reviewable property of the template.
-  * **First implemented on M3** (2026-08-21): each wizard step's plain fields fire the step's own navigation button behind its existing validity gate — steps 1 and 2 fire *Weiter*, a step-4 quantity fires *Reise erstellen*; step 3's only field is the exempt single-item search, so step 3 is left by the button alone. Other screens adopt the pattern as they are touched, not in one sweep.
+* **G-15 (The Item Mark — new 2026-08-17, built 2026-08-22, ADR-021, Addendum 3.28):** An item may carry **one emoji**
+  as its mark, and that mark is drawn in a **fixed slot at the row's leading edge** — one geometry across M4, M5, M9 and
+  M10, so a list stays aligned whether its rows are marked or not. Decided on a rendered four-way round
+  (`dev-docs/UI_Concept_ItemMark_variants.html`); the losing options and their measured costs are in Addendum 3.28.
+  * **The slot holds its width when it is empty.** An item with no mark is the normal case (FR-28.1), and a column that
+    collapses on unmarked rows re-ragged the names on every list the round rendered.
+  * **The ladder is per surface, not global.** M9 falls back photo → mark → primary-tag initial; M4 and M5 fall back
+    photo → mark → *nothing*. The inventory identifies an item and already owns the initial tile (ADR-014); the packing
+    row is scanned, and a coloured letter repeating the name beside it is noise — that was the null variant of the
+    round, and it lost to *no mark at all*.
+  * **A photo wins wherever one exists.** It is the more specific answer (FR-22.1). The accepted cost is a mixed column:
+    on a realistic list three rows in fifteen are photographed, and they pull the eye harder than the twelve beside
+    them.
+  * **The mark is content, never chrome** (FR-28.5). It is the one thing on screen whose colours do not come from the
+    token table (G-11, invariant 9), and it stays confined to item and template rows for exactly that reason: no emoji
+    in buttons, headings, status pills, progress or empty states, and never as a stand-in for a tag or state colour. It
+    is presentational for assistive technology — the row's name is its accessible name, and no count, filter or state is
+    ever expressed by a mark alone. The FR-25.4 procurement glyphs (🧳/🛒/📍) and the ⏰ late flag are **not** marks: they
+    are a fixed app-owned state vocabulary, and they are the ceiling rather than a precedent.
+  * **The emoji face is served by the instance**, subsetted to the picker's curated set (FR-28.6) — the same rule as the
+    two text faces (G-13). Platform emoji would render a *shared* list as a different picture per device, which is the
+    failure this pattern exists to avoid; being available offline is the second reason, not the first.
+* **G-16 (Default Action — new 2026-08-21):** A screen, or a self-contained form context within one (a wizard step, a
+  sheet, a composer), has **at most one default action** — the single button the context exists to reach, painted in the
+  action role (G-11) like everything else you act on. **On desktop, Enter in one of the context's plain single-line
+  fields triggers that action** exactly as if the button had been clicked: same handler, same validity gate, so the key
+  can never do more than the click could — a disabled default action means Enter does nothing, silently. This
+  generalises FR-25.13a's ruling beyond the composers: the **visible button remains the primary commit** (a phone has no
+  reachable Enter), and Enter is an accelerator, never the only path.
+  * **A field that owns its Enter is exempt by rule.** Commit-on-blur/Enter name fields (M8's template name, M22's trip
+    name), the filter-or-create tag input (FR-24.1), the quick-add composers (FR-25.13 family), and any search field
+    whose result list Enter may later pick from (M3's single-item search, FR-27.13's picker search): there Enter belongs
+    to the field, and the default action is reached by its button alone. Multi-line fields are never wired — Enter
+    inserts a newline.
+  * **Opt-in per field, never a global key capture.** The binding sits on the field itself, not on a document- or
+    container-level listener — a context-wide capture is precisely how an exempt field gets its Enter stolen, and
+    per-field wiring keeps *which* fields fire the default action a reviewable property of the template.
+  * **First implemented on M3** (2026-08-21): each wizard step's plain fields fire the step's own navigation button
+    behind its existing validity gate — steps 1 and 2 fire *Weiter*, a step-4 quantity fires *Reise erstellen*; step 3's
+    only field is the exempt single-item search, so step 3 is left by the button alone. Other screens adopt the pattern
+    as they are touched, not in one sweep.
 
 ---
-* **G-17 (Form Controls Wear the Theme — new 2026-08-26, ADR-035):** A form control the browser would paint in its own chrome and language is presented by the app instead. A **date** is entered through the shared `DateField`: a read-only field that renders its value through `formatDay` — the one temporal formatter — and opens the calendar in the app's sheet chrome, in the app's locale with Monday first; clearing it is a picker action, and under G-3's lock the field opens nothing. A visible **file trigger** is a catalogue-labelled button in front of a hidden input (`FilePickButton`) — the pattern M10's photo and M17's avatar already used, now the rule. A view never writes `<input type="date">` or a visible `<input type="file">`. Sites today: M3's and M22's dates and the clone form's, M15's and M18's file pickers. Accepted cost (ADR-035): a date cannot be typed — revisit at the first field whose value is far from today. **A `DateField` also carries its bounds** (`min`/`max`, added 2026-08-27, FR-2.1d): where two fields describe a range, each bounds the other's calendar, so the invalid pair is unreachable rather than refused — no per-screen error state, and a fourth surface using the control inherits the rule. An absent bound is no restriction, and the bound constrains the calendar only: a row that already holds an inverted range still renders and is still repairable.
+* **G-17 (Form Controls Wear the Theme — new 2026-08-26, ADR-035):** A form control the browser would paint in its own
+  chrome and language is presented by the app instead. A **date** is entered through the shared `DateField`: a read-only
+  field that renders its value through `formatDay` — the one temporal formatter — and opens the calendar in the app's
+  sheet chrome, in the app's locale with Monday first; clearing it is a picker action, and under G-3's lock the field
+  opens nothing. A visible **file trigger** is a catalogue-labelled button in front of a hidden input (`FilePickButton`)
+  — the pattern M10's photo and M17's avatar already used, now the rule. A view never writes `<input type="date">` or a
+  visible `<input type="file">`. Sites today: M3's and M22's dates and the clone form's, M15's and M18's file pickers.
+  Accepted cost (ADR-035): a date cannot be typed — revisit at the first field whose value is far from today. **A
+  `DateField` also carries its bounds** (`min`/`max`, added 2026-08-27, FR-2.1d): where two fields describe a range,
+  each bounds the other's calendar, so the invalid pair is unreachable rather than refused — no per-screen error state,
+  and a fourth surface using the control inherits the rule. An absent bound is no restriction, and the bound constrains
+  the calendar only: a row that already holds an inverted range still renders and is still repairable.
 
 ## 1. Screen Inventory
 
@@ -139,252 +563,1150 @@ These patterns apply to every screen and are specified once.
 ### M1 — Dashboard "My Tasks"
 
 * **Purpose:** Single entry point answering "what do I have to do right now?" across all active trips (FR-6.1).
-* **Elements:** Greeting header with sync glyph (G-2) — the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag* 12–17, *Guten Abend* 18–21, and a neutral *Hallo* through the night (2026-08-26, UX review UX-15: everything below noon was morning, so 00:14 greeted the morning; night deliberately makes no time-of-day claim). The rule is the pure `greetingKey` in `lib/greeting.ts`. Trip cards render their dates through the one `formatTripPeriod` formatter (UX-5, see M2); grouped card list per active trip: open packing items (a count and three of them) and the trip's open tasks. **Three qualifiers in that sentence are corrected 2026-08-30 (audit of backlog item 6), because the screen has never kept them and reading it against this line said it did:** the list is **not filtered to me** — M1 aggregates every open row of every active trip, and a personal filter would empty the screen in Local and Single-User Mode, where nobody is assigned anything (**struck 2026-08-31, owner decision — Addendum FR-6.1 carries the ruling and the highlight that replaces it**; E2E-M1-01); **"next 3" names an order nothing defines** — it is the first three of the store's own array, whose order after a reload is IndexedDB's over random ids; **Both sections exist since 2026-08-31** (owner decision). *Delegated to me* is a card above the trip list: every open row assigned to me across active trips, what arrived **since this device last showed the section** marked and sorted to the top, and a count of the new ones on the header. It is a **section beside** the aggregation and not a lens over it — FR-6.1's personal *filter* was struck the same day, because a filter empties the screen in the two modes with no account, and G-8 hides this card there instead. *„Seit dem letzten Besuch"* is a device-local **set of row ids** rather than a timestamp: a row carries no assignment time, and a set answers the question identically after a clock change or a week switched off. It is written when the screen is **left**, by either exit — an in-app navigation and the browser leaving the document are two different events and only one of them runs a Vue hook. *Last things to pack* is the FR-5.1 section: the flagged, still-open rows of a trip departing **today**, absent on every other day, because a permanent section counting down to a date is a different feature. **Planned trips section (added 2026-09-02):** below the active trip cards, a *Geplant ({n})* card lists every trip in `planning` — the lookahead M1 had never shown, so a trip created but not started was on no screen the app opens on. Sorted by departure, soonest first, with the undated ones last (FR-2.1b makes the date optional, and „no date yet" says the departure is unknown, never that it is imminent); each row names the trip and its period through `formatTripPeriod` and leads to the trip, the way an active card does. **Involvement needs no filter here:** in Server Mode the master feed carries only the trips this account is a member of, and the two modes without accounts have nobody to be involved — so the device's trip list *is* the list of trips I am part of. The card is **display-only**: unlike the active trips above it, no planned trip's partition is fetched or subscribed, because nothing on the row is read out of it and one request per planned trip would buy numbers this section does not show (E2E-M1-08). **Preparation Todos section (FR-7.3):** a dedicated "Prep to do" card listing open preparation todos across all active trips, grouped by item (e.g., "Camera: charge battery, format SD card"). Tapping a todo toggles it resolved (E2E-M1-02), and **tapping the item name opens that row's M5 sheet** (built 2026-08-31; it is a `<button>` rather than a `<p>` with a handler, because a tap target has to be one for the keyboard and for assistive technology too).
-* **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's landing is exercised from a notification instead (E2E-G4-01).
-* **The screen loads what it aggregates (added 2026-08-31).** A trip partition arrives when its trip is opened, so in Server Mode M1 was counting an empty store: every active trip rendered with „0 offen", no preview rows and no prep, until the user had visited each trip in that page session. Local Mode never showed it, because everything there is rehydrated from IndexedDB on boot, and the pull-to-refresh already pulled exactly this — the screen simply never asked on arrival. It now calls `ensureTripData` for each active trip **as the list arrives** (a watcher, not a mount hook: the trip list itself comes with the master partition, which on a cold boot has not landed yet), and **subscribes to each trip's channel**, which is what makes FR-4.4's live delegation possible at all — only M4 had ever subscribed, so a device sitting on the dashboard heard nothing about the trips it was displaying.
-* **States:** Empty (**no active *and* no planned trips**, corrected 2026-09-02 with the planned section — a trip that exists but has not started must not leave the screen saying there is nothing) → CTA "Plan a trip" → M3 (G-7, E2E-M1-05); offline → cached data with glyph. ~~badge counts update in real time via WebSocket (FR-4.4)~~ — **there are no badges on M1 (2026-08-30)**; a trip's card recomputes from the store like everything else, and the delegation that FR-4.4 would announce arrives as an FR-6.2 toast (E2E-FLOW-02).
+* **Elements:** Greeting header with sync glyph (G-2) — the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag*
+  12–17, *Guten Abend* 18–21, and a neutral *Hallo* through the night (2026-08-26, UX review UX-15: everything below
+  noon was morning, so 00:14 greeted the morning; night deliberately makes no time-of-day claim). The rule is the pure
+  `greetingKey` in `lib/greeting.ts`. Trip cards render their dates through the one `formatTripPeriod` formatter (UX-5,
+  see M2); grouped card list per active trip: open packing items (a count and three of them) and the trip's open tasks.
+  **Three qualifiers in that sentence are corrected 2026-08-30 (audit of backlog item 6), because the screen has never
+  kept them and reading it against this line said it did:** the list is **not filtered to me** — M1 aggregates every
+  open row of every active trip, and a personal filter would empty the screen in Local and Single-User Mode, where
+  nobody is assigned anything (**struck 2026-08-31, owner decision — Addendum FR-6.1 carries the ruling and the
+  highlight that replaces it**; E2E-M1-01); **"next 3" names an order nothing defines** — it is the first three of the
+  store's own array, whose order after a reload is IndexedDB's over random ids; **Both sections exist since 2026-08-31**
+  (owner decision). *Delegated to me* is a card above the trip list: every open row assigned to me across active trips,
+  what arrived **since this device last showed the section** marked and sorted to the top, and a count of the new ones
+  on the header. It is a **section beside** the aggregation and not a lens over it — FR-6.1's personal *filter* was
+  struck the same day, because a filter empties the screen in the two modes with no account, and G-8 hides this card
+  there instead. *„Seit dem letzten Besuch"* is a device-local **set of row ids** rather than a timestamp: a row carries
+  no assignment time, and a set answers the question identically after a clock change or a week switched off. It is
+  written when the screen is **left**, by either exit — an in-app navigation and the browser leaving the document are
+  two different events and only one of them runs a Vue hook. *Last things to pack* is the FR-5.1 section: the flagged,
+  still-open rows of a trip departing **today**, absent on every other day, because a permanent section counting down to
+  a date is a different feature. **Planned trips section (added 2026-09-02):** below the active trip cards, a *Geplant
+  ({n})* card lists every trip in `planning` — the lookahead M1 had never shown, so a trip created but not started was
+  on no screen the app opens on. Sorted by departure, soonest first, with the undated ones last (FR-2.1b makes the date
+  optional, and „no date yet" says the departure is unknown, never that it is imminent); each row names the trip and its
+  period through `formatTripPeriod` and leads to the trip, the way an active card does. **Involvement needs no filter
+  here:** in Server Mode the master feed carries only the trips this account is a member of, and the two modes without
+  accounts have nobody to be involved — so the device's trip list *is* the list of trips I am part of. The card is
+  **display-only**: unlike the active trips above it, no planned trip's partition is fetched or subscribed, because
+  nothing on the row is read out of it and one request per planned trip would buy numbers this section does not show
+  (E2E-M1-08). **Preparation Todos section (FR-7.3):** a dedicated "Prep to do" card listing open preparation todos
+  across all active trips, grouped by item (e.g., "Camera: charge battery, format SD card"). Tapping a todo toggles it
+  resolved (E2E-M1-02), and **tapping the item name opens that row's M5 sheet** (built 2026-08-31; it is a `<button>`
+  rather than a `<p>` with a handler, because a tap target has to be one for the keyboard and for assistive technology
+  too).
+* **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at
+  the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
+  links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's
+  landing is exercised from a notification instead (E2E-G4-01).
+* **The screen loads what it aggregates (added 2026-08-31).** A trip partition arrives when its trip is opened, so in
+  Server Mode M1 was counting an empty store: every active trip rendered with „0 offen", no preview rows and no prep,
+  until the user had visited each trip in that page session. Local Mode never showed it, because everything there is
+  rehydrated from IndexedDB on boot, and the pull-to-refresh already pulled exactly this — the screen simply never asked
+  on arrival. It now calls `ensureTripData` for each active trip **as the list arrives** (a watcher, not a mount hook:
+  the trip list itself comes with the master partition, which on a cold boot has not landed yet), and **subscribes to
+  each trip's channel**, which is what makes FR-4.4's live delegation possible at all — only M4 had ever subscribed, so
+  a device sitting on the dashboard heard nothing about the trips it was displaying.
+* **States:** Empty (**no active *and* no planned trips**, corrected 2026-09-02 with the planned section — a trip that
+  exists but has not started must not leave the screen saying there is nothing) → CTA "Plan a trip" → M3 (G-7,
+  E2E-M1-05); offline → cached data with glyph. ~~badge counts update in real time via WebSocket (FR-4.4)~~ — **there
+  are no badges on M1 (2026-08-30)**; a trip's card recomputes from the store like everything else, and the delegation
+  that FR-4.4 would announce arrives as an FR-6.2 toast (E2E-FLOW-02).
 * **Navigation:** Tab 1. Deep-link target from notifications.
 
 ### M2 — Trip List
 
 * **Purpose:** Overview and entry to all trips.
-* **Elements:** Filter bar (search + segmented *Active / Planned / Archived*, the shared list-filter pattern); per-trip row: **the trip's travellers as small faces at the row's end** (added 2026-08-31, FR-2.1/8.1) — the *roster*, who the trip is for, and never the presence facepile G-10 removed from here on 2026-08-28, whose words were left standing in this line until now. **Two faces before the „+N" bubble, measured rather than chosen:** at 390 px three faces plus „+1" is 64 px and pushes „Sommerferien im Tessin 2027" onto a second line, taking the row from 87 px to 106 px; two plus „+2" is 61 px and the name stays on one. It is the wrap boundary rather than a comfortable margin — a longer name still wraps, which is fine; paying a line for a face nobody asked for is not. A trip with nobody on it shows no pile at all. Name, dates — **locale-formatted through the one `formatTripPeriod` helper** (2026-08-26, UX review UX-5: every surface interpolated raw ISO strings; now `22.08. – 05.09.2026` in German, `Aug 22 – Sep 5, 2026` in English via `Intl`, *bis/until* and *ab/from* for a single known date, and the bare year for a year-only trip, FR-2.1b — the same helper serves M1's cards and M16's history; asserted by E2E-M2-12 and unit-owned per locale in `lib/__tests__/format.spec.ts`), progress ring (packed/total — **and *unknown* rather than zero while the trip's own rows are still coming**, added 2026-08-25, ADR-033: `trip_items` live in the trip's partition, so a trip this device has never opened has nothing to sum, and printing the sum of nothing read as „you packed none of it" for a decade of finished holidays. The row then says the items are loading and the ring stays unfilled and unlabelled. **M2 fetches the partition of a row when that row is on screen**, so the cost is the viewport rather than the archive — measured on a 33-trip device: 8 requests on opening the list against 33 for loading them all, and the list fills in as you scroll, which is the accepted price written into ADR-033), and participant avatars. **No presence facepile** (removed 2026-08-28): G-10 states two lines into itself that presence is meaningless outside a specific trip, and the wire agrees — presence is broadcast per *subscribed* trip, so a list would have to subscribe every row it shows in order to draw circles on it. The two statements had contradicted each other since v1.9 and the row version was never built; G-10 is the one that survives. **The remaining words *„and participant avatars"* describe nothing that is built either (found 2026-08-30, the E2E-M2-03 audit):** the row carries a progress ring, a name, a temporal line, an item summary and the FR-27.4 chips, and no avatar of any kind. Whether the trip's *travellers* — which are not presence, and need no subscription — belong on the row is an open owner decision; the sentence is left standing as the promise it is, and E2E-M2-03 names the part of itself that no case can claim.
-* **Default ordering (concept-review 2026-07-17, realised and refined 2026-08-08):** **one flat list, not grouped by Trip Series.** M2 is the app's main entry since the phase hub was dropped, and what belongs on top is the trip you are packing for, not a taxonomy of your holidays. Ordering is by usefulness rather than literally newest-first: the **active** trip leads, then **upcoming trips soonest first** — a trip in three weeks matters more than one in eighteen months, which pure date-descending would put above it — then **archived newest first**, because history reads backwards. The series stays visible as a **chip on the trip row** and remains the way into M16; the optional series-grouped view was dropped as unnecessary once the list is short and sorted. **Reversed 2026-08-31 (owner decision): the paragraph above describes what M2 was to be, and the screen is what it stays.** `TripListPage` groups the list under tappable series headers — the option this review rejected — sorts every segment strictly newest-first through `tripOrderKey`, and renders no series chip on the row. The mismatch was found 2026-08-30 by the E2E-M2-15 audit and put to the owner as a rebuild; the ruling is that the built screen wins, on a year of using it. So **the ordering M2 keeps is: grouped by series under tappable headers that lead to M16, every segment newest-first, no chip on the row**, and the opening segment is FR-2.8's derived one. The 2026-08-08 reasoning is kept above rather than deleted because it was a real decision and its premise — that the list is short — is what a year of use disproved; a spec that adopts whatever the code does has stopped being a decision, so this one records that the code was *chosen*.
-* **Actions:** Tap → M4; FAB "New trip" → M3; long-press → context menu (Clone per FR-12.1, Archive, Share, Export per Addendum FR-18.3, Delete — destructive actions require confirmation and Owner role per FR-4.5); tap series header → M16. In Single-User Mode (Addendum FR-17.3), *Share* is omitted from this menu — there is no second account to share with. *Import trip from file* → M18 and the legacy spreadsheet importer → M15 are **two buttons in the title row**, not overflow entries (corrected 2026-08-30, backlog item 6 — the screen has carried them there since the import work landed; see M15's *Navigation*). **The list opens on the segment a caller names** (`?status=active|planned|archived`, added 2026-08-17) — M18 uses it to land a restore where its own result is; an absent or unknown value never resets the segment the user last chose.
-* **The opening segment is derived, not fixed (FR-2.8, built 2026-08-29):** on entering the screen, a segment showing nothing is left for the first one that does, in the order *Active → Planned → Archived*; a segment that still holds trips is never taken away from the user, `?status=` still wins over the walk, and all three empty leaves the list on *Active* with its G-7 CTA. It decides **on entry only** — archiving the last active trip from M2's own context menu does not reorganise the list under the finger that did it — and it waits for the trip list to be **settled** before deciding at all, since a list that has not arrived yet is not an empty one (the ADR-033 rule, which gained a master-partition counterpart to `tripDataLoaded` for it). **Each segment button carries its count in brackets beside the label** (`Aktiv (3)`, owner 2026-08-29): `(0)` where a segment is empty, **nothing at all** while the count is unknown, and part of the button's accessible name (`Aktiv, 3 Reisen`) rather than a bracketed digit read out after it. Fitting `ARCHIVIERT (29)` at 390 px cost the segment its horizontal padding and one step down the type scale, both measured against the rendered German label; a three-digit count truncates and is deliberately not paid for. The counts follow the search field so they say where the hits are; the jump deliberately does not, so a leftover search cannot decide where the user lands.
-* **The empty state carries no CTA of its own (2026-08-31, owner decision):** create is the `trips-new` FAB and it is on screen either way, which is the ruling M7's *States* line already records for the same reason. What is still owed here is a `data-testid` on that state, so E2E-G7-01's M2 half can be asserted at all.
-* **States:** Archived trips render muted with final stats; imported legacy trips (FR-16.2) carry an **„Importiert"** chip — **built 2026-08-31** (owner decision). Until then it was specified, written and never rendered: M15's migration wrote `trips.imported`, the store carried it into `Trip.imported`, and no surface read it — a column with a writer and no reader, the exact mirror of `packer_user_id`, which had a reader and no writer. On an instance carrying a decade of migrated history it is what separates the two kinds of past. **A trip carries up to two FR-27.4 chips** (built 2026-08-18, model revised the same day). The first is a *pointer*: „⟳ N Änderungen vorgeschlagen“ — a group the trip follows has changed and the trip has not answered yet. It is a label, not a control: the two answers live at the trip (M4), and tapping the row is already the way there. It can only appear for a trip whose partition this device holds — in Server Mode a trip's rows arrive when it is opened — so its absence means "nothing to say from here", never "nothing to decide", which is why M4 asks again on open. The second is the record: „⟳ N Änderungen aus Gruppen übernommen“ above one line per change naming its source group, followed by the note that past trips are never changed. **Up to ten changes the log is simply written out** under the row; above that it folds away behind the chip, which then carries a chevron and toggles it (owner, 2026-08-18). The reason for the threshold rather than always folding: a handful of lines is worth reading where it happened, but M2 is the app's main entry and there is deliberately no *seen* state, so an unbounded log would push every other trip down the list until the busy one departs. A folding chip stops the tap, so opening the log does not also open the trip; a non-folding one is a label and takes no interaction at all. **No status rule on either chip:** since the 2026-08-18 revision a running trip is asked too, and a past one produces nothing to show.
+* **Elements:** Filter bar (search + segmented *Active / Planned / Archived*, the shared list-filter pattern); per-trip
+  row: **the trip's travellers as small faces at the row's end** (added 2026-08-31, FR-2.1/8.1) — the *roster*, who the
+  trip is for, and never the presence facepile G-10 removed from here on 2026-08-28, whose words were left standing in
+  this line until now. **Two faces before the „+N" bubble, measured rather than chosen:** at 390 px three faces plus
+  „+1" is 64 px and pushes „Sommerferien im Tessin 2027" onto a second line, taking the row from 87 px to 106 px; two
+  plus „+2" is 61 px and the name stays on one. It is the wrap boundary rather than a comfortable margin — a longer name
+  still wraps, which is fine; paying a line for a face nobody asked for is not. A trip with nobody on it shows no pile
+  at all. Name, dates — **locale-formatted through the one `formatTripPeriod` helper** (2026-08-26, UX review UX-5:
+  every surface interpolated raw ISO strings; now `22.08. – 05.09.2026` in German, `Aug 22 – Sep 5, 2026` in English via
+  `Intl`, *bis/until* and *ab/from* for a single known date, and the bare year for a year-only trip, FR-2.1b — the same
+  helper serves M1's cards and M16's history; asserted by E2E-M2-12 and unit-owned per locale in
+  `lib/__tests__/format.spec.ts`), progress ring (packed/total — **and *unknown* rather than zero while the trip's own
+  rows are still coming**, added 2026-08-25, ADR-033: `trip_items` live in the trip's partition, so a trip this device
+  has never opened has nothing to sum, and printing the sum of nothing read as „you packed none of it" for a decade of
+  finished holidays. The row then says the items are loading and the ring stays unfilled and unlabelled. **M2 fetches
+  the partition of a row when that row is on screen**, so the cost is the viewport rather than the archive — measured on
+  a 33-trip device: 8 requests on opening the list against 33 for loading them all, and the list fills in as you scroll,
+  which is the accepted price written into ADR-033), and participant avatars. **No presence facepile** (removed
+  2026-08-28): G-10 states two lines into itself that presence is meaningless outside a specific trip, and the wire
+  agrees — presence is broadcast per *subscribed* trip, so a list would have to subscribe every row it shows in order to
+  draw circles on it. The two statements had contradicted each other since v1.9 and the row version was never built;
+  G-10 is the one that survives. **The remaining words *„and participant avatars"* describe nothing that is built either
+  (found 2026-08-30, the E2E-M2-03 audit):** the row carries a progress ring, a name, a temporal line, an item summary
+  and the FR-27.4 chips, and no avatar of any kind. Whether the trip's *travellers* — which are not presence, and need
+  no subscription — belong on the row is an open owner decision; the sentence is left standing as the promise it is, and
+  E2E-M2-03 names the part of itself that no case can claim.
+* **Default ordering (concept-review 2026-07-17, realised and refined 2026-08-08):** **one flat list, not grouped by
+  Trip Series.** M2 is the app's main entry since the phase hub was dropped, and what belongs on top is the trip you are
+  packing for, not a taxonomy of your holidays. Ordering is by usefulness rather than literally newest-first: the
+  **active** trip leads, then **upcoming trips soonest first** — a trip in three weeks matters more than one in eighteen
+  months, which pure date-descending would put above it — then **archived newest first**, because history reads
+  backwards. The series stays visible as a **chip on the trip row** and remains the way into M16; the optional
+  series-grouped view was dropped as unnecessary once the list is short and sorted. **Reversed 2026-08-31 (owner
+  decision): the paragraph above describes what M2 was to be, and the screen is what it stays.** `TripListPage` groups
+  the list under tappable series headers — the option this review rejected — sorts every segment strictly newest-first
+  through `tripOrderKey`, and renders no series chip on the row. The mismatch was found 2026-08-30 by the E2E-M2-15
+  audit and put to the owner as a rebuild; the ruling is that the built screen wins, on a year of using it. So **the
+  ordering M2 keeps is: grouped by series under tappable headers that lead to M16, every segment newest-first, no chip
+  on the row**, and the opening segment is FR-2.8's derived one. The 2026-08-08 reasoning is kept above rather than
+  deleted because it was a real decision and its premise — that the list is short — is what a year of use disproved; a
+  spec that adopts whatever the code does has stopped being a decision, so this one records that the code was *chosen*.
+* **Actions:** Tap → M4; FAB "New trip" → M3; long-press → context menu (Clone per FR-12.1, Archive, Share, Export per
+  Addendum FR-18.3, Delete — destructive actions require confirmation and Owner role per FR-4.5); tap series header →
+  M16. In Single-User Mode (Addendum FR-17.3), *Share* is omitted from this menu — there is no second account to share
+  with. *Import trip from file* → M18 and the legacy spreadsheet importer → M15 are **two buttons in the title row**,
+  not overflow entries (corrected 2026-08-30, backlog item 6 — the screen has carried them there since the import work
+  landed; see M15's *Navigation*). **The list opens on the segment a caller names** (`?status=active|planned|archived`,
+  added 2026-08-17) — M18 uses it to land a restore where its own result is; an absent or unknown value never resets the
+  segment the user last chose.
+* **The opening segment is derived, not fixed (FR-2.8, built 2026-08-29):** on entering the screen, a segment showing
+  nothing is left for the first one that does, in the order *Active → Planned → Archived*; a segment that still holds
+  trips is never taken away from the user, `?status=` still wins over the walk, and all three empty leaves the list on
+  *Active* with its G-7 CTA. It decides **on entry only** — archiving the last active trip from M2's own context menu
+  does not reorganise the list under the finger that did it — and it waits for the trip list to be **settled** before
+  deciding at all, since a list that has not arrived yet is not an empty one (the ADR-033 rule, which gained a
+  master-partition counterpart to `tripDataLoaded` for it). **Each segment button carries its count in brackets beside
+  the label** (`Aktiv (3)`, owner 2026-08-29): `(0)` where a segment is empty, **nothing at all** while the count is
+  unknown, and part of the button's accessible name (`Aktiv, 3 Reisen`) rather than a bracketed digit read out after it.
+  Fitting `ARCHIVIERT (29)` at 390 px cost the segment its horizontal padding and one step down the type scale, both
+  measured against the rendered German label; a three-digit count truncates and is deliberately not paid for. The counts
+  follow the search field so they say where the hits are; the jump deliberately does not, so a leftover search cannot
+  decide where the user lands.
+* **The empty state carries no CTA of its own (2026-08-31, owner decision):** create is the `trips-new` FAB and it is on
+  screen either way, which is the ruling M7's *States* line already records for the same reason. What is still owed here
+  is a `data-testid` on that state, so E2E-G7-01's M2 half can be asserted at all.
+* **States:** Archived trips render muted with final stats; imported legacy trips (FR-16.2) carry an **„Importiert"**
+  chip — **built 2026-08-31** (owner decision). Until then it was specified, written and never rendered: M15's migration
+  wrote `trips.imported`, the store carried it into `Trip.imported`, and no surface read it — a column with a writer and
+  no reader, the exact mirror of `packer_user_id`, which had a reader and no writer. On an instance carrying a decade of
+  migrated history it is what separates the two kinds of past. **A trip carries up to two FR-27.4 chips** (built
+  2026-08-18, model revised the same day). The first is a *pointer*: „⟳ N Änderungen vorgeschlagen“ — a group the trip
+  follows has changed and the trip has not answered yet. It is a label, not a control: the two answers live at the trip
+  (M4), and tapping the row is already the way there. It can only appear for a trip whose partition this device holds —
+  in Server Mode a trip's rows arrive when it is opened — so its absence means "nothing to say from here", never
+  "nothing to decide", which is why M4 asks again on open. The second is the record: „⟳ N Änderungen aus Gruppen
+  übernommen“ above one line per change naming its source group, followed by the note that past trips are never changed.
+  **Up to ten changes the log is simply written out** under the row; above that it folds away behind the chip, which
+  then carries a chevron and toggles it (owner, 2026-08-18). The reason for the threshold rather than always folding: a
+  handful of lines is worth reading where it happened, but M2 is the app's main entry and there is deliberately no
+  *seen* state, so an unbounded log would push every other trip down the list until the busy one departs. A folding chip
+  stops the tap, so opening the log does not also open the trip; a non-folding one is a label and takes no interaction
+  at all. **No status rule on either chip:** since the 2026-08-18 revision a running trip is asked too, and a past one
+  produces nothing to show.
 * **Navigation:** Tab 2.
 
 ### M3 — Trip Creation Wizard
 
-* **Enter is the step's button (G-16, 2026-08-21):** each step's plain text fields fire the step's own navigation action behind its validity gate — the name, series name and tags on step 1 and the traveller names on step 2 fire *Weiter* (the dates are G-17 fields since 2026-08-26 — their Enter opens the picker, and the folded row's summary states them through `formatDay`), a step-4 quantity fires *Reise erstellen*. The single-item search on step 3 is G-16-exempt (its Enter is reserved for the field's own result list), so step 3 is left by the button alone.
+* **Enter is the step's button (G-16, 2026-08-21):** each step's plain text fields fire the step's own navigation action
+  behind its validity gate — the name, series name and tags on step 1 and the traveller names on step 2 fire *Weiter*
+  (the dates are G-17 fields since 2026-08-26 — their Enter opens the picker, and the folded row's summary states them
+  through `formatDay`), a step-4 quantity fires *Reise erstellen*. The single-item search on step 3 is G-16-exempt (its
+  Enter is reserved for the field's own result list), so step 3 is left by the button alone.
 * **Step 2 opens with the default travellers (FR-2.5a, 2026-08-14)** from M17, editable there like any other traveller.
-* **Step 1 folds its optional fields (FR-2.1c, 2026-08-14):** name and year stand alone; dates, series and attributes live behind one *Mehr Optionen ▾* row that states what is set behind it.
-* **Step 1 requires a name and a year (FR-2.1b, 2026-08-14).** The year is a picker that opens on the current one, so the required field is satisfied on arrival; both dates are marked optional and neither gates *Next*. The duration line appears only when both dates are set.
+* **Step 1 folds its optional fields (FR-2.1c, 2026-08-14):** name and year stand alone; dates, series and attributes
+  live behind one *Mehr Optionen ▾* row that states what is set behind it.
+* **Step 1 requires a name and a year (FR-2.1b, 2026-08-14).** The year is a picker that opens on the current one, so
+  the required field is satisfied on arrival; both dates are marked optional and neither gates *Next*. The duration line
+  appears only when both dates are set.
 
 * **Purpose:** Generate a trip instance from templates with correct quantities on the first pass.
-* **Step 1 — Metadata:** Name, series picker (or "New series"), optional start date and end date (duration auto-computed and displayed when both dates are set, FR-2.1/2.1a), attribute chips: season, transport, accommodation (FR-15.1; prefilled from series defaults). **A new-series name that is taken is refused here (2026-08-25, FR-13.1):** `trip_series.name` is UNIQUE instance-wide, so the field carries a note naming the existing series and *Weiter* stays disabled. The step deliberately does **not** attach the trip to that series by itself — the picker right above the field already offers it, and quietly choosing whose series a trip joins is not the wizard's decision to make.
-* **Step 2 — Travelers:** Add travelers (name only — the Adult/Child type was removed 2026-08-08 with FR-25.9, FR-2.5), optionally link to a registered user account; share the trip with user accounts and assign roles: Owner (creator, immutable), Admin (can manage travelers and roles), Editor (default — can edit items but not manage travelers) (FR-4.5/4.7). In Single-User Mode (Addendum FR-17.3), the sharing and role-assignment part of this step is hidden entirely — only traveler add/edit remains, and the sole user is silently the trip's Owner.
-* **Step 3 — Templates:** Checkbox lists of all templates (shared instance-wide, FR-1.6 MVP simplification 2026-08-08), **split by scope per FR-27.6 (implemented 2026-08-16): *Ferien-Vorlagen* first, *Zusätzliche Gruppen* below** — the Vorlage is what a trip starts from, groups are what you add to it. Every row counts what picking it would *resolve* to (FR-27.2), not the template's own positions: a Vorlage frequently owns none and is nothing but its groups. A group a picked Vorlage already brings along says so on the row („bereits über ‚Sommerferien' enthalten") rather than letting the user believe a second tap added something — the FR-25.13 duplicate-report rule. **Every row can be looked into (FR-27.12, 2026-08-16):** it names its first **two** items with a count for the rest („Kamera · Makro-Objektiv +2“) — two rather than three because three German item names wrap at 390 px, which turns a scannable row into a four-line block, and a chevron opens the read-only peek sheet with the resolved list. The footer **names every merge and its contributing groups** („Kamera nur 1× — in Makro & Wildlife", FR-27.2) instead of an anonymous count, and states the preparation tasks the trip inherits („📋 2 Vorbereitungs-Aufgaben übernommen", FR-27.7). Live preview footer also: resulting item count, deduplicated overlaps listed with the applied merge strategy (FR-2.3); items excluded by conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter"). **Implemented (Addendum 3.20):** the footer additionally reports companion items pulled in automatically ("+ 2 companion items (battery, screwdriver)"); step 4 lists them with their main item, notes FR-20.3 dedups ("already on the list, not duplicated"), and offers suggested companions as opt-in checkboxes (FR-20.4).
-* **Step 4 — Quantity Review:** Virtualized list of all generated items; each row: name, the template quantity with a stepper, history hint "2024: 5 · 2025: 6 → suggested 6" with one-tap accept (FR-14.1/14.2; formulas retired 2026-08-08); destination checklist offer if the series has one (FR-13.3). **The hint waits for the series' own trips (corrected 2026-08-31, E2E-FLOW-05):** their rows live in each trip's partition, which Server and Single-User Mode pull only when a trip is *opened* (ADR-033), so the screen asks for them and offers nothing until every one of them is here — an unpulled partition reads not as *unknown* but as a trip that packed none of it, and the median would be taken over whichever subset happened to be on the device.
+* **Step 1 — Metadata:** Name, series picker (or "New series"), optional start date and end date (duration auto-computed
+  and displayed when both dates are set, FR-2.1/2.1a), attribute chips: season, transport, accommodation (FR-15.1;
+  prefilled from series defaults). **A new-series name that is taken is refused here (2026-08-25, FR-13.1):**
+  `trip_series.name` is UNIQUE instance-wide, so the field carries a note naming the existing series and *Weiter* stays
+  disabled. The step deliberately does **not** attach the trip to that series by itself — the picker right above the
+  field already offers it, and quietly choosing whose series a trip joins is not the wizard's decision to make.
+* **Step 2 — Travelers:** Add travelers (name only — the Adult/Child type was removed 2026-08-08 with FR-25.9, FR-2.5),
+  optionally link to a registered user account; share the trip with user accounts and assign roles: Owner (creator,
+  immutable), Admin (can manage travelers and roles), Editor (default — can edit items but not manage travelers)
+  (FR-4.5/4.7). In Single-User Mode (Addendum FR-17.3), the sharing and role-assignment part of this step is hidden
+  entirely — only traveler add/edit remains, and the sole user is silently the trip's Owner.
+* **Step 3 — Templates:** Checkbox lists of all templates (shared instance-wide, FR-1.6 MVP simplification 2026-08-08),
+  **split by scope per FR-27.6 (implemented 2026-08-16): *Ferien-Vorlagen* first, *Zusätzliche Gruppen* below** — the
+  Vorlage is what a trip starts from, groups are what you add to it. Every row counts what picking it would *resolve* to
+  (FR-27.2), not the template's own positions: a Vorlage frequently owns none and is nothing but its groups. A group a
+  picked Vorlage already brings along says so on the row („bereits über ‚Sommerferien' enthalten") rather than letting
+  the user believe a second tap added something — the FR-25.13 duplicate-report rule. **Every row can be looked into
+  (FR-27.12, 2026-08-16):** it names its first **two** items with a count for the rest („Kamera · Makro-Objektiv +2“) —
+  two rather than three because three German item names wrap at 390 px, which turns a scannable row into a four-line
+  block, and a chevron opens the read-only peek sheet with the resolved list. The footer **names every merge and its
+  contributing groups** („Kamera nur 1× — in Makro & Wildlife", FR-27.2) instead of an anonymous count, and states the
+  preparation tasks the trip inherits („📋 2 Vorbereitungs-Aufgaben übernommen", FR-27.7). Live preview footer also:
+  resulting item count, deduplicated overlaps listed with the applied merge strategy (FR-2.3); items excluded by
+  conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter"). **Implemented (Addendum 3.20):**
+  the footer additionally reports companion items pulled in automatically ("+ 2 companion items (battery,
+  screwdriver)"); step 4 lists them with their main item, notes FR-20.3 dedups ("already on the list, not duplicated"),
+  and offers suggested companions as opt-in checkboxes (FR-20.4).
+* **Step 4 — Quantity Review:** Virtualized list of all generated items; each row: name, the template quantity with a
+  stepper, history hint "2024: 5 · 2025: 6 → suggested 6" with one-tap accept (FR-14.1/14.2; formulas retired
+  2026-08-08); destination checklist offer if the series has one (FR-13.3). **The hint waits for the series' own trips
+  (corrected 2026-08-31, E2E-FLOW-05):** their rows live in each trip's partition, which Server and Single-User Mode
+  pull only when a trip is *opened* (ADR-033), so the screen asks for them and offers nothing until every one of them is
+  here — an unpulled partition reads not as *unknown* but as a trip that packed none of it, and the median would be
+  taken over whichever subset happened to be on the device.
 * **Actions:** Back/Next per step; "Create trip" commits and opens M4.
 * **States:** Draft persists locally between steps (offline-safe).
-* **Step 3 also takes single items (FR-27.3, built 2026-08-18).** Below the two scope sections sits *„Einzelne Artikel"*: a search field over the **inventory** (two characters before it offers anything, five matches at a time), results as tappable rows, picks as removable chips. Deliberately **not** the M4/M8 quick-add despite the §3.25 consistency directive — that composer exists to *write a row*, free text included; this one picks something that already exists, because a name nobody owns has no weight, no tag and nothing for FR-27.5 to recognise a year later. What the two share is the rule behind them (`searchItems`). A pick the composition already carries is **reported in the footer** („Bereits enthalten, nicht doppelt: …") and changes no count; an already-picked item leaves the suggestions rather than being offered twice; and an empty result says so, because an empty inventory and an unmatched search are different problems.
+* **Step 3 also takes single items (FR-27.3, built 2026-08-18).** Below the two scope sections sits *„Einzelne
+  Artikel"*: a search field over the **inventory** (two characters before it offers anything, five matches at a time),
+  results as tappable rows, picks as removable chips. Deliberately **not** the M4/M8 quick-add despite the §3.25
+  consistency directive — that composer exists to *write a row*, free text included; this one picks something that
+  already exists, because a name nobody owns has no weight, no tag and nothing for FR-27.5 to recognise a year later.
+  What the two share is the rule behind them (`searchItems`). A pick the composition already carries is **reported in
+  the footer** („Bereits enthalten, nicht doppelt: …") and changes no count; an already-picked item leaves the
+  suggestions rather than being offered twice; and an empty result says so, because an empty inventory and an unmatched
+  search are different problems.
 * **Navigation:** From M2 FAB or M1 empty state. Cancel returns without residue.
 
 ### M4 — Packing List (Trip Detail) — *core screen*
 
-* **Purpose:** The live, collaborative packing workspace, and — decided 2026-08-08 — **the trip screen itself**: tapping a trip in M2 or M1 opens M4 directly, with no hub in between. Highest design investment.
-* **No phase hub in the MVP (decided 2026-08-08).** A four-phase trip hub (*Planen · Vorbereiten · Unterwegs · Danach*) was mocked and then dropped. Two reasons: three of its four panels were North-Star content with nothing behind them (idea board, day plan, expenses — `Vision_NorthStar_v1.0.md` §2 marks Plan and During as ❌ new), and its remaining entries duplicated the ones M4 already carries on its trip line since G-12. A hub with two dead tabs claims a structure the app does not have, and every later design question would have had to ask "hub or M4?". **Re-entry point, so this stays deliberate rather than forgotten:** when the Plan and During phases acquire real content, they attach *here* as a phase frame above M4 — M4 becomes the *Vorbereiten* phase rather than being replaced.
-* **Redesign complete (Addendum §3.25) — mocked and settled 2026-07-17 … 2026-08-08.** The screen was re-mocked from scratch to give the actual packing far more room. The full reasoning per decision lives in the addendum; what M4 *is* now:
-  * **The header line** — the trip name with the trip's other views, then packed/total · weight · open-prep with the presence facepile — and nothing else. It stays **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line hides, the name with it, and any upward scroll brings it back. **Revised 2026-08-19 (owner):** the name used to live in the app bar and the line was to carry it only while scrolled. Both halves were wrong. The bar cannot hold it — with search, filter, fold-all, the FR-27.5 lifecycle step, the sync glyph and the settings gear beside it, 54 px were left at 390 px and "Samedan 2026" rendered as **"S…"**, measured off the visual baseline. And nothing needs to migrate up on scroll: you know which packing list you are on, and the rows are what the screen is for. So below the G-9 breakpoint the name leads the line, the line takes two rows, and **M4 registers no app-bar title** — the one screen in the app without one; the chevron still leads out. **At and above the breakpoint the bar has the room and takes the title back, and the line drops the name** rather than printing it twice, which returns it to a single row. The rule is: the trip is named exactly once, and the width decides where. **Re-decided 2026-08-30 (owner): it stays as it is.** PR #230 folded the bar's actions into a ⋮ menu, which freed one slot and made the 2026-08-19 measurement stale, so the question was reopened — and closed unchanged. A name that only just fits is worse than a name that is somewhere else: the gain would have been one header row on mobile, and the risk was the "S…" this rule was written to end. The measurement is not owed again unless the bar loses another element.
-  * **The list comes back where it was left** (2026-08-21). Opening an item is an overlay on the same route (ADR-012), and the route replace used to return the list to the top — on a forty-row list, mid-pack, that is the screen's most expensive small failure. Closing the sheet restores both halves of the position: the scroll offset *and* whether the header line was folded, since the line holds real height in the scrolled content and the offset alone would name different rows. The line also stops travelling entirely under `prefers-reduced-motion`: it is the largest movement on the screen and it happens while the list is moving too.
-  * **Actions live in the app bar (G-12), not in the header:** search (collapsed behind its icon), filter (badge = active facet count), fold-all. The trip's *other views* — 🛒 Shopping with its open count, 🧳 Luggage, 📊 Analytics — are icons on the trip line. **There is no ⋯ overflow** (FR-25.11k, G-12).
-  * **Faceted filter panel** (FR-25.11) replaces the old grouping bar + mode pill strip: a bottom sheet holding *Gruppieren nach*, an *Erledigte* switch, and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale. OR within a facet, AND across facets; active values appear as removable chips under the header. **Revised 2026-08-14 (FR-25.11b-rev):** the panel has **no apply button** — every tap is in force behind it, and the head states the outcome — its values are **chips rather than folded accordions**, each axis carries an icon, and it is visibly a layer over the list rather than more page.
-  * **The empty list says what actually hid the rows (corrected 2026-08-25).** With every row assigned to somebody else, M4 reported *„Keine Treffer — 1 offene Position ist hinter dem Filter"* over a *„Suche und Filter zurücksetzen"* button, with neither a search nor a facet set: FR-25.20's hiding is not a filter anybody chose. It now reads *„Alles ist bei jemand anderem"* and names them, and its action is *„Alle anzeigen"* — the same reveal the foot bar offers, which is what the button always did underneath. The state was unreachable until FR-25.19 gave the assignment a writer.
-  * **Rows assigned to someone else are hidden by default** (FR-25.20; "Zugewiesen an" is the term everywhere, M4/M5 and M6 alike): M4 opens on your own work. Unassigned rows stay — they belong to everyone. A reveal bar names the count and the people, and the switch sits in the filter panel beside *Erledigte*; the header keeps counting the whole trip regardless.
-  * **Done rows drop out** (FR-25.2) — fully packed *or* consciously skipped, but never a row with open preparation (FR-7.3). Revealed via the *Erledigte* switch, dimmed but interactive, each showing **who packed it and when** (FR-25.17). A fully-done group disappears header-and-all.
-  * **Groups fold** (FR-25.16): tapping a header collapses the group to that line, which then carries its open count; fold-all turns the list into a table of contents.
-  * **Per-person items render as a named cluster** (FR-25.1) — item name once with `done/total`, one indented child row per traveler; a lone instance (notably when grouped by traveler) falls back to a flat "Item · Person" row. Cluster-vs-flat is decided over the *full* set, so packing one instance never restructures the list. **The head counts travelers, not units** (FR-25.21a): `1/3` means one of three people is done. Since FR-25.21 the amounts may differ per person, and they live on the child rows — the head's subject is the set of instances.
-  * **One avatar at the right edge** (FR-25.3/25.19), set apart from the traveler avatar on the left: it shows the **assignee** while the row is open (blue ring) and **who actually packed it** once it is packed (green ring + check). Never both — the left avatar already answers *for whom*, and a third circle makes the row unreadable.
-  * **Procurement glyph on the two buy modes only** (🛒 / 📍; 🧳 stays silent so the exceptions stand out), once per cluster header; **Late Packer** stays a separate ⏰ flag (FR-25.4).
-  * **Quick-add** stays inline, collapses on blur, and is opened *and focused* by the ＋ FAB — which **hides while the composer is open** (2026-08-17): it would only open what is already open, and the composer needs the room; its container stays, because M4 and M8 anchor their toasts to it. The composer also carries a **visible confirm button** — a phone has no reachable Enter (FR-25.13/13a). It also adds **whole groups** (FR-27.10, built 2026-08-19): typing filters groups alongside items under *„Ganze Gruppe hinzufügen“*, and one tap expands the group into the trip — deduped against what is already there, provenance stamped, FR-27.7 tasks materialised, result reported, and deliberately **not** flagged *Missing*. A group entry is a **card**, not a list row like the item suggestions, and carries the group's name, the FR-27.12 summary („Makroobjektiv · Ringblitz +1“) and its resolved position count: a tap that adds a dozen rows must not look like a tap that adds one item, and the summary is what lets the user decide without opening anything. Matching is on the **group name** — the resolved item names are FR-27.13's job on M8's picker. Three outcomes, three sentences: what was added and what was already there, a group that is already fully on the list, and a group whose positions this trip's attributes all excluded (FR-15.2). The emoji the FR shows on the entry waits for §3.28, which owns the mark.
-  * **Full-screen:** the bottom tab bar is hidden here, the FAB drops to the screen foot, and the list scrolls clear of the FAB's whole footprint so nothing sits permanently underneath it (FR-25.11h).
+* **Purpose:** The live, collaborative packing workspace, and — decided 2026-08-08 — **the trip screen itself**: tapping
+  a trip in M2 or M1 opens M4 directly, with no hub in between. Highest design investment.
+* **No phase hub in the MVP (decided 2026-08-08).** A four-phase trip hub (*Planen · Vorbereiten · Unterwegs · Danach*)
+  was mocked and then dropped. Two reasons: three of its four panels were North-Star content with nothing behind them
+  (idea board, day plan, expenses — `Vision_NorthStar_v1.0.md` §2 marks Plan and During as ❌ new), and its remaining
+  entries duplicated the ones M4 already carries on its trip line since G-12. A hub with two dead tabs claims a
+  structure the app does not have, and every later design question would have had to ask "hub or M4?". **Re-entry point,
+  so this stays deliberate rather than forgotten:** when the Plan and During phases acquire real content, they attach
+  *here* as a phase frame above M4 — M4 becomes the *Vorbereiten* phase rather than being replaced.
+* **Redesign complete (Addendum §3.25) — mocked and settled 2026-07-17 … 2026-08-08.** The screen was re-mocked from
+  scratch to give the actual packing far more room. The full reasoning per decision lives in the addendum; what M4 *is*
+  now:
+  * **The header line** — the trip name with the trip's other views, then packed/total · weight · open-prep with the
+    presence facepile — and nothing else. It stays **unfiltered**, so real progress is visible whatever the current view
+    shows. On scroll-**down** the whole line hides, the name with it, and any upward scroll brings it back. **Revised
+    2026-08-19 (owner):** the name used to live in the app bar and the line was to carry it only while scrolled. Both
+    halves were wrong. The bar cannot hold it — with search, filter, fold-all, the FR-27.5 lifecycle step, the sync
+    glyph and the settings gear beside it, 54 px were left at 390 px and "Samedan 2026" rendered as **"S…"**, measured
+    off the visual baseline. And nothing needs to migrate up on scroll: you know which packing list you are on, and the
+    rows are what the screen is for. So below the G-9 breakpoint the name leads the line, the line takes two rows, and
+    **M4 registers no app-bar title** — the one screen in the app without one; the chevron still leads out. **At and
+    above the breakpoint the bar has the room and takes the title back, and the line drops the name** rather than
+    printing it twice, which returns it to a single row. The rule is: the trip is named exactly once, and the width
+    decides where. **Re-decided 2026-08-30 (owner): it stays as it is.** PR #230 folded the bar's actions into a ⋮ menu,
+    which freed one slot and made the 2026-08-19 measurement stale, so the question was reopened — and closed unchanged.
+    A name that only just fits is worse than a name that is somewhere else: the gain would have been one header row on
+    mobile, and the risk was the "S…" this rule was written to end. The measurement is not owed again unless the bar
+    loses another element.
+  * **The list comes back where it was left** (2026-08-21). Opening an item is an overlay on the same route (ADR-012),
+    and the route replace used to return the list to the top — on a forty-row list, mid-pack, that is the screen's most
+    expensive small failure. Closing the sheet restores both halves of the position: the scroll offset *and* whether the
+    header line was folded, since the line holds real height in the scrolled content and the offset alone would name
+    different rows. The line also stops travelling entirely under `prefers-reduced-motion`: it is the largest movement
+    on the screen and it happens while the list is moving too.
+  * **Actions live in the app bar (G-12), not in the header:** search (collapsed behind its icon), filter (badge =
+    active facet count), fold-all. The trip's *other views* — 🛒 Shopping with its open count, 🧳 Luggage, 📊 Analytics —
+    are icons on the trip line. **There is no ⋯ overflow** (FR-25.11k, G-12).
+  * **Faceted filter panel** (FR-25.11) replaces the old grouping bar + mode pill strip: a bottom sheet holding
+    *Gruppieren nach*, an *Erledigte* switch, and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale. OR
+    within a facet, AND across facets; active values appear as removable chips under the header. **Revised 2026-08-14
+    (FR-25.11b-rev):** the panel has **no apply button** — every tap is in force behind it, and the head states the
+    outcome — its values are **chips rather than folded accordions**, each axis carries an icon, and it is visibly a
+    layer over the list rather than more page.
+  * **The empty list says what actually hid the rows (corrected 2026-08-25).** With every row assigned to somebody else,
+    M4 reported *„Keine Treffer — 1 offene Position ist hinter dem Filter"* over a *„Suche und Filter zurücksetzen"*
+    button, with neither a search nor a facet set: FR-25.20's hiding is not a filter anybody chose. It now reads *„Alles
+    ist bei jemand anderem"* and names them, and its action is *„Alle anzeigen"* — the same reveal the foot bar offers,
+    which is what the button always did underneath. The state was unreachable until FR-25.19 gave the assignment a
+    writer.
+  * **Rows assigned to someone else are hidden by default** (FR-25.20; "Zugewiesen an" is the term everywhere, M4/M5 and
+    M6 alike): M4 opens on your own work. Unassigned rows stay — they belong to everyone. A reveal bar names the count
+    and the people, and the switch sits in the filter panel beside *Erledigte*; the header keeps counting the whole trip
+    regardless.
+  * **Done rows drop out** (FR-25.2) — fully packed *or* consciously skipped, but never a row with open preparation
+    (FR-7.3). Revealed via the *Erledigte* switch, dimmed but interactive, each showing **who packed it and when**
+    (FR-25.17). A fully-done group disappears header-and-all.
+  * **Groups fold** (FR-25.16): tapping a header collapses the group to that line, which then carries its open count;
+    fold-all turns the list into a table of contents.
+  * **Per-person items render as a named cluster** (FR-25.1) — item name once with `done/total`, one indented child row
+    per traveler; a lone instance (notably when grouped by traveler) falls back to a flat "Item · Person" row.
+    Cluster-vs-flat is decided over the *full* set, so packing one instance never restructures the list. **The head
+    counts travelers, not units** (FR-25.21a): `1/3` means one of three people is done. Since FR-25.21 the amounts may
+    differ per person, and they live on the child rows — the head's subject is the set of instances.
+  * **One avatar at the right edge** (FR-25.3/25.19), set apart from the traveler avatar on the left: it shows the
+    **assignee** while the row is open (blue ring) and **who actually packed it** once it is packed (green ring +
+    check). Never both — the left avatar already answers *for whom*, and a third circle makes the row unreadable.
+  * **Procurement glyph on the two buy modes only** (🛒 / 📍; 🧳 stays silent so the exceptions stand out), once per
+    cluster header; **Late Packer** stays a separate ⏰ flag (FR-25.4).
+  * **Quick-add** stays inline, collapses on blur, and is opened *and focused* by the ＋ FAB — which **hides while the
+    composer is open** (2026-08-17): it would only open what is already open, and the composer needs the room; its
+    container stays, because M4 and M8 anchor their toasts to it. The composer also carries a **visible confirm button**
+    — a phone has no reachable Enter (FR-25.13/13a). It also adds **whole groups** (FR-27.10, built 2026-08-19): typing
+    filters groups alongside items under *„Ganze Gruppe hinzufügen“*, and one tap expands the group into the trip —
+    deduped against what is already there, provenance stamped, FR-27.7 tasks materialised, result reported, and
+    deliberately **not** flagged *Missing*. A group entry is a **card**, not a list row like the item suggestions, and
+    carries the group's name, the FR-27.12 summary („Makroobjektiv · Ringblitz +1“) and its resolved position count: a
+    tap that adds a dozen rows must not look like a tap that adds one item, and the summary is what lets the user decide
+    without opening anything. Matching is on the **group name** — the resolved item names are FR-27.13's job on M8's
+    picker. Three outcomes, three sentences: what was added and what was already there, a group that is already fully on
+    the list, and a group whose positions this trip's attributes all excluded (FR-15.2). The emoji the FR shows on the
+    entry waits for §3.28, which owns the mark.
+  * **Full-screen:** the bottom tab bar is hidden here, the FAB drops to the screen foot, and the list scrolls clear of
+    the FAB's whole footprint so nothing sits permanently underneath it (FR-25.11h).
   * Container assignment defaults to none and is de-emphasized so it never blocks packing (FR-25.5).
-  * **The FR-27.4 question sits above the list (added 2026-08-18).** When a group the trip follows has changed, a card names **every** change — „Aus den Gruppen“, one line per change with its source group — and offers exactly two answers: *Übernehmen* and *Nicht übernehmen*. Deliberately a card and not a modal: a modal over the packing list has to be dismissed before the list it talks about can be looked at, and dismissing is not one of the two answers. Deliberately the full list and not a count: „3 Änderungen“ with nothing to read can only be answered by guessing. It folds above ten lines, same threshold and same reason as M2's log. The cost of *no* is stated where *no* is pressed — the refused positions stop following the group in this trip — because it is the one thing about the card a user cannot work out from the list above it. Both answers are final and neither offers an undo, so both report through a plain toast rather than a snackbar.
-  * **An archived trip leads with a closing card** (the one real remnant of the dropped *Danach* phase): "Reise abgeschlossen" — plain, since 2026-08-19: the 🧩 the prototype put there came from §3.27 being *about composition* and said nothing about a finished trip, and nothing replaced it, because every other heading in the app is plain text and the card already carries two button icons (owner call on a rendered three-way round) — with **"Vorlage aus dieser Reise erstellen →"** (M21, FR-27.5) and the M14 review suggestions beneath it. The packed list stays visible below as the trip's record.
-* **Group presentation (added 2026-08-14, owner report):** a category **heads** the rows under it and must look like it — it shipped as uppercase micro-type *smaller* than the item names it introduced, which inverts the hierarchy it exists to state. Three levels, three weights: the group heading, then a per-person cluster's name (FR-25.1), then the rows. And **each group is its own block** — a bordered card carrying its rows — because with nothing but a gap between them, two categories run into each other on a long list. The concept mock had the card from the start; the first implementation dropped it.
+  * **The FR-27.4 question sits above the list (added 2026-08-18).** When a group the trip follows has changed, a card
+    names **every** change — „Aus den Gruppen“, one line per change with its source group — and offers exactly two
+    answers: *Übernehmen* and *Nicht übernehmen*. Deliberately a card and not a modal: a modal over the packing list has
+    to be dismissed before the list it talks about can be looked at, and dismissing is not one of the two answers.
+    Deliberately the full list and not a count: „3 Änderungen“ with nothing to read can only be answered by guessing. It
+    folds above ten lines, same threshold and same reason as M2's log. The cost of *no* is stated where *no* is pressed
+    — the refused positions stop following the group in this trip — because it is the one thing about the card a user
+    cannot work out from the list above it. Both answers are final and neither offers an undo, so both report through a
+    plain toast rather than a snackbar.
+  * **An archived trip leads with a closing card** (the one real remnant of the dropped *Danach* phase): "Reise
+    abgeschlossen" — plain, since 2026-08-19: the 🧩 the prototype put there came from §3.27 being *about composition*
+    and said nothing about a finished trip, and nothing replaced it, because every other heading in the app is plain
+    text and the card already carries two button icons (owner call on a rendered three-way round) — with **"Vorlage aus
+    dieser Reise erstellen →"** (M21, FR-27.5) and the M14 review suggestions beneath it. The packed list stays visible
+    below as the trip's record.
+* **Group presentation (added 2026-08-14, owner report):** a category **heads** the rows under it and must look like it
+  — it shipped as uppercase micro-type *smaller* than the item names it introduced, which inverts the hierarchy it
+  exists to state. Three levels, three weights: the group heading, then a per-person cluster's name (FR-25.1), then the
+  rows. And **each group is its own block** — a bordered card carrying its rows — because with nothing but a gap between
+  them, two categories run into each other on a long list. The concept mock had the card from the start; the first
+  implementation dropped it.
 * **Elements:**
-  * Sticky header: below the G-9 breakpoint two rows — the trip name (display type, the app bar having none) with 🛒/🧳/📊 beside it, then packed/total, weight (FR-8.1), **open-prep count** (FR-7.3), trip presence facepile and group-sync badge per G-10; above it one row without the name, which the app bar carries there. *(The former KPI tile strip is gone — Analytics is now a labelled icon on the trip line rather than a tap on a tile, which testing found undiscoverable.)*
-  * Grouping switcher: *Category / Container / Person / Status*, now inside the filter sheet's *Gruppieren nach* section rather than as its own bar. **Decided: persists per user per trip** (not a global preference) — switching to *Container* view on one trip doesn't affect another trip or another user's view of the same trip.
-  * Item rows: **leading control column, one fixed width for every row (2026-08-27, UX-9)** — checkbox for quantity 1, stepper per G-6 for quantity > 1 (showing "3/5"), the closing-pass toggle or the G-3 lock, all in a column sized to the widest of them, so item names line up straight; then the **mark slot (G-15: photo → item mark → nothing, width held either way)** — a traveler avatar, where the row carries one, shares this column so the name is not pushed further; then name, chips: mode (BUY_BEFORE/BUY_LOCAL), Late Packer flag, packer avatar, ~~container tag~~ — **the container chip was never built and is struck 2026-08-31 (owner decision, E2E-M4-03)**: M4 answers *which bag* by grouping (FR-8.2), and a fifth mark at this edge is exactly what FR-25.19 kept off the row; lock overlay per G-3. The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row added by quick-add carries none until it exists in the inventory, and shows an empty slot rather than a placeholder.
-  * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline text input with autocomplete suggestions from the master item inventory (M9). Enter on free text creates a new ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is active, new items are auto-flagged *Missing* (FR-9.1). The input stays expanded after adding for rapid entry; Escape or the close button collapses it. No navigation away from M4 required. **Since FR-25.13c (2026-08-21):** the FAB expands the composer **without focusing it**, because while the field is empty it leads with two tappable chip rows — *„Passt zu {Tags}"* (items sharing a primary tag with what the trip already carries) and *„Zuletzt verwendet"* (the device-local trail) — and the raised keyboard would cover them; a chip tap adds with the FR-25.7 defaults and stays in chip mode. What the trip already carries is offered in **no** row and no longer in the autocomplete either; typing hides the chips and the suggestions take over. **Since FR-25.13d (2026-08-22)** the empty composer also carries the *„Mehr aus dem Inventar…"* line, opening the **inventory browse-sheet**: the whole inventory in a bottom sheet, grouped like M9 by primary tag and filtered along the M9 tag axis (any of an item's tags), one-tap rows that stay open for runs, a carried item stating *„schon drin"* in place of its add control and flipping to that state right after a tap, and free text demoted to an explicit footer line that hands back to the composer's field. **Since FR-25.13e (2026-08-29) the sheet can also put the carried rows away:** one line under the tag axis — the count on the left (*„14 schon drin“* → *„14 ausgeblendet“*), a switch labelled *„ausblenden“* on the right — hides everything the scope carried **at the moment the switch was flipped**, so a row added during the run stays in place and reads *„✓ hinzugefügt“* rather than disappearing under the finger. Off by default and remembered device-locally, the count scoped to the tag filter and the line absent when it would hide nothing; a tag whose rows are all hidden loses its heading, and the two „alles ist schon drin“ sentences carry *„Trotzdem anzeigen“*. The sheet is part of the shared composer, so M6 and M8 carry it identically — *Erfassen* and *Zusammenstellen*, the two postures of FR-25.13's one way to add. **Since FR-25.13f (2026-08-29) each line in M4 carries the two verbs as well:** ✓ *gepackt* and ✕ *nicht einpacken* at the right edge, the name keeping the plain add and the ⊕ stepping aside for them. On a free line they add and decide in one write (a skip-add is never flagged *Missing* and pulls no companions); on a line the trip already carries they act on all of its rows, naming the count where it is more than one (*„eingepackt · 3 Personen"*). The acted line stays where it is, says what happened and carries *„Rückgängig"* for as long as the sheet is open — the sheet still has no toast. A settled line states *„schon eingepackt"* / *„bleibt zu Hause"* and offers nothing, a G-3-locked one names its holder. **M4 only:** the verbs appear for a caller that reports the per-item packing states, which M6 and M8 do not (G-8). **Since FR-25.8 (2026-08-29) the composer carries a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*, wearing the same two words as the membership editor because it is that editor the mode opens. An add made in *Pro Person* writes the row and opens the editor on it, already on the roster — the mode is the answer to which tab that is — and checking the travelers is what fans the row out into the FR-25.1 cluster (ADR-036's keep-and-repoint, so the row typed a moment ago *is* the first traveler's row). The mode survives an add, because rows are entered in runs, and is forgotten when the composer closes. It is **absent** — not disabled — wherever there is nobody to distribute over: on M8, whose Vorlage has no people, and on a trip with fewer than two travelers (G-8). **The mode governs FR-25.13f's two verbs as well:** an *already packed* or *stays home* tap made in *Pro Person* writes the row with its decision and opens the editor on it, so the decision is distributed rather than dropped — and, like the plain add, it waits for the sheet to be gone before the editor is presented.
-  * Collapsed sections: "Consciously skipped" items (FR-5.5), "Late Packers" (pinned to bottom until departure day, then pinned to top), and **"Preparation" (FR-7.3)** — all open prep todos for the trip, grouped by item with traveler avatar. Visible to all trip members; resolving a todo is restricted to the item's assignee or trip owner. Tap item name → M5.
-  * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal incomplete readiness.
-  * **Consciously skipped (FR-5.5) — superseded as a *section* by FR-25.2, kept as a state.** A skipped row is a done row: it leaves the working list and returns, dimmed, through the same *Erledigte* switch as a packed one (two mechanisms would show it twice). What it keeps is its own words — *"Bewusst weggelassen"*, or the FR-20.2 reason — and the reverse action *Doch einpacken*, which restores it to open with quantity 1. Purpose unchanged: acknowledge that an item was considered and deliberately not packed, distinguishing "forgot" from "decided against."
-  * Filtering: the faceted panel described above (FR-25.11), reached from the app-bar filter icon. *(Supersedes the earlier "my items only / open only / per traveler" bar — "open only" is now the Erledigte switch and "per traveler" the Person facet.)* **Decided: the filter, the Erledigte switch and the grouping persist per trip for the session** (FR-25.18) — deliberately session-scoped where grouping is durable, since a forgotten filter hides rows; a fresh session starts unfiltered and the chip row keeps the active filter visible throughout.
-* **Actions (rebuilt 2026-08-18, FR-5.5):** **press and hold a row** → its action sheet, the M7 idiom: *Jetzt packen* (FR-5.2), *Nicht einpacken* (FR-5.5) and — on a trip that is running or archived — *Als ungenutzt markieren* / *Ungenutzt aufheben* (FR-9.3); on an already-skipped row the sheet offers *Doch einpacken* and nothing else, since "pack now" on a row nobody is packing would invent a third state. The *ungenutzt* entry is the same judgement M5's *Details* block spells out, one gesture from the list instead of three taps into a fold nothing ever asks for — the menu-plus-control pair FR-5.5 settled on. It is a toggle, so the entry that sets it is also the one that takes it back, and **the row shows the mark** beside its mode icon: a judgement invisible on the row cannot be reviewed before the pass ends. A locked row (G-3) has no menu. **A press that begins on the packing control is that control's, not the row's (added 2026-08-31, E2E-G6-01):** the stepper has holds of its own — G-6's + completes and − zeroes — and while the row armed its menu on every pointerdown inside it, those two could never fire; the row's *click* had been stopped at the control column since the stepper shipped, its *press* had not. Holding a row's name or its body still opens the menu, holding its ✚/− does what G-6 says. **The swipe is gone** — it was announced by nothing and its option panel broke out of the row's card, which is also where it lost the M7 A2/B2 round. Skipping raises the FR-25.2 snackbar naming the FR-20.2 companions it took along, with one undo for the whole cascade; a revealed skipped row carries *"Bewusst weggelassen"* — or its reason where a cascade put it there — in the line a packed row uses for its FR-25.17 stamp. tap row → M5; long-press checkbox → complete item; toolbar: open shopping views (M6), archive trip (→ triggers M14). **Implemented (Addendum 3.20):** skipping an item cascades to co-skip its dependent companion items, which are revealed with the other done rows carrying their reason (e.g., "weggelassen: „Drohne“ ist nicht dabei", FR-20.2); a quick-add that matches a master item pulls its missing required companions in automatically (FR-20.4).
-* **States:** Real-time: rows animate on remote changes with actor attribution ("packed by Sarah"); item blocked by open tasks shows a task badge and refuses completion with inline hint (FR-7.2); offline behaves identically (G-5).
-* **Navigation:** From M1, M2, notifications. Deep-link anchor target (G-4). **Desktop (≥ 900 px, per G-9): two-pane layout** — M4's list occupies the left/main pane while M5 opens as a **persistent side panel** on the right rather than a bottom sheet; selecting a different row swaps the panel's content in place. Below the breakpoint, M5 remains the mobile overlay sheet described above.
+  * Sticky header: below the G-9 breakpoint two rows — the trip name (display type, the app bar having none) with 🛒/🧳/📊
+    beside it, then packed/total, weight (FR-8.1), **open-prep count** (FR-7.3), trip presence facepile and group-sync
+    badge per G-10; above it one row without the name, which the app bar carries there. *(The former KPI tile strip is
+    gone — Analytics is now a labelled icon on the trip line rather than a tap on a tile, which testing found
+    undiscoverable.)*
+  * Grouping switcher: *Category / Container / Person / Status*, now inside the filter sheet's *Gruppieren nach* section
+    rather than as its own bar. **Decided: persists per user per trip** (not a global preference) — switching to
+    *Container* view on one trip doesn't affect another trip or another user's view of the same trip.
+  * Item rows: **leading control column, one fixed width for every row (2026-08-27, UX-9)** — checkbox for quantity 1,
+    stepper per G-6 for quantity > 1 (showing "3/5"), the closing-pass toggle or the G-3 lock, all in a column sized to
+    the widest of them, so item names line up straight; then the **mark slot (G-15: photo → item mark → nothing, width
+    held either way)** — a traveler avatar, where the row carries one, shares this column so the name is not pushed
+    further; then name, chips: mode (BUY_BEFORE/BUY_LOCAL), Late Packer flag, packer avatar, ~~container tag~~ — **the
+    container chip was never built and is struck 2026-08-31 (owner decision, E2E-M4-03)**: M4 answers *which bag* by
+    grouping (FR-8.2), and a fifth mark at this edge is exactly what FR-25.19 kept off the row; lock overlay per G-3.
+    The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row added by quick-add carries none until
+    it exists in the inventory, and shows an empty slot rather than a placeholder.
+  * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline
+    text input with autocomplete suggestions from the master item inventory (M9). Enter on free text creates a new
+    ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is
+    active, new items are auto-flagged *Missing* (FR-9.1). The input stays expanded after adding for rapid entry; Escape
+    or the close button collapses it. No navigation away from M4 required. **Since FR-25.13c (2026-08-21):** the FAB
+    expands the composer **without focusing it**, because while the field is empty it leads with two tappable chip rows
+    — *„Passt zu {Tags}"* (items sharing a primary tag with what the trip already carries) and *„Zuletzt verwendet"*
+    (the device-local trail) — and the raised keyboard would cover them; a chip tap adds with the FR-25.7 defaults and
+    stays in chip mode. What the trip already carries is offered in **no** row and no longer in the autocomplete either;
+    typing hides the chips and the suggestions take over. **Since FR-25.13d (2026-08-22)** the empty composer also
+    carries the *„Mehr aus dem Inventar…"* line, opening the **inventory browse-sheet**: the whole inventory in a bottom
+    sheet, grouped like M9 by primary tag and filtered along the M9 tag axis (any of an item's tags), one-tap rows that
+    stay open for runs, a carried item stating *„schon drin"* in place of its add control and flipping to that state
+    right after a tap, and free text demoted to an explicit footer line that hands back to the composer's field. **Since
+    FR-25.13e (2026-08-29) the sheet can also put the carried rows away:** one line under the tag axis — the count on
+    the left (*„14 schon drin“* → *„14 ausgeblendet“*), a switch labelled *„ausblenden“* on the right — hides everything
+    the scope carried **at the moment the switch was flipped**, so a row added during the run stays in place and reads
+    *„✓ hinzugefügt“* rather than disappearing under the finger. Off by default and remembered device-locally, the count
+    scoped to the tag filter and the line absent when it would hide nothing; a tag whose rows are all hidden loses its
+    heading, and the two „alles ist schon drin“ sentences carry *„Trotzdem anzeigen“*. The sheet is part of the shared
+    composer, so M6 and M8 carry it identically — *Erfassen* and *Zusammenstellen*, the two postures of FR-25.13's one
+    way to add. **Since FR-25.13f (2026-08-29) each line in M4 carries the two verbs as well:** ✓ *gepackt* and ✕ *nicht
+    einpacken* at the right edge, the name keeping the plain add and the ⊕ stepping aside for them. On a free line they
+    add and decide in one write (a skip-add is never flagged *Missing* and pulls no companions); on a line the trip
+    already carries they act on all of its rows, naming the count where it is more than one (*„eingepackt · 3
+    Personen"*). The acted line stays where it is, says what happened and carries *„Rückgängig"* for as long as the
+    sheet is open — the sheet still has no toast. A settled line states *„schon eingepackt"* / *„bleibt zu Hause"* and
+    offers nothing, a G-3-locked one names its holder. **M4 only:** the verbs appear for a caller that reports the
+    per-item packing states, which M6 and M8 do not (G-8). **Since FR-25.8 (2026-08-29) the composer carries a mode:** a
+    two-button segment above the field, *Gemeinsam* / *Pro Person*, wearing the same two words as the membership editor
+    because it is that editor the mode opens. An add made in *Pro Person* writes the row and opens the editor on it,
+    already on the roster — the mode is the answer to which tab that is — and checking the travelers is what fans the
+    row out into the FR-25.1 cluster (ADR-036's keep-and-repoint, so the row typed a moment ago *is* the first
+    traveler's row). The mode survives an add, because rows are entered in runs, and is forgotten when the composer
+    closes. It is **absent** — not disabled — wherever there is nobody to distribute over: on M8, whose Vorlage has no
+    people, and on a trip with fewer than two travelers (G-8). **The mode governs FR-25.13f's two verbs as well:** an
+    *already packed* or *stays home* tap made in *Pro Person* writes the row with its decision and opens the editor on
+    it, so the decision is distributed rather than dropped — and, like the plain add, it waits for the sheet to be gone
+    before the editor is presented.
+  * Collapsed sections: "Consciously skipped" items (FR-5.5), "Late Packers" (pinned to bottom until departure day, then
+    pinned to top), and **"Preparation" (FR-7.3)** — all open prep todos for the trip, grouped by item with traveler
+    avatar. Visible to all trip members; resolving a todo is restricted to the item's assignee or trip owner. Tap item
+    name → M5.
+  * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items
+    with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal
+    incomplete readiness.
+  * **Consciously skipped (FR-5.5) — superseded as a *section* by FR-25.2, kept as a state.** A skipped row is a done
+    row: it leaves the working list and returns, dimmed, through the same *Erledigte* switch as a packed one (two
+    mechanisms would show it twice). What it keeps is its own words — *"Bewusst weggelassen"*, or the FR-20.2 reason —
+    and the reverse action *Doch einpacken*, which restores it to open with quantity 1. Purpose unchanged: acknowledge
+    that an item was considered and deliberately not packed, distinguishing "forgot" from "decided against."
+  * Filtering: the faceted panel described above (FR-25.11), reached from the app-bar filter icon. *(Supersedes the
+    earlier "my items only / open only / per traveler" bar — "open only" is now the Erledigte switch and "per traveler"
+    the Person facet.)* **Decided: the filter, the Erledigte switch and the grouping persist per trip for the session**
+    (FR-25.18) — deliberately session-scoped where grouping is durable, since a forgotten filter hides rows; a fresh
+    session starts unfiltered and the chip row keeps the active filter visible throughout.
+* **Actions (rebuilt 2026-08-18, FR-5.5):** **press and hold a row** → its action sheet, the M7 idiom: *Jetzt packen*
+  (FR-5.2), *Nicht einpacken* (FR-5.5) and — on a trip that is running or archived — *Als ungenutzt markieren* /
+  *Ungenutzt aufheben* (FR-9.3); on an already-skipped row the sheet offers *Doch einpacken* and nothing else, since
+  "pack now" on a row nobody is packing would invent a third state. The *ungenutzt* entry is the same judgement M5's
+  *Details* block spells out, one gesture from the list instead of three taps into a fold nothing ever asks for — the
+  menu-plus-control pair FR-5.5 settled on. It is a toggle, so the entry that sets it is also the one that takes it
+  back, and **the row shows the mark** beside its mode icon: a judgement invisible on the row cannot be reviewed before
+  the pass ends. A locked row (G-3) has no menu. **A press that begins on the packing control is that control's, not the
+  row's (added 2026-08-31, E2E-G6-01):** the stepper has holds of its own — G-6's + completes and − zeroes — and while
+  the row armed its menu on every pointerdown inside it, those two could never fire; the row's *click* had been stopped
+  at the control column since the stepper shipped, its *press* had not. Holding a row's name or its body still opens the
+  menu, holding its ✚/− does what G-6 says. **The swipe is gone** — it was announced by nothing and its option panel
+  broke out of the row's card, which is also where it lost the M7 A2/B2 round. Skipping raises the FR-25.2 snackbar
+  naming the FR-20.2 companions it took along, with one undo for the whole cascade; a revealed skipped row carries
+  *"Bewusst weggelassen"* — or its reason where a cascade put it there — in the line a packed row uses for its FR-25.17
+  stamp. tap row → M5; long-press checkbox → complete item; toolbar: open shopping views (M6), archive trip (→ triggers
+  M14). **Implemented (Addendum 3.20):** skipping an item cascades to co-skip its dependent companion items, which are
+  revealed with the other done rows carrying their reason (e.g., "weggelassen: „Drohne“ ist nicht dabei", FR-20.2); a
+  quick-add that matches a master item pulls its missing required companions in automatically (FR-20.4).
+* **States:** Real-time: rows animate on remote changes with actor attribution ("packed by Sarah"); item blocked by open
+  tasks shows a task badge and refuses completion with inline hint (FR-7.2); offline behaves identically (G-5).
+* **Navigation:** From M1, M2, notifications. Deep-link anchor target (G-4). **Desktop (≥ 900 px, per G-9): two-pane
+  layout** — M4's list occupies the left/main pane while M5 opens as a **persistent side panel** on the right rather
+  than a bottom sheet; selecting a different row swaps the panel's content in place. Below the breakpoint, M5 remains
+  the mobile overlay sheet described above.
 
 ### M5 — Item Detail (Bottom Sheet)
 
-* **Rebuilt 2026-08-14 (owner: the detail view is unattractive and cluttered).** The screen is opened for one of three reasons — to pack the thing, to note something about it, or to change one attribute — and the build gave all three the same weight: nine equal sections, every one expanded. The order is now the order of those reasons: **identity** (name, small reference photo, one context line), **packing** as its own block and the largest control on screen, a read-only **glance row** for everything the sheet can also change, then **Preparation** and **Notes** with their composers, and finally *Details ▾* holding membership, procurement, luggage, the Late-Packer flag, the FR-9.1 flags and the FR-25.17/25.19 stamp.
-* **It is a sheet over M4, and a side panel beside it above the G-9 breakpoint** — one content component either way. The route carries it (`/trips/:tripId/items/:itemId`), which is what makes a notification deep link (G-4) land on the item with the list behind it. **The list's route and the item's are one record with an alias**, and opening or closing *replaces* rather than pushes: Ionic keeps a page per matched path, so pushing mounted a second copy of the list behind the sheet. **On a phone the sheet's ✕ (or a swipe) is the way out** — its backdrop covers the app bar, so `‹ back` is deliberately unreachable there; with the desktop panel, back closes the panel first (`meta.overlayParam`).
-* **The reference photo is small** (44 px beside the title, FR-22.1): it helps recognise the thing without taking the top of a screen most rows have no photo for. **The same slot carries the item mark when there is no photo** (G-15, Addendum FR-28.4) and stays empty when there is neither — the sheet's identity block is the one place both answers to "what is this" can live, and the ladder decides which is shown. The mark is not editable here: it belongs to the master item, and M10 is where master data is changed (FR-28.7).
+* **Rebuilt 2026-08-14 (owner: the detail view is unattractive and cluttered).** The screen is opened for one of three
+  reasons — to pack the thing, to note something about it, or to change one attribute — and the build gave all three the
+  same weight: nine equal sections, every one expanded. The order is now the order of those reasons: **identity** (name,
+  small reference photo, one context line), **packing** as its own block and the largest control on screen, a read-only
+  **glance row** for everything the sheet can also change, then **Preparation** and **Notes** with their composers, and
+  finally *Details ▾* holding membership, procurement, luggage, the Late-Packer flag, the FR-9.1 flags and the
+  FR-25.17/25.19 stamp.
+* **It is a sheet over M4, and a side panel beside it above the G-9 breakpoint** — one content component either way. The
+  route carries it (`/trips/:tripId/items/:itemId`), which is what makes a notification deep link (G-4) land on the item
+  with the list behind it. **The list's route and the item's are one record with an alias**, and opening or closing
+  *replaces* rather than pushes: Ionic keeps a page per matched path, so pushing mounted a second copy of the list
+  behind the sheet. **On a phone the sheet's ✕ (or a swipe) is the way out** — its backdrop covers the app bar, so `‹
+  back` is deliberately unreachable there; with the desktop panel, back closes the panel first (`meta.overlayParam`).
+* **The reference photo is small** (44 px beside the title, FR-22.1): it helps recognise the thing without taking the
+  top of a screen most rows have no photo for. **The same slot carries the item mark when there is no photo** (G-15,
+  Addendum FR-28.4) and stays empty when there is neither — the sheet's identity block is the one place both answers to
+  "what is this" can live, and the ladder decides which is shown. The mark is not editable here: it belongs to the
+  master item, and M10 is where master data is changed (FR-28.7).
 
 * **Purpose:** Everything about one trip item without leaving context.
-* **Concept-review refinements — realised in the concept 2026-07-18 (Addendum §3.25):** the sheet is reorganised with **progressive disclosure** — *level 1* shows only the header, a compact read-only **glance-chip row** (who needs it · mode · luggage · ⏰ · packer), the **Preparation** section, and the **Comments** thread **with a visible composer**; everything else collapses behind a **"Details ▾"** toggle. Inside Details: (1) delegation is reversible — *Packed by* gains a **"niemand"** clear option; (2) the container picker lives here, labelled **"Gepäck · optional"**, default none; (3) mode labels are 🧳 Packen · 🛒 Vorher · 📍 Vor Ort with **Late Packer** a *separate ⏰ flag* (FR-25.4); (4) the prep lifecycle (add / resolve / reopen, packed-with-open-prep amber) is explicit.
-* **"Used by" attribution removed; item membership editable (decided 2026-07-18):** the free-form *Used by* traveler label on a shared row (base FR-4.2) is **dropped** — it earned its keep only for per-person items and weight-by-person, and read as noise otherwise. In its place, M5's **"Wer braucht das?"** control edits **per-person membership** directly: `Gemeinsam` = one shared row for all; picking travelers turns the item into a **per-person item** (FR-1.4/25.1) with one independently-packable row each — so *adding Leonardo puts a "Sonnenbrille" row on his list*, removing a traveler drops their row. Consequences: M4 **shared** rows no longer show a for-whom avatar (only per-person child rows carry their owner avatar); person-grouping (M4) and per-person analytics (M12) derive from **per-person rows** rather than a shared-row label; the shopping *Used by* idea (FR-25.6) is revisited under this model. **This shipped as a single-select and was completed only by FR-25.21 (2026-08-29)**, which is where the multi-select, the per-traveler amounts and the write path live.
-* **On a per-person instance the sheet says which one it is** (added 2026-08-29, FR-25.21): the M5 header names the traveler and that instance's amount (*„für Leonardo · 3 Stück"*) and the glance chips carry the traveler beside a `3 Personen` chip, so it is never ambiguous whether an edit here is the person's or the item's. Membership is the one field that is the item's, and it says so: *„Änderungen hier gelten für alle Zeilen dieses Packelements."*
-* **Elements — progressive disclosure:** *Level 1 (always):* header (name, quantity stepper, state); a compact **glance-chip row** summarising the advanced blocks (membership · mode · luggage · ⏰ late · packer) with a **"Details ▾"** toggle; **Preparation Todos (FR-7.3)** (checkbox per todo + inline "Add prep todo…"); **comment/task thread (FR-7.1/7.2) with a visible composer** and per-comment "flag as task"; packed items with open todos show an amber state. *Level 2 (behind Details ▾):* **"Wer braucht das?"** — a **summary row that opens its own sheet** (FR-25.21), never a popover: a stepper per traveler does not fit in one. The row reads the current state (`Gemeinsam`, or `Andy 2 · Leonardo 3 · Mia 1`, truncated with a count past what fits); the sheet carries a `Gemeinsam` / `Pro Person` segment and, under it, one line per traveler with a **checkbox and a quantity stepper**, and a footer summing *„3 Personen · 6 Stück"*. **No save button** — every control commits immediately (G-5, FR-25.15), and the `Pro Person` tab only reveals the roster: checking a person is the write. Absent under two travelers (G-8), read-only under a foreign claim on any instance (G-3); *Packed by* delegation picker **with a "niemand" clear** (FR-4.2/6.2); mode selector (🧳/🛒/📍, FR-3.1); **optional** container picker default none (FR-10.2); Late Packer ⏰ flag; *Unused/Missing* flags (FR-9.1, active trips only); history sparkline (FR-14.1).
-* **The FR-9.1 flags are controls, not a readout (corrected 2026-08-20).** *Details ▾* listed them as one line printing „Missing / none set", which meant **no surface in the whole app could mark an item *unused*** — and *unused* is the flag M14's assistant is mostly about (FR-9.2 is written around overpacking). They are now two toggles with a one-line hint each („Mitgenommen, nie gebraucht" / „Gebraucht und nicht dabei"), and both are revocable, because a flag set by mistake is otherwise permanent. **Since FR-9.3 the two have different windows** (2026-08-24): *unused* is offered while the trip is active **and after it is archived**, because M14 — the first place anyone sees what the flag was worth — runs on the archived trip, and FR-9.1's active-only rule was true of setting a judgement in the moment and false of correcting it; *missing* keeps the active-only gate, since it is stamped by the FR-5.6 quick-add and a thing bought after the trip is not a thing that was missing on it. A planning trip still offers neither. An *unused* row now also shows in the glance chip row, which only *missing* did.
-* **The packing block names itself (2026-08-27, UX-10).** The stepper/checkbox box carries the same eyebrow label as *Vorbereitung* and *Notizen* („Einpacken"): on a quantity-1 row the block otherwise rendered as an unlabelled outlined box holding only a checkbox and the state chip, readable as anything.
-* **"Nicht einpacken" sits beside the stepper (added 2026-08-18, FR-5.5).** A full-width, spelled-out control directly under the packing block, flipping to *Doch einpacken* — and picking up the `--jp-done` role — once the row is skipped. It is a control rather than a chip because it is a *decision about* the row, not a property of it, and it is spelled out because M4's press-and-hold is the fast path while this is the one a user finds without knowing it exists. The stepper says *how many*; only this says *none, on purpose*.
-* **Built 2026-08-24 — *Zugewiesen an* is a control, not a readout.** The picker the Actions line below has always promised did not exist: `packer_user_id` was written once when a row was generated and never again, so every surface that *reads* responsibility — M4's row avatar, the „zuständig war …" stamp, FR-25.20's filter and its reveal bar — described a state no one could produce, and the FR-6.2 delegation notification the server implements could not fire from the app at all. It is a picker in *Details ▾* beside the luggage one, with **„niemand"** as its clear, and it offers **the trip's members other than yourself** — not the instance directory the sheet also carries for naming a packing record, because a row handed to a non-member notifies somebody who cannot open the trip (P-3), and a row handed to yourself says nothing. It is therefore **absent** wherever that list is empty (G-8), which is the one rule covering all three cases: Local Mode has no members, Single-User has exactly one (the store writes a membership row for every trip's creator, there too), and an unshared Server-Mode trip has only you. A locked row (G-3) writes nothing.
-* **Actions:** edit **membership** (add/remove a traveler → adds/removes that person's packing row, FR-25.1); **mark the row deliberately not packed, and take that back** (FR-5.5); set **Zugewiesen an** → notification (FR-6.2) — the *packed by* record beside it is written automatically and is not editable (FR-25.19); **clear *Packed by* via "niemand"**; expand/collapse **Details**; add a comment (composer); resolve/reopen tasks; add/resolve/reopen prep todos (FR-7.3); "Buy now" on *Vorher kaufen* items → mode flips to *Packen* with undo snackbar (FR-3.3). In Single-User Mode (Addendum FR-17.3), *Delegate* is hidden — the sole user is already every item's *Packed by*.
-* **States:** Locked by another user → read-only with lock banner; unsaved edits impossible (every control commits immediately, G-5). **The membership editor carries its own lock banner** (added 2026-08-30, FR-25.21/G-3): it is frozen by a claim on **any** instance of the item — a conversion rewrites every row of the cluster — so the claim may sit on a row the sheet was not opened from, where M5’s own banner is absent; and the editor is a modal *above* M5 either way, which covers that banner even when it is there. The line names the holder (*„Alice packt gerade eine dieser Zeilen."*) and falls back to *„Jemand …"* for a holder the directory does not carry (E2E-G3-04).
+* **Concept-review refinements — realised in the concept 2026-07-18 (Addendum §3.25):** the sheet is reorganised with
+  **progressive disclosure** — *level 1* shows only the header, a compact read-only **glance-chip row** (who needs it ·
+  mode · luggage · ⏰ · packer), the **Preparation** section, and the **Comments** thread **with a visible composer**;
+  everything else collapses behind a **"Details ▾"** toggle. Inside Details: (1) delegation is reversible — *Packed by*
+  gains a **"niemand"** clear option; (2) the container picker lives here, labelled **"Gepäck · optional"**, default
+  none; (3) mode labels are 🧳 Packen · 🛒 Vorher · 📍 Vor Ort with **Late Packer** a *separate ⏰ flag* (FR-25.4); (4) the
+  prep lifecycle (add / resolve / reopen, packed-with-open-prep amber) is explicit.
+* **"Used by" attribution removed; item membership editable (decided 2026-07-18):** the free-form *Used by* traveler
+  label on a shared row (base FR-4.2) is **dropped** — it earned its keep only for per-person items and
+  weight-by-person, and read as noise otherwise. In its place, M5's **"Wer braucht das?"** control edits **per-person
+  membership** directly: `Gemeinsam` = one shared row for all; picking travelers turns the item into a **per-person
+  item** (FR-1.4/25.1) with one independently-packable row each — so *adding Leonardo puts a "Sonnenbrille" row on his
+  list*, removing a traveler drops their row. Consequences: M4 **shared** rows no longer show a for-whom avatar (only
+  per-person child rows carry their owner avatar); person-grouping (M4) and per-person analytics (M12) derive from
+  **per-person rows** rather than a shared-row label; the shopping *Used by* idea (FR-25.6) is revisited under this
+  model. **This shipped as a single-select and was completed only by FR-25.21 (2026-08-29)**, which is where the
+  multi-select, the per-traveler amounts and the write path live.
+* **On a per-person instance the sheet says which one it is** (added 2026-08-29, FR-25.21): the M5 header names the
+  traveler and that instance's amount (*„für Leonardo · 3 Stück"*) and the glance chips carry the traveler beside a `3
+  Personen` chip, so it is never ambiguous whether an edit here is the person's or the item's. Membership is the one
+  field that is the item's, and it says so: *„Änderungen hier gelten für alle Zeilen dieses Packelements."*
+* **Elements — progressive disclosure:** *Level 1 (always):* header (name, quantity stepper, state); a compact
+  **glance-chip row** summarising the advanced blocks (membership · mode · luggage · ⏰ late · packer) with a **"Details
+  ▾"** toggle; **Preparation Todos (FR-7.3)** (checkbox per todo + inline "Add prep todo…"); **comment/task thread
+  (FR-7.1/7.2) with a visible composer** and per-comment "flag as task"; packed items with open todos show an amber
+  state. *Level 2 (behind Details ▾):* **"Wer braucht das?"** — a **summary row that opens its own sheet** (FR-25.21),
+  never a popover: a stepper per traveler does not fit in one. The row reads the current state (`Gemeinsam`, or `Andy 2
+  · Leonardo 3 · Mia 1`, truncated with a count past what fits); the sheet carries a `Gemeinsam` / `Pro Person` segment
+  and, under it, one line per traveler with a **checkbox and a quantity stepper**, and a footer summing *„3 Personen · 6
+  Stück"*. **No save button** — every control commits immediately (G-5, FR-25.15), and the `Pro Person` tab only reveals
+  the roster: checking a person is the write. Absent under two travelers (G-8), read-only under a foreign claim on any
+  instance (G-3); *Packed by* delegation picker **with a "niemand" clear** (FR-4.2/6.2); mode selector (🧳/🛒/📍, FR-3.1);
+  **optional** container picker default none (FR-10.2); Late Packer ⏰ flag; *Unused/Missing* flags (FR-9.1, active trips
+  only); history sparkline (FR-14.1).
+* **The FR-9.1 flags are controls, not a readout (corrected 2026-08-20).** *Details ▾* listed them as one line printing
+  „Missing / none set", which meant **no surface in the whole app could mark an item *unused*** — and *unused* is the
+  flag M14's assistant is mostly about (FR-9.2 is written around overpacking). They are now two toggles with a one-line
+  hint each („Mitgenommen, nie gebraucht" / „Gebraucht und nicht dabei"), and both are revocable, because a flag set by
+  mistake is otherwise permanent. **Since FR-9.3 the two have different windows** (2026-08-24): *unused* is offered
+  while the trip is active **and after it is archived**, because M14 — the first place anyone sees what the flag was
+  worth — runs on the archived trip, and FR-9.1's active-only rule was true of setting a judgement in the moment and
+  false of correcting it; *missing* keeps the active-only gate, since it is stamped by the FR-5.6 quick-add and a thing
+  bought after the trip is not a thing that was missing on it. A planning trip still offers neither. An *unused* row now
+  also shows in the glance chip row, which only *missing* did.
+* **The packing block names itself (2026-08-27, UX-10).** The stepper/checkbox box carries the same eyebrow label as
+  *Vorbereitung* and *Notizen* („Einpacken"): on a quantity-1 row the block otherwise rendered as an unlabelled outlined
+  box holding only a checkbox and the state chip, readable as anything.
+* **"Nicht einpacken" sits beside the stepper (added 2026-08-18, FR-5.5).** A full-width, spelled-out control directly
+  under the packing block, flipping to *Doch einpacken* — and picking up the `--jp-done` role — once the row is skipped.
+  It is a control rather than a chip because it is a *decision about* the row, not a property of it, and it is spelled
+  out because M4's press-and-hold is the fast path while this is the one a user finds without knowing it exists. The
+  stepper says *how many*; only this says *none, on purpose*.
+* **Built 2026-08-24 — *Zugewiesen an* is a control, not a readout.** The picker the Actions line below has always
+  promised did not exist: `packer_user_id` was written once when a row was generated and never again, so every surface
+  that *reads* responsibility — M4's row avatar, the „zuständig war …" stamp, FR-25.20's filter and its reveal bar —
+  described a state no one could produce, and the FR-6.2 delegation notification the server implements could not fire
+  from the app at all. It is a picker in *Details ▾* beside the luggage one, with **„niemand"** as its clear, and it
+  offers **the trip's members other than yourself** — not the instance directory the sheet also carries for naming a
+  packing record, because a row handed to a non-member notifies somebody who cannot open the trip (P-3), and a row
+  handed to yourself says nothing. It is therefore **absent** wherever that list is empty (G-8), which is the one rule
+  covering all three cases: Local Mode has no members, Single-User has exactly one (the store writes a membership row
+  for every trip's creator, there too), and an unshared Server-Mode trip has only you. A locked row (G-3) writes
+  nothing.
+* **Actions:** edit **membership** (add/remove a traveler → adds/removes that person's packing row, FR-25.1); **mark the
+  row deliberately not packed, and take that back** (FR-5.5); set **Zugewiesen an** → notification (FR-6.2) — the
+  *packed by* record beside it is written automatically and is not editable (FR-25.19); **clear *Packed by* via
+  "niemand"**; expand/collapse **Details**; add a comment (composer); resolve/reopen tasks; add/resolve/reopen prep
+  todos (FR-7.3); "Buy now" on *Vorher kaufen* items → mode flips to *Packen* with undo snackbar (FR-3.3). In
+  Single-User Mode (Addendum FR-17.3), *Delegate* is hidden — the sole user is already every item's *Packed by*.
+* **States:** Locked by another user → read-only with lock banner; unsaved edits impossible (every control commits
+  immediately, G-5). **The membership editor carries its own lock banner** (added 2026-08-30, FR-25.21/G-3): it is
+  frozen by a claim on **any** instance of the item — a conversion rewrites every row of the cluster — so the claim may
+  sit on a row the sheet was not opened from, where M5’s own banner is absent; and the editor is a modal *above* M5
+  either way, which covers that banner even when it is there. The line names the holder (*„Alice packt gerade eine
+  dieser Zeilen."*) and falls back to *„Jemand …"* for a holder the directory does not carry (E2E-G3-04).
 * **Navigation:** Opens over M4/M6; swipe down to dismiss.
 
 ### M6 — Shopping Views
 
 * **Purpose:** Focused procurement checklists (FR-3.2).
-* **What M6 is, as built (2026-08-30, after reading its e2e promises against the screen):** two tabs, category groups, one row per thing to buy, the shared composer and the FR-25.11j reveal — and **no filter bar, no search field and no row sheet**. The lines below that describe those were written in the 2026-07-17 concept round and never built; the owner retired them on 2026-08-30 (FR-25.11g/k, FR-25.13a's two composer fields, FR-25.6's per-item note), because a shopping list rarely runs to twenty rows and M4 already owns those patterns. **The one exception is FR-25.12's row sheet** — *Zugewiesen an* and *Beschreibung* — which is being built: *„Andy kauft das"* is the multi-user case M6 cannot express today. Read the lines below with that in mind until the sheet lands.
-* **Concept-review additions (Addendum §3.25 / FR-25.6, proposed 2026-07-17):** each shopping row can be **assigned to a traveler** (*Used by*, FR-4.2) from here, and can carry a **per-item comment/note** (FR-7.1) — e.g., "war im Migros Eigerplatz, gab es dort nicht" — so where-looked / unavailable / substitution context lives on the item. **One aggregated row per per-person item** (FR-25.6, **built 2026-08-29** with FR-25.21): summed quantity, recipients' names and avatars, one check-off settling every instance. The row is keyed exactly like M4's cluster — the shared `perPersonKey` in `domain/packingView.ts` — the reveal below the list aggregates by the same rule, and each tab's segment counts *rows to buy* rather than `trip_items` rows. **Note (2026-07-18):** free-form *Used by* was removed (FR-25.10); this "assign to a traveler" is to be reframed (per-person shopping row or lightweight "for whom" note) when M6 is re-mocked.
-* **Elements:** Two tabs: *Before departure* (BUY_BEFORE) and *At destination* (BUY_LOCAL); rows grouped by category; destination tab includes standing destination-checklist entries (FR-13.3) visually separated; per row optionally a traveler chip and a note indicator (§3.25).
-* **Actions:** Check off → BUY_BEFORE items transition to PACK and leave this list with animation (FR-3.3); add free-text entry directly into either list; **assign a row to a traveler**; **add a per-item comment/note** (§3.25).
-* **Quick-add (FR-25.13):** the shared composer, landing the row on the open tab. **Since FR-25.13d (2026-08-22)** it excludes what the trip already carries — the whole trip's contents, not the open tab's — closing the gap FR-25.13c had closed for M4 only, and carries the same browse-sheet (described at M4's quick-add).
-* **What was bought (FR-25.11j, built 2026-08-25):** checking a row off takes it off the tab — a BUY_BEFORE row by changing its mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. Under the list sits a reveal bar in **M4's FR-25.2 shape**: *„1 gekaufte anzeigen"*, off by default, the count in the label, one tap. A revealed row states where it went (*„auf der Packliste"* for a purchase before departure, *„eingepackt"* for one at the destination) and its checkbox is the way back — unchecking restores the mode it was bought from and clears the record. Each tab has its own reveal, and the reveal is **absent, not empty**, when nothing was bought from that list. Deliberately **not** remembered across a session the way M4's switch is (FR-25.18): the tab is not remembered either, so a restored reveal would open on a list the reader did not choose.
-* **States:** Both lists empty → M4's toolbar keeps the **shopping entry** and drops only its **badge** (corrected 2026-08-30 against the screen: the destination exists either way, and G-12's bar has no overflow to hide it in).
+* **What M6 is, as built (2026-08-30, after reading its e2e promises against the screen):** two tabs, category groups,
+  one row per thing to buy, the shared composer and the FR-25.11j reveal — and **no filter bar, no search field and no
+  row sheet**. The lines below that describe those were written in the 2026-07-17 concept round and never built; the
+  owner retired them on 2026-08-30 (FR-25.11g/k, FR-25.13a's two composer fields, FR-25.6's per-item note), because a
+  shopping list rarely runs to twenty rows and M4 already owns those patterns. **The one exception is FR-25.12's row
+  sheet** — *Zugewiesen an* and *Beschreibung* — which is being built: *„Andy kauft das"* is the multi-user case M6
+  cannot express today. Read the lines below with that in mind until the sheet lands.
+* **Concept-review additions (Addendum §3.25 / FR-25.6, proposed 2026-07-17):** each shopping row can be **assigned to a
+  traveler** (*Used by*, FR-4.2) from here, and can carry a **per-item comment/note** (FR-7.1) — e.g., "war im Migros
+  Eigerplatz, gab es dort nicht" — so where-looked / unavailable / substitution context lives on the item. **One
+  aggregated row per per-person item** (FR-25.6, **built 2026-08-29** with FR-25.21): summed quantity, recipients' names
+  and avatars, one check-off settling every instance. The row is keyed exactly like M4's cluster — the shared
+  `perPersonKey` in `domain/packingView.ts` — the reveal below the list aggregates by the same rule, and each tab's
+  segment counts *rows to buy* rather than `trip_items` rows. **Note (2026-07-18):** free-form *Used by* was removed
+  (FR-25.10); this "assign to a traveler" is to be reframed (per-person shopping row or lightweight "for whom" note)
+  when M6 is re-mocked.
+* **Elements:** Two tabs: *Before departure* (BUY_BEFORE) and *At destination* (BUY_LOCAL); rows grouped by category;
+  destination tab includes standing destination-checklist entries (FR-13.3) visually separated; per row optionally a
+  traveler chip and a note indicator (§3.25).
+* **Actions:** Check off → BUY_BEFORE items transition to PACK and leave this list with animation (FR-3.3); add
+  free-text entry directly into either list; **assign a row to a traveler**; **add a per-item comment/note** (§3.25).
+* **Quick-add (FR-25.13):** the shared composer, landing the row on the open tab. **Since FR-25.13d (2026-08-22)** it
+  excludes what the trip already carries — the whole trip's contents, not the open tab's — closing the gap FR-25.13c had
+  closed for M4 only, and carries the same browse-sheet (described at M4's quick-add).
+* **What was bought (FR-25.11j, built 2026-08-25):** checking a row off takes it off the tab — a BUY_BEFORE row by
+  changing its mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. Under the list sits a
+  reveal bar in **M4's FR-25.2 shape**: *„1 gekaufte anzeigen"*, off by default, the count in the label, one tap. A
+  revealed row states where it went (*„auf der Packliste"* for a purchase before departure, *„eingepackt"* for one at
+  the destination) and its checkbox is the way back — unchecking restores the mode it was bought from and clears the
+  record. Each tab has its own reveal, and the reveal is **absent, not empty**, when nothing was bought from that list.
+  Deliberately **not** remembered across a session the way M4's switch is (FR-25.18): the tab is not remembered either,
+  so a restored reveal would open on a list the reader did not choose.
+* **States:** Both lists empty → M4's toolbar keeps the **shopping entry** and drops only its **badge** (corrected
+  2026-08-30 against the screen: the destination exists either way, and G-12's bar has no overflow to hide it in).
 * **Navigation:** From M4 toolbar; deep-linkable.
 
 ### M7 — Template List
 
 * **Purpose:** Manage modular master templates and the groups they are built from (FR-1.2, §3.27).
-* **Elements:** One shared instance-wide list (FR-1.6 MVP simplification 2026-08-08 — no my/published split, no publish toggle), segmented **Alle · Ferien · Gruppen** (FR-27.6) — the middle tab carries the *short* form of the scope name, because at 390 px "Ferien-Vorlagen" truncates to an ellipsis and an ellipsis names a scope worse than one word does; the section head below spells it out in full. *Alle* renders the two scopes as sections, vacation templates first — they are what a trip starts from, groups are the building blocks — and group rows carry a *Gruppe* chip. A section is **absent rather than empty** when its scope has no rows, and a single-scope tab drops the head entirely: the segment has already said which scope you are in. Per row: name, item count; a composed template counts its **resolved** set (own positions + included groups, deduped), so "2 Gruppen · 16 Artikel" rather than "0 Artikel", with an *enthält: …* line naming the included groups.
-* **States:** No templates at all → the G-7 empty state naming both scopes, and **no segment** — a filter over an empty set is a control with nothing to do. The empty state carries **no CTA buttons of its own**: create is the FAB and import is the header icon, both already on screen, and a third and fourth copy of them would be the empty state's only content. Nothing *matching* the search → "Keine Vorlage gefunden", with the segment still in place, because there is something to widen back to.
-* **Actions:** Tap → M8 (every template is editable by every account); **FAB asks which scope to create** (two-option chooser with one-line explanations, FR-27.6) — **but only on *Alle* (2026-08-17)**: on a single-scope tab the segment has already answered, so the ＋ creates that scope and the sheet opens on the name, titled with the scope it is about to create — **picking a scope reveals the name field in the same sheet** (owner decision 2026-08-15, variant pass): one surface, one commit, and no row exists until the name does. The prototype's create-then-rename flow was rejected because with real persistence it writes an unnamed row on the first tap. **Long-press a row (right-click on desktop) → context menu with *Umbenennen*, *Export* and *Löschen*** (Addendum FR-18.2; rename/delete joined with the M8 rebuild 2026-08-15) — the row itself keeps only what identifies it (name, counts, scope chip). Rename is an alert prefilled with the name; delete confirms first and states that generated trips keep their rows (FR-2.4), and **a group something includes refuses deletion naming its consumer** — the same stance as the FR-27.6 promotion guard, because a cascade would silently rewrite every Vorlage built on it. **A group a *trip* has already used is a different case (FR-24.3, built 2026-08-25):** that delete is no longer refused — the Vorlage is **retired**, kept so FR-9.2's provenance keeps resolving and hidden from this list, from M3's scope rows and from M8's group picker. The confirm carries M10's outcome sentence in its three forms, for the same reason and with the same wording; the client's own count is advisory and the server's is authoritative (ADR-032). What M7 could once only report after the fact, in G-2's detail, it now states before the tap. While the menu is open, row taps are inert. **Import is the header icon beside the page title** → M18 — *not* the FAB's "+" menu, which this line claimed until 2026-08-30: the FAB asks which scope to create and has no menu, and this document's own 2026-08-15 amendment already listed the menu entry as owed. The clause is an open owner decision (build it, or let the icon be the entrance); E2E-M7-05 asserts the icon, including that the way back lands on M7 rather than on M18's declared parent. **A taken name is met in the sheet, not by a push (2026-08-25, FR-1.6):** `templates.name` is UNIQUE instance-wide and across both scopes, and the device holds the whole master partition, so as the name is typed the sheet carries a line under the field naming what already holds it *and in which scope* ("Die Gruppe „Makro“ gibt es schon.") with an **Öffnen** button beside it, and *Anlegen* is disabled. Offering the existing row rather than only naming it is the point: someone typing a name that exists almost always means the thing that has it. The rename alert refuses the same way — a toast names the holder and the alert **stays open with the typed name**, because dismissing it would throw the edit away.
+* **Elements:** One shared instance-wide list (FR-1.6 MVP simplification 2026-08-08 — no my/published split, no publish
+  toggle), segmented **Alle · Ferien · Gruppen** (FR-27.6) — the middle tab carries the *short* form of the scope name,
+  because at 390 px "Ferien-Vorlagen" truncates to an ellipsis and an ellipsis names a scope worse than one word does;
+  the section head below spells it out in full. *Alle* renders the two scopes as sections, vacation templates first —
+  they are what a trip starts from, groups are the building blocks — and group rows carry a *Gruppe* chip. A section is
+  **absent rather than empty** when its scope has no rows, and a single-scope tab drops the head entirely: the segment
+  has already said which scope you are in. Per row: name, item count; a composed template counts its **resolved** set
+  (own positions + included groups, deduped), so "2 Gruppen · 16 Artikel" rather than "0 Artikel", with an *enthält: …*
+  line naming the included groups.
+* **States:** No templates at all → the G-7 empty state naming both scopes, and **no segment** — a filter over an empty
+  set is a control with nothing to do. The empty state carries **no CTA buttons of its own**: create is the FAB and
+  import is the header icon, both already on screen, and a third and fourth copy of them would be the empty state's only
+  content. Nothing *matching* the search → "Keine Vorlage gefunden", with the segment still in place, because there is
+  something to widen back to.
+* **Actions:** Tap → M8 (every template is editable by every account); **FAB asks which scope to create** (two-option
+  chooser with one-line explanations, FR-27.6) — **but only on *Alle* (2026-08-17)**: on a single-scope tab the segment
+  has already answered, so the ＋ creates that scope and the sheet opens on the name, titled with the scope it is about
+  to create — **picking a scope reveals the name field in the same sheet** (owner decision 2026-08-15, variant pass):
+  one surface, one commit, and no row exists until the name does. The prototype's create-then-rename flow was rejected
+  because with real persistence it writes an unnamed row on the first tap. **Long-press a row (right-click on desktop) →
+  context menu with *Umbenennen*, *Export* and *Löschen*** (Addendum FR-18.2; rename/delete joined with the M8 rebuild
+  2026-08-15) — the row itself keeps only what identifies it (name, counts, scope chip). Rename is an alert prefilled
+  with the name; delete confirms first and states that generated trips keep their rows (FR-2.4), and **a group something
+  includes refuses deletion naming its consumer** — the same stance as the FR-27.6 promotion guard, because a cascade
+  would silently rewrite every Vorlage built on it. **A group a *trip* has already used is a different case (FR-24.3,
+  built 2026-08-25):** that delete is no longer refused — the Vorlage is **retired**, kept so FR-9.2's provenance keeps
+  resolving and hidden from this list, from M3's scope rows and from M8's group picker. The confirm carries M10's
+  outcome sentence in its three forms, for the same reason and with the same wording; the client's own count is advisory
+  and the server's is authoritative (ADR-032). What M7 could once only report after the fact, in G-2's detail, it now
+  states before the tap. While the menu is open, row taps are inert. **Import is the header icon beside the page title**
+  → M18 — *not* the FAB's "+" menu, which this line claimed until 2026-08-30: the FAB asks which scope to create and has
+  no menu, and this document's own 2026-08-15 amendment already listed the menu entry as owed. The clause is an open
+  owner decision (build it, or let the icon be the entrance); E2E-M7-05 asserts the icon, including that the way back
+  lands on M7 rather than on M18's declared parent. **A taken name is met in the sheet, not by a push (2026-08-25,
+  FR-1.6):** `templates.name` is UNIQUE instance-wide and across both scopes, and the device holds the whole master
+  partition, so as the name is typed the sheet carries a line under the field naming what already holds it *and in which
+  scope* ("Die Gruppe „Makro“ gibt es schon.") with an **Öffnen** button beside it, and *Anlegen* is disabled. Offering
+  the existing row rather than only naming it is the point: someone typing a name that exists almost always means the
+  thing that has it. The rename alert refuses the same way — a toast names the holder and the alert **stays open with
+  the typed name**, because dismissing it would throw the edit away.
 * **Navigation:** Tab 3.
 
 ### M8 — Template Editor
 
-* **Purpose:** Define the positions of one template — and, for a Ferien-Vorlage, which groups it is built from (FR-1.2, FR-27.1).
-* **Redesign complete (Addendum §3.25/§3.27) — mocked and settled 2026-08-08.** The editor is now **scope-shaped** and follows the same capture grammar as the packing list:
-  * **A Gruppe shows only *Positionen*** — there is nothing to nest, since the hierarchy is deliberately two levels (FR-27.1). **A Ferien-Vorlage additionally shows *Gruppen***, whose picker offers groups only and carries **"Neue Gruppe anlegen…"** inline, so a missing building block never forces a detour through M7. A resolution footer states what the composition actually yields after dedup.
-  * **The scope is switchable but guarded** (FR-27.6): a Vorlage that still includes groups cannot become a Gruppe, and an included Gruppe cannot be promoted — the editor names the consumers ("Eingebunden in: …") instead of failing opaquely.
-  * **Adding a position is the packing list's quick-add, verbatim** (FR-25.13, extended to M8 2026-08-08): ＋ FAB expansion — **without focus since FR-25.13c (2026-08-21)**, because the empty composer leads with the chip rows (related by primary tag to the template's own positions, and the device-local recents), which the raised keyboard would cover — master-item autocomplete, a visible scope-labelled confirm, Enter, the field stays open (and never blur-collapses, FR-25.13a as amended), a duplicate is reported rather than added twice and is **not offered** in chips or autocomplete to begin with, and free text creates the master item (FR-1.1). The composer's *„Mehr aus dem Inventar…"* browse-sheet (FR-25.13d) is here too, verbatim — described once at M4's quick-add.
-  * **Editing a position is the M5 bottom sheet** (2026-08-08): glance chips, **Menge und Vorbereitung first**, everything else behind "Details ▾", with the FR-25.15 indicator in the header (shared `SaveIndicator`, 2026-08-15 amendment). The former inline expanding row form is gone.
-  * **Progressive disclosure on the parameters** (FR-25.7): sensible defaults (quantity 1, trip-global, mode *Packen*, dedup *max*, no conditions, no Late Packer) mean a typical position is one tap; assignment (FR-1.4), default mode, Late Packer, dedup (FR-2.3) and condition chips (season/transport/accommodation, FR-15.2) live behind "Mehr Optionen". A per-person position carries **one quantity for everyone** — the Adult/Child split was removed with FR-25.9 (2026-08-08); concrete per-person numbers are set on the trip (FR-25.8).
-  * **A group hiding in the loose positions is offered, never applied** (FR-27.15, built 2026-08-22): when a Ferien-Vorlage's own positions contain a Gruppe's **complete** resolved item set, a non-blocking suggestion row sits between the *Gruppen* section and the own positions — „*2 Positionen entsprechen der Gruppe «Erste Hilfe»*", with the FR-27.12 peek chevron, *Ignorieren* and *Zusammenfassen*. Where those positions define something the group defines differently, the row says so **before** the tap, carrying its own tint rather than relying on the flavour's yellow, which is legible on Mocha and thin on Latte. *Zusammenfassen* swaps the positions for the include on the picker's own write path and the anchored snackbar's *Rückgängig* restores exactly what went; *Ignorieren* is device-local (`localStorage`, the M9 property-sheet class) and keyed to the group's item set, so it lapses once that set changes.
-  * **Preparation tasks on a position** (FR-27.7): a free-text list under progressive disclosure with a count chip on the collapsed row. Each task instantiates as an FR-7.3 todo on the generated trip item, and an open prep todo keeps that item from counting as done (FR-25.2).
-* **The template's own mark (Addendum FR-28.8, G-15 — built 2026-08-22):** the same picker as M10's, on the slot left of the editable name, suggested from the template's name. It is the field the prototype has been faking since §3.27 — every 📷/⛺ on a group row in M3, M7, M8 and the FR-27.12 peek sheet is hardcoded in the mock, and those rows read the real column once this ships. Optional like the item's, and **never a letter**. Whether an unmarked group keeps its slot depends on what it stands in: in a **column** (M7's list, M3 step 3) the slot holds its width, because rendered without it the marked rows pushed their names right of the unmarked ones — the same misalignment FR-28.4's held slot prevents on M4. Beside a **single** name (M8's own editor head, the FR-27.12 peek header) there is no column to align, so an absent mark renders nothing at all.
-* **Elements (as built 2026-08-15):** editable name (commits on blur/Enter; the ADR-011 header mirrors it); scope selector with the *"Eingebunden in: …"* line on an included group; the FR-27.4 blast-radius note (yellow, above the sections it warns about); *Gruppen* section (Ferien-Vorlage only) — rows with resolved count, the FR-27.12 summary line and its peek chevron, and ✕, a collapsed *"Gruppe einbinden…"* trigger opening the picker card (available groups as chips, *"Neue Gruppe anlegen…"* revealing an inline name field — the M7 create lesson: no row until the name exists, and no `prompt()`; since FR-27.13, 2026-08-22, above six searchable groups the card carries a **search field** — never auto-focused, this picker exists to be tapped — matching group *and resolved item* names case- and diacritics-insensitively: while searching the offers become rows with the FR-27.12 summary, an item hit states its reason („über Kamera"), an already-included match says *„Bereits eingebunden"* instead of being absent, and no match leaves *„Neue Gruppe anlegen…"* prefilled with the query); the FR-27.15 fold suggestion rows, one per recognised group, largest resolved set first; *Positionen* / *Eigene Positionen* rows (name, deviation chips or *Standard*, quantity chip, ✕); the quick-add; the FR-27.2 resolution footer, which since FR-27.14 (2026-08-17) is **tappable**: *„Alle N Artikel ansehen ›“* opens the FR-27.12 peek sheet on the Vorlage itself — the resolved list, flat and alphabetical, each line naming where it came from („aus Makro Fotografie“, „eigene Position“) and marked where a count would mislead (*nur 1×* for a merge, *pro Person* instead of a guessed traveler count, the procurement mode, *mit Bedingung* for a position the trip may still exclude).
-* **Actions:** Add/remove positions and group includes; every change commits immediately (G-5): no save button, the FR-25.15 ●→✓ indicator in the sheet header confirms local capture. A refused scope switch answers with an anchored toast naming the reason, never a silent no-op.
-* **A name that is taken (2026-08-25, FR-1.6):** the editable name refuses a rename onto a name another template holds — an anchored toast names it and **the field goes back to the stored name**, because G-5's auto-save has no other acknowledgement and a refused spelling left in the field reads as saved. *„Neue Gruppe anlegen…"* answers by scope: a **Gruppe** of that name is what this picker exists to reference, so it is **included** and the toast says so (*„«Kamera» gibt es schon — eingebunden"*); a **Ferien-Vorlage** holding the name cannot stand in for a group, and the toast says which scope holds it — a bare "name taken" on a screen that shows only groups reads as a bug.
-* **States:** Editing a template used by trips that are not past shows the FR-27.4 blast-radius note naming those trips (each is *asked* on its next open — nothing lands silently and past trips are never touched; everyone else sees changes at the next trip generation per FR-2.4). The note also appears on a group reached through a Vorlage such a trip was generated from.
+* **Purpose:** Define the positions of one template — and, for a Ferien-Vorlage, which groups it is built from (FR-1.2,
+  FR-27.1).
+* **Redesign complete (Addendum §3.25/§3.27) — mocked and settled 2026-08-08.** The editor is now **scope-shaped** and
+  follows the same capture grammar as the packing list:
+  * **A Gruppe shows only *Positionen*** — there is nothing to nest, since the hierarchy is deliberately two levels
+    (FR-27.1). **A Ferien-Vorlage additionally shows *Gruppen***, whose picker offers groups only and carries **"Neue
+    Gruppe anlegen…"** inline, so a missing building block never forces a detour through M7. A resolution footer states
+    what the composition actually yields after dedup.
+  * **The scope is switchable but guarded** (FR-27.6): a Vorlage that still includes groups cannot become a Gruppe, and
+    an included Gruppe cannot be promoted — the editor names the consumers ("Eingebunden in: …") instead of failing
+    opaquely.
+  * **Adding a position is the packing list's quick-add, verbatim** (FR-25.13, extended to M8 2026-08-08): ＋ FAB
+    expansion — **without focus since FR-25.13c (2026-08-21)**, because the empty composer leads with the chip rows
+    (related by primary tag to the template's own positions, and the device-local recents), which the raised keyboard
+    would cover — master-item autocomplete, a visible scope-labelled confirm, Enter, the field stays open (and never
+    blur-collapses, FR-25.13a as amended), a duplicate is reported rather than added twice and is **not offered** in
+    chips or autocomplete to begin with, and free text creates the master item (FR-1.1). The composer's *„Mehr aus dem
+    Inventar…"* browse-sheet (FR-25.13d) is here too, verbatim — described once at M4's quick-add.
+  * **Editing a position is the M5 bottom sheet** (2026-08-08): glance chips, **Menge und Vorbereitung first**,
+    everything else behind "Details ▾", with the FR-25.15 indicator in the header (shared `SaveIndicator`, 2026-08-15
+    amendment). The former inline expanding row form is gone.
+  * **Progressive disclosure on the parameters** (FR-25.7): sensible defaults (quantity 1, trip-global, mode *Packen*,
+    dedup *max*, no conditions, no Late Packer) mean a typical position is one tap; assignment (FR-1.4), default mode,
+    Late Packer, dedup (FR-2.3) and condition chips (season/transport/accommodation, FR-15.2) live behind "Mehr
+    Optionen". A per-person position carries **one quantity for everyone** — the Adult/Child split was removed with
+    FR-25.9 (2026-08-08); concrete per-person numbers are set on the trip (FR-25.8).
+  * **A group hiding in the loose positions is offered, never applied** (FR-27.15, built 2026-08-22): when a
+    Ferien-Vorlage's own positions contain a Gruppe's **complete** resolved item set, a non-blocking suggestion row sits
+    between the *Gruppen* section and the own positions — „*2 Positionen entsprechen der Gruppe «Erste Hilfe»*", with
+    the FR-27.12 peek chevron, *Ignorieren* and *Zusammenfassen*. Where those positions define something the group
+    defines differently, the row says so **before** the tap, carrying its own tint rather than relying on the flavour's
+    yellow, which is legible on Mocha and thin on Latte. *Zusammenfassen* swaps the positions for the include on the
+    picker's own write path and the anchored snackbar's *Rückgängig* restores exactly what went; *Ignorieren* is
+    device-local (`localStorage`, the M9 property-sheet class) and keyed to the group's item set, so it lapses once that
+    set changes.
+  * **Preparation tasks on a position** (FR-27.7): a free-text list under progressive disclosure with a count chip on
+    the collapsed row. Each task instantiates as an FR-7.3 todo on the generated trip item, and an open prep todo keeps
+    that item from counting as done (FR-25.2).
+* **The template's own mark (Addendum FR-28.8, G-15 — built 2026-08-22):** the same picker as M10's, on the slot left of
+  the editable name, suggested from the template's name. It is the field the prototype has been faking since §3.27 —
+  every 📷/⛺ on a group row in M3, M7, M8 and the FR-27.12 peek sheet is hardcoded in the mock, and those rows read the
+  real column once this ships. Optional like the item's, and **never a letter**. Whether an unmarked group keeps its
+  slot depends on what it stands in: in a **column** (M7's list, M3 step 3) the slot holds its width, because rendered
+  without it the marked rows pushed their names right of the unmarked ones — the same misalignment FR-28.4's held slot
+  prevents on M4. Beside a **single** name (M8's own editor head, the FR-27.12 peek header) there is no column to align,
+  so an absent mark renders nothing at all.
+* **Elements (as built 2026-08-15):** editable name (commits on blur/Enter; the ADR-011 header mirrors it); scope
+  selector with the *"Eingebunden in: …"* line on an included group; the FR-27.4 blast-radius note (yellow, above the
+  sections it warns about); *Gruppen* section (Ferien-Vorlage only) — rows with resolved count, the FR-27.12 summary
+  line and its peek chevron, and ✕, a collapsed *"Gruppe einbinden…"* trigger opening the picker card (available groups
+  as chips, *"Neue Gruppe anlegen…"* revealing an inline name field — the M7 create lesson: no row until the name
+  exists, and no `prompt()`; since FR-27.13, 2026-08-22, above six searchable groups the card carries a **search field**
+  — never auto-focused, this picker exists to be tapped — matching group *and resolved item* names case- and
+  diacritics-insensitively: while searching the offers become rows with the FR-27.12 summary, an item hit states its
+  reason („über Kamera"), an already-included match says *„Bereits eingebunden"* instead of being absent, and no match
+  leaves *„Neue Gruppe anlegen…"* prefilled with the query); the FR-27.15 fold suggestion rows, one per recognised
+  group, largest resolved set first; *Positionen* / *Eigene Positionen* rows (name, deviation chips or *Standard*,
+  quantity chip, ✕); the quick-add; the FR-27.2 resolution footer, which since FR-27.14 (2026-08-17) is **tappable**:
+  *„Alle N Artikel ansehen ›“* opens the FR-27.12 peek sheet on the Vorlage itself — the resolved list, flat and
+  alphabetical, each line naming where it came from („aus Makro Fotografie“, „eigene Position“) and marked where a count
+  would mislead (*nur 1×* for a merge, *pro Person* instead of a guessed traveler count, the procurement mode, *mit
+  Bedingung* for a position the trip may still exclude).
+* **Actions:** Add/remove positions and group includes; every change commits immediately (G-5): no save button, the
+  FR-25.15 ●→✓ indicator in the sheet header confirms local capture. A refused scope switch answers with an anchored
+  toast naming the reason, never a silent no-op.
+* **A name that is taken (2026-08-25, FR-1.6):** the editable name refuses a rename onto a name another template holds —
+  an anchored toast names it and **the field goes back to the stored name**, because G-5's auto-save has no other
+  acknowledgement and a refused spelling left in the field reads as saved. *„Neue Gruppe anlegen…"* answers by scope: a
+  **Gruppe** of that name is what this picker exists to reference, so it is **included** and the toast says so
+  (*„«Kamera» gibt es schon — eingebunden"*); a **Ferien-Vorlage** holding the name cannot stand in for a group, and the
+  toast says which scope holds it — a bare "name taken" on a screen that shows only groups reads as a bug.
+* **States:** Editing a template used by trips that are not past shows the FR-27.4 blast-radius note naming those trips
+  (each is *asked* on its next open — nothing lands silently and past trips are never touched; everyone else sees
+  changes at the next trip generation per FR-2.4). The note also appears on a group reached through a Vorlage such a
+  trip was generated from.
 * **Navigation:** From M7.
 
 ### M9 — Item Inventory
 
 * **Purpose:** Central item database (FR-1.1) — the master-data screen for every item that can be packed.
 * **Rebuilt 2026-08-16** on the tag set (FR-24.1, ADR-014), together with M10.
-* **Elements:** Search (the G-12 magnifier, revealing the shared search row) and a **tag chip axis** as an `ion-segment`: *Alle* plus one chip per tag. Beside the magnifier in the app-bar cluster sits the **eye icon → "Angezeigte Eigenschaften" sheet** (FR-24.4), carrying the count of shown properties as a badge — the same `HeaderAction` badge the M4 filter uses. The list is grouped by each item's **primary tag** so a row appears exactly once (FR-24.2); groups order by the tag's `sort_order`, items by name, and items carrying no tag collect in a trailing **"Ohne Tag"** bucket that is present only when something is in it. Per row **lean by default**: the leading slot + name; tags, weight and price appear only when enabled in the property sheet (device-local, `localStorage`, never synced). **The leading slot follows G-15's inventory ladder — photo → item mark → primary-tag initial** (Addendum FR-28.4): the tag initial stays the last resort rather than the default it was, so a marked item is recognised here the same way it is on the packing list.
-* **The axis stands clear of the list (2026-08-26, UX review UX-4):** the segment carries M7's inset and a visible gap to the first group heading. At a 0px gap the active chip's underline sat flush against the heading and read as the heading sliding under the bar — the 2026-08-25 review took it for a sticky-header clipping, but nothing on M9 has been sticky since the §3.24 rebuild replaced the `IonItemDivider sticky` list; the defect was spacing alone. Asserted as geometry by E2E-M9-08.
-* **The axis filters wider than it groups:** an item matches a chip when that tag is anywhere in its set, while the grouping stays on the primary tag. Filtering by *Sommer* therefore surfaces the swimsuit filed under *Kleidung* — the reach a single category could not give (FR-24.2).
-* **Actions:** Tap → M10; FAB → new item. **Deleting lives in M10 (built 2026-08-25, FR-24.3).** **Merging duplicates via multi-select is specified here and was never built** (found 2026-08-30, backlog item 6): there is no multi-select on this screen and no merge anywhere in the client. FR-16.3 is *Deduplication on Import* and is discharged by M15 and M18, so nothing was silently lost when this clause went unimplemented — but two other places read it as fact and should be corrected together with it: E2E-M9-03, which has read as an unwritten *test* for a year, and PRD FR-27.5, which rejects fuzzy matching in M21 partly because „a duplicate master item is visible in M9 and can be merged". **Struck 2026-08-31 (owner decision): the clause goes and the multi-select is not owed.** Deduplication is discharged where it happens, on import; a second cleanup surface in the inventory answers a question nobody has asked. PRD FR-27.5 carries a note that its supporting premise is withdrawn with this, because an argument may not go on resting on a feature that will not exist. The row swipe stays *proposed*: it was specified 2026-07-17 as a shortcut past M10, and the shortcut is worth less than it looked once M10's own card had to carry the usage count and the outcome sentence — a swipe reveal has room for a label and not for a reason. It returns, if it returns, as a second entry point to the same rule and the same wording.
-* **A retired item is absent, not dimmed (FR-24.3).** A row the lifecycle rule hid leaves this list, the tag axis counts and the search — no strike-through, no greyed section. **Where it goes instead was decided 2026-08-25: M23**, its own screen off Settings, not a filter chip on the tag axis (a lifecycle state is not a tag, and the same chip would then be owed on M7) and not a folded section at the foot of this list (FR-24.4 made M9 lean on purpose, and the same section would be owed twice). M9 therefore stays exactly as it is: retired rows leave it and do not come back as a mode of it.
+* **Elements:** Search (the G-12 magnifier, revealing the shared search row) and a **tag chip axis** as an
+  `ion-segment`: *Alle* plus one chip per tag. Beside the magnifier in the app-bar cluster sits the **eye icon →
+  "Angezeigte Eigenschaften" sheet** (FR-24.4), carrying the count of shown properties as a badge — the same
+  `HeaderAction` badge the M4 filter uses. The list is grouped by each item's **primary tag** so a row appears exactly
+  once (FR-24.2); groups order by the tag's `sort_order`, items by name, and items carrying no tag collect in a trailing
+  **"Ohne Tag"** bucket that is present only when something is in it. Per row **lean by default**: the leading slot +
+  name; tags, weight and price appear only when enabled in the property sheet (device-local, `localStorage`, never
+  synced). **The leading slot follows G-15's inventory ladder — photo → item mark → primary-tag initial** (Addendum
+  FR-28.4): the tag initial stays the last resort rather than the default it was, so a marked item is recognised here
+  the same way it is on the packing list.
+* **The axis stands clear of the list (2026-08-26, UX review UX-4):** the segment carries M7's inset and a visible gap
+  to the first group heading. At a 0px gap the active chip's underline sat flush against the heading and read as the
+  heading sliding under the bar — the 2026-08-25 review took it for a sticky-header clipping, but nothing on M9 has been
+  sticky since the §3.24 rebuild replaced the `IonItemDivider sticky` list; the defect was spacing alone. Asserted as
+  geometry by E2E-M9-08.
+* **The axis filters wider than it groups:** an item matches a chip when that tag is anywhere in its set, while the
+  grouping stays on the primary tag. Filtering by *Sommer* therefore surfaces the swimsuit filed under *Kleidung* — the
+  reach a single category could not give (FR-24.2).
+* **Actions:** Tap → M10; FAB → new item. **Deleting lives in M10 (built 2026-08-25, FR-24.3).** **Merging duplicates
+  via multi-select is specified here and was never built** (found 2026-08-30, backlog item 6): there is no multi-select
+  on this screen and no merge anywhere in the client. FR-16.3 is *Deduplication on Import* and is discharged by M15 and
+  M18, so nothing was silently lost when this clause went unimplemented — but two other places read it as fact and
+  should be corrected together with it: E2E-M9-03, which has read as an unwritten *test* for a year, and PRD FR-27.5,
+  which rejects fuzzy matching in M21 partly because „a duplicate master item is visible in M9 and can be merged".
+  **Struck 2026-08-31 (owner decision): the clause goes and the multi-select is not owed.** Deduplication is discharged
+  where it happens, on import; a second cleanup surface in the inventory answers a question nobody has asked. PRD
+  FR-27.5 carries a note that its supporting premise is withdrawn with this, because an argument may not go on resting
+  on a feature that will not exist. The row swipe stays *proposed*: it was specified 2026-07-17 as a shortcut past M10,
+  and the shortcut is worth less than it looked once M10's own card had to carry the usage count and the outcome
+  sentence — a swipe reveal has room for a label and not for a reason. It returns, if it returns, as a second entry
+  point to the same rule and the same wording.
+* **A retired item is absent, not dimmed (FR-24.3).** A row the lifecycle rule hid leaves this list, the tag axis counts
+  and the search — no strike-through, no greyed section. **Where it goes instead was decided 2026-08-25: M23**, its own
+  screen off Settings, not a filter chip on the tag axis (a lifecycle state is not a tag, and the same chip would then
+  be owed on M7) and not a folded section at the foot of this list (FR-24.4 made M9 lean on purpose, and the same
+  section would be owed twice). M9 therefore stays exactly as it is: retired rows leave it and do not come back as a
+  mode of it.
 * **Navigation:** Tab 4.
 
 ### M10 — Item Editor
 
 * **Purpose:** Edit one master item.
-* **Rebuilt 2026-08-16** with M9. Two modes on one screen, chosen by the route: `/items/new` creates, `/items/:id` edits.
-* **Elements:** Name, **multi-tag selector** — a search field filters the tag chips, **assigned tags stay pinned above the matches** so the filter can never hide what the item already carries; ＋/Enter creates an unmatched name as a new tag and assigns it (FR-24.1, filter-or-create; supersedes the single category picker). **With an empty query the offers are a shelf, not the vocabulary (2026-08-27, UX-14):** the first eight unassigned tags, then a dashed *„N weitere per Suche"* tail that hands focus to the search — a grown instance carries dozens of tags, and rendering them all made every item form scroll. A query lifts the cap, so the search still reaches everything. A summary line names the set and which of them is primary — i.e. where M9 will file it. Then weight (g) and price — displayed through `formatValue` where it is read (M9, M12), which carries the instance's currency where one is named (FR-21.9, built 2026-08-30) and stays unit-less where none is. The setting M10 described from the concept round did not exist until then (corrected 2026-08-26); it exists now as `JITPACK_CURRENCY`, an instance-wide label rather than the per-screen field this line once implied — units retired (FR-1.8, 2026-08-08). **Editing commits immediately (G-5)** with the FR-25.15 ●→✓ indicator, which this screen previously lacked; there is no save button.
-* **The rear-view, added 2026-08-31 (FR-27.8 + FR-27.9):** below the dependency section and **above the delete card**, because the card's *„An N Stellen verwendet"* is the number this list makes navigable and the reader wants the names before the count. *„Enthalten in"* lists every group and Ferien-Vorlage whose own positions name the item, each row stating that template's position count, wearing its scope chip, and leading straight into its M8 editor. *„Kommentare aus Reisen"* lists every comment written on a packing row generated from this item, across the trips the device holds, newest first, each with its trip and — where an account can be named — its author; read-only, because the thread lives on the trip row. **Both sections are absent rather than empty** when there is nothing to show, which is FR-24.5's stance and what makes their absence in creation mode meaningful.
-* **The mark sits beside the name (Addendum 3.28, G-15 — built 2026-08-22):** a tappable slot left of the name field opens the **mark picker** — a suggestion band scored from the name as it is typed (FR-28.3), a keyword search field, the facet row, and the grid (FR-28.2). The first suggestion is offered, never pre-filled; "Marke entfernen" is its own action, not the empty cell. In **creation mode** the picker is present but never blocks: an item is saved without a mark as the normal case, and the suggestion band simply follows whatever the name field currently says. When the name matches nothing in the index, the band says so in one line rather than rendering an empty row — an empty offer is what makes people pick 📦 for everything.
-* **Creation mode (FR-24.5):** minimal form — intro line, name (focused), tags, Gewicht/Preis behind "Mehr ▾"; the existing-item sections (photo, Hängt ab von, Begleitartikel) are **absent, not emptied**. "Artikel anlegen ✓" commits and a missing name is answered with a hint rather than a disabled button. Since FR-24.1 made the item's name its identity (`UNIQUE (name)`, ADR-014), a **duplicate name is reported here** rather than left to the sync push to reject. On success the route *replaces* rather than pushes, so "back" lands on the inventory and not on a creation form for an item that now exists. **Implemented (Addendum 3.20):** a "Depends on" section listing this item's declared dependencies with a required/suggested mode toggle per row, an add-picker with save-time cycle rejection, and a read-only *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **Localized 2026-08-22 (NFR-4.12)**, which settled two words this section had left open: the modes are *nötig* / *empfohlen* as written here, and the reverse list is *Begleitartikel* — the word M3 already uses for the same relation. This section's earlier *„Wird gebraucht von"* named it backwards: the list holds the items that need this one, not the ones it is needed by.
+* **Rebuilt 2026-08-16** with M9. Two modes on one screen, chosen by the route: `/items/new` creates, `/items/:id`
+  edits.
+* **Elements:** Name, **multi-tag selector** — a search field filters the tag chips, **assigned tags stay pinned above
+  the matches** so the filter can never hide what the item already carries; ＋/Enter creates an unmatched name as a new
+  tag and assigns it (FR-24.1, filter-or-create; supersedes the single category picker). **With an empty query the
+  offers are a shelf, not the vocabulary (2026-08-27, UX-14):** the first eight unassigned tags, then a dashed *„N
+  weitere per Suche"* tail that hands focus to the search — a grown instance carries dozens of tags, and rendering them
+  all made every item form scroll. A query lifts the cap, so the search still reaches everything. A summary line names
+  the set and which of them is primary — i.e. where M9 will file it. Then weight (g) and price — displayed through
+  `formatValue` where it is read (M9, M12), which carries the instance's currency where one is named (FR-21.9, built
+  2026-08-30) and stays unit-less where none is. The setting M10 described from the concept round did not exist until
+  then (corrected 2026-08-26); it exists now as `JITPACK_CURRENCY`, an instance-wide label rather than the per-screen
+  field this line once implied — units retired (FR-1.8, 2026-08-08). **Editing commits immediately (G-5)** with the
+  FR-25.15 ●→✓ indicator, which this screen previously lacked; there is no save button.
+* **The rear-view, added 2026-08-31 (FR-27.8 + FR-27.9):** below the dependency section and **above the delete card**,
+  because the card's *„An N Stellen verwendet"* is the number this list makes navigable and the reader wants the names
+  before the count. *„Enthalten in"* lists every group and Ferien-Vorlage whose own positions name the item, each row
+  stating that template's position count, wearing its scope chip, and leading straight into its M8 editor. *„Kommentare
+  aus Reisen"* lists every comment written on a packing row generated from this item, across the trips the device holds,
+  newest first, each with its trip and — where an account can be named — its author; read-only, because the thread lives
+  on the trip row. **Both sections are absent rather than empty** when there is nothing to show, which is FR-24.5's
+  stance and what makes their absence in creation mode meaningful.
+* **The mark sits beside the name (Addendum 3.28, G-15 — built 2026-08-22):** a tappable slot left of the name field
+  opens the **mark picker** — a suggestion band scored from the name as it is typed (FR-28.3), a keyword search field,
+  the facet row, and the grid (FR-28.2). The first suggestion is offered, never pre-filled; "Marke entfernen" is its own
+  action, not the empty cell. In **creation mode** the picker is present but never blocks: an item is saved without a
+  mark as the normal case, and the suggestion band simply follows whatever the name field currently says. When the name
+  matches nothing in the index, the band says so in one line rather than rendering an empty row — an empty offer is what
+  makes people pick 📦 for everything.
+* **Creation mode (FR-24.5):** minimal form — intro line, name (focused), tags, Gewicht/Preis behind "Mehr ▾"; the
+  existing-item sections (photo, Hängt ab von, Begleitartikel) are **absent, not emptied**. "Artikel anlegen ✓" commits
+  and a missing name is answered with a hint rather than a disabled button. Since FR-24.1 made the item's name its
+  identity (`UNIQUE (name)`, ADR-014), a **duplicate name is reported here** rather than left to the sync push to
+  reject. On success the route *replaces* rather than pushes, so "back" lands on the inventory and not on a creation
+  form for an item that now exists. **Implemented (Addendum 3.20):** a "Depends on" section listing this item's declared
+  dependencies with a required/suggested mode toggle per row, an add-picker with save-time cycle rejection, and a
+  read-only *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **Localized 2026-08-22 (NFR-4.12)**,
+  which settled two words this section had left open: the modes are *nötig* / *empfohlen* as written here, and the
+  reverse list is *Begleitartikel* — the word M3 already uses for the same relation. This section's earlier *„Wird
+  gebraucht von"* named it backwards: the list holds the items that need this one, not the ones it is needed by.
 * **States:** archived trip snapshots are unaffected by edits (FR-2.4, stated in UI copy).
-* **The delete card (built 2026-08-25, FR-24.3)** — the last section of the existing-item block, absent in creation mode like the others (FR-24.5). Three lines and a destructive button: the **usage count** („An N Stellen verwendet"), the **outcome sentence**, and *„Artikel löschen"*, whose confirm repeats the same sentence — the card can be scrolled past, the confirm cannot. The sentence has three forms, because the device does not always know: an item something references says it will be **hidden and kept**; an unreferenced item on a device that holds every trip (Local Mode) says it will be **removed for good**; the same item in Server Mode says removal is what will happen *unless* a trip this device has not opened still uses it, in which case it is only hidden. The third form is not hedging for its own sake — the client holds the trip partitions it has opened and never every trip's, so a flat promise would be wrong exactly on the FR-9.2 case (ADR-032). The earlier "deletion blocked while referenced" rule is replaced by this; M10 had no delete control at all before it.
-* **Two specified sections were never built (found 2026-08-30, backlog item 6):** *„Enthalten in"* (FR-27.8) — the groups and Vorlagen that hold this item, tappable into M8 — and *„Kommentare aus Reisen"* (FR-27.9), the cross-trip comment rear-view. Both were built in the concept prototype and neither exists in `ItemEditorPage.vue`, in either mode. **Owner decision:** build them, or strike both clauses. Recorded here because three documents read them as shipped, FR-24.5 among them, where they were named as the sections creation mode hides — an absence that asserts nothing when the section is absent from both modes. The nearest thing the screen does answer is the delete card's usage *count*, which says how many places hold the item and never which.
-* **Navigation:** From M9 or inline from M8. The delete card's outcome sentence has a counterpart on **M23**, which lists what this card hid.
+* **The delete card (built 2026-08-25, FR-24.3)** — the last section of the existing-item block, absent in creation mode
+  like the others (FR-24.5). Three lines and a destructive button: the **usage count** („An N Stellen verwendet"), the
+  **outcome sentence**, and *„Artikel löschen"*, whose confirm repeats the same sentence — the card can be scrolled
+  past, the confirm cannot. The sentence has three forms, because the device does not always know: an item something
+  references says it will be **hidden and kept**; an unreferenced item on a device that holds every trip (Local Mode)
+  says it will be **removed for good**; the same item in Server Mode says removal is what will happen *unless* a trip
+  this device has not opened still uses it, in which case it is only hidden. The third form is not hedging for its own
+  sake — the client holds the trip partitions it has opened and never every trip's, so a flat promise would be wrong
+  exactly on the FR-9.2 case (ADR-032). The earlier "deletion blocked while referenced" rule is replaced by this; M10
+  had no delete control at all before it.
+* **Two specified sections were never built (found 2026-08-30, backlog item 6):** *„Enthalten in"* (FR-27.8) — the
+  groups and Vorlagen that hold this item, tappable into M8 — and *„Kommentare aus Reisen"* (FR-27.9), the cross-trip
+  comment rear-view. Both were built in the concept prototype and neither exists in `ItemEditorPage.vue`, in either
+  mode. **Owner decision:** build them, or strike both clauses. Recorded here because three documents read them as
+  shipped, FR-24.5 among them, where they were named as the sections creation mode hides — an absence that asserts
+  nothing when the section is absent from both modes. The nearest thing the screen does answer is the delete card's
+  usage *count*, which says how many places hold the item and never which.
+* **Navigation:** From M9 or inline from M8. The delete card's outcome sentence has a counterpart on **M23**, which
+  lists what this card hid.
 
 ### M11 — Container Management
 
 * **Purpose:** Define luggage containers and balance weight (3.10).
-* **Concept round 2026-08-08.** M11 was in the prototype but had never been through a round: containers could not be created or edited at all, the FR-10.3 pairing indicator was unreachable code (the seed had no pair), and assigning an item rendered *one button per container per row* — a wall that grows with containers × items and buries the item name.
-* **Rebuilt 2026-08-16** on those decisions — the first M11 rendered and eyeballed. As built: the carrier section is **absent, not emptied**, when the trip has no travelers (the FR-24.5 stance); the imbalance line appears only beyond the threshold, on **both** cards of the pair; delete lives in the sheet and its confirm states that the items stay on the list, unassigned. The pairing write set (both sides at once, exclusive, released on delete) is specified in `client/src/domain/containers.ts`.
-* **Elements:** Per-trip container list: name, carrier, weight bar (current/max) turning amber at 90 % and red beyond max (FR-10.3); the pairing imbalance line on paired containers; "Unassigned items" bucket at the bottom (FR-10.2), **one tappable row per item** rather than a grid of buttons. **The bucket renders only when a container exists or something is unassigned (2026-08-27, UX-8):** with zero containers and zero unassigned items, its "everything is assigned" line would contradict the empty state right above it, so the G-7 empty state stands alone.
-* **Editing is the M5 bottom sheet**, the same grammar as M8's position sheet: header with the container's load, then name, carrier, weight limit and the pairing selector, with the FR-25.15 auto-save chip — no Save button. **Pairing is exclusive and set on both sides at once**, and clearing or deleting one side releases the other; a half-set pair would render an imbalance against a container that does not consider itself paired.
-* **Creating is the FR-24.5 minimal form:** the ＋ FAB creates the container with a placeholder name and opens its sheet, so a name is enough to start and carrier/limit are filled in afterwards.
-* **Assigning:** tapping an unassigned row opens the same sheet as a **container picker**, each option showing its current load — so "which bag?" is answered where the load is visible. Assignment stays optional and never blocks packing (FR-25.5).
-* **Actions:** Create/edit/delete containers; assign items from the unassigned bucket via the picker. **Deleting a container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would silently shorten the packing list.
-* **Navigation:** From the luggage button in M4's toolbar (as built 2026-08-16; the earlier idea of an "Edit containers" entry inside the grouping switcher was not carried over) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the edge was never built** (read against the code 2026-08-30). M12's only navigation is to M4, and tapping a *Gepäck* bar sets the container facet there rather than opening this screen — which is the more useful landing anyway, since it puts the reader on the rows the bar was about. The clause goes; the edge is not owed.
+* **Concept round 2026-08-08.** M11 was in the prototype but had never been through a round: containers could not be
+  created or edited at all, the FR-10.3 pairing indicator was unreachable code (the seed had no pair), and assigning an
+  item rendered *one button per container per row* — a wall that grows with containers × items and buries the item name.
+* **Rebuilt 2026-08-16** on those decisions — the first M11 rendered and eyeballed. As built: the carrier section is
+  **absent, not emptied**, when the trip has no travelers (the FR-24.5 stance); the imbalance line appears only beyond
+  the threshold, on **both** cards of the pair; delete lives in the sheet and its confirm states that the items stay on
+  the list, unassigned. The pairing write set (both sides at once, exclusive, released on delete) is specified in
+  `client/src/domain/containers.ts`.
+* **Elements:** Per-trip container list: name, carrier, weight bar (current/max) turning amber at 90 % and red beyond
+  max (FR-10.3); the pairing imbalance line on paired containers; "Unassigned items" bucket at the bottom (FR-10.2),
+  **one tappable row per item** rather than a grid of buttons. **The bucket renders only when a container exists or
+  something is unassigned (2026-08-27, UX-8):** with zero containers and zero unassigned items, its "everything is
+  assigned" line would contradict the empty state right above it, so the G-7 empty state stands alone.
+* **Editing is the M5 bottom sheet**, the same grammar as M8's position sheet: header with the container's load, then
+  name, carrier, weight limit and the pairing selector, with the FR-25.15 auto-save chip — no Save button. **Pairing is
+  exclusive and set on both sides at once**, and clearing or deleting one side releases the other; a half-set pair would
+  render an imbalance against a container that does not consider itself paired.
+* **Creating is the FR-24.5 minimal form:** the ＋ FAB creates the container with a placeholder name and opens its sheet,
+  so a name is enough to start and carrier/limit are filled in afterwards.
+* **Assigning:** tapping an unassigned row opens the same sheet as a **container picker**, each option showing its
+  current load — so "which bag?" is answered where the load is visible. Assignment stays optional and never blocks
+  packing (FR-25.5).
+* **Actions:** Create/edit/delete containers; assign items from the unassigned bucket via the picker. **Deleting a
+  container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would
+  silently shorten the packing list.
+* **Navigation:** From the luggage button in M4's toolbar (as built 2026-08-16; the earlier idea of an "Edit containers"
+  entry inside the grouping switcher was not carried over) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the
+  edge was never built** (read against the code 2026-08-30). M12's only navigation is to M4, and tapping a *Gepäck* bar
+  sets the container facet there rather than opening this screen — which is the more useful landing anyway, since it
+  puts the reader on the rows the bar was about. The clause goes; the edge is not owed.
 
 ### M12 — Analytics
 
 * **Purpose:** Weight/value insight (3.8) and long-term trends (FR-14.3).
-* **Elements (as built 2026-08-16, per the prototype):** Dimension switcher *Person / Kategorie / Gepäck* (FR-8.2); one packed-in-planned weight bar per dimension value, heaviest first; two KPI boxes below — weight packed/planned and **total value for the whole trip** (the earlier per-slice value read as noise in the prototype and was dropped there); series trend section (archived trips of the series), **headed with the series' own name** (corrected 2026-09-04: the heading resolved a `series_name` field on the trip that nothing has ever written, so it always named the trip instead — „Series Elba 2026 · trend“ for a series called Elba): **packed** weight per year as columns, and one merged *Häufig markiert* list of the series' Missing/Unused items. The KPI numbers are the first use of G-13's **headline figure** role (`.jp-figure`).
-* **Concept round 2026-08-08.** Two defects found by clicking: tapping a bar only changed M4's *grouping* — the list arrived unfiltered, so the number you tapped was nowhere on screen — and per-person items (FR-25.1), which carry no top-level traveler or quantity, were bucketed under `undefined` in the Person view and counted with an undefined quantity elsewhere.
-* **Rebuilt 2026-08-16** on those decisions. Slices are keyed by exactly what M4's facets filter on (traveler id, `category_name`, container id, `''` for the absence bucket), so a tapped bar becomes a facet without translation; absence buckets carry the facet wording (*Gemeinsam* / *Ohne Kategorie* / *Ohne Gepäck*, FR-25.11f/g).
-* **Actions:** Tapping a bar **sets the FR-25.11 facet** for that value — clearing every other facet, since the reader tapped one number — and opens M4, where the chip row names the filter (FR-25.11a) and the session keeps it (FR-25.18); the grouping follows the dimension so the slice sits together. ADR-012 leaves M4 mounted behind M12, so both writes move the live view state as well as the stored one.
-* **Per-person items** (FR-25.1) need no expansion step in the client's data model: each traveler's instance is its own row with its own quantity and packed count, so by *Person* the rows are one contribution each and by *Kategorie* or *Gepäck* they sum back into a single bucket by construction. Rows with no traveler count as *Gemeinsam* (FR-25.11f's term).
-* **States:** Items without weight metadata never enter a bar — a zero-width bar would read as "weighs nothing" — and are counted honestly beside the chart ("＋ n Artikel ohne Gewichtsangabe"); their value still counts. No weighted rows at all → an empty-state line in the bar card, **and no KPI tiles under it** (2026-08-26, UX review UX-11: „0 g / 0 g" and a unit-less „0.00" restated the empty state as numbers). Each tile stands only when it has something to total: the weight tile with weighted rows, the value tile with a non-zero value — rendered through `formatValue` in the locale's number format, **which carries the instance's currency where one is named** (FR-21.9, built 2026-08-30) and stays unit-less where none is — as it does in Local Mode, which has no server to ask. The sentence this line carried until 2026-08-30, that the instance has no configured currency and one would be an owner decision, was true when it was written and has not been since; the setting is `JITPACK_CURRENCY`. No series, or a series with no archived trips → the trend section is absent, not empty.
+* **Elements (as built 2026-08-16, per the prototype):** Dimension switcher *Person / Kategorie / Gepäck* (FR-8.2); one
+  packed-in-planned weight bar per dimension value, heaviest first; two KPI boxes below — weight packed/planned and
+  **total value for the whole trip** (the earlier per-slice value read as noise in the prototype and was dropped there);
+  series trend section (archived trips of the series), **headed with the series' own name** (corrected 2026-09-04: the
+  heading resolved a `series_name` field on the trip that nothing has ever written, so it always named the trip instead
+  — „Series Elba 2026 · trend“ for a series called Elba): **packed** weight per year as columns, and one merged *Häufig
+  markiert* list of the series' Missing/Unused items. The KPI numbers are the first use of G-13's **headline figure**
+  role (`.jp-figure`).
+* **Concept round 2026-08-08.** Two defects found by clicking: tapping a bar only changed M4's *grouping* — the list
+  arrived unfiltered, so the number you tapped was nowhere on screen — and per-person items (FR-25.1), which carry no
+  top-level traveler or quantity, were bucketed under `undefined` in the Person view and counted with an undefined
+  quantity elsewhere.
+* **Rebuilt 2026-08-16** on those decisions. Slices are keyed by exactly what M4's facets filter on (traveler id,
+  `category_name`, container id, `''` for the absence bucket), so a tapped bar becomes a facet without translation;
+  absence buckets carry the facet wording (*Gemeinsam* / *Ohne Kategorie* / *Ohne Gepäck*, FR-25.11f/g).
+* **Actions:** Tapping a bar **sets the FR-25.11 facet** for that value — clearing every other facet, since the reader
+  tapped one number — and opens M4, where the chip row names the filter (FR-25.11a) and the session keeps it (FR-25.18);
+  the grouping follows the dimension so the slice sits together. ADR-012 leaves M4 mounted behind M12, so both writes
+  move the live view state as well as the stored one.
+* **Per-person items** (FR-25.1) need no expansion step in the client's data model: each traveler's instance is its own
+  row with its own quantity and packed count, so by *Person* the rows are one contribution each and by *Kategorie* or
+  *Gepäck* they sum back into a single bucket by construction. Rows with no traveler count as *Gemeinsam* (FR-25.11f's
+  term).
+* **States:** Items without weight metadata never enter a bar — a zero-width bar would read as "weighs nothing" — and
+  are counted honestly beside the chart ("＋ n Artikel ohne Gewichtsangabe"); their value still counts. No weighted rows
+  at all → an empty-state line in the bar card, **and no KPI tiles under it** (2026-08-26, UX review UX-11: „0 g / 0 g"
+  and a unit-less „0.00" restated the empty state as numbers). Each tile stands only when it has something to total: the
+  weight tile with weighted rows, the value tile with a non-zero value — rendered through `formatValue` in the locale's
+  number format, **which carries the instance's currency where one is named** (FR-21.9, built 2026-08-30) and stays
+  unit-less where none is — as it does in Local Mode, which has no server to ask. The sentence this line carried until
+  2026-08-30, that the instance has no configured currency and one would be an owner decision, was true when it was
+  written and has not been since; the setting is `JITPACK_CURRENCY`. No series, or a series with no archived trips → the
+  trend section is absent, not empty.
 * **Navigation:** From the 📊 button on M4's trip line (G-12); trend section also from M16.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 
-Screen removed together with the Repack feature (PRD Addendum §3.11, removed by owner decision — not wanted). The M-number is retired and must not be reused. No repack entry appears in the M4 toolbar.
+Screen removed together with the Repack feature (PRD Addendum §3.11, removed by owner decision — not wanted). The
+M-number is retired and must not be reused. No repack entry appears in the M4 toolbar.
 
 ### M14 — Post-Trip Review Assistant
 
 * **Purpose:** Close the feedback loop into master templates (FR-9.2).
-* **Concept round 2026-08-08 (FR-27.11).** Two changes against the 2026-07 draft: the assistant is **a list, not a card stack**, and its proposals target **groups**, not the composed vacation template.
-* **Elements:** One row per proposal: a kind chip (*ungenutzt* / *fehlte*), the item name, why it is being proposed ("auf dieser Reise nicht gebraucht", "unterwegs nachgekauft — fehlte auf der Liste"), and the **target group named in a picker that offers groups only** (FR-27.11), beside which a chevron opens the FR-27.12 peek sheet on the chosen target — the row carries no summary line, because the proposal and its blast radius already own that space — for an *ungenutzt* row only groups that actually carry the item (decided with the 2026-08-16 rebuild: zeroing a position that does not exist would apply as nothing, and a silent no-op is worse than a shorter picker). When the target group reaches trips that still follow it, the row states the blast radius ("Wird N Reisen vorgeschlagen …", FR-27.4). Per row: *Übernehmen · Überspringen · Nie mehr fragen*, all three worded (FR-9.4: the third used to be an unlabelled ✕ carrying only an `aria-label`, which on a phone is no label at all — and it is the one action here that is permanent, device-local and has no undo; the wording follows FR-27.15's *Ignorieren* rather than inventing a second grammar for the same dismissal).
-* **Two blocks, and a handled proposal moves between them (FR-9.4, corrected 2026-08-24).** *Offen · n* holds what is still open; *Erledigt · n* holds what was applied or skipped, as a record line naming the item, its target group and its outcome — visible and marked as FR-27.11 requires, but no longer under a heading that has stopped counting it. What this replaced: handled cards stayed where they were, so a finished pass read „Offen · 0" above two cards while the block below counted one of them a second time. The footer sentence counting what was *written* stays, under *Erledigt*, and appears only when something was applied. **The finished state is reachable by finishing:** the empty block renders whenever nothing is open, saying „durchgesehen" where a pass was made and „nichts zu prüfen" where the trip produced no proposal at all — before, applying or skipping never emptied the list, so the only way to see a finished review was to dismiss every proposal permanently.
-* **Actions:** Single-tap apply writes directly to the target group (shared instance-wide, FR-1.6 MVP simplification — no fork prompt) and logs an FR-27.4 applied change on every planning trip using it. **The harvested item becomes a trip-global position (corrected 2026-08-31, E2E-FLOW-04):** one row for the trip, the way M21's fold writes a trip's row back, not one per traveler — the write had been taking the mutation's `per_person` default, which is the field that decides how many rows generation makes, so a shared item came back once per head and on a trip with no travelers not at all. It is the position's *quantity* that the review pass moves; who it is for is not something a finished trip has an opinion about. **Decided: "Never ask again" scopes to the specific item–group pair**, not the item globally — the same item can still surface a proposal for a different group.
-* **States:** No flags recorded → assistant skipped with a brief "nothing to review" toast; assistant is resumable if interrupted.
-* **Navigation:** Auto-launch on archive from M4/M2 — and only when something was flagged; with no flags the archive stops on M4 with the *„nichts zu prüfen"* toast. Afterwards from the **closing card at the top of M4 on the archived trip**, which links to the full list. **and it teases the first two proposals** (built 2026-08-31, owner decision). Until then the card rendered a heading, a hint and two buttons and read no proposal at all — so it said the same thing whether eleven suggestions were waiting or none, which is the one question the tap answers. It calls the **same** rule M14 calls (invariant 4): a cheaper approximation on the card would be the review implemented twice, and the copy that drifts is always the summary. With nothing to propose it says so rather than listing nothing, which reads as *not loaded yet*. Sits beside the M21 entry there — M21 folds back structure, M14 folds back individual items.
+* **Concept round 2026-08-08 (FR-27.11).** Two changes against the 2026-07 draft: the assistant is **a list, not a card
+  stack**, and its proposals target **groups**, not the composed vacation template.
+* **Elements:** One row per proposal: a kind chip (*ungenutzt* / *fehlte*), the item name, why it is being proposed
+  ("auf dieser Reise nicht gebraucht", "unterwegs nachgekauft — fehlte auf der Liste"), and the **target group named in
+  a picker that offers groups only** (FR-27.11), beside which a chevron opens the FR-27.12 peek sheet on the chosen
+  target — the row carries no summary line, because the proposal and its blast radius already own that space — for an
+  *ungenutzt* row only groups that actually carry the item (decided with the 2026-08-16 rebuild: zeroing a position that
+  does not exist would apply as nothing, and a silent no-op is worse than a shorter picker). When the target group
+  reaches trips that still follow it, the row states the blast radius ("Wird N Reisen vorgeschlagen …", FR-27.4). Per
+  row: *Übernehmen · Überspringen · Nie mehr fragen*, all three worded (FR-9.4: the third used to be an unlabelled ✕
+  carrying only an `aria-label`, which on a phone is no label at all — and it is the one action here that is permanent,
+  device-local and has no undo; the wording follows FR-27.15's *Ignorieren* rather than inventing a second grammar for
+  the same dismissal).
+* **Two blocks, and a handled proposal moves between them (FR-9.4, corrected 2026-08-24).** *Offen · n* holds what is
+  still open; *Erledigt · n* holds what was applied or skipped, as a record line naming the item, its target group and
+  its outcome — visible and marked as FR-27.11 requires, but no longer under a heading that has stopped counting it.
+  What this replaced: handled cards stayed where they were, so a finished pass read „Offen · 0" above two cards while
+  the block below counted one of them a second time. The footer sentence counting what was *written* stays, under
+  *Erledigt*, and appears only when something was applied. **The finished state is reachable by finishing:** the empty
+  block renders whenever nothing is open, saying „durchgesehen" where a pass was made and „nichts zu prüfen" where the
+  trip produced no proposal at all — before, applying or skipping never emptied the list, so the only way to see a
+  finished review was to dismiss every proposal permanently.
+* **Actions:** Single-tap apply writes directly to the target group (shared instance-wide, FR-1.6 MVP simplification —
+  no fork prompt) and logs an FR-27.4 applied change on every planning trip using it. **The harvested item becomes a
+  trip-global position (corrected 2026-08-31, E2E-FLOW-04):** one row for the trip, the way M21's fold writes a trip's
+  row back, not one per traveler — the write had been taking the mutation's `per_person` default, which is the field
+  that decides how many rows generation makes, so a shared item came back once per head and on a trip with no travelers
+  not at all. It is the position's *quantity* that the review pass moves; who it is for is not something a finished trip
+  has an opinion about. **Decided: "Never ask again" scopes to the specific item–group pair**, not the item globally —
+  the same item can still surface a proposal for a different group.
+* **States:** No flags recorded → assistant skipped with a brief "nothing to review" toast; assistant is resumable if
+  interrupted.
+* **Navigation:** Auto-launch on archive from M4/M2 — and only when something was flagged; with no flags the archive
+  stops on M4 with the *„nichts zu prüfen"* toast. Afterwards from the **closing card at the top of M4 on the archived
+  trip**, which links to the full list. **and it teases the first two proposals** (built 2026-08-31, owner decision).
+  Until then the card rendered a heading, a hint and two buttons and read no proposal at all — so it said the same thing
+  whether eleven suggestions were waiting or none, which is the one question the tap answers. It calls the **same** rule
+  M14 calls (invariant 4): a cheaper approximation on the card would be the review implemented twice, and the copy that
+  drifts is always the summary. With nothing to propose it says so rather than listing nothing, which reads as *not
+  loaded yet*. Sits beside the M21 entry there — M21 folds back structure, M14 folds back individual items.
 
 ### M15 — Import Wizard
 
 * **Purpose:** Migrate legacy spreadsheet history (3.16).
-* **Step 1 — File:** Upload **CSV** through the G-17 file trigger, or paste. ~~CSV/XLSX~~ — **corrected 2026-08-30:** the picker accepts `.csv` only and the hint says so (XLSX is deferred by NFR-4.3 — a parser dependency for a format every tool exports as CSV). **The parser preview is built (2026-08-31, ADR-041):** the first six parsed rows as a table, live while the text is being pasted, so the answer to *did it read my file the way I meant it?* arrives before *Analyze* rather than after. It renders `parseSpreadsheet` output and nothing derived, which is the point — it stays truthful when the analysis is wrong. Rows are padded to the widest so a ragged row keeps its shape, the header row carries the emphasis, and a note names the rows not shown. **Wide sheets scroll inside the box and the page never scrolls sideways** (G-9; measured at 390 px: a 358 px box over 617 px of content, body unchanged). E2E-M15-01.
-* **Step 2 — Mapping:** Mark the item-name column, the **category column** (a picker whose first choice is *None*, added 2026-08-23) *or* the category rows, and per trip column: include-toggle, trip name, date (or year — **a bare year imports a year-only trip**, 2026-08-26, UX review UX-5: it used to be fabricated into a Dec-31 end date, which then posed as a real date on every list), target series (FR-16.1); noise handling per NFR-4.7 — **said inline since 2026-08-31**: a note names how many entries the sheet marked with a trailing `?`, names up to three of them, and states that each becomes an open task on its row. The rule itself was built and unit-covered from the start; what was missing was the saying, so the user first met the tasks inside the trip (E2E-M15-02). The task's body is on the catalogue now (NFR-4.12) rather than a hard-coded English string, resolved at write time so a language switch reaches it. The trip name and date arrive **prefilled from the sheet's header block**, which may be more than one row — a column whose header carries neither is the one case that arrives unticked. Both column pickers label a column by its own header text, falling back to its position. **No trip column has to be ticked at all** (added 2026-08-23): a sheet with none is an inventory, and the step's note then names the one thing still missing — a column holding the item names — rather than a trip.
+* **Step 1 — File:** Upload **CSV** through the G-17 file trigger, or paste. ~~CSV/XLSX~~ — **corrected 2026-08-30:**
+  the picker accepts `.csv` only and the hint says so (XLSX is deferred by NFR-4.3 — a parser dependency for a format
+  every tool exports as CSV). **The parser preview is built (2026-08-31, ADR-041):** the first six parsed rows as a
+  table, live while the text is being pasted, so the answer to *did it read my file the way I meant it?* arrives before
+  *Analyze* rather than after. It renders `parseSpreadsheet` output and nothing derived, which is the point — it stays
+  truthful when the analysis is wrong. Rows are padded to the widest so a ragged row keeps its shape, the header row
+  carries the emphasis, and a note names the rows not shown. **Wide sheets scroll inside the box and the page never
+  scrolls sideways** (G-9; measured at 390 px: a 358 px box over 617 px of content, body unchanged). E2E-M15-01.
+* **Step 2 — Mapping:** Mark the item-name column, the **category column** (a picker whose first choice is *None*, added
+  2026-08-23) *or* the category rows, and per trip column: include-toggle, trip name, date (or year — **a bare year
+  imports a year-only trip**, 2026-08-26, UX review UX-5: it used to be fabricated into a Dec-31 end date, which then
+  posed as a real date on every list), target series (FR-16.1); noise handling per NFR-4.7 — **said inline since
+  2026-08-31**: a note names how many entries the sheet marked with a trailing `?`, names up to three of them, and
+  states that each becomes an open task on its row. The rule itself was built and unit-covered from the start; what was
+  missing was the saying, so the user first met the tasks inside the trip (E2E-M15-02). The task's body is on the
+  catalogue now (NFR-4.12) rather than a hard-coded English string, resolved at write time so a language switch reaches
+  it. The trip name and date arrive **prefilled from the sheet's header block**, which may be more than one row — a
+  column whose header carries neither is the one case that arrives unticked. Both column pickers label a column by its
+  own header text, falling back to its position. **No trip column has to be ticked at all** (added 2026-08-23): a sheet
+  with none is an inventory, and the step's note then names the one thing still missing — a column holding the item
+  names — rather than a trip.
 * **Step 3 — Dedup:** Near-duplicate suggestions against existing master data with merge/keep-separate choice (FR-16.3).
-* **Step 4 — Confirm:** Summary (n items, n archived trips, merges, categories) and one row per trip. **Each trip row names its target series** (built 2026-08-31), and says *„keine Serie"* where none was chosen — a destination is a destination, and this is the last screen before an irreversible write. The picker is on step 2 and the commit writes `series_id`; until now nothing between the two repeated it. **The summary also counts the open tasks the commit will create** (NFR-4.7), for the same reason. E2E-M15-02, E2E-M15-04b. ~~transactional commit with progress; failure rolls back completely~~ — **the commit is an approximation and always has been** (NFR-4.7): the plan is validated in full before a single mutation is enqueued, parents precede children in the queues and replay is idempotent, but **nothing rolls back** and **there is no progress indicator**. There is no server-side transaction across a push batch to build either on. The commit lands on **M9, the inventory, when no trip was created**, and otherwise on **M2's Archived segment** — FR-16.2 only ever produces archived trips, and M2 opens on Active, so the default landing reported a successful migration with "No active trips".
-* **Navigation:** From M9's empty state and from **M2's own title row** — a button beside M18's, not an overflow menu — with the origin stamped so `‹` returns to whichever of the two opened it (G-9, ADR-011). ~~and M17~~: Settings offers no import entry and never has (checked 2026-08-30). **A second visit inside one session does not work**: the commit's `router.replace` onto a tab root leaves that tab's page unhidden in the root outlet, so a later push renders M15 *underneath* it. Found by E2E-M15-03; open with the owner, and M18's restore replaces the same way.
+* **Step 4 — Confirm:** Summary (n items, n archived trips, merges, categories) and one row per trip. **Each trip row
+  names its target series** (built 2026-08-31), and says *„keine Serie"* where none was chosen — a destination is a
+  destination, and this is the last screen before an irreversible write. The picker is on step 2 and the commit writes
+  `series_id`; until now nothing between the two repeated it. **The summary also counts the open tasks the commit will
+  create** (NFR-4.7), for the same reason. E2E-M15-02, E2E-M15-04b. ~~transactional commit with progress; failure rolls
+  back completely~~ — **the commit is an approximation and always has been** (NFR-4.7): the plan is validated in full
+  before a single mutation is enqueued, parents precede children in the queues and replay is idempotent, but **nothing
+  rolls back** and **there is no progress indicator**. There is no server-side transaction across a push batch to build
+  either on. The commit lands on **M9, the inventory, when no trip was created**, and otherwise on **M2's Archived
+  segment** — FR-16.2 only ever produces archived trips, and M2 opens on Active, so the default landing reported a
+  successful migration with "No active trips".
+* **Navigation:** From M9's empty state and from **M2's own title row** — a button beside M18's, not an overflow menu —
+  with the origin stamped so `‹` returns to whichever of the two opened it (G-9, ADR-011). ~~and M17~~: Settings offers
+  no import entry and never has (checked 2026-08-30). **A second visit inside one session does not work**: the commit's
+  `router.replace` onto a tab root leaves that tab's page unhidden in the root outlet, so a later push renders M15
+  *underneath* it. Found by E2E-M15-03; open with the owner, and M18's restore replaces the same way.
 
 ### M16 — Series & Destination Profile
 
 * **Purpose:** Manage recurring-trip context (3.13).
-* **Elements:** Series name; the three default attribute **selects** — season, transport, accommodation (FR-15.1), which are what M3 prefills from (the word *chips* stood here until 2026-08-30 and described a control this screen has never had); destination notes; destination checklist editor (FR-13.3), each entry carrying one of the three FR-25.13 procurement modes; trip history list of the series with per-trip stats; shortcut to series trends (M12). **The destination profile is created lazily** — nothing writes one until a note or a checklist entry is.
-* **Actions:** Edit profile; create new trip in series (→ M3 prefilled, carrying the series *and* its defaults); clone the series' most recent archived trip (FR-12.1, offered only when there is one); detach/attach trips. Renaming onto a name another series holds is refused (FR-13.1): a toast names the holder and the field goes back to the stored name.
+* **Elements:** Series name; the three default attribute **selects** — season, transport, accommodation (FR-15.1), which
+  are what M3 prefills from (the word *chips* stood here until 2026-08-30 and described a control this screen has never
+  had); destination notes; destination checklist editor (FR-13.3), each entry carrying one of the three FR-25.13
+  procurement modes; trip history list of the series with per-trip stats; shortcut to series trends (M12). **The
+  destination profile is created lazily** — nothing writes one until a note or a checklist entry is.
+* **Actions:** Edit profile; create new trip in series (→ M3 prefilled, carrying the series *and* its defaults); clone
+  the series' most recent archived trip (FR-12.1, offered only when there is one); detach/attach trips. Renaming onto a
+  name another series holds is refused (FR-13.1): a toast names the holder and the field goes back to the stored name.
 * **Navigation:** From M2 series headers.
 
 ### M17 — Settings & Notifications
 
-**Leaving Local Mode (FR-19.8, ADR-045) — added 2026-09-02.** A card *„Auf einen Server umziehen"* at the end of the **Local Mode** data section, absent in every other mode (G-8). It carries three numbered steps and states, above them, the one sentence that matters: the data stays on this device until step 3 has been done. **Step 1 — *„Sicherung herunterladen"*:** the whole-device backup, the same export the G-2 sheet offers (FR-19.6), one function behind both. The step shows when the last backup was taken, or that none was. **Step 2 — *„Server verbinden"*:** a URL field pre-filled with the page's own origin, validated for syntax exactly like M19's (an invalid URL disables the button and says so inline; no reachability check, for M19's reason), and the confirm. **The confirm is disabled while the backup is older than the last change on this device**, and the disabled state says so in words (*„Zuerst sichern — seit der letzten Sicherung wurde etwas geändert."*), because a button that is grey for a reason it does not name is the FR-25.15 shape. Taking the backup in step 1 enables it; any further write disables it again. Confirming writes the mode, the server URL and the *migration pending* flag, then reloads — the app comes back up in Server Mode (login for an OIDC instance, M1 for a Single-User one, as M19 describes) and M19 is **not** shown. **Step 3 — *„Sicherung wiederherstellen"*:** is described on the card as what happens next, and performed by the **migration bar** (below) after the reload; the card itself is gone by then, with the mode. The Local Mode data in the browser is left in place — the card says so, in the sentence about a second copy that this device keeps and the app will not read again.
+**Leaving Local Mode (FR-19.8, ADR-045) — added 2026-09-02.** A card *„Auf einen Server umziehen"* at the end of the
+**Local Mode** data section, absent in every other mode (G-8). It carries three numbered steps and states, above them,
+the one sentence that matters: the data stays on this device until step 3 has been done. **Step 1 — *„Sicherung
+herunterladen"*:** the whole-device backup, the same export the G-2 sheet offers (FR-19.6), one function behind both.
+The step shows when the last backup was taken, or that none was. **Step 2 — *„Server verbinden"*:** a URL field
+pre-filled with the page's own origin, validated for syntax exactly like M19's (an invalid URL disables the button and
+says so inline; no reachability check, for M19's reason), and the confirm. **The confirm is disabled while the backup is
+older than the last change on this device**, and the disabled state says so in words (*„Zuerst sichern — seit der
+letzten Sicherung wurde etwas geändert."*), because a button that is grey for a reason it does not name is the FR-25.15
+shape. Taking the backup in step 1 enables it; any further write disables it again. Confirming writes the mode, the
+server URL and the *migration pending* flag, then reloads — the app comes back up in Server Mode (login for an OIDC
+instance, M1 for a Single-User one, as M19 describes) and M19 is **not** shown. **Step 3 — *„Sicherung
+wiederherstellen"*:** is described on the card as what happens next, and performed by the **migration bar** (below)
+after the reload; the card itself is gone by then, with the mode. The Local Mode data in the browser is left in place —
+the card says so, in the sentence about a second copy that this device keeps and the app will not read again.
 
-**The migration bar (FR-19.8) — added 2026-09-02, the FR-19.7 bar's sibling.** While the *migration pending* flag is set, a bar under the app bar on every screen of the app shell says *„Umzug abschliessen: Sicherung wiederherstellen"* with the action *„Wiederherstellen"*, which opens M18, and a *„Überspringen"*, which asks once (*„Ohne Wiederherstellung fortfahren? Die Daten bleiben nur in der Sicherungsdatei."*) and then clears the flag. The flag also clears when a restore commits on M18 in Server Mode. It is the same component shape as the FR-19.7 bar and stacks below it if both are up. It is never shown in Local Mode — nothing there can set the flag — and not on the login screen, which has no app shell.
+**The migration bar (FR-19.8) — added 2026-09-02, the FR-19.7 bar's sibling.** While the *migration pending* flag is
+set, a bar under the app bar on every screen of the app shell says *„Umzug abschliessen: Sicherung wiederherstellen"*
+with the action *„Wiederherstellen"*, which opens M18, and a *„Überspringen"*, which asks once (*„Ohne Wiederherstellung
+fortfahren? Die Daten bleiben nur in der Sicherungsdatei."*) and then clears the flag. The flag also clears when a
+restore commits on M18 in Server Mode. It is the same component shape as the FR-19.7 bar and stacks below it if both are
+up. It is never shown in Local Mode — nothing there can set the flag — and not on the login screen, which has no app
+shell.
 
-**API tokens (FR-23.7, ADR-039) — added 2026-08-30.** A block between *Administration* and *Hidden master data*: a name field, an expiry select (an hour / a day / a week / 30 days / 90 days / a year / never, **90 preselected**), and a create button. It is a **form, not a list**, because there is nothing to list — tokens are stored nowhere. On success a sheet reveals the token **as text** and then offers to copy it: a value shown exactly once has to be shown to the person, and the clipboard can be refused. The sheet says the three things nothing else will — that it will not be shown again, that a single token cannot be taken back, and that changing the instance's session secret revokes them all. Closing it is what ends the token's only readable moment. The whole block is **absent** in Single-User Mode and Local Mode (G-8): the first bypasses authentication and configures no signing secret, the second has no server, so in both a token would prove nothing there is anything to prove.
+**API tokens (FR-23.7, ADR-039) — added 2026-08-30.** A block between *Administration* and *Hidden master data*: a name
+field, an expiry select (an hour / a day / a week / 30 days / 90 days / a year / never, **90 preselected**), and a
+create button. It is a **form, not a list**, because there is nothing to list — tokens are stored nowhere. On success a
+sheet reveals the token **as text** and then offers to copy it: a value shown exactly once has to be shown to the
+person, and the clipboard can be refused. The sheet says the three things nothing else will — that it will not be shown
+again, that a single token cannot be taken back, and that changing the instance's session secret revokes them all.
+Closing it is what ends the token's only readable moment. The whole block is **absent** in Single-User Mode and Local
+Mode (G-8): the first bypasses authentication and configures no signing secret, the second has no server, so in both a
+token would prove nothing there is anything to prove.
 
-* **Default travellers (FR-2.5a, 2026-08-14):** a named list, added and removed inline, shown in every mode and stored on the device. Its hint says both things that matter: this device only, and changeable per trip.
+* **Default travellers (FR-2.5a, 2026-08-14):** a named list, added and removed inline, shown in every mode and stored
+  on the device. Its hint says both things that matter: this device only, and changeable per trip.
 
-* **Purpose:** Personal preferences within the declarative-infrastructure constraint (Section 2: no administrative *infrastructure* changes via the UI; application-level user administration lives in M20, proposed per Addendum 3.23).
-* **Elements:** Profile — the **display name** is read-only and OIDC-sourced, the **picture is editable** (FR-17.13, revised 2026-08-29: no identity provider supplies a picture, so gating it on Single-User Mode meant a multi-user instance could never have one). The picture control is the same one M17 offers in Single-User Mode, described in the variant below. The note under the name names the display name specifically rather than claiming the whole profile is managed elsewhere; notification preferences per event type: delegation, mention, task assigned and **items taken over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) with channel status (push registered via VAPID/UnifiedPush, NFR-4.6). **A preference turned off here reaches the server's own suppression rule and silences that kind alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between them had none; data section: JSON full export, per-trip CSV export (NFR-4.5) — **this is the section a *server* account sees; Local Mode's data section is a different one**, per-trip and per-template YAML written client-side because there is no server to ask, plus the NFR-4.11 storage details. The distinction is written out here because E2E-M17-03 claimed to cover both for months while describing only the first; conflict log viewer (G-2 target); app info/version. Appearance section with a dark (default, Catppuccin Mocha) / light (Catppuccin Latte) toggle (G-11, Addendum 3.21) — shown in every mode, device-local. An Administration row → M20, rendered only for instance admins with an OIDC session (FR-23.1).
-* **Single-User Mode variant (Addendum 3.17):** The Profile section makes the *display name* editable too (the picture already is, see above), so it carries two editable controls: a display-name text field (1–50 printable characters, no edge whitespace per FR-17.13; the rule note appears only after the field was touched) and an avatar picture control (Addendum FR-17.13) — the user picks a source photo, positions a circular crop overlay on it via pan/zoom, and confirms; the app renders the selected region to a 256×256 px JPEG on-device and uploads only that, with no separate resize/format step exposed to the user. Both controls save immediately (G-5) and are reflected wherever an avatar/name appears — the M17 profile row itself, the "Packed by" tag, the presence facepile per G-10 (**not** the dashboard greeting, which this line claimed until 2026-09-01: it is a time-of-day sentence and carries neither) — always rendered as a circle via a display-time mask, never stored as one. The *notification preferences* section is hidden entirely, since there is no second party to notify or delegate to (Addendum FR-17.3). All other elements (data export, conflict log, app info) remain, unchanged from normal mode.
-* **Explicitly absent:** instance configuration, OIDC settings, admin-role assignment — all declarative (Section 2). User administration (deactivate, profile moderation) is application data, not infrastructure, and lives in M20 (Addendum 3.23).
-* **Language (NFR-4.12, 2026-08-22):** the Language row is device-local like the theme, and **the whole screen follows it** — M17 was the last screen still half on the catalogue, and it is the worst place for that: the user changes the language here and watches half the page ignore them. One consequence is worth writing down, because it is invisible in the markup: the notification rows carried their labels in a module-level constant, evaluated once at import, which no language switch can reach. Labels are keys now and `t()` runs during render.
+* **Purpose:** Personal preferences within the declarative-infrastructure constraint (Section 2: no administrative
+  *infrastructure* changes via the UI; application-level user administration lives in M20, proposed per Addendum 3.23).
+* **Elements:** Profile — the **display name** is read-only and OIDC-sourced, the **picture is editable** (FR-17.13,
+  revised 2026-08-29: no identity provider supplies a picture, so gating it on Single-User Mode meant a multi-user
+  instance could never have one). The picture control is the same one M17 offers in Single-User Mode, described in the
+  variant below. The note under the name names the display name specifically rather than claiming the whole profile is
+  managed elsewhere; notification preferences per event type: delegation, mention, task assigned and **items taken
+  over** (FR-6.2, the fourth kind arriving with FR-5.7 — this sentence still named three until 2026-08-30) with channel
+  status (push registered via VAPID/UnifiedPush, NFR-4.6). **A preference turned off here reaches the server's own
+  suppression rule and silences that kind alone** (E2E-M17-01, 2026-08-30): the two ends had tests and the wire between
+  them had none; data section: JSON full export, per-trip CSV export (NFR-4.5) — **this is the section a *server*
+  account sees; Local Mode's data section is a different one**, per-trip and per-template YAML written client-side
+  because there is no server to ask, plus the NFR-4.11 storage details. The distinction is written out here because
+  E2E-M17-03 claimed to cover both for months while describing only the first; conflict log viewer (G-2 target); app
+  info/version. Appearance section with a dark (default, Catppuccin Mocha) / light (Catppuccin Latte) toggle (G-11,
+  Addendum 3.21) — shown in every mode, device-local. An Administration row → M20, rendered only for instance admins
+  with an OIDC session (FR-23.1).
+* **Single-User Mode variant (Addendum 3.17):** The Profile section makes the *display name* editable too (the picture
+  already is, see above), so it carries two editable controls: a display-name text field (1–50 printable characters, no
+  edge whitespace per FR-17.13; the rule note appears only after the field was touched) and an avatar picture control
+  (Addendum FR-17.13) — the user picks a source photo, positions a circular crop overlay on it via pan/zoom, and
+  confirms; the app renders the selected region to a 256×256 px JPEG on-device and uploads only that, with no separate
+  resize/format step exposed to the user. Both controls save immediately (G-5) and are reflected wherever an avatar/name
+  appears — the M17 profile row itself, the "Packed by" tag, the presence facepile per G-10 (**not** the dashboard
+  greeting, which this line claimed until 2026-09-01: it is a time-of-day sentence and carries neither) — always
+  rendered as a circle via a display-time mask, never stored as one. The *notification preferences* section is hidden
+  entirely, since there is no second party to notify or delegate to (Addendum FR-17.3). All other elements (data export,
+  conflict log, app info) remain, unchanged from normal mode.
+* **Explicitly absent:** instance configuration, OIDC settings, admin-role assignment — all declarative (Section 2).
+  User administration (deactivate, profile moderation) is application data, not infrastructure, and lives in M20
+  (Addendum 3.23).
+* **Language (NFR-4.12, 2026-08-22):** the Language row is device-local like the theme, and **the whole screen follows
+  it** — M17 was the last screen still half on the catalogue, and it is the worst place for that: the user changes the
+  language here and watches half the page ignore them. One consequence is worth writing down, because it is invisible in
+  the markup: the notification rows carried their labels in a module-level constant, evaluated once at import, which no
+  language switch can reach. Labels are keys now and `t()` runs during render.
 * **Navigation:** Avatar in top bar.
 
 ### M18 — Portable Import Preview
 
-* **Purpose:** A lightweight, single-screen confirmation for importing a portable YAML template or trip file (Addendum FR-18.4) — deliberately not a multi-step wizard like M15, since the file is our own well-structured format and needs no column mapping.
-* **Elements:** File summary header (kind: Template/Trip, name, item count, `schema_version`); item list preview with per-item state: *new* (no local match), *near-duplicate* (name closely matches an existing item, FR-16.3-style), or *matched* (exact name match) — each near-duplicate row offers *merge* or *keep separate*. **What M15 Step 3 and this list actually share is the rule, not the component** (corrected 2026-08-30, backlog item 6): both resolve names through `domain/spreadsheet.ts`'s `findDuplicates` — M18 through `matchPortableItems`, which wraps it — and both render their own list and hold their own choice map. The two catalogue keys (*Merge* / *Keep separate*) are shared, which is as far as the reuse goes. Kept as two lists deliberately: M15's row is a spreadsheet cell being mapped and M18's is a document position with a state chip beside it.
-* **Actions:** *Import* commits — a template import creates a new template, shared instance-wide like every other (FR-1.6 MVP); a trip import creates a new trip in **the status the file carries, and *planning* when it carries none** (FR-18.4 as amended by ADR-024 — this sentence said *planning* unconditionally until 2026-08-30, a year after the rule changed under it); *Cancel* discards with no residue. **Where the document is already here, *Import* opens what is already here and adds nothing** (added 2026-08-24, ADR-030), confirming it with a toast: the screen still commits rather than disabling its own button, because "this is already yours, here it is" is a better answer than a dead control with no explanation.
-* **States:** A `schema_version` newer than the app understands shows a plain warning but still attempts best-effort import, ignoring unrecognized fields (FR-18.5); a malformed file is rejected **at this screen's own picker step**, with an inline error naming the reason, and no preview is opened (whose trigger is G-17's button since 2026-08-26). *(The wording „before this screen is ever shown“ is corrected 2026-08-30: the picker is M18's first state, so the refusal happens here — which is what makes it correctable, the pasted text still in the field.)* **A document this instance already holds is named as such in the preview** (added 2026-08-24, ADR-030) — a note beside the schema warning, carrying the same weight, because it is the same kind of fact: something about this file the user should know before pressing the button rather than after. A trip is recognised by its year and its name, a Ferien-Vorlage and a group by their name.
-* **Restore branch (added 2026-08-17, ADR-015 — the screen the backup is read back through):** a file holding **more than one document** is a device backup rather than a single export, so it gets a list instead of the per-item merge preview: one row per document naming it and its kind and item count, an unreadable document reported **in its place** with its reason and a *skipped* chip, and one *Import all* commit that matches master items per document as each is imported. *Cancel* returns to the picker. It lands on the **trip list**, and on `/tabs/trips` specifically — the earlier `/trips` matched no route, so a restore left the user on the import form with the file still pasted into it and nothing said (found by E2E-M18-05, fixed 2026-08-17). **It lands on the segment its own result is on**, not the Active one the list opens on: a successful restore used to end on the words „No active trips“ — a screen that reads as a restore that did not happen. The segment travels as a route query (`?status=…`), which M2 honours when it names one of its three segments and otherwise leaves the user's own choice alone. It was a constant *planned* until ADR-024 (every imported trip was *planning*, FR-18.4) and is **derived from the first restored trip's status** since — a device of archived history restored onto a hard-coded *planned* would land on an empty list. A file of templates only, having no trip to point at, keeps the old default. *(This paragraph still described the constant until 2026-08-30, backlog item 6; the code has derived it since 2026-08-23, E2E-M18-09.)* **Every row that is already here carries a *Schon vorhanden* chip (added 2026-08-24, ADR-030)**, decided by the import rules' own function rather than by a second reading of them — so the list answers "what would this restore actually add?" before *Import all* is pressed, and the commit's toast counts what it left alone. **A trip row also names what it follows (added 2026-08-21, FR-27.4):** where the document carries the trip's group registry, the row reads „Reise · N Artikel · folgt M Gruppen“ — the only place the restored refresh state is visible before anything is imported, and absent on a file written before those sections existed. **In Server and Single-User Mode the restore pushes what it wrote — all of it (fixed 2026-08-31, E2E-FLOW-07):** it drained the master partition alone, so a migration off Local Mode (FR-19.5) sent the trips' names and years and left every packing list queued on the importing device, whose own screen shows the restored data either way. A trip's rows are its own partition (ADR-033), so the restore now drains one per trip the file brought. **The screen is localized** (EN/DE) as of the same change, M15 with it; the parser's own error strings stay English, because they interpolate the YAML library's message and would need an error model rather than a catalogue key.
+* **Purpose:** A lightweight, single-screen confirmation for importing a portable YAML template or trip file (Addendum
+  FR-18.4) — deliberately not a multi-step wizard like M15, since the file is our own well-structured format and needs
+  no column mapping.
+* **Elements:** File summary header (kind: Template/Trip, name, item count, `schema_version`); item list preview with
+  per-item state: *new* (no local match), *near-duplicate* (name closely matches an existing item, FR-16.3-style), or
+  *matched* (exact name match) — each near-duplicate row offers *merge* or *keep separate*. **What M15 Step 3 and this
+  list actually share is the rule, not the component** (corrected 2026-08-30, backlog item 6): both resolve names
+  through `domain/spreadsheet.ts`'s `findDuplicates` — M18 through `matchPortableItems`, which wraps it — and both
+  render their own list and hold their own choice map. The two catalogue keys (*Merge* / *Keep separate*) are shared,
+  which is as far as the reuse goes. Kept as two lists deliberately: M15's row is a spreadsheet cell being mapped and
+  M18's is a document position with a state chip beside it.
+* **Actions:** *Import* commits — a template import creates a new template, shared instance-wide like every other
+  (FR-1.6 MVP); a trip import creates a new trip in **the status the file carries, and *planning* when it carries none**
+  (FR-18.4 as amended by ADR-024 — this sentence said *planning* unconditionally until 2026-08-30, a year after the rule
+  changed under it); *Cancel* discards with no residue. **Where the document is already here, *Import* opens what is
+  already here and adds nothing** (added 2026-08-24, ADR-030), confirming it with a toast: the screen still commits
+  rather than disabling its own button, because "this is already yours, here it is" is a better answer than a dead
+  control with no explanation.
+* **States:** A `schema_version` newer than the app understands shows a plain warning but still attempts best-effort
+  import, ignoring unrecognized fields (FR-18.5); a malformed file is rejected **at this screen's own picker step**,
+  with an inline error naming the reason, and no preview is opened (whose trigger is G-17's button since 2026-08-26).
+  *(The wording „before this screen is ever shown“ is corrected 2026-08-30: the picker is M18's first state, so the
+  refusal happens here — which is what makes it correctable, the pasted text still in the field.)* **A document this
+  instance already holds is named as such in the preview** (added 2026-08-24, ADR-030) — a note beside the schema
+  warning, carrying the same weight, because it is the same kind of fact: something about this file the user should know
+  before pressing the button rather than after. A trip is recognised by its year and its name, a Ferien-Vorlage and a
+  group by their name.
+* **Restore branch (added 2026-08-17, ADR-015 — the screen the backup is read back through):** a file holding **more
+  than one document** is a device backup rather than a single export, so it gets a list instead of the per-item merge
+  preview: one row per document naming it and its kind and item count, an unreadable document reported **in its place**
+  with its reason and a *skipped* chip, and one *Import all* commit that matches master items per document as each is
+  imported. *Cancel* returns to the picker. It lands on the **trip list**, and on `/tabs/trips` specifically — the
+  earlier `/trips` matched no route, so a restore left the user on the import form with the file still pasted into it
+  and nothing said (found by E2E-M18-05, fixed 2026-08-17). **It lands on the segment its own result is on**, not the
+  Active one the list opens on: a successful restore used to end on the words „No active trips“ — a screen that reads as
+  a restore that did not happen. The segment travels as a route query (`?status=…`), which M2 honours when it names one
+  of its three segments and otherwise leaves the user's own choice alone. It was a constant *planned* until ADR-024
+  (every imported trip was *planning*, FR-18.4) and is **derived from the first restored trip's status** since — a
+  device of archived history restored onto a hard-coded *planned* would land on an empty list. A file of templates only,
+  having no trip to point at, keeps the old default. *(This paragraph still described the constant until 2026-08-30,
+  backlog item 6; the code has derived it since 2026-08-23, E2E-M18-09.)* **Every row that is already here carries a
+  *Schon vorhanden* chip (added 2026-08-24, ADR-030)**, decided by the import rules' own function rather than by a
+  second reading of them — so the list answers "what would this restore actually add?" before *Import all* is pressed,
+  and the commit's toast counts what it left alone. **A trip row also names what it follows (added 2026-08-21,
+  FR-27.4):** where the document carries the trip's group registry, the row reads „Reise · N Artikel · folgt M Gruppen“
+  — the only place the restored refresh state is visible before anything is imported, and absent on a file written
+  before those sections existed. **In Server and Single-User Mode the restore pushes what it wrote — all of it (fixed
+  2026-08-31, E2E-FLOW-07):** it drained the master partition alone, so a migration off Local Mode (FR-19.5) sent the
+  trips' names and years and left every packing list queued on the importing device, whose own screen shows the restored
+  data either way. A trip's rows are its own partition (ADR-033), so the restore now drains one per trip the file
+  brought. **The screen is localized** (EN/DE) as of the same change, M15 with it; the parser's own error strings stay
+  English, because they interpolate the YAML library's message and would need an error model rather than a catalogue
+  key.
 * **Navigation:** From M7 (template import) and M2 (trip import).
 
 ### M19 — First-Launch Mode Selection
 
-* **Purpose:** One-time choice between Local Mode and Server Mode on first app launch (Addendum FR-19.1). Shown exactly once; the decision is persisted on-device and never re-asked.
-* **Elements:** Two large option cards: *"Just on this device"* (Local Mode — one sentence explaining data stays on the device, no account or server needed, single device only) and *"Connect to a server"* (Server Mode — server URL input, ~~with connectivity check on confirm~~ **struck 2026-08-31, see Actions**). The URL field arrives **pre-filled with the page's own origin**, which is the correct answer for every self-hosted instance: the SPA and the API share one origin because the API sets no CORS headers. An explicit build-time `VITE_API_URL` wins over it, and the Vite dev server keeps its split-origin backend. Below the cards, one line noting that Local Mode data can later be moved to a server via export (FR-19.5).
-* **Actions:** Selecting Local Mode persists the choice, requests persistent storage (NFR-4.11 — on the boot that follows, since choosing re-inits the app by reloading) and lands on M1 with an empty state (G-7); all of that is E2E-M19-01. Selecting Server Mode stores the URL and lets the app discover the instance: an instance offering OIDC sends the device to login, a Single-User instance answers `/auth/config` with 501 and the device lands on M1 (E2E-M19-02, both halves). ~~validates the URL against the server's health endpoint~~ — **struck 2026-08-31 (owner decision): not buildable as specified.** The field validates its *syntax* only, and a check from this screen against a *different* origin cannot distinguish an unreachable host from a reachable one whose API sets no CORS headers — which ours does not, deliberately. So the promised inline error would report a healthy instance as unreachable, which is worse than not checking: the device would be told its server is down by a probe that never reached it. The app learns the truth one step later, at the login attempt, where the server answers for itself. The pre-filled origin above is why nobody has missed it.
-* **States:** Local Mode has no failure state (a denied persistent-storage request is not blocking — it surfaces later as the NFR-4.11 warning in the G-2 detail). A syntactically invalid URL disables *Connect* and says so inline. ~~An unreachable server URL shows an inline error and keeps the user on this screen~~ — **struck 2026-08-31 with the health check above (owner decision, E2E-M19-03):** with no connectivity check there is nothing to report, so an unreachable instance is accepted and shows as offline on the G-2 glyph afterwards.
-* **Navigation:** Entry point of the app on first launch only. Not reachable from anywhere afterwards; switching modes later is the explicit migration path of FR-19.5, not a revisit of this screen — **since 2026-09-02 that path starts on M17 (FR-19.8), and this screen stays shown exactly once.**
+* **Purpose:** One-time choice between Local Mode and Server Mode on first app launch (Addendum FR-19.1). Shown exactly
+  once; the decision is persisted on-device and never re-asked.
+* **Elements:** Two large option cards: *"Just on this device"* (Local Mode — one sentence explaining data stays on the
+  device, no account or server needed, single device only) and *"Connect to a server"* (Server Mode — server URL input,
+  ~~with connectivity check on confirm~~ **struck 2026-08-31, see Actions**). The URL field arrives **pre-filled with
+  the page's own origin**, which is the correct answer for every self-hosted instance: the SPA and the API share one
+  origin because the API sets no CORS headers. An explicit build-time `VITE_API_URL` wins over it, and the Vite dev
+  server keeps its split-origin backend. Below the cards, one line noting that Local Mode data can later be moved to a
+  server via export (FR-19.5).
+* **Actions:** Selecting Local Mode persists the choice, requests persistent storage (NFR-4.11 — on the boot that
+  follows, since choosing re-inits the app by reloading) and lands on M1 with an empty state (G-7); all of that is
+  E2E-M19-01. Selecting Server Mode stores the URL and lets the app discover the instance: an instance offering OIDC
+  sends the device to login, a Single-User instance answers `/auth/config` with 501 and the device lands on M1
+  (E2E-M19-02, both halves). ~~validates the URL against the server's health endpoint~~ — **struck 2026-08-31 (owner
+  decision): not buildable as specified.** The field validates its *syntax* only, and a check from this screen against a
+  *different* origin cannot distinguish an unreachable host from a reachable one whose API sets no CORS headers — which
+  ours does not, deliberately. So the promised inline error would report a healthy instance as unreachable, which is
+  worse than not checking: the device would be told its server is down by a probe that never reached it. The app learns
+  the truth one step later, at the login attempt, where the server answers for itself. The pre-filled origin above is
+  why nobody has missed it.
+* **States:** Local Mode has no failure state (a denied persistent-storage request is not blocking — it surfaces later
+  as the NFR-4.11 warning in the G-2 detail). A syntactically invalid URL disables *Connect* and says so inline. ~~An
+  unreachable server URL shows an inline error and keeps the user on this screen~~ — **struck 2026-08-31 with the health
+  check above (owner decision, E2E-M19-03):** with no connectivity check there is nothing to report, so an unreachable
+  instance is accepted and shows as offline on the G-2 glyph afterwards.
+* **Navigation:** Entry point of the app on first launch only. Not reachable from anywhere afterwards; switching modes
+  later is the explicit migration path of FR-19.5, not a revisit of this screen — **since 2026-09-02 that path starts on
+  M17 (FR-19.8), and this screen stays shown exactly once.**
 
 ### M20 — User Administration
 
 **Implemented (Addendum 3.23).**
 
-* **Purpose:** The small instance-level user management of Addendum 3.23 — see who is provisioned, revoke access, moderate profiles. Application-data administration only; who *holds* the admin role stays declarative (`JITPACK_ADMIN_EMAILS`, FR-23.1) and is deliberately not editable here.
-* **Elements:** List of all provisioned accounts: avatar, display name, e-mail, provisioning date, status chip, lightweight usage indicators (trips as member, owned templates) per FR-23.2. Instance admins are marked with a chip; the own account's row carries a "you" marker. **The status chip is one chip and an absence** (stated 2026-08-30, reading FR-23.2's *„active / deactivated"* against the screen): a deactivated row carries the chip and the dimming below, an active one carries neither — there is no *„active"* chip, and adding one would put a label on every row to say that nothing is wrong. **The avatar is the FR-23.4a circle with a cache-busting query** (2026-08-30): the row is keyed by account id, so without one *Remove avatar* leaves the same `<img>` on the same `src` and the moderator watches nothing happen.
-* **Actions:** Per-account ActionSheet: *Deactivate* (confirmation dialog spelling out the FR-23.3 consequences: access revoked, data and attributions untouched, JIT login does not restore access) / *Reactivate*; *Remove avatar* and *Reset display name* (FR-23.4). The own row and rows of instance admins offer no *Deactivate* (FR-23.3); there is no delete action anywhere (FR-23.5) and no role toggle (FR-23.1).
-* **States:** Deactivated rows render dimmed with the status chip; empty state cannot occur (the viewing admin is always listed).
-* **Visibility:** Rendered and routable only for instance admins with an OIDC session; hidden entirely in Single-User and Local Mode (FR-17.3/FR-19.3, G-8). Non-admin API access is rejected with 403 — the screen is access-controlled, not merely unlinked.
+* **Purpose:** The small instance-level user management of Addendum 3.23 — see who is provisioned, revoke access,
+  moderate profiles. Application-data administration only; who *holds* the admin role stays declarative
+  (`JITPACK_ADMIN_EMAILS`, FR-23.1) and is deliberately not editable here.
+* **Elements:** List of all provisioned accounts: avatar, display name, e-mail, provisioning date, status chip,
+  lightweight usage indicators (trips as member, owned templates) per FR-23.2. Instance admins are marked with a chip;
+  the own account's row carries a "you" marker. **The status chip is one chip and an absence** (stated 2026-08-30,
+  reading FR-23.2's *„active / deactivated"* against the screen): a deactivated row carries the chip and the dimming
+  below, an active one carries neither — there is no *„active"* chip, and adding one would put a label on every row to
+  say that nothing is wrong. **The avatar is the FR-23.4a circle with a cache-busting query** (2026-08-30): the row is
+  keyed by account id, so without one *Remove avatar* leaves the same `<img>` on the same `src` and the moderator
+  watches nothing happen.
+* **Actions:** Per-account ActionSheet: *Deactivate* (confirmation dialog spelling out the FR-23.3 consequences: access
+  revoked, data and attributions untouched, JIT login does not restore access) / *Reactivate*; *Remove avatar* and
+  *Reset display name* (FR-23.4). The own row and rows of instance admins offer no *Deactivate* (FR-23.3); there is no
+  delete action anywhere (FR-23.5) and no role toggle (FR-23.1).
+* **States:** Deactivated rows render dimmed with the status chip; empty state cannot occur (the viewing admin is always
+  listed).
+* **Visibility:** Rendered and routable only for instance admins with an OIDC session; hidden entirely in Single-User
+  and Local Mode (FR-17.3/FR-19.3, G-8). Non-admin API access is rejected with 403 — the screen is access-controlled,
+  not merely unlinked.
 * **Navigation:** Administration row in M17 (only visible under the same conditions).
 
 ### M22 — Trip Properties (FR-2.7) — *built 2026-08-21*
@@ -397,7 +1719,9 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
   for the same reason.
 * **Elements:** the trip **name** (commits on blur/Enter, the M8 pattern — the header keeps its own
   static title here, unlike M8: this screen is *about* a trip rather than being one, and a bar
-  reading „Samedan 2026" would not say which screen it is); **the two dates** (G-17 `DateField`s since 2026-08-26; read-only under G-3's lock), both optional per FR-2.1b and bounding each other since 2026-08-27 (FR-2.1d); and the **travellers** section — one row per person, rename in place,
+  reading „Samedan 2026" would not say which screen it is); **the two dates** (G-17 `DateField`s since 2026-08-26;
+  read-only under G-3's lock), both optional per FR-2.1b and bounding each other since 2026-08-27 (FR-2.1d); and the
+  **travellers** section — one row per person, rename in place,
   ＋ to add, ✕ to remove. Since 2026-08-31 the
   **year** as well — a picker offering the same span M3 and the clone form offer, from the one rule
   all three read (`domain/tripYears.ts`), plus the trip's own year where that lies outside the
@@ -417,7 +1741,14 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
   hand-edited follows the *behalten* branch either way, because it is evidence of work somebody did
   and no question was asked about it. The report names what stayed, so a row left behind is never a
   surprise found later.
-* **States:** **Removal is offered only while the trip has not started.** On an active or archived **An archived trip says why it answers no tap** (added 2026-08-31): a single note above both cards, because the read-only state is the screen's rather than one section's — rendering it inside the travellers card read as a rule about people. It is its own sentence rather than the started trip's: the reason is that the trip is over, and borrowing that wording would claim it has not left yet. The *„a traveller who joins…"* hint goes with the controls it explains, since the rule no longer applies. Without it an archived trip lost the ✕, the add row and the started-trip note together and explained none of it — the exact shape the owner ruled against on 2026-08-21 for the started trip, reached by a different route (E2E-M22-10).
+* **States:** **Removal is offered only while the trip has not started.** On an active or archived **An archived trip
+  says why it answers no tap** (added 2026-08-31): a single note above both cards, because the read-only state is the
+  screen's rather than one section's — rendering it inside the travellers card read as a rule about people. It is its
+  own sentence rather than the started trip's: the reason is that the trip is over, and borrowing that wording would
+  claim it has not left yet. The *„a traveller who joins…"* hint goes with the controls it explains, since the rule no
+  longer applies. Without it an archived trip lost the ✕, the add row and the started-trip note together and explained
+  none of it — the exact shape the owner ruled against on 2026-08-21 for the started trip, reached by a different route
+  (E2E-M22-10).
   trip the ✕ is **not rendered at all**, and one sentence under the roster says why *(revised by the
   owner 2026-08-21, in the hand: it first shipped present-but-disabled, on the reasoning that a
   vanished control gets hunted for. A control that is visibly there and answers no tap reads as a
@@ -436,33 +1767,108 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 
 ### M23 — Hidden Items and Templates (FR-24.3) — *built 2026-08-25*
 
-* **Purpose:** The way back from a retire. FR-24.3 hides a master item or Vorlage that something still uses instead of removing it, and until this screen existed no surface listed those rows — the data half of the FR's "free restore" was built and unreachable, which made a retire one-way in practice.
-* **Where it lives, and why not in M9/M7.** Off **M17's own section**, beside the conflict-log pointer, because it is the same kind of surface: corrective, opened after something went wrong, never during browsing. Three alternatives were weighed and rejected. A **filter chip on M9's tag axis** puts hidden rows one tap from the normal flow, which is the opposite of what retiring them is for, and a lifecycle state is not a tag; the same chip would then be owed on M7's scope segment, which is also not a lifecycle axis. A **folded section at the foot of M9 and M7** is two surfaces for one rule, in the screen FR-24.4 deliberately made lean. A **`?retired=1` mode of M9** inherits a grouping, a tag axis, a property sheet and a FAB that all mean nothing for a list whose only actions are *restore* and *delete for good*.
-* **Elements:** the FR's sentence in one line, then a two-value segment — *Artikel (N)* / *Vorlagen (N)* — and one card list per side, **newest retire first**, because the row someone wants back is almost always the one they just lost. A row carries the mark, the name, the date it was hidden, and its usage count. **Both segments are always present, and an empty one says so** — "nothing is hidden" is an answer, and a screen that renders only the non-empty half cannot give it.
-* **Restore** is a single button, **with no confirm step**: it is non-destructive and undone by the same delete that hid the row, so a dialog would ask the user to agree to what they just asked for. A toast names what came back.
-* **The name may be gone (the hard case).** Retiring *frees* the name — `UNIQUE (name)` on both tables is a partial index over the active rows (FR-24.3), because re-creating what you just deleted is the common case — so an active row can hold it by the time the restore is asked for, and two active rows of one name is what FR-16.3/FR-1.6 exist to prevent. The refusal is met **before the mutation is enqueued**, on the client, over the complete master partition every device holds: this is the one FR-24.3 question the client can answer *exactly* in all three modes, unlike the reference count ADR-032 had to make advisory, and in Local Mode it is the only guard there is. Letting the push refuse it instead would show an optimistic restore that reverses itself a moment later (ADR-031), for an answer the device already had. **The refusal carries its own way out**: an alert names who holds the name and offers a text field prefilled with the old one; *Wiederherstellen* writes the new name **in the same mutation** as the cleared marker (two writes would leave a moment where the index is violated, and the second can be the one the outbox drops). A replacement that is also taken re-states the refusal and **keeps the alert open with the typed name** — M7's rename idiom, for the same reason: dismissing it would throw the edit away.
-* **Delete for good** is offered on a row **only where the delete would actually be physical** — i.e. where FR-24.3's second branch now applies because whatever kept the row alive is itself gone. Without it a retire would become permanent by omission: the row would be unreferenced and undeletable forever. Where the row is still referenced the button is absent and the usage count says why, rather than a control that silently re-retires. The confirm carries M10's three-form outcome sentence unchanged, including the Server-Mode hedge.
-* **Modes:** all three. The screen is master data, so it is not gated on `authed`; in Local Mode the client's name check is the only thing between the user and two indistinguishable rows.
-* **Navigation:** M17 → M23; the row carries the count of hidden rows and is silent when there are none. Back returns where it was opened from (the fifth route class, ADR-011 amendment). **The screen renders no heading of its own** — the one header bar names it from the route's `titleKey`, which is why the title is short enough not to truncate in either language, and why E2E-G9-14 asserts the bar rather than the page.
+* **Purpose:** The way back from a retire. FR-24.3 hides a master item or Vorlage that something still uses instead of
+  removing it, and until this screen existed no surface listed those rows — the data half of the FR's "free restore" was
+  built and unreachable, which made a retire one-way in practice.
+* **Where it lives, and why not in M9/M7.** Off **M17's own section**, beside the conflict-log pointer, because it is
+  the same kind of surface: corrective, opened after something went wrong, never during browsing. Three alternatives
+  were weighed and rejected. A **filter chip on M9's tag axis** puts hidden rows one tap from the normal flow, which is
+  the opposite of what retiring them is for, and a lifecycle state is not a tag; the same chip would then be owed on
+  M7's scope segment, which is also not a lifecycle axis. A **folded section at the foot of M9 and M7** is two surfaces
+  for one rule, in the screen FR-24.4 deliberately made lean. A **`?retired=1` mode of M9** inherits a grouping, a tag
+  axis, a property sheet and a FAB that all mean nothing for a list whose only actions are *restore* and *delete for
+  good*.
+* **Elements:** the FR's sentence in one line, then a two-value segment — *Artikel (N)* / *Vorlagen (N)* — and one card
+  list per side, **newest retire first**, because the row someone wants back is almost always the one they just lost. A
+  row carries the mark, the name, the date it was hidden, and its usage count. **Both segments are always present, and
+  an empty one says so** — "nothing is hidden" is an answer, and a screen that renders only the non-empty half cannot
+  give it.
+* **Restore** is a single button, **with no confirm step**: it is non-destructive and undone by the same delete that hid
+  the row, so a dialog would ask the user to agree to what they just asked for. A toast names what came back.
+* **The name may be gone (the hard case).** Retiring *frees* the name — `UNIQUE (name)` on both tables is a partial
+  index over the active rows (FR-24.3), because re-creating what you just deleted is the common case — so an active row
+  can hold it by the time the restore is asked for, and two active rows of one name is what FR-16.3/FR-1.6 exist to
+  prevent. The refusal is met **before the mutation is enqueued**, on the client, over the complete master partition
+  every device holds: this is the one FR-24.3 question the client can answer *exactly* in all three modes, unlike the
+  reference count ADR-032 had to make advisory, and in Local Mode it is the only guard there is. Letting the push refuse
+  it instead would show an optimistic restore that reverses itself a moment later (ADR-031), for an answer the device
+  already had. **The refusal carries its own way out**: an alert names who holds the name and offers a text field
+  prefilled with the old one; *Wiederherstellen* writes the new name **in the same mutation** as the cleared marker (two
+  writes would leave a moment where the index is violated, and the second can be the one the outbox drops). A
+  replacement that is also taken re-states the refusal and **keeps the alert open with the typed name** — M7's rename
+  idiom, for the same reason: dismissing it would throw the edit away.
+* **Delete for good** is offered on a row **only where the delete would actually be physical** — i.e. where FR-24.3's
+  second branch now applies because whatever kept the row alive is itself gone. Without it a retire would become
+  permanent by omission: the row would be unreferenced and undeletable forever. Where the row is still referenced the
+  button is absent and the usage count says why, rather than a control that silently re-retires. The confirm carries
+  M10's three-form outcome sentence unchanged, including the Server-Mode hedge.
+* **Modes:** all three. The screen is master data, so it is not gated on `authed`; in Local Mode the client's name check
+  is the only thing between the user and two indistinguishable rows.
+* **Navigation:** M17 → M23; the row carries the count of hidden rows and is silent when there are none. Back returns
+  where it was opened from (the fifth route class, ADR-011 amendment). **The screen renders no heading of its own** —
+  the one header bar names it from the route's `titleKey`, which is why the title is short enough not to truncate in
+  either language, and why E2E-G9-14 asserts the bar rather than the page.
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 
-**Implemented 2026-08-19** (Addendum §3.27, FR-27.5) — the concept closed 2026-08-08 and was mocked in `UI_Concept_Prototype.html`. Three notes from building it: the entry needed a **lifecycle step that did not exist** (nothing user-facing moved a trip to *active*, so nothing could archive one — M4's app bar and M2's swipe now offer *Reise starten* on a planning trip); a row generated from the old **Ferien-Vorlage's own** positions is treated as loose rather than recognised, because FR-27.1 forbids a Vorlage including another one, and it says so differently from an ad-hoc row; and the *„Auf der Reise ergänzt"* wording describes a path the app cannot walk — see FR-27.5's build note.
+**Implemented 2026-08-19** (Addendum §3.27, FR-27.5) — the concept closed 2026-08-08 and was mocked in
+`UI_Concept_Prototype.html`. Three notes from building it: the entry needed a **lifecycle step that did not exist**
+(nothing user-facing moved a trip to *active*, so nothing could archive one — M4's app bar and M2's swipe now offer
+*Reise starten* on a planning trip); a row generated from the old **Ferien-Vorlage's own** positions is treated as loose
+rather than recognised, because FR-27.1 forbids a Vorlage including another one, and it says so differently from an
+ad-hoc row; and the *„Auf der Reise ergänzt"* wording describes a path the app cannot walk — see FR-27.5's build note.
 
-* **Purpose:** Turn a finished trip back into a reusable template, so the year's learning ends up in the templates instead of in the archive. The screen exists because the naive "save as template" (copy everything flat) destroys composition: the trip's rows came *from* groups, and a copy would fork them, so next year two divergent camera lists exist. M21 is that recognition step, and it is the closing half of the FR-27.1 round-trip (M3 instantiates a template into a trip, M21 folds a trip back into templates).
-* **Entry:** The closing card at the top of **M4 on an archived trip** — "Reise abgeschlossen", one line of explanation, one button "Vorlage aus dieser Reise erstellen →" (it sat in the trip's *Danach* phase until that hub was dropped, 2026-08-08). Nothing else in the app links here. Full-screen with a back chevron, no FAB, no G-12 cluster (there is no list to search or filter).
+* **Purpose:** Turn a finished trip back into a reusable template, so the year's learning ends up in the templates
+  instead of in the archive. The screen exists because the naive "save as template" (copy everything flat) destroys
+  composition: the trip's rows came *from* groups, and a copy would fork them, so next year two divergent camera lists
+  exist. M21 is that recognition step, and it is the closing half of the FR-27.1 round-trip (M3 instantiates a template
+  into a trip, M21 folds a trip back into templates).
+* **Entry:** The closing card at the top of **M4 on an archived trip** — "Reise abgeschlossen", one line of explanation,
+  one button "Vorlage aus dieser Reise erstellen →" (it sat in the trip's *Danach* phase until that hub was dropped,
+  2026-08-08). Nothing else in the app links here. Full-screen with a back chevron, no FAB, no G-12 cluster (there is no
+  list to search or filter).
 * **Elements (top to bottom):**
-  * One explanatory line stating the screen's contract: recognised groups are **referenced, not copied**, and stay independently maintainable.
-  * **Name der Vorlage** — a text field, prefilled with a next-occurrence guess derived from the trip name. A name another template already holds is refused where it is typed (2026-08-25, FR-1.6): a note under the field names the holder and *Vorlage erstellen* is disabled. There is no existing row to offer here — folding a trip is not an edit of the template that happens to share the name — and the check has to precede the screen's **first** write, since M21 writes master items and group updates before it writes the Vorlage. The optional bundle group's name is held to the same rule, and to one more: the two names this screen writes must also differ from each other.
-  * **Erkannte Gruppen · N** — one card per group the trip's rows trace back to (`source_template_id` provenance), each with the group's name, "*n* Artikel dieser Reise stammen daraus", and a green **"wird wiederverwendet ✓"** chip. Group membership is a fact of the data, not a user choice: recognised groups are always referenced, so there is no per-group opt-out here.
-  * **Per-group deviations.** A group whose trip rows contain additions names them literally — "Während der Reise ergänzt: **Gimbal**" (owner wording, 2026-08-19) — followed by a two-option segment: **Gruppe aktualisieren** (default) vs. **Nur in diese Vorlage**. While *aktualisieren* is selected, a muted line spells out the blast radius: the change reaches everything that includes the group and is proposed to the trips that still follow it (FR-27.4). Defaulting to *update* is deliberate and matches M14's stance — a change made on the trip is treated as learned truth, not as an accident.
-  * **Absent positions are reported, never acted on.** Group positions the trip did not carry get one muted line ("… waren auf dieser Reise nicht dabei — Gruppe bleibt unverändert"). A skipped tripod is trip history; silently pruning the group over it would make every incomplete trip erode the master data.
-  * **Eigene Artikel · n von m** — the loose ad-hoc rows (no group provenance), each a checkbox row with its category and "ohne Gruppe hinzugefügt", **all pre-checked**. Unchecking is how trip-specific one-offs stay out of the template.
-  * **"Als neue Gruppe speichern"** toggle — bundles the checked loose rows into a *fresh group* (name field appears below, prefilled) instead of dropping them in as own positions, for the case where they form a reusable unit. Off by default: the common case is a handful of unrelated extras, and a group per trip would breed clutter.
+  * One explanatory line stating the screen's contract: recognised groups are **referenced, not copied**, and stay
+    independently maintainable.
+  * **Name der Vorlage** — a text field, prefilled with a next-occurrence guess derived from the trip name. A name
+    another template already holds is refused where it is typed (2026-08-25, FR-1.6): a note under the field names the
+    holder and *Vorlage erstellen* is disabled. There is no existing row to offer here — folding a trip is not an edit
+    of the template that happens to share the name — and the check has to precede the screen's **first** write, since
+    M21 writes master items and group updates before it writes the Vorlage. The optional bundle group's name is held to
+    the same rule, and to one more: the two names this screen writes must also differ from each other.
+  * **Erkannte Gruppen · N** — one card per group the trip's rows trace back to (`source_template_id` provenance), each
+    with the group's name, "*n* Artikel dieser Reise stammen daraus", and a green **"wird wiederverwendet ✓"** chip.
+    Group membership is a fact of the data, not a user choice: recognised groups are always referenced, so there is no
+    per-group opt-out here.
+  * **Per-group deviations.** A group whose trip rows contain additions names them literally — "Während der Reise
+    ergänzt: **Gimbal**" (owner wording, 2026-08-19) — followed by a two-option segment: **Gruppe aktualisieren**
+    (default) vs. **Nur in diese Vorlage**. While *aktualisieren* is selected, a muted line spells out the blast radius:
+    the change reaches everything that includes the group and is proposed to the trips that still follow it (FR-27.4).
+    Defaulting to *update* is deliberate and matches M14's stance — a change made on the trip is treated as learned
+    truth, not as an accident.
+  * **Absent positions are reported, never acted on.** Group positions the trip did not carry get one muted line ("…
+    waren auf dieser Reise nicht dabei — Gruppe bleibt unverändert"). A skipped tripod is trip history; silently pruning
+    the group over it would make every incomplete trip erode the master data.
+  * **Eigene Artikel · n von m** — the loose ad-hoc rows (no group provenance), each a checkbox row with its category
+    and "ohne Gruppe hinzugefügt", **all pre-checked**. Unchecking is how trip-specific one-offs stay out of the
+    template.
+  * **"Als neue Gruppe speichern"** toggle — bundles the checked loose rows into a *fresh group* (name field appears
+    below, prefilled) instead of dropping them in as own positions, for the case where they form a reusable unit. Off by
+    default: the common case is a handful of unrelated extras, and a group per trip would breed clutter.
   * Primary action **"Vorlage erstellen ✓"**.
-* **Actions / result:** Creating writes, in this order — (1) deviations marked *aktualisieren* into their group, each recorded in the group's change history with its origin ("aus Reise „…“"), (2) the checked loose rows plus every deviation marked *nur in diese Vorlage* as own positions — or the loose rows into the new group when the toggle is on, (3) the composed **Ferien-Vorlage** itself (FR-27.6 scope, referencing the recognised groups and any freshly created one). Ad-hoc rows are matched to master items by tolerant name match (FR-16.3-style, the same fold M14 does); an unmatched name creates the master item first (FR-9.2 mechanics). A confirmation snackbar names the template, and the screen hands off **directly into M8** on the new template — creation ends where editing continues, and it is also the immediate proof that the groups were referenced rather than copied.
-* **States:** No recognised groups (a purely ad-hoc trip) → the *Erkannte Gruppen* section is absent and the screen degrades to "name it, pick the rows"; no loose rows → the *Eigene Artikel* card shows its empty line and the bundle toggle is inert. The source trip is **never modified** by this screen, archived or not.
-* **Navigation:** From M4's closing card on an archived trip; exits into M8 on success, back chevron to the packing list otherwise.
+* **Actions / result:** Creating writes, in this order — (1) deviations marked *aktualisieren* into their group, each
+  recorded in the group's change history with its origin ("aus Reise „…“"), (2) the checked loose rows plus every
+  deviation marked *nur in diese Vorlage* as own positions — or the loose rows into the new group when the toggle is on,
+  (3) the composed **Ferien-Vorlage** itself (FR-27.6 scope, referencing the recognised groups and any freshly created
+  one). Ad-hoc rows are matched to master items by tolerant name match (FR-16.3-style, the same fold M14 does); an
+  unmatched name creates the master item first (FR-9.2 mechanics). A confirmation snackbar names the template, and the
+  screen hands off **directly into M8** on the new template — creation ends where editing continues, and it is also the
+  immediate proof that the groups were referenced rather than copied.
+* **States:** No recognised groups (a purely ad-hoc trip) → the *Erkannte Gruppen* section is absent and the screen
+  degrades to "name it, pick the rows"; no loose rows → the *Eigene Artikel* card shows its empty line and the bundle
+  toggle is inert. The source trip is **never modified** by this screen, archived or not.
+* **Navigation:** From M4's closing card on an archived trip; exits into M8 on success, back chevron to the packing list
+  otherwise.
 
 ---
 
@@ -471,12 +1877,20 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 1. **Happy path packing:** M1 → M4 → swipe *Packing Now* → check → real-time update on partner's device.
 2. **Delegation:** M4 → M5 → set packer → push notification → recipient taps → deep link into M4/M5 (G-4).
 3. **Purchase transition:** M6 (Before departure) → check item → appears in M4 as PACK/Open (FR-3.3).
-4. **Feedback loop:** M4 flag *Missing* → trip archived → M14 proposes template addition → next M3 run includes the item.
-5. **Migration:** M15 import → M2 shows archived series trips → M3 step 4 surfaces historical suggestions (FR-14.2) immediately — **on a device that did the import and on one that only synced it** (E2E-FLOW-05, 2026-08-31).
-6. **Template round-trip (§3.27):** M3 creates a trip from a Ferien-Vorlage plus extra groups (overlaps deduped in the preview) → items are added ad-hoc while packing → trip archived → M21 recognises the groups, folds the chosen deviations back into them → the trips using those groups are asked, and show the applied-changes chip on M2 once they accept (FR-27.4) → next year's M3 run starts from the new composed template.
+4. **Feedback loop:** M4 flag *Missing* → trip archived → M14 proposes template addition → next M3 run includes the
+   item.
+5. **Migration:** M15 import → M2 shows archived series trips → M3 step 4 surfaces historical suggestions (FR-14.2)
+   immediately — **on a device that did the import and on one that only synced it** (E2E-FLOW-05, 2026-08-31).
+6. **Template round-trip (§3.27):** M3 creates a trip from a Ferien-Vorlage plus extra groups (overlaps deduped in the
+   preview) → items are added ad-hoc while packing → trip archived → M21 recognises the groups, folds the chosen
+   deviations back into them → the trips using those groups are asked, and show the applied-changes chip on M2 once they
+   accept (FR-27.4) → next year's M3 run starts from the new composed template.
 
 ---
 
 ## UI Decisions (Resolved)
 
-All decisions originally listed as open here have been resolved and are now recorded directly in their owning pattern or screen: grouping persistence (M4), stepper/checkbox threshold (G-6), "Never ask again" scope (M14), desktop two-pane layout (G-9, M4/M5), and presence on M2 (**resolved differently on 2026-08-28**: not on M2 at all — see the M2 elements list and G-10). No open UI decisions remain in this document.
+All decisions originally listed as open here have been resolved and are now recorded directly in their owning pattern or
+screen: grouping persistence (M4), stepper/checkbox threshold (G-6), "Never ask again" scope (M14), desktop two-pane
+layout (G-9, M4/M5), and presence on M2 (**resolved differently on 2026-08-28**: not on M2 at all — see the M2 elements
+list and G-10). No open UI decisions remain in this document.

@@ -90,6 +90,10 @@ jobs:
       # step to pay for: the implementation log's index must name every
       # section, because it is meant to be read instead of the log.
       - run: node ../scripts/log-index-gate.mjs
+      # Same job, same reason: a specification paragraph written on one
+      # 7 000-character line renders perfectly and defeats every way the file
+      # is actually read — `grep -n`, a partial read, a two-word diff.
+      - run: node ../scripts/spec-width-gate.mjs
       # Same job, same reason: a UI-Test-Spec id that carries two different
       # promises makes a green test read as coverage of the one nobody wrote.
       - run: node ../scripts/case-id-gate.mjs
