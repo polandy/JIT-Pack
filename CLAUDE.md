@@ -61,7 +61,7 @@ Rules that follow from this:
 - **Never document what is not implemented.** Large parts of the UI are still being rebuilt (see "Not built yet"), so the manual covers server operation and stops there. Adding a page for a screen that does not exist is worse than having no page.
 - **Every claim in `docs/` is verified against the code**, not against the spec — the spec says what is intended, the code says what runs.
 - Adding a page means adding it to `nav:` in `mkdocs.yml`; CI runs `mkdocs build --strict`, so an orphan page or a broken link fails the PR.
-- **A specification document wraps at 120 characters** — `scripts/spec-width-gate.mjs` (in `make ci`) holds the four specs to it. They are read with `grep -n` and with a partial read, and a one-line paragraph defeats both while rendering perfectly. Table rows and fenced code are exempt; the two append-only ledgers are not covered, because rewrapping a line rewrites who wrote it.
+- **A `dev-docs/` document wraps at 120 characters** — `scripts/spec-width-gate.mjs` (in `make ci`) holds every `.md` under it to that. They are read with `grep -n` and with a partial read, and a one-line paragraph defeats both while rendering perfectly. Table rows, ATX headings and fenced code are exempt, each being one line by definition; the two append-only ledgers are the only files not covered, because rewrapping a line rewrites who wrote it.
 - `dev-docs/` is not published. Never link to it from `docs/` with a relative path expecting it to resolve on the site — link to GitHub, or restate what the reader needs.
 
 ## Not built yet

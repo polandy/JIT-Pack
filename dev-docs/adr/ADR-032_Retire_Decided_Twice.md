@@ -1,13 +1,18 @@
 # ADR-032: The retire decision is made in two places on purpose — server-authoritative, client-advisory
 
 **Status:** Accepted
-**Related:** FR-24.3, FR-9.2, ADR-031, ADR-025, ADR-008, invariants 4 and 5, Sync-API §5, `internal/store/master.go` (`blockingReferences`, `stillReferenced`), `client/src/domain/masterDeletion.ts`
+**Related:** FR-24.3, FR-9.2, ADR-031, ADR-025, ADR-008, invariants 4 and 5, Sync-API §5, `internal/store/master.go`
+(`blockingReferences`, `stillReferenced`), `client/src/domain/masterDeletion.ts`
 
 **Decision Drivers (in priority order):**
-1. **A retired row must never be missing where history reads it** (FR-24.3, FR-8/FR-14). Losing a row from resolution, from an export, or from the NFR-4.11 backup is data loss; a retired row appearing in a picker is noise.
-2. **The delete has to work offline, in all three modes** (invariant 5). Local Mode has no server at all, and Server Mode has to answer a delete on a device with no connection.
-3. **A rule must not exist twice unnoticed** (invariant 4, ADR-025's finding). Where a second implementation is unavoidable, it must be unable to drift *silently*.
-4. **FR-24.3 requires the outcome to be stated before the user confirms.** A screen that reports which deletion happened after the fact does not satisfy it.
+1. **A retired row must never be missing where history reads it** (FR-24.3, FR-8/FR-14). Losing a row from resolution,
+   from an export, or from the NFR-4.11 backup is data loss; a retired row appearing in a picker is noise.
+2. **The delete has to work offline, in all three modes** (invariant 5). Local Mode has no server at all, and Server
+   Mode has to answer a delete on a device with no connection.
+3. **A rule must not exist twice unnoticed** (invariant 4, ADR-025's finding). Where a second implementation is
+   unavoidable, it must be unable to drift *silently*.
+4. **FR-24.3 requires the outcome to be stated before the user confirms.** A screen that reports which deletion happened
+   after the fact does not satisfy it.
 
 ---
 

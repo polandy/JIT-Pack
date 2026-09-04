@@ -1,12 +1,15 @@
 # ADR-020: Touch-first adding to templates — chips in the composer vs. inventory browse-sheet vs. tag tiles
 
 **Status:** Accepted (2026-08-21)
-**Related:** FR-25.13/13a/13c/13d, FR-25.7, FR-24.2, FR-5.5, §3.28 (mark slot in offers), UI-Spec M4/M8, E2E-M8-21/E2E-M4-46
+**Related:** FR-25.13/13a/13c/13d, FR-25.7, FR-24.2, FR-5.5, §3.28 (mark slot in offers), UI-Spec M4/M8,
+E2E-M8-21/E2E-M4-46
 
 **Decision Drivers (in priority order):**
-1. Taps instead of typing for the dominant authoring case — composing a scope out of the *existing* inventory on a phone.
+1. Taps instead of typing for the dominant authoring case — composing a scope out of the *existing* inventory on a
+   phone.
 2. FR-25.13's "one way to add, everywhere": whatever changes must not fork M8's composer away from M4/M6.
-3. Cost of the first shippable step, because the owner wants the improvement in the family's hands before the next Urlaub (MVP plan).
+3. Cost of the first shippable step, because the owner wants the improvement in the family's hands before the next
+   Urlaub (MVP plan).
 4. Scaling to a grown inventory.
 
 The round was decided on rendered mockups in the app's own token system
@@ -26,7 +29,8 @@ items are offered nowhere; typing hides the chips.
 
 **Pros**
 - One change to one shared component — lands on M4, M6 and M8 alike, FR-25.13 stays literally true.
-- The related row reuses what exists (`getPrimaryTag`, the tag model of FR-24.2); the recents trail is ~40 lines of localStorage.
+- The related row reuses what exists (`getPrimaryTag`, the tag model of FR-24.2); the recents trail is ~40 lines of
+  localStorage.
 - Removes the silent-duplicate path as a default: what cannot be added is not offered.
 
 **Cons**
@@ -45,8 +49,10 @@ free text demoted to an explicit footer.
 - Reuses the M9 grouping and the FR-27.3 row idiom.
 
 **Cons**
-- A new writing sheet component, and a real spec decision: FR-25.13's "one way" must be re-worded into *Erfassen* (composer) vs. *Zusammenstellen* (sheet) — or the sheet rolled out to every list screen at once.
-- Larger first step; sequencing it behind A costs nothing because A's ghost entry ("Mehr aus dem Inventar…") is its natural door.
+- A new writing sheet component, and a real spec decision: FR-25.13's "one way" must be re-worded into *Erfassen*
+  (composer) vs. *Zusammenstellen* (sheet) — or the sheet rolled out to every list screen at once.
+- Larger first step; sequencing it behind A costs nothing because A's ghost entry ("Mehr aus dem Inventar…") is its
+  natural door.
 
 ### Option C — Two-step tag tiles *(rejected)*
 
@@ -57,7 +63,8 @@ First a grid of primary-tag tiles with counts, then that tag's item list.
 
 **Cons**
 - Two levels of navigation *inside a sheet* — a new back-behaviour surface exactly where Track I already hurts.
-- Always two steps, even for a five-item household inventory; B's tag axis covers the same scaling without the second level.
+- Always two steps, even for a five-item household inventory; B's tag axis covers the same scaling without the second
+  level.
 
 ---
 
@@ -86,11 +93,13 @@ decided next stage (FR-25.13d), not started. C is rejected.
 ## Consequences
 
 **Positive**
-- Common adds on a phone are one tap and no keyboard; M6 improves without being touched, M4 needed only its exclude wiring (E2E-M4-46).
+- Common adds on a phone are one tap and no keyboard; M6 improves without being touched, M4 needed only its exclude
+  wiring (E2E-M4-46).
 - The duplicate toast becomes a rarity — what it reported is no longer offered.
 
 **Negative / accepted costs**
-- One extra tap for whoever wants to type, on every surface including desktop — the keyboard now waits for the field's own tap.
+- One extra tap for whoever wants to type, on every surface including desktop — the keyboard now waits for the field's
+  own tap.
 - The recents trail is per device and deliberately unsynced; another device offers different chips.
 - Until FR-25.13d lands, the inventory beyond "related + recent" is reachable only by typing.
 
