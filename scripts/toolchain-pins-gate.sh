@@ -48,17 +48,21 @@ check_all_equal() {
 
 node_image=$(image_version Dockerfile node)
 node_mise=$(sed -n 's|^node *= *"\([0-9]*\)".*|\1|p' mise.toml | head -1)
-node_ci=$(sed -n 's|^ *node-version: *\([0-9]*\) *$|\1|p' .github/workflows/ci.yml | sort -u)
+# Since T-6 the six jobs share one composite action, so the workflow names the
+# major once. The `sort -u` and the "more than one" check stay: they are what
+# would catch a job that goes back to its own setup-node, which is the drift
+# the composite was made to end.
+node_setup=.github/actions/client-setup/action.yml
+node_ci=$(sed -n 's|^ *node-version: *\([0-9]*\) *$|\1|p' "$node_setup" .github/workflows/*.yml | sort -u)
 
 [ -n "$node_image" ] || fail "node: no digest-pinned FROM node:<major>-alpine in Dockerfile"
-# `sort -u` collapsed every node-version: line; more than one left means the
-# workflow disagrees with itself, which no single comparison below would show.
+[ -n "$node_ci" ] || fail "node: no node-version: in $node_setup"
 [ "$(printf '%s\n' "$node_ci" | wc -l)" -eq 1 ] ||
-	fail "node: .github/workflows/ci.yml uses more than one node-version ($(echo $node_ci))"
+	fail "node: the workflows and $node_setup disagree about node-version ($(echo $node_ci))"
 
 check_all_equal "node" "$node_image" \
-	"Moving the major means changing Dockerfile (tag *and* digest), mise.toml and every node-version: in ci.yml together." \
-	"Dockerfile(node)=$node_image" "mise.toml=$node_mise" ".github/workflows/ci.yml=$node_ci"
+	"Moving the major means changing Dockerfile (tag *and* digest), mise.toml and $node_setup together." \
+	"Dockerfile(node)=$node_image" "mise.toml=$node_mise" "$node_setup=$node_ci"
 
 # --- go: the backend build image, go.mod and the two toolchains -------------
 

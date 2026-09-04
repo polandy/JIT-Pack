@@ -70,12 +70,7 @@ jobs:
         working-directory: client
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: client/package-lock.json
-      - run: npm ci
+      - uses: ./.github/actions/client-setup
       # The package scripts lint with --fix for local use; CI only checks.
       - run: npx oxlint .
       - run: npx eslint .
@@ -129,15 +124,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+      - uses: ./.github/actions/client-setup
         with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: client/package-lock.json
-      - run: npm ci
-        working-directory: client
-      - run: npm run build # the visual project drives the built bundle
-        working-directory: client
+          build: 'true'
       # The same script `make visual` runs, called directly: `make` itself
       # would fail here on its parse-time toolchain guard, which wants
       # golangci-lint — a tool the baselines do not use.
@@ -152,67 +141,22 @@ jobs:
           retention-days: 7
 
   # Headless-browser E2E (dev-docs/UI_Test_Spec_v1.0.md). Drives the built
-  # client (vite preview) in Chromium + WebKit. The backend-backed modes
-  # (single/server) and their jitpackd harness land in later milestones, so
-  # this currently exercises the backend-free smoke path only.
+  # client (vite preview) in Chromium + WebKit, Local Mode only — the
+  # backend-backed modes have had their own jobs since #192 (`e2e-single`,
+  # `e2e-server`, both below).
   #
-  # Deliberately *not* gated on `client` (it was, until 2026-08-19): the job
-  # installs and builds on its own runner anyway — with a warm npm cache that
-  # is ~20 s, and a broken build fails right there — so the gate reused
-  # nothing and only serialized ~75 s of `client` onto the front of the
-  # slowest job in the pipeline. The cost of the trade is runner minutes,
-  # not signal: on a commit where `client` fails lint but builds, the e2e
-  # legs now run to completion instead of being skipped.
+  # The shard count is a *measurement*, not a constant: eight, sized
+  # 2026-08-30 against ~1920 test-seconds. Why eight and not four or twelve —
+  # the per-browser split that was worse, the fixed ~60 s per leg, the 20-job
+  # concurrency ceiling — is in dev-docs/implementation-log.md, "Why the e2e
+  # matrix is eight legs". **Re-read the number when the suite grows**: a
+  # green pipeline never says the count has gone stale, because the only
+  # symptom is that every run is slower than it needs to be. The cheap check
+  # is the per-leg times of any recent run.
   #
-  # Runs inside the digest-pinned Playwright image, like the `visual` job and
-  # for a blunter reason: `playwright install --with-deps` was 1124 s of a
-  # 1776 s job. The browser binaries cached fine; WebKit's ~200 apt libraries
-  # are not cacheable and were reinstalled on every run. The image has them.
-  #
-  # Split by Playwright's own sharding rather than one leg per browser, which
-  # was the first attempt and measurably worse. Measured locally inside the
-  # image, 2 workers: Chromium 3.8 min, WebKit 10.6 min. A per-browser split
-  # is therefore bounded by WebKit for its whole duration while the Chromium
-  # runner idles for seven minutes, and it puts two WebKit contexts on one
-  # runner where roughly one ran before — which is how a suite whose slowest
-  # passing WebKit unit already took 31.9 s starts failing. Not more workers
-  # per runner either: a runner has 4 vCPU and Playwright already takes 2.
-  #
-  # Eight shards. The count is a measurement with a shelf life, not a
-  # constant: it was four, sized on 2026-08-19 against a suite carrying
-  # ~1020 test-seconds, and the backlog-item-6 audits roughly doubled that
-  # without anyone re-reading the number. Measured 2026-08-30 (run
-  # 33327549233) the four legs ran 5.0 / 7.5 / 9.5 / 10.0 min — 139 tests
-  # each, ~1920 test-seconds total — so the pipeline's critical path was one
-  # e2e leg at 11.2 min while every other job finished inside 3.
-  #
-  # The spread across equal test counts is the same effect the split has
-  # always had: `fullyParallel` chunks the test list contiguously by count,
-  # and WebKit sits behind Chromium in that list, so a leg's duration is
-  # decided by how much WebKit it inherited. Halving the chunks halves the
-  # worst leg's inheritance with it.
-  #
-  # Fixed cost per leg is ~60 s (image pull ~40 s, npm ci + build ~21 s
-  # warm), which is what bounds this from below and is why the answer is not
-  # simply "more".
-  #
-  # Why it stops at eight rather than twelve: concurrency, not fixed cost. A
-  # run carries 8 non-e2e jobs, so eight shards make 16 — under the 20
-  # concurrent jobs a public repo gets. Twelve would put a single run at the
-  # ceiling and make two overlapping runs queue against each other, which
-  # costs more wall-clock than the extra split returns.
-  #
-  # Measured after the change (run 33329405672, same tree): the legs ran
-  # 201–395 s and the worst dropped from 642 s to 395 s, so the pipeline's
-  # critical path went from 11.2 min to 6.6. The spread survives — it is the
-  # WebKit-behind-Chromium effect above, which sharding shrinks and does not
-  # remove.
-  #
-  # **Re-read this number when the suite grows.** It went stale silently once
-  # already: nothing in a green pipeline says the shard count no longer fits
-  # the suite, because the only symptom is that every run is slower than it
-  # needs to be. The cheap check is the per-leg times in any recent run — if
-  # the worst leg is drifting back toward twice the best, this is the knob.
+  # Deliberately *not* gated on `client`, and it runs inside the digest-pinned
+  # Playwright image rather than installing browsers — both measured, both in
+  # that same log section.
   e2e:
     runs-on: ubuntu-latest
     strategy:
@@ -223,18 +167,12 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: client/package-lock.json
       # Installed and built on the *runner*, not in the container: the image
       # ships its own Node, and the bundle under test must be the one the
       # `client` job's toolchain produces.
-      - run: npm ci
-        working-directory: client
-      - run: npm run build # vite preview serves this bundle
-        working-directory: client
+      - uses: ./.github/actions/client-setup
+        with:
+          build: 'true'
       # job-total rather than a repeated literal: the shard count is the
       # matrix length, and naming it twice is how the two drift apart.
       - run: scripts/e2e.sh --shard=${{ matrix.shard }}/${{ strategy.job-total }}
@@ -261,19 +199,13 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: client/package-lock.json
       # Built on the runner, run inside the container off the repo mount —
       # CGO_ENABLED=0 keeps it static (D-001), because a cgo build links the
       # build host's dynamic loader, which the container may not have.
       - run: CGO_ENABLED=0 go build -o jitpackd-e2e ./cmd/jitpackd
-      - run: npm ci
-        working-directory: client
-      - run: npm run build # vite preview serves this bundle
-        working-directory: client
+      - uses: ./.github/actions/client-setup
+        with:
+          build: 'true'
       - run: E2E_BACKEND=1 scripts/e2e.sh --project=single
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
@@ -295,16 +227,10 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: client/package-lock.json
       - run: CGO_ENABLED=0 go build -o jitpackd-e2e ./cmd/jitpackd
-      - run: npm ci
-        working-directory: client
-      - run: npm run build # vite preview serves this bundle
-        working-directory: client
+      - uses: ./.github/actions/client-setup
+        with:
+          build: 'true'
       - run: E2E_SERVER=1 scripts/e2e.sh --project=server
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
@@ -331,11 +257,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: client/package-lock.json
+      - uses: ./.github/actions/client-setup
       # `gofmt -l` exits 0 even when files need formatting, so the emptiness
       # of its output is the assertion — same shape as the Makefile target.
       - name: Check Go formatting
@@ -345,14 +267,13 @@ jobs:
             gofmt -l cmd internal
             exit 1
           fi
-      - run: npm ci
-        working-directory: client
       - name: Check client formatting
         run: npx prettier --check --experimental-cli src/ e2e/
         working-directory: client
 
-  # Verifies both images still build on every change; docker.yml only
-  # builds and pushes on release tags (backend + client, same matrix).
+  # Verifies the image still builds on every change; docker.yml only builds
+  # and pushes it on release tags. One image since ADR-043 — the binary
+  # serves the client from the same origin.
   docker-build:
     runs-on: ubuntu-latest
     steps:
@@ -369,10 +290,12 @@ jobs:
         run: ./scripts/docker-smoke.sh jitpack-ci
 
   # Merges patch/minor Dependabot PRs once every check above is green.
-  # Branch protection with required status checks is unavailable on a
-  # free-plan private repo, so the gate lives here instead: `needs` makes
-  # the merge wait for green by construction. Major updates stay open
-  # for manual review.
+  # `main` is protected and names go, go-lint, client, format and
+  # docker-build as required, but `e2e` and `visual` deliberately are not
+  # (an eight-leg matrix would need eight listed names, and a skipped
+  # required check reports worse than the failure under it — see CLAUDE.md).
+  # This job's `needs` is what makes a Dependabot merge wait for those too.
+  # Major updates stay open for manual review.
   dependabot-merge:
     needs: [go, go-lint, client, format, visual, e2e, e2e-single, e2e-server, docker-build]
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
