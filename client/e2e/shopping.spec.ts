@@ -8,6 +8,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import { PATH } from './routes'
+import { createItem } from './helpers/m9'
 
 /**
  * M6 — shopping views (UI-Test-Spec §6).
@@ -333,18 +334,7 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
   /** A tagged master item, so the trip row carries a real category (FR-24.2). */
   async function createTaggedItem(page: Page, name: string, tag: string) {
     await page.goto(PATH.items)
-    await visible(page).getByTestId('m9-fab').click()
-    await visible(page).getByTestId('m10-name').locator('input').fill(name)
-    await visible(page).getByTestId('m10-tag-search').locator('input').fill(tag)
-    const offer = visible(page).getByTestId(`m10-tag-offer-${tag}`)
-    const create = visible(page).getByTestId('m10-tag-create')
-    await expect(offer.or(create).first()).toBeVisible()
-    if ((await offer.count()) > 0) await offer.click()
-    else await create.click()
-    await expect(visible(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
-    await visible(page).getByTestId('m10-create').click()
-    // The ADR-011 header is outside the router outlet, so it is never scoped.
-    await expect(page.getByTestId('header-title')).toHaveText(name)
+    await createItem(page, name, { tags: [tag] })
   }
 
   /**

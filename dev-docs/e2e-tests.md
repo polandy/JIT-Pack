@@ -1783,6 +1783,15 @@ against state the first attempt created. Any case that reads shared master
 state after going offline should establish it while online rather than trust
 the run's history.
 
+**Acted on 2026-09-04 (T-8): `retries: 0` on CI as locally**, with
+`trace: 'retain-on-failure'` so a failure can still be replayed. The first run
+without retries turned one shard red — E2E-M6-01 on WebKit — and the trace
+named a defect the error message pointed away from: a spec-local copy of
+`createItem` typed into the editor before it had finished opening, so the tag
+name landed in the *name* field. Five such copies existed; two skipped the
+shared helper's settle and its `toHaveValue`. The helpers gate now catches a
+copy under a different name.
+
 ## M8/M4 — the composer's chip rows (2026-08-21)
 
 E2E-M8-21 in `template-editor.spec.ts` and E2E-M4-46 in

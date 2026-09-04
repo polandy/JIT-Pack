@@ -306,6 +306,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Three helpers documented rules that lived somewhere else (2026-09-04)](#three-helpers-documented-rules-that-lived-somewhere-else-2026-09-04) — G-10. Dead exported surface deleted; the guard is "every exported `*Store` method has a caller outside the package" …
 - [The FK graph was written twice and compared never (2026-09-04)](#the-fk-graph-was-written-twice-and-compared-never-2026-09-04) — G-3 step 1. `PRAGMA foreign_key_list` against `blockedBy` and `cascades`.
 - [The index in front of the log was ten pages (2026-09-04)](#the-index-in-front-of-the-log-was-ten-pages-2026-09-04) — T-9. Hooks capped at 120 and enforced; the stale July snapshot deleted.
+- [The retry was converting a defect into a green run (2026-09-04)](#the-retry-was-converting-a-defect-into-a-green-run-2026-09-04) — T-8. Two red shards read to their causes: five copies of one routine, and a swipe helper with no postcondition.
 
 ## Deviations
 
@@ -12376,3 +12377,71 @@ The `client` job keeps its own `npm run build` rather than passing
 `build: 'true'`: three gates run between the install and the build, and
 `dev-code-gate.mjs` runs after it, because it reads what the build emitted.
 Folding that build into the setup step would reorder them.
+
+## The retry was converting a defect into a green run (2026-09-04)
+
+Design-review item **T-8**. `retries: process.env.CI ? 1 : 0` is gone, and
+`trace: 'on-first-retry'` with it — with no first retry there would be no trace
+at all, so it is `retain-on-failure`.
+
+**One shard of ten went red, and the trace named the cause in one picture.**
+`E2E-M6-01` on WebKit failed as "the tag chip never appeared", 30 s after the
+thing that actually went wrong. The failure screenshot shows the name field
+reading **`SonnencremeDrogerie`** and the tag search empty: the second `fill()`
+had gone into the *first* field, because the editor had not finished opening
+and Ionic still owned the focus.
+
+That is worth stating precisely, because the test's error message pointed at
+the wrong place entirely. The defect was two lines earlier, and the suite
+already knew how to avoid it:
+
+- the shared `createItem` waits for `m10-new-hint` before it types — the
+  editor's own signal that it is open;
+- and it types through `fillIonic`, which ends in `toHaveValue`. That assertion
+  alone would have failed **at the fill**, naming the field and the value,
+  instead of 30 s later as a missing chip.
+
+**The copy that failed had neither, and there were five copies.**
+`createTaggedItem` in `shopping.spec.ts`, `createTaggedItem` in
+`template-editor.spec.ts`, `createMasterItem` in `analytics.spec.ts`,
+`inventory` in `packing-list.spec.ts`, and the opening of `containers` in
+`visual.spec.ts`. Two of the five — shopping's and packing-list's — skip both
+protections. **Only one of them had fired.** Reading the class found the other
+before it did, which is the whole argument for treating a flake as a defect
+rather than as weather.
+
+The e2e-helpers gate (#337) did not catch them because it matches shared
+helper *names*, and every copy was called something else. Its third rule is by
+shape now: a spec-local `async function` that clicks a routine's opening
+control **and** fills its first field is that routine, whatever it is called.
+One entry today (`createItem`: `m9-fab` + `m10-name`), and the two controls are
+the two a re-implementation cannot avoid — a test that merely opens the editor
+is doing something else, and a dozen do.
+
+**The second red run named the case that had been called a flake twice.**
+E2E-M2-07 on WebKit, the candidate T-8 itself had already written down. Its
+screenshot is a perfectly ordinary trip list with the row **shut**: the swipe
+never opened. `openTripSwipe` drives `ion-item-sliding.open('end')` — the right
+choice, because guessing a drag's distance is a test that can miss for reasons
+that are not the rule — but it treated that call's promise as the settle.
+`open()` resolves whether or not it opened anything: on an element that is in
+the DOM but not yet hydrated, or before its `ion-item-options` child is
+registered, it returns and the row stays closed.
+
+The helper now waits for `hydrated` (the idiom `fillIonic` already used for
+exactly this) and for the options element, and — the part that is certain
+rather than plausible — **asserts its own postcondition**: the option is
+visible before it returns. Proved by neutering `open()` to a resolved promise:
+the failure moves from a 60 s timeout on a click in the spec to **5 s at
+`helpers/trips.ts:252`, "Received: hidden"**, naming the swipe.
+
+Worth separating the two claims. The postcondition is guaranteed: a swipe that
+did not open can no longer be discovered downstream. The two settles are the
+*likely* cause and cannot be proved by three green runs of an intermittent
+failure — what can be said is that the next occurrence will name itself
+instead of being read as weather.
+
+**What this costs, stated rather than hidden.** A red run now needs a triage.
+That is what a flake was always costing — just later, and to somebody who no
+longer had the failing run in front of them. The trace is retained for exactly
+that reason.
