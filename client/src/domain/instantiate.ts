@@ -19,6 +19,7 @@ import type {
   TemplateItem,
   TemplateItemTask,
 } from '@/types/domain'
+import { ITEM_MODE_PACK } from '@/types/domain'
 
 export interface GenerationTraveler {
   name: string
@@ -266,7 +267,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
       weight_grams: master.weight_grams,
       value_cents: master.value_cents,
       quantity: 1,
-      mode: 'pack',
+      mode: ITEM_MODE_PACK,
       late_packer: false,
       traveler_index: null,
       tasks: [],

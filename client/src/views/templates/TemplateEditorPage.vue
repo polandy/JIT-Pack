@@ -58,6 +58,7 @@ import { modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { TemplateItem, TemplateKind } from '@/types/domain'
+import { isShoppingMode } from '@/types/domain'
 
 const props = defineProps<{ templateId: string }>()
 
@@ -346,7 +347,7 @@ function removePosition(templateItemId: string) {
 function positionChips(pos: TemplateItem): string[] {
   const chips: string[] = []
   if (pos.assignment === 'per_person') chips.push(t('templates.perPerson'))
-  if (pos.default_mode !== 'pack') chips.push(modeLabel(pos.default_mode))
+  if (isShoppingMode(pos.default_mode)) chips.push(modeLabel(pos.default_mode))
   if (pos.late_packer) chips.push(t('mode.latePacker'))
   const taskCount = masterStore.getTemplateItemTasks(pos.id).length
   if (taskCount) chips.push(t('templates.prepChip', { n: taskCount }))

@@ -310,6 +310,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Sixteen notification rules, five of them falsifiable (2026-09-04)](#sixteen-notification-rules-five-of-them-falsifiable-2026-09-04) — G-11. The `Store` split declined with a measurement; FR-6.2 extracted as a pure planner.
 - [A backup that had quietly lost two tables (2026-09-04)](#a-backup-that-had-quietly-lost-two-tables-2026-09-04) — G-2 half 2. The NFR-4.5 export list had lost two tables; `authorizeMaster` declined with a line count.
 - [Two lists of what a delete takes with it (2026-09-04)](#two-lists-of-what-a-delete-takes-with-it-2026-09-04) — C-3b. Four cascade copies become one; `series_name` was parsed and written by nobody.
+- [Three of five enum fields were narrowed (2026-09-04)](#three-of-five-enum-fields-were-narrowed-2026-09-04) — U-7b. `ItemMode` gets named values; the parser let an unknown mode into the database.
 
 ## Deviations
 
@@ -12637,3 +12638,57 @@ that happens to be one or zero, and two view-side callers drop an empty
 object to `null` because there "no key set" means the user declined. Folding
 that second one into `jsonColumn` would have it decide a question it cannot
 see the answer to.
+
+## Three of five enum fields were narrowed (2026-09-04)
+
+U-7b was written as bookkeeping: `TripStatus` has named constants and
+`ItemMode` does not, so `'pack'` is compared against by hand in roughly twenty
+places. Giving it the same three constants is a sweep, and a sweep is worth
+recording only for what it finds on the way.
+
+**What it found is one object literal.** `portable.ts`'s row parser turns a
+YAML mapping into a `PortableRow`, and five of its fields carry a closed
+vocabulary. Three are narrowed right there, in adjacent lines — `assignment`
+against its two values, `dedup` against its two, `bought_from` through
+`toShoppingMode`. The two `ItemMode` fields, `mode` and `default_mode`, went
+through `str()`: whatever the file said, unchanged, typed `string | null`.
+
+That is not symmetrical, and the asymmetry had a reader. `portableImport.ts`
+narrowed `mode` again at its own call site — the trip half of the importer did
+the parser's job a second time — while the template half passed
+`default_mode` straight into `addTemplateItem`, whose `opts` are typed
+`defaultMode?: string`. So a restored position could carry any string at all
+into `template_items.default_mode`, where `TemplateItem.default_mode` claims to
+be an `ItemMode`. Nothing crashes: the value simply matches no chip, no facet
+and no filter, and every screen that asks "is this row procurement?" as
+`mode !== 'pack'` answers yes for it.
+
+**The premise that made it invisible** is that the trip half looked careful.
+Reading `mode === 'buy_before' || mode === 'buy_local' ? … : 'pack'` at a call
+site reads as a codebase that knows the value needs narrowing — and it is what
+made the *missing* narrowing next to it hard to see, because the two halves of
+one importer are not read together. Deleting that inline copy, once the parser
+does the job for both, is what makes the omission a compile error instead.
+
+**Why the loose parameter types stayed loose** is worth naming too:
+`addPortableTripItem` types `boughtFrom: ShoppingMode | null` and `mode: string`
+in the same parameter object. The strict one was added later, by the FR-25.11j
+work that had just been bitten by a lost field. The loose one is original. A
+type that was never wrong is not evidence that it was ever right.
+
+**Five copies of one rule, and only one of them tested.** `mode !== 'pack'`
+decides the buy chip in `ItemDetailSheet`, `PositionSheet`, `GroupPeekSheet`,
+`TemplateEditorPage` and `TripWizardPage`; it is now `isShoppingMode(mode)`,
+which says what it means and is unit-tested once. Of the five renderings only
+GroupPeekSheet's had a case. M5's is added here. `PositionSheet` and
+`TemplateEditorPage` have no spec file at all, so their chip is still asserted
+by nothing — named as owed rather than quietly counted as covered.
+
+**The gate found what the grep did not.** The sweep was driven by
+`grep "'pack'\|'buy_before'\|'buy_local'"`, which searches for *single*
+quotes. M6's two segment buttons spell the mode as an HTML attribute —
+`value="buy_before"` — and the tab's value is the mode. The source-scan test
+catches both quote styles, and caught them after the sweep had reported itself
+complete. Its two carve-outs (a Vue event named `pack`, an attribute value like
+`class="pack"`) are applied by *removing* those shapes from the line rather than
+skipping the line, so a real mode cannot ride along beside an emit.

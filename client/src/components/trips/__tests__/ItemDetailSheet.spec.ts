@@ -15,7 +15,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import ItemDetailSheet from '../ItemDetailSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
-import type { Trip, TripItem, TripStatus } from '@/types/domain'
+import type { ItemMode, Trip, TripItem, TripStatus } from '@/types/domain'
 
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
 
@@ -39,6 +39,7 @@ const MEMBERS = [
 function seedTrip(
   status: TripStatus,
   flags: Partial<Pick<TripItem, 'flag_unused' | 'flag_missing'>> = {},
+  mode: ItemMode = 'pack',
 ) {
   const store = useTripStore()
   const trip: Omit<Trip, 'id'> = {
@@ -60,7 +61,7 @@ function seedTrip(
     quantity: 1,
     packed_count: 1,
     state: 'packed',
-    mode: 'pack',
+    mode,
     flag_unused: false,
     flag_missing: false,
     ...flags,
@@ -100,6 +101,21 @@ beforeEach(() => {
   vi.clearAllMocks()
   orchestratorFake.lockHolder.mockReturnValue(null)
   orchestratorFake.capturePending.value = false
+})
+
+describe('M5 mode chip (FR-3.2)', () => {
+  it.each([
+    ['buy_before' as const, true],
+    ['buy_local' as const, true],
+    ['pack' as const, false],
+  ])('paints the %s chip as procurement: %s', (mode, procured) => {
+    seedTrip('active', {}, mode)
+    const wrapper = mountSheet()
+    // The chip is rendered either way — an absent `buy` class is the state,
+    // not an absent chip, which would make the assertion below vacuous.
+    expect(wrapper.findAll('.chip').length).toBeGreaterThan(0)
+    expect(wrapper.find('.chip.buy').exists()).toBe(procured)
+  })
 })
 
 describe('M5 FR-9.1 flags', () => {

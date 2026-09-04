@@ -64,10 +64,45 @@ export type ItemMode = 'pack' | 'buy_before' | 'buy_local'
 export type ShoppingMode = Exclude<ItemMode, 'pack'>
 
 /**
+ * The modes as values (§4a), for the reason {@link TRIP_STATUS_PLANNING} gives:
+ * `pack` is compared against in every chip, every facet and both importers, and
+ * a misspelling of it compiles cleanly while silently never matching. `as const`
+ * keeps the literal type when one is written into an object property, which is
+ * where generation puts it.
+ */
+export const ITEM_MODE_PACK = 'pack' as const satisfies ItemMode
+export const ITEM_MODE_BUY_BEFORE = 'buy_before' as const satisfies ItemMode
+export const ITEM_MODE_BUY_LOCAL = 'buy_local' as const satisfies ItemMode
+
+/**
  * The modes in packing order, not alphabetically — 🧳 is the default case
  * (FR-25.4a). Every chooser and every facet offers them in this order.
  */
-export const ITEM_MODES = ['pack', 'buy_before', 'buy_local'] as const satisfies readonly ItemMode[]
+export const ITEM_MODES = [
+  ITEM_MODE_PACK,
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODE_BUY_LOCAL,
+] as const satisfies readonly ItemMode[]
+
+/** The two procurement modes, in M6's tab order — what a reader validates a `bought_from` against. */
+export const SHOPPING_MODES = [
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODE_BUY_LOCAL,
+] as const satisfies readonly ShoppingMode[]
+
+/**
+ * isShoppingMode says whether a row is procured rather than packed — the rule
+ * five screens wrote as `mode !== 'pack'` and two importers as a two-value
+ * comparison. It is a type guard so a narrowing caller needs no cast.
+ */
+export function isShoppingMode(value: unknown): value is ShoppingMode {
+  return SHOPPING_MODES.includes(value as ShoppingMode)
+}
+
+/** toItemMode narrows an unknown from a file or a wire row; anything else is not a mode. */
+export function toItemMode(value: unknown): ItemMode | null {
+  return ITEM_MODES.includes(value as ItemMode) ? (value as ItemMode) : null
+}
 
 export interface TripItem {
   id: string

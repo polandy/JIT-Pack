@@ -5,6 +5,7 @@ import {
   type PortableDocument,
   type PortableItem,
 } from '@/domain/portable'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 
 /**
  * A ready-made trip to test against, for development only.
@@ -54,7 +55,7 @@ function row(name: string, category: string, over: Partial<PortableItem> = {}): 
     conditions: null,
     default_mode: null,
     late_packer: false,
-    mode: 'pack',
+    mode: ITEM_MODE_PACK,
     category,
     traveler: null,
     container: null,
@@ -102,16 +103,16 @@ function sampleDocument(): PortableDocument {
       // Per-person: one row each, so M4 shows a named cluster.
       ...TRAVELERS.map((traveler) => row('Regenjacke', 'Kleidung', { traveler })),
       ...['Sia', 'Leonardo'].map((traveler) =>
-        row('Sonnenhut', 'Kleidung', { traveler, mode: 'buy_before' }),
+        row('Sonnenhut', 'Kleidung', { traveler, mode: ITEM_MODE_BUY_BEFORE }),
       ),
-      row('Sonnencreme', 'Bad', { mode: 'buy_local' }),
+      row('Sonnencreme', 'Bad', { mode: ITEM_MODE_BUY_LOCAL }),
       row('Taschentücher', 'Bad', { quantity: 4, packed_count: 1, late_packer: true }),
       row('Velohelme', 'Aktivität', { quantity: 2, packed_count: 1 }),
       row('Wanderstöcke', 'Aktivität', { traveler: 'Andy' }),
       row('Mehrfach-Stromstecker', 'Technik', { packed_count: 1, container: 'Rucksack' }),
       row('iPad Pro + Tastatur', 'Technik', { traveler: 'Andy', late_packer: true }),
       row('Pass / ID', 'Dokumente', { quantity: 3, packed_count: 3, container: 'Rucksack' }),
-      row('Kaffee', 'Küche', { mode: 'buy_before' }),
+      row('Kaffee', 'Küche', { mode: ITEM_MODE_BUY_BEFORE }),
       row('Bouillon · Salz · Pfeffer', 'Küche', { container: 'Küchenkiste' }),
     ],
   }
@@ -179,7 +180,7 @@ function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
   const item = useTripStore()
     .getItems(tripId)
     .find((row) => row.name === SEED_BOUGHT_ROW)
-  if (item) orchestrator.buyItem(tripId, item, 'buy_before')
+  if (item) orchestrator.buyItem(tripId, item, ITEM_MODE_BUY_BEFORE)
 }
 
 /**

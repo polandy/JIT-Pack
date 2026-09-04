@@ -14,6 +14,7 @@ import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { TABLE } from '@/types/tables'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { ITEM_MODE_PACK } from '@/types/domain'
 
 export const REVIEW_FIXTURE_TRIP_ID = 'dev-review-fixture'
 
@@ -43,7 +44,7 @@ export function seedReviewFixture(): string {
     quantity: 1,
     assignment: 'trip_global',
     dedup: 'max',
-    default_mode: 'pack',
+    default_mode: ITEM_MODE_PACK,
     late_packer: 0,
   })
   seed(master, TABLE.templateItems, 'dev-g2-stativ', {
@@ -52,7 +53,7 @@ export function seedReviewFixture(): string {
     quantity: 1,
     assignment: 'trip_global',
     dedup: 'max',
-    default_mode: 'pack',
+    default_mode: ITEM_MODE_PACK,
     late_packer: 0,
   })
 

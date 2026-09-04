@@ -123,6 +123,19 @@ describe('parsePortable (FR-18.5)', () => {
     expect(unknown.items[0]!.bought_from).toBeNull()
   })
 
+  it('reads mode and default_mode only when they name one (FR-18.5)', () => {
+    const known = parsePortable(tripYAML.replace('mode: pack', 'mode: buy_local')).doc!
+    expect(known.items[0]!.mode).toBe('buy_local')
+
+    const unknown = parsePortable(tripYAML.replace('mode: pack', 'mode: someday')).doc!
+    expect(unknown.items[0]!.mode).toBeNull()
+
+    const position = parsePortable(
+      templateYAML.replace('unit: pieces', 'default_mode: whenever'),
+    ).doc!
+    expect(position.items[0]!.default_mode).toBeNull()
+  })
+
   it.each([
     ['not YAML at all', '::: {{{'],
     ['unknown kind', 'kind: recipe\nschema_version: 1\nname: X\nitems: []'],

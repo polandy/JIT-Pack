@@ -30,7 +30,7 @@ import { t } from '@/i18n'
 import { ACCOMMODATIONS, SEASONS, TRANSPORT_MODES, attributeLabel } from '@/lib/attributeLabels'
 import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
-import { ITEM_MODES } from '@/types/domain'
+import { ITEM_MODES, isShoppingMode } from '@/types/domain'
 import type { ItemMode, TemplateAssignment, TemplateDedup } from '@/types/domain'
 
 const props = defineProps<{
@@ -161,7 +161,7 @@ function removeTask(taskId: string) {
       <span v-if="position.assignment === 'per_person'" class="chip accent">
         {{ t('templates.perPerson') }}
       </span>
-      <span v-if="position.default_mode !== 'pack'" class="chip buy">
+      <span v-if="isShoppingMode(position.default_mode)" class="chip buy">
         <IonIcon :icon="modeIcon(position.default_mode)" />
         {{ modeLabel(position.default_mode) }}
       </span>
