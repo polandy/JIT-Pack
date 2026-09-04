@@ -187,7 +187,7 @@ var brokerSentinels = map[string]error{
 // which is exactly the kind of miss no end-to-end test would flag as
 // wrong.
 func TestWriteAuthError_AnswersEveryBrokerFailure(t *testing.T) {
-	declared := brokerSentinelNames(t)
+	declared := sentinelNames(t, "oidcbroker.go")
 	if len(declared) != len(brokerSentinels) {
 		t.Fatalf("oidcbroker.go declares %d sentinels, %d are listed here: %v", len(declared), len(brokerSentinels), declared)
 	}
@@ -234,11 +234,15 @@ func TestWriteAuthError_UnknownErrorIsThisServersFault(t *testing.T) {
 // brokerSentinelNames reads the sentinels out of the source, because
 // Go cannot enumerate a package's variables at runtime and a
 // hand-written list would go stale exactly when a new failure is added.
-func brokerSentinelNames(t *testing.T) []string {
+// sentinelNames reads the package-level `errors.New` variables out of one
+// source file. Go cannot enumerate a package's variables at runtime, and a
+// table that answers a failure is only trustworthy if it is checked against
+// every failure that exists rather than against the ones its author recalled.
+func sentinelNames(t *testing.T, filename string) []string {
 	t.Helper()
-	file, err := parser.ParseFile(token.NewFileSet(), "oidcbroker.go", nil, 0)
+	file, err := parser.ParseFile(token.NewFileSet(), filename, nil, 0)
 	if err != nil {
-		t.Fatalf("parse oidcbroker.go: %v", err)
+		t.Fatalf("parse %s: %v", filename, err)
 	}
 	var names []string
 	for _, decl := range file.Decls {

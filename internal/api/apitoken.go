@@ -107,7 +107,7 @@ func MintAPIToken(secret []byte, req APITokenRequest, userID, jti string, now ti
 		expiresAt = exp.Format(time.RFC3339)
 	}
 
-	signed, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
+	signed, err := jwt.NewWithClaims(sessionSigningMethod, claims).SignedString(secret)
 	if err != nil {
 		return APITokenResponse{}, fmt.Errorf("sign api token: %w", err)
 	}

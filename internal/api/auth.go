@@ -175,12 +175,7 @@ const (
 // failure must read the same way whichever endpoint met it — and
 // because the pair that must never be conflated (rejection vs outage)
 // is then two adjacent lines rather than two files apart.
-var authErrorResponses = []struct {
-	err    error
-	status int
-	code   ErrorCode
-	msg    string
-}{
+var authErrorResponses = []errorResponse{
 	{errIDPRejected, http.StatusUnauthorized, ErrUnauthorized, "IdP rejected the request"},
 	{errIDPUnreachable, http.StatusBadGateway, ErrIDPUnreachable, "IdP token endpoint unreachable"},
 	{errNoIDToken, http.StatusBadGateway, ErrIDPError, "IdP returned no id_token — is the openid scope configured for this client?"},
@@ -194,13 +189,9 @@ var authErrorResponses = []struct {
 // know is a bug in this package rather than anything the caller did, so
 // it answers 500 instead of guessing a status.
 func writeAuthError(w http.ResponseWriter, err error) {
-	for _, r := range authErrorResponses {
-		if errors.Is(err, r.err) {
-			writeError(w, r.status, r.code, r.msg)
-			return
-		}
+	if !answerFrom(w, authErrorResponses, err) {
+		writeError(w, http.StatusInternalServerError, ErrInternal, "login failed")
 	}
-	writeError(w, http.StatusInternalServerError, ErrInternal, "login failed")
 }
 
 // endSession deletes the refresh row behind a session that has just been
@@ -278,7 +269,7 @@ func (s *Server) issueSession(ctx context.Context, w http.ResponseWriter, userID
 }
 
 func (s *Server) writeSessionTokens(w http.ResponseWriter, userID, refresh string, now time.Time) {
-	access := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	access := jwt.NewWithClaims(sessionSigningMethod, jwt.MapClaims{
 		"sub": userID,
 		"iat": now.Unix(),
 		"exp": now.Add(sessionAccessTTL).Unix(),

@@ -259,6 +259,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A table with a second half nobody could see (2026-09-03)](#a-table-with-a-second-half-nobody-could-see-2026-09-03) — T-5. `e2e-tests.md` gets an index and the gate learns a second document; the two duplicated rows found on the way, and why the narratives did not move into this file.
 - [A setter that simulated something the operator cannot do (2026-09-03)](#a-setter-that-simulated-something-the-operator-cannot-do-2026-09-03) — G-13. `api.Options` replaces four setters and a test-only field; the allowlist test was asserting a mid-session edit that no instance can perform, and why `Now` is not in the struct yet.
 - [The broker could only be tested by logging in (2026-09-03)](#the-broker-could-only-be-tested-by-logging-in-2026-09-03) — G-5. `oidcBroker.exchange`/`.refresh` with typed errors and one `writeAuthError` table; the review's premise about what was unit-tested was wrong, and one rule had never been readable outside a full login.
+- [The mode was a boolean every handler had to remember (2026-09-03)](#the-mode-was-a-boolean-every-handler-had-to-remember-2026-09-03) — G-8. `identity` chosen once at construction; the refusal paths became readable without an HTTP round trip, and one branch is knowingly unobservable.
 
 
 ## Current state
@@ -12021,3 +12022,49 @@ test that reads the sentinels out of `oidcbroker.go`, because Go cannot
 enumerate a package's variables at runtime: a new failure with no table row
 would still answer, with a 500 saying "login failed", which no end-to-end test
 would call wrong.
+
+## The mode was a boolean every handler had to remember (2026-09-03)
+
+Design-review item **G-8**. `NewSingleUser`'s doc comment said the mode is "a
+startup-time choice, never a per-request toggle — not a runtime flag inside
+Server". `Server` carried `singleUserMode bool`, branched on in six places
+across three files. The comment described the design; the field was the
+implementation, and they had disagreed for months.
+
+The cost was not the boolean. It was that **every new handler had to remember
+invariant 5 at its own site**: a route added without the `if s.singleUserMode`
+either refuses the implicit user or exposes a multi-user instance, and nothing
+in the type system asks. `identity` — `authenticate`, `isMember`,
+`ownsProfile`, `hasSecondParty` — is now chosen once, in the constructor, so
+the question a handler asks has the same shape in both modes.
+
+**What the seam bought, which is the actual point.** `authenticate`'s ten
+refusal paths — no header, a foreign secret, a missing subject, FR-23.3
+deactivation, an id no account carries, a failed lookup — could previously be
+observed only through a wired-up server, a real database and an HTTP round
+trip. They are now a table against a hand-written `accountStore` fake. The one
+that had never been asserted as a *rule* is the pair at the end: an unknown
+account answers exactly as a forged signature does, so a caller cannot probe
+which ids exist. Two `writeError` calls happened to be identical; now it is one
+sentinel, and the sameness cannot drift.
+
+**A branch we kept knowing its removal is unobservable.** `handlePush` asks
+`hasSecondParty()` before FR-6.2 detection. Deleting it changes no test —
+`emitNotifications` already returns on `len(members) < 2`, and Single-User Mode
+has one member. It stays because it is the named expression of FR-17.3 and is
+unit-tested at the identity, where it *is* falsifiable; what would be dishonest
+is writing a handler-level test for it and calling the rule covered. The
+absence has no positive signal, so no such test was written.
+
+**The signing algorithm was a string in one place and a method object in two.**
+`validMethods: []string{"HS256"}` accepted what `jwt.SigningMethodHS256` minted
+by coincidence of spelling. It is one `sessionSigningMethod` now, and the accept
+side reads `.Alg()` off the same value the mint signs with.
+
+`errorResponse` + `answerFrom` came out of the broker's table from G-5, because
+this item needed the identical loop. G-6's twenty sentinel switches inherit it.
+
+Guard: `TestServer_CarriesNoModeFlag` fails on any `bool` field of `Server` —
+the exact shape this item removed. Mutation-proved three ways (a dropped table
+row, a re-added mode boolean, a single-user mode that claims a second party);
+each went red on the named test and was restored.
