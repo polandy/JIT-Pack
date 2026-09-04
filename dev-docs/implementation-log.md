@@ -307,6 +307,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The FK graph was written twice and compared never (2026-09-04)](#the-fk-graph-was-written-twice-and-compared-never-2026-09-04) — G-3 step 1. `PRAGMA foreign_key_list` against `blockedBy` and `cascades`.
 - [The index in front of the log was ten pages (2026-09-04)](#the-index-in-front-of-the-log-was-ten-pages-2026-09-04) — T-9. Hooks capped at 120 and enforced; the stale July snapshot deleted.
 - [The retry was converting a defect into a green run (2026-09-04)](#the-retry-was-converting-a-defect-into-a-green-run-2026-09-04) — T-8. Two red shards read to their causes: five copies of one routine, and a swipe helper with no postcondition.
+- [Twelve notification rules, three of them falsifiable (2026-09-04)](#twelve-notification-rules-three-of-them-falsifiable-2026-09-04) — G-11. The `Store` split declined with a measurement; FR-6.2 extracted as a pure planner.
 
 ## Deviations
 
@@ -12445,3 +12446,63 @@ instead of being read as weather.
 That is what a flake was always costing — just later, and to somebody who no
 longer had the failing run in front of them. The trace is retained for exactly
 that reason.
+
+## Twelve notification rules, three of them falsifiable (2026-09-04)
+
+G-11 asked for two things: `Store` split into embedded sub-repos, and
+`internal/api` consuming per-file interfaces instead of a concrete
+`*store.Store`. Only the second half was built, and not in the shape the item
+described. Both departures were measured first.
+
+**The split was declined, and here is the measurement.** `Store` is 72 methods
+across 17 files — but the files *are* the grouping the item wanted, and an
+embedded sub-repo with unchanged method names changes no call site, enables no
+test that was impossible before, and would have to carry sibling pointers:
+reading the package's cross-file calls with `go/ast` shows six real edges past
+the shared clock — `pull.go` and `conflicts.go` reach `masterVisible`,
+`master.go` reaches `IsTripMember` and `applyMutation`, `master_delete_row.go`
+reaches `ApplyMasterMutation`, `notifications.go` reaches `AccountStatus`.
+Sub-repos that have to hold each other are more coupling than a flat struct,
+paid for by renaming a receiver in 17 files. The census the item actually
+wanted already exists as a test: G-10's `surface_test.go` names every exported
+`*Store` method with no caller outside the package.
+
+**And a union interface would have been worse than the pointer.** `internal/api`
+touches the store from 13 files; one `serverStore` interface holding all of it
+is a 40-method type that fakes nothing and documents nothing, and the project's
+own testing rule forbids the fake it would exist for — api tests run against
+real in-memory SQLite, never a mocked database. `CODING_PRINCIPLES` §3 says
+interfaces are declared where consumed and kept to 1–3 methods; a union is the
+opposite of that.
+
+**What was actually wrong was one file.** FR-6.2/FR-7.2 — who a push notifies —
+was a rule engine threaded through `s.store` and `s.hub`: `emitNotifications`
+→ `notifyDelegation`/`notifyComment` → `createAndNotify`, every decision
+reachable only through HTTP plus SQLite plus a goroutine. That is §3's smell
+verbatim, and `notifications_test.go`'s nine cases are all integration tests.
+The rules are now `planNotifications` in `notificationrules.go`: pure, every
+input a parameter, and the one piece of I/O they need — an item's name and
+packer — entering as an `itemResolver` seam the caller builds from the store
+and a `slog` line.
+
+**The number that made the case.** Sixteen mutations, one per rule, each run
+against both suites. All sixteen turn the new table red. **Five turn the
+existing integration suite red.** The eleven that did not include self-assignment
+suppression, FR-17.3's solo short-circuit, the own-row task rule, the
+insert-only rule for comments, the `@Sarahs`/`@Sarah` word boundary, and both
+resolver-failure paths, the preview's rune-safe truncation, and the rule that a
+comment on no item carries no item keys. Two of those eleven have tests whose
+*names* claim them —
+`TestNotifications_SelfPackDoesNotNotify` pushes `state`/`packed_count` and
+never writes `packer_user_id` at all, so it says nothing about assigning a row
+to yourself; `TestNotifications_SingleUserMode_Inert` pushes a mutation that
+earns no notification under any member count, so the `< 2` guard is not what
+keeps it green. Neither is false for its own claim — they simply never reach
+the rule the name suggests, which is only visible from a mutation.
+
+Coverage moved 91.7 % → 91.8 %. That is the point: the integration tests were
+already *executing* these lines. Coverage counts execution, and a rule you
+execute without asserting is a rule you have not tested.
+
+One duplicate went with it: `notifyTakeover` had its own copy of "find this
+member's display name", now `displayNameOf` beside the rules.
