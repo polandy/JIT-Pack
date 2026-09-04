@@ -263,6 +263,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Twenty places decided what a store refusal means (2026-09-04)](#twenty-places-decided-what-a-store-refusal-means-2026-09-04) — G-6. One `storeErrorResponses` table; the guard reads the store's declarations, and the sentinels with no HTTP answer are named with their reason rather than merely absent.
 - [A timestamp could only be asserted non-empty (2026-09-04)](#a-timestamp-could-only-be-asserted-non-empty-2026-09-04) — G-4. One clock per package, reachable through options; the guard is "no call to `time.Now`", and seven schema DEFAULTs stay outside it on purpose.
 - [The client had four clocks where the server now has one (2026-09-04)](#the-client-had-four-clocks-where-the-server-now-has-one-2026-09-04) — C-5. `lib/clock.ts`, `SyncContext.nowIso`, and an eslint rule that bans the *call*; the compiler found the second and third `SyncContext` implementation again.
+- [A message was doing a result code's job (2026-09-04)](#a-message-was-doing-a-result-codes-job-2026-09-04) — G-14. `errors.As` + masked code; the mask is load-bearing, and the direction that decides whose fault a failure is had no test at all.
 - [Three helpers documented rules that lived somewhere else (2026-09-04)](#three-helpers-documented-rules-that-lived-somewhere-else-2026-09-04) — G-10. Dead exported surface deleted; the guard is "every exported `*Store` method has a caller outside the package", and a test does not count as one.
 
 
@@ -12193,6 +12194,34 @@ Two specs were upgraded from truthiness rather than added beside it: the two
 `buyItem`'s `packed_at` names the fixed instant. A test that asserts a value is
 a string was never a test of the clock.
 
+## A message was doing a result code's job (2026-09-04)
+
+Design-review item **G-14**. `isConstraintViolation` matched
+`strings.Contains(err.Error(), "constraint failed")` — while `partition.go`,
+forty lines away, already said why not to: *"the driver's constraint error is a
+message, and a message is not a contract to branch on."* It now reads
+`*sqlite.Error`'s result code through `errors.As`.
+
+**The mask is load-bearing, and the suite already proved it.** Comparing
+`Code()` to `SQLITE_CONSTRAINT` whole turns eight existing tests red: every
+constraint failure carries an *extended* code — `SQLITE_CONSTRAINT_CHECK` 275,
+`_FOREIGNKEY` 787, `_UNIQUE` 2067 — and none of them equals 19. So the primary
+code is masked out of the low byte rather than compared.
+
+**The direction that decides whose fault a failure is had no test at all.**
+Replacing the whole body with `return err != nil` left the entire suite green.
+That is not a cosmetic gap: `conflicts.go` turns a true answer into
+`ErrRevertRefused` — "the merge rules refuse this revert" — and `partition.go`
+into a rejected mutation. A locked database or a disk error would therefore have
+been reported to the user as their own bad row, with the real fault gone. The
+new test claims both directions, including the case the old implementation was
+built to get wrong: an error whose *wording* contains "constraint failed" but
+which the driver never produced.
+
+The three constraint kinds are provoked against the real database rather than
+constructed, because `*sqlite.Error`'s fields are unexported — a hand-built
+stand-in would assert against this test's idea of the driver instead of the
+driver.
 ## Three helpers documented rules that lived somewhere else (2026-09-04)
 
 Design-review item **G-10**. `GetMemberRole`, `IsTripCreator` and
