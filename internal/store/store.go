@@ -143,6 +143,11 @@ const (
 // on a single connection in tests.
 type Store struct {
 	db *sql.DB
+	// now is the store's one clock. Every timestamp column and the HLC's
+	// wall component read it, so a test can make the whole store's notion
+	// of time a value it chose rather than whatever the run happened to
+	// take. Never nil: Open substitutes real UTC time.
+	now Now
 	// hlc stamps change_log entries the server originates itself — facts
 	// with no client mutation behind them, currently the item_images
 	// upload hint (FR-22). A random per-process device id is fine: the
@@ -151,10 +156,40 @@ type Store struct {
 	hlc *sync.Generator
 }
 
-// wallClock is the production Clock: real time in milliseconds.
-type wallClock struct{}
+// Now reports the current instant. It is the seam every timestamp in this
+// package goes through.
+type Now func() time.Time
 
-func (wallClock) NowMillis() int64 { return time.Now().UnixMilli() }
+// Options configures a store beyond its DSN.
+type Options struct {
+	// Now overrides the clock. Nil means real UTC time, which is what
+	// production passes — the field exists so a test can assert an exact
+	// timestamp instead of asserting that one is non-empty.
+	Now Now
+}
+
+// storeClock adapts the store's clock to the HLC generator's, so the
+// hybrid clock and the RFC3339 columns cannot disagree about when now is.
+type storeClock struct{ now Now }
+
+func (c storeClock) NowMillis() int64 { return c.now().UnixMilli() }
+
+// How this package writes an instant. Two formats, because two already
+// exist in every database: the Go-side columns were written with RFC3339
+// at second precision, and three columns were written by SQLite's
+// strftime('%Y-%m-%dT%H:%M:%fZ') at millisecond precision. Folding the
+// second group to whole seconds would make ties out of instants that are
+// not tied — read_at, refreshed_at and deactivated_at order rows.
+const (
+	timestampSeconds = time.RFC3339
+	timestampMillis  = "2006-01-02T15:04:05.000Z"
+)
+
+// nowRFC3339 is the instant most columns record.
+func (s *Store) nowRFC3339() string { return s.now().UTC().Format(timestampSeconds) }
+
+// nowMillis is the instant the three strftime-written columns record.
+func (s *Store) nowMillis() string { return s.now().UTC().Format(timestampMillis) }
 
 // ErrSchemaStale reports a database built against a different version of
 // schema.sql. The development phase has no DDL migrations, so there is no
@@ -182,7 +217,10 @@ func schemaFingerprint() int64 {
 // Open connects, enforces foreign keys, and brings the database to the
 // current schema: an empty file gets schema.sql applied, an up-to-date one is
 // used as it is, and anything else is refused.
-func Open(dsn string) (*Store, error) {
+func Open(dsn string) (*Store, error) { return OpenWith(dsn, Options{}) }
+
+// OpenWith is Open with the options spelled out.
+func OpenWith(dsn string, opts Options) (*Store, error) {
 	db, err := sql.Open("sqlite", withForeignKeys(dsn))
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
@@ -198,11 +236,15 @@ func Open(dsn string) (*Store, error) {
 	if err := ensureSchema(db, dsn); err != nil {
 		return nil, err
 	}
-	gen, err := sync.NewGenerator(wallClock{}, randomID()[:8])
+	now := opts.Now
+	if now == nil {
+		now = time.Now
+	}
+	gen, err := sync.NewGenerator(storeClock{now}, randomID()[:8])
 	if err != nil {
 		return nil, fmt.Errorf("server hlc generator: %w", err)
 	}
-	return &Store{db: db, hlc: gen}, nil
+	return &Store{db: db, hlc: gen, now: now}, nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }

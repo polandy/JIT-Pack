@@ -8,6 +8,11 @@ import (
 	"jitpack/internal/store"
 )
 
+// fixedNow is the instant a configured clock must produce. Deliberately
+// not "now": the assertion has to be able to tell an injected clock from
+// the ambient one, which a value near real time cannot.
+var fixedNow = time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+
 // fullOptions names every knob at once, so a Server built from it has
 // nothing left at its default.
 func fullOptions() Options {
@@ -16,6 +21,7 @@ func fullOptions() Options {
 		PushContact: "mailto:ops@example.com",
 		WSIdle:      42 * time.Millisecond,
 		AdminEmails: []string{"Andy@Example.com"},
+		Now:         func() time.Time { return fixedNow },
 		OIDC: &OIDCConfig{
 			Discovery: Discovery{
 				Issuer:       "https://idp.example",
@@ -38,6 +44,7 @@ var applied = map[string]func(*Server) bool{
 	"WSIdle":      func(s *Server) bool { return s.wsIdle() == 42*time.Millisecond },
 	// Lowercased on the way in, which is what the FR-23.1 match relies on.
 	"AdminEmails": func(s *Server) bool { return s.adminEmails["andy@example.com"] },
+	"Now":         func(s *Server) bool { return s.now().Equal(fixedNow) },
 	"OIDC": func(s *Server) bool {
 		return s.oidc != nil && s.oidc.issuer == "https://idp.example" &&
 			s.oidc.clientID == "jitpack" && s.oidc.clientSecret == "s3cret" &&
@@ -99,6 +106,15 @@ func TestOptions_ZeroValueKeepsTheDocumentedDefaults(t *testing.T) {
 	}
 	if got := s.wsIdle(); got != wsIdleTimeout {
 		t.Errorf("wsIdle() = %s, want the §9 default %s", got, wsIdleTimeout)
+	}
+	// Never nil: every call site reads it unconditionally, so a zero
+	// Options that left it unset would panic on the first push rather
+	// than fall back to real time.
+	if s.now == nil {
+		t.Fatal("an unset clock must be real time, not nil")
+	}
+	if time.Since(s.now()) > time.Minute {
+		t.Errorf("the default clock is not reading real time: %s", s.now())
 	}
 	// The allowlist is a map either way, so a lookup on an unconfigured
 	// server answers false rather than panicking.

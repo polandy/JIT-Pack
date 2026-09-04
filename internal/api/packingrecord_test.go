@@ -63,7 +63,7 @@ func TestStampActor_PackingRecord_FR25_19(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpUpsert, Fields: tc.fields}
 
-			stampActor(m, acting)
+			stampActor(m, acting, time.Now)
 
 			assertField(t, m, "packed_by_user_id", tc.wantRecord)
 			assertField(t, m, "packer_user_id", tc.wantAssign)
@@ -125,7 +125,7 @@ func TestStampActor_PackedAt_FR25_17(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpUpsert, Fields: tc.fields}
 
-			stampActor(m, acting)
+			stampActor(m, acting, time.Now)
 
 			if tc.want == "" {
 				got, _ := m.Fields["packed_at"].(string)
@@ -145,7 +145,7 @@ func TestStampActor_PackedAt_FR25_17(t *testing.T) {
 func TestStampActor_DeleteWithoutFields_DoesNotPanic(t *testing.T) {
 	m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpDelete}
 
-	stampActor(m, "user-andy")
+	stampActor(m, "user-andy", time.Now)
 
 	if len(m.Fields) != 0 {
 		t.Errorf("a delete grew fields: %v", m.Fields)
@@ -185,7 +185,7 @@ func TestStampActor_ClearsRecordOnEveryTripItemMutation_Invariant3(t *testing.T)
 		},
 	}
 
-	stampActor(m, "user-andy")
+	stampActor(m, "user-andy", time.Now)
 
 	if v, ok := m.Fields["packed_by_user_id"]; ok && v != nil {
 		t.Errorf("client-sent packing record reached the store: %v", v)
@@ -227,7 +227,7 @@ func TestStampActor_BoughtFrom_IsTheClientsToChoose_FR25_11j(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpUpsert, Fields: tc.fields}
 
-			stampActor(m, acting)
+			stampActor(m, acting, time.Now)
 
 			assertField(t, m, "bought_from", tc.want)
 		})
