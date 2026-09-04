@@ -35,7 +35,7 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: pins log-index case-ids e2e-helpers testids wire-check proxy-host fmt-check test tidy-check go-lint client
+ci: pins log-index spec-width case-ids e2e-helpers testids wire-check proxy-host fmt-check test tidy-check go-lint client
 
 # Cheap and first: the toolchain majors are named in three files each, and a
 # disagreement is invisible to every other check (see the script's header).
@@ -47,6 +47,12 @@ pins:
 # nothing else can see that.
 log-index:
 	@$(RUN) node scripts/log-index-gate.mjs
+
+# And beside it: the specification documents are read with `grep -n` and with a
+# partial read, and a 7 000-character paragraph defeats both while rendering
+# perfectly (T-12). Nothing else can see a line that is merely unusable.
+spec-width:
+	@$(RUN) node scripts/spec-width-gate.mjs
 
 # And beside that: a case id that means two things turns a green test into
 # coverage of a promise nothing asserts, and every automatic signal moves the
