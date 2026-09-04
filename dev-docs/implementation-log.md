@@ -233,6 +233,41 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The one screen that read somebody else's partition (2026-08-31)](#the-one-screen-that-read-somebody-elses-partition-2026-08-31) — FLOW-05. The migrated history was worth something only on the device that typed it in.
 - [The migration whose first step is not in the app (2026-08-31)](#the-migration-whose-first-step-is-not-in-the-app-2026-08-31) — FLOW-07. Leaving Local Mode is written nowhere but M19's first launch, so the move is device-to-device.
 - [The world that could not falsify its own clause (2026-08-31)](#the-world-that-could-not-falsify-its-own-clause-2026-08-31) — FLOW-09, and the last §5 flow. An absence assertion was green because the event it denied never happened in that world.
+- [A mode read off the screen instead of the request (2026-09-01)](#a-mode-read-off-the-screen-instead-of-the-request-2026-09-01) — the §6 NFR journeys, and the last cross-cutting rows of backlog item 6..
+- [An absence with nothing behind it (2026-09-01)](#an-absence-with-nothing-behind-it-2026-09-01) — the PWA and SYNC rows. A never-cache assertion could not fail because the worker caches nothing at all.
+- [A command that called the mutation and not the rule (2026-09-01)](#a-command-that-called-the-mutation-and-not-the-rule-2026-09-01) — every one of the 37 routes read for whether the API door runs what the UI door runs..
+- [A column decided by what removing it would cost (2026-09-01)](#a-column-decided-by-what-removing-it-would-cost-2026-09-01) — `travelers.linked_user_id` stays, inert.
+- [A premise that had closed a case for ten days (2026-09-01)](#a-premise-that-had-closed-a-case-for-ten-days-2026-09-01) — the avatar crop stage never zoomed, because Ionic caps every `img` at its container. Three layers were green.
+- [A socket that died was never dialled again (2026-09-01)](#a-socket-that-died-was-never-dialled-again-2026-09-01) — the family instance synced one way. The receiving tab had no WebSocket and the client's whole close handling was …
+- [The second container was the routing table (2026-09-02)](#the-second-container-was-the-routing-table-2026-09-02) — one image now serves the client and the API..
+- [A listener that could not have been there yet (2026-09-02)](#a-listener-that-could-not-have-been-there-yet-2026-09-02) — the `e2e-server` job read as flaky on a Vue patch bump. Two defects met under one scheduling.
+- [An announcement with no verb (2026-09-02)](#an-announcement-with-no-verb-2026-09-02) — a waiting version can be applied on a press (FR-19.7, ADR-044)..
+- [A guard on a funnel that every launch passes through (2026-09-02)](#a-guard-on-a-funnel-that-every-launch-passes-through-2026-09-02) — leaving Local Mode from M17 (FR-19.8, ADR-045)..
+- [The screen was right and the disk was not (2026-09-02)](#the-screen-was-right-and-the-disk-was-not-2026-09-02) — a deleted trip left its rows on the device..
+- [A trap the tests had already covered (2026-09-02)](#a-trap-the-tests-had-already-covered-2026-09-02) — thirteen action call sites built their optimistic change by hand instead of through the builder written to make that …
+- [Three sentences the screens were each translating (2026-09-02)](#three-sentences-the-screens-were-each-translating-2026-09-02) — M4's row facts, the confirm dialog and the app's paths each got one home..
+- [Four sheets that were already the same, and one that was not (2026-09-02)](#four-sheets-that-were-already-the-same-and-one-that-was-not-2026-09-02) — U-3's five copies of the sheet chrome. Why the M4 filter sheet stays out of `SheetModal`, measured rather than …
+- [Three gates that were measuring less than they claimed (2026-09-03)](#three-gates-that-were-measuring-less-than-they-claimed-2026-09-03) — T-4, T-10 and the tsconfig nothing covered..
+- [The empty state had four spacings and one name (2026-09-03)](#the-empty-state-had-four-spacings-and-one-name-2026-09-03) — U-8. Why the majority rule was the right one to keep, what a zero-pixel visual diff is worth as evidence, and the …
+- [The row was written twice, and the copies had stopped being copies (2026-09-03)](#the-row-was-written-twice-and-the-copies-had-stopped-being-copies-2026-09-03) — U-1.1. The two M4 rows as one component with two named differences, a third that is load-bearing, and two `.prep` …
+- [A guard called untestable was one `unmount()` away (2026-09-03)](#a-guard-called-untestable-was-one-unmount-away-2026-09-03) — U-1.2. M4's snackbar machinery as `usePackAnnouncer`.
+- [The partition was a value nobody had written down (2026-09-03)](#the-partition-was-a-value-nobody-had-written-down-2026-09-03) — G-1. One push pipeline for both partitions.
+- [The pull's two halves were one page and two questions (2026-09-03)](#the-pulls-two-halves-were-one-page-and-two-questions-2026-09-03) — G-9. One pagination for both pulls; the feed is the WHERE clause (NULL cannot be bound), and the pull filter's two …
+- [Nine registries, and a table could be in eight of them (2026-09-03)](#nine-registries-and-a-table-could-be-in-eight-of-them-2026-09-03) — G-2 first half. One `tableSpec` per table, five maps become views.
+- [Seven copies of one bucket, and they did not agree (2026-09-03)](#seven-copies-of-one-bucket-and-they-did-not-agree-2026-09-03) — C-3 first step. `bucketedRows` replaces seven hand-written pairs.
+- [Two of the menu's five answers were no menu (2026-09-03)](#two-of-the-menus-five-answers-were-no-menu-2026-09-03) — U-1.5, and U-1 closed. `domain/rowMenu.ts`.
+- [A rule three screens depended on and none of them tested (2026-09-03)](#a-rule-three-screens-depended-on-and-none-of-them-tested-2026-09-03) — U-1.3. `useTripIdentity` + `tripParticipants`.
+- [A table with a second half nobody could see (2026-09-03)](#a-table-with-a-second-half-nobody-could-see-2026-09-03) — T-5. `e2e-tests.md` gets an index and the gate learns a second document.
+- [A setter that simulated something the operator cannot do (2026-09-03)](#a-setter-that-simulated-something-the-operator-cannot-do-2026-09-03) — G-13. `api.Options` replaces four setters and a test-only field.
+- [The broker could only be tested by logging in (2026-09-03)](#the-broker-could-only-be-tested-by-logging-in-2026-09-03) — G-5. `oidcBroker.exchange`/`.refresh` with typed errors and one `writeAuthError` table.
+- [The mode was a boolean every handler had to remember (2026-09-03)](#the-mode-was-a-boolean-every-handler-had-to-remember-2026-09-03) — G-8. `identity` chosen once at construction.
+- [Twenty places decided what a store refusal means (2026-09-04)](#twenty-places-decided-what-a-store-refusal-means-2026-09-04) — G-6. One `storeErrorResponses` table; the guard reads the store's declarations, and the sentinels with no HTTP answer …
+- [A timestamp could only be asserted non-empty (2026-09-04)](#a-timestamp-could-only-be-asserted-non-empty-2026-09-04) — G-4. One clock per package, reachable through options.
+- [The client had four clocks where the server now has one (2026-09-04)](#the-client-had-four-clocks-where-the-server-now-has-one-2026-09-04) — C-5. `lib/clock.ts`, `SyncContext.nowIso`, and an eslint rule that bans the *call*.
+- [A message was doing a result code's job (2026-09-04)](#a-message-was-doing-a-result-codes-job-2026-09-04) — G-14. `errors.As` + masked code; the mask is load-bearing, and the direction that decides whose fault a failure is …
+- [Three helpers documented rules that lived somewhere else (2026-09-04)](#three-helpers-documented-rules-that-lived-somewhere-else-2026-09-04) — G-10. Dead exported surface deleted; the guard is "every exported `*Store` method has a caller outside the package" …
+- [The FK graph was written twice and compared never (2026-09-04)](#the-fk-graph-was-written-twice-and-compared-never-2026-09-04) — G-3 step 1. `PRAGMA foreign_key_list` against `blockedBy` and `cascades`.
+- [An absence asserted against an id nothing declares (2026-09-04)](#an-absence-asserted-against-an-id-nothing-declares-2026-09-04) — T-11. `scripts/testid-gate.mjs`; it found one false-green clause, and two of its own versions were vacuous or …
 
 - [A mode read off the screen instead of the request (2026-09-01)](#a-mode-read-off-the-screen-instead-of-the-request-2026-09-01) — the §6 NFR journeys, and the last cross-cutting rows of backlog item 6..
 - [An absence with nothing behind it (2026-09-01)](#an-absence-with-nothing-behind-it-2026-09-01) — the PWA and SYNC rows. A never-cache assertion could not fail because the worker caches nothing at all.
@@ -12191,6 +12226,50 @@ Step 2 — deriving both maps from the pragma at `Open` — is not done. With th
 comparison in place its value is smaller than it looked: the maps carry a
 *query* per child (`?1 OR ?1` for a dependency hanging off both endpoints) and
 an emission *order*, neither of which the pragma states.
+## An absence asserted against an id nothing declares (2026-09-04)
+
+Design-review item **T-11**'s second half. A Playwright locator that finds
+nothing usually fails loudly, so the id worth guarding is the one in an
+**absence** assertion: `expect(getByTestId('x')).toHaveCount(0)` against an id
+`client/src` has never contained is green today, was green before the change it
+was written for, and stays green after the control it names is added.
+
+`scripts/testid-gate.mjs` found exactly one, and it was real:
+`packing-list.spec.ts` claimed *"There is no confirm affordance at all — not
+hidden, absent"* by asserting `filter-apply` has count 0. **No such id has ever
+existed anywhere in the source.** The clause now reads the header's actual
+`data-testid` list and asserts it is exactly `filter-count`, `filter-close` —
+an absence claimed against options demonstrably there, the same shape
+`tripSwipeActions` already uses. Proved by adding an Apply button to
+`FilterSheet.vue`, rebuilding and re-running E2E-M4-20: red. The old clause
+would have stayed green.
+
+**Three things the gate had to learn, each of which made an earlier version
+wrong rather than merely incomplete:**
+
+1. **Matching only the `data-testid` attribute misses two thirds of the ids.**
+   They also arrive as a `testid` **prop** on a shared component (EmptyState,
+   SheetModal, DateField, FilePickButton) and as a field in a descriptor list.
+   In every form the id is a quoted literal, so that is what is looked for —
+   one rule instead of three patterns plus the next one somebody invents.
+2. **A single empty prefix makes the whole gate vacuous.** Interpolated ids are
+   matched by their literal edge, and the first extraction used `[^`]*?` before
+   `${`, which happily yields `''` for `` `${testKey}` ``. `startsWith('')` is
+   true for every id: the gate reported zero problems and *could not have
+   reported anything else*. It now refuses a `data-testid` that is entirely
+   interpolated, by name.
+3. **A regex for `/* … */` is not a comment stripper for a Vue SFC.** Stripping
+   comments is necessary — otherwise the gate reads its own explanation of the
+   id it just removed and reports it as still in use, which is how the first run
+   after the fix failed. But the obvious cross-line regex silently ate 15 KB out
+   of one single-file component and took twenty real ids with it: three
+   languages in one file, and nothing that can tell a comment from the same
+   characters in a template. It is line-based now.
+
+The reverse direction — a `data-testid` in the source that no test ever
+operates — is deliberately not a gate. CLAUDE.md already calls it "a dependable
+sign that no test has ever operated that control", and there are dozens; that is
+a reading list, not a build failure.
 
 ## The index in front of the log was ten pages (2026-09-04)
 
