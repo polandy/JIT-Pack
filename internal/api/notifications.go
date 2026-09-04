@@ -10,8 +10,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
-	"unicode"
 
 	"jitpack/internal/store"
 	syncpkg "jitpack/internal/sync"
@@ -95,61 +93,28 @@ func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, OKResponse{OK: true})
 }
 
-// emitNotifications scans applied push mutations for FR-6.2 triggers and
-// creates + fans out notifications. Skipped entirely in Single-User Mode
-// (FR-17.3: no second party); solo trips short-circuit for the same
-// reason. Failures are logged, never surfaced — notifications are a
-// side effect, the push already succeeded.
+// emitNotifications creates and fans out the notifications one push
+// earns. The decision of who gets what is planNotifications' (FR-6.2,
+// notificationrules.go); everything here is the I/O that carries it out.
+// Failures are logged, never surfaced — notifications are a side effect,
+// the push already succeeded.
 func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, muts []syncpkg.Mutation, results []MutationResult) {
 	members, err := s.store.TripMemberNames(ctx, tripID)
 	if err != nil {
 		slog.Error("notification member lookup", "trip", tripID, "error", err)
 		return
 	}
-	if len(members) < 2 {
-		return
-	}
-	actorName := ""
-	for _, m := range members {
-		if m.UserID == actor {
-			actorName = m.DisplayName
+	resolve := func(itemID string) (itemFacts, bool) {
+		name, packer, err := s.store.TripItemInfo(ctx, itemID)
+		if err != nil {
+			slog.Error("notification item lookup", "item", itemID, "error", err)
+			return itemFacts{}, false
 		}
+		return itemFacts{Name: name, PackerUserID: packer}, true
 	}
-
-	for i, m := range muts {
-		if i >= len(results) || (results[i].Outcome != OutcomeApplied && results[i].Outcome != OutcomeMerged) {
-			continue
-		}
-		switch m.Table {
-		case store.TableTripItems:
-			s.notifyDelegation(ctx, tripID, actor, actorName, m)
-		case store.TableComments:
-			if m.Op == syncpkg.OpInsert {
-				s.notifyComment(ctx, tripID, actor, actorName, m, members)
-			}
-		}
+	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve) {
+		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
 	}
-}
-
-// notifyDelegation fires when a push hands packing responsibility to
-// someone else (FR-4.3 → FR-6.2). Since FR-25.19 packer_user_id *is*
-// that responsibility and nothing else — packing a row writes the
-// separate record column instead — so this reads a deliberate
-// assignment rather than having to tell the two apart.
-func (s *Server) notifyDelegation(ctx context.Context, tripID, actor, actorName string, m syncpkg.Mutation) {
-	target, _ := m.Fields["packer_user_id"].(string)
-	if target == "" || target == actor {
-		return
-	}
-	itemName, _, err := s.store.TripItemInfo(ctx, m.ID)
-	if err != nil {
-		slog.Error("notification item lookup", "item", m.ID, "error", err)
-		return
-	}
-	s.createAndNotify(ctx, target, store.NotifyDelegation, map[string]any{
-		payloadTripID: tripID, payloadItemID: m.ID,
-		payloadActorID: actor, payloadActorName: actorName, payloadItemName: itemName,
-	})
 }
 
 // Payload keys shared by every notification kind (FR-6.3 deep link).
@@ -159,42 +124,9 @@ const (
 	payloadItemName  = "item_name"
 	payloadActorID   = "actor_id"
 	payloadActorName = "actor_name"
+	payloadCommentID = "comment_id"
+	payloadPreview   = "preview"
 )
-
-// notifyComment fires mention notifications for @display-name matches
-// and a task notification to the item's packer when the comment is a
-// task (FR-7.2). A packer who is also mentioned gets exactly one
-// notification — task wins, it is the more actionable kind.
-func (s *Server) notifyComment(ctx context.Context, tripID, actor, actorName string, m syncpkg.Mutation, members []store.MemberName) {
-	body, _ := m.Fields["body"].(string)
-	payload := map[string]any{
-		payloadTripID: tripID, "comment_id": m.ID,
-		payloadActorID: actor, payloadActorName: actorName, "preview": truncate(body, previewLen),
-	}
-	notified := map[string]bool{}
-
-	if itemID, _ := m.Fields["trip_item_id"].(string); itemID != "" {
-		itemName, packer, err := s.store.TripItemInfo(ctx, itemID)
-		if err != nil {
-			slog.Error("notification item lookup", "item", itemID, "error", err)
-			return
-		}
-		payload[payloadItemID] = itemID
-		payload[payloadItemName] = itemName
-		if syncpkg.IsTruthy(m.Fields["is_task"]) && packer != "" && packer != actor {
-			s.createAndNotify(ctx, packer, store.NotifyTask, payload)
-			notified[packer] = true
-		}
-	}
-
-	for _, target := range mentionTargets(body, members) {
-		if target == actor || notified[target] {
-			continue
-		}
-		s.createAndNotify(ctx, target, store.NotifyMention, payload)
-		notified[target] = true
-	}
-}
 
 // createAndNotify persists the notification (unless the target's prefs
 // suppress it) and pings the target's connected devices.
@@ -211,44 +143,4 @@ func (s *Server) createAndNotify(ctx context.Context, userID, kind string, paylo
 	// Web Push rides along detached (NFR-4.6): the response and the WS
 	// ping must never wait on a third-party push service.
 	go s.sendWebPush(userID, id, kind, payload)
-}
-
-// mentionTargets returns the user ids of members whose display name
-// appears as @<name> in body. Matching is case-insensitive and
-// tolerates spaces inside names (OIDC display names); the character
-// after the name must be a word boundary so @Andyx never hits @Andy.
-func mentionTargets(body string, members []store.MemberName) []string {
-	lower := strings.ToLower(body)
-	var out []string
-	for _, m := range members {
-		name := strings.ToLower(m.DisplayName)
-		if name == "" {
-			continue
-		}
-		for idx := 0; ; {
-			i := strings.Index(lower[idx:], "@"+name)
-			if i < 0 {
-				break
-			}
-			end := idx + i + 1 + len(name)
-			if end >= len(lower) || !isNameRune(rune(lower[end])) {
-				out = append(out, m.UserID)
-				break
-			}
-			idx = end
-		}
-	}
-	return out
-}
-
-func isNameRune(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r)
-}
-
-func truncate(s string, max int) string {
-	runes := []rune(s)
-	if len(runes) <= max {
-		return s
-	}
-	return string(runes[:max])
 }

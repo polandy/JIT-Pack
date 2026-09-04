@@ -41,16 +41,11 @@ func (s *Server) handleTakeover(w http.ResponseWriter, r *http.Request) {
 func (s *Server) notifyTakeover(ctx context.Context, ev store.LockEvent) {
 	// The name, not only the id: "Sarah took Zelt over" is the message,
 	// and the notification list resolves nothing for itself.
-	actorName := ""
 	members, err := s.store.TripMemberNames(ctx, ev.TripID)
 	if err != nil {
 		slog.Error("takeover member lookup", "trip", ev.TripID, "error", err)
 	}
-	for _, m := range members {
-		if m.UserID == ev.ToUserID {
-			actorName = m.DisplayName
-		}
-	}
+	actorName := displayNameOf(members, ev.ToUserID)
 	s.createAndNotify(ctx, ev.FromUserID, store.NotifyLockTaken, map[string]any{
 		payloadTripID:    ev.TripID,
 		payloadItemID:    ev.TripItemID,
