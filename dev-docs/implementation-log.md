@@ -267,6 +267,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Three helpers documented rules that lived somewhere else (2026-09-04)](#three-helpers-documented-rules-that-lived-somewhere-else-2026-09-04) — G-10. Dead exported surface deleted; the guard is "every exported `*Store` method has a caller outside the package", and a test does not count as one.
 - [The FK graph was written twice and compared never (2026-09-04)](#the-fk-graph-was-written-twice-and-compared-never-2026-09-04) — G-3 step 1. `PRAGMA foreign_key_list` against `blockedBy` and `cascades`; reachability had to be transitive, and the nine gaps that remain are nine one-line reasons.
 - [An absence asserted against an id nothing declares (2026-09-04)](#an-absence-asserted-against-an-id-nothing-declares-2026-09-04) — T-11. `scripts/testid-gate.mjs`; it found one false-green clause, and two of its own versions were vacuous or destructive before it worked.
+- [Why the e2e matrix is eight legs (2026-09-04)](#why-the-e2e-matrix-is-eight-legs-2026-09-04) — T-6. The seventy lines of sizing measurement `ci.yml` was carrying, moved intact.
+- [The workflow said node 24 six times (2026-09-04)](#the-workflow-said-node-24-six-times-2026-09-04) — T-6. One composite action for six jobs; the checkout deliberately stays out of it.
 
 
 ## Current state
@@ -12347,3 +12349,75 @@ The reverse direction — a `data-testid` in the source that no test ever
 operates — is deliberately not a gate. CLAUDE.md already calls it "a dependable
 sign that no test has ever operated that control", and there are dozens; that is
 a reading list, not a build failure.
+
+## Why the e2e matrix is eight legs (2026-09-04)
+
+Moved verbatim out of `ci.yml` by **T-6**, which counted it as seventy lines of
+essay inside a workflow file. It is a measurement with a shelf life, and it
+belongs where measurements live; `ci.yml` keeps a pointer and the one sentence
+that matters — **re-read the number when the suite grows**.
+
+**Not gated on `client`** (it was, until 2026-08-19): the job installs and
+builds on its own runner anyway — with a warm npm cache that is ~20 s, and a
+broken build fails right there — so the gate reused nothing and only serialized
+~75 s of `client` onto the front of the slowest job in the pipeline. The cost of
+the trade is runner minutes, not signal: on a commit where `client` fails lint
+but builds, the e2e legs now run to completion instead of being skipped.
+
+**Inside the digest-pinned Playwright image**, like `visual` and for a blunter
+reason: `playwright install --with-deps` was 1124 s of a 1776 s job. The browser
+binaries cached fine; WebKit's ~200 apt libraries are not cacheable and were
+reinstalled on every run. The image has them.
+
+**Split by Playwright's own sharding rather than one leg per browser**, which
+was the first attempt and measurably worse. Measured locally inside the image,
+2 workers: Chromium 3.8 min, WebKit 10.6 min. A per-browser split is therefore
+bounded by WebKit for its whole duration while the Chromium runner idles for
+seven minutes, and it puts two WebKit contexts on one runner where roughly one
+ran before — which is how a suite whose slowest passing WebKit unit already took
+31.9 s starts failing. Not more workers per runner either: a runner has 4 vCPU
+and Playwright already takes 2.
+
+**Eight shards, and the count went stale silently once already.** It was four,
+sized 2026-08-19 against a suite carrying ~1020 test-seconds, and the
+backlog-item-6 audits roughly doubled that without anyone re-reading the number.
+Measured 2026-08-30 (run 33327549233) the four legs ran 5.0 / 7.5 / 9.5 / 10.0
+min — 139 tests each, ~1920 test-seconds total — so the pipeline's critical path
+was one e2e leg at 11.2 min while every other job finished inside 3.
+
+The spread across equal test counts is the same effect the split has always had:
+`fullyParallel` chunks the test list contiguously by count, and WebKit sits
+behind Chromium in that list, so a leg's duration is decided by how much WebKit
+it inherited. Halving the chunks halves the worst leg's inheritance with it.
+
+Fixed cost per leg is ~60 s (image pull ~40 s, `npm ci` + build ~21 s warm),
+which is what bounds this from below and is why the answer is not simply "more".
+
+**Why it stops at eight rather than twelve: concurrency, not fixed cost.** A run
+carries 8 non-e2e jobs, so eight shards make 16 — under the 20 concurrent jobs a
+public repo gets. Twelve would put a single run at the ceiling and make two
+overlapping runs queue against each other, which costs more wall-clock than the
+extra split returns.
+
+Measured after the change (run 33329405672, same tree): the legs ran 201–395 s
+and the worst dropped from 642 s to 395 s, so the pipeline's critical path went
+from 11.2 min to 6.6. The spread survives — it is the WebKit-behind-Chromium
+effect above, which sharding shrinks and does not remove.
+
+## The workflow said node 24 six times (2026-09-04)
+
+Design-review item **T-6**. `ci.yml` wrote `actions/setup-node` + `npm ci` +
+`npm run build` out for itself in six jobs, and `toolchain-pins-gate.sh` existed
+partly to check the six copies of `node-version: 24` agreed with the Dockerfile
+and `mise.toml`. `.github/actions/client-setup` is those steps once; the gate
+now compares three files instead of eight lines.
+
+**The composite deliberately does not do the checkout.** A local composite
+action is read out of the workspace, so the repository has to be there before
+the file can be used at all — `actions/checkout` stays in each job, and pinning
+it stays invariant 8's business.
+
+The `client` job keeps its own `npm run build` rather than passing
+`build: 'true'`: three gates run between the install and the build, and
+`dev-code-gate.mjs` runs after it, because it reads what the build emitted.
+Folding that build into the setup step would reorder them.
