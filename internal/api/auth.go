@@ -85,12 +85,8 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 	// Peek before consuming: on an IdP outage the chain must survive
 	// untouched, so nothing is rotated until the IdP has answered.
 	sess, err := s.store.GetSessionByHash(r.Context(), oldHash, now)
-	if errors.Is(err, store.ErrSessionNotFound) {
-		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "unknown or expired session")
-		return
-	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, ErrInternal, "session lookup failed")
+		writeStoreError(w, err, "session lookup failed")
 		return
 	}
 

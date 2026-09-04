@@ -559,7 +559,13 @@ type errorResponse struct {
 func answerFrom(w http.ResponseWriter, table []errorResponse, err error) bool {
 	for _, e := range table {
 		if errors.Is(err, e.err) {
-			writeError(w, e.status, e.code, e.msg)
+			msg := e.msg
+			if msg == "" {
+				// The sentinel's own sentence is the answer — see
+				// storeErrorResponses for when that is the right call.
+				msg = err.Error()
+			}
+			writeError(w, e.status, e.code, msg)
 			return true
 		}
 	}

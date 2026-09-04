@@ -5,10 +5,7 @@
 package api
 
 import (
-	"errors"
 	"net/http"
-
-	"jitpack/internal/store"
 )
 
 // handleAdminUsers returns the FR-23.2 overview.
@@ -29,19 +26,14 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, AdminUserListResponse{Users: out})
 }
 
-// adminUserAction maps the store's admin errors to wire responses.
+// adminUserAction answers one admin write: the shared refusal table, or
+// the acknowledgement every one of them has in common.
 func adminUserAction(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, store.ErrUserNotFound):
-		writeError(w, http.StatusNotFound, ErrNotFound, "no such user")
-	case errors.Is(err, store.ErrAdminUndeactivatable):
-		// FR-23.3: remove the address from JITPACK_ADMIN_EMAILS first.
-		writeError(w, http.StatusConflict, ErrAdminUndeactivatable, "instance admins cannot be deactivated")
-	case err != nil:
-		writeError(w, http.StatusInternalServerError, ErrInternal, "admin action failed")
-	default:
-		writeJSON(w, OKResponse{OK: true})
+	if err != nil {
+		writeStoreError(w, err, "admin action failed")
+		return
 	}
+	writeJSON(w, OKResponse{OK: true})
 }
 
 func (s *Server) handleDeactivateUser(w http.ResponseWriter, r *http.Request) {

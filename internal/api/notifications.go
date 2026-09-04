@@ -8,7 +8,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -55,12 +54,8 @@ func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request)
 func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(userIDKey).(string)
 	err := s.store.MarkNotificationRead(r.Context(), userID, r.PathValue(PathNotificationID))
-	if errors.Is(err, store.ErrNotificationNotFound) {
-		writeError(w, http.StatusNotFound, ErrNotificationNotFound, "no such notification")
-		return
-	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, ErrInternal, "mark read failed")
+		writeStoreError(w, err, "mark read failed")
 		return
 	}
 	writeJSON(w, OKResponse{OK: true})
