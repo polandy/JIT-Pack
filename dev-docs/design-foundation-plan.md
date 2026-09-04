@@ -1,6 +1,7 @@
 # The design foundation — what to build before the next screen rebuild
 
-**Status:** complete, 2026-08-15. The plan's five steps became six when PR 3 split (see there); all six are merged. What follows the foundation is the screen-rebuild half of CLAUDE.md "Not built yet" item 3. 
+**Status:** complete, 2026-08-15. The plan's five steps became six when PR 3 split (see there); all six are merged. What
+follows the foundation is the screen-rebuild half of CLAUDE.md "Not built yet" item 3. 
 **Sequencing:** this comes **before** the remaining screen rebuilds in CLAUDE.md
 "Not built yet" item 3 (M7/M8, M9/M10, M11, M12, M14).
 

@@ -312,6 +312,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two lists of what a delete takes with it (2026-09-04)](#two-lists-of-what-a-delete-takes-with-it-2026-09-04) — C-3b. Four cascade copies become one; `series_name` was parsed and written by nobody.
 - [Three of five enum fields were narrowed (2026-09-04)](#three-of-five-enum-fields-were-narrowed-2026-09-04) — U-7b. `ItemMode` gets named values; the parser let an unknown mode into the database.
 - [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
+- [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 
 ## Deviations
 
@@ -12744,3 +12745,39 @@ change's clothes.
 The rest of `dev-docs/` — the ADRs, `CODING_PRINCIPLES.md`, `PRD_Base.md` —
 has the same shape and roughly 1 100 more long lines. The two append-only
 ledgers stay out on purpose: rewrapping a line rewrites who wrote it.
+
+## The list was hiding an incomplete rule (2026-09-04)
+
+The rewrap above covered four documents, and the gate that holds them named
+those four in an array. Widening it to the whole of `dev-docs/` was asked for
+straight afterwards, and the interesting part is not the 1 067 further lines —
+it is that turning the list into a rule immediately failed on eight lines the
+four documents did not have.
+
+They were **headings**. An ATX heading is one line by definition, exactly like
+a table row; the wrapper had always skipped them, and the gate had never
+needed to, because none of the four specs happens to carry a `###` over 120
+characters. Five ADRs and `mvp-plan.md` do — an ADR's option headings state
+the whole option (*„Option A — `categories` is renamed to `tags`, assignments
+move to an `item_tags` join table *(recommended, accepted)*"*), which is the
+convention the template asks for.
+
+So the four-file list had been concealing that the rule was incomplete. A gate
+whose scope is an enumeration is only ever tested against the members of the
+enumeration, and a carve-out it is missing looks exactly like a carve-out it
+does not need. The scope is now `every .md under dev-docs/ except the two
+append-only ledgers` — a sentence, and one that a new file joins by existing.
+
+The ledgers stay out for the reason they were always out, now written into the
+gate rather than into a commit message: their sections are history, `git blame`
+on an entry is how a decision is traced back to the work that made it, and
+they are the two files nobody reads end to end anyway — each opens with an
+index that is read *instead of* the body, which is the structure the width is
+trying to give the others.
+
+Verification is the same three checks as the first pass, run across all 59
+files against `origin/main` rather than against a working copy, so the script
+that wrote one side could not also supply the other: identical whitespace-
+normalised text, unchanged block counts, identical rendered HTML. The render
+comparison was mutation-proved again at this scale — one character changed in
+ADR-014 makes it report 58/59.

@@ -1,13 +1,21 @@
 # ADR-019: App-shell caching — a hand-rolled service worker vs. vite-plugin-pwa
 
-**Status:** Accepted (2026-08-20); update policy amended by ADR-044 (2026-09-02) — `skipWaiting()` is reachable, but only from an explicit press, never from `install`
-**Related:** NFR-4.13 (installable PWA, app shell), NFR-4.6 (Web Push — the same worker script), NFR-4.3 (footprint), NFR-4.2a (why `/api`, `/ws`, `/health` are never cached), invariant 8 (pinning), ADR-005 (push), `client/public/sw.js`, `client/vite.config.ts` (`jitpack-sw-precache`), `client/src/pwa/register.ts`
+**Status:** Accepted (2026-08-20); update policy amended by ADR-044 (2026-09-02) — `skipWaiting()` is reachable, but
+only from an explicit press, never from `install`
+**Related:** NFR-4.13 (installable PWA, app shell), NFR-4.6 (Web Push — the same worker script), NFR-4.3 (footprint),
+NFR-4.2a (why `/api`, `/ws`, `/health` are never cached), invariant 8 (pinning), ADR-005 (push), `client/public/sw.js`,
+`client/vite.config.ts` (`jitpack-sw-precache`), `client/src/pwa/register.ts`
 
 **Decision Drivers (in priority order):**
-1. **The push path must keep working untouched** (NFR-4.6). `public/sw.js` has carried the push and notification-click handlers since ADR-005; whatever adds the shell cache must not regenerate, wrap or relocate them.
-2. **The data story must stay out of the HTTP cache** (NFR-4.2a). Trips live in IndexedDB or behind the sync protocol; a caching layer that touches `/api`, `/ws` or `/health` hands the merge algorithm's job to a cache. The bypass must be legible and reviewable, not a config option three layers down.
-3. **Footprint** (NFR-4.3, standard-library-first). A new dependency needs to buy something the platform does not already give.
-4. **Reviewability of the update story.** "New version activates on next launch, the app only announces it" is a policy the owner decided; the code that implements it should be readable as that sentence.
+1. **The push path must keep working untouched** (NFR-4.6). `public/sw.js` has carried the push and notification-click
+   handlers since ADR-005; whatever adds the shell cache must not regenerate, wrap or relocate them.
+2. **The data story must stay out of the HTTP cache** (NFR-4.2a). Trips live in IndexedDB or behind the sync protocol; a
+   caching layer that touches `/api`, `/ws` or `/health` hands the merge algorithm's job to a cache. The bypass must be
+   legible and reviewable, not a config option three layers down.
+3. **Footprint** (NFR-4.3, standard-library-first). A new dependency needs to buy something the platform does not
+   already give.
+4. **Reviewability of the update story.** "New version activates on next launch, the app only announces it" is a policy
+   the owner decided; the code that implements it should be readable as that sentence.
 
 ---
 
@@ -15,7 +23,9 @@
 
 ### Option A — Hand-rolled: extend `public/sw.js`, precache manifest injected by a ~50-line Vite plugin *(recommended, accepted)*
 
-The existing worker gains three listeners (`install`, `activate`, `fetch`); a small plugin in `vite.config.ts` prepends the built file list and a content hash to `dist/sw.js` after the bundle is written. No new dependency, no second worker, no build-time code generation.
+The existing worker gains three listeners (`install`, `activate`, `fetch`); a small plugin in `vite.config.ts` prepends
+the built file list and a content hash to `dist/sw.js` after the bundle is written. No new dependency, no second worker,
+no build-time code generation.
 
 **Pros**
 - The push handlers stay byte-for-byte where they are; the diff is additive.
@@ -37,7 +47,8 @@ The existing worker gains three listeners (`install`, `activate`, `fetch`); a sm
 
 ### Option B — `vite-plugin-pwa` (Workbox) in `injectManifest` mode
 
-The plugin generates the precache manifest and injects it into a source worker we still author (so the push handlers survive), pulling in `workbox-precaching`/`workbox-routing` as the runtime.
+The plugin generates the precache manifest and injects it into a source worker we still author (so the push handlers
+survive), pulling in `workbox-precaching`/`workbox-routing` as the runtime.
 
 **Pros**
 - Battle-tested cache semantics: the `Vary` pitfall, revisioned-URL handling,
@@ -75,7 +86,12 @@ The plugin generates the precache manifest and injects it into a source worker w
 
 ## Decision
 
-Extend the existing `public/sw.js` by hand: precache the built bundle (manifest injected by the `jitpack-sw-precache` plugin in `vite.config.ts`, versioned by a content hash), cache-first for the content-hashed assets, network-first with a cached-shell fallback for navigations, and a hard bypass for `/api/`, `/ws` and `/health`. No `skipWaiting()`: a new version installs in the background and takes over on the next launch; the running app only flips `swUpdateReady` (G-2 detail sheet). **Amended by ADR-044:** the worker does call `skipWaiting()` — on one message, sent by a press (FR-19.7). The `install` handler still never does, which is the half of this sentence that carried the meaning.
+Extend the existing `public/sw.js` by hand: precache the built bundle (manifest injected by the `jitpack-sw-precache`
+plugin in `vite.config.ts`, versioned by a content hash), cache-first for the content-hashed assets, network-first with
+a cached-shell fallback for navigations, and a hard bypass for `/api/`, `/ws` and `/health`. No `skipWaiting()`: a new
+version installs in the background and takes over on the next launch; the running app only flips `swUpdateReady` (G-2
+detail sheet). **Amended by ADR-044:** the worker does call `skipWaiting()` — on one message, sent by a press (FR-19.7).
+The `install` handler still never does, which is the half of this sentence that carried the meaning.
 
 ## Consequences
 

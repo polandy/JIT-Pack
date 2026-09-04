@@ -1,14 +1,23 @@
 # ADR-034: A restore that collides makes room for itself — rename vs. refuse vs. merge vs. let the push decide
 
 **Status:** Accepted
-**Related:** FR-24.3, FR-16.3, FR-1.6, FR-9.2, ADR-031 (a refusal repairs the row), ADR-032 (the retire decided twice), UI-Spec M23/M9/M10/M7, invariants 4 and 5, `internal/store/schema.sql` (`idx_items_active_name`, `idx_templates_active_name`), `client/src/domain/masterRestore.ts`
+**Related:** FR-24.3, FR-16.3, FR-1.6, FR-9.2, ADR-031 (a refusal repairs the row), ADR-032 (the retire decided twice),
+UI-Spec M23/M9/M10/M7, invariants 4 and 5, `internal/store/schema.sql` (`idx_items_active_name`,
+`idx_templates_active_name`), `client/src/domain/masterRestore.ts`
 
 **Decision Drivers (in priority order):**
-1. **Two active rows must never share a name.** That is what `UNIQUE (name)` on `items` and `templates` is for (FR-16.3, FR-1.6): a name is an identity here — the import matches on it, the quick-add resolves on it, and two rows no screen can tell apart is the defect the constraint exists to prevent.
-2. **The user's decision must not be lost or silently reversed.** A rejected mutation is one the outbox drops (Sync-API §5.1), and ADR-031's repair then puts the server's row back — so a restore the push refuses is a restore the user watched happen and un-happen, with nothing said.
-3. **All three modes** (invariant 5). Local Mode has no server, so whatever answers this has to work with no network at all.
-4. **A retire must not become a trap.** FR-24.3 promised a free restore; an affordance that dead-ends on the common case ("I deleted it, re-made it, and now want the old one's history back") is not one.
-5. **One rule, not two** (invariant 4). The name-matching rule already exists in `client/src/domain/nameCollision.ts` and must not be re-expressed.
+1. **Two active rows must never share a name.** That is what `UNIQUE (name)` on `items` and `templates` is for (FR-16.3,
+   FR-1.6): a name is an identity here — the import matches on it, the quick-add resolves on it, and two rows no screen
+   can tell apart is the defect the constraint exists to prevent.
+2. **The user's decision must not be lost or silently reversed.** A rejected mutation is one the outbox drops (Sync-API
+   §5.1), and ADR-031's repair then puts the server's row back — so a restore the push refuses is a restore the user
+   watched happen and un-happen, with nothing said.
+3. **All three modes** (invariant 5). Local Mode has no server, so whatever answers this has to work with no network at
+   all.
+4. **A retire must not become a trap.** FR-24.3 promised a free restore; an affordance that dead-ends on the common case
+   ("I deleted it, re-made it, and now want the old one's history back") is not one.
+5. **One rule, not two** (invariant 4). The name-matching rule already exists in `client/src/domain/nameCollision.ts`
+   and must not be re-expressed.
 
 ---
 

@@ -1,12 +1,16 @@
 # ADR-039: An API token is an unmanaged JWT — listing and single revocation are given up on purpose
 
 **Status:** Accepted
-**Related:** FR-23.7, FR-23.3, ADR-007, ADR-018, invariants 2 and 5, `dev-docs/api-tokens-concept.md`, `internal/api/apitoken.go`, `cmd/jitpackd/token.go`
+**Related:** FR-23.7, FR-23.3, ADR-007, ADR-018, invariants 2 and 5, `dev-docs/api-tokens-concept.md`,
+`internal/api/apitoken.go`, `cmd/jitpackd/token.go`
 
 **Decision Drivers (in priority order):**
-1. **A credential must be revocable by *some* mechanism**, and whatever that mechanism is has to be affordable enough that an operator will actually use it under pressure.
-2. **Invariant 2 has a price that is now paid in real data.** The development phase has no migrations: a schema change means every database is deleted and rebuilt, and the instance holding the maintainer's family's trips is one of them.
-3. **Nothing may make deletion or authentication mode-dependent** (invariant 5). Whatever is built must behave correctly in Server, Single-User and Local Mode.
+1. **A credential must be revocable by *some* mechanism**, and whatever that mechanism is has to be affordable enough
+   that an operator will actually use it under pressure.
+2. **Invariant 2 has a price that is now paid in real data.** The development phase has no migrations: a schema change
+   means every database is deleted and rebuilt, and the instance holding the maintainer's family's trips is one of them.
+3. **Nothing may make deletion or authentication mode-dependent** (invariant 5). Whatever is built must behave correctly
+   in Server, Single-User and Local Mode.
 4. **A rule must not exist twice unnoticed** (invariant 4, ADR-025's finding).
 
 ---
