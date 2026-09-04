@@ -13,6 +13,7 @@ import type { useTripStore } from '@/stores/tripStore'
 import type { useMasterStore } from '@/stores/masterStore'
 import type { NameGuards } from './names'
 import type { IndexedDBPersistence } from '@/local/persistence'
+import type { NowIso } from '@/lib/clock'
 
 /**
  * One queued write: the mutation itself plus the rows it optimistically
@@ -79,6 +80,12 @@ export interface SyncContext {
    * changes to a trip that has not started — is testable without one.
    */
   today: () => string
+  /**
+   * The moment a row is stamped with, as an ISO string. The same clock
+   * `today` and the HLC read, so a retired row's `retired_at` and the HLC
+   * that carries it cannot disagree about when the delete happened.
+   */
+  nowIso: NowIso
   /**
    * Whether this trip's own rows are on the device. The guard that keeps a
    * group from reading "not pulled yet" as "empty trip" (ADR-016), which is

@@ -68,6 +68,7 @@ import type {
   WSEvent,
 } from '@/api/types'
 import { localIsoDate } from '@/domain/trips'
+import { defaultNowMs, isoFrom, type NowMs } from '@/lib/clock'
 import { optimizeItemImage } from '@/lib/imageResize'
 import type { PortableDocument } from '@/domain/portable'
 import { importPortableBackup, importPortableDocument } from '@/domain/portableImport'
@@ -109,10 +110,19 @@ export interface SyncOrchestratorConfig {
    */
   local?: IndexedDBPersistence
   /**
+   * The device's clock, in milliseconds. One value feeds all three things
+   * that ask what time it is — the HLC generator, `today`, and the ISO
+   * stamps the mutations write — so they cannot answer differently.
+   */
+  now?: NowMs
+  /**
    * The clock behind FR-27.4's "is this trip past?" question. Injected so a
    * test can stand on either side of a trip's end date without moving the
    * machine's clock; defaults to the local date, not UTC, because the day a
    * trip ends is the day the traveller is living in.
+   *
+   * Derived from `now` when only that is given; supply it directly to move
+   * the calendar day without moving the instant.
    */
   today?: () => string
   /**
@@ -174,7 +184,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       }
       return cachedSession.subject
     })
-  const today = config.today ?? (() => localIsoDate(Date.now()))
+  const now = config.now ?? defaultNowMs
+  const nowIso = isoFrom(now)
+  const today = config.today ?? (() => localIsoDate(now()))
   if (local) syncStatus.setLocal()
 
   // G-10: per-trip presence, fed by the WS presence event.
@@ -284,8 +296,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   const client = new APIClient(config.baseUrl, config.getToken, config.onUnauthorized)
 
-  const hlc = new HLCGenerator(() => Date.now(), config.deviceId ?? deviceId())
-  const mutations = useMutations(hlc)
+  const hlc = new HLCGenerator(now, config.deviceId ?? deviceId())
+  const mutations = useMutations(hlc, nowIso)
 
   // Local Mode never pushes, so it never queues — building a store there
   // would create a database that nothing ever writes to.
@@ -645,6 +657,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     names,
     local,
     today,
+    nowIso,
     tripDataLoaded,
     enqueue,
     drainPartitions,

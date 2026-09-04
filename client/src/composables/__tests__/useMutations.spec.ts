@@ -2,6 +2,12 @@ import { describe, it, expect, vi } from 'vitest'
 import { useMutations } from '../useMutations'
 import type { HLCGenerator } from '@/sync/hlc'
 
+/**
+ * The instant an injected clock reports. Deliberately not near "now", so an
+ * assertion against it cannot pass against the machine's clock by accident.
+ */
+const FIXED_ISO = '2026-03-14T15:09:26.535Z'
+
 function mockHLC(): HLCGenerator {
   let counter = 0
   return {
@@ -97,13 +103,13 @@ describe('useMutations', () => {
   })
 
   it('buyItem marks a BUY_LOCAL row packed and records the list too (FR-25.11j)', () => {
-    const m = useMutations(mockHLC())
+    const m = useMutations(mockHLC(), () => FIXED_ISO)
     const mut = m.buyItem('i1', 'buy_local', 3)
     expect(mut.fields).toEqual({
       bought_from: 'buy_local',
       packed_count: 3,
       state: 'packed',
-      packed_at: expect.any(String),
+      packed_at: FIXED_ISO,
       packing_now_by: null,
       packing_now_at: null,
     })
@@ -248,5 +254,36 @@ describe('useMutations', () => {
     const del = m.deleteItemDependency('dep1')
     expect(del.op).toBe('delete')
     expect(del.id).toBe('dep1')
+  })
+
+  // C-5: every instant a mutation writes comes from the clock it was given.
+  // Before the seam these four could only be asserted `expect.any(String)`,
+  // which is green whether the value is right, wrong or a decade off.
+  it('every stamped instant comes from the injected clock (C-5)', () => {
+    const m = useMutations(mockHLC(), () => FIXED_ISO)
+
+    expect(m.buyItem('i1', 'buy_local', 1).fields!.packed_at).toBe(FIXED_ISO)
+    expect(m.startPackingNow('i1').fields!.packing_now_at).toBe(FIXED_ISO)
+    expect(m.addTripItem('t1', 'Zelt', { decided: 'packed' }).mutation.fields!.packed_at).toBe(
+      FIXED_ISO,
+    )
+    expect(
+      m.logAppliedChange({
+        trip_id: 't1',
+        source_template_id: 'tpl-1',
+        source_template_name: 'Ferien',
+        kind: 'added',
+        item_name: 'Zelt',
+        detail: null,
+      }).mutation.fields!.created_at,
+    ).toBe(FIXED_ISO)
+  })
+
+  // The default is real time, so a caller that supplies no clock is not
+  // silently stamping the epoch.
+  it('an unsupplied clock is real time, not a fixed value', () => {
+    const before = Date.now()
+    const stamped = useMutations(mockHLC()).startPackingNow('i1').fields!.packing_now_at as string
+    expect(Date.parse(stamped)).toBeGreaterThanOrEqual(before)
   })
 })

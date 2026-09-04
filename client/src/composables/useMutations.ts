@@ -9,6 +9,7 @@ import { TABLE } from '@/types/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
+import { defaultNowIso, type NowIso } from '@/lib/clock'
 import { REVIEW_FLAG_FIELD, TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 
 import type { Trip } from '@/types/domain'
@@ -51,7 +52,7 @@ export type TripEdit = Partial<
  */
 export type AddedItemDecision = 'packed' | 'skipped'
 
-export function useMutations(hlc: HLCGenerator) {
+export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) {
   function make(
     op: MutationOp,
     table: string,
@@ -80,7 +81,7 @@ export function useMutations(hlc: HLCGenerator) {
       // FR-25.17: the moment of the tap, not of the push. Packing happens
       // offline and the envelope can land days later; the server keeps
       // this value when it parses and stamps its own clock otherwise.
-      packed_at: state === 'packed' ? new Date().toISOString() : null,
+      packed_at: state === 'packed' ? nowIso() : null,
     })
   }
 
@@ -92,7 +93,7 @@ export function useMutations(hlc: HLCGenerator) {
     return make('upsert', TABLE.tripItems, itemId, {
       state: 'packing_now',
       packing_now_by: CLIENT_ACTOR_PLACEHOLDER,
-      packing_now_at: new Date().toISOString(),
+      packing_now_at: nowIso(),
     })
   }
 
@@ -280,7 +281,7 @@ export function useMutations(hlc: HLCGenerator) {
       quantity: skipped ? 0 : 1,
       packed_count: packed ? 1 : 0,
       state: opts.decided ?? 'open',
-      packed_at: packed ? new Date().toISOString() : null,
+      packed_at: packed ? nowIso() : null,
       mode: opts.mode ?? 'pack',
       flag_missing: opts.flagMissing ? 1 : 0,
     })
@@ -900,7 +901,7 @@ export function useMutations(hlc: HLCGenerator) {
       kind: change.kind,
       item_name: change.item_name,
       detail: change.detail === null ? null : JSON.stringify(change.detail),
-      created_at: createdAt ?? new Date().toISOString(),
+      created_at: createdAt ?? nowIso(),
     })
     return { mutation, id }
   }

@@ -136,7 +136,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     const item = masterStore.getItem(itemId)
     if (item && masterItemDeletionOutlook(itemId).kind === DELETION_RETIRE) {
       const retire = mutations.updateMasterItem(itemId, {
-        [RETIRED_FIELD]: new Date().toISOString(),
+        [RETIRED_FIELD]: ctx.nowIso(),
       })
       enqueueAndDrain('master', null, {
         mutation: retire,
@@ -291,7 +291,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     const template = masterStore.getTemplate(templateId)
     if (template && templateDeletionOutlook(templateId).kind === DELETION_RETIRE) {
       const retire = mutations.updateTemplate(templateId, {
-        [RETIRED_FIELD]: new Date().toISOString(),
+        [RETIRED_FIELD]: ctx.nowIso(),
       })
       enqueueAndDrain('master', null, {
         mutation: retire,

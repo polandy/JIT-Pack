@@ -43,6 +43,12 @@ export interface Recorded {
  */
 export const SEAM_TODAY = '2026-06-01'
 
+/**
+ * The instant a seam-context row is stamped with. On SEAM_TODAY, so a
+ * spec that reads both sees one day rather than two.
+ */
+export const SEAM_NOW_ISO = '2026-06-01T09:00:00.000Z'
+
 export function makeSeamContext(
   opts: {
     local?: IndexedDBPersistence | null
@@ -72,7 +78,7 @@ export function makeSeamContext(
   const ctx: SyncContext = {
     tripStore,
     masterStore,
-    mutations: useMutations(new HLCGenerator(() => 1, 'aabbccdd')),
+    mutations: useMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => SEAM_NOW_ISO),
     enqueueAndDrain: (type, id, ...muts) => {
       // The real one applies the optimistic changes before it queues, and a
       // group that writes twice reads its own first write back — the FR-20.4
@@ -96,6 +102,7 @@ export function makeSeamContext(
     names: createNameGuards(masterStore),
     local: opts.local ?? null,
     today: () => opts.today ?? SEAM_TODAY,
+    nowIso: () => SEAM_NOW_ISO,
     tripDataLoaded: opts.tripDataLoaded ?? (() => true),
   }
   return { ctx, queued, drains }
