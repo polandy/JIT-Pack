@@ -1792,6 +1792,21 @@ name landed in the *name* field. Five such copies existed; two skipped the
 shared helper's settle and its `toHaveValue`. The helpers gate now catches a
 copy under a different name.
 
+**Acted on again 2026-09-05:** two more shards went red on WebKit in the
+following days, both inside shared helpers and both the same species — an
+instruction Ionic accepts and drops. `setDateField` took its first month hop
+before `ion-datetime` had attached the scroll listener that recomputes the
+header (it does so in `markReady()`, and the arrows are clickable long before
+that, because only `.calendar-body` is held transparent); measured eight times
+out of eight, the picker was visible, hydrated and **not** `datetime-ready` at
+the moment the old helper clicked. It now waits for that class, which is the
+mechanism and not a duration. `openTripSwipe` awaited `open('end')`, which
+returns *before* the `requestAnimationFrame` that does the work, and asserted
+only that an option was visible; it now runs the readiness handshake in the
+page and asserts the class the component renders when it believes it is
+open — so a silent no-op fails on the line that names it. Both postconditions
+were mutation-proved by making Ionic drop the instruction on purpose.
+
 ## M8/M4 — the composer's chip rows (2026-08-21)
 
 E2E-M8-21 in `template-editor.spec.ts` and E2E-M4-46 in

@@ -44,6 +44,20 @@ export async function setDateField(page: Page, testid: string, iso: string): Pro
   await page.getByTestId(testid).click()
   const picker = page.getByTestId(`${testid}-picker`)
   await expect(picker).toBeVisible()
+  /*
+   * Visible is not usable, and the difference is the whole of E2E-M4-23's
+   * WebKit failure (2026-09-04). `ion-datetime` attaches the scroll listener
+   * that recomputes the month header inside `markReady()`, and marks itself
+   * with this class in the same breath; the header arrows are clickable the
+   * entire time before that, because only `.calendar-body` is held at
+   * `opacity: 0`. So a hop taken too early scrolls the grid to the next
+   * month and **nothing recomputes the header** — the walk below steps
+   * forward and reads September for all thirty-six hops. Waiting for the
+   * class is waiting for the mechanism, not for a duration: `markReady` is
+   * driven by an IntersectionObserver on a picker that has just been
+   * presented in an animating sheet.
+   */
+  await expect(picker).toHaveClass(/datetime-ready/)
 
   const headerFor = (y: number, m: number) =>
     new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date(y, m - 1, 1))

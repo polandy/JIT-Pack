@@ -243,14 +243,39 @@ export async function openTripSwipe(page: Page, trip: string) {
    */
   await expect(sliding).toHaveClass(/hydrated/)
   await expect(sliding.locator('ion-item-options')).toHaveCount(1)
-  await sliding.evaluate((el) =>
-    (el as unknown as { open(side: string): Promise<void> }).open('end'),
-  )
   /*
-   * And the helper's own postcondition. Without it "the swipe is open" is
-   * something the caller assumes; with it, a swipe that did not open fails
-   * *here*, naming the swipe.
+   * Neither of those two is enough, and E2E-M2-07 kept proving it on WebKit
+   * (2026-09-04). Reading `ion-item-sliding`'s own source says why:
+   * `open(side)` looks the options up in `rightOptions`, a field its
+   * `connectedCallback` fills only after awaiting each `ion-item-options`
+   * child's `componentOnReady()` — so the child can be in the DOM, and the
+   * parent hydrated, while the parent still has no idea the child exists.
+   * `open()` then returns, silently, having done nothing.
+   *
+   * So the readiness is awaited **in the page**, where these are real
+   * promises rather than something to poll from outside, and one frame is
+   * taken afterwards: a `requestAnimationFrame` callback runs after the
+   * microtask queue drains, which is where the component's own registration
+   * is waiting. The second frame is for `open()` itself — it schedules the
+   * slide in a `requestAnimationFrame` and returns *before* it, so awaiting
+   * the call has never proved anything on its own.
    */
+  await sliding.evaluate(async (el) => {
+    type Ready = { componentOnReady?: () => Promise<unknown> }
+    const options = el.querySelector('ion-item-options') as (Element & Ready) | null
+    await options?.componentOnReady?.()
+    await (el as Element & Ready).componentOnReady?.()
+    await new Promise(requestAnimationFrame)
+    await (el as unknown as { open(side: string): Promise<void> }).open('end')
+    await new Promise(requestAnimationFrame)
+  })
+  /*
+   * And the helper's own postcondition, in two halves. The class is what the
+   * component renders when it believes it is open, so a silent no-op fails
+   * here rather than sixty seconds later on a click; the visible option is
+   * that belief having reached the screen.
+   */
+  await expect(sliding).toHaveClass(/item-sliding-active-options-end/)
   await expect(sliding.locator('ion-item-option').first()).toBeVisible()
   return sliding
 }
