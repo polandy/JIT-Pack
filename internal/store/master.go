@@ -9,7 +9,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
+
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 
 	"jitpack/internal/sync"
 )
@@ -444,9 +446,22 @@ func childIDs(ctx context.Context, tx *sql.Tx, query string, args ...any) ([]str
 
 // isConstraintViolation matches FK, UNIQUE, and CHECK failures — all
 // cases where the client's data, not the server, is at fault.
+//
+// Read from the driver's result code rather than from its message, for the
+// reason partition.go states about the same failure: a message is not a
+// contract to branch on. SQLite's result codes are — they are part of its
+// documented interface, and every constraint failure carries SQLITE_CONSTRAINT
+// in the low byte with the *kind* of constraint in the high bits
+// (SQLITE_CONSTRAINT_FOREIGNKEY, _CHECK, _UNIQUE …), which is why the code is
+// masked rather than compared whole.
 func isConstraintViolation(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "constraint failed")
+	var sqliteErr *sqlite.Error
+	return errors.As(err, &sqliteErr) && sqliteErr.Code()&resultCodeMask == sqlite3.SQLITE_CONSTRAINT
 }
+
+// resultCodeMask keeps the primary result code out of an extended one:
+// SQLite packs the detail into the bits above the low byte.
+const resultCodeMask = 0xff
 
 // memberTrip resolves a trip_members mutation's trip id from the
 // existing row or the mutation fields.
