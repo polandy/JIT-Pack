@@ -1,12 +1,17 @@
 # ADR-038: A master row has a delete endpoint — and the app deliberately does not use it
 
 **Status:** Accepted
-**Related:** FR-24.3, FR-24.4, NFR-4.14, ADR-025, ADR-026/027, ADR-032, invariants 4 and 5, Sync-API §5/§5a, `internal/store/master_delete_row.go`, `internal/api/masterdelete.go`
+**Related:** FR-24.3, FR-24.4, NFR-4.14, ADR-025, ADR-026/027, ADR-032, invariants 4 and 5, Sync-API §5/§5a,
+`internal/store/master_delete_row.go`, `internal/api/masterdelete.go`
 
 **Decision Drivers (in priority order):**
-1. **A rule must not exist twice unnoticed** (invariant 4, and ADR-025's finding: a second implementation with no product surface drifts in silence and nobody hears).
-2. **The app's writes have to survive being offline, and Local Mode has no server at all** (invariant 5). Whatever is built must not quietly make deletion an online-only feature.
-3. **Deleting one row from outside the app must not require becoming a sync client.** The reason this was asked for at all: cleaning up an instance meant minting a `mutation_id` and an HLC, and reading a per-mutation outcome array, for one delete.
+1. **A rule must not exist twice unnoticed** (invariant 4, and ADR-025's finding: a second implementation with no
+   product surface drifts in silence and nobody hears).
+2. **The app's writes have to survive being offline, and Local Mode has no server at all** (invariant 5). Whatever is
+   built must not quietly make deletion an online-only feature.
+3. **Deleting one row from outside the app must not require becoming a sync client.** The reason this was asked for at
+   all: cleaning up an instance meant minting a `mutation_id` and an HLC, and reading a per-mutation outcome array, for
+   one delete.
 4. **The contract is declared once** (NFR-4.14, ADR-026/027): a new route is a line in `wire.go` or it does not exist.
 
 ---

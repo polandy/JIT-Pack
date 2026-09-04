@@ -1,13 +1,25 @@
 # Navigation & Overall Concept: „JIT-Pack" — Information Architecture (v1.1)
 
 **Document Status:** Proposed for Review — consolidated IA draft
-**Basis:** UI_Spec_v1.10 (screen inventory M1–M20, global patterns G-1–G-11) + the live client router (`client/src/router/index.ts`)
-**Revision Note (v1.2, 2026-08-13):** §1.2 rewritten — the app has **one** header bar whose left slot switches between the logo (tab roots) and `‹ back` + title (everything else), decided in [ADR-011](adr/ADR-011_One_Header_Bar.md) after the back affordance was found to be built but invisible on seventeen screens. §7's back-stack proposal is promoted from proposal to **binding contract**, because the logo is no longer the universal escape it was written to be.
+**Basis:** UI_Spec_v1.10 (screen inventory M1–M20, global patterns G-1–G-11) + the live client router
+(`client/src/router/index.ts`)
+**Revision Note (v1.2, 2026-08-13):** §1.2 rewritten — the app has **one** header bar whose left slot switches between
+the logo (tab roots) and `‹ back` + title (everything else), decided in [ADR-011](adr/ADR-011_One_Header_Bar.md) after
+the back affordance was found to be built but invisible on seventeen screens. §7's back-stack proposal is promoted from
+proposal to **binding contract**, because the logo is no longer the universal escape it was written to be.
 
-**Revision Note (v1.1):** Added **Part II** — full, code-grounded elaboration of the six structural points (desktop rail, trip-context entries, back-stack, onboarding, empty states, cross-cluster edges). Part II states *As built* vs *Proposal* per point and corrects Part I's "trip toolbar" simplification (the entries are distributed and status-gated, not a single toolbar).
-**Revision Note (v1.0):** New document. The per-screen designs already existed in `UI_Spec_v1.10.md`; what was missing was the connective tissue — *how the app is navigated as a whole*. This document is the single home for that. It does not restate each screen's internal design (that stays in the UI Spec); it defines the **structure between** screens: the navigation model, the screen graph, and the routing that realises it.
+**Revision Note (v1.1):** Added **Part II** — full, code-grounded elaboration of the six structural points (desktop
+rail, trip-context entries, back-stack, onboarding, empty states, cross-cluster edges). Part II states *As built* vs
+*Proposal* per point and corrects Part I's "trip toolbar" simplification (the entries are distributed and status-gated,
+not a single toolbar).
+**Revision Note (v1.0):** New document. The per-screen designs already existed in `UI_Spec_v1.10.md`; what was missing
+was the connective tissue — *how the app is navigated as a whole*. This document is the single home for that. It does
+not restate each screen's internal design (that stays in the UI Spec); it defines the **structure between** screens: the
+navigation model, the screen graph, and the routing that realises it.
 
-> An interactive version of this concept (clickable phone prototype + navigation map) is maintained as a Claude Artifact and is the visual companion to this text. This markdown file is the authoritative written form; the two are kept in sync when the IA changes.
+> An interactive version of this concept (clickable phone prototype + navigation map) is maintained as a Claude Artifact
+and is the visual companion to this text. This markdown file is the authoritative written form; the two are kept in sync
+when the IA changes.
 
 ---
 
@@ -15,7 +27,10 @@
 
 > **One app, four anchors — everything else is context.**
 
-JIT-Pack has 20 screens. If each were a first-class destination, the app would drown in navigation. Instead the architecture rests on **four permanent anchors** reachable at all times, with every other screen reached *contextually* — by drilling into a parent, opening a sheet, or entering a wizard. This keeps the mental model small (the user is always "in" one of four places) while giving deep features room to exist.
+JIT-Pack has 20 screens. If each were a first-class destination, the app would drown in navigation. Instead the
+architecture rests on **four permanent anchors** reachable at all times, with every other screen reached *contextually*
+— by drilling into a parent, opening a sheet, or entering a wizard. This keeps the mental model small (the user is
+always "in" one of four places) while giving deep features room to exist.
 
 The four anchors map directly to the four nouns the product is built on:
 
@@ -26,7 +41,8 @@ The four anchors map directly to the four nouns the product is built on:
 | Templates | M7 | *a reusable list* | `/tabs/templates` |
 | Items | M9 | *a thing you own* | `/tabs/items` |
 
-Settings (M17) is deliberately **not** a fifth anchor — it lives in the top bar (gear/avatar), because it is chrome, not content (G-1).
+Settings (M17) is deliberately **not** a fifth anchor — it lives in the top bar (gear/avatar), because it is chrome, not
+content (G-1).
 
 > **Forward note (non-binding, see `Vision_NorthStar_v1.0.md`):** The product's north star expands
 > a trip from *a packing effort* into *a phased vacation* (Plan/Prepare/During/After). The decided
@@ -43,41 +59,69 @@ Settings (M17) is deliberately **not** a fifth anchor — it lives in the top ba
 
 The same four destinations are presented differently by breakpoint; the *structure* never changes (G-1, G-9).
 
-- **Mobile (< 900 px):** a bottom tab bar with the four anchors, thumb-reachable. A floating **＋ FAB** offers the create action for the active tab. The top bar carries the compact logo mark (left), the sync glyph and the settings gear/avatar (right).
-- **Desktop (≥ 900 px):** the bottom tab bar is replaced by a persistent **left navigation rail** carrying the same four anchors (plus a Settings entry at the rail's foot). The top bar then spans the remaining width and hosts page-level primary actions *inline* instead of as a floating FAB.
+- **Mobile (< 900 px):** a bottom tab bar with the four anchors, thumb-reachable. A floating **＋ FAB** offers the create
+  action for the active tab. The top bar carries the compact logo mark (left), the sync glyph and the settings
+  gear/avatar (right).
+- **Desktop (≥ 900 px):** the bottom tab bar is replaced by a persistent **left navigation rail** carrying the same four
+  anchors (plus a Settings entry at the rail's foot). The top bar then spans the remaining width and hosts page-level
+  primary actions *inline* instead of as a floating FAB.
 
-The breakpoint is the only thing that differs. A user who resizes the window moves between these two presentations of the identical graph.
+The breakpoint is the only thing that differs. A user who resizes the window moves between these two presentations of
+the identical graph.
 
 ### 1.2 One header bar, whose left slot switches
 
-**There is exactly one header bar** (ADR-011). `App.vue` renders it on every screen; no screen brings its own. What changes by route class is the **left slot**:
+**There is exactly one header bar** (ADR-011). `App.vue` renders it on every screen; no screen brings its own. What
+changes by route class is the **left slot**:
 
 | Route class | Left slot | Right group |
 |---|---|---|
 | The four tab roots | logo (home) | sync glyph · settings/avatar |
 | Everything else (drill-down, flow, sheet-ish) | `‹ back` + the page title | sync glyph · settings/avatar |
 
-The right-hand group is **unconditional** — it is what makes the bar global. In particular the sync glyph stays on drill-downs because inside a trip it is the only route to the conflict log (§6), which is exactly where NFR-4.2a needs it.
+The right-hand group is **unconditional** — it is what makes the bar global. In particular the sync glyph stays on
+drill-downs because inside a trip it is the only route to the conflict log (§6), which is exactly where NFR-4.2a needs
+it.
 
-*Why this needed deciding:* seventeen screens had shipped a correct `IonBackButton` that no user could reach. `.app-content` lacked `position: relative`, so Ionic's absolutely-positioned router outlet resolved against `ion-app` and covered the viewport; each page's own header landed at `y=0` beneath the global one, and a click on the back button timed out against the occluding bar. The options and their costs are weighed in ADR-011; the accepted cost is the item below.
+*Why this needed deciding:* seventeen screens had shipped a correct `IonBackButton` that no user could reach.
+`.app-content` lacked `position: relative`, so Ionic's absolutely-positioned router outlet resolved against `ion-app`
+and covered the viewport; each page's own header landed at `y=0` beneath the global one, and a click on the back button
+timed out against the occluding bar. The options and their costs are weighed in ADR-011; the accepted cost is the item
+below.
 
 Left → right (G-9, as amended by ADR-011):
 
-1. **Logo — on the tab roots only.** A "home" tap-target to M1. It is *not* present on drill-downs: `‹ back` occupies that slot there, and the guaranteed way out is the back-target contract of §7, not the logo. (G-9's older wording — "from anywhere, including inside a trip, template, or wizard" — is superseded.)
-2. **Sync glyph** (G-2) — `synced` / `syncing` / `offline` / `local`. Tapping opens the sync detail; inside a trip it also exposes the conflict log (NFR-4.2a). In Local Mode it shows a device glyph and opens storage & backup detail instead.
+1. **Logo — on the tab roots only.** A "home" tap-target to M1. It is *not* present on drill-downs: `‹ back` occupies
+   that slot there, and the guaranteed way out is the back-target contract of §7, not the logo. (G-9's older wording —
+   "from anywhere, including inside a trip, template, or wizard" — is superseded.)
+2. **Sync glyph** (G-2) — `synced` / `syncing` / `offline` / `local`. Tapping opens the sync detail; inside a trip it
+   also exposes the conflict log (NFR-4.2a). In Local Mode it shows a device glyph and opens storage & backup detail
+   instead.
 3. **Settings / avatar** (G-1) — the gear (Single-User/Local) or the account avatar (collaborative) opens M17.
 
-**Height & style (concept-review, 2026-07-17):** the top bar is deliberately **low** — a **short, single-line title with no subtitle**, a compact status area, and small logo/gear targets — so it never steals room from content. The **logo is a lightweight line mark** (a suitcase, tinted with the brand accent), not a filled tile. On **M4 (packing list)** the bar additionally participates in a **collapsing-header** interaction: scrolling the list down hides the packing sub-header, and scrolling up restores it (see Addendum §3.25 / UI-Spec M4). This collapse is M4-specific for now and may extend to other long lists later. **Corrected 2026-08-19:** nothing migrates *into* the bar as the header goes. The migration was never built, and once the G-12 cluster filled the bar there was no room for it — M4 now carries its name in its own header line and registers **no** app-bar title at all (G-9). **Full-screen packing (decided 2026-07-17):** on M4 the **bottom tab bar is hidden entirely** — packing runs full-screen for maximum vertical room. This is coherent with M4 being a drill-down (§Cross-cluster edges, point 1): the **‹ back** chevron is the return path to Reisen, so the four root anchors need not be shown. The ＋ FAB drops to the screen foot. Mobile only — the desktop left rail is unaffected.
+**Height & style (concept-review, 2026-07-17):** the top bar is deliberately **low** — a **short, single-line title with
+no subtitle**, a compact status area, and small logo/gear targets — so it never steals room from content. The **logo is
+a lightweight line mark** (a suitcase, tinted with the brand accent), not a filled tile. On **M4 (packing list)** the
+bar additionally participates in a **collapsing-header** interaction: scrolling the list down hides the packing
+sub-header, and scrolling up restores it (see Addendum §3.25 / UI-Spec M4). This collapse is M4-specific for now and may
+extend to other long lists later. **Corrected 2026-08-19:** nothing migrates *into* the bar as the header goes. The
+migration was never built, and once the G-12 cluster filled the bar there was no room for it — M4 now carries its name
+in its own header line and registers **no** app-bar title at all (G-9). **Full-screen packing (decided 2026-07-17):** on
+M4 the **bottom tab bar is hidden entirely** — packing runs full-screen for maximum vertical room. This is coherent with
+M4 being a drill-down (§Cross-cluster edges, point 1): the **‹ back** chevron is the return path to Reisen, so the four
+root anchors need not be shown. The ＋ FAB drops to the screen foot. Mobile only — the desktop left rail is unaffected.
 
 ### 1.3 "Everything else is context" — the three ways down
 
 Every non-anchor screen is reached by exactly one of three motions:
 
 1. **Drill-down** — tapping a row opens its detail (a trip → M4, a template → M8, an item → M10).
-2. **Contextual toolbar / sheet** — a screen exposes sibling tools for the thing you're looking at (M4's toolbar → Shopping, Containers, Analytics, …).
+2. **Contextual toolbar / sheet** — a screen exposes sibling tools for the thing you're looking at (M4's toolbar →
+   Shopping, Containers, Analytics, …).
 3. **Wizard / flow** — a multi-step create/import task on its own route (M3, M15, M18).
 
-There is no global "hamburger" menu and no nested tab bars. Depth is always the result of a deliberate drill from an anchor.
+There is no global "hamburger" menu and no nested tab bars. Depth is always the result of a deliberate drill from an
+anchor.
 
 ---
 
@@ -99,7 +143,8 @@ Reached from the bottom tabs / nav rail. Always available.
 
 ### 2.2 Cluster B — Trip context (opened from M2 / M4)
 
-A trip is **not** a tab. It is opened from the Trip List (M2) and becomes the hub (M4) that carries its own contextual toolbar. Everything here is scoped to one `:tripId`.
+A trip is **not** a tab. It is opened from the Trip List (M2) and becomes the hub (M4) that carries its own contextual
+toolbar. Everything here is scoped to one `:tripId`.
 
 | Screen | Route | Role |
 |---|---|---|
@@ -138,7 +183,8 @@ Neither content nor trip-scoped; entered at the edges of the app.
 
 ### 2.5 Cross-cluster entry points (the real wiring)
 
-The clusters above describe *primary* origin. In practice several screens are reachable from more than one place — these secondary edges are what make the app feel connected:
+The clusters above describe *primary* origin. In practice several screens are reachable from more than one place — these
+secondary edges are what make the app feel connected:
 
 - **M1 → M4/M5:** dashboard task cards deep-link straight into a trip item (G-4).
 - **M2 → M3:** the FAB / empty state starts the wizard; **M16 → M3** (`?series=`) starts it pre-seeded from a series.
@@ -151,7 +197,8 @@ The clusters above describe *primary* origin. In practice several screens are re
 
 ## 3. Global patterns (the rules that hold it together)
 
-Navigation is only half of a coherent app. Eleven patterns (G-1–G-11, defined in full in `UI_Spec_v1.10.md` §0) make every screen feel like the same app. Summarised here because they are *cross-navigation* concerns:
+Navigation is only half of a coherent app. Eleven patterns (G-1–G-11, defined in full in `UI_Spec_v1.10.md` §0) make
+every screen feel like the same app. Summarised here because they are *cross-navigation* concerns:
 
 | Pattern | In one line |
 |---|---|
@@ -173,9 +220,12 @@ Navigation is only half of a coherent app. Eleven patterns (G-1–G-11, defined 
 
 The same graph collapses gracefully by deployment mode (G-8):
 
-- **Single-User Mode** (FR-17): no account → the avatar becomes a plain gear; sharing, delegation, notifications, Members (M2/M4), and the Admin entry (M20) are hidden. The four anchors and all trip/master screens remain.
-- **Local Mode** (FR-19): no server → the sync glyph shows the `local` state and opens storage/backup; the same collaboration UI as Single-User is hidden; import/export flows work fully offline (client-side).
-- **Collaborative (OIDC)** (FR-4/FR-23): the full graph, including Members, presence (G-10), notifications, and — for instance admins — M20.
+- **Single-User Mode** (FR-17): no account → the avatar becomes a plain gear; sharing, delegation, notifications,
+  Members (M2/M4), and the Admin entry (M20) are hidden. The four anchors and all trip/master screens remain.
+- **Local Mode** (FR-19): no server → the sync glyph shows the `local` state and opens storage/backup; the same
+  collaboration UI as Single-User is hidden; import/export flows work fully offline (client-side).
+- **Collaborative (OIDC)** (FR-4/FR-23): the full graph, including Members, presence (G-10), notifications, and — for
+  instance admins — M20.
 
 No mode adds or removes an *anchor*; modes only reveal or hide leaves and top-bar affordances.
 
@@ -183,13 +233,22 @@ No mode adds or removes an *anchor*; modes only reveal or hide leaves and top-ba
 
 # Part II — Detailed elaborations
 
-Part I fixed the skeleton. This part fleshes out each structural point in full, **grounded in the shipping code** (`client/src/…`). Where the as-built behaviour and the ideal diverge, both are stated: **As built** = what the code does today; **Proposal** = the recommended target. Nothing here is invented — every "As built" claim traces to a named file.
+Part I fixed the skeleton. This part fleshes out each structural point in full, **grounded in the shipping code**
+(`client/src/…`). Where the as-built behaviour and the ideal diverge, both are stated: **As built** = what the code does
+today; **Proposal** = the recommended target. Nothing here is invented — every "As built" claim traces to a named file.
 
 ## 5. Desktop nav-rail
 
 *Source: `components/global/NavRail.vue`, `App.vue`, `views/TabsLayout.vue`.*
 
-**As built.** Below 900 px the bottom tab bar (`TabsLayout.vue`) is shown and the rail is hidden. *(Until 2026-08-13 this paragraph was wrong: the hiding rule lived on `.desktop-nav` in `App.vue` and lost to `NavRail.vue`'s own scoped `.nav-rail`, so the rail rendered at every width. The breakpoint now lives in the component that owns it.)* at ≥ 900 px `App.vue`'s media query flips `.desktop-nav` to `display:flex` and Ionic hides the bottom tabs. The rail is a fixed **80 px** column pinned left of the scrolling content area (`.app-body` is a flexbox: rail + `main.app-content{flex:1;overflow:auto}`), sitting *below* the full-width header (header height 56 px). It carries the four anchors only — Dashboard, Trips, Templates, Items — each an icon-over-label link. Active state = primary tint background + primary text, matched by `route.path.includes('/tabs/{match}')`; hover = light surface.
+**As built.** Below 900 px the bottom tab bar (`TabsLayout.vue`) is shown and the rail is hidden. *(Until 2026-08-13
+this paragraph was wrong: the hiding rule lived on `.desktop-nav` in `App.vue` and lost to `NavRail.vue`'s own scoped
+`.nav-rail`, so the rail rendered at every width. The breakpoint now lives in the component that owns it.)* at ≥ 900 px
+`App.vue`'s media query flips `.desktop-nav` to `display:flex` and Ionic hides the bottom tabs. The rail is a fixed **80
+px** column pinned left of the scrolling content area (`.app-body` is a flexbox: rail +
+`main.app-content{flex:1;overflow:auto}`), sitting *below* the full-width header (header height 56 px). It carries the
+four anchors only — Dashboard, Trips, Templates, Items — each an icon-over-label link. Active state = primary tint
+background + primary text, matched by `route.path.includes('/tabs/{match}')`; hover = light surface.
 
 **Gaps & proposals.**
 
@@ -199,15 +258,20 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 | 5b | **Deep routes lose the highlight.** Inside a trip (`/trips/:id`) or a master editor (`/templates/:id`) the path is not `/tabs/*`, so `isActive()` matches nothing and **no rail item is lit** — the user loses their "you are here" anchor on desktop. | Broaden the active match: light **Trips** for any `/trips/*`, **Templates** for `/templates/*`, **Items** for `/items/*` and `/series/*`. The rail should reflect the *cluster* you're in, not only the exact tab route. |
 | 5c | Rail is fixed-width, label-always-visible. | Fine at 80 px; no collapse needed. Revisit only if a fifth destination ever appears (it should not — that breaks the four-anchor thesis). |
 
-**Inline page actions (G-9).** On desktop the FAB is not used; each page mounts its primary actions in its own `IonToolbar`/`IonButtons`. This is already the case (e.g. M4's header buttons). The concept's rule stands: **page-level primary actions render inline in the top bar on desktop, as a floating FAB on mobile.**
+**Inline page actions (G-9).** On desktop the FAB is not used; each page mounts its primary actions in its own
+`IonToolbar`/`IonButtons`. This is already the case (e.g. M4's header buttons). The concept's rule stands: **page-level
+primary actions render inline in the top bar on desktop, as a floating FAB on mobile.**
 
 ---
 
 ## 6. Trip-context entry points
 
-*Source: `views/trips/PackingListPage.vue` (M4), `App.vue` (`onSyncTap`), `views/trips/TripListPage.vue` (M2 slide actions).*
+*Source: `views/trips/PackingListPage.vue` (M4), `App.vue` (`onSyncTap`), `views/trips/TripListPage.vue` (M2 slide
+actions).*
 
-**Correction to Part I.** The concept described M4 as carrying "its own contextual **toolbar**". In the shipping code there is **no single toolbar** — the trip-scoped screens are reached from *distributed, gated* affordances on M4 (and two from outside M4). This is the accurate map:
+**Correction to Part I.** The concept described M4 as carrying "its own contextual **toolbar**". In the shipping code
+there is **no single toolbar** — the trip-scoped screens are reached from *distributed, gated* affordances on M4 (and
+two from outside M4). This is the accurate map:
 
 | Entry | Lives on | Gating (as built) | Target |
 |---|---|---|---|
@@ -222,31 +286,65 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 | Members | **M2 slide action** | Owner/Admin + OIDC session (G-8) | `/trips/:id/members` |
 | Clone | **M2 slide action** | archived trips (also M16) | `/trips/:id/clone` |
 
-**Reading of this.** The status of the trip is the primary gate — an `active` trip shows Archive, an `archived` trip shows Review/Clone. Two capabilities (Shopping, Containers) are content-gated (only appear when there's something to show), honouring G-7's "no dead ends". Members/Clone/Conflicts deliberately live *off* M4. (Note: the M4 toolbar itself is slated for a slim-down redesign — see UI-Spec M4 / Addendum §3.25 — but the entry *set* stays; only its presentation changes.)
+**Reading of this.** The status of the trip is the primary gate — an `active` trip shows Archive, an `archived` trip
+shows Review/Clone. Two capabilities (Shopping, Containers) are content-gated (only appear when there's something to
+show), honouring G-7's "no dead ends". Members/Clone/Conflicts deliberately live *off* M4. (Note: the M4 toolbar itself
+is slated for a slim-down redesign — see UI-Spec M4 / Addendum §3.25 — but the entry *set* stays; only its presentation
+changes.)
 
 **Proposal.** Keep the status-driven gating (it's good), but make the **discoverability** explicit rather than emergent:
 
-- 6a. ~~**A canonical order** for the M4 header cluster, left→right: `presence · shopping · [status action] · overflow`. On mobile, collapse everything past the status action into a single **overflow "⋯" menu** (Analytics, Containers, Members, Clone, Conflict log) so the header never crowds. On desktop (wider bar) show them inline.~~ **Superseded 2026-08-08 by UI-Spec G-12.** The overflow menu was mocked and rejected: an unlabelled ⋯ says nothing about what is inside, so in testing the entries behind it were simply never found — twice. M4 now splits its controls by *what they act on*: list actions (search, filter, fold) sit in the **app bar**, the trip's other views (Shopping, Luggage, Analytics) are **labelled-by-long-press icons on the trip title line**, and there is no overflow at all. Rarely-used entries (Members, Clone, Conflict log) are reached from M2 and the sync indicator rather than being hidden in a menu.
-- 6b. **Surface Containers without the grouping detour.** Today Containers is only reachable by switching `groupBy` to `container`. Add it to the overflow menu so it's discoverable regardless of grouping.
-- 6c. **Badges** are consistent: a count badge on Shopping (open procurement items) and on the prep/KPI counters; presence uses the facepile, never a number badge.
-- 6d. **Mode-gating is one rule:** Members and presence appear only with an OIDC session (`collaborative`); in Single-User/Local they vanish with no gap (G-8).
+- 6a. ~~**A canonical order** for the M4 header cluster, left→right: `presence · shopping · [status action] · overflow`.
+  On mobile, collapse everything past the status action into a single **overflow "⋯" menu** (Analytics, Containers,
+  Members, Clone, Conflict log) so the header never crowds. On desktop (wider bar) show them inline.~~ **Superseded
+  2026-08-08 by UI-Spec G-12.** The overflow menu was mocked and rejected: an unlabelled ⋯ says nothing about what is
+  inside, so in testing the entries behind it were simply never found — twice. M4 now splits its controls by *what they
+  act on*: list actions (search, filter, fold) sit in the **app bar**, the trip's other views (Shopping, Luggage,
+  Analytics) are **labelled-by-long-press icons on the trip title line**, and there is no overflow at all. Rarely-used
+  entries (Members, Clone, Conflict log) are reached from M2 and the sync indicator rather than being hidden in a menu.
+- 6b. **Surface Containers without the grouping detour.** Today Containers is only reachable by switching `groupBy` to
+  `container`. Add it to the overflow menu so it's discoverable regardless of grouping.
+- 6c. **Badges** are consistent: a count badge on Shopping (open procurement items) and on the prep/KPI counters;
+  presence uses the facepile, never a number badge.
+- 6d. **Mode-gating is one rule:** Members and presence appear only with an OIDC session (`collaborative`); in
+  Single-User/Local they vanish with no gap (G-8).
 
 ---
 
 ## 7. Deep-link & back-stack semantics
 
-*Source: `router/index.ts` (`createWebHistory`), `App.vue` (`onSyncTap`, `onAuthExpired`), `notifications/format.ts` (`notificationRoute`).*
+*Source: `router/index.ts` (`createWebHistory`), `App.vue` (`onSyncTap`, `onAuthExpired`), `notifications/format.ts`
+(`notificationRoute`).*
 
-**As built.** History is the browser stack (`createWebHistory`). Back = the platform back gesture / button. Deep links exist for notifications (G-4 → `/trips/:id/items/:itemId?comment=…`) and the sync-glyph → conflict log.
+**As built.** History is the browser stack (`createWebHistory`). Back = the platform back gesture / button. Deep links
+exist for notifications (G-4 → `/trips/:id/items/:itemId?comment=…`) and the sync-glyph → conflict log.
 
 **The three problem cases and the rule for each.**
 
-1. **Wizard/flow completion.** M3 (`/trips/new`) is `push`ed, so after creating a trip the browser back returns *into the finished wizard* — wrong. **Rule:** completing a create/import flow (M3, M15, M18, Clone) must `router.replace` to the result (the new trip/M4), not `push`. Back then skips the consumed wizard.
-2. **Cold-start deep link.** A notification opened from a killed app lands on M5 with a one-entry history — "back" has nowhere sane to go. **Rule (revised by ADR-011):** the logo is no longer on screen here, so it cannot be the escape. The declared parent is: `‹ back` routes to the parent trip (M4) even when history is empty, and from there to M2. The contract below is what guarantees it.
-3. **Modal-ish sub-screens** (Conflict log, presence sheet). **Rule:** these `push` and rely on back to dismiss; they must never be a dead end — each has a visible close/back to its origin trip.
-4. **Browser back with a route-driven overlay open** (found by the owner 2026-08-16, fixed the same day). M5's sheet *replaces* the trip's history entry (deliberately — a push measurably mounts a twin packing list behind the sheet), so a history pop skipped M4 and landed on the trip list, two screens back. **Rule:** a pop leaving a route whose `meta.overlayParam` is set closes the overlay instead — the same meaning the chevron already gives it. Mechanically (`router/overlayBackGuard.ts`): the pop is allowed to *complete* and the overlay parent is then pushed. Not intercepted in `beforeEach`, because Ionic reads the pending pop direction when a navigation confirms, and an aborted pop leaves that info stale to poison the corrective navigation — the wrong screen renders under the right URL. Letting both confirm keeps Ionic coherent and rebuilds the natural list → trip chain, so the *next* back lands on the list. Known, accepted gap: a back arriving **during** the sheet's enter animation still races Ionic's transition queue (E2E-M5-13 waits for the presentation to settle for exactly this reason); a human back needs a visible sheet first, so the window is not reachable by intent.
+1. **Wizard/flow completion.** M3 (`/trips/new`) is `push`ed, so after creating a trip the browser back returns *into
+   the finished wizard* — wrong. **Rule:** completing a create/import flow (M3, M15, M18, Clone) must `router.replace`
+   to the result (the new trip/M4), not `push`. Back then skips the consumed wizard.
+2. **Cold-start deep link.** A notification opened from a killed app lands on M5 with a one-entry history — "back" has
+   nowhere sane to go. **Rule (revised by ADR-011):** the logo is no longer on screen here, so it cannot be the escape.
+   The declared parent is: `‹ back` routes to the parent trip (M4) even when history is empty, and from there to M2. The
+   contract below is what guarantees it.
+3. **Modal-ish sub-screens** (Conflict log, presence sheet). **Rule:** these `push` and rely on back to dismiss; they
+   must never be a dead end — each has a visible close/back to its origin trip.
+4. **Browser back with a route-driven overlay open** (found by the owner 2026-08-16, fixed the same day). M5's sheet
+   *replaces* the trip's history entry (deliberately — a push measurably mounts a twin packing list behind the sheet),
+   so a history pop skipped M4 and landed on the trip list, two screens back. **Rule:** a pop leaving a route whose
+   `meta.overlayParam` is set closes the overlay instead — the same meaning the chevron already gives it. Mechanically
+   (`router/overlayBackGuard.ts`): the pop is allowed to *complete* and the overlay parent is then pushed. Not
+   intercepted in `beforeEach`, because Ionic reads the pending pop direction when a navigation confirms, and an aborted
+   pop leaves that info stale to poison the corrective navigation — the wrong screen renders under the right URL.
+   Letting both confirm keeps Ionic coherent and rebuilds the natural list → trip chain, so the *next* back lands on the
+   list. Known, accepted gap: a back arriving **during** the sheet's enter animation still races Ionic's transition
+   queue (E2E-M5-13 waits for the presentation to settle for exactly this reason); a human back needs a visible sheet
+   first, so the window is not reachable by intent.
 
-**The back-target contract (binding since ADR-011).** With the logo gone from drill-downs, `‹ back` is *the* way out, so every non-root route must know where "out" is. Each route declares its parent; the header derives the back target from it rather than from history alone, which is what makes a cold-start deep link survivable.
+**The back-target contract (binding since ADR-011).** With the logo gone from drill-downs, `‹ back` is *the* way out, so
+every non-root route must know where "out" is. Each route declares its parent; the header derives the back target from
+it rather than from history alone, which is what makes a cold-start deep link survivable.
 
 | Route class | Back target | Rule |
 |---|---|---|
@@ -256,17 +354,34 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 | Modal-ish (conflict log, presence) | the trip they were opened from | never a dead end |
 | **Global actions & multi-entry flows** (Settings, M15, M18, admin) | the path they were entered from, with the declared parent as the fallback | offered from every screen, so no single parent is true |
 
-The declaration lives with the route in `router/index.ts` (a `meta.parent`), so adding a screen without a back target is a visible omission rather than a silent one.
+The declaration lives with the route in `router/index.ts` (a `meta.parent`), so adding a screen without a back target is
+a visible omission rather than a silent one.
 
-**The fifth class, and why it was added** (owner-found 2026-08-21, ADR-011 amendment). Inside a trip, tapping the gear and then `‹` landed on the dashboard. The cause was a gap in the table above rather than a bug under it: the gear is offered on *every* screen (G-1, deliberately — it is what keeps the conflict log reachable from inside a trip), while `/tabs/settings` declared the single static parent `/tabs/dashboard`. From anywhere else, the chevron lied. The flows row had the same hole and was worse off: it *promised* "the origin the flow was entered from" and **nothing implemented it** — there was no `from`, `origin` or `returnTo` anywhere in the router, so M18 entered from the trip list returned to Settings.
+**The fifth class, and why it was added** (owner-found 2026-08-21, ADR-011 amendment). Inside a trip, tapping the gear
+and then `‹` landed on the dashboard. The cause was a gap in the table above rather than a bug under it: the gear is
+offered on *every* screen (G-1, deliberately — it is what keeps the conflict log reachable from inside a trip), while
+`/tabs/settings` declared the single static parent `/tabs/dashboard`. From anywhere else, the chevron lied. The flows
+row had the same hole and was worse off: it *promised* "the origin the flow was entered from" and **nothing implemented
+it** — there was no `from`, `origin` or `returnTo` anywhere in the router, so M18 entered from the trip list returned to
+Settings.
 
-The mechanism (`router/originStamp.ts`): a route in this class carries `meta.acceptsFrom`, and the router stamps the path it was entered from into `?from=` on the way in — a redirect that replaces rather than appends. `backTarget()` prefers that origin and falls back to `meta.parent` when it is absent or does not validate as an internal path. Validation happens twice, in the two places that can each see half of it: `backTarget()` — pure, no router — rejects anything that is not a path inside this app, and the guard additionally rejects one that names no route of this app, replacing it with the real origin rather than leaving `‹` pointing at a screen that renders nothing.
+The mechanism (`router/originStamp.ts`): a route in this class carries `meta.acceptsFrom`, and the router stamps the
+path it was entered from into `?from=` on the way in — a redirect that replaces rather than appends. `backTarget()`
+prefers that origin and falls back to `meta.parent` when it is absent or does not validate as an internal path.
+Validation happens twice, in the two places that can each see half of it: `backTarget()` — pure, no router — rejects
+anything that is not a path inside this app, and the guard additionally rejects one that names no route of this app,
+replacing it with the real origin rather than leaving `‹` pointing at a screen that renders nothing.
 
 Three properties worth naming, because each is load-bearing:
 
-- **The router stamps it, not the links.** The gear alone is one call site on every screen, and the two import flows are already entered from five places; a per-link origin works until the sixth link forgets.
-- **The origin is stored encoded**, so a chain unwinds hop by hop: trip → gear → admin → `‹` → Settings → `‹` → trip. Unencoded, the nested origin's own `?`/`&` would end the query value it lives in.
-- **A cold-start deep link is unchanged.** It carries no origin, so the declared parent answers — which is the whole reason ADR-011 decoupled back from history in the first place. The class *narrows* history-independence rather than reverting it, and only for routes that declare it: a drill-down ignores `?from=` entirely, so a crafted link cannot redirect one.
+- **The router stamps it, not the links.** The gear alone is one call site on every screen, and the two import flows are
+  already entered from five places; a per-link origin works until the sixth link forgets.
+- **The origin is stored encoded**, so a chain unwinds hop by hop: trip → gear → admin → `‹` → Settings → `‹` → trip.
+  Unencoded, the nested origin's own `?`/`&` would end the query value it lives in.
+- **A cold-start deep link is unchanged.** It carries no origin, so the declared parent answers — which is the whole
+  reason ADR-011 decoupled back from history in the first place. The class *narrows* history-independence rather than
+  reverting it, and only for routes that declare it: a drill-down ignores `?from=` entirely, so a crafted link cannot
+  redirect one.
 
 ---
 
@@ -289,11 +404,16 @@ first launch
         AUTH_EXPIRED event (IdP rejected refresh) → router.replace('/login')
 ```
 
-Local Mode never touches auth. Single-User servers answer `/auth/config` with 501, so the client silently proceeds — this is the "log in by opening the app" path the local Docker stack uses.
+Local Mode never touches auth. Single-User servers answer `/auth/config` with 501, so the client silently proceeds —
+this is the "log in by opening the app" path the local Docker stack uses.
 
-**Re-entry after a mode switch (FR-19.5).** There is deliberately **no toggle** between Local and Server. Switching modes goes through the export/import path (portable YAML): export from the old mode, re-run M19, import via M18. Part I §4 states this; the onboarding doc is where the *steps* live.
+**Re-entry after a mode switch (FR-19.5).** There is deliberately **no toggle** between Local and Server. Switching
+modes goes through the export/import path (portable YAML): export from the old mode, re-run M19, import via M18. Part I
+§4 states this; the onboarding doc is where the *steps* live.
 
-**Proposal.** Two refinements: (8a) M19 should state, per option, what it commits to and how to leave it (sets expectation for the no-toggle rule); (8b) the `auth/config` probe should show a brief "connecting…" state rather than a blank frame, so a slow server doesn't look like a hang.
+**Proposal.** Two refinements: (8a) M19 should state, per option, what it commits to and how to leave it (sets
+expectation for the no-toggle rule); (8b) the `auth/config` probe should show a brief "connecting…" state rather than a
+blank frame, so a slow server doesn't look like a hang.
 
 ---
 
@@ -312,13 +432,16 @@ Every list screen must offer **one** primary action when empty. Audit of the cur
 | M4 Packing | "No items yet — add one above" | inline quick-add | ✅ (points at the add field) |
 | M2 Members | pre-sync roster notice | informational | ✅ (correct — nothing to do) |
 
-**Proposal.** Bring M2/M7/M9 up to the Dashboard's standard: an explicit in-body primary button (Templates/Items also carry a secondary "Import from spreadsheet" → `/import`, per the UI-Spec G-7 example). A FAB is a shortcut, not an empty-state answer — G-7 asks for a *single obvious action in the empty body*.
+**Proposal.** Bring M2/M7/M9 up to the Dashboard's standard: an explicit in-body primary button (Templates/Items also
+carry a secondary "Import from spreadsheet" → `/import`, per the UI-Spec G-7 example). A FAB is a shortcut, not an
+empty-state answer — G-7 asks for a *single obvious action in the empty body*.
 
 ---
 
 ## 10. Cross-cluster edge list
 
-The complete reference of navigational edges beyond primary drill-down, for link/route audits. (Primary drills — list→detail — are omitted as implied.)
+The complete reference of navigational edges beyond primary drill-down, for link/route audits. (Primary drills —
+list→detail — are omitted as implied.)
 
 | From | To | Trigger |
 |---|---|---|
@@ -340,4 +463,6 @@ The complete reference of navigational edges beyond primary drill-down, for link
 
 ---
 
-*Derived from `client/src/router/index.ts`, `client/src/App.vue`, `client/src/components/global/*`, `client/src/views/**`, and `UI_Spec_v1.10.md`. Proposal for discussion; all 20 screens are already implemented (server + client).*
+*Derived from `client/src/router/index.ts`, `client/src/App.vue`, `client/src/components/global/*`,
+`client/src/views/**`, and `UI_Spec_v1.10.md`. Proposal for discussion; all 20 screens are already implemented (server +
+client).*

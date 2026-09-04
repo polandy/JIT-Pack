@@ -23,7 +23,8 @@
 Converting *gemeinsam → pro Person* **keeps the existing row** and points it at the first selected
 traveler in trip order; every further traveler is a fresh insert whose id is derived with the
 existing ADR-016 helper `propagatedItemId(tripId, sourceItemId, travelerId)` — folded name where
-there is no source item, matching `perPersonKey`'s own fallback (named `clusterKeyOf` when this ADR was written) so the rows land in one cluster.
+there is no source item, matching `perPersonKey`'s own fallback (named `clusterKeyOf` when this ADR was written) so the
+rows land in one cluster.
 Converting back collapses onto **one** surviving row chosen by a deterministic ladder — the row
 carrying content (comments or todos), then the row with the most packed units, then trip order —
 summing the quantities and capping the packed count; the rest are deleted.
