@@ -7,7 +7,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/http"
 
@@ -84,14 +83,5 @@ func (s *Server) handleListLockEvents(w http.ResponseWriter, r *http.Request) {
 // writeTakeoverError gives each refusal its own code: the row is gone,
 // nobody is holding it, or it is already the caller's.
 func writeTakeoverError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, store.ErrTripItemNotFound):
-		writeError(w, http.StatusNotFound, ErrNotFound, "no such item on this trip")
-	case errors.Is(err, store.ErrClaimNotHeld):
-		writeError(w, http.StatusConflict, ErrClaimNotHeld, "nobody is packing this row")
-	case errors.Is(err, store.ErrClaimIsOwn):
-		writeError(w, http.StatusConflict, ErrClaimIsOwn, "this row is already yours")
-	default:
-		writeError(w, http.StatusInternalServerError, ErrInternal, "takeover failed")
-	}
+	writeStoreError(w, err, "takeover failed")
 }

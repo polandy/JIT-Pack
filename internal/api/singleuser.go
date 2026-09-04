@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 
@@ -49,16 +48,12 @@ func (s *Server) handlePutAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(data) > maxAvatarUploadBytes {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "avatar exceeds 100 KB limit")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, store.ErrAvatarTooLarge.Error())
 		return
 	}
 
 	if err := s.store.SetAvatar(r.Context(), r.PathValue(PathUserID), data); err != nil {
-		if errors.Is(err, store.ErrAvatarTooLarge) {
-			writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
-			return
-		}
-		writeError(w, http.StatusInternalServerError, ErrInternal, "could not store avatar")
+		writeStoreError(w, err, "could not store avatar")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -78,11 +73,7 @@ func (s *Server) handlePutDisplayName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.store.SetDisplayName(r.Context(), r.PathValue(PathUserID), req.DisplayName); err != nil {
-		if errors.Is(err, store.ErrInvalidDisplayName) {
-			writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
-			return
-		}
-		writeError(w, http.StatusInternalServerError, ErrInternal, "could not update display name")
+		writeStoreError(w, err, "could not update display name")
 		return
 	}
 	w.WriteHeader(http.StatusOK)

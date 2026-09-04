@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"io"
 	"net/http"
 
@@ -42,19 +41,12 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(data) > maxItemImageUploadBytes {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "item image exceeds 150 KB limit")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, store.ErrItemImageTooLarge.Error())
 		return
 	}
 
 	if _, err := s.store.SetItemImage(r.Context(), r.PathValue(PathItemID), data); err != nil {
-		switch {
-		case errors.Is(err, store.ErrItemNotFound):
-			writeError(w, http.StatusNotFound, ErrNotFound, "no such item")
-		case errors.Is(err, store.ErrItemImageTooLarge):
-			writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
-		default:
-			writeError(w, http.StatusInternalServerError, ErrInternal, "could not store item image")
-		}
+		writeStoreError(w, err, "could not store item image")
 		return
 	}
 	s.notifyMasterChangedToActor(r)
@@ -64,11 +56,7 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 // handleDeleteItemImage removes an item's photo (FR-22.5).
 func (s *Server) handleDeleteItemImage(w http.ResponseWriter, r *http.Request) {
 	if err := s.store.DeleteItemImage(r.Context(), r.PathValue(PathItemID)); err != nil {
-		if errors.Is(err, store.ErrItemNotFound) {
-			writeError(w, http.StatusNotFound, ErrNotFound, "no such item")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, ErrInternal, "could not remove item image")
+		writeStoreError(w, err, "could not remove item image")
 		return
 	}
 	s.notifyMasterChangedToActor(r)
