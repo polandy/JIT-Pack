@@ -62,6 +62,7 @@ import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Template, TemplateKind } from '@/types/domain'
+import { ITEM_MODE_PACK, isShoppingMode } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
@@ -375,7 +376,7 @@ function companionRows() {
       weight_grams: master?.weight_grams ?? null,
       value_cents: master?.value_cents ?? null,
       quantity,
-      mode: 'pack' as const,
+      mode: ITEM_MODE_PACK,
       late_packer: false,
       traveler_index: null,
       // A companion comes from a dependency, not from a template position, so
@@ -1097,7 +1098,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 <span v-if="item.traveler_index !== null" class="mark">
                   {{ t('wizard.perPerson') }}
                 </span>
-                <span v-if="item.mode !== 'pack'" class="mark">
+                <span v-if="isShoppingMode(item.mode)" class="mark">
                   {{ modeLabel(item.mode) }}
                 </span>
                 <span v-if="isDropped(index)" class="mark">{{ t('wizard.dropped') }}</span>

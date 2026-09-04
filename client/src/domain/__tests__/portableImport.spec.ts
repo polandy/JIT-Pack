@@ -8,6 +8,7 @@ import { useMutations } from '@/composables/useMutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { TABLE } from '@/types/tables'
 import type { Mutation } from '@/api/types'
+import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 import type { MasterItem, Tag, Template, Trip } from '@/types/domain'
 
 /**
@@ -99,6 +100,29 @@ items:
     ])
     // Everything a template brings belongs to the master partition.
     expect(new Set(recorded.map((r) => r.partition))).toEqual(new Set(['master']))
+  })
+
+  it('gives a position a mode the app can render, whatever the file said (FR-18.5)', () => {
+    const { env, recorded } = fakeEnv()
+    const doc = parse(`kind: template
+name: Ferien
+items:
+  - name: Socken
+    quantity: 3
+    default_mode: sometimes
+  - name: Zahnbürste
+    quantity: 1
+    default_mode: buy_local
+`)
+
+    importPortableDocument(doc, new Map(), env)
+
+    // The second position is the counter-signal: a mode the vocabulary knows
+    // survives, so the first one landing on `pack` is narrowing, not a reset.
+    expect(rowsFor(recorded, TABLE.templateItems).map((r) => r['default_mode'])).toEqual([
+      ITEM_MODE_PACK,
+      ITEM_MODE_BUY_LOCAL,
+    ])
   })
 
   it('links a group of that name instead of leaving a second copy (ADR-017)', () => {

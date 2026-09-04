@@ -23,6 +23,7 @@ import type {
   TripMember,
   TripTemplateSource,
 } from '@/types/domain'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { PullChange } from '@/api/types'
 import {
   applyToSink,
@@ -88,16 +89,16 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   } {
     const items = getItems(tripId)
     const open = items.filter((i) => i.state !== 'packed' && i.state !== 'skipped')
-    const buyBefore = open.filter((i) => i.mode === 'buy_before')
-    const buyLocal = open.filter((i) => i.mode === 'buy_local')
+    const buyBefore = open.filter((i) => i.mode === ITEM_MODE_BUY_BEFORE)
+    const buyLocal = open.filter((i) => i.mode === ITEM_MODE_BUY_LOCAL)
     const stillOpen = new Set([...buyBefore, ...buyLocal].map((i) => i.id))
     const bought = (from: ShoppingMode) =>
       items.filter((i) => i.bought_from === from && !stillOpen.has(i.id))
     return {
       buyBefore,
       buyLocal,
-      boughtBefore: bought('buy_before'),
-      boughtLocal: bought('buy_local'),
+      boughtBefore: bought(ITEM_MODE_BUY_BEFORE),
+      boughtLocal: bought(ITEM_MODE_BUY_LOCAL),
     }
   }
 

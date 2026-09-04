@@ -33,7 +33,7 @@ import type {
   TripItem,
   TripTemplateSource,
 } from '@/types/domain'
-import { TRIP_STATUSES } from '@/types/domain'
+import { ITEM_MODE_PACK, TRIP_STATUSES, isShoppingMode, toItemMode } from '@/types/domain'
 
 /** The schema this app writes and fully understands (FR-18.5). */
 export const PORTABLE_SCHEMA_VERSION = 1
@@ -108,10 +108,10 @@ export interface PortableItem {
   assignment: 'per_person' | 'trip_global' | null
   dedup: 'max' | 'sum' | null
   conditions: Record<string, unknown> | null
-  default_mode: string | null
+  default_mode: ItemMode | null
   late_packer: boolean
   // Trip fields
-  mode: string | null
+  mode: ItemMode | null
   category: string | null
   traveler: string | null
   container: string | null
@@ -681,7 +681,7 @@ function toTripStatus(v: unknown): TripStatus | null {
 
 /** A value outside the two shopping lists is not a list a row can have left. */
 function toShoppingMode(raw: unknown): ShoppingMode | null {
-  return raw === 'buy_before' || raw === 'buy_local' ? raw : null
+  return isShoppingMode(raw) ? raw : null
 }
 
 function toItem(entry: unknown): PortableItem | null {
@@ -707,9 +707,9 @@ function toItem(entry: unknown): PortableItem | null {
       typeof o['conditions'] === 'object' && o['conditions'] !== null
         ? (o['conditions'] as Record<string, unknown>)
         : null,
-    default_mode: str(o['default_mode']),
+    default_mode: toItemMode(o['default_mode']),
     late_packer: o['late_packer'] === true,
-    mode: str(o['mode']),
+    mode: toItemMode(o['mode']),
     category: str(o['category']),
     traveler: str(o['traveler']),
     container: str(o['container']),
@@ -774,7 +774,7 @@ function toFollows(v: unknown): string[] {
 }
 
 function toMode(v: unknown): ItemMode {
-  return v === 'buy_before' || v === 'buy_local' ? v : 'pack'
+  return toItemMode(v) ?? ITEM_MODE_PACK
 }
 
 function toGeneratedPositions(v: unknown): PortableGeneratedPosition[] {

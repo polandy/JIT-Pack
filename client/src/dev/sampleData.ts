@@ -1,4 +1,5 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { ITEM_MODE_PACK } from '@/types/domain'
 
 /**
  * The dev seed as one call: master partition first, then the trip.
@@ -44,7 +45,7 @@ export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOu
     orchestrator.addTemplateItem(macro, headlamp, {
       quantity: 1,
       assignment: 'trip_global',
-      defaultMode: 'pack',
+      defaultMode: ITEM_MODE_PACK,
     })
     orchestrator.proposeTripRefresh(plannedTripId)
   }

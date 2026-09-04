@@ -61,7 +61,7 @@ import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { ITEM_MODES } from '@/types/domain'
+import { ITEM_MODES, isShoppingMode } from '@/types/domain'
 import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 
@@ -454,7 +454,7 @@ const packedStamp = computed(() => {
         />
         {{ travelerName ?? t('facet.shared') }}
       </span>
-      <span class="chip" :class="{ buy: item.mode !== 'pack' }">
+      <span class="chip" :class="{ buy: isShoppingMode(item.mode) }">
         <IonIcon :icon="modeIcon(item.mode)" />
         {{ modeLabel(item.mode) }}
       </span>
