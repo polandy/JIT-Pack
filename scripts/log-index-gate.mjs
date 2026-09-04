@@ -42,6 +42,17 @@ const DOCUMENTS = [
 const INDEX_HEADING = '## Index'
 
 /**
+ * How long an index line's hook — the part after the em dash — may be.
+ *
+ * The index is read *instead of* the document, which only works while it can
+ * be scanned. It had reached 216 lines with a median hook of 205 characters
+ * and a longest of 574: ten pages of prose in front of a file whose whole
+ * point was that you would not have to read it. The hook says what you would
+ * come looking for; the section says what was found.
+ */
+const HOOK_LIMIT = 120
+
+/**
  * GitHub's heading-anchor rules: lowercase, drop everything that is not a
  * letter, digit, space or hyphen, spaces to hyphens, and number repeats from
  * the second occurrence on.
@@ -86,9 +97,17 @@ function check({ path, preamble }) {
   const skip = new Set([...preamble, 'Index'])
   const sections = anchorsOf(lines).filter((s) => !skip.has(s.title))
 
+  const overlong = []
+  for (const line of indexBody.split('\n')) {
+    const entry = /^- \[.*?\]\(#[^)]+\)\s+—\s+(.*)$/.exec(line)
+    if (entry && entry[1].length > HOOK_LIMIT) {
+      overlong.push({ line, length: entry[1].length })
+    }
+  }
+
   const missing = sections.filter((s) => !linked.has(s.anchor))
   const dangling = [...linked].filter((a) => !sections.some((s) => s.anchor === a))
-  if (!missing.length && !dangling.length) return sections.length
+  if (!missing.length && !dangling.length && !overlong.length) return sections.length
 
   console.error(`log-index-gate: ${path} and its index disagree.\n`)
   for (const s of missing) {
@@ -96,6 +115,11 @@ function check({ path, preamble }) {
   }
   for (const a of dangling) {
     console.error(`  index points at a section that does not exist:  #${a}`)
+  }
+  for (const { line, length } of overlong) {
+    console.error(
+      `  index hook is ${length} characters, the limit is ${HOOK_LIMIT}:\n    ${line.slice(0, 100)}…`,
+    )
   }
   console.error('')
   return null
