@@ -87,8 +87,8 @@ func (s *Store) DeactivateUser(ctx context.Context, userID string) error {
 	}
 
 	if _, err := tx.ExecContext(ctx,
-		`UPDATE users SET deactivated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-		 WHERE id = ? AND deactivated_at IS NULL`, userID); err != nil {
+		`UPDATE users SET deactivated_at = ?
+		 WHERE id = ? AND deactivated_at IS NULL`, s.nowMillis(), userID); err != nil {
 		return fmt.Errorf("deactivate: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx,

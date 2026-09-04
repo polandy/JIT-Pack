@@ -9,7 +9,6 @@ package store
 import (
 	"context"
 	"fmt"
-	"time"
 )
 
 // FullExport is the NFR-4.5 versioned JSON backup envelope.
@@ -68,7 +67,7 @@ func (s *Store) ExportFull(ctx context.Context, userID string) (FullExport, erro
 
 	export := FullExport{
 		Version:    1,
-		ExportedAt: time.Now().UTC().Format(time.RFC3339),
+		ExportedAt: s.nowRFC3339(),
 		Data:       map[string][]map[string]any{},
 	}
 	for _, t := range tables {

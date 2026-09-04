@@ -34,6 +34,9 @@ type Server struct {
 	// identity is the mode's answer to who is asking and whether anyone
 	// else can exist — chosen once, at construction (invariant 5).
 	identity identity
+	// now is the server's one clock: session expiry, token minting and
+	// the fallback tap time all read it. Never nil, see newServer.
+	now func() time.Time
 	// currency is the instance-wide ISO-4217 label (FR-21.9); empty ⇒ none.
 	currency string
 	hub      *Hub
@@ -75,6 +78,10 @@ func newServer(st *store.Store, opts Options) *Server {
 		pushContact:    opts.PushContact,
 		wsIdleOverride: opts.WSIdle,
 		adminEmails:    emailSet(opts.AdminEmails),
+		now:            opts.Now,
+	}
+	if s.now == nil {
+		s.now = time.Now
 	}
 	if opts.OIDC != nil {
 		s.oidc = newOIDCBroker(*opts.OIDC)
@@ -326,7 +333,7 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue(PathTripID)
 	userID, _ := r.Context().Value(userIDKey).(string)
 	out, muts, ok := applyPushBatch(w, r,
-		func(m *syncpkg.Mutation) { stampActor(m, userID) },
+		func(m *syncpkg.Mutation) { stampActor(m, userID, s.now) },
 		func(m syncpkg.Mutation) (store.MutationResult, error) {
 			return s.store.ApplyMutation(r.Context(), tripID, userID, m)
 		})
@@ -355,7 +362,7 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 // removed from the mutation first and written back only where this
 // function decides it — invariant 3 holds for every op, not only the one
 // the client happens to send.
-func stampActor(m *syncpkg.Mutation, userID string) {
+func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 	switch m.Table {
 	case store.TableComments:
 		// Authorship is decided once, when the comment comes into being.
@@ -402,14 +409,14 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 		switch {
 		case state == syncpkg.StatePackingNow:
 			m.Set("packing_now_by", userID)
-			m.Set("packing_now_at", tapTime(claimed))
+			m.Set("packing_now_at", tapTime(claimed, now))
 			m.Set("packed_by_user_id", nil)
 			m.Set("packed_at", nil)
 		case state == syncpkg.StatePacked:
 			m.Set("packing_now_by", nil)
 			m.Set("packing_now_at", nil)
 			m.Set("packed_by_user_id", userID)
-			m.Set("packed_at", tapTime(tapped))
+			m.Set("packed_at", tapTime(tapped, now))
 		case hasState:
 			// Un-packed in any way (open, partial, skipped): both stamps
 			// are cleared with the state they described (FR-25.17/FR-5.3),
@@ -426,11 +433,11 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 // tapTime keeps the client's tap time when it is a real instant and
 // falls back to now otherwise, so an offline row keeps the moment it was
 // actually packed or claimed instead of the moment its push arrived.
-func tapTime(tapped string) string {
+func tapTime(tapped string, now func() time.Time) string {
 	if _, err := time.Parse(time.RFC3339, tapped); err == nil {
 		return tapped
 	}
-	return time.Now().UTC().Format(time.RFC3339)
+	return now().UTC().Format(time.RFC3339)
 }
 
 // notifyLockEvents emits item.locked/item.unlocked for state changes

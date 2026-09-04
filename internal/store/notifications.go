@@ -119,8 +119,8 @@ func (s *Store) ListNotifications(ctx context.Context, userID string, unreadOnly
 // cannot mark each other's notifications.
 func (s *Store) MarkNotificationRead(ctx context.Context, userID, id string) error {
 	res, err := s.db.ExecContext(ctx,
-		`UPDATE notifications SET read_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-		  WHERE id = ? AND user_id = ? AND read_at IS NULL`, id, userID)
+		`UPDATE notifications SET read_at = ?
+		  WHERE id = ? AND user_id = ? AND read_at IS NULL`, s.nowMillis(), id, userID)
 	if err != nil {
 		return fmt.Errorf("mark read: %w", err)
 	}
