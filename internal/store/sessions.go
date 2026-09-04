@@ -92,9 +92,9 @@ func (s *Store) RotateSession(ctx context.Context, oldHash, newHash, newIDPRefre
 	}
 	res, err := s.db.ExecContext(ctx,
 		`UPDATE sessions SET refresh_hash = ?, idp_refresh_token = ?,
-		        refreshed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), expires_at = ?
+		        refreshed_at = ?, expires_at = ?
 		 WHERE refresh_hash = ?`,
-		newHash, idpArg, newExpiry.UTC().Format(time.RFC3339), oldHash)
+		newHash, idpArg, s.nowMillis(), newExpiry.UTC().Format(time.RFC3339), oldHash)
 	if err != nil {
 		return Session{}, fmt.Errorf("rotate session: %w", err)
 	}

@@ -19,7 +19,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"jitpack/internal/sync"
 )
@@ -180,7 +179,7 @@ func (s *Store) applyMutation(ctx context.Context, m sync.Mutation, p partition)
 		// kept so history keeps resolving against it and marked so no
 		// display surface offers it again.
 		retired = true
-		m = retireInstead(m, time.Now().UTC().Format(time.RFC3339))
+		m = retireInstead(m, s.nowRFC3339())
 		merged = sync.Merge(row, m)
 	} else if blocked {
 		return s.reject(ctx, tx, m, row, p, ReasonStillReferenced, true)

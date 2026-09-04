@@ -31,6 +31,10 @@ type Options struct {
 	// stamped into users.is_instance_admin at every login. Multi-user
 	// mode only: Single-User Mode presents no token to match against.
 	AdminEmails []string
+	// Now overrides the server's clock (G-4). Nil means real UTC time,
+	// which is what production passes — the field exists so a test can
+	// assert an exact timestamp instead of asserting one is non-empty.
+	Now func() time.Time
 	// OIDC turns on the /auth/token, /auth/refresh and /auth/config
 	// endpoints, brokering logins against the discovered IdP as a
 	// confidential client (client_secret_basic, ADR-007). Nil leaves

@@ -11,7 +11,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"jitpack/internal/sync"
 )
@@ -99,7 +98,7 @@ func (s *Store) TakeOverClaim(ctx context.Context, tripID, itemID, takerUserID s
 		Fields: map[string]any{
 			sync.FieldState:  sync.StatePackingNow,
 			"packing_now_by": takerUserID,
-			"packing_now_at": time.Now().UTC().Format(time.RFC3339),
+			"packing_now_at": s.nowRFC3339(),
 		},
 		HLC: s.hlc.Next(),
 	}

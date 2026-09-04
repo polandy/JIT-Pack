@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"time"
 
 	"jitpack/internal/sync"
 )
@@ -43,7 +42,7 @@ func (s *Store) SetItemImage(ctx context.Context, itemID string, jpeg []byte) (s
 			 VALUES (?, ?, 'image/jpeg', ?)
 			 ON CONFLICT(item_id) DO UPDATE
 			   SET image = excluded.image, mime = 'image/jpeg', updated_at = excluded.updated_at`,
-			itemID, jpeg, time.Now().UTC().Format(time.RFC3339)); err != nil {
+			itemID, jpeg, s.nowRFC3339()); err != nil {
 			return fmt.Errorf("upsert item image: %w", err)
 		}
 		return nil

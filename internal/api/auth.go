@@ -79,7 +79,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "refresh_token required")
 		return
 	}
-	now := time.Now().UTC()
+	now := s.now().UTC()
 	oldHash := hashRefreshToken(req.RefreshToken)
 
 	// Peek before consuming: on an IdP outage the chain must survive
@@ -254,7 +254,7 @@ func (s *Server) issueSession(ctx context.Context, w http.ResponseWriter, userID
 		return
 	case store.AccountActive:
 	}
-	now := time.Now().UTC()
+	now := s.now().UTC()
 	refresh := newRefreshToken()
 	if _, err := s.store.CreateSession(ctx, userID, hashRefreshToken(refresh),
 		idpRefreshToken, now.Add(sessionRefreshTTL), now); err != nil {

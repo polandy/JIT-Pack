@@ -172,7 +172,7 @@ func (s *Server) handleMintAPIToken(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "name and expiry required")
 		return
 	}
-	out, err := MintAPIToken(s.sessionSecret, req, userID, NewTokenID(), time.Now().UTC())
+	out, err := MintAPIToken(s.sessionSecret, req, userID, NewTokenID(), s.now().UTC())
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
 		return

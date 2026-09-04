@@ -261,6 +261,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The broker could only be tested by logging in (2026-09-03)](#the-broker-could-only-be-tested-by-logging-in-2026-09-03) — G-5. `oidcBroker.exchange`/`.refresh` with typed errors and one `writeAuthError` table; the review's premise about what was unit-tested was wrong, and one rule had never been readable outside a full login.
 - [The mode was a boolean every handler had to remember (2026-09-03)](#the-mode-was-a-boolean-every-handler-had-to-remember-2026-09-03) — G-8. `identity` chosen once at construction; the refusal paths became readable without an HTTP round trip, and one branch is knowingly unobservable.
 - [Twenty places decided what a store refusal means (2026-09-04)](#twenty-places-decided-what-a-store-refusal-means-2026-09-04) — G-6. One `storeErrorResponses` table; the guard reads the store's declarations, and the sentinels with no HTTP answer are named with their reason rather than merely absent.
+- [A timestamp could only be asserted non-empty (2026-09-04)](#a-timestamp-could-only-be-asserted-non-empty-2026-09-04) — G-4. One clock per package, reachable through options; the guard is "no call to `time.Now`", and seven schema DEFAULTs stay outside it on purpose.
 
 
 ## Current state
@@ -12113,3 +12114,45 @@ nothing else may be.
 While there: the handler's pre-check wrote *"avatar exceeds 100 KB limit"* as a
 literal beside the store's identical sentinel text. The two byte limits stay two
 constants on purpose (invariant 6 wants three layers); the *sentence* is one now.
+
+## A timestamp could only be asserted non-empty (2026-09-04)
+
+Design-review item **G-4**. `Store` already injected a `sync.Clock` — and used
+it for the HLC alone. Four columns were stamped with ambient
+`time.Now().UTC().Format(time.RFC3339)`, three more by SQLite's
+`strftime('now')` inside the UPDATE, and `internal/api` had three of its own.
+Nine sources of "now" beside the one that was injected.
+
+`Store.now`/`Server.now`, both reachable through options (`store.OpenWith`,
+`api.Options.Now` — the field G-13 deliberately left out until there was
+something to read it), and the HLC generator now wraps the same function, so the
+hybrid clock and the RFC3339 columns cannot disagree about when now is.
+
+**Two formats, kept apart on purpose.** The Go-side columns were written with
+RFC3339 at second precision; the three `strftime('%Y-%m-%dT%H:%M:%fZ')` columns
+at millisecond precision. Unifying would have been tidier and wrong: `read_at`,
+`refreshed_at` and `deactivated_at` order rows, and whole seconds make ties out
+of instants that are not tied. `timestampSeconds` and `timestampMillis` are
+named beside each other with that reason.
+
+**The guard is a rule, not an allowlist.** Every ambient clock *calls*
+`time.Now()`; the two lines that install the real clock pass `time.Now` as a
+value. So the guard is exactly "no call to `time.Now` in `internal/store` or
+`internal/api`" — an AST walk for a `CallExpr` whose function is that selector.
+It covers both packages from one test, because the clock is one decision
+spanning both and a guard in only one of them leaves the other free to drift.
+
+**A mutation proof that stayed green, twice over.** The first version computed
+the expected timestamp with `storeClockInstant.Format(timestampMillis)` — the
+constant under test. Changing that constant moved both sides together and the
+test held for any format at all. The expectations are now literal strings
+(`"2026-03-14T15:09:26.535Z"`), and both format constants are mutation-proved.
+This is the second PR running where the mutation proof, not the review, found
+the real hole; see also G-6's blank message.
+
+**Knowingly out of scope: seven column DEFAULTs.** `schema.sql` still stamps
+`created_at` (and `conflict_log.resolved_at`) with `strftime('now')`. Reaching
+them means binding a value at every insert site *and* editing `schema.sql`,
+which changes the fingerprint and destroys every development database
+(invariant 2, ADR-018) — for columns no test asserts on. Revisit when a test
+needs to place a row at a chosen instant, which the FR-27.8 usage history would.
