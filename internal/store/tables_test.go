@@ -59,6 +59,47 @@ func TestEverySpecNamesAPartitionAndAtLeastOneColumn(t *testing.T) {
 	}
 }
 
+// G-2 half 2. A master-partition table with no visibility rule is invisible
+// to every pull — its rows reach nobody and no test of the feature that owns
+// it would say so, because `masterVisible` denies silently by design. The
+// trip partition's gate is membership in the trip whose endpoint was called,
+// applied before the feed is read, so a rule there would be a second gate
+// nothing consults.
+func TestEveryMasterTableDeclaresExactlyOneVisibilityRule(t *testing.T) {
+	for table, spec := range tableSpecs {
+		rules := 0
+		for _, set := range []bool{spec.visible.everyone, spec.visible.tripQuery != "", spec.visible.ownerQuery != ""} {
+			if set {
+				rules++
+			}
+		}
+		switch spec.partition {
+		case partitionMaster:
+			if rules != 1 {
+				t.Errorf("%q declares %d visibility rules, want exactly 1 — a master row nobody may see reaches no device", table, rules)
+			}
+		case partitionTrip:
+			if rules != 0 {
+				t.Errorf("%q is on the trip partition and declares a master visibility rule", table)
+			}
+		}
+	}
+}
+
+// NFR-4.5 promises a backup of everything the caller can see. A syncable
+// table missing from the export is data that survives no disaster, and the
+// hand-kept query list this replaced had lost two of them: `item_dependencies`
+// (the whole FR-20.1 graph) and `trip_members` (every restored trip's roster).
+// Neither absence was visible anywhere — the export answered 200 with the
+// other eighteen tables in it.
+func TestEverySyncableTableIsInTheBackup(t *testing.T) {
+	for table, spec := range tableSpecs {
+		if spec.export.query == "" {
+			t.Errorf("%q has no export query — the NFR-4.5 backup would not carry it", table)
+		}
+	}
+}
+
 // The views must stay views. A derivation that silently drops a table is the
 // same failure the registries had, one indirection later.
 func TestTheDerivedViewsCoverExactlyTheSpecs(t *testing.T) {
@@ -81,6 +122,9 @@ func TestTheDerivedViewsCoverExactlyTheSpecs(t *testing.T) {
 		}
 		if spec.partition == partitionMaster && !masterPartitionTables[table] {
 			t.Errorf("%q declares the master partition and is not in its set", table)
+		}
+		if got := TableHasMark(table); got != spec.columns[MarkColumn] {
+			t.Errorf("%q: TableHasMark %v, columns say %v", table, got, spec.columns[MarkColumn])
 		}
 	}
 }

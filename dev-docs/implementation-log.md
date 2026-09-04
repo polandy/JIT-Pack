@@ -307,7 +307,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The FK graph was written twice and compared never (2026-09-04)](#the-fk-graph-was-written-twice-and-compared-never-2026-09-04) — G-3 step 1. `PRAGMA foreign_key_list` against `blockedBy` and `cascades`.
 - [The index in front of the log was ten pages (2026-09-04)](#the-index-in-front-of-the-log-was-ten-pages-2026-09-04) — T-9. Hooks capped at 120 and enforced; the stale July snapshot deleted.
 - [The retry was converting a defect into a green run (2026-09-04)](#the-retry-was-converting-a-defect-into-a-green-run-2026-09-04) — T-8. Two red shards read to their causes: five copies of one routine, and a swipe helper with no postcondition.
-- [Twelve notification rules, three of them falsifiable (2026-09-04)](#twelve-notification-rules-three-of-them-falsifiable-2026-09-04) — G-11. The `Store` split declined with a measurement; FR-6.2 extracted as a pure planner.
+- [Sixteen notification rules, five of them falsifiable (2026-09-04)](#sixteen-notification-rules-five-of-them-falsifiable-2026-09-04) — G-11. The `Store` split declined with a measurement; FR-6.2 extracted as a pure planner.
+- [A backup that had quietly lost two tables (2026-09-04)](#a-backup-that-had-quietly-lost-two-tables-2026-09-04) — G-2 half 2. The NFR-4.5 export list had lost two tables; `authorizeMaster` declined with a line count.
 
 ## Deviations
 
@@ -12447,7 +12448,7 @@ That is what a flake was always costing — just later, and to somebody who no
 longer had the failing run in front of them. The trace is retained for exactly
 that reason.
 
-## Twelve notification rules, three of them falsifiable (2026-09-04)
+## Sixteen notification rules, five of them falsifiable (2026-09-04)
 
 G-11 asked for two things: `Store` split into embedded sub-repos, and
 `internal/api` consuming per-file interfaces instead of a concrete
@@ -12506,3 +12507,62 @@ execute without asserting is a rule you have not tested.
 
 One duplicate went with it: `notifyTakeover` had its own copy of "find this
 member's display name", now `displayNameOf` beside the rules.
+
+
+## A backup that had quietly lost two tables (2026-09-04)
+
+G-2's second half. The first half (#350) made `internal/store/tables.go` the
+one declaration of a syncable table and turned five registries into views of
+it. The item named four things still outside: `masterVisible`, `ExportFull`'s
+query list, `markedTables`/`stampActor` in `internal/api`, and
+`authorizeMaster`. Three moved. One was declined, with a count.
+
+**What the registry found on its way in.** `ExportFull` kept its own ordered
+list of eighteen `{table, query}` pairs. The registry declares twenty tables.
+The two it had lost are `item_dependencies` — the entire FR-20.1 dependency
+graph — and `trip_members`, the roster that says who owns a restored trip.
+Neither absence had a symptom: `GET /me/export.json` answered 200 with the
+other eighteen tables in it, the endpoint's two tests both asserted about
+tables that *were* in the list, and NFR-4.5's promise ("everything the
+requesting user can see") is not a thing any test can check without the list
+of everything. That is the whole argument for the item: the defect is not
+that the knowledge was written twice, it is that nothing compares the copies.
+`TestEverySyncableTableIsInTheBackup` is now the comparison, and it fails
+naming the table.
+
+**`masterVisible` was already data wearing a switch.** Its fourteen arms are
+three shapes: instance-wide, resolve-a-trip-and-check-membership, and
+resolve-an-owner-and-compare — the last two parameterised by one SQL string
+each. As a `visibilityRule` in the spec they read beside the table's other
+rules, and the `trip_members` arm turned out to be `tripScopedVisible`
+copied inline, which is now the one helper. A side effect worth naming: it
+was one of the six cross-file edges the G-11 measurement found inside
+`Store`. It is gone, because the caller no longer names `IsTripMember`.
+
+**`markedTables` was the same class as the export list**, two entries instead
+of eighteen: which tables carry the FR-28.1 mark is the column list in the
+spec, so `store.TableHasMark` asks it rather than keeping a second copy in
+`internal/api`.
+
+**`authorizeMaster` was declined, and here is the count.** Twelve arms over
+the fifteen master tables, 87 non-comment lines. Ten of those lines are
+per-table data: three arms that are a bare `return ReasonNone` and two that
+are `owned(ownerQuery, parentField)`. The other seven arms — 77 lines — stamp
+server-owned columns on insert, run the two FR-27.1/27.6 structural queries,
+or compare a trip role against what the op needs. Moving the ten leaves a
+switch of seven arms *plus* a spec field, so a reader gains a second place to
+look and the fall-through stops meaning "deny" unambiguously. `stampActor`
+was declined on the same grounds and a smaller number: two arms, both several
+statements of ordering-sensitive stripping and re-stamping, and in the other
+package. A registry of two closures is a switch with an indirection.
+
+**Seven mutations, one per rule moved.** Dropping either recovered table from
+the export turns the completeness test *and* the behaviour test red;
+un-scoping the roster query leaks Berta's trip into Andy's backup and the
+behaviour test says so by name; making trips visible to everyone reddens three
+existing tests across the pull and both conflict surfaces; making a series
+public reddens two; deleting a master table's rule reddens the pull *and* the
+new structural test; and narrowing `TableHasMark` to one table reddens FR-28.9's
+own case. The visibility mutations are the interesting ones — they are the
+proof that the move preserved behaviour, since the tests that catch them are
+the ones that existed before it.

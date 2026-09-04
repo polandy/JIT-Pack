@@ -7,14 +7,6 @@ import (
 	syncpkg "jitpack/internal/sync"
 )
 
-// The tables that carry an item mark (FR-28.1/28.8). `trip_items` is
-// deliberately absent: a generated row renders the mark of the master item it
-// came from and owns no column of its own (FR-28.7).
-var markedTables = map[string]bool{
-	store.TableItems:     true,
-	store.TableTemplates: true,
-}
-
 // capMark enforces the length cap on an incoming mark, mirroring the CHECK in
 // schema.sql so the client is told which field was refused instead of meeting
 // a driver-level constraint error (FR-28.9).
@@ -27,7 +19,10 @@ var markedTables = map[string]bool{
 // preference rather than a security boundary: invariant 3 does not reach it,
 // because nothing is being attributed to an actor.
 func capMark(m *syncpkg.Mutation) error {
-	if !markedTables[m.Table] {
+	// Which tables carry a mark is the column list in store's registry, not
+	// a second one here (G-2). `trip_items` has none: a generated row
+	// renders the mark of the master item it came from (FR-28.7).
+	if !store.TableHasMark(m.Table) {
 		return nil
 	}
 	raw, ok := m.Fields[store.MarkColumn]

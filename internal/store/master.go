@@ -475,55 +475,19 @@ func memberTrip(current map[string]any, m sync.Mutation) (string, bool) {
 	return "", false
 }
 
+// masterVisible is the master pull's filter (Sync-API §4): it answers
+// whether userID may see one row, table by table. The answer is the table's
+// own `visible` rule in tables.go — a table with no rule is not on this
+// feed, and denying is the safe half of that.
 func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bool, error) {
-	switch table {
-	case TableTags, TableItemTags, TableItems, TableItemDependencies:
+	rule := tableSpecs[table].visible
+	switch {
+	case rule.everyone:
 		return true, nil
-
-	case TableTemplates, TableTemplateItems, TableTemplateIncludes, TableTemplateItemTasks:
-		// Instance-wide, like the master items they are built from (FR-1.6
-		// MVP simplification, 2026-08-08 — "Jeder sieht einfach alles").
-		return true, nil
-
-	case TableTrips:
-		return s.IsTripMember(ctx, id, userID)
-
-	case TableTripMembers:
-		// The roster is visible to every member of its trip — including
-		// the row's subject, who becomes a member through this very row.
-		var tripID string
-		err := s.db.QueryRowContext(ctx,
-			`SELECT trip_id FROM trip_members WHERE id = ?`, id).Scan(&tripID)
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		if err != nil {
-			return false, fmt.Errorf("trip_members visibility: %w", err)
-		}
-		return s.IsTripMember(ctx, tripID, userID)
-
-	case TableTripTemplateSources:
-		return s.tripScopedVisible(ctx, userID,
-			`SELECT trip_id FROM trip_template_sources WHERE id = ?`, id)
-
-	case TableTripAppliedChanges:
-		return s.tripScopedVisible(ctx, userID,
-			`SELECT trip_id FROM trip_applied_changes WHERE id = ?`, id)
-
-	case TableTripSeries:
-		return s.ownedBy(ctx, userID,
-			`SELECT owner_id FROM trip_series WHERE id = ?`, id)
-
-	case TableDestinationProfiles:
-		return s.ownedBy(ctx, userID,
-			`SELECT s.owner_id FROM destination_profiles p
-			 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`, id)
-
-	case TableDestinationChecklistItems:
-		return s.ownedBy(ctx, userID,
-			`SELECT s.owner_id FROM destination_checklist_items ci
-			 JOIN destination_profiles p ON p.id = ci.profile_id
-			 JOIN trip_series s ON s.id = p.series_id WHERE ci.id = ?`, id)
+	case rule.tripQuery != "":
+		return s.tripScopedVisible(ctx, userID, rule.tripQuery, id)
+	case rule.ownerQuery != "":
+		return s.ownedBy(ctx, userID, rule.ownerQuery, id)
 	}
 	return false, nil
 }

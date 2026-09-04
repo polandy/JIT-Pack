@@ -1,6 +1,6 @@
 // backup.go implements the NFR-4.5 full-instance export: a versioned
 // JSON dump of everything the requesting user can see, mirroring the
-// pull-visibility rules (master.go) so a backup never leaks foreign
+// pull-visibility rules (tables.go) so a backup never leaks foreign
 // private data. Users (and their avatar blobs) are deliberately not
 // included — identity is owned by the IdP, not the backup.
 
@@ -18,64 +18,28 @@ type FullExport struct {
 	Data       map[string][]map[string]any `json:"data"`
 }
 
-// ExportFull collects all rows visible to userID, table by table.
+// ExportFull collects all rows visible to userID, table by table. Which
+// query answers for a table is the table's own `export` rule in tables.go:
+// a backup is a promise about everything the caller can see, and the list
+// this used to keep separately had silently fallen two tables behind the
+// feed it mirrors.
 func (s *Store) ExportFull(ctx context.Context, userID string) (FullExport, error) {
-	one := []any{userID}
-	tables := []struct {
-		table string
-		query string
-		args  []any
-	}{
-		{TableTags, `SELECT * FROM tags`, nil},
-		{TableItems, `SELECT * FROM items`, nil},
-		// The assignments travel with both — an item exported without them
-		// would restore untagged and vanish from every M9 grouping.
-		{TableItemTags, `SELECT * FROM item_tags`, nil},
-		// Templates are instance-wide master data (FR-1.6 MVP), so they
-		// export unfiltered like tags and items.
-		{TableTemplates, `SELECT * FROM templates`, nil},
-		{TableTemplateItems, `SELECT * FROM template_items`, nil},
-		{TableTemplateIncludes, `SELECT * FROM template_includes`, nil},
-		{TableTemplateItemTasks, `SELECT * FROM template_item_tasks`, nil},
-		{TableTripSeries, `SELECT * FROM trip_series WHERE owner_id = ?`, one},
-		{TableDestinationProfiles, `SELECT p.* FROM destination_profiles p
-			JOIN trip_series s ON s.id = p.series_id WHERE s.owner_id = ?`, one},
-		{TableDestinationChecklistItems, `SELECT ci.* FROM destination_checklist_items ci
-			JOIN destination_profiles p ON p.id = ci.profile_id
-			JOIN trip_series s ON s.id = p.series_id WHERE s.owner_id = ?`, one},
-		{TableTrips, `SELECT t.* FROM trips t
-			JOIN trip_members m ON m.trip_id = t.id WHERE m.user_id = ?`, one},
-		{TableTravelers, `SELECT x.* FROM travelers x
-			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		{TableContainers, `SELECT x.* FROM containers x
-			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		{TableTripItems, `SELECT x.* FROM trip_items x
-			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		{TableComments, `SELECT x.* FROM comments x
-			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		// FR-27.4: a restore without these would leave a planning trip
-		// following nothing, or — worse — following its groups with no record
-		// of what it already produced, which reads every existing row as a
-		// manual edit and every position as new.
-		{TableTripTemplateSources, `SELECT x.* FROM trip_template_sources x
-			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		{TableTripGeneratedPositions, `SELECT x.* FROM trip_generated_positions x
-			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		{TableTripAppliedChanges, `SELECT x.* FROM trip_applied_changes x
-			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-	}
-
 	export := FullExport{
 		Version:    1,
 		ExportedAt: s.nowRFC3339(),
 		Data:       map[string][]map[string]any{},
 	}
-	for _, t := range tables {
-		rows, err := s.queryMaps(ctx, t.query, t.args...)
-		if err != nil {
-			return FullExport{}, fmt.Errorf("export %s: %w", t.table, err)
+	for _, table := range exportTables() {
+		q := tableSpecs[table].export
+		var args []any
+		if q.scoped {
+			args = []any{userID}
 		}
-		export.Data[t.table] = rows
+		rows, err := s.queryMaps(ctx, q.query, args...)
+		if err != nil {
+			return FullExport{}, fmt.Errorf("export %s: %w", table, err)
+		}
+		export.Data[table] = rows
 	}
 	return export, nil
 }
