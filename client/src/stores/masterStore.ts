@@ -4,7 +4,7 @@
  * Populated from pull responses on the master partition.
  */
 
-import { bucketedRows } from '@/stores/bucketedRows'
+import { bucketedRows, bucketSink, keyedSink } from '@/stores/bucketedRows'
 import { TABLE, type SyncTable } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
@@ -19,10 +19,10 @@ import type {
   TemplateInclude,
   TemplateItem,
   TemplateItemTask,
-  TemplateKind,
   TripSeries,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
+import { applyToSink, codecFor, type RowSinks, type SyncRow } from '@/sync/tableRegistry'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
 import { groupByPrimaryTag, primaryTagOf, tagsOfItem } from '@/domain/tags'
 import { activeOnly } from '@/domain/masterDeletion'
@@ -334,120 +334,49 @@ export const useMasterStore = defineStore('master', () => {
 
   // --- Mutations ---
 
+  /**
+   * The sinks, one per table this store holds — the *only* place that says
+   * where a table's rows live.
+   */
+  const sinks: RowSinks = {
+    [TABLE.tags]: keyedSink(tags),
+    [TABLE.itemTags]: keyedSink(itemTags),
+    [TABLE.items]: keyedSink(items),
+    [TABLE.templates]: keyedSink(templates),
+    [TABLE.templateItems]: bucketSink(templateItemRows),
+    [TABLE.templateIncludes]: keyedSink(templateIncludes),
+    [TABLE.templateItemTasks]: keyedSink(templateItemTasks),
+    [TABLE.tripSeries]: keyedSink(series),
+    [TABLE.destinationProfiles]: keyedSink(profiles),
+    [TABLE.destinationChecklistItems]: keyedSink(checklistItems),
+    [TABLE.itemDependencies]: keyedSink(dependencies),
+  }
+
+  /**
+   * removeRow drops a row and everything `childRows` says hangs off it.
+   *
+   * The cascade used to be written twice — once here, arm by arm inside
+   * `applyChange`, and once in `childRows` for the optimistic path — and the
+   * two disagreed: a deleted item left its dependency rows behind, a deleted
+   * template left its positions' tasks. Both only until the children's own
+   * tombstones arrived, which is the *next* pull page when the parent's
+   * lands on a page boundary.
+   */
+  function removeRow(table: SyncTable, id: string): void {
+    for (const child of childRows(table, id)) {
+      sinks[child.table]?.remove(child.id)
+    }
+    sinks[table]?.remove(id)
+  }
+
   function applyChange(change: PullChange): void {
-    const row = change.row as Record<string, unknown> | null
-
-    switch (change.table) {
-      case TABLE.tags:
-        if (change.deleted) {
-          tags.value.delete(change.id)
-          // The server cascades the assignments and sends their tombstones,
-          // but a pull can deliver them in either order — dropping them here
-          // keeps the list from grouping under a heading already gone.
-          for (const [id, a] of itemTags.value) {
-            if (a.tag_id === change.id) itemTags.value.delete(id)
-          }
-        } else if (row) {
-          tags.value.set(change.id, rowToTag(change.id, row))
-        }
-        break
-
-      case TABLE.itemTags:
-        if (change.deleted) {
-          itemTags.value.delete(change.id)
-        } else if (row) {
-          itemTags.value.set(change.id, rowToItemTag(change.id, row))
-        }
-        break
-
-      case TABLE.items:
-        if (change.deleted) {
-          items.value.delete(change.id)
-          for (const [id, a] of itemTags.value) {
-            if (a.item_id === change.id) itemTags.value.delete(id)
-          }
-        } else if (row) {
-          items.value.set(change.id, rowToItem(change.id, row))
-        }
-        break
-
-      case TABLE.templates:
-        if (change.deleted) {
-          templates.value.delete(change.id)
-          templateItems.value.delete(change.id)
-          // ON DELETE CASCADE removes the include rows server-side; mirror it
-          // here so a resolution taken before the next pull cannot name a
-          // template that is already gone.
-          for (const [id, inc] of templateIncludes.value) {
-            if (inc.template_id === change.id || inc.included_template_id === change.id) {
-              templateIncludes.value.delete(id)
-            }
-          }
-        } else if (row) {
-          templates.value.set(change.id, rowToTemplate(change.id, row))
-        }
-        break
-
-      case TABLE.templateIncludes:
-        if (change.deleted) {
-          templateIncludes.value.delete(change.id)
-        } else if (row) {
-          templateIncludes.value.set(change.id, rowToInclude(change.id, row))
-        }
-        break
-
-      case TABLE.templateItems:
-        if (change.deleted) {
-          templateItemRows.remove(change.id)
-          // ON DELETE CASCADE removes the tasks server-side; mirror it so a
-          // count chip cannot outlive its own position between two pulls.
-          for (const [id, task] of templateItemTasks.value) {
-            if (task.template_item_id === change.id) templateItemTasks.value.delete(id)
-          }
-        } else if (row) {
-          templateItemRows.upsert(rowToTemplateItem(change.id, row))
-        }
-        break
-
-      case TABLE.templateItemTasks:
-        if (change.deleted) {
-          templateItemTasks.value.delete(change.id)
-        } else if (row) {
-          templateItemTasks.value.set(change.id, rowToTask(change.id, row))
-        }
-        break
-
-      case TABLE.tripSeries:
-        if (change.deleted) {
-          series.value.delete(change.id)
-        } else if (row) {
-          series.value.set(change.id, rowToSeries(change.id, row))
-        }
-        break
-
-      case TABLE.destinationProfiles:
-        if (change.deleted) {
-          profiles.value.delete(change.id)
-        } else if (row) {
-          profiles.value.set(change.id, rowToProfile(change.id, row))
-        }
-        break
-
-      case TABLE.destinationChecklistItems:
-        if (change.deleted) {
-          checklistItems.value.delete(change.id)
-        } else if (row) {
-          checklistItems.value.set(change.id, rowToChecklistItem(change.id, row))
-        }
-        break
-
-      case TABLE.itemDependencies:
-        if (change.deleted) {
-          dependencies.value.delete(change.id)
-        } else if (row) {
-          dependencies.value.set(change.id, rowToDependency(change.id, row))
-        }
-        break
+    const known = codecFor(change.table)
+    if (!known || !sinks[known.table]) return
+    const { table, codec } = known
+    if (change.deleted) {
+      removeRow(table, change.id)
+    } else if (change.row) {
+      applyToSink(sinks, table, codec.parse(change.id, change.row as SyncRow))
     }
   }
 
@@ -500,115 +429,3 @@ export const useMasterStore = defineStore('master', () => {
     applyChanges,
   }
 })
-
-// --- Row converters ---
-
-function rowToTag(id: string, row: Record<string, unknown>): Tag {
-  return {
-    id,
-    name: row['name'] as string,
-    sort_order: (row['sort_order'] as number) ?? 0,
-  }
-}
-
-function rowToItemTag(id: string, row: Record<string, unknown>): ItemTag {
-  return {
-    id,
-    item_id: row['item_id'] as string,
-    tag_id: row['tag_id'] as string,
-    position: (row['position'] as number) ?? 0,
-  }
-}
-
-function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
-  return {
-    id,
-    name: row['name'] as string,
-    weight_grams: (row['weight_grams'] as number) ?? null,
-    value_cents: (row['value_cents'] as number) ?? null,
-    image_hash: (row['image_hash'] as string) ?? null,
-    icon: (row['icon'] as string) ?? null,
-    retired_at: (row['retired_at'] as string) ?? null,
-  }
-}
-
-function rowToTemplate(id: string, row: Record<string, unknown>): Template {
-  return {
-    id,
-    owner_id: row['owner_id'] as string,
-    name: row['name'] as string,
-    // Migration 016 defaults pre-scope rows to 'template', which is what they
-    // were used as; a row from an older client is read the same way.
-    kind: (row['kind'] as TemplateKind) ?? 'template',
-    icon: (row['icon'] as string) ?? null,
-    retired_at: (row['retired_at'] as string) ?? null,
-  }
-}
-
-function rowToInclude(id: string, row: Record<string, unknown>): TemplateInclude {
-  return {
-    id,
-    template_id: row['template_id'] as string,
-    included_template_id: row['included_template_id'] as string,
-  }
-}
-
-function rowToTask(id: string, row: Record<string, unknown>): TemplateItemTask {
-  return {
-    id,
-    template_item_id: row['template_item_id'] as string,
-    task: row['task'] as string,
-  }
-}
-
-function rowToSeries(id: string, row: Record<string, unknown>): TripSeries {
-  return {
-    id,
-    owner_id: row['owner_id'] as string,
-    name: row['name'] as string,
-    default_attributes: row['default_attributes']
-      ? JSON.parse(row['default_attributes'] as string)
-      : null,
-  }
-}
-
-function rowToProfile(id: string, row: Record<string, unknown>): DestinationProfile {
-  return {
-    id,
-    series_id: row['series_id'] as string,
-    notes: (row['notes'] as string) ?? null,
-  }
-}
-
-function rowToChecklistItem(id: string, row: Record<string, unknown>): DestinationChecklistItem {
-  return {
-    id,
-    profile_id: row['profile_id'] as string,
-    label: row['label'] as string,
-    mode: (row['mode'] as DestinationChecklistItem['mode']) ?? 'buy_local',
-  }
-}
-
-function rowToDependency(id: string, row: Record<string, unknown>): ItemDependency {
-  return {
-    id,
-    item_id: row['item_id'] as string,
-    depends_on_item_id: row['depends_on_item_id'] as string,
-    mode: (row['mode'] as ItemDependency['mode']) ?? 'required',
-    quantity: (row['quantity'] as number) ?? null,
-  }
-}
-
-function rowToTemplateItem(id: string, row: Record<string, unknown>): TemplateItem {
-  return {
-    id,
-    template_id: row['template_id'] as string,
-    item_id: row['item_id'] as string,
-    quantity: (row['quantity'] as number) ?? 1,
-    assignment: (row['assignment'] as TemplateItem['assignment']) ?? 'per_person',
-    dedup: (row['dedup'] as TemplateItem['dedup']) ?? 'max',
-    conditions: row['conditions'] ? JSON.parse(row['conditions'] as string) : null,
-    default_mode: (row['default_mode'] as TemplateItem['default_mode']) ?? 'pack',
-    late_packer: Boolean(row['late_packer']),
-  }
-}

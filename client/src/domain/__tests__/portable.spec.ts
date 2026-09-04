@@ -243,7 +243,6 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       end_date: '2026-08-10',
       duration_days: 10,
       series_id: 'ser-1',
-      series_name: null,
       attributes: null,
       imported: false,
     }
@@ -525,7 +524,6 @@ describe('serializeTrip — status, marks and tags (FR-18.4 amendment)', () => {
     end_date: null,
     status: 'archived',
     series_id: null,
-    series_name: null,
     attributes: null,
     imported: false,
     duration_days: null,

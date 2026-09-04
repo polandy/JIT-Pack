@@ -241,7 +241,6 @@ describe('tripsReachedBy (FR-27.4 blast radius)', () => {
       end_date: null,
       duration_days: null,
       series_id: null,
-      series_name: null,
       attributes: null,
       imported: false,
     }

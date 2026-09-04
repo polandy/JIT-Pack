@@ -5,7 +5,7 @@
  * The store itself is a plain data cache; sync orchestration lives elsewhere.
  */
 
-import { bucketedRows } from '@/stores/bucketedRows'
+import { bucketedRows, bucketSink, keyedSink } from '@/stores/bucketedRows'
 import { TABLE, type SyncTable } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
@@ -24,7 +24,14 @@ import type {
   TripTemplateSource,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
-import { durationDays } from '@/domain/instantiate'
+import {
+  applyToSink,
+  codecFor,
+  TABLE_CODECS,
+  todoCodec,
+  type RowSinks,
+  type SyncRow,
+} from '@/sync/tableRegistry'
 
 export const useTripStore = defineStore(TABLE.trips, () => {
   const trips = ref<Map<string, Trip>>(new Map())
@@ -319,20 +326,15 @@ export const useTripStore = defineStore(TABLE.trips, () => {
    * mirror has to happen here rather than at the caller.
    */
   function removeTrip(id: string): void {
+    // Every child through its own sink — the same list the optimistic
+    // cascade sends to the outbox, so the store and the device agree about
+    // what a deleted trip takes with it (C-3a).
     for (const child of childRows(id)) {
-      switch (child.table) {
-        case TABLE.tripTemplateSources:
-          templateSources.value.delete(child.id)
-          break
-        case TABLE.tripGeneratedPositions:
-          generatedPositions.value.delete(child.id)
-          break
-        case TABLE.tripAppliedChanges:
-          appliedChanges.value.delete(child.id)
-          break
-      }
+      sinks[child.table]?.remove(child.id)
     }
     trips.value.delete(id)
+    // The six per-trip buckets are keyed by trip id; the loop above emptied
+    // them, this drops the empty keys with the trip.
     tripItems.value.delete(id)
     travelers.value.delete(id)
     containers.value.delete(id)
@@ -342,90 +344,70 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   }
 
   /** Apply a pull change to the local store. */
-  function applyChange(change: PullChange): void {
-    const row = change.row as Record<string, unknown> | null
+  /** The sinks, one per table this store holds. */
+  const sinks: RowSinks = {
+    [TABLE.trips]: { set: (t: Trip) => setTrip(t), remove: (id) => removeTrip(id) },
+    [TABLE.tripItems]: bucketSink(itemRows),
+    [TABLE.travelers]: bucketSink(travelerRows),
+    [TABLE.containers]: bucketSink(containerRows),
+    [TABLE.tripMembers]: bucketSink(memberRows),
+    [TABLE.tripTemplateSources]: keyedSink(templateSources),
+    [TABLE.tripGeneratedPositions]: keyedSink(generatedPositions),
+    [TABLE.tripAppliedChanges]: keyedSink(appliedChanges),
+    // FR-7.2: one table feeds two lists, told apart by `is_task`. A delete
+    // has to clear both, because the row's id is in whichever list its last
+    // state put it in.
+    [TABLE.comments]: {
+      set: (c: ItemComment) => commentRows.upsert(c),
+      remove: (id) => {
+        commentRows.remove(id)
+        todoRows.remove(id)
+      },
+    },
+  }
 
-    switch (change.table) {
-      case TABLE.trips:
-        if (change.deleted) {
-          removeTrip(change.id)
-        } else if (row) {
-          setTrip(rowToTrip(change.id, row))
-        }
-        break
-
-      case TABLE.tripItems:
-        if (change.deleted) {
-          itemRows.remove(change.id)
-        } else if (row) {
-          itemRows.upsert(rowToTripItem(change.id, row))
-        }
-        break
-
-      case TABLE.travelers:
-        if (change.deleted) {
-          travelerRows.remove(change.id)
-        } else if (row) {
-          travelerRows.upsert(rowToTraveler(change.id, row))
-        }
-        break
-
-      case TABLE.containers:
-        if (change.deleted) {
-          containerRows.remove(change.id)
-        } else if (row) {
-          containerRows.upsert(rowToContainer(change.id, row))
-        }
-        break
-
-      case TABLE.tripMembers:
-        if (change.deleted) {
-          memberRows.remove(change.id)
-        } else if (row) {
-          memberRows.upsert(rowToMember(change.id, row))
-        }
-        break
-
-      case TABLE.tripTemplateSources:
-        if (change.deleted) {
-          templateSources.value.delete(change.id)
-        } else if (row) {
-          templateSources.value.set(change.id, rowToTemplateSource(change.id, row))
-        }
-        break
-
-      case TABLE.tripGeneratedPositions:
-        if (change.deleted) {
-          generatedPositions.value.delete(change.id)
-        } else if (row) {
-          generatedPositions.value.set(change.id, rowToGeneratedPosition(change.id, row))
-        }
-        break
-
-      case TABLE.tripAppliedChanges:
-        if (change.deleted) {
-          appliedChanges.value.delete(change.id)
-        } else if (row) {
-          appliedChanges.value.set(change.id, rowToAppliedChange(change.id, row))
-        }
-        break
-
-      case TABLE.comments:
-        // One table, two layers: is_task rows are todos/tickets
-        // (FR-7.2/7.3), the rest plain comments (FR-7.1). Flagging
-        // moves a row between the two, so always clear the other side.
-        if (change.deleted) {
-          todoRows.remove(change.id)
-          commentRows.remove(change.id)
-        } else if (row && row['is_task']) {
-          todoRows.upsert(rowToTodo(change.id, row))
-          commentRows.remove(change.id)
-        } else if (row) {
-          commentRows.upsert(rowToComment(change.id, row))
-          todoRows.remove(change.id)
-        }
-        break
+  /**
+   * removeRow drops a row and everything `itemChildRows`/`childRows` says
+   * hangs off it — the one implementation of the client's delete cascade for
+   * this partition. `applyChange` used to inline its own, shorter version:
+   * a deleted trip item left its comments and FR-7.3 todos in the store
+   * until their own tombstones arrived a pull page later.
+   */
+  function removeRow(table: SyncTable, id: string): void {
+    if (table === TABLE.trips) {
+      removeTrip(id)
+      return
     }
+    for (const child of table === TABLE.tripItems ? itemChildRows(id) : []) {
+      sinks[child.table]?.remove(child.id)
+    }
+    sinks[table]?.remove(id)
+  }
+
+  function applyChange(change: PullChange): void {
+    const known = codecFor(change.table)
+    if (!known || !sinks[known.table]) return
+    const { table, codec } = known
+    if (change.deleted) {
+      removeRow(table, change.id)
+      return
+    }
+    if (!change.row) return
+    const row = change.row as SyncRow
+    // FR-7.2 again, on the read side: which of the two types a comment row
+    // becomes is decided by the column, and flagging moves a row between
+    // the lists — so the other side is always cleared.
+    if (table === TABLE.comments) {
+      if (row['is_task']) {
+        todoRows.upsert(todoCodec.parse(change.id, row))
+        commentRows.remove(change.id)
+      } else {
+        commentRows.upsert(TABLE_CODECS[TABLE.comments].parse(change.id, row))
+        todoRows.remove(change.id)
+      }
+      return
+    }
+    applyToSink(sinks, table, codec.parse(change.id, row))
   }
 
   function applyChanges(changes: PullChange[]): void {
@@ -463,162 +445,3 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     applyChanges,
   }
 })
-
-// --- Row converters ---
-
-function rowToTemplateSource(id: string, row: Record<string, unknown>): TripTemplateSource {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    template_id: row['template_id'] as string,
-  }
-}
-
-function rowToGeneratedPosition(id: string, row: Record<string, unknown>): GeneratedPosition {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    trip_item_id: row['trip_item_id'] as string,
-    source_template_id: row['source_template_id'] as string,
-    source_item_id: row['source_item_id'] as string,
-    traveler_id: (row['traveler_id'] as string) ?? '',
-    name: row['name'] as string,
-    quantity: Number(row['quantity'] ?? 0),
-    mode: row['mode'] as GeneratedPosition['mode'],
-    late_packer: Boolean(row['late_packer']),
-    weight_grams: (row['weight_grams'] as number) ?? null,
-    value_cents: (row['value_cents'] as number) ?? null,
-    category_name: (row['category_name'] as string) ?? null,
-    // Stored as a JSON array (migration 023): one field, written only by the
-    // refresh, so there is no concurrent edit for a per-row table to protect.
-    tasks: parseTasks(row['tasks']),
-  }
-}
-
-function parseTasks(raw: unknown): string[] {
-  if (typeof raw !== 'string' || raw === '') return []
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed.map(String) : []
-  } catch {
-    // A malformed snapshot must not take the trip list down with it: an
-    // empty task list reads as "the refresh will re-add them", which is
-    // recoverable, where a thrown parse error is not.
-    return []
-  }
-}
-
-function rowToAppliedChange(id: string, row: Record<string, unknown>): AppliedChange {
-  const detail = row['detail']
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    source_template_id: row['source_template_id'] as string,
-    source_template_name: row['source_template_name'] as string,
-    kind: row['kind'] as AppliedChange['kind'],
-    item_name: row['item_name'] as string,
-    detail: typeof detail === 'string' && detail !== '' ? JSON.parse(detail) : null,
-    created_at: (row['created_at'] as string) ?? '',
-  }
-}
-
-function rowToTrip(id: string, row: Record<string, unknown>): Trip {
-  return {
-    id,
-    name: row['name'] as string,
-    status: row['status'] as Trip['status'],
-    year: Number(row['year'] ?? new Date().getFullYear()),
-    start_date: (row['start_date'] as string) ?? null,
-    end_date: (row['end_date'] as string) ?? null,
-    // Derived, never read off the row: `trips.duration_days` is a generated
-    // column and is not syncable, so no pull ever carries it.
-    duration_days: durationDays(
-      (row['start_date'] as string) ?? null,
-      (row['end_date'] as string) ?? null,
-    ),
-    series_id: (row['series_id'] as string) ?? null,
-    series_name: (row['series_name'] as string) ?? null,
-    attributes: row['attributes'] ? JSON.parse(row['attributes'] as string) : null,
-    imported: Boolean(row['imported']),
-  }
-}
-
-function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    source_item_id: (row['source_item_id'] as string) ?? null,
-    source_template_id: (row['source_template_id'] as string) ?? null,
-    name: row['name'] as string,
-    weight_grams: (row['weight_grams'] as number) ?? null,
-    value_cents: (row['value_cents'] as number) ?? null,
-    category_name: (row['category_name'] as string) ?? null,
-    quantity: (row['quantity'] as number) ?? 1,
-    packed_count: (row['packed_count'] as number) ?? 0,
-    state: (row['state'] as TripItem['state']) ?? 'open',
-    mode: (row['mode'] as TripItem['mode']) ?? 'pack',
-    late_packer: Boolean(row['late_packer']),
-    assigned_traveler_id: (row['assigned_traveler_id'] as string) ?? null,
-    packer_user_id: (row['packer_user_id'] as string) ?? null,
-    packed_by_user_id: (row['packed_by_user_id'] as string) ?? null,
-    packed_at: (row['packed_at'] as string) ?? null,
-    container_id: (row['container_id'] as string) ?? null,
-    packing_now_by: (row['packing_now_by'] as string) ?? null,
-    packing_now_at: (row['packing_now_at'] as string) ?? null,
-    bought_from: (row['bought_from'] as TripItem['bought_from']) ?? null,
-    flag_unused: Boolean(row['flag_unused']),
-    flag_missing: Boolean(row['flag_missing']),
-    updated_hlc: (row['updated_hlc'] as string) ?? '',
-  }
-}
-
-function rowToTraveler(id: string, row: Record<string, unknown>): Traveler {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    name: row['name'] as string,
-    linked_user_id: (row['linked_user_id'] as string) ?? null,
-  }
-}
-
-function rowToMember(id: string, row: Record<string, unknown>): TripMember {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    user_id: row['user_id'] as string,
-    role: (row['role'] as TripMember['role']) ?? 'editor',
-  }
-}
-
-function rowToContainer(id: string, row: Record<string, unknown>): Container {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    name: row['name'] as string,
-    carrier_traveler_id: (row['carrier_traveler_id'] as string) ?? null,
-    max_weight_grams: (row['max_weight_grams'] as number) ?? null,
-    paired_container_id: (row['paired_container_id'] as string) ?? null,
-  }
-}
-
-function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    trip_item_id: (row['trip_item_id'] as string) ?? null,
-    author_id: row['author_id'] as string,
-    body: row['body'] as string,
-    created_at: (row['created_at'] as string) ?? null,
-  }
-}
-
-function rowToTodo(id: string, row: Record<string, unknown>): ItemTodo {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    trip_item_id: row['trip_item_id'] as string,
-    author_id: row['author_id'] as string,
-    body: row['body'] as string,
-    task_state: (row['task_state'] as ItemTodo['task_state']) ?? 'open',
-  }
-}

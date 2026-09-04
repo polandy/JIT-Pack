@@ -49,7 +49,6 @@ function trip(id: string, overrides: Partial<Trip> = {}): Trip {
     end_date: '2026-07-10',
     duration_days: 10,
     series_id: 's1',
-    series_name: null,
     attributes: null,
     imported: false,
     ...overrides,

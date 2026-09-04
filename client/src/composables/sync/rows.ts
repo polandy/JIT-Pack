@@ -25,6 +25,7 @@ import type {
   TripMember,
   TripSeries,
 } from '@/types/domain'
+import { dbBool, jsonColumn } from '@/sync/columns'
 
 export function generateDeviceId(): string {
   const bytes = new Uint8Array(4)
@@ -42,8 +43,8 @@ export function tripRow(trip: Trip): Record<string, unknown> {
     start_date: trip.start_date,
     end_date: trip.end_date,
     series_id: trip.series_id,
-    attributes: trip.attributes ? JSON.stringify(trip.attributes) : null,
-    imported: trip.imported ? 1 : 0,
+    attributes: jsonColumn(trip.attributes),
+    imported: dbBool(trip.imported),
   }
 }
 
@@ -60,9 +61,7 @@ export function seriesRow(series: TripSeries): Record<string, unknown> {
   return {
     owner_id: series.owner_id,
     name: series.name,
-    default_attributes: series.default_attributes
-      ? JSON.stringify(series.default_attributes)
-      : null,
+    default_attributes: jsonColumn(series.default_attributes),
   }
 }
 
@@ -86,7 +85,7 @@ export function commentRow(comment: ItemComment): Record<string, unknown> {
     author_id: comment.author_id,
     body: comment.body,
     created_at: comment.created_at,
-    is_task: 0,
+    is_task: dbBool(false),
   }
 }
 
@@ -96,7 +95,7 @@ export function todoRow(todo: ItemTodo): Record<string, unknown> {
     trip_item_id: todo.trip_item_id,
     author_id: todo.author_id,
     body: todo.body,
-    is_task: 1,
+    is_task: dbBool(true),
     task_state: todo.task_state,
   }
 }
@@ -167,9 +166,9 @@ export function templateItemRow(ti: TemplateItem): Record<string, unknown> {
     quantity: ti.quantity,
     assignment: ti.assignment,
     dedup: ti.dedup,
-    conditions: ti.conditions ? JSON.stringify(ti.conditions) : null,
+    conditions: jsonColumn(ti.conditions),
     default_mode: ti.default_mode,
-    late_packer: ti.late_packer ? 1 : 0,
+    late_packer: dbBool(ti.late_packer),
   }
 }
 
@@ -203,7 +202,7 @@ export function itemRow(item: TripItem): Record<string, unknown> {
     packed_count: item.packed_count,
     state: item.state,
     mode: item.mode,
-    late_packer: item.late_packer ? 1 : 0,
+    late_packer: dbBool(item.late_packer),
     assigned_traveler_id: item.assigned_traveler_id,
     packer_user_id: item.packer_user_id,
     packed_by_user_id: item.packed_by_user_id,
@@ -212,8 +211,8 @@ export function itemRow(item: TripItem): Record<string, unknown> {
     packing_now_by: item.packing_now_by,
     packing_now_at: item.packing_now_at,
     bought_from: item.bought_from,
-    flag_unused: item.flag_unused ? 1 : 0,
-    flag_missing: item.flag_missing ? 1 : 0,
+    flag_unused: dbBool(item.flag_unused),
+    flag_missing: dbBool(item.flag_missing),
     updated_hlc: item.updated_hlc,
   }
 }
