@@ -118,7 +118,7 @@ func TestPurgeExpiredSessions_LeavesLiveOnes(t *testing.T) {
 	if _, err := s.CreateSession(ctx, userID, "hash-dead", "", now.Add(-time.Hour), now); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.PurgeExpiredSessions(ctx, now); err != nil {
+	if err := s.purgeExpiredSessions(ctx, now); err != nil {
 		t.Fatal(err)
 	}
 	var n int

@@ -263,6 +263,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Twenty places decided what a store refusal means (2026-09-04)](#twenty-places-decided-what-a-store-refusal-means-2026-09-04) — G-6. One `storeErrorResponses` table; the guard reads the store's declarations, and the sentinels with no HTTP answer are named with their reason rather than merely absent.
 - [A timestamp could only be asserted non-empty (2026-09-04)](#a-timestamp-could-only-be-asserted-non-empty-2026-09-04) — G-4. One clock per package, reachable through options; the guard is "no call to `time.Now`", and seven schema DEFAULTs stay outside it on purpose.
 - [The client had four clocks where the server now has one (2026-09-04)](#the-client-had-four-clocks-where-the-server-now-has-one-2026-09-04) — C-5. `lib/clock.ts`, `SyncContext.nowIso`, and an eslint rule that bans the *call*; the compiler found the second and third `SyncContext` implementation again.
+- [Three helpers documented rules that lived somewhere else (2026-09-04)](#three-helpers-documented-rules-that-lived-somewhere-else-2026-09-04) — G-10. Dead exported surface deleted; the guard is "every exported `*Store` method has a caller outside the package", and a test does not count as one.
 
 
 ## Current state
@@ -12191,3 +12192,41 @@ Two specs were upgraded from truthiness rather than added beside it: the two
 `retired_at` clauses in `masterData.seam.spec.ts` now name `SEAM_NOW_ISO`, and
 `buyItem`'s `packed_at` names the fixed instant. A test that asserts a value is
 a string was never a test of the clock.
+
+## Three helpers documented rules that lived somewhere else (2026-09-04)
+
+Design-review item **G-10**. `GetMemberRole`, `IsTripCreator` and
+`CanManageTravelers` had no production caller and full doc comments naming
+FR-4.5 and FR-4.7 — while the rules they described had been enforced in
+`authorizeMaster` for months. That is worse than dead code: an agent reading
+`internal/store` for "how is membership decided" finds a plausible, tested,
+documented answer that nothing runs.
+
+**Before deleting them, the live rules were mutation-proved.** Each of the three
+was broken inside `authorizeMaster` in turn, and each turned an existing test
+red — `TestApplyMasterMutation_TripMembersAuthorization` for the role gate and
+the immutable creator row, `TestApplyMasterMutation_TripAuthorization` for the
+owner/admin trip delete. So the three deleted tests were duplicates asserting
+against dead code, and no assertion was lost. Deleting a tested helper without
+that check is how a rule quietly loses its only real coverage.
+
+`EnsureLocalSingleUser` went the same way: a second constructor that minted its
+own id, called by nothing but its own tests, beside the
+`EnsureLocalSingleUserID` that `main.go` actually calls. An id the operator did
+not configure is an id no request is ever attributed to. Its one assertion the
+ID variant did not already make — that exactly one local row exists — was folded
+into that test rather than dropped.
+
+`PurgeExpiredSessions` was exported with only an in-package caller; it is
+`purgeExpiredSessions` now. `DB()` moved beside `OpenForTest`, which is what it
+is for.
+
+**The guard, and why a test may not count as a caller.**
+`TestStoreSurface_EveryExportedMethodHasACallerOutsideThePackage` reads the
+exported `*Store` methods out of this package and every selector `internal/api`,
+`internal/webui` and `cmd/*` mention — selectors rather than calls, because
+`NewHub(st.HeadSeq)` is a use that no search for a call would find. Anything
+unreached must be named in `storeMethodsWithNoCallerOutside` **with its reason**;
+one is (`DB`). Test files are deliberately excluded from the caller side: a
+method kept alive only by its own test is the exact shape this guard exists to
+catch — it passes, it is documented, and it enforces nothing.

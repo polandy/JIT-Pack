@@ -12,51 +12,6 @@ import (
 // Addendum FR-17.2/FR-17.11: the implicit local user, its display name
 // (FR-17.13), and its avatar (FR-17.13, ADR-002).
 
-func TestEnsureLocalSingleUser_CreatesExactlyOneRowAndIsIdempotent(t *testing.T) {
-	s := openTestStore(t)
-	ctx := context.Background()
-
-	id1, err := s.EnsureLocalSingleUser(ctx)
-	if err != nil {
-		t.Fatalf("EnsureLocalSingleUser: %v", err)
-	}
-	if id1 == "" {
-		t.Fatal("got empty id")
-	}
-
-	id2, err := s.EnsureLocalSingleUser(ctx)
-	if err != nil {
-		t.Fatalf("EnsureLocalSingleUser (second call): %v", err)
-	}
-	if id1 != id2 {
-		t.Errorf("second call returned a different id: %q vs %q", id1, id2)
-	}
-
-	var count int
-	if err := s.db.QueryRow(`SELECT count(*) FROM users WHERE is_local_singleuser = 1`).Scan(&count); err != nil {
-		t.Fatal(err)
-	}
-	if count != 1 {
-		t.Errorf("is_local_singleuser rows = %d, want exactly 1", count)
-	}
-}
-
-func TestEnsureLocalSingleUser_DefaultsDisplayNameToDemoUser(t *testing.T) {
-	s := openTestStore(t)
-	id, err := s.EnsureLocalSingleUser(context.Background())
-	if err != nil {
-		t.Fatalf("EnsureLocalSingleUser: %v", err)
-	}
-
-	var name string
-	if err := s.db.QueryRow(`SELECT display_name FROM users WHERE id = ?`, id).Scan(&name); err != nil {
-		t.Fatal(err)
-	}
-	if name != "Demo User" {
-		t.Errorf("display_name = %q, want %q", name, "Demo User")
-	}
-}
-
 func TestEnsureLocalSingleUserID_SeedsConfiguredIDAndIsIdempotent(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
@@ -90,6 +45,15 @@ func TestEnsureLocalSingleUserID_SeedsConfiguredIDAndIsIdempotent(t *testing.T) 
 	}
 	if oidc.Valid {
 		t.Errorf("oidc_subject = %q, want NULL", oidc.String)
+	}
+	// And it is the only one. Single-User Mode attributes every request to
+	// one id, so a second local row is a row nothing can ever reach.
+	var locals int
+	if err := s.db.QueryRow(`SELECT count(*) FROM users WHERE is_local_singleuser = 1`).Scan(&locals); err != nil {
+		t.Fatal(err)
+	}
+	if locals != 1 {
+		t.Errorf("is_local_singleuser rows = %d, want exactly 1", locals)
 	}
 
 	// Idempotent: a second call neither errors nor duplicates the row,
