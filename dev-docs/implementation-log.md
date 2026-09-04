@@ -313,6 +313,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Three of five enum fields were narrowed (2026-09-04)](#three-of-five-enum-fields-were-narrowed-2026-09-04) — U-7b. `ItemMode` gets named values; the parser let an unknown mode into the database.
 - [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
+- [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
 
 ## Deviations
 
@@ -12781,3 +12782,54 @@ that wrote one side could not also supply the other: identical whitespace-
 normalised text, unchanged block counts, identical rendered HTML. The render
 comparison was mutation-proved again at this scale — one character changed in
 ADR-014 makes it report 58/59.
+
+## Visible, hydrated, and not yet ready (2026-09-05)
+
+Two helpers went red on WebKit in three PRs, one shard each, both times on a
+diff that could not have caused it — #371's did not even reach `dist`. With
+`retries: 0` (T-8) a red like that is a defect to read, so both were read, and
+the reading is worth recording because **the diagnosis written into #369's
+review was wrong**.
+
+That review said `openTripSwipe` failed because M2 re-rendered its list under
+the locator after `page.goto`, so `open()` ran against a replaced element.
+Instrumenting the helper to call `open('end')` *without* any handshake and
+report `getOpenAmount()` gave 194 px, eight runs out of eight. The row opened
+every time. Whatever failed once on CI, it was not the thing I had named with
+such confidence, and I could not make it happen here.
+
+What the source does establish, and what the fix rests on: `open(side)`
+returns **before** the `requestAnimationFrame` that moves the row, so
+`await …open('end')` has never proved anything; `getOptions(side)` returns
+`undefined` — and `open()` returns silently — until `connectedCallback` has
+awaited every `ion-item-options` child's `componentOnReady()`; and the
+component renders `item-sliding-active-options-end` when it believes it is
+open. So the helper now awaits the readiness in the page, where those are
+promises rather than something to poll from outside, takes a frame for the
+registration to settle and a frame for `open()`'s own work, and asserts the
+rendered class. The silent no-op is reproducible on purpose — `open('start')`
+on a row with no start options — and it fails on that line in five seconds
+instead of on a click sixty seconds later.
+
+`setDateField` was the opposite: the mechanism was exactly what the source
+suggested, and stronger than expected. `ion-datetime` attaches the scroll
+listener that recomputes the month header inside `markReady()`, and marks
+itself `datetime-ready` in the same breath; the header arrows are clickable
+the whole time before that, because only `.calendar-body` is held at
+`opacity: 0`. So a hop taken early scrolls the grid and nothing observes it.
+**Measured eight of eight: the picker was visible, hydrated and not ready at
+the moment the old helper clicked.** The old helper had never once acted on
+a ready picker; it passed when the listener attached soon enough to re-read
+the scroll position, and that is timing. The fix is one assertion on the
+class, and Playwright's own call log for the mutated version photographs the
+window — eight polls resolving to `…hydrated`, then five to
+`…hydrated datetime-ready`.
+
+Two things to keep. **`hydrated` is not ready.** It says a Stencil component
+has upgraded; every one of these components has a second, component-specific
+state after that — `datetime-ready`, registered options, a modal's
+presentation — and a helper that waits for `hydrated` alone has waited for
+the wrong thing while looking careful. And **a diagnosis in a review is a
+hypothesis until something reproduces it**; the instrumented run cost four
+minutes, and it is what separated the half of #369's story that was right
+from the half that was not.
