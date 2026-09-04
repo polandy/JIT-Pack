@@ -7,6 +7,7 @@
 
 import { readFile } from 'node:fs/promises'
 import { randomBytes } from 'node:crypto'
+import { defaultNowMs } from '@/lib/clock'
 import { dispatch } from './dispatch'
 
 /** `sync/hlc` wants 8 lowercase hex chars; a run is a device, freshly named. */
@@ -19,7 +20,7 @@ process.exitCode = await dispatch(
   () => ({
     readFile: (path) => readFile(path, 'utf8'),
     write: (line) => console.log(line),
-    now: () => Date.now(),
+    now: defaultNowMs,
     deviceId: randomBytes(DEVICE_ID_BYTES).toString('hex'),
   }),
 )

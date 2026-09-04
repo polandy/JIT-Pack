@@ -53,5 +53,39 @@ export default defineConfigWithVueTs(
     },
   },
 
+  {
+    // C-5: the sync layer reads the clock it was given, never the machine's.
+    // Scoped to the files that stamp a *row* — a screen showing the current
+    // time reads no row and nothing asserts it, so it is deliberately out.
+    //
+    // The rule bans the *call*, not the identifier: `config.now ?? Date.now`
+    // hands the real clock to the one place that installs it, and that is
+    // the shape the orchestrator uses. Same distinction as the Go guard in
+    // internal/store (G-4) — a rule rather than a list of excused files.
+    name: 'app/one-clock-in-the-sync-layer',
+    files: [
+      'src/composables/useMutations.ts',
+      'src/composables/useSyncOrchestrator.ts',
+      'src/composables/sync/**/*.ts',
+      'cli/**/*.ts',
+    ],
+    ignores: ['src/composables/sync/__tests__/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message:
+            'Read the injected clock (SyncContext.nowIso, the orchestrator\'s `now`) instead of calling Date.now().',
+        },
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message:
+            'Read the injected clock (SyncContext.nowIso) instead of constructing a Date from the machine clock.',
+        },
+      ],
+    },
+  },
+
   skipFormatting,
 )

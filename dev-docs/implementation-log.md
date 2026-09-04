@@ -262,6 +262,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The mode was a boolean every handler had to remember (2026-09-03)](#the-mode-was-a-boolean-every-handler-had-to-remember-2026-09-03) — G-8. `identity` chosen once at construction; the refusal paths became readable without an HTTP round trip, and one branch is knowingly unobservable.
 - [Twenty places decided what a store refusal means (2026-09-04)](#twenty-places-decided-what-a-store-refusal-means-2026-09-04) — G-6. One `storeErrorResponses` table; the guard reads the store's declarations, and the sentinels with no HTTP answer are named with their reason rather than merely absent.
 - [A timestamp could only be asserted non-empty (2026-09-04)](#a-timestamp-could-only-be-asserted-non-empty-2026-09-04) — G-4. One clock per package, reachable through options; the guard is "no call to `time.Now`", and seven schema DEFAULTs stay outside it on purpose.
+- [The client had four clocks where the server now has one (2026-09-04)](#the-client-had-four-clocks-where-the-server-now-has-one-2026-09-04) — C-5. `lib/clock.ts`, `SyncContext.nowIso`, and an eslint rule that bans the *call*; the compiler found the second and third `SyncContext` implementation again.
 
 
 ## Current state
@@ -12156,3 +12157,37 @@ them means binding a value at every insert site *and* editing `schema.sql`,
 which changes the fingerprint and destroys every development database
 (invariant 2, ADR-018) — for columns no test asserts on. Revisit when a test
 needs to place a row at a chosen instant, which the FR-27.8 usage history would.
+
+## The client had four clocks where the server now has one (2026-09-04)
+
+Design-review item **C-5**, the twin of G-4. `useMutations` called
+`new Date().toISOString()` four times, `masterData.ts` twice more for
+`retired_at`, and the orchestrator built the HLC generator and `today` from two
+further `Date.now()` calls — while `SyncOutbox` and `SyncContext.today` had had
+injected clocks all along. The consequence was visible in the specs: a
+`packed_at` or a `retired_at` could only be asserted `expect.any(String)`.
+
+`lib/clock.ts` names the two shapes (`NowMs`, `NowIso`) and the conversion
+between them; the orchestrator resolves **one** millisecond clock and hands the
+same one to the HLC generator, to `today`, and — as `nowIso` — to `useMutations`
+and to `SyncContext`. Three answers to "what time is it" that could previously
+straddle midnight now cannot.
+
+**The compiler found the other two implementations, again.** Adding one required
+field to `SyncContext` turned up `cli/context.ts` and the seam fixture — the same
+way #336 discovered the CLI was a third write funnel. A required field is a
+better census of a structural interface than any grep.
+
+**The guard bans the call, not the identifier**, exactly as the Go one does:
+`config.now ?? Date.now` is how the real clock is installed, and `Date.now()`
+is how someone walks around the seam. Scoped to the files that stamp a *row* —
+`useMutations`, the sync actions, the orchestrator, the CLI. A screen that
+merely displays the current time reads no row and nothing asserts it, so it is
+deliberately outside; the rule would otherwise be a list of excuses. It caught
+`cli/main.ts` immediately, which was the CLI's own install site written as a
+call — now `now: defaultNowMs`.
+
+Two specs were upgraded from truthiness rather than added beside it: the two
+`retired_at` clauses in `masterData.seam.spec.ts` now name `SEAM_NOW_ISO`, and
+`buyItem`'s `packed_at` names the fixed instant. A test that asserts a value is
+a string was never a test of the clock.
