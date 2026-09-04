@@ -15,6 +15,7 @@
  * the failure that has no symptom.
  */
 import type { Ref } from 'vue'
+import type { RowSink } from '@/sync/tableRegistry'
 
 /** A row that can live in a bucket: it has an id of its own. */
 export interface BucketedRow {
@@ -62,5 +63,18 @@ export function bucketedRows<T extends BucketedRow>(
         }
       }
     },
+  }
+}
+
+/** The bucket as a `RowSink`: `upsert` under the sink's name. */
+export function bucketSink<T extends BucketedRow>(rows: BucketedRows<T>): RowSink<T> {
+  return { set: (row) => rows.upsert(row), remove: (id) => rows.remove(id) }
+}
+
+/** A `Map` keyed by row id as a `RowSink`. */
+export function keyedSink<T extends BucketedRow>(map: Ref<Map<string, T>>): RowSink<T> {
+  return {
+    set: (row) => map.value.set(row.id, row),
+    remove: (id) => map.value.delete(id),
   }
 }

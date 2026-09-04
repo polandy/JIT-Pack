@@ -15,7 +15,6 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
     end_date: '2026-07-15',
     duration_days: 6,
     series_id: null,
-    series_name: null,
     attributes: null,
     imported: false,
     ...overrides,

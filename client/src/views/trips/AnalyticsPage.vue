@@ -25,6 +25,7 @@ import {
 } from '@/domain/analytics'
 import { t } from '@/i18n'
 import { formatValue, formatWeight } from '@/lib/format'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setStoredFacet, setStoredGroupBy } from '@/composables/usePackingFilter'
@@ -34,8 +35,23 @@ const props = defineProps<{ tripId: string }>()
 
 const router = useRouter()
 const store = useTripStore()
+const masterStore = useMasterStore()
 
 const trip = computed(() => store.getTrip(props.tripId))
+
+/**
+ * FR-14.3: the trend runs across the trips of one series, so the heading
+ * names the series. It used to read `trip.series_name`, a column no writer
+ * has ever filled — client or server — so the heading has always fallen
+ * back to the trip's own name. The series is in the master store; this
+ * resolves it, and falls back only when the trip belongs to no series.
+ */
+const trendName = computed(
+  () =>
+    (trip.value?.series_id ? masterStore.getSeries(trip.value.series_id)?.name : null) ??
+    trip.value?.name ??
+    '',
+)
 const dimension = ref<AnalyticsDimension>('category')
 
 const analysis = computed(() =>
@@ -178,8 +194,8 @@ setHeaderTitle(() => `${t('packing.analytics')} · ${trip.value?.name ?? ''}`)
 
       <!-- Series trend (FR-14.3) -->
       <template v-if="trend.length > 0">
-        <h2 class="section-title jp-eyebrow">
-          {{ t('analytics.trendTitle', { name: trip?.series_name ?? trip?.name ?? '' }) }}
+        <h2 class="section-title jp-eyebrow" data-testid="analytics-trend-title">
+          {{ t('analytics.trendTitle', { name: trendName }) }}
         </h2>
         <div class="jp-card trend-card" data-testid="analytics-trend">
           <div class="trend">

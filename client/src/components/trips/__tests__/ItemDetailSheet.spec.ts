@@ -49,7 +49,6 @@ function seedTrip(
     end_date: null,
     duration_days: null,
     series_id: null,
-    series_name: null,
     attributes: null,
     imported: false,
   }

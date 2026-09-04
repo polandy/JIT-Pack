@@ -44,7 +44,6 @@ function trip(extra: Partial<Trip> = {}): Trip {
     end_date: '2026-02-08',
     duration_days: 8,
     series_id: null,
-    series_name: null,
     attributes: null,
     imported: false,
     ...extra,

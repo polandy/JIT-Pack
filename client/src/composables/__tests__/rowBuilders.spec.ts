@@ -349,14 +349,12 @@ const CASES: BuilderCase[] = [
       // derives it from the two dates the builder does carry.
       duration_days: 10,
       series_id: 'ser-1',
-      // The second carve-out, and unlike `duration_days` it is not derived
-      // from anything: no `series_name` column exists in `schema.sql`, no
-      // mapper fills one, and so every trip that has ever been read carries
-      // `null` here. AnalyticsPage's FR-14.3 trend heading is the one reader,
-      // and its `?? trip.name` fallback is therefore the only branch taken.
-      // Closing that is its own change — the name lives on the master
-      // store's series row, which the trip store cannot reach.
-      series_name: null,
+      // `series_name` used to sit here as a second carve-out, and unlike
+      // `duration_days` it was not derived from anything: no such column
+      // exists in `schema.sql` and no writer ever filled one, so every trip
+      // ever read carried `null`. It is gone with C-3b — the FR-14.3 trend
+      // heading resolves the name from the master store's series row, which
+      // the *view* can reach even though the trip store cannot.
       attributes: { season: 'summer' },
       imported: true,
     } satisfies Record<keyof Trip, unknown>,

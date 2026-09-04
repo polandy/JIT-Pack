@@ -6,6 +6,7 @@
  */
 
 import { TABLE } from '@/types/tables'
+import { dbBool, jsonColumn } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
@@ -229,7 +230,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
   }
 
   function setLatePacker(itemId: string, latePacker: boolean): Mutation {
-    return make('upsert', TABLE.tripItems, itemId, { late_packer: latePacker ? 1 : 0 })
+    return make('upsert', TABLE.tripItems, itemId, { late_packer: dbBool(latePacker) })
   }
 
   /**
@@ -239,7 +240,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
    * judgement made by mistake has to be revocable.
    */
   function setReviewFlag(itemId: string, flag: ReviewFlag, value: boolean): Mutation {
-    return make('upsert', TABLE.tripItems, itemId, { [REVIEW_FLAG_FIELD[flag]]: value ? 1 : 0 })
+    return make('upsert', TABLE.tripItems, itemId, { [REVIEW_FLAG_FIELD[flag]]: dbBool(value) })
   }
 
   /**
@@ -283,7 +284,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       state: opts.decided ?? 'open',
       packed_at: packed ? nowIso() : null,
       mode: opts.mode ?? 'pack',
-      flag_missing: opts.flagMissing ? 1 : 0,
+      flag_missing: dbBool(opts.flagMissing),
     })
     return { mutation, id }
   }
@@ -342,7 +343,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       packed_count: 0,
       state: item.quantity === 0 ? 'skipped' : 'open',
       mode: item.mode,
-      late_packer: item.late_packer ? 1 : 0,
+      late_packer: dbBool(item.late_packer),
       assigned_traveler_id: assignedTravelerId,
     })
     return { mutation, id }
@@ -380,7 +381,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       packed_count: 0,
       state: item.state,
       mode: item.mode,
-      late_packer: item.late_packer ? 1 : 0,
+      late_packer: dbBool(item.late_packer),
       assigned_traveler_id: assignedTravelerId,
       container_id: containerId,
       packer_user_id: item.packer_user_id,
@@ -427,7 +428,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       state,
       mode: item.mode,
       bought_from: item.boughtFrom,
-      late_packer: item.latePacker ? 1 : 0,
+      late_packer: dbBool(item.latePacker),
       assigned_traveler_id: assignedTravelerId,
       container_id: containerId,
     })
@@ -546,7 +547,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       end_date: endDate,
       status: opts.status ?? TRIP_STATUS_PLANNING,
       series_id: opts.seriesId ?? null,
-      attributes: opts.attributes ? JSON.stringify(opts.attributes) : null,
+      attributes: jsonColumn(opts.attributes),
     })
     return { mutation, id }
   }
@@ -563,7 +564,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
   function updateTrip(tripId: string, fields: TripEdit): Mutation {
     const row: Record<string, unknown> = { ...fields }
     if ('attributes' in fields) {
-      row.attributes = fields.attributes ? JSON.stringify(fields.attributes) : null
+      row.attributes = jsonColumn(fields.attributes)
     }
     return make('upsert', TABLE.trips, tripId, row)
   }
@@ -653,7 +654,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
     const mutation = make('insert', TABLE.tripSeries, id, {
       owner_id: '',
       name,
-      default_attributes: defaultAttributes ? JSON.stringify(defaultAttributes) : null,
+      default_attributes: jsonColumn(defaultAttributes),
     })
     return { mutation, id }
   }
@@ -773,8 +774,8 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       assignment: opts.assignment ?? 'per_person',
       dedup: opts.dedup ?? 'max',
       default_mode: opts.defaultMode ?? 'pack',
-      late_packer: opts.latePacker ? 1 : 0,
-      conditions: opts.conditions ? JSON.stringify(opts.conditions) : null,
+      late_packer: dbBool(opts.latePacker),
+      conditions: jsonColumn(opts.conditions),
     })
     return { mutation, id }
   }
@@ -832,7 +833,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
    */
   function updateGeneratedTripItem(itemId: string, fields: Record<string, unknown>): Mutation {
     const wire = { ...fields }
-    if ('late_packer' in wire) wire['late_packer'] = wire['late_packer'] ? 1 : 0
+    if ('late_packer' in wire) wire['late_packer'] = dbBool(Boolean(wire['late_packer']))
     return make('upsert', TABLE.tripItems, itemId, wire)
   }
 
@@ -865,7 +866,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
       name: entry.name,
       quantity: entry.quantity,
       mode: entry.mode,
-      late_packer: entry.late_packer ? 1 : 0,
+      late_packer: dbBool(entry.late_packer),
       weight_grams: entry.weight_grams,
       value_cents: entry.value_cents,
       category_name: entry.category_name,

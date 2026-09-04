@@ -309,6 +309,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The retry was converting a defect into a green run (2026-09-04)](#the-retry-was-converting-a-defect-into-a-green-run-2026-09-04) — T-8. Two red shards read to their causes: five copies of one routine, and a swipe helper with no postcondition.
 - [Sixteen notification rules, five of them falsifiable (2026-09-04)](#sixteen-notification-rules-five-of-them-falsifiable-2026-09-04) — G-11. The `Store` split declined with a measurement; FR-6.2 extracted as a pure planner.
 - [A backup that had quietly lost two tables (2026-09-04)](#a-backup-that-had-quietly-lost-two-tables-2026-09-04) — G-2 half 2. The NFR-4.5 export list had lost two tables; `authorizeMaster` declined with a line count.
+- [Two lists of what a delete takes with it (2026-09-04)](#two-lists-of-what-a-delete-takes-with-it-2026-09-04) — C-3b. Four cascade copies become one; `series_name` was parsed and written by nobody.
 
 ## Deviations
 
@@ -12566,3 +12567,73 @@ new structural test; and narrowing `TableHasMark` to one table reddens FR-28.9's
 own case. The visibility mutations are the interesting ones — they are the
 proof that the move preserved behaviour, since the tests that catch them are
 the ones that existed before it.
+
+
+## Two lists of what a delete takes with it (2026-09-04)
+
+C-3b's remainder — the client half of the same shape as G-2. The item asked
+for `client/src/sync/tableRegistry.ts`: one codec per table, a generic
+`applyChange`, and the boolean and JSON conversions written once. All of that
+is here, but the reason to keep it is what the pairing turned up rather than
+the fold itself.
+
+**Three cascades that disagreed.** A row leaves the client's stores two ways:
+optimistically, through `cascadeOf` — which is also what the outbox and
+IndexedDB are handed, so in Local Mode it is the *only* thing that removes a
+key from the device (#332) — and by a tombstone arriving in a pull, which each
+store handled with its own inline arms inside `applyChange`. The second list
+was shorter than the first in three places: a deleted master item kept its
+`item_dependencies` rows, a deleted template kept its positions' FR-27.7
+tasks, and a deleted trip item kept its comments and FR-7.3 todos. There was
+a fourth copy in `removeTrip`, a switch over three of a trip's seven child
+tables.
+
+The window is bounded and that is worth saying plainly: the children's own
+tombstones follow, so the store is wrong only until the *next* pull page —
+which is a network round trip whenever the parent's tombstone lands on a page
+boundary. The defect that matters is not the window. It is that four lists
+existed and nothing compared them, so the next one to fall behind would fall
+behind the same way.
+
+`applyChange`'s delete path is now `removeRow`, which asks `childRows`. One
+list per partition, and `sync/__tests__/appliedCascade.spec.ts` applies a
+tombstone and asserts that nothing `cascadeOf` named is still readable.
+
+**A column read by a parser that no writer fills.** Pairing `parse` with
+`encode` per table makes a comparison writable that nothing had run:
+parsed-and-not-encoded is a column an optimistic write *blanks* (#158's
+`source_template_id`, FR-25.11j's `bought_from` — both found by a person
+looking), and encoded-and-not-parsed is a column written to the wire that no
+reader sees again. `trips.series_name` was neither and worse: parsed, written
+by nobody at all. No such column exists in `schema.sql`, no snapshot has ever
+carried one, and `Trip.series_name` has been `null` on every device there has
+ever been — so M12's FR-14.3 trend heading, whose whole job is to name the
+series, has always fallen through to `?? trip.name` and rendered
+„Series Elba 2026 · trend" over a series called Elba.
+
+This was **already written down**, in a comment in `rowBuilders.spec.ts`,
+correctly described and deferred: „closing that is its own change — the name
+lives on the master store's series row, which the trip store cannot reach."
+The sentence was right about the store and wrong about where the fix goes. A
+*view* can reach both stores, and the fix is three lines in `AnalyticsPage`.
+What changed is not the knowledge; it is that the guard makes the deferral
+cost a red test instead of a comment.
+
+**A second dead column stays, on purpose.** `MasterItem.category_name` is the
+same shape — `items` has no such column, so generation reads `null` and a
+generated trip item has no category. It is *not* fixed here: the right value
+is the item's primary tag (ADR-014), which is a decision about generation and
+not about a codec. The pairing guard does not fire on it either, because
+neither half of the item codec mentions it. Recorded so the next reader does
+not have to rediscover it.
+
+**What the fold did and did not touch.** The parsers moved into the registry;
+the fourteen builders stayed in `composables/sync/rows.ts`, because eight
+action modules import them by name and `rowBuilders.spec.ts` already holds
+their completeness against the domain type. `dbBool`/`jsonColumn`/
+`parseJsonColumn` replace sixteen `? 1 : 0` and thirteen JSON conversions —
+with two deliberate survivors: `packed_count: packed ? 1 : 0` is a *count*
+that happens to be one or zero, and two view-side callers drop an empty
+object to `null` because there "no key set" means the user declined. Folding
+that second one into `jsonColumn` would have it decide a question it cannot
+see the answer to.

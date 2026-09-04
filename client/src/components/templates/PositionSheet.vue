@@ -13,6 +13,7 @@
  * set on the trip (FR-25.8).
  */
 import { IonIcon, IonButton, IonInput, IonToggle } from '@ionic/vue'
+import { dbBool, jsonColumn } from '@/sync/columns'
 import {
   addOutline,
   chevronForwardOutline,
@@ -76,7 +77,9 @@ function toggleCondition(key: string, value: string) {
   const conditions: Record<string, unknown> = { ...pos.conditions }
   if (conditions[key] === value) delete conditions[key]
   else conditions[key] = value
-  update({ conditions: Object.keys(conditions).length ? JSON.stringify(conditions) : null })
+  // Empty means the user chose no condition, which is `null` rather than
+  // an empty object — see `jsonColumn`'s note on the two view-side callers.
+  update({ conditions: jsonColumn(Object.keys(conditions).length ? conditions : null) })
 }
 
 const conditionSummary = computed(() => {
@@ -113,7 +116,7 @@ function setDedup(dedup: TemplateDedup) {
 }
 
 function setLatePacker(late: boolean) {
-  update({ late_packer: late ? 1 : 0 })
+  update({ late_packer: dbBool(late) })
 }
 
 // --- Preparation tasks (FR-27.7) ---

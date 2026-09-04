@@ -19,7 +19,6 @@ function trip(over: Partial<Trip> = {}): Trip {
     end_date: '2025-08-07',
     duration_days: 7,
     series_id: 'ser-1',
-    series_name: null,
     attributes: { season: 'summer' },
     imported: false,
     ...over,

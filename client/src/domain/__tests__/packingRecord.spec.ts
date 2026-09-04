@@ -50,7 +50,6 @@ const sourceTrip: Trip = {
   status: 'archived',
   attributes: null,
   imported: false,
-  series_name: null,
 }
 
 const source: CloneSource = {

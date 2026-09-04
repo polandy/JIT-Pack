@@ -31,7 +31,6 @@ export interface Trip {
   end_date: string | null
   duration_days: number | null
   series_id: string | null
-  series_name: string | null
   attributes: Record<string, unknown> | null
   imported: boolean
 }
