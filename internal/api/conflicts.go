@@ -6,7 +6,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 
 	"jitpack/internal/store"
@@ -81,18 +80,5 @@ func writeRevert(w http.ResponseWriter, seq int64) {
 // different sentence for the user: the entry is spent, the row is gone,
 // the merge rules outrank the revert, or it was never theirs to make.
 func writeRevertError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, store.ErrConflictNotFound):
-		writeError(w, http.StatusNotFound, ErrConflictNotFound, "no such conflict entry")
-	case errors.Is(err, store.ErrConflictAlreadyReverted):
-		writeError(w, http.StatusConflict, ErrAlreadyReverted, "this conflict was already reverted")
-	case errors.Is(err, store.ErrConflictRowGone):
-		writeError(w, http.StatusConflict, ErrRowDeleted, "the row this conflict names has been deleted")
-	case errors.Is(err, store.ErrRevertRefused):
-		writeError(w, http.StatusConflict, ErrRevertRefused, "the merge rules refuse this revert")
-	case errors.Is(err, store.ErrRevertForbidden):
-		writeError(w, http.StatusForbidden, ErrForbidden, "not allowed to write this row")
-	default:
-		writeError(w, http.StatusInternalServerError, ErrInternal, "revert failed")
-	}
+	writeStoreError(w, err, "revert failed")
 }

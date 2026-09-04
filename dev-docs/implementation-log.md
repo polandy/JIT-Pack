@@ -260,6 +260,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A setter that simulated something the operator cannot do (2026-09-03)](#a-setter-that-simulated-something-the-operator-cannot-do-2026-09-03) — G-13. `api.Options` replaces four setters and a test-only field; the allowlist test was asserting a mid-session edit that no instance can perform, and why `Now` is not in the struct yet.
 - [The broker could only be tested by logging in (2026-09-03)](#the-broker-could-only-be-tested-by-logging-in-2026-09-03) — G-5. `oidcBroker.exchange`/`.refresh` with typed errors and one `writeAuthError` table; the review's premise about what was unit-tested was wrong, and one rule had never been readable outside a full login.
 - [The mode was a boolean every handler had to remember (2026-09-03)](#the-mode-was-a-boolean-every-handler-had-to-remember-2026-09-03) — G-8. `identity` chosen once at construction; the refusal paths became readable without an HTTP round trip, and one branch is knowingly unobservable.
+- [Twenty places decided what a store refusal means (2026-09-04)](#twenty-places-decided-what-a-store-refusal-means-2026-09-04) — G-6. One `storeErrorResponses` table; the guard reads the store's declarations, and the sentinels with no HTTP answer are named with their reason rather than merely absent.
 
 
 ## Current state
@@ -12068,3 +12069,47 @@ Guard: `TestServer_CarriesNoModeFlag` fails on any `bool` field of `Server` —
 the exact shape this item removed. Mutation-proved three ways (a dropped table
 row, a re-added mode boolean, a single-user mode that claims a second party);
 each went red on the named test and was restored.
+
+## Twenty places decided what a store refusal means (2026-09-04)
+
+Design-review item **G-6**. Five hand-written `switch` helpers and five inline
+`if`s across eight files turned `store.Err*` into a status. `ErrItemNotFound`
+was spelled out twice, identically, by hand — which is the shape of the defect,
+not an accident: nothing made the two agree, and nothing would have said so.
+
+One `storeErrorResponses` table now decides what a known refusal means, and
+`writeStoreError(w, err, fallback)` applies it. **The fallback stays the
+handler's**: "revert failed" and "admin action failed" are different sentences
+to read, and the thing a table should own is what a *known* failure means, not
+what an unknown one is called.
+
+**What the table changes, and it is worth saying out loud.** A sentinel's answer
+is now global. If the takeover store ever returned `ErrUserNotFound`, the
+takeover endpoint would answer 404 "no such user" where it used to answer 500
+"takeover failed". That is the intent — the same failure must read the same way
+wherever it is met — but it is a behaviour change in principle, not only a
+refactor, and a reviewer should know that is what was chosen.
+
+**The guard is the part with teeth.** A sentinel absent from the table does not
+fail; it answers with whatever fallback the handler that met it happens to
+carry. So `TestStoreErrorResponses_AccountForEveryStoreSentinel` reads the
+exported `errors.New` declarations out of `internal/store` (Go cannot enumerate
+another package's variables at runtime) and insists each is *either* a table row
+*or* named in `storeSentinelsWithoutAnHTTPAnswer` **with its reason**. Four are:
+`ErrUnknownTable`/`ErrUnknownColumn` become a per-mutation rejection inside the
+push envelope rather than a status, `ErrUserRefAmbiguous` belongs to the CLI, and
+`ErrSchemaStale` is refused before the server starts. A list of names would have
+been half the guard; the reasons are what stop the next person from adding one to
+silence a red test. `parser.ParseDir` is deprecated and fails the lint gate, so
+the reader walks `os.ReadDir` itself.
+
+**A blank message needed its own assertion.** Three rows — the two size caps and
+the display-name rule — answer with the sentinel's own sentence, so the number a
+user is told is the number the store enforces. The first mutation proof of that
+row *passed*: nothing in the suite asserted the message at all, and a literal
+"too big" would have shipped. `TestStoreErrorResponses_OnlyTheLimitsAnswerWithTheStoresOwnSentence` now claims both directions — those three must be blank, and
+nothing else may be.
+
+While there: the handler's pre-check wrote *"avatar exceeds 100 KB limit"* as a
+literal beside the store's identical sentinel text. The two byte limits stay two
+constants on purpose (invariant 6 wants three layers); the *sentence* is one now.

@@ -9,7 +9,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 
 	"jitpack/internal/store"
@@ -47,17 +46,7 @@ func (s *Server) deleteMasterRow(table, pathParam string) http.HandlerFunc {
 }
 
 func writeMasterDeleteError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, store.ErrMasterRowNotFound):
-		writeError(w, http.StatusNotFound, ErrNotFound, "no such row")
-	case errors.Is(err, store.ErrMasterTableNotDeletable):
-		// Unreachable through the mux, which binds only allowlisted tables:
-		// reaching it means a route was wired to a table the store refuses,
-		// which is this server's bug and not the caller's.
-		writeError(w, http.StatusInternalServerError, ErrInternal, "table has no delete endpoint")
-	default:
-		writeError(w, http.StatusInternalServerError, ErrInternal, "delete failed")
-	}
+	writeStoreError(w, err, "delete failed")
 }
 
 // writeMasterDeleteRefusal answers a rejected mutation.
