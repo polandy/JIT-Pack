@@ -89,7 +89,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			// notification.created is delivered by the connection's
 			// authenticated identity (hub.NotifyNotificationCreated).
 			if tripID, ok := strings.CutPrefix(channel, "trip:"); ok {
-				if s.singleUserMode || s.isMember(r, tripID, userID) {
+				if s.isMember(r, tripID, userID) {
 					s.hub.Subscribe(c, tripID)
 				}
 			}
@@ -124,8 +124,11 @@ func (s *Server) wsIdle() time.Duration {
 	return wsIdleTimeout
 }
 
-// isMember checks trip membership for WebSocket subscribe actions.
+// isMember checks trip membership for WebSocket subscribe actions. A
+// failed lookup is a refusal rather than a subscription, and the mode's
+// own answer — Single-User Mode has no membership at all — comes from
+// the identity, not from a branch here.
 func (s *Server) isMember(r *http.Request, tripID, userID string) bool {
-	ok, err := s.store.IsTripMember(r.Context(), tripID, userID)
+	ok, err := s.identity.isMember(r.Context(), tripID, userID)
 	return err == nil && ok
 }

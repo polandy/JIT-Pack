@@ -4,7 +4,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,16 +29,15 @@ const (
 // always against JIT-Pack's own HS256 session tokens (ADR-007); the
 // IdP is involved only at login and refresh, inside the OIDC broker.
 type Server struct {
-	store          *store.Store
-	sessionSecret  []byte
-	keyFunc        jwt.Keyfunc
-	validMethods   []string
-	singleUserMode bool
+	store         *store.Store
+	sessionSecret []byte
+	// identity is the mode's answer to who is asking and whether anyone
+	// else can exist — chosen once, at construction (invariant 5).
+	identity identity
 	// currency is the instance-wide ISO-4217 label (FR-21.9); empty ⇒ none.
-	currency    string
-	localUserID string
-	hub         *Hub
-	oidc        *oidcBroker
+	currency string
+	hub      *Hub
+	oidc     *oidcBroker
 	// wsIdleOverride shrinks the §9 WebSocket idle timeout
 	// (Options.WSIdle); zero means the wsIdleTimeout constant.
 	wsIdleOverride time.Duration
@@ -92,20 +90,23 @@ func newServer(st *store.Store, opts Options) *Server {
 func New(st *store.Store, secret []byte, opts Options) *Server {
 	s := newServer(st, opts)
 	s.sessionSecret = secret
-	s.keyFunc = func(*jwt.Token) (any, error) { return secret, nil }
-	s.validMethods = []string{"HS256"}
+	s.identity = sessionIdentity{
+		keyFunc:      func(*jwt.Token) (any, error) { return secret, nil },
+		validMethods: []string{sessionSigningMethod.Alg()},
+		accounts:     st,
+	}
 	return s
 }
 
 // NewSingleUser builds a Server for Single-User Mode (Addendum FR-17.2):
 // authentication and trip-membership checks are bypassed entirely, and
 // every request is attributed to localUserID. This is a startup-time
-// choice (FR-17.11), never a per-request toggle — there is exactly one
-// constructor path for each mode, not a runtime flag inside Server.
+// choice (FR-17.11), never a per-request toggle: the mode is one value —
+// the identity — chosen here, so no handler downstream can ask which mode
+// it is running in.
 func NewSingleUser(st *store.Store, localUserID string, opts Options) *Server {
 	s := newServer(st, opts)
-	s.singleUserMode = true
-	s.localUserID = localUserID
+	s.identity = singleUserIdentity{userID: localUserID}
 	return s
 }
 
@@ -205,55 +206,29 @@ const (
 	tokenKindKey
 )
 
+// identityRefusals is the one place a refused identity becomes an HTTP
+// answer, for the same reason the broker's table exists: a refusal must
+// read the same way at every endpoint that meets it.
+var identityRefusals = []errorResponse{
+	{errNoBearerToken, http.StatusUnauthorized, ErrUnauthorized, "missing bearer token"},
+	{errBadToken, http.StatusUnauthorized, ErrUnauthorized, "invalid token"},
+	{errNoTokenSubject, http.StatusUnauthorized, ErrUnauthorized, "token has no subject"},
+	{errAccountDeactivated, http.StatusForbidden, ErrAccountDeactivated, "account is deactivated"},
+	{errAccountLookup, http.StatusInternalServerError, ErrInternal, "account lookup failed"},
+}
+
 func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
-	if s.singleUserMode {
-		return func(w http.ResponseWriter, r *http.Request) {
-			next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, s.localUserID)))
-		}
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		raw, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if !ok || raw == "" {
-			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "missing bearer token")
-			return
-		}
-		claims := jwt.MapClaims{}
-		_, err := jwt.ParseWithClaims(raw, claims, s.keyFunc,
-			jwt.WithValidMethods(s.validMethods))
+		ctx, err := s.identity.authenticate(r)
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "invalid token")
+			// An unlisted refusal is a bug in this package rather than
+			// anything the caller did, so it answers 500 rather than
+			// letting an unknown case through as authenticated.
+			if !answerFrom(w, identityRefusals, err) {
+				writeError(w, http.StatusInternalServerError, ErrInternal, "authentication failed")
+			}
 			return
 		}
-		sub, err := claims.GetSubject()
-		if err != nil || sub == "" {
-			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "token has no subject")
-			return
-		}
-		// Session tokens carry users.id directly (ADR-007): identity was
-		// established once, at login, by the broker — never per request.
-		userID := sub
-		// One lookup answers both questions the gate has (FR-23.7):
-		// FR-23.3's deactivation gets its own code so the client can tell
-		// it from a stale token, and a subject no account carries is
-		// refused with the *same* answer a bad signature gets — telling
-		// the two apart would let an unauthenticated caller probe which
-		// ids exist.
-		state, err := s.store.AccountStatus(r.Context(), userID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
-			return
-		}
-		switch state {
-		case store.AccountDeactivated:
-			writeError(w, http.StatusForbidden, ErrAccountDeactivated, "account is deactivated")
-			return
-		case store.AccountUnknown:
-			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "invalid token")
-			return
-		case store.AccountActive:
-		}
-		ctx := context.WithValue(r.Context(), userIDKey, userID)
-		ctx = context.WithValue(ctx, tokenKindKey, stringClaim(claims, claimKind))
 		next(w, r.WithContext(ctx))
 	}
 }
@@ -277,15 +252,10 @@ func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
-	if s.singleUserMode {
-		// FR-17.3: the implicit user is automatically the Owner of every
-		// trip; there is no second party, so membership is meaningless.
-		return next
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue(PathTripID)
 		userID, _ := r.Context().Value(userIDKey).(string)
-		ok, err := s.store.IsTripMember(r.Context(), tripID, userID)
+		ok, err := s.identity.isMember(r.Context(), tripID, userID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, ErrInternal, "membership check failed")
 			return
@@ -304,13 +274,9 @@ func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 // trusted (invariant 3). Instance admins reach the same rows through the
 // /admin/users/{userID} endpoints, which carry their own authorization.
 func (s *Server) self(next http.HandlerFunc) http.HandlerFunc {
-	if s.singleUserMode {
-		// One implicit user: whoever the path names, it is them.
-		return next
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, _ := r.Context().Value(userIDKey).(string)
-		if userID == "" || r.PathValue(PathUserID) != userID {
+		if !s.identity.ownsProfile(r, userID) {
 			writeError(w, http.StatusForbidden, ErrForbidden, "cannot modify another user's profile")
 			return
 		}
@@ -377,7 +343,7 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	}
 	// FR-6.2 side effects last — FR-17.3: no second party in Single-User
 	// Mode, so no detection at all.
-	if !s.singleUserMode {
+	if s.identity.hasSecondParty() {
 		s.emitNotifications(r.Context(), tripID, userID, muts, out.Results)
 	}
 }
@@ -575,6 +541,29 @@ func writeJSON(w http.ResponseWriter, v any) {
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		http.Error(w, "encoding failure", http.StatusInternalServerError)
 	}
+}
+
+// errorResponse maps one sentinel to the answer it always gets. The
+// tables built from it are what keep a failure reading the same way at
+// every endpoint that meets it.
+type errorResponse struct {
+	err    error
+	status int
+	code   ErrorCode
+	msg    string
+}
+
+// answerFrom writes the first row matching err and reports whether the
+// table knew it. The caller decides what an unknown error means, because
+// that differs: a login says 500, a store error may have a fallback.
+func answerFrom(w http.ResponseWriter, table []errorResponse, err error) bool {
+	for _, e := range table {
+		if errors.Is(err, e.err) {
+			writeError(w, e.status, e.code, e.msg)
+			return true
+		}
+	}
+	return false
 }
 
 // writeError writes the one error shape the whole surface uses (NFR-4.14).
