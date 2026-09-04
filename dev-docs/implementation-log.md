@@ -311,6 +311,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A backup that had quietly lost two tables (2026-09-04)](#a-backup-that-had-quietly-lost-two-tables-2026-09-04) — G-2 half 2. The NFR-4.5 export list had lost two tables; `authorizeMaster` declined with a line count.
 - [Two lists of what a delete takes with it (2026-09-04)](#two-lists-of-what-a-delete-takes-with-it-2026-09-04) — C-3b. Four cascade copies become one; `series_name` was parsed and written by nobody.
 - [Three of five enum fields were narrowed (2026-09-04)](#three-of-five-enum-fields-were-narrowed-2026-09-04) — U-7b. `ItemMode` gets named values; the parser let an unknown mode into the database.
+- [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
 
 ## Deviations
 
@@ -12692,3 +12693,54 @@ catches both quote styles, and caught them after the sweep had reported itself
 complete. Its two carve-outs (a Vue event named `pack`, an attribute value like
 `class="pack"`) are applied by *removing* those shapes from the line rather than
 skipping the line, so a real mode cannot ride along beside an emit.
+
+## A paragraph that rendered perfectly and read badly (2026-09-04)
+
+T-12 asked for the four specification documents to be rewrapped at 120
+characters. There is no bug here and no behaviour: the Markdown renders
+identically either way, which is precisely why the files drifted to a longest
+line of 8 407 characters without anything ever objecting. What the width breaks
+is every way the documents are actually used — `grep -n` for one FR returns a
+screen of unrelated rules, a partial read cannot land on a single sentence, and
+the diff of a two-word amendment is the diff of a whole section.
+
+**The interesting part of a no-op change is proving it is one.** Three checks,
+each answering something the one before it cannot:
+
+1. the whitespace-normalised text is byte-identical, so no word moved;
+2. the counts of blank lines, headings, table rows and fence markers are
+   unchanged, so no block was merged or split — check 1 alone cannot see two
+   paragraphs becoming one, because the blank line between them normalises
+   away;
+3. both versions were **rendered** with a Markdown parser and the HTML compared
+   with whitespace collapsed everywhere except inside `<pre>`. That is the only
+   check that speaks the language the question is asked in.
+
+And the checker was mutation-proved before its verdict was believed: changing
+`**Basis:**` to `**Basis**` in one heading makes it report a difference. A
+render comparison that cannot fail is a screenshot of an assumption.
+
+**The wrapper's two rules exist because Markdown is whitespace-sensitive in
+exactly two places that matter here.** A wrapped continuation line must not
+begin with something that opens a block — `-`, `*`, `>`, `#`, a digit and a
+dot — or the paragraph grows a list; when the next word would do that, it stays
+on the line above and the line goes over the limit. And a break must never fall
+between a link's `]` and its `(`.
+
+**The trap with a price: two tools counted characters differently.** The
+wrapper is Python, where `len()` counts code points; the gate is Node, where
+`String.length` counts UTF-16 units. An emoji is one to the first and two to
+the second, so thirteen lines the wrapper had placed exactly at the limit came
+back from the gate as 121 or 122 characters — a disagreement that looks like a
+wrapper bug and is a units bug. The gate counts code points now, and says so.
+
+**What is deliberately not done.** T-12's second half — folding the 72 inline
+amendment markers into current text with a one-line revision note — stays as
+the item specified it: *when a screen is next touched*. Doing all 72 in one
+pass means deciding, 72 times and without a reason to be looking, which
+sentence is now the rule; that is a content change wearing a formatting
+change's clothes.
+
+The rest of `dev-docs/` — the ADRs, `CODING_PRINCIPLES.md`, `PRD_Base.md` —
+has the same shape and roughly 1 100 more long lines. The two append-only
+ledgers stay out on purpose: rewrapping a line rewrites who wrote it.
