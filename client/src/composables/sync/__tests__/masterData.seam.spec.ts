@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createMasterDataActions } from '../actions/masterData'
-import { makeSeamContext, pullIn, type Recorded, paintedRow } from './seamContext'
+import { makeSeamContext, pullIn, type Recorded, paintedRow, SEAM_NOW_ISO } from './seamContext'
 import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 import { DELETION_REMOVE, DELETION_RETIRE, RETIRED_FIELD } from '@/domain/masterDeletion'
@@ -136,7 +136,7 @@ describe('createMasterDataActions without an orchestrator', () => {
     createMasterDataActions(ctx).deleteMasterItem(item.id)
 
     expect(queued[0]!.muts[0]!.mutation.op).toBe('upsert')
-    expect(queued[0]!.muts[0]!.mutation.fields![RETIRED_FIELD]).toEqual(expect.any(String))
+    expect(queued[0]!.muts[0]!.mutation.fields![RETIRED_FIELD]).toBe(SEAM_NOW_ISO)
   })
 
   it('deleteMasterItem removes an item nothing has ever used (FR-24.3)', () => {
@@ -154,7 +154,7 @@ describe('createMasterDataActions without an orchestrator', () => {
     createMasterDataActions(ctx).deleteTemplate(TEMPLATE_ID)
 
     expect(queued[0]!.muts[0]!.mutation.op).toBe('upsert')
-    expect(queued[0]!.muts[0]!.mutation.fields![RETIRED_FIELD]).toEqual(expect.any(String))
+    expect(queued[0]!.muts[0]!.mutation.fields![RETIRED_FIELD]).toBe(SEAM_NOW_ISO)
   })
 
   it('a zero reference count is uncertain in Server Mode and certain in Local Mode (ADR-032)', () => {

@@ -28,6 +28,7 @@ import { createGroupRefreshActions } from '@/composables/sync/actions/groupRefre
 import { createTripLifecycleActions } from '@/composables/sync/actions/tripLifecycle'
 import type { Enqueue, SyncContext } from '@/composables/sync/context'
 import { localIsoDate } from '@/domain/trips'
+import { isoFrom } from '@/lib/clock'
 import type { HLCGenerator } from '@/sync/hlc'
 
 /**
@@ -54,7 +55,8 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
   setActivePinia(createPinia())
   const master = useMasterStore()
   const trips = useTripStore()
-  const mutations = useMutations(hlc)
+  const nowIso = isoFrom(now)
+  const mutations = useMutations(hlc, nowIso)
   const pending: PendingWrites = { master: [], trips: new Map() }
   const loaded = new Set<string>()
 
@@ -99,6 +101,7 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
     // The app's own reckoning of today, from the injected clock: UTC would
     // put a trip a day out for anyone far enough east or west of it.
     today: () => localIsoDate(now()),
+    nowIso,
     tripDataLoaded: (tripId) => loaded.has(tripId),
   }
 
