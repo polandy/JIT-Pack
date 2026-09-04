@@ -1,0 +1,38 @@
+name: Client setup
+description: >
+  Node, the client's dependencies and optionally the production bundle — the
+  four steps six jobs had each written out for themselves.
+
+# Why this is not also the checkout: a local composite action is read out of
+# the workspace, so the repository has to be there before this file can be
+# used at all. `actions/checkout` therefore stays in each job, and pinning it
+# stays invariant 8's business.
+#
+# What this *does* centralise is the node major. It was written in six places
+# inside ci.yml, and `toolchain-pins-gate.sh` exists to check the six agreed
+# with the Dockerfile and mise.toml. One of them is now the only one, so the
+# gate compares three files instead of eight lines (T-6).
+
+inputs:
+  build:
+    description: >
+      Run `npm run build` as well. The e2e and visual jobs serve the built
+      bundle; the format job only needs the dependencies.
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+      with:
+        node-version: 24
+        cache: npm
+        cache-dependency-path: client/package-lock.json
+    - run: npm ci
+      shell: bash
+      working-directory: client
+    - if: ${{ inputs.build == 'true' }}
+      run: npm run build # type-check and the production bundle
+      shell: bash
+      working-directory: client
