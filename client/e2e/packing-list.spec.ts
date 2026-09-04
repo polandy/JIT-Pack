@@ -337,8 +337,17 @@ test.describe('M4 packing list @local @m4', () => {
     await page.getByTestId('m4-filter').click()
     await expect(page.getByTestId('filter-sheet')).toBeVisible()
     await expect(page.getByTestId('filter-count')).toContainText('2')
-    // There is no confirm affordance at all — not hidden, absent.
-    await expect(page.getByTestId('filter-apply')).toHaveCount(0)
+    // There is no confirm affordance at all — not hidden, absent. Asserted
+    // as the list of what the header offers, because the clause that stood
+    // here named an id that has never existed anywhere in client/src: it was
+    // green before this panel was built and would have stayed green after an
+    // Apply button was added. Found by scripts/testid-gate.mjs.
+    expect(
+      await page
+        .getByTestId('filter-sheet')
+        .locator('header [data-testid]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-testid'))),
+    ).toEqual(['filter-count', 'filter-close'])
 
     await page.getByTestId('facet-category-Küche').click()
 
