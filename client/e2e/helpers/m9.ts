@@ -15,6 +15,8 @@ export interface NewItem {
   mark?: string
   /** Weight in grams, behind M10's "more" disclosure. */
   weight?: string
+  /** Price, behind the same disclosure as the weight (FR-24.5). */
+  price?: string
 }
 
 /**
@@ -55,9 +57,10 @@ export async function createItem(page: Page, name: string, opts: NewItem = {}): 
     await expect(visiblePage(page).getByTestId('m10-mark')).toContainText(opts.mark)
   }
 
-  if (opts.weight) {
+  if (opts.weight || opts.price) {
     await visiblePage(page).getByTestId('m10-more').click()
-    await fillIonic(visiblePage(page).getByTestId('m10-weight'), opts.weight)
+    if (opts.weight) await fillIonic(visiblePage(page).getByTestId('m10-weight'), opts.weight)
+    if (opts.price) await fillIonic(visiblePage(page).getByTestId('m10-price'), opts.price)
   }
 
   await visiblePage(page).getByTestId('m10-create').click()

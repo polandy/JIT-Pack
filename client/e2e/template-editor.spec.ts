@@ -10,6 +10,7 @@ import {
   visiblePage,
 } from './fixtures'
 import { PATH } from './routes'
+import { backToInventory, createItem } from './helpers/m9'
 
 /**
  * A tagged master item through M10's own path (E2E-M8-21 needs primary
@@ -18,22 +19,8 @@ import { PATH } from './routes'
  * settled offer-or-create branch, painted editor, chevron back.
  */
 async function createTaggedItem(page: Page, name: string, tag: string) {
-  await visiblePage(page).getByTestId('m9-fab').click()
-  await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
-  await fillIonic(visiblePage(page).getByTestId('m10-name'), name)
-
-  await fillIonic(visiblePage(page).getByTestId('m10-tag-search'), tag)
-  const offer = visiblePage(page).getByTestId(`m10-tag-offer-${tag}`)
-  const create = visiblePage(page).getByTestId('m10-tag-create')
-  await expect(offer.or(create).first()).toBeVisible()
-  if ((await offer.count()) > 0) await offer.click()
-  else await create.click()
-  await expect(visiblePage(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
-
-  await visiblePage(page).getByTestId('m10-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-  await page.getByTestId('header-back').click()
-  await expect(visiblePage(page).getByTestId('m9-fab')).toBeVisible()
+  await createItem(page, name, { tags: [tag] })
+  await backToInventory(page)
   // Settled, not merely arriving (the backToInventory account).
   await expect(visiblePage(page).getByTestId('m10-tag-search')).toHaveCount(0)
 }

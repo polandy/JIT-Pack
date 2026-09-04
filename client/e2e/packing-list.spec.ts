@@ -13,6 +13,7 @@ import {
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
+import { createItem } from './helpers/m9'
 
 /**
  * M4 — packing list (UI-Test-Spec §4, unit "M4 packing list").
@@ -549,10 +550,7 @@ test.describe('M4 packing list @local @m4', () => {
   async function inventory(page: Page, names: string[]) {
     for (const name of names) {
       await page.goto(PATH.items)
-      await page.getByTestId('m9-fab').click()
-      await page.getByTestId('m10-name').locator('input').fill(name)
-      await page.getByTestId('m10-create').click()
-      await expect(page.getByTestId('header-title')).toHaveText(name)
+      await createItem(page, name)
     }
   }
 

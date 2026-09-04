@@ -232,9 +232,26 @@ export async function openTripSwipe(page: Page, trip: string) {
     .locator('ion-item-sliding')
     .filter({ has: page.getByTestId(`trip-row-${trip}`) })
   await expect(sliding).toHaveCount(1)
+  /*
+   * Two settles the count does not give, both paid for by E2E-M2-07 on
+   * WebKit (T-8, 2026-09-04). `open()` resolves whether or not it opened
+   * anything: called on an element that is in the DOM but not yet hydrated,
+   * or before its `ion-item-options` child is registered, it returns and the
+   * row stays shut. The failure then lands 60 s later on the click, and the
+   * screenshot shows a perfectly ordinary closed row — which is why it was
+   * read as a flake twice.
+   */
+  await expect(sliding).toHaveClass(/hydrated/)
+  await expect(sliding.locator('ion-item-options')).toHaveCount(1)
   await sliding.evaluate((el) =>
     (el as unknown as { open(side: string): Promise<void> }).open('end'),
   )
+  /*
+   * And the helper's own postcondition. Without it "the swipe is open" is
+   * something the caller assumes; with it, a swipe that did not open fails
+   * *here*, naming the swipe.
+   */
+  await expect(sliding.locator('ion-item-option').first()).toBeVisible()
   return sliding
 }
 

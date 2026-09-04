@@ -9,6 +9,7 @@ import {
 import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
+import { createItem } from './helpers/m9'
 
 /**
  * Visual baselines (ADR-013; UI-Test-Spec §3).
@@ -180,13 +181,7 @@ async function closeSheet(page: Page) {
  */
 async function containers(page: Page) {
   await page.goto(PATH.items)
-  await visiblePage(page).getByTestId('m9-fab').click()
-  await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
-  await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Zelt')
-  await visiblePage(page).getByTestId('m10-more').click()
-  await fillIonic(visiblePage(page).getByTestId('m10-weight'), '5000')
-  await visiblePage(page).getByTestId('m10-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText('Zelt')
+  await createItem(page, 'Zelt', { weight: '5000' })
 
   await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] })
 

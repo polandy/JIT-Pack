@@ -14,7 +14,18 @@
  *    in their settle steps, which is the drift that costs a flake and names
  *    no cause.
  *
- * Both are allowed inside `client/e2e/helpers/` and `client/e2e/fixtures.ts`,
+ * 3. **A helper renamed.** The name list above is only as good as the names,
+ *    and the copies that mattered were called something else: five functions
+ *    re-implemented `createItem` under four names, and two of them had drifted
+ *    exactly where the log said copies drift — the *settle* step. One of those
+ *    two failed the first run made with `retries: 0` (T-8), on WebKit, as
+ *    "the tag chip never appeared": the editor had not finished opening, the
+ *    raw `.fill()` asserted nothing, and the tag name landed in the *name*
+ *    field. So the third rule is by shape rather than by name — a spec-local
+ *    function that clicks a routine's opening control **and** fills its first
+ *    field is that routine, whatever it is called.
+ *
+ * All three are allowed inside `client/e2e/helpers/` and `client/e2e/fixtures.ts`,
  * which is where the one copy lives.
  *
  * Node built-ins only, so it needs no install; wired into `make ci` and the
@@ -64,6 +75,35 @@ function walk(dir) {
   return out;
 }
 
+/**
+ * A routine a spec must not re-declare under another name, identified by the
+ * two controls it cannot avoid: the one that opens it and the one it fills
+ * first. Both have to appear in the same function body — a test that merely
+ * opens the editor is doing something else, and there are a dozen of those.
+ */
+const ROUTINES = [
+  {
+    helper: "createItem",
+    opens: "m9-fab",
+    fills: "m10-name",
+  },
+];
+
+/** The body of `async function name(` starting at `from`, by brace matching. */
+function functionBody(source, from) {
+  const open = source.indexOf("{", from);
+  if (open === -1) return "";
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === "{") depth++;
+    else if (source[i] === "}") {
+      depth--;
+      if (depth === 0) return source.slice(open, i + 1);
+    }
+  }
+  return source.slice(open);
+}
+
 const declaration = new RegExp(
   `(?:function|const)\\s+(${SHARED_HELPERS.join("|")})\\b\\s*[(=]`,
   "g",
@@ -88,6 +128,18 @@ for (const file of walk(E2E)) {
     findings.push(
       `${where}:${line}: \`${hit[1]}\` is declared again — import it from e2e/helpers`,
     );
+  }
+
+  for (const hit of source.matchAll(/\basync function (\w+)\s*\(/g)) {
+    const body = functionBody(source, hit.index);
+    for (const routine of ROUTINES) {
+      if (!body.includes(routine.opens) || !body.includes(routine.fills)) continue;
+      const line = source.slice(0, hit.index).split("\n").length;
+      findings.push(
+        `${where}:${line}: \`${hit[1]}\` opens ${routine.opens} and fills ${routine.fills} — ` +
+          `that is \`${routine.helper}\` under another name; import it`,
+      );
+    }
   }
 }
 

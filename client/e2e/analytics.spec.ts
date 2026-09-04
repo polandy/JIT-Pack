@@ -9,10 +9,10 @@ import {
   tripAction,
   visiblePage,
 } from './fixtures'
-import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
 import { assignTraveler, packRow, row, startTrip } from './helpers/m4'
 import { PATH } from './routes'
+import { createItem } from './helpers/m9'
 
 /**
  * M12 — Analytics (UI-Test-Spec §4, unit "M12 analytics").
@@ -28,14 +28,7 @@ const TRIP = { name: 'Veloferien Elba', travelers: ['Andy', 'Sia'] }
 /** A master item with weight (and optionally a price), created in M10's minimal form (FR-24.5). */
 async function createMasterItem(page: Page, name: string, weightGrams: number, price?: string) {
   await page.goto(PATH.items)
-  await visiblePage(page).getByTestId('m9-fab').click()
-  await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
-  await fillIonic(visiblePage(page).getByTestId('m10-name'), name)
-  await visiblePage(page).getByTestId('m10-more').click()
-  await fillIonic(visiblePage(page).getByTestId('m10-weight'), String(weightGrams))
-  if (price) await fillIonic(visiblePage(page).getByTestId('m10-price'), price)
-  await visiblePage(page).getByTestId('m10-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
+  await createItem(page, name, { weight: String(weightGrams), price })
 }
 
 /** Quick-add via the suggestion, so the row carries the master weight. */

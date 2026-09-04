@@ -99,7 +99,22 @@ export default defineConfig({
   testDir: './e2e',
   // Fail the build if test.only is committed.
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  /*
+   * Zero, on CI as locally (T-8, 2026-09-04). A retry does not tell you a
+   * test is flaky; it tells you the second run passed. Against a suite whose
+   * `single` and `server` projects share one database per run, and whose
+   * Local Mode projects share one browser profile per worker, a retry is
+   * worse than uninformative — the second attempt starts from the state the
+   * first one left, so a genuine ordering defect is *converted* into a green
+   * run. The ledger reached that conclusion itself (dev-docs/e2e-tests.md),
+   * and the working agreement's "no ordering races in production code" is
+   * the rule this setting was quietly exempting the suite from.
+   *
+   * A red run is the point. What it costs is a triage each time, which is
+   * what a flake was always costing anyway — just later, and to somebody who
+   * no longer had the context.
+   */
+  retries: 0,
   // Parallel by default; the backend-backed suites that need a shared
   // server will opt into serial execution per-project when they land.
   fullyParallel: true,
@@ -123,7 +138,13 @@ export default defineConfig({
 
   use: {
     baseURL: BASE_URL,
-    trace: 'on-first-retry',
+    /*
+     * There is no first retry any more, so a trace has to be kept from the
+     * run that failed or there is none at all — and a failure nobody can
+     * replay is what makes an intermittent one get labelled "flaky" instead
+     * of being read.
+     */
+    trace: 'retain-on-failure',
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
     /*
