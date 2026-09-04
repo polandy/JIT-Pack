@@ -106,6 +106,10 @@ jobs:
       # that drifts in its waits, and the e2e jobs cannot see that — they run
       # both copies and both pass, until one of them stops.
       - run: node ../scripts/e2e-helpers-gate.mjs
+      # And once more: an absence asserted against a test id the app never
+      # declared is green whatever the app does, and the e2e jobs cannot see
+      # it — the locator they run finds nothing, which is what was claimed.
+      - run: node ../scripts/testid-gate.mjs
       - run: npx vitest run
 
   # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned

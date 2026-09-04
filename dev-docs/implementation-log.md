@@ -266,6 +266,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A message was doing a result code's job (2026-09-04)](#a-message-was-doing-a-result-codes-job-2026-09-04) — G-14. `errors.As` + masked code; the mask is load-bearing, and the direction that decides whose fault a failure is had no test at all.
 - [Three helpers documented rules that lived somewhere else (2026-09-04)](#three-helpers-documented-rules-that-lived-somewhere-else-2026-09-04) — G-10. Dead exported surface deleted; the guard is "every exported `*Store` method has a caller outside the package", and a test does not count as one.
 - [The FK graph was written twice and compared never (2026-09-04)](#the-fk-graph-was-written-twice-and-compared-never-2026-09-04) — G-3 step 1. `PRAGMA foreign_key_list` against `blockedBy` and `cascades`; reachability had to be transitive, and the nine gaps that remain are nine one-line reasons.
+- [An absence asserted against an id nothing declares (2026-09-04)](#an-absence-asserted-against-an-id-nothing-declares-2026-09-04) — T-11. `scripts/testid-gate.mjs`; it found one false-green clause, and two of its own versions were vacuous or destructive before it worked.
 
 
 ## Current state
@@ -12302,3 +12303,47 @@ Step 2 — deriving both maps from the pragma at `Open` — is not done. With th
 comparison in place its value is smaller than it looked: the maps carry a
 *query* per child (`?1 OR ?1` for a dependency hanging off both endpoints) and
 an emission *order*, neither of which the pragma states.
+## An absence asserted against an id nothing declares (2026-09-04)
+
+Design-review item **T-11**'s second half. A Playwright locator that finds
+nothing usually fails loudly, so the id worth guarding is the one in an
+**absence** assertion: `expect(getByTestId('x')).toHaveCount(0)` against an id
+`client/src` has never contained is green today, was green before the change it
+was written for, and stays green after the control it names is added.
+
+`scripts/testid-gate.mjs` found exactly one, and it was real:
+`packing-list.spec.ts` claimed *"There is no confirm affordance at all — not
+hidden, absent"* by asserting `filter-apply` has count 0. **No such id has ever
+existed anywhere in the source.** The clause now reads the header's actual
+`data-testid` list and asserts it is exactly `filter-count`, `filter-close` —
+an absence claimed against options demonstrably there, the same shape
+`tripSwipeActions` already uses. Proved by adding an Apply button to
+`FilterSheet.vue`, rebuilding and re-running E2E-M4-20: red. The old clause
+would have stayed green.
+
+**Three things the gate had to learn, each of which made an earlier version
+wrong rather than merely incomplete:**
+
+1. **Matching only the `data-testid` attribute misses two thirds of the ids.**
+   They also arrive as a `testid` **prop** on a shared component (EmptyState,
+   SheetModal, DateField, FilePickButton) and as a field in a descriptor list.
+   In every form the id is a quoted literal, so that is what is looked for —
+   one rule instead of three patterns plus the next one somebody invents.
+2. **A single empty prefix makes the whole gate vacuous.** Interpolated ids are
+   matched by their literal edge, and the first extraction used `[^`]*?` before
+   `${`, which happily yields `''` for `` `${testKey}` ``. `startsWith('')` is
+   true for every id: the gate reported zero problems and *could not have
+   reported anything else*. It now refuses a `data-testid` that is entirely
+   interpolated, by name.
+3. **A regex for `/* … */` is not a comment stripper for a Vue SFC.** Stripping
+   comments is necessary — otherwise the gate reads its own explanation of the
+   id it just removed and reports it as still in use, which is how the first run
+   after the fix failed. But the obvious cross-line regex silently ate 15 KB out
+   of one single-file component and took twenty real ids with it: three
+   languages in one file, and nothing that can tell a comment from the same
+   characters in a template. It is line-based now.
+
+The reverse direction — a `data-testid` in the source that no test ever
+operates — is deliberately not a gate. CLAUDE.md already calls it "a dependable
+sign that no test has ever operated that control", and there are dozens; that is
+a reading list, not a build failure.
