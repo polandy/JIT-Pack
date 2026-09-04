@@ -223,6 +223,14 @@ test.describe('M12 analytics @local @m12', () => {
 
     // The trend counts the weight actually *carried*: one column, the year
     // it was carried in, and the packed kilos rather than the planned ones.
+    // FR-14.3: the heading names the *series* the trend runs across. It used
+    // to read `trip.series_name` — a field no writer has ever filled — and
+    // fell through to the trip's own name, so the line said „Serie Elba 2026"
+    // about a series called Elba (C-3b, 2026-09-04).
+    await expect(visiblePage(page).getByTestId('analytics-trend-title')).toHaveText(
+      'Series Elba · trend',
+    )
+
     const trend = visiblePage(page).getByTestId('analytics-trend')
     await expect(trend).toBeVisible()
     await expect(trend.locator('.col')).toHaveCount(1)
