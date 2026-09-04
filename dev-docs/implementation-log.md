@@ -265,6 +265,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The client had four clocks where the server now has one (2026-09-04)](#the-client-had-four-clocks-where-the-server-now-has-one-2026-09-04) — C-5. `lib/clock.ts`, `SyncContext.nowIso`, and an eslint rule that bans the *call*; the compiler found the second and third `SyncContext` implementation again.
 - [A message was doing a result code's job (2026-09-04)](#a-message-was-doing-a-result-codes-job-2026-09-04) — G-14. `errors.As` + masked code; the mask is load-bearing, and the direction that decides whose fault a failure is had no test at all.
 - [Three helpers documented rules that lived somewhere else (2026-09-04)](#three-helpers-documented-rules-that-lived-somewhere-else-2026-09-04) — G-10. Dead exported surface deleted; the guard is "every exported `*Store` method has a caller outside the package", and a test does not count as one.
+- [The FK graph was written twice and compared never (2026-09-04)](#the-fk-graph-was-written-twice-and-compared-never-2026-09-04) — G-3 step 1. `PRAGMA foreign_key_list` against `blockedBy` and `cascades`; reachability had to be transitive, and the nine gaps that remain are nine one-line reasons.
 
 
 ## Current state
@@ -12259,3 +12260,45 @@ unreached must be named in `storeMethodsWithNoCallerOutside` **with its reason**
 one is (`DB`). Test files are deliberately excluded from the caller side: a
 method kept alive only by its own test is the exact shape this guard exists to
 catch — it passes, it is documented, and it enforces nothing.
+
+## The FK graph was written twice and compared never (2026-09-04)
+
+Design-review item **G-3, step 1**. `schema.sql` declares 47 `REFERENCES`, 24 of
+them `ON DELETE CASCADE`; `tableSpecs` restates the interesting ones as Go
+literals and SQL strings. Nothing compared the two, and the failure that costs
+is silent: a column added with `ON DELETE CASCADE` and forgotten in `cascades`
+deletes the child on the server and emits **no tombstone**, so every other
+device keeps a row that no longer exists — the failure §4a was written after.
+
+The graph is read from `PRAGMA foreign_key_list` rather than from `schema.sql`.
+A second parser of that file would be a second interpretation, which is the
+thing the test exists to prevent.
+
+**`blockedBy` turned out to be exactly right**, in both directions — every
+restricting reference into a declared table is listed and every listed entry has
+a real reference. It is asserted as an equality, so it stays that way.
+
+**`cascades` is deliberately not the FK graph, and the difference took a
+measurement to state honestly.** The first comparison used direct edges and
+reported nine mismatches plus two false ones: `trip_series ->
+destination_checklist_items` and `templates -> template_item_tasks` have no
+direct edge at all — they are *grandchildren*, reached through
+`destination_profiles` and `template_items`. **Reachability has to be transitive
+because a cascade is.** With the transitive walk, nothing listed is unreachable
+and exactly nine reachable children are unlisted, each for one of two reasons:
+
+- `items -> item_images`: the BLOB never travels the sync envelope (ADR-002,
+  invariant 6), so no device holds a row for a tombstone to remove;
+- the eight trip-partition children of `trips`: `change_log.trip_id` cascades
+  too, so the trip's whole feed dies with it and a tombstone written there would
+  reach nobody. The three children that *are* listed travel the master feed,
+  which survives — that is the rule `client/src/sync/cascade.ts` mirrors.
+
+Both are named in `cascadeChildrenWithoutATombstone` **with the reason**, and a
+reason that stops being true is itself a failure: the test also refuses an
+excuse for an edge the schema no longer cascades.
+
+Step 2 — deriving both maps from the pragma at `Open` — is not done. With the
+comparison in place its value is smaller than it looked: the maps carry a
+*query* per child (`?1 OR ?1` for a dependency hanging off both endpoints) and
+an emission *order*, neither of which the pragma states.
