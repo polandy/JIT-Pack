@@ -5,7 +5,7 @@
 import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
-import { visiblePage } from './page'
+import { visiblePage, writesLanded } from './page'
 import { openQuickAdd } from './trips'
 import { PATH } from '../routes'
 
@@ -16,11 +16,13 @@ import { PATH } from '../routes'
  * first without navigating again.
  */
 export async function createMasterItem(page: Page, name: string) {
+  await writesLanded(page)
   await page.goto(PATH.items)
   await visiblePage(page).getByTestId('m9-fab').click()
   await visiblePage(page).getByTestId('m10-name').locator('input').fill(name)
   await visiblePage(page).getByTestId('m10-create').click()
   await expect(page.getByTestId('header-title')).toHaveText(name)
+  await writesLanded(page)
 }
 
 /**
@@ -41,6 +43,7 @@ export async function createTemplate(page: Page, kind: 'template' | 'group', nam
 
   await expect(page.getByTestId('header-title')).toHaveText(name)
   await expect(visiblePage(page).getByTestId('m8-scope-switch')).toBeVisible()
+  await writesLanded(page)
 }
 
 /**
@@ -65,10 +68,13 @@ export async function addPosition(page: Page, name: string) {
   const input = visiblePage(page).getByTestId('quick-add-input')
   await input.locator('input').fill(name)
   await input.locator('input').press('Enter')
-  // The new row is the settled signal — the add is a Local Mode write.
+  // The new row is the optimistic signal; the add is a Local Mode write, and
+  // the helper returns when it is on the device — a caller's next step may be
+  // a reload.
   await expect(
     visiblePage(page).locator('ion-item h2').filter({ hasText: name }).first(),
   ).toBeVisible()
+  await writesLanded(page)
 }
 
 /** FR-27.1: include a group into the open Ferien-Vorlage via M8's picker. */
@@ -79,10 +85,12 @@ export async function includeGroup(page: Page, groupName: string) {
     .locator('.pick')
     .filter({ hasText: groupName })
     .click()
+  await writesLanded(page)
 }
 
 /** Add one position to an existing group, through M7 → M8. */
 export async function addToGroup(page: Page, group: string, item: string) {
+  await writesLanded(page)
   await page.goto(PATH.templates)
   await visiblePage(page).getByTestId('m7-scope-group').click()
   await visiblePage(page).locator('ion-item').filter({ hasText: group }).first().click()
