@@ -17,13 +17,12 @@ function makeRouter() {
     routes: [
       { path: '/tabs/trips', component: Noop },
       {
-        // The trip-detail shape: one record, the overlay as an alias.
+        // The trip-detail shape: one record, the overlay in its query (ADR-046).
         path: '/trips/:tripId',
-        alias: '/trips/:tripId/items/:itemId',
         component: Noop,
         meta: {
           parent: '/tabs/trips',
-          overlayParam: 'itemId',
+          overlayQuery: 'item',
           overlayParent: '/trips/:tripId',
         },
       },
@@ -51,7 +50,7 @@ function nextNavs(router: ReturnType<typeof makeRouter>, count: number): Promise
 async function openSheet(router: ReturnType<typeof makeRouter>) {
   await router.push('/tabs/trips')
   await router.push('/trips/t1')
-  await router.replace('/trips/t1/items/i9')
+  await router.replace('/trips/t1?item=i9')
 }
 
 describe('overlayBackGuard', () => {

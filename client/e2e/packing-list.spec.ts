@@ -773,12 +773,13 @@ test.describe('M4 packing list — scroll memory @local @m4', () => {
     await seedMode({ mode: 'local' })
   })
 
-  // E2E-M4-45 (ADR-012's overlay amendment): the sheet's URL is an *alias*
-  // of the trip route and opening it `replace`s — which re-renders the list
-  // and returned it to the top. The ADR recorded that as a carried cost and
-  // named the repair ("remember M4's offset per trip"); this case is it.
-  // The assertion is on the rendered scroll position, never on the URL, and
-  // it waits on the page's own restoration signal rather than on a clock.
+  // E2E-M4-45 (ADR-012's overlay revision, ADR-046): opening an item is a
+  // state of the list's own page — `?item=` on the same route — so the list
+  // never leaves the screen and never leaves its offset. Until ADR-046 the
+  // item was a path parameter, every open mounted a second list at the top,
+  // and a scroll memory carried the offset across the remount; this case
+  // was written for that repair and now holds the promise it was repairing.
+  // The assertion is on the rendered scroll position, never on the URL.
   test('E2E-M4-45: closing the item sheet returns M4 to where it was scrolled', async ({
     page,
   }) => {
@@ -838,9 +839,10 @@ test.describe('M4 packing list — scroll memory @local @m4', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    // The signal the production code owes: it appears once an offset has
-    // actually been re-applied, so there is something to wait on.
-    await expect(content).toHaveAttribute('data-scroll-restored', 'true')
+    // Read once the sheet is gone: the offset is a settled state of a page
+    // that was never replaced, so there is nothing to wait for — a remount
+    // (the mutation this case is proved against) is at the top by the time
+    // the sheet has closed.
     expect(await offset()).toBe(SCROLLED_TO)
     // …and the header line came back folded with it, which is the other
     // half of "where it was": it holds 84 px of the scrolled content, so a

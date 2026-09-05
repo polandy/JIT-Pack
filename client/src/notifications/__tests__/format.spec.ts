@@ -66,7 +66,7 @@ describe('describeNotification', () => {
 describe('notificationRoute (G-4)', () => {
   it('routes to the item context when the payload has one', () => {
     expect(notificationRoute(notif('delegation', { trip_id: 't1', item_id: 'i1' }))).toBe(
-      '/trips/t1/items/i1',
+      '/trips/t1?item=i1',
     )
   })
 
@@ -77,7 +77,7 @@ describe('notificationRoute (G-4)', () => {
   it('appends the comment id so M5 can flash the message', () => {
     expect(
       notificationRoute(notif('mention', { trip_id: 't1', item_id: 'i1', comment_id: 'c9' })),
-    ).toBe('/trips/t1/items/i1?comment=c9')
+    ).toBe('/trips/t1?item=i1&comment=c9')
   })
 
   it('returns null without a trip', () => {

@@ -198,15 +198,15 @@ self.addEventListener('push', (event) => {
   }
   const payload = data.payload || {}
 
-  // Mirrors notificationRoute() (G-4): item context, plus the comment id
-  // as ?comment= so M5 scrolls to and flashes the message.
+  // Mirrors tripItemPath() / notificationRoute() (G-4, ADR-046): the trip's
+  // route, the item as ?item= and the comment id as &comment= so M5 scrolls
+  // to and flashes the message.
   let url = '/'
   if (payload.trip_id) {
+    url = `/trips/${payload.trip_id}`
     if (payload.item_id) {
-      url = `/trips/${payload.trip_id}/items/${payload.item_id}`
-      if (payload.comment_id) url += `?comment=${payload.comment_id}`
-    } else {
-      url = `/trips/${payload.trip_id}`
+      url += `?item=${payload.item_id}`
+      if (payload.comment_id) url += `&comment=${payload.comment_id}`
     }
   }
 

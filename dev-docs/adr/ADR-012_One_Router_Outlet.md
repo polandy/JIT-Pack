@@ -102,6 +102,12 @@ symptom of having two outlets while keeping two outlets.
 
 ## Amendment (2026-08-14): an overlay is an alias, and it replaces
 
+**Revised by ADR-046 (2026-09-05).** The alias was itself a second page to Ionic — a record whose path carries a
+parameter is matched per *pathname* — so every open mounted a second list, seen as two live M4s on a loaded WebKit
+runner (E2E-M5-12). The item is now `?item=` on the trip's route, the page reads it itself, and the scroll memory of the
+2026-08-21 amendment below is deleted with the remount it compensated. The overlay rule (`meta.overlayQuery`, formerly
+`overlayParam`) and the replace stand. What follows is kept as the history of how the alias was reasoned about.
+
 M5 is a sheet *over* the packing list (UI-Spec M5), so its URL has to render
 both. As its own route record it mounted a **second copy of the list** behind
 the sheet, because with one outlet Ionic keeps a page per matched *path*. The

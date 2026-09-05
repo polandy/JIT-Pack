@@ -4,6 +4,7 @@ import { installOverlayBackGuard } from './overlayBackGuard'
 import { installOriginStamp } from './originStamp'
 import {
   ITEM_ID_PARAM,
+  ITEM_QUERY_PARAM,
   PATH,
   SERIES_ID_PARAM,
   TEMPLATE_ID_PARAM,
@@ -11,7 +12,6 @@ import {
   itemPath,
   seriesPath,
   templatePath,
-  tripItemPath,
   tripPath,
   tripSubPath,
 } from './paths'
@@ -91,17 +91,16 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/trips/TripWizardPage.vue'),
   },
   {
-    // The packing list, and — through the alias — the item sheet over it
-    // (UI-Spec M5). One route *record* on purpose: a second record would
-    // mount a second copy of the list behind the sheet, because Ionic
-    // keeps a page per matched record. With an alias only the params
-    // change, so the list stays the one the user was already looking at.
+    // The packing list, and — through `?item=` — the item sheet or panel
+    // over it (UI-Spec M5, ADR-046). The item is a query rather than a
+    // path parameter because Ionic keeps one page per matched *path*: a
+    // second record, and equally an alias with its own parameter, mounted
+    // a second copy of the list on every open.
     path: tripPath(TRIP_ID_PARAM),
-    alias: tripItemPath(TRIP_ID_PARAM, ITEM_ID_PARAM),
     meta: {
       parent: PATH.trips,
       // With the sheet open, back closes it rather than leaving the trip.
-      overlayParam: 'itemId',
+      overlayQuery: ITEM_QUERY_PARAM,
       overlayParent: tripPath(TRIP_ID_PARAM),
     },
     name: 'trip-detail',
