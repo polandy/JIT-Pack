@@ -314,6 +314,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
+- [The arrow was the wrong instrument, not the wrong moment (2026-09-05)](#the-arrow-was-the-wrong-instrument-not-the-wrong-moment-2026-09-05) — the date picker's month hop is a smooth scroll nobody watches; the keyboard path is the one Ionic can not drop.
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
 - [A page mounted twice, on the strength of a comment (2026-09-05)](#a-page-mounted-twice-on-the-strength-of-a-comment-2026-09-05) — ADR-046: the item alias was a second page to Ionic; the query keeps it, and Ionic's props cache is the trap.
 - [Six trip screens had never asked for their own rows (2026-09-05)](#six-trip-screens-had-never-asked-for-their-own-rows-2026-09-05) — U-10's unverified premise was a defect; the mode that hides it is the one the cheap test runs in.
@@ -12939,3 +12940,49 @@ is already here, which is what M4 has always done and is now what all of them do
 values off the composable. That it existed there and nowhere else is the shape
 this whole review keeps finding: the rule was known, written once, and never
 made reachable from the other six.
+
+## The arrow was the wrong instrument, not the wrong moment (2026-09-05)
+
+`main` went red at `b6d2f0d5` on the line of `setDateField` that the entry
+above had just fixed: WebKit, `e2e (7)`, the arrow clicked and the header
+still on September five seconds later. The ready wait was in place, so the
+diagnosis of the day before was incomplete, and the note the U-10 pass had
+left ("clicks the month arrow by coordinate into a still-animating sheet")
+was a guess about the click. It was not the click.
+
+Read in `datetime.js`: `nextMonth()` is `calendarBodyRef.scrollTo({ left:
+2 × month width, behavior: 'smooth' })`. The header is recomputed by the
+scroll listener — 50 ms after the *last* scroll event — and only if the month
+it finds at the body's left edge is aligned to within 2 px; otherwise
+`getChangedMonth` returns nothing and the hop leaves no trace. A smooth
+scroll that stops short, which is what a starved WebKit does, is a hop the
+component itself never notices. A second click would have been a guess about
+where the body stopped. The same file's keyboard handler sets `workingParts`
+directly on `PageDown`/`PageUp` from a focused day cell and re-renders the
+header from it: no scroll, no listener, no alignment. That is now the hop.
+
+Two measurements decided the shape of the fix. Removing the `datetime-ready`
+wait from the *new* helper stayed green three of three: the two round trips
+before the key (find the cell, focus it) outlast Ionic's own 100 ms fallback
+to `markReady()`, so the wait is no longer what holds the walk up. It stays,
+because the keyboard listener is attached in the same `markReady()` and a
+wait on the mechanism is cheap; but the entry above credited the wait with
+more than it does. Focusing the header button instead of a day cell went red
+on the hop's own assertion, twice out of twice, in the exact shape of the CI
+failure — that is the postcondition proving it can see a dropped hop.
+
+The one thing that made the hop bounded under FR-2.1d: the key acts on the
+*focused* cell's date, and Ionic ignores a hop whose landing day is disabled.
+So the cell focused is the enabled day nearest the target's day-of-month, and
+every month between here and the target lands inside the bound, because a
+bound is a single date on one side and the target is inside it.
+
+Seen while measuring, not fixed here: with a foreign e2e suite on the same
+machine (load average 18) one repeat each of E2E-M3-01 and E2E-M3-20 went
+red on WebKit — the first types the trip name with a raw `fill` and *Next*
+stayed disabled, the second never saw `datetime-ready` within five seconds
+on a picker that had rendered its whole grid. Both are five-second windows
+that a starved renderer can miss; neither is the arrow. The run also showed
+E2E-M18-08 red on Chromium on `main`, on the restored device's last step, and
+that one is a screen finding rather than a helper one.
+
