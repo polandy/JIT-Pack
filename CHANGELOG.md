@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.1](https://github.com/polandy/JIT-Pack/compare/v0.5.0...v0.5.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **client:** a trip screen loads its own partition, not M4's (U-10) ([b6d2f0d](https://github.com/polandy/JIT-Pack/commit/b6d2f0d5adb3f7c5bd94e3d78c87b2e2aacd8955))
+* **client:** the date sheet's calendar is ready when the sheet has landed, and the walk to a month is a key, not a scroll ([54e784a](https://github.com/polandy/JIT-Pack/commit/54e784aa162aef4716471c5de6441ba5fbf4d09c))
+* **e2e:** a write helper returns when the write is on the device ([03209e6](https://github.com/polandy/JIT-Pack/commit/03209e6d59992aa0c5ee68ea18aee93f5d4cd421))
+* **e2e:** two helpers waited for hydrated and needed ready ([99285a3](https://github.com/polandy/JIT-Pack/commit/99285a3e7435979f54f8d8e332de6ccbd555d24e))
+* **router:** the item over the packing list is a query, not a second page (ADR-046) ([869254b](https://github.com/polandy/JIT-Pack/commit/869254b153c6d8cad96d3873c1164f7371c415a1))
+
 ## [0.5.0](https://github.com/polandy/JIT-Pack/compare/v0.4.0...v0.5.0) (2026-09-02)
 
 
