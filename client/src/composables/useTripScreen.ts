@@ -26,8 +26,8 @@ export interface TripScreen {
   loaded: ComputedRef<boolean>
   /**
    * The load, awaitable for a screen that has an ordering of its own — M4
-   * proposes its group refresh and restores its scroll offset only once the
-   * rows are here.
+   * proposes its group refresh and loads identity only once the rows are
+   * here.
    *
    * Registered on `onMounted` by this composable already; calling it is
    * joining that load, not starting a second one. The in-flight promise is a
