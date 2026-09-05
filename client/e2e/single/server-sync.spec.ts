@@ -1023,7 +1023,7 @@ test.describe('Single-User backend sync @single', () => {
   }) => {
     test.slow()
     const tag = uniq()
-    // Comfortably more than PULL_PAGE_SIZE (500, useSyncOutbox.ts). The
+    // Comfortably more than PULL_PAGE_SIZE (500, sync/partition.ts). The
     // request-count assertion below is what keeps this honest if that number
     // ever changes: one page would mean one request, and the case fails.
     const ROWS = 520

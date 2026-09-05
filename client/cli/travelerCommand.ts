@@ -16,8 +16,7 @@
 import { APIClient } from '@/api/client'
 import { API } from '@/api/routes'
 import type { UserListResponse } from '@/api/types'
-import { usePull } from '@/composables/usePull'
-import { usePush } from '@/composables/usePush'
+import { MASTER_PARTITION, pullPartitionAll, tripPartition } from '@/sync/partition'
 import { HLCGenerator } from '@/sync/hlc'
 import { foldName } from '@/domain/nameCollision'
 import type { Trip } from '@/types/domain'
@@ -140,8 +139,6 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
   const client = new APIClient(opts.serverUrl, () => opts.token)
   const ctx = createCommandContext(hlc, io.now)
   const { trips, pending, tripLifecycle } = ctx
-  const { pullMasterAll, pullTripAll } = usePull(client, hlc)
-  const { pushMaster, pushTrip } = usePush(client, hlc)
 
   // Trips are in the master partition; the roster is in the trip's own. Both
   // have to be here before anything is planned, because both decide whether
@@ -150,14 +147,17 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
   try {
     // The whole master partition, not only the trips: the refresh the add
     // may trigger resolves against the groups and the inventory.
-    ctx.applyPulled('master', (await pullMasterAll(0)).changes)
+    ctx.applyPulled('master', (await pullPartitionAll(client, hlc, MASTER_PARTITION, 0)).changes)
     const found = resolveTrip(trips.tripList, opts.trip, opts.year)
     if ('error' in found) {
       io.write(found.error)
       return EXIT.failed
     }
     trip = found.trip
-    ctx.applyPulled('trip', (await pullTripAll(trip.id, 0)).changes)
+    ctx.applyPulled(
+      'trip',
+      (await pullPartitionAll(client, hlc, tripPartition(trip.id), 0)).changes,
+    )
     ctx.markTripLoaded(trip.id)
   } catch (e) {
     io.write(`${opts.serverUrl}: ${message(e)}`)
@@ -224,7 +224,7 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
 
   if (written > 0) {
     try {
-      await pushPending(pending, pushMaster, pushTrip)
+      await pushPending(client, hlc, pending)
     } catch (e) {
       io.write(`${where}: failed — ${message(e)}`)
       return EXIT.failed

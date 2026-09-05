@@ -747,7 +747,7 @@ describe('SyncOutbox durability', () => {
      * Sync-API §3: a pull snapshot is the only place a device meets the clock
      * of a write it did not make, and advancing to it is what keeps a device
      * whose wall clock lags from minting HLCs older than writes it has already
-     * seen. The rule was asserted only on `usePull` — the command line's copy
+     * seen. The rule was asserted only on the command line's copy
      * — while the drain every browser actually runs had no case at all, which
      * is how the step managed to be dead code for a year (the server was not
      * sending the field) without a single red test.
