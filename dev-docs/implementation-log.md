@@ -12960,29 +12960,53 @@ component itself never notices. A second click would have been a guess about
 where the body stopped. The same file's keyboard handler sets `workingParts`
 directly on `PageDown`/`PageUp` from a focused day cell and re-renders the
 header from it: no scroll, no listener, no alignment. That is now the hop.
+Focusing the header button instead of a day cell went red on the hop's own
+assertion, twice out of twice, in the exact shape of the CI failure.
 
-Two measurements decided the shape of the fix. Removing the `datetime-ready`
-wait from the *new* helper stayed green three of three: the two round trips
-before the key (find the cell, focus it) outlast Ionic's own 100 ms fallback
-to `markReady()`, so the wait is no longer what holds the walk up. It stays,
-because the keyboard listener is attached in the same `markReady()` and a
-wait on the mechanism is cheap; but the entry above credited the wait with
-more than it does. Focusing the header button instead of a day cell went red
-on the hop's own assertion, twice out of twice, in the exact shape of the CI
-failure — that is the postcondition proving it can see a dropped hop.
+Then the PR's own CI went red one line earlier, on the ready wait itself
+(E2E-M4-04, WebKit): hydrated, every day cell in the accessibility tree,
+`datetime-ready` never in five seconds. Reading had reached its limit, so a
+timeline was put into the page — one line per change of state, on every
+frame, for four seconds after the tap. Three runs on WebKit:
 
-The one thing that made the hop bounded under FR-2.1d: the key acts on the
-*focused* cell's date, and Ionic ignores a hop whose landing day is disabled.
-So the cell focused is the enabled day nearest the target's day-of-month, and
-every month between here and the target lands inside the bound, because a
-bound is a single date on one side and the target is inside it.
+| run | calendar exists | modal shown | `datetime-ready` |
+|---|---|---|---|
+| 1 | 0 ms, hydrated, inside `overlay-hidden`, height 0 | 72 ms | 4 577 ms |
+| 2 | 1 ms, same | 80 ms | 573 ms |
+| 3 | 1 ms, modal already shown | — | 3 767 ms |
 
-Seen while measuring, not fixed here: with a foreign e2e suite on the same
-machine (load average 18) one repeat each of E2E-M3-01 and E2E-M3-20 went
-red on WebKit — the first types the trip name with a raw `fill` and *Next*
-stayed disabled, the second never saw `datetime-ready` within five seconds
-on a picker that had rendered its whole grid. Both are five-second windows
-that a starved renderer can miss; neither is the arrow. The run also showed
-E2E-M18-08 red on Chromium on `main`, on the restored device's last step, and
-that one is a screen finding rather than a helper one.
+The mechanism, from the same file: Ionic readies `ion-datetime` from an
+IntersectionObserver rooted on the component itself, with one fallback 100 ms
+after mount for observers that never report (its own `TODO(FW-6931)`). The
+calendar mounts while the modal is still `display: none`, so the fallback
+fires against a box of zero height and is spent; and the observer — a second
+timeline put `didPresent` 2.9 s after `willPresent` — reports when the enter
+animation ends, which on a loaded renderer is seconds. Until then
+`.calendar-body` is at opacity 0: an open sheet with no calendar in it, which
+is the user's half of the finding. The entry above had said "the fix is one
+assertion on the class"; the class was the right thing to wait for and the
+wrong thing to expect within five seconds.
 
+Two changes, one measurement each. `DateField` mounts the calendar afresh on
+`didPresent` (a `:key` that changes when the sheet lands): the second
+calendar's 100 ms fallback fires against a laid-out box, and the timeline
+showed it ready 272 ms after the remount. The sheet keeps its height across
+the swap because the two calendars are the same size — the G-2 rule that an
+auto-height sheet is measured once at presentation is why the calendar is
+*remounted* rather than mounted late. `SheetModal` renders `data-presented`,
+so the helper waits for the presentation and then for readiness: two
+mechanisms in the order they happen, each with its own budget, and a failure
+that names its phase.
+
+What was measured and could not be fixed: the last local runs were made
+beside a foreign e2e suite (load average 20), and there the modal carried no
+`show-modal` five seconds after the tap — Ionic's `present()` had not got
+past its first `requestAnimationFrame`. WebKit's frame pipeline stalls for
+seconds under that load and Ionic does everything on it: `writeTask`, the
+animation, the observer. That is a renderer in slow motion, not a race, and
+no wait on a mechanism helps when the mechanism is the frame. Two cases seen
+red in those runs, one repeat each, belong to the same weather: E2E-M3-01
+(a raw `fill` and *Next* still disabled) and E2E-M3-20 (the old ready wait).
+Neither is the arrow, and this machine can no longer say whether the fix is
+green; CI can. The same `main` run also had E2E-M18-08 red on Chromium, on
+the restored device's last step — a screen finding, taken up next.

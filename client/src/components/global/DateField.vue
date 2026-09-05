@@ -34,6 +34,21 @@ const props = withDefaults(
 const emit = defineEmits<{ update: [iso: string] }>()
 
 const open = ref(false)
+/*
+ * The calendar is mounted a second time once the sheet is on screen. Ionic
+ * marks `ion-datetime` ready — attaches its scroll and keyboard listeners and
+ * unhides `.calendar-body` — from an IntersectionObserver rooted on the
+ * component itself, with one fallback 100 ms after mount for observers that
+ * never report. The sheet's content mounts while the modal is still
+ * `display: none`, so that fallback fires against a box of zero height and
+ * is spent; what remains is the observer, measured on WebKit at 0.6–4.6 s
+ * after the sheet appeared — seconds of an open sheet with no calendar in
+ * it. A key that changes on `didPresent` mounts the calendar into a laid-out
+ * sheet, where the fallback lands on a real box. The sheet keeps its height
+ * across the swap, because the second calendar is the same size as the
+ * first (an auto-height sheet is measured once at presentation, G-2).
+ */
+const presented = ref(0)
 
 const display = computed(() => (props.value ? formatDay(props.value) : ''))
 
@@ -56,9 +71,10 @@ function onPicked(picked: string | string[] | null | undefined) {
     @click="!props.readonly && (open = true)"
     @keyup.enter="!props.readonly && (open = true)"
   />
-  <SheetModal :is-open="open" @dismiss="open = false">
+  <SheetModal :is-open="open" @dismiss="open = false" @present="presented++">
     <div class="picker ion-padding">
       <IonDatetime
+        :key="presented"
         presentation="date"
         :value="props.value || undefined"
         :min="props.min || undefined"

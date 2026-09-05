@@ -45,18 +45,18 @@ export async function setDateField(page: Page, testid: string, iso: string): Pro
   const picker = page.getByTestId(`${testid}-picker`)
   await expect(picker).toBeVisible()
   /*
-   * Visible is not usable, and the difference is the whole of E2E-M4-23's
-   * WebKit failure (2026-09-04). `ion-datetime` attaches the scroll listener
-   * that recomputes the month header inside `markReady()`, and marks itself
-   * with this class in the same breath; the header arrows are clickable the
-   * entire time before that, because only `.calendar-body` is held at
-   * `opacity: 0`. So a hop taken too early scrolls the grid to the next
-   * month and **nothing recomputes the header** — the walk below steps
-   * forward and reads September for all thirty-six hops. Waiting for the
-   * class is waiting for the mechanism, not for a duration: `markReady` is
-   * driven by an IntersectionObserver on a picker that has just been
-   * presented in an animating sheet.
+   * Visible is not usable, twice over. The sheet is visible from the first
+   * frame of its enter animation, and Ionic's `didPresent` comes only at the
+   * animation's end — measured at 2.9 s on a loaded WebKit, so it gets its
+   * own wait and its own budget. Then `ion-datetime` has to be *ready*:
+   * `markReady()` is what attaches the keyboard and scroll listeners the walk
+   * below relies on and unhides `.calendar-body`; before it, a key is
+   * accepted and dropped. `DateField` mounts the calendar afresh on
+   * `didPresent` so that readiness follows the presentation rather than an
+   * IntersectionObserver that reports whenever it likes; the two waits are
+   * therefore for two mechanisms, in the order they happen.
    */
+  await expect(page.locator('ion-modal', { has: picker })).toHaveAttribute('data-presented', 'true')
   await expect(picker).toHaveClass(/datetime-ready/)
 
   const headerFor = (y: number, m: number) =>
