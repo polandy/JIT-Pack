@@ -16,8 +16,14 @@ import { createTripLifecycleActions } from '../actions/tripLifecycle'
 import { createCommentActions } from '../actions/comments'
 import { createPackingActions } from '../actions/packing'
 import { createGroupRefreshActions } from '../actions/groupRefresh'
-import { changesOf, makeSeamContext, pullIn, type Recorded, paintedRow } from './seamContext'
-import type { SyncContext } from '../context'
+import {
+  changesOf,
+  makeSeamContext,
+  pullIn,
+  type Recorded,
+  paintedRow,
+  type SeamContext,
+} from './seamContext'
 import { TABLE } from '@/types/tables'
 import { TRIP_STATUS_ACTIVE, TRIP_STATUS_ARCHIVED } from '@/types/domain'
 
@@ -30,9 +36,9 @@ const TRAVELER_ID = 'trav-1'
 const TRIP_END = '2026-09-08'
 
 let queued: Recorded[]
-let ctx: SyncContext
+let ctx: SeamContext
 
-function build(ctx: SyncContext) {
+function build(ctx: SeamContext) {
   const comments = createCommentActions(ctx)
   return createTripLifecycleActions(ctx, {
     comments,

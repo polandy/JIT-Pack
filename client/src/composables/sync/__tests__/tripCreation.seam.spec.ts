@@ -14,15 +14,14 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createTripCreationActions } from '../actions/tripCreation'
-import { makeSeamContext, pullIn, type Recorded } from './seamContext'
-import type { SyncContext } from '../context'
+import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
 import { TABLE } from '@/types/tables'
 import type { GeneratedItem } from '@/domain/instantiate'
 import type { ImportPlan } from '@/domain/spreadsheet'
 
 let queued: Recorded[]
 let drains: string[][]
-let ctx: SyncContext
+let ctx: SeamContext
 
 /** Every write, as (partition, table) in the order the cascade made it. */
 const writes = () => queued.flatMap((q) => q.muts.map((m) => [q.type, m.mutation.table] as const))

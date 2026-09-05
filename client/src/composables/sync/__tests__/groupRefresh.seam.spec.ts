@@ -14,8 +14,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { createGroupRefreshActions } from '../actions/groupRefresh'
 import { createCommentActions } from '../actions/comments'
-import { makeSeamContext, pullIn, type Recorded } from './seamContext'
-import type { SyncContext } from '../context'
+import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
 import { TABLE } from '@/types/tables'
 
 const TRIP_ID = 'trip-1'
@@ -27,9 +26,9 @@ const POSITION_ID = 'pos-1'
 const TRIP_END = '2026-09-08'
 
 let queued: Recorded[]
-let ctx: SyncContext
+let ctx: SeamContext
 
-function build(ctx: SyncContext) {
+function build(ctx: SeamContext) {
   return createGroupRefreshActions(ctx, { comments: createCommentActions(ctx) })
 }
 
@@ -37,7 +36,7 @@ function build(ctx: SyncContext) {
  * One planning trip following one group that carries one position, seeded the
  * way a pull would so the stores map the rows themselves.
  */
-function seedWorld(ctx: SyncContext, opts: { tasks?: boolean; quantity?: number } = {}) {
+function seedWorld(ctx: SeamContext, opts: { tasks?: boolean; quantity?: number } = {}) {
   pullIn(ctx.tripStore, TABLE.trips, TRIP_ID, {
     name: 'Samedan',
     year: 2026,
