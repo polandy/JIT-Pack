@@ -7,7 +7,12 @@
  */
 import { findNameCollision, renameTarget } from '@/domain/nameCollision'
 import type { Template, TripSeries } from '@/types/domain'
-import type { useMasterStore } from '@/stores/masterStore'
+
+/** The two lists the guards read — a `MasterReads` satisfies it. */
+export interface NameReads {
+  readonly activeTemplateList: Template[]
+  readonly seriesList: TripSeries[]
+}
 
 /**
  * Whether an edit patch renames a row onto a name somebody else holds. The
@@ -31,7 +36,7 @@ export interface NameGuards {
 }
 
 /** createNameGuards binds the collision lookups to one master store. */
-export function createNameGuards(masterStore: ReturnType<typeof useMasterStore>): NameGuards {
+export function createNameGuards(masterStore: NameReads): NameGuards {
   return {
     /**
      * templateNameCollision names the template already holding `name`
