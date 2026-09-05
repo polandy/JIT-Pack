@@ -12,7 +12,7 @@ import type { createMutations } from '@/sync/mutations'
 import type { NameGuards } from './names'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { NowIso } from '@/lib/clock'
-import type { SyncTable } from '@/types/tables'
+import type { CascadeRow } from '@/sync/cascade'
 import type {
   Container,
   DestinationProfile,
@@ -55,10 +55,10 @@ export interface TripReads {
   getTodos(tripId: string): ItemTodo[]
   getTemplateSources(tripId: string): TripTemplateSource[]
   getGeneratedPositions(tripId: string): GeneratedPosition[]
-  /** The two `cascade.ts` asks for, since a group hands it this store. */
-  childRows(tripId: string): Array<{ table: SyncTable; id: string }>
-  itemChildRows(tripItemId: string): Array<{ table: SyncTable; id: string }>
-  templateSourceRows(templateId: string): Array<{ table: SyncTable; id: string }>
+  /** The three `cascade.ts` asks for, since a group hands it this store. */
+  childRows(tripId: string): CascadeRow[]
+  itemChildRows(tripItemId: string): CascadeRow[]
+  templateSourceRows(templateId: string): CascadeRow[]
 }
 
 /** What the action groups read off the master store — and nothing else. */
@@ -78,7 +78,7 @@ export interface MasterReads {
   getTemplateItems(templateId: string): TemplateItem[]
   getDestinationProfile(seriesId: string): DestinationProfile | undefined
   /** `cascade.ts`'s, for the same reason as `TripReads.childRows`. */
-  childRows(table: string, id: string): Array<{ table: SyncTable; id: string }>
+  childRows(table: string, id: string): CascadeRow[]
 }
 
 /**

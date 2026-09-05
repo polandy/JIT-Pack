@@ -32,13 +32,16 @@ const ITEM = { id: 'i-1', trip_id: TRIP_ID, container_id: LEFT.id } as TripItem
  * grew a read this fake cannot serve would fail on the assertion, and a
  * `throw` here would report that as this file's bug.
  */
-function fakeTripReads(): TripReads {
+function fakeTripReads(asked: string[] = []): TripReads {
   return {
     tripList: [],
     getTrip: () => undefined,
-    getItems: (tripId) => (tripId === TRIP_ID ? [ITEM] : []),
+    getItems: (tripId) => (asked.push('getItems'), tripId === TRIP_ID ? [ITEM] : []),
     getTravelers: () => [],
-    getContainers: (tripId) => (tripId === TRIP_ID ? [LEFT, RIGHT] : []),
+    getContainers: (tripId) => (
+      asked.push('getContainers'),
+      tripId === TRIP_ID ? [LEFT, RIGHT] : []
+    ),
     getTodos: () => [],
     getTemplateSources: () => [],
     getGeneratedPositions: () => [],
@@ -68,13 +71,19 @@ function fakeMasterReads(templates: Template[] = []): MasterReads {
   }
 }
 
-function fakeContext(): { ctx: SyncContext; queued: QueuedMutation[] } {
+function fakeContext(): { ctx: SyncContext; queued: QueuedMutation[]; asked: string[] } {
   const queued: QueuedMutation[] = []
+  /**
+   * Which of the fake's members the group asked for — the positive signal
+   * that a literal served it, and not a store this file never built.
+   */
+  const asked: string[] = []
   const masterStore = fakeMasterReads()
   return {
     queued,
+    asked,
     ctx: {
-      tripStore: fakeTripReads(),
+      tripStore: fakeTripReads(asked),
       masterStore,
       mutations: createMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => NOW_ISO),
       enqueueAndDrain: (_type, _id, ...muts) => queued.push(...muts),
@@ -91,9 +100,11 @@ function fakeContext(): { ctx: SyncContext; queued: QueuedMutation[] } {
 
 describe('a sync context built without pinia', () => {
   it('drives a group that reads the trip store', () => {
-    const { ctx, queued } = fakeContext()
+    const { ctx, queued, asked } = fakeContext()
 
     createContainerActions(ctx).deleteContainer(TRIP_ID, LEFT.id)
+
+    expect(asked).toEqual(['getContainers', 'getItems'])
 
     // Both of this group's reads are exercised: the item is unassigned
     // because `getItems` named it as living in the container, and the delete
