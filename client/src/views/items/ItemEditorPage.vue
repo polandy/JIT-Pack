@@ -47,10 +47,10 @@ import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from '
 import { useRoute, useRouter } from 'vue-router'
 import { dependencyCycleError, type DependencyCycleError } from '@/domain/dependencies'
 import { containingTemplates, commentsOnItem } from '@/domain/itemHistory'
-import type { DirectoryUser } from '@/api/types'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useIdentity } from '@/composables/useTripIdentity'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
@@ -66,6 +66,7 @@ const props = defineProps<{ itemId?: string }>()
 const masterStore = useMasterStore()
 const tripStore = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const { directory, load } = useIdentity(orchestrator)
 const route = useRoute()
 const router = useRouter()
 
@@ -89,18 +90,10 @@ const nameInput = ref<{ $el: HTMLElement } | null>(null)
 onMounted(async () => {
   // FR-27.9's author line. Absent in Local and Single-User Mode, where the
   // call answers nothing and there is nobody to name (G-8).
-  orchestrator
-    .fetchUsers()
-    .then((users) => {
-      directory.value = users
-    })
-    // Local Mode has no directory to fetch and Single-User no accounts to
-    // name, so a refusal here is the expected answer in two of three modes.
-    // Named rather than discarded: the section still renders, with the trip
-    // and the date and no author.
-    .catch(() => {
-      directory.value = []
-    })
+  // Local Mode has no directory to fetch and Single-User no accounts to
+  // name, so nothing is the expected answer in two of three modes: the
+  // section still renders, with the trip and the date and no author.
+  void load()
   if (!isCreating.value) return
   await nextTick()
   // The name is the only required field, so it takes the caret.
@@ -434,7 +427,6 @@ const itemComments = computed(() =>
  * Single-User Mode, where there are no accounts — the meta line then carries
  * the trip and the date and no who, rather than a raw uuid (G-8).
  */
-const directory = ref<DirectoryUser[]>([])
 
 /** `null` where nobody can be named; the line then says less rather than something untrue. */
 function authorName(userId: string): string | null {

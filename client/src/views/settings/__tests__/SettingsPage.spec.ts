@@ -14,6 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
+import { identityStub } from '@/composables/__tests__/identityStub'
 import SettingsPage from '../SettingsPage.vue'
 import { LOCALE_STORAGE_KEY, setLocale } from '@/i18n'
 
@@ -33,7 +34,7 @@ vi.mock('@/notifications/push', () => ({
 }))
 
 const orchestratorFake = {
-  fetchMe: vi.fn(() => Promise.resolve({ user_id: 'u1', display_name: 'Andy' })),
+  ...identityStub(),
   fetchNotificationPrefs: vi.fn(() =>
     Promise.resolve({ delegation: true, mention: true, task: false, lock_taken: true }),
   ),

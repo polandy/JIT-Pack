@@ -22,6 +22,8 @@ import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 import type { AppliedChange } from '@/types/domain'
 
+import { identityStub } from '@/composables/__tests__/identityStub'
+
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 // M2 opens on the *active* segment, so each test names the one it needs the
@@ -44,6 +46,7 @@ vi.mock('vue-router', () => ({
 const masterLoaded = ref(true)
 
 const orchestratorFake = {
+  ...identityStub(),
   activateTrip: vi.fn(),
   fetchMe: vi.fn(() => Promise.resolve(null)),
   drainAll: vi.fn(() => Promise.resolve()),

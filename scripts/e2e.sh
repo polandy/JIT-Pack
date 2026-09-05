@@ -55,7 +55,7 @@ if [ -n "${E2E_BACKEND:-}" ] || [ -n "${E2E_SERVER:-}" ]; then
   if [ -n "${E2E_BACKEND:-}" ]; then env_flags+=(-e E2E_BACKEND); fi
   if [ -n "${E2E_SERVER:-}" ]; then env_flags+=(-e E2E_SERVER); fi
 fi
-for port_var in E2E_API_PORT E2E_SERVER_API_PORT E2E_IDP_PORT E2E_SERVER_PORT; do
+for port_var in E2E_PORT E2E_API_PORT E2E_SERVER_API_PORT E2E_IDP_PORT E2E_SERVER_PORT; do
   if [ -n "${!port_var:-}" ]; then
     env_flags+=(-e "${port_var}")
   fi

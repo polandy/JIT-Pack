@@ -31,6 +31,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [E2E-M7-06 — why it stopped being partial (2026-08-30)](#e2e-m7-06--why-it-stopped-being-partial-2026-08-30) — an empty-state CTA the screen deliberately does not have — the clause was retired, not owed.
 - [E2E-M7-07 — one clause short of what it claimed (2026-08-30)](#e2e-m7-07--one-clause-short-of-what-it-claimed-2026-08-30) — the row's resolved count, the only arithmetic the row does, untested while the id read as complete.
 - [E2E-M7-04 — how the case is split, and why](#e2e-m7-04--how-the-case-is-split-and-why) — the `contextmenu` handler, and the guard asserted both ways.
+- [E2E-M20-07 — the cache had to earn its freshness (2026-09-05)](#e2e-m20-07--the-cache-had-to-earn-its-freshness-2026-09-05) — a before/after pair on one locator; why a case can be owed by a change that makes nothing new visible.
 - [E2E-G9-18 — the deep link that only Local Mode survived (2026-09-05)](#e2e-g9-18--the-deep-link-that-only-local-mode-survived-2026-09-05) — one screen pulled the trip partition and six relied on it; why the case had to be written in `single`.
 - [The visual unit — the only one that asserts appearance](#the-visual-unit--the-only-one-that-asserts-appearance) — why it is a separate project outside `npm run test:e2e`, and what surfaces, colour and typography each do *not* prove.
 - [What the M4 unit deliberately leaves out (rewritten 2026-08-30)](#what-the-m4-unit-deliberately-leaves-out-rewritten-2026-08-30) — two waits that ended without anybody noticing — the paragraph that stood here was wrong in both halves.
@@ -274,7 +275,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), **E2E-FLOW-01b** (the member's pack on the owner's screen, since 2026-09-01), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
-| M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
+| M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06, **E2E-M20-07** (a deactivation reaches the sharing picker, since 2026-09-05) | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31), **E2E-FLOW-07** (the move off Local Mode, since 2026-08-31), **E2E-G2-13** / **E2E-G2-14** (a dead socket is dialled again, and coming back pulls at once — since 2026-09-01), **E2E-G9-18** (a trip sub-screen opened cold, since 2026-09-05) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
@@ -4447,3 +4448,54 @@ The fix is `composables/useTripScreen.ts`, and the reason it is a composable
 rather than a router guard is that the guard would have to know which routes
 carry a trip: the screens already know, and one of them (M4) has an ordering of
 its own to run once the rows are here.
+
+
+## E2E-M20-07 — the cache had to earn its freshness (2026-09-05)
+
+U-10's second half made the user directory one read per session instead of one
+per screen. Nothing about that is visible, and a change nobody can see is
+usually a change that owes no case.
+
+It owed one anyway, and for the opposite of the usual reason: not to show what
+the change added, but to hold on to something it could quietly take away. The
+per-screen fetch was stale-proof **by accident** — a screen that remounted
+re-read the directory, so a rename or a deactivation reached the next screen
+the person opened. Cache that read and the accident is gone; the four writers
+that change who the instance knows about have to put it back.
+
+So the case drives the one of those four with a surface: Alice opens the FR-4.5
+sharing picker and Dave is offered, she deactivates him on M20, she opens the
+same picker again and he is not. It is red on the build in between — the
+cache without the refresh — which is the version this exists to stop anyone
+shipping, and the mutation was run: dropping `refreshIdentity()` from
+`deactivateUser` leaves Dave in the picker (`Expected 0, Received 1`).
+
+**The first version of this case could not have failed, and the reason is worth
+carrying.** It reached each screen with `page.goto`. A `goto` reboots the
+document, and a rebooted app fetches the directory again whatever the store
+does — so the case would have passed against the build it exists to fail. Every
+step is now in-app: M2's slide → Share for the roster, the app bar's gear for
+M17 → M20. It is also four times faster (27 s against a 180 s timeout it had
+been blowing), because a document boot costs more than any number of clicks.
+
+**The picker is dismissed through the overlay's own `dismiss()`, not by
+`Escape`.** The first CI run failed on `expect(ion-popover).toHaveCount(0)`
+after the key press, having passed four times locally — a select popover
+honours `Escape` only while the key event reaches the overlay, and on a loaded
+runner the focus has not always arrived. The action-sheet helpers keep their
+`Escape` because an action sheet takes focus itself. Closing the picker is
+setup between two assertions rather than the behaviour under test, so the
+deterministic dismissal is the right trade; a longer wait would not be.
+
+**Bob is the standing control.** M6's roster renders `members-add` only when
+there *is* a candidate, so with Dave gone and nobody else provisioned the whole
+control disappears — and „Dave is not offered" would then be satisfied by a
+picker that offers nobody. Bob is a candidate before and after, so the zero is
+read off a control that is demonstrably still working. He is only read here,
+never changed: the file's rule is that an account this file *changes* is logged
+in by this file alone, and that account is Dave.
+
+The unit half is in `composables/__tests__/admin.spec.ts`, table-driven over
+**all four** writers plus the two avatar calls that deliberately do *not*
+refresh. It looks like that because an earlier version asserted one writer, and
+dropping the refresh from `deactivateUser` left it green.

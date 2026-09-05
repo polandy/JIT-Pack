@@ -70,6 +70,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { AppliedChange, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useIdentity } from '@/composables/useTripIdentity'
 import SearchRow from '@/components/global/SearchRow.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { isActive, nextLifecycleStep, tripOrderKey } from '@/domain/trips'
@@ -84,6 +85,7 @@ import { confirmDestructive } from '@/lib/confirm'
 const store = useTripStore()
 const masterStore = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const { myUserId, load } = useIdentity(orchestrator)
 const route = useRoute()
 
 // Map DB 'planning' to display filter 'planned' for UI clarity
@@ -377,7 +379,6 @@ const collaborative = hasCollaborativeSession()
 // Delete is Owner-only (destructive, FR-4.5). Outside collaborative mode
 // there is a single account that owns everything, so it's always allowed;
 // in collaborative mode we check the roster against our own id.
-const myUserId = ref<string | null>(null)
 /**
  * FR-27.4: above this many changes the log folds away behind the chip.
  * Owner decision 2026-08-18 — a handful of lines is worth reading where it
@@ -430,7 +431,7 @@ function proposedCount(trip: Trip): number {
 }
 
 onMounted(async () => {
-  if (collaborative) myUserId.value = (await orchestrator.fetchMe())?.user_id ?? null
+  if (collaborative) await load()
 })
 
 function canDelete(trip: Trip): boolean {

@@ -1,4 +1,5 @@
-import { test, expect, seed, visiblePage } from '../fixtures'
+import { test, expect, createTripViaWizard, openTripSwipe, seed, visiblePage } from '../fixtures'
+import { uniq } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs } from './fixtures'
 import { PATH } from '../routes'
@@ -389,6 +390,122 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await expect(visiblePage(bob).getByTestId('admin-unavailable')).toBeVisible()
     await expect(visiblePage(bob).getByTestId('admin-list')).toHaveCount(0)
 
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M20-07 (FR-23.3, ADR-047): a deactivation reaches the *other* screens
+   * of the same session, without a reload.
+   *
+   * The case exists because of what U-10 changed underneath it. The directory
+   * used to be fetched by every screen on its own mount, so it was fresh by
+   * accident — nine fetches of the same list. It is now fetched once per
+   * session, which makes freshness something the four identity writers owe.
+   * This is the one of them with a surface a person can see.
+   *
+   * **Every step is in-app, and that is the case.** A `page.goto` reboots the
+   * document, and a rebooted app fetches the directory again whatever the
+   * store does — the first version of this case navigated that way and would
+   * have passed against the very build it exists to fail. The session has to
+   * stay the same session from the first picker to the second.
+   *
+   * Bob is the standing control: he is a candidate before and after, so
+   * "Dave is gone" is read off a picker that is demonstrably still offering
+   * somebody, rather than off a control that vanished — which is what it does
+   * when the last candidate goes.
+   */
+  test('E2E-M20-07: a deactivated account stops being offered on the sharing picker at once', async ({
+    browser,
+  }) => {
+    const trip = `Puschlav ${uniq()}`
+
+    // Two accounts to be offered. Neither is changed here; only Dave is, and
+    // this file owns him.
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxDave = await browser.newContext()
+    await loginAs(ctxDave, 'dave')
+
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    await createTripViaWizard(alice, { name: trip })
+
+    const option = (name: string) =>
+      alice.locator('ion-popover ion-select-popover ion-item').filter({ hasText: name })
+
+    /**
+     * Dismiss the picker through the overlay's own method.
+     *
+     * `Escape` is what a person presses, and it is what the action-sheet
+     * helpers use — but a select popover only honours it while the key event
+     * reaches the overlay, and on a loaded runner the focus has not always
+     * arrived. It failed on CI at the first attempt and never once locally,
+     * which is the signature. Closing the picker is *setup* between two
+     * assertions and not the behaviour under test, so the deterministic
+     * dismissal is the right trade here rather than a longer wait.
+     */
+    async function closePicker() {
+      await alice
+        .locator('ion-popover')
+        .evaluate((el: HTMLElement & { dismiss: () => Promise<unknown> }) => el.dismiss())
+      await expect(alice.locator('ion-popover')).toHaveCount(0)
+    }
+
+    /** M2 → the row's slide → Share, which is how a person reaches the roster. */
+    async function openRoster() {
+      await alice.getByTestId('rail-trips').click()
+      await visiblePage(alice).getByTestId('trips-filter-planned').click()
+      await openTripSwipe(alice, trip)
+      await visiblePage(alice).getByTestId(`m2-share-${trip}`).click()
+      await expect(
+        visiblePage(alice).getByTestId(`member-row-${ACCOUNT_NAMES.alice}`),
+      ).toBeVisible()
+      await visiblePage(alice).getByTestId('members-add').click()
+    }
+
+    await alice.getByTestId('header-back').click()
+    await openRoster()
+    await expect(option(ACCOUNT_NAMES.dave)).toHaveCount(1)
+    await expect(option(ACCOUNT_NAMES.bob)).toHaveCount(1)
+    await closePicker()
+
+    // Settings → M20, still the same document.
+    await alice.getByTestId('header-settings').click()
+    await visiblePage(alice).getByTestId('settings-admin').click()
+    const daveRow = visiblePage(alice)
+      .getByTestId('admin-list')
+      .getByTestId(`admin-row-${ACCOUNT_NAMES.dave}`)
+    await expect(daveRow).toBeVisible()
+    await daveRow.click()
+    await alice
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /^Deactivate$/ })
+      .click()
+    await alice
+      .locator('ion-alert')
+      .getByRole('button', { name: /^Deactivate$/ })
+      .click()
+    await expect(daveRow.getByTestId('admin-deactivated-chip')).toBeVisible()
+
+    // Same session, same picker, no reload: the directory behind it is the
+    // one the deactivation refreshed.
+    await openRoster()
+    await expect(option(ACCOUNT_NAMES.bob)).toHaveCount(1)
+    await expect(option(ACCOUNT_NAMES.dave)).toHaveCount(0)
+    await closePicker()
+
+    // This file owns dave's lifecycle, so it hands him back.
+    await alice.getByTestId('header-settings').click()
+    await visiblePage(alice).getByTestId('settings-admin').click()
+    await daveRow.click()
+    await alice
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /^Reactivate$/ })
+      .click()
+    await expect(daveRow.getByTestId('admin-deactivated-chip')).toHaveCount(0)
+
+    await ctxAlice.close()
+    await ctxDave.close()
     await ctxBob.close()
   })
 })

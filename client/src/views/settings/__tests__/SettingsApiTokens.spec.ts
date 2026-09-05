@@ -14,6 +14,8 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import SettingsPage from '../SettingsPage.vue'
 
+import { identityStub } from '@/composables/__tests__/identityStub'
+
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('vue-router', () => ({
@@ -35,6 +37,7 @@ const session = vi.hoisted(() => ({
 vi.mock('@/auth/tokens', () => ({ loadTokens: () => session.value }))
 
 const orchestratorFake = {
+  ...identityStub(),
   fetchMe: vi.fn(() => Promise.resolve({ user_id: 'u1', display_name: 'Andy' })),
   fetchNotificationPrefs: vi.fn(() =>
     Promise.resolve({ delegation: true, mention: true, task: false, lock_taken: true }),

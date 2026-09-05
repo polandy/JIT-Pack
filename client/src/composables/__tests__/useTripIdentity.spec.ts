@@ -26,7 +26,11 @@ const DIRECTORY = [
 function source(over: Partial<IdentitySource> = {}): IdentitySource {
   return {
     fetchUsers: vi.fn(async () => DIRECTORY),
-    fetchMe: vi.fn(async () => ({ user_id: 'user-a' })),
+    fetchMe: vi.fn(async () => ({
+      user_id: 'user-a',
+      display_name: 'Andy',
+      is_instance_admin: false,
+    })),
     ...over,
   }
 }
