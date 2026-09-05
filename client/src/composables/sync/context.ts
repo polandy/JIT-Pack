@@ -9,11 +9,77 @@
  */
 import type { Mutation, PullChange } from '@/api/types'
 import type { createMutations } from '@/sync/mutations'
-import type { useTripStore } from '@/stores/tripStore'
-import type { useMasterStore } from '@/stores/masterStore'
 import type { NameGuards } from './names'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { NowIso } from '@/lib/clock'
+import type { SyncTable } from '@/types/tables'
+import type {
+  Container,
+  DestinationProfile,
+  GeneratedPosition,
+  ItemDependency,
+  ItemTodo,
+  MasterItem,
+  Tag,
+  Template,
+  TemplateInclude,
+  TemplateItem,
+  TemplateItemTask,
+  Traveler,
+  Trip,
+  TripItem,
+  TripSeries,
+  TripTemplateSource,
+} from '@/types/domain'
+
+/**
+ * What the action groups read off the trip store — and nothing else.
+ *
+ * Declared here, at the consumer, rather than as `ReturnType<typeof
+ * useTripStore>`: a group that reads four getters had to be handed the whole
+ * store, so the only thing that could stand in for it was the store itself,
+ * and every seam spec began by starting pinia. The pinia store satisfies this
+ * structurally, so the production wiring is unchanged and a fake is now a
+ * plausible object literal.
+ *
+ * The rule for growing it is the context's own: a member is added when a
+ * group that reads it arrives, never before — an interface that lists
+ * everything the store has is the store type again, under a new name.
+ */
+export interface TripReads {
+  readonly tripList: Trip[]
+  getTrip(id: string): Trip | undefined
+  getItems(tripId: string): TripItem[]
+  getTravelers(tripId: string): Traveler[]
+  getContainers(tripId: string): Container[]
+  getTodos(tripId: string): ItemTodo[]
+  getTemplateSources(tripId: string): TripTemplateSource[]
+  getGeneratedPositions(tripId: string): GeneratedPosition[]
+  /** The two `cascade.ts` asks for, since a group hands it this store. */
+  childRows(tripId: string): Array<{ table: SyncTable; id: string }>
+  itemChildRows(tripItemId: string): Array<{ table: SyncTable; id: string }>
+  templateSourceRows(templateId: string): Array<{ table: SyncTable; id: string }>
+}
+
+/** What the action groups read off the master store — and nothing else. */
+export interface MasterReads {
+  readonly tagList: Tag[]
+  readonly itemList: MasterItem[]
+  readonly activeItemList: MasterItem[]
+  readonly templateList: Template[]
+  readonly activeTemplateList: Template[]
+  readonly includeList: TemplateInclude[]
+  readonly dependencyList: ItemDependency[]
+  readonly templateItemTaskList: TemplateItemTask[]
+  readonly seriesList: TripSeries[]
+  getItem(id: string): MasterItem | undefined
+  getItemTags(itemId: string): Tag[]
+  getTemplate(id: string): Template | undefined
+  getTemplateItems(templateId: string): TemplateItem[]
+  getDestinationProfile(seriesId: string): DestinationProfile | undefined
+  /** `cascade.ts`'s, for the same reason as `TripReads.childRows`. */
+  childRows(table: string, id: string): Array<{ table: SyncTable; id: string }>
+}
 
 /**
  * One queued write: the mutation itself plus the rows it optimistically
@@ -61,8 +127,8 @@ export type Enqueue = (
 export type DrainPartitions = (tripIds: string[]) => void
 
 export interface SyncContext {
-  tripStore: ReturnType<typeof useTripStore>
-  masterStore: ReturnType<typeof useMasterStore>
+  tripStore: TripReads
+  masterStore: MasterReads
   mutations: ReturnType<typeof createMutations>
   enqueueAndDrain: EnqueueAndDrain
   enqueue: Enqueue

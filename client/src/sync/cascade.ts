@@ -23,8 +23,6 @@
  * Ordering is leaf-first — a child before the parent it hangs off — for the
  * same reason the server orders its own.
  */
-import type { useMasterStore } from '@/stores/masterStore'
-import type { useTripStore } from '@/stores/tripStore'
 import type { SyncTable } from '@/types/tables'
 import { TABLE } from '@/types/tables'
 import { localTombstone } from './optimistic'
@@ -36,10 +34,20 @@ export interface CascadeRow {
   id: string
 }
 
-/** The two stores a cascade is read out of. */
+/**
+ * The two stores a cascade is read out of — as the four lookups it makes,
+ * not as the stores. The pinia stores satisfy this structurally, and so does
+ * the `SyncContext` a group hands straight through.
+ */
 export interface CascadeStores {
-  tripStore: ReturnType<typeof useTripStore>
-  masterStore: ReturnType<typeof useMasterStore>
+  tripStore: {
+    childRows(tripId: string): CascadeRow[]
+    itemChildRows(tripItemId: string): CascadeRow[]
+    templateSourceRows(templateId: string): CascadeRow[]
+  }
+  masterStore: {
+    childRows(table: string, id: string): CascadeRow[]
+  }
 }
 
 /**

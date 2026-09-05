@@ -323,6 +323,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Six trip screens had never asked for their own rows (2026-09-05)](#six-trip-screens-had-never-asked-for-their-own-rows-2026-09-05) — U-10's unverified premise was a defect; the mode that hides it is the one the cheap test runs in.
 - [The directory was fresh by accident (2026-09-05)](#the-directory-was-fresh-by-accident-2026-09-05) — ADR-047: nine fetches became one, and freshness stopped being free; one case proved one of four call sites.
 - [The partition stopped being carried by the name of the function (2026-09-05)](#the-partition-stopped-being-carried-by-the-name-of-the-function-2026-09-05) — C-8: `pullPartition`/`pushPartition` take the partition; the shared unit is a page, not the loop.
+- [The context asked for two stores and read twenty-six getters (2026-09-05)](#the-context-asked-for-two-stores-and-read-twenty-six-getters-2026-09-05) — C-9: `TripReads`/`MasterReads`; the census leaks back through whoever the store is handed to.
 
 ## Deviations
 
@@ -13252,3 +13253,38 @@ a trip partition without an id looked uncovered — no test contains its message
 have requested rather than by the words it throws. A grep for a thrown string
 measures how a test was written, not whether the rule is held; the case that
 proves it is now in `partition.spec.ts` too, where the rule lives.
+
+## The context asked for two stores and read twenty-six getters (2026-09-05)
+
+C-9 of the design review: `SyncContext.tripStore` and `masterStore` were typed
+`ReturnType<typeof useTripStore>` / `useMasterStore`, so the only thing that
+could stand in for a store was the store, and every seam spec opened with
+`setActivePinia`. They are `TripReads` and `MasterReads` now — consumer-side
+interfaces in `context.ts` naming the eleven trip members and the fifteen
+master members the ten action groups actually read. The pinia stores satisfy
+them structurally, so the orchestrator's wiring is untouched.
+
+**The census had to be taken twice, and the first pass was wrong.** A grep for
+`tripStore.` over the groups finds eight members. It misses three things: a
+read broken across lines (`tripStore\n  .getTemplateSources(...)`, three of
+those), a store handed on whole (`cascadeChanges(table, id, { tripStore,
+masterStore })`, seven call sites), and `createNameGuards(masterStore)`. The
+last two are the interesting ones, because they are how a narrowed type leaks
+back to the full one: an interface that has to satisfy
+`CascadeStores` is only as narrow as `CascadeStores` is. So `cascade.ts` and
+`names.ts` declare their own minimal shapes as well — four lookups and two
+lists — and `TripReads`/`MasterReads` are supersets that satisfy them.
+
+**67 type errors, none of them in production code.** Every one was a seam spec
+reading a getter off `ctx.tripStore` that no group reads — `getItemComments`,
+`getItemTodos`, `getItemDependencies` — because that is the *assertion*, not
+the subject. Which is the honest split, so `makeSeamContext` now returns a
+`SeamContext`: `SyncContext` widened back to the real stores, for looking at
+what the group painted. Production hands a group the narrow thing; the harness
+keeps the wide one.
+
+**A narrowing that nothing exercises is a comment.** `storeReads.spec.ts`
+builds a `SyncContext` out of object literals with no pinia anywhere and drives
+the container group and the name guards through it. It is the file that fails —
+at compile time — if `SyncContext` ever widens back, which is exactly what was
+proved by widening it: `TS2322` there and nowhere else.
