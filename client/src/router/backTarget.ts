@@ -28,13 +28,13 @@ declare module 'vue-router' {
      */
     acceptsFrom?: boolean
     /**
-     * A route parameter that opens an overlay on this same route — M5's
-     * sheet over the packing list. While it is present, `‹ back` closes
-     * the overlay instead of leaving the screen, which is what a user
-     * means by "back" with a sheet open in front of them.
+     * A query key that opens an overlay on this same route — M5's sheet
+     * over the packing list (`?item=`). While it is present, `‹ back`
+     * closes the overlay instead of leaving the screen, which is what a
+     * user means by "back" with a sheet open in front of them.
      */
-    overlayParam?: string
-    /** Where back leads while `overlayParam` is present. */
+    overlayQuery?: string
+    /** Where back leads while `overlayQuery` is present. */
     overlayParent?: string
     /**
      * Catalogue key of a static header title. A key rather than the text:
@@ -58,7 +58,7 @@ export interface BackTargetRoute {
   meta: {
     parent?: string
     acceptsFrom?: boolean
-    overlayParam?: string
+    overlayQuery?: string
     overlayParent?: string
   }
   params: Record<string, string | string[]>
@@ -108,8 +108,8 @@ export function enteredFrom(fullPath: string): Record<string, string> {
  * the header shows the logo instead of a back chevron.
  */
 export function backTarget(route: BackTargetRoute): string | null {
-  const overlay = route.meta.overlayParam
-  const overlayOpen = Boolean(overlay && route.params[overlay])
+  const overlay = route.meta.overlayQuery
+  const overlayOpen = Boolean(overlay && route.query?.[overlay])
 
   // The origin is considered only after the overlay: with a sheet in
   // front of them, "back" means close it, wherever the screen came from.

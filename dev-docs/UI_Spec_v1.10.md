@@ -735,12 +735,13 @@ These patterns apply to every screen and are specified once.
     A name that only just fits is worse than a name that is somewhere else: the gain would have been one header row on
     mobile, and the risk was the "S…" this rule was written to end. The measurement is not owed again unless the bar
     loses another element.
-  * **The list comes back where it was left** (2026-08-21). Opening an item is an overlay on the same route (ADR-012),
-    and the route replace used to return the list to the top — on a forty-row list, mid-pack, that is the screen's most
-    expensive small failure. Closing the sheet restores both halves of the position: the scroll offset *and* whether the
-    header line was folded, since the line holds real height in the scrolled content and the offset alone would name
-    different rows. The line also stops travelling entirely under `prefers-reduced-motion`: it is the largest movement
-    on the screen and it happens while the list is moving too.
+  * **The list stays where it was left** (2026-08-21, revised 2026-09-05). Opening an item is a state of the list's own
+    page (ADR-046), so the list never leaves the screen and keeps its offset and its folded header line by simply
+    staying. Was: the item's path replaced the route, which mounted the list afresh at the top — on a forty-row list,
+    mid-pack, the screen's most expensive small failure — and a per-trip scroll memory put both halves of the position
+    back on close (ADR-012's 2026-08-21 amendment); that memory is deleted with the remount it compensated. The line
+    also stops travelling entirely under `prefers-reduced-motion`: it is the largest movement on the screen and it
+    happens while the list is moving too.
   * **Actions live in the app bar (G-12), not in the header:** search (collapsed behind its icon), filter (badge =
     active facet count), fold-all. The trip's *other views* — 🛒 Shopping with its open count, 🧳 Luggage, 📊 Analytics —
     are icons on the trip line. **There is no ⋯ overflow** (FR-25.11k, G-12).
@@ -933,11 +934,13 @@ These patterns apply to every screen and are specified once.
   finally *Details ▾* holding membership, procurement, luggage, the Late-Packer flag, the FR-9.1 flags and the
   FR-25.17/25.19 stamp.
 * **It is a sheet over M4, and a side panel beside it above the G-9 breakpoint** — one content component either way. The
-  route carries it (`/trips/:tripId/items/:itemId`), which is what makes a notification deep link (G-4) land on the item
-  with the list behind it. **The list's route and the item's are one record with an alias**, and opening or closing
-  *replaces* rather than pushes: Ionic keeps a page per matched path, so pushing mounted a second copy of the list
-  behind the sheet. **On a phone the sheet's ✕ (or a swipe) is the way out** — its backdrop covers the app bar, so `‹
-  back` is deliberately unreachable there; with the desktop panel, back closes the panel first (`meta.overlayParam`).
+  route carries it (`/trips/:tripId?item=:itemId`), which is what makes a notification deep link (G-4) land on the item
+  with the list behind it. **The item is a query on the list's own route, not a path** (ADR-046, revised 2026-09-05;
+  was: an alias `/trips/:tripId/items/:itemId` of the trip route — to Ionic a parameterised path is a page of its own,
+  so every open mounted a second copy of the list behind the sheet, which a loaded WebKit runner showed as two live
+  lists), and opening or closing *replaces* rather than pushes: the sheet is a state of the screen, and one screen keeps
+  one history entry. **On a phone the sheet's ✕ (or a swipe) is the way out** — its backdrop covers the app bar, so `‹
+  back` is deliberately unreachable there; with the desktop panel, back closes the panel first (`meta.overlayQuery`).
 * **The reference photo is small** (44 px beside the title, FR-22.1): it helps recognise the thing without taking the
   top of a screen most rows have no photo for. **The same slot carries the item mark when there is no photo** (G-15,
   Addendum FR-28.4) and stays empty when there is neither — the sheet's identity block is the one place both answers to

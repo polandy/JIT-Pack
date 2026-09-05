@@ -1,13 +1,13 @@
 /**
  * Browser-back with an overlay open (ADR-011, M5's sheet).
  *
- * Overlay routes *replace* the history entry of the screen beneath them —
- * deliberately, so Ionic never mounts a twin of that screen (see the
- * trip-detail route; a push measurably mounts a second packing list).
- * The cost: the entry under the overlay is gone, so a history pop skips
- * it and lands two screens back. The chevron already treats "back with
- * an overlay open" as "close the overlay" (backTarget's overlay branch);
- * this guard gives the browser's back button the same meaning.
+ * An overlay *replaces* the history entry of the screen beneath it: it is
+ * a state of that screen, not a screen of its own, and one screen keeps
+ * one entry (ADR-012, ADR-046). The cost: the entry under the overlay is
+ * gone, so a history pop skips it and lands two screens back. The chevron
+ * already treats "back with an overlay open" as "close the overlay"
+ * (backTarget's overlay branch); this guard gives the browser's back
+ * button the same meaning.
  *
  * Mechanically the pop is allowed to *complete* and the overlay parent is
  * then pushed — not intercepted in beforeEach: Ionic reads the pending
@@ -37,8 +37,8 @@ export function installOverlayBackGuard(router: Router): void {
     poppedBack = false
     if (!wasPop || failure) return
 
-    const overlay = from.meta.overlayParam
-    if (!overlay || !from.params[overlay] || !from.meta.overlayParent) return
+    const overlay = from.meta.overlayQuery
+    if (!overlay || !from.query[overlay] || !from.meta.overlayParent) return
 
     const target = backTarget(from as BackTargetRoute)
     if (!target || to.path === target) return

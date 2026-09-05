@@ -110,6 +110,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [E2E-FLOW-09 — the world that could not falsify its own clause (2026-08-31)](#e2e-flow-09--the-world-that-could-not-falsify-its-own-clause-2026-08-31) — every step covered, the loop not — and a clause the world could not falsify.
 - [The NFR journeys — five modes read off the wrong thing (2026-09-01)](#the-nfr-journeys--five-modes-read-off-the-wrong-thing-2026-09-01) — §6's journeys, and the difference between reading a mode off the screen and off the request.
 - [Two files, one account, two workers (2026-09-02)](#two-files-one-account-two-workers-2026-09-02) — a red `e2e-server` that was not the Dependabot patch: two defects that only meet on a schedule.
+- [E2E-M5-12 — the flake was a second mount (2026-09-05)](#e2e-m5-12--the-flake-was-a-second-mount-2026-09-05) — three red WebKit runs, zero local ones; an element identity turns a load-dependent window into an assertion.
 
 ## The rule that comes before the units
 
@@ -4335,3 +4336,31 @@ Worth carrying: **a job that is red on a dependency bump and green on
 `main` is not evidence about the bump** when the job is scheduled on two
 workers. The green `main` runs had the same two defects; the bump's runs
 were the first to hit the overlap twice in a row.
+
+## E2E-M5-12 — the flake was a second mount (2026-09-05)
+
+The ledger's 2026-08-31 measurement left E2E-M5-12 with a captured cause it could not reproduce — two unhidden M4 pages,
+fifteen green local runs — and a fixture (`oneLivePage`) to make the next occurrence name itself. It occurred three more
+times in a day: twice on #374, once on `main` at `9561ec69`, always this case, always the same line, never on an idle
+machine (eight more green runs here). What closed it was not a run but a read of `@ionic/vue-router`'s
+`findViewItemByPath`: a parameterised record matches an existing page only on an identical pathname, so the item's alias
+path was a second page to Ionic on every open — the router's comment had claimed the opposite, and every document after
+it repeated the comment. ADR-046 moves the item into the query.
+
+Three things worth carrying:
+
+* **A load-only failure on the same line each time is a window, not noise; ask what sits in it.** Here the window was
+  the outlet's `commit()` waiting for the entering page's Ionic children to be ready, during which both pages were
+  unhidden — a few frames idle, over five seconds on a loaded runner. The fix is not to wait longer but to assert the
+  thing whose *width* the load was varying: the page showing the panel is the same element that showed the list. A
+  second mount is a different element however fast it settles, so the case now goes red on an idle machine too, and the
+  mutation (`:key` on the page, a remount on open) proved it.
+* **My first hypothesis did not reproduce, and the source did.** A two-second poll straight after the click saw one page
+  eight times out of eight; the transition-window story was wrong in its mechanism and right only in its symptom. A
+  comment that asserts a framework property ("Ionic keeps a page per matched record, an alias only changes the params")
+  is an unverified claim until the framework's function is read — the same lesson as the `hydrated`-is-not-ready pair of
+  pull request 372.
+* **E2E-M4-45 is the case that catches the remount by its cost.** It was written for the scroll memory that compensated
+  the remount; with the remount gone the memory is deleted and the case keeps the promise it was repairing, now without
+  a signal to wait on. The mutation reddens it at offset 0 — which is what the screen showed every user for three weeks
+  before the memory, and what it would show again the day someone reintroduces a path.
