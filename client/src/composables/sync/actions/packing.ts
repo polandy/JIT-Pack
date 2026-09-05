@@ -16,7 +16,7 @@ import { TABLE } from '@/types/tables'
 import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planMembership, type MembershipTarget } from '@/domain/membership'
-import type { AddedItemDecision } from '@/composables/useMutations'
+import type { AddedItemDecision } from '@/sync/mutations'
 import type { ItemMode, ReviewFlag, ShoppingMode, TripItem } from '@/types/domain'
 import { ITEM_MODE_PACK } from '@/types/domain'
 import type { SyncContext } from '../context'
@@ -157,7 +157,7 @@ export function createPackingActions(ctx: SyncContext) {
   /**
    * Check a row off one of M6's shopping lists, or put it back (FR-25.11j).
    * One mutation each way, so the record of the list and the change it
-   * explains can never land apart — see `useMutations.buyItem`.
+   * explains can never land apart — see `createMutations.buyItem`.
    */
   function buyItem(tripId: string, item: TripItem, from: ShoppingMode) {
     const mut = mutations.buyItem(item.id, from, item.quantity)

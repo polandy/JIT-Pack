@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { useMutations } from '../useMutations'
+import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
@@ -54,8 +54,8 @@ function generated(overrides: Partial<GeneratedItem> = {}): GeneratedItem {
   }
 }
 
-describe('useMutations wizard additions', () => {
-  const mutations = useMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+describe('createMutations wizard additions', () => {
+  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
 
   it('addTraveler builds a travelers insert on the trip partition', () => {
     const { mutation } = mutations.addTraveler('trip-1', 'Ronja')

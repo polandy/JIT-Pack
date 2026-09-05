@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { useMutations } from '@/composables/useMutations'
+import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
@@ -60,7 +60,7 @@ function seedItem(store: ReturnType<typeof useTripStore>, row: Record<string, un
 }
 
 describe('packing-now mutations', () => {
-  const mutations = useMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
 
   it('startPackingNow claims the item with a timestamp', () => {
     const mut = mutations.startPackingNow('ti1')

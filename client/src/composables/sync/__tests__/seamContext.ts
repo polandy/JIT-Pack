@@ -11,7 +11,7 @@ import { createNameGuards } from '../names'
 import type { QueuedMutation, SyncContext } from '../context'
 import type { PullChange } from '@/api/types'
 import type { IndexedDBPersistence } from '@/local/persistence'
-import { useMutations } from '@/composables/useMutations'
+import { createMutations } from '@/sync/mutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -78,7 +78,7 @@ export function makeSeamContext(
   const ctx: SyncContext = {
     tripStore,
     masterStore,
-    mutations: useMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => SEAM_NOW_ISO),
+    mutations: createMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => SEAM_NOW_ISO),
     enqueueAndDrain: (type, id, ...muts) => {
       // The real one applies the optimistic changes before it queues, and a
       // group that writes twice reads its own first write back — the FR-20.4

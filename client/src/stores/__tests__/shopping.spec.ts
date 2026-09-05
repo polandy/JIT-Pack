@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-import { useMutations } from '@/composables/useMutations'
+import { createMutations } from '@/sync/mutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import type { PullChange } from '@/api/types'
@@ -129,7 +129,7 @@ describe('tripStore.getShoppingItems — what was bought (FR-25.11j)', () => {
 })
 
 describe('addTripItem with procurement mode', () => {
-  const mutations = useMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
 
   it('lands quick-adds in the chosen shopping list', () => {
     const { mutation } = mutations.addTripItem('t1', 'Sonnencreme', { mode: 'buy_local' })

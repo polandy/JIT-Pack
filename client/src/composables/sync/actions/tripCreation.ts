@@ -15,7 +15,7 @@
  * `tripLifecycle`. This group hands over as soon as the rows are queued.
  */
 import { optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import { CLIENT_ACTOR_PLACEHOLDER } from '@/composables/useMutations'
+import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import type { ImportPlan } from '@/domain/spreadsheet'

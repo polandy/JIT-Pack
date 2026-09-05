@@ -27,7 +27,7 @@ import {
   type RefreshPlan,
 } from '@/domain/refresh'
 import { followsGroups } from '@/domain/trips'
-import { CLIENT_ACTOR_PLACEHOLDER } from '@/composables/useMutations'
+import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import type { SyncContext } from '../context'
 import type { createCommentActions } from './comments'
 

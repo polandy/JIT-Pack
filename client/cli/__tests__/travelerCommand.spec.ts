@@ -175,7 +175,7 @@ describe('parseTravelerArgs', () => {
 
 describe('runTraveler add', () => {
   // The whole point: a traveler is created by the same insert mutation the
-  // app writes (`useMutations.addTraveler`), on the trip partition's own
+  // app writes (`createMutations.addTraveler`), on the trip partition's own
   // endpoint — not by a REST resource the server does not have.
   it('sends the traveler as a sync mutation on the trip it belongs to', async () => {
     instance.addTrip('trip-1', 'Cannobio', 2026)

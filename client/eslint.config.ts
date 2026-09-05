@@ -64,7 +64,7 @@ export default defineConfigWithVueTs(
     // internal/store (G-4) — a rule rather than a list of excused files.
     name: 'app/one-clock-in-the-sync-layer',
     files: [
-      'src/composables/useMutations.ts',
+      'src/sync/mutations.ts',
       'src/composables/useSyncOrchestrator.ts',
       'src/composables/sync/**/*.ts',
       'cli/**/*.ts',
