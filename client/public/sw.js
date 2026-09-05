@@ -189,6 +189,22 @@ function notificationBody(data, mirror) {
   })
 }
 
+/**
+ * Where a tapped notification lands (G-4). Mirrors `notificationRoute()` in
+ * the app — the trip's route, the item as `?item=` and the comment as
+ * `&comment=` (ADR-046) — and the worker spec holds the two together, so a
+ * changed key in `router/paths.ts` fails a test rather than a tap.
+ */
+function notificationUrl(payload) {
+  if (!payload.trip_id) return '/'
+  let url = `/trips/${payload.trip_id}`
+  if (payload.item_id) {
+    url += `?item=${payload.item_id}`
+    if (payload.comment_id) url += `&comment=${payload.comment_id}`
+  }
+  return url
+}
+
 self.addEventListener('push', (event) => {
   let data = {}
   try {
@@ -198,17 +214,7 @@ self.addEventListener('push', (event) => {
   }
   const payload = data.payload || {}
 
-  // Mirrors notificationRoute() (G-4): item context, plus the comment id
-  // as ?comment= so M5 scrolls to and flashes the message.
-  let url = '/'
-  if (payload.trip_id) {
-    if (payload.item_id) {
-      url = `/trips/${payload.trip_id}/items/${payload.item_id}`
-      if (payload.comment_id) url += `?comment=${payload.comment_id}`
-    } else {
-      url = `/trips/${payload.trip_id}`
-    }
-  }
+  const url = notificationUrl(payload)
 
   event.waitUntil(
     (async () => {

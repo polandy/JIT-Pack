@@ -72,9 +72,28 @@ export function tripSubPath(tripId: string, screen: TripSubScreen): string {
   return `${tripPath(tripId)}/${screen}`
 }
 
-/** The item sheet over the packing list (M5) — an alias of the trip route. */
-export function tripItemPath(tripId: string, itemId: string): string {
-  return `${tripPath(tripId)}/items/${itemId}`
+/**
+ * The query keys that open something *on* a screen rather than a screen of
+ * their own. Named here beside the path parameters because the same rule
+ * holds: a route's `meta` and a builder must spell the key one way.
+ */
+/**
+ * The item shown over the packing list (M5). A query rather than a path
+ * parameter, because Ionic keeps one page per matched *path* and would
+ * mount a second copy of the list for a second path (ADR-046).
+ */
+export const ITEM_QUERY_PARAM = 'item'
+/** The comment a notification deep link (G-4) names, so M5 can scroll to and flash it. */
+export const COMMENT_QUERY_PARAM = 'comment'
+
+/**
+ * The item sheet or panel over the packing list (M5): the trip's own route
+ * with the item in the query, optionally naming the comment to flash (G-4).
+ */
+export function tripItemPath(tripId: string, itemId: string, commentId?: string): string {
+  const query = new URLSearchParams({ [ITEM_QUERY_PARAM]: itemId })
+  if (commentId) query.set(COMMENT_QUERY_PARAM, commentId)
+  return `${tripPath(tripId)}?${query.toString()}`
 }
 
 /** The template editor (M8). */

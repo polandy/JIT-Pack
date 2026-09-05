@@ -19,7 +19,7 @@ import { resolve } from 'node:path'
 import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 
 import { DEFAULT_LOCALE, setLocale } from '@/i18n'
-import { describeNotification, type ServerNotification } from '../format'
+import { describeNotification, notificationRoute, type ServerNotification } from '../format'
 import { currentMirror, writeNotificationMirror } from '../mirror'
 
 /**
@@ -30,6 +30,7 @@ import { currentMirror, writeNotificationMirror } from '../mirror'
  */
 function loadWorker(): {
   notificationBody: (data: unknown, mirror: unknown) => string
+  notificationUrl: (payload: Record<string, unknown>) => string
   readMirror: () => Promise<unknown>
   FALLBACK_BODY: string
   source: string
@@ -42,7 +43,7 @@ function loadWorker(): {
     'indexedDB',
     'caches',
     'clients',
-    `${source}\n;return { notificationBody, readMirror, FALLBACK_BODY }`,
+    `${source}\n;return { notificationBody, notificationUrl, readMirror, FALLBACK_BODY }`,
   )
   const stub = { addEventListener: () => {}, location: { origin: 'http://localhost' } }
   // The worker's own `indexedDB`, so its read path is exercised rather than
@@ -82,6 +83,26 @@ describe('the worker renders the same body as the app', () => {
     const worker = CASES.map((n) => notificationBody({ kind: n.kind, payload: n.payload }, mirror))
 
     expect(worker).toEqual(CASES.map(describeNotification))
+  })
+
+  /*
+   * G-4, ADR-046: the link a tapped OS notification opens is the same one
+   * the in-app list opens. The worker cannot import `router/paths.ts`, so
+   * its copy of the shape is held here against `notificationRoute()` for
+   * every payload shape — trip only, trip and item, and the comment.
+   */
+  it('lands a tapped notification where the app would', () => {
+    const { notificationUrl } = loadWorker()
+    const payloads: Record<string, unknown>[] = [
+      { trip_id: 't1' },
+      { trip_id: 't1', item_id: 'i1' },
+      { trip_id: 't1', item_id: 'i1', comment_id: 'c9' },
+    ]
+
+    expect(payloads.map(notificationUrl)).toEqual(
+      payloads.map((payload) => notificationRoute(notif('mention', payload))),
+    )
+    expect(notificationUrl({})).toBe('/')
   })
 
   it('falls back to one sentence when the mirror is not there', () => {

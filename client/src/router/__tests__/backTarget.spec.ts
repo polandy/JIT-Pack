@@ -115,13 +115,15 @@ describe('an overlay on the same route (UI-Spec M5)', () => {
   const tripRoute = {
     meta: {
       parent: '/tabs/trips',
-      overlayParam: 'itemId',
+      overlayQuery: 'item',
       overlayParent: '/trips/:tripId',
     },
   }
 
   it('closes the overlay while it is open', () => {
-    expect(backTarget({ ...tripRoute, params: { tripId: 't1', itemId: 'i9' } })).toBe('/trips/t1')
+    expect(backTarget({ ...tripRoute, params: { tripId: 't1' }, query: { item: 'i9' } })).toBe(
+      '/trips/t1',
+    )
   })
 
   it('leaves the screen once the overlay is gone', () => {
@@ -170,11 +172,11 @@ describe('a route that carries its origin (ADR-011 amendment)', () => {
         meta: {
           parent: '/tabs/trips',
           acceptsFrom: true,
-          overlayParam: 'itemId',
+          overlayQuery: 'item',
           overlayParent: '/trips/:tripId',
         },
-        params: { tripId: 't1', itemId: 'i9' },
-        query: enteredFrom('/tabs/items'),
+        params: { tripId: 't1' },
+        query: { ...enteredFrom('/tabs/items'), item: 'i9' },
       }),
     ).toBe('/trips/t1')
   })

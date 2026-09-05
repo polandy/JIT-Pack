@@ -114,22 +114,30 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-membership')).toHaveCount(0)
   })
 
-  // E2E-M5-12 (G-9): above the breakpoint the same content is a side panel
-  // beside the list rather than a sheet over it.
+  // E2E-M5-12 (G-9, ADR-046): above the breakpoint the same content is a
+  // side panel beside the list rather than a sheet over it — and it opens
+  // *on* the list the user was looking at, not on a second mount of it.
   test('E2E-M5-12: on a desktop width the detail is a side panel', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
+    const listBefore = await visible(page).elementHandle()
     await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
 
-    // Scoped to the visible page, not the document: an M4 the router has
-    // left behind is still in the DOM, so an unscoped `m4-header` matched
-    // two elements and the case failed on strict mode rather than on the
-    // panel (working agreement: assert what is *rendered*).
     await expect(visible(page).getByTestId('m5-panel')).toBeVisible()
     await expect(visible(page).getByTestId('m4-header')).toBeVisible()
+    // The page showing the panel is the very element that showed the list:
+    // with the item as a path parameter, Ionic mounted a second M4 on every
+    // open, and the two stood unhidden side by side for as long as the new
+    // one's children took to become ready — a few frames on an idle machine,
+    // over five seconds on a loaded WebKit runner, where this case failed
+    // three times in a day on the scoped `m4-header` resolving to two. The
+    // identity check is the deterministic form of that assertion: a second
+    // mount is a different element however quickly it settles.
+    const listAfter = await visible(page).elementHandle()
+    expect(await listBefore!.evaluate((before, after) => before === after, listAfter)).toBe(true)
     // Deliberately *not* scoped: an IonModal is teleported out of the page,
     // so a scoped count would be 0 whether one opened or not.
     await expect(page.getByTestId('m5-modal')).toHaveCount(0)
@@ -380,7 +388,7 @@ test.describe('M5 item detail @local @m5', () => {
   /*
    * E2E-G4-01 (G-4/FR-6.3): where a notification lands.
    *
-   * `notifications/format.ts` builds `/trips/{t}/items/{i}?comment={c}` and
+   * `notifications/format.ts` builds `/trips/{t}?item={i}&comment={c}` and
    * a unit covers that string; what no test had done is *open* one. The
    * landing is mode-independent — the sheet reads the query, not a session
    * — so it is driven here rather than on the `server` project, where the
@@ -406,10 +414,14 @@ test.describe('M5 item detail @local @m5', () => {
     const comment = page.locator('[data-testid^="m5-note-"][id^="comment-"]').first()
     await expect(comment).toBeVisible()
     const commentId = (await comment.getAttribute('id'))!.replace('comment-', '')
-    const itemUrl = page.url()
+    // The link a notification carries is the sheet's own URL plus the
+    // comment; built through the URL rather than by string, so the case
+    // does not restate which of the two is the query's first key.
+    const link = new URL(page.url())
+    link.searchParams.set('comment', commentId)
 
     // A cold arrival, as a tapped notification is.
-    await page.goto(`${itemUrl}?comment=${commentId}`)
+    await page.goto(link.toString())
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
     await expect(page.getByTestId('m5-name')).toHaveText('Zelt')
     // The settled record, not the 2.4 s animation: the sheet reports which

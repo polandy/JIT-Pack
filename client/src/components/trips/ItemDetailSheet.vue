@@ -46,6 +46,8 @@ import {
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { COMMENT_QUERY_PARAM } from '@/router/paths'
+
 import ItemMark from '@/components/items/ItemMark.vue'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
@@ -192,7 +194,7 @@ const deepLinkedCommentId = ref<string | null>(null)
 watch(
   itemComments,
   (comments) => {
-    const target = route.query.comment
+    const target = route.query[COMMENT_QUERY_PARAM]
     if (typeof target !== 'string' || flashedCommentId.value === target) return
     if (!comments.some((c) => c.id === target)) return
     flashedCommentId.value = target

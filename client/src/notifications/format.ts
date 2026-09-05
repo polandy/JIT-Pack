@@ -49,8 +49,5 @@ export function notificationRoute(n: ServerNotification): string | null {
   if (!tripId) return null
   const itemId = str(n.payload, 'item_id')
   if (!itemId) return tripPath(tripId)
-  const commentId = str(n.payload, 'comment_id')
-  return commentId
-    ? `${tripItemPath(tripId, itemId)}?comment=${commentId}`
-    : tripItemPath(tripId, itemId)
+  return tripItemPath(tripId, itemId, str(n.payload, 'comment_id') || undefined)
 }

@@ -150,7 +150,7 @@ toolbar. Everything here is scoped to one `:tripId`.
 |---|---|---|
 | **M3** Trip Wizard | `/trips/new` | 4 steps: metadata → travelers → templates → quantities |
 | **M4** Packing List | `/trips/:id` | the trip hub — KPIs, grouping, stepper |
-| **M5** Item Detail | `/trips/:id/items/:itemId` | assignment, flags, comments, prep todos |
+| **M5** Item Detail | `/trips/:id?item=:itemId` | assignment, flags, comments, prep todos |
 | **M6** Shopping | `/trips/:id/shopping` | buy-before / buy-local lists |
 | **M11** Containers | `/trips/:id/containers` | weights, pairing, assignment |
 | **M12** Analytics | `/trips/:id/analytics` | weight per dimension + trip totals, series trend |
@@ -281,7 +281,7 @@ two from outside M4). This is the accurate map:
 | Shopping | M4 header end | `shoppingCount > 0` (badge) | `/trips/:id/shopping` |
 | Analytics | M4 trip title line | 📊 icon (G-12) | `/trips/:id/analytics` |
 | Edit containers | M4 body | `groupBy === 'container'` | `/trips/:id/containers` |
-| Item detail (M5) | M4 list row | always | `/trips/:id/items/:itemId` |
+| Item detail (M5) | M4 list row | always | `/trips/:id?item=:itemId` (ADR-046) |
 | Conflict log | **top-bar sync glyph** | inside any trip (`onSyncTap`) | `/trips/:id/conflicts` |
 | Members | **M2 slide action** | Owner/Admin + OIDC session (G-8) | `/trips/:id/members` |
 | Clone | **M2 slide action** | archived trips (also M16) | `/trips/:id/clone` |
@@ -317,7 +317,7 @@ changes.)
 (`notificationRoute`).*
 
 **As built.** History is the browser stack (`createWebHistory`). Back = the platform back gesture / button. Deep links
-exist for notifications (G-4 → `/trips/:id/items/:itemId?comment=…`) and the sync-glyph → conflict log.
+exist for notifications (G-4 → `/trips/:id?item=:itemId&comment=…`) and the sync-glyph → conflict log.
 
 **The three problem cases and the rule for each.**
 
@@ -331,16 +331,16 @@ exist for notifications (G-4 → `/trips/:id/items/:itemId?comment=…`) and the
 3. **Modal-ish sub-screens** (Conflict log, presence sheet). **Rule:** these `push` and rely on back to dismiss; they
    must never be a dead end — each has a visible close/back to its origin trip.
 4. **Browser back with a route-driven overlay open** (found by the owner 2026-08-16, fixed the same day). M5's sheet
-   *replaces* the trip's history entry (deliberately — a push measurably mounts a twin packing list behind the sheet),
-   so a history pop skipped M4 and landed on the trip list, two screens back. **Rule:** a pop leaving a route whose
-   `meta.overlayParam` is set closes the overlay instead — the same meaning the chevron already gives it. Mechanically
-   (`router/overlayBackGuard.ts`): the pop is allowed to *complete* and the overlay parent is then pushed. Not
-   intercepted in `beforeEach`, because Ionic reads the pending pop direction when a navigation confirms, and an aborted
-   pop leaves that info stale to poison the corrective navigation — the wrong screen renders under the right URL.
-   Letting both confirm keeps Ionic coherent and rebuilds the natural list → trip chain, so the *next* back lands on the
-   list. Known, accepted gap: a back arriving **during** the sheet's enter animation still races Ionic's transition
-   queue (E2E-M5-13 waits for the presentation to settle for exactly this reason); a human back needs a visible sheet
-   first, so the window is not reachable by intent.
+   *replaces* the trip's history entry (deliberately — the sheet is a state of the screen, and one screen keeps one
+   entry; ADR-046), so a history pop skipped M4 and landed on the trip list, two screens back. **Rule:** a pop leaving a
+   route whose `meta.overlayQuery` is set closes the overlay instead — the same meaning the chevron already gives it.
+   Mechanically (`router/overlayBackGuard.ts`): the pop is allowed to *complete* and the overlay parent is then pushed.
+   Not intercepted in `beforeEach`, because Ionic reads the pending pop direction when a navigation confirms, and an
+   aborted pop leaves that info stale to poison the corrective navigation — the wrong screen renders under the right
+   URL. Letting both confirm keeps Ionic coherent and rebuilds the natural list → trip chain, so the *next* back lands
+   on the list. Known, accepted gap: a back arriving **during** the sheet's enter animation still races Ionic's
+   transition queue (E2E-M5-13 waits for the presentation to settle for exactly this reason); a human back needs a
+   visible sheet first, so the window is not reachable by intent.
 
 **The back-target contract (binding since ADR-011).** With the logo gone from drill-downs, `‹ back` is *the* way out, so
 every non-root route must know where "out" is. Each route declares its parent; the header derives the back target from

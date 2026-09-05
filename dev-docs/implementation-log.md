@@ -315,6 +315,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
+- [A page mounted twice, on the strength of a comment (2026-09-05)](#a-page-mounted-twice-on-the-strength-of-a-comment-2026-09-05) — ADR-046: the item alias was a second page to Ionic; the query keeps it, and Ionic's props cache is the trap.
 
 ## Deviations
 
@@ -12864,3 +12865,33 @@ appeared twice — so the index is chronological, newest first, and the numberin
 paragraph leaves an orphan line behind (`    retires`), which the width gate cannot see; every diff-touched paragraph
 was reflowed to 120, and the reflow was proved a no-op the #370 way — whitespace-normalised text and paragraph count
 identical against the fold re-run without it in a scratch copy.
+
+## A page mounted twice, on the strength of a comment (2026-09-05)
+
+ADR-046, PR #375. The diff says what changed: the trip route loses its `/items/:itemId` alias, M5 is `?item=` on the
+trip's route, `overlayParam` becomes `overlayQuery`, and `lib/scrollMemory.ts` is deleted. What the diff cannot say is
+why the alias was there for three weeks with a comment explaining that it *prevented* the second mount it was causing —
+and what was tried before the query.
+
+* **The premise was a framework claim nobody had read against the framework.** ADR-012's amendment found that a second
+  route *record* mounted a second list, and concluded that an alias — "one record, only the params change" — would not.
+  Ionic's matcher does not care about records: `findViewItemByPath` reuses a page only when the pathname is identical,
+  and says in its own comment that `/page/1?query=1` is the same page as `/page/1` while `/page/2` is not. The alias
+  satisfied the ADR's sentence and not the framework's; every document written afterwards restated the sentence. The
+  router's comment now states the framework's rule instead.
+* **Rejected: tolerate the second page in the test** (a settle-wait or a wider timeout). The red case was the messenger;
+  the cost was paid on every open by every user — a second render, subscription and drain of M4 — and the scroll memory
+  existed only to hide it. **Rejected: local state** — loses the deep link, the reload and both backs (ADR-011).
+  **Rejected: patching the matcher** — the behaviour is deliberate, M10's `/items/:id` depends on it, and a framework
+  fork per Ionic bump is invariant 8's cost for one screen.
+* **The trap in the chosen option: Ionic caches a page's route props.** `props: true` and a props *function* are
+  evaluated once per page (`getPropsFunctionResult` in the outlet) precisely so that a page navigated away from keeps
+  its props. A query read through `props` would therefore never update on the page that stays — which is the page we now
+  want to stay. M4 reads `route.query` itself; the comment beside it says why, because the obvious refactor back to a
+  prop passes every unit test and breaks the sheet.
+* **A cost accepted:** the URL loses its resource shape, and the service worker's copy of it (`public/sw.js`, which
+  cannot import) stays hand-written. Nothing outside the repository holds a link — no release has sent a notification —
+  so the change is free today and named here because it will not be later.
+* **A deletion, not a refactor:** the scroll memory, its unit spec, the deaf-while-restoring scroll handler, the seeded
+  header state and the `data-scroll-restored` signal — 104 lines of M4 that compensated a remount. E2E-M4-45 keeps its
+  promise with the signal gone and is proved by the mutation that would bring the remount back.

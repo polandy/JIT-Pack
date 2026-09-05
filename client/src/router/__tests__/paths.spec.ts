@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest'
 
 import { routes } from '@/router'
 import {
-  ITEM_ID_PARAM,
   PATH,
   TRIP_ID_PARAM,
   itemPath,
@@ -54,7 +53,8 @@ describe('router paths', () => {
   it('builds the paths the route table matches', () => {
     expect(tripPath('t1')).toBe('/trips/t1')
     expect(tripSubPath('t1', 'shopping')).toBe('/trips/t1/shopping')
-    expect(tripItemPath('t1', 'i2')).toBe('/trips/t1/items/i2')
+    expect(tripItemPath('t1', 'i2')).toBe('/trips/t1?item=i2')
+    expect(tripItemPath('t1', 'i2', 'c3')).toBe('/trips/t1?item=i2&comment=c3')
     expect(templatePath('tpl')).toBe('/templates/tpl')
     expect(itemPath('i2')).toBe('/items/i2')
     expect(seriesPath('s3')).toBe('/series/s3')
@@ -132,9 +132,5 @@ describe('router paths', () => {
         .filter((hit): hit is string => hit !== null),
     )
     expect(offenders).toEqual([])
-  })
-
-  it('accepts the parameters the router itself uses', () => {
-    expect(tripItemPath(TRIP_ID_PARAM, ITEM_ID_PARAM)).toBe('/trips/:tripId/items/:itemId')
   })
 })
