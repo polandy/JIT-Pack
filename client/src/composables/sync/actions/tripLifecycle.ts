@@ -21,8 +21,8 @@ import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/opt
 import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import { followsGroups } from '@/domain/trips'
-import { CLIENT_ACTOR_PLACEHOLDER } from '@/composables/useMutations'
-import type { TripEdit } from '@/composables/useMutations'
+import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
+import type { TripEdit } from '@/sync/mutations'
 import {
   TRIP_STATUS_ACTIVE,
   TRIP_STATUS_ARCHIVED,

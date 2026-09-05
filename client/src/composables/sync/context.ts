@@ -8,7 +8,7 @@
  * needs it arrives, never before.
  */
 import type { Mutation, PullChange } from '@/api/types'
-import type { useMutations } from '../useMutations'
+import type { createMutations } from '@/sync/mutations'
 import type { useTripStore } from '@/stores/tripStore'
 import type { useMasterStore } from '@/stores/masterStore'
 import type { NameGuards } from './names'
@@ -63,7 +63,7 @@ export type DrainPartitions = (tripIds: string[]) => void
 export interface SyncContext {
   tripStore: ReturnType<typeof useTripStore>
   masterStore: ReturnType<typeof useMasterStore>
-  mutations: ReturnType<typeof useMutations>
+  mutations: ReturnType<typeof createMutations>
   enqueueAndDrain: EnqueueAndDrain
   enqueue: Enqueue
   drainPartitions: DrainPartitions

@@ -315,6 +315,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
 - [Five readings of one row, and the cell where two of them said packed (2026-09-05)](#five-readings-of-one-row-and-the-cell-where-two-of-them-said-packed-2026-09-05) — C-4: the pack state derived once; a quantity of 0 had been read as packed twice.
+- [A type-only import cost nothing and was the whole finding (2026-09-05)](#a-type-only-import-cost-nothing-and-was-the-whole-finding-2026-09-05) — C-6: the mutation factory leaves `composables/`; a gate holds domain's direction.
 - [A settled signal that was the optimistic one (2026-09-05)](#a-settled-signal-that-was-the-optimistic-one-2026-09-05) — a helper's settled signal was the rendered row; a reload in that window loses the write, and one did.
 - [The arrow was the wrong instrument, not the wrong moment (2026-09-05)](#the-arrow-was-the-wrong-instrument-not-the-wrong-moment-2026-09-05) — the date picker's month hop is a smooth scroll nobody watches; the keyboard path is the one Ionic can not drop.
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
@@ -13104,3 +13105,46 @@ now asks the derivation for `packed` or `skipped`, because a revealed skipped
 row under the same control is a done row too, and the comparison had said so
 only by the accident that `0 >= 0` is true.
 
+
+
+## A type-only import cost nothing and was the whole finding (2026-09-05)
+
+Design-review item **C-6**. `client/src/domain/portableImport.ts` named the
+mutation builders it writes through as `ReturnType<typeof useMutations>`, with
+`useMutations` imported `import type` from `client/src/composables/`. It is the
+cheapest possible violation of invariant 4: the import is erased at compile
+time, it drags in no runtime dependency, the module still constructs in a
+`node` spec with no DOM, and every one of the 71 domain modules stayed green.
+
+That is exactly why it is worth an entry. The same review document that found
+it also records `domain/` purity as *healthy* two hundred lines further down —
+"34 modules, 34 specs" — with the exception noted and then not weighed. What
+the import cost was not a test and not a millisecond: it cost the sentence.
+"Domain imports nothing above it" is load-bearing only while it is true without
+qualification, and a rule with one written-down exception is a rule nobody can
+apply without first reading the exception list.
+
+Two things followed from taking that seriously rather than deleting the import.
+
+**The factory was never a composable.** `useMutations` touches no reactivity,
+no store and no component — it takes an HLC generator and a clock and returns
+builders. It was called from the CLI (`cli/context.ts`, `cli/importCommand.ts`)
+long before this, which is the usual sign. It is `client/src/sync/mutations.ts`
+as `createMutations` now, beside the outbox, the HLC and the pull protocol it
+actually belongs with; the `use` prefix had been the only thing claiming
+otherwise, and a prefix is not a layer. The review had suggested keeping a
+re-export at the old path "for one release" — declined: there is no consumer
+outside this repository, and a shim is dead code with a date on it.
+
+**A gate, because the shape is invisible.** `scripts/domain-purity-gate.mjs`
+(in `make client` and the CI client job) reads every specifier under
+`client/src/domain` — `import`, `export … from` and dynamic `import()` alike,
+type-only included — and refuses `composables/`, `stores/`, `views/`,
+`components/`, `local/`, `router/`, `theme/` and the `vue` / `vue-router` /
+`pinia` / `@ionic/*` packages. It was proved against four shapes of the defect
+before being trusted: the original type-only `@/composables/…` import, the same
+thing written as a relative climb, a plain `import { ref } from 'vue'`, and a
+dynamic `import('@/stores/tripStore')`. All four red, the restored tree green.
+It also fails when it finds no modules at all, because a gate whose walk has
+been emptied by a move reports ok forever and nothing says it stopped
+measuring.

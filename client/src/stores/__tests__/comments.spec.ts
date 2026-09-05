@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-import { useMutations } from '@/composables/useMutations'
+import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
@@ -67,7 +67,7 @@ describe('tripStore comments (FR-7.1)', () => {
 })
 
 describe('comment mutations', () => {
-  const mutations = useMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
 
   it('addComment builds a plain comment insert', () => {
     const { mutation } = mutations.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
