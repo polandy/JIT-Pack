@@ -766,7 +766,7 @@ test.describe('M4 packing list @local @m4', () => {
  * in PackingListPage) — so this is the app's own instant path, not a test
  * that turns off the thing it should be watching.
  */
-test.describe('M4 packing list — scroll memory @local @m4', () => {
+test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   useReducedMotion(test)
 
   test.beforeEach(async ({ seedMode }) => {
