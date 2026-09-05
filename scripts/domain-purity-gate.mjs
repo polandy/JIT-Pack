@@ -71,10 +71,10 @@ function walk(dir) {
  */
 function specifiers(source) {
   return [
-    ...[...source.matchAll(/(?:^|\n)\s*(?:import|export)[^\n]*?from\s*'([^']+)'/g)].map(
+    ...[...source.matchAll(/(?:^|\n)\s*(?:import|export)[^\n]*?from\s*['"]([^'"]+)['"]/g)].map(
       (m) => m[1],
     ),
-    ...[...source.matchAll(/\bimport\(\s*'([^']+)'\s*\)/g)].map((m) => m[1]),
+    ...[...source.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)].map((m) => m[1]),
   ]
 }
 
