@@ -13059,3 +13059,14 @@ same wait belongs at the end of every write helper (`createItem`,
 one reload that happened to fail: a helper that returns before its write is
 on the device has made the promise the indicator was changed to stop making.
 
+The first CI run of the fix failed 244 cases on the new line, and both
+shapes are worth a sentence. A helper that reloads now waits before its
+`page.goto`, and many specs call such a helper as their first step, on a
+context that has never loaded the app — `about:blank` has no indicator. The
+helper names that one absence (`page.url() === 'about:blank'`) rather than
+probing for the element, so an app page without the indicator stays red.
+And E2E-FLOW-08 takes a server-mode device offline on purpose before it
+writes: the indicator says `offline (1 queued)`, which is the write in the
+outbox, on the device — so `offline` joined `local` and `synced` as a settled
+state, and `syncing` is the only one that is not.
+
