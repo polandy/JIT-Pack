@@ -1,80 +1,67 @@
 # Sync Protocol & API Specification — „JIT-Pack" (v1.3)
 
-**Document Status:** Proposed for Review
-**Basis:** ADR-001 v2 (Go + embedded SQLite), Schema v0.3 (`change_log`, `updated_hlc`), NFR-4.1/4.2/4.2a, UI-Spec
-G-2/G-4/G-5/G-10.
-**Revision Note (v1.3):** Added four RPC endpoints (§8) for portable YAML template/trip export-import (Addendum 3.18):
-`GET`/`POST` pairs for templates and trips, explicitly distinguished from the existing NFR-4.5 CSV/full-JSON export
-endpoints. **All four were removed again on 2026-08-23 (ADR-025)** — they were a second implementation of a format that
-already had one on the client, and it had silently fallen behind; see the §8 row. Also corrects a stale "Schema v0.2"
-reference to v0.3. No other changes from v1.2. **Amended 2026-08-22:** §5 and P-3 spell out that a trip mutation is
-confined to the trip its endpoint names. The rule was always the intent — it had never been written down, and the server
-did not enforce it. **Amended again the same day:** §5 now prints the push *response* envelope and names its `outcome`
-key, and states that a constraint violation is a `rejected` mutation rather than a 5xx. Both were rules the document
-implied and never spelled out, and both had drifted in the code — the client read a `status` key no server has ever
-sent, and the trip partition answered 500 where the master partition answered `rejected`. **Amended a third time the
-same day:** §5 states what `pull_hint` is *for* — a signal that a pull is worth making, never the cursor to make it
-from. The client had been taking it as the cursor, which stepped over everything another device wrote while it was
-offline. **Amended a fourth time the same day:** §4 spells out two consequences of "rows are full snapshots" that the
-document had left to be inferred — a snapshot carries syncable columns only, so a generated one is derived rather than
-read; and a client's *optimistic* row has to be a full snapshot too, or it blanks what it omits, permanently in Local
-Mode. **Amended a sixth time the same day:** §5 states what `merged` obliges the client to do — the outcome existed on
-the wire and was read nowhere, so a user was never told an edit of theirs had been overwritten. **Amended a fifth time
-the same day:** §8 gains `GET /conflicts/master`. NFR-4.2a's audit had one endpoint and two partitions, so every
-master-partition loser — a group renamed twice, a trip's own dates — was logged and reachable by nothing. **Amended
-2026-08-23 (NFR-4.14, ADR-026):** §9 no longer lists the error codes — `internal/api/wire.go` declares them and the
-client's copy is generated from it, because the list here had drifted into naming two codes nothing sends and omitting
-eleven that are sent. The envelopes in §4/§5/§7/§8 are prose about a shape that now has one machine-checked declaration;
-where the two ever disagree, `wire.go` is what runs. **Amended 2026-08-23:** §6 states that a conflict entry records an
-*overwrite*, not a lost race — a field the losing push carried along unchanged is neither logged nor counted, and the
-outcome stays `applied`. The merge had compared clocks and never values, so a whole-group edit filled the log with `2026
-→ 2026` rows and the client announced overwritten fields to users whose data was untouched. **Amended an eighth time the
-same day (NFR-4.14):** the paths themselves are declared in `internal/api/wire.go` as well, and the client's builders
-are generated from that declaration — so a path in this document, like an error code, describes something with one
-machine-checked source. **Amended 2026-08-24 (NFR-4.14, ADR-027):** every path in this document now names its **scope**
-first and its resource second — `/trips/{id}/sync` and `/master/sync` in §4/§5, `/master/conflicts` in §8 — and the full
-export names its format, `/me/export.json`. The shapes had disagreed three ways about the same two ideas (which
-partition, which format), so a reader who knew two endpoints could not predict the third. The old paths are gone rather
-than aliased. **Amended 2026-08-24 (NFR-4.14):** every response body listed in §8 is now a type declared in
-`internal/api/wire.go` and generated into the client, not a map literal at the call site — the admin overview, the
-notification list and its preference set, the instance config and the auth pair were the four families still outside the
-contract. No key changed; the shapes are the ones this document already describes, now machine-checked. The *request*
-body of the preference endpoint stays an untyped map on purpose: an absent key there means the kind stays enabled, which
-a struct would decode as disabled. **Amended a seventh time the same day:** §6 states what "field-level" LWW requires of
-the server — a clock *per field*, persisted beside the row — and narrows rule 2 to the two states it names. The server
-had kept one `updated_hlc` per row and compared every field against it, so a pack made offline lost to any unrelated
-later edit of the same row; the code had compensated by letting every incoming `packed` win regardless of HLC, which
-silently undid later deliberate unpacks and skips and logged nothing (ADR-022). **Amended a fifth time the same day:**
-§8 gains `GET /conflicts/master`. NFR-4.2a's audit had one endpoint and two partitions, so every master-partition loser
-— a group renamed twice, a trip's own dates — was logged and reachable by nothing. **Amended 2026-08-25 (data-model
-review):** four corrections, each a place where this document and the code had drifted apart. §4 now says a snapshot
-carries `updated_hlc` beside the syncable columns — it always described the field and the server never sent it, so the
-client's §3 clock-advance step had never once run. §4 also states that every foreign-key cascade is tombstoned
-explicitly, and names the two that were not: a deleted trip's master-partition children, and a deleted trip item's
-comments. §4's tombstone-retention sentence now admits that nothing compacts anything yet. P-3 stops listing
-`conflict_log` as a trip-partition table, which it never was, and §8's conflict envelope names the `mutation_id` and
-`actor_user_id` it has been sending all along. **A sixth correction the same day:** §5 gains the refusal vocabulary. The
-`error` field beside a `rejected` outcome had been declared since v1.0 and was written only for the two validation
-errors raised before the store — so an authorization denial, an out-of-partition mutation, a template scope rule, a
-constraint and a blocked delete were one indivisible word, and the client parked the mutation with nothing to show. §5
-now lists the five values and states the rule under the worst of them: a delete other rows still depend on is refused
-rather than cascaded, because FR-9.2's provenance outlives the Vorlage it names. **A fifth correction the same day, from
-the review's actor-stamping half:** §5's "Server-stamped fields" bullet described a rule with two holes in it — comment
-`author_id` was stamped on `insert` alone, so an `upsert` could rewrite an existing comment's author, and the two G-3
-claim columns were written only inside the state switch, so a mutation carrying a claim holder and no `state` could
-forge one. Both columns are stripped from every mutation now and written back only where the server decides them, and
-the bullet says so. **Amended 2026-09-02:** §4's cascade bullet states what the *client* owes — the same child list,
-derived locally. The rule had been written for the server alone, and the client mirrored four of a deleted trip's nine
-child tables; in Local Mode, which has no tombstones at all, every child row of every deleted trip, master item, Vorlage
-and trip item stayed on the device for its lifetime. **A seventh correction the same day (ADR-031):** §5 and §5.1 say
-what happens *after* a refusal. Naming the reason had left the divergence itself untouched — the client renders
-optimistically, the outbox drops the mutation on any per-mutation outcome (P-5), and the server row did not change, so
-its `change_log` entry sits behind the client's cursor and no ordinary pull ever offers it again. A refusal now re-logs
-the row it refused, and the one refusal that cannot be re-logged without leaking a foreign row is repaired by the
-client. **Amended 2026-09-04 (G-2):** §8's export row says the NFR-4.5 backup carries every table of both partitions. It
-had not: the export kept its own hand-written query list beside the feed's visibility rules, and that list had lost
-`item_dependencies` (the whole FR-20.1 graph) and `trip_members` (every restored trip's roster) with nothing to say so.
-Both lists are now views of one per-table declaration.
+**Document Status:** Proposed for Review **Basis:** ADR-001 v2 (Go + embedded SQLite), Schema v0.3 (`change_log`,
+`updated_hlc`), NFR-4.1/4.2/4.2a, UI-Spec G-2/G-4/G-5/G-10. **Revision Note (v1.3):** Added four RPC endpoints (§8) for
+portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly
+distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. **All four were removed again on 2026-08-23
+(ADR-025)** — they were a second implementation of a format that already had one on the client, and it had silently
+fallen behind; see the §8 row. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
+
+**Revision history** — newest first. Every rule is current text in the section named; the entry says what it replaced.
+* **2026-09-04 (G-2) — §8:** the NFR-4.5 export carries every table of both partitions. Was: a hand-written query list
+  beside the feed's visibility rules, which had lost `item_dependencies` (the whole FR-20.1 graph) and `trip_members`
+  (every restored trip's roster) with nothing to say so; both lists are views of one per-table declaration now.
+* **2026-09-02 — §4:** the cascade bullet states what the *client* owes — the same child list, derived locally. Was: a
+  rule written for the server alone; the client mirrored four of a deleted trip's nine child tables, and Local Mode,
+  which has no tombstones at all, kept every child row of every deleted trip, master item, Vorlage and trip item for the
+  device's lifetime. **§5/§5.1 (ADR-031):** what happens *after* a refusal — the row is re-logged, and the one refusal
+  that cannot be re-logged without leaking a foreign row is repaired by the client. Was: the client rendered
+  optimistically, the outbox dropped the mutation (P-5), the server row never changed, so its `change_log` entry sat
+  behind the client's cursor and no ordinary pull offered it again.
+* **2026-08-25 (data-model review) — six places where document and code had drifted apart.** §4: a snapshot carries
+  `updated_hlc` beside the syncable columns — described since v1.0 and never sent, so the client's §3 clock-advance step
+  had never once run. §4: every foreign-key cascade is tombstoned explicitly, naming the two that were not (a deleted
+  trip's master-partition children, a deleted trip item's comments), and the retention sentence admits nothing compacts
+  anything yet. P-3: `conflict_log` is not a trip-partition table and never was. §8: the conflict envelope names the
+  `mutation_id` and `actor_user_id` it had been sending all along. §5: the refusal vocabulary — the `error` beside a
+  `rejected` outcome had been declared since v1.0 and written only for the two validation errors raised before the
+  store, so five different refusals were one word and the client parked the mutation with nothing to show; a delete
+  other rows still depend on is refused rather than cascaded, because FR-9.2's provenance outlives the Vorlage it names.
+  §5, server-stamped fields: comment `author_id` and the two G-3 claim columns are stripped from every mutation and
+  written back only where the server decides them — was stamped on `insert` alone (an `upsert` could rewrite an existing
+  comment's author) and only inside the state switch (a claim holder without a `state` could be forged).
+* **2026-08-24 (NFR-4.14, ADR-027):** every path names its **scope** first and its resource second — `/trips/{id}/sync`
+  and `/master/sync` in §4/§5, `/master/conflicts` in §8 — and the full export names its format, `/me/export.json`; the
+  old paths are gone rather than aliased. Was: three disagreements about the same two ideas (which partition, which
+  format), so a reader who knew two endpoints could not predict the third. Same day: every response body in §8 is a type
+  declared in `internal/api/wire.go` and generated into the client — the admin overview, the notification list and its
+  preference set, the instance config and the auth pair were the four families still outside the contract; no key
+  changed. The preference endpoint's *request* body stays an untyped map on purpose: an absent key there means the kind
+  stays enabled, which a struct would decode as disabled.
+* **2026-08-23 (NFR-4.14, ADR-026) — §9** no longer lists the error codes: `internal/api/wire.go` declares them and the
+  client's copy is generated, because the list here had drifted into naming two codes nothing sends and omitting eleven
+  that are sent. The paths are declared there as well, and the client's builders are generated from that declaration.
+  The envelopes in §4/§5/§7/§8 are prose about a shape with one machine-checked declaration; where the two ever
+  disagree, `wire.go` is what runs. **§6:** a conflict entry records an *overwrite*, not a lost race — a field the
+  losing push carried along unchanged is neither logged nor counted, and the outcome stays `applied`. Was: the merge
+  compared clocks and never values, so a whole-group edit filled the log with `2026 → 2026` rows and the client
+  announced overwritten fields to users whose data was untouched.
+* **2026-08-22 — seven rules the document implied and never spelled out, each found drifted in the code.** §5 and P-3: a
+  trip mutation is confined to the trip its endpoint names (never written, never enforced). §5: the push *response*
+  envelope and its `outcome` key, and a constraint violation is a `rejected` mutation rather than a 5xx — the client
+  read a `status` key no server has ever sent, and the trip partition answered 500 where the master partition answered
+  `rejected`. §5: `pull_hint` is a signal that a pull is worth making, never the cursor to make it from — the client had
+  taken it as the cursor, stepping over everything another device wrote while it was offline. §4: two consequences of
+  "rows are full snapshots" — a snapshot carries syncable columns only, so a generated one is derived rather than read,
+  and a client's *optimistic* row is a full snapshot too, or it blanks what it omits, permanently in Local Mode. §5:
+  what `merged` obliges the client to do — the outcome existed on the wire and was read nowhere, so a user was never
+  told an edit had been overwritten. §8: `GET /conflicts/master` — NFR-4.2a's audit had one endpoint and two partitions,
+  so every master-partition loser (a group renamed twice, a trip's own dates) was logged and reachable by nothing. §6:
+  field-level LWW needs a clock *per field*, persisted beside the row, and rule 2 is narrowed to the two states it names
+  — the server had kept one `updated_hlc` per row, so a pack made offline lost to any unrelated later edit of the same
+  row, and the code had compensated by letting every incoming `packed` win regardless of HLC, silently undoing later
+  deliberate unpacks and skips (ADR-022).
+
 **Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC.
 **Note on migration numbers:** this document dates several schema facts as "since migration NNN". Those numbers are
 **history, not files** — the migration chain was retired on 2026-08-19 (ADR-018) in favour of one always-current
@@ -399,7 +386,7 @@ copy until it discards it (lazy, same semantics as trip deletes).
   A replay repairs nothing further: the memo answers it `duplicate` before the store is reached (P-5), so a boot replay
   of a parked mutation does not append a repair per attempt.
 * **A delete the data still depends on is refused, not cascaded** — for every entity except the two FR-24.3 governs
-  (amended 2026-08-25). The deliberately restricting references carry no `ON DELETE` clause on purpose: FR-9.2 has an
+  (revised 2026-08-25). The deliberately restricting references carry no `ON DELETE` clause on purpose: FR-9.2 has an
   archived trip keep naming the Vorlage its rows came from, and the same holds for a master item a template position or
   a trip item names, a series a trip names, and a traveler or container a trip item names. The refusal is asked for
   before the delete is attempted (the driver's constraint message is not a contract to branch on), and it is the
@@ -700,7 +687,7 @@ minimal and the footprint goal (NFR-4.3) intact.
 ## 9. Error Model & Limits
 
 * Errors: `{ "error": { "code": …, "message": "…", "field": "…" } }` with matching HTTP status (404/403/422/409). **The
-  list of codes is not in this document** (amended 2026-08-23, NFR-4.14/ADR-026): it is `ErrorCode` in
+  list of codes is not in this document** (revised 2026-08-23, NFR-4.14/ADR-026): it is `ErrorCode` in
   `internal/api/wire.go`, generated into the client as a union and a frozen `ERROR_CODE` object, so a code exists once
   and both sides are checked against it. The list that stood here had drifted into fiction — it named `conflict`, which
   no handler has ever sent, and `rate_limited`, retired with Demo Mode in Addendum v2.10, while omitting eleven codes

@@ -108,7 +108,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | ID | Pattern | Mode | What it proves |
 |---|---|---|---|
 | E2E-G1-01 | G-1 Navigation | all | Four bottom tabs (Dashboard/Trips/Templates/Items) route correctly; Settings reachable via avatar/gear. In `single`/`local` the top-right control is the plain **gear**, not an avatar. |
-| E2E-G2-01 | G-2 Sync indicator | single/server | Glyph reflects synced → offline (queued count) as the network drops and returns to synced once the queue drains; tapping opens the detail, which states the queue and — inside a trip — leads to the conflict log, whose row names the **item, the column and both travelers** — `Seil-x · Assigned to`, `Mia → Andy` — rather than `trip_items · assigned_traveler_id` between two uuids (widened 2026-08-24; the assertion it replaces was "both values render as something", which a pair of raw ids satisfies). Outside a trip the *trip's* log is not offered — it has no subject — but the master partition's is, and clicking it opens the log (amended 2026-08-22 with E2E-G2-06; the sentence it replaces, "it says where the log lives", was a hint that named a log the user could reach and one they could not). *(Amended 2026-08-20 with the implementation: the transient `syncing` state is not raced — same reasoning as the M8-14 amendment — and the drain is asserted on the app's next own action (a trip open), because no reconnect loop existed then; the reconnect exists since 2026-09-01 and E2E-G2-13/14 are its cases — this one is unchanged, because the queue still moves on the app's next own action too.)* |
+| E2E-G2-01 | G-2 Sync indicator | single/server | Glyph reflects synced → offline (queued count) as the network drops and returns to synced once the queue drains; tapping opens the detail, which states the queue and — inside a trip — leads to the conflict log, whose row names the **item, the column and both travelers** — `Seil-x · Assigned to`, `Mia → Andy` — rather than `trip_items · assigned_traveler_id` between two uuids (widened 2026-08-24; the assertion it replaces was "both values render as something", which a pair of raw ids satisfies). Outside a trip the *trip's* log is not offered — it has no subject — but the master partition's is, and clicking it opens the log (revised 2026-08-22 with E2E-G2-06; the sentence it replaces, "it says where the log lives", was a hint that named a log the user could reach and one they could not). *(Revised 2026-08-20 with the implementation: the transient `syncing` state is not raced — same reasoning as E2E-M8-14's 2026-08-15 revision note — and the drain is asserted on the app's next own action (a trip open), because no reconnect loop existed then; the reconnect exists since 2026-09-01 and E2E-G2-13/14 are its cases — this one is unchanged, because the queue still moves on the app's next own action too.)* |
 | E2E-G2-02 | G-2 Local glyph | local | Distinct **device** glyph; tap opens the storage & backup detail (not a conflict log): the sheet titles the state, explains that no server is involved, shows the NFR-4.11 storage section, and offers **no** conflict-log entry. Asserted on a screen with no trip open — where the glyph used to do nothing at all. |
 | E2E-G2-03 | G-2 One-tap backup | local | The detail's **Back up now** downloads `jitpack-backup-YYYY-MM-DD.yaml` holding every trip and template, and the sheet's backup line goes from *Never backed up* to *Last backup today* — the stamp the FR-19.6 reminder reads later. |
 | E2E-G2-04 | G-2 Durable queue | single/server | An offline change survives a **reload while still offline** (B2, NFR-4.1): the queue count is back on the glyph, the detail sheet states it and says it is saved on this device, and the change reaches the server on the app's next own action — proven on a device that never saw it. *(Added 2026-08-21 with the durable outbox. No reconnect drain is asserted here — none existed then, and since 2026-09-01 E2E-G2-13/14 own it; the boot replay is what this case proves.)* |
@@ -141,7 +141,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G9-06 | G-9 Cold-start deep link | all | Opening a nested screen directly, with a one-entry history, still returns to the parent trip on back (Navigation_Concept §7 contract). |
 | E2E-G9-07 | G-9 Global group survives | all | Sync glyph (G-2) and settings (G-1) remain present on a drill-down — the reason a per-screen bar was rejected, since the conflict log has no other entry inside a trip. |
 | E2E-G9-08 | G-9 List → detail → back | all | The everyday round trip entered through the trip list. Uncaught runtime errors are asserted with **no exemptions**. *(The known Ionic cross-outlet error the case used to filter is gone with ADR-012, which removed the second outlet; keeping the filter would only hide the next one.)* |
-| E2E-G10-01 | G-10 Trip presence | server | Facepile of others on the trip, the **in-sync** badge, and the tap that names one person — plus the two absences that give the pile its meaning: no pile above one person, and none once the second leaves. **Amended 2026-08-28**: the per-person *sheet* this case once demanded was **replaced** by state on the faces themselves (UI-Spec G-10, FR-4.6) — it is not an unbuilt promise, and the ledger said so until 2026-08-30. ~~"the group-sync badge in both states"~~ — this case only ever renders one of them; the other is E2E-G10-02. Its `presence-behind` absence sits after a visible `presence-in-sync` and the two are a `v-if`/`v-else`, so that clause cannot fail on its own; it is kept as documentation of the exclusivity, not counted as coverage of it. The ✕ on the named line is not pressed here — the case dismisses by tapping the face again — and is unit-owned in `PresenceFacepile.spec.ts`, together with the ordering, the overflow and the ring's own rendering. |
+| E2E-G10-01 | G-10 Trip presence | server | Facepile of others on the trip, the **in-sync** badge, and the tap that names one person — plus the two absences that give the pile its meaning: no pile above one person, and none once the second leaves. **Revised 2026-08-28**: the per-person *sheet* this case once demanded was **replaced** by state on the faces themselves (UI-Spec G-10, FR-4.6) — it is not an unbuilt promise, and the ledger said so until 2026-08-30. ~~"the group-sync badge in both states"~~ — this case only ever renders one of them; the other is E2E-G10-02. Its `presence-behind` absence sits after a visible `presence-in-sync` and the two are a `v-if`/`v-else`, so that clause cannot fail on its own; it is kept as documentation of the exclusivity, not counted as coverage of it. The ✕ on the named line is not pressed here — the case dismisses by tapping the face again — and is unit-owned in `PresenceFacepile.spec.ts`, together with the ordering, the overflow and the ring's own rendering. |
 | E2E-G10-02 | G-10 Trip presence, lagging | server | **Implemented 2026-08-30** (backlog item 6, the M20/G-10 audit), and it retires this row's predecessor sentence: ~~a device is behind only while its reported cursor sits below the trip head, and the client reports one the moment its pull returns, so an e2e case could only race it~~. That holds for a device that is *allowed* to pull. `drainTrip` reports the cursor only after the pull **returns**, so a device whose trip-partition requests are blocked keeps the cursor it had and the lagging state stands still — a settled state, not a moment. Bob's pulls are blocked, Alice moves the head, and her screen counts one straggler in the badge's bubble, drops the ✓✓, and names *„Bob · catching up"* on the tap while naming Alice *„up to date"*. Unblocking and moving the head again settles it back, which is what makes it a state rather than a latch. What it adds over the units: `hub_test.go` computes `in_sync` from cursors and `PresenceFacepile.spec.ts` rings whoever a prop says is behind — nothing said the server's answer is that prop. |
 | E2E-G11-01 | G-11 Theming | all | **Covered by E2E-M17-06** (read 2026-08-31): it opens a device with no preference and asserts Mocha *before* touching anything, presses the toggle, reloads, and presses it back — the default, the switch and the persistence, in that order. ~~no flash of wrong theme~~ — **kept and named, not counted**: it is a claim about the frames before first paint, and every assertion available here reads the settled document. |
 | E2E-G9-09 | G-9 Navigation repaints | all | A rail entry (≥900px) changes the URL **and** the rendered screen. Asserted against the *visible* page (`.ion-page:not(.ion-page-hidden)`), because the defect this exists for was a route change that never repainted — every URL assertion in the suite stayed green throughout it. |
@@ -363,7 +363,7 @@ stable references for the traceability matrix.
   two sections; a Vorlage's row counts what it **resolves** to rather than its own positions (a Vorlage with no own
   positions never reads 0); picking it resolves for real: the footer count matches the deduped set and the merge is
   **named** with both source groups ("Kamera nur 1× — in Makro & Wildlife"), and each group it already brings says so on
-  its own row. *Amended 2026-08-16 when the case was built:* the original text also promised a tab per scope and an
+  its own row. *Revised 2026-08-16 when the case was built:* the original text also promised a tab per scope and an
   "enthält: …" line on the Vorlage row, both carried over from M7-07. M3 has no scope segment — FR-27.6 asks for
   "sections/tabs" and a four-step wizard is not a place to add a second navigation control — and the "enthält" relation
   is stated from the other side, on the group rows that name the Vorlage bringing them, which does not repeat the same
@@ -601,7 +601,7 @@ in WebKit.
   un-packing clears the stamp so it never outlives the state it describes, is `e2e/packing-list.spec.ts`'s: Local Mode
   has no account, so `packed_by_user_id` is null and the stamp reads its time alone. The **name** is E2E-FLOW-01's,
   where the server stamps the column itself. The avatar beside it is E2E-M4-30's.
-* **E2E-M4-36** `all` (FR-25.13a, amended 2026-08-17) — **implemented** (`e2e/packing-list.spec.ts`): M4's ＋ hides while
+* **E2E-M4-36** `all` (FR-25.13a, revised 2026-08-17) — **implemented** (`e2e/packing-list.spec.ts`): M4's ＋ hides while
   the quick-add composer is open — including after an add, since the composer stays open — and returns when it closes;
   the fab **container** (`#m4-fab-anchor`) survives throughout, because the FR-25.2 undo snackbar is positioned against
   it. The same rule has its own case on M8 (E2E-M8-17) and needs both: each screen writes it in its own template, so one
@@ -1003,8 +1003,8 @@ rather than registered.
   one, collapsed to its own trigger above the list, and Enter adds to the **currently open tab**. Three clauses of the
   original wording are gone, each superseded rather than untested — corrected 2026-08-30: M6 has **no ＋ FAB** (M4 has
   one, M6's composer carries its own trigger), the composer is **not focused** on opening (FR-25.13c, so the chips are
-  not covered by the keyboard), and it **does not collapse on blur** (FR-25.13a as amended — collapsing reflows the list
-  under the next tap).
+  not covered by the keyboard), and it **does not collapse on blur** (FR-25.13a as revised 2026-08-13 — collapsing
+  reflows the list under the next tap).
 
 ### M7 — Template List
 
@@ -1031,17 +1031,15 @@ and one of those clauses is the arithmetic the row exists for.
   creates template → opens M8.
 * **E2E-M7-04** `all` (FR-18.2) — **implemented**: long-press → Export → YAML download.
 * **E2E-M7-05** `all` (FR-18.4) — **the promise is half built, and the half that is has a case
-  since 2026-08-30.** Import from M7 exists and reaches M18; the **FAB "+" menu** it is promised
-  in does not, and the FAB opens the scope chooser instead. Import is a header icon beside the
-  page title, recorded as *still owed* in this spec's 2026-08-15 amendment and, until this audit,
-  contradicted by UI-Spec M7's own *Actions* line, which described the menu as built (corrected
-  the same day). **Struck 2026-08-31 (owner decision): the header icon is the entrance and the clause
-  goes.** A second door to a function that already has one buys nothing, and E2E-M7-06 settled
-  the same question for this screen's empty state on the same reasoning — create is the FAB,
-  import is the header icon, both already on screen. The case now asserts what runs — the icon opens M18 and the way
-  back lands on **M7**, which is not M18's declared parent (E2E-G9-12 asserts the same rule for
-  the entrance from M2 and names M7 without covering it, so this entrance could silently have
-  returned to Settings).
+  since 2026-08-30.** Import from M7 exists and reaches M18; the **FAB "+" menu** it is promised in does not, and the
+  FAB opens the scope chooser instead. Import is a header icon beside the page title, recorded as *still owed* in this
+  spec's 2026-08-15 revision note and, until this audit, contradicted by UI-Spec M7's own *Actions* line, which
+  described the menu as built (corrected the same day). **Struck 2026-08-31 (owner decision): the header icon is the
+  entrance and the clause goes.** A second door to a function that already has one buys nothing, and E2E-M7-06 settled
+  the same question for this screen's empty state on the same reasoning — create is the FAB, import is the header icon,
+  both already on screen. The case now asserts what runs — the icon opens M18 and the way back lands on **M7**, which is
+  not M18's declared parent (E2E-G9-12 asserts the same rule for the entrance from M2 and names M7 without covering it,
+  so this entrance could silently have returned to Settings).
 * **E2E-M7-06** `all` (G-7) — **implemented, and its CTA clause is retired.** The empty state
   carries **no CTA buttons of its own**, by the decision recorded in UI-Spec M7's *States* line:
   create is the FAB and import is the header icon, both already on screen. What the case asserts
@@ -1081,15 +1079,13 @@ and one of those clauses is the arithmetic the row exists for.
 
 ### M8 — Template Editor
 
-**The ids and the tests were read against each other on 2026-08-30** (backlog item 6). Every
-M8 id already carried a test, so the read was clause by clause rather than id by id, and that
-is where the one real hole was: **E2E-M8-06 has read *implemented* since the M8 rebuild
-(`8dc89d8`, 2026-08-15) with nothing in the suite ever removing a position.** The row's ✕ was
-a *decision* that commit made — the M7 variant pass had just rejected the swipe panel — so it
-was written into the UI-Spec, into this entry's amendment note and into the ledger on the same
-day, and the amendment is what everyone then read. A clause that arrives as news is not
-checked the way a clause that arrives as a requirement is. Four further clauses of other ids
-were unasserted and went in with it; they are named on their own entries below.
+**The ids and the tests were read against each other on 2026-08-30** (backlog item 6). Every M8 id already carried a
+test, so the read was clause by clause rather than id by id, and that is where the one real hole was: **E2E-M8-06 has
+read *implemented* since the M8 rebuild (`8dc89d8`, 2026-08-15) with nothing in the suite ever removing a position.**
+The row's ✕ was a *decision* that commit made — the M7 variant pass had just rejected the swipe panel — so it was
+written into the UI-Spec, into this entry's revision note and into the ledger on the same day, and the revision note is
+what everyone then read. A clause that arrives as news is not checked the way a clause that arrives as a requirement is.
+Four further clauses of other ids were unasserted and went in with it; they are named on their own entries below.
 
 *Filing note:* **E2E-M8-20, E2E-M8-21 and E2E-M8-22** are defined in the M4 block above,
 beside the M4 twins they were written with (FR-27.10, FR-25.13c, FR-25.13d). They are M8's
@@ -1122,7 +1118,7 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
   and an insertion-ordered list would have passed a one-row check); the row's ✕ takes that row and no other, with the
   surviving rows and the section count as the two positive signals; the removal **survives leaving and reopening**, so
   it is a write rather than a view state; and removing the rest reaches `m8-positions-empty`, which nothing had rendered
-  before. (Amended 2026-08-15: the M7 variant pass showed a swipe panel breaking out of the card, so removal is the ✕
+  before. (Revised 2026-08-15: the M7 variant pass showed a swipe panel breaking out of the card, so removal is the ✕
   and there is no reorder.)
 * **E2E-M8-07** `all` (FR-27.1/27.6): scope-shaped editor — a **Gruppe** shows only *Positionen* and no group picker; a
   **Ferien-Vorlage** shows the *Gruppen* section whose picker offers **groups only** (never vacation templates, never
@@ -1150,7 +1146,7 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
   committing anything; no inline expanding row form exists. *(**„scrim tap" left this sentence 2026-08-30.** The
   dismissal is one `@did-dismiss` handler and both of its user-reachable paths are asserted — the sheet's own ✕ here,
   Escape in E2E-M8-23 — so what the clause named as a third case was Ionic's own `backdropDismiss` default and nothing
-  of this screen's.)* (Amended 2026-08-15: the ●→✓ **flip is unit-tested** on the shared `SaveIndicator` against a
+  of this screen's.)* (Revised 2026-08-15: the ●→✓ **flip is unit-tested** on the shared `SaveIndicator` against a
   controlled state — e2e asserts the indicator's presence and settled tooltip, because racing the transient ● would be a
   forbidden timing dependency.)
 * **E2E-M8-13** `all` (FR-25.13/25.13a/25.13c): M8's add is the packing list's quick-add, verbatim — collapsed card, ＋
@@ -1158,13 +1154,13 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
   with chips, and the raised keyboard would cover them — asserted after the confirm has rendered, so the removed focus
   cannot pass by racing), inventory autocomplete after two characters, visible confirm labelled for the scope ("Zur
   Gruppe/Vorlage hinzufügen"), Enter commits, the field stays open and empty for the next position and never collapses
-  on blur (FR-25.13a as amended); an already-present name is reported ("schon drin — nicht doppelt") and not added
-  twice; an unknown name creates the master item and the position in one step. *(**„after two characters" was asserted
-  nowhere** — not here, not on M4, not in `QuickAddItem.spec.ts` — until 2026-08-30: `MIN_SEARCH_LENGTH` is shared with
-  M3 step 3 and nothing would have gone red on a change to it. The gate is now pinned on M8, where the shared composer's
-  rules live (the FR-25.13c/d division of labour), with the **free-text hint absent alongside the suggestions**: that
-  hint renders exactly when a long-enough query matches nothing, so its absence is what separates the gate from an empty
-  result.)*
+  on blur (FR-25.13a as revised 2026-08-13); an already-present name is reported ("schon drin — nicht doppelt") and not
+  added twice; an unknown name creates the master item and the position in one step. *(**„after two characters" was
+  asserted nowhere** — not here, not on M4, not in `QuickAddItem.spec.ts` — until 2026-08-30: `MIN_SEARCH_LENGTH` is
+  shared with M3 step 3 and nothing would have gone red on a change to it. The gate is now pinned on M8, where the
+  shared composer's rules live (the FR-25.13c/d division of labour), with the **free-text hint absent alongside the
+  suggestions**: that hint renders exactly when a long-enough query matches nothing, so its absence is what separates
+  the gate from an empty result.)*
 * **E2E-M8-16** `all` (FR-27.14): M8's resolution footer opens the peek sheet on the Vorlage itself; the list is the
   resolved set, flat and alphabetical; a merged row names both contributing groups and an own position reads as one; the
   sheet offers no control that writes, and the editor is still behind it afterwards. *The marks themselves — merge, per
@@ -1901,7 +1897,7 @@ against a screen rather than against a stylesheet (G-14).
   case would add is *„hides it where unsupported"*, and that branch cannot be produced in either browser the suite runs:
   Chromium and WebKit both carry `PushManager`, so `pushAvailable` is true in every project that exists. The control is
   disabled rather than hidden, and asserting `disabled` on an Ionic toggle is the E2E-M17-05b trap — a bound boolean
-  reflects onto no DOM attribute — so the case would have been green against the branch being gone. **Amended
+  reflects onto no DOM attribute — so the case would have been green against the branch being gone. **Revised
   2026-09-01:** the retirement's reasoning was one half short. It weighed the *unsupported* branch and concluded a
   rendered case adds nothing — but the half neither layer had was the **round-trip**, the subscription the browser dance
   produces actually reaching the instance. That is E2E-NFR-06, and it also found the toggle had no `data-testid` at all.
@@ -2217,7 +2213,7 @@ against a screen rather than against a stylesheet (G-14).
   so the IdP goes on vouching for the account; FR-23.3's answer is that this does not bring it back, *„otherwise
   deactivation would be meaningless"*. The store proves the login does not clear `deactivated_at` and `issueSession`
   refuses the exchange — and the app answered *„The server rejected the login."*, the same sentence a replayed code
-  gets. That is the login-screen twin of the defect FR-23.3's own 2026-08-28 amendment fixed inside the app: a permanent
+  gets. That is the login-screen twin of the defect FR-23.3's own 2026-08-28 revision fixed inside the app: a permanent
   state read as a glitch, and a person told nothing. The callback now narrows on the `account_deactivated` code exactly
   as `client.ts` does, and the case asserts the sentence rather than the refusal — a regex matching the generic one
   would pass against the build this was written for.
@@ -2295,7 +2291,7 @@ landed, that no test has ever rendered.
   rest behind the ⋮ — `m4-edit` and `m4-start` are gone as glyphs, the menu **names** both in words, and picking
   *„Reise-Eigenschaften"* lands on the rendered M22 edit screen. The last step is what separates the menu from a
   decoration: an entry that opens nothing would satisfy every assertion above it.
-* **E2E-M4-45** `all` (UI-Spec M4 / ADR-012's overlay amendment, added 2026-08-21): M4 scrolled mid-list, an item opened
+* **E2E-M4-45** `all` (UI-Spec M4 / ADR-012's overlay revision, added 2026-08-21): M4 scrolled mid-list, an item opened
   and closed again — the list is back at the same offset **and** the header line is folded again, which is the other
   half of the position. Asserted on the rendered scroll offset of `ion-content`, never on the URL, and waited on the
   page's own `data-scroll-restored` signal rather than on a clock. The row it opens is chosen for being wholly inside
@@ -2389,11 +2385,11 @@ a different screen and one built nowhere (see below, and UI-Spec M22).
   through the store — asserted on the repainted M4, never on the URL. Since 2026-08-26 (G-17, ADR-035) it also sets the
   start date through the `DateField` picker and asserts the locale display (`Oct 3, 2026`) both optimistically and after
   a round trip back through M4.
-* **E2E-M22-02** `all` (FR-2.7/FR-27.4 amendment): a traveller added to an existing trip extends the per-person
-  positions **immediately**, and the screen reports what it did. The report is also the settled state the case waits on,
-  so no clock is involved. **Tightened 2026-08-30:** the report was asserted as the digit `1`, which is equally true of
-  *„1 item removed"* — it is asserted as the sentence now, so the screen cannot report the wrong half of FR-27.4's
-  outcome.
+* **E2E-M22-02** `all` (FR-2.7, FR-27.4's 2026-08-21 revision): a traveller added to an existing trip extends the
+  per-person positions **immediately**, and the screen reports what it did. The report is also the settled state the
+  case waits on, so no clock is involved. **Tightened 2026-08-30:** the report was asserted as the digit `1`, which is
+  equally true of *„1 item removed"* — it is asserted as the sentence now, so the screen cannot report the wrong half of
+  FR-27.4's outcome.
 * **E2E-M22-03** `all` (FR-2.7/FR-25.1): a traveller removed takes **their** row and never a sibling's. Three things
   this case needs in order to be able to fail, each learned by watching it pass when it should not have: the surviving
   row is **part**-packed rather than packed, because a fully packed row leaves the list through the FR-25.2 pack-out and
