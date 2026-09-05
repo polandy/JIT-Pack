@@ -2098,8 +2098,9 @@ against a screen rather than against a stylesheet (G-14).
   device 500 of its 717 master rows and said nothing: M2 read „Keine archivierten Reisen" with the G-2 glyph green.
   Mutation-proved: with the loop taken out, the last row is never found.)* **Read 2026-09-01 (audit of backlog item 6,
   the SYNC row), and what it found is not an e2e gap:** §4's paging rule had **two implementations** —
-  `SyncOutbox.drain`, which every browser runs and this case covers, and `usePull.pullMasterAll`/`pullTripAll`, which
-  the FR-18.7/18.8 command line runs and nothing here reaches. They had drifted exactly where the log said they would:
+  `SyncOutbox.drain`, which every browser runs and this case covers, and the FR-18.7/18.8 command line's own pull,
+  which nothing here reaches (it was `usePull.pullMasterAll`/`pullTripAll` then; `sync/partition.ts` since
+  2026-09-05). They had drifted exactly where the log said they would:
   the progress guard (*stop when `next_cursor` does not advance*) was the drain's alone, so a server claiming more
   without moving the cursor made `jitpack import` spin for ever. The rule is named once now
   (`client/src/sync/pullProtocol.ts`) and both callers ask it. Its twin, §3's observe step, was the same story upside

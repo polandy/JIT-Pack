@@ -24,11 +24,15 @@ import { hasFurtherPage, observePulledClocks } from '@/sync/pullProtocol'
 /** The two feeds a device syncs (Sync-API P-3). */
 export type PartitionType = 'trip' | 'master'
 
-/** A partition named the way every caller here wants it. */
+/**
+ * A partition named the way every caller here wants it. Read-only because
+ * `MASTER_PARTITION` below is one shared object: a caller that reassigned a
+ * field would be repointing every other caller's partition with it.
+ */
 export interface PartitionRef {
-  type: PartitionType
+  readonly type: PartitionType
   /** The trip's id, and `null` for the master feed, which has none. */
-  id: string | null
+  readonly id: string | null
 }
 
 /** The master feed, which is the same partition for every caller. */
