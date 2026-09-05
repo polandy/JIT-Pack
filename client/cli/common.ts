@@ -4,8 +4,10 @@
  * push cap. A command owns its own rules and nothing else.
  */
 
+import type { APIClient } from '@/api/client'
 import type { Mutation } from '@/api/types'
-import { MAX_PUSH_BATCH } from '@/composables/useSyncOutbox'
+import type { HLCGenerator } from '@/sync/hlc'
+import { MASTER_PARTITION, MAX_PUSH_BATCH, pushPartition, tripPartition } from '@/sync/partition'
 
 /** Where a command looks when a flag is omitted, so a shell can be set up once. */
 export const ENV_SERVER = 'JITPACK_SERVER'
@@ -54,13 +56,16 @@ export interface PendingWrites {
 
 /** Send one run's collected writes, chunked past the §9 cap. */
 export async function pushPending(
+  client: APIClient,
+  hlc: HLCGenerator,
   pending: PendingWrites,
-  pushMaster: (m: Mutation[]) => Promise<unknown>,
-  pushTrip: (tripId: string, m: Mutation[]) => Promise<unknown>,
 ): Promise<void> {
-  for (const chunk of chunked(pending.master)) await pushMaster(chunk)
+  for (const chunk of chunked(pending.master)) {
+    await pushPartition(client, hlc, MASTER_PARTITION, chunk)
+  }
   for (const [tripId, list] of pending.trips) {
-    for (const chunk of chunked(list)) await pushTrip(tripId, chunk)
+    const partition = tripPartition(tripId)
+    for (const chunk of chunked(list)) await pushPartition(client, hlc, partition, chunk)
   }
 }
 
