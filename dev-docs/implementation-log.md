@@ -13139,12 +13139,17 @@ outside this repository, and a shim is dead code with a date on it.
 **A gate, because the shape is invisible.** `scripts/domain-purity-gate.mjs`
 (in `make client` and the CI client job) reads every specifier under
 `client/src/domain` — `import`, `export … from` and dynamic `import()` alike,
-type-only included — and refuses `composables/`, `stores/`, `views/`,
-`components/`, `local/`, `router/`, `theme/` and the `vue` / `vue-router` /
-`pinia` / `@ionic/*` packages. It was proved against four shapes of the defect
+type-only included — and admits `types/`, `api/`, `sync/`, `lib/` and `domain/`
+itself, plus any package that is not `vue` / `vue-router` / `pinia` /
+`@ionic/*`. It was written the other way round first, as a list of forbidden
+directories, and that list was already incomplete on the day it was written:
+`client/src` has fifteen directories, the denylist named seven, and `i18n/` —
+which reaches Vue one import further down — was one of the eight it let
+through. An allowlist closes the next directory too. Proved against six shapes
 before being trusted: the original type-only `@/composables/…` import, the same
-thing written as a relative climb, a plain `import { ref } from 'vue'`, and a
-dynamic `import('@/stores/tripStore')`. All four red, the restored tree green.
+as a relative climb, `import { ref } from 'vue'`, a dynamic
+`import('@/stores/tripStore')`, `@/i18n` and `@/notifications/…`. All six red,
+the restored tree green.
 It also fails when it finds no modules at all, because a gate whose walk has
 been emptied by a move reports ok forever and nothing says it stopped
 measuring.

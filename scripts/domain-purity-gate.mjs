@@ -31,20 +31,21 @@ const SRC = resolve(root, 'client/src')
 const DOMAIN = resolve(SRC, 'domain')
 
 /**
- * The layers above the rules. A `domain` module may import from `types/`,
- * `api/types`, `sync/` and its own siblings — everything else in the app is
- * either a caller of these rules or a piece of the browser they are written to
- * be independent of.
+ * The layers a rule module may reach into, as an allowlist rather than a list
+ * of forbidden ones — the same reason the Go clock guard bans the *call* and
+ * not a set of excused files. A denylist is only as complete as the day it was
+ * written: `client/src` has fifteen directories today, and the next one added
+ * would be importable by default under the opposite rule.
+ *
+ * `types/` is the shapes, `api/types` the generated wire contract, `sync/` the
+ * transport-shaped leaves the rules write through (the HLC, the mutation
+ * factory, the column codecs), `lib/` the dependency-free helpers. Everything
+ * else in the app either calls these rules or is a piece of the browser they
+ * are written to be independent of — including `i18n/`, which reaches Vue one
+ * import further down and would make a rule module un-constructible without an
+ * app instance.
  */
-const FORBIDDEN_DIRS = [
-  'components',
-  'composables',
-  'local',
-  'router',
-  'stores',
-  'theme',
-  'views',
-]
+const ALLOWED_DIRS = ['api', 'domain', 'lib', 'sync', 'types']
 
 /**
  * Packages that make a module un-constructible outside a browser app. `yaml`
@@ -102,8 +103,10 @@ for (const file of walk(DOMAIN)) {
       continue
     }
     const layer = inside.split('/')[0]
-    if (FORBIDDEN_DIRS.includes(layer)) {
-      problems.push(`${where}: imports \`${spec}\` — that is \`${layer}/\`, which calls domain`)
+    if (!ALLOWED_DIRS.includes(layer)) {
+      problems.push(
+        `${where}: imports \`${spec}\` — \`${layer}/\` is not one of ${ALLOWED_DIRS.join(', ')}`,
+      )
     }
   }
 }
@@ -123,7 +126,7 @@ if (problems.length > 0) {
   console.error(
     '\nInvariant 4: the pure client-side rules live in client/src/domain and are testable ' +
       'without a component tree. A type-only import counts — it is the shape this gate was ' +
-      'written for. Move the thing being named down into domain/, sync/ or types/.',
+      'written for. Move the thing being named down into domain/, sync/, lib/ or types/.',
   )
   process.exit(1)
 }
