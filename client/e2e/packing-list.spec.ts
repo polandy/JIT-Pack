@@ -167,9 +167,10 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-header')).toBeVisible()
     await expect(page).toHaveURL(/\/trips\/[^/]+$/)
 
-    // The body of the same row is what opens the sheet — and it resolves.
+    // The body of the same row is what opens the sheet — asserted on the
+    // rendered sheet, not on the URL, which since ADR-046 is the list's own.
     await row.getByRole('heading').click()
-    await expect(page).toHaveURL(/\/items\//)
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
     await expect(page.getByText('not found')).toHaveCount(0)
   })
 
