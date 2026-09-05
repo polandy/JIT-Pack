@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { useMutations } from '../useMutations'
+import { createMutations } from '@/sync/mutations'
 import type { HLCGenerator } from '@/sync/hlc'
 
 /**
@@ -16,9 +16,9 @@ function mockHLC(): HLCGenerator {
   } as unknown as HLCGenerator
 }
 
-describe('useMutations', () => {
+describe('createMutations', () => {
   it('incrementPacked creates upsert with correct count and state', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.incrementPacked('i1', 2, 5)
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('trip_items')
@@ -27,19 +27,19 @@ describe('useMutations', () => {
   })
 
   it('incrementPacked caps at quantity and sets packed', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.incrementPacked('i1', 4, 5)
     expect(mut.fields).toMatchObject({ packed_count: 5, state: 'packed' })
   })
 
   it('decrementPacked goes to zero with open state', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.decrementPacked('i1', 1, 3)
     expect(mut.fields).toMatchObject({ packed_count: 0, state: 'open' })
   })
 
   it('decrementPacked does not go below zero', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.decrementPacked('i1', 0, 3)
     expect(mut.fields?.['packed_count']).toBe(0)
   })
@@ -48,31 +48,31 @@ describe('useMutations', () => {
   // FR-5.5's skipped row; `incrementPacked` clamped the count to 0 and read
   // `0 >= 0` as packed, `releasePackingNow` did the same.
   it('incrementPacked on a quantity-0 row stays skipped, never packed with a count of 0', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.incrementPacked('i1', 0, 0)
     expect(mut.fields).toMatchObject({ packed_count: 0, state: 'skipped' })
   })
 
   it('releasePackingNow on a quantity-0 row hands back a skipped row (FR-5.3, FR-5.5)', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.releasePackingNow('i1', 0, 0)
     expect(mut.fields).toMatchObject({ state: 'skipped', packing_now_by: null })
   })
 
   it('completePacked sets packed to quantity', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.completePacked('i1', 5)
     expect(mut.fields).toMatchObject({ packed_count: 5, state: 'packed' })
   })
 
   it('zeroPacked resets to 0/open', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.zeroPacked('i1')
     expect(mut.fields).toMatchObject({ packed_count: 0, state: 'open' })
   })
 
   it('togglePacked flips between packed and open for qty=1', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const pack = m.togglePacked('i1', 0)
     expect(pack.fields).toMatchObject({ packed_count: 1, state: 'packed' })
     const unpack = m.togglePacked('i1', 1)
@@ -80,7 +80,7 @@ describe('useMutations', () => {
   })
 
   it('skipItem sets quantity 0 and skipped state', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.skipItem('i1')
     expect(mut.fields).toEqual({ quantity: 0, packed_count: 0, state: 'skipped' })
   })
@@ -88,19 +88,19 @@ describe('useMutations', () => {
   it('restoreSkipped writes back the three fields a skip changed, and records no packing (FR-5.5)', () => {
     // An undo of "do not pack this" must not leave a packing record
     // behind — which is what going through packItem would have done.
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.restoreSkipped('i1', 3, 2, 'partial')
     expect(mut.fields).toEqual({ quantity: 3, packed_count: 2, state: 'partial' })
   })
 
   it('unskipItem restores to qty 1 open', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.unskipItem('i1')
     expect(mut.fields).toEqual({ quantity: 1, packed_count: 0, state: 'open' })
   })
 
   it('setItemMode creates mode upsert', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.setItemMode('i1', 'buy_before')
     expect(mut.fields).toEqual({ mode: 'buy_before' })
   })
@@ -110,7 +110,7 @@ describe('useMutations', () => {
   // a landing order — in which the row has left the shopping side with no
   // record of where from, and the purchase is then irreversible.
   it('buyItem records the list a BUY_BEFORE row left as it moves to packing (FR-25.11j)', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.buyItem('i1', 'buy_before', 3)
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('trip_items')
@@ -118,7 +118,7 @@ describe('useMutations', () => {
   })
 
   it('buyItem marks a BUY_LOCAL row packed and records the list too (FR-25.11j)', () => {
-    const m = useMutations(mockHLC(), () => FIXED_ISO)
+    const m = createMutations(mockHLC(), () => FIXED_ISO)
     const mut = m.buyItem('i1', 'buy_local', 3)
     expect(mut.fields).toEqual({
       bought_from: 'buy_local',
@@ -131,13 +131,13 @@ describe('useMutations', () => {
   })
 
   it('unbuyItem puts a BUY_BEFORE row back on the list it was bought from (FR-25.11j)', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.unbuyItem('i1', 'buy_before')
     expect(mut.fields).toEqual({ bought_from: null, mode: 'buy_before' })
   })
 
   it('unbuyItem unpacks a BUY_LOCAL row without touching its mode (FR-25.11j)', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.unbuyItem('i1', 'buy_local')
     expect(mut.fields).toEqual({
       bought_from: null,
@@ -150,7 +150,7 @@ describe('useMutations', () => {
   })
 
   it('addTripItem creates insert with unique id', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const { mutation, id } = m.addTripItem('t1', 'Towel', {
       weightGrams: 300,
       flagMissing: true,
@@ -166,7 +166,7 @@ describe('useMutations', () => {
   })
 
   it('createTrip creates insert with planning status', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const { mutation, id } = m.createTrip('Beach', 2026, '2026-08-01', '2026-08-07')
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('trips')
@@ -176,7 +176,7 @@ describe('useMutations', () => {
   })
 
   it('every mutation gets a unique mutation_id and hlc', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const a = m.skipItem('i1')
     const b = m.skipItem('i2')
     expect(a.mutation_id).not.toBe(b.mutation_id)
@@ -184,13 +184,13 @@ describe('useMutations', () => {
   })
 
   it('assignTraveler and assignContainer', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     expect(m.assignTraveler('i1', 'tv1').fields).toEqual({ assigned_traveler_id: 'tv1' })
     expect(m.assignContainer('i1', 'c1').fields).toEqual({ container_id: 'c1' })
   })
 
   it('createMasterItem', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const { mutation } = m.createMasterItem('Soap', { weightGrams: 40 })
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('items')
@@ -200,7 +200,7 @@ describe('useMutations', () => {
   // --- Preparation Todos (FR-7.3) ---
 
   it('addTodo creates insert on comments table', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const { mutation, id } = m.addTodo('t1', 'i1', 'u1', 'Charge battery')
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('comments')
@@ -216,7 +216,7 @@ describe('useMutations', () => {
   })
 
   it('resolveTodo sets task_state to resolved', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.resolveTodo('todo1')
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('comments')
@@ -225,13 +225,13 @@ describe('useMutations', () => {
   })
 
   it('reopenTodo sets task_state to open', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.reopenTodo('todo1')
     expect(mut.fields).toEqual({ task_state: 'open' })
   })
 
   it('deleteTodo creates delete mutation', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const mut = m.deleteTodo('todo1')
     expect(mut.op).toBe('delete')
     expect(mut.table).toBe('comments')
@@ -239,7 +239,7 @@ describe('useMutations', () => {
   })
 
   it('addItemDependency inserts a master-partition relation (FR-20.1)', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const { mutation } = m.addItemDependency('battery', 'camera', {
       mode: 'suggested',
       quantity: 2,
@@ -255,13 +255,13 @@ describe('useMutations', () => {
   })
 
   it('addItemDependency defaults to required without a quantity', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const { mutation } = m.addItemDependency('battery', 'camera')
     expect(mutation.fields).toMatchObject({ mode: 'required', quantity: null })
   })
 
   it('updateItemDependency and deleteItemDependency target the relation row', () => {
-    const m = useMutations(mockHLC())
+    const m = createMutations(mockHLC())
     const upd = m.updateItemDependency('dep1', { mode: 'required' })
     expect(upd.op).toBe('upsert')
     expect(upd.table).toBe('item_dependencies')
@@ -275,7 +275,7 @@ describe('useMutations', () => {
   // Before the seam these four could only be asserted `expect.any(String)`,
   // which is green whether the value is right, wrong or a decade off.
   it('every stamped instant comes from the injected clock (C-5)', () => {
-    const m = useMutations(mockHLC(), () => FIXED_ISO)
+    const m = createMutations(mockHLC(), () => FIXED_ISO)
 
     expect(m.buyItem('i1', 'buy_local', 1).fields!.packed_at).toBe(FIXED_ISO)
     expect(m.startPackingNow('i1').fields!.packing_now_at).toBe(FIXED_ISO)
@@ -298,7 +298,8 @@ describe('useMutations', () => {
   // silently stamping the epoch.
   it('an unsupplied clock is real time, not a fixed value', () => {
     const before = Date.now()
-    const stamped = useMutations(mockHLC()).startPackingNow('i1').fields!.packing_now_at as string
+    const stamped = createMutations(mockHLC()).startPackingNow('i1').fields!
+      .packing_now_at as string
     expect(Date.parse(stamped)).toBeGreaterThanOrEqual(before)
   })
 })

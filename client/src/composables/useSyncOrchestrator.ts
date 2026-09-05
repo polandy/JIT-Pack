@@ -45,7 +45,7 @@ export type { CloneDraft, TripWizardDraft } from './sync/actions/tripCreation'
 import { createNameGuards } from './sync/names'
 import type { QueuedMutation, SyncContext } from './sync/context'
 import { useWebSocket } from './useWebSocket'
-import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
+import { CLIENT_ACTOR_PLACEHOLDER, createMutations } from '@/sync/mutations'
 import { useSyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
@@ -297,7 +297,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const client = new APIClient(config.baseUrl, config.getToken, config.onUnauthorized)
 
   const hlc = new HLCGenerator(now, config.deviceId ?? deviceId())
-  const mutations = useMutations(hlc, nowIso)
+  const mutations = createMutations(hlc, nowIso)
 
   // Local Mode never pushes, so it never queues — building a store there
   // would create a database that nothing ever writes to.

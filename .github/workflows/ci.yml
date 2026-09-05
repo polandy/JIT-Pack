@@ -109,6 +109,10 @@ jobs:
       # declared is green whatever the app does, and the e2e jobs cannot see
       # it — the locator they run finds nothing, which is what was claimed.
       - run: node ../scripts/testid-gate.mjs
+      # And the same shape one layer down: a domain module that imports a
+      # composable — even type-only — costs every module reaching it the
+      # property the package exists for, and nothing red says so.
+      - run: node ../scripts/domain-purity-gate.mjs
       - run: npx vitest run
 
   # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned

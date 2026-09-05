@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { useMutations } from '@/composables/useMutations'
+import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
@@ -17,7 +17,7 @@ beforeEach(() => {
 })
 
 describe('container mutations', () => {
-  const mutations = useMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
 
   it('addContainer builds a complete containers insert', () => {
     const { mutation } = mutations.addContainer('t1', 'Left Pannier', {

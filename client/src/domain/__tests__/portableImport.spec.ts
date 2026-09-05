@@ -4,7 +4,7 @@ import { importPortableBackup, importPortableDocument } from '@/domain/portableI
 import type { PortableImportEnv } from '@/domain/portableImport'
 import { parsePortable } from '@/domain/portable'
 import type { PortableDocument } from '@/domain/portable'
-import { useMutations } from '@/composables/useMutations'
+import { createMutations } from '@/sync/mutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { TABLE } from '@/types/tables'
 import type { Mutation } from '@/api/types'
@@ -43,7 +43,7 @@ function fakeEnv(
 
   const env: PortableImportEnv = {
     master: { itemList: items, tagList: tags, templateList: templates, tripList: trips },
-    mutations: useMutations(new HLCGenerator(() => 1_700_000_000_000, 'aabbccdd')),
+    mutations: createMutations(new HLCGenerator(() => 1_700_000_000_000, 'aabbccdd')),
     emit(partition, tripId, mutation) {
       const { table, id } = mutation
       recorded.push({ partition, tripId, table, id, mutation })

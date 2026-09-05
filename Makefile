@@ -3,7 +3,7 @@
 # green pipeline. When you change a job in ci.yml, change its target here.
 # The `test` target carries the one deliberate divergence, and says why.
 .PHONY: ci ci-remote pins log-index case-ids e2e-helpers testids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
-        client client-deps client-lint client-tokens client-marks client-build client-test client-fmt \
+        client client-deps client-lint client-tokens client-marks client-purity client-build client-test client-fmt \
         e2e e2e-single e2e-server visual visual-update docker-build all
 
 ## --- toolchain -------------------------------------------------------------
@@ -167,7 +167,7 @@ tidy-check:
 ## --- client job -----------------------------------------------------------
 # CI lints without --fix; the package scripts fix in place. Check, don't fix,
 # so the local run fails on the same things CI does.
-client: client-lint client-fmt client-tokens client-marks client-build client-cli client-devcode client-test
+client: client-lint client-fmt client-tokens client-marks client-purity client-build client-cli client-devcode client-test
 
 # `npm ci` is CI's first client step. Locally it only needs to rerun when the
 # lockfile moved, so hang it off the stamp npm itself writes — otherwise every
@@ -196,6 +196,12 @@ client-tokens:
 # gate above.
 client-marks:
 	$(RUN) node scripts/mark-font-gate.mjs
+
+# Invariant 4: the pure rules in client/src/domain never import the layers that
+# call them, type-only imports included. Node built-ins only, like the two gates
+# above.
+client-purity:
+	$(RUN) node scripts/domain-purity-gate.mjs
 
 client-build: $(CLIENT_DEPS)
 	cd client && $(RUN) npm run build

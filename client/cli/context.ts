@@ -20,7 +20,7 @@ import { changesOf } from '@/sync/optimistic'
 import type { PendingWrites } from './common'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { useMutations } from '@/composables/useMutations'
+import { createMutations } from '@/sync/mutations'
 import { createNameGuards } from '@/composables/sync/names'
 import { createCommentActions } from '@/composables/sync/actions/comments'
 import { createPackingActions } from '@/composables/sync/actions/packing'
@@ -38,7 +38,7 @@ import type { HLCGenerator } from '@/sync/hlc'
 export interface CommandContext {
   master: ReturnType<typeof useMasterStore>
   trips: ReturnType<typeof useTripStore>
-  mutations: ReturnType<typeof useMutations>
+  mutations: ReturnType<typeof createMutations>
   pending: PendingWrites
   tripLifecycle: ReturnType<typeof createTripLifecycleActions>
   /** Feed a pull's changes to whichever store owns each row. */
@@ -56,7 +56,7 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
   const master = useMasterStore()
   const trips = useTripStore()
   const nowIso = isoFrom(now)
-  const mutations = useMutations(hlc, nowIso)
+  const mutations = createMutations(hlc, nowIso)
   const pending: PendingWrites = { master: [], trips: new Map() }
   const loaded = new Set<string>()
 
