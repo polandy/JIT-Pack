@@ -36,6 +36,7 @@ import type {
   TripTemplateSource,
 } from '@/types/domain'
 import { followsGroups } from './trips'
+import type { GeneratedTripItemEdit } from '@/sync/mutations'
 
 /** A row the refresh will create, with the traveler it belongs to resolved. */
 export interface PlannedAdd {
@@ -50,19 +51,10 @@ export interface PlannedAdd {
 /** A row the refresh will update in place, and the todos that follow it. */
 export interface PlannedUpdate {
   item: TripItem
-  /** Only the fields that actually differ — an empty object never occurs. */
-  fields: Partial<
-    Pick<
-      TripItem,
-      | 'name'
-      | 'quantity'
-      | 'mode'
-      | 'late_packer'
-      | 'weight_grams'
-      | 'value_cents'
-      | 'category_name'
-    >
-  >
+  /** Only the fields that actually differ — an empty object never occurs.
+   * The type is the mutation's, so the plan cannot name a field the FR-27.4
+   * refresh is not allowed to overwrite. */
+  fields: GeneratedTripItemEdit
   /** FR-27.7 tasks the group gained, to be written as FR-7.3 todos. */
   addTasks: string[]
   /** Open todos whose task the group lost. Resolved ones are a record, and stay. */

@@ -57,6 +57,7 @@ import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
 import { formatDay, t } from '@/i18n'
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
+import type { MasterItemEdit } from '@/sync/mutations'
 import type { DependencyMode, Tag } from '@/types/domain'
 import { itemPath, templatePath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
@@ -226,7 +227,7 @@ async function createItem() {
 
 // --- Editing an existing item ---
 
-function updateField(field: string, value: unknown) {
+function updateField<K extends keyof MasterItemEdit>(field: K, value: MasterItemEdit[K]) {
   if (!item.value) return
   orchestrator.updateMasterItem(item.value, { [field]: value })
 }
@@ -379,7 +380,7 @@ function onAddDependency(mainItemId: string) {
   orchestrator.addItemDependency(props.itemId, mainItemId)
 }
 
-function onDependencyModeChange(dependencyId: string, mode: string) {
+function onDependencyModeChange(dependencyId: string, mode: DependencyMode) {
   const dep = dependsOn.value.find((d) => d.id === dependencyId)
   if (dep) orchestrator.updateItemDependency(dep, { mode })
 }

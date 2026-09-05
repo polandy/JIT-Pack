@@ -271,6 +271,29 @@ describe('createMutations', () => {
     expect(del.id).toBe('dep1')
   })
 
+  // C-10: an update mutation takes the domain shape and renders the columns
+  // itself. Before this, the two views below spelled the wire value — one
+  // JSON.stringify in a template sheet, one dbBool in the same file — so the
+  // encoding of a column lived wherever it happened to be written.
+  it('an update mutation encodes the columns its edit names (C-10)', () => {
+    const m = createMutations(mockHLC())
+
+    expect(m.updateTrip('t1', { name: 'Elba', attributes: { season: 'summer' } }).fields).toEqual({
+      name: 'Elba',
+      attributes: JSON.stringify({ season: 'summer' }),
+    })
+    expect(m.updateSeries('s1', { default_attributes: null }).fields).toEqual({
+      default_attributes: null,
+    })
+    expect(
+      m.updateTemplateItem('ti1', { conditions: { season: 'winter' }, late_packer: true }).fields,
+    ).toEqual({ conditions: JSON.stringify({ season: 'winter' }), late_packer: 1 })
+    expect(m.updateGeneratedTripItem('i1', { late_packer: false, quantity: 2 }).fields).toEqual({
+      late_packer: 0,
+      quantity: 2,
+    })
+  })
+
   // C-5: every instant a mutation writes comes from the clock it was given.
   // Before the seam these four could only be asserted `expect.any(String)`,
   // which is green whether the value is right, wrong or a decade off.

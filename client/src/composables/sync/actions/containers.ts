@@ -11,6 +11,7 @@ import {
   unpairWrites,
   type PairingWrite,
 } from '@/domain/containers'
+import type { ContainerEdit } from '@/sync/mutations'
 import type { Container } from '@/types/domain'
 import type { QueuedMutation, SyncContext } from '../context'
 
@@ -31,7 +32,7 @@ export function createContainerActions(ctx: SyncContext) {
     return id
   }
 
-  function updateContainer(tripId: string, container: Container, fields: Record<string, unknown>) {
+  function updateContainer(tripId: string, container: Container, fields: ContainerEdit) {
     const mutation = mutations.updateContainer(container.id, fields)
     enqueueAndDrain('trip', tripId, {
       mutation,

@@ -5,6 +5,7 @@
  */
 import { dependencyRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import type { ItemDependencyEdit } from '@/sync/mutations'
 import type { ItemDependency } from '@/types/domain'
 import type { SyncContext } from '../context'
 
@@ -25,7 +26,7 @@ export function createDependencyActions(ctx: SyncContext) {
     return id
   }
 
-  function updateItemDependency(dependency: ItemDependency, fields: Record<string, unknown>) {
+  function updateItemDependency(dependency: ItemDependency, fields: ItemDependencyEdit) {
     const mutation = mutations.updateItemDependency(dependency.id, fields)
     enqueueAndDrain('master', null, {
       mutation,

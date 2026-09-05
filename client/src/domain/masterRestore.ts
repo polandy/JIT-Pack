@@ -80,9 +80,15 @@ export function restoreVerdict<T extends NamedRow & Retirable>(
 }
 
 /**
+ * The patch a restore writes — an edit both `MasterItemEdit` and
+ * `TemplateEdit` accept, since the two rows share these two fields.
+ */
+export type RestorePatch = Record<typeof RETIRED_FIELD, null> & { name?: string }
+
+/**
  * The patch a restore writes: the marker cleared, plus the replacement name
  * when the old one had to be given up. `null` for `name` means "keep it".
  */
-export function restoreFields(name: string | null): Record<string, unknown> {
+export function restoreFields(name: string | null): RestorePatch {
   return name === null ? { [RETIRED_FIELD]: null } : { [RETIRED_FIELD]: null, name }
 }

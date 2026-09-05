@@ -28,6 +28,7 @@ import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
 import { masterItemRow, templateItemRow, templateRow } from '../rows'
 import { isTakenRename } from '../names'
+import type { MasterItemEdit, TemplateEdit, TemplateItemEdit } from '@/sync/mutations'
 import type { MasterItem, Template, TemplateItem, TemplateKind, TripItem } from '@/types/domain'
 import type { SyncContext } from '../context'
 
@@ -87,7 +88,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     return id
   }
 
-  function updateMasterItem(item: MasterItem, fields: Record<string, unknown>) {
+  function updateMasterItem(item: MasterItem, fields: MasterItemEdit) {
     const mutation = mutations.updateMasterItem(item.id, fields)
     enqueueAndDrain('master', null, {
       mutation,
@@ -239,7 +240,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     return id
   }
 
-  function updateTemplate(template: Template, fields: Record<string, unknown>): boolean {
+  function updateTemplate(template: Template, fields: TemplateEdit): boolean {
     if (isTakenRename(fields, template.id, names.templateNameCollision)) return false
     const mutation = mutations.updateTemplate(template.id, fields)
     enqueueAndDrain('master', null, {
@@ -262,7 +263,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     return id
   }
 
-  function updateTemplateItem(templateItem: TemplateItem, fields: Record<string, unknown>) {
+  function updateTemplateItem(templateItem: TemplateItem, fields: TemplateItemEdit) {
     const mutation = mutations.updateTemplateItem(templateItem.id, fields)
     enqueueAndDrain('master', null, {
       mutation,
