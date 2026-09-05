@@ -314,6 +314,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
+- [A settled signal that was the optimistic one (2026-09-05)](#a-settled-signal-that-was-the-optimistic-one-2026-09-05) — a helper's settled signal was the rendered row; a reload in that window loses the write, and one did.
 - [The arrow was the wrong instrument, not the wrong moment (2026-09-05)](#the-arrow-was-the-wrong-instrument-not-the-wrong-moment-2026-09-05) — the date picker's month hop is a smooth scroll nobody watches; the keyboard path is the one Ionic can not drop.
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
 - [A page mounted twice, on the strength of a comment (2026-09-05)](#a-page-mounted-twice-on-the-strength-of-a-comment-2026-09-05) — ADR-046: the item alias was a second page to Ionic; the query keeps it, and Ionic's props cache is the trap.
@@ -13010,3 +13011,62 @@ red in those runs, one repeat each, belong to the same weather: E2E-M3-01
 Neither is the arrow, and this machine can no longer say whether the fix is
 green; CI can. The same `main` run also had E2E-M18-08 red on Chromium, on
 the restored device's last step — a screen finding, taken up next.
+
+## A settled signal that was the optimistic one (2026-09-05)
+
+E2E-M18-08 went red on `main` at `b6d2f0d5` (Chromium) and passed five of
+five here, and the reading that explained it took a wrong turn first: the
+case restores a device and opens a trip, `PackingListPage` had just been
+changed by U-10 to load through `useTripScreen`, and `proposeTripRefresh`
+*writes* on an empty plan — so the first hypothesis was M4 proposing against
+a master store that had not hydrated. Local Mode disproved it in the source:
+`connect()` applies the whole `local.load()` in one step and sets
+`localHydrated` after, so there is no window with trips and without groups,
+and `deriveTripRefresh` returns nothing before that flag anyway.
+
+The trace had the answer in its last three actions: a position added on M8
+(the rendered row asserted), then `page.goto` — a full reload — then the
+trip opened with the position gone. The Local Mode write path in the
+orchestrator carries a comment written for the G-2 indicator a fortnight
+earlier: it follows the write rather than the tap, because "a fire-and-forget
+save told the user it was safe while the transaction was still open, and a
+reload in that window lost the row". The helper's comment on the next line
+of the same sequence said "the new row is the settled signal — the add is a
+Local Mode write". Both sentences were true; the second was about the wrong
+row. A rendered row is the optimistic signal, and the persisted one is the
+indicator back at `local`.
+
+A race that lands five of five is not a proof either way, so the persist was
+slowed in the bundle. At two seconds the old helper does not lose the
+position — it loses the *trip*, at the first reload after the wizard. At
+100 ms it loses exactly what CI lost, twice out of twice, and the helpers
+with `writesLanded` pass twice out of twice on the same build. That is the
+shape worth keeping: a race in the suite is proved by making the production
+side deterministically slow, not by repeating the run. Two things the slow
+build taught on the way: the wait has to sit at *every* reload, because the
+first one that lost the trip was `addToGroup`'s own `page.goto`, two helpers
+before the one that failed on CI; and a delay that is too long fails the
+wait itself — the restore writes row by row through the same funnel, and at
+400 ms per save the restored device was honestly still writing when the
+five-second budget ran out.
+
+Two things the diff does not say. `openTripFromList` existed twice, in
+`backup-restore.spec.ts` and `group-refresh.spec.ts`, identical to the
+line — the helpers gate (T-3) catches a copy of a *helper*, and this was a
+copy that no helper had ever been; it is one now, in `trips.ts`. And the
+same wait belongs at the end of every write helper (`createItem`,
+`createMasterItem`, `createTemplate`, `addPosition`), not only before the
+one reload that happened to fail: a helper that returns before its write is
+on the device has made the promise the indicator was changed to stop making.
+
+The first CI run of the fix failed 244 cases on the new line, and both
+shapes are worth a sentence. A helper that reloads now waits before its
+`page.goto`, and many specs call such a helper as their first step, on a
+context that has never loaded the app — `about:blank` has no indicator. The
+helper names that one absence (`page.url() === 'about:blank'`) rather than
+probing for the element, so an app page without the indicator stays red.
+And E2E-FLOW-08 takes a server-mode device offline on purpose before it
+writes: the indicator says `offline (1 queued)`, which is the write in the
+outbox, on the device — so `offline` joined `local` and `synced` as a settled
+state, and `syncing` is the only one that is not.
+
