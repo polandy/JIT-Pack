@@ -16,6 +16,7 @@
  * pixels, the whole panel two pixels lower), not the mechanical move the
  * other four were — see U-3 in the 2026-09-02 review.
  */
+import { ref } from 'vue'
 import { IonModal } from '@ionic/vue'
 
 withDefaults(
@@ -26,7 +27,26 @@ withDefaults(
   }>(),
   { testid: undefined },
 )
-const emit = defineEmits<{ dismiss: [] }>()
+const emit = defineEmits<{ dismiss: []; present: [] }>()
+
+/*
+ * Rendered, because a test has to see it: Ionic's enter animation is a
+ * duration nobody controls (measured at 2.9 s on a loaded WebKit), and what a
+ * sheet's content can do before it ends is not what it can do after —
+ * `ion-datetime` readies itself only once the sheet has landed. The
+ * attribute is the presentation as a state, not as an event that was missed.
+ */
+const presented = ref(false)
+
+function onPresent() {
+  presented.value = true
+  emit('present')
+}
+
+function onDismiss() {
+  presented.value = false
+  emit('dismiss')
+}
 </script>
 
 <template>
@@ -34,7 +54,9 @@ const emit = defineEmits<{ dismiss: [] }>()
     :is-open="isOpen"
     class="sheet-modal"
     :data-testid="testid"
-    @did-dismiss="emit('dismiss')"
+    :data-presented="presented || undefined"
+    @did-dismiss="onDismiss"
+    @did-present="onPresent"
   >
     <div class="sheet-box">
       <div class="grab" />

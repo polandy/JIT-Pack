@@ -314,6 +314,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
+- [A settled signal that was the optimistic one (2026-09-05)](#a-settled-signal-that-was-the-optimistic-one-2026-09-05) — a helper's settled signal was the rendered row; a reload in that window loses the write, and one did.
+- [The arrow was the wrong instrument, not the wrong moment (2026-09-05)](#the-arrow-was-the-wrong-instrument-not-the-wrong-moment-2026-09-05) — the date picker's month hop is a smooth scroll nobody watches; the keyboard path is the one Ionic can not drop.
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
 - [A page mounted twice, on the strength of a comment (2026-09-05)](#a-page-mounted-twice-on-the-strength-of-a-comment-2026-09-05) — ADR-046: the item alias was a second page to Ionic; the query keeps it, and Ionic's props cache is the trap.
 - [Six trip screens had never asked for their own rows (2026-09-05)](#six-trip-screens-had-never-asked-for-their-own-rows-2026-09-05) — U-10's unverified premise was a defect; the mode that hides it is the one the cheap test runs in.
@@ -12941,6 +12943,133 @@ values off the composable. That it existed there and nowhere else is the shape
 this whole review keeps finding: the rule was known, written once, and never
 made reachable from the other six.
 
+## The arrow was the wrong instrument, not the wrong moment (2026-09-05)
+
+`main` went red at `b6d2f0d5` on the line of `setDateField` that the entry
+above had just fixed: WebKit, `e2e (7)`, the arrow clicked and the header
+still on September five seconds later. The ready wait was in place, so the
+diagnosis of the day before was incomplete, and the note the U-10 pass had
+left ("clicks the month arrow by coordinate into a still-animating sheet")
+was a guess about the click. It was not the click.
+
+Read in `datetime.js`: `nextMonth()` is `calendarBodyRef.scrollTo({ left:
+2 × month width, behavior: 'smooth' })`. The header is recomputed by the
+scroll listener — 50 ms after the *last* scroll event — and only if the month
+it finds at the body's left edge is aligned to within 2 px; otherwise
+`getChangedMonth` returns nothing and the hop leaves no trace. A smooth
+scroll that stops short, which is what a starved WebKit does, is a hop the
+component itself never notices. A second click would have been a guess about
+where the body stopped. The same file's keyboard handler sets `workingParts`
+directly on `PageDown`/`PageUp` from a focused day cell and re-renders the
+header from it: no scroll, no listener, no alignment. That is now the hop.
+Focusing the header button instead of a day cell went red on the hop's own
+assertion, twice out of twice, in the exact shape of the CI failure.
+
+Then the PR's own CI went red one line earlier, on the ready wait itself
+(E2E-M4-04, WebKit): hydrated, every day cell in the accessibility tree,
+`datetime-ready` never in five seconds. Reading had reached its limit, so a
+timeline was put into the page — one line per change of state, on every
+frame, for four seconds after the tap. Three runs on WebKit:
+
+| run | calendar exists | modal shown | `datetime-ready` |
+|---|---|---|---|
+| 1 | 0 ms, hydrated, inside `overlay-hidden`, height 0 | 72 ms | 4 577 ms |
+| 2 | 1 ms, same | 80 ms | 573 ms |
+| 3 | 1 ms, modal already shown | — | 3 767 ms |
+
+The mechanism, from the same file: Ionic readies `ion-datetime` from an
+IntersectionObserver rooted on the component itself, with one fallback 100 ms
+after mount for observers that never report (its own `TODO(FW-6931)`). The
+calendar mounts while the modal is still `display: none`, so the fallback
+fires against a box of zero height and is spent; and the observer — a second
+timeline put `didPresent` 2.9 s after `willPresent` — reports when the enter
+animation ends, which on a loaded renderer is seconds. Until then
+`.calendar-body` is at opacity 0: an open sheet with no calendar in it, which
+is the user's half of the finding. The entry above had said "the fix is one
+assertion on the class"; the class was the right thing to wait for and the
+wrong thing to expect within five seconds.
+
+Two changes, one measurement each. `DateField` mounts the calendar afresh on
+`didPresent` (a `:key` that changes when the sheet lands): the second
+calendar's 100 ms fallback fires against a laid-out box, and the timeline
+showed it ready 272 ms after the remount. The sheet keeps its height across
+the swap because the two calendars are the same size — the G-2 rule that an
+auto-height sheet is measured once at presentation is why the calendar is
+*remounted* rather than mounted late. `SheetModal` renders `data-presented`,
+so the helper waits for the presentation and then for readiness: two
+mechanisms in the order they happen, each with its own budget, and a failure
+that names its phase.
+
+What was measured and could not be fixed: the last local runs were made
+beside a foreign e2e suite (load average 20), and there the modal carried no
+`show-modal` five seconds after the tap — Ionic's `present()` had not got
+past its first `requestAnimationFrame`. WebKit's frame pipeline stalls for
+seconds under that load and Ionic does everything on it: `writeTask`, the
+animation, the observer. That is a renderer in slow motion, not a race, and
+no wait on a mechanism helps when the mechanism is the frame. Two cases seen
+red in those runs, one repeat each, belong to the same weather: E2E-M3-01
+(a raw `fill` and *Next* still disabled) and E2E-M3-20 (the old ready wait).
+Neither is the arrow, and this machine can no longer say whether the fix is
+green; CI can. The same `main` run also had E2E-M18-08 red on Chromium, on
+the restored device's last step — a screen finding, taken up next.
+
+## A settled signal that was the optimistic one (2026-09-05)
+
+E2E-M18-08 went red on `main` at `b6d2f0d5` (Chromium) and passed five of
+five here, and the reading that explained it took a wrong turn first: the
+case restores a device and opens a trip, `PackingListPage` had just been
+changed by U-10 to load through `useTripScreen`, and `proposeTripRefresh`
+*writes* on an empty plan — so the first hypothesis was M4 proposing against
+a master store that had not hydrated. Local Mode disproved it in the source:
+`connect()` applies the whole `local.load()` in one step and sets
+`localHydrated` after, so there is no window with trips and without groups,
+and `deriveTripRefresh` returns nothing before that flag anyway.
+
+The trace had the answer in its last three actions: a position added on M8
+(the rendered row asserted), then `page.goto` — a full reload — then the
+trip opened with the position gone. The Local Mode write path in the
+orchestrator carries a comment written for the G-2 indicator a fortnight
+earlier: it follows the write rather than the tap, because "a fire-and-forget
+save told the user it was safe while the transaction was still open, and a
+reload in that window lost the row". The helper's comment on the next line
+of the same sequence said "the new row is the settled signal — the add is a
+Local Mode write". Both sentences were true; the second was about the wrong
+row. A rendered row is the optimistic signal, and the persisted one is the
+indicator back at `local`.
+
+A race that lands five of five is not a proof either way, so the persist was
+slowed in the bundle. At two seconds the old helper does not lose the
+position — it loses the *trip*, at the first reload after the wizard. At
+100 ms it loses exactly what CI lost, twice out of twice, and the helpers
+with `writesLanded` pass twice out of twice on the same build. That is the
+shape worth keeping: a race in the suite is proved by making the production
+side deterministically slow, not by repeating the run. Two things the slow
+build taught on the way: the wait has to sit at *every* reload, because the
+first one that lost the trip was `addToGroup`'s own `page.goto`, two helpers
+before the one that failed on CI; and a delay that is too long fails the
+wait itself — the restore writes row by row through the same funnel, and at
+400 ms per save the restored device was honestly still writing when the
+five-second budget ran out.
+
+Two things the diff does not say. `openTripFromList` existed twice, in
+`backup-restore.spec.ts` and `group-refresh.spec.ts`, identical to the
+line — the helpers gate (T-3) catches a copy of a *helper*, and this was a
+copy that no helper had ever been; it is one now, in `trips.ts`. And the
+same wait belongs at the end of every write helper (`createItem`,
+`createMasterItem`, `createTemplate`, `addPosition`), not only before the
+one reload that happened to fail: a helper that returns before its write is
+on the device has made the promise the indicator was changed to stop making.
+
+The first CI run of the fix failed 244 cases on the new line, and both
+shapes are worth a sentence. A helper that reloads now waits before its
+`page.goto`, and many specs call such a helper as their first step, on a
+context that has never loaded the app — `about:blank` has no indicator. The
+helper names that one absence (`page.url() === 'about:blank'`) rather than
+probing for the element, so an app page without the indicator stays red.
+And E2E-FLOW-08 takes a server-mode device offline on purpose before it
+writes: the indicator says `offline (1 queued)`, which is the write in the
+outbox, on the device — so `offline` joined `local` and `synced` as a settled
+state, and `syncing` is the only one that is not.
 
 ## The directory was fresh by accident (2026-09-05)
 

@@ -81,9 +81,11 @@ scripts/visual.sh --update-snapshots=all -g "trips"    # the screens you touched
   (`jitpack_mode`, `jitpack_server_url`, `jitpack_theme`) before boot. It
   re-exports every helper below, so a spec keeps one import.
 - `helpers/` — one module per seam, and **the only place a shared step is
-  written**: `page.ts` (`visiblePage`, `DESKTOP_BREAKPOINT`), `ionic.ts`
-  (`fillIonic`, `chooseInSelect`, `setDateField`), `trips.ts` (M2/M3: create a
-  trip, act on it, its swipe), `templates.ts` (M7/M8/M10 master data),
+  written**: `page.ts` (`visiblePage`, `writesLanded` — the device has every
+  write it made, the wait before any `page.goto` that follows one,
+  `DESKTOP_BREAKPOINT`), `ionic.ts` (`fillIonic`, `chooseInSelect`,
+  `setDateField`), `trips.ts` (M2/M3: create a trip, open it from M2, act on
+  it, its swipe), `templates.ts` (M7/M8/M10 master data),
   `containers.ts` (M11 luggage), `m4.ts` (a trip with rows, start it, pack a
   row, its menu, assign a traveller) and `m9.ts` (create an item, get back to
   the list).

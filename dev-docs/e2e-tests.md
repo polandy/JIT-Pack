@@ -1332,6 +1332,23 @@ no proposal, no refused row. Three positive signals carry it instead.
    it. That single assertion is what makes the two "not offered" assertions
    mean something.
 
+**Acted on 2026-09-05:** red on `main` at `b6d2f0d5` (`e2e (1)`, Chromium) on
+that load-bearing assertion — no proposal at all — and green five of five
+here. The trace said what the screen could not: the position was added on
+M8, and the next step was `page.goto`, a full reload. The orchestrator's own
+comment on the Local Mode write path had named the defect a fortnight
+earlier: the indicator follows the write rather than the tap because "a
+reload in that window lost the row". `addPosition`'s settled signal was the
+rendered row, which is the *optimistic* one; the persisted one is the G-2
+indicator back at `local`. Made deterministic by slowing the persist in the
+bundle: at 100 ms the old helpers lose the position at that reload twice out
+of twice — the CI failure's exact shape — and the new ones pass twice out of
+twice on the same build; at 2 s the old helpers lose the whole *trip* at the
+first reload after the wizard. The fix is `writesLanded` (`helpers/page.ts`)
+— every write helper returns when its write is on the device, every helper
+that reloads waits for it first, and `openTripFromList` is shared instead of
+copied into two specs.
+
 Red-proved against the unfixed build, where the trip restores with no
 `follows:` at all: the restore-list assertion falls first, and with it dropped,
 the refused position is offered again.
@@ -1809,6 +1826,41 @@ only that an option was visible; it now runs the readiness handshake in the
 page and asserts the class the component renders when it believes it is
 open — so a silent no-op fails on the line that names it. Both postconditions
 were mutation-proved by making Ionic drop the instruction on purpose.
+
+**Acted on a third time 2026-09-05:** `main` went red on the same line of
+`setDateField` with the ready wait in place (`b6d2f0d5`, `e2e (7)`, WebKit,
+E2E-M6-01): the arrow was clicked, the header stayed on September. The arrow
+was the wrong instrument, not the wrong moment. Read from Ionic's source, a
+header arrow is a *smooth scroll* of the calendar body by two months' width,
+and the header is recomputed by a scroll listener 50 ms after the last scroll
+event — only if the month it finds there is aligned with the body to within
+2 px; a smooth scroll that stops short leaves the header where it was, and
+nothing recomputes it. The walk now hops with `PageDown`/`PageUp` on a
+focused day cell, which sets the working month directly and re-renders from
+it: no scroll, no listener, no alignment. The cell focused is the enabled day
+nearest the target's day-of-month, because Ionic ignores a hop whose landing
+day is outside the field's bounds (FR-2.1d). Mutation-proved by focusing the
+header button instead of a day cell: red on the hop's own assertion, twice
+out of twice, in the shape of the CI failure.
+
+The PR's own first CI run then went red on the *ready wait* (E2E-M4-04,
+WebKit): hydrated, the whole grid rendered, `datetime-ready` never within
+five seconds. Measured on WebKit with a timeline in the page: the calendar
+lives, hydrated, inside a modal still `display: none` (height 0); the modal
+appears ~75 ms later; Ionic's one 100 ms fallback to `markReady()` has by then
+fired against the zero box and is spent; the observer it leaves readiness to
+reported at 0.6 s, 3.8 s and 4.6 s. A second timeline put `didPresent` at
+2.9 s after `willPresent` on the loaded machine — the observer reports when
+the enter animation ends. So `DateField` mounts the calendar afresh on
+`didPresent` (readiness on the fallback's own clock, into a laid-out sheet)
+and `SheetModal` renders `data-presented`; the helper waits for the
+presentation and then for readiness, two mechanisms with two budgets, and a
+failure now names the phase. What no wait can fix: under a foreign load of
+20 on this machine WebKit's frame pipeline stalls for seconds at a time and
+Ionic does everything on it — the modal had not even started presenting five
+seconds after the tap. That is not a race; it is a renderer in slow motion,
+and the suite's five-second expectations are the wrong size for it. The
+verdict on the fix is CI's, not this machine's.
 
 ## M8/M4 — the composer's chip rows (2026-08-21)
 
