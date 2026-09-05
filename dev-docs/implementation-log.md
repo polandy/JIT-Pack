@@ -314,6 +314,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
+- [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
 
 ## Deviations
 
@@ -12833,3 +12834,33 @@ the wrong thing while looking careful. And **a diagnosis in a review is a
 hypothesis until something reproduces it**; the instrumented run cost four
 minutes, and it is what separated the half of #369's story that was right
 from the half that was not.
+
+## Six sentences still said the old rule first (2026-09-05)
+
+T-12's second half: folding the `**Amended …**` markers of the four spec documents into current text. The finding had
+counted markers (23 in the UI-Spec, 17 in the PRD) and I expected as many stale sentences. Reading all 82 in context
+said otherwise, and the count decides what the folding rule is *for*:
+
+- **The two head blocks were changelogs, not amendments.** The UI-Spec's fourteen `**Amendment (date, …)**`
+  paragraphs and the Sync-API-Spec's sixteen `**Amended … time the same day**` sentences each described a rule that its
+  section already carried — checked per section by keyword before a paragraph was shrunk. What only the head carried
+  was the *reasoning*: measurements (14.5 px, "-1 days ago", 123 hand-written sizes), the rejected options, the seam
+  that was wrong for a fortnight (`capturePending`). That moved into the section it belongs to as one
+  `**Revised DATE.**` note at the end of the screen or pattern, and the head became an index of dates that says where
+  to look. A reader of G-2 finds G-2's history at G-2, not at line 84.
+- **Six inline amendments still had the superseded sentence as the primary text**, all in the PRD: FR-25.13a's
+  blur-collapse, FR-25.8's "quantity 0 means absent", FR-25.10's multi-select, FR-9.1's active-only gate (revised
+  twice, the second time from inside FR-9.3), FR-5.5's "Consciously skipped" section and swipe, FR-27.4's traveller
+  rule. Those are the defect the finding described: a reader stops at the first sentence and leaves with a rule the app
+  does not have. Each now states the current rule once, with "(revised DATE; was: …)" behind it.
+- **The other eighteen inline markers were already in that form under the wrong word** — "(amended 2026-08-23)" after
+  a sentence that *was* current. They changed one word, because the point of the fold is that *amended* stops
+  appearing: while it did, a marker could not tell a reader whether the text before it was current or superseded.
+  `grep -ci amend` over the four specs is 0 now and is the criterion; ADRs keep "amended" as their status vocabulary
+  and are not in scope.
+
+Two mechanics. The Sync-API-Spec's list was not in order — "a sixth time" stood before "a fifth time", and the fifth
+appeared twice — so the index is chronological, newest first, and the numbering is gone. And an edit inside a wrapped
+paragraph leaves an orphan line behind (`    retires`), which the width gate cannot see; every diff-touched paragraph
+was reflowed to 120, and the reflow was proved a no-op the #370 way — whitespace-normalised text and paragraph count
+identical against the fold re-run without it in a scratch copy.

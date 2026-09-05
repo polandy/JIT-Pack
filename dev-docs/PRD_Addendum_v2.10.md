@@ -123,7 +123,7 @@ consumable/BUY_LOCAL exclusion logic and any other reference to repack elsewhere
   layout: rows = items (with category grouping), columns = trips with quantities. The wizard maps columns to historical
   trips within a series and rows to items in the central item database. **Decided:** the user selects which historical
   trip columns to import (not all-or-nothing), with a "select all" default already checked to keep the common case a
-  single click. **The sheet's own layout is read rather than assumed (amended 2026-08-23, measured against a real
+  single click. **The sheet's own layout is read rather than assumed (revised 2026-08-23, measured against a real
   34-column family spreadsheet):** the *header block* is every leading row that names no item — not, as before, the
   first row alone — and within it one row names the trips and another dates them, each chosen over the whole block
   rather than per column so a stray cell cannot become one trip's name. A sheet that writes the year above the name
@@ -139,7 +139,7 @@ consumable/BUY_LOCAL exclusion logic and any other reference to repack elsewhere
   otherwise hold thirty valid columns hostage until the user found it. **Accepted cost:** the header block, the naming
   row and the dating row are inferred with no manual override — a misread leaves one stray row as an item, which the
   user can only absorb by ticking it as a category row. **Revisit trigger:** the first sheet whose header block is read
-  wrong. **A trip column is not required (amended 2026-08-23):** a sheet that is a *list of things* rather than a matrix
+  wrong. **A trip column is not required (revised 2026-08-23):** a sheet that is a *list of things* rather than a matrix
   of trips is the ordinary way an inventory arrives, and the wizard used to refuse it — the only way in was to invent a
   trip column and delete the trip afterwards. The gate is now *something to import*, plus the two facts a trip cannot be
   created without on the columns that are ticked. The rule that finds category **rows** had to change with it: "a row
@@ -329,7 +329,7 @@ rather than a second way of building a trip.
   that cannot be read is reported in its place and skipped; the intact ones around it still import, because a restore
   that gives up on the first bad document loses everything behind it. Importing a template creates a new template,
   shared instance-wide like the rest (FR-1.6 MVP); importing a trip creates a new trip in **the status the file carries,
-  and in *planning* when it carries none** (amended 2026-08-23, ADR-024). The original wording — every imported trip is
+  and in *planning* when it carries none** (revised 2026-08-23, ADR-024). The original wording — every imported trip is
   *planning* — was right for a file one person hands another and wrong for the only copy of a device: a restore turned a
   decade of archived history into a decade of plans, taking the FR-3.14 historical quantities with it. **The accepted
   cost is that a *shared* file now carries a status too**, so a trip somebody sends you can arrive archived or active;
@@ -381,7 +381,7 @@ its groups afresh; a malformed entry inside one of the three is skipped rather t
 items are the user's data while these are bookkeeping the refresh can re-derive.
 * **FR-18.5 (Format Stability):** Every exported file carries an explicit `schema_version` field. Imports ignore
   unrecognized fields rather than failing outright, so a file exported by an older or newer app version remains
-  importable. **Amended 2026-09-04:** the same tolerance applies to an unrecognized *value* of a known field. A row's
+  importable — and the same tolerance applies to an unrecognized *value* of a known field (revised 2026-09-04). A row's
   `mode` and a position's `default_mode` are read only when they name one of the three modes — anything else restores as
   🧳 *packen*, the way `bought_from` and `status` are already read only from their own vocabularies. Until then those two
   fields passed through unchecked, so a file could put a value into the database that no chip, no facet and no filter
@@ -392,7 +392,7 @@ items are the user's data while these are bookkeeping the refresh can re-derive.
 * **FR-18.7 (Import from the Command Line, added 2026-08-23; ADR-025):** The repository ships an `import` command —
   `jitpack import [--server URL] [--token TOKEN] [--dry-run] FILE...` — that sends portable YAML (FR-18.1) into a
   *running* instance. It exists because the file and the browser are not always in the same place: seeding a fresh
-  instance, restoring on a headless box, or replaying a hand-edited file are all done from a shell. **Spelling amended
+  instance, restoring on a headless box, or replaying a hand-edited file are all done from a shell. **Spelling revised
   2026-08-31 (ADR-042):** it was `jitpack-import FILE...` while it was the only command; the binary is now `jitpack` and
   the command is its first subcommand. Behaviour is unchanged.
 * **FR-18.8 (The Command Line Beyond Import, added 2026-08-31; ADR-042):** Automation reaches JIT-Pack through `jitpack
@@ -410,8 +410,8 @@ items are the user's data while these are bookkeeping the refresh can re-derive.
   happens to the rows that person owns, and that question belongs on the screen that asks it (M22, FR-2.7).
   * **Adding a traveller runs M22's action, not the insert under it (corrected 2026-09-01).** The mutation is the
     smaller half of what the screen does: a trip that still follows its groups also gets the new person's positions in
-    the same breath (FR-2.7, the FR-27.4 amendment of 2026-08-21), and a command that composed the insert itself left
-    the person on an empty list while the same name typed on M22 filled it. The seam that fixes it is the one the R-4
+    the same breath (FR-2.7, FR-27.4's 2026-08-21 revision), and a command that composed the insert itself left the
+    person on an empty list while the same name typed on M22 filled it. The seam that fixes it is the one the R-4
     extraction created: `SyncContext` is a spine, not a browser, so `client/cli/context.ts` binds the app's own action
     groups to a collecting sink and the command calls `addTravelerToTrip`. **The general rule this states, for every
     command after it: a command calls the action, never the mutation factory** — the mutation is what a rule ends in,
@@ -874,12 +874,12 @@ instance-admin role — accordingly stays declarative and out of the UI entirely
   restores access with everything as it was (push subscriptions require the client to re-register, which the existing
   registration flow does on next app start). Accounts currently holding the instance-admin role cannot be deactivated;
   the operator removes them from `JITPACK_ADMIN_EMAILS` first, which keeps the environment variable and the database
-  from contradicting each other. **On the client, that 403 ends the session** (amended 2026-08-28): the tokens are
+  from contradicting each other. **On the client, that 403 ends the session** (revised 2026-08-28): the tokens are
   dropped and the app returns to the login screen. Without it a deactivated account keeps tokens that still look valid
   in `localStorage`, so nothing ever expires them and the app simply stops syncing — indistinguishable from being
   offline, and a person told nothing. The client narrows on the `account_deactivated` code rather than on the status,
   because a 403 is also how the server refuses a non-admin the FR-23.2 endpoints and logging *that* person out would be
-  the worse defect. **And the login screen names it too** (amended 2026-08-30, with E2E-M20-06): the refusal
+  the worse defect. **And the login screen names it too** (revised 2026-08-30, with E2E-M20-06): the refusal
   `issueSession` returns to a deactivated account arrived at the OIDC callback as *„The server rejected the login."* —
   the same sentence a replayed code gets — so the one refusal a person can do nothing about by trying again read as the
   one thing they would try. The callback narrows on the same code, for the same reason and with the same exception: any
@@ -1581,31 +1581,31 @@ locked.
     template for one rule, the shape invariant 4 exists to prevent, applied to a screen. The assignee half is not lost:
     FR-25.12's row sheet is being built, and that is where a buyer is named. **What this FR still owns and what
     E2E-M6-16/M4-21 cite it for** is the rule under those fields — *a visible confirm button is the primary commit,
-    Enter is the desktop shortcut* — plus its own amendment removing the blur-collapse. Retiring the fields retires
-    neither. *What was specified:* M6's quick-add carries, besides the name, a **visibly optional description field**
-    and an **inline "Zugewiesen an" chip row**, so both can be recorded in the same breath as the name rather than only
-    afterwards on the row. Rules that make it usable one-handed in a shop: **a visible confirm button is the primary
-    commit** — on a phone there is no Enter key in reach, and leaving the action to the soft keyboard's return key makes
-    it invisible; **Enter remains the desktop shortcut from any field** (this corrects the original wording, which said
-    a button was unnecessary — that was desktop thinking, caught on 2026-08-07). The same applies to **M4's quick-add**,
-    whose default "Gesamt" mode had likewise relied on Enter alone while only its per-person mode had a button.
-    **selecting an assignee must not re-render the form**, or the already-typed description is wiped; and the form
-    collapses on blur only when **all** fields are empty. *Amended 2026-08-13 on building M4:* it does **not** collapse
-    on blur at all. Collapsing removes a block from the flow above the list, so the rows move between pointer-down and
-    pointer-up and the browser dispatches no click — the first tap after adding an item was swallowed every time. The
-    form closes on ✕, Escape or the FAB. **FR-25.13b (Category at add time, mostly answered for you — 2026-08-07):** the
-    quick-add carries a **category selector**, but it is the fallback rather than the main path: M6 gained the
-    **master-item autocomplete M4 already had** (FR-5.6), and picking a known item **adopts its category** (its primary
-    tag) — asking would be asking for something the system knows. The selector offers the household's own vocabulary
-    (categories the trip uses, plus every master item's primary tag, plus *Sonstiges* as the guaranteed default), and a
-    category adopted from a suggestion is added to the list even when this trip has not used it yet. Without this,
-    everything added during a trip piles into *Sonstiges*, which makes both the category grouping and the FR-25.11g
-    category facet useless. **The assignee deliberately carries over to the next add** — shopping lists are entered in
-    runs ("everything Sia picks up"), so resetting it each time would cost a tap per row; the description does not carry
+    Enter is the desktop shortcut* — plus its 2026-08-13 revision removing the blur-collapse. Retiring the fields
+    retires neither. *What was specified:* M6's quick-add carries, besides the name, a **visibly optional description
+    field** and an **inline "Zugewiesen an" chip row**, so both can be recorded in the same breath as the name rather
+    than only afterwards on the row. Rules that make it usable one-handed in a shop: **a visible confirm button is the
+    primary commit** — on a phone there is no Enter key in reach, and leaving the action to the soft keyboard's return
+    key makes it invisible; **Enter remains the desktop shortcut from any field** (this corrects the original wording,
+    which said a button was unnecessary — that was desktop thinking, caught on 2026-08-07). The same applies to **M4's
+    quick-add**, whose default "Gesamt" mode had likewise relied on Enter alone while only its per-person mode had a
+    button. **selecting an assignee must not re-render the form**, or the already-typed description is wiped; and the
+    form **does not collapse on blur** — it closes on ✕, Escape or the FAB (revised 2026-08-13 on building M4; was:
+    collapses when **all** fields are empty. Collapsing removes a block from the flow above the list, so the rows move
+    between pointer-down and pointer-up and the browser dispatches no click — the first tap after adding an item was
+    swallowed every time). **FR-25.13b (Category at add time, mostly answered for you — 2026-08-07):** the quick-add
+    carries a **category selector**, but it is the fallback rather than the main path: M6 gained the **master-item
+    autocomplete M4 already had** (FR-5.6), and picking a known item **adopts its category** (its primary tag) — asking
+    would be asking for something the system knows. The selector offers the household's own vocabulary (categories the
+    trip uses, plus every master item's primary tag, plus *Sonstiges* as the guaranteed default), and a category adopted
+    from a suggestion is added to the list even when this trip has not used it yet. Without this, everything added
+    during a trip piles into *Sonstiges*, which makes both the category grouping and the FR-25.11g category facet
+    useless. **The assignee deliberately carries over to the next add** — shopping lists are entered in runs
+    ("everything Sia picks up"), so resetting it each time would cost a tap per row; the description does not carry
     over, since it is specific to the item. **Consistency note:** this makes M6's quick-add richer than M4's, a
     deliberate, narrow divergence from FR-25.13 — the *interaction* (FAB → inline form → Enter) is identical, only the
     field set differs. If M4's quick-add later gains note or delegation fields, both should converge on this shape
-    rather than diverging further. **The ＋ appears only where it can add something (amended 2026-08-17, owner):** while
+    rather than diverging further. **The ＋ appears only where it can add something (revised 2026-08-17, owner):** while
     the quick-add composer is open, the button that opens it has nothing left to do, so it steps aside and gives the
     composer the room. Its *container* stays, deliberately — M4 and M8 anchor their toasts to it, and removing it would
     drop those behind the tab bar (the defect of 2026-08-15).
@@ -1751,50 +1751,48 @@ locked.
   Late-Packer behind the **"Details ▾"** toggle.
 * **FR-25.8 (Per-Traveler Quantities at Add-Time):** When quick-adding an item **during packing** (M4, FR-5.6), the user
   can give it a **different quantity per traveler in one step** — e.g. "kurze Hosen: Andy 2, Leo 3, Mia 0". The
-  quick-add offers a **"pro Person" mode** that shows a compact quantity stepper per traveler; a quantity of **0 means
-  the item is simply not taken for that traveler**. On add, the item expands to **one packing row per traveler with
-  quantity > 0** (consistent with FR-25.1), each carrying that traveler's own quantity and independently packable.
-  **Those rows are instances of *one* item and must render as a single FR-25.1 cluster** — named once, with a child row
-  per traveler — **not as N independent items repeating the name.** Since an ad-hoc add creates no master item, the
-  instances have no `source_item_id` and are held together by the normalised name per the cluster-identity rule in
-  FR-25.1. This sentence exists because the original wording ("one packing row per traveler") was satisfied by an
-  implementation that created N separate items, which is what the prototype did until concept testing on 2026-08-07
-  caught it: the rows were all there and individually correct, yet the screen showed three unrelated "Jacke" rows
-  instead of one grouped item. This is an **ad-hoc, trip-scoped** item (FR-5.6) — it does not create or modify a master
-  item or template quantity. The uniform single-quantity mode ("Gesamt") stays the **default** for the common case;
-  per-person is one tap away. Rationale: real families need "3 shorts for Leo, 2 for Andy, none for Mia" without
-  building a template or editing each row afterwards. **Amended 2026-08-29 (b):** the mode also governs FR-25.13f's
-  one-tap verbs — a browse-sheet line decided *already packed* or *stays home* in *Pro Person* mode writes its decision
-  and then distributes it, rather than the mode being silently dropped on those two paths. **Amended 2026-08-29:** the
-  quantity-0-means-absent rule above is **superseded by FR-25.21's checkbox** — 0 is FR-5.5's *skipped* and may not also
-  mean *not for this person*. Everything else here stands, including the sentence that matters most: the rows must
-  render as **one** FR-25.1 cluster. **Built 2026-08-29.** The composer carries a *Gesamt* / *Pro Person* segment — the
-  same two words the membership editor uses, because it is that editor the mode opens — offered only where the caller
-  has travelers to distribute over: M8 never (a Vorlage has no people, FR-25.9) and a trip with fewer than two travelers
-  not either (G-8). Three things settled while building. **(a) The row is written first and the editor opens on it**,
-  rather than the mode collecting a draft membership and writing N rows at the end: the editor edits rows, and one able
-  to work on a draft would be a second implementation of the rules `domain/membership.ts` already owns (invariant 4,
-  ADR-036) — the same duplication ADR-025 was written to undo. The accepted cost is that abandoning the flow leaves an
-  ordinary shared row behind, which is what was asked for by typing the name. **(b) The mode survives an add and dies
-  with the composer**: rows are entered in runs (FR-25.13a), so a run of per-person rows is entered the way a run of
-  shared ones is, and *Gesamt* is the default the next opening returns to. **(c) The editor opens on the roster**
-  instead of on *Gemeinsam*, because the mode is already the answer to which tab this is; asking twice would make the
-  mode a label rather than a choice. **The G-3 half became real only afterwards** (2026-08-29, in review): *„read-only
-  while any instance of the item is claimed by somebody else"* had shipped as a lock computed from the **one row the
-  editor was opened from**. On M5 that is usually the same answer; the quick-add makes it plainly wrong, because a
-  freshly minted row can carry no claim at all while its folded-name key can still pull an older, claimed ad-hoc row
-  into the same cluster — which the conversion would then rewrite. The claim is now read off every row the editor would
-  touch, which is the only place that question can be answered: a caller knows one row, the editor knows the cluster.
-  **And the editor says whose claim it is** (2026-08-30, with E2E-G3-04): the rule shipped complete and invisible —
-  every other G-3 surface names the holder, and this one could inherit none of them, because M5’s banner is absent on
-  the unclaimed row the editor is opened from and the editor is a modal above M5 in any case. A frozen editor stating no
-  reason is a dead end, so it carries its own line, naming the holder where the directory knows them and saying *„Jemand
-  …"* where it does not. **One interaction had to be built rather than inherited:** an add made from the FR-25.13d
-  browse-sheet closes the sheet before the editor opens, because a modal presented while the sheet is up renders behind
-  it. The sheet exists for runs and the mode ends each add in an editor, so the two postures cannot share a tap — the
-  sheet closing *is* the answer to which one this is. **The single-traveler premise of E2E-M4-13 dies here**: with
-  nobody to distribute over the mode is absent, so FR-25.1's flat fallback is now reached by a membership of one and is
-  asserted where that state arises (E2E-M5-19).
+  quick-add offers a **"pro Person" mode** that opens the FR-25.21 membership editor — a checkbox and an amount per
+  traveler, and an unticked traveler is simply not given the item (revised 2026-08-29; was: a compact stepper per
+  traveler where quantity 0 meant *not for this person* — 0 is FR-5.5's *skipped* and may not also mean that). On add,
+  the item expands to **one packing row per ticked traveler** (consistent with FR-25.1), each carrying that traveler's
+  own quantity and independently packable. **Those rows are instances of *one* item and must render as a single FR-25.1
+  cluster** — named once, with a child row per traveler — **not as N independent items repeating the name.** Since an
+  ad-hoc add creates no master item, the instances have no `source_item_id` and are held together by the normalised name
+  per the cluster-identity rule in FR-25.1. This sentence exists because the original wording ("one packing row per
+  traveler") was satisfied by an implementation that created N separate items, which is what the prototype did until
+  concept testing on 2026-08-07 caught it: the rows were all there and individually correct, yet the screen showed three
+  unrelated "Jacke" rows instead of one grouped item. This is an **ad-hoc, trip-scoped** item (FR-5.6) — it does not
+  create or modify a master item or template quantity. The uniform single-quantity mode ("Gesamt") stays the **default**
+  for the common case; per-person is one tap away, and the mode also governs FR-25.13f's one-tap verbs: a browse-sheet
+  line decided *already packed* or *stays home* in *Pro Person* mode writes its decision and then distributes it (added
+  2026-08-29; until then the mode was silently dropped on those two paths). Rationale: real families need "3 shorts for
+  Leo, 2 for Andy, none for Mia" without building a template or editing each row afterwards. **Built 2026-08-29.** The
+  composer carries a *Gesamt* / *Pro Person* segment — the same two words the membership editor uses, because it is that
+  editor the mode opens — offered only where the caller has travelers to distribute over: M8 never (a Vorlage has no
+  people, FR-25.9) and a trip with fewer than two travelers not either (G-8). Three things settled while building. **(a)
+  The row is written first and the editor opens on it**, rather than the mode collecting a draft membership and writing
+  N rows at the end: the editor edits rows, and one able to work on a draft would be a second implementation of the
+  rules `domain/membership.ts` already owns (invariant 4, ADR-036) — the same duplication ADR-025 was written to undo.
+  The accepted cost is that abandoning the flow leaves an ordinary shared row behind, which is what was asked for by
+  typing the name. **(b) The mode survives an add and dies with the composer**: rows are entered in runs (FR-25.13a), so
+  a run of per-person rows is entered the way a run of shared ones is, and *Gesamt* is the default the next opening
+  returns to. **(c) The editor opens on the roster** instead of on *Gemeinsam*, because the mode is already the answer
+  to which tab this is; asking twice would make the mode a label rather than a choice. **The G-3 half became real only
+  afterwards** (2026-08-29, in review): *„read-only while any instance of the item is claimed by somebody else"* had
+  shipped as a lock computed from the **one row the editor was opened from**. On M5 that is usually the same answer; the
+  quick-add makes it plainly wrong, because a freshly minted row can carry no claim at all while its folded-name key can
+  still pull an older, claimed ad-hoc row into the same cluster — which the conversion would then rewrite. The claim is
+  now read off every row the editor would touch, which is the only place that question can be answered: a caller knows
+  one row, the editor knows the cluster. **And the editor says whose claim it is** (2026-08-30, with E2E-G3-04): the
+  rule shipped complete and invisible — every other G-3 surface names the holder, and this one could inherit none of
+  them, because M5’s banner is absent on the unclaimed row the editor is opened from and the editor is a modal above M5
+  in any case. A frozen editor stating no reason is a dead end, so it carries its own line, naming the holder where the
+  directory knows them and saying *„Jemand …"* where it does not. **One interaction had to be built rather than
+  inherited:** an add made from the FR-25.13d browse-sheet closes the sheet before the editor opens, because a modal
+  presented while the sheet is up renders behind it. The sheet exists for runs and the mode ends each add in an editor,
+  so the two postures cannot share a tap — the sheet closing *is* the answer to which one this is. **The single-traveler
+  premise of E2E-M4-13 dies here**: with nobody to distribute over the mode is absent, so FR-25.1's flat fallback is now
+  reached by a membership of one and is asserted where that state arises (E2E-M5-19).
 * **FR-25.9 (Per-Person Quantities in Templates) — REMOVED (owner decision 2026-08-08, „es gibt keine Unterscheidung von
   Erwachsenen- und Kind-Mengen“):** a per-person template position carries **one quantity**, applied to every traveler
   alike; the concrete per-person numbers are set on the trip (FR-25.8), which is where the actual people are known.
@@ -1807,16 +1805,16 @@ locked.
   (FR-4.2) — a single traveler label on an otherwise shared row — is **removed**: in testing it carried weight only for
   genuinely per-person items and for weight-by-person, and otherwise added noise to every row. What remains, and is made
   **directly editable in M5**, is **per-person membership**: a control ("Wer braucht das?") where `Gemeinsam` = one
-  shared row for the whole trip, and selecting one or more travelers turns the item into a **per-person item**
-  (FR-1.4/25.1) with one independently-packable row per selected traveler. **Adding a traveler adds *their own*
-  packing-list row** (e.g. "Leonardo also needs sunglasses" → a Sonnenbrille row appears on his list); removing one
-  drops that row. Consequences: shared M4 rows no longer carry a *for-whom* avatar (only per-person child rows show
-  their owner); **person grouping** (M4) and **per-person weight/analytics** (M12) key off per-person rows instead of a
-  shared-row label; the shopping *Used by* proposal (FR-25.6) is to be revisited against this model; *Packed by*
-  (delegation — FR-4.2's other half) is unaffected and keeps its own control. Decided on concept testing 2026-07-18.
-  **Amended 2026-08-29:** the per-traveler multi-select this FR specified was implemented as a **single**-select, so the
-  model's per-person shape had no writer in the app for six weeks. The membership editor and its per-traveler amounts
-  are specified in **FR-25.21**, which is what closes this one.
+  shared row for the whole trip, and the **FR-25.21 membership editor** — one or more travelers, each with their amount
+  — turns the item into a **per-person item** (FR-1.4/25.1) with one independently-packable row per selected traveler
+  (revised 2026-08-29; was: a per-traveler multi-select here, which the app had implemented as a *single*-select, so the
+  model's per-person shape had no writer for six weeks — FR-25.21 is what closes this one). **Adding a traveler adds
+  *their own* packing-list row** (e.g. "Leonardo also needs sunglasses" → a Sonnenbrille row appears on his list);
+  removing one drops that row. Consequences: shared M4 rows no longer carry a *for-whom* avatar (only per-person child
+  rows show their owner); **person grouping** (M4) and **per-person weight/analytics** (M12) key off per-person rows
+  instead of a shared-row label; the shopping *Used by* proposal (FR-25.6) is to be revisited against this model;
+  *Packed by* (delegation — FR-4.2's other half) is unaffected and keeps its own control. Decided on concept testing
+  2026-07-18.
 
 **UI directives for the M4/M5/M6/M8 redesign (to UI-Spec, no separate FR):**
 * **Keep secondary-tool entries discoverable:** in testing, the entries to Shopping (M6), Containers (M11), and
@@ -1881,8 +1879,8 @@ locked.
 * **M4 quick-add:** keep the inline quick-add (FR-5.6, well-liked); it **collapses when it loses focus**, and the
   **bottom-right ＋ (FAB) expands *and* focuses it** as the primary entry point.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
-  the row's press-and-hold menu and, spelled out, through the M5 sheet; see the FR-5.5 amendment for the round it was
-  decided on and for why the swipe it replaces was not discoverable at all.
+  the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
+  it was decided on and for why the swipe it replaces was not discoverable at all.
 * **M5 progressive disclosure — realised (2026-07-18):** the detail sheet leads with only the header, a compact
   read-only **glance-chip row** (membership · mode · luggage · ⏰ · packer), the **Preparation** section, and the
   **Comments** thread; everything else (membership editor, *Packed by*, mode, luggage, late-packer, flags, history)
@@ -2025,19 +2023,20 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   only when it deviates from the snapshot but also when packing has begun on it or it was skipped (FR-5.5); a protected
   row's snapshot is deliberately **not** refreshed, so reverting one's own edit does not hand the row back to the
   template; the trip's **travelers** are part of what it follows, so a person added receives the per-person positions
-  (FR-25.8) and one removed takes their untouched rows along; bookkeeping that changes nothing a user could answer —
-  adopting a hand-added row into the ledger, dropping an entry whose row and position are both long gone — is applied on
-  sight and deliberately **not** counted as a proposal. Ids of propagated rows are **derived** from (trip, item,
-  traveler) so two devices applying the same group edit converge on one row rather than two (ADR-016). Trips created
-  before the registry existed have no sources and therefore never move. The M8 editor states the blast radius before you
-  edit — as shipped, „⟳ Änderungen hier werden N Reisen (…) vorgeschlagen, die beim nächsten Öffnen entscheiden —
-  vergangene Reisen werden nie geändert" (the earlier draft wording here, „wirkt auf N Reisen", predates this FR's own
-  2026-08-18 revision and described an edit that lands rather than one that is offered; corrected 2026-08-30 against the
-  catalogue, reading the M8 case sentences against the screen). This **refines FR-2.4**: rather than waiting for the
-  next generation, a change reaches the trip as a question the trip's owner answers.
+  (FR-25.8) and one removed takes their untouched rows along — applied at once rather than proposed, see the 2026-08-21
+  revision below; bookkeeping that changes nothing a user could answer — adopting a hand-added row into the ledger,
+  dropping an entry whose row and position are both long gone — is applied on sight and deliberately **not** counted as
+  a proposal. Ids of propagated rows are **derived** from (trip, item, traveler) so two devices applying the same group
+  edit converge on one row rather than two (ADR-016). Trips created before the registry existed have no sources and
+  therefore never move. The M8 editor states the blast radius before you edit — as shipped, „⟳ Änderungen hier werden N
+  Reisen (…) vorgeschlagen, die beim nächsten Öffnen entscheiden — vergangene Reisen werden nie geändert" (the earlier
+  draft wording here, „wirkt auf N Reisen", predates this FR's own 2026-08-18 revision and described an edit that lands
+  rather than one that is offered; corrected 2026-08-30 against the catalogue, reading the M8 case sentences against the
+  screen). This **refines FR-2.4**: rather than waiting for the next generation, a change reaches the trip as a question
+  the trip's owner answers.
 
-  **Amendment (2026-08-21, owner decision, with FR-2.7): a traveller change made *at the trip* applies immediately
-  rather than being proposed.** The travellers were always part of what a trip follows — a person added receives the
+  **A traveller change made *at the trip* applies immediately rather than being proposed (revised 2026-08-21, owner
+  decision, with FR-2.7).** The travellers were always part of what a trip follows — a person added receives the
   per-person positions (FR-25.8), one removed takes their untouched rows along — and that stays exactly as written,
   protection included: a row that was packed, skipped, overridden or hand-added is never touched by either direction.
   What changes is only *when the user is asked*, and the reason is the same one that put the question at the trip in the
@@ -2104,7 +2103,7 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   Ferien-Vorlagen · Gruppen* (the *Veröffentlicht* tab fell with the FR-1.6 MVP simplification); the *Alle* view renders
   the scopes as two sections, vacation templates first (they are what a trip starts from, groups are the building
   blocks), and group rows carry a *Gruppe* chip. **Creating** via the M7 FAB asks which scope to create (two-option
-  chooser with one-line explanations) — **only where the question is real (amended 2026-08-17, owner):** the scope
+  chooser with one-line explanations) — **only where the question is real (revised 2026-08-17, owner):** the scope
   segment already states what you are looking at, so on *Gruppen* the ＋ creates a Gruppe and on *Ferien-Vorlagen* a
   Ferien-Vorlage, opening the same sheet directly on the name. A question with one possible answer is a tap that carries
   no information. Only *Alle* still asks, because there both answers are plausible. The scope is never *guessed*: the
@@ -2281,8 +2280,8 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   those rows outright, because that protection is precisely what the user just overruled for this person. Unpacked rows
   go with the traveller either way.
 
-  **What a traveller change does to the list is FR-27.4's job, not a second mechanism** — see the amendment there. This
-  FR owes the surface, the lifecycle rule and the rename guarantee; the consequences are already written.
+  **What a traveller change does to the list is FR-27.4's job, not a second mechanism** — see its 2026-08-21 revision.
+  This FR owes the surface, the lifecycle rule and the rename guarantee; the consequences are already written.
 
 * **FR-2.8 (M2 Opens Where the Trips Are — new 2026-08-29, owner request; built 2026-08-29):** M2 always opened on
   *Active*, which is the one segment that is empty for most of the year: a household plans in spring, travels for two
@@ -2379,14 +2378,16 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   different models, one of them a promise the app does not keep. The footer now says the trips following the groups are
   **asked on their next open**. Caught by rendering the screen with real proposals for the first time; the component
   test asserts the claim rather than the copy.
-* **FR-9.1 (Trip Feedback Flags) — amended 2026-08-20, found while writing M14's positive test cases:** the base FR
-  names two flags, and only one of them could ever be set. *Missing* is stamped automatically by the M4 quick-add on an
-  active trip (FR-5.6); ***unused* had no writer at all** — M5's *Details* block printed the pair as a read-only note.
-  Since FR-9.2's assistant is written around overpacking, its main input was unreachable, and M14 could only ever be
-  exercised by the dev fixture. **Both flags are now controls in M5's *Details* block** (UI-Spec M5), offered **only
-  while the trip is active** and **revocable**: a judgement made by mistake must not be permanent, which the merge
-  already allows — setting a flag is additive (NFR-4.2a rule 1, so concurrent feedback is never lost), clearing one is
-  ordinary last-writer-wins.
+* **FR-9.1 (Trip Feedback Flags) — revised 2026-08-20 and 2026-08-22:** *Missing* is stamped automatically by the M4
+  quick-add on an active trip (FR-5.6). **Both flags are controls in M5's *Details* block** (UI-Spec M5) and
+  **revocable**: a judgement made by mistake must not be permanent, which the merge already allows — setting a flag is
+  additive (NFR-4.2a rule 1, so concurrent feedback is never lost), clearing one is ordinary last-writer-wins. The
+  *missing* control is offered only while the trip is active; *unused* stays settable and revocable on the archived trip
+  too, where M14 shows what it did (FR-9.3). Was, until 2026-08-20 (found while writing M14's positive test cases): the
+  base FR names two flags and only one of them could ever be set — ***unused* had no writer at all**, M5's *Details*
+  block printed the pair as a read-only note, so FR-9.2's assistant, written around overpacking, had its main input
+  unreachable and M14 could only ever be exercised by the dev fixture. Was, until 2026-08-22: both controls offered only
+  while the trip is active.
 * **A generated row must keep its provenance through an ordinary edit (defect, fixed 2026-08-20).** The client's
   optimistic update carries a *whole row*, and both the in-memory store and the Local Mode IndexedDB write **replace**
   rather than patch — so a projection that omitted a column erased it from the device. It omitted `source_template_id`,
@@ -2975,7 +2976,7 @@ the tail is where a symbol system is actually decided. Results:
   up to the latest state. This is an advisory UI signal only (UI-Spec G-10) — it never gates or blocks any packing
   action, and it says nothing about devices that are fully offline rather than simply idle. **A presence entry carries
   the account id and nothing else**, so the face is named from the trip's participant directory — the same one the
-  packing stamps read (amended 2026-08-28, after the first rendered test: `users.id` is a random 32-hex-character key,
+  packing stamps read (revised 2026-08-28, after the first rendered test: `users.id` is a random 32-hex-character key,
   and initialling it identified nobody). **The signal is carried by the pile itself rather than by a view behind it**
   (decided 2026-08-28): each face shows whether that person has caught up, the badge beside them gives the group answer
   as a glyph with a count in a bubble (the same grammar the G-2 indicator uses, with the words carried as its accessible
@@ -2991,23 +2992,23 @@ the tail is where a symbol system is actually decided. Results:
   The quick actions of FR-5.2 increment the count; a long-press completes the item in one step. *Packing Now* and
   collision locking (FR-5.3) apply at the item level regardless of partial progress.
 * **FR-5.5 (Considered & Skipped State):** Items whose resolved quantity is 0 — whether set in the template, by
-  conditional rule (FR-15.2), or by manual decision — remain visible in a collapsed "Consciously skipped" section of the
-  trip list instead of being removed. Each skipped item can be reactivated with a single tap (swipe-to-unskip restores
-  to open state with quantity 1). This preserves the decision log and prevents silent omissions. **Clarification:**
-  users can also explicitly skip an item in M4, setting its state to `skipped` and quantity to 0 — distinguishing
-  "deliberately left behind" from "forgot to pack." **The two fields are written together and are deliberately *not*
-  coupled by a CHECK (decided 2026-08-25):** the client does send both, but the merge decides them separately (NFR-4.2a
-  field-level LWW), so a concurrent newer quantity from another device leaves the skip applied on its own. Under `CHECK
-  (state <> 'skipped' OR quantity = 0)` that whole push would be refused — and a refused mutation is one the outbox
-  drops, so the user's skip would vanish instead of a stale amount surviving beside it. Measured against the unfixed
-  schema before deciding: with the CHECK in place, exactly that push came back `rejected`. `state = 'skipped'` with a
-  quantity above zero is therefore a legal row; every surface reads the state.
-  * **Amendment (2026-08-18, built).** Two corrections against what the screen actually did, and the decision that
-    closes the gap. (1) The *"Consciously skipped" section* is superseded by FR-25.2, as the M4 amendment already
-    recorded: a skipped row is a done row, revealed by the same *Erledigte* switch. (2) The **swipe** this requirement
-    kept naming existed but was not usable: nothing announced it, and its option panel broke out of the M4 card — the
-    same failure that lost the swipe the M7 A2/B2 round. It is **removed**, and replaced by the two paths of the
-    rendered variant round (`dev-docs/UI_Concept_SkipControl_variants.html`, variants A + C, owner 2026-08-18):
+  conditional rule (FR-15.2), or by manual decision — remain visible as **done rows, revealed by M4's *Erledigte* switch
+  (FR-25.2)**, instead of being removed. Each skipped item can be reactivated with a single tap — *Doch einpacken*, from
+  the row's press-and-hold menu or the M5 control below, restores it to open with quantity 1. This preserves the
+  decision log and prevents silent omissions. (Revised 2026-08-18 on building; was: a collapsed *"Consciously skipped"*
+  section — superseded by FR-25.2, as UI-Spec M4 records, because a skipped row is a done row — and a swipe-to-unskip,
+  which existed and was not usable: nothing announced it, and its option panel broke out of the M4 card, the same
+  failure that lost the swipe the M7 A2/B2 round.) **Clarification:** users can also explicitly skip an item in M4,
+  setting its state to `skipped` and quantity to 0 — distinguishing "deliberately left behind" from "forgot to pack."
+  **The two fields are written together and are deliberately *not* coupled by a CHECK (decided 2026-08-25):** the client
+  does send both, but the merge decides them separately (NFR-4.2a field-level LWW), so a concurrent newer quantity from
+  another device leaves the skip applied on its own. Under `CHECK (state <> 'skipped' OR quantity = 0)` that whole push
+  would be refused — and a refused mutation is one the outbox drops, so the user's skip would vanish instead of a stale
+  amount surviving beside it. Measured against the unfixed schema before deciding: with the CHECK in place, exactly that
+  push came back `rejected`. `state = 'skipped'` with a quantity above zero is therefore a legal row; every surface
+  reads the state.
+  * **The two paths** (decided 2026-08-18 on a rendered variant round — `dev-docs/UI_Concept_SkipControl_variants.html`,
+    variants A + C, owner):
     * **M4, press and hold a row** → the M7 action sheet: *Jetzt packen* · *Nicht einpacken*, and on an already-skipped
       row *Doch einpacken* and nothing else. The fast path while going down the list.
     * **M5, a spelled-out control beside the stepper** — *Nicht einpacken* / *Doch einpacken*. The findable path: the
@@ -3178,13 +3179,11 @@ the tail is where a symbol system is actually decided. Results:
     was forgotten, and neither is *unused*. The pass is skippable and produces no flags when
     skipped; it must never become a gate in front of archiving.
   * **The window stays open on the archived trip.** FR-9.1's `active`-only gate is dropped for
-    *unused*: the flag stays settable and revocable on an archived trip, because that is where
-    M14 shows what it did. *Missing* keeps its automatic stamp and needs no manual path
-    afterwards — a thing bought after the trip is not a thing that was missing on it. **This
-    amends FR-9.1's 2026-08-20 wording** („offered only while the trip is active"), whose
-    reason was that the flags „only mean anything on a live trip". That is true of *setting*
-    them in the moment and false of *correcting* them, and the correction is the half the
-    assistant makes visible.
+    *unused*: the flag stays settable and revocable on an archived trip, because that is where M14 shows what it did.
+    *Missing* keeps its automatic stamp and needs no manual path afterwards — a thing bought after the trip is not a
+    thing that was missing on it. **This revises FR-9.1's 2026-08-20 wording** („offered only while the trip is
+    active"), whose reason was that the flags „only mean anything on a live trip". That is true of *setting* them in the
+    moment and false of *correcting* them, and the correction is the half the assistant makes visible.
 
   *Considered and rejected:* **a multi-select mode on M4** — a second selection model on the
   busiest screen of the app, carried year-round for a job done once per trip, and it would
@@ -3574,8 +3573,8 @@ the tail is where a symbol system is actually decided. Results:
   enabled); on an insecure origin there is no service worker and no install offer, and the app must run exactly as
   before — plain-HTTP LAN instances stay supported as ordinary websites. **Update policy:** a new version installs in
   the background and takes over on the next launch — never an **unprompted** reload; the running app announces it
-  through the G-2 indicator (dot on the glyph, sentence in the detail sheet). **Amended 2026-09-02 (FR-19.7, ADR-044):**
-  the announcement now carries an action that applies the waiting version immediately. The automatic half is untouched —
+  through the G-2 indicator (dot on the glyph, sentence in the detail sheet), and the announcement carries an action
+  that applies the waiting version immediately (revised 2026-09-02, FR-19.7, ADR-044). The automatic half is untouched —
   nothing still reloads on its own — and the worker's `install` handler still never calls `skipWaiting()`; the only
   thing that shortens the wait is a press. Mechanism and tradeoff (hand-rolled worker vs. `vite-plugin-pwa`) are
   ADR-019. Applies to all three run modes; in Local Mode this closes the gap that the *data* was offline-first while the
