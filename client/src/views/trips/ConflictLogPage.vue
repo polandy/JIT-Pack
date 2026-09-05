@@ -28,7 +28,7 @@ import {
   IonRefresherContent,
 } from '@ionic/vue'
 import { gitMergeOutline, arrowUndoOutline } from 'ionicons/icons'
-import { inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import { t, formatDate } from '@/i18n'
@@ -44,10 +44,12 @@ import type {
   LockEvent,
   useSyncOrchestrator,
 } from '@/composables/useSyncOrchestrator'
+import { useIdentity } from '@/composables/useTripIdentity'
 
 const props = defineProps<{ tripId?: string }>()
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const { directory, load: loadIdentity } = useIdentity(orchestrator)
 const master = useMasterStore()
 const trips = useTripStore()
 
@@ -61,7 +63,7 @@ const failed = ref(false)
  * so the master log — which belongs to none — does not ask for it.
  */
 const lockEvents = ref<LockEvent[]>([])
-const names = ref(new Map<string, string>())
+const names = computed(() => new Map(directory.value.map((u) => [u.user_id, u.display_name])))
 
 async function load() {
   try {
@@ -75,10 +77,10 @@ async function load() {
   if (!props.tripId) return
   try {
     lockEvents.value = await orchestrator.fetchLockEvents(props.tripId)
-    if (lockEvents.value.length > 0) {
-      const users = await orchestrator.fetchUsers()
-      names.value = new Map(users.map((u) => [u.user_id, u.display_name]))
-    }
+    // Only when there is somebody to name: the directory is one fetch per
+    // session (ADR-047), and a log with no takeovers must not be what pays
+    // for it.
+    if (lockEvents.value.length > 0) await loadIdentity()
   } catch {
     // The takeover record is context beside the conflicts, not the
     // reason the page exists: failing to read it must not empty the log.

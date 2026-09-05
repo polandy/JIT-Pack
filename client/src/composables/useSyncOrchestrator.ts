@@ -47,6 +47,7 @@ import type { QueuedMutation, SyncContext } from './sync/context'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
+import { useIdentityStore } from '@/stores/identityStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type {
@@ -979,10 +980,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   async function deactivateUser(userID: string): Promise<void> {
     await client.post(API.adminDeactivateUser(userID), {})
+    await refreshIdentity()
   }
 
   async function reactivateUser(userID: string): Promise<void> {
     await client.post(API.adminReactivateUser(userID), {})
+    await refreshIdentity()
   }
 
   async function adminResetAvatar(userID: string): Promise<void> {
@@ -991,6 +994,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   async function adminResetDisplayName(userID: string): Promise<void> {
     await client.delete(API.adminResetDisplayName(userID))
+    await refreshIdentity()
   }
 
   /**
@@ -1009,6 +1013,22 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   async function saveDisplayName(userId: string, name: string): Promise<void> {
     if (local) return
     await client.put(API.userDisplayName(userId), { display_name: name })
+    await refreshIdentity()
+  }
+
+  /**
+   * The four writers above are the only things that change who the instance
+   * knows about, so they are where the session-wide answer is fetched again
+   * (ADR-047) — never the screen that happened to trigger them. A rename made
+   * on M17 has to reach the name M4 puts on a packed row, and only one of
+   * those two screens is mounted at the time.
+   *
+   * The avatar writers are deliberately not among them: the bytes are fetched
+   * by URL with a cache-busting version, and the directory carries no image.
+   */
+  function refreshIdentity(): Promise<void> {
+    if (local) return Promise.resolve()
+    return useIdentityStore().refresh({ fetchUsers, fetchMe })
   }
 
   async function uploadAvatar(userId: string, jpeg: Blob): Promise<void> {

@@ -28,9 +28,11 @@ import { adminActionsFor, type AdminAction, type AdminUserRow } from '@/domain/a
 import { serverBaseUrl } from '@/config'
 import { formatDate, t, type MessageKey } from '@/i18n'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useIdentity } from '@/composables/useTripIdentity'
 import { confirmDestructive } from '@/lib/confirm'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const { myUserId, load: loadIdentity } = useIdentity(orchestrator)
 
 const users = ref<AdminUserRow[]>([])
 /**
@@ -45,7 +47,6 @@ const users = ref<AdminUserRow[]>([])
  * action that did not happen.
  */
 const avatarVersion = ref(0)
-const myUserId = ref<string | null>(null)
 const failed = ref(false)
 
 async function load() {
@@ -58,8 +59,7 @@ async function load() {
 }
 
 onMounted(async () => {
-  const me = await orchestrator.fetchMe()
-  myUserId.value = me?.user_id ?? null
+  await loadIdentity()
   await load()
 })
 

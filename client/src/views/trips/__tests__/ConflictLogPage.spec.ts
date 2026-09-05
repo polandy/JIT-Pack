@@ -10,6 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
+import { identityStub } from '@/composables/__tests__/identityStub'
 import ConflictLogPage from '../ConflictLogPage.vue'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
@@ -36,6 +37,7 @@ function entry(over: Partial<ConflictEntry> = {}): ConflictEntry {
 }
 
 const orchestrator = {
+  ...identityStub(),
   fetchConflicts: vi.fn<() => Promise<ConflictEntry[]>>(),
   fetchMasterConflicts: vi.fn<() => Promise<ConflictEntry[]>>(),
   revertConflict: vi.fn<() => Promise<void>>(),

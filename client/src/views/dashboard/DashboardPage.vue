@@ -46,24 +46,19 @@ import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
 import { isActive } from '@/domain/trips'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useIdentity } from '@/composables/useTripIdentity'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
 
 const store = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const { myUserId, load } = useIdentity(orchestrator)
 const router = useRouter()
 
 onMounted(() => {
   // Who I am, for the delegation section. Local Mode answers nothing and
-  // Single-User has no accounts, so a refusal is the expected answer in two
-  // of three modes and leaves the section absent rather than broken.
-  orchestrator
-    .fetchMe()
-    .then((me) => {
-      myUserId.value = me?.user_id ?? null
-    })
-    .catch(() => {
-      myUserId.value = null
-    })
+  // Single-User has no accounts, so nothing here is the expected answer in
+  // two of three modes and leaves the section absent rather than broken.
+  void load()
 })
 
 const activeTrips = computed(() => store.tripList.filter((t) => isActive(t)))
@@ -193,7 +188,6 @@ const sectionTrips = computed(() =>
  * account for a row to be assigned to, so the section is **absent** rather
  * than empty (G-8), and the list above it stays the full aggregation.
  */
-const myUserId = ref<string | null>(null)
 const seenDelegations = ref<ReadonlySet<string>>(loadSeenDelegations())
 
 const delegated = computed(() =>
