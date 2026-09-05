@@ -19,7 +19,8 @@ import TabBar from '@/components/global/TabBar.vue'
 import MigrationBanner from '@/components/global/MigrationBanner.vue'
 import UpdateBanner from '@/components/global/UpdateBanner.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
-import { createAuthRefresher, onSessionEnded } from '@/auth/refresh'
+import { createAuthRefresher } from '@/auth/refresh'
+import { clearOnSessionEnd } from '@/auth/sessionEnd'
 import { useIdentityStore } from '@/stores/identityStore'
 import { loadTokens } from '@/auth/tokens'
 import {
@@ -253,12 +254,9 @@ const router = useRouter()
 // because a child's `onMounted` makes the request that can end it before
 // this component's own `onMounted` gets past its awaits (see `onSessionEnded`).
 const identity = useIdentityStore()
-const stopSessionEnd = onSessionEnded(() => {
-  // The cached directory and `me` belong to the session that just ended
-  // (ADR-047); the next person to sign in on this device must not inherit
-  // them for the frames before their own fetch lands.
-  identity.forget()
-  router.replace('/login')
+const stopSessionEnd = clearOnSessionEnd({
+  forget: () => identity.forget(),
+  toLogin: () => router.replace('/login'),
 })
 
 const syncDetailOpen = ref(false)

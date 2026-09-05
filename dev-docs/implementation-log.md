@@ -13116,6 +13116,17 @@ not look like a leak.
   not, because an exception that is only described is indistinguishable from a
   forgotten call.
 
+**Two rows of the review's own table could not be filled, and both became
+seams.** `App.vue`'s session-end handler was four lines in a root component's
+setup — the only place either effect was triggered, and nowhere a test can
+reach; it is `auth/sessionEnd.ts` now, and the clause worth having is the
+*order*: the identity is forgotten before the navigation, so no frame of the
+login can render while the previous viewer is still cached. And three of the
+nine rewired views have no mount spec at all, so the adoption is asserted the
+way U-10's first half asserted its own: a source census, with a positive half
+beside it, because "no view fetches identity itself" is satisfied by a build
+where no view reads identity at all.
+
 **And one self-inflicted cost worth writing down.** The four mutation proofs
 were run in a loop that undid each mutation with `git checkout --
 <file>`. The file's baseline was `origin/main`, so the first iteration did not
