@@ -322,6 +322,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A page mounted twice, on the strength of a comment (2026-09-05)](#a-page-mounted-twice-on-the-strength-of-a-comment-2026-09-05) — ADR-046: the item alias was a second page to Ionic; the query keeps it, and Ionic's props cache is the trap.
 - [Six trip screens had never asked for their own rows (2026-09-05)](#six-trip-screens-had-never-asked-for-their-own-rows-2026-09-05) — U-10's unverified premise was a defect; the mode that hides it is the one the cheap test runs in.
 - [The directory was fresh by accident (2026-09-05)](#the-directory-was-fresh-by-accident-2026-09-05) — ADR-047: nine fetches became one, and freshness stopped being free; one case proved one of four call sites.
+- [The partition stopped being carried by the name of the function (2026-09-05)](#the-partition-stopped-being-carried-by-the-name-of-the-function-2026-09-05) — C-8: `pullPartition`/`pushPartition` take the partition; the shared unit is a page, not the loop.
 
 ## Deviations
 
@@ -13217,3 +13218,37 @@ iterations then "proved" four already-red cases against a file that no longer
 had the feature in it. The rule already existed (never take a mutation proof
 back with `git checkout`); what this adds is why it bites hardest exactly here,
 where the mutation is a deletion and the restored file still compiles.
+
+## The partition stopped being carried by the name of the function (2026-09-05)
+
+C-8 of the design review: pull and push existed twice, once in the app's
+`SyncOutbox.drain` and once as `usePull`/`usePush`, which only the command line
+called. `pullTripAll` and `pullMasterAll` were byte-identical apart from which
+one-line request they called; `pullTrip` and `pullMaster` differed in one path
+expression, and the drain held a third copy of all four. The request is a value
+now — `client/src/sync/partition.ts` takes a `PartitionRef` and offers
+`pullPartition`, `pullPartitionAll` and `pushPartition` — and the two
+composables are deleted, having never been composables.
+
+**The prescription would have been wrong read literally.** "One pull used by
+`runDrain` and the CLI" cannot be one function: the drain applies each page and
+records its cursor *before* asking for the next, so a feed interrupted halfway
+keeps what it already took, while the command line has no screen to paint and
+wants the lot. What is actually shared is one **page** — the request, the path
+and §3's observe step — with the loop written twice on purpose, once around a
+store and once around an array. Both loops still ask `pullProtocol.ts` the
+paging rule, which is why that file exists and stays where it is.
+
+**The duplication had a second half nobody had named.** `cli/common.ts`'s
+`pushPending` took `pushMaster` and `pushTrip` as two callbacks, so every
+command had to build both, and knowing that a trip's feed answers somewhere
+else than the master feed had reached the *commands*. It takes the client and
+the clock now and calls `pushPartition` itself; `syncPath` is the one place
+left that knows.
+
+**The guard was tested and the grep said it was not.** `syncPath`'s refusal of
+a trip partition without an id looked uncovered — no test contains its message
+— and the outbox spec had been asserting it all along, by the path it *would*
+have requested rather than by the words it throws. A grep for a thrown string
+measures how a test was written, not whether the rule is held; the case that
+proves it is now in `partition.spec.ts` too, where the rule lives.

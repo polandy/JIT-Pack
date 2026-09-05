@@ -14,8 +14,7 @@ import { APIClient } from '@/api/client'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { createMutations } from '@/sync/mutations'
-import { usePull } from '@/composables/usePull'
-import { usePush } from '@/composables/usePush'
+import { MASTER_PARTITION, pullPartitionAll } from '@/sync/partition'
 import { HLCGenerator } from '@/sync/hlc'
 import { optimisticInsert } from '@/sync/optimistic'
 import { parsePortableAll } from '@/domain/portable'
@@ -102,14 +101,12 @@ export async function runImport(opts: ImportOptions, io: CommandIO): Promise<num
   const hlc = new HLCGenerator(io.now, io.deviceId)
   const client = new APIClient(opts.serverUrl, () => opts.token)
   const mutations = createMutations(hlc)
-  const { pullMasterAll } = usePull(client, hlc)
-  const { pushMaster, pushTrip } = usePush(client, hlc)
 
   // The inventory has to be here before anything is planned: FR-18.4 matches
   // each document against what the instance holds, and a dry run has to read
   // it too or it would report every item as new.
   try {
-    const pulled = await pullMasterAll(0)
+    const pulled = await pullPartitionAll(client, hlc, MASTER_PARTITION, 0)
     master.applyChanges(pulled.changes)
     trips.applyChanges(pulled.changes)
   } catch (e) {
@@ -209,7 +206,7 @@ export async function runImport(opts: ImportOptions, io: CommandIO): Promise<num
       }
 
       try {
-        await pushPending(pending, pushMaster, pushTrip)
+        await pushPending(client, hlc, pending)
       } catch (e) {
         io.write(`${what}: failed — ${message(e)}`)
         failed++

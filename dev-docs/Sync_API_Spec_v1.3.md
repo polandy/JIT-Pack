@@ -166,8 +166,11 @@ to open.
   advancing its cursor before asking for the next, so a feed interrupted halfway keeps what it already took. It stops on
   `next_cursor` failing to advance as well as on `has_more`, because a server that claimed more without moving the
   cursor would otherwise spin the loop for ever. **The rule is named once** — `client/src/sync/pullProtocol.ts`, asked
-  by both clients that page: the app's `SyncOutbox.drain` and the command line's `usePull` (2026-09-01). It had been
-  written twice, and the guard had reached only the drain, so `jitpack import` was the client that could hang. **The
+  by both clients that page: the app's `SyncOutbox.drain` and the command line's `pullPartitionAll` (2026-09-01). It
+  had been written twice, and the guard had reached only the drain, so `jitpack import` was the client that could
+  hang. **The request itself is named once too** (2026-09-05, C-8): `client/src/sync/partition.ts` takes the partition
+  as a parameter — `pullPartition`, `pullPartitionAll`, `pushPartition` — so which feed a call addresses stops being
+  carried by the name of the function. **The
   cursor itself is deliberately not kept on the device outside Local Mode**: the pulled rows are not kept either — they
   live in the client's stores and go with the tab — so a device that remembered how far it had read and not *what* it
   had read would ask for the changes after that point, receive none, and render an empty app. Measured 2026-08-25: an

@@ -1,12 +1,14 @@
 /**
  * The two rules a paged pull follows, named once (Sync-API §4).
  *
- * They have two callers — the app's `SyncOutbox.drain` and the CLI's
- * `usePull` (invariant 4: the command line runs the client's own rules, so it
- * runs these) — and until 2026-09-01 each carried its own copy. The copies had
- * already drifted: the progress guard below was the drain's alone, so the
- * command line could spin for ever, and the observe step was asserted only on
- * the CLI's copy while the app's ran untested.
+ * Until 2026-09-01 the app's `SyncOutbox.drain` and the command line's pull
+ * carried a copy each (invariant 4: the command line runs the client's own
+ * rules, so it runs these), and the copies had already drifted — the progress
+ * guard below was the drain's alone, so the command line could spin for ever,
+ * and the observe step was asserted only on the CLI's copy while the app's ran
+ * untested. Both requests now go through `partition.ts`, which is where these
+ * two rules are applied; the drain still asks `hasFurtherPage` itself, because
+ * it has a screen to paint between the pages.
  */
 
 import type { PullChange } from '@/api/types'

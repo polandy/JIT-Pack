@@ -18,31 +18,19 @@
  * the memo is the guarantee the client relies on.
  */
 
-import { API } from '@/api/routes'
 import { APIRequestError, type APIClient } from '@/api/client'
-import type { Mutation, PullChange, PullResponse, PushResponse } from '@/api/types'
+import type { Mutation, PullChange, PushResponse } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import { hasFurtherPage, observePulledClocks } from '@/sync/pullProtocol'
+import { hasFurtherPage } from '@/sync/pullProtocol'
+import {
+  MAX_PUSH_BATCH,
+  pullPartition,
+  pushPartition,
+  type PartitionRef,
+  type PartitionType,
+} from '@/sync/partition'
 import type { OutboxStore, ParkedMutation, PartitionKey } from '@/sync/outboxStore'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
-
-type PartitionType = 'trip' | 'master'
-
-/** A partition named the way `drain` wants it. */
-export interface PartitionRef {
-  type: PartitionType
-  id: string | null
-}
-
-/** Server-side push limit per batch (Sync-API §9). */
-export const MAX_PUSH_BATCH = 200
-
-/**
- * How many changes one pull asks for (Sync-API §4). Module-private: unlike
- * `MAX_PUSH_BATCH`, which the command line has to respect too, nothing
- * outside this file decides how big a page is.
- */
-const PULL_PAGE_SIZE = 500
 
 /** The partition key prefix a trip's queue carries in storage. */
 const TRIP_PREFIX = 'trip:'
@@ -342,10 +330,10 @@ export class SyncOutbox {
 
   private async runDrain(type: PartitionType, id: string | null): Promise<void> {
     const key = partitionKey(type, id)
+    const partition: PartitionRef = { type, id }
     const queue = this.queues.get(key) ?? []
 
     if (queue.length > 0) {
-      const path = this.syncPath(type, id)
       // The server caps a push at 200 mutations (Sync-API §9) — chunk
       // big batches (e.g. wizard-generated trips) instead of getting the
       // whole queue rejected. `queue` is the snapshot this drain works
@@ -355,10 +343,7 @@ export class SyncOutbox {
         const chunk = queue.slice(offset, offset + MAX_PUSH_BATCH)
         let resp: PushResponse
         try {
-          resp = await this.client.post<PushResponse>(path, {
-            client_hlc: this.hlc.next(),
-            mutations: chunk,
-          })
+          resp = await pushPartition(this.client, this.hlc, partition, chunk)
         } catch (err) {
           if (!isPermanentRefusal(err)) throw err
           // The server has seen this envelope and will refuse it again.
@@ -398,31 +383,15 @@ export class SyncOutbox {
     let hasMore = true
     while (hasMore) {
       const cursor = this.getCursor(type, id)
-      const pullResp = await this.client.get<PullResponse>(this.syncPath(type, id), {
-        cursor: String(cursor),
-        limit: String(PULL_PAGE_SIZE),
-      })
+      const pullResp = await pullPartition(this.client, this.hlc, partition, cursor)
 
-      if (pullResp.changes.length > 0) {
-        this.onChanges(pullResp.changes)
-        observePulledClocks(this.hlc, pullResp.changes)
-      }
+      if (pullResp.changes.length > 0) this.onChanges(pullResp.changes)
 
       this.cursors.set(key, pullResp.next_cursor)
       // Progress, not the claim — the rule and its reason live in
       // pullProtocol.ts, which the command line's pull follows too.
       hasMore = hasFurtherPage(pullResp, cursor)
     }
-  }
-
-  // The id is nullable because the master partition has none. A *trip*
-  // partition without one is a programming error, and it used to interpolate
-  // as the string "null" — a request the server answers 404 and the outbox
-  // retries forever, naming nothing. Typed route builders made it visible.
-  private syncPath(type: PartitionType, id: string | null): string {
-    if (type === 'master') return API.masterSync
-    if (id === null) throw new Error('a trip partition needs a trip id')
-    return API.tripSync(id)
   }
 
   /** Removes pushed mutations from the live queue and from the device. */
