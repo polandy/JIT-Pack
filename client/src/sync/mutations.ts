@@ -3,6 +3,11 @@
  * packing-list actions. Every mutation gets a unique ID and the current HLC.
  *
  * All writes go through these helpers → SyncOutbox → server (P-2, G-5).
+ *
+ * It sits in the sync layer rather than among the composables because it is
+ * neither: it touches no reactivity, and it is called from the CLI and named
+ * by `domain/portableImport.ts`, which may not reach up into a caller's layer
+ * (invariant 4). The `use` prefix it carried said otherwise.
  */
 
 import { TABLE } from '@/types/tables'
@@ -60,7 +65,7 @@ export type TripEdit = Partial<
  */
 export type AddedItemDecision = 'packed' | 'skipped'
 
-export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) {
+export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) {
   function make(
     op: MutationOp,
     table: string,

@@ -24,7 +24,7 @@ import type {
   Trip,
 } from '@/types/domain'
 import { ITEM_MODE_PACK } from '@/types/domain'
-import type { useMutations } from '@/composables/useMutations'
+import type { createMutations } from '@/sync/mutations'
 
 /**
  * The mutation builders an import uses. Deliberately the real factory rather
@@ -32,7 +32,7 @@ import type { useMutations } from '@/composables/useMutations'
  * and an import that built its rows a second way would be the drift this
  * module exists to prevent.
  */
-export type ImportMutations = ReturnType<typeof useMutations>
+export type ImportMutations = ReturnType<typeof createMutations>
 
 /**
  * The inventory an import matches against. It has to be a **live** view, not

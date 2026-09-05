@@ -13,7 +13,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { APIClient } from '@/api/client'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { useMutations } from '@/composables/useMutations'
+import { createMutations } from '@/sync/mutations'
 import { usePull } from '@/composables/usePull'
 import { usePush } from '@/composables/usePush'
 import { HLCGenerator } from '@/sync/hlc'
@@ -101,7 +101,7 @@ export async function runImport(opts: ImportOptions, io: CommandIO): Promise<num
   const trips = useTripStore()
   const hlc = new HLCGenerator(io.now, io.deviceId)
   const client = new APIClient(opts.serverUrl, () => opts.token)
-  const mutations = useMutations(hlc)
+  const mutations = createMutations(hlc)
   const { pullMasterAll } = usePull(client, hlc)
   const { pushMaster, pushTrip } = usePush(client, hlc)
 
