@@ -6,6 +6,7 @@ import {
   addPosition,
   createTripViaWizard,
   expectTripOpen,
+  openTripFromList,
   tripAction,
   expectTripActionOffered,
 } from './fixtures'
@@ -38,13 +39,6 @@ import { PATH } from './routes'
  */
 
 const TRIP = { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] }
-
-/** Open a trip the way a user does — through M2, in-SPA. */
-async function openTripFromList(page: Page, name: string) {
-  await page.goto(`${PATH.trips}?status=planned`)
-  await visible(page).getByTestId(`trip-row-${name}`).click()
-  await expectTripOpen(page, name)
-}
 
 test.describe('Local Mode backup and restore @local @m18', () => {
   test.beforeEach(async ({ seedMode }) => {

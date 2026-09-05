@@ -8,8 +8,20 @@ import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 import { setDateField } from './ionic'
-import { DESKTOP_BREAKPOINT, visiblePage } from './page'
+import { DESKTOP_BREAKPOINT, visiblePage, writesLanded } from './page'
 import { PATH } from '../routes'
+
+/**
+ * Open a trip the way a user does — through M2, in-SPA. `page.goto` is a full
+ * reload, and a reload with a Local Mode write still open loses the write
+ * (see `writesLanded`), so the device is settled first.
+ */
+export async function openTripFromList(page: Page, name: string) {
+  await writesLanded(page)
+  await page.goto(`${PATH.trips}?status=planned`)
+  await visiblePage(page).getByTestId(`trip-row-${name}`).click()
+  await expectTripOpen(page, name)
+}
 
 /** Minimum a trip needs to be creatable — the wizard's step-1 gate. */
 export interface TripSeed {
@@ -34,6 +46,7 @@ export interface TripSeed {
  * trip comes through here. Call after `seed`/`seedMode` — it navigates.
  */
 export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<string> {
+  await writesLanded(page)
   await page.goto(PATH.newTrip)
 
   await page.getByTestId('wizard-name').locator('input').fill(trip.name)
@@ -81,6 +94,7 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
 
   // M4 has opened on the new trip; its path is the handle later steps need.
   await expectTripOpen(page, trip.name)
+  await writesLanded(page)
   return new URL(page.url()).pathname
 }
 
@@ -137,6 +151,7 @@ export async function createTripFollowingGroup(
   name: string,
   group: string,
 ): Promise<string> {
+  await writesLanded(page)
   await page.goto(PATH.newTrip)
   await page.getByTestId('wizard-name').locator('input').fill(name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
@@ -157,6 +172,7 @@ export async function createTripFollowingGroup(
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()
   await page.getByTestId('wizard-create').click()
   await expectTripOpen(page, name)
+  await writesLanded(page)
   return new URL(page.url()).pathname
 }
 
