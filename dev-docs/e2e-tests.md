@@ -4478,6 +4478,15 @@ step is now in-app: M2's slide → Share for the roster, the app bar's gear for
 M17 → M20. It is also four times faster (27 s against a 180 s timeout it had
 been blowing), because a document boot costs more than any number of clicks.
 
+**The picker is dismissed through the overlay's own `dismiss()`, not by
+`Escape`.** The first CI run failed on `expect(ion-popover).toHaveCount(0)`
+after the key press, having passed four times locally — a select popover
+honours `Escape` only while the key event reaches the overlay, and on a loaded
+runner the focus has not always arrived. The action-sheet helpers keep their
+`Escape` because an action sheet takes focus itself. Closing the picker is
+setup between two assertions rather than the behaviour under test, so the
+deterministic dismissal is the right trade; a longer wait would not be.
+
 **Bob is the standing control.** M6's roster renders `members-add` only when
 there *is* a candidate, so with Dave gone and nobody else provisioned the whole
 control disappears — and „Dave is not offered" would then be satisfied by a

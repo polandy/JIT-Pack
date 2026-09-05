@@ -433,6 +433,24 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     const option = (name: string) =>
       alice.locator('ion-popover ion-select-popover ion-item').filter({ hasText: name })
 
+    /**
+     * Dismiss the picker through the overlay's own method.
+     *
+     * `Escape` is what a person presses, and it is what the action-sheet
+     * helpers use — but a select popover only honours it while the key event
+     * reaches the overlay, and on a loaded runner the focus has not always
+     * arrived. It failed on CI at the first attempt and never once locally,
+     * which is the signature. Closing the picker is *setup* between two
+     * assertions and not the behaviour under test, so the deterministic
+     * dismissal is the right trade here rather than a longer wait.
+     */
+    async function closePicker() {
+      await alice
+        .locator('ion-popover')
+        .evaluate((el: HTMLElement & { dismiss: () => Promise<unknown> }) => el.dismiss())
+      await expect(alice.locator('ion-popover')).toHaveCount(0)
+    }
+
     /** M2 → the row's slide → Share, which is how a person reaches the roster. */
     async function openRoster() {
       await alice.getByTestId('rail-trips').click()
@@ -449,8 +467,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await openRoster()
     await expect(option(ACCOUNT_NAMES.dave)).toHaveCount(1)
     await expect(option(ACCOUNT_NAMES.bob)).toHaveCount(1)
-    await alice.keyboard.press('Escape')
-    await expect(alice.locator('ion-popover')).toHaveCount(0)
+    await closePicker()
 
     // Settings → M20, still the same document.
     await alice.getByTestId('header-settings').click()
@@ -475,8 +492,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await openRoster()
     await expect(option(ACCOUNT_NAMES.bob)).toHaveCount(1)
     await expect(option(ACCOUNT_NAMES.dave)).toHaveCount(0)
-    await alice.keyboard.press('Escape')
-    await expect(alice.locator('ion-popover')).toHaveCount(0)
+    await closePicker()
 
     // This file owns dave's lifecycle, so it hands him back.
     await alice.getByTestId('header-settings').click()
