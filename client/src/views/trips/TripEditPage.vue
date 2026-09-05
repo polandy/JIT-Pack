@@ -37,6 +37,7 @@ import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useTripScreen } from '@/composables/useTripScreen'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { TravelerChangeReport } from '@/types/domain'
 
@@ -45,7 +46,7 @@ const props = defineProps<{ tripId: string }>()
 const store = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const trip = computed(() => store.getTrip(props.tripId))
+const { trip } = useTripScreen(props.tripId, orchestrator)
 const travelers = computed(() => store.getTravelers(props.tripId))
 
 /**

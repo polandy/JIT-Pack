@@ -13,7 +13,7 @@
  * whatever history is synced.
  */
 import { IonPage, IonContent, IonSegment, IonSegmentButton, IonLabel, IonNote } from '@ionic/vue'
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import {
@@ -27,6 +27,8 @@ import { t } from '@/i18n'
 import { formatValue, formatWeight } from '@/lib/format'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setStoredFacet, setStoredGroupBy } from '@/composables/usePackingFilter'
 import { tripPath } from '@/router/paths'
@@ -36,8 +38,9 @@ const props = defineProps<{ tripId: string }>()
 const router = useRouter()
 const store = useTripStore()
 const masterStore = useMasterStore()
+const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const trip = computed(() => store.getTrip(props.tripId))
+const { trip } = useTripScreen(props.tripId, orchestrator)
 
 /**
  * FR-14.3: the trend runs across the trips of one series, so the heading
