@@ -2191,6 +2191,15 @@ against a screen rather than against a stylesheet (G-14).
   instance has exactly one admin, so which of the two exemptions fired is not separable on screen —
   `domain/__tests__/admin.spec.ts` separates them. And FR-23.3's other sentence — *„open JIT provisioning does not
   resurrect a deactivated account"* — was in **no** case at all; it is **E2E-M20-06** now.
+* **E2E-M20-07** `server` (FR-23.3, ADR-047) — **new 2026-09-05 with U-10**: a deactivation reaches the *other*
+  screens of the same session. Alice opens the FR-4.5 sharing picker on a trip of her own and Dave is offered; she
+  deactivates him on M20; she opens the same picker again and he is not. **Every step is in-app** — a `page.goto`
+  reboots the document, and a rebooted app re-fetches the directory whatever the store does, so a navigating-by-URL
+  version of this case cannot fail. Bob is the standing control: the roster renders its picker only while a candidate
+  exists, so *„Dave is not offered"* alone would be satisfied by a control that disappeared.
+  It is a guard on the change that made it necessary: the directory used to be fetched by every screen on its own
+  mount and was therefore fresh by accident; it is now fetched once per session, so freshness is what the four
+  identity writers owe. This is the one of those four with a surface a person can see.
 * **E2E-M20-03** `server` (FR-23.4): Remove avatar / **Reset display name** — the name half only, and that is what the
   case asserts (the row falls back to the account id, pinned beside the list still holding the same number of rows). The
   avatar half is **E2E-M20-03b**.

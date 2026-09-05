@@ -321,6 +321,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
 - [A page mounted twice, on the strength of a comment (2026-09-05)](#a-page-mounted-twice-on-the-strength-of-a-comment-2026-09-05) — ADR-046: the item alias was a second page to Ionic; the query keeps it, and Ionic's props cache is the trap.
 - [Six trip screens had never asked for their own rows (2026-09-05)](#six-trip-screens-had-never-asked-for-their-own-rows-2026-09-05) — U-10's unverified premise was a defect; the mode that hides it is the one the cheap test runs in.
+- [The directory was fresh by accident (2026-09-05)](#the-directory-was-fresh-by-accident-2026-09-05) — ADR-047: nine fetches became one, and freshness stopped being free; one case proved one of four call sites.
 
 ## Deviations
 
@@ -13104,6 +13105,7 @@ One reading stayed a reading. M4's `onToggle` asks whether a row is being
 now asks the derivation for `packed` or `skipped`, because a revealed skipped
 row under the same control is a done row too, and the comparison had said so
 only by the accident that `0 >= 0` is true.
+## The directory was fresh by accident (2026-09-05)
 
 
 
@@ -13153,3 +13155,65 @@ the restored tree green.
 It also fails when it finds no modules at all, because a gate whose walk has
 been emptied by a move reports ok forever and nothing says it stopped
 measuring.
+U-10's second half. Nine views fetched `fetchUsers()`/`fetchMe()` from their own
+`onMounted` into a `ref` of their own — M1, M2, M4, M3's wizard, the member
+roster, M10, M17, M20 and the conflict log — so the same two answers were read
+up to nine times a session and every screen spent its first frames not knowing
+who the viewer was.
+
+**What the item did not say, and what made it an ADR.** Reading it once is
+easy; the cost is that the nine reads were *stale-proof by accident*. A screen
+that remounted re-read the directory, so a rename or a deactivation reached the
+next screen the person opened. One cached read gives that up. The fix is that
+the four calls that can change the answer — `saveDisplayName`,
+`adminResetDisplayName`, `deactivateUser`, `reactivateUser` — refresh it, and
+they do so **inside the orchestrator**, never in the screen that triggered
+them: a rename made on M17 has to reach the name M4 puts on a packed row, and
+only one of those two screens is mounted at the time. ADR-047 has the four
+options and the numbers; the time-to-live variant was rejected for the reason
+the working agreement rejects a sleep in a test — the name would be right
+*probably*.
+
+The result is better than what it replaced, not merely cheaper: an open screen
+now follows a rename, which no per-screen `ref` ever did.
+
+**A pinia store rather than a module singleton**, for one reason: the per-test
+reset is `createPinia()`. A module-level cache carries one spec's identity into
+the next, and an identity is a plausible value in any spec, so the failure would
+not look like a leak.
+
+**Three traps, each paid for.**
+
+- **The stub's set has to be reactive.** Same shape as `tripScreenStub` a day
+  earlier: `loaded` is a computed, and a plain container leaves it on its first
+  answer — in the specs only.
+- **A refresh can lose to the load it overtook.** Without a generation counter
+  the older response lands last and reinstates the name that was just changed.
+  The clause that pins it hands the two responses to the test to release in the
+  wrong order, so nothing about it is a race.
+- **One case proved one call site.** The first version of the unit case
+  asserted `adminResetDisplayName`. Deleting the refresh from `deactivateUser`
+  left it green, which is the whole reason the case is now a table over all six
+  writers — the four that refresh and the two avatar calls that deliberately do
+  not, because an exception that is only described is indistinguishable from a
+  forgotten call.
+
+**Two rows of the review's own table could not be filled, and both became
+seams.** `App.vue`'s session-end handler was four lines in a root component's
+setup — the only place either effect was triggered, and nowhere a test can
+reach; it is `auth/sessionEnd.ts` now, and the clause worth having is the
+*order*: the identity is forgotten before the navigation, so no frame of the
+login can render while the previous viewer is still cached. And three of the
+nine rewired views have no mount spec at all, so the adoption is asserted the
+way U-10's first half asserted its own: a source census, with a positive half
+beside it, because "no view fetches identity itself" is satisfied by a build
+where no view reads identity at all.
+
+**And one self-inflicted cost worth writing down.** The four mutation proofs
+were run in a loop that undid each mutation with `git checkout --
+<file>`. The file's baseline was `origin/main`, so the first iteration did not
+undo the mutation — it undid **the whole change**, silently. The next three
+iterations then "proved" four already-red cases against a file that no longer
+had the feature in it. The rule already existed (never take a mutation proof
+back with `git checkout`); what this adds is why it bites hardest exactly here,
+where the mutation is a deletion and the restored file still compiles.

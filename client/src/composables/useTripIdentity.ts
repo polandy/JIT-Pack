@@ -1,10 +1,13 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, toRef, type ComputedRef, type Ref } from 'vue'
 
 import type { DirectoryUser, MeResponse } from '@/api/types'
 import { tripParticipants } from '@/domain/members'
 import { nameFrom, type NameOf } from '@/lib/rowFacts'
+import { useIdentityStore, type IdentitySource } from '@/stores/identityStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { TripParticipant } from '@/types/domain'
+
+export type { IdentitySource }
 
 /** What the instance knows about accounts, and which of them is the viewer. */
 export interface Identity {
@@ -16,15 +19,19 @@ export interface Identity {
   directory: Ref<DirectoryUser[]>
   /** The viewer's own id, `null` until fetched and in Local Mode. */
   myUserId: Ref<string | null>
+  /** The whole `me` payload, for the one screen that renders more than the id. */
+  me: Ref<MeResponse | null>
+  /** Whether the two above are an answer rather than a question not yet asked. */
+  loaded: Ref<boolean>
   /**
-   * Fetch both, in one round trip.
+   * Fetch both, once per session (ADR-047). A caller that arrives during the
+   * flight joins it; one that arrives after it landed gets the answer.
    *
-   * Deliberately *not* wired to `onMounted` here. The three screens that call
-   * it differ in when: M4 runs it between its drain and its scroll restore,
-   * the wizard only when the session is collaborative, and the member roster
-   * on its own. Owning the *what* without the *when* keeps those orderings in
-   * the screen that has a reason for them — the shared loader is U-10's
-   * `useTripScreen`, not this.
+   * Deliberately *not* wired to `onMounted` here. The screens that call it
+   * differ in when: M4 runs it after its drain, the wizard only when the
+   * session is collaborative, and the member roster on its own. Owning the
+   * *what* without the *when* keeps those orderings in the screen that has a
+   * reason for them.
    */
   load: () => Promise<void>
 }
@@ -38,34 +45,21 @@ export interface TripIdentity extends Identity {
 }
 
 /**
- * The two orchestrator methods identity needs. Narrowed to what is actually
- * read — `fetchMe` answers with the whole `MeResponse`, and only the id of it
- * reaches a screen through here — so a test hands over two functions rather
- * than a sync stack.
- */
-export interface IdentitySource {
-  fetchUsers: () => Promise<DirectoryUser[]>
-  fetchMe: () => Promise<Pick<MeResponse, 'user_id'> | null>
-}
-
-/**
- * The four lines every screen that names somebody had written for itself.
- *
- * They were identical in `PackingListPage`, `TripWizardPage` and
- * `TripMembersPage` — two refs, one `Promise.all`, and the `?? null` that
- * makes "not signed in" and "not fetched yet" the same value on purpose.
+ * The screen-side view of `identityStore`: the same four values every screen
+ * that names somebody used to keep for itself, now one answer for all of them
+ * (ADR-047). The `?? null` that makes "not signed in" and "not fetched yet"
+ * the same value is deliberate and lives in the store, beside `loaded`, which
+ * is what tells the two apart where it matters.
  */
 export function useIdentity(source: IdentitySource): Identity {
-  const directory = ref<DirectoryUser[]>([])
-  const myUserId = ref<string | null>(null)
-
-  async function load(): Promise<void> {
-    const [users, me] = await Promise.all([source.fetchUsers(), source.fetchMe()])
-    directory.value = users
-    myUserId.value = me?.user_id ?? null
+  const store = useIdentityStore()
+  return {
+    directory: toRef(store, 'directory'),
+    myUserId: toRef(store, 'myUserId'),
+    me: toRef(store, 'me'),
+    loaded: toRef(store, 'loaded'),
+    load: () => store.load(source),
   }
-
-  return { directory, myUserId, load }
 }
 
 /**

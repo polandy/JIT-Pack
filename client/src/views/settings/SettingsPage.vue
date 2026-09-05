@@ -23,7 +23,7 @@
  */
 import { API } from '@/api/routes'
 import { API_TOKEN_EXPIRY } from '@/api/types'
-import type { APITokenExpiry, MeResponse } from '@/api/types'
+import type { APITokenExpiry } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -74,10 +74,12 @@ import ApiTokenSheet from '@/components/settings/ApiTokenSheet.vue'
 import LeaveLocalModeCard from '@/components/settings/LeaveLocalModeCard.vue'
 import { useDeviceBackup } from '@/composables/useDeviceBackup'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useIdentity } from '@/composables/useTripIdentity'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 import { PATH } from '@/router/paths'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const { me, load: loadIdentity } = useIdentity(orchestrator)
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
 
@@ -98,13 +100,12 @@ const pictureEditable = mode === 'server'
 /** Multi-user instance → notifications exist (FR-17.3/FR-19.3 hide them otherwise). */
 const collaborative = hasCollaborativeSession()
 
-const me = ref<MeResponse | null>(null)
 const nameDraft = ref('')
 const nameSaved = ref(false)
 const avatarVersion = ref(0)
 
 onMounted(async () => {
-  me.value = await orchestrator.fetchMe()
+  await loadIdentity()
   nameDraft.value = me.value?.display_name ?? ''
   if (collaborative) {
     prefs.value = await orchestrator.fetchNotificationPrefs()
@@ -185,8 +186,11 @@ const nameTouched = ref(false)
 
 async function saveName() {
   if (!me.value || !nameValid.value) return
+  // The store is refreshed by `saveDisplayName` itself (ADR-047), so the
+  // name this screen shows and the name M4 puts on a packed row are one
+  // answer — this used to patch a ref of its own and leave every other
+  // screen's copy behind until it was remounted.
   await orchestrator.saveDisplayName(me.value.user_id, nameDraft.value)
-  me.value = { ...me.value, display_name: nameDraft.value }
   nameSaved.value = true
   setTimeout(() => (nameSaved.value = false), 2000)
 }

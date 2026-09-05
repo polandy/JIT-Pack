@@ -19,7 +19,9 @@ import TabBar from '@/components/global/TabBar.vue'
 import MigrationBanner from '@/components/global/MigrationBanner.vue'
 import UpdateBanner from '@/components/global/UpdateBanner.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
-import { createAuthRefresher, onSessionEnded } from '@/auth/refresh'
+import { createAuthRefresher } from '@/auth/refresh'
+import { clearOnSessionEnd } from '@/auth/sessionEnd'
+import { useIdentityStore } from '@/stores/identityStore'
 import { loadTokens } from '@/auth/tokens'
 import {
   describeNotification,
@@ -251,7 +253,11 @@ const router = useRouter()
 // deactivated (FR-23.3) — returns to the login. Attached here, in setup,
 // because a child's `onMounted` makes the request that can end it before
 // this component's own `onMounted` gets past its awaits (see `onSessionEnded`).
-const stopSessionEnd = onSessionEnded(() => router.replace('/login'))
+const identity = useIdentityStore()
+const stopSessionEnd = clearOnSessionEnd({
+  forget: () => identity.forget(),
+  toLogin: () => router.replace('/login'),
+})
 
 const syncDetailOpen = ref(false)
 const storage = ref<StorageStatus | null>(null)
