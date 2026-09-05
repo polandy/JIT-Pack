@@ -45,6 +45,7 @@ import type { ShoppingMode, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 import { isActive } from '@/domain/trips'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
@@ -65,7 +66,7 @@ const tab = ref<ShoppingMode>(ITEM_MODE_BUY_BEFORE)
  */
 const showBought = ref(false)
 
-const trip = computed(() => store.getTrip(props.tripId))
+const { trip } = useTripScreen(props.tripId, orchestrator)
 const lists = computed(() => store.getShoppingItems(props.tripId))
 const activeList = computed(() =>
   tab.value === ITEM_MODE_BUY_BEFORE ? lists.value.buyBefore : lists.value.buyLocal,

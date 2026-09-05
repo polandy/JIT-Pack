@@ -35,6 +35,7 @@ import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
@@ -52,7 +53,7 @@ function groupName(templateId: string): string {
 }
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const trip = computed(() => store.getTrip(props.tripId))
+const { trip } = useTripScreen(props.tripId, orchestrator)
 
 /**
  * Flag occurrences across the archived trips of the series synced to

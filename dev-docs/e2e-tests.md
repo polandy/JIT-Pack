@@ -31,6 +31,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [E2E-M7-06 — why it stopped being partial (2026-08-30)](#e2e-m7-06--why-it-stopped-being-partial-2026-08-30) — an empty-state CTA the screen deliberately does not have — the clause was retired, not owed.
 - [E2E-M7-07 — one clause short of what it claimed (2026-08-30)](#e2e-m7-07--one-clause-short-of-what-it-claimed-2026-08-30) — the row's resolved count, the only arithmetic the row does, untested while the id read as complete.
 - [E2E-M7-04 — how the case is split, and why](#e2e-m7-04--how-the-case-is-split-and-why) — the `contextmenu` handler, and the guard asserted both ways.
+- [E2E-G9-18 — the deep link that only Local Mode survived (2026-09-05)](#e2e-g9-18--the-deep-link-that-only-local-mode-survived-2026-09-05) — one screen pulled the trip partition and six relied on it; why the case had to be written in `single`.
 - [The visual unit — the only one that asserts appearance](#the-visual-unit--the-only-one-that-asserts-appearance) — why it is a separate project outside `npm run test:e2e`, and what surfaces, colour and typography each do *not* prove.
 - [What the M4 unit deliberately leaves out (rewritten 2026-08-30)](#what-the-m4-unit-deliberately-leaves-out-rewritten-2026-08-30) — two waits that ended without anybody noticing — the paragraph that stood here was wrong in both halves.
 - [Corrected 2026-08-13 — an empty screen that read as lost data](#corrected-2026-08-13--an-empty-screen-that-read-as-lost-data) — a wrong diagnosis worth keeping: a render crash read as lost rows, with a real fire-and-forget write underneath.
@@ -276,7 +277,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile, the in-sync badge, the tap), E2E-G10-02 (the lagging half over the wire) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Instance currency | E2E-M9-09 | `single` | [`single/instance-currency.spec.ts`](../client/e2e/single/instance-currency.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31), **E2E-FLOW-07** (the move off Local Mode, since 2026-08-31), **E2E-G2-13** / **E2E-G2-14** (a dead socket is dialled again, and coming back pulls at once — since 2026-09-01) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09, **E2E-FLOW-05** (the migrated history on a second device, since 2026-08-31), **E2E-FLOW-07** (the move off Local Mode, since 2026-08-31), **E2E-G2-13** / **E2E-G2-14** (a dead socket is dialled again, and coming back pulls at once — since 2026-09-01), **E2E-G9-18** (a trip sub-screen opened cold, since 2026-09-05) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
 | M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08, **E2E-M17-14b** (FR-19.8's guard, both directions, since 2026-09-02) | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
 | M17 leaving Local Mode (FR-19.8, ADR-045) | **E2E-M17-14** (the whole move on one device, read back from the server), **E2E-M17-14c** (skip is not restore) — both since 2026-09-02 | `single` | [`single/leave-local-mode.spec.ts`](../client/e2e/single/leave-local-mode.spec.ts) |
@@ -4364,3 +4365,33 @@ Three things worth carrying:
   the remount; with the remount gone the memory is deleted and the case keeps the promise it was repairing, now without
   a signal to wait on. The mutation reddens it at offset 0 — which is what the screen showed every user for three weeks
   before the memory, and what it would show again the day someone reintroduces a path.
+
+## E2E-G9-18 — the deep link that only Local Mode survived (2026-09-05)
+
+Written first and red, which is what U-10 asked for: the worklist called the
+deep link onto `/trips/:id/shopping` *unverified*, and either the case would be
+green — making the refactor behind it preserving — or it would be the finding.
+It was the finding.
+
+`PackingListPage` had an `onMounted` that subscribed to the trip and drained its
+partition. No sibling had one. M6, M11, M12, M14, M16, M21 and M22 all read
+`tripStore` and all reached it *through* M4, so in `server` mode a reload — or a
+link somebody pasted into a chat — rendered the screen's empty state over rows
+that were sitting on the server. This is the #208 shape one screen up: not
+pulled yet read as nothing there.
+
+**Why the case is in `single` and not in `local`.** Local Mode hydrates the
+whole database from IndexedDB at startup, so every screen is served whatever the
+URL was; the defect is invisible there by construction. E2E-G9-06 is the same
+deep link in `local` and has been green throughout — the cheapest place to write
+the case is the one place that cannot see it.
+
+**Its own context, deliberately.** Reusing the page that built the trip would
+leave the partition already drained and the assertion would pass against the
+build it exists to fail. The second context is what makes "a device that has
+never opened this trip" a fact rather than a description.
+
+The fix is `composables/useTripScreen.ts`, and the reason it is a composable
+rather than a router guard is that the guard would have to know which routes
+carry a trip: the screens already know, and one of them (M4) has an ordering of
+its own to run once the rows are here.

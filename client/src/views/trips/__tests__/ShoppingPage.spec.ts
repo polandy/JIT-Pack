@@ -16,9 +16,12 @@ import ShoppingPage from '../ShoppingPage.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { t } from '@/i18n'
 
+import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
 const orchestratorFake = {
+  ...tripScreenStub(),
   buyItem: vi.fn(),
   unbuyItem: vi.fn(),
   quickAddItem: vi.fn(),

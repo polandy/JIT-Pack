@@ -19,15 +19,15 @@ import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 
+import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
 const orchestratorFake = {
-  loadedTrips: new Set<string>(),
-  tripDataLoaded: vi.fn((tripId: string) => orchestratorFake.loadedTrips.has(tripId)),
-  ensureTripData: vi.fn(() => Promise.resolve()),
+  ...tripScreenStub(),
   cloneTrip: vi.fn(() => null),
 }
 
@@ -73,7 +73,7 @@ function mountPage() {
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  orchestratorFake.loadedTrips = new Set<string>()
+  orchestratorFake.loadedTrips.clear()
   vi.clearAllMocks()
 })
 
@@ -83,7 +83,7 @@ describe('ClonePage — rows not on the device (ADR-033)', () => {
     const wrapper = mountPage()
 
     // It asked for the partition rather than summing an absence.
-    expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('src')
+    expect(orchestratorFake.drainTrip).toHaveBeenCalledWith('src')
 
     // The preview names the wait — never "0 Packelemente" for rows it has not seen.
     expect(wrapper.text()).toContain(t('clone.previewLoading'))

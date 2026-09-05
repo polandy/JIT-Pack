@@ -24,6 +24,7 @@ import { planClone } from '@/domain/clone'
 import { durationDays } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { useTripScreen } from '@/composables/useTripScreen'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import DateField from '@/components/global/DateField.vue'
@@ -38,14 +39,11 @@ const store = useTripStore()
 const master = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const source = computed(() => store.getTrip(props.tripId))
-
 // ADR-033: the source trip's rows live in its own partition, which this
-// device may never have pulled. Ask for them, and until they are here the
-// preview says so and the clone stays locked — summing an absence would
-// read "0 Packelemente" and clone exactly that.
-const sourceLoaded = computed(() => orchestrator.tripDataLoaded(props.tripId))
-void orchestrator.ensureTripData(props.tripId)
+// device may never have pulled. `useTripScreen` asks for them, and until they
+// are here the preview says so and the clone stays locked — summing an
+// absence would read "0 Packelemente" and clone exactly that.
+const { trip: source, loaded: sourceLoaded } = useTripScreen(props.tripId, orchestrator)
 
 const name = ref('')
 // FR-2.1b: a clone is a trip of its own year, and the year is the only

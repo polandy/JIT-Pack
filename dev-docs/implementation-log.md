@@ -316,6 +316,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
 - [A page mounted twice, on the strength of a comment (2026-09-05)](#a-page-mounted-twice-on-the-strength-of-a-comment-2026-09-05) — ADR-046: the item alias was a second page to Ionic; the query keeps it, and Ionic's props cache is the trap.
+- [Six trip screens had never asked for their own rows (2026-09-05)](#six-trip-screens-had-never-asked-for-their-own-rows-2026-09-05) — U-10's unverified premise was a defect; the mode that hides it is the one the cheap test runs in.
 
 ## Deviations
 
@@ -12895,3 +12896,46 @@ and what was tried before the query.
 * **A deletion, not a refactor:** the scroll memory, its unit spec, the deaf-while-restoring scroll handler, the seeded
   header state and the `data-scroll-restored` signal — 104 lines of M4 that compensated a remount. E2E-M4-45 keeps its
   promise with the signal gone and is proved by the mutation that would bring the remount back.
+
+## Six trip screens had never asked for their own rows (2026-09-05)
+
+U-10 was written as a refactor with a premise attached: *deep link / reload onto
+`/trips/:id/shopping` is **unverified**; it is the #208 "0/0" shape.* The
+instruction was to write the e2e case before the refactor — green would make the
+refactor preserving, red would make it the finding. It was red.
+
+`PackingListPage` subscribed to the trip and drained its partition in
+`onMounted`. M6, M11, M12, M14, M16, M21 and M22 did nothing of the kind: they
+read `tripStore` and were always reached *through* M4, which had loaded the
+partition on the way past. So in Server and Single-User Mode a reload, or a link
+somebody pasted, painted a screen's empty state over rows that were on the
+server.
+
+**The cost that kept this alive for months is which mode is cheap to test in.**
+Local Mode hydrates the whole database from IndexedDB before the first screen
+renders, so every screen is served whatever URL you arrive at. The suite's
+existing cold-start deep-link case, E2E-G9-06, is a `local` case and has been
+green throughout — correctly. The rule it asserts is real; the mode it asserts
+it in is the one mode that cannot break it. A test written where it is cheapest
+to write is a test written where the defect is not.
+
+**The fix is a composable, not a router guard.** A guard would have to carry a
+list of which routes hold a trip — a second registry beside the router's own
+`props: true` — and it could not serve M4, which has an ordering of its own to
+run once the rows are here (FR-27.4's refresh proposal, then identity). `composables/useTripScreen.ts` subscribes and drains on
+`onMounted` and hands back `ensure()`; M4 awaits that same in-flight promise
+instead of starting its own load. **The promise is a latch, not an event**: the
+composable's `onMounted` and the screen's own run in registration order today,
+and nothing in the code should depend on that staying true.
+
+**Two accepted costs.** The drain is the *foreground* kind, unlike M2's
+row-progress (ADR-033) — a screen the user opened is a load the user asked for,
+and the G-2 glyph is where that is said. And it is `drainTrip`, not
+`ensureTripData`: a trip screen opening pulls the delta even when the partition
+is already here, which is what M4 has always done and is now what all of them do.
+
+`ClonePage` was the one sibling that had solved this for itself, with
+`ensureTripData` plus a `tripDataLoaded` computed; it now reads the same two
+values off the composable. That it existed there and nowhere else is the shape
+this whole review keeps finding: the rule was known, written once, and never
+made reachable from the other six.

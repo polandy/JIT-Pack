@@ -45,6 +45,7 @@ import { foldName } from '@/domain/nameCollision'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { templatePath } from '@/router/paths'
 
@@ -55,7 +56,7 @@ const master = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const router = useRouter()
 
-const trip = computed(() => store.getTrip(props.tripId))
+const { trip } = useTripScreen(props.tripId, orchestrator)
 
 const composition = computed(() =>
   recogniseTripComposition({

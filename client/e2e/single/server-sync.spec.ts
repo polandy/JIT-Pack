@@ -1784,3 +1784,55 @@ test.describe('The socket dies and the device still converges (Sync-API P-1) @si
     await ctxB.close()
   })
 })
+
+/**
+ * E2E-G9-18 (G-9 cold-start deep link, ADR-033) — the half E2E-G9-06 could
+ * not see.
+ *
+ * G9-06 runs in Local Mode, where the whole database is on the device and
+ * every screen is served from it whatever the URL was. In `server` mode the
+ * trip partition arrives over the wire, and until 2026-09-05 exactly one
+ * trip screen asked for it: M4's `onMounted` subscribed and drained, and
+ * every sibling — M6, M11, M12, M14, M16, M22 — relied on having been
+ * reached *through* M4. A reload or a shared link straight onto one of them
+ * therefore rendered its empty state over rows that exist on the server,
+ * which is the #208 shape: a partition that has not arrived read as an
+ * empty one.
+ *
+ * The case is deliberately its own context. Reusing the page that built the
+ * trip would leave the partition already drained, and the assertion would
+ * pass against the very build it exists to fail.
+ */
+test.describe('A trip sub-screen opened cold @single', () => {
+  test.slow()
+
+  test('E2E-G9-18: M6 reached by deep link renders the trip rows, not its empty state', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Bergell ${id}`
+    const item = `Gaskartusche-${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip })
+
+    // The row is made on M6 itself, so it lands in a buy mode and the
+    // deep-linked screen is the one that owns it.
+    await pageA.goto(`${tripPath}/shopping`)
+    await visiblePage(pageA).getByTestId('quick-add-open').click()
+    await visiblePage(pageA).getByTestId('quick-add-input').locator('input').fill(item)
+    await visiblePage(pageA).getByTestId('quick-add-confirm').click()
+    await expect(visiblePage(pageA).getByTestId('m6-row').filter({ hasText: item })).toBeVisible()
+
+    // A device that has never opened this trip, landing straight on M6.
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, `${tripPath}/shopping`)
+
+    const m6 = visiblePage(pageB).getByTestId('m6-page')
+    await expect(m6.getByTestId('m6-row').filter({ hasText: item })).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+})

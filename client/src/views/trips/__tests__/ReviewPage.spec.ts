@@ -20,11 +20,14 @@ import { useTripStore } from '@/stores/tripStore'
 import { isDismissed } from '@/local/reviewDismissals'
 import { t } from '@/i18n'
 
+import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
 const TODAY = '2026-01-15'
 
 const orchestratorFake = {
+  ...tripScreenStub(),
   applyReviewProposal: vi.fn(() => 'g1'),
   today: () => TODAY,
 }

@@ -14,16 +14,17 @@ import TripEditPage from '../TripEditPage.vue'
 import DateField from '@/components/global/DateField.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
+import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 
 const TRIP_ID = 'trip-1'
 
 const orchestratorFake = {
+  ...tripScreenStub(),
   updateTrip: vi.fn(),
   renameTraveler: vi.fn(),
   addTravelerToTrip: vi.fn(),
   removeTraveler: vi.fn(),
   packedRowsOf: vi.fn(() => 0),
-  ensureTripData: vi.fn(),
 }
 
 function seedTrip(fields: Record<string, unknown> = {}) {
