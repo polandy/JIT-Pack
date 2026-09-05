@@ -14,7 +14,7 @@ import { setLocale } from '@/i18n'
 const SheetModalStub = {
   name: 'SheetModal',
   props: ['isOpen'],
-  emits: ['dismiss'],
+  emits: ['dismiss', 'present'],
   template: '<div v-if="isOpen" data-stub="sheet"><slot /></div>',
 }
 
@@ -68,6 +68,21 @@ describe('DateField (ADR-035)', () => {
     expect(datetime.props('locale')).toBe('de')
     expect(datetime.props('firstDayOfWeek')).toBe(1)
     expect(datetime.props('value')).toBe('2026-09-13')
+  })
+
+  it('mounts the calendar afresh once the sheet is on screen', async () => {
+    // Ionic readies `ion-datetime` from an observer that a modal still at
+    // `display: none` starves (measured on WebKit: 0.6–4.6 s of an open
+    // sheet with no calendar). The calendar the user gets is the one mounted
+    // after `didPresent`, into a laid-out sheet.
+    const wrapper = mountField({ value: '2026-09-13' })
+    await wrapper.find('[data-stub="input"]').trigger('click')
+    const before = wrapper.findComponent(IonDatetimeStub).element
+    await wrapper.findComponent(SheetModalStub).vm.$emit('present')
+    const after = wrapper.findComponent(IonDatetimeStub)
+    expect(after.exists()).toBe(true)
+    expect(after.element).not.toBe(before)
+    expect(after.props('value')).toBe('2026-09-13')
   })
 
   it('stays closed on a locked row (G-3)', async () => {

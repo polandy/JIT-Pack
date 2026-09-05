@@ -473,6 +473,13 @@ These patterns apply to every screen and are specified once.
   * **Added 2026-08-26 (ADR-035, UX review 2026-08-25 UX-6).** Decided against "deliberately native" because the
     browser's control text is unreachable by NFR-4.12 and its chrome by the token tables; the accepted cost and its
     revisit trigger are in the ADR.
+  * **Revised 2026-09-05.** The date sheet mounts its calendar once the sheet has *landed* (Ionic's `didPresent`), and
+    the sheet chrome renders that state as `data-presented`. Ionic readies `ion-datetime` — listeners attached, the
+    calendar body unhidden — from an IntersectionObserver rooted on the component, with one fallback 100 ms after mount;
+    the calendar mounted while the sheet was still `display: none`, so the fallback fired against a box of zero height
+    and readiness was left to an observer measured on a loaded WebKit at 0.6–4.6 s after the sheet appeared. A calendar
+    mounted into a laid-out sheet is ready on the fallback's own clock. The sheet keeps its height across the swap,
+    because the second calendar is the size of the first (G-2: an auto-height sheet is measured once at presentation).
 
 ## 1. Screen Inventory
 

@@ -1809,6 +1809,41 @@ page and asserts the class the component renders when it believes it is
 open — so a silent no-op fails on the line that names it. Both postconditions
 were mutation-proved by making Ionic drop the instruction on purpose.
 
+**Acted on a third time 2026-09-05:** `main` went red on the same line of
+`setDateField` with the ready wait in place (`b6d2f0d5`, `e2e (7)`, WebKit,
+E2E-M6-01): the arrow was clicked, the header stayed on September. The arrow
+was the wrong instrument, not the wrong moment. Read from Ionic's source, a
+header arrow is a *smooth scroll* of the calendar body by two months' width,
+and the header is recomputed by a scroll listener 50 ms after the last scroll
+event — only if the month it finds there is aligned with the body to within
+2 px; a smooth scroll that stops short leaves the header where it was, and
+nothing recomputes it. The walk now hops with `PageDown`/`PageUp` on a
+focused day cell, which sets the working month directly and re-renders from
+it: no scroll, no listener, no alignment. The cell focused is the enabled day
+nearest the target's day-of-month, because Ionic ignores a hop whose landing
+day is outside the field's bounds (FR-2.1d). Mutation-proved by focusing the
+header button instead of a day cell: red on the hop's own assertion, twice
+out of twice, in the shape of the CI failure.
+
+The PR's own first CI run then went red on the *ready wait* (E2E-M4-04,
+WebKit): hydrated, the whole grid rendered, `datetime-ready` never within
+five seconds. Measured on WebKit with a timeline in the page: the calendar
+lives, hydrated, inside a modal still `display: none` (height 0); the modal
+appears ~75 ms later; Ionic's one 100 ms fallback to `markReady()` has by then
+fired against the zero box and is spent; the observer it leaves readiness to
+reported at 0.6 s, 3.8 s and 4.6 s. A second timeline put `didPresent` at
+2.9 s after `willPresent` on the loaded machine — the observer reports when
+the enter animation ends. So `DateField` mounts the calendar afresh on
+`didPresent` (readiness on the fallback's own clock, into a laid-out sheet)
+and `SheetModal` renders `data-presented`; the helper waits for the
+presentation and then for readiness, two mechanisms with two budgets, and a
+failure now names the phase. What no wait can fix: under a foreign load of
+20 on this machine WebKit's frame pipeline stalls for seconds at a time and
+Ionic does everything on it — the modal had not even started presenting five
+seconds after the tap. That is not a race; it is a renderer in slow motion,
+and the suite's five-second expectations are the wrong size for it. The
+verdict on the fix is CI's, not this machine's.
+
 ## M8/M4 — the composer's chip rows (2026-08-21)
 
 E2E-M8-21 in `template-editor.spec.ts` and E2E-M4-46 in

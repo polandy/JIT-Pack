@@ -314,6 +314,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
+- [The arrow was the wrong instrument, not the wrong moment (2026-09-05)](#the-arrow-was-the-wrong-instrument-not-the-wrong-moment-2026-09-05) — the date picker's month hop is a smooth scroll nobody watches; the keyboard path is the one Ionic can not drop.
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
 - [A page mounted twice, on the strength of a comment (2026-09-05)](#a-page-mounted-twice-on-the-strength-of-a-comment-2026-09-05) — ADR-046: the item alias was a second page to Ionic; the query keeps it, and Ionic's props cache is the trap.
 - [Six trip screens had never asked for their own rows (2026-09-05)](#six-trip-screens-had-never-asked-for-their-own-rows-2026-09-05) — U-10's unverified premise was a defect; the mode that hides it is the one the cheap test runs in.
@@ -12939,3 +12940,73 @@ is already here, which is what M4 has always done and is now what all of them do
 values off the composable. That it existed there and nowhere else is the shape
 this whole review keeps finding: the rule was known, written once, and never
 made reachable from the other six.
+
+## The arrow was the wrong instrument, not the wrong moment (2026-09-05)
+
+`main` went red at `b6d2f0d5` on the line of `setDateField` that the entry
+above had just fixed: WebKit, `e2e (7)`, the arrow clicked and the header
+still on September five seconds later. The ready wait was in place, so the
+diagnosis of the day before was incomplete, and the note the U-10 pass had
+left ("clicks the month arrow by coordinate into a still-animating sheet")
+was a guess about the click. It was not the click.
+
+Read in `datetime.js`: `nextMonth()` is `calendarBodyRef.scrollTo({ left:
+2 × month width, behavior: 'smooth' })`. The header is recomputed by the
+scroll listener — 50 ms after the *last* scroll event — and only if the month
+it finds at the body's left edge is aligned to within 2 px; otherwise
+`getChangedMonth` returns nothing and the hop leaves no trace. A smooth
+scroll that stops short, which is what a starved WebKit does, is a hop the
+component itself never notices. A second click would have been a guess about
+where the body stopped. The same file's keyboard handler sets `workingParts`
+directly on `PageDown`/`PageUp` from a focused day cell and re-renders the
+header from it: no scroll, no listener, no alignment. That is now the hop.
+Focusing the header button instead of a day cell went red on the hop's own
+assertion, twice out of twice, in the exact shape of the CI failure.
+
+Then the PR's own CI went red one line earlier, on the ready wait itself
+(E2E-M4-04, WebKit): hydrated, every day cell in the accessibility tree,
+`datetime-ready` never in five seconds. Reading had reached its limit, so a
+timeline was put into the page — one line per change of state, on every
+frame, for four seconds after the tap. Three runs on WebKit:
+
+| run | calendar exists | modal shown | `datetime-ready` |
+|---|---|---|---|
+| 1 | 0 ms, hydrated, inside `overlay-hidden`, height 0 | 72 ms | 4 577 ms |
+| 2 | 1 ms, same | 80 ms | 573 ms |
+| 3 | 1 ms, modal already shown | — | 3 767 ms |
+
+The mechanism, from the same file: Ionic readies `ion-datetime` from an
+IntersectionObserver rooted on the component itself, with one fallback 100 ms
+after mount for observers that never report (its own `TODO(FW-6931)`). The
+calendar mounts while the modal is still `display: none`, so the fallback
+fires against a box of zero height and is spent; and the observer — a second
+timeline put `didPresent` 2.9 s after `willPresent` — reports when the enter
+animation ends, which on a loaded renderer is seconds. Until then
+`.calendar-body` is at opacity 0: an open sheet with no calendar in it, which
+is the user's half of the finding. The entry above had said "the fix is one
+assertion on the class"; the class was the right thing to wait for and the
+wrong thing to expect within five seconds.
+
+Two changes, one measurement each. `DateField` mounts the calendar afresh on
+`didPresent` (a `:key` that changes when the sheet lands): the second
+calendar's 100 ms fallback fires against a laid-out box, and the timeline
+showed it ready 272 ms after the remount. The sheet keeps its height across
+the swap because the two calendars are the same size — the G-2 rule that an
+auto-height sheet is measured once at presentation is why the calendar is
+*remounted* rather than mounted late. `SheetModal` renders `data-presented`,
+so the helper waits for the presentation and then for readiness: two
+mechanisms in the order they happen, each with its own budget, and a failure
+that names its phase.
+
+What was measured and could not be fixed: the last local runs were made
+beside a foreign e2e suite (load average 20), and there the modal carried no
+`show-modal` five seconds after the tap — Ionic's `present()` had not got
+past its first `requestAnimationFrame`. WebKit's frame pipeline stalls for
+seconds under that load and Ionic does everything on it: `writeTask`, the
+animation, the observer. That is a renderer in slow motion, not a race, and
+no wait on a mechanism helps when the mechanism is the frame. Two cases seen
+red in those runs, one repeat each, belong to the same weather: E2E-M3-01
+(a raw `fill` and *Next* still disabled) and E2E-M3-20 (the old ready wait).
+Neither is the arrow, and this machine can no longer say whether the fix is
+green; CI can. The same `main` run also had E2E-M18-08 red on Chromium, on
+the restored device's last step — a screen finding, taken up next.
