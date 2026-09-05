@@ -31,6 +31,8 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+
+import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
 import {
   delegatedToMe,
   isOpenRow,
@@ -418,8 +420,8 @@ async function handleRefresh(event: CustomEvent) {
           >
             <IonCheckbox
               slot="start"
-              :checked="item.packed_count >= item.quantity"
-              :indeterminate="item.packed_count > 0 && item.packed_count < item.quantity"
+              :checked="isFullyPacked(item)"
+              :indeterminate="isPartlyPacked(item)"
               disabled
             />
             <IonLabel>
