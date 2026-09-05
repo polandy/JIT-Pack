@@ -6,6 +6,7 @@
  */
 
 import { TABLE } from '@/types/tables'
+import { stateFor } from '@/domain/packState'
 import { dbBool, jsonColumn } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
@@ -112,7 +113,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
    */
   function releasePackingNow(itemId: string, packedCount: number, quantity: number): Mutation {
     return make('upsert', TABLE.tripItems, itemId, {
-      state: packedCount >= quantity ? 'packed' : packedCount > 0 ? 'partial' : 'open',
+      state: stateFor(packedCount, quantity),
       packing_now_by: null,
       packing_now_at: null,
     })
@@ -120,14 +121,12 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
 
   function incrementPacked(itemId: string, currentPacked: number, quantity: number): Mutation {
     const newPacked = Math.min(currentPacked + 1, quantity)
-    const state = newPacked >= quantity ? 'packed' : newPacked > 0 ? 'partial' : 'open'
-    return packItem(itemId, newPacked, state)
+    return packItem(itemId, newPacked, stateFor(newPacked, quantity))
   }
 
-  function decrementPacked(itemId: string, currentPacked: number): Mutation {
+  function decrementPacked(itemId: string, currentPacked: number, quantity: number): Mutation {
     const newPacked = Math.max(currentPacked - 1, 0)
-    const state = newPacked > 0 ? 'partial' : 'open'
-    return packItem(itemId, newPacked, state)
+    return packItem(itemId, newPacked, stateFor(newPacked, quantity))
   }
 
   function completePacked(itemId: string, quantity: number): Mutation {
@@ -416,14 +415,7 @@ export function useMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) 
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const packed = Math.min(item.packedCount, item.quantity)
-    const state =
-      item.quantity === 0
-        ? 'skipped'
-        : packed === 0
-          ? 'open'
-          : packed >= item.quantity
-            ? 'packed'
-            : 'partial'
+    const state = stateFor(packed, item.quantity)
     const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name: item.name,
