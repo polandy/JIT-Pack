@@ -23,6 +23,8 @@ import type {
 } from '@/types/domain'
 import { ITEM_MODES } from '@/types/domain'
 
+import { isFullyPacked } from './packState'
+
 /**
  * The facets in panel order (FR-25.11b). Every value is a string so the whole
  * filter survives a `JSON.stringify` into session storage (FR-25.18).
@@ -179,8 +181,7 @@ export interface PackingViewInput {
  */
 export function isDone(item: TripItem, hasOpenPrep: boolean): boolean {
   if (item.state === 'skipped') return true
-  const fullyPacked = item.packed_count >= item.quantity && item.quantity > 0
-  return fullyPacked && !hasOpenPrep
+  return isFullyPacked(item) && !hasOpenPrep
 }
 
 /**

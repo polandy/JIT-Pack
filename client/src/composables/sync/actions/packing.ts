@@ -35,7 +35,7 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   function packDecrement(tripId: string, item: TripItem) {
-    const mut = mutations.decrementPacked(item.id, item.packed_count)
+    const mut = mutations.decrementPacked(item.id, item.packed_count, item.quantity)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: optimisticUpdate(mut, itemRow(item)),

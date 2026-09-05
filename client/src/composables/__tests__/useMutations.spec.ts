@@ -34,14 +34,29 @@ describe('useMutations', () => {
 
   it('decrementPacked goes to zero with open state', () => {
     const m = useMutations(mockHLC())
-    const mut = m.decrementPacked('i1', 1)
+    const mut = m.decrementPacked('i1', 1, 3)
     expect(mut.fields).toMatchObject({ packed_count: 0, state: 'open' })
   })
 
   it('decrementPacked does not go below zero', () => {
     const m = useMutations(mockHLC())
-    const mut = m.decrementPacked('i1', 0)
+    const mut = m.decrementPacked('i1', 0, 3)
     expect(mut.fields?.['packed_count']).toBe(0)
+  })
+
+  // C-4: the two cells where the former copies disagreed. A quantity of 0 is
+  // FR-5.5's skipped row; `incrementPacked` clamped the count to 0 and read
+  // `0 >= 0` as packed, `releasePackingNow` did the same.
+  it('incrementPacked on a quantity-0 row stays skipped, never packed with a count of 0', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.incrementPacked('i1', 0, 0)
+    expect(mut.fields).toMatchObject({ packed_count: 0, state: 'skipped' })
+  })
+
+  it('releasePackingNow on a quantity-0 row hands back a skipped row (FR-5.3, FR-5.5)', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.releasePackingNow('i1', 0, 0)
+    expect(mut.fields).toMatchObject({ state: 'skipped', packing_now_by: null })
   })
 
   it('completePacked sets packed to quantity', () => {

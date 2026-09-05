@@ -314,6 +314,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A paragraph that rendered perfectly and read badly (2026-09-04)](#a-paragraph-that-rendered-perfectly-and-read-badly-2026-09-04) — T-12. The four specs rewrap at 120; how a no-op was proved.
 - [The list was hiding an incomplete rule (2026-09-04)](#the-list-was-hiding-an-incomplete-rule-2026-09-04) — T-12 finished: all 59 `dev-docs` files; widening found a third exempt shape.
 - [Visible, hydrated, and not yet ready (2026-09-05)](#visible-hydrated-and-not-yet-ready-2026-09-05) — two WebKit helper races read from Ionic's source; the one I had diagnosed did not reproduce.
+- [Five readings of one row, and the cell where two of them said packed (2026-09-05)](#five-readings-of-one-row-and-the-cell-where-two-of-them-said-packed-2026-09-05) — C-4: the pack state derived once; a quantity of 0 had been read as packed twice.
 - [A settled signal that was the optimistic one (2026-09-05)](#a-settled-signal-that-was-the-optimistic-one-2026-09-05) — a helper's settled signal was the rendered row; a reload in that window loses the write, and one did.
 - [The arrow was the wrong instrument, not the wrong moment (2026-09-05)](#the-arrow-was-the-wrong-instrument-not-the-wrong-moment-2026-09-05) — the date picker's month hop is a smooth scroll nobody watches; the keyboard path is the one Ionic can not drop.
 - [Six sentences still said the old rule first (2026-09-05)](#six-sentences-still-said-the-old-rule-first-2026-09-05) — of 82 amendment markers, six were the defect; the head blocks were changelogs whose reasoning now lives beside the rule.
@@ -13069,4 +13070,37 @@ And E2E-FLOW-08 takes a server-mode device offline on purpose before it
 writes: the indicator says `offline (1 queued)`, which is the write in the
 outbox, on the device — so `offline` joined `local` and `synced` as a settled
 state, and `syncing` is the only one that is not.
+
+## Five readings of one row, and the cell where two of them said packed (2026-09-05)
+
+C-4 of the 2026-09-02 design review: the packing state derived from a row's
+`packed_count` and `quantity` was written five times — three in the mutation
+factory, one in the M4 view model, one in the dashboard's checkbox — and the
+review had counted two that already disagreed. Writing the table first, with
+what each copy answered, said where:
+
+| packed / quantity | factory ×3 | insert | view model | dashboard |
+|---|---|---|---|---|
+| 0 / 3 | open | open | not done | unchecked |
+| 2 / 3 | partial | partial | not done | indeterminate |
+| 3 / 3 | packed | packed | done | checked |
+| **0 / 0** | **packed** (`0 >= 0`) | skipped | done (via `state`) | **checked** |
+
+The 0/0 cell is FR-5.5's *considered and skipped* row. Only the insert path
+had a case for it; `incrementPacked` clamped the count to the quantity and
+read `0 >= 0` as packed, `releasePackingNow` did the same, and the
+dashboard's checkbox ticked it. So a stepper touched on a skipped row, or a
+G-3 claim released on one, wrote `packed` with a count of 0 — a row that
+says it is complete and has never been touched — and would have shown as
+such on the dashboard, except that the dashboard's preview lists open rows
+only, so no user has ever seen that checkbox. That last fact is why there is
+no e2e case for it: the promise is not reachable through a screen, and the
+table is the test. `domain/packState.ts` is the one reading now; the two
+mutation cells are pinned in `useMutations.spec.ts` by name.
+
+One reading stayed a reading. M4's `onToggle` asks whether a row is being
+*un*-packed (no snackbar for that) and had compared the numbers directly; it
+now asks the derivation for `packed` or `skipped`, because a revealed skipped
+row under the same control is a done row too, and the comparison had said so
+only by the accident that `0 >= 0` is true.
 

@@ -61,6 +61,8 @@ import {
   playOutline,
   statsChartOutline,
 } from 'ionicons/icons'
+
+import { stateFor } from '@/domain/packState'
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -864,7 +866,8 @@ function onToggle(item: TripItem) {
   // Only a pack is announced. The same control un-packs a revealed done row
   // (FR-25.2), and offering to undo *that* would be a snackbar for an action
   // whose result is already visible.
-  if (item.packed_count >= item.quantity) {
+  const reads = stateFor(item.packed_count, item.quantity)
+  if (reads === 'packed' || reads === 'skipped') {
     orchestrator.packToggle(props.tripId, item)
     return
   }
