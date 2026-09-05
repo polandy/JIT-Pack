@@ -144,6 +144,11 @@ These patterns apply to every screen and are specified once.
   nobody to take a row from — while the release stays in all three.
 * **G-4 (Deep Linking):** Every notification and dashboard entry resolves to `trip/{id}/item/{id}`; the target screen
   scrolls to the item, flashes it once, and expands attached comments/tasks (FR-6.3).
+  **A screen that shows one trip loads that trip's partition itself** (added 2026-09-05, U-10, E2E-G9-18): it says it is
+  watching the trip and pulls its rows on mount, rather than relying on having been reached through M4. Until 2026-09-05
+  only M4 did so, and in Server and Single-User Mode a link or a reload straight onto M6, M11, M12, M14, M16, M21 or M22
+  therefore painted that screen's empty state over rows that were on the server — the ADR-033 mistake, one screen up.
+  Local Mode never had it: the whole database is on the device before the first screen renders.
 * **G-5 (Optimistic UI):** All mutations commit locally first and render immediately; server confirmation is silent.
   Failures surface via the sync indicator, never as blocking dialogs.
 * **G-6 (Quantity Stepper):** Wherever quantities appear, a unified stepper component is used: tap = ±1, long-press =

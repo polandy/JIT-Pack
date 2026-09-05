@@ -91,6 +91,7 @@ import { hasCollaborativeSession } from '@/mode'
 import { presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useContextSearch } from '@/composables/useContextSearch'
@@ -123,6 +124,8 @@ const masterStore = useMasterStore()
 const router = useRouter()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
+const { trip, ensure: ensureTripRows } = useTripScreen(props.tripId, orchestrator)
+
 // --- Identity, for FR-25.19/25.20 ---------------------------------------
 const {
   myUserId,
@@ -132,8 +135,8 @@ const {
 } = useTripIdentity(props.tripId, orchestrator)
 
 onMounted(async () => {
-  orchestrator.subscribeTrip(props.tripId)
-  await orchestrator.drainTrip(props.tripId)
+  // Joins the load `useTripScreen` started; it does not begin a second one.
+  await ensureTripRows()
   // FR-27.4: opening the trip is the moment it works out what the groups it
   // follows would change. After the drain, not before — the diff must see the
   // rows the pull just brought, or it would offer what another device already
@@ -220,7 +223,6 @@ const closingProposals = computed(() =>
   }).slice(0, CLOSING_TEASER_COUNT),
 )
 
-const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
 const active = computed(() => isActive(trip.value))
 /** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */

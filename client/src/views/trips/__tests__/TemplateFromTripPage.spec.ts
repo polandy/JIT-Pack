@@ -13,6 +13,8 @@ import TemplateFromTripPage from '../TemplateFromTripPage.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 
+import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
 const replace = vi.fn()
@@ -31,6 +33,7 @@ vi.mock('@ionic/vue', async () => {
 })
 
 const orchestratorFake = {
+  ...tripScreenStub(),
   createTemplateFromTrip: vi.fn(() => 'tpl-new'),
   templateNameCollision: vi.fn(() => undefined),
   today: () => '2026-03-01',

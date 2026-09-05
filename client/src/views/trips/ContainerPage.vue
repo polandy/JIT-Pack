@@ -38,6 +38,7 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ContainerSheet from '@/components/trips/ContainerSheet.vue'
 
+import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import {
@@ -57,7 +58,7 @@ const props = defineProps<{ tripId: string }>()
 const store = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const trip = computed(() => store.getTrip(props.tripId))
+const { trip } = useTripScreen(props.tripId, orchestrator)
 const containers = computed(() => store.getContainers(props.tripId))
 const travelers = computed(() => store.getTravelers(props.tripId))
 const items = computed(() => store.getItems(props.tripId))
