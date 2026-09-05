@@ -12,8 +12,14 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createMasterDataActions } from '../actions/masterData'
-import { makeSeamContext, pullIn, type Recorded, paintedRow, SEAM_NOW_ISO } from './seamContext'
-import type { SyncContext } from '../context'
+import {
+  makeSeamContext,
+  pullIn,
+  type Recorded,
+  paintedRow,
+  SEAM_NOW_ISO,
+  type SeamContext,
+} from './seamContext'
 import { TABLE } from '@/types/tables'
 import { DELETION_REMOVE, DELETION_RETIRE, RETIRED_FIELD } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN } from '@/domain/masterRestore'
@@ -29,7 +35,7 @@ const RETIRED_AT = '2026-08-01T00:00:00.000Z'
 const LOCAL_STORE = {} as IndexedDBPersistence
 
 let queued: Recorded[]
-let ctx: SyncContext
+let ctx: SeamContext
 
 beforeEach(() => {
   setActivePinia(createPinia())

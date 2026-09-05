@@ -14,8 +14,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { createPostTripActions } from '../actions/postTrip'
 import { createMasterDataActions } from '../actions/masterData'
-import { makeSeamContext, pullIn, type Recorded } from './seamContext'
-import type { SyncContext } from '../context'
+import { makeSeamContext, pullIn, type Recorded, type SeamContext } from './seamContext'
 import { TABLE } from '@/types/tables'
 import type { ReviewProposal } from '@/domain/review'
 
@@ -24,9 +23,9 @@ const GROUP_ID = 'grp-1'
 const ITEM_ID = 'item-kamera'
 
 let queued: Recorded[]
-let ctx: SyncContext
+let ctx: SeamContext
 
-function build(c: SyncContext) {
+function build(c: SeamContext) {
   return createPostTripActions(c, { masterData: createMasterDataActions(c) })
 }
 

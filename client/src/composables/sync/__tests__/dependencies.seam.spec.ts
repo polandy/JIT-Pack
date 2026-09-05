@@ -9,13 +9,12 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createDependencyActions } from '../actions/dependencies'
-import { makeSeamContext, pullIn, type Recorded, paintedRow } from './seamContext'
-import type { SyncContext } from '../context'
+import { makeSeamContext, pullIn, type Recorded, paintedRow, type SeamContext } from './seamContext'
 import { TABLE } from '@/types/tables'
 import type { ItemDependency } from '@/types/domain'
 
 let queued: Recorded[]
-let ctx: SyncContext
+let ctx: SeamContext
 
 beforeEach(() => {
   setActivePinia(createPinia())

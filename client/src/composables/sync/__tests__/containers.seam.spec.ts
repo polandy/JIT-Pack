@@ -13,14 +13,19 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createContainerActions } from '../actions/containers'
-import { makeSeamContext, pullIn as seedRow, type Recorded, paintedRow } from './seamContext'
-import type { SyncContext } from '../context'
+import {
+  makeSeamContext,
+  pullIn as seedRow,
+  type Recorded,
+  paintedRow,
+  type SeamContext,
+} from './seamContext'
 import { TABLE } from '@/types/tables'
 
 const TRIP_ID = 'trip-1'
 
 let queued: Recorded[]
-let ctx: SyncContext
+let ctx: SeamContext
 
 beforeEach(() => {
   setActivePinia(createPinia())

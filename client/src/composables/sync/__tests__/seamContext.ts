@@ -49,6 +49,20 @@ export const SEAM_TODAY = '2026-06-01'
  */
 export const SEAM_NOW_ISO = '2026-06-01T09:00:00.000Z'
 
+/**
+ * The context a seam spec gets, whose two stores are the real pinia ones.
+ *
+ * Wider than `SyncContext` on purpose: production hands a group only the
+ * getters it reads (`TripReads`/`MasterReads`), and a spec has to *look* at
+ * what the group painted — `getItemComments`, `getItemDependencies` and the
+ * rest are the assertion, not the subject. Keeping them here rather than in
+ * the context is what lets the context stay the narrow thing.
+ */
+export type SeamContext = SyncContext & {
+  tripStore: ReturnType<typeof useTripStore>
+  masterStore: ReturnType<typeof useMasterStore>
+}
+
 export function makeSeamContext(
   opts: {
     local?: IndexedDBPersistence | null
@@ -56,7 +70,7 @@ export function makeSeamContext(
     tripDataLoaded?: (tripId: string) => boolean
   } = {},
 ): {
-  ctx: SyncContext
+  ctx: SeamContext
   queued: Recorded[]
   /** One entry per `drainPartitions` call, in order — the trips it pushed. */
   drains: string[][]
@@ -75,7 +89,7 @@ export function makeSeamContext(
       }
     }
   }
-  const ctx: SyncContext = {
+  const ctx: SeamContext = {
     tripStore,
     masterStore,
     mutations: createMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => SEAM_NOW_ISO),
