@@ -37,9 +37,11 @@ export function visiblePage(page: Page) {
 /**
  * Wait until every write this device has made is *on* the device. The G-2
  * indicator follows the write, not the tap (`useSyncStatus`: `syncing`
- * outranks `local` while a Local Mode save is open), so `local` — or `synced`
- * against a server — is the settled signal; a rendered row is the optimistic
- * one. The difference is a reload: the orchestrator's own comment says a
+ * outranks `local` while a Local Mode save is open), so `local` is the
+ * settled signal and a rendered row is the optimistic one. Against a server
+ * the write is on the device once it is in the outbox: `synced` after the
+ * push, or `offline` with it queued — a device taken offline on purpose
+ * (E2E-FLOW-08) is not one that is still writing. The difference is a reload: the orchestrator's own comment says a
  * reload in that window lost the row, and E2E-M18-08 went red on `main`
  * (`b6d2f0d5`, Chromium) on exactly that — a position added, `page.goto`,
  * the position gone. Slowing the persist by 100 ms in the bundle makes it
@@ -47,7 +49,15 @@ export function visiblePage(page: Page) {
  * twice, the helpers with it pass twice out of twice on the same build.
  */
 export async function writesLanded(page: Page) {
-  await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', /^(local|synced)$/)
+  // A context that has never loaded the app has made no write. This is the
+  // one absence the helper accepts, and it is named rather than probed: the
+  // visual spec calls a wizard helper first thing, and `about:blank` has no
+  // indicator to ask. An app page without the indicator stays a failure.
+  if (page.url() === 'about:blank') return
+  await expect(page.getByTestId('sync-indicator')).toHaveAttribute(
+    'data-state',
+    /^(local|synced|offline)$/,
+  )
 }
 
 export function useReducedMotion(test: { use: (options: Record<string, unknown>) => void }): void {
