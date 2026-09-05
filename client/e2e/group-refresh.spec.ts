@@ -1,4 +1,4 @@
-import { test, expect, expectTripOpen } from './fixtures'
+import { test, expect, expectTripOpen, openTripFromList } from './fixtures'
 import {
   addToGroup,
   backToTemplateList as backToList,
@@ -7,7 +7,6 @@ import {
   addPosition,
   visiblePage as visible,
 } from './fixtures'
-import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 
 /**
@@ -23,13 +22,6 @@ import { PATH } from './routes'
  * client-side (invariant 4), so the mode without a server is where a missing
  * client rule shows up rather than hiding behind a round trip.
  */
-
-/** Open the trip the way a user does — through M2, in-SPA. */
-async function openTripFromList(page: Page, name: string) {
-  await page.goto(`${PATH.trips}?status=planned`)
-  await visible(page).getByTestId(`trip-row-${name}`).click()
-  await expectTripOpen(page, name)
-}
 
 test.describe('FR-27.4 — the group asks before it changes a trip', () => {
   // Built entirely through M7/M8/M3 per spec §2.4; on WebKit that lands near

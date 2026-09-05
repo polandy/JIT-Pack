@@ -4,7 +4,7 @@
  */
 import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { visiblePage } from './page'
+import { visiblePage, writesLanded } from './page'
 import { fillIonic } from './ionic'
 
 /** What a created item may carry besides its name. */
@@ -68,6 +68,7 @@ export async function createItem(page: Page, name: string, opts: NewItem = {}): 
   // the editor's own save indicator beside it.
   await expect(page.getByTestId('header-title')).toHaveText(name)
   await expect(visiblePage(page).getByTestId('save-indicator')).toBeVisible()
+  await writesLanded(page)
 }
 
 /**

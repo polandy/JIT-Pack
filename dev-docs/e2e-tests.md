@@ -1331,6 +1331,23 @@ no proposal, no refused row. Three positive signals carry it instead.
    it. That single assertion is what makes the two "not offered" assertions
    mean something.
 
+**Acted on 2026-09-05:** red on `main` at `b6d2f0d5` (`e2e (1)`, Chromium) on
+that load-bearing assertion — no proposal at all — and green five of five
+here. The trace said what the screen could not: the position was added on
+M8, and the next step was `page.goto`, a full reload. The orchestrator's own
+comment on the Local Mode write path had named the defect a fortnight
+earlier: the indicator follows the write rather than the tap because "a
+reload in that window lost the row". `addPosition`'s settled signal was the
+rendered row, which is the *optimistic* one; the persisted one is the G-2
+indicator back at `local`. Made deterministic by slowing the persist in the
+bundle: at 100 ms the old helpers lose the position at that reload twice out
+of twice — the CI failure's exact shape — and the new ones pass twice out of
+twice on the same build; at 2 s the old helpers lose the whole *trip* at the
+first reload after the wizard. The fix is `writesLanded` (`helpers/page.ts`)
+— every write helper returns when its write is on the device, every helper
+that reloads waits for it first, and `openTripFromList` is shared instead of
+copied into two specs.
+
 Red-proved against the unfixed build, where the trip restores with no
 `follows:` at all: the restore-list assertion falls first, and with it dropped,
 the refused position is offered again.

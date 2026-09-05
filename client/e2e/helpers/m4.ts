@@ -9,7 +9,7 @@
 import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 import { createTripViaWizard, expectTripActionOffered, openQuickAdd, tripAction } from './trips'
-import { visiblePage } from './page'
+import { visiblePage, writesLanded } from './page'
 
 /**
  * Create a trip through M3 and quick-add the named rows onto it. Returns the
@@ -29,6 +29,7 @@ export async function tripWithRows(page: Page, names: string[], tripName: string
   }
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
+  await writesLanded(page)
   return path
 }
 
@@ -36,6 +37,7 @@ export async function tripWithRows(page: Page, names: string[], tripName: string
 export async function startTrip(page: Page): Promise<void> {
   await tripAction(page, 'start')
   await expectTripActionOffered(page, 'archive')
+  await writesLanded(page)
 }
 
 /**
@@ -45,6 +47,7 @@ export async function startTrip(page: Page): Promise<void> {
 export async function packRow(page: Page, name: string): Promise<void> {
   await page.getByTestId(`m4-row-${name}`).getByTestId('row-check').locator('ion-checkbox').click()
   await expect(page.getByTestId(`m4-row-${name}`)).toHaveCount(0)
+  await writesLanded(page)
 }
 
 /**
@@ -89,6 +92,7 @@ export async function assignTraveler(
   await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+  await writesLanded(page)
 }
 
 /** The row on the visible page, for a caller that has no locator of its own. */
