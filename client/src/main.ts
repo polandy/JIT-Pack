@@ -51,7 +51,14 @@ if (import.meta.env.PROD) registerAppServiceWorker()
 
 const app = createApp(App)
 
-app.use(IonicVue)
+/*
+ * One mode on every platform (ADR-049). Left to Ionic, the mode follows the
+ * user agent: the family's iPhones rendered iOS chrome while every test,
+ * baseline and review screenshot rendered Material — two products under one
+ * URL, and the design work only ever looked at one of them. `md` is the one
+ * the suite has always rendered; the tables below restyle its components.
+ */
+app.use(IonicVue, { mode: 'md' })
 app.use(createPinia())
 app.use(router)
 

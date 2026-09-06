@@ -328,3 +328,17 @@ ion-title {
   font-size: var(--jp-text-display-xs);
   letter-spacing: var(--jp-tracking-display);
 }
+
+/*
+ * Controls are set in sentence case (ADR-049). Material shouts every button
+ * and segment label in tracked capitals; the concept prototype sets them as
+ * words, and a label that reads "Plan a trip" is the same label whether it
+ * is a button, a segment or a chip. `letter-spacing: normal` is the reset
+ * the gate allows: it declines Material's decision rather than making one.
+ */
+ion-button,
+ion-segment-button {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: var(--jp-weight-semibold);
+}

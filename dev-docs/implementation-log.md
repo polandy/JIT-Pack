@@ -331,6 +331,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [One store, three names, and one file where the sweep would have been wrong (2026-09-06)](#one-store-three-names-and-one-file-where-the-sweep-would-have-been-wrong-2026-09-06) — U-14: a rename is safe only where the name means one thing per file.
 - [The on-ramp was four files, and three of the complaints were already fixed (2026-09-06)](#the-on-ramp-was-four-files-and-three-of-the-complaints-were-already-fixed-2026-09-06) — T-2: a doc with a false sentence costs more than no doc.
 - [The visual gate could not see the palette change (2026-09-06)](#the-visual-gate-could-not-see-the-palette-change-2026-09-06) — ADR-048: `--update-snapshots` rewrote nothing; pixelmatch's 0.2 tolerance swallowed every token move.
+- [The app had no mode, and the family had never seen the Material it was reviewed in (2026-09-06)](#the-app-had-no-mode-and-the-family-had-never-seen-the-material-it-was-reviewed-in-2026-09-06) — ADR-049: `md` pinned; controls told once; a checkbox at the small radius step is a radio button.
 
 ## Deviations
 
@@ -13590,3 +13591,33 @@ nothing was measuring.
 **A device's light choice survives the rename.** `jitpack_theme` held `latte`; it now holds `day`,
 and `latte` is still read as `day` in both `theme.ts` and the pre-paint script in `index.html`.
 Nothing writes the old value; the constant carries its own removal condition.
+
+## The app had no mode, and the family had never seen the Material it was reviewed in (2026-09-06)
+
+Step 2 of the *Bergluft* concept was written as "take Ionic's Material defaults out": the tracked
+capitals on buttons and segments, the underlined segment, the 2 px checkbox corner, the header bar
+as a shadowed slab. Reading `main.ts` to do that found `app.use(IonicVue)` with no mode — Ionic
+picks one from the user agent. So the family's iPhones had been rendering **iOS** chrome (pill
+segments, sentence-case buttons, swipe-back) for two months, while every Playwright project, every
+visual baseline, every review screenshot and the owner's desktop browser rendered **Material**. The
+design review that named "Material shows through" as a cause was reviewing a product the phones
+never showed; and any rule written for buttons and segments in the token tables would have applied
+to the suite's mode and been silently overruled on the devices that matter. ADR-049 pins `md` on
+every platform — the mode the suite has always rendered — and restyles its components once each in
+the three tables; the ADR weighs pinning `ios` instead (most of the step for free, but a rewrite of
+the test surface for defaults that are as foreign) and detection-with-both-styled (the status quo
+with its blindness made official). What the phones lose is swipe-back, which nothing specified.
+
+**A checkbox at the small step is a radio button.** The first render put `ion-checkbox` on
+`--jp-r-sm` (10 px) at 24 px and every unchecked box came out near enough a circle to mean *choose
+one* on every platform. The radius scale had collapsed 2/4/7 px into "pill" on the argument that
+each was half its own element; a checkbox is the case where that argument fails, because the box
+is not meant to be round at all. The scale has a sixth step, `--jp-r-xs` (7 px), with that one
+occupant, and the unit test that counted five now counts six. A measurement decided it — the
+stylesheet said "small radius" and the pixel said "radio".
+
+**One rule replaced four overrides, and none of them.** The four `text-transform: none` lines in
+the sheets turned out to be the eyebrow's *count* declining the label's uppercase, not buttons — so
+they stay, and the button rule went in beside them rather than instead of them. Worth recording
+because the grep that finds an override does not say what it overrides.
+

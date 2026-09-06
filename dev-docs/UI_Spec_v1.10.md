@@ -7,6 +7,8 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-06 — **G-9/G-11/G-13/G-14**: one Ionic mode, the bar on the page, the wash, controls in sentence case and
+  told once (ADR-049). **G-11**: the palette is *Bergluft* (ADR-048).
 * 2026-09-02 — **M17** gains the FR-19.8 leave-Local-Mode card and the migration bar (ADR-045); M19 unchanged.
 * 2026-08-30 — **M8**: the FR-25.15 indicator's seam is `capturePending`, not the sync state (was wrong since
   2026-08-15).
@@ -197,7 +199,9 @@ These patterns apply to every screen and are specified once.
   the route records where it was entered from and `‹` returns there — the gear tapped inside a trip comes back to that
   trip, not to the dashboard. The same holds for the two import flows (M15, M18), which are each entered from more than
   one screen. An entry that carries no origin — a notification deep link, a pasted URL — falls back to the declared
-  parent as before (ADR-011 revision, Navigation_Concept §7). There is exactly one header bar in the app; no screen
+  parent as before (ADR-011 revision, Navigation_Concept §7). **The bar is part of the page, not a slab over it
+  (2026-09-06, ADR-049):** it is painted transparent and casts no shadow, so the page's own ground — and the G-11 wash
+  at its top-left — runs under the bar and the content alike. There is exactly one header bar in the app; no screen
   supplies its own. **Desktop breakpoint (≥ 900 px, resolving Open UI Decision #4):** the bottom tab bar (G-1) is
   replaced by a persistent left-side navigation rail carrying the same four tabs (Dashboard/Trips/Templates/Items); the
   top bar then spans the remaining width and additionally hosts page-level primary actions inline (e.g., M2's "New trip"
@@ -274,6 +278,11 @@ These patterns apply to every screen and are specified once.
   * **The components Ionic would paint itself are told once.** FAB, checkbox, toggle and progress bar are set in the
     token table as element rules, not per screen — so a FAB added six rebuilds from now is not a fresh decision about
     what colour the brand is.
+  * **The wash (2026-09-06, ADR-049).** Every page carries a breath of the brand at its top-left — a radial wash at
+    14 % on the page plane, painted once on the app element so the header bar and the content share it. It is the one
+    place identity sits on the ground rather than on a control, and the prototype had it while the build had lost it.
+    The active tab carries the same tint as a soft pill behind its glyph, so the anchor you are on reads at a glance
+    and not only by comparing hues.
   * **Revised 2026-08-14.** The three anchors were added (Addendum FR-21.7): the pattern said where colour comes from
     and not what each hue *means*, and the built screens showed the cost — Ionic's own primary painted the tabs, the FAB
     and the checkboxes, so the app read as a stock Ionic app while the concept prototype puts peach on identity and
@@ -366,6 +375,9 @@ These patterns apply to every screen and are specified once.
   * **The section label is a role, not a heading.** Small uppercase in the UI face, opened up, recessive — as the
     prototype sets it. It reads as a label *above* content rather than as a competing line of text, which is what eleven
     hand-written copies of it were doing at two different sizes.
+  * **Controls are set in sentence case (2026-09-06, ADR-049).** Buttons and segment labels read as words — *Plan a
+    trip*, *Archived (3)* — never as Material's tracked capitals. Decided once, as an element rule in the type table;
+    the section label above is the only uppercase role, and it is a label, not a control.
   * **The faces are served from the instance, never from a font CDN** (Addendum FR-21.6). Local Mode may have no network
     at all, so a face fetched at boot is a face that is sometimes absent.
 
@@ -394,9 +406,17 @@ These patterns apply to every screen and are specified once.
   * **One card class, not a card per screen.** `.jp-card` carries the plane, the border, the radius and the elevation
     together; a screen positions it and adds nothing. Its children defer to it, so no row can repaint itself a shade off
     the surface it sits in.
-  * **Radius is a five-step scale**: inline control, block, card, sheet, pill. A radius that is half its own element's
-    height is a **pill**, not a small step — that is what the client's stray 2/4/7 px values all actually meant. A
-    circle keeps `50%`, because a circle is a shape rather than a size.
+  * **Radius is a six-step scale**: checkbox, inline control, block, card, sheet, pill. A radius that is half its own
+    element's height is a **pill**, not a small step — that is what the client's stray 2/4/7 px values all actually
+    meant. A circle keeps `50%`, because a circle is a shape rather than a size. The smallest step was added 2026-09-06
+    (ADR-049) when the checkbox took the inline-control step and rendered as a circle: a 24 px box at 10 px says
+    *radio*, and a checkbox must not.
+  * **One Ionic mode, and the controls Material would shape are told once (2026-09-06, ADR-049).** The client runs in
+    Ionic's `md` mode on every platform — left to detection, an iPhone rendered iOS chrome while every baseline rendered
+    Material, so the family and the suite had never seen the same product. On that one mode, the shapes Material would
+    decide are decided here instead: a button is a pill without a shadow, a segment is a pill track on the sunken plane
+    whose chosen option is a card-coloured pill (no underline), a checkbox is a 24 px rounded square, the header bar
+    casts no shadow. Each is an element rule in the shape table, never a per-screen override.
   * **Elevation is one geometry in the flavour's ink.** Offsets and blur are written once; which colour a shadow is cast
     in and how hard is restated per flavour, exactly as G-11 restates the brand. Reusing the dark theme's ink in the
     light one produces a shadow the same lightness as a surface — which is to say, no shadow. And the two do not come
