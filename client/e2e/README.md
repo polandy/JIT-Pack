@@ -97,8 +97,12 @@ scripts/visual.sh --update-snapshots=all -g "trips"    # the screens you touched
 
 `helpers/` is **the only place a shared step is written**. Write it there and
 import it; `scripts/e2e-helpers-gate.mjs` (in `make ci` and the CI client job)
-fails on a re-declared helper or on the visible-page selector spelled out
-anywhere else. The reason is not tidiness: before the gate the selector had
+refuses the visible-page selector spelled out anywhere else, and refuses a
+re-declaration of nine named helpers — **nine of the thirty-eight below**, so
+the gate is a floor and not a guarantee. Writing this catalogue found the gap
+it leaves: `group-to-trip.spec.ts` carried its own `addToGroup`, identical to
+the shared one minus the leading `writesLanded`, which is the settle-step drift
+the gate's own docblock describes. The reason is not tidiness: before the gate the selector had
 fifteen copies under three names, `fillIonic` seven and `createItem` four, and
 the copies had already drifted in _which_ settle step they waited for. Two
 copies of one navigation sequence are how the M9 unit lost a wait, and no e2e

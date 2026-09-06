@@ -13504,6 +13504,18 @@ tests, 29 s) and `scripts/e2e.sh smoke.spec.ts` (8 tests, 27 s), both from the b
 Two claims that could not be verified without guessing — what `--headed` does inside the container,
 and how Playwright reports a project that the config left out — were rewritten rather than asserted.
 
+**Writing the catalogue found a copy the gate was built to catch.** `e2e-helpers-gate.mjs` refuses
+a re-declaration of nine named helpers, and `client/e2e/helpers/` exports **thirty-eight** — the
+list is hand-written, so it was incomplete on the day it was written. `group-to-trip.spec.ts`
+carried its own `addToGroup`, identical to the shared one **minus the leading `writesLanded`**,
+which is the settle-step drift the gate's own docblock describes as what costs a flake and names no
+cause. It is the helper's now. `analytics.spec.ts` had a second `createMasterItem` that was a
+different routine wearing the shared name; renamed to `createWeighedItem`. Deriving the gate's list
+from the modules' actual exports is the obvious fix and is **not** done here: the naive derivation
+false-positives thirty-one times on `row`, which `helpers/m4.ts` exports as a function and which
+specs use as a local `const` for one row's locator. That needs a shape rule and its own mutation
+proof, not a line in a docs PR.
+
 **Found and deliberately left: the suite holds six different phone viewports.** `MOBILE` is
 declared in four specs (390×844 three times, 400×860 once) and written inline as a literal in five
 more, and the set includes 390×640, 390×860, 400×880 and 430×932. Some of those are deliberate — a
