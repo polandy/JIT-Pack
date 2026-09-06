@@ -327,6 +327,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The facade's last four passengers had nothing to do with syncing (2026-09-06)](#the-facades-last-four-passengers-had-nothing-to-do-with-syncing-2026-09-06) — C-7: why one `restFacade.ts` was rejected, and why three groups take `localMode` and not the store.
 - [The wizard built its own rows, and one of them nobody had ever tapped (2026-09-06)](#the-wizard-built-its-own-rows-and-one-of-them-nobody-had-ever-tapped-2026-09-06) — U-11: why the review's indices force the companion order, and a seed that closed a branch.
 - [A new vocabulary borrowed a word another guard owned (2026-09-06)](#a-new-vocabulary-borrowed-a-word-another-guard-owned-2026-09-06) — U-12: a property name is a shared namespace, and one anchor was answering nobody.
+- [A chip had said "2 preparation" since the day it was written (2026-09-06)](#a-chip-had-said-2-preparation-since-the-day-it-was-written-2026-09-06) — U-13: four derivations left the two biggest views; the copy defect was visible only once a test rendered one.
 
 ## Deviations
 
@@ -13405,3 +13406,42 @@ row that still owes a task says so instead of saying "packed" — moved with it 
 it is the same decision and the sheet was the only place it was written. Three cases now pin the
 wiring in `ItemDetailSheet.spec.ts`, which had never asserted the word at all; both the state
 argument and the `prepOpen` flag were mutation-proved.
+
+## A chip had said "2 preparation" since the day it was written (2026-09-06)
+
+U-13's finding is that three of the six largest client files have no component test, and the five
+pure derivations it names are reachable only through the built screen. Its **Do:** clause rules out
+the obvious answer: extract the rule, do not write mount tests. Four of the five were still in a
+view (`emptyReason` had gone with U-1.4), and they came out as `lib/deletionLabels.ts`,
+`lib/itemEditorOffers.ts`, `lib/positionChips.ts` and `domain/templates.ts`'s `groupFoldOffer`.
+
+**The one user-visible defect was in the catalogue, and only rendering the rule could show it.**
+`templates.prepChip` carried a single form in both languages, so M8's collapsed row had always said
+„📋 2 Vorbereitung" and "📋 2 preparations" was unreachable — the catalogue's `singular | plural`
+convention was simply not used. Nothing was wrong with the code that read it. The e2e case that
+covers the chip asserts the joined string it produced, so it would have gone on agreeing with the
+defect forever; the first unit test that asked for two tasks found it in a minute. Both catalogues
+now carry the plural, and the case asserts one and two.
+
+**A sentence written four times had never been asserted once.** FR-24.3's delete outlook — *retire*,
+*remove*, or *remove-but-this-device-cannot-be-sure* — was spelled out in M10's delete section, M7's
+confirm and M23's two row builders, three of them repeating the `certain` ternary. `deletionKind`
+had a unit test, but `kind` is exactly the half that does **not** consult `certain`, so ADR-032's
+hedge — the whole reason the third sentence exists — was carried by no test in either half of the
+codebase. It is one function now, with the subject as a parameter, because the two key families are
+the product's: an item is retired for FR-24.3's reasons and a Vorlage for FR-9.2's, and the
+catalogue words them apart.
+
+**The same pool, filtered three times in one file.** M8's picker, its FR-27.13 search and FR-27.15's
+fold offer each began `activeTemplateList.filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId)`,
+and each built its own set of the included ids. Named once as `otherGroups` and `includedGroupIds`,
+which is where the fold offer's extraction ended: `matchGroupsInPositions` already held the hard
+part, and what was left in the view were three rules with no test — a Gruppe offers no folds, a
+Vorlage is never a candidate for folding into itself, and a dismissal is keyed to the group's
+resolved item set rather than to its id. All three are mutation-proved; the third is asserted by
+recording what the dismissal callback was asked, because a filter that removes nothing and a filter
+that is never consulted look identical from the outside.
+
+**What is deliberately not closed.** `'group'` as a bare literal is compared at 27 sites across the
+client (`review.ts`, four views, the stores). That is §4a's shape and it is worth one sweep, but
+half a migration reads worse than none, so it stays whole and unstarted rather than started here.

@@ -497,3 +497,66 @@ export function matchGroupsInPositions(
     (a, b) => b.positionIds.length - a.positionIds.length || a.name.localeCompare(b.name),
   )
 }
+
+/** What `groupFoldOffer` needs to know about one candidate Gruppe. */
+export interface FoldableGroup {
+  id: string
+  name: string
+}
+
+/** The screen's half of FR-27.15: the pool, the includes and the dismissals. */
+export interface GroupFoldOfferInput {
+  /**
+   * A Gruppe offers no folds. The two-level rule (FR-27.2) means a Gruppe
+   * cannot include another, so accepting one would have nowhere to write.
+   */
+  isGroup: boolean
+  /** The Vorlage being edited — never a candidate for folding into itself. */
+  templateId: string
+  /** Its own loose positions, which is what a group is recognised inside. */
+  ownPositions: TemplateItem[]
+  /** Every active Gruppe but this one. */
+  groups: FoldableGroup[]
+  /** The Gruppen already included — covered, so never offered again. */
+  includedTemplateIds: ReadonlySet<string>
+  /** A Gruppe's complete definition (FR-27.2), resolution already done. */
+  resolvePositions: (templateId: string) => ResolvedPosition[]
+  /** FR-27.15: this device was told to stop offering this exact item set. */
+  isDismissed: (groupId: string, itemIds: string[]) => boolean
+}
+
+/**
+ * The FR-27.15 suggestions M8 renders, dismissals applied.
+ *
+ * Deriving this off the live positions on every read is what makes accepting
+ * one fold drop the candidates it subsumed, with no bookkeeping: the accepted
+ * items leave the loose set, so the groups that needed them stop matching.
+ * The dismissal is keyed to the group's resolved item set rather than to its
+ * id, so a Gruppe that gains a member becomes a new offer instead of staying
+ * silenced by a decision made about a different set.
+ */
+export function groupFoldOffer(input: GroupFoldOfferInput): GroupMatch[] {
+  if (input.isGroup) return []
+
+  const resolved = new Map<string, ResolvedPosition[]>()
+  const candidates: GroupMatchCandidate[] = input.groups
+    .filter((group) => group.id !== input.templateId)
+    .map((group) => {
+      const positions = input.resolvePositions(group.id)
+      resolved.set(group.id, positions)
+      return {
+        id: group.id,
+        name: group.name,
+        positions,
+        included: input.includedTemplateIds.has(group.id),
+      }
+    })
+
+  return matchGroupsInPositions(input.ownPositions, candidates).filter(
+    (match) =>
+      !input.isDismissed(
+        match.templateId,
+        (resolved.get(match.templateId) ?? []).map((pos) => pos.item_id),
+      ),
+  )
+}

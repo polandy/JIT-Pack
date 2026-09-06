@@ -44,6 +44,11 @@ import { DELETION_REMOVE } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN, type RestoreVerdict } from '@/domain/masterRestore'
 import type { MasterItem, Template } from '@/types/domain'
 import { confirmDestructive, promptText } from '@/lib/confirm'
+import {
+  DELETION_SUBJECT_ITEM,
+  DELETION_SUBJECT_TEMPLATE,
+  deletionOutlookKey,
+} from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const store = useMasterStore()
@@ -92,7 +97,9 @@ const itemRows = computed<RetiredRow[]>(() =>
       photoItem: item,
       references: outlook.references,
       removable: outlook.kind === DELETION_REMOVE,
-      removeKey: outlook.certain ? 'items.editor.deleteRemove' : 'items.editor.deleteRemoveMaybe',
+      // Read only where `removable` is true, and there the key is the remove
+      // one — a retiring row's button is not rendered.
+      removeKey: deletionOutlookKey(DELETION_SUBJECT_ITEM, outlook),
       takenKey: 'retired.nameTakenItem',
       verdict: (name?: string) => orchestrator.masterItemRestoreVerdict(item.id, name),
       restore: (name?: string) => orchestrator.restoreMasterItem(item.id, name),
@@ -112,7 +119,7 @@ const templateRows = computed<RetiredRow[]>(() =>
       photoItem: null,
       references: outlook.references,
       removable: outlook.kind === DELETION_REMOVE,
-      removeKey: outlook.certain ? 'templates.deleteRemove' : 'templates.deleteRemoveMaybe',
+      removeKey: deletionOutlookKey(DELETION_SUBJECT_TEMPLATE, outlook),
       // Which scope holds the name is a fact, not a bug — `templates.name`
       // is UNIQUE instance-wide and across both scopes (FR-1.6).
       takenKey: 'retired.nameTakenGroup',

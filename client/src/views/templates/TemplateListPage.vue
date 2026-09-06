@@ -59,7 +59,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
-import { DELETION_RETIRE } from '@/domain/masterDeletion'
+import { DELETION_SUBJECT_TEMPLATE, deletionSentence } from '@/lib/deletionLabels'
 import { presentToast } from '@/lib/toast'
 import { PATH, templatePath } from '@/router/paths'
 import { confirmDestructive, promptText } from '@/lib/confirm'
@@ -304,13 +304,10 @@ async function deleteTemplate(tpl: Template) {
   // FR-24.3: the confirm says which of the two deletions this is, before it
   // happens rather than after. A Vorlage a trip was generated from is hidden
   // and kept (FR-9.2); one no trip ever used is removed.
-  const outlook = orchestrator.templateDeletionOutlook(tpl.id)
-  const sentence =
-    outlook.kind === DELETION_RETIRE
-      ? t('templates.deleteRetire')
-      : outlook.certain
-        ? t('templates.deleteRemove')
-        : t('templates.deleteRemoveMaybe')
+  const sentence = deletionSentence(
+    DELETION_SUBJECT_TEMPLATE,
+    orchestrator.templateDeletionOutlook(tpl.id),
+  )
   const confirmed = await confirmDestructive({
     message: `${t('templates.deleteConfirm', { name: tpl.name })} ${sentence}`,
     confirmLabel: t('common.delete'),

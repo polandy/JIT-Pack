@@ -505,7 +505,9 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
 
     await page.getByTestId('m8-position-close').click()
     const row = visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
-    await expect(row).toContainText('📋 2')
+    // The whole chip, plural included: asserting the count alone let both
+    // catalogues carry a single form and say "2 preparation" (U-13).
+    await expect(row).toContainText('📋 2 preparations')
 
     // Removing brings the chip down — and the remove is the positive signal
     // that the first add was real state, not a rendering artefact.

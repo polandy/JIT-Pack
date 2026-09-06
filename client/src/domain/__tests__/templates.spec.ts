@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  groupFoldOffer,
   matchGroupsInPositions,
   searchGroups,
   tripsReachedBy,
@@ -699,5 +700,75 @@ describe('matchGroupsInPositions (FR-27.15)', () => {
 
   it('offers nothing when there are no own positions at all', () => {
     expect(matchGroupsInPositions([], [makro])).toEqual([])
+  })
+})
+
+describe('groupFoldOffer (FR-27.15)', () => {
+  const own = [
+    position('p-1', 'tpl', 'i-cam'),
+    position('p-2', 'tpl', 'i-lens'),
+    position('p-3', 'tpl', 'i-socks'),
+  ]
+  const groups = [
+    { id: 'g-foto', name: 'Fotoausrüstung' },
+    { id: 'tpl', name: 'Die Vorlage selbst' },
+  ]
+  const resolvePositions = (id: string) =>
+    id === 'g-foto'
+      ? [position('gf-1', 'g-foto', 'i-cam'), position('gf-2', 'g-foto', 'i-lens')].map((pos) => ({
+          item_id: pos.item_id,
+          quantity: pos.quantity,
+          strategy: pos.dedup,
+          sources: [template('g-foto', 'Fotoausrüstung', 'group')],
+          position: pos,
+        }))
+      : []
+
+  function offer(over: Partial<Parameters<typeof groupFoldOffer>[0]> = {}) {
+    return groupFoldOffer({
+      isGroup: false,
+      templateId: 'tpl',
+      ownPositions: own,
+      groups,
+      includedTemplateIds: new Set<string>(),
+      resolvePositions,
+      isDismissed: () => false,
+      ...over,
+    })
+  }
+
+  it('offers the Gruppe hiding in the loose positions', () => {
+    expect(offer().map((match) => match.templateId)).toEqual(['g-foto'])
+  })
+
+  it('offers nothing while a Gruppe is being edited — it could not include one', () => {
+    expect(offer({ isGroup: true })).toEqual([])
+  })
+
+  it('never offers the Vorlage itself, even when its own rows would match', () => {
+    const self = offer({
+      templateId: 'g-foto',
+      groups: [{ id: 'g-foto', name: 'Fotoausrüstung' }],
+    })
+    expect(self).toEqual([])
+  })
+
+  it('drops a Gruppe this device was told to stop offering', () => {
+    expect(offer({ isDismissed: () => true })).toEqual([])
+  })
+
+  it('keys the dismissal to the resolved item set, not to the id alone', () => {
+    const asked: Array<[string, string[]]> = []
+    offer({
+      isDismissed: (groupId, itemIds) => {
+        asked.push([groupId, itemIds])
+        return false
+      },
+    })
+    expect(asked).toEqual([['g-foto', ['i-cam', 'i-lens']]])
+  })
+
+  it('never offers a Gruppe that is already included', () => {
+    expect(offer({ includedTemplateIds: new Set(['g-foto']) })).toEqual([])
   })
 })

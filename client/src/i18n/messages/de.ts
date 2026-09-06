@@ -313,7 +313,7 @@ export const de: Record<keyof typeof en, string> = {
   'templates.removeGroup': 'Gruppe entfernen',
   'templates.removePosition': 'Position entfernen',
   'templates.standardChip': 'Standard',
-  'templates.prepChip': '📋 {n} Vorbereitung',
+  'templates.prepChip': '📋 {n} Vorbereitung | 📋 {n} Vorbereitungen',
   'templates.addPosition': 'Position hinzufügen',
   'templates.addToGroup': 'Zur Gruppe hinzufügen',
   'templates.addToTemplate': 'Zur Vorlage hinzufügen',

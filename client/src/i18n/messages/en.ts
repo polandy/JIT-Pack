@@ -305,7 +305,7 @@ export const en = {
   'templates.removeGroup': 'Remove group',
   'templates.removePosition': 'Remove position',
   'templates.standardChip': 'Standard',
-  'templates.prepChip': '📋 {n} preparation',
+  'templates.prepChip': '📋 {n} preparation | 📋 {n} preparations',
   'templates.addPosition': 'Add position',
   'templates.addToGroup': 'Add to group',
   'templates.addToTemplate': 'Add to template',
