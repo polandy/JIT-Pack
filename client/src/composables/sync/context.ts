@@ -158,4 +158,24 @@ export interface SyncContext {
    * the one way a refresh could duplicate the list it exists to keep right.
    */
   tripDataLoaded: (tripId: string) => boolean
+  /**
+   * Every trip row this device holds, across every trip — what FR-24.3's
+   * reference count is taken over.
+   *
+   * A context read rather than each group's own walk of the trip store, so
+   * the master group asks *what this device knows* without also knowing how
+   * a trip's rows are stored. Complete in Local Mode only: Server Mode pulls
+   * a trip partition as the trip is opened (ADR-032), which is what `local`
+   * above lets a caller weigh.
+   */
+  knownTripItems: () => TripItem[]
+}
+
+/**
+ * The walk `SyncContext.knownTripItems` is built from, written once so the
+ * orchestrator and the seam double a spec binds a group to cannot disagree
+ * about what "every row this device holds" enumerates.
+ */
+export function knownTripItemsOf(tripStore: TripReads): TripItem[] {
+  return tripStore.tripList.flatMap((trip) => tripStore.getItems(trip.id))
 }

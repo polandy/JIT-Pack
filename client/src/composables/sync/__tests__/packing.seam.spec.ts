@@ -187,7 +187,18 @@ describe('createPackingActions without an orchestrator', () => {
     // quick-add matched an inventory row.
     expect(queued).toHaveLength(2)
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ name: 'Zelt', flag_missing: 1 })
-    expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({ source_item_id: 'item-pegs' })
+    // The whole row the companion states, not only which item it is: it
+    // carries the inventory row's facts, and claims no template, packs, and
+    // is no late packer because nobody chose otherwise for it (C-13).
+    expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({
+      source_item_id: 'item-pegs',
+      source_template_id: null,
+      name: 'Heringe',
+      weight_grams: 300,
+      quantity: 1,
+      mode: 'pack',
+      late_packer: 0,
+    })
   })
 
   it('quickAddItem of a typed name resolves nothing — there is no master row to depend on', () => {

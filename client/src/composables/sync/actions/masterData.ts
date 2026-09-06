@@ -29,7 +29,7 @@ import { TABLE } from '@/types/tables'
 import { masterItemRow, templateItemRow, templateRow } from '../rows'
 import { isTakenRename } from '../names'
 import type { MasterItemEdit, TemplateEdit, TemplateItemEdit } from '@/sync/mutations'
-import type { MasterItem, Template, TemplateItem, TemplateKind, TripItem } from '@/types/domain'
+import type { MasterItem, Template, TemplateItem, TemplateKind } from '@/types/domain'
 import type { SyncContext } from '../context'
 
 /**
@@ -45,7 +45,7 @@ export interface DeletionOutlook {
 
 /** createMasterDataActions binds the master-data group to one sync context. */
 export function createMasterDataActions(ctx: SyncContext) {
-  const { mutations, enqueueAndDrain, masterStore, tripStore, names, local } = ctx
+  const { mutations, enqueueAndDrain, masterStore, tripStore, knownTripItems, names, local } = ctx
 
   /** Create a tag by typing its name (FR-24.1) — there is no tag admin. */
   function createTag(name: string): string {
@@ -119,11 +119,6 @@ export function createMasterDataActions(ctx: SyncContext) {
   function outlookOf(references: number): DeletionOutlook {
     const kind = deletionKind(references)
     return { kind, references, certain: kind === DELETION_RETIRE || local !== null }
-  }
-
-  /** Every trip row this device holds. Complete in Local Mode only. */
-  function knownTripItems(): TripItem[] {
-    return tripStore.tripList.flatMap((t) => tripStore.getItems(t.id))
   }
 
   /**

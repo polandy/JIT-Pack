@@ -16,9 +16,9 @@ import { TABLE } from '@/types/tables'
 import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planMembership, type MembershipTarget } from '@/domain/membership'
+import { companionAsGenerated, generatedFrom } from '@/domain/instantiate'
 import type { AddedItemDecision } from '@/sync/mutations'
 import type { ItemMode, ReviewFlag, ShoppingMode, TripItem } from '@/types/domain'
-import { ITEM_MODE_PACK } from '@/types/domain'
 import type { SyncContext } from '../context'
 
 /** createPackingActions binds the packing group to one sync context. */
@@ -230,17 +230,7 @@ export function createPackingActions(ctx: SyncContext) {
     for (const ins of plan.insert) {
       const { mutation } = mutations.addGeneratedTripItem(
         tripId,
-        {
-          source_item_id: ins.from.source_item_id,
-          source_template_id: ins.from.source_template_id,
-          name: ins.from.name,
-          category_name: ins.from.category_name,
-          weight_grams: ins.from.weight_grams,
-          value_cents: ins.from.value_cents,
-          quantity: ins.quantity,
-          mode: ins.from.mode,
-          late_packer: ins.from.late_packer,
-        },
+        generatedFrom(ins.from, { quantity: ins.quantity }),
         ins.traveler_id,
         ins.id,
       )
@@ -430,17 +420,7 @@ export function createPackingActions(ctx: SyncContext) {
     for (const companion of resolution.required) {
       const { mutation } = mutations.addGeneratedTripItem(
         tripId,
-        {
-          source_item_id: companion.item_id,
-          source_template_id: null,
-          name: companion.name,
-          category_name: companion.category_name,
-          weight_grams: companion.weight_grams,
-          value_cents: companion.value_cents,
-          quantity: companion.quantity,
-          mode: ITEM_MODE_PACK,
-          late_packer: false,
-        },
+        companionAsGenerated(companion),
         null,
       )
       enqueueAndDrain('trip', tripId, {

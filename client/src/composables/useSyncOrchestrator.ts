@@ -43,6 +43,7 @@ import { createTripCreationActions } from './sync/actions/tripCreation'
 export type { DeletionOutlook } from './sync/actions/masterData'
 export type { CloneDraft, TripWizardDraft } from './sync/actions/tripCreation'
 import { createNameGuards } from './sync/names'
+import { knownTripItemsOf } from './sync/context'
 import type { QueuedMutation, SyncContext } from './sync/context'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, createMutations } from '@/sync/mutations'
@@ -662,6 +663,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     tripDataLoaded,
     enqueue,
     drainPartitions,
+    knownTripItems: () => knownTripItemsOf(tripStore),
   }
   const containerActions = createContainerActions(ctx)
   const commentActions = createCommentActions(ctx)

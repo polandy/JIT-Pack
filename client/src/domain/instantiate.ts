@@ -10,6 +10,7 @@
  */
 
 import { includedTemplatesOf } from './templates'
+import type { ResolvedCompanion } from './dependencies'
 import type {
   ItemMode,
   MasterItem,
@@ -76,6 +77,75 @@ export interface GeneratedItem {
    * than absent, so a caller never has to distinguish "none" from "unknown".
    */
   tasks: string[]
+}
+
+/**
+ * The fields an insert of a generated trip row states — the shape
+ * `addGeneratedTripItem` writes, named once so the three things that can
+ * become such a row say it the same way.
+ *
+ * `GeneratedItem` is one of them and is assignable as it stands; the other
+ * two are a row already on the list and a resolved companion, and each has a
+ * function below that renders it in this shape rather than at the call site.
+ */
+export interface GeneratedTripItemFields {
+  source_item_id: string | null
+  source_template_id: string | null
+  name: string
+  category_name: string | null
+  weight_grams: number | null
+  value_cents: number | null
+  quantity: number
+  mode: ItemMode
+  late_packer: boolean
+}
+
+/**
+ * generatedFrom renders a row already on the list as the fields a new
+ * generated row beside it states (ADR-036's per-person split, FR-25.21).
+ *
+ * Deliberately not carried over: everything that is a *decision about this
+ * copy* rather than about the item — the container, the pack state, the
+ * assignment. The caller states what differs through `overrides`.
+ */
+export function generatedFrom(
+  row: GeneratedTripItemFields,
+  overrides: Partial<GeneratedTripItemFields> = {},
+): GeneratedTripItemFields {
+  return {
+    source_item_id: row.source_item_id,
+    source_template_id: row.source_template_id,
+    name: row.name,
+    category_name: row.category_name,
+    weight_grams: row.weight_grams,
+    value_cents: row.value_cents,
+    quantity: row.quantity,
+    mode: row.mode,
+    late_packer: row.late_packer,
+    ...overrides,
+  }
+}
+
+/**
+ * companionAsGenerated renders an FR-20.4 required companion as those fields.
+ *
+ * Three of them are the companion's constants rather than data: no template
+ * asked for it, so none may claim it; it is packed, because a companion of a
+ * packed thing travels with it; and it is not a late packer, which is a
+ * per-position choice nobody made for a row that arrived on its own.
+ */
+export function companionAsGenerated(companion: ResolvedCompanion): GeneratedTripItemFields {
+  return {
+    source_item_id: companion.item_id,
+    source_template_id: null,
+    name: companion.name,
+    category_name: companion.category_name,
+    weight_grams: companion.weight_grams,
+    value_cents: companion.value_cents,
+    quantity: companion.quantity,
+    mode: ITEM_MODE_PACK,
+    late_packer: false,
+  }
 }
 
 export interface ExcludedItem {

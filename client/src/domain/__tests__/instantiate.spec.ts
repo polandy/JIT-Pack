@@ -5,14 +5,22 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { durationDays, generateTripItems, type GenerationInput } from '../instantiate'
+import {
+  companionAsGenerated,
+  durationDays,
+  generateTripItems,
+  generatedFrom,
+  type GenerationInput,
+} from '../instantiate'
 import type {
   MasterItem,
   Template,
   TemplateInclude,
   TemplateItem,
   TemplateItemTask,
+  TripItem,
 } from '@/types/domain'
+import { ITEM_MODE_PACK } from '@/types/domain'
 
 function template(id: string, name: string): Template {
   return { id, owner_id: 'user-a', name, kind: 'template' }
@@ -722,5 +730,105 @@ describe('durationDays — the trip’s length, or none (FR-2.1b)', () => {
 
   it('has no length for an unparseable date', () => {
     expect(durationDays('not-a-date', '2026-09-05')).toBeNull()
+  })
+})
+
+/**
+ * C-13: the fields an insert of a generated row states, rendered from the two
+ * things besides a `GeneratedItem` that can become one — a row already on the
+ * list (ADR-036's per-person split) and an FR-20.4 required companion.
+ */
+describe('generatedFrom / companionAsGenerated', () => {
+  function onList(overrides: Partial<TripItem> = {}): TripItem {
+    return {
+      id: 'ti-1',
+      trip_id: 'trip-1',
+      source_item_id: 'item-1',
+      source_template_id: 'tpl-1',
+      name: 'Zahnbürste',
+      weight_grams: 20,
+      value_cents: 500,
+      category_name: 'Bad',
+      quantity: 1,
+      packed_count: 1,
+      state: 'packed',
+      mode: ITEM_MODE_PACK,
+      late_packer: true,
+      assigned_traveler_id: 'trav-1',
+      packer_user_id: 'user-a',
+      packed_by_user_id: 'user-a',
+      packed_at: '2026-09-05T10:00:00.000Z',
+      container_id: 'cont-1',
+      packing_now_by: null,
+      packing_now_at: null,
+      flag_unused: false,
+      flag_missing: false,
+      bought_from: null,
+      updated_hlc: '1',
+      ...overrides,
+    }
+  }
+
+  it('generatedFrom carries the item facts of the row it copies', () => {
+    expect(generatedFrom(onList())).toEqual({
+      source_item_id: 'item-1',
+      source_template_id: 'tpl-1',
+      name: 'Zahnbürste',
+      category_name: 'Bad',
+      weight_grams: 20,
+      value_cents: 500,
+      quantity: 1,
+      mode: ITEM_MODE_PACK,
+      late_packer: true,
+    })
+  })
+
+  /**
+   * The falsifiable half of the rule: a copy inherits what the *item* is and
+   * none of the decisions made about the row it came from. `Object.keys`
+   * rather than an equality against the nine — a key whose value happens to
+   * be null or false is still a key, and `toEqual` would not say so.
+   */
+  it('generatedFrom carries no decision made about the source row', () => {
+    const fields = generatedFrom(onList())
+    expect(Object.keys(fields).sort()).toEqual([
+      'category_name',
+      'late_packer',
+      'mode',
+      'name',
+      'quantity',
+      'source_item_id',
+      'source_template_id',
+      'value_cents',
+      'weight_grams',
+    ])
+  })
+
+  it('generatedFrom takes the caller quantity over the row it copies', () => {
+    expect(generatedFrom(onList({ quantity: 1 }), { quantity: 3 }).quantity).toBe(3)
+  })
+
+  it('companionAsGenerated claims no template, packs, and is no late packer', () => {
+    expect(
+      companionAsGenerated({
+        item_id: 'item-2',
+        name: 'Zahnpasta',
+        category_name: 'Bad',
+        weight_grams: 90,
+        value_cents: 300,
+        quantity: 2,
+        via_item_name: 'Zahnbürste',
+      }),
+    ).toEqual({
+      source_item_id: 'item-2',
+      source_template_id: null,
+      name: 'Zahnpasta',
+      category_name: 'Bad',
+      weight_grams: 90,
+      value_cents: 300,
+      quantity: 2,
+      mode: ITEM_MODE_PACK,
+      late_packer: false,
+    })
   })
 })
