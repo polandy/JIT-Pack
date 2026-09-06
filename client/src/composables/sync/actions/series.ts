@@ -6,6 +6,7 @@
 import { checklistItemRow, profileRow, seriesRow, tripRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { isTakenRename } from '../names'
+import type { ChecklistItemEdit, DestinationProfileEdit, SeriesEdit } from '@/sync/mutations'
 import type {
   DestinationChecklistItem,
   DestinationProfile,
@@ -31,7 +32,7 @@ export function createSeriesActions(ctx: SyncContext) {
     return id
   }
 
-  function updateSeries(series: TripSeries, fields: Record<string, unknown>): boolean {
+  function updateSeries(series: TripSeries, fields: SeriesEdit): boolean {
     if (isTakenRename(fields, series.id, names.seriesNameCollision)) return false
     const mutation = mutations.updateSeries(series.id, fields)
     enqueueAndDrain('master', null, {
@@ -67,7 +68,7 @@ export function createSeriesActions(ctx: SyncContext) {
     return id
   }
 
-  function updateDestinationProfile(profile: DestinationProfile, fields: Record<string, unknown>) {
+  function updateDestinationProfile(profile: DestinationProfile, fields: DestinationProfileEdit) {
     const mutation = mutations.updateDestinationProfile(profile.id, fields)
     enqueueAndDrain('master', null, {
       mutation,
@@ -84,7 +85,7 @@ export function createSeriesActions(ctx: SyncContext) {
     return id
   }
 
-  function updateChecklistItem(item: DestinationChecklistItem, fields: Record<string, unknown>) {
+  function updateChecklistItem(item: DestinationChecklistItem, fields: ChecklistItemEdit) {
     const mutation = mutations.updateChecklistItem(item.id, fields)
     enqueueAndDrain('master', null, {
       mutation,

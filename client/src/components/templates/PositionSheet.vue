@@ -13,7 +13,6 @@
  * set on the trip (FR-25.8).
  */
 import { IonIcon, IonButton, IonInput, IonToggle } from '@ionic/vue'
-import { dbBool, jsonColumn } from '@/sync/columns'
 import {
   addOutline,
   chevronForwardOutline,
@@ -27,6 +26,7 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { t } from '@/i18n'
+import type { TemplateItemEdit } from '@/sync/mutations'
 import { ACCOMMODATIONS, SEASONS, TRANSPORT_MODES, attributeLabel } from '@/lib/attributeLabels'
 import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
@@ -78,8 +78,8 @@ function toggleCondition(key: string, value: string) {
   if (conditions[key] === value) delete conditions[key]
   else conditions[key] = value
   // Empty means the user chose no condition, which is `null` rather than
-  // an empty object — see `jsonColumn`'s note on the two view-side callers.
-  update({ conditions: jsonColumn(Object.keys(conditions).length ? conditions : null) })
+  // an empty object — see `jsonColumn`'s note on who decides that.
+  update({ conditions: Object.keys(conditions).length ? conditions : null })
 }
 
 const conditionSummary = computed(() => {
@@ -92,7 +92,7 @@ const conditionSummary = computed(() => {
 
 // --- Edits (each commits on the spot, G-5) ---
 
-function update(fields: Record<string, unknown>) {
+function update(fields: TemplateItemEdit) {
   if (position.value) orchestrator.updateTemplateItem(position.value, fields)
 }
 
@@ -116,7 +116,7 @@ function setDedup(dedup: TemplateDedup) {
 }
 
 function setLatePacker(late: boolean) {
-  update({ late_packer: dbBool(late) })
+  update({ late_packer: late })
 }
 
 // --- Preparation tasks (FR-27.7) ---

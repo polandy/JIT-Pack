@@ -21,7 +21,6 @@ import {
   IonIcon,
   IonNote,
 } from '@ionic/vue'
-import { jsonColumn } from '@/sync/columns'
 import { addOutline, closeOutline, copyOutline, trendingUpOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
@@ -80,7 +79,7 @@ function saveAttribute(key: string, value: string) {
   if (value) attrs[key] = value
   else delete attrs[key]
   orchestrator.updateSeries(series.value, {
-    default_attributes: jsonColumn(Object.keys(attrs).length > 0 ? attrs : null),
+    default_attributes: Object.keys(attrs).length > 0 ? attrs : null,
   })
 }
 

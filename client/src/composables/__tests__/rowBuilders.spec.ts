@@ -410,8 +410,7 @@ const CASES: BuilderCase[] = [
         becomes: 'Samedan',
       },
       {
-        act: (s) =>
-          newOrch().updateSeries(s, { default_attributes: JSON.stringify({ season: 'winter' }) }),
+        act: (s) => newOrch().updateSeries(s, { default_attributes: { season: 'winter' } }),
         changed: 'default_attributes',
         becomes: { season: 'winter' },
       },

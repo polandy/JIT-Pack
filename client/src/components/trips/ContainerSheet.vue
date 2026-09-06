@@ -23,6 +23,7 @@ import {
   IMBALANCE_THRESHOLD_PERCENT,
 } from '@/domain/containers'
 import { t } from '@/i18n'
+import type { ContainerEdit } from '@/sync/mutations'
 import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 
@@ -63,7 +64,7 @@ const pairOptions = computed(() => containers.value.filter((c) => c.id !== props
 
 // --- Edits (each commits on the spot, G-5) ---
 
-function update(fields: Record<string, unknown>) {
+function update(fields: ContainerEdit) {
   if (container.value) orchestrator.updateContainer(props.tripId, container.value, fields)
 }
 
