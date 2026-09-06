@@ -94,6 +94,10 @@ function fakeContext(): { ctx: SyncContext; queued: QueuedMutation[]; asked: str
       today: () => '2026-06-01',
       nowIso: () => NOW_ISO,
       tripDataLoaded: () => true,
+      // Recorded like the store reads beside it: a group that starts asking
+      // this fake for every row says so in the census rather than silently
+      // being answered with nothing.
+      knownTripItems: () => (asked.push('knownTripItems'), []),
     },
   }
 }

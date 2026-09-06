@@ -12,6 +12,7 @@
 
 import { TABLE } from '@/types/tables'
 import { stateFor } from '@/domain/packState'
+import type { GeneratedTripItemFields } from '@/domain/instantiate'
 import { dbBool, jsonColumn, rowFrom } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
@@ -389,17 +390,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    */
   function addGeneratedTripItem(
     tripId: string,
-    item: {
-      source_item_id: string | null
-      source_template_id: string | null
-      name: string
-      category_name: string | null
-      weight_grams: number | null
-      value_cents: number | null
-      quantity: number
-      mode: ItemMode
-      late_packer: boolean
-    },
+    item: GeneratedTripItemFields,
     assignedTravelerId: string | null,
     // The FR-27.4 refresh supplies a *derived* id so two devices applying
     // the same group change converge on one row (ADR-016); generation

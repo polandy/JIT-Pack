@@ -8,6 +8,7 @@
  * here rather than a silently half-built context in four places.
  */
 import { createNameGuards } from '../names'
+import { knownTripItemsOf } from '../context'
 import type { QueuedMutation, SyncContext } from '../context'
 import type { PullChange } from '@/api/types'
 import type { IndexedDBPersistence } from '@/local/persistence'
@@ -118,6 +119,7 @@ export function makeSeamContext(
     today: () => opts.today ?? SEAM_TODAY,
     nowIso: () => SEAM_NOW_ISO,
     tripDataLoaded: opts.tripDataLoaded ?? (() => true),
+    knownTripItems: () => knownTripItemsOf(tripStore),
   }
   return { ctx, queued, drains }
 }

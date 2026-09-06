@@ -95,6 +95,65 @@ describe('setMembership (FR-25.21)', () => {
     expect(harness.pushedMutations()).toHaveLength(2)
   })
 
+  /**
+   * ADR-036 re-points one row and creates the rest beside it. What a created
+   * row states is the *item*, taken from the row it split from — and none of
+   * the decisions made about that row, which are its own to make (C-13).
+   */
+  it('a row created by the split carries the item facts and none of the pack decisions', () => {
+    seedWorld()
+    const store = useTripStore()
+    store.applyChanges([
+      change(TABLE.tripItems, ITEM_ID, {
+        trip_id: TRIP_ID,
+        name: 'Kurze Hosen',
+        source_item_id: 'item-hosen',
+        source_template_id: 'tpl-sommer',
+        category_name: 'Kleidung',
+        weight_grams: 180,
+        value_cents: 2900,
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+        mode: 'pack',
+        late_packer: 1,
+        container_id: 'cont-1',
+        assigned_traveler_id: null,
+      }),
+    ])
+
+    orchestrator().setMembership(
+      TRIP_ID,
+      rowsOf(store),
+      {
+        kind: 'perPerson',
+        members: [
+          { traveler_id: 'tr-a', quantity: 1 },
+          { traveler_id: 'tr-b', quantity: 4 },
+        ],
+      },
+      [],
+    )
+
+    const created = rowsOf(store).find((r) => r.id !== ITEM_ID)
+    expect(created).toBeDefined()
+    expect(created).toMatchObject({
+      source_item_id: 'item-hosen',
+      source_template_id: 'tpl-sommer',
+      category_name: 'Kleidung',
+      weight_grams: 180,
+      value_cents: 2900,
+      late_packer: true,
+      mode: 'pack',
+    })
+    // The quantity is the plan's, not the row's; the pack state and the bag
+    // are decisions about the row it came from and start over here.
+    expect(created!.quantity).toBe(4)
+    expect(created!.packed_count).toBe(0)
+    expect(created!.state).toBe('open')
+    expect(created!.container_id).toBeNull()
+  })
+
   it('collapsing back sums the quantities onto one surviving row and deletes the rest', () => {
     seedWorld()
     const orch = orchestrator()
