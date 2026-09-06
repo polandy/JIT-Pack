@@ -612,7 +612,7 @@ export const de: Record<keyof typeof en, string> = {
     'Dein Anzeigename kommt von deinem Identitätsanbieter. Das Bild wählst du selbst.',
   'settings.profileUnavailable': 'Profil nicht verfügbar — Server nicht erreichbar.',
   'settings.lightThemeHint':
-    'Catppuccin Latte — dunkel (Mocha) ist die Voreinstellung. Nur auf diesem Gerät.',
+    'Tag statt Nacht — dunkel ist die Voreinstellung. Nur auf diesem Gerät.',
   'settings.notifications': 'Benachrichtigungen',
   'settings.prefDelegation': 'Übergaben',
   'settings.prefDelegationHint': 'Ein Packelement wurde dir zum Packen übergeben',

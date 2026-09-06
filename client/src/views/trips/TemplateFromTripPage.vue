@@ -448,7 +448,7 @@ setHeaderTitle(() => t('templateFromTrip.title'))
 
 /* A note about something that exists, not an error state (G-14). */
 .name-taken {
-  color: var(--ct-yellow);
+  color: var(--ct-straw);
 }
 
 .create {

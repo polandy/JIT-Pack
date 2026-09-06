@@ -330,6 +330,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A chip had said "2 preparation" since the day it was written (2026-09-06)](#a-chip-had-said-2-preparation-since-the-day-it-was-written-2026-09-06) — U-13: four derivations left the two biggest views; the copy defect was visible only once a test rendered one.
 - [One store, three names, and one file where the sweep would have been wrong (2026-09-06)](#one-store-three-names-and-one-file-where-the-sweep-would-have-been-wrong-2026-09-06) — U-14: a rename is safe only where the name means one thing per file.
 - [The on-ramp was four files, and three of the complaints were already fixed (2026-09-06)](#the-on-ramp-was-four-files-and-three-of-the-complaints-were-already-fixed-2026-09-06) — T-2: a doc with a false sentence costs more than no doc.
+- [The visual gate could not see the palette change (2026-09-06)](#the-visual-gate-could-not-see-the-palette-change-2026-09-06) — ADR-048: `--update-snapshots` rewrote nothing; pixelmatch's 0.2 tolerance swallowed every token move.
 
 ## Deviations
 
@@ -13523,3 +13524,69 @@ more, and the set includes 390×640, 390×860, 400×880 and 430×932. Some of th
 erase a distinction nobody wrote down, in cases nobody is currently reading. The README stops citing
 `MOBILE` as though it were a shared name and says to read the neighbouring cases before copying a
 number. The `e2e-helpers-gate` does not catch this because the copies are constants, not functions.
+## The visual gate could not see the palette change (2026-09-06)
+
+ADR-048 replaces Catppuccin with the app's own palette, *Bergluft*. The owner's verdict on the built
+app was that it does not look appealing; the design review behind it found six causes, and the
+palette was the one the other five could not compensate for — a syntax-highlighting set of fourteen
+equal pastels on a violet navy reads as an editor theme however carefully roles are laid over it.
+The change itself is what FR-21.2 promised it would be: two flavour blocks, the anchors, and ~150
+mechanically renamed accent references; the ~450 neutral references and every view are untouched.
+The ADR records the options and the names. What belongs here is what the diff cannot show.
+
+**The trap: `make visual-update` reported 24 passed and rewrote nothing.** The bundle carried the new
+palette — `dist` had `#1b2327` and no `#1e1e2e` — and every baseline stayed byte-identical to the
+one committed under Catppuccin. The plain comparison run passed too. The cause is Playwright's
+default per-pixel `threshold` of 0.2, a distance in YIQ space that pixelmatch squares to 0.04;
+measured against that, the largest move in the whole palette (done: `#a6e3a1` → `#7fc084`) came to
+0.018, the brand 0.008, the text 0.007, and page and card rounded to 0.000. A gate whose stated
+purpose is "a token change that moves a surface shows up as a diff" (E2E-VIS-01) was blind to the
+largest token change the app has had, and had been blind since 2026-08-16 without anything saying
+so — a green baseline job does not report how far off it was allowed to be. `threshold: 0` is now
+set in `playwright.config.ts`: a pixel is different when it is different, and `maxDiffPixelRatio`
+stays the only slack, which the pinned container makes safe because it renders the same bytes run
+after run (ADR-013). Proved in both directions before landing: with the old baselines restored the
+suite fails against the new bundle, with the new ones it passes. **The rule this leaves**: a
+comparison that has never been seen to fail is a screenshot of an assumption — and the visual
+baselines were exactly that, for three weeks.
+
+**And the first thing the zero threshold caught on the runner was a timer.** E2E-VIS-04 failed on
+CI by 1542 px — a 48×48 square of state tint under the scrim where the filter button is — in one
+job and passed in another, on the same commit. Ionic paints a pressed button `ion-activated` and
+clears it 150 ms after pointer-up (`CLEAR_STATE_DEFERS`); the shot sometimes beat the timer. Two
+guesses went first (park the pointer, drop focus) and neither settled it, because neither was the
+cause. The case now waits for the class to be gone, which is the observable seam the working
+agreement asks for — and it is a race the old tolerance had been hiding for three weeks, not one
+the palette introduced.
+
+**The unit guard widened rather than moved.** The old spec asserted that Latte restated the brand
+with a `color-mix()` and an rgb twin; that clause exists because Tag's brand is already the deep
+bronze a light ground needs, so there is no mix to guard. Deleting the case would have deleted the
+only thing it was really for — the twin drifting from its hex — so it became a check over *every*
+`--ct-*-rgb` twin in both blocks, parsed from the file: a triplet that disagrees with its hex now
+fails the build. It found nothing in the new table, and it would have found a stale twin in the old
+one only for the brand, because the brand was the only accent restated per flavour.
+
+**Two renames refused on purpose.** The neutral steps keep Catppuccin's names — `crust`, `mantle`,
+`subtext0` — because they name positions in a ramp and do that job on any palette, and renaming
+~450 references for provenance would have made the PR unreviewable for the sake of a word. And
+`--ct-` stays as the prefix, now read as "colour token"; the gate, the docs and 700 references
+already spell it. The accents *were* renamed, because `--ct-peach` holding amber is a lie a reader
+acts on, where `--ct-mantle` holding a different grey is not.
+
+**A token nobody defines paints nothing, and nothing said so.** The rename made a second guard
+obvious: a view asking for `var(--ct-peach)` after the slot is gone gets an *invalid* property —
+no error, no fallback, the declaration is simply dropped — and the tokens gate cannot see it,
+because the reference is a token by shape. The new unit case reads every `var(--ct-…)`/`var(--jp-…)`
+in `client/src` against the three tables. It was written for the rename and found nothing from
+the rename; what it found was six references that had never resolved on `main`: `--jp-space-2/3/4`
+(margins falling through to their `, Npx` fallbacks — a phantom spacing table), `--jp-r2` (three
+chips and a preview box rendering with **no radius at all**), and `--jp-text-2xl`/`--jp-text-xl`
+(a name field and a quantity inheriting whatever size their parent had). Each now names a step the
+tables have; the three chips are the one visible change, and it is a corner that was meant to be
+round. A reference that fails silently is the same class as the threshold above: green because
+nothing was measuring.
+
+**A device's light choice survives the rename.** `jitpack_theme` held `latte`; it now holds `day`,
+and `latte` is still read as `day` in both `theme.ts` and the pre-paint script in `index.html`.
+Nothing writes the old value; the constant carries its own removal condition.

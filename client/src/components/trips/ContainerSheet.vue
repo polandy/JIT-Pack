@@ -252,7 +252,7 @@ function onDelete() {
 }
 
 .context.over {
-  color: var(--ct-red);
+  color: var(--ct-ember);
 }
 
 .x {
@@ -344,7 +344,7 @@ function onDelete() {
   gap: 6px;
   margin: 10px 0 0;
   font-size: var(--jp-text-xs);
-  color: var(--ct-yellow);
+  color: var(--ct-straw);
 }
 
 .del {
@@ -355,7 +355,7 @@ function onDelete() {
   border: none;
   border-radius: var(--jp-r-md);
   background: none;
-  color: var(--ct-red);
+  color: var(--ct-ember);
   font-size: var(--jp-text-sm);
   cursor: pointer;
 }

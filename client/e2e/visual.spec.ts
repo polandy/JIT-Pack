@@ -161,6 +161,14 @@ test('E2E-VIS-04: visual: M4 filter sheet @local @visual', async ({ page, seedMo
 
   await page.getByTestId('m4-filter').click()
   await expect(page.getByTestId('filter-sheet')).toBeVisible()
+  // Ionic paints a pressed button `ion-activated` and clears it on a 150 ms
+  // timer after pointer-up (CLEAR_STATE_DEFERS), which the shot sometimes
+  // beat: 48×48 px of state tint under the scrim, on the runner in one
+  // job and not the other, found the day `threshold: 0` landed and
+  // invisible under the old 0.2 tolerance. The class going away is the
+  // observable seam; the pointer is parked as well so no hover remains.
+  await page.mouse.move(0, 0)
+  await expect(page.getByTestId('m4-filter')).not.toHaveClass(/ion-activated/)
   await settled(page)
   await expect(page).toHaveScreenshot('m4-filter-sheet.png')
 })
@@ -232,17 +240,17 @@ async function containers(page: Page) {
   await settled(page)
 }
 
-// E2E-VIS-05: the same list in Latte. One flavour spot-check rather than a
+// E2E-VIS-05: the same list in Tag. One flavour spot-check rather than a
 // second copy of every state: the flavour is decided in one token block, so
 // one screen that uses brand, done, both planes and the elevation ink is
 // enough to notice it moving. Doubling the set would double what a digest
 // bump rewrites, for coverage of the same block.
-test('E2E-VIS-05: visual: M4 in Latte @local @visual', async ({ page, seedMode }) => {
+test('E2E-VIS-05: visual: M4 in Tag @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
-  await seedMode({ mode: 'local', theme: 'latte' })
+  await seedMode({ mode: 'local', theme: 'day' })
   await packingList(page, ['Zelt', 'Schlafsack', 'Stirnlampe'])
-  await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
-  await expect(page).toHaveScreenshot('m4-list-latte.png')
+  await expect(page.locator('html')).toHaveClass(/jitpack-day/)
+  await expect(page).toHaveScreenshot('m4-list-day.png')
 })
 
 // E2E-VIS-06: M11, the first screen outside M4 to get a baseline. It earns

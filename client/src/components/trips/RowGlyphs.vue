@@ -37,12 +37,12 @@ defineProps<{
 
 <style scoped>
 .mode-icon {
-  color: var(--ct-peach);
+  color: var(--ct-larch);
   font-size: var(--jp-icon-sm);
 }
 
 .late-icon {
-  color: var(--ct-yellow);
+  color: var(--ct-straw);
   font-size: var(--jp-icon-sm);
 }
 </style>

@@ -43,7 +43,7 @@ function toBytes(page: Page, value: string): Promise<number[]> {
  * A packing list with one row in it, and the group card that row created.
  *
  * The card only exists once a group does, so an empty trip renders none —
- * which is how the Latte case first failed, on a page that was perfectly
+ * which is how the Tag case first failed, on a page that was perfectly
  * correct.
  */
 async function cardWithOneRow(page: Page, trip: string) {
@@ -144,18 +144,15 @@ test('E2E-G14-03: rows inside a card keep a seam, and the last one does not @loc
 })
 
 // E2E-G14-02 (G-14/FR-21.8): elevation is cast in the flavour's ink. In
-// Latte the shadow is thrown in the darkest neutral, not in crust — which
+// Tag the shadow is thrown in the darkest neutral, not in crust — which
 // there is a light grey and would cast no shadow at all.
-test('E2E-G14-02: the card still casts a shadow in Latte @local @g14', async ({
-  page,
-  seedMode,
-}) => {
-  await seedMode({ mode: 'local', theme: 'latte' })
+test('E2E-G14-02: the card still casts a shadow in Tag @local @g14', async ({ page, seedMode }) => {
+  await seedMode({ mode: 'local', theme: 'day' })
   await page.setViewportSize(MOBILE)
   const card = await cardWithOneRow(page, 'Helltest')
 
   // Prove the flavour switched before asserting anything about it.
-  await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
+  await expect(page.locator('html')).toHaveClass(/jitpack-day/)
 
   const shadow = await computed(card, 'box-shadow')
   const drop = /rgba?\(([^)]+)\)(?!.*inset)/.exec(shadow.split('inset').pop() ?? '')
@@ -170,12 +167,12 @@ test('E2E-G14-02: the card still casts a shadow in Latte @local @g14', async ({
   const cardBytes = await toBytes(page, await computed(card, 'background-color'))
   expect(
     cardBytes.reduce((a, b) => a + b),
-    'the Latte card is not a light surface',
+    'the Tag card is not a light surface',
   ).toBeGreaterThan(600)
 
   // The assertion that matters, and the one this case did not make at
-  // first. "Darker than the card" is satisfied by Latte's crust — 676 to
-  // the card's 725 — so reusing Mocha's ink passed a test written to
+  // first. "Darker than the card" is satisfied by Tag's crust — 676 to
+  // the card's 725 — so reusing Nacht's ink passed a test written to
   // catch exactly that. What a shadow has to be is darker than every
   // *surface* in the flavour, sunken plane included; anything lighter is
   // a plane, and planes do not cast shadows.

@@ -243,30 +243,34 @@ These patterns apply to every screen and are specified once.
     fact (*who* is behind) one tap deeper than a pile that is already on screen. What the tap keeps is the half a hover
     cannot give a touch device: the name. **The device count is no longer rendered anywhere**, though the wire still
     carries it.
-* **G-11 (Theming, Addendum 3.21):** The app defaults to a dark theme styled on the Catppuccin **Mocha** palette
-  (catppuccin.com), in every mode including Local Mode, independent of OS color-scheme preference. Background depth
-  (`crust`/`mantle`/`base`), surfaces (`surface0`–`surface2`), and text hierarchy (`text`/`subtext0`/`subtext1`) follow
-  Catppuccin's own layering; the accent set is mapped onto the app's existing color-coded states rather than introducing
-  new colors — e.g. G-6's packed state, G-3's lock chip, M11's amber/red weight thresholds, and M4's mode chips all draw
-  from the same token set. A light theme (Catppuccin **Latte**) is available as an opt-in toggle in M17 (Addendum
-  FR-21.3); the choice is a device-local preference, applied before first paint to avoid a flash of the wrong theme
-  (FR-21.4).
-  * **Three anchors, and a role is what a component asks for (added 2026-08-14, Addendum FR-21.7).** **Peach = brand**,
-    **blue = action**, **green/teal = done**. The palette says which hues exist; the anchors say what they mean, and
+* **G-11 (Theming, Addendum 3.21):** The app defaults to a dark theme, **Nacht**, of its own palette — *Bergluft*,
+  ADR-048 — in every mode including Local Mode, independent of OS color-scheme preference. Background depth
+  (`crust`/`mantle`/`base`), surfaces (`surface0`–`surface2`), and text hierarchy (`text`/`subtext0`/`subtext1`) form a
+  twelve-step neutral ramp with a blue-green bias; the ten accents are mapped onto the app's existing color-coded states
+  rather than introduced per component — e.g. G-6's packed state, G-3's lock chip, M11's straw/ember weight thresholds,
+  and M4's mode chips all draw from the same token set. A light theme, **Tag**, is available as an opt-in toggle in M17
+  (Addendum FR-21.3); the choice is a device-local preference, applied before first paint to avoid a flash of the wrong
+  theme (FR-21.4). **Until 2026-09-06 the two flavours were Catppuccin Mocha and Latte**; ADR-048 records why a syntax
+  palette of fourteen equal pastels was replaced by a product palette, and the token *architecture* below is unchanged
+  by that — only the values and the accent names moved.
+  * **Three anchors, and a role is what a component asks for (added 2026-08-14, Addendum FR-21.7).** **Larch = brand**,
+    **glacier = action**, **pine/moss = done**. The palette says which hues exist; the anchors say what they mean, and
     only one block decides. A screen never names a hue.
   * **The brand is not the primary.** Ionic paints `--ion-color-primary` on buttons and links — things you act on — so
-    it stays blue. Identity gets the few surfaces that actually carry it: the anchor you are on in the tab bar and the
-    desktop rail (one rule, two presentations), the create FAB, the eyebrows, the preparation and shopping marks.
+    it stays the action blue. Identity gets the few surfaces that actually carry it: the anchor you are on in the tab
+    bar and the desktop rail (one rule, two presentations), the create FAB, the eyebrows, the preparation and shopping
+    marks.
   * **Done is never the brand, and neither is progress.** A checked box, a progress bar and a completion ring run the
-    teal→green ramp. A peach progress bar reads as an alert rather than as headway — the trip ring used to be peach
-    below half, which told a user with an unpacked trip that something was wrong.
-  * **Caution keeps its own hue.** Yellow, not peach. While peach served as `warning`, a container over its weight limit
-    and the product's own identity were the same colour, and the louder reading won.
-  * **A role is flavour-relative.** Mocha and Latte are not each other's inverse, so the same token can arrive at a
-    different volume in each: Latte's peach is a saturated orange on a near-white ground where Mocha's is a pastel on a
-    near-black one. Latte reads the brand **deeper** — on a light ground quieter and more legible are the same
-    direction, and the stock value managed only 2.45:1 as an 11 px tab label. Restate the role per flavour when it lands
-    differently; never average the two into one value that suits neither.
+    moss→pine ramp. A brand-coloured progress bar reads as an alert rather than as headway — the trip ring used to be
+    brand-coloured below half, which told a user with an unpacked trip that something was wrong.
+  * **Caution keeps its own hue.** Straw, not the brand. While the brand hue served as `warning`, a container over its
+    weight limit and the product's own identity were the same colour, and the louder reading won.
+  * **A role is flavour-relative.** Nacht and Tag are not each other's inverse, so the same role can need a different
+    hue in each: a pastel that is an accent on a near-black ground is a wash on a near-white one, and the stock light
+    brand once managed only 2.45:1 as an 11 px tab label. Bergluft pays for this in the flavour blocks — Tag's accents
+    are dark and saturated where Nacht's are light, every one of them measured above 4.5:1 as text on both the page and
+    the card — so the anchors themselves are one declaration. Restate a role per flavour when it lands differently;
+    never average the two into one value that suits neither.
   * **The components Ionic would paint itself are told once.** FAB, checkbox, toggle and progress bar are set in the
     token table as element rules, not per screen — so a FAB added six rebuilds from now is not a fresh decision about
     what colour the brand is.
@@ -396,8 +400,8 @@ These patterns apply to every screen and are specified once.
   * **Elevation is one geometry in the flavour's ink.** Offsets and blur are written once; which colour a shadow is cast
     in and how hard is restated per flavour, exactly as G-11 restates the brand. Reusing the dark theme's ink in the
     light one produces a shadow the same lightness as a surface — which is to say, no shadow. And the two do not come
-    out symmetrical: a dark palette is compressed at its dark end, so **Mocha lifts a card mostly by the plane step and
-    Latte mostly by the shadow**. Rendering a card edge and reading the pixels is what establishes that; it is not
+    out symmetrical: a dark palette is compressed at its dark end, so **Nacht lifts a card mostly by the plane step and
+    Tag mostly by the shadow**. Rendering a card edge and reading the pixels is what establishes that; it is not
     visible in the tokens.
   * **A round control has one diameter** (`--jp-control-round`, added 2026-08-16). A sheet header carries a *pair* of
     them — the FR-25.15 save indicator beside the ✕ — and two sizes hung from a shared top edge put their centres on
@@ -1163,7 +1167,7 @@ These patterns apply to every screen and are specified once.
     between the *Gruppen* section and the own positions — „*2 Positionen entsprechen der Gruppe «Erste Hilfe»*", with
     the FR-27.12 peek chevron, *Ignorieren* and *Zusammenfassen*. Where those positions define something the group
     defines differently, the row says so **before** the tap, carrying its own tint rather than relying on the flavour's
-    yellow, which is legible on Mocha and thin on Latte. *Zusammenfassen* swaps the positions for the include on the
+    straw, which is legible on Nacht and thin on Tag. *Zusammenfassen* swaps the positions for the include on the
     picker's own write path and the anchored snackbar's *Rückgängig* restores exactly what went; *Ignorieren* is
     device-local (`localStorage`, the M9 property-sheet class) and keyed to the group's item set, so it lapses once that
     set changes.
@@ -1557,8 +1561,8 @@ token would prove nothing there is anything to prove.
   account sees; Local Mode's data section is a different one**, per-trip and per-template YAML written client-side
   because there is no server to ask, plus the NFR-4.11 storage details. The distinction is written out here because
   E2E-M17-03 claimed to cover both for months while describing only the first; conflict log viewer (G-2 target); app
-  info/version. Appearance section with a dark (default, Catppuccin Mocha) / light (Catppuccin Latte) toggle (G-11,
-  Addendum 3.21) — shown in every mode, device-local. An Administration row → M20, rendered only for instance admins
+  info/version. Appearance section with a dark (default, Nacht) / light (Tag) toggle (G-11, Addendum 3.21,
+  ADR-048) — shown in every mode, device-local. An Administration row → M20, rendered only for instance admins
   with an OIDC session (FR-23.1).
 * **Single-User Mode variant (Addendum 3.17):** The Profile section makes the *display name* editable too (the picture
   already is, see above), so it carries two editable controls: a display-name text field (1–50 printable characters, no

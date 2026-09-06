@@ -17,10 +17,10 @@ import '@ionic/vue/css/text-transformation.css'
 import '@ionic/vue/css/flex-utils.css'
 import '@ionic/vue/css/display.css'
 
-/* App-owned theme (Addendum 3.21): Catppuccin, dark by default in every
+/* App-owned theme (Addendum 3.21, ADR-048): Bergluft, dark by default in every
  * mode and independent of the OS preference — deliberately replaces
  * Ionic's prefers-color-scheme palette (FR-21.1). */
-import './theme/catppuccin.css'
+import './theme/palette.css'
 /* The second table (G-13): the two self-hosted faces, the type scale, and
  * the display-type roles. */
 import './theme/typography.css'

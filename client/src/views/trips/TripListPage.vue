@@ -934,7 +934,7 @@ ion-segment-button {
 
 .proposed-chip {
   background: color-mix(in srgb, var(--jp-brand) 18%, transparent);
-  border-radius: var(--jp-r2);
+  border-radius: var(--jp-r-sm);
   color: var(--jp-brand);
   display: inline-flex;
   margin-top: 6px;
@@ -946,7 +946,7 @@ ion-segment-button {
   background: var(--jp-surface-sunken);
   color: var(--jp-action);
   border: none;
-  border-radius: var(--jp-r2);
+  border-radius: var(--jp-r-sm);
   display: inline-flex;
   gap: 4px;
   padding: 2px 8px;

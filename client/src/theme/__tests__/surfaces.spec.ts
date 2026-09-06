@@ -21,7 +21,7 @@ import { describe, it, expect } from 'vitest'
 // an import would assert against an empty string and pass forever.
 const read = (f: string) => readFileSync(resolve(process.cwd(), f), 'utf8')
 const surfaces = read('src/theme/surfaces.css')
-const palette = read('src/theme/catppuccin.css')
+const palette = read('src/theme/palette.css')
 
 /** The declared value of a custom property in `css`, or undefined. */
 function value(css: string, prop: string): string | undefined {
@@ -83,24 +83,24 @@ describe('elevation is one geometry cast in two inks (FR-21.8)', () => {
     expect(surfaces).not.toMatch(/rgba?\(\s*\d/)
   })
 
-  it('restates ink and weight for Latte, because a dark cast is not a light one', () => {
-    // Mocha casts in crust, which in Latte is a light grey — a shadow in
+  it('restates ink and weight for Tag, because a dark cast is not a light one', () => {
+    // Nacht casts in crust, which in Tag is a light grey — a shadow in
     // it would be invisible. The pairing is what needs guarding: an ink
     // changed without its alpha leaves the light theme muddy.
-    const latte = block(palette, ':root\\.jitpack-latte', 'jp-shadow-ink-rgb')
-    expect(latte, 'Latte does not restate its shadow ink').toBeDefined()
-    expect(latte).toContain('--jp-shadow-alpha')
-    expect(latte).toContain('--jp-shadow-rim')
+    const day = block(palette, ':root\\.jitpack-day', 'jp-shadow-ink-rgb')
+    expect(day, 'Tag does not restate its shadow ink').toBeDefined()
+    expect(day).toContain('--jp-shadow-alpha')
+    expect(day).toContain('--jp-shadow-rim')
 
-    const mocha = block(palette, ':root', 'jp-shadow-ink-rgb')
-    expect(mocha).toContain('--jp-shadow-alpha')
+    const night = block(palette, ':root', 'jp-shadow-ink-rgb')
+    expect(night).toContain('--jp-shadow-alpha')
   })
 
   it('keeps a scrim at its own weight rather than the shadow weight', () => {
     // A scrim is doing a job — making the avatar crop circle legible
     // against everything outside it — while a shadow only suggests depth.
     // Deriving one from the other is how the first version of this file
-    // dimmed Latte's crop mask to 0.198 from 0.55, because Latte's shadows
+    // dimmed Tag's crop mask to 0.198 from 0.55, because Tag's shadows
     // are deliberately light so a card does not look grimy.
     expect(value(surfaces, '--jp-scrim')).toBe(
       'rgba(var(--jp-shadow-ink-rgb), var(--jp-scrim-alpha))',
@@ -110,12 +110,12 @@ describe('elevation is one geometry cast in two inks (FR-21.8)', () => {
     // only which ink it does it in — so the two weights stay close.
     const alpha = (css: string, sel: string) =>
       Number(new RegExp(`${sel}\\s*\\{[^}]*--jp-scrim-alpha:\\s*([\\d.]+)`).exec(css)?.[1] ?? NaN)
-    const mochaScrim = alpha(palette, ':root')
-    const latteScrim = alpha(palette, ':root\\.jitpack-latte')
-    expect(mochaScrim).toBeGreaterThan(0)
-    expect(latteScrim).toBeGreaterThan(0)
+    const nightScrim = alpha(palette, ':root')
+    const dayScrim = alpha(palette, ':root\\.jitpack-day')
+    expect(nightScrim).toBeGreaterThan(0)
+    expect(dayScrim).toBeGreaterThan(0)
     expect(
-      Math.abs(mochaScrim - latteScrim),
+      Math.abs(nightScrim - dayScrim),
       'the two flavours dim an overlay differently',
     ).toBeLessThan(0.15)
   })

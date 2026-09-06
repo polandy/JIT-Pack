@@ -91,7 +91,7 @@ If the PR touches `client/src`:
 - **Global patterns, not only the screen.** The working agreement makes this binding after four navigation defects that both green screen suites missed: reaching the new screen from wherever it is reached, leaving it, and what the app bar shows afterwards belong in `client/e2e/global-nav.spec.ts`. A PR that adds a screen and covers it only from inside its own unit has not covered getting there. Assert against the visible page (`ion-router-outlet > .ion-page:not(.ion-page-hidden)`), never the URL alone.
 - **Mutation-prove the case that owns the PR's headline defect.** Revert the fix in the production code, watch that exact case go red, restore. A case that stays green is not a test, whatever its name says — and this is the cheapest way to find one. **Rebuild between the two runs** (`npm run build`): Playwright drives the built bundle via `npm run preview`, so a source-only edit changes nothing and the "proof" passes both ways. Test-side edits need no rebuild; production-side edits always do.
 - **Manual-test-first**: if the maintainer hasn't eyeballed the rendered UI yet, flag that as a gate before the e2e case is finalized — do not silently skip it. Never judge visibility or layout from the stylesheet; render it.
-- Theming: colors come from the `--ct-*` token table in `client/src/theme/catppuccin.css`. A hard-coded color or a parallel color system is a finding.
+- Theming: colors come from the `--ct-*` token table in `client/src/theme/palette.css`. A hard-coded color or a parallel color system is a finding.
 
 ## 6. CI status — fix failures
 

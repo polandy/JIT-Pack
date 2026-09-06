@@ -232,7 +232,7 @@ const emit = defineEmits<{
 
 .lock {
   font-size: var(--jp-icon-md);
-  color: var(--ct-blue);
+  color: var(--ct-glacier);
   padding: 8px;
 }
 
@@ -250,12 +250,12 @@ const emit = defineEmits<{
 }
 
 .pass-toggle.on {
-  color: var(--ct-mauve);
+  color: var(--ct-heather);
 }
 
 .unused-mark {
   font-size: var(--jp-icon-sm);
-  color: var(--ct-mauve);
+  color: var(--ct-heather);
 }
 
 .done {
@@ -280,7 +280,7 @@ const emit = defineEmits<{
    exists, and only the badge was left to inherit it. Merged here as one rule
    so the row keeps the colour it has been rendering. */
 .prep {
-  color: var(--ct-yellow);
+  color: var(--ct-straw);
   font-size: var(--jp-text-3xs);
   vertical-align: middle;
   margin-left: 6px;

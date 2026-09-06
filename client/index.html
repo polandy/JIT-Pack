@@ -13,16 +13,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="JIT-Pack" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <!-- Mirrors --ct-base (Mocha, the dark default); theme.ts retargets it to
+    <!-- Mirrors --ct-base (Nacht, the dark default); theme.ts retargets it to
          the flavour's own base after boot, reading the token rather than
          repeating it (invariant 9). -->
-    <meta name="theme-color" content="#1e1e2e" />
+    <meta name="theme-color" content="#1b2327" />
     <script>
       // FR-21.4: apply the persisted theme before first paint — the
-      // stylesheet defaults to dark (Mocha), so only Latte needs a tag.
+      // stylesheet defaults to dark (Nacht), so only Tag needs a tag. 'latte'
+      // is the value a device persisted before ADR-048 (see theme.ts).
       try {
-        if (localStorage.getItem('jitpack_theme') === 'latte')
-          document.documentElement.classList.add('jitpack-latte')
+        var t = localStorage.getItem('jitpack_theme')
+        if (t === 'day' || t === 'latte')
+          document.documentElement.classList.add('jitpack-day')
       } catch (e) {
         /* storage unavailable → dark default */
       }

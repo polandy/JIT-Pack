@@ -1,7 +1,7 @@
 /*
  * Typography (Addendum 3.21, UI-Spec G-13).
  *
- * The counterpart to catppuccin.css: that file owns colour and nothing
+ * The counterpart to palette.css: that file owns colour and nothing
  * else, this one owns the two faces, the type scale, and the handful of
  * role classes that put the display face where the concept prototype
  * puts it. Everything a component needs is a token or a role class —
@@ -32,7 +32,7 @@
    tofu. Rebuild both with:
        nix-shell -p "python3.withPackages(ps: [ps.fonttools ps.brotli])" \
          --run scripts/build-mark-font.sh
-   The mark is the one surface whose colours do not come from catppuccin.css
+   The mark is the one surface whose colours do not come from palette.css
    (invariant 9); FR-28.5 confines it to content so that stays an exception
    rather than a second palette. */
 @font-face {
