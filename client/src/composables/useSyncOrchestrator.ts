@@ -167,8 +167,9 @@ export interface SyncOrchestratorConfig {
 }
 
 /**
- * The write facade every view holds — what {@link useSyncOrchestrator} hands
- * back, named so the 27 places that inject it do not each write the type out.
+ * The write facade every view holds. Named because it is what the injection
+ * key carries (`composables/useOrchestrator.ts`); a consumer asks for the
+ * type by name rather than restating how it is derived.
  */
 export type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 
