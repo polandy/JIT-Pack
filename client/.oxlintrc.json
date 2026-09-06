@@ -42,10 +42,10 @@
     {
       // The two exemptions, each because there is no mutation to build from.
       // `cascade.ts` paints the *children* a delete takes with it — rows the
-      // one mutation never names. The orchestrator's image sites carry a hash
-      // whose bytes travel outside the sync envelope (ADR-002), so in Local
-      // Mode nothing else would ever reach the store.
-      "files": ["src/sync/cascade.ts", "src/composables/useSyncOrchestrator.ts"],
+      // one mutation never names. An item photo carries a hash whose bytes
+      // travel outside the sync envelope (ADR-002), so there is no mutation
+      // at all and in Local Mode nothing else would ever reach the store.
+      "files": ["src/sync/cascade.ts", "src/composables/sync/images.ts"],
       "rules": { "no-restricted-imports": "off" }
     },
     {

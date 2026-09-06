@@ -1,8 +1,8 @@
 /**
- * FR-6.2 client wiring: notification.created pings trigger an unread
- * fetch, each notification surfaces exactly once via onNotification,
- * connect() picks up notifications missed while away, and the prefs /
- * mark-read calls hit the right endpoints.
+ * FR-6.2 client wiring: a `notification.created` ping off the socket, and a
+ * reconnect, reach the notification group's unread fetch. What that group
+ * then does with the answer — and every endpoint it speaks to — is
+ * `sync/__tests__/notifications.seam.spec.ts`.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -94,80 +94,5 @@ describe('notification.created handling', () => {
     })
     await vi.waitFor(() => expect(surfaced).toHaveLength(2))
     expect(surfaced.map((n) => n.id)).toEqual(['n1', 'n2'])
-  })
-
-  it('without an onNotification callback nothing is fetched', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-
-    await orch.connect()
-    await Promise.resolve()
-
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  it('an offline fetch surfaces nothing and does not throw', async () => {
-    const surfaced: ServerNotification[] = []
-    const orch = useSyncOrchestrator({
-      baseUrl: 'http://localhost',
-      getToken: () => null,
-      onNotification: (n) => surfaced.push(n),
-    })
-    fetchMock.mockRejectedValueOnce(new TypeError('network down'))
-
-    await orch.connect()
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-
-    expect(surfaced).toHaveLength(0)
-  })
-})
-
-describe('notification endpoints', () => {
-  it('markNotificationRead posts to the read endpoint', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    fetchMock.mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }))
-
-    await orch.markNotificationRead('n1')
-
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/notifications/n1/read')
-    expect(fetchMock.mock.calls[0]![1].method).toBe('POST')
-  })
-
-  it('saveNotificationPrefs puts the toggles', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    fetchMock.mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }))
-
-    await orch.saveNotificationPrefs({
-      delegation: false,
-      mention: true,
-      task: true,
-      lock_taken: false,
-    })
-
-    const [url, init] = fetchMock.mock.calls[0]!
-    expect(String(url)).toContain('/api/v1/me/notification-prefs')
-    expect(init.method).toBe('PUT')
-    expect(JSON.parse(init.body as string)).toEqual({
-      delegation: false,
-      mention: true,
-      task: true,
-      lock_taken: false,
-    })
-  })
-
-  it('pushApi wires vapid key, register, and unregister', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-
-    fetchMock.mockResolvedValueOnce(new Response('{"key":"BPub"}', { status: 200 }))
-    expect(await orch.pushApi.getVapidKey()).toBe('BPub')
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/push/vapid-key')
-
-    fetchMock.mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }))
-    await orch.pushApi.registerSubscription({ endpoint: 'e', keys: { p256dh: 'p', auth: 'a' } })
-    expect(fetchMock.mock.calls[1]![1].method).toBe('POST')
-
-    fetchMock.mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }))
-    await orch.pushApi.unregisterSubscription('e')
-    expect(fetchMock.mock.calls[2]![1].method).toBe('DELETE')
-    expect(JSON.parse(fetchMock.mock.calls[2]![1].body as string)).toEqual({ endpoint: 'e' })
   })
 })

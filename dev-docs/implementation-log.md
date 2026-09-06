@@ -324,6 +324,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The directory was fresh by accident (2026-09-05)](#the-directory-was-fresh-by-accident-2026-09-05) — ADR-047: nine fetches became one, and freshness stopped being free; one case proved one of four call sites.
 - [The partition stopped being carried by the name of the function (2026-09-05)](#the-partition-stopped-being-carried-by-the-name-of-the-function-2026-09-05) — C-8: `pullPartition`/`pushPartition` take the partition; the shared unit is a page, not the loop.
 - [The context asked for two stores and read twenty-six getters (2026-09-05)](#the-context-asked-for-two-stores-and-read-twenty-six-getters-2026-09-05) — C-9: `TripReads`/`MasterReads`; the census leaks back through whoever the store is handed to.
+- [The facade's last four passengers had nothing to do with syncing (2026-09-06)](#the-facades-last-four-passengers-had-nothing-to-do-with-syncing-2026-09-06) — C-7: why one `restFacade.ts` was rejected, and why three groups take `localMode` and not the store.
 
 ## Deviations
 
@@ -13288,3 +13289,39 @@ builds a `SyncContext` out of object literals with no pinia anywhere and drives
 the container group and the name guards through it. It is the file that fails —
 at compile time — if `SyncContext` ever widens back, which is exactly what was
 proved by widening it: `TS2322` there and nowhere else.
+
+## The facade's last four passengers had nothing to do with syncing (2026-09-06)
+
+C-7's plan named three destinations: `locks.ts` for the `Map` logic, `notifications.ts`, and one
+`restFacade.ts` for M17, M20, the conflict log and the item photos. The bucket was rejected while
+writing it. "REST facade" names *how* a group talks rather than *what* it decides, which is the
+same shape as the file being emptied — one module holding four unrelated subjects, only smaller.
+They went out as `conflicts.ts`, `identity.ts` and `images.ts` instead, and the profile and the
+admin surface are one module rather than two because they share the rule that binds them: a writer
+that changes who the instance knows about is the thing that re-reads it (ADR-047).
+
+**What each group takes is what it uses, and for three of them `local` was never the store.** The
+existing action groups receive a `SyncContext` carrying `local: IndexedDBPersistence | null`, but
+conflicts, notifications and identity only ever ask it *whether there is a server*. Passing the
+persistence would have made a spec construct a store it never calls to say "Local Mode", so those
+three take `localMode: boolean` and only `images.ts` — which genuinely reads and writes the bytes —
+takes a store, narrowed to the three methods it uses. The client is narrowed the same way, by a
+`RestClient` interface declared at the consumer: `APIClient` satisfies it structurally, so the
+production wiring is unchanged and a fake stops being a stubbed `fetch`.
+
+**The stub queues answers rather than mapping them to paths**, which is what makes "did nothing in
+Local Mode" falsifiable: a group that starts making a request runs out of answers instead of
+quietly receiving the right one.
+
+**The photos had no unit test at all**, in either mode — found by looking for the specs to move,
+not by a coverage number. The reason is visible in the first line of `setItemImage`: it optimizes
+through a canvas, so every case would have needed a browser. The optimizer is now injected, and
+FR-22's two modes have eight cases between them. The lint exemption for `localChange` moved with
+the code and stopped naming the orchestrator — the override lists the file that actually has no
+mutation to build from.
+
+**What stayed behind is the wiring, and only that.** `locking.spec.ts` keeps every case that
+exercises a mutation, the socket or the takeover request, and gave up the four that only ever
+asked the `Map` a question; the same cut split `notifications.spec.ts` in two. The point of the
+move is not fewer lines in the facade (1254 → 906) but that a lock decision is now provable
+without an `APIClient`, a pinia store and a `WebSocket` stub standing behind it.

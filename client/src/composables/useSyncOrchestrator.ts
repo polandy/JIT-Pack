@@ -1,33 +1,35 @@
 /**
- * Sync orchestrator — the central glue between stores, outbox, and WebSocket.
+ * Sync orchestrator — the central glue between stores, outbox and WebSocket,
+ * and the one write facade every view holds.
  *
- * Responsibilities:
- * 1. Creates APIClient, HLC, SyncOutbox, WebSocket, Mutations
+ * What is left here is the glue itself:
+ * 1. Builds APIClient, HLC, SyncOutbox, WebSocket and the mutation factory
  * 2. Routes pull changes to the right store (trip vs master)
- * 3. Handles WebSocket events (trip.changed → drain trip, master.changed → drain master)
- * 4. Exposes action methods that create mutations → optimistic store update → enqueue
- * 5. Manages sync status for G-2 indicator
+ * 3. Routes WebSocket events to whichever piece owns them
+ * 4. Owns the write funnel — optimistic paint, enqueue, drain — that every
+ *    action group is bound to through `SyncContext`
+ * 5. Manages sync status for the G-2 indicator
+ *
+ * What is *not* here is anything that decides something. The rules live in
+ * `sync/actions/`, whose groups are bound to a `SyncContext`, and in the
+ * groups beside them that need no context at all — locks, notifications,
+ * conflicts, identity and images, each taking the two or three plain values
+ * it actually uses. The facade builds each one and spreads it into the
+ * return shape.
  */
 
 import { API } from '@/api/routes'
 import { markLocalWrite } from '@/local/exportReminder'
 import { clearMigrationPending, deviceId } from '@/mode'
-import { TABLE } from '@/types/tables'
 import { computed, reactive, ref } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox, type ConflictReport, type RejectionReport } from './useSyncOutbox'
-import {
-  changesOf,
-  localChange,
-  optimisticDelete,
-  optimisticInsert,
-  optimisticUpdate,
-} from '@/sync/optimistic'
+import { changesOf, optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { MASTER_STORE_TABLES, TRIP_STORE_TABLES } from '@/sync/routing'
-import { hashBlob, itemRow, masterItemRow, memberRow } from './sync/rows'
+import { itemRow, memberRow } from './sync/rows'
 import { createContainerActions } from './sync/actions/containers'
 import { createCommentActions } from './sync/actions/comments'
 import { createDependencyActions } from './sync/actions/dependencies'
@@ -43,44 +45,37 @@ import { createTripCreationActions } from './sync/actions/tripCreation'
 export type { DeletionOutlook } from './sync/actions/masterData'
 export type { CloneDraft, TripWizardDraft } from './sync/actions/tripCreation'
 import { createNameGuards } from './sync/names'
+import { createLockState } from './sync/locks'
+import { createNotificationActions } from './sync/notifications'
+import { createConflictActions } from './sync/conflicts'
+import { createIdentityActions } from './sync/identity'
+import { createImageActions } from './sync/images'
 import { knownTripItemsOf } from './sync/context'
 import type { QueuedMutation, SyncContext } from './sync/context'
 import { useWebSocket } from './useWebSocket'
-import { CLIENT_ACTOR_PLACEHOLDER, createMutations } from '@/sync/mutations'
+import { createMutations } from '@/sync/mutations'
 import { useSyncStatus } from './useSyncStatus'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type {
-  AdminUserListResponse,
-  APITokenExpiry,
-  APITokenResponse,
   ConflictEntry,
-  ConflictListResponse,
-  DirectoryUser,
   LockEvent,
   LockEventListResponse,
-  MeResponse,
-  NotificationListResponse,
   PresenceMember,
   PullChange,
   TakeoverResponse,
-  UserListResponse,
-  VAPIDKeyResponse,
   WSEvent,
 } from '@/api/types'
 import { localIsoDate } from '@/domain/trips'
 import { defaultNowMs, isoFrom, type NowMs } from '@/lib/clock'
-import { optimizeItemImage } from '@/lib/imageResize'
 import type { PortableDocument } from '@/domain/portable'
 import { importPortableBackup, importPortableDocument } from '@/domain/portableImport'
 import type { PortableImportEnv, PortableImportResult } from '@/domain/portableImport'
-import type { NotificationPrefs, ServerNotification } from '@/notifications/format'
-import type { PushServerAPI } from '@/notifications/push'
-import type { AdminUserRow } from '@/domain/admin'
+import type { ServerNotification } from '@/notifications/format'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
-import type { MasterItem, TripItem, TripMember } from '@/types/domain'
+import type { TripItem, TripMember } from '@/types/domain'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 // Both shapes come from the contract now (NFR-4.14). The names are kept as
@@ -205,103 +200,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return presence.value.get(tripId) ?? []
   }
 
-  // G-3 locking (FR-5.3): ephemeral locks from item.locked events plus
-  // the synced packing_now state. myLocks marks claims made on this
-  // device, because the device is the only distinction Local and
-  // Single-User Mode have — there is one account in both.
-  //
-  // There is no staleness window (FR-5.7, ADR-028): a claim is claimed
-  // until a person ends it, so a lock is never judged by its age.
-  const itemLocks = ref<Map<string, Map<string, { by_user: string }>>>(new Map())
-  const myLocks = new Set<string>()
-
-  /**
-   * Whether `holder` is somebody else — the question a device claim cannot
-   * answer for itself.
-   *
-   * Where the session names an account (Server Mode with OIDC), a holder
-   * that is a *different* account revokes this device's claim: that is what
-   * a takeover is (FR-5.7), and without this the device that lost the row
-   * kept rendering it as its own while the server had handed it on — the
-   * notification arrived and the row contradicted it. Where there is no
-   * account to compare against, the device rule stands unchanged.
-   */
-  function heldByAnotherAccount(holder: string | null): boolean {
-    // The optimistic claim writes a placeholder until the server stamps the
-    // real actor (invariant 3). It means "me, unconfirmed", so reading it
-    // as a foreign account would revoke every claim the moment it is made.
-    if (!holder || holder === CLIENT_ACTOR_PLACEHOLDER) return false
-    const me = currentUserId()
-    return me !== null && holder !== me
-  }
-
-  /** The holder the server knows of, ephemeral event first, then the pull. */
-  function syncedHolder(tripId: string, item: TripItem): string | null {
-    const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
-    if (ephemeral) return ephemeral.by_user
-    if (item.state !== 'packing_now') return null
-    return item.packing_now_by ?? ''
-  }
-
-  /** Whether this device's claim on the row still stands (FR-5.7). */
-  function claimIsMine(tripId: string, item: TripItem): boolean {
-    if (!myLocks.has(item.id)) return false
-    return !heldByAnotherAccount(syncedHolder(tripId, item))
-  }
-
-  function isLockedByOther(tripId: string, item: TripItem): boolean {
-    return lockHolder(tripId, item) !== null
-  }
-
-  /**
-   * lockHolder answers *who* is packing this row, or null where it is not
-   * locked for me (G-3 wants the name, not only the padlock). The user id
-   * is what the client has; resolving it to a display name is the view's
-   * job, since only it knows the trip's participants.
-   */
-  function lockHolder(tripId: string, item: TripItem): string | null {
-    if (claimIsMine(tripId, item)) return null
-    return syncedHolder(tripId, item)
-  }
-
-  /**
-   * holdsClaim answers whether *this device* is the one holding the row.
-   * `lockHolder` is deliberately blind to it — my own claim never locks
-   * the row for me — which leaves the one screen that could say "you are
-   * holding this against the others" unable to know it.
-   */
-  function holdsClaim(tripId: string, item: TripItem): boolean {
-    return claimIsMine(tripId, item) && item.state === 'packing_now'
-  }
-
-  function setItemLock(tripId: string, itemId: string, byUser: string) {
-    const next = new Map(itemLocks.value)
-    const tripLocks = new Map(next.get(tripId) ?? [])
-    tripLocks.set(itemId, { by_user: byUser })
-    next.set(tripId, tripLocks)
-    itemLocks.value = next
-  }
-
-  /**
-   * clearEphemeralLock drops the WS-delivered lock without touching
-   * `myLocks`, which `clearItemLock` also clears: after a takeover the
-   * row *is* mine, so forgetting that would make my own claim render as
-   * somebody else's.
-   */
-  function clearEphemeralLock(tripId: string, itemId: string) {
-    const tripLocks = itemLocks.value.get(tripId)
-    if (!tripLocks?.has(itemId)) return
-    const next = new Map(itemLocks.value)
-    const cleared = new Map(tripLocks)
-    cleared.delete(itemId)
-    next.set(tripId, cleared)
-    itemLocks.value = next
-  }
-
-  function clearItemLock(tripId: string, itemId: string) {
-    clearEphemeralLock(tripId, itemId)
-    myLocks.delete(itemId)
-  }
+  // G-3 locking, and the takeover rule an `item.locked` frame carries
+  // (FR-5.3/5.7). All of it in `sync/locks.ts`, which needs no client, no
+  // store and no outbox to answer what a row asks while rendering.
+  const locks = createLockState(currentUserId)
 
   const client = new APIClient(config.baseUrl, config.getToken, config.onUnauthorized)
 
@@ -460,84 +362,29 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         const itemId = event.payload?.['item_id'] as string | undefined
         const byUser = (event.payload?.['by_user'] as string) ?? ''
         if (!tripId || !itemId) break
-        // A lock naming another account on a row this device holds is a
-        // takeover (FR-5.7): the claim is gone, so the device flag goes
-        // with it rather than outliving the row it describes. The hub
-        // broadcasts a claim to every subscriber including the claimer,
-        // so "an event arrived" alone would misread my own claim.
-        if (heldByAnotherAccount(byUser)) myLocks.delete(itemId)
-        if (!myLocks.has(itemId)) setItemLock(tripId, itemId, byUser)
+        locks.onLocked(tripId, itemId, byUser)
         break
       }
       case 'item.unlocked': {
         const tripId = event.payload?.['trip_id'] as string | undefined
         const itemId = event.payload?.['item_id'] as string | undefined
         if (tripId && itemId) {
-          clearItemLock(tripId, itemId)
+          locks.onUnlocked(tripId, itemId)
         }
         break
       }
       case 'notification.created':
         // Thin ping (§7): the row itself comes via GET /notifications.
-        void surfaceUnreadNotifications()
+        void notificationActions.surfaceUnread()
         break
     }
   }
 
-  // --- Notifications (FR-6.2) ---
-
-  // Guards against surfacing the same notification twice when several
-  // notification.created pings arrive before the first fetch settles.
-  const surfacedNotifications = new Set<string>()
-
-  async function surfaceUnreadNotifications(): Promise<void> {
-    if (local || !config.onNotification) return
-    try {
-      const resp = await client.get<NotificationListResponse>(API.notifications, {
-        unread: '1',
-      })
-      for (const n of resp.notifications ?? []) {
-        if (surfacedNotifications.has(n.id)) continue
-        surfacedNotifications.add(n.id)
-        config.onNotification(n)
-      }
-    } catch {
-      // Offline — unread notifications resurface on the next connect.
-    }
-  }
-
-  async function markNotificationRead(id: string): Promise<void> {
-    try {
-      await client.post(API.notificationRead(id))
-    } catch {
-      // Offline: stays unread server-side and resurfaces at most once.
-    }
-  }
-
-  async function fetchNotificationPrefs(): Promise<NotificationPrefs | null> {
-    try {
-      return await client.get<NotificationPrefs>(API.meNotificationPrefs)
-    } catch {
-      return null
-    }
-  }
-
-  async function saveNotificationPrefs(prefs: NotificationPrefs): Promise<void> {
-    await client.put(API.meNotificationPrefs, prefs)
-  }
-
-  /** Server half of the Web Push dance (NFR-4.6) for notifications/push.ts. */
-  const pushApi: PushServerAPI = {
-    async getVapidKey() {
-      return (await client.get<VAPIDKeyResponse>(API.pushVAPIDKey)).key
-    },
-    async registerSubscription(sub) {
-      await client.post(API.pushSubscriptions, sub)
-    },
-    async unregisterSubscription(endpoint) {
-      await client.delete(API.pushSubscriptions, { endpoint })
-    },
-  }
+  const notificationActions = createNotificationActions({
+    client,
+    localMode: !!local,
+    onNotification: config.onNotification,
+  })
 
   // --- Drain operations ---
 
@@ -690,7 +537,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   /** Claim an item for packing (FR-5.2); locks it for others (G-3). */
   function packingNow(tripId: string, item: TripItem) {
     const mut = mutations.startPackingNow(item.id)
-    myLocks.add(item.id)
+    locks.claim(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: optimisticUpdate(mut, itemRow(item)),
@@ -717,11 +564,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   async function takeOverClaim(tripId: string, item: TripItem): Promise<string> {
     if (local) return ''
     const resp = await client.post<TakeoverResponse>(API.tripItemTakeover(tripId, item.id))
-    // The claim is mine from here: `myLocks` is how this device knows a
-    // row is its own, and without it the row I just took would render as
-    // locked against me.
-    myLocks.add(item.id)
-    clearEphemeralLock(tripId, item.id)
+    // The claim is mine from here: without it the row I just took would
+    // render as locked against me.
+    locks.takeOver(tripId, item.id)
     await drainTrip(tripId)
     return resp.previous_holder ?? ''
   }
@@ -751,7 +596,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   function releaseClaim(tripId: string, item: TripItem) {
     const mut = mutations.releasePackingNow(item.id, item.packed_count, item.quantity)
-    myLocks.delete(item.id)
+    locks.release(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: optimisticUpdate(mut, itemRow(item)),
@@ -869,187 +714,28 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return imported
   }
 
-  /**
-   * setItemImage attaches or replaces an item's reference photo (FR-22.1/
-   * 22.5). The source is optimized on-device first (FR-22.2/22.3), then in
-   * Server Mode uploaded (the server stamps items.image_hash, which a
-   * master drain pulls back) and in Local Mode written to IndexedDB with a
-   * locally computed hash funneled through the same change path.
-   */
-  async function setItemImage(item: MasterItem, source: Blob): Promise<void> {
-    const optimized = await optimizeItemImage(source)
-    if (local) {
-      await local.putImage(item.id, optimized)
-      const hash = await hashBlob(optimized)
-      onPullChanges([
-        localChange(TABLE.items, item.id, { ...masterItemRow(item), image_hash: hash }),
-      ])
-      return
-    }
-    await client.putRaw(API.itemImage(item.id), optimized, 'image/jpeg')
-    await drainMaster()
-  }
+  const imageActions = createImageActions({
+    client,
+    local,
+    baseUrl: config.baseUrl,
+    applyChanges: onPullChanges,
+    drainMaster,
+  })
 
-  /** deleteItemImage removes an item's photo (FR-22.5). */
-  async function deleteItemImage(item: MasterItem): Promise<void> {
-    if (local) {
-      await local.deleteImage(item.id)
-      onPullChanges([
-        localChange(TABLE.items, item.id, { ...masterItemRow(item), image_hash: null }),
-      ])
-      return
-    }
-    await client.delete(API.itemImage(item.id))
-    await drainMaster()
-  }
+  const conflictActions = createConflictActions({
+    client,
+    localMode: !!local,
+    drainTrip: (tripId) => drainTrip(tripId),
+    drainMaster,
+  })
 
-  /**
-   * itemImageUrl resolves a displayable URL for an item's photo, or null
-   * when it has none. Server Mode returns the public GET endpoint (with the
-   * hash as a cache-buster); Local Mode returns an object URL the caller
-   * must revoke. Callers guard on item.image_hash to avoid a needless
-   * lookup.
-   */
-  async function itemImageUrl(item: MasterItem): Promise<string | null> {
-    if (!item.image_hash) return null
-    if (local) {
-      const blob = await local.getImage(item.id)
-      return blob ? URL.createObjectURL(blob) : null
-    }
-    return `${config.baseUrl}${API.itemImage(item.id)}?v=${item.image_hash}`
-  }
-
-  /**
-   * fetchConflicts loads the trip's conflict log for the G-2 view.
-   * Local Mode has one writer and therefore no conflicts (FR-19.6).
-   */
-  async function fetchConflicts(tripId: string): Promise<ConflictEntry[]> {
-    if (local) return []
-    const resp = await client.get<ConflictListResponse>(API.tripConflicts(tripId), {})
-    return resp.conflicts
-  }
-
-  /**
-   * fetchMasterConflicts loads the *master* partition's conflict log — the
-   * losers on inventory, groups, series and a trip's own fields, which are
-   * merged there rather than in the trip partition. It takes no trip id
-   * because it belongs to none, which is why it needs its own endpoint:
-   * the per-trip query filters on `trip_id` and these rows have none.
-   */
-  async function fetchMasterConflicts(): Promise<ConflictEntry[]> {
-    if (local) return []
-    const resp = await client.get<ConflictListResponse>(API.masterConflicts, {})
-    return resp.conflicts
-  }
-
-  /**
-   * revertConflict restores the losing value of one audited merge —
-   * NFR-4.2a's second promise, beside the audit. The server writes it as
-   * an ordinary mutation with a fresh HLC rather than rewriting the past
-   * (ADR-023), so the restored value arrives here the normal way: the
-   * drain below pulls it, and every other device pulls it too.
-   *
-   * `tripId` picks the partition, exactly as the two fetchers do. Local
-   * Mode has one writer, so it has no conflicts to revert (FR-19.6).
-   */
-  async function revertConflict(conflictId: string, tripId?: string): Promise<void> {
-    if (local) return
-    if (tripId !== undefined) {
-      await client.post(API.tripConflictRevert(tripId, conflictId))
-      await drainTrip(tripId)
-      return
-    }
-    await client.post(API.masterConflictRevert(conflictId))
-    await drainMaster()
-  }
-
-  // --- Profile & data (M17) ---
-
-  /**
-   * fetchMe resolves the own identity; null in Local Mode (no server).
-   * is_instance_admin gates the M20 entry point (FR-23.2).
-   */
-  async function fetchMe(): Promise<MeResponse | null> {
-    if (local) return null
-    try {
-      return await client.get<MeResponse>(API.me, {})
-    } catch {
-      return null
-    }
-  }
-
-  // --- Instance user management (Addendum 3.23, M20) ---
-  // Plain REST, admin-gated server-side; nothing here touches the sync
-  // partitions (users is outside both).
-
-  async function fetchAdminUsers(): Promise<AdminUserRow[]> {
-    const resp = await client.get<AdminUserListResponse>(API.adminUsers, {})
-    return resp.users ?? []
-  }
-
-  async function deactivateUser(userID: string): Promise<void> {
-    await client.post(API.adminDeactivateUser(userID), {})
-    await refreshIdentity()
-  }
-
-  async function reactivateUser(userID: string): Promise<void> {
-    await client.post(API.adminReactivateUser(userID), {})
-    await refreshIdentity()
-  }
-
-  async function adminResetAvatar(userID: string): Promise<void> {
-    await client.delete(API.adminResetAvatar(userID))
-  }
-
-  async function adminResetDisplayName(userID: string): Promise<void> {
-    await client.delete(API.adminResetDisplayName(userID))
-    await refreshIdentity()
-  }
-
-  /**
-   * Mint an API token (FR-23.7). The response is the only time the token is
-   * ever readable, so it is handed straight to the caller and kept nowhere:
-   * this must not reach localStorage or any store.
-   */
-  async function createAPIToken(
-    name: string,
-    expiry: APITokenExpiry,
-  ): Promise<APITokenResponse | null> {
-    if (local) return null
-    return client.post<APITokenResponse>(API.meTokens, { name, expiry })
-  }
-
-  async function saveDisplayName(userId: string, name: string): Promise<void> {
-    if (local) return
-    await client.put(API.userDisplayName(userId), { display_name: name })
-    await refreshIdentity()
-  }
-
-  /**
-   * The four writers above are the only things that change who the instance
-   * knows about, so they are where the session-wide answer is fetched again
-   * (ADR-047) — never the screen that happened to trigger them. A rename made
-   * on M17 has to reach the name M4 puts on a packed row, and only one of
-   * those two screens is mounted at the time.
-   *
-   * The avatar writers are deliberately not among them: the bytes are fetched
-   * by URL with a cache-busting version, and the directory carries no image.
-   */
-  function refreshIdentity(): Promise<void> {
-    if (local) return Promise.resolve()
-    return useIdentityStore().refresh({ fetchUsers, fetchMe })
-  }
-
-  async function uploadAvatar(userId: string, jpeg: Blob): Promise<void> {
-    if (local) return
-    await client.putRaw(API.userAvatar(userId), jpeg, 'image/jpeg')
-  }
-
-  /** downloadExport fetches an NFR-4.5 export with the auth header. */
-  async function downloadExport(path: string): Promise<Blob | null> {
-    if (local) return null
-    return client.getBlob(path)
-  }
+  const identityActions = createIdentityActions({
+    client,
+    localMode: !!local,
+    // Read here rather than held: the pinia store does not exist until a
+    // pinia is active, and the orchestrator is built before one is in a test.
+    identityCache: () => useIdentityStore(),
+  })
 
   // --- Trip membership actions (FR-4.5/4.7) ---
 
@@ -1083,20 +769,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
-  /**
-   * fetchUsers loads the instance's user directory for the M3 sharing
-   * picker (FR-4.5); empty offline or in Local Mode (no accounts).
-   */
-  async function fetchUsers(): Promise<DirectoryUser[]> {
-    if (local) return []
-    try {
-      const resp = await client.get<UserListResponse>(API.users, {})
-      return resp.users ?? []
-    } catch {
-      return []
-    }
-  }
-
   // --- Lifecycle ---
 
   async function connect(): Promise<void> {
@@ -1121,7 +793,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
     ws.connect()
     // FR-6.2: notifications that arrived while this device was away.
-    void surfaceUnreadNotifications()
+    void notificationActions.surfaceUnread()
   }
 
   function subscribeTrip(tripId: string) {
@@ -1152,15 +824,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     capturePending,
     outbox,
     getPresence,
-    fetchConflicts,
-    fetchMasterConflicts,
-    revertConflict,
-    isLockedByOther,
-    holdsClaim,
+    ...conflictActions,
+    isLockedByOther: locks.isLockedByOther,
+    holdsClaim: locks.holdsClaim,
+    lockHolder: locks.lockHolder,
     releaseClaim,
     takeOverClaim,
     fetchLockEvents,
-    lockHolder,
 
     // Drain
     drainTrip,
@@ -1194,9 +864,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     packedRowsOf: tripLifecycleActions.packedRowsOf,
 
     // Master data
-    setItemImage,
-    deleteItemImage,
-    itemImageUrl,
+    ...imageActions,
     templateNameCollision: names.templateNameCollision,
     seriesNameCollision: names.seriesNameCollision,
     ...dependencyActions,
@@ -1211,32 +879,20 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     addTripMember,
     setTripMemberRole,
     removeTripMember,
-    fetchUsers,
 
     // Series & destinations (FR-13.1/13.2, M16)
     ...seriesActions,
     ...masterDataActions,
     ...packingActions,
 
-    // Profile & data (M17)
-    fetchMe,
-    createAPIToken,
-    saveDisplayName,
-    uploadAvatar,
-    downloadExport,
-
-    // Instance user management (Addendum 3.23, M20)
-    fetchAdminUsers,
-    deactivateUser,
-    reactivateUser,
-    adminResetAvatar,
-    adminResetDisplayName,
+    // Profile, directory and instance user management (M17, M20)
+    ...identityActions,
 
     // Notifications (FR-6.2 / NFR-4.6)
-    markNotificationRead,
-    fetchNotificationPrefs,
-    saveNotificationPrefs,
-    pushApi,
+    markNotificationRead: notificationActions.markNotificationRead,
+    fetchNotificationPrefs: notificationActions.fetchNotificationPrefs,
+    saveNotificationPrefs: notificationActions.saveNotificationPrefs,
+    pushApi: notificationActions.pushApi,
 
     // Post-trip review (FR-9.2, M14)
     activateTrip: tripLifecycleActions.activateTrip,
