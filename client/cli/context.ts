@@ -26,6 +26,7 @@ import { createCommentActions } from '@/composables/sync/actions/comments'
 import { createPackingActions } from '@/composables/sync/actions/packing'
 import { createGroupRefreshActions } from '@/composables/sync/actions/groupRefresh'
 import { createTripLifecycleActions } from '@/composables/sync/actions/tripLifecycle'
+import { knownTripItemsOf } from '@/composables/sync/context'
 import type { Enqueue, SyncContext } from '@/composables/sync/context'
 import { localIsoDate } from '@/domain/trips'
 import { isoFrom } from '@/lib/clock'
@@ -103,6 +104,7 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
     today: () => localIsoDate(now()),
     nowIso,
     tripDataLoaded: (tripId) => loaded.has(tripId),
+    knownTripItems: () => knownTripItemsOf(trips),
   }
 
   const comments = createCommentActions(ctx)
