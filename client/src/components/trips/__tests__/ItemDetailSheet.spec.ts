@@ -104,6 +104,57 @@ beforeEach(() => {
   orchestratorFake.capturePending.value = false
 })
 
+/** FR-7.3: an open task on a packed row (`is_task` on the comments table). */
+function seedOpenTask(store: ReturnType<typeof useTripStore>) {
+  store.applyChange({
+    seq: 0,
+    table: 'comments',
+    id: 'c1',
+    deleted: false,
+    row: {
+      trip_id: 't1',
+      trip_item_id: 'ti1',
+      author_id: 'u-alice',
+      body: 'impraegnieren',
+      is_task: true,
+      task_state: 'open',
+    },
+  })
+}
+
+describe('M5 state word (FR-25.4/FR-7.3)', () => {
+  it('names the row state', () => {
+    seedTrip('active')
+    expect(mountSheet().get('.state').text()).toBe('packed')
+  })
+
+  it('says the prep is still open on a packed row, which the state alone hides', () => {
+    const store = seedTrip('active')
+    seedOpenTask(store)
+    expect(mountSheet().get('.state').text()).toBe('packed \u00b7 prep open')
+  })
+
+  it('drops the note once the task is done — the state is the whole answer again', () => {
+    const store = seedTrip('active')
+    seedOpenTask(store)
+    store.applyChange({
+      seq: 1,
+      table: 'comments',
+      id: 'c1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        trip_item_id: 'ti1',
+        author_id: 'u-alice',
+        body: 'impraegnieren',
+        is_task: true,
+        task_state: 'done',
+      },
+    })
+    expect(mountSheet().get('.state').text()).toBe('packed')
+  })
+})
+
 describe('M5 mode chip (FR-3.2)', () => {
   it.each([
     ['buy_before' as const, true],

@@ -66,6 +66,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { isActive, nextLifecycleStep, tripOrderKey } from '@/domain/trips'
 import { t, type MessageKey } from '@/i18n'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatTripPeriod } from '@/lib/format'
 import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
@@ -151,7 +152,7 @@ async function addSampleData() {
 }
 
 async function report(message: string, duration = 4000) {
-  await presentToast({ message, duration, positionAnchor: 'm2-fab-anchor' })
+  await presentToast({ message, duration, positionAnchor: FAB_ANCHOR.m2 })
 }
 
 const {
@@ -784,7 +785,13 @@ async function handleRefresh(event: CustomEvent) {
       </IonList>
 
       <!-- FAB: New Trip -->
-      <IonFab id="m2-fab-anchor" vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
+      <IonFab
+        :id="FAB_ANCHOR.m2"
+        vertical="bottom"
+        horizontal="end"
+        slot="fixed"
+        class="mobile-fab"
+      >
         <IonFabButton
           data-testid="trips-new"
           :aria-label="t('trips.new')"

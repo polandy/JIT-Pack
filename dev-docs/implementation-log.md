@@ -326,6 +326,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The context asked for two stores and read twenty-six getters (2026-09-05)](#the-context-asked-for-two-stores-and-read-twenty-six-getters-2026-09-05) — C-9: `TripReads`/`MasterReads`; the census leaks back through whoever the store is handed to.
 - [The facade's last four passengers had nothing to do with syncing (2026-09-06)](#the-facades-last-four-passengers-had-nothing-to-do-with-syncing-2026-09-06) — C-7: why one `restFacade.ts` was rejected, and why three groups take `localMode` and not the store.
 - [The wizard built its own rows, and one of them nobody had ever tapped (2026-09-06)](#the-wizard-built-its-own-rows-and-one-of-them-nobody-had-ever-tapped-2026-09-06) — U-11: why the review's indices force the companion order, and a seed that closed a branch.
+- [A new vocabulary borrowed a word another guard owned (2026-09-06)](#a-new-vocabulary-borrowed-a-word-another-guard-owned-2026-09-06) — U-12: a property name is a shared namespace, and one anchor was answering nobody.
 
 ## Deviations
 
@@ -13362,3 +13363,45 @@ on. The gap itself is written down in `dev-docs/e2e-tests.md` rather than left a
 `quantity > 0` instead of only the generated slice, so a companion arriving with quantity 0 — a
 dependency can store one — is no longer counted as coming. It reaches the trip as `skipped` either
 way, and the count exists precisely so that it does not lie.
+
+## A new vocabulary borrowed a word another guard owned (2026-09-06)
+
+U-12: the FAB anchor id that lets a bottom toast clear the button was written twice per screen —
+once on the `IonFab`, once at every call site that anchors to it — at four screens across three
+directories. `lib/fabAnchors.ts` names each id once and both ends read it. M4's half already
+worked that way (`M4_FAB_ANCHOR_ID`, left behind by U-1.2); the const moved into the table so the
+five screens answer in one place rather than one screen answering better than the others.
+
+**The key names were the interesting part.** The first version keyed the table descriptively —
+`tripList`, `packingList`, `templateList`, `templateEditor` — and two cases in
+`masterListFiltering.spec.ts` went red. That guard scans every source for `\.(itemList|templateList)\b`
+and demands a file reading a *complete* master list be classified with a reason (FR-24.3/ADR-032);
+`FAB_ANCHOR.templateList` reads as `masterStore.templateList` to a regex, and so did the call site
+in `TemplateListPage.vue`, which is one of the four screens the guard names as an offer surface.
+Both reds were correct about what they saw. Classifying `fabAnchors.ts` as a reader would have been
+a lie that costs the guard its precision, so the keys became the UI-Spec's screen ids instead —
+which is what the elements are already called (`m7-fab` is the button's own testid). **A property
+name is part of a shared namespace even when the module has nothing to do with the one that owns
+it**, and a heuristic guard is where that gets discovered.
+
+**The suite reads the same constant.** Two cases assert that the fab *container* survives while its
+button is hidden — the M7/M8 defect of 2026-08-15 — and both spelled the id themselves. `e2e/fabAnchors.ts`
+re-exports the module the way `e2e/routes.ts` re-exports the paths, which works because both are
+import-free on purpose: no `@/` alias to resolve, no Ionic to load in a Node process. Verified with
+`npx playwright test --list` (all 40 spec files load), not by reasoning about Playwright's resolver.
+
+**One anchor was answering nobody.** M9's `IonFab` carried `m9-fab-anchor` and no toast anywhere
+passed it — the inventory presents none, and `ItemEditorPage.vue` says in a comment why the M10
+creation toast was removed rather than anchored ("the anchor is M9's FAB, and this toast shows
+while the user is still on M10, where there is none"). It is the residue of that attempt, so the
+id is gone rather than kept as a table entry that describes a use that does not exist.
+
+**The label table half was one site, not the four the finding listed.** U-1.4/U-1.5 had already
+taken M4's tables to `MessageKey`; what was left was M5's, rebuilt inline on every read and reaching
+`t` through `as Parameters<typeof t>[0]`. That cast is what makes the table worth moving: it stops
+the catalogue being checked at all, so a renamed key compiles. `lib/stateLabels.ts` follows
+`modeLabels.ts`, typed `Record<ItemState, MessageKey>` at both ends. The FR-7.3 exception — a packed
+row that still owes a task says so instead of saying "packed" — moved with it as an option, because
+it is the same decision and the sheet was the only place it was written. Three cases now pin the
+wiring in `ItemDetailSheet.spec.ts`, which had never asserted the word at all; both the state
+argument and the `prepOpen` flag were mutation-proved.
