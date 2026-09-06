@@ -58,8 +58,8 @@ describe('presentToast', () => {
 
   it('leaves a caller-named anchor alone — a FAB sits higher than the bar', async () => {
     mountTabBar(56)
-    await presentToast({ message: 'gespeichert', positionAnchor: 'm4-fab-anchor' })
-    expect(create.mock.calls[0]![0]!.positionAnchor).toBe('m4-fab-anchor')
+    await presentToast({ message: 'gespeichert', positionAnchor: 'some-fab' })
+    expect(create.mock.calls[0]![0]!.positionAnchor).toBe('some-fab')
   })
 
   it('anchors nothing when the tab bar is not rendered (M4 is full-screen)', async () => {

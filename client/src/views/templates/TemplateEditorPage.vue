@@ -53,6 +53,7 @@ import { foldDismissals } from '@/composables/useFoldDismissals'
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import { attributeLabel } from '@/lib/attributeLabels'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -89,7 +90,7 @@ async function toast(message: string, undo?: { text: string; handler: () => void
   await presentToast({
     message,
     // Higher than the tab bar the helper would clear, so this screen keeps it.
-    positionAnchor: 'm8-fab-anchor',
+    positionAnchor: FAB_ANCHOR.m8,
     buttons: undo ? [{ text: undo.text, role: 'undo', handler: undo.handler }] : undefined,
   })
 }
@@ -818,7 +819,7 @@ const mergeLines = computed(() =>
         <!-- FR-25.13a, amended 2026-08-17: the ＋ opens the quick-add, so it
              hides while the quick-add is open — there is nothing left for it to
              do, and the composer needs the space more than the button does. -->
-        <IonFab id="m8-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
+        <IonFab :id="FAB_ANCHOR.m8" vertical="bottom" horizontal="end" slot="fixed">
           <IonFabButton
             v-if="!quickAddExpanded"
             :aria-label="t('templates.addPosition')"

@@ -65,6 +65,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { ITEM_MODES, isShoppingMode } from '@/types/domain'
 import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
+import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{
@@ -338,18 +339,9 @@ const contextLine = computed(() => {
   return parts.join(' · ')
 })
 
-const stateLabel = computed(() => {
-  if (!item.value) return ''
-  if (hasPrepWithPacked.value) return t('item.statePackedOpenPrep')
-  const key = {
-    open: 'item.stateOpen',
-    partial: 'item.statePartial',
-    packed: 'item.statePacked',
-    skipped: 'item.stateSkipped',
-    packing_now: 'item.statePackingNow',
-  }[item.value.state]
-  return t(key as Parameters<typeof t>[0])
-})
+const stateLabel = computed(() =>
+  item.value ? stateLabelFor(item.value.state, { prepOpen: hasPrepWithPacked.value }) : '',
+)
 
 /**
  * FR-25.17/25.19: who packed it and when, and who was responsible. The

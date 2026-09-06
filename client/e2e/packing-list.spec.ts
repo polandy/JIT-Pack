@@ -12,6 +12,7 @@ import {
   useReducedMotion,
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
+import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
 import { createItem } from './helpers/m9'
 
@@ -107,7 +108,7 @@ test.describe('M4 packing list @local @m4', () => {
     // The anchor survives the button: M4 positions its FR-25.2 undo snackbar
     // against the fab *container*, so hiding the whole IonFab would drop the
     // snackbar behind the tab bar — the M7/M8 defect of 2026-08-15.
-    await expect(page.locator('#m4-fab-anchor')).toHaveCount(1)
+    await expect(page.locator(`#${FAB_ANCHOR.m4}`)).toHaveCount(1)
 
     // Adding does not bring it back — the composer stays open (FR-25.13), so
     // the ＋ still has nothing to do.

@@ -98,7 +98,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { useTripIdentity } from '@/composables/useTripIdentity'
-import { M4_FAB_ANCHOR_ID, usePackAnnouncer } from '@/composables/usePackAnnouncer'
+import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
 import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/sync/mutations'
@@ -107,6 +107,7 @@ import { rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -193,7 +194,7 @@ async function declineGroupChanges() {
 
 /** A plain toast: both answers are final, and neither has an undo to offer. */
 async function reportGroupAnswer(message: string) {
-  await presentToast({ message, positionAnchor: M4_FAB_ANCHOR_ID })
+  await presentToast({ message, positionAnchor: FAB_ANCHOR.m4 })
 }
 
 /**
@@ -735,7 +736,7 @@ async function onTakeOver(item: TripItem) {
       message: previousName
         ? t('packing.takeoverDone', { who: previousName })
         : t('packing.takeoverDoneUnknown'),
-      positionAnchor: M4_FAB_ANCHOR_ID,
+      positionAnchor: FAB_ANCHOR.m4,
     })
   } catch {
     // The claim did not move, and the likeliest reason is that the screen
@@ -743,7 +744,7 @@ async function onTakeOver(item: TripItem) {
     // was open. Saying so beats a silent no-op.
     await presentToast({
       message: t('packing.takeoverFailed'),
-      positionAnchor: M4_FAB_ANCHOR_ID,
+      positionAnchor: FAB_ANCHOR.m4,
     })
   }
 }
@@ -944,7 +945,7 @@ function onQuickAdd(
       }),
       // Above the composer's own anchor, like every other M4 toast: this one
       // fires while the quick-add is still open for the next entry.
-      positionAnchor: M4_FAB_ANCHOR_ID,
+      positionAnchor: FAB_ANCHOR.m4,
     })
   }
 }
@@ -1434,7 +1435,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
       <!-- The id is the snackbar's anchor: FR-25.2's undo is the one control
            the FAB must never sit on top of (the same rule as FR-25.11h, one
            layer up). -->
-      <IonFab :id="M4_FAB_ANCHOR_ID" slot="fixed" vertical="bottom" horizontal="end">
+      <IonFab :id="FAB_ANCHOR.m4" slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton
           v-if="!quickAddExpanded && !closingPass"
           data-testid="m4-fab"
