@@ -4546,6 +4546,14 @@ Two mechanical notes from the sweep, both of which cost something to find:
 the thirty-four call sites would have needed a new locator as well as a new step, and the diff
 would have hidden the behaviour change inside a rename.
 
+**Both new assertions the review pass added were wrong, and only the pipeline said so.** One read
+the screen's name as *Items*; the catalogue says *Inventory*, and a label typed from memory rather
+than looked up is a guess wearing an assertion's clothes. The other asserted the trip's name inside
+`openAnalytics`, the shared door every M12 case comes through — two of them open a *different*
+trip, so the helper was claiming a per-case fact. The rule that falls out: **a shared entry helper
+asserts what cannot vary** — here the screen's own name — and anything that depends on the case
+belongs in the case, where the value is in scope and visible beside the assertion.
+
 **A test id assembled from a template literal needs a literal edge in `client/src`.** The first
 version of `openTripView` clicked ``m4-nav-${view}``, and `scripts/testid-gate.mjs` refused it:
 the app declares `m4-nav-shopping` and its two siblings as whole literals in a descriptor list, and

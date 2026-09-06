@@ -843,7 +843,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'portable-paste')).toBeVisible()
 
     await page.goto(PATH.items)
-    await expect(page.getByTestId('header-title')).toHaveText('Items')
+    await expect(page.getByTestId('header-title')).toHaveText('Inventory')
 
     await page.goto(PATH.trips)
     await expect(page.getByTestId('header-title')).toHaveText('Trips')
