@@ -13550,6 +13550,15 @@ suite fails against the new bundle, with the new ones it passes. **The rule this
 comparison that has never been seen to fail is a screenshot of an assumption — and the visual
 baselines were exactly that, for three weeks.
 
+**And the first thing the zero threshold caught on the runner was a timer.** E2E-VIS-04 failed on
+CI by 1542 px — a 48×48 square of state tint under the scrim where the filter button is — in one
+job and passed in another, on the same commit. Ionic paints a pressed button `ion-activated` and
+clears it 150 ms after pointer-up (`CLEAR_STATE_DEFERS`); the shot sometimes beat the timer. Two
+guesses went first (park the pointer, drop focus) and neither settled it, because neither was the
+cause. The case now waits for the class to be gone, which is the observable seam the working
+agreement asks for — and it is a race the old tolerance had been hiding for three weeks, not one
+the palette introduced.
+
 **The unit guard widened rather than moved.** The old spec asserted that Latte restated the brand
 with a `color-mix()` and an rgb twin; that clause exists because Tag's brand is already the deep
 bronze a light ground needs, so there is no mix to guard. Deleting the case would have deleted the
