@@ -13,7 +13,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 
 - [The rule that comes before the units](#the-rule-that-comes-before-the-units) — why a UI change ships a *passing* case in the same PR, and the two rules the four navigation defects paid for.
 - [Working rule: one unit per PR](#working-rule-one-unit-per-pr) — why two case-adding PRs collide even when git merges both cleanly.
-- [Conventions that matter](#conventions-that-matter) — the binding selector rules — `data-testid` only, Ionic's inner `<input>`, scoped `row-*`, no sleeps, the two clicks …
+- [Conventions that matter](#conventions-that-matter) — they moved to `client/e2e/README.md`, the on-ramp; this is the pointer.
 - [Order of attack](#order-of-attack) — the §10 sequence, and why an order of attack goes stale silently.
 - [What the suite costs, measured](#what-the-suite-costs-measured) — the 2026-08-19 measurement behind the 60 s budget; what a §2.4 unit costs on WebKit.
 - [Status](#status) — **the table** — which spec cases are implemented, in which mode, in which file.
@@ -145,14 +145,13 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 
 ## Conventions that matter
 
-- **`data-testid` only.** Never text or CSS-class selectors. Adding the missing testids to a component is part of writing the case, and the attribute is the contract — renaming one is a breaking change to the suite.
-- **Ionic inputs need `.locator('input')`.** `getByTestId('x')` finds the `<ion-input>` host; the fillable element is the `<input>` inside it.
-- **Seed through the app, not around it** (spec §2.4). Use `createTripViaWizard` and friends. A fast-path that writes rows directly is allowed only for `server`-mode preconditions that are not themselves under test.
-- **No sleeps, ever.** Playwright's `expect` retries on its own; assert the outcome, never wait a fixed time for it. If a case can only pass by waiting and hoping, the fault is in the production code — give it a deterministic seam. This is the same rule the Go suite follows and it is not negotiable in either.
-- **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen. Run a slice with `npm run test:e2e -- --grep @local`.
-- **A `row-*` locator is always scoped** (2026-08-30). `QuantityStepper` renders `row-check`/`row-minus`/`row-plus` and is used by M4's rows, M5's packing block and M8 alike — the ids name the *control*, not the screen, which is right, and a rename would be a breaking change across three units. While M5 is open the list behind it is still painted, so an unscoped `getByTestId('row-check')` is genuinely ambiguous. Scope to `m5-sheet` or to `m4-row-<name>`, never to the page. The suite has always done this; it was a habit rather than a rule until the M5 audit found no line saying so.
-- **A uuid in a DOM `id` is not always a missing testid** (2026-08-30). `ItemDetailSheet`'s note articles carry `id="comment-<uuid>"` because that is production's own scroll target for the G-4 `?comment=` deep link. It stays, and the addressable handle sits beside it as `m5-note-<body>`. Recorded so the next audit does not re-file it as the pattern the M4 audit named.
-- **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the `server` cases that were still owed when this was written — delegation, presence, M20, all landed since — will all reach for an archived trip eventually.
+**They live in [`client/e2e/README.md`](../client/e2e/README.md), not here.**
+That file is the on-ramp: how to run one case on this host, the helper
+vocabulary as a table, and the binding rules — `data-testid` only, the visible
+page rather than the URL, Ionic's inner `<input>`, scoped `row-*` locators, no
+sleeps, the two clicks an archive takes, and the desktop-width trap that costs
+an hour. They were written in both places and drifted; the README has them now
+and this ledger stays what it is, the record of what the suite covers.
 
 ## Order of attack
 

@@ -1,6 +1,7 @@
 import { test, expect, expectTripOpen } from './fixtures'
 import {
   addPosition,
+  addToGroup,
   backToTemplateList as backToList,
   createTemplate,
   createTripViaWizard,
@@ -30,14 +31,6 @@ async function searchQuickAdd(page: Page, query: string) {
 }
 
 /** Add one position to an existing group through M7 → M8. */
-async function addToGroup(page: Page, group: string, item: string) {
-  await page.goto(PATH.templates)
-  await visible(page).getByTestId('m7-scope-group').click()
-  await visible(page).locator('ion-item').filter({ hasText: group }).first().click()
-  await expect(page.getByTestId('header-title')).toHaveText(group)
-  await addPosition(page, item)
-}
-
 test.describe('FR-27.10 — adding a whole group to a running trip', () => {
   // Built through M7/M8/M3 per spec §2.4, which lands near the default budget
   // on WebKit: declared rather than raced.
