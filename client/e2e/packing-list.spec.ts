@@ -14,6 +14,7 @@ import {
 import type { Locator, Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
+import { packRow } from './helpers/m4'
 import { createItem } from './helpers/m9'
 
 /**
@@ -1015,11 +1016,16 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     await expect(page.getByTestId('m4-search-input')).toBeVisible()
   })
 
-  // E2E-M4-56 (UX pass 2026-08-25, UX-9): the packing control column holds
-  // one width whatever it carries, so the name column is straight — before
-  // this rule a stepper row started its name 86 px right of a checkbox row.
-  // Built through M8 per spec §2.4, because a quantity can only come from a
-  // position; measured on rendered boxes, not on the stylesheet.
+  // E2E-M4-56 (UX pass 2026-08-25, UX-9; revised 2026-09-06): the names of
+  // a checkbox row and a stepper row start at the same x, and the two
+  // controls end at the same x. UX-9 bought the first with a fixed control
+  // column on the *left* — before it a stepper row started its name 86 px
+  // right of a checkbox row. The control now sits at the row's other edge,
+  // so the lead column holds the names straight and the container edge
+  // holds the controls; both halves are asserted, because either one alone
+  // would pass on a row that had lost the other. Built through M8 per spec
+  // §2.4, because a quantity can only come from a position; measured on
+  // rendered boxes, not on the stylesheet.
   test('E2E-M4-56: a checkbox row and a stepper row start the name at the same x', async ({
     page,
   }) => {
@@ -1049,10 +1055,42 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     const checkboxName = await checkboxRow.locator('h3').first().boundingBox()
     expect(stepperName!.x).toBe(checkboxName!.x)
 
-    // The rule behind it: the control column is one width for every row.
-    const stepperSlot = await stepperRow.locator('.row-start').boundingBox()
-    const checkboxSlot = await checkboxRow.locator('.row-start').boundingBox()
-    expect(stepperSlot!.width).toBe(checkboxSlot!.width)
+    // The rule behind it: the lead column is one width for every row, and
+    // it is the mark slot rather than the control that holds it open.
+    const stepperLead = await stepperRow.locator('.row-lead').boundingBox()
+    const checkboxLead = await checkboxRow.locator('.row-lead').boundingBox()
+    expect(stepperLead!.width).toBe(checkboxLead!.width)
+
+    // The other edge: whatever the control is, the thing you tap ends where
+    // the row does. A stepper is wider than a checkbox, so this is only true
+    // if the column is right-aligned rather than merely present.
+    const stepperControl = await stepperRow.locator('.row-control').boundingBox()
+    const checkboxControl = await checkboxRow.locator('.row-control').boundingBox()
+    expect(stepperControl!.width).toBeGreaterThan(checkboxControl!.width)
+    expect(stepperControl!.x + stepperControl!.width).toBe(
+      checkboxControl!.x + checkboxControl!.width,
+    )
+  })
+
+  // E2E-M4-68 (FR-25.2, 2026-09-06): a done row keeps its place in the list
+  // and loses its place in the queue — it falls behind the rows that still
+  // ask for something. Asserted on the *rendered* order, because the domain
+  // unit can only say what the view model holds.
+  test('E2E-M4-68: a packed row sinks to the end of its group when revealed', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Schlafsack', 'Stirnlampe'])
+
+    // Packing takes the row off the working list (FR-25.2's default), which
+    // is the evidence the pack landed before anything is revealed.
+    await packRow(page, 'Schlafsack')
+
+    await page.getByTestId('m4-done-bar').click()
+    const names = visible(page).locator('.group-card h3')
+    await expect(names).toHaveText([/Zelt/, /Stirnlampe/, /Schlafsack/])
+
+    // The middle row is where it was: sinking one row must not reorder the
+    // others, and a list of three where only the last moved is the proof.
+    await expect(names.nth(1)).toHaveText(/Stirnlampe/)
   })
 
   /*

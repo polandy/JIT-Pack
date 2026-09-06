@@ -1209,8 +1209,16 @@ locked.
 * **FR-25.2 (Completed & Skipped Items Hidden by Default):** An item that is **done** — either fully packed, or
   consciously skipped (FR-5.5) — is **hidden from the active packing list by default**, keeping the working list focused
   on what is left. A persistent, unobtrusive control (e.g., "N gepackte anzeigen") re-reveals them; revealing is
-  non-destructive and per-user. When revealed, done rows are shown **lightly greyed/dimmed** (visually de-emphasised,
-  still interactive so a mistaken pack can be corrected). A row counts as *done* only when fully packed **with no open
+  non-destructive and per-user. **When revealed, a done row sinks to the end of its group and wears its name struck
+  through** (added 2026-09-06): sinking says the same thing the hiding says — this one is not waiting for you — without
+  taking the row away, so the rows still asking for something stay together at the top instead of being interleaved
+  with the settled ones. Order within each half is untouched, and the strike replaces the blanket dim the row used to
+  carry, which also dimmed the FR-25.17 stamp naming who packed it and when — the one part of a done row still worth
+  reading. The row stays interactive, so a mistaken pack can be corrected. Two exemptions, each for the same reason —
+  a list where everything is done sorts by an axis nobody is working through: **a cluster sinks only when every visible
+  instance is done** (the head names one item and cannot be in two places, and the people inside it keep their traveler
+  order), and **FR-9.3's closing pass does not sink at all**, since everything it lists was packed by definition and
+  "done" there separates fully packed from partly packed. A row counts as *done* only when fully packed **with no open
   preparation task** — a "packed with open prep" row (FR-7.3) stays visible because work remains. Group headers keep
   their `done/total` count over the full set even while the done rows are hidden, and a group all of whose rows are done
   collapses entirely (header included). This extends FR-5.5 (which only collapsed *skipped* items) to also hide *packed*
