@@ -14,11 +14,15 @@ import { visiblePage } from './helpers/page'
  * and no manual clearing is needed.
  *
  * What a screen *is* — a trip, a Vorlage, luggage, an inventory row — lives
- * beside this file in `helpers/`, one module per seam, and is re-exported
- * here so a spec keeps one import. This file owns the seeding and the `test`
- * extension: the two things that are about the run rather than about a
- * screen. Backend-backed driving (jitpackd, the mock IdP, OIDC tokens for
- * the `server` cases) is `serverMode.ts`.
+ * beside this file in `helpers/`, one module per seam. The five re-exported
+ * below come from `'./fixtures'` along with `test`; `helpers/m4` and
+ * `helpers/m9` are imported by path, because a spec that packs rows or seeds
+ * inventory is asking for a screen rather than for the harness. This file
+ * owns the seeding and the `test` extension: the two things that are about
+ * the run rather than about a screen. Backend-backed driving (jitpackd, the
+ * mock IdP, OIDC tokens for the `server` cases) is `serverMode.ts`.
+ *
+ * The catalogue of every helper, and how to run one case, is `README.md`.
  */
 
 export * from './helpers/page'
@@ -92,8 +96,6 @@ interface Fixtures {
    */
   oneLivePage: void
 }
-
-// --- M11 containers, shared by the M11 and M12 units ------------------------
 
 export const test = base.extend<Fixtures>({
   seedMode: async ({ page }, use) => {

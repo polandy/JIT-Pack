@@ -329,6 +329,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A new vocabulary borrowed a word another guard owned (2026-09-06)](#a-new-vocabulary-borrowed-a-word-another-guard-owned-2026-09-06) — U-12: a property name is a shared namespace, and one anchor was answering nobody.
 - [A chip had said "2 preparation" since the day it was written (2026-09-06)](#a-chip-had-said-2-preparation-since-the-day-it-was-written-2026-09-06) — U-13: four derivations left the two biggest views; the copy defect was visible only once a test rendered one.
 - [One store, three names, and one file where the sweep would have been wrong (2026-09-06)](#one-store-three-names-and-one-file-where-the-sweep-would-have-been-wrong-2026-09-06) — U-14: a rename is safe only where the name means one thing per file.
+- [The on-ramp was four files, and three of the complaints were already fixed (2026-09-06)](#the-on-ramp-was-four-files-and-three-of-the-complaints-were-already-fixed-2026-09-06) — T-2: a doc with a false sentence costs more than no doc.
 
 ## Deviations
 
@@ -13472,3 +13473,41 @@ back, which reports twice — the rule, and the unused variable the half-rename 
 20. That is the same complaint one store over, and it is a much larger diff than the one the item
 scoped; the bare-`store` bindings for the master and identity stores were folded in here because
 those *are* the shape U-14 names, and the rest stays whole.
+
+## The on-ramp was four files, and three of the complaints were already fixed (2026-09-06)
+
+T-2 asked for a five-minute on-ramp to the e2e suite, the instructions being spread over
+`client/e2e/README.md`, the ledger's *„Conventions that matter"*, `fixtures.ts` docblocks and
+`scripts/e2e.sh`'s header. Reading it against the tree first was worth doing: **three of its five
+claims had been closed by other items.** CLAUDE.md links the README (T-1), `fixtures.ts` no longer
+says its helpers *„will extend this file in later milestones"* (T-3), and the helper modules it
+named as uncatalogued now exist as seven files rather than as copies. A review is a snapshot, and
+this one was four weeks old.
+
+**What was actually wrong was worse than what was written.** The README's *„It re-exports every
+helper below, so a spec keeps one import"* is false: `fixtures.ts` re-exports five of the seven
+modules, and `helpers/m4` and `helpers/m9` are imported by path in nine specs. A reader following
+that sentence writes an import that does not resolve — a doc that costs more than no doc. The
+running instructions had the same shape: the first code block was `npm run test:e2e`, which cannot
+work on this host, and `scripts/e2e.sh` — the thing that does work, and the only caller that checks
+the image pin against the lockfile — was not mentioned anywhere in the file.
+
+**The conventions were in two places and had already drifted apart.** The README held three the
+ledger did not (never `toBeEnabled()` on an `ion-button`, the desktop-width trap, the suite being
+type-checked) and the ledger held three the README did not (scoped `row-*`, the uuid-in-`id` note,
+the two clicks an archive takes). Neither was wrong; each was incomplete, which is the failure mode
+of a rule with two homes. They are the README's now and the ledger carries a pointer, because the
+ledger's job is what the suite covers.
+
+**The runbook was verified by running it**, not by reading it: `scripts/e2e.sh -g "E2E-M5-05"` (2
+tests, 29 s) and `scripts/e2e.sh smoke.spec.ts` (8 tests, 27 s), both from the block as written.
+Two claims that could not be verified without guessing — what `--headed` does inside the container,
+and how Playwright reports a project that the config left out — were rewritten rather than asserted.
+
+**Found and deliberately left: the suite holds six different phone viewports.** `MOBILE` is
+declared in four specs (390×844 three times, 400×860 once) and written inline as a literal in five
+more, and the set includes 390×640, 390×860, 400×880 and 430×932. Some of those are deliberate — a
+*short* viewport tests overflow, a 430 px one tests a large phone — so a sweep to one constant would
+erase a distinction nobody wrote down, in cases nobody is currently reading. The README stops citing
+`MOBILE` as though it were a shared name and says to read the neighbouring cases before copying a
+number. The `e2e-helpers-gate` does not catch this because the copies are constants, not functions.
