@@ -28,41 +28,41 @@ describe('tripStore comments (FR-7.1)', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
   it('routes plain comments and tasks to separate collections', () => {
-    const store = useTripStore()
-    store.applyChange(commentChange('c1', { is_task: 0 }))
-    store.applyChange(commentChange('c2', { is_task: 1, task_state: 'open' }))
+    const tripStore = useTripStore()
+    tripStore.applyChange(commentChange('c1', { is_task: 0 }))
+    tripStore.applyChange(commentChange('c2', { is_task: 1, task_state: 'open' }))
 
-    expect(store.getItemComments('t1', 'ti1').map((c) => c.id)).toEqual(['c1'])
-    expect(store.getItemTodos('t1', 'ti1').map((t) => t.id)).toEqual(['c2'])
+    expect(tripStore.getItemComments('t1', 'ti1').map((c) => c.id)).toEqual(['c1'])
+    expect(tripStore.getItemTodos('t1', 'ti1').map((t) => t.id)).toEqual(['c2'])
   })
 
   it('keeps trip-level comments (null trip_item_id) retrievable', () => {
-    const store = useTripStore()
-    store.applyChange(commentChange('c1', { trip_item_id: null, is_task: 0 }))
+    const tripStore = useTripStore()
+    tripStore.applyChange(commentChange('c1', { trip_item_id: null, is_task: 0 }))
 
-    expect(store.getTripComments('t1')).toHaveLength(1)
-    expect(store.getItemComments('t1', 'ti1')).toHaveLength(0)
+    expect(tripStore.getTripComments('t1')).toHaveLength(1)
+    expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
   })
 
   it('flagging as task moves the row between collections (FR-7.2)', () => {
-    const store = useTripStore()
-    store.applyChange(commentChange('c1', { is_task: 0 }))
+    const tripStore = useTripStore()
+    tripStore.applyChange(commentChange('c1', { is_task: 0 }))
 
-    store.applyChange(commentChange('c1', { is_task: 1, task_state: 'open' }))
-    expect(store.getItemComments('t1', 'ti1')).toHaveLength(0)
-    expect(store.getItemTodos('t1', 'ti1')).toHaveLength(1)
+    tripStore.applyChange(commentChange('c1', { is_task: 1, task_state: 'open' }))
+    expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
+    expect(tripStore.getItemTodos('t1', 'ti1')).toHaveLength(1)
 
-    store.applyChange(commentChange('c1', { is_task: 0 }))
-    expect(store.getItemComments('t1', 'ti1')).toHaveLength(1)
-    expect(store.getItemTodos('t1', 'ti1')).toHaveLength(0)
+    tripStore.applyChange(commentChange('c1', { is_task: 0 }))
+    expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(1)
+    expect(tripStore.getItemTodos('t1', 'ti1')).toHaveLength(0)
   })
 
   it('deletion removes the comment wherever it lives', () => {
-    const store = useTripStore()
-    store.applyChange(commentChange('c1', { is_task: 0 }))
-    store.applyChange({ seq: 0, table: 'comments', id: 'c1', deleted: true, row: null })
+    const tripStore = useTripStore()
+    tripStore.applyChange(commentChange('c1', { is_task: 0 }))
+    tripStore.applyChange({ seq: 0, table: 'comments', id: 'c1', deleted: true, row: null })
 
-    expect(store.getItemComments('t1', 'ti1')).toHaveLength(0)
+    expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
   })
 })
 
@@ -98,14 +98,14 @@ describe('orchestrator comment actions', () => {
 
   it('addComment applies optimistically; flag as task moves it to todos', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
+    const tripStore = useTripStore()
 
     const id = orch.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
-    expect(store.getItemComments('t1', 'ti1')).toHaveLength(1)
+    expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(1)
 
-    orch.flagCommentAsTask('t1', store.getItemComments('t1', 'ti1')[0]!)
-    expect(store.getItemComments('t1', 'ti1')).toHaveLength(0)
-    const todos = store.getItemTodos('t1', 'ti1')
+    orch.flagCommentAsTask('t1', tripStore.getItemComments('t1', 'ti1')[0]!)
+    expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
+    const todos = tripStore.getItemTodos('t1', 'ti1')
     expect(todos).toHaveLength(1)
     expect(todos[0]).toMatchObject({ id, body: 'Ventil prüfen', task_state: 'open' })
   })

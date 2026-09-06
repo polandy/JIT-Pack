@@ -54,7 +54,7 @@ export interface TripScreen {
  * the place that says so.
  */
 export function useTripScreen(tripId: string, source: TripScreenSource): TripScreen {
-  const store = useTripStore()
+  const tripStore = useTripStore()
   let inFlight: Promise<void> | null = null
 
   function ensure(): Promise<void> {
@@ -68,7 +68,7 @@ export function useTripScreen(tripId: string, source: TripScreenSource): TripScr
   onMounted(ensure)
 
   return {
-    trip: computed(() => store.getTrip(tripId)),
+    trip: computed(() => tripStore.getTrip(tripId)),
     loaded: computed(() => source.tripDataLoaded(tripId)),
     ensure,
   }

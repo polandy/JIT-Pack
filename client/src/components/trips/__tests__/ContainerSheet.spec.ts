@@ -58,12 +58,12 @@ function item(id: string, containerId: string, weightGrams: number): TripItem {
 
 /** Seeds through the store's public applyChange, the same door sync uses. */
 function seed(
-  store: ReturnType<typeof useTripStore>,
+  tripStore: ReturnType<typeof useTripStore>,
   table: 'containers' | 'trip_items' | 'travelers',
   entity: Container | TripItem | Traveler,
 ) {
   const { id, ...row } = entity
-  store.applyChange({ seq: 0, table, id, deleted: false, row })
+  tripStore.applyChange({ seq: 0, table, id, deleted: false, row })
 }
 
 const orchestratorFake = {
@@ -90,9 +90,9 @@ beforeEach(() => {
 
 describe('ContainerSheet', () => {
   it('shows the load against the limit and flags going over (FR-10.3)', () => {
-    const store = useTripStore()
-    seed(store, 'containers', container('left', { name: 'Left', max_weight_grams: 1000 }))
-    seed(store, 'trip_items', item('towel', 'left', 1200))
+    const tripStore = useTripStore()
+    seed(tripStore, 'containers', container('left', { name: 'Left', max_weight_grams: 1000 }))
+    seed(tripStore, 'trip_items', item('towel', 'left', 1200))
 
     const wrapper = mountSheet()
     const loadLine = wrapper.get('[data-testid="m11-sheet-load"]')
@@ -102,9 +102,9 @@ describe('ContainerSheet', () => {
   })
 
   it('pairs via the orchestrator, both ids in order (FR-10.3)', async () => {
-    const store = useTripStore()
-    seed(store, 'containers', container('left'))
-    seed(store, 'containers', container('right'))
+    const tripStore = useTripStore()
+    seed(tripStore, 'containers', container('left'))
+    seed(tripStore, 'containers', container('right'))
 
     const wrapper = mountSheet('left')
     await wrapper.get('[data-testid="m11-pair-right"]').trigger('click')
@@ -114,9 +114,9 @@ describe('ContainerSheet', () => {
   })
 
   it('tapping the active partner clears the pair for both sides', async () => {
-    const store = useTripStore()
-    seed(store, 'containers', container('left', { paired_container_id: 'right' }))
-    seed(store, 'containers', container('right', { paired_container_id: 'left' }))
+    const tripStore = useTripStore()
+    seed(tripStore, 'containers', container('left', { paired_container_id: 'right' }))
+    seed(tripStore, 'containers', container('right', { paired_container_id: 'left' }))
 
     const wrapper = mountSheet('left')
     await wrapper.get('[data-testid="m11-pair-right"]').trigger('click')
@@ -126,23 +126,23 @@ describe('ContainerSheet', () => {
   })
 
   it('shows the imbalance only beyond the threshold (FR-10.3, default 15 %)', () => {
-    const store = useTripStore()
-    seed(store, 'containers', container('left', { paired_container_id: 'right' }))
-    seed(store, 'containers', container('right', { paired_container_id: 'left' }))
-    seed(store, 'trip_items', item('tent', 'left', 1000))
-    seed(store, 'trip_items', item('pegs', 'right', 900)) // 10 % — balanced enough
+    const tripStore = useTripStore()
+    seed(tripStore, 'containers', container('left', { paired_container_id: 'right' }))
+    seed(tripStore, 'containers', container('right', { paired_container_id: 'left' }))
+    seed(tripStore, 'trip_items', item('tent', 'left', 1000))
+    seed(tripStore, 'trip_items', item('pegs', 'right', 900)) // 10 % — balanced enough
 
     const balanced = mountSheet('left')
     expect(balanced.find('[data-testid="m11-imbalance"]').exists()).toBe(false)
 
-    seed(store, 'trip_items', item('pegs', 'right', 500)) // 50 %
+    seed(tripStore, 'trip_items', item('pegs', 'right', 500)) // 50 %
     const skewed = mountSheet('left')
     expect(skewed.get('[data-testid="m11-imbalance"]').text()).toContain('50 % imbalance')
   })
 
   it('commits a changed name on blur and ignores a no-op (G-5)', async () => {
-    const store = useTripStore()
-    seed(store, 'containers', container('left', { name: 'Left' }))
+    const tripStore = useTripStore()
+    seed(tripStore, 'containers', container('left', { name: 'Left' }))
 
     const wrapper = mountSheet('left')
     const input = wrapper.get('[data-testid="m11-name-input"]')
@@ -165,9 +165,9 @@ describe('ContainerSheet', () => {
   // that could only ever be handed on was indistinguishable from one that
   // toggles.
   it('tapping the carrier again clears it — the carrier is optional (FR-10.1)', async () => {
-    const store = useTripStore()
-    seed(store, 'travelers', { id: 'andy', trip_id: 't1', name: 'Andy', linked_user_id: null })
-    seed(store, 'containers', container('left', { carrier_traveler_id: 'andy' }))
+    const tripStore = useTripStore()
+    seed(tripStore, 'travelers', { id: 'andy', trip_id: 't1', name: 'Andy', linked_user_id: null })
+    seed(tripStore, 'containers', container('left', { carrier_traveler_id: 'andy' }))
 
     const wrapper = mountSheet('left')
     await wrapper.get('[data-testid="m11-carrier-andy"]').trigger('click')
@@ -178,8 +178,8 @@ describe('ContainerSheet', () => {
   })
 
   it('omits the carrier section when the trip has no travelers (absent, not emptied)', () => {
-    const store = useTripStore()
-    seed(store, 'containers', container('left'))
+    const tripStore = useTripStore()
+    seed(tripStore, 'containers', container('left'))
 
     const wrapper = mountSheet('left')
 

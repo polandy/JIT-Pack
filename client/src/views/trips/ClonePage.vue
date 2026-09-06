@@ -35,7 +35,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 const props = defineProps<{ tripId: string }>()
 
 const router = useRouter()
-const store = useTripStore()
+const tripStore = useTripStore()
 const master = useMasterStore()
 const orchestrator = useOrchestrator()
 
@@ -69,9 +69,9 @@ const preview = computed(() => {
   return planClone(
     {
       trip: source.value,
-      items: store.getItems(props.tripId),
-      travelers: store.getTravelers(props.tripId),
-      containers: store.getContainers(props.tripId),
+      items: tripStore.getItems(props.tripId),
+      travelers: tripStore.getTravelers(props.tripId),
+      containers: tripStore.getContainers(props.tripId),
     },
     options.value,
     {

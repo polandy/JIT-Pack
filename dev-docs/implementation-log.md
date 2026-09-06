@@ -328,6 +328,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The wizard built its own rows, and one of them nobody had ever tapped (2026-09-06)](#the-wizard-built-its-own-rows-and-one-of-them-nobody-had-ever-tapped-2026-09-06) — U-11: why the review's indices force the companion order, and a seed that closed a branch.
 - [A new vocabulary borrowed a word another guard owned (2026-09-06)](#a-new-vocabulary-borrowed-a-word-another-guard-owned-2026-09-06) — U-12: a property name is a shared namespace, and one anchor was answering nobody.
 - [A chip had said "2 preparation" since the day it was written (2026-09-06)](#a-chip-had-said-2-preparation-since-the-day-it-was-written-2026-09-06) — U-13: four derivations left the two biggest views; the copy defect was visible only once a test rendered one.
+- [One store, three names, and one file where the sweep would have been wrong (2026-09-06)](#one-store-three-names-and-one-file-where-the-sweep-would-have-been-wrong-2026-09-06) — U-14: a rename is safe only where the name means one thing per file.
 
 ## Deviations
 
@@ -13445,3 +13446,29 @@ that is never consulted look identical from the outside.
 **What is deliberately not closed.** `'group'` as a bare literal is compared at 27 sites across the
 client (`review.ts`, four views, the stores). That is §4a's shape and it is worth one sweep, but
 half a migration reads worse than none, so it stays whole and unstarted rather than started here.
+
+## One store, three names, and one file where the sweep would have been wrong (2026-09-06)
+
+U-14 is a rename: the trip store was bound as `store` in 13 files and as `tripStore` in 8, so a
+grep for `tripStore.getItems` found a third of its readers, and in the packing list `store.` sat
+beside `masterStore.` with only the import saying which was which. It is an XS item and the diff is
+mechanical, but three things in it are not.
+
+**One file bound two different stores to the same name.** `useTripIdentity.ts` has
+`const store = useIdentityStore()` in one function and `const store = useTripStore()` in the next.
+A regex sweep over the file renames both, type-checks green, and leaves the identity store called
+`tripStore` — a rename that makes the code *say something false* while every test passes. This is
+the general shape: a mechanical rename is safe exactly to the extent that the identifier means one
+thing per file, and nothing in the tooling tells you when it does not. The census that found it was
+`grep "const store = " <the files>` filtered to what was *not* `useTripStore()`.
+
+**The guard bans the name rather than requiring the right one.** An esquery selector cannot compare
+a binding to the composable it calls, so the eslint rule refuses `const store = use…Store()` and
+says nothing about the rest. That is the finding as written: `master` is a defensible name because
+it is unambiguous about which store it is, `store` is not. Mutation-proved by renaming one binding
+back, which reports twice — the rule, and the unused variable the half-rename leaves.
+
+**Deliberately not done: `useMasterStore()` is bound as `master` in 67 places** and `masterStore` in
+20. That is the same complaint one store over, and it is a much larger diff than the one the item
+scoped; the bare-`store` bindings for the master and identity stores were folded in here because
+those *are* the shape U-14 names, and the rest stays whole.

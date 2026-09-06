@@ -51,7 +51,7 @@ import {
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
-const store = useMasterStore()
+const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
 
 /** The two things FR-24.3 governs, and the two segments this screen has. */
@@ -87,7 +87,7 @@ interface RetiredRow {
 }
 
 const itemRows = computed<RetiredRow[]>(() =>
-  store.retiredItemList.map((item) => {
+  masterStore.retiredItemList.map((item) => {
     const outlook = orchestrator.masterItemDeletionOutlook(item.id)
     return {
       id: item.id,
@@ -109,7 +109,7 @@ const itemRows = computed<RetiredRow[]>(() =>
 )
 
 const templateRows = computed<RetiredRow[]>(() =>
-  store.retiredTemplateList.map((template) => {
+  masterStore.retiredTemplateList.map((template) => {
     const outlook = orchestrator.templateDeletionOutlook(template.id)
     return {
       id: template.id,

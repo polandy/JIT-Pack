@@ -41,15 +41,15 @@ beforeEach(() => setActivePinia(createPinia()))
 
 describe('identityStore', () => {
   it('fetches once however many screens ask', async () => {
-    const store = useIdentityStore()
+    const identityStore = useIdentityStore()
     const src = source()
 
-    await Promise.all([store.load(src), store.load(src), store.load(src)])
-    await store.load(src)
+    await Promise.all([identityStore.load(src), identityStore.load(src), identityStore.load(src)])
+    await identityStore.load(src)
 
     expect(src.fetchUsers).toHaveBeenCalledTimes(1)
     expect(src.fetchMe).toHaveBeenCalledTimes(1)
-    expect(store.myUserId).toBe('u-andy')
+    expect(identityStore.myUserId).toBe('u-andy')
   })
 
   /*
@@ -58,23 +58,23 @@ describe('identityStore', () => {
    * "not asked yet" cannot be the same value.
    */
   it('says whether the emptiness is an answer', async () => {
-    const store = useIdentityStore()
-    expect(store.loaded).toBe(false)
+    const identityStore = useIdentityStore()
+    expect(identityStore.loaded).toBe(false)
 
-    await store.load({ fetchUsers: async () => [], fetchMe: async () => null })
+    await identityStore.load({ fetchUsers: async () => [], fetchMe: async () => null })
 
-    expect(store.loaded).toBe(true)
-    expect(store.directory).toEqual([])
-    expect(store.myUserId).toBeNull()
+    expect(identityStore.loaded).toBe(true)
+    expect(identityStore.directory).toEqual([])
+    expect(identityStore.myUserId).toBeNull()
   })
 
   it('re-reads on refresh, because a writer just changed the answer', async () => {
-    const store = useIdentityStore()
-    await store.load(source([{ user_id: 'u-andy', display_name: 'Andy' }]))
+    const identityStore = useIdentityStore()
+    await identityStore.load(source([{ user_id: 'u-andy', display_name: 'Andy' }]))
 
-    await store.refresh(source([{ user_id: 'u-andy', display_name: 'Béatrice' }]))
+    await identityStore.refresh(source([{ user_id: 'u-andy', display_name: 'Béatrice' }]))
 
-    expect(store.directory[0]!.display_name).toBe('Béatrice')
+    expect(identityStore.directory[0]!.display_name).toBe('Béatrice')
   })
 
   /*
@@ -85,11 +85,13 @@ describe('identityStore', () => {
    * response resolves when, so nothing here is a race.
    */
   it('lets a refresh beat the load it overtook, whichever answer arrives last', async () => {
-    const store = useIdentityStore()
+    const identityStore = useIdentityStore()
     const held = heldSource()
 
-    const first = store.load(held.make([{ user_id: 'u-andy', display_name: 'Andy' }]))
-    const second = store.refresh(held.make([{ user_id: 'u-andy', display_name: 'Béatrice' }]))
+    const first = identityStore.load(held.make([{ user_id: 'u-andy', display_name: 'Andy' }]))
+    const second = identityStore.refresh(
+      held.make([{ user_id: 'u-andy', display_name: 'Béatrice' }]),
+    )
 
     // The overtaken request answers *after* the one that overtook it.
     held.releases[1]!()
@@ -97,22 +99,22 @@ describe('identityStore', () => {
     held.releases[0]!()
     await first
 
-    expect(store.directory[0]!.display_name).toBe('Béatrice')
+    expect(identityStore.directory[0]!.display_name).toBe('Béatrice')
   })
 
   it('forgets a session that ended, and does not serve it to the next one', async () => {
-    const store = useIdentityStore()
-    await store.load(source())
-    expect(store.myUserId).toBe('u-andy')
+    const identityStore = useIdentityStore()
+    await identityStore.load(source())
+    expect(identityStore.myUserId).toBe('u-andy')
 
-    store.forget()
+    identityStore.forget()
 
-    expect(store.loaded).toBe(false)
-    expect(store.myUserId).toBeNull()
-    expect(store.directory).toEqual([])
+    expect(identityStore.loaded).toBe(false)
+    expect(identityStore.myUserId).toBeNull()
+    expect(identityStore.directory).toEqual([])
 
     const next = source([{ user_id: 'u-sia', display_name: 'Sia' }])
-    await store.load(next)
+    await identityStore.load(next)
     expect(next.fetchUsers).toHaveBeenCalledTimes(1)
   })
 })
