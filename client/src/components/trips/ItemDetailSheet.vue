@@ -802,19 +802,19 @@ const packedStamp = computed(() => {
   border-radius: var(--jp-r-pill);
   font-size: var(--jp-text-2xs);
   font-weight: var(--jp-weight-bold);
-  background: color-mix(in srgb, var(--ct-green) 16%, transparent);
-  color: var(--ct-green);
+  background: color-mix(in srgb, var(--ct-pine) 16%, transparent);
+  color: var(--ct-pine);
 }
 
 .state.open,
 .state.partial {
-  background: color-mix(in srgb, var(--ct-yellow) 16%, transparent);
-  color: var(--ct-yellow);
+  background: color-mix(in srgb, var(--ct-straw) 16%, transparent);
+  color: var(--ct-straw);
 }
 
 .state.amber {
-  background: color-mix(in srgb, var(--ct-peach) 18%, transparent);
-  color: var(--ct-peach);
+  background: color-mix(in srgb, var(--ct-larch) 18%, transparent);
+  color: var(--ct-larch);
 }
 
 /* FR-5.5: a full-width control rather than a chip — it is a decision about
@@ -840,8 +840,8 @@ const packedStamp = computed(() => {
 }
 
 .skip-toggle.on {
-  border-color: var(--ct-green);
-  color: var(--ct-green);
+  border-color: var(--ct-pine);
+  color: var(--ct-pine);
 }
 
 /* --- glance --- */
@@ -869,12 +869,12 @@ const packedStamp = computed(() => {
 }
 
 .chip.buy {
-  color: var(--ct-peach);
+  color: var(--ct-larch);
 }
 
 .chip.warn {
-  border-color: color-mix(in srgb, var(--ct-peach) 50%, transparent);
-  color: var(--ct-peach);
+  border-color: color-mix(in srgb, var(--ct-larch) 50%, transparent);
+  color: var(--ct-larch);
 }
 
 /* --- sections --- */
@@ -943,7 +943,7 @@ const packedStamp = computed(() => {
 @keyframes flash {
   0%,
   60% {
-    background: color-mix(in srgb, var(--ct-blue) 16%, transparent);
+    background: color-mix(in srgb, var(--ct-glacier) 16%, transparent);
   }
   100% {
     background: transparent;

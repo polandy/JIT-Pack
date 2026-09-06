@@ -3,7 +3,7 @@
  *
  * The third token table, and the one that owns everything shape: corner
  * radius, elevation geometry, and the card the two of them add up to.
- * catppuccin.css decides which hue a role is, typography.css decides
+ * palette.css decides which hue a role is, typography.css decides
  * which face a role takes, and this file decides how far a surface is
  * lifted off the one behind it.
  *
@@ -61,7 +61,7 @@
    * A full-bleed dim behind an overlay. Same ink as the shadows, but
    * deliberately **not** their alpha: a scrim is doing a job, not
    * suggesting depth. The avatar crop mask has to make the circle
-   * legible against everything outside it, and Latte's shadow weight
+   * legible against everything outside it, and Tag's shadow weight
    * (0.22, chosen so a card does not look grimy) would dim it to almost
    * nothing. Its own weight, restated per flavour beside the ink.
    */

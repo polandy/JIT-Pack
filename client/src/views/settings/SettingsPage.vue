@@ -18,7 +18,7 @@
  * opt-in for this device. Only with an OIDC session — Single-User and
  * Local Mode have no second party (FR-17.3/FR-19.3, G-8).
  *
- * Appearance (FR-21.3): opt-in light theme (Catppuccin Latte), a
+ * Appearance (FR-21.3): opt-in light theme (Tag, ADR-048), a
  * device-local display preference — shown in every mode, never synced.
  */
 import { API } from '@/api/routes'
@@ -129,10 +129,10 @@ function addTraveler() {
   newTraveler.value = ''
 }
 
-const lightTheme = ref(currentTheme() === 'latte')
+const lightTheme = ref(currentTheme() === 'day')
 
 function toggleLightTheme(enabled: boolean) {
-  setTheme(enabled ? 'latte' : 'mocha')
+  setTheme(enabled ? 'day' : 'night')
   lightTheme.value = enabled
 }
 

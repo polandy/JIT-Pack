@@ -1709,7 +1709,7 @@ ion-content.pack-content::part(scroll) {
   align-items: center;
   gap: 5px;
   padding: 4px 9px;
-  border: 1px solid var(--ct-blue);
+  border: 1px solid var(--ct-glacier);
   border-radius: var(--jp-r-pill);
   background: none;
   color: var(--ct-text);
@@ -1729,7 +1729,7 @@ ion-content.pack-content::part(scroll) {
 .chip-reset {
   background: none;
   border: none;
-  color: var(--ct-blue);
+  color: var(--ct-glacier);
   font-size: var(--jp-text-xs);
   cursor: pointer;
 }
@@ -1909,7 +1909,7 @@ ion-content.pack-content::part(scroll) {
   padding: 12px 14px;
   background: none;
   border: none;
-  color: var(--ct-yellow);
+  color: var(--ct-straw);
   font-size: var(--jp-text-base);
   cursor: pointer;
 }

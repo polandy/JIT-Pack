@@ -374,7 +374,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
 
 <style scoped>
 .page-note {
-  margin-inline: var(--jp-space-4, 16px);
+  margin-inline: 16px;
 }
 
 .block {

@@ -372,7 +372,7 @@ setHeaderTitle(() => `${t('packing.analytics')} · ${trip.value?.name ?? ''}`)
   width: 100%;
   max-width: 40px;
   border-radius: var(--jp-r-sm) var(--jp-r-sm) 0 0;
-  background: linear-gradient(var(--ct-mauve), var(--ct-lavender));
+  background: linear-gradient(var(--ct-heather), var(--ct-lupine));
 }
 
 .trend .col .year {
@@ -407,20 +407,20 @@ setHeaderTitle(() => `${t('packing.analytics')} · ${trip.value?.name ?? ''}`)
 
 .flagrow .dot.unused,
 .flag-chip.unused {
-  color: var(--ct-peach);
+  color: var(--ct-larch);
 }
 
 .flagrow .dot.unused {
-  background: var(--ct-peach);
+  background: var(--ct-larch);
 }
 
 .flagrow .dot.missing,
 .flag-chip.missing {
-  color: var(--ct-red);
+  color: var(--ct-ember);
 }
 
 .flagrow .dot.missing {
-  background: var(--ct-red);
+  background: var(--ct-ember);
 }
 
 .flagrow .name {

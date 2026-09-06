@@ -30,23 +30,23 @@ test.describe('M17 device settings @local @m17', () => {
   // E2E-M17-06 (G-11/FR-21.3): the Appearance toggle is what changes the
   // flavour, it is device-local, and it survives a reload. The last click
   // is what proves the reloaded toggle came back *on*: against a control
-  // that rendered stale-off it would turn Latte on a second time.
+  // that rendered stale-off it would turn Tag on a second time.
   test('E2E-M17-06: the theme toggle switches the flavour, and the choice survives a reload', async ({
     page,
   }) => {
     await page.goto(PATH.settings)
     const toggle = visiblePage(page).getByTestId('settings-theme')
     await expect(toggle).toBeVisible()
-    await expect(page.locator('html')).not.toHaveClass(/jitpack-latte/)
+    await expect(page.locator('html')).not.toHaveClass(/jitpack-day/)
 
     await toggle.click()
-    await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
+    await expect(page.locator('html')).toHaveClass(/jitpack-day/)
 
     await page.reload()
-    await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
+    await expect(page.locator('html')).toHaveClass(/jitpack-day/)
 
     await visiblePage(page).getByTestId('settings-theme').click()
-    await expect(page.locator('html')).not.toHaveClass(/jitpack-latte/)
+    await expect(page.locator('html')).not.toHaveClass(/jitpack-day/)
   })
 
   // E2E-M17-08 (G-8/FR-17.3): a device with no instance has nobody to be

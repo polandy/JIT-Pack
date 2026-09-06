@@ -680,8 +680,8 @@ rendered pixel was the only witness.
 **What the colour unit does *not* prove.** That the palette is *pleasant* —
 only that each role landed on the component it belongs to and that the three
 stay apart. It also asserts nothing about contrast: the ratios *were*
-measured while choosing Latte's brand (they are in
-`design-foundation-plan.md`), but nothing re-checks them when a token
+measured while choosing the light brand (the Catppuccin round is in
+`design-foundation-plan.md`, the Bergluft one in ADR-048), but nothing re-checks them when a token
 moves. Making that a gate belongs to the baselines step.
 
 **What the typography unit does *not* prove.** That the type is *right* —

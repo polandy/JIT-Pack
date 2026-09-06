@@ -2,7 +2,7 @@
 /*
  * Design-token gate (CLAUDE.md invariant 9b).
  *
- * Three token tables own the shared visual decisions — catppuccin.css
+ * Three token tables own the shared visual decisions — palette.css
  * owns colour, typography.css owns type, surfaces.css owns shape — and
  * this rejects a view that decides one for itself.
  *
@@ -21,7 +21,7 @@ import { relative, resolve } from 'node:path'
 
 /** Files that *are* the token tables, and so may write raw values. */
 const TOKEN_FILES = [
-  'src/theme/catppuccin.css',
+  'src/theme/palette.css',
   'src/theme/typography.css',
   'src/theme/surfaces.css',
 ]
@@ -37,7 +37,7 @@ const RULES = [
     // caught too: composing a colour from a triplet is a palette
     // decision, and the palette is the file that holds the triplets.
     match: /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/,
-    why: 'colour belongs to src/theme/catppuccin.css — use a --ct-* or --jp-* token',
+    why: 'colour belongs to src/theme/palette.css — use a --ct-* or --jp-* token',
   },
   {
     id: 'raw-radius',

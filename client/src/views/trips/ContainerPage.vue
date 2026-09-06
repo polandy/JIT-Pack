@@ -296,7 +296,7 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
 }
 
 .card-meta .load.over {
-  color: var(--ct-red);
+  color: var(--ct-ember);
 }
 
 .weight-bar {
@@ -318,11 +318,11 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
 }
 
 .weight-fill.warn {
-  background: var(--ct-yellow);
+  background: var(--ct-straw);
 }
 
 .weight-fill.over {
-  background: var(--ct-red);
+  background: var(--ct-ember);
 }
 
 .imbalance {
@@ -331,7 +331,7 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
   gap: 6px;
   margin: 8px 0 0;
   font-size: var(--jp-text-xs);
-  color: var(--ct-yellow);
+  color: var(--ct-straw);
 }
 
 /* --- unassigned bucket --- */
@@ -395,6 +395,6 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
 }
 
 .picker-load.over {
-  color: var(--ct-red);
+  color: var(--ct-ember);
 }
 </style>

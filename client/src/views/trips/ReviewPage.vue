@@ -377,14 +377,14 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
 }
 
 .chip.unused {
-  border-color: color-mix(in srgb, var(--ct-mauve) 50%, transparent);
-  color: var(--ct-mauve);
+  border-color: color-mix(in srgb, var(--ct-heather) 50%, transparent);
+  color: var(--ct-heather);
 }
 
 /* Caution, not error: the item was forgotten, nothing is broken (G-11). */
 .chip.missing {
-  border-color: color-mix(in srgb, var(--ct-yellow) 50%, transparent);
-  color: var(--ct-yellow);
+  border-color: color-mix(in srgb, var(--ct-straw) 50%, transparent);
+  color: var(--ct-straw);
 }
 
 .chip.applied {
