@@ -149,8 +149,8 @@ describe('InventoryBrowseSheet (FR-25.13d)', () => {
 
     // …while a tag with no items at all states the absence instead of
     // rendering an empty void.
-    const store = useMasterStore()
-    store.applyChange({
+    const masterStore = useMasterStore()
+    masterStore.applyChange({
       seq: 1,
       table: 'tags',
       id: 't-winter',

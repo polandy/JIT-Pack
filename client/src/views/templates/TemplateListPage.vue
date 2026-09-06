@@ -65,7 +65,7 @@ import { PATH, templatePath } from '@/router/paths'
 import { confirmDestructive, promptText } from '@/lib/confirm'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
-const store = useMasterStore()
+const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
 const router = useRouter()
 
@@ -90,7 +90,7 @@ interface TemplateRow {
 }
 
 function toRow(template: Template): TemplateRow {
-  const resolution = store.resolve(template.id)
+  const resolution = masterStore.resolve(template.id)
   return {
     template,
     itemCount: resolution.positions.length,
@@ -99,7 +99,7 @@ function toRow(template: Template): TemplateRow {
 }
 
 const visibleRows = computed(() =>
-  store.activeTemplateList
+  masterStore.activeTemplateList
     .filter((tpl) => matches(tpl.name))
     .filter((tpl) => tab.value === 'all' || tpl.kind === tab.value)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -111,7 +111,7 @@ const groupRows = computed(() => visibleRows.value.filter((r) => r.template.kind
 
 const isEmpty = computed(() => visibleRows.value.length === 0)
 /** Nothing at all versus nothing *matching* — different sentences (G-7). */
-const hasTemplates = computed(() => store.activeTemplateList.length > 0)
+const hasTemplates = computed(() => masterStore.activeTemplateList.length > 0)
 
 /** The sections shown under *Alle*; a single-scope tab renders one unlabelled list. */
 const sections = computed(() =>
@@ -292,7 +292,7 @@ async function renameTemplate(tpl: Template) {
  * their rows either way (FR-2.4 snapshots).
  */
 async function deleteTemplate(tpl: Template) {
-  const consumers = store.getIncludedBy(tpl.id)
+  const consumers = masterStore.getIncludedBy(tpl.id)
   if (consumers.length > 0) {
     await presentToast({
       message: t('templates.includedBlocked', { name: consumers[0]!.name }),
@@ -319,10 +319,10 @@ async function deleteTemplate(tpl: Template) {
 function exportTemplate(tpl: Template) {
   const yaml = serializeTemplate(
     tpl,
-    store.getTemplateItems(tpl.id),
-    store.portableResolvers().masterItem,
-    compositionFrom(tpl, store.compositionSource()),
-    store.portableResolvers().tagsOf,
+    masterStore.getTemplateItems(tpl.id),
+    masterStore.portableResolvers().masterItem,
+    compositionFrom(tpl, masterStore.compositionSource()),
+    masterStore.portableResolvers().tagsOf,
   )
   saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
 }

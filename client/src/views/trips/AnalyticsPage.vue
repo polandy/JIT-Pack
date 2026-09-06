@@ -36,7 +36,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 const props = defineProps<{ tripId: string }>()
 
 const router = useRouter()
-const store = useTripStore()
+const tripStore = useTripStore()
 const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
 
@@ -58,9 +58,9 @@ const trendName = computed(
 const dimension = ref<AnalyticsDimension>('category')
 
 const analysis = computed(() =>
-  analyzeTrip(store.getItems(props.tripId), dimension.value, {
-    travelers: store.getTravelers(props.tripId),
-    containers: store.getContainers(props.tripId),
+  analyzeTrip(tripStore.getItems(props.tripId), dimension.value, {
+    travelers: tripStore.getTravelers(props.tripId),
+    containers: tripStore.getContainers(props.tripId),
   }),
 )
 
@@ -95,7 +95,7 @@ function openSlice(slice: DimensionSlice) {
 const trend = computed(() => {
   const seriesId = trip.value?.series_id
   if (!seriesId) return []
-  return seriesWeightTrend(store.tripList, (id) => store.getItems(id), seriesId)
+  return seriesWeightTrend(tripStore.tripList, (id) => tripStore.getItems(id), seriesId)
 })
 
 const maxTrend = computed(() => Math.max(1, ...trend.value.map((p) => p.packedWeight)))
@@ -103,7 +103,7 @@ const maxTrend = computed(() => Math.max(1, ...trend.value.map((p) => p.packedWe
 const flagged = computed(() => {
   const seriesId = trip.value?.series_id
   if (!seriesId) return []
-  return seriesTopFlagged(store.tripList, (id) => store.getItems(id), seriesId)
+  return seriesTopFlagged(tripStore.tripList, (id) => tripStore.getItems(id), seriesId)
 })
 
 function kilos(grams: number): string {

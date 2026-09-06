@@ -75,7 +75,7 @@ import { PATH, seriesPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
 const { myUserId, load } = useIdentity(orchestrator)
@@ -189,7 +189,7 @@ const TRAVELER_FACES = 2
  * indistinguishable on the row on purpose: neither is a claim.
  */
 function travelersOf(trip: Trip) {
-  return tripDataKnown(trip) ? store.getTravelers(trip.id) : []
+  return tripDataKnown(trip) ? tripStore.getTravelers(trip.id) : []
 }
 
 function shownTravelers(trip: Trip) {
@@ -207,7 +207,7 @@ const tripWhen = formatTripPeriod
  * and each segment's count (FR-2.8) is the size of its own slice — which is
  * why the search is applied once, here, rather than by each of them.
  */
-const searchedTrips = computed(() => store.tripList.filter((trip) => matches(trip.name)))
+const searchedTrips = computed(() => tripStore.tripList.filter((trip) => matches(trip.name)))
 
 const filteredTrips = computed(() =>
   searchedTrips.value
@@ -269,7 +269,7 @@ function decideOpeningSegment(): void {
   openingDecisionOwed.value = false
   // A caller that named the segment has the answer this rule is guessing at.
   if (parseTripFilter(route.query[TRIP_FILTER_QUERY])) return
-  filter.value = openingFilter(filter.value, countTripsByFilter(store.tripList))
+  filter.value = openingFilter(filter.value, countTripsByFilter(tripStore.tripList))
 }
 
 /**
@@ -324,7 +324,7 @@ function tripDataKnown(trip: Trip): boolean {
 }
 
 function progressPercent(trip: Trip): number {
-  const k = store.kpis(trip.id)
+  const k = tripStore.kpis(trip.id)
   if (k.totalItems === 0) return 0
   return Math.round((k.packedItems / k.totalItems) * 100)
 }
@@ -339,7 +339,7 @@ function progressColor(trip: Trip): string {
 }
 
 function itemSummary(trip: Trip): string {
-  const k = store.kpis(trip.id)
+  const k = tripStore.kpis(trip.id)
   return t('trips.itemSummary', { packed: k.packedItems, total: k.totalItems })
 }
 
@@ -404,7 +404,7 @@ function appliedOpen(trip: Trip): boolean {
  * the record is simply whatever the log holds.
  */
 function appliedChanges(trip: Trip): AppliedChange[] {
-  return store.getAppliedChanges(trip.id)
+  return tripStore.getAppliedChanges(trip.id)
 }
 
 /**
@@ -429,7 +429,9 @@ onMounted(async () => {
 
 function canDelete(trip: Trip): boolean {
   if (!collaborative) return true
-  return store.getMembers(trip.id).some((m) => m.user_id === myUserId.value && m.role === 'owner')
+  return tripStore
+    .getMembers(trip.id)
+    .some((m) => m.user_id === myUserId.value && m.role === 'owner')
 }
 
 /** Delete removes the trip entirely after an explicit confirm (M2). */
@@ -468,9 +470,9 @@ async function exportTrip(trip: Trip) {
   if (role === 'cancel' || typeof data !== 'boolean') return
   const yaml = serializeTrip({
     trip,
-    items: store.getItems(trip.id),
-    travelers: store.getTravelers(trip.id),
-    containers: store.getContainers(trip.id),
+    items: tripStore.getItems(trip.id),
+    travelers: tripStore.getTravelers(trip.id),
+    containers: tripStore.getContainers(trip.id),
     includeProgress: data,
     ...masterStore.portableResolvers(),
   })
@@ -479,7 +481,7 @@ async function exportTrip(trip: Trip) {
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
-  const tripIds = store.tripList.map((t) => t.id)
+  const tripIds = tripStore.tripList.map((t) => t.id)
   await orchestrator.drainAll(tripIds)
   refresher.complete()
 }

@@ -58,7 +58,7 @@ import { t } from '@/i18n'
 import type { MasterItem } from '@/types/domain'
 import { PATH, itemPath } from '@/router/paths'
 
-const store = useMasterStore()
+const masterStore = useMasterStore()
 const router = useRouter()
 const { term: search, isOpen: searchOpen, toggle: toggleSearch, action } = useContextSearch()
 
@@ -92,16 +92,18 @@ const filtered = computed<MasterItem[]>(() => {
   const onTag =
     tagFilter.value === null
       ? null
-      : new Set(store.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id))
-  return store.activeItemList.filter((item) => {
+      : new Set(
+          masterStore.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id),
+        )
+  return masterStore.activeItemList.filter((item) => {
     if (term && !item.name.toLowerCase().includes(term)) return false
     return onTag === null || onTag.has(item.id)
   })
 })
 
-const groups = computed(() => store.itemsByPrimaryTag(filtered.value))
+const groups = computed(() => masterStore.itemsByPrimaryTag(filtered.value))
 
-const isEmpty = computed(() => store.activeItemList.length === 0)
+const isEmpty = computed(() => masterStore.activeItemList.length === 0)
 const noResults = computed(() => !isEmpty.value && filtered.value.length === 0)
 
 /** The heading a group renders — the untagged bucket is not a tag name. */
@@ -161,7 +163,7 @@ function handleRefresh(event: CustomEvent) {
 
       <!-- Tag axis (FR-24.2) — an item surfaces under every tag it carries. -->
       <IonSegment
-        v-if="store.tagList.length > 0 && !isEmpty"
+        v-if="masterStore.tagList.length > 0 && !isEmpty"
         :value="tagFilter ?? 'all'"
         scrollable
         data-testid="m9-tag-axis"
@@ -173,7 +175,7 @@ function handleRefresh(event: CustomEvent) {
           <IonLabel>{{ t('items.tagFilterAll') }}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton
-          v-for="tag in store.tagList"
+          v-for="tag in masterStore.tagList"
           :key="tag.id"
           :value="tag.id"
           :data-testid="`m9-tag-chip-${tag.name}`"
@@ -236,7 +238,11 @@ function handleRefresh(event: CustomEvent) {
                 <h2>{{ item.name }}</h2>
                 <!-- FR-24.4: only when the device asked for them. -->
                 <div v-if="props.isShown('tags')" class="row-tags">
-                  <span v-for="tag in store.getItemTags(item.id)" :key="tag.id" class="row-tag">
+                  <span
+                    v-for="tag in masterStore.getItemTags(item.id)"
+                    :key="tag.id"
+                    class="row-tag"
+                  >
                     {{ tag.name }}
                   </span>
                 </div>

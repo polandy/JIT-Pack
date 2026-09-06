@@ -34,13 +34,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: [] }>()
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
-const containers = computed(() => store.getContainers(props.tripId))
+const containers = computed(() => tripStore.getContainers(props.tripId))
 const container = computed(() => containers.value.find((c) => c.id === props.containerId))
-const travelers = computed(() => store.getTravelers(props.tripId))
-const items = computed(() => store.getItems(props.tripId))
+const travelers = computed(() => tripStore.getTravelers(props.tripId))
+const items = computed(() => tripStore.getItems(props.tripId))
 
 const load = computed(() => containerWeight(items.value, props.containerId))
 const level = computed(() => budgetLevel(load.value, container.value?.max_weight_grams ?? null))

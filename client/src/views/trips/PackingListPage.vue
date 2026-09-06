@@ -121,7 +121,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const masterStore = useMasterStore()
 const router = useRouter()
 const route = useRoute()
@@ -223,7 +223,7 @@ const closingProposals = computed(() =>
   }).slice(0, CLOSING_TEASER_COUNT),
 )
 
-const kpis = computed(() => store.kpis(props.tripId))
+const kpis = computed(() => tripStore.kpis(props.tripId))
 const active = computed(() => isActive(trip.value))
 /** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
 const judgeable = computed(() => canJudgeUnused(trip.value))
@@ -237,7 +237,7 @@ const judgeable = computed(() => canJudgeUnused(trip.value))
  * list it started in. The only door into it is the archive action.
  */
 const closingPass = ref(false)
-const allItems = computed(() => store.getItems(props.tripId))
+const allItems = computed(() => tripStore.getItems(props.tripId))
 
 /**
  * FR-25.13c: what the trip already carries — skipped rows included — is
@@ -261,7 +261,7 @@ const browseStates = computed(() =>
   ),
 )
 
-const openPrepItems = computed(() => store.itemsWithOpenPrep(props.tripId))
+const openPrepItems = computed(() => tripStore.itemsWithOpenPrep(props.tripId))
 
 /**
  * FR-28.7: the row inherits the master item's photo and mark, it never copies
@@ -281,13 +281,13 @@ function clusterMaster(cluster: PackingCluster): MasterItem | null {
   return (cluster.sourceItemId ? masterStore.getItem(cluster.sourceItemId) : undefined) ?? null
 }
 
-const travelers = computed(() => store.getTravelers(props.tripId))
+const travelers = computed(() => tripStore.getTravelers(props.tripId))
 
 const view = computed(() =>
   buildPackingView({
     items: allItems.value,
     travelers: travelers.value,
-    containers: store.getContainers(props.tripId),
+    containers: tripStore.getContainers(props.tripId),
     participants: participants.value,
     groupBy: groupBy.value,
     showDone: showDone.value || closingPass.value,
@@ -467,13 +467,13 @@ const PRESENCE_FACES_DESKTOP = 4
 const presenceNames = computed<Record<string, string>>(() =>
   Object.fromEntries(participants.value.map((p) => [p.user_id, p.display_name])),
 )
-const openPrepCount = computed(() => store.getOpenTodos(props.tripId).length)
+const openPrepCount = computed(() => tripStore.getOpenTodos(props.tripId).length)
 
 // M6 entry: the count is what makes the icon worth a tap; it stays visible
 // at zero because the destination exists either way (G-12 has no overflow
 // to hide it in).
 const shoppingCount = computed(() => {
-  const lists = store.getShoppingItems(props.tripId)
+  const lists = tripStore.getShoppingItems(props.tripId)
   return lists.buyBefore.length + lists.buyLocal.length
 })
 
@@ -579,7 +579,7 @@ setHeaderActions(() => {
 // --- Rows ---------------------------------------------------------------
 
 function openTodoCount(itemId: string): number {
-  return store.getItemTodos(props.tripId, itemId).filter((todo) => todo.task_state === 'open')
+  return tripStore.getItemTodos(props.tripId, itemId).filter((todo) => todo.task_state === 'open')
     .length
 }
 
@@ -1050,7 +1050,9 @@ async function onFinishClosingPass() {
 
 async function archiveAndReview() {
   orchestrator.archiveTrip(props.tripId)
-  const flagged = store.getItems(props.tripId).some((item) => item.flag_unused || item.flag_missing)
+  const flagged = tripStore
+    .getItems(props.tripId)
+    .some((item) => item.flag_unused || item.flag_missing)
   if (!flagged) {
     await presentToast({ message: t('review.nothingToast') })
     return
