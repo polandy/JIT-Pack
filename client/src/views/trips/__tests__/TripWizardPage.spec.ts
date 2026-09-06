@@ -85,6 +85,21 @@ function includes(id: string, templateId: string, includedTemplateId: string) {
   })
 }
 
+function dependency(
+  id: string,
+  companionId: string,
+  mainId: string,
+  mode: 'required' | 'suggested',
+) {
+  useMasterStore().applyChange({
+    seq: 0,
+    table: 'item_dependencies',
+    id,
+    deleted: false,
+    row: { item_id: companionId, depends_on_item_id: mainId, mode, quantity: 1 },
+  })
+}
+
 function positionTask(id: string, templateItemId: string, task: string) {
   useMasterStore().applyChange({
     seq: 0,
@@ -537,6 +552,99 @@ describe('M3 step 3 — single items (FR-27.3)', () => {
     // claiming a template for it would make the trip follow a lie.
     expect(draft.items[0]!.source_template_id).toBeNull()
     expect(draft.sourceTemplateIds).toEqual([])
+  })
+})
+
+/**
+ * FR-20.2/20.4 in the wizard. The suggestion checkbox had no `data-testid`
+ * at all when U-11 lifted these rows into `domain/instantiate.ts` — a
+ * dependable sign that nothing had ever operated it, and indeed nothing
+ * asserted that an accepted suggestion reaches the trip.
+ */
+describe('M3 step 4 — the companions the draft pulls in (FR-20.2/20.4)', () => {
+  function seedWithCompanions() {
+    seedComposition()
+    item('akku', 'Ersatzakku')
+    item('drone', 'Drohne')
+    dependency('d1', 'akku', 'cam', 'required')
+    dependency('d2', 'drone', 'cam', 'suggested')
+  }
+
+  it('carries a required companion into the trip without being asked', async () => {
+    seedWithCompanions()
+    const wrapper = await mountAtStepFour()
+
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+      items: { name: string; source_template_id: string | null; tasks: string[] }[]
+    }
+    expect(draft.items.map((i) => i.name)).toContain('Ersatzakku')
+    const companion = draft.items.find((i) => i.name === 'Ersatzakku')!
+    // No template asked for it, and a dependency carries no FR-27.7 task.
+    expect(companion.source_template_id).toBeNull()
+    expect(companion.tasks).toEqual([])
+  })
+
+  it('leaves a suggested companion off until it is tapped (FR-20.4)', async () => {
+    seedWithCompanions()
+    const wrapper = await mountAtStepFour()
+
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+      items: { name: string }[]
+    }
+    // The required one is the positive signal: companions were resolved,
+    // and this one was left out rather than never looked for.
+    expect(draft.items.map((i) => i.name)).toContain('Ersatzakku')
+    expect(draft.items.map((i) => i.name)).not.toContain('Drohne')
+  })
+
+  it('adds a suggested companion once it is tapped', async () => {
+    seedWithCompanions()
+    const wrapper = await mountAtStepFour()
+
+    await wrapper
+      .get('[data-testid="wizard-companion-suggestion-drone"] ion-checkbox')
+      .trigger('ionChange', { detail: { checked: true } })
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+      items: { name: string }[]
+    }
+    expect(draft.items.map((i) => i.name)).toContain('Drohne')
+  })
+
+  it('takes the tap back', async () => {
+    seedWithCompanions()
+    const wrapper = await mountAtStepFour()
+    const box = wrapper.get('[data-testid="wizard-companion-suggestion-drone"] ion-checkbox')
+    await box.trigger('ionChange', { detail: { checked: true } })
+
+    await box.trigger('ionChange', { detail: { checked: false } })
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+      items: { name: string }[]
+    }
+    expect(draft.items.map((i) => i.name)).not.toContain('Drohne')
+  })
+
+  it('counts a companion among what is coming', async () => {
+    seedWithCompanions()
+    const wrapper = await mountAtStepFour()
+    const before = Number(
+      /\d+/.exec(wrapper.get('[data-testid="wizard-create"]').text())?.[0] ?? '0',
+    )
+
+    await wrapper
+      .get('[data-testid="wizard-companion-suggestion-drone"] ion-checkbox')
+      .trigger('ionChange', { detail: { checked: true } })
+
+    expect(
+      Number(/\d+/.exec(wrapper.get('[data-testid="wizard-create"]').text())?.[0] ?? '0'),
+    ).toBe(before + 1)
   })
 })
 

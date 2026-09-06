@@ -325,6 +325,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The partition stopped being carried by the name of the function (2026-09-05)](#the-partition-stopped-being-carried-by-the-name-of-the-function-2026-09-05) — C-8: `pullPartition`/`pushPartition` take the partition; the shared unit is a page, not the loop.
 - [The context asked for two stores and read twenty-six getters (2026-09-05)](#the-context-asked-for-two-stores-and-read-twenty-six-getters-2026-09-05) — C-9: `TripReads`/`MasterReads`; the census leaks back through whoever the store is handed to.
 - [The facade's last four passengers had nothing to do with syncing (2026-09-06)](#the-facades-last-four-passengers-had-nothing-to-do-with-syncing-2026-09-06) — C-7: why one `restFacade.ts` was rejected, and why three groups take `localMode` and not the store.
+- [The wizard built its own rows, and one of them nobody had ever tapped (2026-09-06)](#the-wizard-built-its-own-rows-and-one-of-them-nobody-had-ever-tapped-2026-09-06) — U-11: why the review's indices force the companion order, and a seed that closed a branch.
 
 ## Deviations
 
@@ -13325,3 +13326,39 @@ exercises a mutation, the socket or the takeover request, and gave up the four t
 asked the `Map` a question; the same cut split `notifications.spec.ts` in two. The point of the
 move is not fewer lines in the facade (1254 → 906) but that a lock decision is now provable
 without an `APIClient`, a pinia store and a `WebSocket` stub standing behind it.
+
+## The wizard built its own rows, and one of them nobody had ever tapped (2026-09-06)
+
+U-11 moved two rules out of `TripWizardPage.vue` into `domain/instantiate.ts`: `withCompanions`
+(FR-20.2/20.4) and `applyReviewOverrides` (FR-2.6). Both had been reachable only through a
+793-line mount.
+
+**The order is a constraint, not a style.** The FR-2.6 review addresses rows *by position in the
+generated list*, so the overrides must be applied before the companions are appended and the
+companions must stay appended. Two functions rather than one because they are also composed in the
+other direction by the resolution: companions are resolved over the list **as generated**, so
+dropping a row to zero in the review does not un-need the companion its presence asked for — and
+re-resolving after the review, which one combined function would invite, would silently make it so.
+
+**The required half stopped looking up the inventory.** The view built every companion row by
+re-reading `masterStore.getItem`, for suggested and required alike. A `ResolvedCompanion` already
+carries the item's facts and exists *only* where the master row does (`resolveDependencies` skips a
+relation whose item it cannot find), so for required companions the lookup could only ever return
+what the companion already said. A `SuggestedCompanion` carries a name and a quantity and nothing
+else, so that half genuinely needs the inventory — which is why `masterItems` is still a parameter.
+
+**The finding that was not in the finding: M3's suggested-companion checkbox had no
+`data-testid`.** Not one that nothing used — none at all, which is a step past the usual signature.
+Nothing anywhere asserted that ticking it puts the companion on the trip being created. FR-20.4 is
+covered at M4 and M5, and those cover what is added to a trip that exists; this is the only place
+the answer decides what the trip is created *with*.
+
+**And it could not have had an e2e case.** Every dependency in the dev seed was `required`, so the
+`suggested` branch was unreachable on a fresh device — on any screen. The seed now carries one
+(Powerbank suggested by Kamera), which is the standing rule and is what a future e2e case stands
+on. The gap itself is written down in `dev-docs/e2e-tests.md` rather than left as an intention.
+
+**One behaviour did change, deliberately.** `comingCount` filters every draft row on
+`quantity > 0` instead of only the generated slice, so a companion arriving with quantity 0 — a
+dependency can store one — is no longer counted as coming. It reaches the trip as `skipped` either
+way, and the count exists precisely so that it does not lie.

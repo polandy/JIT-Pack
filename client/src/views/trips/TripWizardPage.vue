@@ -57,12 +57,18 @@ import { attributeLabel } from '@/lib/attributeLabels'
 import { modeLabel } from '@/lib/modeLabels'
 import { tripYearChoices } from '@/domain/tripYears'
 import { resolveDependencies } from '@/domain/dependencies'
-import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/instantiate'
+import {
+  applyReviewOverrides,
+  durationDays,
+  generateTripItems,
+  withCompanions,
+  type MergedOverlap,
+} from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Template, TemplateKind } from '@/types/domain'
-import { ITEM_MODE_PACK, isShoppingMode } from '@/types/domain'
+import { isShoppingMode } from '@/types/domain'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
@@ -364,34 +370,6 @@ function toggleSuggestion(itemId: string, checked: boolean) {
   acceptedSuggestions.value = next
 }
 
-/** Companion rows for the draft — required plus accepted suggestions. */
-function companionRows() {
-  const row = (itemId: string, name: string, quantity: number) => {
-    const master = masterStore.getItem(itemId)
-    return {
-      source_item_id: itemId,
-      source_template_id: null,
-      name,
-      category_name: master?.category_name ?? null,
-      weight_grams: master?.weight_grams ?? null,
-      value_cents: master?.value_cents ?? null,
-      quantity,
-      mode: ITEM_MODE_PACK,
-      late_packer: false,
-      traveler_index: null,
-      // A companion comes from a dependency, not from a template position, so
-      // there is no FR-27.7 task to carry (FR-20.2).
-      tasks: [] as string[],
-    }
-  }
-  return [
-    ...companionResolution.value.required.map((c) => row(c.item_id, c.name, c.quantity)),
-    ...companionResolution.value.suggested
-      .filter((s) => acceptedSuggestions.value.has(s.item_id))
-      .map((s) => row(s.item_id, s.name, s.quantity)),
-  ]
-}
-
 // --- Step 4: quantity review + destination checklist offer (FR-13.3) ---
 const quantityOverrides = ref<Record<number, number>>({})
 const includeChecklist = ref(true)
@@ -405,6 +383,20 @@ const offeredChecklist = computed(() => {
 function reviewQuantity(index: number): number {
   return quantityOverrides.value[index] ?? generation.value.items[index]!.quantity
 }
+
+/**
+ * The rows the trip will be created from: the generated list as the review
+ * left it, plus the companions it pulls in. One derivation, so the count the
+ * user reads and the list `createTrip` sends cannot come apart.
+ */
+const draftItems = computed(() =>
+  withCompanions(
+    applyReviewOverrides(generation.value.items, quantityOverrides.value),
+    companionResolution.value,
+    acceptedSuggestions.value,
+    masterStore.itemList,
+  ),
+)
 
 /**
  * FR-2.6: dropping a row is FR-5.5 *„bewusst weggelassen"*, not deletion — the
@@ -427,10 +419,7 @@ function isDropped(index: number): boolean {
 }
 
 /** What is actually coming — a count that ignored a dropped row would lie. */
-const comingCount = computed(
-  () =>
-    generation.value.items.filter((_, index) => !isDropped(index)).length + companionRows().length,
-)
+const comingCount = computed(() => draftItems.value.filter((i) => i.quantity > 0).length)
 
 function overrideQuantity(index: number, value: string) {
   const qty = Number(value)
@@ -583,14 +572,6 @@ function back() {
 }
 
 function createTrip() {
-  const items = [
-    ...generation.value.items.map((item, index) => ({
-      ...item,
-      source_template_id: item.source_template_id as string | null,
-      quantity: reviewQuantity(index),
-    })),
-    ...companionRows(),
-  ]
   const tripId = orchestrator.createTripFromWizard({
     name: name.value.trim(),
     year: year.value,
@@ -598,7 +579,7 @@ function createTrip() {
     endDate: endDate.value || null,
     attributes: attributes.value,
     travelers: travelers.value.map((t) => ({ name: t.name.trim() })),
-    items,
+    items: draftItems.value,
     // FR-27.4: what the trip follows from here on. The picks, not the
     // resolved composition — a group reached through a Vorlage is followed
     // *because* the Vorlage includes it, and re-resolving that link each
@@ -1188,7 +1169,11 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
             {{ t('wizard.sectionSuggestedCompanions') }}
           </h2>
           <IonList>
-            <IonItem v-for="s in companionResolution.suggested" :key="s.item_id">
+            <IonItem
+              v-for="s in companionResolution.suggested"
+              :key="s.item_id"
+              :data-testid="`wizard-companion-suggestion-${s.item_id}`"
+            >
               <IonCheckbox
                 slot="start"
                 :checked="acceptedSuggestions.has(s.item_id)"
