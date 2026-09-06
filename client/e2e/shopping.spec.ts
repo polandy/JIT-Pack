@@ -5,6 +5,8 @@ import {
   expect,
   chooseInSelect,
   createTripViaWizard,
+  openTripView,
+  tripActions,
   visiblePage as visible,
 } from './fixtures'
 import { PATH } from './routes'
@@ -52,7 +54,7 @@ test.describe('M6 shopping — the shared composer knows the trip @local @m6', (
       .click()
     await expect(page.getByTestId('m4-row-Sonnencreme')).toBeVisible()
 
-    await visible(page).getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     await expect(visible(page).getByTestId('quick-add-open')).toBeVisible()
     await visible(page).getByTestId('quick-add-open').click()
 
@@ -112,7 +114,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
-    await visible(page).getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     await addOnShoppingTab(page, 'Kaffee')
 
     // Nothing bought yet: the bar is absent, and the open row is the signal
@@ -149,7 +151,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     // of the row buying changes — the progress counter is where that shows,
     // since a row that arrived packed would be hidden by FR-25.2 instead.
     await expect(visible(page).getByTestId('m4-progress')).toContainText('0/1')
-    await visible(page).getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     await expect(m6(page).getByTestId('m6-bought-bar')).toBeVisible()
     await m6(page).getByTestId('m6-bought-bar').click()
 
@@ -166,7 +168,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
-    await visible(page).getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     await addOnShoppingTab(page, 'Brot vor Ort')
 
     // The button, not the label inside it — the segment button swallows a
@@ -248,7 +250,7 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    await visible(page).getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     await expect(visible(page).getByTestId('m6-page')).toBeVisible()
   }
 
@@ -369,7 +371,7 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
   }) => {
     await createTaggedItem(page, 'Sonnencreme', 'Drogerie')
     await createTripViaWizard(page, TRIP)
-    await visible(page).getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     await expect(m6(page)).toBeVisible()
 
     // Two rows on the departure tab: one with a category, one without.
@@ -403,21 +405,19 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(2)')
   })
 
-  test('E2E-M6-04: an empty shopping list drops M4’s badge, never the entry', async ({ page }) => {
+  test('E2E-M6-04: an empty shopping list drops M4’s count, never the entry', async ({ page }) => {
     await createTripViaWizard(page, TRIP)
 
-    // The destination exists either way — G-12's bar has no overflow to hide
-    // it in, so hiding the entry would strand M6 on a trip that has yet to
-    // need it. Only the badge answers to the count.
-    const entry = visible(page).getByTestId('m4-nav-shopping')
-    await expect(entry).toBeVisible()
-    await expect(entry.locator('ion-badge')).toHaveCount(0)
+    // The destination exists either way — hiding the entry would strand M6 on
+    // a trip that has yet to need it. Only the count answers to the count, and
+    // since ADR-050 it is part of the word rather than a badge, because an
+    // action sheet renders no badge.
+    expect(await tripActions(page)).toContain('Shopping')
 
-    await entry.click()
+    await openTripView(page, 'shopping')
     await expect(m6(page)).toBeVisible()
     await addOnOpenTab(page, 'Batterien')
     await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m4-nav-shopping')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-nav-shopping').locator('ion-badge')).toHaveText('1')
+    expect(await tripActions(page)).toContain('Shopping (1)')
   })
 })

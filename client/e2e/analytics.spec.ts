@@ -4,6 +4,7 @@ import {
   assignToContainer,
   createContainer,
   createTripViaWizard,
+  openTripView,
   openLuggage,
   openQuickAdd,
   tripAction,
@@ -57,11 +58,11 @@ async function quickAddVerbatim(page: Page, name: string) {
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
 }
 
-/** M4 → M12 via the 📊 button on the trip line (E2E-M4-01's entry). */
+/** M4 → M12 via the bar's menu (E2E-M4-01's entry, ADR-050). */
 async function openAnalytics(page: Page) {
-  await visiblePage(page).getByTestId('m4-nav-analytics').click()
+  await openTripView(page, 'analytics')
   await expect(visiblePage(page).getByTestId('analytics-dim-person')).toBeVisible()
-  await expect(visiblePage(page).getByTestId('m4-nav-analytics')).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId('m4-header')).toHaveCount(0)
 }
 
 test.describe('M12 analytics @local @m12', () => {

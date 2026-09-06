@@ -183,6 +183,7 @@ export const en = {
   'packing.unfoldAll': 'Expand all groups',
   'packing.groupOpen': '{n} open',
   'packing.shopping': 'Shopping',
+  'packing.shoppingCount': 'Shopping ({n})',
   'packing.luggage': 'Luggage',
   'packing.analytics': 'Analytics',
   'packing.archive': 'Finish trip',
@@ -561,7 +562,7 @@ export const en = {
   'wizard.unset': '—',
 
   // M20 clone (FR-13.x). Reuses the wizard's field labels above.
-  'clone.title': 'Clone · {name}',
+  'clone.title': 'Clone',
   'clone.carryOver': 'Carry over',
   'clone.travelerAssignments': 'Participant assignments',
   'clone.packerDelegations': 'Packer delegations',
@@ -913,7 +914,7 @@ export const en = {
   'import.portable.follows': 'follows {n} group | follows {n} groups',
 
   // M15 — spreadsheet import wizard (FR-16.1–16.3).
-  'import.wizard.title': 'Import · step {step}/4',
+  'import.wizard.step': 'Step {step} of 4',
   'import.wizard.next': 'Next',
   'import.wizard.csvTitle': 'Spreadsheet (CSV)',
   'import.wizard.csvHint':
@@ -988,7 +989,7 @@ export const en = {
   'role.editor': 'Editor',
 
   // M3 step 2 â travelers, sharing and roles (FR-2.5, FR-4.5/4.7).
-  'wizard.headerTitle': 'New trip · step {n}/4',
+  'wizard.step': 'Step {n} of 4',
   'wizard.sectionTravelers': 'Travelers',
   'wizard.travelerNamePlaceholder': 'Name',
   'wizard.travelerRemove': 'Remove traveler',
@@ -1091,7 +1092,6 @@ export const en = {
 
   // Trip members (FR-4.5/4.7).
   'members.title': 'Members',
-  'members.headerTitle': 'Members · {trip}',
   'members.self': ' (you)',
   'members.remove': 'Remove member',
   'members.empty': 'No roster synced for this trip yet.',
@@ -1162,7 +1162,7 @@ export const en = {
   'admin.title': 'User administration',
 
   // M6 shopping views (FR-3.2/3.3).
-  'shopping.headerTitle': 'Shopping · {trip}',
+  'shopping.title': 'Shopping',
   'shopping.beforeDeparture': 'Before departure ({n})',
   'shopping.atDestination': 'At destination ({n})',
   'shopping.uncategorized': 'Uncategorized',

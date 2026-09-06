@@ -40,7 +40,9 @@ test('E2E-G9-03: a drill-down carries one header bar with back and title @local 
   await page.goto(PATH.newTrip)
 
   await expect(page.locator('ion-header')).toHaveCount(1)
-  await expect(page.getByTestId('header-title')).toHaveText('New trip · step 1/4')
+  await expect(page.getByTestId('header-title')).toHaveText('New trip')
+  // The step is the head's second line since ADR-050, not part of its name.
+  await expect(page.getByTestId('header-meta')).toHaveText('Step 1 of 4')
   await expect(page.getByTestId('header-logo')).toHaveCount(0)
 })
 
@@ -91,7 +93,7 @@ test('E2E-G9-06: back from a deep-linked child reaches its parent trip @local @g
 
   // A fresh context: no history behind this navigation at all.
   await page.goto(`${tripPath}/containers`)
-  await expect(page.getByTestId('header-title')).toHaveText(/Luggage/)
+  await expect(page.getByTestId('header-title')).toHaveText('Luggage')
 
   await page.getByTestId('header-back').click()
 

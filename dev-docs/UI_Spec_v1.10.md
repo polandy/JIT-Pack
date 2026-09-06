@@ -183,38 +183,48 @@ These patterns apply to every screen and are specified once.
   and the older one on top, so a tap on the screen the URL named went to the screen two anchors ago (E2E-G9-17,
   E2E-G1-06). The anchors stay real links: the `href` is what makes them middle-clickable and readable as links, and
   only the default action is taken over.
-* **G-9 (Header & Desktop Navigation):** The top bar shows, left to right: the app logo — a compact mark on mobile, full
-  wordmark from the desktop breakpoint up — followed by the sync glyph (G-2) and the avatar/settings control (G-1) on
-  the right. The logo is a link/tap-target to M1 (Dashboard) and occupies the bar's left slot **on the four tab roots**.
-  On every other screen that slot carries **`‹ back` and the page title** instead, and the way out is the back-target
-  contract rather than the logo (ADR-011; the earlier "from anywhere, including from within a trip, template, or wizard"
-  is superseded). **A screen may register no title, and then the slot carries the chevron alone** (added 2026-08-19): M4
-  does so **below the desktop breakpoint**, because its G-12 cluster fills the bar there — a title which survives as one
-  letter names nothing, so the screen puts its name where there is room instead. The bar renders *no* title element in
-  that case rather than an empty one. Above the breakpoint the bar is wide enough and M4 registers its title like every
-  other screen; a screen's title may therefore depend on the width, but the thing it names is never written twice at
-  once. The right-hand group — sync glyph and avatar/settings — is present on **every** screen, which is what keeps the
-  conflict log reachable inside a trip. **One exception (2026-08-26, UX review):** the gear hides on M17 itself, where
-  it would only reopen the screen it is on; the sync glyph stays. **And because it is on every screen, M17 gives back
-  the screen it was opened from** (added 2026-08-21): a control offered everywhere cannot declare one true parent, so
-  the route records where it was entered from and `‹` returns there — the gear tapped inside a trip comes back to that
-  trip, not to the dashboard. The same holds for the two import flows (M15, M18), which are each entered from more than
-  one screen. An entry that carries no origin — a notification deep link, a pasted URL — falls back to the declared
-  parent as before (ADR-011 revision, Navigation_Concept §7). **The bar is part of the page, not a slab over it
-  (2026-09-06, ADR-049):** it is painted transparent and casts no shadow, so the page's own ground — and the G-11 wash
-  at its top-left — runs under the bar and the content alike. There is exactly one header bar in the app; no screen
-  supplies its own. **Desktop breakpoint (≥ 900 px, resolving Open UI Decision #4):** the bottom tab bar (G-1) is
-  replaced by a persistent left-side navigation rail carrying the same four tabs (Dashboard/Trips/Templates/Items); the
-  top bar then spans the remaining width and additionally hosts page-level primary actions inline (e.g., M2's "New trip"
-  FAB, M4's G-12 action cluster) instead of floating over content. Below the breakpoint, the mobile layout (bottom tabs,
+* **G-9 (Header & Desktop Navigation):** The frame is two bands: the top bar, and — under it, inside the content
+  column — the **page head**. The bar shows, left to right: the app logo on a tab root (a compact mark on mobile, the
+  full wordmark from the desktop breakpoint up, a link/tap-target to M1) or **`‹ back` alone on every other screen**,
+  and on the right the page's G-12 cluster, the ⋮, the sync glyph (G-2) and the avatar/settings control (G-1). The way
+  out of a drill-down is the back-target contract rather than the logo (ADR-011). **The bar is part of the page, not a
+  slab over it (2026-09-06, ADR-049):** it is painted transparent and casts no shadow, so the page's own ground — and
+  the G-11 wash at its top-left — runs under the bar, the head and the content alike.
+* **The bar does not name the page (added 2026-09-06, ADR-050).** The screen's name is the **page head**: an `h1` in
+  the display role (`.jp-page-title`, G-13) with an optional second line under it — `.jp-meta` — naming what the
+  screen belongs to, the trip for a trip sub-screen or the step for a wizard. It renders **once, in the frame**
+  (`PageHead` in `App.vue`, above the router outlet and inside the content column), from the head each screen
+  registers, so no view decides whether to have one; a screen that registers nothing gets no head, which is the case
+  for M1. This replaced two arrangements at once: the bar's `ion-title`, which at 390 px beside M4's cluster rendered
+  "Samedan Sommer" as "S…", and the display-face `h1` the three tab roots had each written into their own content by
+  hand. Accepted cost: the head is a fixed band rather than part of the scroller, so it does not scroll away; the
+  revisit trigger is in ADR-050.
+* **The bar's cluster is capped at three glyphs (added 2026-09-06, ADR-050).** A page describes its actions in
+  registration order (G-12); the bar renders the first three that are not marked for the ⋮ and puts everything after
+  them into the menu, ahead of the actions the page marked itself. M4 stood at seven glyphs, each of which had arrived
+  one at a time because nothing said what full looked like. The right-hand group — ⋮ where anything is behind it, sync
+  glyph, avatar/settings — is present on **every** screen, which is what keeps the conflict log reachable inside a
+  trip. **One exception (2026-08-26, UX review):** the gear hides on M17 itself, where it would only reopen the screen
+  it is on; the sync glyph stays. **And because it is on every screen, M17 gives back the screen it was opened from**
+  (added 2026-08-21): a control offered everywhere cannot declare one true parent, so the route records where it was
+  entered from and `‹` returns there — the gear tapped inside a trip comes back to that trip, not to the dashboard.
+  The same holds for the two import flows (M15, M18), which are each entered from more than one screen. An entry that
+  carries no origin — a notification deep link, a pasted URL — falls back to the declared parent as before (ADR-011
+  revision, Navigation_Concept §7). There is exactly one header bar in the app, and exactly one page head; no screen
+  supplies its own.
+* **Desktop breakpoint (≥ 900 px, resolving Open UI Decision #4):** the bottom tab bar (G-1) is replaced by a
+  persistent left-side navigation rail carrying the same four tabs (Dashboard/Trips/Templates/Items); the top bar then
+  spans the remaining width and additionally hosts page-level primary actions inline (e.g., M2's "New trip" FAB, M4's
+  G-12 action cluster) instead of floating over content. Below the breakpoint, the mobile layout (bottom tabs,
   floating FAB, compact logo mark) applies unchanged. **The content stops at a column (added 2026-08-27, UX-17):**
   beside the rail the content area is capped at **960 px and centred**, one rule in `App.vue` for every screen rather
-  than a decision each view has to remember. Edge to edge a settings row put its label and its control 1100 px apart and
-  M9's tag segment spread three chips across 1176 px — lines that read as several things rather than one. The cap needs
-  no breakpoint of its own: below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays full
-  width**, because it is the app's frame rather than its content — the logo belongs at the window's corner and the gear
-  at the opposite one. Accepted cost: on a very wide screen a long packing row no longer uses the space it could; the
-  revisit trigger is the first screen whose content genuinely wants more than the column.
+  than a decision each view has to remember — and since ADR-050 the page head sits inside that column, for the same
+  reason. Edge to edge a settings row put its label and its control 1100 px apart and M9's tag segment spread three
+  chips across 1176 px — lines that read as several things rather than one. The cap needs no breakpoint of its own:
+  below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays full width**, because it is the
+  app's frame rather than its content — the logo belongs at the window's corner and the gear at the opposite one.
+  Accepted cost: on a very wide screen a long packing row no longer uses the space it could; the revisit trigger is
+  the first screen whose content genuinely wants more than the column.
 * **G-10 (Trip Presence & Group Sync):** Distinct from G-2, which reflects only *your own* device's connection state,
   this pattern shows who else is currently on the same trip and whether the *group* is caught up. It lives in the
   trip-level header (M4's sticky header, not the global app header of G-9), since presence is meaningless outside a
@@ -301,6 +311,10 @@ These patterns apply to every screen and are specified once.
   *Zuklappen* stay on the bar because they are tapped while packing; *„Reise-Eigenschaften"* and the one lifecycle step
   (*„Reise starten"* / *„Reise abschliessen"*) move behind the ⋮, being once-per-trip actions whose meaning a glyph
   never carried. Eight controls in the bar became seven, and the two that left were the two nobody could name on sight.
+  **The cluster has a size (added 2026-09-06, ADR-050):** the bar renders at most **three** glyphs from a page's list
+  and puts the rest into the ⋮ in registration order, ahead of the entries the page marked itself. The page still
+  chooses which three, by writing them first; what it can no longer do is add a fourth without noticing. M4's trip
+  destinations moved to the menu under this rule.
   **An overflow entry runs after the sheet closes, never inside its handler:** while an overlay is up Ionic marks the
   router outlet `aria-hidden`, and an action that navigates from within the handler leaves that flag behind — the screen
   then renders and responds to every tap while being absent from the accessibility tree.
@@ -315,11 +329,16 @@ These patterns apply to every screen and are specified once.
   * **Order and meaning:** 🔍 **search**, collapsed — the field appears below only when the icon is tapped, and its ✕
     *closes* it rather than merely emptying it, since an empty open field gives back the row the icon just reclaimed.
     Then the **filter** icon, carrying its active-value count as a badge (Addendum FR-25.11a/k).
-  * **Two clusters, split by what they act on (refined 2026-08-07).** The app bar carries actions on **this list** —
-    search and filter. Navigation to **other views of the same entity** sits as icons on the screen's own header line
-    instead: on M4 that is Shopping (with its open count), Luggage and Analytics, on the trip title line. **No overflow
-    menu.** Hiding three destinations behind an unlabelled ⋯ is precisely the discoverability failure §3.25 recorded,
-    and testing confirmed it: an ⋯ tells you nothing about what is inside, so nobody opens it.
+  * **~~Two clusters, split by what they act on (refined 2026-08-07)~~ — superseded 2026-09-06 (ADR-050).** The rule
+    was: the bar carries actions on *this list* (search, filter) while navigation to **other views of the same entity**
+    sits as icons on the screen's own header line — on M4, Shopping with its open count, Luggage and Analytics — and
+    **no overflow menu**, because hiding three destinations behind an unlabelled ⋯ is the discoverability failure
+    §3.25 recorded. The second half fell first, to UX-13 (2026-08-27); the first half falls here. Two of the three
+    premises turned out not to hold: the trip line's icons were *also* unlabelled glyphs, so the discoverability the
+    rule protected was never better than the menu's — and the split put seven glyphs on one screen, which is what made
+    the trip's name unreadable in the bar. What the rule was right about is kept: the three destinations must be
+    **named**, and in the menu they are words rather than glyphs (E2E-G12-07). The cost — one tap deeper — is stated
+    in ADR-050.
   * **Icon-only controls must still be nameable — in the app bar (narrowed by the owner, 2026-08-31).** Every icon-only
     control carries an `aria-label`, instance-wide and held over the source by `iconButtonLabels.spec.ts`; the
     **`title`** for desktop hover is the **bar's** rule alone. The wider promise was read against the app the day before
@@ -780,8 +799,10 @@ These patterns apply to every screen and are specified once.
     also stops travelling entirely under `prefers-reduced-motion`: it is the largest movement on the screen and it
     happens while the list is moving too.
   * **Actions live in the app bar (G-12), not in the header:** search (collapsed behind its icon), filter (badge =
-    active facet count), fold-all. The trip's *other views* — 🛒 Shopping with its open count, 🧳 Luggage, 📊 Analytics —
-    are icons on the trip line. **There is no ⋯ overflow** (FR-25.11k, G-12).
+    active facet count), fold-all — the three glyphs the bar's budget allows, and the three tapped while packing. The
+    trip's *other views* are **words in the ⋮** since 2026-09-06 (ADR-050): *Einkaufen* carrying its open count in the
+    word, *Gepäck*, *Auswertung*. They were icons on the trip line, which is how M4 came to show seven glyphs above the
+    list; an action sheet renders no badge, so the count moved into the label.
   * **Faceted filter panel** (FR-25.11) replaces the old grouping bar + mode pill strip: a bottom sheet holding
     *Gruppieren nach*, an *Erledigte* switch, and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale. OR
     within a facet, AND across facets; active values appear as removable chips under the header. **Revised 2026-08-14
@@ -851,11 +872,11 @@ These patterns apply to every screen and are specified once.
   them, two categories run into each other on a long list. The concept mock had the card from the start; the first
   implementation dropped it.
 * **Elements:**
-  * Sticky header: below the G-9 breakpoint two rows — the trip name (display type, the app bar having none) with 🛒/🧳/📊
-    beside it, then packed/total, weight (FR-8.1), **open-prep count** (FR-7.3), trip presence facepile and group-sync
-    badge per G-10; above it one row without the name, which the app bar carries there. *(The former KPI tile strip is
-    gone — Analytics is now a labelled icon on the trip line rather than a tap on a tile, which testing found
-    undiscoverable.)*
+  * Sticky header: **one row at every width (2026-09-06, ADR-050)** — packed/total, weight (FR-8.1), **open-prep
+    count** (FR-7.3), trip presence facepile and group-sync badge per G-10. It carried two rows on a phone for as long
+    as it also carried the trip's name and the 🛒/🧳/📊 glyphs; the name is the page head now (G-9) and the three
+    destinations are words in the bar's ⋮, so the line states figures alone. *(The former KPI tile strip is gone —
+    Analytics is a named entry rather than a tap on a tile, which testing found undiscoverable.)*
   * Grouping switcher: *Category / Container / Person / Status*, now inside the filter sheet's *Gruppieren nach* section
     rather than as its own bar. **Decided: persists per user per trip** (not a global preference) — switching to
     *Container* view on one trip doesn't affect another trip or another user's view of the same trip.
@@ -1107,9 +1128,10 @@ These patterns apply to every screen and are specified once.
   record. Each tab has its own reveal, and the reveal is **absent, not empty**, when nothing was bought from that list.
   Deliberately **not** remembered across a session the way M4's switch is (FR-25.18): the tab is not remembered either,
   so a restored reveal would open on a list the reader did not choose.
-* **States:** Both lists empty → M4's toolbar keeps the **shopping entry** and drops only its **badge** (corrected
-  2026-08-30 against the screen: the destination exists either way, and G-12's bar has no overflow to hide it in).
-* **Navigation:** From M4 toolbar; deep-linkable.
+* **States:** Both lists empty → M4's ⋮ keeps the **shopping entry** and drops only its **count** (corrected
+  2026-08-30 against the screen: the destination exists either way; since ADR-050 the count is part of the word rather
+  than a badge, because a menu renders none).
+* **Navigation:** From M4's ⋮; deep-linkable.
 
 ### M7 — Template List
 
@@ -1431,7 +1453,7 @@ These patterns apply to every screen and are specified once.
   2026-08-30, that the instance has no configured currency and one would be an owner decision, was true when it was
   written and has not been since; the setting is `JITPACK_CURRENCY`. No series, or a series with no archived trips → the
   trend section is absent, not empty.
-* **Navigation:** From the 📊 button on M4's trip line (G-12); trend section also from M16.
+* **Navigation:** From *Auswertung* in M4's ⋮ (G-12, ADR-050); trend section also from M16.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 

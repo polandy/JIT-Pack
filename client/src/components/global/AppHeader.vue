@@ -5,10 +5,9 @@
  * There is exactly one; no screen supplies its own. The right-hand group
  * — sync indicator (G-2) and settings/avatar (G-1) — is unconditional,
  * which is what keeps the conflict log reachable from inside a trip.
- * The left slot switches: the logo on a tab root, `‹ back` plus the page
- * title everywhere else — and on a screen that registers no title, the
- * chevron alone. M4 is that screen deliberately; the why is at its own
- * `tripName` (UI-Spec M4).
+ * The left slot switches: the logo on a tab root, `‹ back` everywhere
+ * else. The page's *name* is not here any more — it is in the page, at a
+ * size a bar cannot give it (PageHead, ADR-050).
  */
 import {
   IonHeader,
@@ -28,7 +27,6 @@ import BrandMark from './BrandMark.vue'
 import SyncIndicator from './SyncIndicator.vue'
 import { backTarget } from '@/router/backTarget'
 import { actionsFor } from '@/composables/useHeaderActions'
-import { titleFor } from '@/composables/useHeaderTitle'
 import { t } from '@/i18n'
 import type { SyncState } from '@/composables/useSyncStatus'
 import { PATH } from '@/router/paths'
@@ -52,19 +50,38 @@ const route = useRoute()
 const ionRouter = useIonRouter()
 
 const back = computed(() => backTarget(route))
-const title = computed(
-  () => titleFor(route.path) ?? (route.meta.titleKey ? t(route.meta.titleKey) : ''),
-)
+
+/**
+ * How many glyphs the bar will show beside the ⋮ (ADR-050). The count is a
+ * budget rather than a description: M4 stood at seven, and every one of them
+ * had arrived one at a time because nothing said what full looked like.
+ */
+const MAX_BAR_ACTIONS = 3
 
 // G-12: the current page's icon cluster, described by the page rather
 // than teleported into this toolbar — see useHeaderActions.
-const pageActions = computed(() => actionsFor(route.path).filter((a) => !a.overflow))
+const pageActions = computed(() =>
+  actionsFor(route.path)
+    .filter((a) => !a.overflow)
+    .slice(0, MAX_BAR_ACTIONS),
+)
 
-// The ones the page put behind the ⋮ (UX-13). An action sheet rather than a
-// popover: it is the menu shape the rest of the app already uses (M2's and
-// M7's row menus), and it renders each entry as a *word*, which is what the
-// bar could not do for them.
-const overflowActions = computed(() => actionsFor(route.path).filter((a) => a.overflow))
+/*
+ * The ones the page put behind the ⋮ (UX-13), and the ones that did not fit.
+ * An action sheet rather than a popover: it is the menu shape the rest of the
+ * app already uses (M2's and M7's row menus), and it renders each entry as a
+ * *word*, which is what the bar could not do for them.
+ *
+ * The surplus keeps its registration order and lands ahead of the declared
+ * overflow, so a page that overruns the budget reads as the list it wrote
+ * rather than as a reshuffle.
+ */
+const overflowActions = computed(() => [
+  ...actionsFor(route.path)
+    .filter((a) => !a.overflow)
+    .slice(MAX_BAR_ACTIONS),
+  ...actionsFor(route.path).filter((a) => a.overflow),
+])
 
 async function openOverflow() {
   // Held in a box: assigned only inside a callback, so TypeScript's flow
@@ -75,6 +92,10 @@ async function openOverflow() {
       ...overflowActions.value.map((action) => ({
         text: action.label,
         icon: action.icon,
+        // The same id the action would have carried as a glyph: a menu entry
+        // is the same action, and a test that knew where to click should not
+        // have to know which of the two shapes it is wearing today.
+        htmlAttributes: { 'data-testid': action.id },
         handler: () => {
           chosen.run = action.onClick
         },
@@ -137,13 +158,8 @@ function goBack() {
         </IonButton>
       </IonButtons>
 
-      <!-- No element at all rather than an empty one: an empty ion-title
-           still claims the slot's padding. -->
-      <IonTitle v-if="back && title" data-testid="header-title" class="page-title">
-        {{ title }}
-      </IonTitle>
       <IonTitle
-        v-else-if="!back"
+        v-if="!back"
         slot="start"
         class="app-logo"
         data-testid="header-logo"
@@ -204,10 +220,6 @@ function goBack() {
 <style scoped>
 .app-logo {
   cursor: pointer;
-}
-
-.page-title {
-  padding-inline-start: 0;
 }
 
 .action-badge {

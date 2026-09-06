@@ -323,7 +323,7 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
 
     // Back through M2's own entry, so the second import is the app's own path.
     await page.getByTestId('rail-trips').click()
-    await visiblePage(page).getByTestId('m2-spreadsheet-import').click()
+    await page.getByTestId('m2-spreadsheet-import').click()
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(DUPLICATE_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()
     await visiblePage(page).getByTestId('import-next').click()

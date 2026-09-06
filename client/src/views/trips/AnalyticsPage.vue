@@ -114,8 +114,11 @@ function yearOf(date: string | null): string {
   return date ? date.slice(0, 4) : '—'
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `${t('packing.analytics')} · ${trip.value?.name ?? ''}`)
+// ADR-050: the frame renders this page head, above the outlet.
+setHeaderTitle(
+  () => t('packing.analytics'),
+  () => trip.value?.name,
+)
 </script>
 
 <template>

@@ -8,14 +8,15 @@ import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 import { fillIonic } from './ionic'
+import { openTripView } from './trips'
 import { visiblePage } from './page'
 
-/** M4 → M11 via the luggage button, waiting for *settled*, not arrived. */
+/** M4 → M11 via the bar's menu, waiting for *settled*, not arrived. */
 export async function openLuggage(page: Page) {
-  await visiblePage(page).getByTestId('m4-nav-luggage').click()
+  await openTripView(page, 'luggage')
   await expect(visiblePage(page).getByTestId('m11-fab')).toBeVisible()
   // While the outgoing M4 still fades, both pages read as visible.
-  await expect(visiblePage(page).getByTestId('m4-nav-luggage')).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId('m4-header')).toHaveCount(0)
 }
 
 /**

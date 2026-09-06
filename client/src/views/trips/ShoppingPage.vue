@@ -175,8 +175,11 @@ function quickAdd(item: {
   )
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' }))
+// ADR-050: the frame renders this page head, above the outlet.
+setHeaderTitle(
+  () => t('shopping.title'),
+  () => trip.value?.name,
+)
 </script>
 
 <template>

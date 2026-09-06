@@ -4,6 +4,7 @@ import {
   test,
   expect,
   createTripViaWizard,
+  openTripView,
   openQuickAdd,
   setDateField,
   tripAction,
@@ -127,7 +128,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // The positive signal the count stands against: the screen the URL
     // names is not merely alone, it still answers a tap. Against the
     // unfixed build this click is intercepted by a page two anchors old.
-    await onVisibleScreen(page, 'm2-spreadsheet-import').click()
+    await page.getByTestId('m2-spreadsheet-import').click()
     await expect(page).toHaveURL(/\/import(\?|$)/)
   })
 
@@ -148,7 +149,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page).toHaveURL(/\/tabs\/trips$/)
     await expect(visiblePages(page)).toHaveCount(1)
 
-    await onVisibleScreen(page, 'm2-spreadsheet-import').click()
+    await page.getByTestId('m2-spreadsheet-import').click()
     await expect(page).toHaveURL(/\/import(\?|$)/)
   })
 
@@ -223,26 +224,25 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.setViewportSize(DESKTOP)
     await createTripViaWizard(page, TRIP)
 
-    await onVisibleScreen(page, 'm4-nav-luggage').click()
+    await openTripView(page, 'luggage')
     await expect(onVisibleScreen(page, 'm11-fab')).toBeVisible()
     // The bar belongs to the screen now shown, not the one that left (G-12).
     await expect(page.getByTestId('m4-search')).toHaveCount(0)
     await expect(page.getByTestId('m4-filter')).toHaveCount(0)
 
-    // The title slot switches with the screen too (G-9, 2026-08-19): the
-    // registry is keyed per path, and a stale entry would leave M11's title
-    // standing on the packing list after back.
-    await expect(page.getByTestId('header-title')).toContainText('Luggage')
+    // The head switches with the screen too (G-9, ADR-050): the registry is
+    // keyed per path, and a stale entry would leave M11's name standing on
+    // the packing list after back. M11's second line names the trip it
+    // belongs to, which is the fact the composed title used to carry.
+    await expect(page.getByTestId('header-title')).toHaveText('Luggage')
+    await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
 
     await page.getByTestId('header-back').click()
     await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
-    // …and coming back restores it, rather than leaving a bar with nothing
-    // behind it.
-    await expect(page.getByTestId('m4-nav-luggage')).toBeVisible()
     await expect(page.getByTestId('m11-fab')).toHaveCount(0)
-    // …the title with it. This runs at the desktop width, where M4 does have
-    // one; the *absence* below the breakpoint is E2E-M4-44's half.
+    // …and the head comes back with it, rather than leaving the page unnamed.
     await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
+    await expect(page.getByTestId('header-meta')).toHaveCount(0)
   })
 
   // E2E-G12-01 (G-12, FR-25.11k): the magnifier searches the screen the
@@ -604,7 +604,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   }) => {
     await page.setViewportSize(MOBILE)
     await page.goto(PATH.trips)
-    await expect(onVisibleScreen(page, 'm2-portable-import')).toBeVisible()
+    await expect(page.getByTestId('m2-portable-import')).toBeVisible()
 
     await page.getByTestId('m2-portable-import').click()
     await expect(onVisibleScreen(page, 'portable-paste')).toBeVisible()
@@ -630,7 +630,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   }) => {
     await page.setViewportSize(MOBILE)
     await page.goto(PATH.trips)
-    await expect(onVisibleScreen(page, 'm2-spreadsheet-import')).toBeVisible()
+    await expect(page.getByTestId('m2-spreadsheet-import')).toBeVisible()
 
     await page.getByTestId('m2-spreadsheet-import').click()
     await expect(onVisibleScreen(page, 'import-paste')).toBeVisible()
@@ -712,7 +712,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await createTripViaWizard(page, TRIP)
 
     const glyph = async (testid: string) => {
-      const icon = page.getByTestId(testid).locator('ion-icon')
+      const icon = page.getByTestId(testid).locator('ion-icon').first()
       await expect(icon).toBeVisible()
       // The chosen glyph, read off the element Ionic renders from. A
       // rendered-pixel comparison would be the visual suite's job; what
@@ -721,11 +721,18 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       return icon.evaluate((el) => (el as unknown as { icon?: string }).icon ?? '')
     }
 
+    // The three wear their glyphs in the bar's menu since ADR-050; the menu
+    // renders each one's icon beside its word, so the vocabulary is still
+    // read from the element Ionic renders.
+    await page.getByTestId('header-overflow').click()
+    await expect(page.locator('ion-action-sheet')).toBeVisible()
     const glyphs = [
       await glyph('m4-nav-shopping'),
       await glyph('m4-nav-luggage'),
       await glyph('m4-nav-analytics'),
     ]
+    await page.keyboard.press('Escape')
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
     // The rail is the fourth reader of the same vocabulary.
     await page.setViewportSize(DESKTOP)
     await page.goto(PATH.items)
@@ -740,10 +747,11 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    *
    * The spec sentence said "every unlabelled navigation icon", and read
    * against the app that is a smaller set than it sounds: the four anchors
-   * carry visible labels in both presentations, so the unlabelled icons are
-   * the app bar's and M4's three destinations. Two of them — back and the
-   * settings gear — carried `aria-label` and no `title`, so a pointer
-   * hovering them was told nothing; fixed with this case.
+   * carry visible labels in both presentations, and since ADR-050 the trip's
+   * three destinations are words in a menu. What is left unlabelled is the
+   * bar's own cluster. Two icons — back and the settings gear — carried
+   * `aria-label` and no `title`, so a pointer hovering them was told
+   * nothing; fixed with this case.
    *
    * The clause about a long-press bubble on touch is **not** asserted: no
    * such bubble is built anywhere, and it is an open owner decision rather
@@ -754,14 +762,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   }) => {
     await createTripViaWizard(page, TRIP)
 
-    for (const testid of [
-      'm4-nav-shopping',
-      'm4-nav-luggage',
-      'm4-nav-analytics',
-      'm4-search',
-      'm4-filter',
-      'header-back',
-    ]) {
+    for (const testid of ['m4-search', 'm4-filter', 'm4-fold-all', 'header-overflow']) {
       const el = page.getByTestId(testid)
       await expect(el).toBeVisible()
       const title = (await el.getAttribute('title')) ?? ''
@@ -774,42 +775,71 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     }
 
     // One tap, and it is the navigation — no bubble in between to dismiss.
-    await page.getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     await expect(onVisibleScreen(page, 'm6-page')).toBeVisible()
   })
 
   /*
-   * E2E-G12-07 (G-12): the trip's three destinations are one tap each.
+   * E2E-G12-07 (G-12, ADR-050): the trip's three destinations are one menu
+   * entry each, and nothing deeper.
    *
-   * The spec sentence closed with "No ⋯ exists", and that half was reversed
-   * on 2026-08-25 by UX-13: M4 does have a ⋮, carrying the once-per-trip
-   * actions as words (E2E-M4-57). What the clause was actually protecting
-   * is untouched and is what this case pins — none of the three *places*
-   * within the trip sits behind a menu, which is what §3.25's
-   * discoverability directive asked for.
+   * The clause this case was written for read "one tap each. No ⋯ exists",
+   * and both halves have now been reversed by a decision — UX-13 gave M4 a ⋮
+   * for its once-per-trip actions, and ADR-050 put the three destinations in
+   * it so the bar could stop growing glyphs. What is left of §3.25's
+   * discoverability directive, and what this pins, is that they are still
+   * *offered*: named as words in the one menu the screen has, each reaching
+   * its screen, with nothing nested behind a second menu.
    */
-  test('E2E-G12-07: shopping, luggage and analytics are reachable without opening a menu', async ({
+  test('E2E-G12-07: shopping, luggage and analytics are named in the bar menu, one level deep', async ({
     page,
   }) => {
     const path = await createTripViaWizard(page, TRIP)
 
-    for (const [testid, landing] of [
-      ['m4-nav-shopping', 'm6-page'],
-      ['m4-nav-luggage', 'm11-empty'],
-      ['m4-nav-analytics', 'analytics-dim-category'],
+    // Named, not merely present: a glyph-only entry is what the move away
+    // from the bar was supposed to end.
+    const offered = await tripActions(page)
+    for (const name of ['Shopping', 'Luggage', 'Analytics']) expect(offered).toContain(name)
+
+    for (const [view, landing] of [
+      ['shopping', 'm6-page'],
+      ['luggage', 'm11-empty'],
+      ['analytics', 'analytics-dim-category'],
     ] as const) {
-      await expect(page.getByTestId(testid)).toBeVisible()
-      await page.getByTestId(testid).click()
+      await openTripView(page, view)
       await expect(onVisibleScreen(page, landing)).toBeVisible()
       await page.goto(path)
       await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
     }
+  })
 
-    // The menu that does exist is the once-per-trip one, and none of the
-    // three destinations went into it.
-    const offered = await tripActions(page)
-    expect(offered.length).toBeGreaterThan(0)
-    for (const name of ['Shopping', 'Luggage', 'Analytics']) expect(offered).not.toContain(name)
+  /*
+   * E2E-G9-19 (G-9, ADR-050): a tab root is named by the frame too, and the
+   * control that used to sit beside its name is in the bar.
+   *
+   * The three tab roots each wrote their own display-face `h1` into their
+   * content before ADR-050, so they are the screens where "the head comes
+   * from the registry" could silently stop being true — a title that simply
+   * vanished would break no other case, because none of them ever had a test
+   * id. The import control is the second half: it moved from beside the name
+   * into the bar's cluster, and a move is only complete if it still works.
+   */
+  test('E2E-G9-19: a tab root names itself in the page head, and its control is in the bar', async ({
+    page,
+  }) => {
+    await page.goto(PATH.templates)
+    await expect(page.getByTestId('header-title')).toHaveText('Templates')
+    // A tab root has no back edge, so the bar keeps the logo rather than a
+    // chevron — the positive signal that this head is the frame's and not a
+    // drill-down's.
+    await expect(page.getByTestId('header-logo')).toBeVisible()
+    await expect(page.getByTestId('header-back')).toHaveCount(0)
+
+    await page.getByTestId('m7-portable-import').click()
+    await expect(onVisibleScreen(page, 'portable-paste')).toBeVisible()
+
+    await page.goto(PATH.items)
+    await expect(page.getByTestId('header-title')).toHaveText('Items')
   })
 
   /*

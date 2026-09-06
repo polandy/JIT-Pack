@@ -297,8 +297,11 @@ function commit() {
   )
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
+// ADR-050: the frame renders this page head, above the outlet.
+setHeaderTitle(
+  () => t('items.importSpreadsheet'),
+  () => t('import.wizard.step', { step: step.value }),
+)
 </script>
 
 <template>

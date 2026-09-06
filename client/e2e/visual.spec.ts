@@ -2,6 +2,7 @@ import {
   test,
   expect,
   createTripViaWizard,
+  openTripView,
   openQuickAdd,
   visiblePage,
   useReducedMotion,
@@ -203,9 +204,9 @@ async function containers(page: Page) {
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
 
-  await visiblePage(page).getByTestId('m4-nav-luggage').click()
+  await openTripView(page, 'luggage')
   await expect(visiblePage(page).getByTestId('m11-fab')).toBeVisible()
-  await expect(visiblePage(page).getByTestId('m4-nav-luggage')).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId('m4-header')).toHaveCount(0)
 
   for (const [name, limit] of [
     ['Links', '5.5'],
