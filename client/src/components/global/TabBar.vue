@@ -99,13 +99,21 @@ function go(href: string, event: MouseEvent): void {
 }
 
 /* Identity, not action (G-11): the anchor you are on is the one place
-   the brand colour belongs in the chrome. */
+   the brand colour belongs in the chrome — as ink on the label and as a
+   soft pill behind the glyph (ADR-049), so the anchor reads at a glance
+   and not only by comparing hues. */
 .tab.active {
   color: var(--jp-brand);
 }
 
 .tab ion-icon {
   font-size: var(--jp-icon-md);
+  padding: 3px 14px;
+  border-radius: var(--jp-r-md);
+}
+
+.tab.active ion-icon {
+  background: color-mix(in srgb, var(--jp-brand) 14%, transparent);
 }
 
 .tab ion-label {

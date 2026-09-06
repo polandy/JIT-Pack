@@ -66,6 +66,13 @@ describe('typography.css', () => {
     expect(css).toMatch(/--ion-font-family:\s*var\(--jp-font-ui\)/)
   })
 
+  it('sets buttons and segment labels in sentence case, not Material capitals (ADR-049)', () => {
+    const block = /^ion-button,\s*\n?ion-segment-button\s*\{([^}]*)\}/m.exec(css)?.[1]
+    expect(block, 'no ion-button/ion-segment-button rule').toBeDefined()
+    expect(block).toContain('text-transform: none')
+    expect(block).toContain('letter-spacing: normal')
+  })
+
   it('keeps the display roles on the display face and the scale tokens', () => {
     for (const role of ['.jp-page-title', '.jp-hero-title', '.jp-sheet-title']) {
       const block = new RegExp(`\\${role}\\s*\\{[^}]*\\}`).exec(css)?.[0]

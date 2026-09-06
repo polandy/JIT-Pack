@@ -699,7 +699,8 @@ defaulting to dark, on a palette of its own (originally [Catppuccin](https://cat
   happened to be **the exact colour of the page behind it**, so a card was a hairline rectangle drawn on the page rather
   than an object raised above it. Depth is therefore a role, like brand and action: **page**, **card** (one step up,
   where every list row and item lives) and **sunken** (one step down), each named once and each asked for by role.
-  Corner radius is a **five-step scale** — inline control, block, card, sheet, and pill — replacing the nine unrelated
+  Corner radius is a **six-step scale** — checkbox (added 2026-09-06, ADR-049: a 24 px box at the inline-control step
+  read as a circle), inline control, block, card, sheet, and pill — replacing the nine unrelated
   values the client had accumulated with no rule for choosing between them; a radius that is half its own element's
   height is a pill rather than a small step, and a circle keeps `50%` because that is a shape and not a size. Elevation
   is **one geometry cast in the flavour's ink**: the offsets and blur are written once, while which colour a shadow is

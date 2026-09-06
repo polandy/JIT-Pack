@@ -21,8 +21,11 @@
 
 :root {
   /* --- Radius -------------------------------------------------------
-   * Five steps, each with a job. The client had nine values before this
-   * (2, 4, 7, 8, 10, 12, 14, 22, 999) and no rule for picking one.
+   * Six steps, each with a job. The client had nine values before this
+   * (2, 4, 7, 8, 10, 12, 14, 22, 999) and no rule for picking one; five
+   * covered them, and the sixth (`xs`) came with ADR-049, when the
+   * checkbox took the small step and read as a *circle* — a 24 px box at
+   * 10 px is a radio button to the eye, and a checkbox must not say radio.
    *
    * The small three collapsed rather than snapped: 2/4/7 px were each
    * half the height of the bar or handle they rounded, so what every one
@@ -30,6 +33,7 @@
    * step. `border-radius: 50%` stays raw on the things that are actually
    * circles: that is a shape, not a magic number, and the gate allows it.
    */
+  --jp-r-xs: 7px; /* a control smaller than its own radius would round: the checkbox */
   --jp-r-sm: 10px; /* inline controls: chips, inputs, thumbnails, tiles */
   --jp-r-md: 12px; /* blocks inside a card: reveal bars, form sections  */
   --jp-r: 18px; /* the card itself         (prototype --r)          */
@@ -119,4 +123,55 @@
  */
 ion-list:has(.jp-card) {
   background: transparent;
+}
+
+/* --- The controls Ionic would shape itself (ADR-049) ----------------- */
+
+/*
+ * Material's defaults were the last place a shape was decided outside this
+ * file: a 4 px button, an underlined segment, a 2 px-cornered checkbox and
+ * a bar that casts a shadow onto the page. Each is told once here, as the
+ * FAB and the checkbox colour are told once in palette.css.
+ */
+
+/* A button is a pill, and a filled one casts no shadow — the plane it sits
+   on already says where it is. */
+ion-button {
+  --border-radius: var(--jp-r-pill);
+  --box-shadow: none;
+}
+
+/* A segment is a pill track on the sunken plane; the chosen option is a
+   card-coloured pill inside it (colour in palette.css). The Material
+   indicator — an underline drawn beneath the track — is what carried the
+   old look, so its height goes to zero rather than its colour to
+   transparent alone. */
+ion-segment {
+  border-radius: var(--jp-r-pill);
+  border: 1px solid var(--jp-surface-border);
+  padding: 3px;
+}
+
+ion-segment-button {
+  --border-radius: var(--jp-r-pill);
+  --indicator-height: 0;
+  --margin-top: 0;
+  --margin-bottom: 0;
+  --margin-start: 0;
+  --margin-end: 0;
+  min-height: 34px;
+}
+
+/* A checkbox is a small rounded square: not Material's 2 px corner, and
+   not the small step either, which on a 24 px box reads as a circle. */
+ion-checkbox {
+  --size: 24px;
+  --border-radius: var(--jp-r-xs);
+  --border-width: 2px;
+}
+
+/* The header bar is part of the page (palette.css paints it transparent),
+   so the shadow Material draws under it would be a shadow cast by nothing. */
+ion-header.header-md::after {
+  display: none;
 }
