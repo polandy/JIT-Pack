@@ -1,7 +1,9 @@
 /**
- * FR-5.2/5.3 Packing Now + collision locking (G-3): claiming an item
- * locks it for others, any state transition releases the claim, and
- * stale locks (>15 min) are ignored.
+ * FR-5.2/5.3 Packing Now + collision locking (G-3) as the orchestrator
+ * wires it: a claim becomes a mutation and an optimistic row, a lock frame
+ * off the socket reaches the lock state, and a takeover goes through the
+ * server. What the lock state decides on its own is
+ * `sync/__tests__/locks.spec.ts`.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -115,49 +117,9 @@ describe('lock state (G-3)', () => {
     })
     expect(orch.isLockedByOther('t1', item)).toBe(false)
   })
-
-  it('locks items whose synced state is packing_now by someone else', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    const item = seedItem(store, {
-      state: 'packing_now',
-      packing_now_by: 'sarah',
-      packing_now_at: new Date().toISOString(),
-    })
-
-    expect(orch.isLockedByOther('t1', item)).toBe(true)
-  })
-
-  // FR-5.7 / ADR-028: this asserted the opposite until 2026-08-24 — a
-  // claim older than the §7 window stopped locking the row. There is no
-  // window now, so age says nothing and the row stays held.
-  it('keeps honouring a claim however old it is (FR-5.7)', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    const item = seedItem(store, {
-      state: 'packing_now',
-      packing_now_by: 'sarah',
-      packing_now_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    })
-
-    expect(orch.isLockedByOther('t1', item)).toBe(true)
-    expect(orch.lockHolder('t1', item)).toBe('sarah')
-  })
 })
 
 describe('who holds the lock (G-3)', () => {
-  it('names the holder from the synced packing_now_by', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    const item = seedItem(store, {
-      state: 'packing_now',
-      packing_now_by: 'sarah',
-      packing_now_at: new Date().toISOString(),
-    })
-
-    expect(orch.lockHolder('t1', item)).toBe('sarah')
-  })
-
   it('names the holder from the ephemeral event before the pull lands', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const store = useTripStore()
@@ -314,18 +276,6 @@ describe('my own claim (G-3)', () => {
     orch.releaseClaim('t1', store.getItems('t1')[0]!)
 
     expect(orch.holdsClaim('t1', store.getItems('t1')[0]!)).toBe(false)
-  })
-
-  it('is not claimed by a row somebody else holds', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    const item = seedItem(store, {
-      state: 'packing_now',
-      packing_now_by: 'sarah',
-      packing_now_at: new Date().toISOString(),
-    })
-
-    expect(orch.holdsClaim('t1', item)).toBe(false)
   })
 })
 
