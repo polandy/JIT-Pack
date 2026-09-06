@@ -200,6 +200,18 @@
   --jp-surface-sunken: var(--ct-crust);
   --jp-surface-border: var(--ct-surface0);
 
+  /* The wash: a breath of the brand at the top-left of every page, the one
+     place identity sits on the ground itself. The prototype had it and the
+     build had lost it (concept review 2026-09-06). One alpha for both
+     flavours — measured on both grounds, 14 % reads as warmth, not as a
+     tint. Painted once, on `ion-app`, so the header and the content share
+     it (see the plane rules at the end of this file). */
+  --jp-wash: radial-gradient(
+    90% 40% at 0% 0%,
+    color-mix(in srgb, var(--jp-brand) 14%, transparent),
+    transparent 70%
+  );
+
   /* --- Elevation ink ------------------------------------------------ */
   /*
    * The geometry of every shadow lives in surfaces.css; what belongs here
@@ -262,7 +274,10 @@
   --ion-border-color: var(--jp-surface-border);
   --ion-item-background: var(--jp-surface-card);
   --ion-card-background: var(--jp-surface-card);
-  --ion-toolbar-background: var(--jp-surface-page);
+  /* The bar is part of the page, not a slab over it (G-9, ADR-049): it
+     sits on the wash the page paints below. The shadow it would cast is
+     removed in surfaces.css. */
+  --ion-toolbar-background: transparent;
   --ion-tab-bar-background: var(--jp-surface-card);
   --ion-overlay-background-color: var(--jp-surface-card);
   --ion-placeholder-color: var(--ct-overlay1);
@@ -435,11 +450,27 @@ ion-fab-button {
 }
 
 /* Checked means done, and done is pine — not the action colour. A blue
-   tick says "this is a control"; a green one says "this is finished". */
+   tick says "this is a control"; a green one says "this is finished". The
+   unchecked box is a quiet outline in recessive ink, not Material's. */
 ion-checkbox {
   --checkbox-background-checked: var(--jp-done);
   --border-color-checked: var(--jp-done);
+  --border-color: var(--ct-overlay1);
   --checkmark-color: var(--jp-brand-contrast);
+}
+
+/* A segment is a pill on the sunken plane whose chosen option is a card
+   (ADR-049): the ink here, the shape in surfaces.css. Material's underline
+   indicator is switched off there. */
+ion-segment {
+  --background: var(--jp-surface-sunken);
+}
+
+ion-segment-button {
+  --background-checked: var(--jp-surface-card);
+  --color: var(--ct-subtext0);
+  --color-checked: var(--ct-text);
+  --indicator-color: transparent;
 }
 
 ion-toggle {
@@ -451,4 +482,22 @@ ion-toggle {
 ion-progress-bar {
   --progress-background: linear-gradient(90deg, var(--jp-done-far), var(--jp-done));
   --background: var(--ct-surface0);
+}
+
+/* ------------------------------------------------------------------ */
+/* The page plane is painted once (ADR-049).                          */
+/* ------------------------------------------------------------------ */
+
+/*
+ * `ion-app` carries the page plane and the wash; the header bar and the
+ * page's own content are transparent over it, so the wash runs under
+ * both and the bar stops being a slab. A modal keeps its own background
+ * — the selector reaches only the pages the router outlet mounts.
+ */
+ion-app {
+  background: var(--jp-wash), var(--jp-surface-page);
+}
+
+ion-router-outlet > .ion-page > ion-content {
+  --background: transparent;
 }

@@ -122,16 +122,58 @@ describe('elevation is one geometry cast in two inks (FR-21.8)', () => {
 })
 
 describe('the radius scale replaced the nine magic numbers (FR-21.8)', () => {
-  it('offers five steps and no more', () => {
+  it('offers six steps and no more', () => {
     // A scale earns its keep by being short enough to choose from. The
     // client had 2/4/7/8/10/12/14/22/999px before this and no rule; nine
-    // steps is not a scale, it is nine decisions.
+    // steps is not a scale, it is nine decisions. The sixth step came with
+    // ADR-049: a 24 px checkbox at the small step read as a circle.
     const steps = surfaces.match(/^\s*--jp-r(?:-[a-z]+)?:/gm) ?? []
-    expect(steps).toHaveLength(5)
+    expect(steps).toHaveLength(6)
   })
 
   it('keeps the card and sheet radii on the prototype values', () => {
     expect(value(surfaces, '--jp-r')).toBe('18px')
     expect(value(surfaces, '--jp-r-lg')).toBe('26px')
+  })
+})
+
+describe('the controls Material would shape are told once (ADR-049)', () => {
+  /** The rule body for `selector` in `css`, or undefined. */
+  const rule = (css: string, selector: string) =>
+    new RegExp(`^${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 'm').exec(
+      css,
+    )?.[1]
+
+  it('makes every button a pill that casts no shadow', () => {
+    const button = rule(surfaces, 'ion-button')
+    expect(button, 'no ion-button rule in surfaces.css').toBeDefined()
+    expect(button).toContain('--border-radius: var(--jp-r-pill)')
+    expect(button).toContain('--box-shadow: none')
+  })
+
+  it('turns the segment into a pill track and switches the Material underline off', () => {
+    expect(rule(surfaces, 'ion-segment')).toContain('border-radius: var(--jp-r-pill)')
+    const button = rule(surfaces, 'ion-segment-button')
+    expect(button).toContain('--border-radius: var(--jp-r-pill)')
+    expect(button).toContain('--indicator-height: 0')
+    // The chosen option is the card plane, in the colour table.
+    expect(rule(palette, 'ion-segment-button')).toContain(
+      '--background-checked: var(--jp-surface-card)',
+    )
+    expect(rule(palette, 'ion-segment')).toContain('--background: var(--jp-surface-sunken)')
+  })
+
+  it('gives the checkbox the step that does not read as a circle', () => {
+    expect(rule(surfaces, 'ion-checkbox')).toContain('--border-radius: var(--jp-r-xs)')
+  })
+
+  it('paints the page plane once, on ion-app, and lets the bar and the content sit on it', () => {
+    expect(rule(palette, 'ion-app')).toContain('var(--jp-wash), var(--jp-surface-page)')
+    expect(value(palette, '--ion-toolbar-background')).toBe('transparent')
+    expect(rule(palette, 'ion-router-outlet > .ion-page > ion-content')).toContain(
+      '--background: transparent',
+    )
+    // A transparent bar must not cast Material's shadow onto the page.
+    expect(rule(surfaces, 'ion-header.header-md::after')).toContain('display: none')
   })
 })
