@@ -104,58 +104,26 @@ const emit = defineEmits<{
     @pointerup="emit('pressEnd')"
     @pointercancel="emit('pressEnd')"
   >
-    <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
-         an anchor, and an anchor's jump is a *default action* — stopping
-         propagation never cancelled it, so every tap on the stepper opened
-         the sheet instead of counting. -->
-    <div slot="start" class="row-start" @click.stop.prevent>
-      <!-- FR-9.3: one posture, one gesture. The stepper counts what is
-           packed, which is not what the pass asks — and a checkbox is M4's
-           *packed* idiom, so the mark gets a control of its own that renders
-           off the row rather than off its own internal state. -->
-      <IonIcon v-if="locked" :icon="lockClosedOutline" class="lock" />
-      <button
-        v-else-if="closingPass"
-        class="pass-toggle"
-        :class="{ on: item.flag_unused }"
-        :aria-pressed="item.flag_unused"
-        :aria-label="t('facet.flagUnused')"
-        :data-testid="`m4-pass-toggle-${testKey}`"
-        @click="emit('passToggle')"
-      >
-        <IonIcon :icon="removeCircleOutline" />
-      </button>
-      <QuantityStepper
-        v-else
-        :quantity="item.quantity"
-        :packed="item.packed_count"
-        @increment="emit('increment')"
-        @decrement="emit('decrement')"
-        @complete="emit('complete')"
-        @zero="emit('zero')"
-        @toggle="emit('toggle')"
+    <!-- The lead column: what the row *is*. A child row keeps the column
+         even with nobody in it, because it has no mark to hold it open; an
+         item row's mark slot holds its own width (FR-28.4), so the names
+         line up across both kinds. -->
+    <div slot="start" class="row-lead">
+      <UserAvatar
+        v-if="traveler || props.variant === 'child'"
+        class="row-avatar"
+        :name="traveler?.name"
+        :seed="traveler?.id"
+      />
+      <ItemMark
+        v-if="props.variant === 'item'"
+        :mark="master?.icon ?? null"
+        surface="packing"
+        :photo-item="master"
+        :size="22"
+        class="row-mark"
       />
     </div>
-
-    <!-- Outside the fixed-width control column (UX-9): beside the name it
-         sits where an item row's mark does, so the label column stays
-         straight across both kinds — and a child row keeps the column even
-         with nobody in it, because it has no mark to hold it open. An item
-         row has, so it renders the avatar only when there is someone to name. -->
-    <UserAvatar
-      v-if="traveler || props.variant === 'child'"
-      class="row-avatar"
-      :name="traveler?.name"
-      :seed="traveler?.id"
-    />
-    <ItemMark
-      v-if="props.variant === 'item'"
-      :mark="master?.icon ?? null"
-      surface="packing"
-      :photo-item="master"
-      :size="22"
-      class="row-mark"
-    />
 
     <IonLabel>
       <h3>
@@ -180,54 +148,107 @@ const emit = defineEmits<{
       </p>
     </IonLabel>
 
-    <div v-if="props.variant === 'item'" slot="end" class="row-end">
-      <!-- FR-9.3: a judgement made from the row's menu has to be visible on
-           the row, or the pass cannot be reviewed. -->
-      <IonIcon
-        v-if="item.flag_unused && !closingPass"
-        :icon="removeCircleOutline"
-        class="unused-mark"
-        :aria-label="t('facet.flagUnused')"
-        :data-testid="`m4-unused-${testKey}`"
-      />
-      <RowGlyphs :mode="item.mode" :late="item.late_packer" />
+    <!-- The end column: what the row *says*, then what you do to it. The
+         control is last, so its outer edge lands under the thumb on every
+         row whatever precedes it, and the glyphs it follows belong to the
+         item — a child row skips them, because the cluster head above
+         carries them once (FR-28.4/25.1). -->
+    <div slot="end" class="row-end">
+      <template v-if="props.variant === 'item'">
+        <!-- FR-9.3: a judgement made from the row's menu has to be visible on
+             the row, or the pass cannot be reviewed. -->
+        <IonIcon
+          v-if="item.flag_unused && !closingPass"
+          :icon="removeCircleOutline"
+          class="unused-mark"
+          :aria-label="t('facet.flagUnused')"
+          :data-testid="`m4-unused-${testKey}`"
+        />
+        <RowGlyphs :mode="item.mode" :late="item.late_packer" />
+      </template>
       <UserAvatar
         v-if="edgeAvatar"
         :variant="edgeAvatar.variant"
         :name="edgeAvatar.name"
         :seed="edgeAvatar.id"
       />
+      <!--
+        `.prevent` as well as `.stop` on the click: Ionic wraps a router-link
+        item in an anchor, and an anchor's jump is a *default action* —
+        stopping propagation never cancelled it, so every tap on the stepper
+        opened the sheet instead of counting.
+
+        `@pointerdown.stop` is the same rule for the *press*: FR-5.5's
+        press-and-hold belongs to the row, and the stepper has holds of its
+        own (G-6's + completes, − zeroes). Armed together, the row's menu
+        opened over a gesture the stepper never got to finish (E2E-G6-01).
+        Stopping it here rather than in the page keeps the rule where the
+        control is, instead of in a `closest()` on a class name one file over.
+      -->
+      <div class="row-control" @click.stop.prevent @pointerdown.stop>
+        <!-- FR-9.3: one posture, one gesture. The stepper counts what is
+             packed, which is not what the pass asks — and a checkbox is M4's
+             *packed* idiom, so the mark gets a control of its own that renders
+             off the row rather than off its own internal state. -->
+        <IonIcon v-if="locked" :icon="lockClosedOutline" class="lock" />
+        <button
+          v-else-if="closingPass"
+          class="pass-toggle"
+          :class="{ on: item.flag_unused }"
+          :aria-pressed="item.flag_unused"
+          :aria-label="t('facet.flagUnused')"
+          :data-testid="`m4-pass-toggle-${testKey}`"
+          @click="emit('passToggle')"
+        >
+          <IonIcon :icon="removeCircleOutline" />
+        </button>
+        <QuantityStepper
+          v-else
+          :quantity="item.quantity"
+          :packed="item.packed_count"
+          @increment="emit('increment')"
+          @decrement="emit('decrement')"
+          @complete="emit('complete')"
+          @zero="emit('zero')"
+          @toggle="emit('toggle')"
+        />
+      </div>
     </div>
-    <!-- A child row's end column is the edge avatar alone: the glyphs above
-         belong to the item, and the cluster head already carries them. -->
-    <UserAvatar
-      v-else-if="edgeAvatar"
-      slot="end"
-      :variant="edgeAvatar.variant"
-      :name="edgeAvatar.name"
-      :seed="edgeAvatar.id"
-    />
   </IonItem>
 </template>
 
 <style scoped>
-.row-start {
+/*
+ * The lead column is what UX-9 made of the control column, one place to the
+ * left: the thing that holds the names in a straight line. It is the mark
+ * slot for an item row and the traveler's face for a child row, and both
+ * hold their width when empty, so the column is the same width on every row
+ * without being told a number.
+ */
+.row-lead {
   display: flex;
   align-items: center;
-  gap: 8px;
-  /* UX-9: the control column holds one width whatever it carries (checkbox,
-     stepper, pass toggle, lock), so item names line up in a straight column.
-     Sized to its widest resident, the G-6 stepper (two 28px buttons, the
-     36px count, two 4px gaps, plus tap headroom); min- rather than fixed
-     width so an outsized count degrades to one misaligned row instead of an
-     overlap. */
-  min-width: 108px;
 }
 
 .row-end {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/*
+ * UX-9's fixed width, on the other side of the row (2026-09-06). It bought
+ * a straight column of names at the cost of a 108px gap on every row that
+ * carried only a checkbox — and the control it held sat at the far edge
+ * from the thumb. Right-aligned, the control's outer edge is the container's
+ * on every row, so the alignment is free and the width is only a floor for
+ * the tap target.
+ */
+.row-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 44px;
 }
 
 .lock {
@@ -256,10 +277,6 @@ const emit = defineEmits<{
 .unused-mark {
   font-size: var(--jp-icon-sm);
   color: var(--ct-heather);
-}
-
-.done {
-  opacity: 0.55;
 }
 
 .locked {
@@ -299,5 +316,18 @@ const emit = defineEmits<{
 .row-avatar {
   flex: none;
   margin-inline-end: 8px;
+}
+
+/*
+ * A done row has nothing left to ask of anyone, so it says so twice: it
+ * sinks to the end of its group (`packingView`) and its name is struck
+ * through here. The strike replaces the blanket dim the row used to carry —
+ * that dimmed the FR-25.17 stamp as well, which is the one part of a done
+ * row still worth reading (who packed it, and when).
+ */
+.done h3 {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: var(--ct-subtext0);
 }
 </style>

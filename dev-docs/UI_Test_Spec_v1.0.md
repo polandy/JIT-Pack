@@ -486,7 +486,7 @@ in WebKit.
   (survives reload; a second user/other trip unaffected).
 * **E2E-M4-03** `all` (FR-5.1/G-6) — **corrected 2026-08-30, audit of item 6**: item rows show state, stepper/checkbox
   and the mode, late-packer, traveler and packer marks. Each is asserted where it belongs rather than as one omnibus
-  case — the control column in E2E-M4-56, the traveler in E2E-M5-19, the packer/assignee edge in E2E-M4-30 — so this
+  case — the row's two columns in E2E-M4-56, the traveler in E2E-M5-19, the packer/assignee edge in E2E-M4-30 — so this
   entry is a description of the row and not a case of its own. **The container chip it also promised does not exist**:
   M4 answers *which bag* by grouping (FR-8.2), not by a chip, and a fifth mark on the right edge is exactly what
   FR-25.19 kept off it. **Struck 2026-08-31 (owner decision): the chip is not owed.** M4 answers *which bag* by
@@ -2297,11 +2297,18 @@ landed, that no test has ever rendered.
   satisfy it. The header-line name is also asserted to *resolve* to the display face, since it is the app bar's title
   moved down and has to read as one — on the computed family, not on the class attribute, which would pass against a
   role that was never defined. Mutation-proved — restoring the unconditional `ion-title` reddens it on both engines.
-* **E2E-M4-56** `all` (UX-9, added 2026-08-27): the packing control column holds one width whatever it carries, so item
-  names form a straight column — a checkbox row and a stepper row start their names at the same x, and their
-  `.row-start` boxes have the same width. Asserted on rendered bounding boxes with exact equality (no tolerance); the
-  case first proves both control variants are actually on screen, so the equality cannot pass vacuously against a world
-  of identical rows.
+* **E2E-M4-56** `all` (UX-9, added 2026-08-27; **revised 2026-09-06** with the row): item names form a straight column
+  and the controls end in one — a checkbox row and a stepper row start their names at the same x and their `.row-lead`
+  boxes have the same width, while their `.row-control` boxes have *different* widths and the same right edge. Both
+  halves, because the control moved from the row's left to its right: the lead column now holds the names and the
+  container edge holds the controls, and either assertion alone would pass on a row that had lost the other. Asserted
+  on rendered bounding boxes with exact equality (no tolerance); the case first proves both control variants are
+  actually on screen, so the equality cannot pass vacuously against a world of identical rows.
+* **E2E-M4-68** `all` (FR-25.2, added 2026-09-06): a packed row sinks to the end of its group once revealed —
+  three rows, the middle one packed, and the revealed order is first, last, packed. The pack is proved by the row
+  leaving the working list before anything is revealed, and the untouched middle row is what says the sink did not
+  simply reorder the group. Rendered order, because the domain unit can only say what the view model holds.
+  Mutation-proved: disabling the partition in `packingView` reddens it with the un-sunk order.
 * **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27): the bar keeps *Suchen*, *Filter* and *Zuklappen* and carries the
   rest behind the ⋮ — `m4-edit` and `m4-start` are gone as glyphs, the menu **names** both in words, and picking
   *„Reise-Eigenschaften"* lands on the rendered M22 edit screen. The last step is what separates the menu from a

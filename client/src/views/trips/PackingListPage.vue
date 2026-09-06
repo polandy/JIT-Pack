@@ -342,14 +342,13 @@ const hold = useLongPress<TripItem>(openRowMenu)
 
 /**
  * FR-5.5's press-and-hold is the *row's*, and the packing control is not the
- * row. The stepper has holds of its own — G-6's + completes and − zeroes —
- * and armed together the row's menu opened over a gesture the stepper never
- * got to finish, so the shortcut was unreachable on the one screen that
- * renders it. The row's *click* was already stopped at `.row-start` when the
- * stepper shipped; its press was not (E2E-G6-01).
+ * row (E2E-G6-01). That exception used to live here as a `closest()` on the
+ * control column's class — a rule about a component, written one file away
+ * from it and coupled to its stylesheet. `PackingRow` stops the press at the
+ * control itself now, so a press that reaches this handler is already the
+ * row's.
  */
 function onRowPress(item: TripItem, event: PointerEvent): void {
-  if ((event.target as Element | null)?.closest('.row-start')) return
   hold.down(item, event.clientX, event.clientY)
 }
 

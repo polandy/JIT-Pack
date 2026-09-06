@@ -185,6 +185,21 @@ export function isDone(item: TripItem, hasOpenPrep: boolean): boolean {
 }
 
 /**
+ * An entry that asks nothing further of anyone, and so sinks to the end of
+ * its group (FR-25.2, 2026-09-06).
+ *
+ * A cluster settles only when every *visible* instance is done: the head
+ * names one item and cannot be in two places, so one open instance keeps the
+ * whole cluster up with the open rows. The children themselves keep their
+ * traveler order — inside a cluster the people are the axis, and sorting
+ * them by progress would move a person's row out from under their own hand.
+ */
+function entrySettled(entry: PackingEntry): boolean {
+  if (entry.kind === 'item') return entry.done
+  return entry.children.length > 0 && entry.children.every((child) => child.done)
+}
+
+/**
  * Who the row's right edge names, or `null` for a row nobody is attached to.
  *
  * FR-25.19 splits one column into two: `packer_user_id` is the assignment the
@@ -462,6 +477,24 @@ export function buildPackingView(input: PackingViewInput): PackingView {
         (travelerOrder.get(a.traveler?.id ?? '') ?? Number.MAX_SAFE_INTEGER) -
         (travelerOrder.get(b.traveler?.id ?? '') ?? Number.MAX_SAFE_INTEGER),
     )
+  }
+
+  /*
+   * FR-9.3's closing pass is exempt, and its own test is what said so: there
+   * every visible row was packed, so "done" separates fully packed from
+   * partly packed — an axis nobody is working through. Sinking would sort a
+   * review list by something the reviewer did not ask about.
+   */
+  if (!packedOnly) {
+    for (const group of groups.values()) {
+      // Partitioned rather than sorted: two passes are obviously stable,
+      // where a comparator's stability is a property of the engine rather
+      // than of the rule being stated.
+      group.entries = [
+        ...group.entries.filter((entry) => !entrySettled(entry)),
+        ...group.entries.filter(entrySettled),
+      ]
+    }
   }
 
   const activeFacetCount = FACET_KEYS.reduce((n, key) => n + facets[key].length, 0)

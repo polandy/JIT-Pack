@@ -7,8 +7,9 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
-* 2026-09-06 — **G-9/G-11/G-13/G-14**: one Ionic mode, the bar on the page, the wash, controls in sentence case and
-  told once (ADR-049). **G-11**: the palette is *Bergluft* (ADR-048).
+* 2026-09-06 — **M4**: the row is mark, name, control-at-the-thumb, and a done row sinks (UX-9 revised).
+  **G-9/G-11/G-13/G-14**: one Ionic mode, the bar on the page, the wash, controls in sentence case and told once
+  (ADR-049). **G-11**: the palette is *Bergluft* (ADR-048).
 * 2026-09-02 — **M17** gains the FR-19.8 leave-Local-Mode card and the migration bar (ADR-045); M19 unchanged.
 * 2026-08-30 — **M8**: the FR-25.15 indicator's seam is `capturePending`, not the sync state (was wrong since
   2026-08-15).
@@ -858,13 +859,21 @@ These patterns apply to every screen and are specified once.
   * Grouping switcher: *Category / Container / Person / Status*, now inside the filter sheet's *Gruppieren nach* section
     rather than as its own bar. **Decided: persists per user per trip** (not a global preference) — switching to
     *Container* view on one trip doesn't affect another trip or another user's view of the same trip.
-  * Item rows: **leading control column, one fixed width for every row (2026-08-27, UX-9)** — checkbox for quantity 1,
-    stepper per G-6 for quantity > 1 (showing "3/5"), the closing-pass toggle or the G-3 lock, all in a column sized to
-    the widest of them, so item names line up straight; then the **mark slot (G-15: photo → item mark → nothing, width
-    held either way)** — a traveler avatar, where the row carries one, shares this column so the name is not pushed
-    further; then name, chips: mode (BUY_BEFORE/BUY_LOCAL), Late Packer flag, packer avatar, ~~container tag~~ — **the
-    container chip was never built and is struck 2026-08-31 (owner decision, E2E-M4-03)**: M4 answers *which bag* by
-    grouping (FR-8.2), and a fifth mark at this edge is exactly what FR-25.19 kept off the row; lock overlay per G-3.
+  * Item rows read **mark, name, then what you do to it (2026-09-06)**. The **lead column** is the mark slot (G-15:
+    photo → item mark → nothing, width held either way) — a traveler avatar, where the row carries one, shares this
+    column — and because it holds its width empty, the names line up straight without anything being told a number.
+    Then the name and its one sentence. Then, at the row's other edge: the chips — mode (BUY_BEFORE/BUY_LOCAL), Late
+    Packer flag, packer avatar, ~~container tag~~ — **the container chip was never built and is struck 2026-08-31
+    (owner decision, E2E-M4-03)**: M4 answers *which bag* by grouping (FR-8.2), and a fifth mark at this edge is
+    exactly what FR-25.19 kept off the row; and **last, the control**: checkbox for quantity 1, stepper per G-6 for
+    quantity > 1 (showing "3/5"), the closing-pass toggle or the G-3 lock. The control is last so its outer edge is the
+    row's on every row, whatever precedes it — the thing you tap sits under the thumb rather than across the screen
+    from it.
+    * **Revised 2026-09-06, replacing UX-9's leading control column (2026-08-27).** UX-9 bought a straight name column
+      by giving the control one fixed width, sized to the stepper; the cost was a 108 px gap on every row that carried
+      only a checkbox, and it put the most-tapped control at the far edge from the thumb. Moving the control to the
+      end keeps both promises and buys them differently: the lead column holds the names, and the container's own edge
+      holds the controls. E2E-M4-56 asserts both, because either one alone passes on a row that has lost the other.
     The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row added by quick-add carries none until
     it exists in the inventory, and shows an empty slot rather than a placeholder.
   * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline

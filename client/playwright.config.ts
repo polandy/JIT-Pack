@@ -255,19 +255,23 @@ export default defineConfig({
 
   /*
    * Baselines are pixel data, so the tolerances are the whole contract.
-   * `maxDiffPixelRatio` rather than `threshold` alone: a handful of
-   * antialiased edge pixels is not a design change, and a suite that
-   * calls it one gets ignored within a week (ADR-013, driver 1).
+   * A pixel budget rather than `threshold` alone: a handful of antialiased
+   * edge pixels is not a design change, and a suite that calls it one gets
+   * ignored within a week (ADR-013, driver 1).
    *
-   * **0.002 stays, decided 2026-08-19 (owner) rather than left open.** It
-   * is known to be loose: a whole 24 px app-bar icon plus a truncated title
-   * came to 658 px of 329 160 and passed against the old baselines (see the
-   * M21 entry in the implementation log). Tightening it would buy that one
-   * class of miss at the price of flake, and a gate that cries wolf is
-   * worth less than the miss it prevents. The consequence is stated rather
-   * than hidden: **this gate catches layout changes, not small ones** — a
-   * change of a few hundred pixels is caught by looking at the render,
-   * which is what the working agreement already requires of a UI PR.
+   * **The budget the owner set on 2026-08-19 was `maxDiffPixelRatio: 0.002`,
+   * and a ratio is not the same promise at two viewports.** 0.002 of the
+   * 390×844 phone is 658 px; of the 1280×900 desktop it is 2304, so the
+   * same change had to be three and a half times larger to be seen there.
+   * Measured 2026-09-06, when moving M4's control across the row failed the
+   * mobile shot and passed the desktop one. The number below is that same
+   * mobile budget, now written as pixels so it means one thing on both —
+   * the tolerance the owner chose, applied evenly.
+   *
+   * The consequence is unchanged and still stated rather than hidden: **this
+   * gate catches layout changes, not small ones** — a change of a few
+   * hundred pixels is caught by looking at the render, which is what the
+   * working agreement already requires of a UI PR.
    *
    * **`threshold: 0`, decided 2026-09-06 (ADR-048).** Playwright's default
    * per-pixel tolerance is 0.2 in YIQ space, and that is not a small number:
@@ -284,7 +288,7 @@ export default defineConfig({
    */
   expect: {
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.002,
+      maxDiffPixels: 658,
       threshold: 0,
       animations: 'disabled',
       // Ionic's tap ripple and the pack-out are both mid-flight artefacts

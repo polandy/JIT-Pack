@@ -190,7 +190,6 @@ describe('PackingRow — where the two kinds differ', () => {
     expect(wrapper.find('[data-testid="m4-unused-Zelt"]').exists()).toBe(true)
     expect(wrapper.find('.late-icon').exists()).toBe(true)
     expect(wrapper.find('.mode-icon').exists()).toBe(true)
-    expect(wrapper.find('.row-end').exists()).toBe(true)
   })
 
   it('a child row carries neither mark nor prep badge — the cluster head does (FR-28.4)', () => {
@@ -208,15 +207,54 @@ describe('PackingRow — where the two kinds differ', () => {
     expect(wrapper.find('.mode-icon').exists()).toBe(false)
   })
 
-  it("a child row's end column is the edge avatar alone", () => {
+  it("a child row's end column is the edge avatar and the control, without the item's glyphs", () => {
     const wrapper = mountRow({
       variant: 'child',
+      item: item({ flag_unused: true, late_packer: true, mode: 'buy_before' }),
       edgeAvatar: { variant: 'packer', id: 'u1', name: 'Andy' },
     })
 
-    const avatars = wrapper.findAllComponents({ name: 'UserAvatar' })
-    expect(wrapper.find('.row-end').exists()).toBe(false)
-    expect(avatars.at(-1)!.props('variant')).toBe('packer')
+    const end = wrapper.get('.row-end')
+    expect(end.find('.late-icon').exists()).toBe(false)
+    expect(end.find('.mode-icon').exists()).toBe(false)
+    expect(end.findComponent({ name: 'UserAvatar' }).props('variant')).toBe('packer')
+    // The control follows both kinds of row; only the glyphs are the item's.
+    expect(end.find('.row-control').exists()).toBe(true)
+  })
+
+  it("puts the control last in the end column, so its outer edge is the row's", () => {
+    // Order is the rule, not decoration: whatever else the end column
+    // carries, the thing you tap is the one nearest the thumb.
+    const wrapper = mountRow({
+      item: item({ flag_unused: true, late_packer: true, mode: 'buy_before' }),
+      edgeAvatar: { variant: 'packer', id: 'u1', name: 'Andy' },
+    })
+
+    const end = wrapper.get('.row-end').element
+    expect(end.lastElementChild).toBe(wrapper.get('.row-control').element)
+  })
+
+  it('keeps the row-level press off the control, so the stepper finishes its own hold', () => {
+    // E2E-G6-01's unit half. A press that reaches the row opens FR-5.5's
+    // menu; armed on the stepper it swallowed G-6's + and − holds. The
+    // positive signal is the same event on the row itself, which must still
+    // arm — an assertion that nothing fired proves nothing on its own.
+    const wrapper = mountRow()
+
+    wrapper.get('.row-control').trigger('pointerdown')
+    expect(wrapper.emitted('pressStart')).toBeUndefined()
+
+    wrapper.trigger('pointerdown')
+    expect(wrapper.emitted('pressStart')).toHaveLength(1)
+  })
+
+  it('strikes a done row through and leaves its stamp readable (FR-25.2)', () => {
+    const wrapper = mountRow({ done: true, notes: notes({ packed: 'packed · today 09:14' }) })
+
+    // The strike is on the name only; the stamp under it is the one part of
+    // a done row still worth reading.
+    expect(wrapper.get('[data-testid="m4-row-Zelt"]').classes()).toContain('done')
+    expect(wrapper.get('[data-testid="m4-packed-stamp"]').text()).toContain('packed')
   })
 
   it('a child row keeps the avatar column open with nobody in it; an item row does not', () => {
