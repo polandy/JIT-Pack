@@ -6,12 +6,16 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  applyReviewOverrides,
   companionAsGenerated,
   durationDays,
   generateTripItems,
   generatedFrom,
+  withCompanions,
+  type GeneratedItem,
   type GenerationInput,
 } from '../instantiate'
+import type { DependencyResolution } from '../dependencies'
 import type {
   MasterItem,
   Template,
@@ -829,6 +833,193 @@ describe('generatedFrom / companionAsGenerated', () => {
       quantity: 2,
       mode: ITEM_MODE_PACK,
       late_packer: false,
+    })
+  })
+})
+
+/**
+ * FR-20.2/20.4 and FR-2.6 as the M3 wizard assembles its draft. Both were
+ * written inside the view and reachable only through a mount (U-11).
+ */
+describe('the rows a wizard draft is made of', () => {
+  function generated(over: Partial<GeneratedItem> = {}): GeneratedItem {
+    return {
+      source_item_id: 'item-cam',
+      source_template_id: 'tpl-1',
+      name: 'Kamera',
+      category_name: 'Technik',
+      weight_grams: 800,
+      value_cents: 120000,
+      quantity: 1,
+      mode: ITEM_MODE_PACK,
+      late_packer: false,
+      traveler_index: null,
+      tasks: ['Akku laden'],
+      ...over,
+    }
+  }
+
+  function resolution(over: Partial<DependencyResolution> = {}): DependencyResolution {
+    return { required: [], deduped: [], suggested: [], ...over }
+  }
+
+  const REQUIRED = {
+    item_id: 'item-akku',
+    name: 'Ersatzakku',
+    category_name: 'Technik',
+    weight_grams: 90,
+    value_cents: 4500,
+    quantity: 2,
+    via_item_name: 'Kamera',
+  }
+
+  const SUGGESTED = {
+    dependency_id: 'dep-1',
+    item_id: 'item-drone',
+    name: 'Drohne',
+    quantity: 1,
+    via_item_name: 'Kamera',
+  }
+
+  const DRONE: MasterItem = {
+    id: 'item-drone',
+    name: 'Drohne',
+    category_name: 'Technik',
+    weight_grams: 900,
+    value_cents: 80000,
+  } as MasterItem
+
+  describe('withCompanions', () => {
+    it('leaves a list with nothing to pull in exactly as it was', () => {
+      const items = [generated()]
+
+      expect(withCompanions(items, resolution(), new Set(), [])).toEqual(items)
+    })
+
+    it('appends a required companion as a row of its own (FR-20.2)', () => {
+      const rows = withCompanions(
+        [generated()],
+        resolution({ required: [REQUIRED] }),
+        new Set(),
+        [],
+      )
+
+      expect(rows).toHaveLength(2)
+      expect(rows[1]).toEqual({
+        source_item_id: 'item-akku',
+        // No template asked for it, so none may claim it, and a dependency
+        // carries no FR-27.7 task.
+        source_template_id: null,
+        name: 'Ersatzakku',
+        category_name: 'Technik',
+        weight_grams: 90,
+        value_cents: 4500,
+        quantity: 2,
+        mode: ITEM_MODE_PACK,
+        late_packer: false,
+        traveler_index: null,
+        tasks: [],
+      })
+    })
+
+    it('leaves a suggestion out until it is accepted (FR-20.4)', () => {
+      const rows = withCompanions(
+        [generated()],
+        resolution({ suggested: [SUGGESTED] }),
+        new Set(),
+        [DRONE],
+      )
+
+      expect(rows).toHaveLength(1)
+    })
+
+    it('adds an accepted suggestion, with the item facts a suggestion does not carry', () => {
+      // A `SuggestedCompanion` names an item and a quantity and nothing
+      // else, so the weight and the price have to come from the inventory.
+      const rows = withCompanions(
+        [generated()],
+        resolution({ suggested: [SUGGESTED] }),
+        new Set(['item-drone']),
+        [DRONE],
+      )
+
+      expect(rows).toHaveLength(2)
+      expect(rows[1]).toMatchObject({
+        source_item_id: 'item-drone',
+        source_template_id: null,
+        name: 'Drohne',
+        category_name: 'Technik',
+        weight_grams: 900,
+        value_cents: 80000,
+        quantity: 1,
+        tasks: [],
+      })
+    })
+
+    it('accepts a suggestion whose item the inventory no longer holds', () => {
+      // The tap and the master row can disagree — another device may have
+      // retired the item since the resolution ran. The name and quantity
+      // are the suggestion's own, so the row is still writable.
+      const rows = withCompanions(
+        [generated()],
+        resolution({ suggested: [SUGGESTED] }),
+        new Set(['item-drone']),
+        [],
+      )
+
+      expect(rows[1]).toMatchObject({
+        name: 'Drohne',
+        category_name: null,
+        weight_grams: null,
+        value_cents: null,
+      })
+    })
+
+    it('keeps the generated rows first, then required, then accepted', () => {
+      // The FR-2.6 review addresses rows by position, so anything appended
+      // after them must stay after them.
+      const rows = withCompanions(
+        [generated()],
+        resolution({ required: [REQUIRED], suggested: [SUGGESTED] }),
+        new Set(['item-drone']),
+        [DRONE],
+      )
+
+      expect(rows.map((r) => r.name)).toEqual(['Kamera', 'Ersatzakku', 'Drohne'])
+    })
+  })
+
+  describe('applyReviewOverrides', () => {
+    const cases: [string, Record<number, number>, number[]][] = [
+      ['no override leaves every quantity alone', {}, [1, 4]],
+      ['an override replaces one quantity', { 1: 2 }, [1, 2]],
+      ['a zero is kept, because it is the FR-5.5 skip', { 0: 0 }, [0, 4]],
+      ['every row can be overridden at once', { 0: 3, 1: 3 }, [3, 3]],
+      ['an override past the end changes nothing', { 7: 9 }, [1, 4]],
+    ]
+
+    for (const [name, overrides, expected] of cases) {
+      it(`${name}`, () => {
+        const items = [generated({ quantity: 1 }), generated({ name: 'Stativ', quantity: 4 })]
+
+        expect(applyReviewOverrides(items, overrides).map((i) => i.quantity)).toEqual(expected)
+      })
+    }
+
+    it('changes nothing else about the row it rewrites', () => {
+      const [row] = applyReviewOverrides([generated({ tasks: ['Akku laden'] })], { 0: 0 })
+
+      expect(row).toEqual({ ...generated(), quantity: 0 })
+    })
+
+    it('leaves the rows it was given untouched', () => {
+      // The generation is a computed the screen re-reads; rewriting it in
+      // place would make the review's own preview follow the draft.
+      const items = [generated({ quantity: 1 })]
+
+      applyReviewOverrides(items, { 0: 0 })
+
+      expect(items[0]!.quantity).toBe(1)
     })
   })
 })

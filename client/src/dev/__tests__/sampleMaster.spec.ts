@@ -110,10 +110,14 @@ describe('seedSampleMaster (dev)', () => {
     expect(master.templateItemTaskList.map((t) => t.task)).toContain('Akkus laden')
   })
 
-  it('wires two required companions, so the FR-20.2 cascade is reachable on a fresh device', () => {
+  it('wires a companion of each mode, so both FR-20 branches are reachable', () => {
     // The seed exists so a feature can be exercised without twenty minutes
     // of typing; the co-skip cascade needs a dependency, and building one by
     // hand is three screens away.
+    //
+    // The suggested one is the newer half: every relation here was required
+    // until 2026-09-06, which left FR-20.4's "waits for a tap" branch — the
+    // M3 wizard's checkbox, M5's offer — unreachable on a fresh device.
     const { master } = seed()
 
     const named = master.dependencyList.map((dep) => ({
@@ -124,6 +128,7 @@ describe('seedSampleMaster (dev)', () => {
     expect(named).toEqual([
       { item: 'Ersatzakkus', dependsOn: 'Kamera', mode: 'required' },
       { item: 'Ringlicht', dependsOn: 'Makro-Objektiv', mode: 'required' },
+      { item: 'Powerbank', dependsOn: 'Kamera', mode: 'suggested' },
     ])
   })
 

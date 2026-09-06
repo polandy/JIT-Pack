@@ -113,6 +113,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [The NFR journeys — five modes read off the wrong thing (2026-09-01)](#the-nfr-journeys--five-modes-read-off-the-wrong-thing-2026-09-01) — §6's journeys, and the difference between reading a mode off the screen and off the request.
 - [Two files, one account, two workers (2026-09-02)](#two-files-one-account-two-workers-2026-09-02) — a red `e2e-server` that was not the Dependabot patch: two defects that only meet on a schedule.
 - [E2E-M5-12 — the flake was a second mount (2026-09-05)](#e2e-m5-12--the-flake-was-a-second-mount-2026-09-05) — three red WebKit runs, zero local ones; an element identity turns a load-dependent window into an assertion.
+- [The wizard's FR-20.4 tap is still owed a case (2026-09-06)](#the-wizards-fr-204-tap-is-still-owed-a-case-2026-09-06) — a control with no test id at all, and the seed gap that had made it unreachable.
 
 ## The rule that comes before the units
 
@@ -4499,3 +4500,22 @@ The unit half is in `composables/__tests__/admin.spec.ts`, table-driven over
 **all four** writers plus the two avatar calls that deliberately do *not*
 refresh. It looks like that because an earlier version asserted one writer, and
 dropping the refresh from `deactivateUser` left it green.
+
+## The wizard's FR-20.4 tap is still owed a case (2026-09-06)
+
+Found while lifting the wizard's draft assembly into `domain/instantiate.ts` (U-11), not by
+counting anything: **M3's suggested-companion checkbox carried no `data-testid` at all**, which is
+one step past the usual sign — a test id nothing uses says no test has operated the control, and no
+test id says nobody ever tried. Nothing asserted that ticking it puts the companion on the created
+trip.
+
+Five component cases now cover it (`TripWizardPage.spec.ts`), including the tap, the untap and the
+count on the create button. **An e2e case is still owed**, and until now it could not have been
+written: every dependency in the dev seed was `required`, so no fresh device could reach the
+`suggested` branch on any screen. The seed now carries one — Powerbank suggested by Kamera — which
+is what a future case would stand on.
+
+Worth separating the two absences, because they read alike and are not: FR-20.4 *is* covered at M4
+(E2E-M4-66, the quick-add naming its companions) and at M5 (E2E-M5-23, the offer). What had no
+coverage anywhere was the decision made **before the trip exists**, which is the only place the
+answer changes what the trip is created with rather than what is added to it.
