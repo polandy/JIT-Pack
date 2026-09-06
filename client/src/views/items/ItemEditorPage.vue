@@ -55,11 +55,15 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
 import { formatDay, t } from '@/i18n'
-import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import type { MasterItemEdit } from '@/sync/mutations'
 import type { DependencyMode, Tag } from '@/types/domain'
 import { itemPath, templatePath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
+import { dependencyOffer, tagOffer } from '@/lib/itemEditorOffers'
+import {
+  DELETION_SUBJECT_ITEM,
+  deletionSentence as deletionSentenceFor,
+} from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ itemId?: string }>()
@@ -119,27 +123,13 @@ const assignedTags = computed<Tag[]>(() => {
 
 const assignedIds = computed(() => new Set(assignedTags.value.map((tag) => tag.id)))
 
-/**
- * With no query the offer row is a shelf, not the whole vocabulary (UX-14):
- * a grown instance carries dozens of tags, and rendering them all made every
- * item form scroll. Two chip rows at phone width; the tail names the rest.
- */
-const TAG_OFFER_CAP = 8
+/** The shelf, its tail and the ＋ offer — UX-14's cap included. */
+const offer = computed(() => tagOffer(masterStore.tagList, assignedIds.value, tagQuery.value))
 
-/** Unassigned tags matching the query — assigned ones stay pinned above. */
-const unassignedMatches = computed(() => {
-  const q = tagQuery.value.trim().toLowerCase()
-  return masterStore.tagList.filter(
-    (tag) => !assignedIds.value.has(tag.id) && (!q || tag.name.toLowerCase().includes(q)),
-  )
-})
-
-const tagMatches = computed(() =>
-  tagQuery.value.trim() ? unassignedMatches.value : unassignedMatches.value.slice(0, TAG_OFFER_CAP),
-)
+const tagMatches = computed(() => offer.value.matches)
 
 /** What the shelf holds back — zero while a query is filtering. */
-const hiddenOfferCount = computed(() => unassignedMatches.value.length - tagMatches.value.length)
+const hiddenOfferCount = computed(() => offer.value.hiddenCount)
 
 const tagSearch = ref<{ $el: HTMLElement } | null>(null)
 
@@ -152,11 +142,7 @@ async function focusTagSearch() {
 }
 
 /** True when the typed name is not an existing tag — the ＋ offer. */
-const canCreateTag = computed(() => {
-  const q = tagQuery.value.trim()
-  if (!q) return false
-  return !masterStore.tagList.some((tag) => tag.name.toLowerCase() === q.toLowerCase())
-})
+const canCreateTag = computed(() => offer.value.canCreate)
 
 function assign(tagId: string) {
   if (isCreating.value) {
@@ -339,13 +325,15 @@ const dependencyErrorText = computed(() => {
     : t('items.editor.dependencyCycle', { path: fault.names.join(CYCLE_PATH_SEPARATOR) })
 })
 
-const pickableMains = computed(() => {
-  const taken = new Set(dependsOn.value.map((d) => d.depends_on_item_id))
-  const pool = mainSearch.value
-    ? masterStore.searchItems(mainSearch.value)
-    : masterStore.activeItemList
-  return pool.filter((i) => i.id !== props.itemId && !taken.has(i.id)).slice(0, 10)
-})
+const pickableMains = computed(() =>
+  dependencyOffer(
+    mainSearch.value ? masterStore.searchItems(mainSearch.value) : masterStore.activeItemList,
+    {
+      excludeId: props.itemId,
+      takenIds: new Set(dependsOn.value.map((d) => d.depends_on_item_id)),
+    },
+  ),
+)
 
 function itemName(id: string): string {
   return masterStore.getItem(id)?.name ?? t('items.editor.unknownItem')
@@ -443,12 +431,9 @@ const deletionOutlook = computed(() =>
   props.itemId ? orchestrator.masterItemDeletionOutlook(props.itemId) : null,
 )
 
-const deletionSentence = computed(() => {
-  const outlook = deletionOutlook.value
-  if (!outlook) return ''
-  if (outlook.kind === DELETION_RETIRE) return t('items.editor.deleteRetire')
-  return outlook.certain ? t('items.editor.deleteRemove') : t('items.editor.deleteRemoveMaybe')
-})
+const deletionSentence = computed(() =>
+  deletionOutlook.value ? deletionSentenceFor(DELETION_SUBJECT_ITEM, deletionOutlook.value) : '',
+)
 
 async function onDelete() {
   const current = item.value

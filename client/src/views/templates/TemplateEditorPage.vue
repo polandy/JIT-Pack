@@ -40,7 +40,7 @@ import MarkPicker from '@/components/items/MarkPicker.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
   PICKER_SEARCH_MIN_GROUPS,
-  matchGroupsInPositions,
+  groupFoldOffer,
   PREVIEW_ROW_NAMES,
   tripsReachedBy,
   previewLines,
@@ -52,13 +52,11 @@ import type { GroupMatch, GroupSearchCandidate } from '@/domain/templates'
 import { foldDismissals } from '@/composables/useFoldDismissals'
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
-import { attributeLabel } from '@/lib/attributeLabels'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
-import { modeLabel } from '@/lib/modeLabels'
+import { positionChips as chipsFor } from '@/lib/positionChips'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { TemplateItem, TemplateKind } from '@/types/domain'
-import { isShoppingMode } from '@/types/domain'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ templateId: string }>()
@@ -196,13 +194,28 @@ const newGroupOpen = ref(false)
 const newGroupName = ref('')
 const newGroupInput = ref<InstanceType<typeof IonInput> | null>(null)
 
+/**
+ * The Gruppen this Vorlage could point at: every active one but itself. All
+ * three group surfaces start here — the picker, its FR-27.13 search and
+ * FR-27.15's fold offer — and each had written the pair of conditions out.
+ */
+const otherGroups = computed(() =>
+  masterStore.activeTemplateList.filter(
+    (tpl) => tpl.kind === 'group' && tpl.id !== props.templateId,
+  ),
+)
+
+/** The Gruppen already included, which three of those surfaces ask about. */
+const includedGroupIds = computed(
+  () => new Set(includes.value.map((inc) => inc.included_template_id)),
+)
+
 /** Groups only, never already-included ones — the two-level rule's picker. */
-const availableGroups = computed(() => {
-  const included = new Set(includes.value.map((inc) => inc.included_template_id))
-  return masterStore.activeTemplateList
-    .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId && !included.has(tpl.id))
-    .sort((a, b) => a.name.localeCompare(b.name))
-})
+const availableGroups = computed(() =>
+  otherGroups.value
+    .filter((tpl) => !includedGroupIds.value.has(tpl.id))
+    .sort((a, b) => a.name.localeCompare(b.name)),
+)
 
 function groupName(includedTemplateId: string): string {
   return masterStore.getTemplate(includedTemplateId)?.name ?? t('templates.notFound')
@@ -221,19 +234,16 @@ const pickerQuery = ref('')
  * are hidden while browsing and shown while searching, because a search that
  * silently drops them implies the group does not exist (FR-27.13).
  */
-const searchCandidates = computed<GroupSearchCandidate[]>(() => {
-  const included = new Set(includes.value.map((inc) => inc.included_template_id))
-  return masterStore.activeTemplateList
-    .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId)
-    .map((tpl) => ({
-      id: tpl.id,
-      name: tpl.name,
-      itemNames: resolvedLines(masterStore.resolve(tpl.id), masterStore.itemList).map(
-        (line) => line.name,
-      ),
-      included: included.has(tpl.id),
-    }))
-})
+const searchCandidates = computed<GroupSearchCandidate[]>(() =>
+  otherGroups.value.map((tpl) => ({
+    id: tpl.id,
+    name: tpl.name,
+    itemNames: resolvedLines(masterStore.resolve(tpl.id), masterStore.itemList).map(
+      (line) => line.name,
+    ),
+    included: includedGroupIds.value.has(tpl.id),
+  })),
+)
 
 /** The field appears only above six groups — below, scanning the chips wins. */
 const pickerSearchable = computed(() => searchCandidates.value.length > PICKER_SEARCH_MIN_GROUPS)
@@ -346,16 +356,7 @@ function removePosition(templateItemId: string) {
 
 /** The collapsed row's summary chips; "Standard" when nothing deviates. */
 function positionChips(pos: TemplateItem): string[] {
-  const chips: string[] = []
-  if (pos.assignment === 'per_person') chips.push(t('templates.perPerson'))
-  if (isShoppingMode(pos.default_mode)) chips.push(modeLabel(pos.default_mode))
-  if (pos.late_packer) chips.push(t('mode.latePacker'))
-  const taskCount = masterStore.getTemplateItemTasks(pos.id).length
-  if (taskCount) chips.push(t('templates.prepChip', { n: taskCount }))
-  for (const value of Object.values(pos.conditions ?? {})) {
-    if (typeof value === 'string') chips.push(attributeLabel(value))
-  }
-  return chips
+  return chipsFor(pos, masterStore.getTemplateItemTasks(pos.id).length)
 }
 
 // --- FR-27.15: a group hiding in the loose positions -------------------------
@@ -367,22 +368,17 @@ const dismissals = foldDismissals()
  * device was told to stop offering. Recomputing off the live positions is what
  * makes accepting one fold drop the candidates it subsumed — no bookkeeping.
  */
-const groupMatches = computed<GroupMatch[]>(() => {
-  if (isGroup.value) return []
-  const included = new Set(includes.value.map((inc) => inc.included_template_id))
-  const candidates = masterStore.activeTemplateList
-    .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId)
-    .map((tpl) => ({
-      id: tpl.id,
-      name: tpl.name,
-      positions: masterStore.resolve(tpl.id).positions,
-      included: included.has(tpl.id),
-    }))
-  return matchGroupsInPositions(positions.value, candidates).filter(
-    (match) =>
-      !dismissals.isDismissed(props.templateId, match.templateId, groupItemIds(match.templateId)),
-  )
-})
+const groupMatches = computed<GroupMatch[]>(() =>
+  groupFoldOffer({
+    isGroup: isGroup.value,
+    templateId: props.templateId,
+    ownPositions: positions.value,
+    groups: otherGroups.value,
+    includedTemplateIds: includedGroupIds.value,
+    resolvePositions: (id) => masterStore.resolve(id).positions,
+    isDismissed: (groupId, itemIds) => dismissals.isDismissed(props.templateId, groupId, itemIds),
+  }),
+)
 
 /** The group's resolved item set — what a dismissal is keyed to (FR-27.15). */
 function groupItemIds(groupId: string): string[] {
