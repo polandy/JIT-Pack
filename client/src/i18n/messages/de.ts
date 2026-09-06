@@ -187,6 +187,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.unfoldAll': 'Alle aufklappen',
   'packing.groupOpen': '{n} offen',
   'packing.shopping': 'Einkauf',
+  'packing.shoppingCount': 'Einkaufen ({n})',
   'packing.luggage': 'Gepäck',
   'packing.analytics': 'Auswertung',
   'packing.archive': 'Reise abschliessen',
@@ -570,7 +571,7 @@ export const de: Record<keyof typeof en, string> = {
   'wizard.tagsPlaceholder': 'Velo, See (kommagetrennt)',
   'wizard.unset': '—',
 
-  'clone.title': 'Klon · {name}',
+  'clone.title': 'Klon',
   'clone.carryOver': 'Übernehmen',
   'clone.travelerAssignments': 'Zuteilung an Reisende',
   'clone.packerDelegations': 'Packt-für-Zuweisungen',
@@ -921,7 +922,7 @@ export const de: Record<keyof typeof en, string> = {
   'import.portable.follows': 'folgt {n} Gruppe | folgt {n} Gruppen',
 
   // M15 — Import-Assistent für Tabellen (FR-16.1–16.3).
-  'import.wizard.title': 'Import · Schritt {step}/4',
+  'import.wizard.step': 'Schritt {step} von 4',
   'import.wizard.next': 'Weiter',
   'import.wizard.csvTitle': 'Tabelle (CSV)',
   'import.wizard.csvHint':
@@ -998,7 +999,7 @@ export const de: Record<keyof typeof en, string> = {
   'role.editor': 'Bearbeiter:in',
 
   // M3 Schritt 2 — Reisende, Teilen und Rollen (FR-2.5, FR-4.5/4.7).
-  'wizard.headerTitle': 'Neue Reise · Schritt {n}/4',
+  'wizard.step': 'Schritt {n} von 4',
   'wizard.sectionTravelers': 'Reisende',
   'wizard.travelerNamePlaceholder': 'Name',
   'wizard.travelerRemove': 'Reisende:n entfernen',
@@ -1104,7 +1105,6 @@ export const de: Record<keyof typeof en, string> = {
 
   // Mitglieder einer Reise (FR-4.5/4.7).
   'members.title': 'Mitglieder',
-  'members.headerTitle': 'Mitglieder · {trip}',
   'members.self': ' (du)',
   'members.remove': 'Mitglied entfernen',
   'members.empty': 'Für diese Reise ist noch keine Mitgliederliste angekommen.',
@@ -1176,7 +1176,7 @@ export const de: Record<keyof typeof en, string> = {
   'admin.title': 'Benutzerverwaltung',
 
   // M6 Einkaufslisten (FR-3.2/3.3).
-  'shopping.headerTitle': 'Einkaufen · {trip}',
+  'shopping.title': 'Einkaufen',
   'shopping.beforeDeparture': 'Vor der Abreise ({n})',
   'shopping.atDestination': 'Vor Ort ({n})',
   'shopping.uncategorized': 'Ohne Kategorie',

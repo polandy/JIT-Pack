@@ -2,6 +2,8 @@ import {
   test,
   expect,
   createTripViaWizard,
+  openTripView,
+  tripActions,
   createTemplate,
   createTripFollowingGroup,
   addPosition,
@@ -410,7 +412,7 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
     await expect(page.getByTestId('m4-filter-bar')).toContainText(/Category/i)
 
-    await page.getByTestId('m4-nav-analytics').click()
+    await openTripView(page, 'analytics')
     // The button, not the label inside it: the segment button swallows a
     // click aimed at its own `ion-label`.
     await page.getByTestId('analytics-dim-person').click()
@@ -711,7 +713,7 @@ test.describe('M4 packing list @local @m4', () => {
     // first version of this case only *left* M4 and asserted the row was
     // still there — which passed for the wrong reason, because back used
     // to leave the packing list mounted underneath the page it opened.
-    await page.getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     // Ionic keeps the page it came from mounted, so this asks whether M4
     // is on *screen*, not whether it is in the DOM.
     await expect(page.getByTestId('m4-progress')).toBeHidden()
@@ -720,42 +722,40 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
   })
 
-  // E2E-M4-44 (UI-Spec M4, G-9): the trip is named exactly once, and which
-  // of the two places writes it depends on the width. Below the breakpoint
-  // the app bar has no room — with six icons beside it the name rendered as
-  // "S…" — so it registers no title and the header line leads with the name.
-  // Above it the bar takes the title back and the line drops the name.
-  test('E2E-M4-44: the trip is named once, in the app bar or in the header line', async ({
-    page,
-  }) => {
+  // E2E-M4-44 (UI-Spec M4, G-9, ADR-050): the trip is named exactly once,
+  // in the page's own head, and at every width. It used to be named in two
+  // places depending on the viewport — the app bar above the breakpoint,
+  // M4's header line below it, because beside six icons at 390 px the name
+  // rendered as "S…". The bar no longer names any page, so the width no
+  // longer decides anything, and the header line carries figures alone.
+  test('E2E-M4-44: the trip is named once, in the page head, at either width', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
 
-    await expect(visible(page).getByTestId('m4-trip-name')).toHaveText(TRIP.name)
-    await expect(page.getByTestId('header-title')).toHaveCount(0)
+    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
+    // Once: the header line below it states figures, not the name again.
+    await expect(visible(page).getByTestId('m4-header')).not.toContainText(TRIP.name)
 
-    // It is the app bar's title moved down, so it has to *read* as one: the
-    // role class carries the display face (G-13). Asserted on the resolved
-    // family rather than on the class attribute, which would pass against a
-    // role that was never defined.
-    const family = await visible(page)
-      .getByTestId('m4-trip-name')
+    // It reads as a page title, so it has to *be* one: the role class carries
+    // the display face (G-13). Asserted on the resolved family rather than on
+    // the class attribute, which would pass against a role never defined.
+    const family = await page
+      .getByTestId('header-title')
       .evaluate((el) => getComputedStyle(el).fontFamily.toLowerCase())
     expect(family).toContain('fraunces')
 
-    // The positive half the absence needs: the bar *does* render titles, and
-    // the back chevron proves it rendered its left slot at all. Without this,
-    // a header that failed to mount would pass the assertion above.
-    await expect(page.getByTestId('header-back')).toBeVisible()
-    await page.getByTestId('m4-nav-shopping').click()
-    await expect(page.getByTestId('header-title')).toContainText(TRIP.name)
+    // A sub-screen names itself and puts the trip on its second line — the
+    // fact the composed "Luggage · Samedan" title used to carry in one string.
+    await openTripView(page, 'shopping')
+    await expect(page.getByTestId('header-title')).toHaveText('Shopping')
+    await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
     await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m4-trip-name')).toHaveText(TRIP.name)
+    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
 
-    // Widened, the two swap — and the name is still written exactly once.
+    // Widened, nothing swaps: the head is the one place either way.
     await page.setViewportSize({ width: 1280, height: 900 })
     await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
-    await expect(visible(page).getByTestId('m4-trip-name')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-header')).not.toContainText(TRIP.name)
   })
 })
 
@@ -971,44 +971,43 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   })
 
   /*
-   * E2E-G12-04 (G-12): what the header line carries, and how many lines it
-   * is.
+   * E2E-G12-04 (G-12, ADR-050): what the header line carries, and how many
+   * lines it is.
    *
-   * The spec sentence promised "a single line" unconditionally and named
-   * the filter chip row as absent by default. Read against the screen, both
-   * halves are narrower than that: the line is *two* rows on a phone and
-   * becomes one only above the G-9 breakpoint, where ADR-011's app bar has
-   * already taken the trip name off it; and the chip row is always there,
-   * because FR-25.11a/b made it the place the grouping is stated
-   * (E2E-M4-15). The clause that survives unchanged is the search field,
-   * which is absent until it is opened — and that is what nothing asserted.
+   * The spec sentence promised "a single line" unconditionally and named the
+   * filter chip row as absent by default. Read against the screen, the second
+   * half is narrower than that: the chip row is always there, because
+   * FR-25.11a/b made it the place the grouping is stated (E2E-M4-15). The
+   * first half is true again since ADR-050 — the line was two rows on a phone
+   * for as long as it carried the trip's name and its three destinations, and
+   * with both gone it states figures alone at every width. The clause that
+   * survives unchanged is the search field, which is absent until it is
+   * opened — and that is what nothing asserted.
    */
-  test('E2E-G12-04: the header line is two rows on a phone and one above the breakpoint', async ({
-    page,
-  }) => {
+  test('E2E-G12-04: the header line is one row of figures at either width', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 860 })
     await createTripViaWizard(page, TRIP)
     await quickAdd(page, ['Zelt'])
 
     const header = visible(page).getByTestId('m4-header')
-    const ids = header.locator('.trip-id')
     const stats = header.locator('.trip-stats')
 
     // Default state: no search field. It is the one thing the header gains
     // rather than always carries.
     await expect(page.getByTestId('m4-search-input')).toHaveCount(0)
 
-    const phoneIds = (await ids.boundingBox())!
+    // One row means the line is no taller than the row inside it. Measured,
+    // not read off the stylesheet: a second row would show as height here
+    // whatever the flex direction says.
+    const phoneLine = (await header.boundingBox())!
     const phoneStats = (await stats.boundingBox())!
-    expect(phoneStats.y).toBeGreaterThanOrEqual(phoneIds.y + phoneIds.height)
+    expect(phoneLine.height).toBeLessThan(phoneStats.height * 2)
+    await expect(stats).toContainText('0/1')
 
     await page.setViewportSize({ width: 1280, height: 900 })
-    // The trip name leaves the line here — the app bar carries it (ADR-011)
-    // — which is what makes room for one row.
-    await expect(visible(page).getByTestId('m4-trip-name')).toHaveCount(0)
-    const wideIds = (await ids.boundingBox())!
+    const wideLine = (await header.boundingBox())!
     const wideStats = (await stats.boundingBox())!
-    expect(Math.abs(wideStats.y - wideIds.y)).toBeLessThan(wideIds.height)
+    expect(wideLine.height).toBeLessThan(wideStats.height * 2)
 
     // Still no search field at either width; opening it is what produces one.
     await expect(page.getByTestId('m4-search-input')).toHaveCount(0)
@@ -1241,12 +1240,13 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
   })
 
   /**
-   * E2E-M4-11 (FR-3.2): the shopping badge counts, and stays away when there is
-   * nothing to buy.
+   * E2E-M4-11 (FR-3.2): the shopping entry counts, and says no number when
+   * there is nothing to buy.
    *
    * The entry itself is always there — M6 is a screen, not a notification — so
-   * the badge is the part that carries information, and a badge that renders a
-   * zero is worse than none.
+   * the count is the part that carries information, and a `(0)` is worse than
+   * no number at all. Since ADR-050 the entry is a word in the bar's menu, so
+   * the count rides in the word: an action sheet renders no badge.
    */
   test('E2E-M4-11: the shopping entry carries a count only once something is to be bought', async ({
     page,
@@ -1254,9 +1254,7 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await createTripViaWizard(page, TRIP)
     await quickAdd(page, ['Zelt'])
 
-    const nav = visible(page).getByTestId('m4-nav-shopping')
-    await expect(nav).toBeVisible()
-    await expect(nav.locator('ion-badge')).toHaveCount(0)
+    expect(await tripActions(page)).toContain('Shopping')
 
     // Turning the row into a purchase is what puts it on M6 (FR-3.2).
     await visible(page).getByTestId('m4-row-Zelt').click()
@@ -1272,7 +1270,7 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    await expect(visible(page).getByTestId('m4-nav-shopping').locator('ion-badge')).toHaveText('1')
+    expect(await tripActions(page)).toContain('Shopping (1)')
   })
 
   /**

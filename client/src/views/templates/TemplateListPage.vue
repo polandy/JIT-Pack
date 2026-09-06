@@ -57,6 +57,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
 import { DELETION_SUBJECT_TEMPLATE, deletionSentence } from '@/lib/deletionLabels'
@@ -80,7 +81,19 @@ const {
   action,
   matches,
 } = useContextSearch()
-setHeaderActions(() => [action()])
+setHeaderTitle(() => t('templates.title'))
+
+// M18's portable import was a glyph beside the screen's own `h1` until
+// ADR-050 moved the name into the frame (FR-18.4).
+setHeaderActions(() => [
+  action(),
+  {
+    id: 'm7-portable-import',
+    icon: documentTextOutline,
+    label: t('templates.import'),
+    onClick: () => router.push(PATH.importFile),
+  },
+])
 
 /** One row's worth of view model — the resolution is computed once per row. */
 interface TemplateRow {
@@ -348,22 +361,6 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
-      <div class="ion-padding">
-        <div class="title-row">
-          <h1 class="page-title jp-page-title">{{ t('templates.title') }}</h1>
-          <!-- M18: portable template import (FR-18.4) -->
-          <IonButton
-            fill="clear"
-            size="small"
-            :aria-label="t('templates.import')"
-            data-testid="m7-portable-import"
-            :router-link="PATH.importFile"
-          >
-            <IonIcon slot="icon-only" :icon="documentTextOutline" />
-          </IonButton>
-        </div>
-      </div>
-
       <IonSegment
         v-if="hasTemplates"
         :value="tab"
@@ -542,16 +539,6 @@ async function handleRefresh(event: CustomEvent) {
 </template>
 
 <style scoped>
-.page-title {
-  margin: 16px 0 16px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 ion-segment {
   margin: 0 12px 4px;
 }

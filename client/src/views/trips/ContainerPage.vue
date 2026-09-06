@@ -115,8 +115,11 @@ function assignTo(containerId: string) {
   pickingItemId.value = null
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
+// ADR-050: the frame renders this page head, above the outlet.
+setHeaderTitle(
+  () => t('container.title'),
+  () => trip.value?.name,
+)
 </script>
 
 <template>

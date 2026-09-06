@@ -47,6 +47,7 @@ import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
   inventoryProperties,
   INVENTORY_PROPERTIES,
@@ -67,6 +68,8 @@ const propsOpen = ref(false)
 
 /** `null` = the "Alle" chip: no tag filter. */
 const tagFilter = ref<string | null>(null)
+
+setHeaderTitle(() => t('items.title'))
 
 setHeaderActions(() => {
   const eye: HeaderAction = {
@@ -156,10 +159,6 @@ function handleRefresh(event: CustomEvent) {
         :placeholder="t('items.searchPlaceholder')"
         @close="toggleSearch"
       />
-
-      <div class="ion-padding">
-        <h1 class="page-title jp-page-title">{{ t('items.title') }}</h1>
-      </div>
 
       <!-- Tag axis (FR-24.2) — an item surfaces under every tag it carries. -->
       <IonSegment
@@ -293,10 +292,6 @@ function handleRefresh(event: CustomEvent) {
 </template>
 
 <style scoped>
-.page-title {
-  margin: 16px 0 8px;
-}
-
 /* Clearance below the axis (UX-4): at 0px the active chip's underline sat
    flush against the first group heading, which read as the heading sliding
    under the bar. Inset to match M7's segment. */

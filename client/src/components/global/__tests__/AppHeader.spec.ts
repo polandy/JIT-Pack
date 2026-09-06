@@ -1,21 +1,19 @@
 // @vitest-environment jsdom
 /**
- * G-9's left slot, and what happens when a screen has no title to put in it.
+ * G-9's left slot, and the budget its right-hand cluster is held to.
  *
- * M4 gave its app-bar title up (UI-Spec M4, 2026-08-19): beside six icons at
- * 390 px the trip name rendered as "S…", so the name moved down to the
- * screen's own header line. What is pinned here is that "no title" means *no
- * title element* rather than an empty one — an empty `ion-title` still claims
- * the slot and pushes the icon cluster around, which is a bar that lost its
- * label rather than a bar that never had one.
+ * The bar no longer names the page at all (ADR-050): M4 had given its title
+ * up in 2026-08 because beside six icons at 390 px the trip name rendered as
+ * "S…", and the answer for every other screen is the same one M4 got — the
+ * name belongs in the page, at a size a bar cannot give it. What is left
+ * here is the left slot's *other* job, the way back, and the cap that keeps
+ * the cluster from growing back to what made the title unreadable.
  */
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import AppHeader from '../AppHeader.vue'
 import { setActionsFor, clearActionsFor } from '@/composables/useHeaderActions'
-import { setTitleFor, clearTitleFor } from '@/composables/useHeaderTitle'
-import { setLocale } from '@/i18n'
 
 const M4_PATH = '/trips/trip-1'
 const M6_PATH = '/trips/trip-1/shopping'
@@ -42,51 +40,21 @@ function mountHeader(extra: { syncUpdateReady?: boolean } = {}) {
 beforeEach(() => {
   route.path = M4_PATH
   route.meta = { parent: '/tabs/trips' }
-  clearTitleFor(M4_PATH)
-  clearTitleFor(M6_PATH)
 })
 
 describe('AppHeader — the left slot (G-9)', () => {
-  it('renders no title element on a screen that registers none (M4)', () => {
+  it('names no page: the way back is the whole left slot on a drill-down', () => {
+    route.path = M6_PATH
+
     const wrapper = mountHeader()
 
-    // The positive half: the bar did render its left slot, so an absent
+    // The positive half: the bar did render its left slot, so the absent
     // title is a decision rather than a header that failed to mount.
     expect(wrapper.find('[data-testid="header-back"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="header-title"]').exists()).toBe(false)
   })
 
-  it('renders the registered title on a screen that has one (M6)', () => {
-    route.path = M6_PATH
-    setTitleFor(M6_PATH, 'Shopping · Samedan 2026')
-
-    const wrapper = mountHeader()
-
-    expect(wrapper.get('[data-testid="header-title"]').text()).toBe('Shopping · Samedan 2026')
-  })
-
-  it('falls back to the route table title', () => {
-    route.meta = { parent: '/tabs/trips', titleKey: 'container.title' }
-
-    expect(mountHeader().get('[data-testid="header-title"]').text()).toBe('Luggage')
-  })
-
-  /**
-   * NFR-4.12: the route table stores a catalogue key, so the one bar every
-   * screen shares speaks the chosen language. It used to store the English
-   * text, which no language switch could reach.
-   */
-  it('renders the route table title in the active locale', () => {
-    route.meta = { parent: '/tabs/trips', titleKey: 'container.title' }
-    setLocale('de')
-    try {
-      expect(mountHeader().get('[data-testid="header-title"]').text()).toBe('Gepäck')
-    } finally {
-      setLocale('en')
-    }
-  })
-
-  it('shows the logo instead of a title on a tab root', () => {
+  it('shows the logo instead on a tab root', () => {
     route.path = '/tabs/trips'
     route.meta = {}
 
@@ -125,6 +93,27 @@ describe('AppHeader — the G-12 overflow', () => {
     expect(wrapper.find('[data-testid="m4-start"]').exists()).toBe(false)
     // One ⋮ for the two of them, not one each.
     expect(wrapper.findAll('[data-testid="header-overflow"]')).toHaveLength(1)
+  })
+
+  /**
+   * ADR-050's budget. M4 stood at seven glyphs, each of which had arrived
+   * one at a time because nothing said what full looked like. The fourth
+   * glyph is not dropped — it becomes a word in the menu, which is the one
+   * outcome a page cannot get wrong by forgetting.
+   */
+  it('gives the fourth glyph to the ⋮ rather than to the bar', () => {
+    setActionsFor(M4_PATH, [
+      action('m4-search'),
+      action('m4-filter'),
+      action('m4-fold-all'),
+      action('m4-nav-shopping'),
+    ])
+
+    const wrapper = mountHeader()
+
+    expect(wrapper.find('[data-testid="m4-fold-all"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m4-nav-shopping"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="header-overflow"]').exists()).toBe(true)
   })
 
   it('offers no ⋮ when no action asked for one', () => {

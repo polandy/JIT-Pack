@@ -14,6 +14,7 @@ import type { InstanceConfigResponse } from '@/api/types'
 import { setCurrency } from '@/lib/currency'
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
+import PageHead from '@/components/global/PageHead.vue'
 import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
 import MigrationBanner from '@/components/global/MigrationBanner.vue'
@@ -54,6 +55,7 @@ import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { PATH, tripSubPath } from '@/router/paths'
 import { confirmAction } from '@/lib/confirm'
+import { resolveHead } from '@/composables/useHeaderTitle'
 
 const mode = ref(readMode())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
@@ -250,6 +252,9 @@ function onResume(ev: Event) {
 const route = useRoute()
 const router = useRouter()
 
+/** G-9's page head: what the frame renders above the outlet, if anything. */
+const pageHead = computed(() => resolveHead(route.path, route.meta.titleKey))
+
 // A session that ends — the IdP refusing the refresh, or the account
 // deactivated (FR-23.3) — returns to the login. Attached here, in setup,
 // because a child's `onMounted` makes the request that can end it before
@@ -338,7 +343,13 @@ async function saveBackup() {
       <div class="app-body">
         <NavRail />
         <main class="app-content">
-          <IonRouterOutlet />
+          <!-- G-9: the screen's name, once, for every screen that registers
+               one — including the tab roots, which used to write their own
+               (ADR-050). -->
+          <PageHead v-if="pageHead" :title="pageHead.title" :meta="pageHead.meta" />
+          <div class="app-outlet">
+            <IonRouterOutlet />
+          </div>
         </main>
       </div>
       <TabBar />
@@ -383,11 +394,10 @@ async function saveBackup() {
 .app-content {
   flex: 1;
   overflow: auto;
-  /* Ionic's router outlet is position:absolute. Without a positioned
-     ancestor here it resolves against ion-app and covers the header
-     strip, which is how seventeen back buttons ended up unreachable
-     (ADR-011). */
-  position: relative;
+  /* The head is a band above the outlet rather than a layer over it, so the
+     column is a column. */
+  display: flex;
+  flex-direction: column;
   max-width: 960px;
   margin-inline: auto;
   width: 100%;
@@ -396,5 +406,15 @@ async function saveBackup() {
      a screen that will forget. Sized so a line of body copy stays in the
      readable range rather than to a device — below it the cap is inert,
      which is why it needs no breakpoint of its own. */
+}
+
+.app-outlet {
+  flex: 1;
+  /* Ionic's router outlet is position:absolute. Without a positioned
+     ancestor here it resolves against ion-app and covers the header
+     strip, which is how seventeen back buttons ended up unreachable
+     (ADR-011). */
+  position: relative;
+  min-height: 0;
 }
 </style>

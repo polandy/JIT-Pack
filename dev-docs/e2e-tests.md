@@ -114,6 +114,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Two files, one account, two workers (2026-09-02)](#two-files-one-account-two-workers-2026-09-02) — a red `e2e-server` that was not the Dependabot patch: two defects that only meet on a schedule.
 - [E2E-M5-12 — the flake was a second mount (2026-09-05)](#e2e-m5-12--the-flake-was-a-second-mount-2026-09-05) — three red WebKit runs, zero local ones; an element identity turns a load-dependent window into an assertion.
 - [The wizard's FR-20.4 tap is still owed a case (2026-09-06)](#the-wizards-fr-204-tap-is-still-owed-a-case-2026-09-06) — a control with no test id at all, and the seed gap that had made it unreachable.
+- [Five cases that had to be reversed, not repaired (2026-09-06)](#five-cases-that-had-to-be-reversed-not-repaired-2026-09-06) — what ADR-050 does to a suite written against the bar it removes.
 
 ## The rule that comes before the units
 
@@ -226,7 +227,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M1 dashboard (populated) | E2E-M1-01 (card, open count, three previews, the remainder, and the card into M4), E2E-M1-02 (the prep card, and that ticking resolves on the trip), E2E-M1-06/06b (the departure-day section), E2E-M1-07 (the prep name opens its row), E2E-M1-03b (no delegation section without accounts), E2E-M1-08 (the planned-trips section, and that starting a trip moves it) | `local` | [`dashboard.spec.ts`](../client/e2e/dashboard.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-19 (ADR-050 a tab root's head), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer), E2E-G8-01 (no delegation picker), E2E-G4-01 (the notification's landing) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
@@ -4518,3 +4519,44 @@ Worth separating the two absences, because they read alike and are not: FR-20.4 
 (E2E-M4-66, the quick-add naming its companions) and at M5 (E2E-M5-23, the offer). What had no
 coverage anywhere was the decision made **before the trip exists**, which is the only place the
 answer changes what the trip is created with rather than what is added to it.
+
+## Five cases that had to be reversed, not repaired (2026-09-06)
+
+ADR-050 moves the page's name out of the app bar and caps the bar's glyph cluster at three, which
+sends M4's shopping, luggage and analytics entries into the ⋮. Five cases in the suite are written
+against exactly the arrangement that decision ends, and it is worth naming them, because a case
+that must be *reversed* is a different thing from one that must be repaired.
+
+- **E2E-G12-07** promised the three destinations are one tap each and that no overflow exists.
+  Both halves are now gone — the second to UX-13 a fortnight ago, the first to this decision. What
+  survives is what the clause was protecting: they are *named*, as words, one level deep. That is
+  what the case now asserts.
+- **E2E-G12-04** promised the header line is a single line. It was false for a year and is true
+  again, for a reason the original sentence never mentioned: the line was two rows only while it
+  also carried the name and the three glyphs.
+- **E2E-M4-44** pinned that the *viewport width* decides where the trip is named. Nothing decides
+  that any more.
+- **E2E-M6-04** and **E2E-M4-11** read a badge on a bar glyph. An action sheet renders no badge, so
+  the count moved into the word and the assertions read the menu's entries.
+
+Two mechanical notes from the sweep, both of which cost something to find:
+
+**The overflow entries carry the id their glyph had.** Ionic's action-sheet buttons take
+`htmlAttributes`, so `data-testid` survives the move from bar to menu. Without that every one of
+the thirty-four call sites would have needed a new locator as well as a new step, and the diff
+would have hidden the behaviour change inside a rename.
+
+**Both new assertions the review pass added were wrong, and only the pipeline said so.** One read
+the screen's name as *Items*; the catalogue says *Inventory*, and a label typed from memory rather
+than looked up is a guess wearing an assertion's clothes. The other asserted the trip's name inside
+`openAnalytics`, the shared door every M12 case comes through — two of them open a *different*
+trip, so the helper was claiming a per-case fact. The rule that falls out: **a shared entry helper
+asserts what cannot vary** — here the screen's own name — and anything that depends on the case
+belongs in the case, where the value is in scope and visible beside the assertion.
+
+**A test id assembled from a template literal needs a literal edge in `client/src`.** The first
+version of `openTripView` clicked ``m4-nav-${view}``, and `scripts/testid-gate.mjs` refused it:
+the app declares `m4-nav-shopping` and its two siblings as whole literals in a descriptor list, and
+no prefix `m4-nav-` exists anywhere for the gate to match. The helper now maps the three names. The
+gate was right — a prefix that matches nothing is how an absence assertion becomes unfalsifiable.
+

@@ -111,8 +111,11 @@ function clone() {
   if (tripId) router.replace(tripPath(tripId))
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
+// ADR-050: the frame renders this page head, above the outlet.
+setHeaderTitle(
+  () => t('clone.title'),
+  () => source.value?.name,
+)
 </script>
 
 <template>

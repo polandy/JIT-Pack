@@ -11,9 +11,6 @@
 import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
-/** G-9's breakpoint: the width above which the desktop layout applies. */
-export const DESKTOP_BREAKPOINT = 900
-
 /**
  * The page that is actually painted. A route change alone proves nothing —
  * a navigation that does not repaint keeps every URL assertion green, and

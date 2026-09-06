@@ -33,7 +33,7 @@ Back it up from inside the app:
    what is packed, and which shopping list a bought item came from, so the shopping
    screen's *bought* reveal still finds it after a restore.
 
-Restore it through the **document icon** on the Trips screen (portable import): pick the
+Restore it through the **document icon** in the app bar on the Trips screen (portable import): pick the
 backup file, and the app lists the documents it holds and imports them together. Items are
 matched to what already exists **by name**, so restoring onto a device that still has data
 merges rather than duplicates. A document the file no longer holds intact is listed as
@@ -200,8 +200,8 @@ job (a cron job or systemd timer around one of the commands above).
 ## Importing a spreadsheet you already keep
 
 Most people arrive with years of packing history in one spreadsheet: rows are items,
-columns are trips, cells are amounts. The **spreadsheet import** — the upload icon on the
-Trips screen, and the button on the Items screen while your inventory is still empty —
+columns are trips, cells are amounts. The **spreadsheet import** — the upload icon in the app
+bar on the Trips screen, and the button on the Items screen while your inventory is still empty —
 reads exactly that shape. Export your sheet as
 **CSV** (comma, semicolon and tab all work) and paste it in or pick the file.
 
