@@ -10,7 +10,7 @@
  */
 
 import { includedTemplatesOf } from './templates'
-import type { ResolvedCompanion } from './dependencies'
+import type { DependencyResolution, ResolvedCompanion } from './dependencies'
 import type {
   ItemMode,
   MasterItem,
@@ -146,6 +146,73 @@ export function companionAsGenerated(companion: ResolvedCompanion): GeneratedTri
     mode: ITEM_MODE_PACK,
     late_packer: false,
   }
+}
+
+/**
+ * withCompanions appends the FR-20.2/20.4 companions a generated list pulls
+ * in: every *required* one, and each *suggested* one the user tapped.
+ *
+ * The resolution is passed in rather than computed here, because it is taken
+ * over the list as generated — dropping a row in the FR-2.6 review does not
+ * un-need the companion its presence asked for, and re-resolving after the
+ * review would silently make it so.
+ *
+ * `masterItems` is needed for the suggested half alone: a
+ * {@link ResolvedCompanion} already carries the item's facts (it exists only
+ * where the master row does), while a suggestion carries a name and a
+ * quantity and nothing else.
+ */
+export function withCompanions(
+  items: GeneratedItem[],
+  resolution: DependencyResolution,
+  accepted: ReadonlySet<string>,
+  masterItems: MasterItem[],
+): GeneratedItem[] {
+  const byID = new Map(masterItems.map((i) => [i.id, i]))
+
+  const asGeneratedItem = (companion: ResolvedCompanion): GeneratedItem => ({
+    ...companionAsGenerated(companion),
+    source_item_id: companion.item_id,
+    traveler_index: null,
+    // A companion comes from a dependency, not from a template position, so
+    // there is no FR-27.7 task to carry (FR-20.2).
+    tasks: [],
+  })
+
+  const taken = resolution.suggested
+    .filter((s) => accepted.has(s.item_id))
+    .map((s) => {
+      const master = byID.get(s.item_id)
+      return asGeneratedItem({
+        item_id: s.item_id,
+        name: s.name,
+        category_name: master?.category_name ?? null,
+        weight_grams: master?.weight_grams ?? null,
+        value_cents: master?.value_cents ?? null,
+        quantity: s.quantity,
+        via_item_name: s.via_item_name,
+      })
+    })
+
+  return [...items, ...resolution.required.map(asGeneratedItem), ...taken]
+}
+
+/**
+ * applyReviewOverrides replaces the quantity of the rows the FR-2.6 review
+ * step changed, keyed by position in the generated list.
+ *
+ * A zero is the review's way of saying *„bewusst weggelassen"* (FR-5.5), not
+ * a deletion: the row stays and reaches the trip, where
+ * `addGeneratedTripItem` turns quantity 0 into `skipped`. Dropping it here
+ * instead would leave the next trip nothing to learn from.
+ */
+export function applyReviewOverrides(
+  items: GeneratedItem[],
+  overrides: Readonly<Record<number, number>>,
+): GeneratedItem[] {
+  return items.map((item, index) =>
+    index in overrides ? { ...item, quantity: overrides[index]! } : item,
+  )
 }
 
 export interface ExcludedItem {

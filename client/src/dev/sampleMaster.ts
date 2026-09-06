@@ -1,5 +1,5 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import type { TemplateKind } from '@/types/domain'
+import type { DependencyMode, TemplateKind } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_PACK } from '@/types/domain'
 
 /**
@@ -94,10 +94,15 @@ const INVENTORY: ItemSeed[] = [
  * FR-20.1 companions, so a fresh device can exercise the FR-20.2 co-skip
  * cascade (and FR-5.5's snackbar naming it) without building a dependency
  * by hand first.
+ *
+ * One of them is *suggested* (FR-20.4): every seeded relation was required,
+ * so the branch that waits for a tap — the M3 wizard's checkbox, M5's offer —
+ * could not be reached on a fresh device at all.
  */
-const DEPENDENCIES: { item: string; dependsOn: string }[] = [
+const DEPENDENCIES: { item: string; dependsOn: string; mode?: DependencyMode }[] = [
   { item: 'Ersatzakkus', dependsOn: 'Kamera' },
   { item: 'Ringlicht', dependsOn: 'Makro-Objektiv' },
+  { item: 'Powerbank', dependsOn: 'Kamera', mode: 'suggested' },
 ]
 
 interface PositionSeed {
@@ -297,7 +302,8 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
   for (const dep of DEPENDENCIES) {
     const itemId = itemIds.get(dep.item)
     const mainId = itemIds.get(dep.dependsOn)
-    if (itemId && mainId) orchestrator.addItemDependency(itemId, mainId, { mode: 'required' })
+    if (itemId && mainId)
+      orchestrator.addItemDependency(itemId, mainId, { mode: dep.mode ?? 'required' })
   }
 
   // A second seed run on a device that already carries the sample data finds
