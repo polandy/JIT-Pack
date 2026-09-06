@@ -595,6 +595,18 @@ describe('the closing pass lists what was packed (FR-9.3)', () => {
     expect(names).toEqual(['Stativ', 'Zelt'])
   })
 
+  it('does not sink its done rows: everything here was packed (2026-09-06)', () => {
+    // The list order is the trip's, and in the closing pass "done" only
+    // separates fully packed from partly packed — sorting a review by that
+    // moves rows for a reason the reviewer never asked about. This case is
+    // how the sink was found reaching in here at all.
+    const names = visibleNames(
+      [packed({ name: 'Stativ' }), item({ name: 'Zelt', packed_count: 1, quantity: 3 })],
+      { packedOnly: true, showDone: true },
+    )
+    expect(names).toEqual(['Stativ', 'Zelt'])
+  })
+
   it('drops a consciously skipped row — that judgement is already made, and it is the opposite one', () => {
     const names = visibleNames(
       [packed({ name: 'Stativ' }), item({ name: 'Drohne', state: 'skipped' })],
@@ -669,5 +681,91 @@ describe("the row's edge avatar (FR-25.19)", () => {
     // silently swap the avatar back to the assignee at that moment.
     const undone = item({ packer_user_id: 'u-sia', packed_by_user_id: 'u-andy' })
     expect(rowEdgeAvatar(undone)).toEqual({ variant: 'packer', id: 'u-andy' })
+  })
+})
+
+describe('done entries sink to the end of their group (FR-25.2, 2026-09-06)', () => {
+  const shorts = (traveler: Traveler, over: Partial<TripItem> = {}) =>
+    item({
+      name: 'Shorts',
+      source_item_id: 'src-shorts',
+      assigned_traveler_id: traveler.id,
+      ...over,
+    })
+
+  it('drops done rows behind the open ones without reordering either side', () => {
+    const rows = [
+      item({ name: 'Zelt' }),
+      packed({ name: 'Schlafsack' }),
+      item({ name: 'Isomatte' }),
+      packed({ name: 'Gaskocher' }),
+      item({ name: 'Stirnlampe' }),
+    ]
+
+    // Revealed, because hidden rows cannot be out of order (FR-25.2's
+    // default is what the reveal toggle turns off).
+    expect(visibleNames(rows, { showDone: true })).toEqual([
+      'Zelt',
+      'Isomatte',
+      'Stirnlampe',
+      'Schlafsack',
+      'Gaskocher',
+    ])
+  })
+
+  it('is inert while the done rows are hidden, which is the default', () => {
+    // The positive signal that the partition is not reordering open rows:
+    // the same list with nothing to sink comes back exactly as it went in.
+    const rows = [
+      item({ name: 'Zelt' }),
+      packed({ name: 'Schlafsack' }),
+      item({ name: 'Isomatte' }),
+    ]
+    expect(visibleNames(rows)).toEqual(['Zelt', 'Isomatte'])
+  })
+
+  it('keeps a cluster up while any visible instance is open, and sinks it once none is', () => {
+    const halfDone = [
+      item({ name: 'Zelt' }),
+      shorts(andy, { quantity: 2, packed_count: 2, state: 'packed' }),
+      shorts(leo),
+      packed({ name: 'Gaskocher' }),
+    ]
+    // One open instance holds the whole cluster with the open rows: the head
+    // names one item and cannot be in two places.
+    expect(visibleNames(halfDone, { showDone: true })).toEqual([
+      'Zelt',
+      'Shorts',
+      'Shorts',
+      'Gaskocher',
+    ])
+
+    const allDone = [
+      item({ name: 'Zelt' }),
+      shorts(andy, { quantity: 2, packed_count: 2, state: 'packed' }),
+      shorts(leo, { quantity: 2, packed_count: 2, state: 'packed' }),
+      item({ name: 'Isomatte' }),
+    ]
+    expect(visibleNames(allDone, { showDone: true })).toEqual([
+      'Zelt',
+      'Isomatte',
+      'Shorts',
+      'Shorts',
+    ])
+  })
+
+  it('leaves the people inside a cluster in traveler order, done or not', () => {
+    // Inside a cluster the axis is who, not progress — sorting by progress
+    // would move a person's row out from under their own hand.
+    const result = view(
+      [shorts(andy, { quantity: 2, packed_count: 2, state: 'packed' }), shorts(leo)],
+      {
+        showDone: true,
+      },
+    )
+    const [entry] = result.groups[0]?.entries ?? []
+    if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+    expect(entry.children.map((c) => c.traveler?.name)).toEqual(['Andy', 'Leo'])
+    expect(entry.children.map((c) => c.done)).toEqual([true, false])
   })
 })

@@ -332,6 +332,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The on-ramp was four files, and three of the complaints were already fixed (2026-09-06)](#the-on-ramp-was-four-files-and-three-of-the-complaints-were-already-fixed-2026-09-06) — T-2: a doc with a false sentence costs more than no doc.
 - [The visual gate could not see the palette change (2026-09-06)](#the-visual-gate-could-not-see-the-palette-change-2026-09-06) — ADR-048: `--update-snapshots` rewrote nothing; pixelmatch's 0.2 tolerance swallowed every token move.
 - [The app had no mode, and the family had never seen the Material it was reviewed in (2026-09-06)](#the-app-had-no-mode-and-the-family-had-never-seen-the-material-it-was-reviewed-in-2026-09-06) — ADR-049: `md` pinned; controls told once; a checkbox at the small radius step is a radio button.
+- [The row turned round, and two gates that had been watching it were looking the wrong way (2026-09-06)](#the-row-turned-round-and-two-gates-that-had-been-watching-it-were-looking-the-wrong-way-2026-09-06) — step 3: UX-9 reversed; the visual budget was a *ratio*, so desktop was 3.5x looser.
 
 ## Deviations
 
@@ -13620,4 +13621,47 @@ stylesheet said "small radius" and the pixel said "radio".
 the sheets turned out to be the eyebrow's *count* declining the label's uppercase, not buttons — so
 they stay, and the button rule went in beside them rather than instead of them. Worth recording
 because the grep that finds an override does not say what it overrides.
+
+## The row turned round, and two gates that had been watching it were looking the wrong way (2026-09-06)
+
+Step 3 of the *Bergluft* concept: M4's row reads mark, name, control — the control at the thumb
+instead of across the screen from it — and a done row sinks to the end of its group with its name
+struck through. The diff says that much. Three things it does not say.
+
+**UX-9 was reversed, and it was right both times.** The leading control column came out of the
+2026-08-27 UX pass: a stepper row used to start its name 86 px right of a checkbox row, and giving
+the control one fixed width fixed it. The cost was a 108 px empty column on every row carrying only
+a checkbox — the "hole" the design review named — and the most-tapped control at the far edge from
+the thumb. Moving the control to the end keeps the promise and stops paying for it: the *lead*
+column holds the names (the mark slot already held its width when empty, FR-28.4), and the
+container's own edge holds the controls, for free. E2E-M4-56 keeps its number and asserts both
+halves now, because either one alone passes on a row that has lost the other.
+
+**The closing pass had to be exempted from the sink, and its own test is what said so.** FR-9.3
+lists everything that was taken along and asks which of it went unused; there *every* visible row
+was packed, so "done" separates fully packed from partly packed — an axis nobody is working
+through. The sink reordered that review by it, and the pre-existing case "keeps packed rows and
+drops what was never packed" went red on the fully-packed row landing behind the partly-packed one.
+A rule about attention does not apply where nothing is competing for attention. The same reasoning
+keeps a cluster up while any visible instance is open, and keeps the people inside a cluster in
+traveler order.
+
+**The visual gate's tolerance was a *ratio*, and a ratio is two different promises at two
+viewports.** `maxDiffPixelRatio: 0.002` is 658 px of the 390x844 phone and 2304 px of the 1280x900
+desktop, so the same change had to be three and a half times larger to be seen on desktop.
+Measured, not reasoned: moving the control across the row failed the mobile shot and *passed* the
+desktop one, and `--update-snapshots` rewrote five baselines where `--update-snapshots=all` rewrote
+twelve. The budget is now `maxDiffPixels: 658` — the owner's 2026-08-19 number, which was the mobile
+one, applied evenly. This is ADR-048's finding one layer along: that was the per-pixel threshold
+hiding a change, this is the per-image budget hiding it on the larger canvas, and both were green
+for weeks while meaning less than they said.
+
+**Half of the concept's third step is deliberately not here.** The mockup showed done rows sunk
+*and* no "N gepackte anzeigen" bar — hiding would become the filter panel's Packed toggle, which
+already exists. Sinking is what the row redesign needed and it is done; flipping the default is a
+product change that reaches further than the row. FR-25.2's whole title is "Hidden by Default"; the
+pack-out animation (a row leaving the list) and the undo snackbar exist *because* the row leaves;
+and FR-25.20's bar shares the affordance. That is four decisions, not a layout one, and bundling
+them into a PR about a row would have shipped them unread. Offered to the owner as the next step
+rather than taken here.
 
