@@ -17,7 +17,7 @@ import {
   IonToggle,
   IonNote,
 } from '@ionic/vue'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { planClone } from '@/domain/clone'
@@ -25,19 +25,19 @@ import { durationDays } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useTripScreen } from '@/composables/useTripScreen'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import DateField from '@/components/global/DateField.vue'
 import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
 import { tripPath } from '@/router/paths'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
 const router = useRouter()
 const store = useTripStore()
 const master = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 // ADR-033: the source trip's rows live in its own partition, which this
 // device may never have pulled. `useTripScreen` asks for them, and until they

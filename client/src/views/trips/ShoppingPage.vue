@@ -33,7 +33,7 @@ import {
   IonCheckbox,
 } from '@ionic/vue'
 import { bagHandleOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
@@ -44,14 +44,14 @@ import { useTripStore } from '@/stores/tripStore'
 import type { ShoppingMode, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 import { isActive } from '@/domain/trips'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const tab = ref<ShoppingMode>(ITEM_MODE_BUY_BEFORE)
 

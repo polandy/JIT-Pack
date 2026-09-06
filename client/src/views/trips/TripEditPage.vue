@@ -29,22 +29,22 @@ import {
   alertController,
 } from '@ionic/vue'
 import { addOutline, closeOutline } from 'ionicons/icons'
-import { computed, inject, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import DateField from '@/components/global/DateField.vue'
 import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import { useTripStore } from '@/stores/tripStore'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { TravelerChangeReport } from '@/types/domain'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const { trip } = useTripScreen(props.tripId, orchestrator)
 const travelers = computed(() => store.getTravelers(props.tripId))

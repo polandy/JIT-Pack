@@ -17,10 +17,9 @@
  */
 import { IonAlert, IonCheckbox, IonIcon } from '@ionic/vue'
 import { addOutline, closeOutline, lockClosedOutline, removeOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import {
   membershipRows,
   planMembership,
@@ -30,6 +29,7 @@ import {
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { TripParticipant } from '@/types/domain'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{
   tripId: string
@@ -49,7 +49,7 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const store = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const travelers = computed(() => store.getTravelers(props.tripId))
 const allItems = computed(() => store.getItems(props.tripId))

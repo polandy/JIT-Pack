@@ -32,7 +32,7 @@ import {
   scaleOutline,
   warningOutline,
 } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -40,7 +40,6 @@ import ContainerSheet from '@/components/trips/ContainerSheet.vue'
 
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import {
   budgetLevel,
   containerWeight,
@@ -52,11 +51,12 @@ import { t } from '@/i18n'
 import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 import type { Container } from '@/types/domain'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const { trip } = useTripScreen(props.tripId, orchestrator)
 const containers = computed(() => store.getContainers(props.tripId))

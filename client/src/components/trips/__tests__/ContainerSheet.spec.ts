@@ -13,6 +13,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import ContainerSheet from '../ContainerSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { Container, Traveler, TripItem } from '@/types/domain'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 function container(id: string, overrides: Partial<Container> = {}): Container {
   return {
@@ -78,7 +79,7 @@ const orchestratorFake = {
 function mountSheet(containerId = 'left') {
   return mount(ContainerSheet, {
     props: { tripId: 't1', containerId },
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 

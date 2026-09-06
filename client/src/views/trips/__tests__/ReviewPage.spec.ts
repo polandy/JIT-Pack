@@ -21,6 +21,7 @@ import { isDismissed } from '@/local/reviewDismissals'
 import { t } from '@/i18n'
 
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
@@ -118,7 +119,7 @@ function seedTrip() {
 function mountPage() {
   return mount(ReviewPage, {
     props: { tripId: 't1' },
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 

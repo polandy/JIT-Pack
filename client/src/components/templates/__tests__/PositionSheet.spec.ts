@@ -12,6 +12,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import PositionSheet from '../PositionSheet.vue'
 import { useMasterStore } from '@/stores/masterStore'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_PACK, type ItemMode } from '@/types/domain'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 const orchestratorFake = {
   syncStatus: { state: { value: 'synced' } },
@@ -54,7 +55,7 @@ function seed(defaultMode: ItemMode) {
 function mountSheet() {
   return mount(PositionSheet, {
     props: { templateId: 'tpl', positionId: 'p1' },
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 

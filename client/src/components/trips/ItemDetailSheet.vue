@@ -43,7 +43,7 @@ import {
   removeCircleOutline,
   timeOutline,
 } from 'ionicons/icons'
-import { computed, inject, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { COMMENT_QUERY_PARAM } from '@/router/paths'
@@ -53,7 +53,6 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { membershipRows } from '@/domain/membership'
@@ -66,6 +65,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { ITEM_MODES, isShoppingMode } from '@/types/domain'
 import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{
   tripId: string
@@ -80,7 +80,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id === props.itemId))
 const trip = computed(() => tripStore.getTrip(props.tripId))

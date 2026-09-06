@@ -12,6 +12,7 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import ItemMark from '../ItemMark.vue'
 import type { MasterItem } from '@/types/domain'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 function item(over: Partial<MasterItem> = {}): MasterItem {
   return {
@@ -27,7 +28,7 @@ function item(over: Partial<MasterItem> = {}): MasterItem {
 
 /** ItemThumbnail resolves its URL through the orchestrator; nothing else here does. */
 const global = {
-  provide: { orchestrator: { itemImageUrl: async () => 'blob:photo' } },
+  provide: { [ORCHESTRATOR]: { itemImageUrl: async () => 'blob:photo' } },
 }
 
 beforeEach(() => setActivePinia(createPinia()))

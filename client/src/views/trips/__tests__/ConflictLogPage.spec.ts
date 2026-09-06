@@ -19,6 +19,7 @@ import { setLocale } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
@@ -75,7 +76,7 @@ beforeEach(() => {
 async function mountPage(props: { tripId?: string } = { tripId: 'trip-1' }) {
   const wrapper = mount(ConflictLogPage, {
     props,
-    global: { provide: { orchestrator } },
+    global: { provide: { [ORCHESTRATOR]: orchestrator } },
   })
   await flushPromises()
   return wrapper

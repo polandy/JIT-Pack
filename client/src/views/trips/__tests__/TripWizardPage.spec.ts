@@ -19,6 +19,7 @@ import DateField from '@/components/global/DateField.vue'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 /** Step 2's sharing block exists only for an OIDC session (G-8), so it is a switch. */
@@ -117,7 +118,7 @@ function seedComposition() {
 /** Mount and walk to step 3 the way a user does — name, Next, Next. */
 async function mountAtStepThree() {
   const wrapper = mount(TripWizardPage, {
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
   await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
     detail: { value: 'Fototour' },
@@ -149,7 +150,7 @@ beforeEach(() => {
  */
 async function mountAtStepFour(templateId = 'v1') {
   const wrapper = mount(TripWizardPage, {
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
   await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
     detail: { value: 'Fototour' },
@@ -565,7 +566,7 @@ describe('M3 step 1 — the two dates bound each other (FR-2.1d)', () => {
   /** Step one with the optional fold open, where the dates live (FR-2.1c). */
   async function mountAtDates() {
     const wrapper = mount(TripWizardPage, {
-      global: { provide: { orchestrator: orchestratorFake } },
+      global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
     })
     await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
       detail: { value: 'Fototour' },
@@ -660,7 +661,7 @@ describe('M3 step 4 — the history the series already has (FR-14.2)', () => {
   /** Walk to step 4 with the series picked and the item taken along. */
   async function mountWithSeries() {
     const wrapper = mount(TripWizardPage, {
-      global: { provide: { orchestrator: orchestratorFake } },
+      global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
     })
     await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
       detail: { value: 'Sommer 2026' },
@@ -746,7 +747,7 @@ describe('M3 step 2 — sharing (FR-4.5, G-8)', () => {
 
   async function mountAtStepTwo(): Promise<VueWrapper> {
     const wrapper = mount(TripWizardPage, {
-      global: { provide: { orchestrator: { ...orchestratorFake, fetchUsers, fetchMe } } },
+      global: { provide: { [ORCHESTRATOR]: { ...orchestratorFake, fetchUsers, fetchMe } } },
     })
     await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
       detail: { value: 'Fototour' },

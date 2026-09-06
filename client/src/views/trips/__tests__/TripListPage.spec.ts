@@ -23,6 +23,7 @@ import { t } from '@/i18n'
 import type { AppliedChange } from '@/types/domain'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -103,7 +104,7 @@ function manyEntries(n: number) {
 
 function mountPage() {
   return mount(TripListPage, {
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 

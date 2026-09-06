@@ -63,7 +63,7 @@ import {
 } from 'ionicons/icons'
 
 import { stateFor } from '@/domain/packState'
-import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -94,7 +94,6 @@ import { presentToast } from '@/lib/toast'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
@@ -117,6 +116,7 @@ import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction } from '@/lib/confirm'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
@@ -124,7 +124,7 @@ const store = useTripStore()
 const masterStore = useMasterStore()
 const router = useRouter()
 const route = useRoute()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const { trip, ensure: ensureTripRows } = useTripScreen(props.tripId, orchestrator)
 

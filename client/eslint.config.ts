@@ -87,5 +87,28 @@ export default defineConfigWithVueTs(
     },
   },
 
+  {
+    // C-14: an injection key is a typed `InjectionKey`, never a string. A
+    // string key carries no type, so every consumer restates one and asserts
+    // away the `undefined` the lookup actually returns — which is how an
+    // assertion ends up standing in for a check nobody made.
+    //
+    // Like the clock rule above, this bans a *shape* rather than naming
+    // files: refusing the string is what keeps the key the single place the
+    // injected type is written.
+    name: 'app/injection-keys-are-typed',
+    files: ['src/**/*.{ts,vue}', 'cli/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='inject'][arguments.0.type='Literal']",
+          message:
+            'Inject through an InjectionKey, not a string — see composables/useOrchestrator.ts.',
+        },
+      ],
+    },
+  },
+
   skipFormatting,
 )

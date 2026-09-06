@@ -40,15 +40,7 @@ import {
   peopleOutline,
   trashOutline,
 } from 'ionicons/icons'
-import {
-  ref,
-  computed,
-  inject,
-  onMounted,
-  onUnmounted,
-  watch,
-  type ComponentPublicInstance,
-} from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, type ComponentPublicInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/global/EmptyState.vue'
 import { hasCollaborativeSession } from '@/mode'
@@ -69,7 +61,6 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { AppliedChange, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useIdentity } from '@/composables/useTripIdentity'
 import SearchRow from '@/components/global/SearchRow.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -81,10 +72,11 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { PATH, seriesPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const store = useTripStore()
 const masterStore = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const { myUserId, load } = useIdentity(orchestrator)
 const route = useRoute()
 

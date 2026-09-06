@@ -43,13 +43,12 @@ import {
   trashOutline,
   warningOutline,
 } from 'ionicons/icons'
-import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { dependencyCycleError, type DependencyCycleError } from '@/domain/dependencies'
 import { containingTemplates, commentsOnItem } from '@/domain/itemHistory'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
@@ -61,12 +60,13 @@ import type { MasterItemEdit } from '@/sync/mutations'
 import type { DependencyMode, Tag } from '@/types/domain'
 import { itemPath, templatePath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ itemId?: string }>()
 
 const masterStore = useMasterStore()
 const tripStore = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const { directory, load } = useIdentity(orchestrator)
 const route = useRoute()
 const router = useRouter()

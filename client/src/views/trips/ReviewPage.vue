@@ -17,7 +17,7 @@
  */
 import { IonPage, IonContent, IonButton, IonIcon, IonSelect, IonSelectOption } from '@ionic/vue'
 import { checkmarkCircleOutline, chevronForwardOutline } from 'ionicons/icons'
-import { computed, inject, ref, watchEffect } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
@@ -34,9 +34,9 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -51,7 +51,7 @@ const master = useMasterStore()
 function groupName(templateId: string): string {
   return master.getTemplate(templateId)?.name ?? ''
 }
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const { trip } = useTripScreen(props.tripId, orchestrator)
 
