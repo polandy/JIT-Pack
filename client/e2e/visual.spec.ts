@@ -161,15 +161,14 @@ test('E2E-VIS-04: visual: M4 filter sheet @local @visual', async ({ page, seedMo
 
   await page.getByTestId('m4-filter').click()
   await expect(page.getByTestId('filter-sheet')).toBeVisible()
-  // The click leaves the filter button focused with the pointer over it,
-  // and the button's own state tint is the one thing this shot rendered
-  // differently on the runner than in the local container: 48×48 px
-  // under the scrim, found the day `threshold: 0` landed and invisible
-  // under the old 0.2 tolerance. Parking the pointer alone did not settle
-  // it, so the focus goes too — the state is made deterministic rather
-  // than the tolerance forgiving.
+  // Ionic paints a pressed button `ion-activated` and clears it on a 150 ms
+  // timer after pointer-up (CLEAR_STATE_DEFERS), which the shot sometimes
+  // beat: 48×48 px of state tint under the scrim, on the runner in one
+  // job and not the other, found the day `threshold: 0` landed and
+  // invisible under the old 0.2 tolerance. The class going away is the
+  // observable seam; the pointer is parked as well so no hover remains.
   await page.mouse.move(0, 0)
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await expect(page.getByTestId('m4-filter')).not.toHaveClass(/ion-activated/)
   await settled(page)
   await expect(page).toHaveScreenshot('m4-filter-sheet.png')
 })
