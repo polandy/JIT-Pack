@@ -87,5 +87,29 @@ export default defineConfigWithVueTs(
     },
   },
 
+  {
+    // C-14: an injection key is a typed `InjectionKey`, never a string. The
+    // orchestrator was provided as `'orchestrator'` and injected at 27 sites
+    // as `inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!` —
+    // the type restated every time, and a non-null assertion standing in for
+    // a check nobody made.
+    //
+    // Like the clock rule above, this bans a *shape* rather than naming
+    // files: a string key is what makes the type optional, so refusing the
+    // string is what keeps the key the single place the type is written.
+    name: 'app/injection-keys-are-typed',
+    files: ['src/**/*.{ts,vue}', 'cli/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='inject'][arguments.0.type='Literal']",
+          message:
+            'Inject through an InjectionKey, not a string — see composables/useOrchestrator.ts.',
+        },
+      ],
+    },
+  },
+
   skipFormatting,
 )

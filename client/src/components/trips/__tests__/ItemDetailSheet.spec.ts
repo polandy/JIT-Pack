@@ -16,6 +16,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import ItemDetailSheet from '../ItemDetailSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemMode, Trip, TripItem, TripStatus } from '@/types/domain'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
 
@@ -86,7 +87,7 @@ function seedMembers(store: ReturnType<typeof useTripStore>, userIds: string[]) 
 function mountSheet(participants: typeof MEMBERS = [], currentUserId: string | null = 'u-alice') {
   return mount(ItemDetailSheet, {
     props: { tripId: 't1', itemId: 'ti1', participants, currentUserId },
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 
@@ -249,7 +250,7 @@ describe('M5 respects the G-3 lock', () => {
           { user_id: 'user-sarah', display_name: 'Sarah', avatar_url: null, role: 'editor' },
         ],
       },
-      global: { provide: { orchestrator: orchestratorFake } },
+      global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
     })
 
     expect(wrapper.get('[data-testid="m5-lock"]').text()).toContain('Sarah')

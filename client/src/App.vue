@@ -30,6 +30,7 @@ import {
 } from '@/notifications/format'
 import { startNotificationMirror } from '@/notifications/mirror'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import type { ConflictReport, RejectionReport } from '@/composables/useSyncOutbox'
 import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
@@ -169,7 +170,7 @@ async function showNotificationToast(n: ServerNotification) {
   await toast.present()
 }
 
-provide('orchestrator', orchestrator)
+provide(ORCHESTRATOR, orchestrator)
 
 const syncStatus = orchestrator?.syncStatus ?? null
 

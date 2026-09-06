@@ -15,6 +15,7 @@ import DateField from '@/components/global/DateField.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 const TRIP_ID = 'trip-1'
 
@@ -42,7 +43,7 @@ function seedTrip(fields: Record<string, unknown> = {}) {
 function mountPage(): VueWrapper {
   return mount(TripEditPage, {
     props: { tripId: TRIP_ID },
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 

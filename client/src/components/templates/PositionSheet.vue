@@ -20,11 +20,10 @@ import {
   removeOutline,
   timeOutline,
 } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { t } from '@/i18n'
 import type { TemplateItemEdit } from '@/sync/mutations'
 import { ACCOMMODATIONS, SEASONS, TRANSPORT_MODES, attributeLabel } from '@/lib/attributeLabels'
@@ -32,6 +31,7 @@ import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { ITEM_MODES, isShoppingMode } from '@/types/domain'
 import type { ItemMode, TemplateAssignment, TemplateDedup } from '@/types/domain'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{
   templateId: string
@@ -41,7 +41,7 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const masterStore = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const template = computed(() => masterStore.getTemplate(props.templateId))
 const position = computed(() =>

@@ -25,7 +25,7 @@ import {
   IonSegmentButton,
   useIonRouter,
 } from '@ionic/vue'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import {
   analyzeGrid,
@@ -39,14 +39,14 @@ import FilePickButton from '@/components/global/FilePickButton.vue'
 import { formatDay, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { filterForStatus, TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
 import { PATH } from '@/router/paths'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const ionRouter = useIonRouter()
 const master = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 /**
  * The category-column picker's "none" choice. IonSegment values are strings

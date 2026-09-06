@@ -15,6 +15,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import SettingsPage from '../SettingsPage.vue'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -51,7 +52,7 @@ const orchestratorFake = {
 function mountSettings() {
   return mount(SettingsPage, {
     global: {
-      provide: { orchestrator: orchestratorFake },
+      provide: { [ORCHESTRATOR]: orchestratorFake },
       stubs: { AvatarCropModal: true },
     },
   })

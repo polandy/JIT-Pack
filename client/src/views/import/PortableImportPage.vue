@@ -23,7 +23,7 @@ import {
   useIonRouter,
 } from '@ionic/vue'
 import { documentTextOutline, warningOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import {
@@ -41,13 +41,13 @@ import { t } from '@/i18n'
 import { TRIP_FILTER_QUERY, filterForStatus } from '@/views/trips/tripFilter'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { PATH, templatePath, tripPath } from '@/router/paths'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const router = useRouter()
 const ionRouter = useIonRouter()
 const master = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const tripStore = useTripStore()
 
 const rawText = ref('')

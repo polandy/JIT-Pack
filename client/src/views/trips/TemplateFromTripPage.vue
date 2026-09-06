@@ -28,7 +28,7 @@ import {
   IonNote,
   IonToggle,
 } from '@ionic/vue'
-import { computed, inject, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { t } from '@/i18n'
@@ -44,16 +44,16 @@ import { tripsReachedBy } from '@/domain/templates'
 import { foldName } from '@/domain/nameCollision'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { templatePath } from '@/router/paths'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
 const master = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const router = useRouter()
 
 const { trip } = useTripScreen(props.tripId, orchestrator)

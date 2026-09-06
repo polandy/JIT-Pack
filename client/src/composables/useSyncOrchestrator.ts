@@ -166,6 +166,12 @@ export interface SyncOrchestratorConfig {
   deviceId?: string
 }
 
+/**
+ * The write facade every view holds — what {@link useSyncOrchestrator} hands
+ * back, named so the 27 places that inject it do not each write the type out.
+ */
+export type Orchestrator = ReturnType<typeof useSyncOrchestrator>
+
 export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const tripStore = useTripStore()
   const masterStore = useMasterStore()

@@ -11,11 +11,10 @@
  */
 import { IonIcon, IonInput, IonAlert } from '@ionic/vue'
 import { closeOutline, scaleOutline, trashOutline, warningOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import {
   budgetLevel,
   containerWeight,
@@ -26,6 +25,7 @@ import { t } from '@/i18n'
 import type { ContainerEdit } from '@/sync/mutations'
 import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{
   tripId: string
@@ -35,7 +35,7 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const store = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const containers = computed(() => store.getContainers(props.tripId))
 const container = computed(() => containers.value.find((c) => c.id === props.containerId))

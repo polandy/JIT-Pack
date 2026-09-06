@@ -29,7 +29,7 @@ import {
   alarmOutline,
   calendarOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
@@ -47,12 +47,12 @@ import { greetingKey } from '@/lib/greeting'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
 import { isActive } from '@/domain/trips'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const store = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const { myUserId, load } = useIdentity(orchestrator)
 const router = useRouter()
 

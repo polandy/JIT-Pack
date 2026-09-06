@@ -17,6 +17,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import MembershipSheet from '../MembershipSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { TripItem } from '@/types/domain'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 const orchestratorFake = {
   lockHolder: vi.fn((_tripId: string, _item: TripItem) => null as string | null),
@@ -80,7 +81,7 @@ function mountSheet(itemId = 'ti-new') {
         { user_id: 'u-bob', display_name: 'Bob', avatar_url: null, role: 'editor' as const },
       ],
     },
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 

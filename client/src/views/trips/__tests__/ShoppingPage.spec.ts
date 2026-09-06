@@ -17,6 +17,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { t } from '@/i18n'
 
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
@@ -64,7 +65,7 @@ function seedTrip(rows: Record<string, unknown>[]) {
 function mountPage() {
   return mount(ShoppingPage, {
     props: { tripId: 't1' },
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 
