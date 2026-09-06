@@ -595,8 +595,11 @@ function createTrip() {
   router.replace(tripPath(tripId))
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
+// ADR-050: the frame renders this page head, above the outlet.
+setHeaderTitle(
+  () => t('trips.new'),
+  () => t('wizard.step', { n: step.value }),
+)
 </script>
 
 <template>

@@ -188,8 +188,11 @@ function neverAskAgain(row: Row) {
   void toast(t('review.snackNever'))
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
+// ADR-050: the frame renders this page head, above the outlet.
+setHeaderTitle(
+  () => t('review.title'),
+  () => trip.value?.name,
+)
 </script>
 
 <template>

@@ -333,6 +333,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The visual gate could not see the palette change (2026-09-06)](#the-visual-gate-could-not-see-the-palette-change-2026-09-06) — ADR-048: `--update-snapshots` rewrote nothing; pixelmatch's 0.2 tolerance swallowed every token move.
 - [The app had no mode, and the family had never seen the Material it was reviewed in (2026-09-06)](#the-app-had-no-mode-and-the-family-had-never-seen-the-material-it-was-reviewed-in-2026-09-06) — ADR-049: `md` pinned; controls told once; a checkbox at the small radius step is a radio button.
 - [The row turned round, and two gates that had been watching it were looking the wrong way (2026-09-06)](#the-row-turned-round-and-two-gates-that-had-been-watching-it-were-looking-the-wrong-way-2026-09-06) — step 3: UX-9 reversed; the visual budget was a *ratio*, so desktop was 3.5x looser.
+- [The bar had been answering a question it could not answer (2026-09-06)](#the-bar-had-been-answering-a-question-it-could-not-answer-2026-09-06) — ADR-050: one constraint, three workarounds.
 
 ## Deviations
 
@@ -13664,4 +13665,53 @@ pack-out animation (a row leaving the list) and the undo snackbar exist *because
 and FR-25.20's bar shares the affordance. That is four decisions, not a layout one, and bundling
 them into a PR about a row would have shipped them unread. Offered to the owner as the next step
 rather than taken here.
+
+## The bar had been answering a question it could not answer (2026-09-06)
+
+Step 4 of *Bergluft* is the page head. What made it larger than "move a title" is that the app had
+already reached the same answer three times, separately, without anyone writing it down as a rule.
+
+M4 gave its bar title up in August because at 390 px, beside six glyphs, "Samedan Sommer" rendered
+as "S…" — measured off a baseline, not guessed — and put its name in its own header line instead.
+The three tab roots had each hand-written a display-face `h1` into their content, three copies of
+the same twelve lines of CSS. And four trip sub-screens were building `${t('…')} · ${trip.name}`
+into one string, each with its own separator, so that a bar with room for one line could state two
+facts. Three different workarounds, all for the same constraint, none of them named as one.
+
+So the finding is not that a title in a bar is small. It is that **a constraint nobody names gets
+worked around once per screen**, and the workarounds do not look like each other. The registry that
+knew every screen's title already existed; extending it from a string to a title and a meta line
+made the four composed titles collapse into the shape they had always been.
+
+**Where the head renders was the real decision, and it went against the scrolling.** Rendering it
+in `App.vue` above the outlet means one render site and no view deciding anything — the same reason
+UX-17's 960 px column lives there. It also means the head is a fixed band that does not scroll
+away, on a phone, above a list. Per-view placement would have kept the scroll and cost 26 edits and
+26 chances to forget, which is the failure mode the column rule was written against; the cost is
+taken deliberately, and ADR-050's revisit trigger names the measurement that would reverse it.
+
+**A budget only counts if something is over it.** The cap of three glyphs would have been dead
+rules on the day it was written — every page was already within it — had the same PR not moved M4's
+three destinations *into* the surplus path. The unit case registers four actions and asserts the
+fourth is in the menu and not in the bar; without a page that can actually overrun, the rule would
+have been a comment.
+
+**Two of the suite's cases had to be reversed rather than repaired**, and one of them, E2E-G12-07,
+was pinning §3.25's discoverability directive — "one tap each, no ⋯". Both of its clauses are now
+spent, the first by UX-13 and the second here, and what is left of the directive is that the three
+destinations are *named*. That is worth saying plainly rather than quietly rewriting the case: the
+concept bought a calmer bar with a tap, and the ledger says so.
+
+**The mutation proof found a hole the registry cases could not see.** Dropping the meta getter on
+the floor — `setHeadFor(path, title(), null)` — left all nine registry cases green, because they
+call `setHeadFor` directly and never exercise the composable that wires the second getter to it.
+Four cases now drive `setHeaderTitle` through a mounted component, including the one that matters:
+the trip name arrives *after* the first render, so the head has to follow its data rather than be
+read once. Two of them go red under the same mutation.
+
+**`ion-title` was the only thing keeping `.jp-screen-title` alive.** The role was written for M4's
+one in-content name and had exactly one user ever; the head uses `.jp-page-title`, which the three
+tab roots were already on. Retiring it left the second line without a definition, so `.jp-meta` is
+new — a size and a colour, defined once, because a subordinate line that is not recessive stops
+being subordinate, and per-screen `font-size` is what invariant 9's gate exists to refuse.
 

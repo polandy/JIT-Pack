@@ -81,7 +81,7 @@ function itemName(itemId: string): string {
   return masterStore.getItem(itemId)?.name ?? t('templates.notFound')
 }
 
-// ADR-011: the one header bar renders this page's title.
+// ADR-050: the frame renders this page head, above the outlet.
 setHeaderTitle(() => template.value?.name ?? t('templates.notFound'))
 
 async function toast(message: string, undo?: { text: string; handler: () => void }) {

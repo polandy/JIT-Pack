@@ -4,6 +4,7 @@ import {
   assignToContainer,
   createContainer,
   createTripViaWizard,
+  openTripView,
   openLuggage,
   openQuickAdd,
   tripAction,
@@ -57,11 +58,20 @@ async function quickAddVerbatim(page: Page, name: string) {
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
 }
 
-/** M4 → M12 via the 📊 button on the trip line (E2E-M4-01's entry). */
+/**
+ * M4 → M12 via the bar's menu (E2E-M4-01's entry, ADR-050).
+ *
+ * The *title* is asserted here because every M12 case comes through this
+ * door and the screen's own name cannot depend on which trip is open. Which
+ * trip the second line names is a per-case fact, so it is asserted where the
+ * trip is known — E2E-M12-01 — rather than assumed here, which is what the
+ * first version of this helper got wrong against the two E2E-M12-03 cases.
+ */
 async function openAnalytics(page: Page) {
-  await visiblePage(page).getByTestId('m4-nav-analytics').click()
+  await openTripView(page, 'analytics')
   await expect(visiblePage(page).getByTestId('analytics-dim-person')).toBeVisible()
-  await expect(visiblePage(page).getByTestId('m4-nav-analytics')).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId('m4-header')).toHaveCount(0)
+  await expect(page.getByTestId('header-title')).toHaveText('Analytics')
 }
 
 test.describe('M12 analytics @local @m12', () => {
@@ -102,6 +112,11 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
 
     await openAnalytics(page)
+
+    // The second line names the trip this screen is about — the fact the
+    // composed "Analytics · Veloferien Elba" title used to carry in one
+    // string, at one size (ADR-050). Asserted here, where the trip is known.
+    await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
 
     // Kategorie (the default): both items are uncategorized, so one bucket
     // holds the pair — and it states the packed kilos inside the planned.

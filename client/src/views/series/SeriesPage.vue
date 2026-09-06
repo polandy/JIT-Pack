@@ -138,7 +138,7 @@ const cloneSource = computed(
   () => seriesTrips.value.find((t) => t.status === TRIP_STATUS_ARCHIVED) ?? null,
 )
 
-// ADR-011: the one header bar renders this page's title.
+// ADR-050: the frame renders this page head, above the outlet.
 setHeaderTitle(() => series.value?.name ?? t('series.section'))
 </script>
 

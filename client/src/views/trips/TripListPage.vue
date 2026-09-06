@@ -71,6 +71,7 @@ import { formatTripPeriod } from '@/lib/format'
 import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { PATH, seriesPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
 import { useOrchestrator } from '@/composables/useOrchestrator'
@@ -162,7 +163,28 @@ const {
   action,
   matches,
 } = useContextSearch()
-setHeaderActions(() => [action()])
+setHeaderTitle(() => t('trips.title'))
+
+// The two import entries were glyphs beside the screen's own `h1` until
+// ADR-050 moved the name into the frame. They are screen-level actions, so
+// they belong in the one place a screen states those (G-12).
+setHeaderActions(() => [
+  action(),
+  {
+    // M18: portable trip import (FR-18.4)
+    id: 'm2-portable-import',
+    icon: documentTextOutline,
+    label: t('trips.importPortable'),
+    onClick: () => router.push(PATH.importFile),
+  },
+  {
+    // M15: legacy spreadsheet import (FR-16.1)
+    id: 'm2-spreadsheet-import',
+    icon: cloudUploadOutline,
+    label: t('items.importSpreadsheet'),
+    onClick: () => router.push(PATH.importSpreadsheet),
+  },
+])
 
 /** The temporal line under a trip's name, whatever it actually knows (UX-5). */
 /**
@@ -503,32 +525,6 @@ async function handleRefresh(event: CustomEvent) {
       />
 
       <div class="ion-padding">
-        <div class="title-row">
-          <h1 class="page-title jp-page-title">{{ t('trips.title') }}</h1>
-          <div>
-            <!-- M18: portable trip import (FR-18.4) -->
-            <IonButton
-              fill="clear"
-              size="small"
-              :aria-label="t('trips.importPortable')"
-              data-testid="m2-portable-import"
-              :router-link="PATH.importFile"
-            >
-              <IonIcon slot="icon-only" :icon="documentTextOutline" />
-            </IonButton>
-            <!-- M15: legacy spreadsheet import (FR-16.1) -->
-            <IonButton
-              fill="clear"
-              size="small"
-              data-testid="m2-spreadsheet-import"
-              :aria-label="t('items.importSpreadsheet')"
-              :router-link="PATH.importSpreadsheet"
-            >
-              <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
-            </IonButton>
-          </div>
-        </div>
-
         <IonSegment :value="filter" @ionChange="onFilterChange">
           <IonSegmentButton
             v-for="segment in segments"
@@ -832,16 +828,6 @@ ion-segment-button {
 .segment-label,
 .segment-count {
   font-size: var(--jp-text-xs);
-}
-
-.page-title {
-  margin: 16px 0 16px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .archived {

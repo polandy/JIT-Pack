@@ -448,7 +448,7 @@ async function onDelete() {
   router.replace({ name: 'items' })
 }
 
-// ADR-011: the one header bar renders this page's title.
+// ADR-050: the frame renders this page head, above the outlet.
 setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t('items.title'))))
 </script>
 

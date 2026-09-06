@@ -31,7 +31,6 @@ import {
   IonItem,
   IonIcon,
   IonLabel,
-  IonBadge,
   IonButton,
   IonCheckbox,
   IonRefresher,
@@ -468,9 +467,8 @@ const presenceNames = computed<Record<string, string>>(() =>
 )
 const openPrepCount = computed(() => tripStore.getOpenTodos(props.tripId).length)
 
-// M6 entry: the count is what makes the icon worth a tap; it stays visible
-// at zero because the destination exists either way (G-12 has no overflow
-// to hide it in).
+// M6 entry: the count is what makes the entry worth a tap. At zero the word
+// is offered without it, because the destination exists either way.
 const shoppingCount = computed(() => {
   const lists = tripStore.getShoppingItems(props.tripId)
   return lists.buyBefore.length + lists.buyLocal.length
@@ -536,6 +534,36 @@ setHeaderActions(() => {
   // would be two doors into a room you are standing in. Search, filter and
   // fold stay: they are why the pass is a mode of M4 at all.
   if (closingPass.value) return items
+  // The trip's other three views (ADR-050). They were three glyphs in the
+  // content's own header line, which is how M4 came to show seven icons
+  // above the list; as words they say where they go, and the shopping count
+  // rides in the word rather than as a badge the menu cannot render.
+  items.push(
+    {
+      id: 'm4-nav-shopping',
+      icon: cartOutline,
+      label:
+        shoppingCount.value > 0
+          ? t('packing.shoppingCount', { n: shoppingCount.value })
+          : t('packing.shopping'),
+      overflow: true,
+      onClick: () => router.push(tripSubPath(props.tripId, 'shopping')),
+    },
+    {
+      id: 'm4-nav-luggage',
+      icon: briefcaseOutline,
+      label: t('packing.luggage'),
+      overflow: true,
+      onClick: () => router.push(tripSubPath(props.tripId, 'containers')),
+    },
+    {
+      id: 'm4-nav-analytics',
+      icon: statsChartOutline,
+      label: t('packing.analytics'),
+      overflow: true,
+      onClick: () => router.push(tripSubPath(props.tripId, 'analytics')),
+    },
+  )
   // FR-2.7: the trip's own properties. Before the lifecycle steps, because
   // it is the one action here that changes the trip rather than advancing it.
   //
@@ -1068,18 +1096,16 @@ async function handleRefresh(event: CustomEvent) {
 const tripName = computed(() => trip.value?.name ?? t('packing.title'))
 
 /**
- * Where the trip's name is written depends on the width, and it is written
- * exactly once either way (UI-Spec M4, 2026-08-19).
+ * The trip's name, written exactly once, in the page head (ADR-050).
  *
- * Below the G-9 breakpoint the app bar cannot hold it: with search, filter,
- * fold-all, the lifecycle step, the sync glyph and the settings gear beside
- * it, 54 px were left and "Samedan 2026" rendered as "S…". A title that
- * survives as one letter names nothing, so M4 registers none there and the
- * header line leads with the name instead. Above the breakpoint the bar has
- * the room, so it takes the title back — and the header line drops the name
- * rather than printing it twice, which returns that line to one row.
+ * It used to depend on the width: below the G-9 breakpoint the bar could not
+ * hold it — with search, filter, fold-all, the lifecycle step, the sync glyph
+ * and the gear beside it, 54 px were left and "Samedan 2026" rendered as
+ * "S…" — so M4 registered no title there and its header line led with the
+ * name. The bar names no page any more, so nothing turns on the viewport and
+ * the header line is one row of figures at every width.
  */
-setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
+setHeaderTitle(() => tripName.value)
 </script>
 
 <template>
@@ -1094,56 +1120,14 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
         <IonRefresherContent />
       </IonRefresher>
 
-      <!-- One header line (G-12): what the trip stands at, and where else to
-           go within it. Deliberately unfiltered — see FR-25.20. -->
+      <!-- One header line (G-12): what the trip stands at. Deliberately
+           unfiltered — see FR-25.20. The trip's *other views* used to sit
+           here as three glyphs; they are words in the bar's menu now
+           (ADR-050), and the name is the page's own head. -->
       <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m4-header">
-        <!-- Row one names the trip — where the app bar has no room for it —
-             and offers the trip's other views. -->
-        <div class="trip-id">
-          <h1 v-if="!isDesktop" class="trip-name jp-screen-title" data-testid="m4-trip-name">
-            {{ tripName }}
-          </h1>
-          <div class="trip-nav">
-            <IonButton
-              fill="clear"
-              size="small"
-              :router-link="tripSubPath(tripId, 'shopping')"
-              data-testid="m4-nav-shopping"
-              :aria-label="t('packing.shopping')"
-              :title="t('packing.shopping')"
-            >
-              <IonIcon slot="icon-only" :icon="cartOutline" />
-              <IonBadge v-if="shoppingCount > 0" color="brand" class="nav-count">
-                {{ shoppingCount }}
-              </IonBadge>
-            </IonButton>
-            <IonButton
-              fill="clear"
-              size="small"
-              :router-link="tripSubPath(tripId, 'containers')"
-              data-testid="m4-nav-luggage"
-              :aria-label="t('packing.luggage')"
-              :title="t('packing.luggage')"
-            >
-              <IonIcon slot="icon-only" :icon="briefcaseOutline" />
-            </IonButton>
-            <IonButton
-              fill="clear"
-              size="small"
-              :router-link="tripSubPath(tripId, 'analytics')"
-              data-testid="m4-nav-analytics"
-              :aria-label="t('packing.analytics')"
-              :title="t('packing.analytics')"
-            >
-              <IonIcon slot="icon-only" :icon="statsChartOutline" />
-            </IonButton>
-          </div>
-        </div>
-
-        <!-- Row two: where the trip stands, and who else is here. The whole
-             line is tabular, not just the counter: the weight beside it
-             changes on the same tap and would shift the counter sideways as
-             it did. -->
+        <!-- Where the trip stands, and who else is here. The whole line is
+             tabular, not just the counter: the weight beside it changes on
+             the same tap and would shift the counter sideways as it did. -->
         <div class="trip-stats">
           <div class="progress jp-num" data-testid="m4-progress">
             <strong>{{ kpis.packedItems }}/{{ kpis.totalItems }}</strong>
@@ -1592,7 +1576,6 @@ ion-content.pack-content::part(scroll) {
 /* --- Header line ------------------------------------------------------ */
 .trip-line {
   display: flex;
-  flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--ct-surface0);
@@ -1625,37 +1608,10 @@ ion-content.pack-content::part(scroll) {
   border-bottom-color: transparent;
 }
 
-.trip-id,
 .trip-stats {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-/* With the name gone to the app bar there is one row's worth of content
-   left, so the line goes back to being one row (G-9's breakpoint). */
-@media (min-width: 900px) {
-  .trip-line {
-    flex-direction: row;
-  }
-
-  .trip-id {
-    order: 2;
-  }
-
-  .trip-stats {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-.trip-name {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .progress {
@@ -1670,20 +1626,6 @@ ion-content.pack-content::part(scroll) {
 .muted {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
-}
-
-.trip-nav {
-  display: flex;
-  align-items: center;
-  flex: none;
-}
-
-.nav-count {
-  position: absolute;
-  top: 2px;
-  right: 0;
-  font-size: var(--jp-text-3xs);
-  padding: 2px 4px;
 }
 
 .filter-count {

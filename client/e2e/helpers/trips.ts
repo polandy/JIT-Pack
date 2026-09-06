@@ -8,7 +8,7 @@ import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 import { setDateField } from './ionic'
-import { DESKTOP_BREAKPOINT, visiblePage, writesLanded } from './page'
+import { visiblePage, writesLanded } from './page'
 import { PATH } from '../routes'
 
 /**
@@ -101,25 +101,15 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
 /**
  * M4 is open on the named trip.
  *
- * Which element carries the name depends on the width (UI-Spec M4,
- * 2026-08-19): below the breakpoint the app bar has no room for it — the
- * G-12 cluster left 54 px and it rendered as "S…" — so M4 registers no title
- * and its header line leads with the name; above it the bar takes the title
- * back and the line drops the name rather than printing it twice. The helper
- * asks the viewport rather than trying both, so a missing name fails instead
- * of being satisfied by the other half.
- *
- * The header-line branch is scoped to the *painted* page: that name lives
- * inside the router outlet, where Ionic keeps the outgoing page mounted
- * through a transition, so an unscoped match can read the trip being left.
+ * Which element carried the name used to depend on the width (UI-Spec M4,
+ * 2026-08-19): below the breakpoint the app bar had no room for it and M4's
+ * own header line led with the name; above it the bar took the title back.
+ * Since ADR-050 the name is in the page head at every width, so the branch
+ * on the viewport that used to be here — bar above the breakpoint, M4's own
+ * header line below it — is gone with it.
  */
 export async function expectTripOpen(page: Page, name: string) {
-  const width = page.viewportSize()?.width ?? DESKTOP_BREAKPOINT
-  if (width >= DESKTOP_BREAKPOINT) {
-    await expect(page.getByTestId('header-title')).toHaveText(name)
-  } else {
-    await expect(visiblePage(page).getByTestId('m4-trip-name')).toHaveText(name)
-  }
+  await expect(page.getByTestId('header-title')).toHaveText(name)
 }
 
 /**
@@ -202,6 +192,32 @@ export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
   await sheet.getByText(TRIP_ACTION[action], { exact: true }).click()
   // The dismissal belongs to the interaction: a sheet still on screen
   // swallows the next click, which surfaces as an unrelated timeout.
+  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+}
+
+/**
+ * The menu entry each of the trip's other views wears — the id its glyph
+ * carried on M4's header line before ADR-050, which the bar keeps on the
+ * action-sheet button. Written out rather than interpolated: the app declares
+ * the three as whole literals, and `scripts/testid-gate.mjs` matches a
+ * template literal by its literal edge, which `m4-nav-` has nowhere.
+ */
+const TRIP_VIEW = {
+  shopping: 'm4-nav-shopping',
+  luggage: 'm4-nav-luggage',
+  analytics: 'm4-nav-analytics',
+} as const
+
+/**
+ * M4 → one of the trip's other three views (ADR-050). They were glyphs in
+ * M4's own header line until the bar's budget sent them into the ⋮, so the
+ * step is *open the menu, then click* — absorbed here rather than in the
+ * seven specs that used to click the glyph. Chosen by id rather than by word,
+ * because the shopping entry names its count and its text is therefore data.
+ */
+export async function openTripView(page: Page, view: keyof typeof TRIP_VIEW): Promise<void> {
+  const sheet = await openTripMenu(page)
+  await sheet.getByTestId(TRIP_VIEW[view]).click()
   await expect(page.locator('ion-action-sheet')).toHaveCount(0)
 }
 

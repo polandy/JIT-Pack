@@ -225,7 +225,11 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
 
     await archiveThroughPass(page)
 
-    // Rendered, not routed: archiving lands on the assistant itself.
+    // Rendered, not routed: archiving lands on the assistant itself, named
+    // over the trip it is about — the pair used to be one composed string,
+    // and a split that passed the wrong getter would swap the two (ADR-050).
+    await expect(page.getByTestId('header-title')).toHaveText('Review')
+    await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
     await expect(visible(page).getByTestId('m14-open-count')).toContainText('2')
     await expect(row(page, 'Stativ')).toContainText('unused')
     await expect(row(page, 'Stativ')).toContainText('not needed on this trip')

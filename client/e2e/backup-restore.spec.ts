@@ -5,6 +5,7 @@ import {
   createTemplate,
   addPosition,
   createTripViaWizard,
+  openTripView,
   expectTripOpen,
   openTripFromList,
   tripAction,
@@ -559,7 +560,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     browser,
   }) => {
     await createTripViaWizard(page, TRIP)
-    await visible(page).getByTestId('m4-nav-shopping').click()
+    await openTripView(page, 'shopping')
     const m6 = () => visible(page).getByTestId('m6-page')
     await m6().getByTestId('quick-add-open').click()
     await m6().getByTestId('quick-add-input').locator('input').fill('Kaffee')
@@ -596,7 +597,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
 
     // And the shopping side still knows it was bought from here: not an open
     // row, but one under the reveal, naming where it went.
-    await visible(restored).getByTestId('m4-nav-shopping').click()
+    await openTripView(restored, 'shopping')
     const m6r = () => visible(restored).getByTestId('m6-page')
     await expect(m6r().getByTestId('m6-bought-bar')).toHaveText('Show 1 bought')
     await expect(m6r().getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toHaveCount(0)

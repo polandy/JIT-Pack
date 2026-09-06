@@ -57,9 +57,10 @@ function changeRole(memberId: string, role: 'admin' | 'editor') {
   if (member) orchestrator.setTripMemberRole(member, role)
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() =>
-  t('members.headerTitle', { trip: tripStore.getTrip(props.tripId)?.name ?? '' }),
+// ADR-050: the frame renders this page head, above the outlet.
+setHeaderTitle(
+  () => t('members.title'),
+  () => tripStore.getTrip(props.tripId)?.name,
 )
 </script>
 
