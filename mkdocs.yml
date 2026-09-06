@@ -23,8 +23,8 @@ theme:
     - search.suggest
     - search.highlight
   palette:
-    # Catppuccin Latte / Mocha are the app's own themes; blue is its primary
-    # accent (--ct-blue), so the manual reads as part of the same product.
+    # Nacht / Tag are the app's own themes (ADR-048); its action colour is a
+    # glacier blue (--ct-glacier), so the manual reads as part of the same product.
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: blue

@@ -405,7 +405,7 @@ function removeTask(taskId: string) {
 
 .chip.buy,
 .chip.warn {
-  color: var(--ct-peach);
+  color: var(--ct-larch);
 }
 
 .chip.done {
@@ -413,7 +413,7 @@ function removeTask(taskId: string) {
 }
 
 .chip.cond {
-  color: var(--ct-mauve);
+  color: var(--ct-heather);
 }
 
 /* --- sections --- */
@@ -603,9 +603,9 @@ function removeTask(taskId: string) {
 }
 
 .cond-chip.sel {
-  border-color: var(--ct-mauve);
-  color: var(--ct-mauve);
-  background: color-mix(in srgb, var(--ct-mauve) 10%, transparent);
+  border-color: var(--ct-heather);
+  color: var(--ct-heather);
+  background: color-mix(in srgb, var(--ct-heather) 10%, transparent);
 }
 
 .late-row {

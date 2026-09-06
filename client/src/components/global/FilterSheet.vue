@@ -243,7 +243,7 @@ const emit = defineEmits<{
   flex: none;
   background: none;
   border: none;
-  color: var(--ct-blue);
+  color: var(--ct-glacier);
   font-size: var(--jp-text-sm);
   font-weight: var(--jp-weight-semibold);
   cursor: pointer;
@@ -303,7 +303,7 @@ const emit = defineEmits<{
 .clear {
   background: none;
   border: none;
-  color: var(--ct-blue);
+  color: var(--ct-glacier);
   cursor: pointer;
 }
 
@@ -333,8 +333,8 @@ const emit = defineEmits<{
 }
 
 .seg.on {
-  background: var(--ct-blue);
-  border-color: var(--ct-blue);
+  background: var(--ct-glacier);
+  border-color: var(--ct-glacier);
   color: var(--ct-on-accent);
 }
 
@@ -365,13 +365,13 @@ const emit = defineEmits<{
 .chip.on {
   /* Mixed from the token, never re-typed as a literal: a second copy of
      a palette value is a second place to change it (invariant 9). */
-  background: color-mix(in srgb, var(--ct-blue) 16%, transparent);
-  border-color: var(--ct-blue);
+  background: color-mix(in srgb, var(--ct-glacier) 16%, transparent);
+  border-color: var(--ct-glacier);
   color: var(--ct-text);
 }
 
 .chip.on .n {
-  color: var(--ct-blue);
+  color: var(--ct-glacier);
 }
 
 .switch {

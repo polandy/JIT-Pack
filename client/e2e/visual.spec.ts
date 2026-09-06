@@ -232,17 +232,17 @@ async function containers(page: Page) {
   await settled(page)
 }
 
-// E2E-VIS-05: the same list in Latte. One flavour spot-check rather than a
+// E2E-VIS-05: the same list in Tag. One flavour spot-check rather than a
 // second copy of every state: the flavour is decided in one token block, so
 // one screen that uses brand, done, both planes and the elevation ink is
 // enough to notice it moving. Doubling the set would double what a digest
 // bump rewrites, for coverage of the same block.
-test('E2E-VIS-05: visual: M4 in Latte @local @visual', async ({ page, seedMode }) => {
+test('E2E-VIS-05: visual: M4 in Tag @local @visual', async ({ page, seedMode }) => {
   await freeze(page)
-  await seedMode({ mode: 'local', theme: 'latte' })
+  await seedMode({ mode: 'local', theme: 'day' })
   await packingList(page, ['Zelt', 'Schlafsack', 'Stirnlampe'])
-  await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
-  await expect(page).toHaveScreenshot('m4-list-latte.png')
+  await expect(page.locator('html')).toHaveClass(/jitpack-day/)
+  await expect(page).toHaveScreenshot('m4-list-day.png')
 })
 
 // E2E-VIS-06: M11, the first screen outside M4 to get a baseline. It earns

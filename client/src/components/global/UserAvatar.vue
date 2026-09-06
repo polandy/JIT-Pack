@@ -49,14 +49,14 @@ watch(
 
 /** Accent tokens only — never a literal colour (invariant 9). */
 const PALETTE = [
-  'var(--ct-blue)',
-  'var(--ct-mauve)',
-  'var(--ct-peach)',
-  'var(--ct-teal)',
-  'var(--ct-pink)',
-  'var(--ct-yellow)',
-  'var(--ct-sapphire)',
-  'var(--ct-lavender)',
+  'var(--ct-glacier)',
+  'var(--ct-heather)',
+  'var(--ct-larch)',
+  'var(--ct-moss)',
+  'var(--ct-alpenrose)',
+  'var(--ct-straw)',
+  'var(--ct-pine)',
+  'var(--ct-lupine)',
 ] as const
 
 const label = computed(() => props.name ?? props.seed ?? '?')
@@ -145,11 +145,11 @@ const color = computed(() => {
 /* The ring is what carries the meaning, so it sits outside the circle
    rather than eating into it — at 24px an inset border loses the letters. */
 .v-assignee {
-  box-shadow: 0 0 0 2px var(--ct-blue);
+  box-shadow: 0 0 0 2px var(--ct-glacier);
 }
 
 .v-packer {
-  box-shadow: 0 0 0 2px var(--ct-green);
+  box-shadow: 0 0 0 2px var(--ct-pine);
 }
 
 .tick {
@@ -162,7 +162,7 @@ const color = computed(() => {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--ct-green);
+  background: var(--ct-pine);
   color: var(--ct-on-accent);
   font-size: var(--jp-text-3xs);
   line-height: 1;

@@ -587,28 +587,39 @@ companions, M5 suggestion hint.
 
 ### 3.21 Theming (Dark Mode Default)
 
-**Status: implemented (2026-07-10)** — `client/src/theme/catppuccin.css` (token table), `client/src/theme/theme.ts`
-(selection/persistence), M17 Appearance toggle. **Extended 2026-08-14 with typography (FR-21.5/FR-21.6)** —
+**Status: implemented (2026-07-10)** — `client/src/theme/palette.css` (token table), `client/src/theme/theme.ts`
+(selection/persistence), M17 Appearance toggle. **Palette replaced 2026-09-06 (ADR-048):** the two Catppuccin
+flavours gave way to the app's own *Bergluft* palette, Nacht and Tag; the token architecture, the roles and the gate
+stayed exactly as they were. **Extended 2026-08-14 with typography (FR-21.5/FR-21.6)** —
 `client/src/theme/typography.css` — with the colour anchors (FR-21.7), and with surfaces (FR-21.8) —
 `client/src/theme/surfaces.css` plus the `scripts/design-tokens-gate.mjs` lint gate. Those are the first three of the
 design-foundation steps in `dev-docs/design-foundation-plan.md`.
 
 Before this section the client carried no app-owned theme: it rendered with Ionic's stock palette and followed the OS
 light/dark preference via `@ionic/vue/css/palettes/dark.system.css`. This section replaced that with an explicit theme,
-defaulting to dark, styled on the [Catppuccin](https://catppuccin.com) palette.
+defaulting to dark, on a palette of its own (originally [Catppuccin](https://catppuccin.com), since ADR-048
+*Bergluft*).
 
 * **FR-21.1 (Dark Default, Independent of OS Preference):** Every new install, in every mode (Server, Single-User,
   Local, 3.17/3.19), renders with a dark theme active by default. This is an app-level default, not a reflection of
   `prefers-color-scheme` — a device set to light mode still opens JIT-Pack in dark, until the user opts out via FR-21.3.
-* **FR-21.2 (Catppuccin Palette):** Theme colors are drawn from the Catppuccin palette rather than invented ad hoc. The
-  default dark theme uses the **Mocha** flavor; the opt-in light theme (FR-21.3) uses **Latte**. Semantic mapping:
-  `crust`/`mantle`/`base` for background depth (app background, cards, sunken sections), `surface0`–`surface2` for
-  elevated controls, dividers, and inputs, `text`/`subtext0`/`subtext1` for typography hierarchy, and the accent set
-  (`blue`, `mauve`, `green`, `peach`, `red`, `yellow`, etc.) mapped onto the app's existing color-coded semantics rather
-  than introduced per component: primary actions/links, packed/success state, container-weight warnings (FR-10.3's
-  amber/red thresholds), destructive/skip actions, and informational badges/flags. This mapping is a single fixed token
-  table, so a future palette adjustment touches one file, not every component.
-* **FR-21.3 (Opt-In Light Theme & Persistence):** Users can switch to the light theme (Catppuccin Latte) from M17
+* **FR-21.2 (One Palette, One Token Table — revised 2026-09-06, ADR-048):** Theme colours are drawn from one fixed token
+  table rather than invented ad hoc. The palette is the app's own, *Bergluft*: the default dark flavour is **Nacht**,
+  the opt-in light flavour (FR-21.3) is **Tag**. Twelve neutrals form a depth ramp that keeps the step names the app was
+  built on — `crust`/`mantle`/`base` for background depth (sunken sections, app background, cards),
+  `surface0`–`surface2` for lines, controls and inputs, `overlay0`–`overlay2` and `text`/`subtext0`/`subtext1` for the
+  typography hierarchy — and **ten accents named for what they are on this palette** rather than for a generic hue:
+  `larch` (brand) and `larch-deep`, `glacier` (action), `pine` (done) and `moss` (the start of the done ramp), `straw`
+  (caution), `ember` (danger), `heather` (per-person, tertiary), `lupine` and `alpenrose` (the brand mark's outline and
+  the avatar set). They are mapped onto the app's existing colour-coded semantics rather than introduced per component:
+  primary actions/links, packed/success state, container-weight warnings (FR-10.3's straw/ember thresholds),
+  destructive/skip actions, and informational badges/flags. **Why the original Catppuccin palette went**: it is a
+  syntax-highlighting palette — fourteen accents of equal weight on a violet-biased navy, built so that every token
+  class gets a hue of its own — and an app using it reads as an editor theme however carefully the roles are assigned;
+  the fix is a palette with one identity, one action, one done and a handful of semantics. The mapping is still a single
+  fixed token table, so a future palette adjustment touches one file, not every component — which is exactly what this
+  revision exercised.
+* **FR-21.3 (Opt-In Light Theme & Persistence):** Users can switch to the light theme (Tag) from M17
   Settings. The choice is a **device-local display preference** — not a synced account field (distinct from the FR-17.13
   profile edits) and not per-trip — persisted the same way other device-local UI state is (e.g., FR-19.2-style on-device
   storage), and read synchronously at boot, before first paint, per FR-21.4. Local Mode behaves identically: dark by
@@ -650,15 +661,18 @@ defaulting to dark, styled on the [Catppuccin](https://catppuccin.com) palette.
   consequences are load-bearing rather than incidental: **progress is never painted in the brand colour**, since a peach
   progress bar reads as an alert rather than as headway; and **caution keeps its own hue** (yellow), because while peach
   served as `warning` a container over its weight limit and the product's own identity were indistinguishable. **A role
-  is flavour-relative, not a fixed hue.** Mocha and Latte are not each other's inverse: Mocha's peach is a pastel on a
-  near-black ground, Latte's a saturated orange on a near-white one, so the same token arrives roughly twice as loud in
-  the light theme *and* less legible (2.45:1 as an 11 px label, against 3.56:1 after). Latte therefore reads the brand
-  deeper — quieter and more readable being the same direction on a light ground — mixed from palette tokens rather than
-  picked, so it still follows the flavour. The rule is general: a role that lands differently in the two flavours is
+  is flavour-relative, not a fixed hue.** The two flavours are not each other's inverse: a pastel that is an accent on
+  a near-black ground is a wash on a near-white one, so the same token can arrive roughly twice as loud in the light
+  theme *and* less legible (the original light brand measured 2.45:1 as an 11 px label, against 3.56:1 after it was
+  deepened). The light flavour therefore reads the brand deeper — quieter and more readable being the same direction on
+  a light ground. The rule is general: a role that lands differently in the two flavours is
   restated per flavour, never averaged into one compromise value that suits neither. A role is defined exactly once
   **per flavour**, in the same token table as the palette, and a component asks for the role rather than for a hue —
   including the components Ionic would otherwise paint `primary` on its own (the FAB, checkboxes, toggles, progress
-  bars).
+  bars). **Revised 2026-09-06 (ADR-048):** the hues are larch, glacier and pine/moss, and the flavour-relative rule is
+  now paid for in the flavour blocks rather than in the anchors — Tag's accents are dark and saturated where Nacht's are
+  light, each measured above 4.5:1 as text on both planes, so the anchor block is one declaration and the light brand
+  no longer has to be mixed from a lighter one.
 * **FR-21.9 (The Instance Names Its Currency — new 2026-08-30):** an amount is stored as `value_cents` and was rendered
   unit-less, because there was nowhere for a currency to come from: UI-Spec M10 had described an *„instance currency"*
   setting since the concept round, and the setting had never existed (corrected 2026-08-26 during the locale pass,
@@ -689,8 +703,8 @@ defaulting to dark, styled on the [Catppuccin](https://catppuccin.com) palette.
   values the client had accumulated with no rule for choosing between them; a radius that is half its own element's
   height is a pill rather than a small step, and a circle keeps `50%` because that is a shape and not a size. Elevation
   is **one geometry cast in the flavour's ink**: the offsets and blur are written once, while which colour a shadow is
-  cast in and how hard is restated per flavour, for the same reason FR-21.7's brand is — Mocha casts in its darkest
-  plane, which in Latte is a light grey that would cast no shadow at all. **The two flavours do not end up mirroring
+  cast in and how hard is restated per flavour, for the same reason FR-21.7's brand is — Nacht casts in its darkest
+  plane, which in Tag is a light grey that would cast no shadow at all. **The two flavours do not end up mirroring
   each other, and measuring says why:** a dark theme's neutrals are compressed at the dark end — crust sits seven units
   below mantle — so a shadow there cannot darken much however hard it is thrown, while the same role on a light ground
   has 442 units to work with. Elevation on the dark ground is therefore carried by the **plane step** (a card is 21
@@ -700,14 +714,16 @@ defaulting to dark, styled on the [Catppuccin](https://catppuccin.com) palette.
 
 **Architecture notes (as implemented):**
 * `src/main.ts` no longer imports `@ionic/vue/css/palettes/dark.system.css` (which drove dark mode off
-  `prefers-color-scheme`); the import was replaced, not layered on top of. Mocha is the `:root` default in
-  `catppuccin.css`; the `jitpack-latte` root class (set by `src/theme/theme.ts`) switches to Latte.
-* Catppuccin Mocha and Latte are each defined once as a full CSS custom-property block in
-  `client/src/theme/catppuccin.css`; Ionic's own `--ion-color-*`/`--ion-background-color`/stepped-color variables and
-  any app-specific component styles both consume the same custom properties — no second, parallel color system. Semantic
-  mapping: primary=blue, secondary=teal, tertiary=mauve, success=green, warning=peach, danger=red, light=surface0,
-  medium=overlay1, dark=text; app background=mantle, cards/items=base, borders=surface0. Stepped colors are derived via
-  `color-mix()` from the background/text anchors, so they follow the flavor automatically.
+  `prefers-color-scheme`); the import was replaced, not layered on top of. Nacht is the `:root` default in
+  `palette.css`; the `jitpack-day` root class (set by `src/theme/theme.ts`) switches to Tag. The persisted value is
+  `night`/`day`; `latte`, the value a device wrote before ADR-048, is still read as `day` so nobody's light choice was
+  lost by the rename, and nothing writes it any more.
+* Nacht and Tag are each defined once as a full CSS custom-property block in `client/src/theme/palette.css`; Ionic's
+  own `--ion-color-*`/`--ion-background-color`/stepped-color variables and any app-specific component styles both
+  consume the same custom properties — no second, parallel color system. Semantic mapping: primary=glacier,
+  secondary=moss, tertiary=heather, success=pine, warning=straw, danger=ember, light=surface0, medium=overlay1,
+  dark=text; app background=mantle, cards/items=base, borders=surface0. Stepped colors are derived via `color-mix()`
+  from the background/text anchors, so they follow the flavour automatically.
 * The M17 toggle is a new Appearance control in the existing Settings screen (visible in every mode), not a new screen.
   Persistence key: `localStorage['jitpack_theme']`.
 * FR-21.4 is satisfied twice: an inline script in `index.html` tags the root before first paint (covers a pre-bundle
@@ -715,7 +731,7 @@ defaulting to dark, styled on the [Catppuccin](https://catppuccin.com) palette.
   missing/unreadable preference paints dark with no flash.
 * No server or sync involvement: purely a display-time, on-device setting.
 * Typography lives beside the palette, not inside it: `client/src/theme/typography.css` owns the `@font-face` rules, the
-  `--jp-font-*` families, the `--jp-text-*` scale, and the `.jp-*` role classes; `catppuccin.css` keeps colour and
+  `--jp-font-*` families, the `--jp-text-*` scale, and the `.jp-*` role classes; `palette.css` keeps colour and
   nothing else. Both are imported from `main.ts`. Ionic derives every component's type from `--ion-font-family`, which
   is bound to the UI face once.
 * Shape is the third table: `client/src/theme/surfaces.css` owns the `--jp-r*` radius scale, the three elevation casts

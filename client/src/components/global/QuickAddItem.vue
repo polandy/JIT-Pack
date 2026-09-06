@@ -601,7 +601,7 @@ function onKeydown(event: KeyboardEvent) {
 
 .quick-add-form {
   background: var(--ct-surface0);
-  border: 1px solid var(--ct-blue);
+  border: 1px solid var(--ct-glacier);
   border-radius: var(--jp-r-sm);
   padding: 8px;
 }
@@ -708,7 +708,7 @@ function onKeydown(event: KeyboardEvent) {
 
 .add-hint {
   font-size: var(--jp-text-xs);
-  color: var(--ct-yellow);
+  color: var(--ct-straw);
   margin: 4px 8px 0;
 }
 
@@ -728,7 +728,7 @@ function onKeydown(event: KeyboardEvent) {
   width: 100%;
   padding: 8px;
   /* A step *up* from the composer's own surface0, not the page's card
-     plane: inside this box, base would read as sunken in Mocha. */
+     plane: inside this box, base would read as sunken in Nacht. */
   background: var(--ct-surface1);
   border: 1px solid var(--ct-surface2);
   border-radius: var(--jp-r-sm);

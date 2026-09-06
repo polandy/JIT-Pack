@@ -206,7 +206,7 @@ const namedUser = computed(() => props.users.find((u) => u.user_id === named.val
 }
 
 .face.behind {
-  box-shadow: 0 0 0 2px var(--ct-yellow);
+  box-shadow: 0 0 0 2px var(--ct-straw);
 }
 
 .face:focus-visible {

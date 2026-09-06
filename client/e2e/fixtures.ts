@@ -39,7 +39,7 @@ export interface SeedOptions {
    *
    * These are the values `readTheme` actually recognises. It used to read
    * `'dark' | 'light'`, which nothing in the app matches — anything but
-   * `'latte'` resolves to Mocha, so seeding a light theme silently gave a
+   * `'day'` (or the legacy `'latte'`) resolves to Nacht, so seeding a light theme silently gave a
    * dark one and any case built on it would have been false-green.
    */
   theme?: Theme

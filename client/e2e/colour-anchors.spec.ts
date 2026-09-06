@@ -11,7 +11,7 @@ import type { Locator, Page } from '@playwright/test'
  * drifts back to a default-blue look one component at a time.
  *
  * Roles are compared against the role token rather than against a hex, so
- * the cases hold in Latte as well as Mocha — a literal here would assert
+ * the cases hold in Tag as well as Nacht — a literal here would assert
  * the flavour, not the rule.
  */
 
@@ -127,20 +127,20 @@ test('E2E-G11-03: the FAB is the brand and a packed box is done, never the actio
 })
 
 // E2E-G11-04 (G-11/FR-21.7): the anchors are roles, so they survive the
-// flavour switch. Mocha's peach and Latte's are different hues entirely
-// (#fab387 vs #fe640b) — a rule written against a hex would pass here by
+// flavour switch. Nacht's larch and Tag's are different hues entirely
+// (#f0a44e vs #9e5a10) — a rule written against a hex would pass here by
 // accident or fail here for the wrong reason.
-test('E2E-G11-04: the roles hold in Latte, on different hues @local @g11', async ({
+test('E2E-G11-04: the roles hold in Tag, on different hues @local @g11', async ({
   page,
   seedMode,
 }) => {
-  await seedMode({ mode: 'local', theme: 'latte' })
+  await seedMode({ mode: 'local', theme: 'day' })
   await page.setViewportSize(MOBILE)
   await page.goto('/')
 
   // Prove the flavour actually switched before asserting anything about
   // it — the seed key is device-local and easy to get silently wrong.
-  await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
+  await expect(page.locator('html')).toHaveClass(/jitpack-day/)
 
   const brand = await rolePainted(page, '--jp-brand')
   const activeTab = page.getByTestId('tab-dashboard')
@@ -150,8 +150,8 @@ test('E2E-G11-04: the roles hold in Latte, on different hues @local @g11', async
 })
 
 // E2E-G11-05 (G-11/FR-21.7): the brand and its rgb twin are the same
-// colour. Latte writes the triplet by hand because CSS cannot derive one
-// from a color-mix(), and Ionic's rgba() internals are the only consumer —
+// colour. Each flavour writes the triplet by hand because CSS cannot derive
+// one from a hex, and Ionic's rgba() internals are the only consumer —
 // so a stale triplet shows up as slightly-off ripples and nothing else.
 // The unit case asserts the two are restated together; only a browser can
 // say whether they agree.
@@ -159,18 +159,18 @@ test('E2E-G11-05: the brand and its rgb twin resolve to one colour, in both flav
   page,
   seedMode,
 }) => {
-  for (const theme of ['mocha', 'latte'] as const) {
+  for (const theme of ['night', 'day'] as const) {
     await seedMode({ mode: 'local', theme })
     await page.goto('/')
     await expect(page.locator('html')).toHaveClass(
-      theme === 'latte' ? /jitpack-latte/ : /^(?!.*jitpack-latte).*$/,
+      theme === 'day' ? /jitpack-day/ : /^(?!.*jitpack-day).*$/,
     )
 
     const [brand, twin] = await Promise.all([
       toBytes(page, await roleToken(page, '--jp-brand')),
       toBytes(page, `rgb(${await roleToken(page, '--jp-brand-rgb')})`),
     ])
-    // One byte of slack: the mix is rounded on its way into the triplet.
+    // One byte of slack, in case a triplet is ever derived from a mix again.
     for (const channel of [0, 1, 2]) {
       expect(
         Math.abs(brand[channel]! - twin[channel]!),

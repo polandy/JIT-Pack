@@ -56,8 +56,8 @@ const title = computed(() => (saving.value ? t('item.saving') : t('item.saved'))
 }
 
 .saving {
-  background: color-mix(in srgb, var(--ct-yellow) 18%, transparent);
-  color: var(--ct-yellow);
+  background: color-mix(in srgb, var(--ct-straw) 18%, transparent);
+  color: var(--ct-straw);
   animation: save-pulse 1s ease-in-out infinite;
 }
 

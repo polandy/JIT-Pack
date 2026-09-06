@@ -268,10 +268,24 @@ export default defineConfig({
    * than hidden: **this gate catches layout changes, not small ones** — a
    * change of a few hundred pixels is caught by looking at the render,
    * which is what the working agreement already requires of a UI PR.
+   *
+   * **`threshold: 0`, decided 2026-09-06 (ADR-048).** Playwright's default
+   * per-pixel tolerance is 0.2 in YIQ space, and that is not a small number:
+   * when the whole palette was replaced — every plane, every accent, both
+   * flavours — the suite stayed green against the *old* baselines, and even
+   * `--update-snapshots` rewrote nothing, because no token pair moved more
+   * than 0.018 of the 0.04 the threshold allows. A gate whose stated job is
+   * "a token change that moves a surface shows up as a diff" (E2E-VIS-01)
+   * could not see the largest token change the app has had. So a pixel is
+   * different when it is different, and the ratio above is the only slack
+   * — which the pinned container makes safe, since it renders the same
+   * bytes run after run (ADR-013). Proved both ways before it landed: the
+   * old baselines fail against the new bundle, the new ones pass.
    */
   expect: {
     toHaveScreenshot: {
       maxDiffPixelRatio: 0.002,
+      threshold: 0,
       animations: 'disabled',
       // Ionic's tap ripple and the pack-out are both mid-flight artefacts
       // that would make every run differ from every other.

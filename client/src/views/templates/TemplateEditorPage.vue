@@ -906,8 +906,8 @@ const mergeLines = computed(() =>
   margin: 12px 0 0;
   padding: 10px 12px;
   border-radius: var(--jp-r-md);
-  background: color-mix(in srgb, var(--ct-yellow) 12%, transparent);
-  color: var(--ct-yellow);
+  background: color-mix(in srgb, var(--ct-straw) 12%, transparent);
+  color: var(--ct-straw);
   font-size: var(--jp-text-xs);
 }
 
@@ -1009,8 +1009,8 @@ const mergeLines = computed(() =>
   margin: 6px 0 0;
   padding: 4px 8px;
   border-radius: var(--jp-r-sm);
-  background: color-mix(in srgb, var(--ct-yellow) 16%, transparent);
-  color: var(--ct-yellow);
+  background: color-mix(in srgb, var(--ct-straw) 16%, transparent);
+  color: var(--ct-straw);
   font-size: var(--jp-text-xs);
 }
 

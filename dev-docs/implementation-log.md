@@ -329,6 +329,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A new vocabulary borrowed a word another guard owned (2026-09-06)](#a-new-vocabulary-borrowed-a-word-another-guard-owned-2026-09-06) — U-12: a property name is a shared namespace, and one anchor was answering nobody.
 - [A chip had said "2 preparation" since the day it was written (2026-09-06)](#a-chip-had-said-2-preparation-since-the-day-it-was-written-2026-09-06) — U-13: four derivations left the two biggest views; the copy defect was visible only once a test rendered one.
 - [One store, three names, and one file where the sweep would have been wrong (2026-09-06)](#one-store-three-names-and-one-file-where-the-sweep-would-have-been-wrong-2026-09-06) — U-14: a rename is safe only where the name means one thing per file.
+- [The visual gate could not see the palette change (2026-09-06)](#the-visual-gate-could-not-see-the-palette-change-2026-09-06) — ADR-048: `--update-snapshots` rewrote nothing; pixelmatch's 0.2 tolerance swallowed every token move.
 
 ## Deviations
 
@@ -13472,3 +13473,49 @@ back, which reports twice — the rule, and the unused variable the half-rename 
 20. That is the same complaint one store over, and it is a much larger diff than the one the item
 scoped; the bare-`store` bindings for the master and identity stores were folded in here because
 those *are* the shape U-14 names, and the rest stays whole.
+
+## The visual gate could not see the palette change (2026-09-06)
+
+ADR-048 replaces Catppuccin with the app's own palette, *Bergluft*. The owner's verdict on the built
+app was that it does not look appealing; the design review behind it found six causes, and the
+palette was the one the other five could not compensate for — a syntax-highlighting set of fourteen
+equal pastels on a violet navy reads as an editor theme however carefully roles are laid over it.
+The change itself is what FR-21.2 promised it would be: two flavour blocks, the anchors, and ~150
+mechanically renamed accent references; the ~450 neutral references and every view are untouched.
+The ADR records the options and the names. What belongs here is what the diff cannot show.
+
+**The trap: `make visual-update` reported 24 passed and rewrote nothing.** The bundle carried the new
+palette — `dist` had `#1b2327` and no `#1e1e2e` — and every baseline stayed byte-identical to the
+one committed under Catppuccin. The plain comparison run passed too. The cause is Playwright's
+default per-pixel `threshold` of 0.2, a distance in YIQ space that pixelmatch squares to 0.04;
+measured against that, the largest move in the whole palette (done: `#a6e3a1` → `#7fc084`) came to
+0.018, the brand 0.008, the text 0.007, and page and card rounded to 0.000. A gate whose stated
+purpose is "a token change that moves a surface shows up as a diff" (E2E-VIS-01) was blind to the
+largest token change the app has had, and had been blind since 2026-08-16 without anything saying
+so — a green baseline job does not report how far off it was allowed to be. `threshold: 0` is now
+set in `playwright.config.ts`: a pixel is different when it is different, and `maxDiffPixelRatio`
+stays the only slack, which the pinned container makes safe because it renders the same bytes run
+after run (ADR-013). Proved in both directions before landing: with the old baselines restored the
+suite fails against the new bundle, with the new ones it passes. **The rule this leaves**: a
+comparison that has never been seen to fail is a screenshot of an assumption — and the visual
+baselines were exactly that, for three weeks.
+
+**The unit guard widened rather than moved.** The old spec asserted that Latte restated the brand
+with a `color-mix()` and an rgb twin; that clause exists because Tag's brand is already the deep
+bronze a light ground needs, so there is no mix to guard. Deleting the case would have deleted the
+only thing it was really for — the twin drifting from its hex — so it became a check over *every*
+`--ct-*-rgb` twin in both blocks, parsed from the file: a triplet that disagrees with its hex now
+fails the build. It found nothing in the new table, and it would have found a stale twin in the old
+one only for the brand, because the brand was the only accent restated per flavour.
+
+**Two renames refused on purpose.** The neutral steps keep Catppuccin's names — `crust`, `mantle`,
+`subtext0` — because they name positions in a ramp and do that job on any palette, and renaming
+~450 references for provenance would have made the PR unreviewable for the sake of a word. And
+`--ct-` stays as the prefix, now read as "colour token"; the gate, the docs and 700 references
+already spell it. The accents *were* renamed, because `--ct-peach` holding amber is a lie a reader
+acts on, where `--ct-mantle` holding a different grey is not.
+
+**A device's light choice survives the rename.** `jitpack_theme` held `latte`; it now holds `day`,
+and `latte` is still read as `day` in both `theme.ts` and the pre-paint script in `index.html`.
+Nothing writes the old value; the constant carries its own removal condition.
+

@@ -661,7 +661,7 @@ ion-segment {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
-  color: var(--ct-yellow);
+  color: var(--ct-straw);
 }
 
 .name-taken-text {

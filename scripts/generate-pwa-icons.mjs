@@ -37,7 +37,7 @@ mkdirSync(iconsDir, { recursive: true })
 
 const markSvg = readFileSync(join(publicDir, 'favicon.svg'), 'utf8')
 
-/** The favicon's tile colour (Catppuccin Mocha base), read from the source. */
+/** The favicon's tile colour (the Nacht base plane), read from the source. */
 const tile = markSvg.match(/rect width="512" height="512"[^/]*fill="(#[0-9a-f]{6})"/)?.[1]
 if (!tile) throw new Error('favicon.svg no longer carries the expected 512px tile rect')
 
