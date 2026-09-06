@@ -470,7 +470,7 @@ function removeTask(taskId: string) {
 .qty {
   min-width: 28px;
   text-align: center;
-  font-size: var(--jp-text-xl);
+  font-size: var(--jp-text-lg);
   font-weight: var(--jp-weight-bold);
 }
 

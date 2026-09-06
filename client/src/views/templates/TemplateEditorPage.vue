@@ -859,7 +859,7 @@ const mergeLines = computed(() =>
 .name-field {
   --background: transparent;
   --padding-start: 0;
-  font-size: var(--jp-text-2xl);
+  font-size: var(--jp-text-lg);
   font-weight: var(--jp-weight-bold);
   letter-spacing: var(--jp-tracking-display);
 }

@@ -578,9 +578,9 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
 
 .grid-preview {
   overflow-x: auto;
-  margin-block: var(--jp-space-3, 12px);
+  margin-block: 12px;
   border: 1px solid var(--ion-border-color);
-  border-radius: var(--jp-r2);
+  border-radius: var(--jp-r-md);
   background: var(--jp-surface-sunken);
 }
 
@@ -608,7 +608,7 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
 
 .noise-note {
   display: block;
-  margin-block: var(--jp-space-2, 8px);
+  margin-block: 8px;
 }
 
 .paste-area {

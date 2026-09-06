@@ -115,3 +115,48 @@ describe('no colour lives outside the token table (invariant 9)', () => {
     }
   })
 })
+
+describe('every token a view asks for exists (invariant 9, ADR-048)', () => {
+  // A `var(--ct-peach)` that nothing defines paints *nothing* — no error, no
+  // fallback, the property is simply invalid at computed-value time — and
+  // the tokens gate cannot see it, because the reference is a token by
+  // shape. The ADR-048 rename removed fourteen accent names; this is what
+  // says none of them is still asked for anywhere.
+  const tokenFiles = ['src/theme/palette.css', 'src/theme/typography.css', 'src/theme/surfaces.css']
+  const defined = new Set(
+    tokenFiles.flatMap((f) =>
+      [
+        ...readFileSync(resolve(process.cwd(), f), 'utf8').matchAll(
+          /^\s*(--(?:ct|jp)-[a-z0-9-]+):/gm,
+        ),
+      ].map((m) => m[1]),
+    ),
+  )
+  const sources = globSync('src/**/*.{vue,ts,css}', { cwd: process.cwd() }).filter(
+    (f) => !f.includes('__tests__'),
+  )
+
+  it('finds tokens and sources to check at all', () => {
+    expect(defined.size).toBeGreaterThan(40)
+    expect(sources.length).toBeGreaterThan(100)
+  })
+
+  it('never references a --ct-* or --jp-* token that no table defines', () => {
+    // `--jp-mark-size` and the like are *set* by a surface and read by a
+    // role class, so a token is also "defined" where a source declares it.
+    const declaredInSources = new Set(
+      sources.flatMap((f) =>
+        [...readFileSync(f, 'utf8').matchAll(/(--(?:ct|jp)-[a-z0-9-]+)\s*:/g)].map((m) => m[1]),
+      ),
+    )
+    const missing = new Map<string, string[]>()
+    for (const file of sources) {
+      for (const m of readFileSync(file, 'utf8').matchAll(/var\((--(?:ct|jp)-[a-z0-9-]+)/g)) {
+        const token = m[1]!
+        if (defined.has(token) || declaredInSources.has(token)) continue
+        missing.set(token, [...(missing.get(token) ?? []), file])
+      }
+    }
+    expect([...missing.entries()].map(([t, f]) => `${t} in ${f.join(', ')}`)).toEqual([])
+  })
+})

@@ -13565,6 +13565,19 @@ one only for the brand, because the brand was the only accent restated per flavo
 already spell it. The accents *were* renamed, because `--ct-peach` holding amber is a lie a reader
 acts on, where `--ct-mantle` holding a different grey is not.
 
+**A token nobody defines paints nothing, and nothing said so.** The rename made a second guard
+obvious: a view asking for `var(--ct-peach)` after the slot is gone gets an *invalid* property —
+no error, no fallback, the declaration is simply dropped — and the tokens gate cannot see it,
+because the reference is a token by shape. The new unit case reads every `var(--ct-…)`/`var(--jp-…)`
+in `client/src` against the three tables. It was written for the rename and found nothing from
+the rename; what it found was six references that had never resolved on `main`: `--jp-space-2/3/4`
+(margins falling through to their `, Npx` fallbacks — a phantom spacing table), `--jp-r2` (three
+chips and a preview box rendering with **no radius at all**), and `--jp-text-2xl`/`--jp-text-xl`
+(a name field and a quantity inheriting whatever size their parent had). Each now names a step the
+tables have; the three chips are the one visible change, and it is a corner that was meant to be
+round. A reference that fails silently is the same class as the threshold above: green because
+nothing was measuring.
+
 **A device's light choice survives the rename.** `jitpack_theme` held `latte`; it now holds `day`,
 and `latte` is still read as `day` in both `theme.ts` and the pre-paint script in `index.html`.
 Nothing writes the old value; the constant carries its own removal condition.

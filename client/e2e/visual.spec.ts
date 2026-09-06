@@ -161,6 +161,12 @@ test('E2E-VIS-04: visual: M4 filter sheet @local @visual', async ({ page, seedMo
 
   await page.getByTestId('m4-filter').click()
   await expect(page.getByTestId('filter-sheet')).toBeVisible()
+  // The click leaves the pointer over the filter button, and its hover
+  // ring is the one thing this shot rendered differently on the runner
+  // than in the local container (1542 px, found the day `threshold: 0`
+  // landed — invisible under the old 0.2 tolerance). Parking the pointer
+  // makes the state deterministic rather than the tolerance forgiving.
+  await page.mouse.move(0, 0)
   await settled(page)
   await expect(page).toHaveScreenshot('m4-filter-sheet.png')
 })
