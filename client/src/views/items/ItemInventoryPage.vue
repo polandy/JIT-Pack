@@ -251,7 +251,7 @@ function handleRefresh(event: CustomEvent) {
         </section>
       </template>
 
-      <IonFab id="m9-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
+      <IonFab vertical="bottom" horizontal="end" slot="fixed">
         <IonFabButton :aria-label="t('items.new')" data-testid="m9-fab" @click="newItem">
           <IonIcon :icon="addOutline" />
         </IonFabButton>

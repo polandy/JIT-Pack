@@ -48,6 +48,7 @@ import { useRouter } from 'vue-router'
 import EmptyState from '@/components/global/EmptyState.vue'
 import { compositionFrom, serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { useMasterStore } from '@/stores/masterStore'
 import { scopeForNewTemplate } from '@/domain/templates'
 import type { Template, TemplateKind } from '@/types/domain'
@@ -296,7 +297,7 @@ async function deleteTemplate(tpl: Template) {
     await presentToast({
       message: t('templates.includedBlocked', { name: consumers[0]!.name }),
       // Higher than the tab bar the helper would clear, so this screen keeps it.
-      positionAnchor: 'm7-fab-anchor',
+      positionAnchor: FAB_ANCHOR.m7,
     })
     return
   }
@@ -453,7 +454,7 @@ async function handleRefresh(event: CustomEvent) {
         </template>
       </template>
 
-      <IonFab id="m7-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
+      <IonFab :id="FAB_ANCHOR.m7" vertical="bottom" horizontal="end" slot="fixed">
         <IonFabButton :aria-label="t('templates.new')" data-testid="m7-fab" @click="startCreate">
           <IonIcon :icon="addOutline" />
         </IonFabButton>

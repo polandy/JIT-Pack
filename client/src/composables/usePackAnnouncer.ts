@@ -2,17 +2,10 @@ import { onUnmounted, ref, type Ref } from 'vue'
 import { toastController } from '@ionic/vue'
 
 import { t } from '@/i18n'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { TOAST_DURATION_MS } from '@/lib/toast'
 
 import { useRowUndo, type RowUndo } from './useRowUndo'
-
-/**
- * The FAB M4's snackbars sit above, named once because two files need it:
- * this module anchors the pack snackbar, and the screen puts the id on the
- * element (CODING_PRINCIPLES §4a). A bottom toast and the FAB want the same
- * corner — see `lib/toast.ts` for why an anchor is chosen at all.
- */
-export const M4_FAB_ANCHOR_ID = 'm4-fab-anchor'
 
 export interface PackAnnouncer {
   /**
@@ -104,7 +97,7 @@ export function usePackAnnouncer(): PackAnnouncer {
       duration: TOAST_DURATION_MS,
       position: 'bottom',
       // Above the FAB rather than behind it — see the anchor's own note.
-      positionAnchor: M4_FAB_ANCHOR_ID,
+      positionAnchor: FAB_ANCHOR.m4,
       cssClass: 'pack-toast',
       buttons: [{ text: t('packing.undo'), handler: () => rowUndo.undo() }],
     })

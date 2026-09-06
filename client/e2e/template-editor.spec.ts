@@ -9,6 +9,7 @@ import {
   includeGroup,
   visiblePage,
 } from './fixtures'
+import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
 import { backToInventory, createItem } from './helpers/m9'
 
@@ -122,7 +123,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     // positioned against the fab *container*. Hiding the whole IonFab would
     // have dropped the anchor and let toasts fall behind the tab bar — the
     // M7/M8 defect from 2026-08-15, nearly rebuilt while fixing this one.
-    await expect(visiblePage(page).locator('#m8-fab-anchor')).toHaveCount(1)
+    await expect(visiblePage(page).locator(`#${FAB_ANCHOR.m8}`)).toHaveCount(1)
 
     // And it comes back once the composer closes.
     await visiblePage(page).getByTestId('quick-add-close').click()

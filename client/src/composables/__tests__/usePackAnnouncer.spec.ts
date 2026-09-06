@@ -53,7 +53,8 @@ const create = vi.fn((options: Record<string, never>) => {
 
 vi.mock('@ionic/vue', () => ({ toastController: { create: (o: never) => create(o) } }))
 
-const { usePackAnnouncer, M4_FAB_ANCHOR_ID } = await import('../usePackAnnouncer')
+const { usePackAnnouncer } = await import('../usePackAnnouncer')
+const { FAB_ANCHOR } = await import('@/lib/fabAnchors')
 const { TOAST_DURATION_MS } = await import('@/lib/toast')
 
 /** Let every awaited `toastController.create` resolve. */
@@ -112,7 +113,7 @@ describe('usePackAnnouncer — the snackbar (FR-25.2)', () => {
     const options = create.mock.calls[0]![0]!
     expect(options.duration).toBe(TOAST_DURATION_MS)
     expect(options.position).toBe('bottom')
-    expect(options.positionAnchor).toBe(M4_FAB_ANCHOR_ID)
+    expect(options.positionAnchor).toBe(FAB_ANCHOR.m4)
   })
 
   it('offers the armed undo behind its button', async () => {
