@@ -204,7 +204,7 @@ export function createTripCreationActions(ctx: SyncContext) {
     plan.containers.forEach((c, i) => {
       if (c.paired_container_index === null) return
       const mutation = mutations.updateContainer(containerIds[i]!, {
-        paired_container_id: containerIds[c.paired_container_index],
+        paired_container_id: containerIds[c.paired_container_index] ?? null,
       })
       const base = plan.containers[i]!
       enqueue('trip', tripId, {

@@ -27,11 +27,13 @@ export function dbBool(value: boolean | null | undefined): number {
  * Absent is `null`, never `"null"`.
  *
  * An *empty* object still renders as `"{}"`, which is what every row builder
- * has always done. Two view-side callers drop it to `null` instead — they
- * build the object out of form state, where "no key set" is the user
- * declining rather than an object that happens to be empty. That difference
- * is deliberate and stays at those two sites: folding it in here would make
- * this function decide a question it cannot see the answer to.
+ * has always done. Two views — M8's position sheet and M16's series page —
+ * hand over `null` instead, because they build the object out of form state,
+ * where "no key set" is the user declining rather than an object that happens
+ * to be empty. That difference is deliberate and stays with them: folding it
+ * in here would make this function decide a question it cannot see the answer
+ * to. They no longer call this function to say so — they pass the domain
+ * value and `rowFrom` encodes it (C-10).
  */
 export function jsonColumn(value: object | null | undefined): string | null {
   return value ? JSON.stringify(value) : null
@@ -50,4 +52,27 @@ export function parseJsonColumn<T>(raw: unknown, fallback: T): T {
   } catch {
     return fallback
   }
+}
+
+/**
+ * rowFrom renders an edit patch as the sync row it writes: the keys the
+ * caller actually set, each through the codec that key's column needs.
+ *
+ * Only present keys are copied, because a field-level upsert (NFR-4.2a) says
+ * what changed and nothing else — restating a column the user did not touch
+ * would hand back the value another device wrote meanwhile. A key set to
+ * `undefined` is still a key, and `Object.entries` reports it; it is dropped
+ * here so `{ name: undefined }` cannot blank a name.
+ */
+export function rowFrom<T extends object>(
+  fields: T,
+  codecs: Partial<{ [K in keyof T]: (value: T[K]) => unknown }> = {},
+): Record<string, unknown> {
+  const row: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined) continue
+    const codec = codecs[key as keyof T] as ((v: unknown) => unknown) | undefined
+    row[key] = codec ? codec(value) : value
+  }
+  return row
 }

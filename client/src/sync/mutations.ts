@@ -12,7 +12,7 @@
 
 import { TABLE } from '@/types/tables'
 import { stateFor } from '@/domain/packState'
-import { dbBool, jsonColumn } from '@/sync/columns'
+import { dbBool, jsonColumn, rowFrom } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
@@ -28,12 +28,20 @@ import {
 import type { Trip } from '@/types/domain'
 import type {
   AppliedChange,
+  Container,
+  DestinationChecklistItem,
+  DestinationProfile,
+  ItemDependency,
   GeneratedPosition,
   ItemMode,
   ReviewFlag,
   ShoppingMode,
+  MasterItem,
+  Template,
+  TemplateItem,
   TemplateKind,
   TripItem,
+  TripSeries,
   TripStatus,
 } from '@/types/domain'
 
@@ -46,11 +54,69 @@ import type {
  */
 export const CLIENT_ACTOR_PLACEHOLDER = 'current-user'
 
+/**
+ * What an update mutation may change, one type per row.
+ *
+ * Each is `Partial<Pick<Entity, …>>` over the *domain* shape, so a caller
+ * hands over booleans and objects and the mutation renders the columns
+ * (`rowFrom`). Two things follow, and both are the point of naming them:
+ * a field that is not the user's to set — an actor column, a foreign key
+ * another action owns — cannot be named at all, and a view can no longer
+ * decide how a value is spelled on the wire.
+ */
+
 /** The trip fields FR-2.7's editor may change. Status and the series have
  * their own actions, and the rest of the row is not the user's to set. */
 export type TripEdit = Partial<
   Pick<Trip, 'name' | 'year' | 'start_date' | 'end_date' | 'attributes'>
 >
+
+/** M11's container sheet. The pairing has its own two actions, which write
+ * both sides — `paired_container_id` is here for them, not for the sheet. */
+export type ContainerEdit = Partial<
+  Pick<Container, 'name' | 'carrier_traveler_id' | 'max_weight_grams' | 'paired_container_id'>
+>
+
+/** FR-13.1's series. `owner_id` is stamped server-side and never edited. */
+export type SeriesEdit = Partial<Pick<TripSeries, 'name' | 'default_attributes'>>
+
+/** FR-13.2's destination profile carries one editable field. */
+export type DestinationProfileEdit = Partial<Pick<DestinationProfile, 'notes'>>
+
+/** FR-13.3's checklist entry. */
+export type ChecklistItemEdit = Partial<Pick<DestinationChecklistItem, 'label' | 'mode'>>
+
+/** M10's item editor, plus FR-24.3's marker — which `deleteMasterItem` and
+ * `restoreMasterItem` write, and no screen sets by hand. `image_hash` is not
+ * here: the bytes travel their own endpoints (ADR-002) and the hash with them. */
+export type MasterItemEdit = Partial<
+  Pick<MasterItem, 'name' | 'weight_grams' | 'value_cents' | 'icon' | 'retired_at'>
+>
+
+/** M8's Vorlage header, plus FR-24.3's marker on the same terms. */
+export type TemplateEdit = Partial<Pick<Template, 'name' | 'icon' | 'kind' | 'retired_at'>>
+
+/** M8's position sheet. `template_id` and `item_id` are what the row *is*;
+ * moving a position means deleting it and adding another. */
+export type TemplateItemEdit = Partial<
+  Pick<
+    TemplateItem,
+    'quantity' | 'assignment' | 'dedup' | 'conditions' | 'default_mode' | 'late_packer'
+  >
+>
+
+/** The FR-27.4 refresh's propagated fields — the only ones a group may
+ * overwrite on a trip row it generated. Everything the user decided on the
+ * trip (state, counts, container, assignment) is deliberately absent. */
+export type GeneratedTripItemEdit = Partial<
+  Pick<
+    TripItem,
+    'name' | 'quantity' | 'mode' | 'late_packer' | 'weight_grams' | 'value_cents' | 'category_name'
+  >
+>
+
+/** Addendum §3.20's companion link. Both item ids are the edge itself. */
+export type ItemDependencyEdit = Partial<Pick<ItemDependency, 'mode' | 'quantity'>>
 
 /**
  * FR-25.13f: a row can be born with its decision already made — the two
@@ -490,8 +556,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return { mutation, id }
   }
 
-  function updateContainer(containerId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', TABLE.containers, containerId, fields)
+  function updateContainer(containerId: string, fields: ContainerEdit): Mutation {
+    return make('upsert', TABLE.containers, containerId, rowFrom(fields))
   }
 
   function deleteContainer(containerId: string): Mutation {
@@ -565,11 +631,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    * meanwhile, which the field-level merge (NFR-4.2a) exists to avoid.
    */
   function updateTrip(tripId: string, fields: TripEdit): Mutation {
-    const row: Record<string, unknown> = { ...fields }
-    if ('attributes' in fields) {
-      row.attributes = jsonColumn(fields.attributes)
-    }
-    return make('upsert', TABLE.trips, tripId, row)
+    return make('upsert', TABLE.trips, tripId, rowFrom(fields, { attributes: jsonColumn }))
   }
 
   /** renameTraveler changes the name and nothing else — FR-2.7 forbids
@@ -662,8 +724,13 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return { mutation, id }
   }
 
-  function updateSeries(seriesId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', TABLE.tripSeries, seriesId, fields)
+  function updateSeries(seriesId: string, fields: SeriesEdit): Mutation {
+    return make(
+      'upsert',
+      TABLE.tripSeries,
+      seriesId,
+      rowFrom(fields, { default_attributes: jsonColumn }),
+    )
   }
 
   function createDestinationProfile(seriesId: string): { mutation: Mutation; id: string } {
@@ -675,8 +742,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return { mutation, id }
   }
 
-  function updateDestinationProfile(profileId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', TABLE.destinationProfiles, profileId, fields)
+  function updateDestinationProfile(profileId: string, fields: DestinationProfileEdit): Mutation {
+    return make('upsert', TABLE.destinationProfiles, profileId, rowFrom(fields))
   }
 
   function addChecklistItem(
@@ -693,8 +760,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return { mutation, id }
   }
 
-  function updateChecklistItem(itemId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', TABLE.destinationChecklistItems, itemId, fields)
+  function updateChecklistItem(itemId: string, fields: ChecklistItemEdit): Mutation {
+    return make('upsert', TABLE.destinationChecklistItems, itemId, rowFrom(fields))
   }
 
   function deleteChecklistItem(itemId: string): Mutation {
@@ -722,8 +789,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return { mutation, id }
   }
 
-  function updateMasterItem(itemId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', TABLE.items, itemId, fields)
+  function updateMasterItem(itemId: string, fields: MasterItemEdit): Mutation {
+    return make('upsert', TABLE.items, itemId, rowFrom(fields))
   }
 
   function deleteMasterItem(itemId: string): Mutation {
@@ -749,8 +816,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return { mutation, id }
   }
 
-  function updateTemplate(templateId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', TABLE.templates, templateId, fields)
+  function updateTemplate(templateId: string, fields: TemplateEdit): Mutation {
+    return make('upsert', TABLE.templates, templateId, rowFrom(fields))
   }
 
   function deleteTemplate(templateId: string): Mutation {
@@ -783,8 +850,13 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return { mutation, id }
   }
 
-  function updateTemplateItem(templateItemId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', TABLE.templateItems, templateItemId, fields)
+  function updateTemplateItem(templateItemId: string, fields: TemplateItemEdit): Mutation {
+    return make(
+      'upsert',
+      TABLE.templateItems,
+      templateItemId,
+      rowFrom(fields, { conditions: jsonColumn, late_packer: dbBool }),
+    )
   }
 
   function deleteTemplateItem(templateItemId: string): Mutation {
@@ -834,10 +906,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    * that list. `late_packer` is normalised here because the wire carries
    * 0/1 where the domain carries a boolean.
    */
-  function updateGeneratedTripItem(itemId: string, fields: Record<string, unknown>): Mutation {
-    const wire = { ...fields }
-    if ('late_packer' in wire) wire['late_packer'] = dbBool(Boolean(wire['late_packer']))
-    return make('upsert', TABLE.tripItems, itemId, wire)
+  function updateGeneratedTripItem(itemId: string, fields: GeneratedTripItemEdit): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, rowFrom(fields, { late_packer: dbBool }))
   }
 
   /** registerTripSource records that a trip follows this template (FR-27.4/27.10). */
@@ -927,8 +997,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return { mutation, id }
   }
 
-  function updateItemDependency(dependencyId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', TABLE.itemDependencies, dependencyId, fields)
+  function updateItemDependency(dependencyId: string, fields: ItemDependencyEdit): Mutation {
+    return make('upsert', TABLE.itemDependencies, dependencyId, rowFrom(fields))
   }
 
   function deleteItemDependency(dependencyId: string): Mutation {
