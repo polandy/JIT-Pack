@@ -28,7 +28,7 @@ import {
   IonRefresherContent,
 } from '@ionic/vue'
 import { gitMergeOutline, arrowUndoOutline } from 'ionicons/icons'
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import { t, formatDate } from '@/i18n'
@@ -39,16 +39,13 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
-import type {
-  ConflictEntry,
-  LockEvent,
-  useSyncOrchestrator,
-} from '@/composables/useSyncOrchestrator'
+import type { ConflictEntry, LockEvent } from '@/composables/useSyncOrchestrator'
 import { useIdentity } from '@/composables/useTripIdentity'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId?: string }>()
 
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const { directory, load: loadIdentity } = useIdentity(orchestrator)
 const master = useMasterStore()
 const trips = useTripStore()

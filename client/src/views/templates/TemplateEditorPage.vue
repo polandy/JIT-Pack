@@ -29,7 +29,7 @@ import {
   cubeOutline,
   happyOutline,
 } from 'ionicons/icons'
-import { computed, inject, nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import PositionSheet from '@/components/templates/PositionSheet.vue'
@@ -37,7 +37,6 @@ import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
   PICKER_SEARCH_MIN_GROUPS,
@@ -59,12 +58,13 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { TemplateItem, TemplateKind } from '@/types/domain'
 import { isShoppingMode } from '@/types/domain'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ templateId: string }>()
 
 const masterStore = useMasterStore()
 const tripStore = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const template = computed(() => masterStore.getTemplate(props.templateId))
 const isGroup = computed(() => template.value?.kind === 'group')

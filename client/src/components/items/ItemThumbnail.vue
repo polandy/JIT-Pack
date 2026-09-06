@@ -6,13 +6,13 @@
  * lifecycle so callers (M9 list rows, M5 detail) stay declarative. Renders
  * nothing when the item has no photo.
  */
-import { inject, onUnmounted, ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import type { MasterItem } from '@/types/domain'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = withDefaults(defineProps<{ item: MasterItem; size?: number }>(), { size: 40 })
 
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const url = ref<string | null>(null)
 
 function release() {

@@ -23,20 +23,20 @@ import {
   IonChip,
 } from '@ionic/vue'
 import { closeOutline, peopleOutline } from 'ionicons/icons'
-import { computed, inject, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import { buildRosterView } from '@/domain/members'
 import { t } from '@/i18n'
 import { roleLabel } from '@/lib/roleLabels'
 import { useTripStore } from '@/stores/tripStore'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useIdentity } from '@/composables/useTripIdentity'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const tripStore = useTripStore()
 
 const { directory, myUserId, load: loadIdentity } = useIdentity(orchestrator)

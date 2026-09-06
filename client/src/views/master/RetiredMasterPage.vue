@@ -32,7 +32,7 @@ import {
   IonSegmentButton,
 } from '@ionic/vue'
 import { archiveOutline, arrowUndoOutline, trashOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
@@ -43,11 +43,11 @@ import { useMasterStore } from '@/stores/masterStore'
 import { DELETION_REMOVE } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN, type RestoreVerdict } from '@/domain/masterRestore'
 import type { MasterItem, Template } from '@/types/domain'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { confirmDestructive, promptText } from '@/lib/confirm'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const store = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 /** The two things FR-24.3 governs, and the two segments this screen has. */
 const SEGMENT_ITEMS = 'items'

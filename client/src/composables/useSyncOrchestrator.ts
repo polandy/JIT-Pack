@@ -166,6 +166,13 @@ export interface SyncOrchestratorConfig {
   deviceId?: string
 }
 
+/**
+ * The write facade every view holds. Named because it is what the injection
+ * key carries (`composables/useOrchestrator.ts`); a consumer asks for the
+ * type by name rather than restating how it is derived.
+ */
+export type Orchestrator = ReturnType<typeof useSyncOrchestrator>
+
 export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const tripStore = useTripStore()
   const masterStore = useMasterStore()

@@ -47,7 +47,7 @@ import {
   personOutline,
   warningOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   EXPORT_REMINDER_DAYS,
   backupCoversDevice,
@@ -73,12 +73,12 @@ import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import ApiTokenSheet from '@/components/settings/ApiTokenSheet.vue'
 import LeaveLocalModeCard from '@/components/settings/LeaveLocalModeCard.vue'
 import { useDeviceBackup } from '@/composables/useDeviceBackup'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 import { PATH } from '@/router/paths'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const { me, load: loadIdentity } = useIdentity(orchestrator)
 const tripStore = useTripStore()
 const masterStore = useMasterStore()

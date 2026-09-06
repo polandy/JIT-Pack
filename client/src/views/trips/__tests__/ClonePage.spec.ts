@@ -20,6 +20,7 @@ import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('vue-router', () => ({
@@ -67,7 +68,7 @@ function seedSource() {
 function mountPage() {
   return mount(ClonePage, {
     props: { tripId: 'src' },
-    global: { provide: { orchestrator: orchestratorFake } },
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
 

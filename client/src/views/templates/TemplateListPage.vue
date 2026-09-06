@@ -43,13 +43,12 @@ import {
   listOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, inject, nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import EmptyState from '@/components/global/EmptyState.vue'
 import { compositionFrom, serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { scopeForNewTemplate } from '@/domain/templates'
 import type { Template, TemplateKind } from '@/types/domain'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -63,9 +62,10 @@ import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import { presentToast } from '@/lib/toast'
 import { PATH, templatePath } from '@/router/paths'
 import { confirmDestructive, promptText } from '@/lib/confirm'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const store = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 const router = useRouter()
 
 /** The segment's third value is deliberately not a scope — it shows both. */

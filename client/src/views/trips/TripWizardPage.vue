@@ -36,7 +36,7 @@ import {
   personOutline,
   refreshOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { hasCollaborativeSession } from '@/mode'
@@ -63,17 +63,17 @@ import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Template, TemplateKind } from '@/types/domain'
 import { ITEM_MODE_PACK, isShoppingMode } from '@/types/domain'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 import { tripPath } from '@/router/paths'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const route = useRoute()
 const router = useRouter()
 const masterStore = useMasterStore()
 const tripStore = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const step = ref(1)
 

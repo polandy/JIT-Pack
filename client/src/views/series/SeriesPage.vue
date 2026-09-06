@@ -22,7 +22,7 @@ import {
   IonNote,
 } from '@ionic/vue'
 import { addOutline, closeOutline, copyOutline, trendingUpOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { t } from '@/i18n'
 import { formatTripPeriod } from '@/lib/format'
@@ -32,17 +32,17 @@ import { useTripStore } from '@/stores/tripStore'
 import type { ItemMode, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
 import { presentToast } from '@/lib/toast'
 import { PATH, tripPath, tripSubPath } from '@/router/paths'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ seriesId: string }>()
 
 const master = useMasterStore()
 const tripStore = useTripStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const orchestrator = useOrchestrator()
 
 const series = computed(() => master.getSeries(props.seriesId))
 const profile = computed(() => master.getDestinationProfile(props.seriesId))
