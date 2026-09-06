@@ -24,10 +24,12 @@ export const DELETION_SUBJECT_TEMPLATE = 'template'
 export type DeletionSubject = typeof DELETION_SUBJECT_ITEM | typeof DELETION_SUBJECT_TEMPLATE
 
 /**
- * What this device knows about the delete it is about to describe — the
- * shape `masterItemDeletionOutlook` and `templateDeletionOutlook` return.
+ * What this device knows about the delete it is about to describe — the part
+ * of `masterItemDeletionOutlook`/`templateDeletionOutlook`'s answer that words
+ * it. Narrowed here rather than imported, because that type lives with the
+ * orchestrator's actions and `lib/` does not reach upwards.
  */
-interface DeletionOutlookFacts {
+export interface DeletionOutlookFacts {
   kind: DeletionKind
   certain: boolean
 }
