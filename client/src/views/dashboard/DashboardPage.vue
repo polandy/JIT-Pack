@@ -51,7 +51,7 @@ import { useIdentity } from '@/composables/useTripIdentity'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 const { myUserId, load } = useIdentity(orchestrator)
 const router = useRouter()
@@ -63,7 +63,7 @@ onMounted(() => {
   void load()
 })
 
-const activeTrips = computed(() => store.tripList.filter((t) => isActive(t)))
+const activeTrips = computed(() => tripStore.tripList.filter((t) => isActive(t)))
 
 /*
  * The rows this screen aggregates have to *be here*. A trip partition arrives
@@ -105,14 +105,14 @@ watch(
  * request per planned trip would buy a count this section does not show — and
  * a count that has not arrived is the „0 open" defect above.
  */
-const plannedTrips = computed(() => plannedTripsByDeparture(store.tripList))
+const plannedTrips = computed(() => plannedTripsByDeparture(tripStore.tripList))
 
 const isEmpty = computed(() => activeTrips.value.length === 0 && plannedTrips.value.length === 0)
 
 const greeting = computed(() => t(greetingKey(new Date().getHours())))
 
 function tripKpis(trip: Trip) {
-  return store.kpis(trip.id)
+  return tripStore.kpis(trip.id)
 }
 
 function progressFraction(trip: Trip): number {
@@ -127,11 +127,11 @@ function progressFraction(trip: Trip): number {
  * and a rule spelled out per caller is what §4a is about.
  */
 function previewItems(tripId: string) {
-  return store.getItems(tripId).filter(isOpenRow).slice(0, 3)
+  return tripStore.getItems(tripId).filter(isOpenRow).slice(0, 3)
 }
 
 function openItemCount(tripId: string): number {
-  return store.getItems(tripId).filter(isOpenRow).length
+  return tripStore.getItems(tripId).filter(isOpenRow).length
 }
 
 /** All open prep todos across active trips, grouped by item name. */
@@ -145,7 +145,7 @@ const prepTodos = computed(() => {
   }> = []
 
   for (const trip of activeTrips.value) {
-    const withPrep = store.itemsWithOpenPrep(trip.id)
+    const withPrep = tripStore.itemsWithOpenPrep(trip.id)
     for (const { item, openTodos } of withPrep) {
       result.push({
         tripId: trip.id,
@@ -180,7 +180,7 @@ const sectionTrips = computed(() =>
     tripId: trip.id,
     tripName: trip.name,
     startDate: trip.start_date,
-    rows: store.getItems(trip.id),
+    rows: tripStore.getItems(trip.id),
   })),
 )
 

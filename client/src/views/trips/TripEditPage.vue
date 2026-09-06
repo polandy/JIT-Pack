@@ -43,11 +43,11 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
 const { trip } = useTripScreen(props.tripId, orchestrator)
-const travelers = computed(() => store.getTravelers(props.tripId))
+const travelers = computed(() => tripStore.getTravelers(props.tripId))
 
 /**
  * An archived trip is read-only here for the same reason FR-27.4 never touches

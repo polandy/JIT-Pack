@@ -55,13 +55,13 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
 const { trip } = useTripScreen(props.tripId, orchestrator)
-const containers = computed(() => store.getContainers(props.tripId))
-const travelers = computed(() => store.getTravelers(props.tripId))
-const items = computed(() => store.getItems(props.tripId))
+const containers = computed(() => tripStore.getContainers(props.tripId))
+const travelers = computed(() => tripStore.getTravelers(props.tripId))
+const items = computed(() => tripStore.getItems(props.tripId))
 const unassigned = computed(() => unassignedItems(items.value))
 
 function weightOf(containerId: string): number {

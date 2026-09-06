@@ -32,22 +32,22 @@ describe('tripStore', () => {
   })
 
   it('starts empty', () => {
-    const store = useTripStore()
-    expect(store.tripList).toEqual([])
-    expect(store.getItems('t1')).toEqual([])
+    const tripStore = useTripStore()
+    expect(tripStore.tripList).toEqual([])
+    expect(tripStore.getItems('t1')).toEqual([])
   })
 
   it('sets and retrieves a trip', () => {
-    const store = useTripStore()
-    store.setTrip(makeTrip())
-    expect(store.getTrip('t1')?.name).toBe('Beach Trip')
-    expect(store.tripList).toHaveLength(1)
+    const tripStore = useTripStore()
+    tripStore.setTrip(makeTrip())
+    expect(tripStore.getTrip('t1')?.name).toBe('Beach Trip')
+    expect(tripStore.tripList).toHaveLength(1)
   })
 
   it('removes a trip and its items', () => {
-    const store = useTripStore()
-    store.setTrip(makeTrip())
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.setTrip(makeTrip())
+    tripStore.applyChange({
       seq: 1,
       table: 'trip_items',
       id: 'i1',
@@ -61,11 +61,11 @@ describe('tripStore', () => {
         mode: 'pack',
       },
     })
-    expect(store.getItems('t1')).toHaveLength(1)
+    expect(tripStore.getItems('t1')).toHaveLength(1)
 
-    store.removeTrip('t1')
-    expect(store.getTrip('t1')).toBeUndefined()
-    expect(store.getItems('t1')).toEqual([])
+    tripStore.removeTrip('t1')
+    expect(tripStore.getTrip('t1')).toBeUndefined()
+    expect(tripStore.getItems('t1')).toEqual([])
   })
 
   /**
@@ -77,8 +77,8 @@ describe('tripStore', () => {
    * tables — the trip vanished from the screen while its rows stayed.
    */
   describe('a deleted trip takes its children with it (C-3a)', () => {
-    function seedChildren(store: ReturnType<typeof useTripStore>) {
-      store.setTrip(makeTrip())
+    function seedChildren(tripStore: ReturnType<typeof useTripStore>) {
+      tripStore.setTrip(makeTrip())
       const rows: PullChange[] = [
         row(TABLE.tripItems, 'i1', {
           trip_id: 't1',
@@ -111,14 +111,14 @@ describe('tripStore', () => {
           created_at: '2026-09-01T10:00:00Z',
         }),
       ]
-      store.applyChanges(rows)
+      tripStore.applyChanges(rows)
     }
 
     it('names every child row, so the cascade can tombstone them', () => {
-      const store = useTripStore()
-      seedChildren(store)
+      const tripStore = useTripStore()
+      seedChildren(tripStore)
 
-      expect(store.childRows('t1')).toEqual(
+      expect(tripStore.childRows('t1')).toEqual(
         expect.arrayContaining([
           { table: TABLE.comments, id: 'com1' },
           { table: TABLE.comments, id: 'todo1' },
@@ -131,15 +131,15 @@ describe('tripStore', () => {
           { table: TABLE.tripAppliedChanges, id: 'app1' },
         ]),
       )
-      expect(store.childRows('t1')).toHaveLength(9)
-      expect(store.childRows('unknown-trip')).toEqual([])
+      expect(tripStore.childRows('t1')).toHaveLength(9)
+      expect(tripStore.childRows('unknown-trip')).toEqual([])
     })
 
     it('names a child before the parent it hangs off', () => {
-      const store = useTripStore()
-      seedChildren(store)
+      const tripStore = useTripStore()
+      seedChildren(tripStore)
       const at = (table: string, id: string) =>
-        store.childRows('t1').findIndex((c) => c.table === table && c.id === id)
+        tripStore.childRows('t1').findIndex((c) => c.table === table && c.id === id)
 
       // The comment and the generated position hang off the trip item; the
       // server emits its own cascade leaf-first for the same reason.
@@ -148,42 +148,42 @@ describe('tripStore', () => {
     })
 
     it('empties every bucket the trip owned', () => {
-      const store = useTripStore()
-      seedChildren(store)
+      const tripStore = useTripStore()
+      seedChildren(tripStore)
 
-      store.removeTrip('t1')
+      tripStore.removeTrip('t1')
 
-      expect(store.getTrip('t1')).toBeUndefined()
-      expect(store.getItems('t1')).toEqual([])
-      expect(store.getTravelers('t1')).toEqual([])
-      expect(store.getContainers('t1')).toEqual([])
-      expect(store.getMembers('t1')).toEqual([])
-      expect(store.getComments('t1')).toEqual([])
-      expect(store.getTodos('t1')).toEqual([])
-      expect(store.getTemplateSources('t1')).toEqual([])
-      expect(store.getGeneratedPositions('t1')).toEqual([])
-      expect(store.getAppliedChanges('t1')).toEqual([])
-      expect(store.childRows('t1')).toEqual([])
+      expect(tripStore.getTrip('t1')).toBeUndefined()
+      expect(tripStore.getItems('t1')).toEqual([])
+      expect(tripStore.getTravelers('t1')).toEqual([])
+      expect(tripStore.getContainers('t1')).toEqual([])
+      expect(tripStore.getMembers('t1')).toEqual([])
+      expect(tripStore.getComments('t1')).toEqual([])
+      expect(tripStore.getTodos('t1')).toEqual([])
+      expect(tripStore.getTemplateSources('t1')).toEqual([])
+      expect(tripStore.getGeneratedPositions('t1')).toEqual([])
+      expect(tripStore.getAppliedChanges('t1')).toEqual([])
+      expect(tripStore.childRows('t1')).toEqual([])
     })
 
     it("leaves another trip's rows alone", () => {
-      const store = useTripStore()
-      seedChildren(store)
-      store.setTrip(makeTrip({ id: 't2' }))
-      store.applyChanges([
+      const tripStore = useTripStore()
+      seedChildren(tripStore)
+      tripStore.setTrip(makeTrip({ id: 't2' }))
+      tripStore.applyChanges([
         row(TABLE.travelers, 'trav2', { trip_id: 't2', name: 'Grace' }),
         row(TABLE.tripTemplateSources, 'src2', { trip_id: 't2', template_id: 'tpl1' }),
       ])
 
-      store.removeTrip('t1')
+      tripStore.removeTrip('t1')
 
-      expect(store.getTravelers('t2')).toHaveLength(1)
-      expect(store.getTemplateSources('t2')).toHaveLength(1)
+      expect(tripStore.getTravelers('t2')).toHaveLength(1)
+      expect(tripStore.getTemplateSources('t2')).toHaveLength(1)
     })
   })
 
   it('applies trip pull change', () => {
-    const store = useTripStore()
+    const tripStore = useTripStore()
     const change: PullChange = {
       seq: 1,
       table: 'trips',
@@ -198,21 +198,21 @@ describe('tripStore', () => {
         duration_days: 6,
       },
     }
-    store.applyChange(change)
-    expect(store.getTrip('t1')?.name).toBe('Ski Trip')
-    expect(store.getTrip('t1')?.status).toBe('planning')
+    tripStore.applyChange(change)
+    expect(tripStore.getTrip('t1')?.name).toBe('Ski Trip')
+    expect(tripStore.getTrip('t1')?.status).toBe('planning')
   })
 
   it('applies trip deletion', () => {
-    const store = useTripStore()
-    store.setTrip(makeTrip())
-    store.applyChange({ seq: 2, table: 'trips', id: 't1', deleted: true, row: null })
-    expect(store.getTrip('t1')).toBeUndefined()
+    const tripStore = useTripStore()
+    tripStore.setTrip(makeTrip())
+    tripStore.applyChange({ seq: 2, table: 'trips', id: 't1', deleted: true, row: null })
+    expect(tripStore.getTrip('t1')).toBeUndefined()
   })
 
   it('applies trip_items pull changes', () => {
-    const store = useTripStore()
-    store.applyChanges([
+    const tripStore = useTripStore()
+    tripStore.applyChanges([
       {
         seq: 1,
         table: 'trip_items',
@@ -248,15 +248,15 @@ describe('tripStore', () => {
       },
     ])
 
-    const items = store.getItems('t1')
+    const items = tripStore.getItems('t1')
     expect(items).toHaveLength(2)
     expect(items[0]!.name).toBe('Towel')
     expect(items[0]!.packed_count).toBe(1)
   })
 
   it('upserts existing trip item', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 1,
       table: 'trip_items',
       id: 'i1',
@@ -271,7 +271,7 @@ describe('tripStore', () => {
         updated_hlc: 'h1',
       },
     })
-    store.applyChange({
+    tripStore.applyChange({
       seq: 2,
       table: 'trip_items',
       id: 'i1',
@@ -287,14 +287,14 @@ describe('tripStore', () => {
       },
     })
 
-    const items = store.getItems('t1')
+    const items = tripStore.getItems('t1')
     expect(items).toHaveLength(1)
     expect(items[0]!.packed_count).toBe(2)
   })
 
   it('deletes trip item', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 1,
       table: 'trip_items',
       id: 'i1',
@@ -309,13 +309,13 @@ describe('tripStore', () => {
         updated_hlc: 'h1',
       },
     })
-    store.applyChange({ seq: 2, table: 'trip_items', id: 'i1', deleted: true, row: null })
-    expect(store.getItems('t1')).toHaveLength(0)
+    tripStore.applyChange({ seq: 2, table: 'trip_items', id: 'i1', deleted: true, row: null })
+    expect(tripStore.getItems('t1')).toHaveLength(0)
   })
 
   it('computes KPIs', () => {
-    const store = useTripStore()
-    store.applyChanges([
+    const tripStore = useTripStore()
+    tripStore.applyChanges([
       {
         seq: 1,
         table: 'trip_items',
@@ -352,7 +352,7 @@ describe('tripStore', () => {
       },
     ])
 
-    const k = store.kpis('t1')
+    const k = tripStore.kpis('t1')
     expect(k.totalItems).toBe(5) // 2 + 3
     expect(k.packedItems).toBe(4) // 1 + 3
     expect(k.totalWeight).toBe(800) // 100*2 + 200*3
@@ -362,41 +362,41 @@ describe('tripStore', () => {
   })
 
   it('handles travelers', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 1,
       table: 'travelers',
       id: 'tv1',
       deleted: false,
       row: { trip_id: 't1', name: 'Alice' },
     })
-    expect(store.getTravelers('t1')).toHaveLength(1)
-    expect(store.getTravelers('t1')[0]!.name).toBe('Alice')
+    expect(tripStore.getTravelers('t1')).toHaveLength(1)
+    expect(tripStore.getTravelers('t1')[0]!.name).toBe('Alice')
 
-    store.applyChange({ seq: 2, table: 'travelers', id: 'tv1', deleted: true, row: null })
-    expect(store.getTravelers('t1')).toHaveLength(0)
+    tripStore.applyChange({ seq: 2, table: 'travelers', id: 'tv1', deleted: true, row: null })
+    expect(tripStore.getTravelers('t1')).toHaveLength(0)
   })
 
   it('handles containers', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 1,
       table: 'containers',
       id: 'c1',
       deleted: false,
       row: { trip_id: 't1', name: 'Suitcase', max_weight_grams: 23000 },
     })
-    expect(store.getContainers('t1')).toHaveLength(1)
+    expect(tripStore.getContainers('t1')).toHaveLength(1)
 
-    store.applyChange({ seq: 2, table: 'containers', id: 'c1', deleted: true, row: null })
-    expect(store.getContainers('t1')).toHaveLength(0)
+    tripStore.applyChange({ seq: 2, table: 'containers', id: 'c1', deleted: true, row: null })
+    expect(tripStore.getContainers('t1')).toHaveLength(0)
   })
 
   // --- Preparation Todos (FR-7.3) ---
 
   it('applies comment with is_task as todo', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 1,
       table: 'comments',
       id: 'todo1',
@@ -410,14 +410,14 @@ describe('tripStore', () => {
         task_state: 'open',
       },
     })
-    expect(store.getTodos('t1')).toHaveLength(1)
-    expect(store.getTodos('t1')[0]!.body).toBe('Charge battery')
-    expect(store.getTodos('t1')[0]!.task_state).toBe('open')
+    expect(tripStore.getTodos('t1')).toHaveLength(1)
+    expect(tripStore.getTodos('t1')[0]!.body).toBe('Charge battery')
+    expect(tripStore.getTodos('t1')[0]!.task_state).toBe('open')
   })
 
   it('ignores non-task comments', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 1,
       table: 'comments',
       id: 'c1',
@@ -431,12 +431,12 @@ describe('tripStore', () => {
         task_state: null,
       },
     })
-    expect(store.getTodos('t1')).toHaveLength(0)
+    expect(tripStore.getTodos('t1')).toHaveLength(0)
   })
 
   it('upserts existing todo (resolve)', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 1,
       table: 'comments',
       id: 'todo1',
@@ -450,7 +450,7 @@ describe('tripStore', () => {
         task_state: 'open',
       },
     })
-    store.applyChange({
+    tripStore.applyChange({
       seq: 2,
       table: 'comments',
       id: 'todo1',
@@ -464,13 +464,13 @@ describe('tripStore', () => {
         task_state: 'resolved',
       },
     })
-    expect(store.getTodos('t1')).toHaveLength(1)
-    expect(store.getTodos('t1')[0]!.task_state).toBe('resolved')
+    expect(tripStore.getTodos('t1')).toHaveLength(1)
+    expect(tripStore.getTodos('t1')[0]!.task_state).toBe('resolved')
   })
 
   it('deletes a todo', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 1,
       table: 'comments',
       id: 'todo1',
@@ -484,13 +484,13 @@ describe('tripStore', () => {
         task_state: 'open',
       },
     })
-    store.applyChange({ seq: 2, table: 'comments', id: 'todo1', deleted: true, row: null })
-    expect(store.getTodos('t1')).toHaveLength(0)
+    tripStore.applyChange({ seq: 2, table: 'comments', id: 'todo1', deleted: true, row: null })
+    expect(tripStore.getTodos('t1')).toHaveLength(0)
   })
 
   it('getItemTodos filters by trip item', () => {
-    const store = useTripStore()
-    store.applyChanges([
+    const tripStore = useTripStore()
+    tripStore.applyChanges([
       {
         seq: 1,
         table: 'comments',
@@ -534,13 +534,13 @@ describe('tripStore', () => {
         },
       },
     ])
-    expect(store.getItemTodos('t1', 'i1')).toHaveLength(2)
-    expect(store.getItemTodos('t1', 'i2')).toHaveLength(1)
+    expect(tripStore.getItemTodos('t1', 'i1')).toHaveLength(2)
+    expect(tripStore.getItemTodos('t1', 'i2')).toHaveLength(1)
   })
 
   it('getOpenTodos returns only open todos', () => {
-    const store = useTripStore()
-    store.applyChanges([
+    const tripStore = useTripStore()
+    tripStore.applyChanges([
       {
         seq: 1,
         table: 'comments',
@@ -570,13 +570,13 @@ describe('tripStore', () => {
         },
       },
     ])
-    expect(store.getOpenTodos('t1')).toHaveLength(1)
-    expect(store.getOpenTodos('t1')[0]!.body).toBe('Open')
+    expect(tripStore.getOpenTodos('t1')).toHaveLength(1)
+    expect(tripStore.getOpenTodos('t1')[0]!.body).toBe('Open')
   })
 
   it('itemsWithOpenPrep returns items with open todos', () => {
-    const store = useTripStore()
-    store.applyChanges([
+    const tripStore = useTripStore()
+    tripStore.applyChanges([
       {
         seq: 1,
         table: 'trip_items',
@@ -622,15 +622,15 @@ describe('tripStore', () => {
         },
       },
     ])
-    const result = store.itemsWithOpenPrep('t1')
+    const result = tripStore.itemsWithOpenPrep('t1')
     expect(result).toHaveLength(1)
     expect(result[0]!.item.name).toBe('Camera')
     expect(result[0]!.openTodos).toHaveLength(1)
   })
 
   it('KPIs include todo counts', () => {
-    const store = useTripStore()
-    store.applyChanges([
+    const tripStore = useTripStore()
+    tripStore.applyChanges([
       {
         seq: 1,
         table: 'trip_items',
@@ -675,7 +675,7 @@ describe('tripStore', () => {
         },
       },
     ])
-    const k = store.kpis('t1')
+    const k = tripStore.kpis('t1')
     expect(k.totalTodos).toBe(2)
     expect(k.resolvedTodos).toBe(1)
   })
@@ -687,13 +687,13 @@ describe('a trip pulled from the wire', () => {
   })
 
   it('derives its duration from the dates, because the server never sends one', () => {
-    const store = useTripStore()
+    const tripStore = useTripStore()
 
     // `duration_days` is a generated column and deliberately not syncable
     // (`syncableColumns` in internal/store/store.go), so every pull carries
     // the dates and no duration. Reading it off the row leaves M4 and the
     // analytics without one for every trip that arrived over the wire.
-    store.applyChange({
+    tripStore.applyChange({
       seq: 1,
       table: TABLE.trips,
       id: 't1',
@@ -707,13 +707,13 @@ describe('a trip pulled from the wire', () => {
       },
     })
 
-    expect(store.getTrip('t1')?.duration_days).toBe(8)
+    expect(tripStore.getTrip('t1')?.duration_days).toBe(8)
   })
 
   it('has no duration while one of the dates is open (FR-2.1a)', () => {
-    const store = useTripStore()
+    const tripStore = useTripStore()
 
-    store.applyChange({
+    tripStore.applyChange({
       seq: 1,
       table: TABLE.trips,
       id: 't1',
@@ -721,18 +721,18 @@ describe('a trip pulled from the wire', () => {
       row: { name: 'Samedan', year: 2026, status: 'planning', end_date: '2026-02-08' },
     })
 
-    expect(store.getTrip('t1')?.duration_days).toBeNull()
+    expect(tripStore.getTrip('t1')?.duration_days).toBeNull()
   })
 })
 
 describe('the FR-27.4 ledger snapshot', () => {
-  function ledger(store: ReturnType<typeof useTripStore>, id: string) {
-    return store.getGeneratedPositions('t1').find((entry) => entry.id === id)
+  function ledger(tripStore: ReturnType<typeof useTripStore>, id: string) {
+    return tripStore.getGeneratedPositions('t1').find((entry) => entry.id === id)
   }
 
   it('reads its tasks back as a list', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 0,
       table: 'trip_generated_positions',
       id: 'led-1',
@@ -751,12 +751,12 @@ describe('the FR-27.4 ledger snapshot', () => {
       },
     })
 
-    expect(ledger(store, 'led-1')?.tasks).toEqual(['Akkus laden', 'Karte formatieren'])
+    expect(ledger(tripStore, 'led-1')?.tasks).toEqual(['Akkus laden', 'Karte formatieren'])
   })
 
   it('survives a malformed snapshot rather than taking the trip list down', () => {
-    const store = useTripStore()
-    store.applyChange({
+    const tripStore = useTripStore()
+    tripStore.applyChange({
       seq: 0,
       table: 'trip_generated_positions',
       id: 'led-2',
@@ -777,7 +777,7 @@ describe('the FR-27.4 ledger snapshot', () => {
 
     // Empty reads as "the refresh will re-add them", which is recoverable;
     // a thrown parse error inside the store is not.
-    expect(ledger(store, 'led-2')?.tasks).toEqual([])
+    expect(ledger(tripStore, 'led-2')?.tasks).toEqual([])
   })
 })
 
@@ -786,8 +786,8 @@ describe('the FR-27.4 applied-changes log has a total order', () => {
     setActivePinia(createPinia())
   })
 
-  function logged(store: ReturnType<typeof useTripStore>, id: string, createdAt: string) {
-    store.applyChange({
+  function logged(tripStore: ReturnType<typeof useTripStore>, id: string, createdAt: string) {
+    tripStore.applyChange({
       seq: 0,
       table: 'trip_applied_changes',
       id,
@@ -824,10 +824,10 @@ describe('the FR-27.4 applied-changes log has a total order', () => {
   })
 
   it('still puts the newest change first', () => {
-    const store = useTripStore()
-    logged(store, 'older', '2026-08-18T10:00:00.000Z')
-    logged(store, 'newer', '2026-08-18T10:00:01.000Z')
+    const tripStore = useTripStore()
+    logged(tripStore, 'older', '2026-08-18T10:00:00.000Z')
+    logged(tripStore, 'newer', '2026-08-18T10:00:01.000Z')
 
-    expect(store.getAppliedChanges('t1').map((c) => c.id)).toEqual(['newer', 'older'])
+    expect(tripStore.getAppliedChanges('t1').map((c) => c.id)).toEqual(['newer', 'older'])
   })
 })

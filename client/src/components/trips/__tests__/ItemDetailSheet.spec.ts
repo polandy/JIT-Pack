@@ -42,7 +42,7 @@ function seedTrip(
   flags: Partial<Pick<TripItem, 'flag_unused' | 'flag_missing'>> = {},
   mode: ItemMode = 'pack',
 ) {
-  const store = useTripStore()
+  const tripStore = useTripStore()
   const trip: Omit<Trip, 'id'> = {
     name: 'Herbst Tessin',
     status,
@@ -54,7 +54,7 @@ function seedTrip(
     attributes: null,
     imported: false,
   }
-  store.applyChange({ seq: 0, table: 'trips', id: 't1', deleted: false, row: trip })
+  tripStore.applyChange({ seq: 0, table: 'trips', id: 't1', deleted: false, row: trip })
 
   const item: Omit<TripItem, 'id'> = {
     trip_id: 't1',
@@ -67,14 +67,14 @@ function seedTrip(
     flag_missing: false,
     ...flags,
   } as Omit<TripItem, 'id'>
-  store.applyChange({ seq: 0, table: 'trip_items', id: 'ti1', deleted: false, row: item })
-  return store
+  tripStore.applyChange({ seq: 0, table: 'trip_items', id: 'ti1', deleted: false, row: item })
+  return tripStore
 }
 
 /** Membership is what makes somebody assignable (FR-4.5 / P-3). */
-function seedMembers(store: ReturnType<typeof useTripStore>, userIds: string[]) {
+function seedMembers(tripStore: ReturnType<typeof useTripStore>, userIds: string[]) {
   userIds.forEach((user_id, i) =>
-    store.applyChange({
+    tripStore.applyChange({
       seq: 0,
       table: 'trip_members',
       id: `m${i}`,
@@ -105,8 +105,8 @@ beforeEach(() => {
 })
 
 /** FR-7.3: an open task on a packed row (`is_task` on the comments table). */
-function seedOpenTask(store: ReturnType<typeof useTripStore>) {
-  store.applyChange({
+function seedOpenTask(tripStore: ReturnType<typeof useTripStore>) {
+  tripStore.applyChange({
     seq: 0,
     table: 'comments',
     id: 'c1',
@@ -129,15 +129,15 @@ describe('M5 state word (FR-25.4/FR-7.3)', () => {
   })
 
   it('says the prep is still open on a packed row, which the state alone hides', () => {
-    const store = seedTrip('active')
-    seedOpenTask(store)
+    const tripStore = seedTrip('active')
+    seedOpenTask(tripStore)
     expect(mountSheet().get('.state').text()).toBe('packed \u00b7 prep open')
   })
 
   it('drops the note once the task is done — the state is the whole answer again', () => {
-    const store = seedTrip('active')
-    seedOpenTask(store)
-    store.applyChange({
+    const tripStore = seedTrip('active')
+    seedOpenTask(tripStore)
+    tripStore.applyChange({
       seq: 1,
       table: 'comments',
       id: 'c1',
@@ -274,21 +274,21 @@ describe('M5 FR-9.1 flags', () => {
  */
 describe('M5 respects the G-3 lock', () => {
   function seedLocked(holder: string | null) {
-    const store = seedTrip('active')
-    store.applyChange({
+    const tripStore = seedTrip('active')
+    tripStore.applyChange({
       seq: 1,
       table: 'trip_items',
       id: 'ti1',
       deleted: false,
       row: {
-        ...store.getItems('t1')[0]!,
+        ...tripStore.getItems('t1')[0]!,
         state: 'packing_now',
         packing_now_by: holder,
         packing_now_at: new Date().toISOString(),
       },
     })
     orchestratorFake.lockHolder.mockReturnValue(holder)
-    return store
+    return tripStore
   }
 
   it('names who is holding it', () => {
@@ -447,8 +447,8 @@ describe('M5 FR-25.19 assignment', () => {
   })
 
   it("offers the trip's members only, never everyone the instance knows", async () => {
-    const store = seedTrip('active')
-    seedMembers(store, ['u-alice', 'u-bob'])
+    const tripStore = seedTrip('active')
+    seedMembers(tripStore, ['u-alice', 'u-bob'])
     // `participants` carries the whole directory, because it also has to
     // name whoever packed a row. Cara is on the instance and not on this
     // trip: handing her a row would notify somebody who cannot open it
@@ -468,12 +468,12 @@ describe('M5 FR-25.19 assignment', () => {
   })
 
   it('offers no picker where the only member is me (Single-User, or a trip nobody shares)', async () => {
-    const store = seedTrip('active')
+    const tripStore = seedTrip('active')
     // The store writes a membership row for every trip's creator, in
     // Single-User Mode too — so "has members" is true there and is the
     // wrong question. UI-Spec M5 hides the control because the sole user
     // is already every row's packer.
-    seedMembers(store, ['u-alice'])
+    seedMembers(tripStore, ['u-alice'])
     const wrapper = await openDetails(mountSheet(MEMBERS, 'u-alice'))
 
     expect(wrapper.find('[data-testid="m5-assignee"]').exists()).toBe(false)

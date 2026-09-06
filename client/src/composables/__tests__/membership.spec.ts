@@ -53,19 +53,19 @@ function orchestrator() {
   return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
 }
 
-function rowsOf(store = useTripStore()) {
-  return store.getItems(TRIP_ID).filter((i) => i.name === 'Kurze Hosen')
+function rowsOf(tripStore = useTripStore()) {
+  return tripStore.getItems(TRIP_ID).filter((i) => i.name === 'Kurze Hosen')
 }
 
 describe('setMembership (FR-25.21)', () => {
   it('converts a shared row into one row per traveler in a single push', async () => {
     seedWorld()
     const orch = orchestrator()
-    const store = useTripStore()
+    const tripStore = useTripStore()
 
     orch.setMembership(
       TRIP_ID,
-      rowsOf(store),
+      rowsOf(tripStore),
       {
         kind: 'perPerson',
         members: [
@@ -76,7 +76,7 @@ describe('setMembership (FR-25.21)', () => {
       [],
     )
 
-    const rows = rowsOf(store)
+    const rows = rowsOf(tripStore)
     expect(rows).toHaveLength(2)
     expect(rows.map((r) => [r.assigned_traveler_id, r.quantity]).sort()).toEqual([
       ['tr-a', 2],
@@ -102,8 +102,8 @@ describe('setMembership (FR-25.21)', () => {
    */
   it('a row created by the split carries the item facts and none of the pack decisions', () => {
     seedWorld()
-    const store = useTripStore()
-    store.applyChanges([
+    const tripStore = useTripStore()
+    tripStore.applyChanges([
       change(TABLE.tripItems, ITEM_ID, {
         trip_id: TRIP_ID,
         name: 'Kurze Hosen',
@@ -124,7 +124,7 @@ describe('setMembership (FR-25.21)', () => {
 
     orchestrator().setMembership(
       TRIP_ID,
-      rowsOf(store),
+      rowsOf(tripStore),
       {
         kind: 'perPerson',
         members: [
@@ -135,7 +135,7 @@ describe('setMembership (FR-25.21)', () => {
       [],
     )
 
-    const created = rowsOf(store).find((r) => r.id !== ITEM_ID)
+    const created = rowsOf(tripStore).find((r) => r.id !== ITEM_ID)
     expect(created).toBeDefined()
     expect(created).toMatchObject({
       source_item_id: 'item-hosen',
@@ -157,11 +157,11 @@ describe('setMembership (FR-25.21)', () => {
   it('collapsing back sums the quantities onto one surviving row and deletes the rest', () => {
     seedWorld()
     const orch = orchestrator()
-    const store = useTripStore()
+    const tripStore = useTripStore()
 
     orch.setMembership(
       TRIP_ID,
-      rowsOf(store),
+      rowsOf(tripStore),
       {
         kind: 'perPerson',
         members: [
@@ -171,9 +171,9 @@ describe('setMembership (FR-25.21)', () => {
       },
       [],
     )
-    orch.setMembership(TRIP_ID, rowsOf(store), { kind: 'shared' }, [])
+    orch.setMembership(TRIP_ID, rowsOf(tripStore), { kind: 'shared' }, [])
 
-    const rows = rowsOf(store)
+    const rows = rowsOf(tripStore)
     expect(rows).toHaveLength(1)
     expect(rows[0]?.assigned_traveler_id).toBeNull()
     expect(rows[0]?.quantity).toBe(5)

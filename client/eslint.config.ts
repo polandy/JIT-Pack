@@ -110,5 +110,29 @@ export default defineConfigWithVueTs(
     },
   },
 
+  {
+    // U-14: a pinia store is bound to its own name, never to `store`. The trip
+    // store was `store` in 13 files and `tripStore` in 8, so a grep for
+    // `tripStore.getItems` found a third of its readers — and in the packing
+    // list `store.` sat beside `masterStore.`, where only the import told you
+    // which was which.
+    //
+    // The rule bans the ambiguous *name* rather than requiring a particular
+    // one, because a selector cannot compare the binding to the composable it
+    // calls: `master` is unambiguous about which store it is, `store` is not.
+    name: 'app/stores-are-bound-to-their-own-name',
+    files: ['src/**/*.{ts,vue}', 'e2e/**/*.ts', 'cli/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "VariableDeclarator[id.name='store'][init.callee.name=/^use.+Store$/]",
+          message:
+            'Bind a store to its own name (tripStore, masterStore, identityStore), not to `store` — one grep has to find every reader.',
+        },
+      ],
+    },
+  },
+
   skipFormatting,
 )

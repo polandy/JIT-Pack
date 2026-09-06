@@ -14,8 +14,8 @@ beforeEach(() => {
   installHarness().mockDrain()
 })
 
-function seedSource(store: ReturnType<typeof useTripStore>) {
-  store.applyChange({
+function seedSource(tripStore: ReturnType<typeof useTripStore>) {
+  tripStore.applyChange({
     seq: 0,
     table: 'trips',
     id: 'src',
@@ -30,14 +30,14 @@ function seedSource(store: ReturnType<typeof useTripStore>) {
       attributes: '{"season":"summer"}',
     },
   })
-  store.applyChange({
+  tripStore.applyChange({
     seq: 0,
     table: 'travelers',
     id: 'tr1',
     deleted: false,
     row: { trip_id: 'src', name: 'Andy' },
   })
-  store.applyChange({
+  tripStore.applyChange({
     seq: 0,
     table: 'containers',
     id: 'c1',
@@ -50,14 +50,14 @@ function seedSource(store: ReturnType<typeof useTripStore>) {
       paired_container_id: 'c2',
     },
   })
-  store.applyChange({
+  tripStore.applyChange({
     seq: 0,
     table: 'containers',
     id: 'c2',
     deleted: false,
     row: { trip_id: 'src', name: 'Radtasche rechts', paired_container_id: 'c1' },
   })
-  store.applyChange({
+  tripStore.applyChange({
     seq: 0,
     table: 'trip_items',
     id: 'a',
@@ -75,7 +75,7 @@ function seedSource(store: ReturnType<typeof useTripStore>) {
       flag_unused: 1,
     },
   })
-  store.applyChange({
+  tripStore.applyChange({
     seq: 0,
     table: 'trip_items',
     id: 'b',
@@ -94,8 +94,8 @@ function seedSource(store: ReturnType<typeof useTripStore>) {
 describe('cloneTrip (FR-12)', () => {
   it('clones the curated list with remapped links and fresh state', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    seedSource(store)
+    const tripStore = useTripStore()
+    seedSource(tripStore)
     await orch.ensureTripData('src')
 
     const tripId = orch.cloneTrip('src', {
@@ -106,7 +106,7 @@ describe('cloneTrip (FR-12)', () => {
       options: { travelerAssignments: true, packerDelegations: true, containerAssignments: true },
     })!
 
-    const trip = store.getTrip(tripId)!
+    const trip = tripStore.getTrip(tripId)!
     expect(trip).toMatchObject({
       name: 'Engadin 2026',
       status: 'planning',
@@ -117,10 +117,10 @@ describe('cloneTrip (FR-12)', () => {
       duration_days: 10,
     })
 
-    const travelers = store.getTravelers(tripId)
+    const travelers = tripStore.getTravelers(tripId)
     expect(travelers.map((t) => t.name)).toEqual(['Andy'])
 
-    const containers = store.getContainers(tripId)
+    const containers = tripStore.getContainers(tripId)
     expect(containers).toHaveLength(2)
     const left = containers.find((c) => c.name === 'Radtasche links')!
     const right = containers.find((c) => c.name === 'Radtasche rechts')!
@@ -128,7 +128,7 @@ describe('cloneTrip (FR-12)', () => {
     expect(left.paired_container_id).toBe(right.id)
     expect(right.paired_container_id).toBe(left.id)
 
-    const items = store.getItems(tripId)
+    const items = tripStore.getItems(tripId)
     const zelt = items.find((i) => i.name === 'Zelt')!
     expect(zelt).toMatchObject({
       state: 'open',
@@ -143,8 +143,8 @@ describe('cloneTrip (FR-12)', () => {
 
   it('drops links and containers when the carry-over options are off', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    seedSource(store)
+    const tripStore = useTripStore()
+    seedSource(tripStore)
     await orch.ensureTripData('src')
 
     const tripId = orch.cloneTrip('src', {
@@ -159,8 +159,8 @@ describe('cloneTrip (FR-12)', () => {
       },
     })!
 
-    expect(store.getContainers(tripId)).toHaveLength(0)
-    const zelt = store.getItems(tripId).find((i) => i.name === 'Zelt')!
+    expect(tripStore.getContainers(tripId)).toHaveLength(0)
+    const zelt = tripStore.getItems(tripId).find((i) => i.name === 'Zelt')!
     expect(zelt.assigned_traveler_id).toBeNull()
     expect(zelt.container_id).toBeNull()
     expect(zelt.packer_user_id).toBeNull()
@@ -168,8 +168,8 @@ describe('cloneTrip (FR-12)', () => {
 
   it('refuses to clone a trip whose rows are not on the device (ADR-033)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    seedSource(store)
+    const tripStore = useTripStore()
+    seedSource(tripStore)
 
     // The partition was never pulled: "not pulled yet" must not be read as
     // "empty trip" — before the guard this produced a clone with zero items.

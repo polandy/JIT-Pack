@@ -47,23 +47,23 @@ describe('container mutations', () => {
 describe('orchestrator container actions', () => {
   it('creates, updates, and pairs containers optimistically', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
+    const tripStore = useTripStore()
 
     const id = orch.addContainer('t1', 'Left Pannier', { maxWeightGrams: 12000 })
     const pairId = orch.addContainer('t1', 'Right Pannier', {})
-    expect(store.getContainers('t1')).toHaveLength(2)
+    expect(tripStore.getContainers('t1')).toHaveLength(2)
 
-    orch.updateContainer('t1', store.getContainers('t1')[0]!, { paired_container_id: pairId })
-    const updated = store.getContainers('t1').find((c) => c.id === id)
+    orch.updateContainer('t1', tripStore.getContainers('t1')[0]!, { paired_container_id: pairId })
+    const updated = tripStore.getContainers('t1').find((c) => c.id === id)
     expect(updated?.paired_container_id).toBe(pairId)
     expect(updated?.max_weight_grams).toBe(12000)
   })
 
   it('deleteContainer unassigns its items before deleting (FK order)', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
+    const tripStore = useTripStore()
     const containerId = orch.addContainer('t1', 'Roof Box', {})
-    store.applyChange({
+    tripStore.applyChange({
       seq: 0,
       table: 'trip_items',
       id: 'ti1',
@@ -81,8 +81,8 @@ describe('orchestrator container actions', () => {
 
     orch.deleteContainer('t1', containerId)
 
-    expect(store.getContainers('t1')).toHaveLength(0)
-    expect(store.getItems('t1')[0]!.container_id).toBeNull()
+    expect(tripStore.getContainers('t1')).toHaveLength(0)
+    expect(tripStore.getItems('t1')[0]!.container_id).toBeNull()
 
     // Both mutations land in one push batch: unassign before delete.
     interface WireMutation {

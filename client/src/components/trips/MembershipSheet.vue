@@ -48,11 +48,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: [] }>()
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
-const travelers = computed(() => store.getTravelers(props.tripId))
-const allItems = computed(() => store.getItems(props.tripId))
+const travelers = computed(() => tripStore.getTravelers(props.tripId))
+const allItems = computed(() => tripStore.getItems(props.tripId))
 const item = computed(() => allItems.value.find((i) => i.id === props.itemId))
 
 /** Every instance of this item — what the editor acts on, not the one row it was opened from. */
@@ -65,8 +65,8 @@ const rows = computed(() => (item.value ? membershipRows(allItems.value, item.va
 const rowsWithContent = computed(() => {
   const ids = new Set<string>()
   for (const row of rows.value) {
-    if (store.getItemComments(props.tripId, row.id).length > 0) ids.add(row.id)
-    else if (store.getTodos(props.tripId).some((todo) => todo.trip_item_id === row.id))
+    if (tripStore.getItemComments(props.tripId, row.id).length > 0) ids.add(row.id)
+    else if (tripStore.getTodos(props.tripId).some((todo) => todo.trip_item_id === row.id))
       ids.add(row.id)
   }
   return [...ids]

@@ -50,7 +50,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
 const tab = ref<ShoppingMode>(ITEM_MODE_BUY_BEFORE)
@@ -67,7 +67,7 @@ const tab = ref<ShoppingMode>(ITEM_MODE_BUY_BEFORE)
 const showBought = ref(false)
 
 const { trip } = useTripScreen(props.tripId, orchestrator)
-const lists = computed(() => store.getShoppingItems(props.tripId))
+const lists = computed(() => tripStore.getShoppingItems(props.tripId))
 const activeList = computed(() =>
   tab.value === ITEM_MODE_BUY_BEFORE ? lists.value.buyBefore : lists.value.buyLocal,
 )
@@ -84,14 +84,14 @@ const boughtList = computed(() =>
  */
 const quickAddExcludeIds = computed(() => [
   ...new Set(
-    store
+    tripStore
       .getItems(props.tripId)
       .map((item) => item.source_item_id)
       .filter((id): id is string => id !== null),
   ),
 ])
 
-const travelers = computed(() => store.getTravelers(props.tripId))
+const travelers = computed(() => tripStore.getTravelers(props.tripId))
 
 const grouped = computed(() => buildShoppingList(activeList.value, travelers.value))
 

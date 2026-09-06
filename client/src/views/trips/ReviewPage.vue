@@ -40,7 +40,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
-const store = useTripStore()
+const tripStore = useTripStore()
 
 /** FR-27.12: which target group the peek sheet is showing, if any. */
 const peekTemplateId = ref<string | null>(null)
@@ -63,12 +63,12 @@ function historyCount(itemName: string, flag: 'unused' | 'missing'): number {
   const seriesId = trip.value?.series_id
   if (!seriesId) return 1
   const name = itemName.toLowerCase()
-  const hits = store.tripList.filter(
+  const hits = tripStore.tripList.filter(
     (other) =>
       other.id !== props.tripId &&
       other.series_id === seriesId &&
       other.status === TRIP_STATUS_ARCHIVED &&
-      store
+      tripStore
         .getItems(other.id)
         .some(
           (i) =>
@@ -103,7 +103,7 @@ const dismissedVersion = ref(0)
 watchEffect(() => {
   void dismissedVersion.value
   const live = buildReviewProposals({
-    items: store.getItems(props.tripId),
+    items: tripStore.getItems(props.tripId),
     templates: master.templateList,
     templateItems: (id) => master.getTemplateItems(id),
     masterItems: master.itemList,
@@ -150,8 +150,8 @@ function blastText(row: Row): string | null {
   const reached = tripsReachedBy(
     row.target,
     {
-      trips: store.tripList,
-      items: store.tripList.flatMap((other) => store.getItems(other.id)),
+      trips: tripStore.tripList,
+      items: tripStore.tripList.flatMap((other) => tripStore.getItems(other.id)),
       includes: master.includeList,
     },
     orchestrator.today(),

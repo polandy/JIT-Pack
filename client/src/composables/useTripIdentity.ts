@@ -52,13 +52,13 @@ export interface TripIdentity extends Identity {
  * is what tells the two apart where it matters.
  */
 export function useIdentity(source: IdentitySource): Identity {
-  const store = useIdentityStore()
+  const identityStore = useIdentityStore()
   return {
-    directory: toRef(store, 'directory'),
-    myUserId: toRef(store, 'myUserId'),
-    me: toRef(store, 'me'),
-    loaded: toRef(store, 'loaded'),
-    load: () => store.load(source),
+    directory: toRef(identityStore, 'directory'),
+    myUserId: toRef(identityStore, 'myUserId'),
+    me: toRef(identityStore, 'me'),
+    loaded: toRef(identityStore, 'loaded'),
+    load: () => identityStore.load(source),
   }
 }
 
@@ -72,10 +72,10 @@ export function useIdentity(source: IdentitySource): Identity {
  */
 export function useTripIdentity(tripId: string, source: IdentitySource): TripIdentity {
   const identity = useIdentity(source)
-  const store = useTripStore()
+  const tripStore = useTripStore()
 
   const participants = computed(() =>
-    tripParticipants(identity.directory.value, store.getMembers(tripId)),
+    tripParticipants(identity.directory.value, tripStore.getMembers(tripId)),
   )
 
   return {

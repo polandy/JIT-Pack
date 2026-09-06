@@ -51,7 +51,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
 
-const store = useTripStore()
+const tripStore = useTripStore()
 const master = useMasterStore()
 const orchestrator = useOrchestrator()
 const router = useRouter()
@@ -60,7 +60,7 @@ const { trip } = useTripScreen(props.tripId, orchestrator)
 
 const composition = computed(() =>
   recogniseTripComposition({
-    tripItems: store.getItems(props.tripId),
+    tripItems: tripStore.getItems(props.tripId),
     templates: master.activeTemplateList,
     positions: master.activeTemplateList.flatMap((tpl) => master.getTemplateItems(tpl.id)),
     masterItems: master.itemList,
@@ -118,8 +118,8 @@ function blastText(groupId: string): string | null {
   const reached = tripsReachedBy(
     groupId,
     {
-      trips: store.tripList,
-      items: store.tripList.flatMap((other) => store.getItems(other.id)),
+      trips: tripStore.tripList,
+      items: tripStore.tripList.flatMap((other) => tripStore.getItems(other.id)),
       includes: master.includeList,
     },
     orchestrator.today(),
