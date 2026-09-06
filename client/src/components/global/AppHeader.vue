@@ -60,11 +60,9 @@ const MAX_BAR_ACTIONS = 3
 
 // G-12: the current page's icon cluster, described by the page rather
 // than teleported into this toolbar — see useHeaderActions.
-const pageActions = computed(() =>
-  actionsFor(route.path)
-    .filter((a) => !a.overflow)
-    .slice(0, MAX_BAR_ACTIONS),
-)
+const glyphActions = computed(() => actionsFor(route.path).filter((a) => !a.overflow))
+
+const pageActions = computed(() => glyphActions.value.slice(0, MAX_BAR_ACTIONS))
 
 /*
  * The ones the page put behind the ⋮ (UX-13), and the ones that did not fit.
@@ -77,9 +75,7 @@ const pageActions = computed(() =>
  * rather than as a reshuffle.
  */
 const overflowActions = computed(() => [
-  ...actionsFor(route.path)
-    .filter((a) => !a.overflow)
-    .slice(MAX_BAR_ACTIONS),
+  ...glyphActions.value.slice(MAX_BAR_ACTIONS),
   ...actionsFor(route.path).filter((a) => a.overflow),
 ])
 

@@ -156,6 +156,29 @@ describe('the scale carries the views now (FR-21.5)', () => {
     }
   })
 
+  it("names the head's second line once, with its colour (G-9, ADR-050)", () => {
+    // The meta line is a role rather than a size a component picks, and its
+    // recessive colour is part of it for the same reason the eyebrow's is: a
+    // subordinate line that is not recessive stops being subordinate. Four
+    // screens used to state this fact inside the title string instead.
+    const rule = /\.jp-meta\s*\{([^}]*)\}/.exec(css)?.[1]
+    expect(rule, 'typography.css defines no .jp-meta role').toBeTruthy()
+    expect(rule).toMatch(/color:\s*var\(--ct-subtext0\)/)
+    expect(rule).toMatch(/font-size:\s*var\(--jp-text-/)
+  })
+
+  it('retires the role whose one screen gave it up (ADR-050)', () => {
+    // `.jp-screen-title` existed for M4's in-content name and nothing else.
+    // The head uses `.jp-page-title`; a role left defined with no user is a
+    // second answer to a question the table is supposed to answer once.
+    expect(css).not.toContain('.jp-screen-title')
+    for (const file of vueFiles) {
+      expect(readFileSync(file, 'utf8'), `${file} still claims .jp-screen-title`).not.toContain(
+        'jp-screen-title',
+      )
+    }
+  })
+
   it('applies the role wherever it claims the class', () => {
     // The pairing is what rots: a tenth section title added later would
     // get the local class for its margin and quietly render as body copy,

@@ -634,6 +634,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     await page.getByTestId('m2-spreadsheet-import').click()
     await expect(onVisibleScreen(page, 'import-paste')).toBeVisible()
+    // M15 names itself and puts its step on the head's second line, where it
+    // used to be half of a composed "Import · step 1/4" title (ADR-050).
+    await expect(page.getByTestId('header-title')).toHaveText('Import spreadsheet')
+    await expect(page.getByTestId('header-meta')).toHaveText('Step 1 of 4')
 
     await page.getByTestId('header-back').click()
 
@@ -840,6 +844,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     await page.goto(PATH.items)
     await expect(page.getByTestId('header-title')).toHaveText('Items')
+
+    await page.goto(PATH.trips)
+    await expect(page.getByTestId('header-title')).toHaveText('Trips')
   })
 
   /*

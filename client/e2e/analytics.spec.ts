@@ -58,11 +58,19 @@ async function quickAddVerbatim(page: Page, name: string) {
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
 }
 
-/** M4 → M12 via the bar's menu (E2E-M4-01's entry, ADR-050). */
+/**
+ * M4 → M12 via the bar's menu (E2E-M4-01's entry, ADR-050), and the screen
+ * names itself over the trip it belongs to. The head is asserted here rather
+ * than in one case because every M12 case arrives through this door: the pair
+ * used to be one composed string, and a split that passed the wrong getter
+ * would show the trip's name as the screen's.
+ */
 async function openAnalytics(page: Page) {
   await openTripView(page, 'analytics')
   await expect(visiblePage(page).getByTestId('analytics-dim-person')).toBeVisible()
   await expect(visiblePage(page).getByTestId('m4-header')).toHaveCount(0)
+  await expect(page.getByTestId('header-title')).toHaveText('Analytics')
+  await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
 }
 
 test.describe('M12 analytics @local @m12', () => {
