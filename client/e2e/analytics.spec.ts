@@ -26,7 +26,13 @@ import { createItem } from './helpers/m9'
 const TRIP = { name: 'Veloferien Elba', travelers: ['Andy', 'Sia'] }
 
 /** A master item with weight (and optionally a price), created in M10's minimal form (FR-24.5). */
-async function createMasterItem(page: Page, name: string, weightGrams: number, price?: string) {
+/**
+ * An inventory row with the weight and price the analytics arithmetic needs.
+ * Not `helpers/templates.ts`'s `createMasterItem`, which creates a bare row —
+ * this one goes through M10's fuller form, and it carried that name until the
+ * catalogue in `e2e/README.md` made the collision visible.
+ */
+async function createWeighedItem(page: Page, name: string, weightGrams: number, price?: string) {
   await page.goto(PATH.items)
   await createItem(page, name, { weight: String(weightGrams), price })
 }
@@ -78,8 +84,8 @@ test.describe('M12 analytics @local @m12', () => {
   test('E2E-M12-01: bars per dimension value with packed/planned weight and totals', async ({
     page,
   }) => {
-    await createMasterItem(page, 'Zelt', 5000)
-    await createMasterItem(page, 'Kocher', 1000)
+    await createWeighedItem(page, 'Zelt', 5000)
+    await createWeighedItem(page, 'Kocher', 1000)
     await createTripViaWizard(page, TRIP)
     await quickAddFromMaster(page, 'Zelt')
     await quickAddFromMaster(page, 'Kocher')
@@ -144,7 +150,7 @@ test.describe('M12 analytics @local @m12', () => {
   test('E2E-M12-07: the value tile appears with a value and stays away without one', async ({
     page,
   }) => {
-    await createMasterItem(page, 'Zelt', 5000, '120.50')
+    await createWeighedItem(page, 'Zelt', 5000, '120.50')
     await createTripViaWizard(page, TRIP)
     await quickAddFromMaster(page, 'Zelt')
 
@@ -160,7 +166,7 @@ test.describe('M12 analytics @local @m12', () => {
   test('E2E-M12-03: without archived series history there is no trend section', async ({
     page,
   }) => {
-    await createMasterItem(page, 'Zelt', 5000)
+    await createWeighedItem(page, 'Zelt', 5000)
     await createTripViaWizard(page, { name: 'Elba 2026', series: 'Elba', travelers: ['Andy'] })
     await quickAddFromMaster(page, 'Zelt')
 
@@ -184,7 +190,7 @@ test.describe('M12 analytics @local @m12', () => {
     // The world is two whole trips built through M3/M4/M5, which on WebKit
     // lands near the budget.
     test.slow()
-    await createMasterItem(page, 'Zelt', 5000)
+    await createWeighedItem(page, 'Zelt', 5000)
 
     // Last year's trip, taken all the way to archived.
     await createTripViaWizard(page, {
@@ -254,8 +260,8 @@ test.describe('M12 analytics @local @m12', () => {
   // Regression guard: setting only the grouping (the pre-2026-08-08
   // behaviour) fails every one of these assertions but the last.
   test('E2E-M12-04: a tapped bar becomes the facet M4 opens with', async ({ page }) => {
-    await createMasterItem(page, 'Zelt', 5000)
-    await createMasterItem(page, 'Sonnenbrille', 100)
+    await createWeighedItem(page, 'Zelt', 5000)
+    await createWeighedItem(page, 'Sonnenbrille', 100)
     await createTripViaWizard(page, TRIP)
     await quickAddFromMaster(page, 'Zelt')
     await quickAddFromMaster(page, 'Sonnenbrille')
@@ -287,9 +293,9 @@ test.describe('M12 analytics @local @m12', () => {
   test('E2E-M12-05: per-traveler rows contribute per person and sum back by category', async ({
     page,
   }) => {
-    await createMasterItem(page, 'Zelt', 5000)
-    await createMasterItem(page, 'Sonnenbrille', 100)
-    await createMasterItem(page, 'Kocher', 1000)
+    await createWeighedItem(page, 'Zelt', 5000)
+    await createWeighedItem(page, 'Sonnenbrille', 100)
+    await createWeighedItem(page, 'Kocher', 1000)
     await createTripViaWizard(page, TRIP)
     await quickAddFromMaster(page, 'Zelt')
     await quickAddFromMaster(page, 'Sonnenbrille')
