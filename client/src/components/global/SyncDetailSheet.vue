@@ -37,6 +37,7 @@ import { reminderState } from '@/local/exportReminder'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
 import { rejectionReasonKey } from '@/sync/rejectionReasons'
 import { SYNC_EXPLAIN_KEYS, SYNC_LABEL_KEYS, type SyncState } from '@/composables/useSyncStatus'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -260,7 +261,7 @@ const backupAge = computed(() => {
     <!-- Local Mode: storage and backup are the whole safety story (NFR-4.11). -->
     <template v-else>
       <section class="block" data-testid="sync-detail-storage">
-        <h2 class="jp-eyebrow">{{ t('sync.detail.storage') }}</h2>
+        <SectionHead :title="t('sync.detail.storage')" />
         <template v-if="storageKnown && storage">
           <p class="line jp-num" data-testid="sync-detail-storage-usage">
             {{
@@ -284,7 +285,7 @@ const backupAge = computed(() => {
       </section>
 
       <section class="block">
-        <h2 class="jp-eyebrow">{{ t('sync.detail.backup') }}</h2>
+        <SectionHead :title="t('sync.detail.backup')" />
         <p class="line" data-testid="sync-detail-backup-age">{{ backupAge }}</p>
         <template v-if="hasBackupContent">
           <button class="action primary" data-testid="sync-detail-backup" @click="emit('backup')">

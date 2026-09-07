@@ -760,7 +760,7 @@ export const en = {
   'review.title': 'Review',
   'review.intro':
     'What this trip taught your groups. Changes go into the group the item came from — not into the vacation template, or only this one trip would learn.',
-  'review.open': 'Open · {n}',
+  'review.open': 'Open',
   'review.kindUnused': 'unused',
   'review.kindMissing': 'missing',
   'review.whyUnused': 'not needed on this trip | not needed on {n} trips',
@@ -774,7 +774,7 @@ export const en = {
   'review.never': 'Never ask again',
   'review.stateApplied': 'applied ✓',
   'review.stateSkipped': 'skipped',
-  'review.handledHead': 'Handled · {n}',
+  'review.handledHead': 'Handled',
   'review.appliedSummary':
     '{n} change written to the groups. Trips that follow them are asked on their next open. | {n} changes written to the groups. Trips that follow them are asked on their next open.',
   'review.empty': 'Nothing to review — no flags were set.',
@@ -848,7 +848,7 @@ export const en = {
   'templateFromTrip.intro':
     '"{trip}" becomes a reusable template. Recognised groups are referenced, not copied — they stay independently maintainable.',
   'templateFromTrip.name': 'Template name',
-  'templateFromTrip.groups': 'Recognised groups · {n}',
+  'templateFromTrip.groups': 'Recognised groups',
   'templateFromTrip.fromGroup':
     '{n} item on this trip came from it | {n} items on this trip came from it',
   'templateFromTrip.reused': 'reused ✓',
@@ -861,7 +861,8 @@ export const en = {
     'Reaches everything that includes the group — no trip follows it right now.',
   'templateFromTrip.absent':
     '{items} was not on this trip — the group stays unchanged. | {items} were not on this trip — the group stays unchanged.',
-  'templateFromTrip.loose': 'Own items · {n} of {total}',
+  'templateFromTrip.loose': 'Own items',
+  'templateFromTrip.looseCount': '{n} of {total}',
   'templateFromTrip.looseAdHoc': 'added without a group',
   'templateFromTrip.looseFromTemplate': 'from "{template}" — carried over as an own position',
   'templateFromTrip.looseEmpty': 'No loose items.',

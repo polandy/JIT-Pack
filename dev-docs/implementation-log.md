@@ -334,6 +334,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The app had no mode, and the family had never seen the Material it was reviewed in (2026-09-06)](#the-app-had-no-mode-and-the-family-had-never-seen-the-material-it-was-reviewed-in-2026-09-06) — ADR-049: `md` pinned; controls told once; a checkbox at the small radius step is a radio button.
 - [The row turned round, and two gates that had been watching it were looking the wrong way (2026-09-06)](#the-row-turned-round-and-two-gates-that-had-been-watching-it-were-looking-the-wrong-way-2026-09-06) — step 3: UX-9 reversed; the visual budget was a *ratio*, so desktop was 3.5x looser.
 - [The bar had been answering a question it could not answer (2026-09-06)](#the-bar-had-been-answering-a-question-it-could-not-answer-2026-09-06) — ADR-050: one constraint, three workarounds.
+- [A role that every call site had to finish (2026-09-07)](#a-role-that-every-call-site-had-to-finish-2026-09-07) — FR-21.11: the extraction stopped one property short, twelve times.
 
 ## Deviations
 
@@ -13715,3 +13716,44 @@ tab roots were already on. Retiring it left the second line without a definition
 new — a size and a colour, defined once, because a subordinate line that is not recessive stops
 being subordinate, and per-screen `font-size` is what invariant 9's gate exists to refuse.
 
+## A role that every call site had to finish (2026-09-07)
+
+Step 5 of the Bergluft concept asks for three components the app never got — the hero card, the
+section head, the sheet head. This is the section head, and it turned into a finding about the
+step *before* it rather than about type.
+
+**The role had been named and the extraction stopped one property short.** FR-21.5 already says a
+section label is a role, and the 2026-08-14 pass wrote it: face, size, weight, tracking, case and
+colour, in one place, with a comment saying nine hand-written copies had differed "only in
+margin". A year of screens later the census read fifty-five heads across twelve screens — every
+one of them applying the role, and every one of those twelve screens still carrying a
+`.section-title` rule of its own for exactly the property the role had declined to decide. The
+five values were `20px 0 8px`, `24px 0 8px`, `14px 2px 8px`, `16px 0 8px` and `24px 4px 8px`. The
+old guard even asserted the pattern was healthy: it checked that such a rule carried *nothing but*
+a margin, which reads as a rule being enforced and is in fact the leak being measured. **A role
+that every call site has to complete is a component that was never written.**
+
+**The count was invisible to the class census, and it was the substantive half.** Five heads
+composed the number into the catalogue string with a middle dot — `Open · 3`, `Recognised groups ·
+4`, `Own items · 1 of 2`, and M11 with parentheses instead. That set the figure in the display
+face, made it untabular, and left it aligned with nothing. It only surfaced from reading the
+*strings*, not the markup. The catalogue keeps what is language — the label, and the phrase that
+holds two figures apart — and the head is given the count as a value.
+
+**A sixth scale step was rejected for half a pixel.** The prototype draws this head at 18px and
+the app bar's title at 18.5px. Adding `--jp-text-display-2xs: 18px` would have put a step in the
+table whose only distinction from its neighbour is a rounding; the head reuses
+`--jp-text-display-xs`. A scale is a set of decisions, and half a pixel is not one.
+
+**The baselines were not the eyeball, and that is a measurement.** Exactly three screens moved —
+M11, the G-2 sync sheet and M16 — because those are the only baselined screens that carry a
+section head at all; M17 and M3, which carry eleven and twelve of them, have no baseline. Rendering
+those two by hand in the pinned container is what showed the change actually working. It also
+showed the one cost accepted here: inside the sync sheet the head now sits at 18.5px under a 24px
+sheet title, which is a narrower gap than the same pair has on a page. It stays, because the
+alternative is a second answer to what a head is, decided per surface.
+
+**E2E-G13-04 was reversed rather than repaired** — the second time in two PRs. It asserted that the
+head computed to uppercase 12px in the UI face, which was true and is now the opposite of the rule.
+A case whose promise the design has retired is rewritten in place with a note saying what it used
+to claim; renumbering it would leave a reader arriving from an old commit with nowhere to land.

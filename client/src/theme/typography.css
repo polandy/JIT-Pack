@@ -247,22 +247,59 @@ body {
 }
 
 /*
- * The label above a block — nine screens had written this out by hand as
- * `.section-title`, character for character, differing only in margin.
- * Nine copies of a declaration is a role that has not been named yet.
+ * The head above a block, and the count beside it (G-13). Fifty-five heads
+ * across twelve screens carried `.section-title jp-eyebrow`, and the pairing
+ * was the tell: the role decided face, size, weight, tracking, case and
+ * colour, and every screen still kept a rule of its own for the one thing the
+ * role would not decide — its margin, written five different ways.
  *
- * It is not the 16px semibold line those copies were, though: the concept
- * prototype answers this role definitively and answers it differently —
- * small uppercase in the UI face, opened up, recessive (`.section-h`, and
- * the `.cap`/`.lbl`/`label` variants beside it, all within 10.5–12px and
- * .05–.14em). Migrating the nine onto a 16px token would have written a
- * size into the table that the design does not use, so the role is defined
- * as the prototype has it. That makes this the one visible change in an
- * otherwise mechanical pass, which is why it ships with screenshots.
+ * The concept answers the role differently now: display face at the app-bar
+ * step rather than small tracked capitals, with the section's own number set
+ * beside it in the UI face rather than joined into the label with a middle
+ * dot. `--jp-text-display-xs` is reused deliberately — the prototype draws
+ * this head at 18px and the bar's title at 18.5px, and a sixth step half a
+ * pixel from the fifth would be a scale describing a rounding rather than a
+ * design.
+ */
+.jp-section-head {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-xs);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-tight);
+  text-transform: none;
+}
+
+/*
+ * The count belongs to the head but not to its voice: UI face, recessive,
+ * and tabular so a number that changes in place does not shift the head's
+ * baseline. Tabular figures are stated here rather than by adding `.jp-num`
+ * at every call site, because a counter that is not tabular is a counter
+ * that was not thought about.
+ */
+.jp-section-count {
+  font-family: var(--jp-font-ui);
+  font-weight: var(--jp-weight-medium);
+  font-size: var(--jp-text-sm);
+  letter-spacing: normal;
+  color: var(--ct-overlay1);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * A label *inside* dense content: the letter head in the inventory list, the
+ * chip headings in quick-add, the word above a banner's sentence. Small,
+ * tracked capitals in the UI face, recessive.
  *
- * The colour is part of the role rather than left to the nine call sites:
- * a label that is not recessive stops being a label, and nine chances to
- * remember that is nine chances to forget.
+ * It used to be the head above a block as well, which is how one class ended
+ * up carrying two jobs at two sizes' worth of intent. The head is its own
+ * role now (`.jp-section-head`); what is left here is the job the prototype
+ * actually draws in capitals — a marker within a list, never a title over
+ * one.
+ *
+ * The colour is part of the role rather than left to the call sites: a label
+ * that is not recessive stops being a label, and every call site is a chance
+ * to forget that.
  */
 .jp-eyebrow {
   font-family: var(--jp-font-ui);

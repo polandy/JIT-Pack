@@ -780,6 +780,21 @@ original request driving this section, is that **the user never has to think abo
 the client resizes and re-encodes automatically, the same way it already does for avatars (FR-17.13), so an item photo
 taken straight from a phone camera never reaches the server unprocessed.
 
+* **FR-21.11 (A Section Head Names Its Block, and Its Count Sits Beside It — added 2026-09-07):** The head above a
+  block of content is a **display role**, not the small tracked label it had been: the display face at the app-bar step,
+  sentence case, with the section's own count set beside it at the right — UI face, one step smaller, recessive, and
+  tabular so a figure that changes in place cannot shift the head's baseline. The small uppercase label survives for
+  what the concept prototype actually draws in capitals: a marker *inside* dense content, never a title over it.
+
+  **What was wrong was not the type, it was the pairing.** FR-21.5 named the label as a role and eleven screens applied
+  it; by 2026-09-07 fifty-five heads across twelve screens applied it, and every one of those screens still carried a
+  rule of its own for the one thing the role would not decide — its margin, written in five different values. A role
+  that every call site has to complete is a component that was never written. Head and count come from one now.
+
+  **A count is a value the head is given, not a sentence the catalogue joins.** Five heads read *Open · 3*, *Recognised
+  groups · 4*, *Own items · 1 of 2* — the number set in the display face, joined with a middle dot, aligned with
+  nothing. The catalogue keeps only the part that is language: the label, and where two figures need a word between
+  them, the phrase that holds them.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

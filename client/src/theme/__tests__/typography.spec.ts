@@ -141,18 +141,37 @@ describe('the scale carries the views now (FR-21.5)', () => {
     expect(css).toMatch(/--jp-text-3xs:\s*10px/)
   })
 
-  it('names the section label once, where eleven screens had written it out', () => {
-    // Nine carried it as a 16px semibold line, two as the uppercase label
-    // the prototype actually specifies. The role now owns face, size,
-    // weight, tracking, case and colour, so a `.section-title` rule may
-    // carry nothing but its own spacing.
-    expect(css).toMatch(/\.jp-eyebrow\s*\{[^}]*text-transform:\s*uppercase/)
+  it('names the section head once, with its counter beside it (G-13)', () => {
+    // Fifty-five heads across twelve screens carried `.section-title
+    // jp-eyebrow`. The role decided everything except the margin, and the
+    // margin is exactly what each screen then wrote for itself — in five
+    // different values. Both halves live in one place now: the type here,
+    // the spacing in SectionHead.vue.
+    const head = /\.jp-section-head\s*\{([^}]*)\}/.exec(css)?.[1]
+    expect(head, 'typography.css defines no .jp-section-head role').toBeTruthy()
+    expect(head).toContain('font-family: var(--jp-font-display)')
+    expect(head).toMatch(/font-size:\s*var\(--jp-text-display-/)
 
+    // The count is the head's number, not its voice: UI face, recessive,
+    // and tabular so a figure that changes in place cannot shift the
+    // baseline it sits on.
+    const count = /\.jp-section-count\s*\{([^}]*)\}/.exec(css)?.[1]
+    expect(count, 'typography.css defines no .jp-section-count role').toBeTruthy()
+    expect(count).toContain('font-family: var(--jp-font-ui)')
+    expect(count).toContain('font-variant-numeric: tabular-nums')
+    expect(count).toMatch(/color:\s*var\(--ct-/)
+  })
+
+  it('leaves the eyebrow the job it is drawn for — a label inside a list', () => {
+    // The class kept its capitals but lost the heads: what still claims it
+    // is a marker within dense content (the inventory's letter head, the
+    // quick-add chip groups, the word above a banner's sentence).
+    expect(css).toMatch(/\.jp-eyebrow\s*\{[^}]*text-transform:\s*uppercase/)
     for (const file of vueFiles) {
-      const rule = /\.section-title\s*\{([^}]*)\}/.exec(readFileSync(file, 'utf8'))?.[1]
-      if (!rule) continue
-      const props = [...rule.matchAll(/^\s*([a-z-]+):/gm)].map((m) => m[1])
-      expect(props, `${file} restates the eyebrow role instead of applying it`).toEqual(['margin'])
+      const source = readFileSync(file, 'utf8')
+      expect(source, `${file} pairs the eyebrow with a section-title rule`).not.toContain(
+        'section-title',
+      )
     }
   })
 
@@ -179,15 +198,13 @@ describe('the scale carries the views now (FR-21.5)', () => {
     }
   })
 
-  it('applies the role wherever it claims the class', () => {
-    // The pairing is what rots: a tenth section title added later would
-    // get the local class for its margin and quietly render as body copy,
-    // which no token assertion notices.
-    for (const file of vueFiles) {
-      const source = readFileSync(file, 'utf8')
-      for (const m of source.matchAll(/class="([^"]*\bsection-title\b[^"]*)"/g)) {
-        expect(m[1], `${file} uses .section-title without the role`).toContain('jp-eyebrow')
-      }
-    }
+  it('renders every section head through the one component', () => {
+    // What rots is the pairing: a screen that writes the class by hand gets
+    // the type and loses the spacing and the counter slot with it, and no
+    // token assertion notices. The role is claimed in exactly one file.
+    const claimants = vueFiles.filter((file) =>
+      readFileSync(file, 'utf8').includes('jp-section-head'),
+    )
+    expect(claimants).toEqual(['src/components/global/SectionHead.vue'])
   })
 })

@@ -65,6 +65,7 @@ import {
   deletionSentence as deletionSentenceFor,
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ itemId?: string }>()
 
@@ -513,7 +514,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
         </IonNote>
 
         <!-- Tags: a search field, not a chip cloud (FR-24.1). -->
-        <h2 class="section-title jp-eyebrow">{{ t('items.editor.tags') }}</h2>
+        <SectionHead :title="t('items.editor.tags')" />
 
         <IonSearchbar
           ref="tagSearch"
@@ -654,9 +655,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
         <!-- Everything below exists only once the item does (FR-24.5). -->
         <template v-if="!isCreating && item">
-          <h2 class="section-title jp-eyebrow" data-testid="m10-section-photo">
-            {{ t('items.editor.photo') }}
-          </h2>
+          <SectionHead :title="t('items.editor.photo')" data-testid="m10-section-photo" />
           <p class="section-hint">{{ t('items.editor.photoHint') }}</p>
 
           <div class="photo-section">
@@ -705,9 +704,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             </div>
           </div>
 
-          <h2 class="section-title jp-eyebrow" data-testid="m10-section-depends">
-            {{ t('items.editor.dependsOn') }}
-          </h2>
+          <SectionHead :title="t('items.editor.dependsOn')" data-testid="m10-section-depends" />
           <p class="section-hint">{{ t('items.editor.dependsOnHint') }}</p>
 
           <IonList v-if="dependsOn.length > 0">
@@ -794,9 +791,10 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             wants the names before the number.
           -->
           <template v-if="containments.length > 0">
-            <h2 class="section-title jp-eyebrow" data-testid="m10-section-containment">
-              {{ t('items.editor.containedIn') }}
-            </h2>
+            <SectionHead
+              :title="t('items.editor.containedIn')"
+              data-testid="m10-section-containment"
+            />
             <IonList>
               <IonItem
                 v-for="entry in containments"
@@ -845,9 +843,10 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             when there is nothing to show, per FR-24.5's stance.
           -->
           <template v-if="itemComments.length > 0">
-            <h2 class="section-title jp-eyebrow" data-testid="m10-section-comments">
-              {{ t('items.editor.tripComments') }}
-            </h2>
+            <SectionHead
+              :title="t('items.editor.tripComments')"
+              data-testid="m10-section-comments"
+            />
             <p class="section-hint">{{ t('items.editor.tripCommentsHint') }}</p>
             <IonList>
               <IonItem
@@ -889,7 +888,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           </template>
 
           <section class="jp-card delete-card" data-testid="m10-section-delete">
-            <h2 class="section-title jp-eyebrow">{{ t('items.editor.delete') }}</h2>
+            <SectionHead :title="t('items.editor.delete')" />
             <p class="section-hint" data-testid="m10-delete-usage">
               {{ t('items.editor.deleteUsage', { n: deletionOutlook?.references ?? 0 }) }}
             </p>
@@ -907,9 +906,10 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           </section>
 
           <template v-if="companions.length > 0">
-            <h2 class="section-title jp-eyebrow" data-testid="m10-section-companions">
-              {{ t('items.editor.companions') }}
-            </h2>
+            <SectionHead
+              :title="t('items.editor.companions')"
+              data-testid="m10-section-companions"
+            />
             <p class="section-hint">
               {{ t('items.editor.companionsHint', { name: item.name }) }}
             </p>
@@ -971,10 +971,6 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 .delete-card {
   margin-top: 24px;
   padding: 16px;
-}
-
-.section-title {
-  margin: 24px 0 4px;
 }
 
 .section-hint {

@@ -43,6 +43,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import { PATH, templatePath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const router = useRouter()
 const ionRouter = useIonRouter()
@@ -194,7 +195,7 @@ function commit() {
     <IonContent class="ion-padding">
       <!-- File picker / paste -->
       <template v-if="!doc && !restore">
-        <h2 class="section-title jp-eyebrow">{{ t('import.portable.fileTitle') }}</h2>
+        <SectionHead :title="t('import.portable.fileTitle')" />
         <p class="hint">{{ t('import.portable.fileHint') }}</p>
         <FilePickButton :accept="PORTABLE_FILE_ACCEPT" testid="portable-file" @file="onFile" />
         <IonTextarea
@@ -221,9 +222,7 @@ function commit() {
 
       <!-- Backup restore (NFR-4.11): a file of many documents -->
       <template v-else-if="restore">
-        <h2 class="section-title jp-eyebrow" data-testid="portable-restore">
-          {{ t('import.portable.backupTitle') }}
-        </h2>
+        <SectionHead :title="t('import.portable.backupTitle')" data-testid="portable-restore" />
         <p class="hint">{{ t('import.portable.backupHint', { n: restore.length }) }}</p>
         <IonList>
           <IonItem
@@ -350,10 +349,6 @@ function commit() {
 </template>
 
 <style scoped>
-.section-title {
-  margin: 16px 0 8px;
-}
-
 .hint {
   color: var(--ion-color-medium);
   font-size: var(--jp-text-base);

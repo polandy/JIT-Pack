@@ -27,6 +27,7 @@ import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { seedReviewFixture } from '@/dev/reviewFixture'
 import { tripSubPath } from '@/router/paths'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 /** Stepper state, so the control can be exercised rather than only seen. */
 const packed = ref(2)
@@ -61,24 +62,24 @@ const PRESENCE_CROWD = [face('p1', true), face('p2', true), face('p3', false), f
         live on the real screens; what is here is everything that does not.
       </p>
 
-      <h2 class="section-title jp-eyebrow">Type roles</h2>
+      <SectionHead title="Type roles" :count="7" />
       <div class="jp-card demo">
         <p class="jp-page-title">Page title</p>
         <p class="jp-hero-title">Hero title</p>
         <p class="jp-sheet-title">Sheet title</p>
-        <p class="jp-eyebrow">Section label</p>
+        <p class="jp-eyebrow">In-list label</p>
         <p>Body copy, the UI face at its default size.</p>
         <p class="jp-num">0123456789 — tabular figures</p>
       </div>
 
-      <h2 class="section-title jp-eyebrow">Surfaces</h2>
+      <SectionHead title="Surfaces" />
       <div class="planes">
         <div class="plane sunken">sunken</div>
         <div class="plane page">page</div>
         <div class="jp-card plane">card</div>
       </div>
 
-      <h2 class="section-title jp-eyebrow">Avatars</h2>
+      <SectionHead title="Avatars" />
       <div class="jp-card demo row">
         <UserAvatar name="Andy Pollari" seed="a" />
         <UserAvatar name="Mia" seed="b" />
@@ -87,7 +88,7 @@ const PRESENCE_CROWD = [face('p1', true), face('p2', true), face('p3', false), f
         <UserAvatar name="Andy" seed="e" :size="40" />
       </div>
 
-      <h2 class="section-title jp-eyebrow">G-10 presence</h2>
+      <SectionHead title="G-10 presence" />
       <div class="jp-card demo col">
         <p>
           The lagging state cannot be produced end to end — a device reports its cursor the moment
@@ -98,7 +99,7 @@ const PRESENCE_CROWD = [face('p1', true), face('p2', true), face('p3', false), f
         <PresenceFacepile :users="PRESENCE_CROWD" :names="PRESENCE_NAMES" :max="2" />
       </div>
 
-      <h2 class="section-title jp-eyebrow">M14 review (fixture)</h2>
+      <SectionHead title="M14 review (fixture)" />
       <div class="jp-card demo">
         <p>
           The one screen whose populated state no app path can reach yet — a proposal needs an
@@ -110,7 +111,7 @@ const PRESENCE_CROWD = [face('p1', true), face('p2', true), face('p3', false), f
         </IonButton>
       </div>
 
-      <h2 class="section-title jp-eyebrow">Quantity stepper</h2>
+      <SectionHead title="Quantity stepper" />
       <IonList class="jp-card">
         <IonItem>
           <QuantityStepper

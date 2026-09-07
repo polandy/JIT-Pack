@@ -40,6 +40,7 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { TravelerChangeReport } from '@/types/domain'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -236,7 +237,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
       </p>
 
       <section class="jp-card block">
-        <h2 class="jp-eyebrow">{{ t('tripEdit.sectionTrip') }}</h2>
+        <SectionHead :title="t('tripEdit.sectionTrip')" />
         <IonList lines="none">
           <IonItem>
             <IonInput
@@ -289,7 +290,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
       </section>
 
       <section class="jp-card block">
-        <h2 class="jp-eyebrow">{{ t('tripEdit.sectionTravelers') }}</h2>
+        <SectionHead :title="t('tripEdit.sectionTravelers')" />
 
         <IonList lines="none">
           <!--
