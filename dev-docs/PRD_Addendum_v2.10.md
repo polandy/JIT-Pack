@@ -822,11 +822,12 @@ taken straight from a phone camera never reaches the server unprocessed.
   last for the same reason it does there (FR-2.1b: no date says the departure is unknown, never that it is
   imminent). The hero is the head of that list.
 
-  **M2 does not get one in the same step, and the reason is structural rather than a deferral of taste.** On M1 the
+  **M2 did not get one in the same step, and the reason was structural rather than a deferral of taste.** On M1 the
   hero replaces a card that stood alone. On M2 the same trip is a row *inside a series group*, carrying a sliding menu
   with export, share and delete on it; lifting it out of the group would take those actions away from the one trip they
-  are used on most, and leave the group counting a trip it no longer shows. The revisit trigger is M2's list being
-  reworked — the hero is a component now and costs nothing to place then.
+  are used on most, and leave the group counting a trip it no longer shows. **Closed 2026-09-07 by FR-21.15**, which
+  resolves both halves rather than accepting them: the card carries the actions, and the count already meant what it
+  shows.
 
   **The concept's italic is not built.** The hero's first line is Fraunces *italic* in the concept and upright here:
   neither face ships an italic, so asking for one would synthesise a slant rather than render a face, and shipping the
@@ -853,6 +854,34 @@ taken straight from a phone camera never reaches the server unprocessed.
   therefore never applies at all. The app's rules carry an `[class]` attribute selector to match the scope class
   without naming it. Removing it is the tidying edit that would silently hand every row back to Ionic, and only a
   rendered pixel would say so.
+* **FR-21.15 (The Hero Comes to M2 — added 2026-09-07):** M2's *Active* segment opens on the same card M1 does: the
+  running trip that departs soonest, as a hero at the head of the list, lifted out of the grouped list rather than
+  drawn twice.
+
+  **Only on *Active*, and that is the whole scoping rule.** The hero answers „which one am I packing", and the other
+  two segments have no answer to give — a planned trip is not being packed and an archived one is done, so a card over
+  either would state something untrue about the list under it. Exactly one per screen (FR-21.13) follows from the
+  choice being a single trip rather than a list.
+
+  **M1 and M2 have to name the same trip**, so the choice is a rule (`heroTripOf`) and not the head of whichever list
+  each screen happened to sort. It matters here more than it looks: M2 orders every segment **newest-first** through
+  `tripOrderKey`, which for two running trips is the *opposite* end from FR-21.13's soonest-departure order — so the
+  screen's own list is the one thing the hero must not be the head of.
+
+  **The two structural objections FR-21.13 raised are answered, not accepted.** The sliding menu was the first: a card
+  cannot be swiped, so the actions the row keeps behind its swipe are *stated* on the hero — export, share, the
+  lifecycle step and delete, derived from the same predicates (`nextLifecycleStep`, `canDelete`, the G-8 session check)
+  as the swipe, so the two can never offer different steps. That is a gain rather than a like-for-like: the trip a
+  person packs daily was the one whose export and share were hidden behind a gesture. The series count was the second,
+  and it needed no change — the header counts the trips it *lists*, which is what it has always done, since a search
+  already shrinks it. What the hero keeps saying for itself is which series it came out of, as the first term of its
+  own meta line, in front of who the trip is for.
+
+  **What travels with the card.** The FR-27.4 chips — proposed, applied and its foldable log — and FR-16.2's imported
+  chip are the row's, and the trip you are packing is where „what changed under me" is asked most; they are one
+  component now (`TripChangeChips`) rather than a block written into each of the two representations. The hero also
+  asks for its own trip partition: it is not a row and never enters M2's intersection observer (ADR-033), so without
+  that it would say „items loading" forever on the one trip the screen exists to answer for.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

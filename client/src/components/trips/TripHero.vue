@@ -93,8 +93,19 @@ withDefaults(
   margin-top: 16px;
 }
 
+/*
+ * The actions read as a toolbar under the numbers rather than as four things
+ * pushed to the card's two edges: they are one group, and `space-between`
+ * over three of them put the archive glyph in the middle of nothing.
+ * The rule above them is what separates the card's statement from its
+ * controls, which the row got for free from the list's own dividers.
+ */
 .actions {
-  justify-content: space-between;
+  gap: 2px;
+  justify-content: flex-start;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--jp-surface-border);
 }
 
 .progress {

@@ -49,6 +49,8 @@ const masterLoaded = ref(true)
 const orchestratorFake = {
   ...identityStub(),
   activateTrip: vi.fn(),
+  archiveTrip: vi.fn(),
+  deleteTrip: vi.fn(),
   fetchMe: vi.fn(() => Promise.resolve(null)),
   drainAll: vi.fn(() => Promise.resolve()),
   refreshProposals: { value: {} as Record<string, unknown> },
@@ -64,14 +66,14 @@ const orchestratorFake = {
   ensureTripData: vi.fn(() => Promise.resolve()),
 }
 
-function seedTrip(status: string) {
+function seedTrip(status: string, extra: Record<string, unknown> = {}, id = 't1') {
   const trips = useTripStore()
   trips.applyChange({
     seq: 0,
     table: TABLE.trips,
-    id: 't1',
+    id,
     deleted: false,
-    row: { name: 'Samedan', year: 2026, status },
+    row: { name: 'Samedan', year: 2026, status, ...extra },
   })
   return trips
 }
@@ -138,7 +140,11 @@ describe('TripListPage — the FR-27.4 applied-changes chip', () => {
 
     const wrapper = mountPage()
 
-    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+    // The running trip is the hero rather than a row since FR-21.15, and the
+    // chip had to come with it: the trip a person is packing is where the
+    // question „what changed under me" is asked most.
+    expect(wrapper.find('[data-testid="trip-hero-Samedan"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(true)
   })
 
@@ -481,5 +487,109 @@ describe('TripListPage — the opening segment (FR-2.8)', () => {
     expect(wrapper.find('[data-testid="trips-filter-planned"]').attributes('aria-label')).toBe(
       t('trips.filterCount', { label: t('trips.filterPlanned'), n: 1 }),
     )
+  })
+})
+
+describe('TripListPage — the hero (FR-21.15)', () => {
+  /** A second trip, so „the head of the list" can be told from „the only one". */
+  function seedSecond(status: string, over: Record<string, unknown>) {
+    return seedTrip(status, { name: 'Elba', ...over }, 't2')
+  }
+
+  it('draws the running trip as a card and does not also list it as a row', async () => {
+    segment = 'active'
+    seedTrip('active')
+
+    const page = mountPage()
+
+    expect(page.find('[data-testid="trip-hero-Samedan"]').exists()).toBe(true)
+    // The lift is the whole point: two cards for one trip say two trips, and
+    // the series header under them would count one it no longer shows.
+    expect(page.find('[data-testid="trip-row-Samedan"]').exists()).toBe(false)
+  })
+
+  it('names the running trip that departs soonest, and leaves the other a row', async () => {
+    segment = 'active'
+    seedTrip('active', { start_date: '2026-11-02' })
+    seedSecond('active', { year: 2026, start_date: '2026-09-20' })
+
+    const page = mountPage()
+
+    // M1 answers this question with the same rule (`heroTripOf`), which is
+    // why the answer is not „whatever this screen sorted first": M2 orders
+    // its segments newest-first, and that would name Samedan.
+    expect(page.find('[data-testid="trip-hero-Elba"]').exists()).toBe(true)
+    expect(page.find('[data-testid="trip-hero-Samedan"]').exists()).toBe(false)
+    expect(page.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+  })
+
+  it('draws no hero on a segment that is a list by definition', async () => {
+    // A planned trip is not being packed and an archived one is done, so a
+    // card over either would state something untrue about the list below it.
+    segment = 'planned'
+    seedTrip('planning')
+
+    const page = mountPage()
+
+    expect(page.find('[data-testid="trip-hero-Samedan"]').exists()).toBe(false)
+    expect(page.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+  })
+
+  it('keeps saying who the trip is for and which series it came out of', async () => {
+    segment = 'active'
+    const trips = seedTrip('active', { series_id: 's1' })
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.travelers,
+      id: 'tr1',
+      deleted: false,
+      row: { trip_id: 't1', name: 'Andy' },
+    })
+    orchestratorFake.loadedTrips.add('t1')
+
+    const page = mountPage()
+
+    // The two facts the row carried as faces and as its position in a group.
+    // Losing them is what deferred this card in the first place (FR-21.13).
+    const meta = page.find('[data-testid="hero-meta"]')
+    expect(meta.exists()).toBe(true)
+    expect(meta.text()).toContain('Andy')
+    expect(meta.text()).toContain(t('trips.seriesFallback'))
+  })
+
+  it('asks for the rows of a trip no observer will ever ask for', async () => {
+    // The hero is not a row and never enters M2's intersection observer, so
+    // without this it says „items loading" forever on the one trip the
+    // screen exists to answer for (ADR-033).
+    segment = 'active'
+    seedTrip('active')
+
+    mountPage()
+
+    expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('t1')
+  })
+
+  it('archives from the card — the actions came with the trip out of the swipe', async () => {
+    segment = 'active'
+    seedTrip('active')
+
+    const page = mountPage()
+    await page.find('[data-testid="m2-hero-archive-Samedan"]').trigger('click')
+
+    expect(orchestratorFake.archiveTrip).toHaveBeenCalledWith('t1')
+  })
+
+  it('offers export and delete on the card, and no step the lifecycle refuses', async () => {
+    segment = 'active'
+    seedTrip('active')
+
+    const page = mountPage()
+
+    expect(page.find('[data-testid="m2-hero-export-Samedan"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m2-hero-delete-Samedan"]').exists()).toBe(true)
+    // Start belongs to a planning trip and clone to an archived one; a hero
+    // is always a running trip, and offering either would be the drift
+    // `nextLifecycleStep` exists to prevent.
+    expect(page.find('[data-testid="m2-hero-start-Samedan"]').exists()).toBe(false)
   })
 })
