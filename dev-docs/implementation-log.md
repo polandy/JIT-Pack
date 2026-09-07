@@ -339,6 +339,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An italic nobody shipped, on a screen with no picture of itself (2026-09-07)](#an-italic-nobody-shipped-on-a-screen-with-no-picture-of-itself-2026-09-07) — FR-21.13: the hero, and the two things building it found.
 - [The scale carried the exceptions and Ionic carried the body (2026-09-07)](#the-scale-carried-the-exceptions-and-ionic-carried-the-body-2026-09-07) — FR-21.14: a token nobody read, and a rule that never applied.
 - [The card M2 was not going to get (2026-09-07)](#the-card-m2-was-not-going-to-get-2026-09-07) — FR-21.15: two structural objections, both answerable.
+- [Six fractions, three meanings, one of them a recorded decision (2026-09-07)](#six-fractions-three-meanings-one-of-them-a-recorded-decision-2026-09-07) — FR-25.22/21.16: what a baseline of quantity-1 rows could never see.
 
 ## Deviations
 
@@ -13920,3 +13921,46 @@ is asked most and a chip written twice is a chip that ends up in one place. Same
 asks for its own trip partition (ADR-033): it is not a row, so no intersection observer will ever
 ask for it, and without that watcher it says „items loading" forever on the one trip the screen
 exists to answer for.
+
+
+## Six fractions, three meanings, one of them a recorded decision (2026-09-07)
+
+FR-25.22 and FR-21.16, both from one look at the rendered M4 rather than from any file. With the
+sample trip on a phone there were six `x/y` in view at once and they meant three different things:
+the trip line's `10/26` was units, a group head's `0/2` was rows done, a row's own `1/2` was units
+again. Each number was right on its own terms. Together they made a group that had been worked on
+all morning read `0/2`, because a row that is one of two packed contributed nothing to the head
+above it.
+
+**The decision this reverses was a real one, recorded, with an argument.** FR-25.21(a), settled
+2026-08-29, kept the cluster head counting *people* — `1/3` meaning one of three travelers done —
+on the grounds that the head's subject is the set of instances and the child rows carry the
+amounts. What did not survive is that the same FR introduced the amounts: with Andy 2, Leonardo 3
+and Mia 1 the children carry six units and the head said *of three*, so the head was the one line
+on the cluster that could not be added up from the lines beneath it. The second half of (a)'s
+argument was a cost — that changing it would rewrite baselines and assertions to answer a question
+the head was never asked. That cost is real and was paid; it is not a reason.
+
+**The option not taken was to count rows everywhere**, which respects (a) and is the smaller
+change. It fails at the bottom: the row's own control counts units and cannot count anything else,
+so one of the four levels would still disagree, and it would be the one under a person's thumb. A
+skipped row is the one case the numbers cannot express — quantity 0 is a decision, not an absence
+— so it counts as one unit, done, rather than `0/0`; a group of deliberately unpacked rows now
+reads `3/3` instead of describing itself as empty.
+
+**The type half is a repeat of a defect fixed once already, one level down.** A per-person cluster
+head was set *below* its own children: `--jp-text-base` at `--ct-subtext1` over traveler rows at
+`--jp-text-md` in full colour. The UI-Spec has carried a 2026-08-14 owner report of exactly this
+inversion between the *group* heading and the item names under it. One level being repaired said
+nothing about the next, and FR-21.14 two days earlier had moved the row's name *up* onto the type
+scale without anyone rereading what sat above it. Every value in both blocks was a legal token, and
+the component's own comment described the intended three levels correctly the whole time — the
+stylesheet under it did the reverse.
+
+**The trap worth writing down: the visual baselines did not move at all.** Not one of the 28
+screenshots changed when the fractions changed meaning, because every row in every visual fixture
+has a quantity of 1, and units and rows are the same number there. A baseline suite can be
+comprehensive over screens and blind to a rule, and nothing reports that — which is why E2E-M5-24
+asserts computed type rather than adding a 29th picture, and why E2E-M5-18's head now reads `0/6`
+against children of 2, 3 and 1: the numbers in a fixture are what decide whether a case can tell
+two rules apart.

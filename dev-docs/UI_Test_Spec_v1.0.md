@@ -825,14 +825,23 @@ rather than registered.
   one does not ask for. Same disposal as `M4-07 → M4-40`.
 * **E2E-M5-18** `all` (FR-25.21, added 2026-08-29): on a shared item, open *Wer braucht das?*, switch to *Pro Person*,
   check Andy/Leonardo/Mia and set 2/3/1. Asserted **in M4 on the rendered cluster**: the item is named **once**, three
-  child rows carry three *different* amounts, and the head reads `0/3`. Deliberately not a row-count assertion —
+  child rows carry three *different* amounts, and the head reads `0/6` — the **sum** of the three, since FR-25.22 made
+  every fraction on M4 count units (it read `0/3`, a count of people, until 2026-09-07). Deliberately not a row-count
+  assertion —
   FR-25.8's own history records an implementation that created N unrelated items sharing a name and satisfied every
   count.
 * **E2E-M5-19** `all` (FR-25.21): from a roster of three, remove the traveler whose row has packed progress. The confirm
-  names the count; *Abbrechen* leaves all three standing; confirming leaves exactly two and the head reads `0/2`. Then
+  names the count; *Abbrechen* leaves all three standing; confirming leaves exactly two and the head reads `0/3` —
+  Andy's two and Mia's one (FR-25.22). Then
   remove a third whose row carries nothing: that one is written **without** a question. The cancel half is the positive
   signal that a removal is a decision rather than a side effect of tapping a checkbox, and the silent half is the
   positive signal that the question is raised by what it would cost and not by the control.
+* **E2E-M5-24** `all` (FR-21.16, new 2026-09-07) — **implemented** (`e2e/membership.spec.ts`): with a cluster and a
+  plain row both on M4, read the *rendered* type of three names — the cluster head, one of its child rows, and the
+  plain row. The head is larger and heavier than its child, and exactly the size of the plain row. Asserted on computed
+  style rather than a baseline because that is where the defect lived: every value in both blocks was a legal token
+  (invariant 9b), and the component's own comment described the intended order correctly while the stylesheet under it
+  did the reverse. Red-proved by restoring the head's former `--jp-text-base`, which fails the first clause.
 * **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam*. One row remains at quantity **5** — the sum, not the
   largest — and the preparation todo written on the surviving row before the conversion is still on it afterwards. That
   last clause is the one worth having: ADR-036 chose keep-and-repoint over delete-and-recreate precisely so a structural
