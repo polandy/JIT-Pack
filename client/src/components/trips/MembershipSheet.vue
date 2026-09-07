@@ -16,7 +16,7 @@
  * 0 already means FR-5.5 *skipped* and one control must not carry two decisions.
  */
 import { IonAlert, IonCheckbox, IonIcon } from '@ionic/vue'
-import { addOutline, closeOutline, lockClosedOutline, removeOutline } from 'ionicons/icons'
+import { addOutline, lockClosedOutline, removeOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -30,6 +30,7 @@ import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { TripParticipant } from '@/types/domain'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{
   tripId: string
@@ -242,17 +243,11 @@ const confirmMessage = computed(() => {
 
 <template>
   <div v-if="item" class="sheet" data-testid="membership-sheet">
-    <header class="head">
-      <h2 class="jp-sheet-title">{{ t('membership.title') }}</h2>
-      <button
-        class="close"
-        :aria-label="t('common.close')"
-        data-testid="membership-close"
-        @click="emit('close')"
-      >
-        <IonIcon :icon="closeOutline" />
-      </button>
-    </header>
+    <SheetHead
+      :title="t('membership.title')"
+      close-testid="membership-close"
+      @close="emit('close')"
+    />
 
     <p v-if="isLocked" class="lock" data-testid="membership-lock" role="status">
       <IonIcon :icon="lockClosedOutline" />
@@ -355,12 +350,6 @@ const confirmMessage = computed(() => {
   padding: 4px 0 8px;
 }
 
-.head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .lock {
   display: flex;
   align-items: center;
@@ -373,14 +362,6 @@ const confirmMessage = computed(() => {
 .head h2 {
   flex: 1;
   margin: 0;
-}
-
-.close {
-  background: none;
-  border: 0;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-icon-md);
-  padding: 4px;
 }
 
 .seg {

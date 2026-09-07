@@ -25,9 +25,9 @@
  * down would hand straight back.
  */
 import { IonModal, IonContent, IonIcon, IonCheckbox, IonLabel } from '@ionic/vue'
-import { closeOutline } from 'ionicons/icons'
 
 import { t } from '@/i18n'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 /** One offer inside a facet — already worded and counted by the caller. */
 export interface FilterOption {
@@ -91,33 +91,24 @@ const emit = defineEmits<{
     <IonContent class="sheet">
       <div class="grab" />
 
-      <header class="head">
-        <div class="titles">
-          <h2>{{ t('filter.title') }}</h2>
+      <SheetHead :title="t('filter.title')" close-testid="filter-close" @close="emit('close')">
+        <template #meta>
           <!-- The outcome of what is already in force, not a promise. -->
-          <p class="count" data-testid="filter-count">
-            {{ t('filter.showing', { n: matchCount }) }}
-          </p>
-        </div>
-        <!-- Quiet on purpose: it appears only when there is something to
-             undo, and it must not compete with the way out. -->
-        <button
-          v-if="activeCount > 0"
-          class="reset"
-          data-testid="filter-reset"
-          @click="emit('reset')"
-        >
-          {{ t('filter.reset') }}
-        </button>
-        <button
-          class="x"
-          data-testid="filter-close"
-          :aria-label="t('common.close')"
-          @click="emit('close')"
-        >
-          <IonIcon :icon="closeOutline" />
-        </button>
-      </header>
+          <span data-testid="filter-count">{{ t('filter.showing', { n: matchCount }) }}</span>
+        </template>
+        <template #trail>
+          <!-- Quiet on purpose: it appears only when there is something to
+               undo, and it must not compete with the way out. -->
+          <button
+            v-if="activeCount > 0"
+            class="reset"
+            data-testid="filter-reset"
+            @click="emit('reset')"
+          >
+            {{ t('filter.reset') }}
+          </button>
+        </template>
+      </SheetHead>
 
       <!-- Grouping leads, and is visibly *not* a filter: the two axes were
            adjacent look-alikes doing opposite things before FR-25.11. -->
@@ -215,30 +206,6 @@ const emit = defineEmits<{
   margin: 10px auto 2px;
 }
 
-.head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0 12px;
-}
-
-.titles {
-  flex: 1;
-  min-width: 0;
-}
-
-.head h2 {
-  margin: 0;
-  font-size: var(--jp-text-lg);
-  font-weight: var(--jp-weight-bold);
-}
-
-.count {
-  margin: 0;
-  font-size: var(--jp-text-xs);
-  color: var(--ct-subtext0);
-}
-
 .reset {
   flex: none;
   background: none;
@@ -247,23 +214,6 @@ const emit = defineEmits<{
   font-size: var(--jp-text-sm);
   font-weight: var(--jp-weight-semibold);
   cursor: pointer;
-}
-
-.x {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border: none;
-  border-radius: 50%;
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  cursor: pointer;
-}
-
-.x ion-icon {
-  font-size: var(--jp-icon-sm);
 }
 
 .sec {

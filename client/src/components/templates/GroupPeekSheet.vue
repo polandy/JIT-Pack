@@ -12,8 +12,6 @@
  * the same rule to drift. The list is the *resolved* one (FR-27.2), so what it
  * shows is what the trip would actually get, dedup included.
  */
-import { IonIcon } from '@ionic/vue'
-import { closeOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 
 import { t } from '@/i18n'
@@ -22,6 +20,7 @@ import { resolvedLines, type ResolvedLine } from '@/domain/templates'
 import { useMasterStore } from '@/stores/masterStore'
 import { isShoppingMode } from '@/types/domain'
 import ItemMark from '@/components/items/ItemMark.vue'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{ templateId: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -66,26 +65,18 @@ function marksOf(line: ResolvedLine): string[] {
 
 <template>
   <section class="sheet-body" data-testid="group-peek-sheet">
-    <header class="head">
-      <!-- FR-28.8: the sheet names the group, so it carries its mark too. -->
-      <ItemMark :mark="template?.icon ?? null" surface="plain" :size="24" class="head-mark" />
-      <div class="titles">
-        <h1 class="jp-sheet-title" data-testid="group-peek-name">
-          {{ template?.name ?? t('templates.notFound') }}
-        </h1>
-        <p class="context">
-          {{ t('templates.peekSubtitle', { n: lines.length }) }}
-        </p>
-      </div>
-      <button
-        class="x"
-        data-testid="group-peek-close"
-        :aria-label="t('common.close')"
-        @click="emit('close')"
-      >
-        <IonIcon :icon="closeOutline" />
-      </button>
-    </header>
+    <SheetHead
+      :title="template?.name ?? t('templates.notFound')"
+      :meta="t('templates.peekSubtitle', { n: lines.length })"
+      title-testid="group-peek-name"
+      close-testid="group-peek-close"
+      @close="emit('close')"
+    >
+      <template #lead>
+        <!-- FR-28.8: the sheet names the group, so it carries its mark too. -->
+        <ItemMark :mark="template?.icon ?? null" surface="plain" :size="24" class="head-mark" />
+      </template>
+    </SheetHead>
 
     <ul v-if="lines.length" class="lines">
       <li v-for="line in lines" :key="line.name" data-testid="group-peek-line">
@@ -110,39 +101,8 @@ function marksOf(line: ResolvedLine): string[] {
   padding: 4px 18px 26px;
 }
 
-.head {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding-bottom: 12px;
-}
-
 .head-mark {
   padding-top: 2px;
-}
-
-.titles {
-  flex: 1;
-  min-width: 0;
-}
-
-.context {
-  margin: 2px 0 0;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-}
-
-.x {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-md);
-  cursor: pointer;
 }
 
 .lines {

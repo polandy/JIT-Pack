@@ -36,7 +36,6 @@ import {
   alertCircleOutline,
   chevronForwardOutline,
   closeCircleOutline,
-  closeOutline,
   refreshOutline,
   linkOutline,
   lockClosedOutline,
@@ -67,6 +66,7 @@ import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } fro
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{
   tripId: string
@@ -365,34 +365,32 @@ const packedStamp = computed(() => {
     data-testid="m5-sheet"
     :data-flashed-comment="deepLinkedCommentId ?? undefined"
   >
-    <header class="head">
-      <!-- Small on purpose (FR-22.1): a photo helps recognise the thing,
+    <SheetHead
+      :title="item.name"
+      :meta="contextLine"
+      title-testid="m5-name"
+      close-testid="m5-close"
+      @close="emit('close')"
+    >
+      <template #lead>
+        <!-- Small on purpose (FR-22.1): a photo helps recognise the thing,
            it is not what the screen is about — it used to take 200px of
            the first thing you see, on rows that mostly have none. The mark
            is the same slot's second rung (FR-28.4). `plain`, not `packing`:
            the sheet has no column to keep aligned, so an ad-hoc row shows
            nothing rather than 44px of blank before its title. -->
-      <ItemMark
-        :mark="masterItem?.icon ?? null"
-        surface="plain"
-        :photo-item="masterItem"
-        :size="44"
-        class="thumb"
-      />
-      <div class="titles">
-        <h1 class="jp-sheet-title" data-testid="m5-name">{{ item.name }}</h1>
-        <p v-if="contextLine" class="context">{{ contextLine }}</p>
-      </div>
-      <SaveIndicator :pending="orchestrator.capturePending.value" />
-      <button
-        class="x"
-        data-testid="m5-close"
-        :aria-label="t('common.close')"
-        @click="emit('close')"
-      >
-        <IonIcon :icon="closeOutline" />
-      </button>
-    </header>
+        <ItemMark
+          :mark="masterItem?.icon ?? null"
+          surface="plain"
+          :photo-item="masterItem"
+          :size="44"
+          class="thumb"
+        />
+      </template>
+      <template #trail>
+        <SaveIndicator :pending="orchestrator.capturePending.value" />
+      </template>
+    </SheetHead>
 
     <!-- G-3: who has it, before anything the sheet can no longer do. -->
     <p v-if="isLocked" class="lock-notice" data-testid="m5-lock" role="status">
@@ -725,45 +723,11 @@ const packedStamp = computed(() => {
 }
 
 /* --- header --- */
-.head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 6px 0 14px;
-}
 
 .thumb {
   flex: none;
   border-radius: var(--jp-r-sm);
   overflow: hidden;
-}
-
-.titles {
-  flex: 1;
-  min-width: 0;
-}
-
-.head h1 {
-  margin: 0;
-}
-
-.context {
-  margin: 3px 0 0;
-  font-size: var(--jp-text-xs);
-  color: var(--ct-subtext0);
-}
-
-.x {
-  display: grid;
-  place-items: center;
-  width: var(--jp-control-round);
-  height: var(--jp-control-round);
-  flex: none;
-  border: none;
-  border-radius: 50%;
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  cursor: pointer;
 }
 
 /* G-3: the lock is stated, not implied by dimmed controls — the sheet

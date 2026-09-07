@@ -420,7 +420,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * that a pixel moved, this reports which rule broke. The baseline added
    * beside it guards the rest of the sheet.
    */
-  test('E2E-G2-08: the sheet glyph is centred on its title', async ({ page }) => {
+  test('E2E-G2-08: the sheet glyph starts on the same line as its title', async ({ page }) => {
     // The width every design decision is made against; the offset is
     // width-independent, but the number below is not a desktop artefact.
     await page.setViewportSize(MOBILE)
@@ -442,10 +442,14 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       const range = document.createRange()
       range.selectNodeContents(title)
       const line = range.getClientRects()[0]!
-      return glyph.top + glyph.height / 2 - (line.top + line.height / 2)
+      return glyph.top - line.top
     })
 
-    // One CSS pixel of half-leading is invisible; half a line is not.
+    // Revised 2026-09-07 (FR-21.12): the shared head sets the lead against
+    // the *top* of the title, as the concept prototype draws it — a 38px
+    // glyph beside a 27px line cannot also be centred on it. The defect the
+    // case was written for is still what it catches: a stray h1 margin
+    // pushes the line down and nothing else does.
     expect(Math.abs(offset)).toBeLessThanOrEqual(2)
   })
 
