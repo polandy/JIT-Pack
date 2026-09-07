@@ -6,6 +6,7 @@ import {
   openQuickAdd,
   visiblePage,
   useReducedMotion,
+  tripAction,
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import type { Page } from '@playwright/test'
@@ -354,4 +355,21 @@ test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, see
 
   await settled(page)
   await expect(page).toHaveScreenshot('m16-series.png')
+})
+
+// E2E-VIS-10: M1 with a trip on it. The four tab-root baselines are all
+// *empty* states, so until this one the screen every rebuild lands on had no
+// picture of itself with data — and the hero card (FR-21.13) is precisely
+// the thing an empty dashboard cannot show.
+test('E2E-VIS-10: visual: M1 with the hero card @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await packingList(page, ['Zelt', 'Schlafsack', 'Stirnlampe', 'Regenjacke'])
+  // M1 lists what is *active*, and a trip out of the wizard is planned —
+  // which is why the four tab-root baselines all show empty states.
+  await tripAction(page, 'start')
+  await page.goto(PATH.dashboard)
+  await expect(page.getByTestId('hero-name')).toBeVisible()
+  await settled(page)
+  await expect(page).toHaveScreenshot('m1-hero.png')
 })

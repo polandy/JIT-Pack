@@ -165,6 +165,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-VIS-05 | Visual M4 in Tag | all | One flavour spot-check rather than a second copy of every state: the flavour is decided in one token block, and one screen using brand, done, both planes and the elevation ink is enough to notice it moving. Doubling the set would double what an image-digest bump rewrites, for coverage of the same block. |
 | E2E-VIS-06 | Visual M11 container list | all | The first baseline outside M4, added on the owner's decision of 2026-08-16 when M11 was eyeballed. It earns its place on three things no other baseline renders: a load bar whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and the card list itself. The load is real — a master item with a weight, quick-added through its suggestion — because a bar with nothing in it grades nothing. |
 | E2E-VIS-07 | Visual M11 container sheet | all | Not a second copy of E2E-VIS-04's plane: this is the M5 sheet grammar applied to a container, and the load line and pairing chips inside it exist on no other surface. |
+| E2E-VIS-10 | Visual M1 with the hero card | all | **New 2026-09-07.** The four tab-root baselines are all *empty* states, so until this one the screen every rebuild lands on had no picture of itself with data — and the hero (FR-21.13) is exactly what an empty dashboard cannot show. The trip is **started** first: a trip out of the wizard is planned, and M1 lists what is active, which is why the tab-root baseline shows an empty state at all. |
 | E2E-VIS-09 | Visual M16 series profile | all | **New 2026-08-31.** The screen that had no coverage at any layer until 2026-08-30, and whose first render found FR-13.3's checklist input at **width 0** — Ionic gives `ion-select` `width: 100%`, and as a flex item that is a basis of the whole row. That is the class this gate exists for: every assertion passed, the element was in the DOM with the right computed flex and height, and only the pixel said the box was empty. The row is captured **with content on both sides**, a select carrying a value beside an input carrying text, because an empty row of the same geometry would not show the collapse coming back. |
 | E2E-VIS-08 | Visual G-2 detail sheet | all | The one surface reachable from every screen in every mode, and covered by no baseline at all until 2026-08-23. It guards the header, the state line and the sheet's own plane — **not** the offset that prompted it: mutating E2E-G2-08's fix back moves 591 px, ratio 0.0018, and this gate allows 0.002, so it stays green. That is the documented consequence of the tolerance the owner fixed on 2026-08-19 (*"this gate catches layout changes, not small ones"*), recorded here as a second worked example rather than discovered again. The offset is E2E-G2-08's job. |
 | E2E-M4-33 | M4 A pack registers, and can be taken back | all | Packing a row hides it *and* raises the snackbar; its undo returns the row to the open list, not merely to the revealed one. Run with `reducedMotion: 'reduce'` so the assertion is the outcome rather than the length of a transition — the production code takes its own no-motion path there, so nothing is being bypassed. |
@@ -211,8 +212,12 @@ stable references for the traceability matrix.
 
 * **E2E-M1-01** `all` (FR-6.1) — **implemented 2026-08-30** (`dashboard.spec.ts`), and two of its clauses are not the
   screen's. What is asserted: an **active** trip renders a card, the card counts what is open, previews three rows and
-  reports the remainder as "+N more". The empty state's absence is asserted beside it, as the positive signal that the
-  trip is active — M1 filters on the status, so a trip nobody started renders exactly the screen no trip at all does.
+  reports the remainder as "+N more". **Revised 2026-09-07 (FR-21.13):** the card is the hero now, so the counts are
+  read as its two lines — the share beside the ring and what is still owed under it — plus the ring's own accessible
+  name, rather than as one summary sentence. Everything else the case asserted is unchanged, because the preview and
+  the "+N more" line moved *into* the hero rather than out of the screen. The empty state's absence is asserted
+  beside it, as the positive signal that the trip is active — M1 filters on the status, so a trip nobody started
+  renders exactly the screen no trip at all does.
   ~~my open items~~: the dashboard is **not filtered by person**, it aggregates every open row of every active trip.
   FR-6.1's *"assigned to them"* has never been implemented, and **it is struck 2026-08-31 (owner decision)**: a filter
   would empty the screen in Local and Single-User Mode, where there is no account to be assigned anything. What the
@@ -250,6 +255,13 @@ stable references for the traceability matrix.
 * **E2E-M1-07** `all` (FR-7.3) — **new 2026-08-31**: the prep card's item name opens **that row's** sheet, asserted on
   the sheet's own todo rather than on the trip having opened. UI-Spec M1 had promised the jump since the screen shipped
   and the name was a `<p>` with no handler.
+* **E2E-M1-09** `all` (FR-21.13) — **new 2026-09-07**: the trip departing **soonest** is the hero; the later one is
+  still a list card. The case seeds **two** active trips on purpose — the promise is a singular, and a screen with one
+  trip would be green whether the rule said "the one" or "every one". The later trip's visible card is the positive
+  signal beside the absence, so "no second hero" reads as a shape rather than as a trip that failed to render. Both
+  trips carry a **departure date**, and that is the case rather than the fixture: the first version seeded two dateless
+  trips and asserted which was the hero, which is an ordering nothing defined — green on Chromium, red on WebKit. The
+  fix was in the screen (`byDepartureSoonestFirst`), not in the assertion.
 * **E2E-M1-08** `all` (FR-6.1) — **new 2026-09-02**, with the planned-trips section: a trip left in `planning` by the
   wizard is listed on M1 *as planned*, with its period, and leads to the trip. Three assertions carry it rather than
   one, because each alone passes on a wrong screen: the section could be a screen that stopped filtering by status (so

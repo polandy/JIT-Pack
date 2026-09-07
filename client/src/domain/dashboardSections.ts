@@ -140,17 +140,38 @@ export interface PlannableTrip {
  * empty the section in Local and Single-User Mode — the same trap FR-6.1's
  * personal filter was struck for.
  *
- * An undated trip sorts last rather than first: FR-2.1b makes the date
- * optional because a trip is planned long before it has one, so „no date yet"
- * says the departure is unknown, never that it is imminent.
+ * The ordering itself is `byDeparture` below, shared with the running trips.
  */
 export function plannedTripsByDeparture<T extends PlannableTrip>(trips: readonly T[]): T[] {
-  return trips
-    .filter((trip) => trip.status === TRIP_STATUS_PLANNING)
-    .sort(
-      (a, b) =>
-        Number(a.start_date === null) - Number(b.start_date === null) ||
-        (a.start_date ?? '').localeCompare(b.start_date ?? '') ||
-        a.name.localeCompare(b.name),
-    )
+  return trips.filter((trip) => trip.status === TRIP_STATUS_PLANNING).sort(byDeparture)
+}
+
+/**
+ * The same order over trips a caller has already chosen — M1's running ones.
+ * It takes no status of its own precisely because "active" is the screen's
+ * predicate and not this module's; what is shared is the *ordering*.
+ *
+ * M1's hero is the head of this list (FR-21.13), which is why the order had
+ * to become a rule rather than stay whatever the store handed over. It was
+ * IndexedDB's key order over random ids: with two active trips the screen
+ * named a different one as *the* trip you are on depending on the browser,
+ * and E2E-M1-09 found it by disagreeing with itself between Chromium and
+ * WebKit.
+ */
+export function byDepartureSoonestFirst<T extends PlannableTrip>(trips: readonly T[]): T[] {
+  return [...trips].sort(byDeparture)
+}
+
+/**
+ * Soonest first; an undated trip sorts last rather than first, because
+ * FR-2.1b makes the date optional — „no date yet" says the departure is
+ * unknown, never that it is imminent. Name breaks the tie so the order is
+ * total, and therefore the same on every device.
+ */
+function byDeparture(a: PlannableTrip, b: PlannableTrip): number {
+  return (
+    Number(a.start_date === null) - Number(b.start_date === null) ||
+    (a.start_date ?? '').localeCompare(b.start_date ?? '') ||
+    a.name.localeCompare(b.name)
+  )
 }
