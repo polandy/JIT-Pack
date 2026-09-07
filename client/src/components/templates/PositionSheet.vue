@@ -32,6 +32,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { ITEM_MODES, isShoppingMode } from '@/types/domain'
 import type { ItemMode, TemplateAssignment, TemplateDedup } from '@/types/domain'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{
   templateId: string
@@ -137,23 +138,17 @@ function removeTask(taskId: string) {
 
 <template>
   <section v-if="position" class="sheet-body" data-testid="m8-position-sheet">
-    <header class="head">
-      <div class="titles">
-        <h1 class="jp-sheet-title" data-testid="m8-position-name">{{ itemName }}</h1>
-        <p class="context">
-          {{ t('templates.positionOf', { scope: scopeName, name: template?.name ?? '' }) }}
-        </p>
-      </div>
-      <SaveIndicator :pending="orchestrator.capturePending.value" />
-      <button
-        class="x"
-        data-testid="m8-position-close"
-        :aria-label="t('common.close')"
-        @click="emit('close')"
-      >
-        <IonIcon :icon="closeOutline" />
-      </button>
-    </header>
+    <SheetHead
+      :title="itemName"
+      :meta="t('templates.positionOf', { scope: scopeName, name: template?.name ?? '' })"
+      title-testid="m8-position-name"
+      close-testid="m8-position-close"
+      @close="emit('close')"
+    >
+      <template #trail>
+        <SaveIndicator :pending="orchestrator.capturePending.value" />
+      </template>
+    </SheetHead>
 
     <!-- Read-only summary of everything Details can change (M5 grammar). -->
     <div class="glance">
@@ -342,41 +337,6 @@ function removeTask(taskId: string) {
 <style scoped>
 .sheet-body {
   padding: 4px 16px 24px;
-}
-
-.head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 6px 0 12px;
-}
-
-.titles {
-  flex: 1;
-  min-width: 0;
-}
-
-.head h1 {
-  margin: 0;
-}
-
-.context {
-  margin: 3px 0 0;
-  font-size: var(--jp-text-xs);
-  color: var(--ct-subtext0);
-}
-
-.x {
-  display: grid;
-  place-items: center;
-  width: var(--jp-control-round);
-  height: var(--jp-control-round);
-  flex: none;
-  border: none;
-  border-radius: 50%;
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  cursor: pointer;
 }
 
 /* --- glance (M5 grammar) --- */

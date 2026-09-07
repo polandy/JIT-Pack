@@ -10,7 +10,7 @@
  * partner clears the pair for both (see domain/containers.ts).
  */
 import { IonIcon, IonInput, IonAlert } from '@ionic/vue'
-import { closeOutline, scaleOutline, trashOutline, warningOutline } from 'ionicons/icons'
+import { scaleOutline, trashOutline, warningOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
@@ -26,6 +26,7 @@ import type { ContainerEdit } from '@/sync/mutations'
 import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{
   tripId: string
@@ -105,25 +106,23 @@ function onDelete() {
 
 <template>
   <section v-if="container" class="sheet-body" data-testid="m11-sheet">
-    <header class="head">
-      <div class="titles">
-        <h1 class="jp-sheet-title" data-testid="m11-sheet-name">{{ container.name }}</h1>
-        <p class="context" :class="{ over: level === 'over' }" data-testid="m11-sheet-load">
+    <SheetHead
+      :title="container.name"
+      title-testid="m11-sheet-name"
+      close-testid="m11-sheet-close"
+      @close="emit('close')"
+    >
+      <template #meta>
+        <span class="load" :class="{ over: level === 'over' }" data-testid="m11-sheet-load">
           <IonIcon v-if="level === 'over'" :icon="warningOutline" />
           {{ loadLine }}
           <span v-if="level === 'over'">· {{ t('container.overLimit') }}</span>
-        </p>
-      </div>
-      <SaveIndicator :pending="orchestrator.capturePending.value" />
-      <button
-        class="x"
-        data-testid="m11-sheet-close"
-        :aria-label="t('common.close')"
-        @click="emit('close')"
-      >
-        <IonIcon :icon="closeOutline" />
-      </button>
-    </header>
+        </span>
+      </template>
+      <template #trail>
+        <SaveIndicator :pending="orchestrator.capturePending.value" />
+      </template>
+    </SheetHead>
 
     <section class="sec">
       <h2 class="sl">{{ t('items.editor.name') }}</h2>
@@ -226,46 +225,8 @@ function onDelete() {
   padding: 4px 16px 24px;
 }
 
-.head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 6px 0 12px;
-}
-
-.titles {
-  flex: 1;
-  min-width: 0;
-}
-
-.head h1 {
-  margin: 0;
-}
-
-.context {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin: 3px 0 0;
-  font-size: var(--jp-text-xs);
-  color: var(--ct-subtext0);
-}
-
-.context.over {
+.load.over {
   color: var(--ct-ember);
-}
-
-.x {
-  display: grid;
-  place-items: center;
-  width: var(--jp-control-round);
-  height: var(--jp-control-round);
-  flex: none;
-  border: none;
-  border-radius: 50%;
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  cursor: pointer;
 }
 
 .sec {
