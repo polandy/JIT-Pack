@@ -9,7 +9,6 @@ import { describe, it, expect } from 'vitest'
 import {
   delegatedToMe,
   latePackersDepartingToday,
-  byDepartureSoonestFirst,
   plannedTripsByDeparture,
   type DashboardTrip,
 } from '../dashboardSections'
@@ -177,56 +176,5 @@ describe('plannedTripsByDeparture (FR-6.1, M1 lookahead)', () => {
 
   it('answers with nothing when no trip is planned', () => {
     expect(plannedTripsByDeparture(trips.filter((t) => t.status !== 'planning'))).toEqual([])
-  })
-})
-
-describe('byDepartureSoonestFirst (FR-21.13, M1 hero)', () => {
-  interface T {
-    id: string
-    name: string
-    status: string
-    start_date: string | null
-  }
-
-  it('puts the soonest departure first, whatever order it was handed', () => {
-    // The hero is the head of this list, and before the rule existed the
-    // head was IndexedDB's key order over random ids — so two active trips
-    // named a different hero on Chromium than on WebKit.
-    const trips: T[] = [
-      { id: 'a', name: 'Laos', status: 'active', start_date: '2026-11-02' },
-      { id: 'b', name: 'Elba', status: 'active', start_date: '2026-09-20' },
-    ]
-    expect(byDepartureSoonestFirst(trips).map((t) => t.id)).toEqual(['b', 'a'])
-    expect(byDepartureSoonestFirst([...trips].reverse()).map((t) => t.id)).toEqual(['b', 'a'])
-  })
-
-  it('sorts an undated trip last and breaks a tie by name', () => {
-    const trips: T[] = [
-      { id: 'z', name: 'Zermatt', status: 'active', start_date: null },
-      { id: 'b', name: 'Bern', status: 'active', start_date: '2026-09-20' },
-      { id: 'a', name: 'Arosa', status: 'active', start_date: '2026-09-20' },
-    ]
-    expect(byDepartureSoonestFirst(trips).map((t) => t.id)).toEqual(['a', 'b', 'z'])
-  })
-
-  it('judges no status of its own — that belongs to the screen', () => {
-    // Deliberately different from `plannedTripsByDeparture`: what is shared
-    // between them is the ordering, and "active" is M1's predicate.
-    const trips: T[] = [
-      { id: 'p', name: 'Laos', status: 'planning', start_date: '2026-01-01' },
-      { id: 'a', name: 'Elba', status: 'active', start_date: '2026-09-20' },
-    ]
-    expect(byDepartureSoonestFirst(trips).map((t) => t.id)).toEqual(['p', 'a'])
-  })
-
-  it('leaves the array it was given alone', () => {
-    // The store's list is reactive state, and an in-place sort would reorder
-    // it for every other reader on the screen.
-    const trips: T[] = [
-      { id: 'a', name: 'Laos', status: 'active', start_date: '2026-11-02' },
-      { id: 'b', name: 'Elba', status: 'active', start_date: '2026-09-20' },
-    ]
-    byDepartureSoonestFirst(trips)
-    expect(trips.map((t) => t.id)).toEqual(['a', 'b'])
   })
 })

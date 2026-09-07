@@ -2,7 +2,9 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  byDepartureSoonestFirst,
   canJudgeUnused,
+  heroTripOf,
   isActive,
   localIsoDate,
   nextLifecycleStep,
@@ -121,5 +123,94 @@ describe('isActive', () => {
 
   it('is false for a trip that has not loaded', () => {
     expect(isActive(undefined)).toBe(false)
+  })
+})
+
+describe('byDepartureSoonestFirst (FR-21.13, M1 hero)', () => {
+  interface T {
+    id: string
+    name: string
+    status: string
+    start_date: string | null
+  }
+
+  it('puts the soonest departure first, whatever order it was handed', () => {
+    // The hero is the head of this list, and before the rule existed the
+    // head was IndexedDB's key order over random ids — so two active trips
+    // named a different hero on Chromium than on WebKit.
+    const trips: T[] = [
+      { id: 'a', name: 'Laos', status: 'active', start_date: '2026-11-02' },
+      { id: 'b', name: 'Elba', status: 'active', start_date: '2026-09-20' },
+    ]
+    expect(byDepartureSoonestFirst(trips).map((t) => t.id)).toEqual(['b', 'a'])
+    expect(byDepartureSoonestFirst([...trips].reverse()).map((t) => t.id)).toEqual(['b', 'a'])
+  })
+
+  it('sorts an undated trip last and breaks a tie by name', () => {
+    const trips: T[] = [
+      { id: 'z', name: 'Zermatt', status: 'active', start_date: null },
+      { id: 'b', name: 'Bern', status: 'active', start_date: '2026-09-20' },
+      { id: 'a', name: 'Arosa', status: 'active', start_date: '2026-09-20' },
+    ]
+    expect(byDepartureSoonestFirst(trips).map((t) => t.id)).toEqual(['a', 'b', 'z'])
+  })
+
+  it('judges no status of its own — that belongs to the screen', () => {
+    // Deliberately different from `plannedTripsByDeparture`: what is shared
+    // between them is the ordering, and "active" is M1's predicate.
+    const trips: T[] = [
+      { id: 'p', name: 'Laos', status: 'planning', start_date: '2026-01-01' },
+      { id: 'a', name: 'Elba', status: 'active', start_date: '2026-09-20' },
+    ]
+    expect(byDepartureSoonestFirst(trips).map((t) => t.id)).toEqual(['p', 'a'])
+  })
+
+  it('leaves the array it was given alone', () => {
+    // The store's list is reactive state, and an in-place sort would reorder
+    // it for every other reader on the screen.
+    const trips: T[] = [
+      { id: 'a', name: 'Laos', status: 'active', start_date: '2026-11-02' },
+      { id: 'b', name: 'Elba', status: 'active', start_date: '2026-09-20' },
+    ]
+    byDepartureSoonestFirst(trips)
+    expect(trips.map((t) => t.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('heroTripOf (FR-21.15, the trip M1 and M2 both name)', () => {
+  interface T {
+    id: string
+    name: string
+    status: string
+    start_date: string | null
+  }
+
+  const trips: T[] = [
+    { id: 'p', name: 'Laos', status: 'planning', start_date: '2026-01-01' },
+    { id: 'late', name: 'Elba', status: 'active', start_date: '2026-11-02' },
+    { id: 'soon', name: 'Samedan', status: 'active', start_date: '2026-09-20' },
+    { id: 'old', name: 'Kreta', status: 'archived', start_date: '2019-07-01' },
+  ]
+
+  it('is the running trip that departs soonest, not the one that starts first', () => {
+    // The planning trip departs before every active one and is not the trip
+    // anybody is packing — which is the whole distinction the hero draws.
+    expect(heroTripOf(trips)?.id).toBe('soon')
+  })
+
+  it('answers the same whatever order the store handed the trips over', () => {
+    expect(heroTripOf([...trips].reverse())?.id).toBe('soon')
+  })
+
+  it('names nothing when no trip is running', () => {
+    // Not "the next one": M2's other two segments are lists by definition,
+    // and a hero over a planned trip would claim you are packing it.
+    expect(heroTripOf(trips.filter((t) => t.status !== 'active'))).toBeNull()
+  })
+
+  it('names an undated running trip when it is the only one', () => {
+    // Undated sorts last (FR-2.1b) — last of one is still the trip you are on.
+    const undated: T[] = [{ id: 'u', name: 'Irgendwann', status: 'active', start_date: null }]
+    expect(heroTripOf(undated)?.id).toBe('u')
   })
 })

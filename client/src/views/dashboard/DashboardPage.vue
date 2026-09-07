@@ -34,7 +34,6 @@ import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
 import {
-  byDepartureSoonestFirst,
   delegatedToMe,
   isOpenRow,
   latePackersDepartingToday,
@@ -47,7 +46,7 @@ import { formatTripPeriod } from '@/lib/format'
 import { greetingKey } from '@/lib/greeting'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
-import { isActive } from '@/domain/trips'
+import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'

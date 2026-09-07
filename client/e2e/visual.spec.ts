@@ -373,3 +373,49 @@ test('E2E-VIS-10: visual: M1 with the hero card @local @visual', async ({ page, 
   await settled(page)
   await expect(page).toHaveScreenshot('m1-hero.png')
 })
+
+// E2E-VIS-11: M2 with the trip you are on at its head (FR-21.15). The `trips`
+// tab-root baseline is an *empty* state, so the segment that carries the hero
+// had no picture of itself — and the card is the one thing on that screen a
+// stylesheet cannot be read for: it is a card inside a list of cards, which
+// is exactly the collision G-14 exists for (invariant 9b).
+test('E2E-VIS-11: visual: M2 with the hero card @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await createTripViaWizard(page, {
+    name: 'Samedan Sommer',
+    series: 'Samedan',
+    startDate: '2026-07-10',
+    travelers: ['Andy', 'Sia'],
+  })
+  // With rows on it, and one of them packed: a hero whose ring reads 0/0 is
+  // a picture of the card and not of what the card says.
+  await openQuickAdd(page)
+  for (const name of ['Zelt', 'Schlafsack', 'Stirnlampe']) {
+    await page.getByTestId('quick-add-input').locator('input').fill(name)
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
+  }
+  await page.keyboard.press('Escape')
+  await visiblePage(page)
+    .getByTestId('m4-row-Zelt')
+    .getByTestId('row-check')
+    .locator('ion-checkbox')
+    .click()
+  await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toHaveCount(0)
+  await tripAction(page, 'start')
+  // A second trip in the same series, departing later, so the baseline shows
+  // the hero *and* the group it was lifted out of — the two planes side by
+  // side, which is the collision a stylesheet cannot be read for.
+  await createTripViaWizard(page, {
+    name: 'Samedan Herbst',
+    series: 'Samedan',
+    startDate: '2026-10-01',
+  })
+  await tripAction(page, 'start')
+
+  await page.goto(`${PATH.trips}?status=active`)
+  await expect(visiblePage(page).getByTestId('trip-hero-Samedan Sommer')).toBeVisible()
+  await settled(page)
+  await expect(page).toHaveScreenshot('m2-hero.png')
+})

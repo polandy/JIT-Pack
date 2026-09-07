@@ -338,6 +338,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The same button in two designs, four against four (2026-09-07)](#the-same-button-in-two-designs-four-against-four-2026-09-07) — FR-21.12: a token table cannot say two places meant the same thing.
 - [An italic nobody shipped, on a screen with no picture of itself (2026-09-07)](#an-italic-nobody-shipped-on-a-screen-with-no-picture-of-itself-2026-09-07) — FR-21.13: the hero, and the two things building it found.
 - [The scale carried the exceptions and Ionic carried the body (2026-09-07)](#the-scale-carried-the-exceptions-and-ionic-carried-the-body-2026-09-07) — FR-21.14: a token nobody read, and a rule that never applied.
+- [The card M2 was not going to get (2026-09-07)](#the-card-m2-was-not-going-to-get-2026-09-07) — FR-21.15: two structural objections, both answerable.
 
 ## Deviations
 
@@ -13876,3 +13877,46 @@ rather than deciding twice.
 **What „the body text" turned out to be worth:** eight baselines moved for the row rule and twelve
 more once `body` stopped being 16px — the empty states, the sheets, the hero. No e2e case that
 measures geometry moved at all, which was the risk this change was held back for.
+
+
+## The card M2 was not going to get (2026-09-07)
+
+FR-21.13 deferred M2's hero with a written reason and a revisit trigger — M2's list being
+reworked. The owner fired it four hours later instead. Both objections turned out to be answerable
+rather than merely payable, which is the part worth recording: **a deferral's stated cost is a
+claim, and neither of these two survived being checked.**
+
+**The sliding menu.** A card cannot be swiped, so lifting the trip out of the list takes export,
+share and delete away from the one trip they are used on most. The answer is that the card *states*
+them — and that is better than what it replaces rather than a like-for-like: the trip a person
+packs daily was the one whose actions were hidden behind a gesture. They are derived from the same
+predicates as the swipe (`nextLifecycleStep`, `canDelete`, the G-8 session check), so the two
+representations cannot drift into offering different steps, which is the failure that put those
+predicates in `domain/trips.ts` in the first place.
+
+**The series header counting a trip it no longer shows.** This one needed no work at all: the count
+is computed over the *filtered* list, so it has meant „trips listed here" since the screen shipped —
+a search already shrinks it. The objection had assumed it counted the series.
+
+**The design was affordable because the blast radius was measured first, not after.** Nearly every
+e2e case that reaches a trip goes through `openTripFromList`, which navigates to
+`?status=planned`: trips out of the wizard are planning trips, and the suite therefore operates
+almost entirely on a segment the hero deliberately does not touch. One existing assertion changed —
+a component case that expected a running trip to be a row. Had the hero applied to every segment,
+the same change would have been thirty-odd cases, and „only on Active" would have looked like a
+compromise made to protect them rather than the scoping rule it actually is.
+
+**Two things found on the way, neither of them the feature.** The first render of the baseline
+named the wrong trip: both seeded trips were undated, so `byDeparture` broke the tie by name and
+*Herbst* preceded *Sommer*. That is the FR-2.1b rule working, and the fix was in the fixture. The
+second is older — `.chip` was a class name with no rule behind it anywhere, so the FR-16.2
+*Imported* chip had been painting a background with no padding around the word inside it. It only
+surfaced because moving the three chips into their own component means writing down what they
+share, and „nothing" was not the answer the markup implied.
+
+**What the extraction is actually for.** `TripChangeChips` is one component rather than a block in
+each of the two representations, because the trip you are packing is where „what changed under me"
+is asked most and a chip written twice is a chip that ends up in one place. Same reason the hero
+asks for its own trip partition (ADR-033): it is not a row, so no intersection observer will ever
+ask for it, and without that watcher it says „items loading" forever on the one trip the screen
+exists to answer for.

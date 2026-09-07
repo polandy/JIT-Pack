@@ -370,3 +370,52 @@ test.describe('M2 — what the row says about a trip @local @m2', () => {
     await expect(visiblePage(page).getByTestId('m2-empty')).toHaveCount(0)
   })
 })
+
+/**
+ * M2's hero (FR-21.15, UI-Test-Spec §4, unit "M2 hero").
+ *
+ * The card FR-21.13 deferred: on M1 the hero replaced a card that stood
+ * alone, and on M2 the same trip was a row inside a series group carrying a
+ * sliding menu. What makes the case worth running rather than unit-testing is
+ * exactly that half — the actions have to still be there after the lift.
+ */
+test.describe('M2 hero @local @m2', () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, { mode: 'local' })
+  })
+
+  test('E2E-M2-17: the trip being packed is a card, and keeps the actions it left the swipe with', async ({
+    page,
+  }) => {
+    // Two running trips, so „the card" is a choice the screen makes rather
+    // than the only trip it had.
+    await createTripViaWizard(page, { name: 'Kreta', startDate: '2026-11-02' })
+    await tripAction(page, 'start')
+    await createTripViaWizard(page, { name: 'Elba', startDate: '2026-09-20', travelers: ['Andy'] })
+    await tripAction(page, 'start')
+
+    await page.goto(`${PATH.trips}?status=active`)
+    const hero = visiblePage(page).getByTestId('trip-hero-Elba')
+    await expect(hero).toBeVisible()
+    // Who it is for: the faces the row carried, as the card's own line.
+    await expect(hero.getByTestId('hero-meta')).toContainText('Andy')
+
+    // Soonest departure, not M2's own newest-first order — which would have
+    // named Kreta. And the trip is lifted out rather than repeated, while
+    // the later departure stays a row.
+    await expect(visiblePage(page).getByTestId('trip-row-Elba')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trip-hero-Kreta')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trip-row-Kreta')).toBeVisible()
+
+    // FR-18.3's export, from the card. A hero cannot be swiped, so this is
+    // the whole reason the lift was deferred in the first place.
+    const written = page.waitForEvent('download')
+    await visiblePage(page).getByTestId('m2-hero-export-Elba').click()
+    await page.locator('ion-action-sheet').getByText('Clean list (unpacked)').click()
+    expect((await written).suggestedFilename()).toBe('Elba.yaml')
+
+    // And the card is still the door into the trip, which is what a row was.
+    await hero.click()
+    await expect(visiblePage(page).getByTestId('m4-header')).toBeVisible()
+  })
+})

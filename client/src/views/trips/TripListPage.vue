@@ -27,8 +27,6 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
-  chevronDown,
-  chevronUp,
   trainOutline,
   albumsOutline,
   archiveOutline,
@@ -43,6 +41,8 @@ import {
 import { ref, computed, onMounted, onUnmounted, watch, type ComponentPublicInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/global/EmptyState.vue'
+import TripChangeChips from '@/components/trips/TripChangeChips.vue'
+import TripHero from '@/components/trips/TripHero.vue'
 import { hasCollaborativeSession } from '@/mode'
 import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
@@ -54,7 +54,6 @@ import {
   TRIP_FILTER_QUERY,
   type TripFilter,
 } from './tripFilter'
-import { describeAppliedChange } from '@/lib/refreshWording'
 import { proposedChangeCount } from '@/domain/refresh'
 import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
 import { useMasterStore } from '@/stores/masterStore'
@@ -64,7 +63,7 @@ import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { useIdentity } from '@/composables/useTripIdentity'
 import SearchRow from '@/components/global/SearchRow.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { isActive, nextLifecycleStep, tripOrderKey } from '@/domain/trips'
+import { heroTripOf, isActive, nextLifecycleStep, tripOrderKey } from '@/domain/trips'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatTripPeriod } from '@/lib/format'
@@ -242,6 +241,49 @@ const filteredTrips = computed(() =>
 const isEmpty = computed(() => filteredTrips.value.length === 0)
 
 /**
+ * FR-21.15: the trip you are on, as a card at the head of the screen.
+ *
+ * **Only on *Active*.** The hero answers „which one am I packing", and the
+ * other two segments have no answer to give: a planned trip is not being
+ * packed and an archived one is done, so a card over either would state
+ * something untrue about the list under it. Exactly one per screen (FR-21.13)
+ * follows from `heroTripOf` returning one trip rather than a list.
+ *
+ * It reads `filteredTrips`, so a search that excludes the trip removes the
+ * hero with it — the card is a member of the list it heads, not a fixture
+ * above it.
+ */
+const heroTrip = computed(() =>
+  filter.value === 'active' ? heroTripOf(filteredTrips.value) : null,
+)
+
+/**
+ * What the grouped list below the hero shows. The hero is *lifted out* rather
+ * than repeated: two cards for one trip say two trips, and the count on the
+ * series header counts what it shows for the same reason.
+ */
+const listedTrips = computed(() =>
+  filteredTrips.value.filter((trip) => trip.id !== heroTrip.value?.id),
+)
+
+/** The series the hero came out of, which its own line has to keep saying. */
+const heroSeriesName = computed(() => {
+  const id = heroTrip.value?.series_id
+  return id ? (masterStore.getSeries(id)?.name ?? t('trips.seriesFallback')) : null
+})
+
+/**
+ * Who the hero trip is for, and where it sits — the two facts the row it
+ * replaced carried as faces and as its position in a series group.
+ */
+const heroMeta = computed(() => {
+  const trip = heroTrip.value
+  if (!trip) return null
+  const travelers = travelersOf(trip).map((traveler) => traveler.name)
+  return [heroSeriesName.value, ...travelers].filter(Boolean).join(' · ') || null
+})
+
+/**
  * FR-2.8 — the segments, their counts and the opening decision.
  *
  * `countsKnown` is the guard the whole feature turns on: in Server Mode the
@@ -319,7 +361,7 @@ watch(countsKnown, decideOpeningSegment)
 const groupedTrips = computed(() => {
   const groups: { seriesId: string | null; seriesName: string | null; trips: Trip[] }[] = []
   const index = new Map<string | null, number>()
-  for (const trip of filteredTrips.value) {
+  for (const trip of listedTrips.value) {
     const key = trip.series_id
     if (!index.has(key)) {
       index.set(key, groups.length)
@@ -381,6 +423,13 @@ function watchRow(el: Element | ComponentPublicInstance | null, tripId: string) 
 
 onUnmounted(() => rowsOnScreen.stop())
 
+/*
+ * The hero is not a row and never enters the observer, so it asks for its own
+ * partition. Without this it renders „items loading" forever on the one trip
+ * the screen exists to answer for (ADR-033).
+ */
+watch(heroTrip, (trip) => trip && void orchestrator.ensureTripData(trip.id), { immediate: true })
+
 function onFilterChange(event: CustomEvent) {
   filter.value = event.detail.value as FilterStatus
 }
@@ -391,32 +440,11 @@ const router = useRouter()
 // Mode have no second account to share with (FR-17.3/FR-19.3/G-8).
 const collaborative = hasCollaborativeSession()
 
-// Delete is Owner-only (destructive, FR-4.5). Outside collaborative mode
-// there is a single account that owns everything, so it's always allowed;
-// in collaborative mode we check the roster against our own id.
-/**
- * FR-27.4: above this many changes the log folds away behind the chip.
- * Owner decision 2026-08-18 — a handful of lines is worth reading where it
- * happened, but M2 is the app's main entry and there is deliberately no
- * "seen" state, so an unbounded log would push every other trip down the
- * list until the busy one departs.
- */
-const INLINE_LOG_LIMIT = 10
-
 /** FR-27.4: the trip whose *foldable* applied-changes log is open, if any. */
 const expandedApplied = ref<string | null>(null)
 
 function toggleApplied(tripId: string) {
   expandedApplied.value = expandedApplied.value === tripId ? null : tripId
-}
-
-/** Whether this trip's log is long enough to hide behind the chip. */
-function appliedFolds(trip: Trip): boolean {
-  return appliedChanges(trip).length > INLINE_LOG_LIMIT
-}
-
-function appliedOpen(trip: Trip): boolean {
-  return !appliedFolds(trip) || expandedApplied.value === trip.id
 }
 
 /**
@@ -449,6 +477,9 @@ onMounted(async () => {
   if (collaborative) await load()
 })
 
+// Delete is Owner-only (destructive, FR-4.5). Outside collaborative mode
+// there is a single account that owns everything, so it's always allowed;
+// in collaborative mode we check the roster against our own id.
 function canDelete(trip: Trip): boolean {
   if (!collaborative) return true
   return tripStore
@@ -501,6 +532,66 @@ async function exportTrip(trip: Trip) {
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
 }
 
+/** One entry of the hero's action row (FR-21.15). */
+interface HeroAction {
+  id: string
+  icon: string
+  label: string
+  run: () => void
+}
+
+/**
+ * The hero's actions, derived from the same predicates as the row's slide
+ * menu rather than from „it is active, so it can be archived": a hero over a
+ * trip whose lifecycle says otherwise would offer a step the swipe does not,
+ * which is the drift `nextLifecycleStep` was written to end.
+ *
+ * Clone is absent because it is FR-12.1's archive-only step, and the hero is
+ * only ever a running trip — the row keeps it for the segment it belongs to.
+ */
+const heroActions = computed<HeroAction[]>(() => {
+  const trip = heroTrip.value
+  if (!trip) return []
+  return [
+    {
+      id: 'export',
+      icon: downloadOutline,
+      label: t('trips.actionExport'),
+      run: () => void exportTrip(trip),
+    },
+    ...(collaborative
+      ? [
+          {
+            id: 'share',
+            icon: peopleOutline,
+            label: t('trips.actionShare'),
+            run: () => void router.push(tripSubPath(trip.id, 'members')),
+          },
+        ]
+      : []),
+    ...(nextLifecycleStep(trip) === 'archive'
+      ? [
+          {
+            id: 'archive',
+            icon: archiveOutline,
+            label: t('trips.actionArchive'),
+            run: () => archiveTrip(trip.id),
+          },
+        ]
+      : []),
+    ...(canDelete(trip)
+      ? [
+          {
+            id: 'delete',
+            icon: trashOutline,
+            label: t('trips.actionDelete'),
+            run: () => void deleteTrip(trip),
+          },
+        ]
+      : []),
+  ]
+})
+
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
   const tripIds = tripStore.tripList.map((t) => t.id)
@@ -545,6 +636,49 @@ async function handleRefresh(event: CustomEvent) {
           </IonSegmentButton>
         </IonSegment>
       </div>
+
+      <!-- FR-21.15: the trip you are on, as a card rather than as one row
+           among five. It carries its own actions because it left the sliding
+           menu behind when it left the list. -->
+      <TripHero
+        v-if="heroTrip"
+        class="hero-card"
+        :name="heroTrip.name"
+        :when="tripWhen(heroTrip)"
+        :meta="heroMeta"
+        :percent="tripDataKnown(heroTrip) ? progressPercent(heroTrip) : 0"
+        :progress="tripDataKnown(heroTrip) ? itemSummary(heroTrip) : t('trips.itemsUnknown')"
+        :to="tripPath(heroTrip.id)"
+        :testid="`trip-hero-${heroTrip.name}`"
+      >
+        <TripChangeChips
+          :trip-id="heroTrip.id"
+          :name="heroTrip.name"
+          :imported="heroTrip.imported"
+          :proposed="proposedCount(heroTrip)"
+          :applied="appliedChanges(heroTrip)"
+          :expanded="expandedApplied === heroTrip.id"
+          @toggle="toggleApplied(heroTrip.id)"
+        />
+
+        <template #foot>
+          <!-- The same actions the row keeps behind its swipe, stated. A
+               card is not swipeable, and the trip a person packs daily is
+               the last one whose export and share should be the hidden
+               ones (FR-21.15). -->
+          <IonButton
+            v-for="entry in heroActions"
+            :key="entry.id"
+            fill="clear"
+            size="small"
+            :data-testid="`m2-hero-${entry.id}-${heroTrip.name}`"
+            :aria-label="entry.label"
+            @click.stop.prevent="entry.run()"
+          >
+            <IonIcon slot="icon-only" :icon="entry.icon" />
+          </IonButton>
+        </template>
+      </TripHero>
 
       <!-- Empty state (G-7) -->
       <EmptyState
@@ -628,68 +762,15 @@ async function handleRefresh(event: CustomEvent) {
                   <p data-testid="trip-item-summary">
                     {{ tripDataKnown(trip) ? itemSummary(trip) : t('trips.itemsUnknown') }}
                   </p>
-                  <!-- FR-27.4: a trip follows its source groups until it is
-                     past. The row says what it took over, because a list that
-                     changed under you with no trace reads as data loss.
-                     A short log is simply written out; a long one folds away,
-                     so one busy trip cannot push the rest of the list off the
-                     screen (owner, 2026-08-18). -->
-                  <!-- FR-16.2: this trip came out of a spreadsheet rather
-                       than out of the app. `trips.imported` had been written
-                       by M15 and read by nothing until 2026-08-31; on an
-                       instance carrying a decade of migrated history it is
-                       what separates the two kinds of past. -->
-                  <span
-                    v-if="trip.imported"
-                    class="chip imported-chip"
-                    :data-testid="`m2-imported-chip-${trip.name}`"
-                  >
-                    {{ t('trips.importedChip') }}
-                  </span>
-                  <!-- FR-27.4: a group changed and this trip has not answered
-                       yet. It says so and stops there — the two answers are
-                       at the trip, where the list they change is. -->
-                  <span
-                    v-if="proposedCount(trip)"
-                    class="chip proposed-chip"
-                    :data-testid="`m2-proposed-chip-${trip.name}`"
-                  >
-                    {{ t('trips.proposedChip', { n: proposedCount(trip) }) }}
-                  </span>
-                  <div v-if="appliedChanges(trip).length" class="applied">
-                    <button
-                      v-if="appliedFolds(trip)"
-                      class="chip applied-chip"
-                      :data-testid="`m2-applied-chip-${trip.name}`"
-                      :aria-expanded="expandedApplied === trip.id"
-                      :aria-controls="`m2-applied-log-${trip.id}`"
-                      @click.stop.prevent="toggleApplied(trip.id)"
-                    >
-                      {{ t('trips.appliedChip', { n: appliedChanges(trip).length }) }}
-                      <IonIcon :icon="expandedApplied === trip.id ? chevronUp : chevronDown" />
-                    </button>
-                    <!-- A short log needs no control: the chip is then the
-                       heading of what is already on screen, not a button that
-                       reveals it. -->
-                    <span
-                      v-else
-                      class="chip applied-chip static"
-                      :data-testid="`m2-applied-chip-${trip.name}`"
-                    >
-                      {{ t('trips.appliedChip', { n: appliedChanges(trip).length }) }}
-                    </span>
-                    <div
-                      v-if="appliedOpen(trip)"
-                      :id="`m2-applied-log-${trip.id}`"
-                      class="applied-log"
-                      :data-testid="`m2-applied-log-${trip.name}`"
-                    >
-                      <p v-for="entry in appliedChanges(trip)" :key="entry.id">
-                        {{ describeAppliedChange(entry) }}
-                      </p>
-                      <p class="frozen-note">{{ t('trips.appliedFrozen') }}</p>
-                    </div>
-                  </div>
+                  <TripChangeChips
+                    :trip-id="trip.id"
+                    :name="trip.name"
+                    :imported="trip.imported"
+                    :proposed="proposedCount(trip)"
+                    :applied="appliedChanges(trip)"
+                    :expanded="expandedApplied === trip.id"
+                    @toggle="toggleApplied(trip.id)"
+                  />
                 </IonLabel>
                 <!-- FR-2.1/8.1: who the trip is for. The *roster*, not the
                      presence facepile G-10 removed from here on 2026-08-28,
@@ -845,6 +926,13 @@ ion-segment-button {
   margin-bottom: 12px;
 }
 
+/* Aligned with the list's own gutter rather than with the page's: the hero
+   is the head of that list, not a band above it. */
+.hero-card {
+  display: block;
+  margin: 0 8px 12px;
+}
+
 /* Rows inside a card still need a seam between them: the card gives the
    group an edge, not its entries. The last one's line is the card's own
    bottom edge, so Ionic's is removed — `ion-list` does this itself for a
@@ -889,14 +977,6 @@ ion-segment-button {
   transform-origin: 18px 18px;
 }
 
-/* FR-27.4: the applied-changes chip and its log. When it folds, it is an
-   action inside a row that is itself a link, so it stops the tap — expanding
-   the log must not also open the trip. When it does not fold, it is a label
-   for the lines already below it and takes no interaction at all. */
-.applied {
-  margin-top: 6px;
-}
-
 .traveler-faces {
   display: flex;
   align-items: center;
@@ -911,49 +991,6 @@ ion-segment-button {
   font-size: var(--jp-text-xs);
   font-weight: var(--jp-weight-semibold);
   margin-inline-start: 2px;
-}
-
-.imported-chip {
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-}
-
-.proposed-chip {
-  background: color-mix(in srgb, var(--jp-brand) 18%, transparent);
-  border-radius: var(--jp-r-sm);
-  color: var(--jp-brand);
-  display: inline-flex;
-  margin-top: 6px;
-  padding: 2px 8px;
-}
-
-.applied-chip {
-  align-items: center;
-  background: var(--jp-surface-sunken);
-  color: var(--jp-action);
-  border: none;
-  border-radius: var(--jp-r-sm);
-  display: inline-flex;
-  gap: 4px;
-  padding: 2px 8px;
-}
-
-.applied-chip ion-icon {
-  font-size: var(--jp-icon-xs);
-}
-
-/* Nothing to press, so nothing that looks pressable. */
-.applied-chip.static {
-  cursor: default;
-}
-
-.applied-log {
-  margin-top: 6px;
-  color: var(--ct-subtext0);
-}
-
-.applied-log .frozen-note {
-  color: var(--ct-overlay1);
 }
 
 /* G-9: on desktop the FAB could be inline in header */

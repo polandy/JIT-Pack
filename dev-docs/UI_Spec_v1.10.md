@@ -8,7 +8,8 @@ Single-User/Local only. No other changes from v1.9.
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
 * 2026-09-07 — **G-13**: the type table carries the body text, not Ionic (FR-21.14).
-* 2026-09-07 — **M1** opens on a hero card for the trip you are on (FR-21.13).
+* 2026-09-07 — **M1** opens on a hero card for the trip you are on (FR-21.13), and **M2**'s *Active* segment opens on
+  the same card (FR-21.15).
 * 2026-09-07 — **G-13**: a sheet's head is a component, and **G-14**: one close control for every sheet (FR-21.12).
   **G-13**: the head above a block is a display role with its count beside it; the eyebrow keeps only the
   label-inside-a-list job (FR-21.11).
@@ -671,6 +672,15 @@ These patterns apply to every screen and are specified once.
   and the FR-27.4 chips, and no avatar of any kind. Whether the trip's *travellers* — which are not presence, and need
   no subscription — belong on the row is an open owner decision; the sentence is left standing as the promise it is, and
   E2E-M2-03 names the part of itself that no case can claim.
+* **The running trip is a hero card at the head of *Active* (added 2026-09-07, FR-21.15).** The same card M1 draws,
+  naming the same trip — the running one that departs **soonest**, which is deliberately not the head of M2's own
+  newest-first order. Only on *Active*: the other two segments are lists by definition, and a card over either would
+  claim a trip is being packed that is not. The trip is **lifted out** of the grouped list rather than drawn twice, so
+  the series header below counts what it lists — which is what it has always counted, a search having shrunk it since
+  the screen shipped. The hero states the series it came out of, in front of who the trip is for. Because a card
+  cannot be swiped, the row's slide actions are **stated on it**: export, share (G-8), the one lifecycle step and
+  delete, derived from the same predicates as the swipe. It carries the FR-27.4 and FR-16.2 chips with it, and asks
+  for its own trip partition — no observer would ever ask for a card (ADR-033).
 * **Default ordering (concept-review 2026-07-17, realised and refined 2026-08-08):** **one flat list, not grouped by
   Trip Series.** M2 is the app's main entry since the phase hub was dropped, and what belongs on top is the trip you are
   packing for, not a taxonomy of your holidays. Ordering is by usefulness rather than literally newest-first: the
