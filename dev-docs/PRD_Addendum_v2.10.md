@@ -815,6 +815,13 @@ taken straight from a phone camera never reaches the server unprocessed.
   screen — the point of the card is to say *which* trip, and a second one unsays it. It is the only card that paints
   brand on its own plane (FR-21.7), for the same reason the active tab does: identity marks the thing you are on.
 
+  **Which trip it is had to become a rule.** M1's running trips were rendered in whatever order the store handed
+  over — IndexedDB's key order over random ids — which is harmless for a list and not for a *singular*: with two
+  active trips the screen named a different one as the trip you are on depending on the browser. They are ordered
+  **soonest departure first** now, sharing the comparator with FR-6.1's planned lookahead, and an undated trip sorts
+  last for the same reason it does there (FR-2.1b: no date says the departure is unknown, never that it is
+  imminent). The hero is the head of that list.
+
   **M2 does not get one in the same step, and the reason is structural rather than a deferral of taste.** On M1 the
   hero replaces a card that stood alone. On M2 the same trip is a row *inside a series group*, carrying a sliding menu
   with export, share and delete on it; lifting it out of the group would take those actions away from the one trip they

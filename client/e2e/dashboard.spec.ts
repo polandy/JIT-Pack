@@ -107,30 +107,38 @@ test.describe('M1 dashboard @local @m1', () => {
   })
 
   /*
-   * E2E-M1-09 (FR-21.13): one hero, and the second active trip is not it.
+   * E2E-M1-09 (FR-21.13): one hero, and it is the trip departing soonest.
    *
    * The promise is a *singular*, so a screen with one trip cannot check it —
-   * it would be green whether the rule said "the first" or "every one".
-   * Two active trips is the smallest list that tells those apart.
+   * it would be green whether the rule said "the one" or "every one". Two
+   * active trips is the smallest list that tells those apart.
+   *
+   * Both carry a departure date, and that is the case rather than the
+   * fixture: the first version seeded two dateless trips and asserted which
+   * one was the hero, which is an ordering *nothing defined* — it passed on
+   * Chromium and failed on WebKit, where IndexedDB handed the rows back the
+   * other way round. The fix was in the screen (`byDepartureSoonestFirst`),
+   * not in the assertion.
    */
-  test('E2E-M1-09: only the first active trip is the hero; the next is a card', async ({
+  test('E2E-M1-09: the trip departing soonest is the hero; the next is a card', async ({
     page,
   }) => {
-    await activeTripWith(page, ['Kamera'])
-    await createTripViaWizard(page, { ...TRIP, name: 'Elba 2026' })
+    await createTripViaWizard(page, { ...TRIP, name: 'Elba 2026', startDate: '2026-11-02' })
+    await tripAction(page, 'start')
+    await createTripViaWizard(page, { ...TRIP, name: 'Samedan 2026', startDate: '2026-09-20' })
     await tripAction(page, 'start')
     await page.goto(PATH.dashboard)
 
     const heroes = visible(page).getByTestId('hero-name')
     await expect(heroes).toHaveCount(1)
-    await expect(heroes).toHaveText(TRIP.name)
+    await expect(heroes).toHaveText('Samedan 2026')
 
-    // The positive signal beside the absence: the second trip is on the
+    // The positive signal beside the absence: the later trip is on the
     // screen, as a card, so "no second hero" is a shape rather than a
     // missing trip.
-    const second = visible(page).getByTestId('dashboard-trip-Elba 2026')
-    await expect(second).toBeVisible()
-    await expect(second.getByTestId('hero-name')).toHaveCount(0)
+    const later = visible(page).getByTestId('dashboard-trip-Elba 2026')
+    await expect(later).toBeVisible()
+    await expect(later.getByTestId('hero-name')).toHaveCount(0)
   })
 
   /**

@@ -34,6 +34,7 @@ import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
 import {
+  byDepartureSoonestFirst,
   delegatedToMe,
   isOpenRow,
   latePackersDepartingToday,
@@ -64,7 +65,9 @@ onMounted(() => {
   void load()
 })
 
-const activeTrips = computed(() => tripStore.tripList.filter((t) => isActive(t)))
+const activeTrips = computed(() =>
+  byDepartureSoonestFirst(tripStore.tripList.filter((t) => isActive(t))),
+)
 
 /*
  * The rows this screen aggregates have to *be here*. A trip partition arrives
@@ -111,10 +114,9 @@ const plannedTrips = computed(() => plannedTripsByDeparture(tripStore.tripList))
 const isEmpty = computed(() => activeTrips.value.length === 0 && plannedTrips.value.length === 0)
 
 /*
- * The one trip the screen is about, and the ones after it (FR-21.13). The
- * hero is the *first* active trip rather than the soonest: M1 has never
- * ordered this list, and inventing an ordering here would make the hero
- * disagree with the cards under it.
+ * The one trip the screen is about, and the ones after it (FR-21.13).
+ * `activeTrips` is ordered soonest departure first, so the hero is the trip
+ * that is next rather than whichever one IndexedDB handed over first.
  */
 const heroTrip = computed(() => activeTrips.value[0] ?? null)
 const followingTrips = computed(() => activeTrips.value.slice(1))

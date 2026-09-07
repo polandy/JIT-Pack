@@ -255,10 +255,13 @@ stable references for the traceability matrix.
 * **E2E-M1-07** `all` (FR-7.3) — **new 2026-08-31**: the prep card's item name opens **that row's** sheet, asserted on
   the sheet's own todo rather than on the trip having opened. UI-Spec M1 had promised the jump since the screen shipped
   and the name was a `<p>` with no handler.
-* **E2E-M1-09** `all` (FR-21.13) — **new 2026-09-07**: only the **first** active trip is the hero; the second is
+* **E2E-M1-09** `all` (FR-21.13) — **new 2026-09-07**: the trip departing **soonest** is the hero; the later one is
   still a list card. The case seeds **two** active trips on purpose — the promise is a singular, and a screen with one
-  trip would be green whether the rule said "the first" or "every one". The second trip's visible card is the positive
-  signal beside the absence, so "no second hero" reads as a shape rather than as a trip that failed to render.
+  trip would be green whether the rule said "the one" or "every one". The later trip's visible card is the positive
+  signal beside the absence, so "no second hero" reads as a shape rather than as a trip that failed to render. Both
+  trips carry a **departure date**, and that is the case rather than the fixture: the first version seeded two dateless
+  trips and asserted which was the hero, which is an ordering nothing defined — green on Chromium, red on WebKit. The
+  fix was in the screen (`byDepartureSoonestFirst`), not in the assertion.
 * **E2E-M1-08** `all` (FR-6.1) — **new 2026-09-02**, with the planned-trips section: a trip left in `planning` by the
   wizard is listed on M1 *as planned*, with its period, and leads to the trip. Three assertions carry it rather than
   one, because each alone passes on a wrong screen: the section could be a screen that stopped filtering by status (so

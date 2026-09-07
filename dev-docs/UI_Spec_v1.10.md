@@ -582,7 +582,8 @@ These patterns apply to every screen and are specified once.
   trip is, who is on it, a progress ring with the share in words beside it, a track, and — in the hero itself — the
   same preview of what is still open the card had. There is exactly **one** hero: a screen has one thing you are on,
   and a second hero is a second answer to which one that is. It is the only card in the app that paints brand on its
-  own plane (G-11).
+  own plane (G-11). The active trips are ordered **soonest departure first** — the hero is the head of that list, and
+  before the rule existed the head was whatever IndexedDB handed over.
 * **Elements:** Greeting header with sync glyph (G-2) — the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag*
   12–17, *Guten Abend* 18–21, and a neutral *Hallo* through the night (2026-08-26, UX review UX-15: everything below
   noon was morning, so 00:14 greeted the morning; night deliberately makes no time-of-day claim). The rule is the pure

@@ -13827,6 +13827,14 @@ most and leaves the group counting a trip it no longer shows. Deferred with a re
 FR-21.13 rather than built badly — the component exists now and costs nothing to place when M2's
 list is reworked.
 
+**A singular exposed an ordering nothing had defined.** M1 rendered its running trips in whatever
+order the store handed over — IndexedDB's key order over random ids — which is harmless for a list
+and not for "the trip you are on": with two active trips the screen named a different hero on
+Chromium than on WebKit. The case found it by disagreeing with itself across browsers, and the
+fix went into the screen rather than into the assertion (`byDepartureSoonestFirst`, sharing its
+comparator with FR-6.1's planned lookahead). The mutation proof is the shape of the defect
+restated: reverting the sort leaves Chromium green and turns WebKit red.
+
 **The hero keeps the preview it replaced.** The first draft dropped M1's three open rows and the
 "+N more" line, which no test would have caught as a *loss* — E2E-M1-01 asserts them, so it would
 have gone red and been "fixed" by deleting the assertions. They live in the hero's own slot
