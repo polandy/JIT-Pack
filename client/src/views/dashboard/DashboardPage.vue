@@ -34,6 +34,7 @@ import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
 import {
+  byDepartureSoonestFirst,
   delegatedToMe,
   isOpenRow,
   latePackersDepartingToday,
@@ -50,6 +51,7 @@ import { isActive } from '@/domain/trips'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import TripHero from '@/components/trips/TripHero.vue'
 
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
@@ -63,7 +65,9 @@ onMounted(() => {
   void load()
 })
 
-const activeTrips = computed(() => tripStore.tripList.filter((t) => isActive(t)))
+const activeTrips = computed(() =>
+  byDepartureSoonestFirst(tripStore.tripList.filter((t) => isActive(t))),
+)
 
 /*
  * The rows this screen aggregates have to *be here*. A trip partition arrives
@@ -108,6 +112,20 @@ watch(
 const plannedTrips = computed(() => plannedTripsByDeparture(tripStore.tripList))
 
 const isEmpty = computed(() => activeTrips.value.length === 0 && plannedTrips.value.length === 0)
+
+/*
+ * The one trip the screen is about, and the ones after it (FR-21.13).
+ * `activeTrips` is ordered soonest departure first, so the hero is the trip
+ * that is next rather than whichever one IndexedDB handed over first.
+ */
+const heroTrip = computed(() => activeTrips.value[0] ?? null)
+const followingTrips = computed(() => activeTrips.value.slice(1))
+
+/** Who is on the trip, for the hero's second line. */
+function travelerLine(trip: Trip): string | null {
+  const names = tripStore.getTravelers(trip.id).map((traveler) => traveler.name)
+  return names.length > 0 ? names.join(', ') : null
+}
 
 const greeting = computed(() => t(greetingKey(new Date().getHours())))
 
@@ -383,9 +401,64 @@ async function handleRefresh(event: CustomEvent) {
         </IonCardContent>
       </IonCard>
 
+      <!--
+        The trip that is next, as a card rather than as a row (FR-21.13).
+        The rest keep the list card: a screen has one thing you are on, and
+        a second hero is a second answer to which one that is.
+      -->
+      <TripHero
+        v-if="heroTrip"
+        :name="heroTrip.name"
+        :when="formatTripPeriod(heroTrip)"
+        :meta="travelerLine(heroTrip)"
+        :percent="progressFraction(heroTrip) * 100"
+        :progress="
+          t('trips.itemSummary', {
+            packed: tripKpis(heroTrip).packedItems,
+            total: tripKpis(heroTrip).totalItems,
+          })
+        "
+        :detail="
+          openItemCount(heroTrip.id) > 0
+            ? t('dashboard.openCount', { n: openItemCount(heroTrip.id) })
+            : null
+        "
+        :to="tripPath(heroTrip.id)"
+        :testid="`dashboard-trip-${heroTrip.name}`"
+      >
+        <IonItem
+          v-for="item in previewItems(heroTrip.id)"
+          :key="item.id"
+          lines="none"
+          class="dashboard-item"
+          :data-testid="`dashboard-preview-${item.name}`"
+        >
+          <IonCheckbox
+            slot="start"
+            :checked="isFullyPacked(item)"
+            :indeterminate="isPartlyPacked(item)"
+            disabled
+          />
+          <IonLabel>
+            <span>{{ item.name }}</span>
+            <span v-if="item.quantity > 1" class="qty-badge">
+              {{ item.packed_count }}/{{ item.quantity }}
+            </span>
+          </IonLabel>
+        </IonItem>
+
+        <p
+          v-if="openItemCount(heroTrip.id) > 3"
+          class="more-items"
+          :data-testid="`dashboard-more-${heroTrip.name}`"
+        >
+          {{ t('dashboard.moreItems', { n: openItemCount(heroTrip.id) - 3 }) }}
+        </p>
+      </TripHero>
+
       <!-- Trip cards -->
       <IonCard
-        v-for="trip in activeTrips"
+        v-for="trip in followingTrips"
         :key="trip.id"
         button
         :router-link="tripPath(trip.id)"

@@ -336,6 +336,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The bar had been answering a question it could not answer (2026-09-06)](#the-bar-had-been-answering-a-question-it-could-not-answer-2026-09-06) — ADR-050: one constraint, three workarounds.
 - [A role that every call site had to finish (2026-09-07)](#a-role-that-every-call-site-had-to-finish-2026-09-07) — FR-21.11: the extraction stopped one property short, twelve times.
 - [The same button in two designs, four against four (2026-09-07)](#the-same-button-in-two-designs-four-against-four-2026-09-07) — FR-21.12: a token table cannot say two places meant the same thing.
+- [An italic nobody shipped, on a screen with no picture of itself (2026-09-07)](#an-italic-nobody-shipped-on-a-screen-with-no-picture-of-itself-2026-09-07) — FR-21.13: the hero, and the two things building it found.
 
 ## Deviations
 
@@ -13796,3 +13797,46 @@ head exists to delete. The concept prototype draws it flush at the top too. The 
 number, states what it used to claim, and still goes red under the defect it was written for: a
 stray h1 margin pushes the line down and nothing else does. The margin is declined once now, inside
 the head, which is why four separate `.head h1 { margin: 0 }` rules could go.
+
+## An italic nobody shipped, on a screen with no picture of itself (2026-09-07)
+
+Step 5's third component, the hero card, and the two findings are both about things that had been
+true for weeks without anything being able to say so.
+
+**The concept's italic cannot be rendered, and asking for it would not have failed.** The hero's
+first line is Fraunces *italic* in the concept. Neither self-hosted face declares an italic — both
+`@font-face` blocks say `font-style: normal` — so `font-style: italic` does not fall back or warn,
+it **synthesises**: the browser slants the upright outlines and paints something that looks enough
+like an italic to survive a screenshot and a review. Shipping the real one means a second pair of
+files beside the roman's 126 KB, on every boot, in every mode, for one line, which is the trade
+FR-21.6 exists to refuse. So the eyebrow is upright and the decision is a **guard** rather than a
+comment — and the guard found that M8's *included* note had been asking for a slanted Hanken
+Grotesk since the type migration. Nobody had reported it, because a faux italic does not look
+broken; it looks like an italic.
+
+**M1 had no baseline of itself with data.** All four tab-root baselines are *empty states*, because
+a trip out of the wizard is `planning` and M1 lists what is active — so the screen every rebuild
+lands on had a picture of the case where it shows nothing. E2E-VIS-10 starts the trip first and
+captures the hero. That is worth recording as a shape rather than as a fix: **a baseline suite can
+be complete by screen and still photograph only the state that needs no rendering.**
+
+**M2 does not get the hero, and the reason is structural.** On M1 the hero replaces a card that
+stood alone. On M2 the same trip is a row *inside a series group*, carrying a sliding menu with
+export, share and delete; lifting it out takes those actions away from the trip they are used on
+most and leaves the group counting a trip it no longer shows. Deferred with a revisit trigger in
+FR-21.13 rather than built badly — the component exists now and costs nothing to place when M2's
+list is reworked.
+
+**A singular exposed an ordering nothing had defined.** M1 rendered its running trips in whatever
+order the store handed over — IndexedDB's key order over random ids — which is harmless for a list
+and not for "the trip you are on": with two active trips the screen named a different hero on
+Chromium than on WebKit. The case found it by disagreeing with itself across browsers, and the
+fix went into the screen rather than into the assertion (`byDepartureSoonestFirst`, sharing its
+comparator with FR-6.1's planned lookahead). The mutation proof is the shape of the defect
+restated: reverting the sort leaves Chromium green and turns WebKit red.
+
+**The hero keeps the preview it replaced.** The first draft dropped M1's three open rows and the
+"+N more" line, which no test would have caught as a *loss* — E2E-M1-01 asserts them, so it would
+have gone red and been "fixed" by deleting the assertions. They live in the hero's own slot
+instead. The case that did change is the summary, which was one sentence carrying two facts and is
+now the two lines the hero draws.

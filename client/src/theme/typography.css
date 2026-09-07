@@ -110,13 +110,17 @@
     'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --jp-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
 
-  /* Display scale — the prototype's five title sizes, no more. Raw px
-     lives here and only here; components reference the token. */
+  /* Display scale — the concept's title sizes, and only those. Raw px
+     lives here and only here; components reference the token. The sixth
+     step is the hero card's eyebrow: 15px is a size the display face is
+     genuinely set at in the concept, three and a half steps below its
+     neighbour, which is a decision rather than a rounding. */
   --jp-text-display-xl: 34px; /* page title      (prototype .caption h1) */
   --jp-text-display-lg: 28px; /* greeting, KPI   (.greet h2 / .stat .n)  */
   --jp-text-display-md: 26px; /* trip hero       (.hero h2)              */
   --jp-text-display-sm: 24px; /* sheet title     (.ihead .iname)         */
   --jp-text-display-xs: 18.5px; /* app-bar title (.appbar .title)        */
+  --jp-text-display-2xs: 15px; /* hero eyebrow   (.hero .eyebrow)       */
 
   /* UI scale. Unlike a role class, a scale is a table whose intermediate
      steps mean nothing on their own, so it ships whole rather than one
@@ -215,6 +219,24 @@ body {
  * totals, M1's stats when it is rebuilt). Tabular numerals because a
  * figure that changes in place must not reflow its card.
  */
+/*
+ * The hero card's first line — the date range on M1, "in two days" on M2.
+ * Display face at a UI size, in the brand, which is the one thing on the
+ * card that is not the card's own voice.
+ *
+ * The concept sets it in Fraunces *italic*. It is upright here: the italic
+ * is a second pair of font files beside the roman's 126 KB, on every boot,
+ * in every mode, for one line — and FR-21.6 self-hosts precisely so that a
+ * face is never a request the app makes of anyone. Recorded rather than
+ * quietly dropped; the revisit trigger is a second surface wanting italic.
+ */
+.jp-hero-eyebrow {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-medium);
+  font-size: var(--jp-text-display-2xs);
+  color: var(--jp-brand);
+}
+
 .jp-figure {
   font-family: var(--jp-font-display);
   font-weight: var(--jp-weight-semibold);
