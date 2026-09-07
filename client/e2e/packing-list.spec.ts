@@ -1461,10 +1461,21 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    * pixel is the assertion; the standing head is measured against 40.
    */
   const YIELDED_PX = 2
+  const STANDING_PX = 40
 
-  /** The rendered height of the frame's one page head, settled. */
+  /**
+   * The head's height once it has *settled*, polled rather than read once.
+   *
+   * The collapse travels over a transition, and a single `evaluate` reads
+   * whatever frame it lands on — which is how the first version of this case
+   * passed here and failed on CI with 28 px and 53 px, both mid-flight. The
+   * wait is on the rendered end state, never on a clock; this is the same
+   * seam `toHaveCSS` gives E2E-M4-45 for the header line.
+   */
   const headHeight = (page: Page) =>
-    page.getByTestId('page-head').evaluate((el) => el.getBoundingClientRect().height)
+    expect.poll(() =>
+      page.getByTestId('page-head').evaluate((el) => el.getBoundingClientRect().height),
+    )
 
   /** ion-content's own scroller, which is where an offset is real. */
   function scroller(page: Page): Locator {
@@ -1501,7 +1512,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // The positive signal the rest of the case is measured against: the head
     // is standing, and it is standing at a height worth reclaiming.
     await expect(head).not.toHaveClass(/collapsed/)
-    expect(await headHeight(page)).toBeGreaterThan(40)
+    await headHeight(page).toBeGreaterThan(STANDING_PX)
 
     // Straight to the end, in one gesture, with the head still standing —
     // which is the only arrangement in which the clamp can bite. Reaching
@@ -1511,7 +1522,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await scrollTo(page, 'bottom')
     await expect(head).toHaveClass(/collapsed/)
     await expect(line).toHaveClass(/collapsed/)
-    expect(await headHeight(page)).toBeLessThan(YIELDED_PX)
+    await headHeight(page).toBeLessThan(YIELDED_PX)
 
     // Any upward scroll brings both back — the other half of the owner's
     // 2026-08-19 rule, and what makes the collapse a yield rather than a
@@ -1519,13 +1530,13 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await scrollTo(page, 40)
     await expect(head).not.toHaveClass(/collapsed/)
     await expect(line).not.toHaveClass(/collapsed/)
-    expect(await headHeight(page)).toBeGreaterThan(40)
+    await headHeight(page).toBeGreaterThan(STANDING_PX)
 
     // And the ordinary case, mid-list, where nothing is clamping.
     await scrollTo(page, 200)
     await expect(head).toHaveClass(/collapsed/)
     await expect(line).toHaveClass(/collapsed/)
-    expect(await headHeight(page)).toBeLessThan(YIELDED_PX)
+    await headHeight(page).toBeLessThan(YIELDED_PX)
   })
 
   /*
@@ -1565,5 +1576,14 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // The window is wide enough that either measure could have applied, so
     // the difference is a decision and not a consequence of the frame.
     expect(readingColumn).toBeGreaterThan(packingColumn)
+
+    // Back out the way in, so the case leaves the app where it found it —
+    // a pushed page left on the stack eats taps meant for the one on
+    // screen, and the suite fails the case that leaked it (ADR-012).
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    // …and the column went back with it, which is the half of the rule a
+    // one-way navigation could not show.
+    await expect.poll(columnWidth).toBe(packingColumn)
   })
 })

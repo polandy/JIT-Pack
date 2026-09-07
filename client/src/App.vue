@@ -256,13 +256,11 @@ const router = useRouter()
 const pageHead = computed(() => resolveHead(route.path, route.meta.titleKey))
 
 /**
- * UX-17's column, at the measure the screen's content asks for. A screen
- * whose content is control rows says so in the route table; everything else
- * gets the reading measure without deciding anything.
+ * UX-17's column takes the narrower control measure when the screen's
+ * content is rows rather than prose. A screen says so in the route table;
+ * everything else gets the reading measure without deciding anything.
  */
-const contentMeasure = computed(() =>
-  route.meta.measure === 'list' ? 'var(--jp-measure-list)' : 'var(--jp-measure-read)',
-)
+const listMeasure = computed(() => route.meta.measure === 'list')
 
 // A session that ends — the IdP refusing the refresh, or the account
 // deactivated (FR-23.3) — returns to the login. Attached here, in setup,
@@ -351,7 +349,7 @@ async function saveBackup() {
       />
       <div class="app-body">
         <NavRail />
-        <main class="app-content" :style="{ maxWidth: contentMeasure }">
+        <main class="app-content" :class="{ 'measure-list': listMeasure }">
           <!-- G-9: the screen's name, once, for every screen that registers
                one — including the tab roots, which used to write their own
                (ADR-050). -->
@@ -414,12 +412,17 @@ async function saveBackup() {
   flex-direction: column;
   margin-inline: auto;
   width: 100%;
+  max-width: var(--jp-measure-read);
   /* G-9's content column (UX-17). One rule for every screen, and here
      rather than per view: a screen that had to remember to cap itself is
-     a screen that will forget. The width itself is bound above, because
-     which of the two measures a screen takes is the screen's own answer
-     (`meta.measure`) — see --jp-measure-* in theme/surfaces.css. Below the
-     measure the cap is inert, which is why it needs no breakpoint. */
+     a screen that will forget. Below the measure the cap is inert, which
+     is why it needs no breakpoint of its own. */
+}
+
+/* FR-21.18: a screen whose content is control rows, where the distance
+   from a name to the control that acts on it is what the cap is for. */
+.app-content.measure-list {
+  max-width: var(--jp-measure-list);
 }
 
 .app-outlet {

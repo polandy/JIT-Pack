@@ -108,6 +108,8 @@ import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { nextHeadState } from '@/lib/headScroll'
+import type { HeadScrollState } from '@/lib/headScroll'
 import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -477,47 +479,21 @@ const shoppingCount = computed(() => {
 
 /**
  * The header line *and the page head above it* yield to the list on the way
- * down and come back on any upward scroll. A threshold keeps it from
- * flickering on the rubber-band overscroll at the top, where the direction
- * flips every frame.
+ * down and come back on any upward scroll. The rule itself is a pure step in
+ * `lib/headScroll.ts` — its one interesting case is a collapse being read as
+ * a gesture, which nothing can reach through a listener.
  */
-const headCollapsed = ref(false)
-let lastScrollTop = 0
-
-/** Below this the head is never in the way, so the gesture is ignored. */
-const HEAD_YIELD_AFTER_PX = 48
-/** Smaller than a deliberate swipe: the rubber-band's own jitter. */
-const SCROLL_NOISE_PX = 8
-
-/**
- * A reading taken with the list already at its bottom is not a gesture.
- *
- * Yielding the head hands its height to the scroll viewport, which shortens
- * the scrollable range by exactly as much, and the browser answers by
- * clamping `scrollTop` down. Read back through `@ion-scroll` that clamp is
- * an upward scroll, which brings the head back, which lengthens the range
- * again — measured on a 1280×900 desktop, the head opened and shut on one
- * flick near the end of the list. The clamp can only ever leave the
- * scroller at its own bottom, which is where the rule stops reading
- * direction; a user scrolling up leaves the bottom on the next event.
- */
-function atBottom(el: HTMLElement | null, top: number): boolean {
-  return el !== null && top + el.clientHeight >= el.scrollHeight - 1
-}
+const head = ref<HeadScrollState>({ top: 0, collapsed: false })
+const headCollapsed = computed(() => head.value.collapsed)
 
 /** The scroller behind the ion-content, resolved from the first event. */
 let scrollEl: HTMLElement | null = null
 function onScroll(event: CustomEvent<{ scrollTop: number }>) {
-  const top = event.detail.scrollTop
   if (scrollEl === null) {
     const content = event.target as { getScrollElement?: () => Promise<HTMLElement> }
     void content.getScrollElement?.().then((el) => (scrollEl = el))
   }
-  if (Math.abs(top - lastScrollTop) < SCROLL_NOISE_PX) return
-  const up = top < lastScrollTop
-  lastScrollTop = top
-  if (up && atBottom(scrollEl, top)) return
-  headCollapsed.value = !up && top > HEAD_YIELD_AFTER_PX
+  head.value = nextHeadState(head.value, { top: event.detail.scrollTop, viewport: scrollEl })
 }
 
 // --- App-bar cluster (G-12) --------------------------------------------
