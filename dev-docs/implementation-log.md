@@ -337,6 +337,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A role that every call site had to finish (2026-09-07)](#a-role-that-every-call-site-had-to-finish-2026-09-07) — FR-21.11: the extraction stopped one property short, twelve times.
 - [The same button in two designs, four against four (2026-09-07)](#the-same-button-in-two-designs-four-against-four-2026-09-07) — FR-21.12: a token table cannot say two places meant the same thing.
 - [An italic nobody shipped, on a screen with no picture of itself (2026-09-07)](#an-italic-nobody-shipped-on-a-screen-with-no-picture-of-itself-2026-09-07) — FR-21.13: the hero, and the two things building it found.
+- [The scale carried the exceptions and Ionic carried the body (2026-09-07)](#the-scale-carried-the-exceptions-and-ionic-carried-the-body-2026-09-07) — FR-21.14: a token nobody read, and a rule that never applied.
 
 ## Deviations
 
@@ -13840,3 +13841,38 @@ restated: reverting the sort leaves Chromium green and turns WebKit red.
 have gone red and been "fixed" by deleting the assertions. They live in the hero's own slot
 instead. The case that did change is the summary, which was one sentence carrying two facts and is
 now the two lines the hero draws.
+
+## The scale carried the exceptions and Ionic carried the body (2026-09-07)
+
+The last item from the Bergluft concept: *„Der Grundtext geht von 14 auf 15,5 px."* It could not be
+done the way it is written, and finding out why is the entry.
+
+**`--jp-text-base` is not the body text, and nothing reads it as such.** The obvious edit — change
+the token from 14px to 15.5px — moves nineteen call sites and none of the text a person actually
+reads. Measured in the pinned container before touching anything: `body` computes to **16px**, the
+browser's default, never set by the app; a packing row's name is **14px**, Ionic's `ion-label h3`;
+M2's trip name is **16px**, Ionic's `ion-label h2`; the detail line under either is **14px**,
+Ionic's `ion-label p`. **The type table carried the exceptions and Ionic carried the body**, which
+is the opposite of what G-13 says and had been true since the type migration.
+
+Two things were on the screen the whole time as a consequence. A row's name was a different size
+depending on which element the screen happened to write for it — M2's trip at 16, M4's item at 14,
+the same kind of thing twice. And the detail under a name was the same size as the name, so the
+row had no hierarchy of its own at all.
+
+**The rule that fixes it did not apply, and looked like it did.** `ion-label` is a *scoped* Ionic
+component: its rules arrive as `.sc-ion-label-md-s h3`, specificity (0,1,1), against which a bare
+`ion-label h3` at (0,0,2) never wins. The first version of the fix was in the stylesheet, passed
+the token gate, read correctly, and changed nothing — the measurement was still 14px. The selectors
+carry `[class]` now, which matches the scope class **without naming it**, so an Ionic release that
+renames `.sc-ion-label-md-s` does not break it. That attribute is the load-bearing part and it is
+guarded twice: a unit case that refuses an `ion-label` selector without it, and E2E-G13-06, which
+goes red on both browsers when it is dropped.
+
+**Half a pixel is not a step, again.** The concept draws the row name at 15.5px; the scale has 15.
+Same call as FR-21.11's section head against the 18.5px app-bar title, and worth stating twice
+rather than deciding twice.
+
+**What „the body text" turned out to be worth:** eight baselines moved for the row rule and twelve
+more once `body` stopped being 16px — the empty states, the sheets, the hero. No e2e case that
+measures geometry moved at all, which was the risk this change was held back for.

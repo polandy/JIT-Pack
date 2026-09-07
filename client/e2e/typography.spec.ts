@@ -186,3 +186,38 @@ test('E2E-G13-05: a section count renders beside the head, in the UI face @local
   // A counter that is not tabular shifts the head's baseline as it counts.
   expect(style.figures).toContain('tabular-nums')
 })
+
+// E2E-G13-06 (G-13/FR-21.14): the list row's two lines come from this table.
+// Until this rule the app's *body copy* was the one text the scale did not
+// carry — Ionic set `ion-label h2` at 16px, `h3` at 14px and `p` at 14px, so
+// a row's name was a different size depending on which element the screen
+// happened to write, and the detail under it was the same size as the name.
+test('E2E-G13-06: a row names itself larger than it qualifies itself @local @g13', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy'] })
+  await page.goto(PATH.trips)
+  await page.waitForFunction(() => document.fonts.ready.then(() => true))
+
+  const row = visiblePage(page).getByTestId('trip-row-Samedan 2026')
+  await expect(row).toBeVisible()
+
+  const name = await row.locator('h2').evaluate((n) => {
+    const cs = getComputedStyle(n)
+    return { size: parseFloat(cs.fontSize), weight: cs.fontWeight }
+  })
+  const detail = await row
+    .getByTestId('trip-when')
+    .evaluate((n) => parseFloat(getComputedStyle(n).fontSize))
+
+  // Two steps of the same table, in the order the concept draws them.
+  expect(name.size).toBeGreaterThan(detail)
+  // A name is a name: Ionic sets it at 400, and at that weight it reads as
+  // one more line of the row rather than as the thing the row is about.
+  expect(Number(name.weight)).toBeGreaterThanOrEqual(600)
+  // Both are the app's sizes, not Ionic's 16/14 pair.
+  expect(name.size).toBeLessThan(16)
+  expect(detail).toBeLessThan(14)
+})

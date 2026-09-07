@@ -834,6 +834,25 @@ taken straight from a phone camera never reaches the server unprocessed.
   NFR-4.3 and against FR-21.6's reason for self-hosting at all. The rule is guarded rather than remembered, because a
   synthesised italic is exactly the kind of wrong that survives a screenshot. It found one already: M8's *included*
   note had been asking for an italic Hanken Grotesk since the type migration.
+* **FR-21.14 (The Type Scale Carries the Body Text — added 2026-09-07):** The list row's name and the line under it
+  take their size from the type table, and so does any text that reaches the screen without a role of its own. A row's
+  name is **one size whatever element carries it**, set a step above the detail that qualifies it and at the weight
+  that makes it read as the thing the row is about.
+
+  **Until this, the scale carried the exceptions and Ionic carried the body.** Measured rather than assumed: `body`
+  computed to the browser's 16px — a step the table does not have, and larger than every heading the app draws below a
+  page title — while Ionic set `ion-label h2` at 16px, `h3` at 14px and `p` at 14px. Two consequences were on the
+  screen the whole time: the name of a row was a different size depending on whether the screen happened to write `h2`
+  or `h3` for it (M2's trip against M4's item), and the detail under a name was the same size as the name.
+
+  The concept draws the row's name at 15.5px. The scale has 15 and that is what ships — half a pixel is not a step,
+  the same call FR-21.11's section head made against the app-bar title.
+
+  **One implementation detail is load-bearing and therefore guarded.** `ion-label` is a *scoped* Ionic component, so
+  its own rules arrive as `.sc-ion-label-md-s h3` — one class more specific than a bare `ion-label h3`, which
+  therefore never applies at all. The app's rules carry an `[class]` attribute selector to match the scope class
+  without naming it. Removing it is the tidying edit that would silently hand every row back to Ionic, and only a
+  rendered pixel would say so.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.
