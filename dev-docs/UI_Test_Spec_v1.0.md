@@ -825,14 +825,23 @@ rather than registered.
   one does not ask for. Same disposal as `M4-07 → M4-40`.
 * **E2E-M5-18** `all` (FR-25.21, added 2026-08-29): on a shared item, open *Wer braucht das?*, switch to *Pro Person*,
   check Andy/Leonardo/Mia and set 2/3/1. Asserted **in M4 on the rendered cluster**: the item is named **once**, three
-  child rows carry three *different* amounts, and the head reads `0/3`. Deliberately not a row-count assertion —
+  child rows carry three *different* amounts, and the head reads `0/6` — the **sum** of the three, since FR-25.22 made
+  every fraction on M4 count units (it read `0/3`, a count of people, until 2026-09-07). Deliberately not a row-count
+  assertion —
   FR-25.8's own history records an implementation that created N unrelated items sharing a name and satisfied every
   count.
 * **E2E-M5-19** `all` (FR-25.21): from a roster of three, remove the traveler whose row has packed progress. The confirm
-  names the count; *Abbrechen* leaves all three standing; confirming leaves exactly two and the head reads `0/2`. Then
+  names the count; *Abbrechen* leaves all three standing; confirming leaves exactly two and the head reads `0/3` —
+  Andy's two and Mia's one (FR-25.22). Then
   remove a third whose row carries nothing: that one is written **without** a question. The cancel half is the positive
   signal that a removal is a decision rather than a side effect of tapping a checkbox, and the silent half is the
   positive signal that the question is raised by what it would cost and not by the control.
+* **E2E-M5-24** `all` (FR-21.16, new 2026-09-07) — **implemented** (`e2e/membership.spec.ts`): with a cluster and a
+  plain row both on M4, read the *rendered* type of three names — the cluster head, one of its child rows, and the
+  plain row. The head is larger and heavier than its child, and exactly the size of the plain row. Asserted on computed
+  style rather than a baseline because that is where the defect lived: every value in both blocks was a legal token
+  (invariant 9b), and the component's own comment described the intended order correctly while the stylesheet under it
+  did the reverse. Red-proved by restoring the head's former `--jp-text-base`, which fails the first clause.
 * **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam*. One row remains at quantity **5** — the sum, not the
   largest — and the preparation todo written on the surviving row before the conversion is still on it afterwards. That
   last clause is the one worth having: ADR-036 chose keep-and-repoint over delete-and-recreate precisely so a structural
@@ -2335,6 +2344,12 @@ landed, that no test has ever rendered.
   leaving the working list before anything is revealed, and the untouched middle row is what says the sink did not
   simply reorder the group. Rendered order, because the domain unit can only say what the view model holds.
   Mutation-proved: disabling the partition in `packingView` reddens it with the un-sunk order.
+* **E2E-M4-69** `all` (FR-25.22, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): the reveal bar and
+  the filter sheet's *Erledigte* switch label the same set, so they must read the same number. Two rows packed, the
+  bar reads 2; a search for one of them takes the bar to 1, and the switch must follow. They had carried two numbers
+  — the bar counted done rows passing the filter, the switch the trip's packed **units** — and `filter-switch-done`
+  occurred in no test at all, which is what let it stand. The search is the separator, since only one of the two
+  narrows; the bar dropping to 1 first is the positive signal that the narrowing landed before either is read.
 * **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27): the bar keeps *Suchen*, *Filter* and *Zuklappen* and carries the
   rest behind the ⋮ — `m4-edit` and `m4-start` are gone as glyphs, the menu **names** both in words, and picking
   *„Reise-Eigenschaften"* lands on the rendered M22 edit screen. The last step is what separates the menu from a

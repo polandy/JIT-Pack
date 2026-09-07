@@ -39,6 +39,7 @@ function view(overrides: Partial<PackingView> = {}): PackingView {
     facetValues: emptyFacetValues(),
     activeFacetCount: 0,
     matchCount: 0,
+    openRowCount: 0,
     narrowed: false,
     ...overrides,
   }

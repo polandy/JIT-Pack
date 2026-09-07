@@ -361,6 +361,31 @@ describe('tripStore', () => {
     expect(k.packedValue).toBe(3500) // 500*1 + 1000*3
   })
 
+  it('counts a skipped row as one unit, done — the FR-25.22 arithmetic M4 draws', () => {
+    const tripStore = useTripStore()
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Left behind on purpose',
+        quantity: 0,
+        packed_count: 0,
+        state: 'skipped',
+        mode: 'pack',
+        updated_hlc: 'h1',
+      },
+    })
+
+    const k = tripStore.kpis('t1')
+    // On the numbers alone this row is 0/0, and a trip of nothing but
+    // considered rows would read 0 % for ever (FR-5.5).
+    expect(k.totalItems).toBe(1)
+    expect(k.packedItems).toBe(1)
+  })
+
   it('handles travelers', () => {
     const tripStore = useTripStore()
     tripStore.applyChange({

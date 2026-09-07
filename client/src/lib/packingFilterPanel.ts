@@ -100,7 +100,13 @@ export function filterFacets(view: PackingView): FilterFacet[] {
 export interface SwitchState {
   showDone: boolean
   showOthers: boolean
-  /** How many of the trip's items are packed — the Erledigte switch's count. */
+  /**
+   * The Erledigte switch's count — done **rows** among the ones the filter
+   * lets through, which is `PackingView.doneCount` and the same number the
+   * reveal bar labels itself with. It had been the trip's packed *units*
+   * (`kpis.packedItems`), so one screen carried two numbers for one sentence
+   * and neither of them was the set the switch reveals (FR-25.22).
+   */
   packedCount: number
   /** FR-25.20's count: rows hidden because they are somebody else's. */
   hiddenOtherCount: number

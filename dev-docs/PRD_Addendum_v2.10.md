@@ -882,6 +882,18 @@ taken straight from a phone camera never reaches the server unprocessed.
   component now (`TripChangeChips`) rather than a block written into each of the two representations. The hero also
   asks for its own trip partition: it is not a row and never enters M2's intersection observer (ADR-033), so without
   that it would say „items loading" forever on the one trip the screen exists to answer for.
+* **FR-21.16 (A Cluster Names Its Item Louder Than Its People — added 2026-09-07):** In a per-person cluster (FR-25.1)
+  the head names the **item** and the rows under it name **people**, so the head is set at the row's own size and in
+  the page's text colour, and a child row steps one size down and recessive. The person qualifies the item; the item is
+  the thing being packed.
+
+  **It had been the exact inverse, and only a render said so.** The head was set one step *under* the body scale, at
+  medium weight in a subdued colour, while its children took Ionic's row name — larger, brighter, semibold. The
+  component's own comment described the intended three levels correctly the whole time; the stylesheet under it did the
+  opposite, and FR-21.14 (two days earlier) had moved the row's name *up* onto the scale without anyone rereading what
+  sat above it. This is the case invariant 9b exists for: every colour and every size in both blocks was a legal token.
+
+  M4's per-person cluster is the app's most-read block, so it is also where an inverted hierarchy costs most.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.
@@ -1553,11 +1565,17 @@ locked.
     has no Mia to give a 1 to; per-traveler amounts are trip-level only and M8 is untouched. A hand-set amount is
     already **protected** from a template refresh — `isProtected` in `domain/refresh.ts` compares the row's quantity
     against the generation snapshot — so FR-27.4 cannot flatten the amounts back to the per-head figure. **Three
-    decisions settled 2026-08-29 rather than left open:** **(a)** the **M4 cluster head keeps counting people** (`1/3` =
-    one of three travelers done), not units — the head's subject is the set of instances and the child rows carry the
-    amounts; counting units would also change what every equal-quantity cluster shows today, rewriting visual baselines
-    and e2e assertions to answer a question the head was never asked. **(b)** **Collapsing back to gemeinsam sums the
-    amounts** (2+3+1 = 6), it does not keep the largest: each amount is a decision somebody made, and the shared row has
+    decisions settled 2026-08-29 rather than left open:** **(a)** the **M4 cluster head counted people** (`1/3` = one of
+    three travelers done), not units — the head's subject is the set of instances and the child rows carry the amounts;
+    counting units would also change what every equal-quantity cluster shows today, rewriting visual baselines and e2e
+    assertions to answer a question the head was never asked. **Superseded 2026-09-07 by FR-25.22**, which was read off
+    the rendered screen rather than off this one head: six fractions were on M4 at once meaning three different things,
+    and a head that counts people is one of the three. The cost this decision was protecting is real and was paid —
+    baselines and assertions did move — and the argument it rested on does not survive the amounts FR-25.21 itself
+    introduced: with Andy 2, Leonardo 3 and Mia 1 the child rows carry six units and the head said *of three*, so the
+    head was already the one line on the cluster that could not be added up from the lines beneath it.
+    **(b)** **Collapsing back to gemeinsam sums the amounts** (2+3+1 = 6), it does not keep the largest: each amount
+    is a decision somebody made, and the shared row has
     always carried a quantity above one (FR-5.4's „8 of 10 T-shirts"), so *gemeinsam* never meant one object. The
     confirm names the resulting figure, so a sum that is wrong for this item is visible before it is written and
     correctable with the stepper after. **(c)** The write path is a real tradeoff and gets **ADR-036** —
@@ -2028,6 +2046,28 @@ locked.
     user-flagged, not yet decided).
 * **M4 quick-add:** keep the inline quick-add (FR-5.6, well-liked); it **collapses when it loses focus**, and the
   **bottom-right ＋ (FAB) expands *and* focuses it** as the primary entry point.
+* **FR-25.22 (One Arithmetic for Every Fraction on M4 — added 2026-09-07):** Every `x/y` M4 draws counts the same
+  thing: **units**. The trip line, a group head, a cluster head and the row's own stepper are four levels of one sum,
+  so a head is always the total of the lines under it and the trip line is the total of the heads.
+
+  **Read off the rendered screen, not off any one of the four.** With the sample trip on a phone there were six
+  fractions in view at once and they meant three different things: the trip line's `10/26` was units
+  (`packed_count`/`quantity`), a group head's `0/2` was *rows done*, a row's `1/2` was units again, and the reveal bar
+  and filter footer counted rows in words. The consequence a person actually meets is small and wrong: a row that is
+  one of two packed contributes **nothing** to its group, so a group can be worked on all morning and still read `0/2`.
+
+  **A skipped row counts as one unit, done.** FR-5.5's *bewusst nicht einpacken* is a quantity of nothing, so on the
+  numbers alone it would contribute `0/0` and a group of considered, deliberately unpacked rows would read as if it
+  held nothing at all. The decision was made, and reporting decisions is what the fraction is for. This is decided once
+  in `domain/packState.ts` beside `stateFor`, because it is the same reading of the same two numbers.
+
+  **What is *not* a fraction stays a count with a noun.** „2 gepackte anzeigen" and the filter sheet's „zeigt 13
+  Packelemente" count **rows**, correctly — a reveal toggle promises how many lines will appear, which is not a
+  quantity of anything. They are safe from this rule precisely because they name what they count; a bare `x/y` cannot.
+
+  This **supersedes FR-25.21(a)**, which had kept the cluster head counting people. See the amendment there for why
+  that argument did not survive its own feature's per-traveler amounts. FR-21.16 is the type half of the same
+  reading of the same screen.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.

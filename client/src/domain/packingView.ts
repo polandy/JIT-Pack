@@ -9,7 +9,8 @@
  * Counting rule that runs through all of it: **headers count over the full
  * set, lists render the filtered set.** A group that says "3/8" while showing
  * five rows is telling the truth — the other three are done and hidden. Losing
- * that distinction is the easiest way to make the screen lie.
+ * that distinction is the easiest way to make the screen lie. What the
+ * fractions count is units, never rows (FR-25.22).
  */
 import type {
   Container,
@@ -23,7 +24,7 @@ import type {
 } from '@/types/domain'
 import { ITEM_MODES } from '@/types/domain'
 
-import { isFullyPacked } from './packState'
+import { isFullyPacked, unitsOf } from './packState'
 
 /**
  * The facets in panel order (FR-25.11b). Every value is a string so the whole
@@ -71,7 +72,7 @@ export interface PackingCluster {
   kind: 'cluster'
   key: string
   name: string
-  /** Over every instance, including the hidden done ones. */
+  /** Units over every instance, including the hidden done ones (FR-25.22). */
   doneCount: number
   totalCount: number
   /** Visible instances only. */
@@ -94,10 +95,10 @@ export interface PackingGroup {
   key: string
   /** `null` = the unassigned bucket; the caller supplies the wording. */
   name: string | null
-  /** Over the full set, so the header stays honest while done rows are hidden. */
+  /** Units over the full set, so the header stays honest while done rows are hidden. */
   doneCount: number
   totalCount: number
-  /** What a folded header has to answer in place of done/total (FR-25.16). */
+  /** The units a folded header has to answer with in place of done/total (FR-25.16). */
   openCount: number
   /** Folded shut by the user; the entries are still built so unfolding is free. */
   collapsed: boolean
@@ -136,6 +137,15 @@ export interface PackingView {
   activeFacetCount: number
   /** The sheet's footer promise ("14 Sachen anzeigen") — open rows passing the facets. */
   matchCount: number
+  /**
+   * Open **rows** over the trip's whole set, before search and facets. It
+   * answers FR-25.11e's „N offene Sachen sind hinter dem Filter" by
+   * subtraction against the rows on screen, so both sides of that
+   * subtraction are rows: the page had been taking the left-hand side from
+   * the trip's packed *units* and getting a hidden count out of a list with
+   * nothing hidden in it (FR-25.22).
+   */
+  openRowCount: number
   /**
    * Something is hiding rows that are not merely done (FR-25.11e). An empty
    * list may only read as "everything is packed" when this is false — a search,
@@ -377,12 +387,17 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   // Full-set tallies per group, so headers can count what the list no longer
   // shows. "Full set" means everything the filter lets through — a header
   // counting rows the facet excluded would describe a different list.
+  //
+  // Units, not rows (FR-25.22): the head has to answer with the same
+  // arithmetic the rows under it and the trip line above it use, or a row
+  // that is one of two packed counts as nothing for its group.
   const totals = new Map<string, { done: number; total: number }>()
   for (const item of shown) {
     const { key } = groupOf(item, groupBy, travelerById, containerById)
     const tally = totals.get(key) ?? { done: 0, total: 0 }
-    tally.total += 1
-    if (done(item)) tally.done += 1
+    const units = unitsOf(item)
+    tally.total += units.total
+    tally.done += units.done
     totals.set(key, tally)
   }
 
@@ -467,8 +482,9 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     const { key: groupKey } = groupOf(item, groupBy, travelerById, containerById)
     const cluster = clusters.get(`${groupKey}::${clusterKey}`)
     if (!cluster) continue
-    cluster.totalCount += 1
-    if (done(item)) cluster.doneCount += 1
+    const units = unitsOf(item)
+    cluster.totalCount += units.total
+    cluster.doneCount += units.done
   }
 
   for (const cluster of clusters.values()) {
@@ -515,6 +531,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     }),
     activeFacetCount,
     matchCount: items.filter((item) => passesFacets(item) && !done(item)).length,
+    openRowCount: items.filter((item) => !done(item)).length,
     narrowed: activeFacetCount > 0 || term !== '' || hiddenOtherCount > 0,
   }
 }

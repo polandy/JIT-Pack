@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { isFullyPacked, isPartlyPacked, stateFor } from '../packState'
+import { isFullyPacked, isPartlyPacked, stateFor, unitsOf } from '../packState'
 
 describe('stateFor (FR-25.2, FR-25.13f, FR-5.5)', () => {
   it.each([
@@ -44,5 +44,34 @@ describe('the two checkbox readings', () => {
     expect(isPartlyPacked({ packed_count: 0, quantity: 3 })).toBe(false)
     expect(isPartlyPacked({ packed_count: 3, quantity: 3 })).toBe(false)
     expect(isPartlyPacked({ packed_count: 0, quantity: 0 })).toBe(false)
+  })
+})
+
+describe('unitsOf (FR-25.22) — what a row contributes to the fractions above it', () => {
+  it.each([
+    ['nothing packed', 0, 3, { done: 0, total: 3 }],
+    ['part packed — the case that used to count as zero', 1, 2, { done: 1, total: 2 }],
+    ['fully packed', 4, 4, { done: 4, total: 4 }],
+    ['overshot by two devices, clamped to the quantity', 5, 3, { done: 3, total: 3 }],
+    ['a negative count is still no units', -1, 2, { done: 0, total: 2 }],
+  ] as const)('%s', (_name, packed_count, quantity, expected) => {
+    expect(unitsOf({ packed_count, quantity })).toEqual(expected)
+  })
+
+  it('a skipped row counts as one unit, done — never 0/0 (FR-5.5)', () => {
+    expect(unitsOf({ packed_count: 0, quantity: 0 })).toEqual({ done: 1, total: 1 })
+    expect(unitsOf({ packed_count: 0, quantity: -2 })).toEqual({ done: 1, total: 1 })
+  })
+
+  it('is a total, so the fractions above a row compose by adding', () => {
+    const rows = [
+      { packed_count: 1, quantity: 2 },
+      { packed_count: 0, quantity: 3 },
+      { packed_count: 0, quantity: 0 },
+    ]
+    const sum = rows
+      .map(unitsOf)
+      .reduce((a, b) => ({ done: a.done + b.done, total: a.total + b.total }))
+    expect(sum).toEqual({ done: 2, total: 6 })
   })
 })

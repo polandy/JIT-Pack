@@ -679,8 +679,11 @@ const visibleOpenRows = computed(
       .filter((row) => !row.done).length,
 )
 
-const openTotal = computed(() => Math.max(kpis.value.totalItems - kpis.value.packedItems, 0))
-const hiddenOpenCount = computed(() => Math.max(openTotal.value - visibleOpenRows.value, 0))
+// Rows on both sides (FR-25.22): the sentence counts *Sachen* behind the
+// filter, and the left-hand side used to be the trip's open **units**, so a
+// single open row of quantity three reported two hidden things on a list
+// hiding nothing.
+const hiddenOpenCount = computed(() => Math.max(view.value.openRowCount - visibleOpenRows.value, 0))
 
 const onlyOthersHidden = computed(() => isOnlyOthersHidden(view.value, search.value))
 
@@ -708,7 +711,7 @@ const filterSwitches = computed(() =>
   switchesFor({
     showDone: showDone.value,
     showOthers: showOthers.value,
-    packedCount: kpis.value.packedItems,
+    packedCount: view.value.doneCount,
     hiddenOtherCount: view.value.hiddenOtherCount,
   }),
 )

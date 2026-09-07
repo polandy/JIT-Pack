@@ -176,9 +176,41 @@ describe('hiding done rows (FR-25.2)', () => {
   })
 
   it('keeps the group header counting over the full set while rows are hidden', () => {
+    // Three rows, five units (FR-25.22): the header counts what is packed,
+    // not how many lines reached the end.
     const result = view([item(), packed(), packed()])
-    expect(result.groups[0]?.doneCount).toBe(2)
-    expect(result.groups[0]?.totalCount).toBe(3)
+    expect(result.groups[0]?.doneCount).toBe(4)
+    expect(result.groups[0]?.totalCount).toBe(5)
+  })
+
+  it('counts a part-packed row as the units it has, not as nothing (FR-25.22)', () => {
+    const result = view([item({ quantity: 4, packed_count: 3 })])
+    expect(result.groups[0]?.doneCount).toBe(3)
+    expect(result.groups[0]?.totalCount).toBe(4)
+    // The rule it replaces: as a row it is not done, and would have read 0/1.
+    expect(result.groups[0]?.entries).toHaveLength(1)
+  })
+
+  it('counts open rows as rows, whatever their quantity (FR-25.11e via FR-25.22)', () => {
+    // The sentence this feeds says how many *Sachen* are behind the filter,
+    // and it is a subtraction against the rows on screen — so a row of six
+    // must weigh one, or a list hiding nothing reports five hidden things.
+    const result = view([item({ quantity: 6 }), packed(), item({ quantity: 1 })])
+    expect(result.openRowCount).toBe(2)
+  })
+
+  it('counts open rows over the whole trip, not over the filtered set', () => {
+    const result = view([item({ name: 'Zelt' }), item({ name: 'Kocher' })], { search: 'Zelt' })
+    expect(result.groups[0]?.entries).toHaveLength(1)
+    expect(result.openRowCount).toBe(2)
+  })
+
+  it('counts a skipped row as one unit, done — a decision is not an absence (FR-25.22)', () => {
+    const result = view([item({ quantity: 0, packed_count: 0, state: 'skipped' })], {
+      showDone: true,
+    })
+    expect(result.groups[0]?.doneCount).toBe(1)
+    expect(result.groups[0]?.totalCount).toBe(1)
   })
 
   it('drops a group entirely once every row in it is done', () => {
@@ -236,7 +268,7 @@ describe('per-person clusters (FR-25.1)', () => {
     expect(bare.sourceItemId).toBeNull()
   })
 
-  it('names the item once and counts done/total over its instances', () => {
+  it('names the item once and counts the units of its instances (FR-25.22)', () => {
     const result = view(
       [shorts(andy), shorts(leo, { quantity: 2, packed_count: 2, state: 'packed' })],
       {
@@ -245,8 +277,10 @@ describe('per-person clusters (FR-25.1)', () => {
     )
     const [entry] = result.groups[0]?.entries ?? []
     if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
-    expect(entry.doneCount).toBe(1)
-    expect(entry.totalCount).toBe(2)
+    // Two travelers, three units — the head is the sum of its children and
+    // not a count of people, which is what FR-25.21(a) had it be.
+    expect(entry.doneCount).toBe(2)
+    expect(entry.totalCount).toBe(3)
   })
 
   it('hides a done child but keeps the cluster count over the full set (FR-25.2)', () => {
@@ -257,8 +291,8 @@ describe('per-person clusters (FR-25.1)', () => {
     const [entry] = result.groups[0]?.entries ?? []
     if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
     expect(entry.children).toHaveLength(1)
-    expect(entry.doneCount).toBe(1)
-    expect(entry.totalCount).toBe(2)
+    expect(entry.doneCount).toBe(2)
+    expect(entry.totalCount).toBe(3)
   })
 
   it('drops the whole cluster once every instance is done', () => {
@@ -539,8 +573,8 @@ describe('folding groups (FR-25.16)', () => {
     const result = view(rows(), { collapsedGroups: ['Clothing'] })
     const clothing = result.groups[0]
     expect(clothing?.openCount).toBe(1)
-    expect(clothing?.doneCount).toBe(1)
-    expect(clothing?.totalCount).toBe(2)
+    expect(clothing?.doneCount).toBe(2)
+    expect(clothing?.totalCount).toBe(3)
   })
 
   it('does not resurrect a group whose rows are all done — folding is view, doneness is content', () => {

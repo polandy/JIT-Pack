@@ -25,6 +25,7 @@ import type {
 } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { PullChange } from '@/api/types'
+import { unitsOf } from '@/domain/packState'
 import {
   applyToSink,
   codecFor,
@@ -197,8 +198,11 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     let packedValue = 0
 
     for (const item of items) {
-      totalItems += item.quantity
-      packedItems += item.packed_count
+      // FR-25.22: the same units M4's group and cluster heads count, so the
+      // trip line is the sum of the fractions drawn under it.
+      const units = unitsOf(item)
+      totalItems += units.total
+      packedItems += units.done
       if (item.weight_grams) {
         totalWeight += item.weight_grams * item.quantity
         packedWeight += item.weight_grams * item.packed_count

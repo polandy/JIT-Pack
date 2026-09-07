@@ -868,8 +868,11 @@ These patterns apply to every screen and are specified once.
   * **Per-person items render as a named cluster** (FR-25.1) — item name once with `done/total`, one indented child row
     per traveler; a lone instance (notably when grouped by traveler) falls back to a flat "Item · Person" row.
     Cluster-vs-flat is decided over the *full* set, so packing one instance never restructures the list. **The head
-    counts travelers, not units** (FR-25.21a): `1/3` means one of three people is done. Since FR-25.21 the amounts may
-    differ per person, and they live on the child rows — the head's subject is the set of instances.
+    counts units, like every other fraction on the screen** (FR-25.22, 2026-09-07): with Andy 2, Leonardo 3 and Mia 1
+    it reads `0/6`, and the child rows add up to it. It counted *travelers* until then (FR-25.21a, `1/3` = one of three
+    people done) — a head that could not be added up from the lines beneath it, which is what made six fractions on one
+    screen mean three different things. **And the head is set louder than its children** (FR-21.16): the item is what
+    is being packed and the person only qualifies it, so the head takes the row size and the child steps down.
   * **One avatar at the right edge** (FR-25.3/25.19), set apart from the traveler avatar on the left: it shows the
     **assignee** while the row is open (blue ring) and **who actually packed it** once it is packed (green ring +
     check). Never both — the left avatar already answers *for whom*, and a third circle makes the row unreadable.
@@ -909,7 +912,9 @@ These patterns apply to every screen and are specified once.
 * **Group presentation (added 2026-08-14, owner report):** a category **heads** the rows under it and must look like it
   — it shipped as uppercase micro-type *smaller* than the item names it introduced, which inverts the hierarchy it
   exists to state. Three levels, three weights: the group heading, then a per-person cluster's name (FR-25.1), then the
-  rows. And **each group is its own block** — a bordered card carrying its rows — because with nothing but a gap between
+  rows. **The second and third levels had the same inversion, found the same way on 2026-09-07** and fixed by FR-21.16:
+  the cluster's name was set below the traveler rows under it. One level being repaired says nothing about the next.
+  And **each group is its own block** — a bordered card carrying its rows — because with nothing but a gap between
   them, two categories run into each other on a long list. The concept mock had the card from the start; the first
   implementation dropped it.
 * **Elements:**
