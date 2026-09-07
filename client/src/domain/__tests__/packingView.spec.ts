@@ -191,6 +191,20 @@ describe('hiding done rows (FR-25.2)', () => {
     expect(result.groups[0]?.entries).toHaveLength(1)
   })
 
+  it('counts open rows as rows, whatever their quantity (FR-25.11e via FR-25.22)', () => {
+    // The sentence this feeds says how many *Sachen* are behind the filter,
+    // and it is a subtraction against the rows on screen — so a row of six
+    // must weigh one, or a list hiding nothing reports five hidden things.
+    const result = view([item({ quantity: 6 }), packed(), item({ quantity: 1 })])
+    expect(result.openRowCount).toBe(2)
+  })
+
+  it('counts open rows over the whole trip, not over the filtered set', () => {
+    const result = view([item({ name: 'Zelt' }), item({ name: 'Kocher' })], { search: 'Zelt' })
+    expect(result.groups[0]?.entries).toHaveLength(1)
+    expect(result.openRowCount).toBe(2)
+  })
+
   it('counts a skipped row as one unit, done — a decision is not an absence (FR-25.22)', () => {
     const result = view([item({ quantity: 0, packed_count: 0, state: 'skipped' })], {
       showDone: true,

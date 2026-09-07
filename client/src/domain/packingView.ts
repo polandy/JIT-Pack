@@ -138,6 +138,15 @@ export interface PackingView {
   /** The sheet's footer promise ("14 Sachen anzeigen") — open rows passing the facets. */
   matchCount: number
   /**
+   * Open **rows** over the trip's whole set, before search and facets. It
+   * answers FR-25.11e's „N offene Sachen sind hinter dem Filter" by
+   * subtraction against the rows on screen, so both sides of that
+   * subtraction are rows: the page had been taking the left-hand side from
+   * the trip's packed *units* and getting a hidden count out of a list with
+   * nothing hidden in it (FR-25.22).
+   */
+  openRowCount: number
+  /**
    * Something is hiding rows that are not merely done (FR-25.11e). An empty
    * list may only read as "everything is packed" when this is false — a search,
    * a facet or FR-25.20's default each make completion a lie.
@@ -522,6 +531,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     }),
     activeFacetCount,
     matchCount: items.filter((item) => passesFacets(item) && !done(item)).length,
+    openRowCount: items.filter((item) => !done(item)).length,
     narrowed: activeFacetCount > 0 || term !== '' || hiddenOtherCount > 0,
   }
 }
