@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.6.0](https://github.com/polandy/JIT-Pack/compare/v0.5.0...v0.6.0) (2026-09-07)
+
+
+### Features
+
+* **client:** a section head names its block, and its count sits beside it (FR-21.11) ([0e51838](https://github.com/polandy/JIT-Pack/commit/0e5183822b8a119dc637b088f5cddedba345e59b))
+* **client:** a sheet's head is a component, and every sheet leaves the same way (FR-21.12) ([cecd786](https://github.com/polandy/JIT-Pack/commit/cecd7862e5a11d8a2e0e895651b98758a69752ef))
+* **client:** M4's row is mark, name and a control at the thumb, and a done row sinks ([769e658](https://github.com/polandy/JIT-Pack/commit/769e65894f659bd6317fedaa6f4bce174bf6ecae))
+* **client:** one Ionic mode, and the controls Material shaped are told once (ADR-049) ([4691bcc](https://github.com/polandy/JIT-Pack/commit/4691bccf8ecca99b7ab2c8ed30d9076d8d1b65a2))
+* **client:** the app paints its own palette, Bergluft, over Catppuccin (ADR-048, FR-21.2) ([2ad3f82](https://github.com/polandy/JIT-Pack/commit/2ad3f828b5a0f733cad69bd3488f55bc9f872e96))
+* **client:** the page names itself, and the bar carries at most three glyphs (ADR-050) ([262954c](https://github.com/polandy/JIT-Pack/commit/262954c989b9fad05f84aad217f96fdce58d7b58))
+* **client:** the trip you are on is a card, not a row (FR-21.13) ([dfeae6c](https://github.com/polandy/JIT-Pack/commit/dfeae6ccfe443caef8eaf0fd90e155accbe50bae))
+* **client:** the trip you are packing is a card on M2 too (FR-21.15) ([d625c04](https://github.com/polandy/JIT-Pack/commit/d625c04448e96efefe66d903cf44c33bba71e80a))
+* **client:** the type scale carries the body text, not Ionic (FR-21.14) ([f9e6cf9](https://github.com/polandy/JIT-Pack/commit/f9e6cf968040a1f34510e0ef67268398f76e9a9c))
+
+
+### Bug Fixes
+
+* **client:** a trip screen loads its own partition, not M4's (U-10) ([b6d2f0d](https://github.com/polandy/JIT-Pack/commit/b6d2f0d5adb3f7c5bd94e3d78c87b2e2aacd8955))
+* **client:** the date sheet's calendar is ready when the sheet has landed, and the walk to a month is a key, not a scroll ([54e784a](https://github.com/polandy/JIT-Pack/commit/54e784aa162aef4716471c5de6441ba5fbf4d09c))
+* **e2e:** a write helper returns when the write is on the device ([03209e6](https://github.com/polandy/JIT-Pack/commit/03209e6d59992aa0c5ee68ea18aee93f5d4cd421))
+* **e2e:** two helpers waited for hydrated and needed ready ([99285a3](https://github.com/polandy/JIT-Pack/commit/99285a3e7435979f54f8d8e332de6ccbd555d24e))
+* **router:** the item over the packing list is a query, not a second page (ADR-046) ([869254b](https://github.com/polandy/JIT-Pack/commit/869254b153c6d8cad96d3873c1164f7371c415a1))
+
 ## [0.5.0](https://github.com/polandy/JIT-Pack/compare/v0.4.0...v0.5.0) (2026-09-02)
 
 
