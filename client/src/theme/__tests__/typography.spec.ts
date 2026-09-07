@@ -213,6 +213,34 @@ describe('the scale carries the views now (FR-21.5)', () => {
     }
   })
 
+  it("sizes the list row's two lines from this table, not from Ionic (FR-21.14)", () => {
+    // The app's body copy was the one text the scale did not carry: Ionic
+    // sets `ion-label h2` at 16px, `h3` at 14px and `p` at 14px.
+    const row = /ion-label\[class\] h2,\s*\nion-label\[class\] h3 \{([^}]*)\}/.exec(css)?.[1]
+    expect(row, 'typography.css sizes no list row').toBeTruthy()
+    expect(row).toContain('font-size: var(--jp-text-md)')
+    expect(row).toContain('font-weight: var(--jp-weight-semibold)')
+
+    const detail = /ion-label\[class\] p \{([^}]*)\}/.exec(css)?.[1]
+    expect(detail).toContain('font-size: var(--jp-text-sm)')
+
+    // The body's own size, which the browser had been deciding at 16px.
+    const body = /\nbody \{([^}]*)\}/.exec(css)?.[1]
+    expect(body).toContain('font-size: var(--jp-text-md)')
+  })
+
+  it('keeps the attribute that makes those rules apply at all (FR-21.14)', () => {
+    // `ion-label` is a *scoped* Ionic component, so its own rules arrive as
+    // `.sc-ion-label-md-s h3` — one class more specific than a bare
+    // `ion-label h3`, which therefore never applies. Dropping `[class]` is
+    // the tidying edit that would silently put every row back on Ionic's
+    // sizes, and nothing but a rendered pixel would say so (E2E-G13-06
+    // goes red on both browsers under exactly that edit).
+    for (const selector of css.match(/^ion-label[^{]*/gm) ?? []) {
+      expect(selector, `${selector.trim()} would lose to Ionic's own rule`).toContain('[class]')
+    }
+  })
+
   it('gives the hero eyebrow the display face in the brand (FR-21.13)', () => {
     const rule = /\.jp-hero-eyebrow\s*\{([^}]*)\}/.exec(css)?.[1]
     expect(rule, 'typography.css defines no .jp-hero-eyebrow role').toBeTruthy()
