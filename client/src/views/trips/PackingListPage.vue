@@ -1288,32 +1288,33 @@ setHeaderTitle(
                   :master="clusterMaster(entry)"
                 />
 
-                <PackingRow
-                  v-for="child in entry.children"
-                  :key="child.item.id"
-                  class="child-row"
-                  variant="child"
-                  :item="child.item"
-                  :label="child.traveler?.name ?? child.label"
-                  :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
-                  :done="child.done"
-                  :locked="locked(child.item)"
-                  :closing-pass="closingPass"
-                  :notes="rowNotes(child.item)"
-                  :traveler="child.traveler"
-                  :edge-avatar="edgeAvatarFor(child.item)"
-                  @open="openItem(child.item.id)"
-                  @menu="openRowMenu(child.item)"
-                  @press-start="(e: PointerEvent) => onRowPress(child.item, e)"
-                  @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                  @press-end="hold.cancel()"
-                  @pass-toggle="onPassToggle(child.item)"
-                  @increment="onIncrement(child.item)"
-                  @decrement="onDecrement(child.item)"
-                  @complete="onComplete(child.item)"
-                  @zero="onZero(child.item)"
-                  @toggle="onToggle(child.item)"
-                />
+                <div class="cluster-children">
+                  <PackingRow
+                    v-for="child in entry.children"
+                    :key="child.item.id"
+                    variant="child"
+                    :item="child.item"
+                    :label="child.traveler?.name ?? child.label"
+                    :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
+                    :done="child.done"
+                    :locked="locked(child.item)"
+                    :closing-pass="closingPass"
+                    :notes="rowNotes(child.item)"
+                    :traveler="child.traveler"
+                    :edge-avatar="edgeAvatarFor(child.item)"
+                    @open="openItem(child.item.id)"
+                    @menu="openRowMenu(child.item)"
+                    @press-start="(e: PointerEvent) => onRowPress(child.item, e)"
+                    @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                    @press-end="hold.cancel()"
+                    @pass-toggle="onPassToggle(child.item)"
+                    @increment="onIncrement(child.item)"
+                    @decrement="onDecrement(child.item)"
+                    @complete="onComplete(child.item)"
+                    @zero="onZero(child.item)"
+                    @toggle="onToggle(child.item)"
+                  />
+                </div>
               </div>
 
               <PackingRow
@@ -1759,13 +1760,18 @@ ion-content.pack-content::part(scroll) {
 }
 
 /* --- Per-person cluster ----------------------------------------------- */
-.cluster {
+
+/*
+ * The rule and the step belong to the *children*, not to the block
+ * (FR-21.20). Until 2026-09-07 they were on `.cluster`, which carried the
+ * head in with them: the item's name sat 8 px right of every other item
+ * name in the list and only 6 px left of its own travelers — so the head
+ * read as one of its children rather than as their heading. The head is a
+ * line of the list; the people under it are the ones stepping in.
+ */
+.cluster-children {
   border-inline-start: 2px solid var(--ct-surface1);
   margin-inline-start: 12px;
-}
-
-.child-row {
-  --padding-start: 8px;
 }
 
 /* --- FR-25.2: the pack-out ------------------------------------------- */

@@ -922,6 +922,10 @@ These patterns apply to every screen and are specified once.
   exists to state. Three levels, three weights: the group heading, then a per-person cluster's name (FR-25.1), then the
   rows. **The second and third levels had the same inversion, found the same way on 2026-09-07** and fixed by FR-21.16:
   the cluster's name was set below the traveler rows under it. One level being repaired says nothing about the next.
+  **And the same day, the other axis (FR-21.20):** the cluster's indent and its rule sat on the whole block, so the
+  head was carried in with its children — 8 px right of every other item name and only 6 px left of its own
+  travelers. They belong to the **children**: a head names an item, exactly like the plain row beside it, and stands
+  in the same name column.
   And **each group is its own block** — a bordered card carrying its rows — because with nothing but a gap between
   them, two categories run into each other on a long list. The concept mock had the card from the start; the first
   implementation dropped it.

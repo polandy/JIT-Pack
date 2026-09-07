@@ -1641,4 +1641,52 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     const plainLead = (await plain.locator('.row-lead').boundingBox())!
     expect(perPersonLead.width).toBe(plainLead.width)
   })
+
+  /*
+   * E2E-M4-73 (FR-21.20): a cluster head is a line of the list; its people
+   * are the ones stepping in.
+   *
+   * The indent and its rule used to sit on the whole cluster, head included,
+   * so the item's name sat 8 px right of every other item name and only 6 px
+   * left of its own travelers — 457 against 449 and 463, measured at 1280 px.
+   * A head that close to its children reads as one of them. Both halves are
+   * asserted: an equality alone would pass on a build that had also flattened
+   * the children, and the step alone on one that had left the head inset.
+   */
+  test('E2E-M4-73: a cluster head lines up with the item rows, its people step in', async ({
+    page,
+  }) => {
+    test.slow()
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Velohelme'])
+
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-mode-per-person').click()
+    await page.getByTestId('quick-add-input').locator('input').fill('Regenjacke')
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    for (const who of ['Andy', 'Sia']) {
+      await page.getByTestId(`membership-check-${who}`).click()
+      await expect(page.getByTestId(`membership-qty-${who}`)).toHaveText('1')
+    }
+    await page.getByTestId('membership-close').click()
+    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+
+    const list = visible(page)
+    const nameX = async (locator: Locator, selector: string) =>
+      (await locator.locator(selector).first().boundingBox())!.x
+
+    const plainRow = await nameX(list.getByTestId('m4-row-Velohelme'), 'h3')
+    const head = await nameX(list.getByTestId('m4-cluster-Regenjacke'), '.cluster-name')
+    const child = await nameX(list.getByTestId('m4-child-Regenjacke-Andy'), 'h3')
+
+    // It is a cluster, with people under it — without which the two
+    // assertions below would be about rows that do not exist.
+    await expect(list.getByTestId('m4-child-Regenjacke-Sia')).toBeVisible()
+
+    // The head is one of the list's lines…
+    expect(head).toBe(plainRow)
+    // …and the people under it are indented from it, not level with it.
+    expect(child).toBeGreaterThan(head)
+  })
 })

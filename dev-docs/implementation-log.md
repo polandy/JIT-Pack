@@ -340,7 +340,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The scale carried the exceptions and Ionic carried the body (2026-09-07)](#the-scale-carried-the-exceptions-and-ionic-carried-the-body-2026-09-07) — FR-21.14: a token nobody read, and a rule that never applied.
 - [The card M2 was not going to get (2026-09-07)](#the-card-m2-was-not-going-to-get-2026-09-07) — FR-21.15: two structural objections, both answerable.
 - [Six fractions, three meanings, one of them a recorded decision (2026-09-07)](#six-fractions-three-meanings-one-of-them-a-recorded-decision-2026-09-07) — FR-25.22/21.16: what a baseline of quantity-1 rows could never see.
-- [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17/21.18/21.19: a collapse read as a gesture, one measure doing two jobs, a rule tested only where it held.
+- [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17 … 21.20: a collapse read as a gesture, one measure doing two jobs, two rules only a render caught.
 
 ## Deviations
 
@@ -14019,3 +14019,12 @@ item row does not draw an avatar" against `traveler: null`, the one input that c
 and E2E-M4-56 compared a checkbox row with a stepper row, neither of which has a traveller. The rule
 was written down twice, in general terms, and tested twice against the inputs that agreed with it. A
 render found it in one glance.
+
+**And a fourth, from the same pair of eyes on the same picture.** The cluster's indent and its rule
+sat on the whole block, so the head travelled in with its children: `Regenjacke` started its name 8
+px right of `Wandersocken` above it and 6 px left of `Andy` below it. A head that close to its
+children reads as one of them. The step belongs to the people — they are what is nested, the head is
+what they are nested under. Worth noting together with FR-21.16 three days earlier, which fixed the
+*size* of the same line: one axis of a hierarchy being repaired says nothing about the other, and
+both were found by looking rather than by any test. The count so far on this one component: three
+defects, three renders, no red build.

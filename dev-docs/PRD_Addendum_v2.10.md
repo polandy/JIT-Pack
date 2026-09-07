@@ -946,6 +946,19 @@ taken straight from a phone camera never reaches the server unprocessed.
   not" against `traveler: null`, the one input that cannot falsify it, and E2E-M4-56 compared a checkbox row with a
   stepper row, neither of which has a traveler. E2E-M4-72 is the third shape, and the unit case now names the
   traveler explicitly. Reported by the owner off a render, not by either of them.
+* **FR-21.20 (A Cluster Head Is a Line of the List — added 2026-09-07):** A per-person cluster's head (FR-25.1)
+  starts its name on the same x as every plain item row: it names an item, and so does the row beside it. The step
+  and the rule that mark the cluster belong to the **children** — the travelers under the head are what is nested,
+  and the head is what they are nested under.
+
+  **It had been the other way round.** The indent and its 2 px rule sat on the whole cluster, head included, so the
+  item's name landed 8 px right of every other item name in the list and only 6 px left of its own travelers: 457
+  against 449 above it and 463 below it, measured at 1280 px on the sample data. A head that close to its children
+  reads as one of them. This is FR-21.16's question at the other axis — that one gave the head its size back, this
+  one gives it its column.
+
+  Reported by the owner off a render, like FR-21.19 the same day. The list has one name column, and every kind of
+  line that names an item — plain row, lone per-person row, cluster head — now stands in it.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

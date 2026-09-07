@@ -2374,6 +2374,11 @@ landed, that no test has ever rendered.
   simply lost its traveler. This is the lead column's third shape: E2E-M4-56 compares a checkbox row with a stepper
   row and the unit case used `traveler: null`, so the rule was claimed twice and never tested against the row that
   broke it.
+* **E2E-M4-73** `all` (FR-21.20, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): a per-person
+  cluster's head starts its name at the same x as a plain item row in the same list, and its travelers start theirs
+  further right. Both halves, because the equality alone would pass on a build that had flattened the children with
+  the head, and the step alone on one that had left the head inset. The cluster is proved to have more than one
+  person under it first, or neither assertion is about a cluster at all.
 * **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27): the bar keeps *Suchen*, *Filter* and *Zuklappen* and carries the
   rest behind the ⋮ — `m4-edit` and `m4-start` are gone as glyphs, the menu **names** both in words, and picking
   *„Reise-Eigenschaften"* lands on the rendered M22 edit screen. The last step is what separates the menu from a
