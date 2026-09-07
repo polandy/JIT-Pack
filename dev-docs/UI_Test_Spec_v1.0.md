@@ -2350,6 +2350,35 @@ landed, that no test has ever rendered.
   — the bar counted done rows passing the filter, the switch the trip's packed **units** — and `filter-switch-done`
   occurred in no test at all, which is what let it stand. The search is the separator, since only one of the two
   narrows; the bar dropping to 1 first is the positive signal that the narrowing landed before either is read.
+* **E2E-M4-70** `all` (FR-21.17, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): the G-9 page head
+  yields to the list on a downward scroll, together with M4's own header line, and both come back on an upward one.
+  Read as rendered height, not as a class alone: the standing head is measured first, so "gone" is a change rather
+  than an element that never had a size. The bottom of the list is where the case earns its keep — the head's own
+  collapse shortens the scrollable range, the browser clamps `scrollTop`, and that clamp reads as an upward scroll.
+  The order matters and is written into the case: reaching the bottom with the head **already** down changes no
+  height and stays green against the unguarded build. Heights are **polled** rather than read once — the collapse
+  travels over a transition, and a single read lands on whatever frame it finds; the first version passed locally
+  and failed on CI at 28 px and 53 px, both mid-flight. The rule itself also has a unit
+  (`lib/__tests__/headScroll.spec.ts`), which is where the one-pixel tolerance around the bottom is pinned.
+* **E2E-M4-71** `all` (FR-21.18, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): on a 1280 px window
+  the packing list takes the control measure and a settings screen, in the same window and reached through the app's
+  own gear, takes the reading one. Asserted as the difference between the two rather than against 600, so the case
+  does not have to be rewritten the day a measure is retuned and cannot pass on a build where the column collapsed
+  for an unrelated reason; the row is measured inside its column first, which is what says the cap reached the rows
+  and not only the frame around them.
+* **E2E-M4-72** `all` (FR-21.19, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): a lone per-person
+  instance — one traveler checked, so no cluster and the person folded into the label — starts its name at the same
+  x as a plain row in the same list, and its lead column is the same width. Both are asserted, since a name that
+  lines up by some other accident would pass the first alone. The case first proves the row *is* the lone-instance
+  shape (no cluster, and the label still names the person), or the equality would be satisfied by a row that had
+  simply lost its traveler. This is the lead column's third shape: E2E-M4-56 compares a checkbox row with a stepper
+  row and the unit case used `traveler: null`, so the rule was claimed twice and never tested against the row that
+  broke it.
+* **E2E-M4-73** `all` (FR-21.20, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): a per-person
+  cluster's head starts its name at the same x as a plain item row in the same list, and its travelers start theirs
+  further right. Both halves, because the equality alone would pass on a build that had flattened the children with
+  the head, and the step alone on one that had left the head inset. The cluster is proved to have more than one
+  person under it first, or neither assertion is about a cluster at all.
 * **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27): the bar keeps *Suchen*, *Filter* and *Zuklappen* and carries the
   rest behind the ⋮ — `m4-edit` and `m4-start` are gone as glyphs, the menu **names** both in words, and picking
   *„Reise-Eigenschaften"* lands on the rendered M22 edit screen. The last step is what separates the menu from a

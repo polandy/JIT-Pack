@@ -102,6 +102,8 @@ export const routes: RouteRecordRaw[] = [
       // With the sheet open, back closes it rather than leaving the trip.
       overlayQuery: ITEM_QUERY_PARAM,
       overlayParent: tripPath(TRIP_ID_PARAM),
+      // The packing list is rows, not prose (UX-17).
+      measure: 'list',
     },
     name: 'trip-detail',
     component: () => import('@/views/trips/PackingListPage.vue'),
