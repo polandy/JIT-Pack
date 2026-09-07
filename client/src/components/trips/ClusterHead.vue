@@ -50,13 +50,15 @@ defineProps<{
   align-items: center;
   gap: 8px;
   padding: 10px 14px 2px;
-  /* Three levels, three weights: the category heads the block, the
-     per-person item names itself once inside it, and the traveler rows
-     under that are plain. Two of them at the same size read as two
-     groups rather than as a group and its contents. */
-  font-size: var(--jp-text-base);
+  /* Three levels: the section head names the block, the per-person item
+     names itself once inside it at the row's own size, and the traveler
+     rows under that step down (FR-21.16). The item is the thing being
+     packed and the person only qualifies it, so the head must not be the
+     recessive line of the two — it read one step *below* its own children
+     until 2026-09-07. */
+  font-size: var(--jp-text-md);
   font-weight: var(--jp-weight-semibold);
-  color: var(--ct-subtext1);
+  color: var(--ct-text);
 }
 
 .cluster-name {

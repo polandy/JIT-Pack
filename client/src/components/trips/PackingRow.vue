@@ -95,7 +95,7 @@ const emit = defineEmits<{
 <template>
   <IonItem
     button
-    :class="{ done, locked }"
+    :class="{ done, locked, child: props.variant === 'child' }"
     :data-testid="`${props.variant === 'child' ? 'm4-child' : 'm4-row'}-${testKey}`"
     @click="emit('open')"
     @contextmenu.prevent="emit('menu')"
@@ -328,6 +328,24 @@ const emit = defineEmits<{
 .done h3 {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
+  color: var(--ct-subtext0);
+}
+
+/*
+ * FR-21.16: inside a cluster the item is named once, by the head. A child
+ * row names a *person*, which qualifies that item rather than restating it,
+ * so it sits one step under the head and recessive against it. Until
+ * 2026-09-07 it did the opposite — the traveler rows were the larger and
+ * brighter of the two, because they were Ionic's default row name and the
+ * head was the only one of the pair that had been styled.
+ */
+.child h3 {
+  font-size: var(--jp-text-base);
+  font-weight: var(--jp-weight-regular);
+  color: var(--ct-subtext1);
+}
+
+.child.done h3 {
   color: var(--ct-subtext0);
 }
 </style>

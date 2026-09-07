@@ -174,6 +174,7 @@ export type Facets = Record<FacetKey, string[]>
 
 /** Computed stats for a trip's packing list. */
 export interface TripKPIs {
+  /** Units, not rows — the arithmetic every fraction on M4 uses (FR-25.22). */
   totalItems: number
   packedItems: number
   totalWeight: number

@@ -84,10 +84,56 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     // three children carry three different amounts.
     await expect(list.getByTestId(`m4-child-${ITEM}-Mia`).getByTestId('row-check')).toBeVisible()
     await expect(list.getByTestId(`m4-child-${ITEM}-Andy`).getByTestId('row-plus')).toBeVisible()
-    // FR-25.21a: the head counts people, not units.
-    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/3')
+    // FR-25.22: the head counts units, so it is the sum of the three children
+    // (2 + 3 + 1) and not a count of the people under it — which would be the
+    // one line on the cluster that cannot be added up from the rest.
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/6')
     // The name is not repeated as its own row beside the cluster.
     await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
+  })
+
+  /*
+   * FR-21.16. Read off the *rendered* type, because that is the only place the
+   * defect existed: both blocks used legal tokens (invariant 9b), the
+   * component's own comment described the intended order correctly, and the
+   * stylesheet under it did the opposite. A screenshot would catch it too, but
+   * only a person comparing two baselines — this states the rule.
+   */
+  test('E2E-M5-24: a cluster names its item louder than its people (FR-21.16)', async ({
+    page,
+  }) => {
+    const PLAIN = 'Zahnbürste'
+    await seedTrip(page)
+
+    await openMembership(page, ITEM)
+    await page.getByTestId('membership-per-person').click()
+    await setMember(page, 'Andy', 1)
+    await setMember(page, 'Leonardo', 1)
+    await closeAll(page)
+
+    // A plain row, to pin the head to the app's row size rather than only to
+    // "bigger than its child" — which a head three steps too large also passes.
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill(PLAIN)
+    await page.getByTestId('quick-add-confirm').click()
+    const list = visiblePage(page)
+    await expect(list.getByTestId(`m4-row-${PLAIN}`)).toBeVisible()
+
+    const type = (locator: ReturnType<Page['getByTestId']>) =>
+      locator.evaluate((el) => {
+        const style = getComputedStyle(el)
+        return { size: parseFloat(style.fontSize), weight: Number(style.fontWeight) }
+      })
+
+    const head = await type(list.getByTestId(`m4-cluster-${ITEM}`).locator('.cluster-name'))
+    const child = await type(list.getByTestId(`m4-child-${ITEM}-Andy`).locator('h3'))
+    const plainRow = await type(list.getByTestId(`m4-row-${PLAIN}`).locator('h3'))
+
+    // The item is what is being packed; the person only qualifies it.
+    expect(head.size).toBeGreaterThan(child.size)
+    expect(head.weight).toBeGreaterThan(child.weight)
+    // And the head is a row name, not a size of its own.
+    expect(head.size).toBe(plainRow.size)
   })
 
   test('E2E-M5-19: removing a packed traveler is confirmed; removing a costless one is not', async ({
@@ -127,8 +173,8 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await expect(page.getByTestId('membership-qty-Leonardo')).toHaveCount(0)
     await closeAll(page)
 
-    // Two left, and the head counts people rather than units (FR-25.21a).
-    await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/2')
+    // Two left — Andy's 2 and Mia's 1, which is what the head reports (FR-25.22).
+    await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/3')
 
     // Mia's row carries nothing — no progress, no thread, no todo — so it is
     // written without a question. The disappearing amount is the positive
@@ -226,7 +272,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
 
     const list = visiblePage(page)
-    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/2')
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/5')
     await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toContainText('0/2')
     await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
     // Each child carries its own working control (E2E-M4-12), not one shared

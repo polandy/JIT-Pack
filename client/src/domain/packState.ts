@@ -41,3 +41,24 @@ export function isFullyPacked(row: { packed_count: number; quantity: number }): 
 export function isPartlyPacked(row: { packed_count: number; quantity: number }): boolean {
   return stateFor(row.packed_count, row.quantity) === 'partial'
 }
+
+/** What a row contributes to every fraction drawn above it (FR-25.22). */
+export interface PackUnits {
+  done: number
+  total: number
+}
+
+/**
+ * unitsOf reads a row as the units it contributes to a group head, a cluster
+ * head and the trip line alike — so the three compose instead of counting
+ * three different things (FR-25.22).
+ *
+ * FR-5.5's skipped row is the one case the numbers cannot express: it has no
+ * units at all, and counting it as `0/0` would make a group of considered,
+ * deliberately unpacked rows read as if nothing were there. It counts as one
+ * unit, done — the decision was made, which is what the fraction reports.
+ */
+export function unitsOf(row: { packed_count: number; quantity: number }): PackUnits {
+  if (row.quantity <= 0) return { done: 1, total: 1 }
+  return { done: Math.min(Math.max(row.packed_count, 0), row.quantity), total: row.quantity }
+}

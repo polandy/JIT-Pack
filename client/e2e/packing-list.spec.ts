@@ -1093,6 +1093,37 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   })
 
   /*
+   * E2E-M4-69 (FR-25.22, 2026-09-07): the reveal bar and the filter sheet's
+   * *Erledigte* switch label the same set, so they must carry the same
+   * number. They carried two: the bar counted done rows among the ones the
+   * filter lets through, the switch counted the whole trip's packed *units*.
+   * `filter-switch-done` occurred in no test at all, which is what let it
+   * stand — the search is what separates the two, since only one of them
+   * narrows.
+   */
+  test('E2E-M4-69: the reveal bar and the Erledigte switch carry one number', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Schlafsack'])
+    await packRow(page, 'Zelt')
+    await packRow(page, 'Schlafsack')
+
+    const bar = visible(page).getByTestId('m4-done-bar')
+    await expect(bar).toContainText('2')
+
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Zelt')
+    // The bar follows the search, which is the positive signal that the
+    // narrowing landed before either number is read.
+    await expect(bar).toContainText('1')
+
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
+    const doneSwitch = page.getByTestId('filter-switch-done').locator('..')
+    await expect(doneSwitch).toContainText('1')
+    await expect(doneSwitch).not.toContainText('2')
+  })
+
+  /*
    * E2E-M4-57 (G-12, UX-13): the bar keeps the actions used while packing
    * and puts the once-per-trip ones behind the ⋮, where they are read as
    * words. Before it, six glyphs plus the gear sat in a bar that on a phone
