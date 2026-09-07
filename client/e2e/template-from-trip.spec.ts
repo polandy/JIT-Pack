@@ -155,6 +155,11 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     // The group is recognised from provenance and marked as reused.
     const group = visible(page).getByTestId('m21-group')
     await expect(group).toHaveCount(1)
+    // The head counts what is under it — the number is the head's count now
+    // rather than a figure joined into the label (FR-21.11), and this was
+    // the one migrated head with no assertion of any kind on it.
+    await expect(visible(page).getByTestId('m21-groups-head')).toContainText('Recognised groups')
+    await expect(visible(page).getByTestId('m21-groups-head')).toContainText('1')
     await expect(group).toContainText('Makro')
     await expect(group).toContainText('2 items on this trip came from it')
     await expect(group.getByTestId('m21-reused')).toBeVisible()

@@ -77,6 +77,7 @@ import { useIdentity } from '@/composables/useTripIdentity'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 import { PATH } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const orchestrator = useOrchestrator()
 const { me, load: loadIdentity } = useIdentity(orchestrator)
@@ -424,9 +425,7 @@ async function exportTripCSV() {
   <IonPage>
     <IonContent class="ion-padding">
       <!-- Profile (FR-17.13) -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-profile">
-        {{ t('settings.profile') }}
-      </h2>
+      <SectionHead :title="t('settings.profile')" data-testid="settings-section-profile" />
       <template v-if="mode === 'local'">
         <IonNote>{{ t('settings.profileLocalNote') }}</IonNote>
       </template>
@@ -491,9 +490,7 @@ async function exportTripCSV() {
       <IonNote v-else>{{ t('settings.profileUnavailable') }}</IonNote>
 
       <!-- Appearance (FR-21.3) — every mode, this device only -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-appearance">
-        {{ t('settings.appearance') }}
-      </h2>
+      <SectionHead :title="t('settings.appearance')" data-testid="settings-section-appearance" />
       <IonList>
         <IonItem>
           <IonLabel>
@@ -528,7 +525,7 @@ async function exportTripCSV() {
       </IonList>
 
       <!-- Default travelers (FR-2.5a) — every mode, this device only -->
-      <h2 class="section-title jp-eyebrow">{{ t('settings.defaultTravelers') }}</h2>
+      <SectionHead :title="t('settings.defaultTravelers')" />
       <p class="section-hint">{{ t('settings.defaultTravelersHint') }}</p>
       <IonList>
         <IonItem v-for="(traveler, index) in travelerNames" :key="`${traveler}-${index}`">
@@ -573,9 +570,10 @@ async function exportTripCSV() {
 
       <!-- Notifications (FR-6.2 / NFR-4.6) — multi-user only (G-8) -->
       <template v-if="collaborative">
-        <h2 class="section-title jp-eyebrow" data-testid="settings-section-notifications">
-          {{ t('settings.notifications') }}
-        </h2>
+        <SectionHead
+          :title="t('settings.notifications')"
+          data-testid="settings-section-notifications"
+        />
         <IonList v-if="prefs">
           <IonItem v-for="p in prefRows" :key="p.kind">
             <IonLabel>
@@ -610,9 +608,7 @@ async function exportTripCSV() {
       </template>
 
       <!-- Data (NFR-4.5) -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-data">
-        {{ t('settings.data') }}
-      </h2>
+      <SectionHead :title="t('settings.data')" data-testid="settings-section-data" />
       <template v-if="mode === 'local'">
         <div
           v-if="exportReminder.due"
@@ -708,9 +704,7 @@ async function exportTripCSV() {
       <!-- Administration entry (Addendum 3.23, FR-23.2): instance
            admins with an OIDC session only — same gating as M20. -->
       <template v-if="collaborative && me?.is_instance_admin">
-        <h2 class="section-title jp-eyebrow" data-testid="settings-section-admin">
-          {{ t('settings.administration') }}
-        </h2>
+        <SectionHead :title="t('settings.administration')" data-testid="settings-section-admin" />
         <IonList>
           <IonItem
             button
@@ -731,9 +725,7 @@ async function exportTripCSV() {
            bypasses authentication and Local Mode has no server, so in both
            a token would prove nothing there is anything to prove (G-8). -->
       <template v-if="collaborative">
-        <h2 class="section-title jp-eyebrow" data-testid="settings-section-tokens">
-          {{ t('settings.apiTokens') }}
-        </h2>
+        <SectionHead :title="t('settings.apiTokens')" data-testid="settings-section-tokens" />
         <p class="section-hint">{{ t('settings.apiTokensHint') }}</p>
         <IonList>
           <IonItem lines="none">
@@ -784,9 +776,7 @@ async function exportTripCSV() {
       <!-- M23 (FR-24.3): what a delete only hid, and the way back. Beside
            the conflict log because both are corrective surfaces rather than
            browsing ones, reached after something went wrong. -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-retired">
-        {{ t('settings.retired') }}
-      </h2>
+      <SectionHead :title="t('settings.retired')" data-testid="settings-section-retired" />
       <IonList>
         <IonItem
           button
@@ -805,15 +795,11 @@ async function exportTripCSV() {
       </IonList>
 
       <!-- Conflict log pointer (G-2) -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-conflicts">
-        {{ t('settings.conflictLog') }}
-      </h2>
+      <SectionHead :title="t('settings.conflictLog')" data-testid="settings-section-conflicts" />
       <IonNote>{{ t('settings.conflictLogNote') }}</IonNote>
 
       <!-- App info -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-about">
-        {{ t('settings.about') }}
-      </h2>
+      <SectionHead :title="t('settings.about')" data-testid="settings-section-about" />
       <IonList>
         <IonItem lines="none">
           <IonLabel>
@@ -845,10 +831,6 @@ async function exportTripCSV() {
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
   margin: 0 0 8px;
-}
-
-.section-title {
-  margin: 20px 0 8px;
 }
 
 .export-reminder {

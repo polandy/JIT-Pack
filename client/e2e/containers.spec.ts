@@ -115,9 +115,11 @@ test.describe('M11 containers @local @m11', () => {
     await expect(visiblePage(page).getByTestId('m11-unassigned-none')).toHaveCount(0)
 
     await createContainer(page, 'Duffel')
-    await expect(visiblePage(page).getByTestId('m11-unassigned-title')).toContainText(
-      'Unassigned items (0)',
-    )
+    // The head names the section and the count sits beside it (FR-21.11);
+    // it read "Unassigned items (0)" while the figure was inside the label.
+    const head = visiblePage(page).getByTestId('m11-unassigned-title')
+    await expect(head).toContainText('Unassigned items')
+    await expect(head.locator('.jp-section-count')).toHaveText('0')
     await expect(visiblePage(page).getByTestId('m11-unassigned-none')).toBeVisible()
   })
 

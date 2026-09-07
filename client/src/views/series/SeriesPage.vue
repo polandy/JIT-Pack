@@ -37,6 +37,7 @@ import { tripOrderKey } from '@/domain/trips'
 import { presentToast } from '@/lib/toast'
 import { PATH, tripPath, tripSubPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ seriesId: string }>()
 
@@ -146,7 +147,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
   <IonPage>
     <IonContent class="ion-padding">
       <template v-if="series">
-        <h2 class="section-title jp-eyebrow">{{ t('series.section') }}</h2>
+        <SectionHead :title="t('series.section')" />
         <IonList>
           <IonItem>
             <IonInput
@@ -206,7 +207,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
         </IonList>
         <IonNote>{{ t('series.defaultsNote') }}</IonNote>
 
-        <h2 class="section-title jp-eyebrow">{{ t('series.sectionNotes') }}</h2>
+        <SectionHead :title="t('series.sectionNotes')" />
         <IonList>
           <IonItem>
             <IonTextarea
@@ -219,7 +220,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           </IonItem>
         </IonList>
 
-        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionChecklist') }}</h2>
+        <SectionHead :title="t('wizard.sectionChecklist')" />
         <IonList v-if="checklist.length > 0">
           <IonItem v-for="entry in checklist" :key="entry.id" data-testid="m16-checklist-row">
             <IonLabel>
@@ -272,7 +273,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           </IonButton>
         </div>
 
-        <h2 class="section-title jp-eyebrow">{{ t('series.sectionTrips') }}</h2>
+        <SectionHead :title="t('series.sectionTrips')" />
         <IonList v-if="seriesTrips.length > 0">
           <IonItem
             v-for="trip in seriesTrips"
@@ -354,10 +355,6 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
 </template>
 
 <style scoped>
-.section-title {
-  margin: 20px 0 8px;
-}
-
 .add-row {
   display: flex;
   align-items: center;

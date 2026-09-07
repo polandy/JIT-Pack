@@ -74,6 +74,7 @@ import { tripOrderKey } from '@/domain/trips'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 import { tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -607,7 +608,7 @@ setHeaderTitle(
     <IonContent class="ion-padding">
       <!-- Step 1: metadata -->
       <section v-if="step === 1" data-testid="wizard-step-1">
-        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionTrip') }}</h2>
+        <SectionHead :title="t('wizard.sectionTrip')" />
         <IonList>
           <IonItem>
             <IonInput
@@ -707,7 +708,7 @@ setHeaderTitle(
               </IonNote>
             </IonItem>
           </IonList>
-          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionAttributes') }}</h2>
+          <SectionHead :title="t('wizard.sectionAttributes')" />
           <IonList>
             <IonItem>
               <IonSelect
@@ -769,7 +770,7 @@ setHeaderTitle(
 
       <!-- Step 2: travelers -->
       <section v-if="step === 2" data-testid="wizard-step-2">
-        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionTravelers') }}</h2>
+        <SectionHead :title="t('wizard.sectionTravelers')" />
         <IonList v-if="travelers.length > 0">
           <IonItem v-for="(traveler, index) in travelers" :key="index">
             <IonIcon slot="start" :icon="personOutline" />
@@ -805,7 +806,7 @@ setHeaderTitle(
 
         <!-- Sharing & roles (FR-4.5/4.7) — OIDC sessions only (G-8) -->
         <template v-if="collaborative">
-          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionShare') }}</h2>
+          <SectionHead :title="t('wizard.sectionShare')" />
           <IonList v-if="shares.length > 0">
             <IonItem
               v-for="(share, index) in shares"
@@ -858,7 +859,7 @@ setHeaderTitle(
       <section v-if="step === 3" data-testid="wizard-step-3">
         <!-- FR-27.6: Ferien-Vorlagen first — they are what a trip starts from -->
         <template v-if="vacationTemplates.length > 0">
-          <h2 class="section-title jp-eyebrow">{{ t('templates.sectionTemplates') }}</h2>
+          <SectionHead :title="t('templates.sectionTemplates')" />
           <IonList data-testid="wizard-section-templates">
             <IonItem v-for="row in vacationTemplates" :key="row.template.id">
               <IonCheckbox
@@ -904,7 +905,7 @@ setHeaderTitle(
         </template>
 
         <template v-if="groupTemplates.length > 0">
-          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionGroups') }}</h2>
+          <SectionHead :title="t('wizard.sectionGroups')" />
           <IonList data-testid="wizard-section-groups">
             <IonItem v-for="row in groupTemplates" :key="row.template.id">
               <IonCheckbox
@@ -962,7 +963,7 @@ setHeaderTitle(
         <!-- FR-27.3: single items beside the templates. A trip is not always
              a template — "diesmal noch die Drohne mit" is one item, and
              building a group for it would be filing rather than packing. -->
-        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionSingleItems') }}</h2>
+        <SectionHead :title="t('wizard.sectionSingleItems')" />
         <div class="single-items">
           <!-- `:value` + `@ionInput`, like the name field above: v-model on an
                ion-input binds through a custom element, which nothing outside a
@@ -1064,7 +1065,7 @@ setHeaderTitle(
 
       <!-- Step 4: quantity review -->
       <section v-if="step === 4" data-testid="wizard-step-4">
-        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionReview') }}</h2>
+        <SectionHead :title="t('wizard.sectionReview')" />
         <IonList v-if="generation.items.length > 0">
           <IonItem
             v-for="(item, index) in generation.items"
@@ -1151,7 +1152,7 @@ setHeaderTitle(
         <template
           v-if="companionResolution.required.length > 0 || companionResolution.deduped.length > 0"
         >
-          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionCompanions') }}</h2>
+          <SectionHead :title="t('wizard.sectionCompanions')" />
           <IonList v-if="companionResolution.required.length > 0">
             <IonItem v-for="c in companionResolution.required" :key="c.item_id">
               <IonLabel>
@@ -1168,9 +1169,7 @@ setHeaderTitle(
 
         <!-- FR-20.4: suggested companions, one tap each -->
         <template v-if="companionResolution.suggested.length > 0">
-          <h2 class="section-title jp-eyebrow">
-            {{ t('wizard.sectionSuggestedCompanions') }}
-          </h2>
+          <SectionHead :title="t('wizard.sectionSuggestedCompanions')" />
           <IonList>
             <IonItem
               v-for="s in companionResolution.suggested"
@@ -1193,7 +1192,7 @@ setHeaderTitle(
 
         <!-- FR-13.3: destination checklist offer from the series profile -->
         <template v-if="offeredChecklist.length > 0">
-          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionChecklist') }}</h2>
+          <SectionHead :title="t('wizard.sectionChecklist')" />
           <IonItem lines="none">
             <IonCheckbox
               slot="start"
@@ -1349,10 +1348,6 @@ setHeaderTitle(
   font-weight: var(--jp-weight-medium);
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
-}
-
-.section-title {
-  margin: 16px 0 8px;
 }
 
 .empty-hint {

@@ -1,4 +1,11 @@
-import { test, expect, visiblePage } from './fixtures'
+import {
+  test,
+  expect,
+  visiblePage,
+  createTripViaWizard,
+  openQuickAdd,
+  openTripView,
+} from './fixtures'
 import type { Locator } from '@playwright/test'
 import { PATH } from './routes'
 
@@ -109,9 +116,11 @@ test('E2E-G13-03: an icon is sized as a glyph box, not as text @local @g13', asy
   expect(await size(page.locator('body'))).toBeLessThan(20)
 })
 
-// E2E-G13-04 (G-13/FR-21.5): the section label renders as the role, on a
-// screen that had written it out by hand.
-test('E2E-G13-04: a section label renders as the eyebrow role @local @g13', async ({
+// E2E-G13-04 (G-13/FR-21.11): the head above a block renders as the display
+// role. The promise this case carried before was the opposite one — that the
+// same head rendered as small tracked capitals — and it is reversed rather
+// than repaired, because the eyebrow stopped being the head's role.
+test('E2E-G13-04: a section head renders as the display role @local @g13', async ({
   page,
   seedMode,
 }) => {
@@ -122,26 +131,58 @@ test('E2E-G13-04: a section label renders as the eyebrow role @local @g13', asyn
   // Scoped to the page that is actually painted, not to the document: a
   // route that does not repaint leaves the previous screen's markup in the
   // outlet, and every assertion below would read it happily.
-  const label = visiblePage(page).locator('.section-title').first()
-  await expect(label).toBeVisible()
+  const head = visiblePage(page).getByTestId('settings-section-profile')
+  await expect(head).toBeVisible()
 
-  const style = await label.evaluate((n) => {
+  const style = await head.evaluate((n) => {
     const cs = getComputedStyle(n)
     return {
       transform: cs.textTransform,
       size: parseFloat(cs.fontSize),
       family: cs.fontFamily.toLowerCase(),
-      tracking: cs.letterSpacing,
     }
   })
 
-  // The visible half of this PR. Eleven screens carried the label by hand
-  // and disagreed about it: nine as a 16px semibold sentence, two as the
-  // uppercase label the prototype specifies. Asserting the *rendered*
-  // properties rather than the class list is the point — a class that is
-  // applied but overridden looks identical in the markup.
-  expect(style.transform).toBe('uppercase')
-  expect(style.size).toBe(12)
+  // Asserting the *rendered* properties rather than the class list is the
+  // point: a class that is applied but overridden looks identical in the
+  // markup, and this head sits inside a screen with its own stylesheet.
+  expect(style.transform).toBe('none')
+  expect(style.family).toContain('fraunces')
+  expect(style.size).toBeGreaterThan(16)
+})
+
+// E2E-G13-05 (G-13/FR-21.11): the count is the head's number, not its voice.
+// Five heads used to join the two inside the translated string, which set the
+// figure in the display face and left it nothing to align with.
+test('E2E-G13-05: a section count renders beside the head, in the UI face @local @g13', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy'] })
+  await openQuickAdd(page)
+  await page.getByTestId('quick-add-input').locator('input').fill('Schlafsack')
+  await page.getByTestId('quick-add-confirm').click()
+  await expect(page.getByTestId('m4-row-Schlafsack')).toBeVisible()
+  await openTripView(page, 'luggage')
+
+  const head = visiblePage(page).getByTestId('m11-unassigned-title')
+  await expect(head).toBeVisible()
+  const count = head.locator('.jp-section-count')
+  await expect(count).toHaveText('1')
+
+  const style = await count.evaluate((n) => {
+    const cs = getComputedStyle(n)
+    return {
+      family: cs.fontFamily.toLowerCase(),
+      size: parseFloat(cs.fontSize),
+      figures: cs.fontVariantNumeric,
+    }
+  })
+  const headSize = await head.evaluate((n) => parseFloat(getComputedStyle(n).fontSize))
+
   expect(style.family).toContain('hanken grotesk')
-  expect(style.tracking).not.toBe('normal')
+  expect(style.size).toBeLessThan(headSize)
+  // A counter that is not tabular shifts the head's baseline as it counts.
+  expect(style.figures).toContain('tabular-nums')
 })

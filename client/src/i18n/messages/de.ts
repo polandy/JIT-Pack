@@ -766,7 +766,7 @@ export const de: Record<keyof typeof en, string> = {
   'review.title': 'Rückblick',
   'review.intro':
     'Was diese Reise über deine Gruppen gelernt hat. Änderungen gehen in die Gruppe, aus der der Artikel stammt — nicht in die Ferien-Vorlage, sonst lernt nur diese eine Reise dazu.',
-  'review.open': 'Offen · {n}',
+  'review.open': 'Offen',
   'review.kindUnused': 'ungenutzt',
   'review.kindMissing': 'fehlte',
   'review.whyUnused': 'auf dieser Reise nicht gebraucht | auf {n} Reisen nicht gebraucht',
@@ -780,7 +780,7 @@ export const de: Record<keyof typeof en, string> = {
   'review.never': 'Nie mehr fragen',
   'review.stateApplied': 'übernommen ✓',
   'review.stateSkipped': 'übersprungen',
-  'review.handledHead': 'Erledigt · {n}',
+  'review.handledHead': 'Erledigt',
   'review.appliedSummary':
     '{n} Änderung in die Gruppen geschrieben. Reisen, die den Gruppen folgen, werden beim nächsten Öffnen gefragt. | {n} Änderungen in die Gruppen geschrieben. Reisen, die den Gruppen folgen, werden beim nächsten Öffnen gefragt.',
   'review.empty': 'Nichts zu prüfen — keine Merkmale gesetzt.',
@@ -856,7 +856,7 @@ export const de: Record<keyof typeof en, string> = {
   'templateFromTrip.intro':
     'Aus „{trip}“ wird eine wiederverwendbare Vorlage. Erkannte Gruppen werden referenziert, nicht kopiert — sie bleiben eigenständig pflegbar.',
   'templateFromTrip.name': 'Name der Vorlage',
-  'templateFromTrip.groups': 'Erkannte Gruppen · {n}',
+  'templateFromTrip.groups': 'Erkannte Gruppen',
   'templateFromTrip.fromGroup':
     '{n} Artikel dieser Reise stammt daraus | {n} Artikel dieser Reise stammen daraus',
   'templateFromTrip.reused': 'wird wiederverwendet ✓',
@@ -869,7 +869,8 @@ export const de: Record<keyof typeof en, string> = {
     'Wirkt überall, wo die Gruppe eingebunden ist — zurzeit folgt ihr keine Reise.',
   'templateFromTrip.absent':
     '{items} war auf dieser Reise nicht dabei — die Gruppe bleibt unverändert. | {items} waren auf dieser Reise nicht dabei — die Gruppe bleibt unverändert.',
-  'templateFromTrip.loose': 'Eigene Artikel · {n} von {total}',
+  'templateFromTrip.loose': 'Eigene Artikel',
+  'templateFromTrip.looseCount': '{n} von {total}',
   'templateFromTrip.looseAdHoc': 'ohne Gruppe hinzugefügt',
   'templateFromTrip.looseFromTemplate': 'aus „{template}“ — als eigene Position übernommen',
   'templateFromTrip.looseEmpty': 'Keine losen Artikel.',

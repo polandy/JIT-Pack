@@ -43,6 +43,7 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { filterForStatus, TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
 import { PATH } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const ionRouter = useIonRouter()
 const master = useMasterStore()
@@ -309,7 +310,7 @@ setHeaderTitle(
     <IonContent class="ion-padding">
       <!-- Step 1: file -->
       <section v-if="step === 1">
-        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.csvTitle') }}</h2>
+        <SectionHead :title="t('import.wizard.csvTitle')" />
         <p class="hint">{{ t('import.wizard.csvHint') }}</p>
         <FilePickButton accept=".csv,text/csv" testid="import-file" @file="onFile" />
         <IonTextarea
@@ -371,7 +372,7 @@ setHeaderTitle(
 
       <!-- Step 2: mapping -->
       <section v-if="step === 2">
-        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.tripsTitle') }}</h2>
+        <SectionHead :title="t('import.wizard.tripsTitle')" />
         <IonList>
           <IonItem
             v-for="trip in trips"
@@ -422,7 +423,7 @@ setHeaderTitle(
           {{ t(mappingHint) }}
         </IonNote>
 
-        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.itemColumn') }}</h2>
+        <SectionHead :title="t('import.wizard.itemColumn')" />
         <IonSegment
           data-testid="item-column"
           :value="String(itemColumn)"
@@ -437,7 +438,7 @@ setHeaderTitle(
           </IonSegmentButton>
         </IonSegment>
 
-        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.categoryColumn') }}</h2>
+        <SectionHead :title="t('import.wizard.categoryColumn')" />
         <p class="hint">{{ t('import.wizard.categoryColumnHint') }}</p>
         <IonSegment
           data-testid="category-column"
@@ -460,7 +461,7 @@ setHeaderTitle(
           </IonSegmentButton>
         </IonSegment>
 
-        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.categoryRows') }}</h2>
+        <SectionHead :title="t('import.wizard.categoryRows')" />
         <IonList class="category-list">
           <IonItem v-for="row in namedRows" :key="row.idx">
             <IonCheckbox
@@ -484,7 +485,7 @@ setHeaderTitle(
 
       <!-- Step 3: dedup (FR-16.3) -->
       <section v-if="step === 3">
-        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.duplicates') }}</h2>
+        <SectionHead :title="t('import.wizard.duplicates')" />
         <p class="hint">{{ t('import.wizard.duplicatesHint') }}</p>
         <IonList data-testid="import-dup-list">
           <IonItem
@@ -526,7 +527,7 @@ setHeaderTitle(
 
       <!-- Step 4: confirm -->
       <section v-if="step === 4">
-        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.summary') }}</h2>
+        <SectionHead :title="t('import.wizard.summary')" />
         <IonList>
           <IonItem lines="none">
             <IonLabel data-testid="import-summary-line">{{ summaryLine }}</IonLabel>
@@ -570,10 +571,6 @@ setHeaderTitle(
 </template>
 
 <style scoped>
-.section-title {
-  margin: 16px 0 8px;
-}
-
 .hint {
   color: var(--ion-color-medium);
   font-size: var(--jp-text-base);

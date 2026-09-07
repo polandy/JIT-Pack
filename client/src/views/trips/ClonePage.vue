@@ -31,6 +31,7 @@ import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
 import { tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -167,7 +168,7 @@ setHeaderTitle(
           </IonItem>
         </IonList>
 
-        <h2 class="section-title jp-eyebrow">{{ t('clone.carryOver') }}</h2>
+        <SectionHead :title="t('clone.carryOver')" />
         <IonList>
           <IonItem>
             <IonToggle
@@ -207,10 +208,6 @@ setHeaderTitle(
 </template>
 
 <style scoped>
-.section-title {
-  margin: 20px 0 8px;
-}
-
 .confirm {
   margin-top: 24px;
 }
