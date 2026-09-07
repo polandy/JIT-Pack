@@ -132,8 +132,8 @@
      does not have is a signal about the table, which is why the step was
      added rather than the sites rounded up out of their layouts. */
   --jp-text-lg: 17px;
-  --jp-text-md: 15px;
-  --jp-text-base: 14px;
+  --jp-text-md: 15px; /* the body, and a list row's name (FR-21.14) */
+  --jp-text-base: 14px; /* one step under the body: a subordinate line */
   --jp-text-sm: 13px;
   --jp-text-xs: 12px;
   --jp-text-2xs: 11px;
@@ -184,6 +184,11 @@
 
 body {
   font-family: var(--jp-font-ui);
+  /* The body's own size, which the browser had been deciding at 16px — a
+     step the scale does not have, and larger than every heading the app
+     draws below a page title. Text that reaches the screen without a role
+     lands here (FR-21.14). */
+  font-size: var(--jp-text-md);
   line-height: var(--jp-leading-body);
   /* Fraunces carries an optical-size axis; letting the browser drive it
      is the whole reason for shipping the variable file rather than three
@@ -385,6 +390,40 @@ ion-title {
   font-weight: var(--jp-weight-semibold);
   font-size: var(--jp-text-display-xs);
   letter-spacing: var(--jp-tracking-display);
+}
+
+/*
+ * The list row's two lines, sized by this table rather than by Ionic
+ * (G-13, FR-21.14).
+ *
+ * This is the app's *body copy* — the item on the packing list, the trip
+ * on M2, the tag in the inventory — and until now it was the one text the
+ * type scale did not carry: Ionic sets `ion-label h2` at 16px, `h3` at
+ * 14px and `p` at 14px, and nothing in the app said otherwise. Two
+ * consequences, both visible on the screen: the name of a row was a
+ * different size depending on whether the screen happened to write `h2`
+ * or `h3` for it, and the detail under it was the same size as the name
+ * it qualified.
+ *
+ * A row's name is one size and its detail is one step down, whichever
+ * element carries them. The concept draws the name at 15.5px; the scale
+ * has 15, and half a pixel is not a step — the same call `.jp-section-head`
+ * made against the app-bar title.
+ *
+ * `[class]` is not decoration: `ion-label` is a *scoped* Ionic component, so
+ * its own rules arrive as `.sc-ion-label-md-s h3` — one class more specific
+ * than a bare `ion-label h3`, which therefore never applies. The attribute
+ * selector matches the scope class without naming it, so this survives the
+ * next Ionic release renaming it; naming the class would not.
+ */
+ion-label[class] h2,
+ion-label[class] h3 {
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
+}
+
+ion-label[class] p {
+  font-size: var(--jp-text-sm);
 }
 
 /*

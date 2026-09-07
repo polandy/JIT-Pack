@@ -233,7 +233,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
-| Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04, E2E-G13-05 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
+| Typography | E2E-G13-01 … E2E-G13-06 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-10 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |

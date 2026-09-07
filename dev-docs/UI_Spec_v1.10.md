@@ -7,6 +7,7 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-07 — **G-13**: the type table carries the body text, not Ionic (FR-21.14).
 * 2026-09-07 — **M1** opens on a hero card for the trip you are on (FR-21.13).
 * 2026-09-07 — **G-13**: a sheet's head is a component, and **G-14**: one close control for every sheet (FR-21.12).
   **G-13**: the head above a block is a display role with its count beside it; the eyebrow keeps only the
@@ -396,6 +397,10 @@ These patterns apply to every screen and are specified once.
   * **Icons have their own scale.** `font-size` on an icon is a glyph box, not type; the two tables are separate so that
     a change to body copy cannot resize an empty-state illustration, and so that neither table has to compromise for the
     other.
+  * **The body text is the table's too (added 2026-09-07, FR-21.14).** A list row's name is one size whatever element
+    carries it, a step above the line that qualifies it and at the weight that makes it read as the thing the row is
+    about; text with no role of its own lands on the body size rather than on the browser's. Until then Ionic decided
+    all three, and the app's own scale carried only the exceptions.
   * **The head above a block is a sixth display role (revised 2026-09-07).** A section head is set in the display face
     at the app-bar step, sentence case, with the section's own **count beside it** — right-aligned, in the UI face, one
     step smaller, recessive and tabular. Head and count share a baseline, and both come from one component, because the
