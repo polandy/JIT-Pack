@@ -186,3 +186,47 @@ test('E2E-G14-02: the card still casts a shadow in Tag @local @g14', async ({ pa
     sunken.reduce((a, b) => a + b),
   )
 })
+
+// E2E-G14-04 (G-14/FR-21.12): every sheet leaves the same way. Eight sheets
+// drew the control themselves, in two designs split four against four — the
+// same button, two appearances, and nothing recording which was meant. The
+// assertion compares two sheets that used to be on opposite sides of that
+// split, because a single sheet's rendering would have been green either way.
+test('E2E-G14-04: two sheets present the same way out @local @g14', async ({ page, seedMode }) => {
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize(MOBILE)
+
+  await page.goto(PATH.trips)
+  await page.getByTestId('sync-indicator').click()
+  const fromSync = await closeControl(page, 'sync-detail-close')
+  await page.getByTestId('sync-detail-close').click()
+
+  await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy'] })
+  await openQuickAdd(page)
+  await page.getByTestId('quick-add-input').locator('input').fill('Schlafsack')
+  await page.getByTestId('quick-add-confirm').click()
+  await page.getByTestId('m4-row-Schlafsack').click()
+  const fromItem = await closeControl(page, 'm5-close')
+
+  expect(fromSync).toEqual(fromItem)
+  // …and it is a filled circle, not the ghost half of them had: the fill is
+  // a plane rather than the page it sits on.
+  expect(fromSync.background).not.toBe('rgba(0, 0, 0, 0)')
+})
+
+/** The rendered geometry and fill of a sheet's way out. */
+async function closeControl(page: Page, testid: string) {
+  const el = page.getByTestId(testid)
+  await expect(el).toBeVisible()
+  return el.evaluate((n) => {
+    const cs = getComputedStyle(n)
+    const box = n.getBoundingClientRect()
+    return {
+      width: Math.round(box.width),
+      height: Math.round(box.height),
+      radius: cs.borderRadius,
+      background: cs.backgroundColor,
+      border: cs.borderTopWidth,
+    }
+  })
+}

@@ -19,11 +19,12 @@
  */
 import { computed, ref, watch } from 'vue'
 import { IonIcon } from '@ionic/vue'
-import { closeOutline, trashOutline } from 'ionicons/icons'
+import { trashOutline } from 'ionicons/icons'
 
 import SheetModal from '@/components/global/SheetModal.vue'
 import { t } from '@/i18n'
 import { MARK_FACETS, searchMarks, suggestMarks, type MarkFacet } from '@/domain/itemMarks'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -66,12 +67,7 @@ function choose(mark: string | null) {
 <template>
   <SheetModal :is-open="isOpen" @dismiss="emit('close')">
     <section class="picker" data-testid="mark-picker">
-      <header class="head">
-        <h1 class="jp-sheet-title">{{ t('marks.title') }}</h1>
-        <button class="x" :aria-label="t('common.close')" @click="emit('close')">
-          <IonIcon :icon="closeOutline" />
-        </button>
-      </header>
+      <SheetHead :title="t('marks.title')" @close="emit('close')" />
 
       <!-- FR-28.3: the offer, and the honest empty answer beside it. -->
       <div class="band">
@@ -150,30 +146,6 @@ function choose(mark: string | null) {
   flex-direction: column;
   gap: 12px;
   padding: 4px 18px 26px;
-}
-
-.head {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.head h1 {
-  flex: 1;
-  min-width: 0;
-}
-
-.x {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-md);
-  cursor: pointer;
 }
 
 .band {

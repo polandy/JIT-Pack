@@ -335,6 +335,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The row turned round, and two gates that had been watching it were looking the wrong way (2026-09-06)](#the-row-turned-round-and-two-gates-that-had-been-watching-it-were-looking-the-wrong-way-2026-09-06) — step 3: UX-9 reversed; the visual budget was a *ratio*, so desktop was 3.5x looser.
 - [The bar had been answering a question it could not answer (2026-09-06)](#the-bar-had-been-answering-a-question-it-could-not-answer-2026-09-06) — ADR-050: one constraint, three workarounds.
 - [A role that every call site had to finish (2026-09-07)](#a-role-that-every-call-site-had-to-finish-2026-09-07) — FR-21.11: the extraction stopped one property short, twelve times.
+- [The same button in two designs, four against four (2026-09-07)](#the-same-button-in-two-designs-four-against-four-2026-09-07) — FR-21.12: a token table cannot say two places meant the same thing.
 
 ## Deviations
 
@@ -13757,3 +13758,41 @@ alternative is a second answer to what a head is, decided per surface.
 head computed to uppercase 12px in the UI face, which was true and is now the opposite of the rule.
 A case whose promise the design has retired is rewritten in place with a note saying what it used
 to claim; renumbering it would leave a reader arriving from an old commit with nowhere to land.
+
+## The same button in two designs, four against four (2026-09-07)
+
+Step 5's second component: the sheet head. Nine sheets had written it by hand, and the census is the
+finding rather than the consolidation.
+
+**The close button existed in two designs, split evenly, and every rule the app has was satisfied by
+both.** Four sheets drew a filled circle on `--ct-surface0` at `--jp-control-round`; four drew a
+32px ghost in `--ct-overlay0` at the medium icon size. Every value in both comes from the token
+tables, so `design-tokens-gate` passes either way, and nothing anywhere records which was meant. A
+tenth sheet would have picked whichever file its author opened first. That is the limit of a token
+table stated precisely: **it can say where a value came from; it cannot say that two places meant
+the same thing.** The second line had drifted the same way at a smaller amplitude — `--jp-text-xs`
+in three sheets, `--jp-text-sm` in two — and it is `.jp-meta` now, the role the page head already
+uses for that exact fact.
+
+**M4's filter sheet had a third answer to what a sheet title is.** Not `.jp-sheet-title` at all: a
+plain `h2` at 17px bold in the UI face, sourced from the scale, gate-clean, and rendering the one
+sheet the packing screen opens most as though its name were a form label. It came out of the same
+grep as the rest and was invisible to every other kind of check.
+
+**A parent's scoped style reaches its child's root element, and that is how the first attempt
+shipped a broken sheet.** `SyncDetailSheet` kept a `.head { flex-direction: column }` rule my
+cleanup regex had skipped (it spans a blank line and a comment). Vue stamps the parent's scope id
+onto the child component's root node, so that rule applied to the shared head and turned its row
+into a column: glyph, title, meta and close button stacked down the left. The stylesheet was
+correct, the component was correct, and the sheet was wrong — visible only in the rendered
+baseline.
+
+**A recorded decision is reversed here, on purpose.** E2E-G2-08's row has said since 2026-08-23
+that variant A — resetting the `h1` margin and letting the glyph sit flush at the top — was
+measured at +5.5px and *rejected* in favour of centring. Variant A is what ships. The rejection was
+right while that sheet owned its head; one head now serves nine sheets whose leads are 24, 38 and
+44px, so centring the lead on the title line is a per-sheet number again — the thing the shared
+head exists to delete. The concept prototype draws it flush at the top too. The case keeps its
+number, states what it used to claim, and still goes red under the defect it was written for: a
+stray h1 margin pushes the line down and nothing else does. The margin is declined once now, inside
+the head, which is why four separate `.head h1 { margin: 0 }` rules could go.

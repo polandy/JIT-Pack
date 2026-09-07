@@ -58,6 +58,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import type { BrowseRowSummary } from '@/domain/browseRows'
 import type { MasterItem } from '@/types/domain'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = defineProps<{
   /** Item ids the scope already carries — rendered as "already in". */
@@ -308,22 +309,12 @@ function groupLabel(key: string): string {
 
 <template>
   <section class="sheet-body" data-testid="inventory-browse-sheet">
-    <header class="head">
-      <div class="titles">
-        <h1 class="jp-sheet-title">{{ t('quickAdd.browseTitle') }}</h1>
-        <p class="context">
-          {{ verbs ? t('quickAdd.browseSubtitleVerbs') : t('quickAdd.browseSubtitle') }}
-        </p>
-      </div>
-      <button
-        class="x"
-        data-testid="browse-close"
-        :aria-label="t('common.close')"
-        @click="emit('close')"
-      >
-        <IonIcon :icon="closeOutline" />
-      </button>
-    </header>
+    <SheetHead
+      :title="t('quickAdd.browseTitle')"
+      :meta="verbs ? t('quickAdd.browseSubtitleVerbs') : t('quickAdd.browseSubtitle')"
+      close-testid="browse-close"
+      @close="emit('close')"
+    />
 
     <!-- The M9 tag axis (FR-24.2): filter on any tag, group by the primary. -->
     <div v-if="masterStore.tagList.length > 0" class="tag-axis" role="group">
@@ -506,37 +497,6 @@ function groupLabel(key: string): string {
 <style scoped>
 .sheet-body {
   padding: 4px 18px 26px;
-}
-
-.head {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding-bottom: 10px;
-}
-
-.titles {
-  flex: 1;
-  min-width: 0;
-}
-
-.context {
-  margin: 2px 0 0;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-}
-
-.x {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-md);
-  cursor: pointer;
 }
 
 .tag-axis {

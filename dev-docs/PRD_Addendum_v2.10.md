@@ -795,6 +795,20 @@ taken straight from a phone camera never reaches the server unprocessed.
   groups · 4*, *Own items · 1 of 2* — the number set in the display face, joined with a middle dot, aligned with
   nothing. The catalogue keeps only the part that is language: the label, and where two figures need a word between
   them, the phrase that holds them.
+* **FR-21.12 (A Sheet's Head Is a Component — added 2026-09-07):** A bottom sheet opens with its name, and that head
+  is drawn once: the sheet title role with the h1 margin already declined, an optional second line at `.jp-meta`, an
+  optional lead — a mark, a thumbnail, a state glyph — an optional trailing indicator, and the way out.
+
+  **The drift was in the way out, and it was invisible to every rule the app has.** Nine sheets drew the close control
+  themselves, in two designs split four against four: a filled circle on a surface token at the round-control size, and
+  a 32 px ghost in a recessive ink. Both source every value from the token tables, so both pass the design gate; what
+  neither records is which of them was meant. It is one design now — the concept prototype's filled circle on the
+  sunken plane with a rim.
+
+  **The second line had drifted too**, at `--jp-text-xs` in three sheets and `--jp-text-sm` in two. It is `.jp-meta`,
+  the role the page head already uses for the same fact. And the M4 filter sheet's title was a third answer again — 17
+  px bold in the UI face, never on the sheet title role at all, and passing the gate for the same reason the close
+  buttons did: **a token table can only say where a value came from, never that two places meant the same thing.**
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

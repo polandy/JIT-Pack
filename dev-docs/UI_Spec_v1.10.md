@@ -7,7 +7,8 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
-* 2026-09-07 — **G-13**: the head above a block is a display role with its count beside it; the eyebrow keeps only the
+* 2026-09-07 — **G-13**: a sheet's head is a component, and **G-14**: one close control for every sheet (FR-21.12).
+  **G-13**: the head above a block is a display role with its count beside it; the eyebrow keeps only the
   label-inside-a-list job (FR-21.11).
 * 2026-09-06 — **M4**: the row is mark, name, control-at-the-thumb, and a done row sinks (UX-9 revised).
   **G-9/G-11/G-13/G-14**: one Ionic mode, the bar on the page, the wash, controls in sentence case and told once
@@ -402,6 +403,11 @@ These patterns apply to every screen and are specified once.
     * **The count is a value, not part of the label.** Five heads used to join the two inside the translated string
       (*Open · 3*, *Own items · 1 of 2*), which set the figure in the display face and left it nothing to align with.
       The catalogue keeps the sentence where the figures need a word between them; the head renders it as the count.
+  * **A sheet's head is a component, not a shape each sheet draws (added 2026-09-07).** The sheet's name at the sheet
+    title role with the h1 margin already declined, an optional second line under it at `.jp-meta`, an optional lead
+    (a mark, a thumbnail, a state glyph) and an optional trailing indicator, and the way out. The lead sits against the
+    **top** of the name, as the concept prototype draws it — a 38 px glyph beside a 27 px line cannot also be centred
+    on it.
   * **The eyebrow is what is left, and it is a label inside a list.** Small uppercase in the UI face, opened up,
     recessive — the letter head in the inventory, the chip groups in quick-add, the word above a banner's sentence. It
     was the section head as well until 2026-09-07, which is how one class came to carry two jobs.
@@ -433,6 +439,9 @@ These patterns apply to every screen and are specified once.
   * **Three planes, asked for by role.** **Page**, **card** — one step up, and where every list row lives — and
     **sunken**, one step down. A card is not a hairline: it is a lighter plane with a rim and a lift, and a component
     asks for `card` rather than for a palette token that happens to look right today.
+  * **Every sheet leaves the same way (added 2026-09-07).** The round close control is one design, drawn once: a
+    filled circle on the sunken plane with a rim, at the round-control size. Nine sheets used to draw it themselves,
+    in two designs split four against four — the same control, two appearances, and nothing recording which was meant.
   * **One card class, not a card per screen.** `.jp-card` carries the plane, the border, the radius and the elevation
     together; a screen positions it and adds nothing. Its children defer to it, so no row can repaint itself a shade off
     the surface it sits in.

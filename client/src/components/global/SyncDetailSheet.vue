@@ -20,7 +20,6 @@
  */
 import { IonIcon } from '@ionic/vue'
 import {
-  closeOutline,
   downloadOutline,
   flashOutline,
   gitMergeOutline,
@@ -38,6 +37,7 @@ import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
 import { rejectionReasonKey } from '@/sync/rejectionReasons'
 import { SYNC_EXPLAIN_KEYS, SYNC_LABEL_KEYS, type SyncState } from '@/composables/useSyncStatus'
 import SectionHead from '@/components/global/SectionHead.vue'
+import SheetHead from '@/components/global/SheetHead.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -148,23 +148,22 @@ const backupAge = computed(() => {
 
 <template>
   <section class="sheet-body" data-testid="sync-detail-sheet">
-    <header class="head">
-      <div class="head-line">
+    <SheetHead
+      :title="title"
+      :meta="explanation"
+      title-testid="sync-detail-title"
+      close-testid="sync-detail-close"
+      @close="emit('close')"
+    >
+      <template #lead>
         <span class="glyph" :class="state" data-testid="sync-detail-glyph"
           ><IonIcon :icon="SYNC_GLYPHS[state]"
         /></span>
-        <h1 class="jp-sheet-title" data-testid="sync-detail-title">{{ title }}</h1>
-        <button
-          class="x"
-          data-testid="sync-detail-close"
-          :aria-label="t('common.close')"
-          @click="emit('close')"
-        >
-          <IonIcon :icon="closeOutline" />
-        </button>
-      </div>
-      <p class="explain" data-testid="sync-detail-explain">{{ explanation }}</p>
-    </header>
+      </template>
+      <template #meta>
+        <span data-testid="sync-detail-explain">{{ explanation }}</span>
+      </template>
+    </SheetHead>
 
     <template v-if="showPending">
       <p class="line" data-testid="sync-detail-pending">
@@ -307,42 +306,11 @@ const backupAge = computed(() => {
   padding: 4px 18px 26px;
 }
 
-/*
- * The state glyph belongs to the *title*, so the two share a row and centre
- * against each other. Aligning the circle to the top of a block that also
- * held the explanation is what put it half a line high: the h1 inside carried
- * a 20px margin nothing asked for — `.jp-sheet-title` names a type role and
- * no spacing — so the text began well below the box the circle aligned to.
- * Centring on the line has nothing to re-tune when the display face or the
- * title size changes (E2E-G2-08).
- */
-.head {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 6px;
-
-  /* Named once: the explanation's indent below is derived from them. */
-  --head-glyph-size: 38px;
-  --head-gap: 12px;
-}
-
-.head-line {
-  display: flex;
-  align-items: center;
-  gap: var(--head-gap);
-}
-
-.head-line h1 {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-}
-
 .glyph {
   display: grid;
   place-items: center;
-  width: var(--head-glyph-size);
-  height: var(--head-glyph-size);
+  width: 38px;
+  height: 38px;
   flex: none;
   border-radius: 50%;
   background: var(--jp-surface-sunken);
@@ -360,27 +328,6 @@ const backupAge = computed(() => {
 
 .glyph.offline {
   color: var(--ion-color-warning);
-}
-
-.explain {
-  /* Indented to the title's edge, so the header still reads as one block. */
-  margin: 4px 0 0;
-  padding-left: calc(var(--head-glyph-size) + var(--head-gap));
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-}
-
-.x {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-md);
-  cursor: pointer;
 }
 
 .block {
