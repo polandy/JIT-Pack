@@ -32,6 +32,7 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setStoredFacet, setStoredGroupBy } from '@/composables/usePackingFilter'
 import { tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -200,9 +201,10 @@ setHeaderTitle(
 
       <!-- Series trend (FR-14.3) -->
       <template v-if="trend.length > 0">
-        <h2 class="section-title jp-eyebrow" data-testid="analytics-trend-title">
-          {{ t('analytics.trendTitle', { name: trendName }) }}
-        </h2>
+        <SectionHead
+          :title="t('analytics.trendTitle', { name: trendName })"
+          data-testid="analytics-trend-title"
+        />
         <div class="jp-card trend-card" data-testid="analytics-trend">
           <div class="trend">
             <div v-for="point in trend" :key="point.tripId" class="col">
@@ -219,7 +221,7 @@ setHeaderTitle(
       </template>
 
       <template v-if="flagged.length > 0">
-        <h2 class="section-title jp-eyebrow">{{ t('analytics.flaggedTitle') }}</h2>
+        <SectionHead :title="t('analytics.flaggedTitle')" />
         <div class="jp-card" data-testid="analytics-flagged">
           <div v-for="f in flagged" :key="`${f.flag}:${f.name}`" class="flagrow">
             <span class="dot" :class="f.flag" />
@@ -339,10 +341,6 @@ setHeaderTitle(
   font-size: var(--jp-text-2xs);
   color: var(--ct-overlay1);
   margin-top: 3px;
-}
-
-.section-title {
-  margin: 24px 4px 8px;
 }
 
 .trend-card {

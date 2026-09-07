@@ -48,6 +48,7 @@ import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { templatePath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -227,9 +228,11 @@ setHeaderTitle(() => t('templateFromTrip.title'))
       </IonList>
 
       <template v-if="composition.groups.length > 0">
-        <h2 class="section-title jp-eyebrow" data-testid="m21-groups-head">
-          {{ t('templateFromTrip.groups', { n: composition.groups.length }) }}
-        </h2>
+        <SectionHead
+          :title="t('templateFromTrip.groups')"
+          :count="composition.groups.length"
+          data-testid="m21-groups-head"
+        />
         <article
           v-for="group in composition.groups"
           :key="group.group.id"
@@ -282,9 +285,13 @@ setHeaderTitle(() => t('templateFromTrip.title'))
         </article>
       </template>
 
-      <h2 class="section-title jp-eyebrow" data-testid="m21-loose-head">
-        {{ t('templateFromTrip.loose', { n: checkedCount, total: composition.loose.length }) }}
-      </h2>
+      <SectionHead
+        :title="t('templateFromTrip.loose')"
+        :count="
+          t('templateFromTrip.looseCount', { n: checkedCount, total: composition.loose.length })
+        "
+        data-testid="m21-loose-head"
+      />
       <IonList v-if="composition.loose.length > 0">
         <IonItem v-for="row in composition.loose" :key="row.tripItem.id" data-testid="m21-loose">
           <IonCheckbox
@@ -354,10 +361,6 @@ setHeaderTitle(() => t('templateFromTrip.title'))
   color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
   margin: 0 0 12px;
-}
-
-.section-title {
-  margin: 20px 0 8px;
 }
 
 .group {

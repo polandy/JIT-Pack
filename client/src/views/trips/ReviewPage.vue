@@ -37,6 +37,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -200,9 +201,11 @@ setHeaderTitle(
     <IonContent class="ion-padding">
       <p class="intro">{{ t('review.intro') }}</p>
 
-      <h2 class="section-title jp-eyebrow" data-testid="m14-open-count">
-        {{ t('review.open', { n: openRows.length }) }}
-      </h2>
+      <SectionHead
+        :title="t('review.open')"
+        :count="openRows.length"
+        data-testid="m14-open-count"
+      />
 
       <template v-if="openRows.length > 0">
         <article
@@ -279,9 +282,11 @@ setHeaderTitle(
       </div>
 
       <template v-if="handledRows.length > 0">
-        <h2 class="section-title jp-eyebrow" data-testid="m14-handled-count">
-          {{ t('review.handledHead', { n: handledRows.length }) }}
-        </h2>
+        <SectionHead
+          :title="t('review.handledHead')"
+          :count="handledRows.length"
+          data-testid="m14-handled-count"
+        />
         <!-- A record of the pass, not a second workspace: the decision is
              made, so the row keeps its name, its target and its outcome and
              drops the controls that made it (FR-27.11 — visible, marked). -->
@@ -336,10 +341,6 @@ setHeaderTitle(
   margin: 4px 2px 14px;
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
-}
-
-.section-title {
-  margin: 14px 2px 8px;
 }
 
 .row {

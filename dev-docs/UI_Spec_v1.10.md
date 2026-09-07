@@ -7,6 +7,8 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-07 — **G-13**: the head above a block is a display role with its count beside it; the eyebrow keeps only the
+  label-inside-a-list job (FR-21.11).
 * 2026-09-06 — **M4**: the row is mark, name, control-at-the-thumb, and a done row sinks (UX-9 revised).
   **G-9/G-11/G-13/G-14**: one Ionic mode, the bar on the page, the wash, controls in sentence case and told once
   (ADR-049). **G-11**: the palette is *Bergluft* (ADR-048).
@@ -392,12 +394,20 @@ These patterns apply to every screen and are specified once.
   * **Icons have their own scale.** `font-size` on an icon is a glyph box, not type; the two tables are separate so that
     a change to body copy cannot resize an empty-state illustration, and so that neither table has to compromise for the
     other.
-  * **The section label is a role, not a heading.** Small uppercase in the UI face, opened up, recessive — as the
-    prototype sets it. It reads as a label *above* content rather than as a competing line of text, which is what eleven
-    hand-written copies of it were doing at two different sizes.
+  * **The head above a block is a sixth display role (revised 2026-09-07).** A section head is set in the display face
+    at the app-bar step, sentence case, with the section's own **count beside it** — right-aligned, in the UI face, one
+    step smaller, recessive and tabular. Head and count share a baseline, and both come from one component, because the
+    thing that had rotted was the pairing: fifty-five heads applied the type role and every screen still wrote its own
+    margin, in five different values.
+    * **The count is a value, not part of the label.** Five heads used to join the two inside the translated string
+      (*Open · 3*, *Own items · 1 of 2*), which set the figure in the display face and left it nothing to align with.
+      The catalogue keeps the sentence where the figures need a word between them; the head renders it as the count.
+  * **The eyebrow is what is left, and it is a label inside a list.** Small uppercase in the UI face, opened up,
+    recessive — the letter head in the inventory, the chip groups in quick-add, the word above a banner's sentence. It
+    was the section head as well until 2026-09-07, which is how one class came to carry two jobs.
   * **Controls are set in sentence case (2026-09-06, ADR-049).** Buttons and segment labels read as words — *Plan a
     trip*, *Archived (3)* — never as Material's tracked capitals. Decided once, as an element rule in the type table;
-    the section label above is the only uppercase role, and it is a label, not a control.
+    the eyebrow above is the only uppercase role, and it is a label, not a control.
   * **The faces are served from the instance, never from a font CDN** (Addendum FR-21.6). Local Mode may have no network
     at all, so a face fetched at boot is a face that is sometimes absent.
 

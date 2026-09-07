@@ -42,6 +42,7 @@ import { ERROR_CODE, type ErrorCode } from '@/api/types'
 import type { ConflictEntry, LockEvent } from '@/composables/useSyncOrchestrator'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId?: string }>()
 
@@ -340,7 +341,7 @@ function formatTime(iso: string): string {
       />
 
       <section v-if="lockEvents.length > 0" class="takeovers">
-        <h2 class="jp-eyebrow">{{ t('conflicts.takeoverSection') }}</h2>
+        <SectionHead :title="t('conflicts.takeoverSection')" />
         <IonList>
           <IonItem v-for="e in lockEvents" :key="e.id" lines="inset" data-testid="lock-event-row">
             <IonLabel>

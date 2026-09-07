@@ -52,6 +52,7 @@ import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 import type { Container } from '@/types/domain'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -175,9 +176,11 @@ setHeaderTitle(
              speaks when there is a container to assign to or an item to
              assign. -->
         <template v-if="containers.length > 0 || unassigned.length > 0">
-          <h2 class="section-title jp-eyebrow" data-testid="m11-unassigned-title">
-            {{ t('container.unassigned') }} ({{ unassigned.length }})
-          </h2>
+          <SectionHead
+            :title="t('container.unassigned')"
+            :count="unassigned.length"
+            data-testid="m11-unassigned-title"
+          />
           <IonList v-if="unassigned.length > 0" class="unassigned-list jp-card">
             <IonItem
               v-for="item in unassigned"
@@ -338,9 +341,6 @@ setHeaderTitle(
 }
 
 /* --- unassigned bucket --- */
-.section-title {
-  margin: 24px 0 8px;
-}
 
 .unassigned-list {
   padding: 0;
