@@ -7,6 +7,7 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-07 — **M1** opens on a hero card for the trip you are on (FR-21.13).
 * 2026-09-07 — **G-13**: a sheet's head is a component, and **G-14**: one close control for every sheet (FR-21.12).
   **G-13**: the head above a block is a display role with its count beside it; the eyebrow keeps only the
   label-inside-a-list job (FR-21.11).
@@ -577,6 +578,11 @@ These patterns apply to every screen and are specified once.
 ### M1 — Dashboard "My Tasks"
 
 * **Purpose:** Single entry point answering "what do I have to do right now?" across all active trips (FR-6.1).
+* **The first active trip is a hero card, the rest stay list cards (added 2026-09-07, FR-21.13).** It carries when the
+  trip is, who is on it, a progress ring with the share in words beside it, a track, and — in the hero itself — the
+  same preview of what is still open the card had. There is exactly **one** hero: a screen has one thing you are on,
+  and a second hero is a second answer to which one that is. It is the only card in the app that paints brand on its
+  own plane (G-11).
 * **Elements:** Greeting header with sync glyph (G-2) — the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag*
   12–17, *Guten Abend* 18–21, and a neutral *Hallo* through the night (2026-08-26, UX review UX-15: everything below
   noon was morning, so 00:14 greeted the morning; night deliberately makes no time-of-day claim). The rule is the pure

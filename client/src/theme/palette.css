@@ -212,6 +212,17 @@
     transparent 70%
   );
 
+  /* The hero's own wash: the same idea as `--jp-wash` and deliberately not
+     the same gradient. The page's runs from the top *left* under everything;
+     this one falls from the top right across one card, so the two do not
+     stack into a single smear where the hero sits near the top of the page.
+     It is the only card in the app that carries brand on its plane (G-11). */
+  --jp-hero-wash: radial-gradient(
+    120% 90% at 100% 0%,
+    color-mix(in srgb, var(--jp-brand) 18%, transparent),
+    transparent 55%
+  );
+
   /* --- Elevation ink ------------------------------------------------ */
   /*
    * The geometry of every shadow lives in surfaces.css; what belongs here

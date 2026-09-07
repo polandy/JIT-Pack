@@ -67,7 +67,7 @@ test.describe('M1 dashboard @local @m1', () => {
    * on the status, so a wizard trip nobody started renders exactly the same
    * screen as no trip at all.
    */
-  test('E2E-M1-01: an active trip is a card counting what is open and previewing three of it', async ({
+  test('E2E-M1-01: the active trip is the hero, counting what is open and previewing three of it', async ({
     page,
   }) => {
     await activeTripWith(page, ITEMS)
@@ -77,9 +77,12 @@ test.describe('M1 dashboard @local @m1', () => {
     await expect(card).toBeVisible()
     await expect(visible(page).getByTestId('dashboard-empty')).toHaveCount(0)
 
-    const summary = visible(page).getByTestId(`dashboard-summary-${TRIP.name}`)
-    await expect(summary).toContainText('0/4 packed')
-    await expect(summary).toContainText('4 open')
+    // The counts are the hero's two lines now, not one summary sentence
+    // (FR-21.13): the share in words beside the ring, and what is still
+    // owed under it.
+    await expect(card.getByTestId('hero-progress')).toHaveText('0/4 packed')
+    await expect(card.getByTestId('hero-detail')).toHaveText('4 open')
+    await expect(card.getByTestId('progress-ring')).toHaveAttribute('aria-label', '0%')
 
     // Three of the four, and the fourth counted rather than dropped.
     // *Which* three is deliberately not asserted: the preview is the first
@@ -101,6 +104,33 @@ test.describe('M1 dashboard @local @m1', () => {
     // *at the item* is not built — the preview rows are not links.)
     await card.click()
     await expectTripOpen(page, TRIP.name)
+  })
+
+  /*
+   * E2E-M1-09 (FR-21.13): one hero, and the second active trip is not it.
+   *
+   * The promise is a *singular*, so a screen with one trip cannot check it —
+   * it would be green whether the rule said "the first" or "every one".
+   * Two active trips is the smallest list that tells those apart.
+   */
+  test('E2E-M1-09: only the first active trip is the hero; the next is a card', async ({
+    page,
+  }) => {
+    await activeTripWith(page, ['Kamera'])
+    await createTripViaWizard(page, { ...TRIP, name: 'Elba 2026' })
+    await tripAction(page, 'start')
+    await page.goto(PATH.dashboard)
+
+    const heroes = visible(page).getByTestId('hero-name')
+    await expect(heroes).toHaveCount(1)
+    await expect(heroes).toHaveText(TRIP.name)
+
+    // The positive signal beside the absence: the second trip is on the
+    // screen, as a card, so "no second hero" is a shape rather than a
+    // missing trip.
+    const second = visible(page).getByTestId('dashboard-trip-Elba 2026')
+    await expect(second).toBeVisible()
+    await expect(second.getByTestId('hero-name')).toHaveCount(0)
   })
 
   /**

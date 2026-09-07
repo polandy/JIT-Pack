@@ -1133,10 +1133,12 @@ const mergeLines = computed(() =>
   font-size: var(--jp-text-sm);
 }
 
+/* No italic: neither face ships one, so this asked the browser to slant
+   Hanken Grotesk and got a synthesised oblique. The note is already set
+   apart by its size and its recessive ink (FR-21.6). */
 .result-included-note {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
-  font-style: italic;
 }
 
 .pick {

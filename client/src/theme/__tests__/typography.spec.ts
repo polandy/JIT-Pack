@@ -198,6 +198,28 @@ describe('the scale carries the views now (FR-21.5)', () => {
     }
   })
 
+  it('asks for no italic, because the bundle ships none (FR-21.6)', () => {
+    // The concept sets the hero's eyebrow in Fraunces *italic*. Upright is
+    // what ships: an italic is a second pair of files beside the roman's
+    // 126 KB, on every boot, in every mode, for one line. What makes the
+    // decision cost nothing to hold is this — a later `font-style: italic`
+    // would not fail, it would *synthesise*, and a slanted Fraunces looks
+    // enough like the real thing to survive a screenshot.
+    expect(faceBlocks.every((block) => block.includes('font-style: normal'))).toBe(true)
+    for (const file of [...vueFiles, 'src/theme/typography.css']) {
+      expect(readFileSync(file, 'utf8'), `${file} asks for an italic nothing ships`).not.toMatch(
+        /font-style:\s*(italic|oblique)/,
+      )
+    }
+  })
+
+  it('gives the hero eyebrow the display face in the brand (FR-21.13)', () => {
+    const rule = /\.jp-hero-eyebrow\s*\{([^}]*)\}/.exec(css)?.[1]
+    expect(rule, 'typography.css defines no .jp-hero-eyebrow role').toBeTruthy()
+    expect(rule).toContain('font-family: var(--jp-font-display)')
+    expect(rule).toContain('color: var(--jp-brand)')
+  })
+
   it('renders every section head through the one component', () => {
     // What rots is the pairing: a screen that writes the class by hand gets
     // the type and loses the spacing and the counter slot with it, and no

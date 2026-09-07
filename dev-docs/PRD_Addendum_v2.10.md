@@ -809,6 +809,24 @@ taken straight from a phone camera never reaches the server unprocessed.
   the role the page head already uses for the same fact. And the M4 filter sheet's title was a third answer again — 17
   px bold in the UI face, never on the sheet title role at all, and passing the gate for the same reason the close
   buttons did: **a token table can only say where a value came from, never that two places meant the same thing.**
+* **FR-21.13 (The Trip You Are On Is a Card, Not a Row — added 2026-09-07):** M1 opens on the trip a person is actually
+  packing, rendered as a **hero**: when it is, who is on it, a progress ring with the share in words beside it and a
+  track under them, and the preview of what is still open that the list card already carried. Exactly one hero per
+  screen — the point of the card is to say *which* trip, and a second one unsays it. It is the only card that paints
+  brand on its own plane (FR-21.7), for the same reason the active tab does: identity marks the thing you are on.
+
+  **M2 does not get one in the same step, and the reason is structural rather than a deferral of taste.** On M1 the
+  hero replaces a card that stood alone. On M2 the same trip is a row *inside a series group*, carrying a sliding menu
+  with export, share and delete on it; lifting it out of the group would take those actions away from the one trip they
+  are used on most, and leave the group counting a trip it no longer shows. The revisit trigger is M2's list being
+  reworked — the hero is a component now and costs nothing to place then.
+
+  **The concept's italic is not built.** The hero's first line is Fraunces *italic* in the concept and upright here:
+  neither face ships an italic, so asking for one would synthesise a slant rather than render a face, and shipping the
+  real one is a second pair of files beside the roman's 126 KB, on every boot, in every mode, for one line — against
+  NFR-4.3 and against FR-21.6's reason for self-hosting at all. The rule is guarded rather than remembered, because a
+  synthesised italic is exactly the kind of wrong that survives a screenshot. It found one already: M8's *included*
+  note had been asking for an italic Hanken Grotesk since the type migration.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

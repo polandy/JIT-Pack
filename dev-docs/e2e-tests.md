@@ -235,7 +235,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04, E2E-G13-05 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
-| Visual baselines | E2E-VIS-01 … E2E-VIS-09 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
+| Visual baselines | E2E-VIS-01 … E2E-VIS-10 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03, E2E-G14-04 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
