@@ -951,6 +951,11 @@ These patterns apply to every screen and are specified once.
       holds the controls. E2E-M4-56 asserts both, because either one alone passes on a row that has lost the other.
     The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row added by quick-add carries none until
     it exists in the inventory, and shows an empty slot rather than a placeholder.
+    * **The lead column is one glyph wide (added 2026-09-07, FR-21.19).** The mark on an item row, the traveler's face
+      on a child row under a cluster — never both. The case that had both is a *lone* per-person instance, which
+      renders as an item row with the person folded into its label (`Wanderstöcke · Andy`); it drew the face beside
+      the mark slot and started its name 32 px right of every sibling. Reported off a render by the owner; both tests
+      that claimed the rule had only ever been given rows without a traveler.
   * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline
     text input with autocomplete suggestions from the master item inventory (M9). Enter on free text creates a new
     ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is

@@ -931,6 +931,21 @@ taken straight from a phone camera never reaches the server unprocessed.
   itself lives in the frame: a screen that has to remember to cap itself is a screen that will forget. The revisit
   trigger is the second screen to ask for the control measure, at which point the two measures are a pattern rather
   than a rule with one caller.
+* **FR-21.19 (The Lead Column Is One Thing Wide — added 2026-09-07):** Every M4 row opens with a lead column of a
+  single glyph: the item's mark on an item row (FR-28.4), the traveler's face on a child row under a cluster
+  (FR-25.1). Never both. The column holds its width when the glyph is absent, which is what keeps the names of all
+  three row kinds on one x.
+
+  **A lone per-person instance drew both.** When only one traveler is assigned, `packingView` renders no cluster and
+  folds the person into the row's label instead — `Wanderstöcke · Andy` — precisely because no cluster head is there
+  to say who it is for. That row got the face *and* the mark slot, so its name started 32 px right of every sibling
+  in the same group: 481 px against 449 px, measured at 1280 px against the sample data. The person is not lost by
+  removing the face, because the label is where that row already says it.
+
+  **Two tests claimed the rule and neither could see the break.** `PackingRow.spec.ts` asserted "an item row does
+  not" against `traveler: null`, the one input that cannot falsify it, and E2E-M4-56 compared a checkbox row with a
+  stepper row, neither of which has a traveler. E2E-M4-72 is the third shape, and the unit case now names the
+  traveler explicitly. Reported by the owner off a render, not by either of them.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

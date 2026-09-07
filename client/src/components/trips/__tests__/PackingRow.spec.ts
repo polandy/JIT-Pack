@@ -257,12 +257,29 @@ describe('PackingRow — where the two kinds differ', () => {
     expect(wrapper.get('[data-testid="m4-packed-stamp"]').text()).toContain('packed')
   })
 
-  it('a child row keeps the avatar column open with nobody in it; an item row does not', () => {
+  /**
+   * FR-21.19: the lead column is one thing wide. The `traveler` case is the
+   * one that matters and the one this case used to leave out — it asserted
+   * "an item row does not" against `traveler: null`, which is the only input
+   * that could not falsify it, while a lone per-person instance drew the
+   * face *and* the mark and started its name 32 px right of its siblings.
+   */
+  it('a child row keeps the avatar column open with nobody in it; an item row never draws one', () => {
     const child = mountRow({ variant: 'child', traveler: null })
     expect(child.find('.row-avatar').exists()).toBe(true)
 
     const own = mountRow({ traveler: null })
     expect(own.find('.row-avatar').exists()).toBe(false)
+
+    // A lone per-person instance: it has a traveler, and `packingView` puts
+    // that person in its label instead (`Zelt · Andy`).
+    const lone = mountRow({
+      traveler: { id: 'andy', trip_id: 't1', name: 'Andy', linked_user_id: null },
+      label: 'Zelt · Andy',
+    })
+    expect(lone.find('.row-avatar').exists()).toBe(false)
+    // The positive signal: the row did render, and it still names the person.
+    expect(lone.get('h3').text()).toContain('Andy')
   })
 
   it('the two kinds are addressed by two prefixes over one key', () => {

@@ -340,7 +340,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The scale carried the exceptions and Ionic carried the body (2026-09-07)](#the-scale-carried-the-exceptions-and-ionic-carried-the-body-2026-09-07) — FR-21.14: a token nobody read, and a rule that never applied.
 - [The card M2 was not going to get (2026-09-07)](#the-card-m2-was-not-going-to-get-2026-09-07) — FR-21.15: two structural objections, both answerable.
 - [Six fractions, three meanings, one of them a recorded decision (2026-09-07)](#six-fractions-three-meanings-one-of-them-a-recorded-decision-2026-09-07) — FR-25.22/21.16: what a baseline of quantity-1 rows could never see.
-- [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17/21.18: a collapse that read its own effect as a gesture, and a column with one measure for two jobs.
+- [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17/21.18/21.19: a collapse read as a gesture, one measure doing two jobs, a rule tested only where it held.
 
 ## Deviations
 
@@ -14010,3 +14010,12 @@ chosen by reading comfort could never answer it; there are two now (`--jp-measur
 `--jp-measure-list`), and which one a screen takes is a field in the route table for the same reason
 the column lives in the frame at all. 834 px became 474 px, and the phone changed by nothing, both
 measures being inert below their own width.
+
+**A third finding came from the owner looking at the picture.** Shown the rendered before/after, he
+said two rows on M4 were not aligned. They were not: a lone per-person instance draws the
+traveller's face beside the mark slot and started its name 32 px right of its siblings. What is
+worth writing down is not the defect but why nothing caught it — `PackingRow.spec.ts` asserted "an
+item row does not draw an avatar" against `traveler: null`, the one input that cannot falsify it,
+and E2E-M4-56 compared a checkbox row with a stepper row, neither of which has a traveller. The rule
+was written down twice, in general terms, and tested twice against the inputs that agreed with it. A
+render found it in one glance.

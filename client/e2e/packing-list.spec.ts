@@ -1022,7 +1022,11 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   // right of a checkbox row. The control now sits at the row's other edge,
   // so the lead column holds the names straight and the container edge
   // holds the controls; both halves are asserted, because either one alone
-  // would pass on a row that had lost the other. Built through M8 per spec
+  // would pass on a row that had lost the other. The lead column's *third*
+  // shape — a lone per-person instance — is E2E-M4-72: this pair is a
+  // checkbox row against a stepper row, and neither of them has a traveler,
+  // so the general claim in the comment above was never tested against the
+  // row that broke it. Built through M8 per spec
   // §2.4, because a quantity can only come from a position; measured on
   // rendered boxes, not on the stylesheet.
   test('E2E-M4-56: a checkbox row and a stepper row start the name at the same x', async ({
@@ -1585,5 +1589,56 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // …and the column went back with it, which is the half of the rule a
     // one-way navigation could not show.
     await expect.poll(columnWidth).toBe(packingColumn)
+  })
+  /*
+   * E2E-M4-72 (FR-21.19): the lead column is one thing wide, on every kind
+   * of row.
+   *
+   * The kind that broke it is a *lone* per-person instance: one traveler
+   * checked, so `packingView` renders no cluster and folds the person into
+   * the label instead (`Wanderstöcke · Andy`). The row drew the face **and**
+   * the mark slot, and started its name 32 px right of every sibling in the
+   * same group — 481 px against 449 px, measured at 1280 px on the sample
+   * data. Both the unit case and E2E-M4-56 claimed this rule in general and
+   * tested it only against rows with no traveler.
+   */
+  test('E2E-M4-72: a per-person row starts its name where every other row does', async ({
+    page,
+  }) => {
+    test.slow()
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Velohelme'])
+
+    // The per-person path, with exactly one person checked — which is what
+    // produces a flat row rather than a cluster.
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-mode-per-person').click()
+    await page.getByTestId('quick-add-input').locator('input').fill('Wanderstöcke')
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    await page.getByTestId('membership-check-Andy').click()
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
+    await page.getByTestId('membership-close').click()
+    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+
+    const list = visible(page)
+    const perPerson = list.getByTestId('m4-row-Wanderstöcke')
+    const plain = list.getByTestId('m4-row-Velohelme')
+
+    // It really is the lone-instance shape, and it really does still name the
+    // person — without which the equality below would be satisfied by a row
+    // that had simply lost its traveler.
+    await expect(list.getByTestId('m4-cluster-Wanderstöcke')).toHaveCount(0)
+    await expect(perPerson).toContainText('Andy')
+
+    const perPersonName = (await perPerson.locator('h3').first().boundingBox())!
+    const plainName = (await plain.locator('h3').first().boundingBox())!
+    expect(perPersonName.x).toBe(plainName.x)
+
+    // The rule under it, so a future row that aligns by accident does not
+    // pass: the column itself is one width.
+    const perPersonLead = (await perPerson.locator('.row-lead').boundingBox())!
+    const plainLead = (await plain.locator('.row-lead').boundingBox())!
+    expect(perPersonLead.width).toBe(plainLead.width)
   })
 })

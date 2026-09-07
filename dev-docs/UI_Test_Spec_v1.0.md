@@ -2366,6 +2366,14 @@ landed, that no test has ever rendered.
   does not have to be rewritten the day a measure is retuned and cannot pass on a build where the column collapsed
   for an unrelated reason; the row is measured inside its column first, which is what says the cap reached the rows
   and not only the frame around them.
+* **E2E-M4-72** `all` (FR-21.19, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): a lone per-person
+  instance — one traveler checked, so no cluster and the person folded into the label — starts its name at the same
+  x as a plain row in the same list, and its lead column is the same width. Both are asserted, since a name that
+  lines up by some other accident would pass the first alone. The case first proves the row *is* the lone-instance
+  shape (no cluster, and the label still names the person), or the equality would be satisfied by a row that had
+  simply lost its traveler. This is the lead column's third shape: E2E-M4-56 compares a checkbox row with a stepper
+  row and the unit case used `traveler: null`, so the rule was claimed twice and never tested against the row that
+  broke it.
 * **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27): the bar keeps *Suchen*, *Filter* and *Zuklappen* and carries the
   rest behind the ⋮ — `m4-edit` and `m4-start` are gone as glyphs, the menu **names** both in words, and picking
   *„Reise-Eigenschaften"* lands on the rendered M22 edit screen. The last step is what separates the menu from a
