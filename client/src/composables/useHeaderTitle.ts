@@ -20,6 +20,16 @@ export interface PageHeadEntry {
   title: string
   /** The line under it — the trip a sub-screen belongs to, a wizard's step. */
   meta: string | null
+  /**
+   * Whether the head is yielding its space to the content under it.
+   *
+   * A screen whose whole job is a long list drives this from its own scroll
+   * (M4). It lives on the entry rather than in the page, because since
+   * ADR-050 the element is the frame's — and an owner call from 2026-08-19,
+   * that scrolling down takes the trip's name with the line under it, had
+   * quietly stopped applying the moment the name moved up here.
+   */
+  collapsed: boolean
 }
 
 const heads = reactive(new Map<string, PageHeadEntry>())
@@ -30,8 +40,13 @@ export function headFor(path: string): PageHeadEntry | null {
 }
 
 /** setHeadFor registers a page's head. Exported for tests and the composable. */
-export function setHeadFor(path: string, title: string | null, meta: string | null): void {
-  if (title) heads.set(path, { title, meta })
+export function setHeadFor(
+  path: string,
+  title: string | null,
+  meta: string | null,
+  collapsed = false,
+): void {
+  if (title) heads.set(path, { title, meta, collapsed })
   else heads.delete(path)
 }
 
@@ -53,6 +68,7 @@ export function clearHeadFor(path: string): void {
 export function setHeaderTitle(
   title: () => string | null | undefined,
   meta?: () => string | null | undefined,
+  collapsed?: () => boolean,
 ): void {
   // The path is captured once, at setup, deliberately. `useRoute()`
   // returns the *global* reactive route, so reading it inside the effect
@@ -65,7 +81,7 @@ export function setHeaderTitle(
   // falls back to `meta.titleKey`. That degrades to a generic title,
   // never a wrong one, and no route reaches a sibling directly today.
   const path = useRoute().path
-  watchEffect(() => setHeadFor(path, title() || null, meta?.() || null))
+  watchEffect(() => setHeadFor(path, title() || null, meta?.() || null, collapsed?.() ?? false))
   onUnmounted(() => clearHeadFor(path))
 }
 
@@ -80,5 +96,5 @@ export function setHeaderTitle(
 export function resolveHead(path: string, titleKey?: MessageKey): PageHeadEntry | null {
   const registered = headFor(path)
   if (registered) return registered
-  return titleKey ? { title: t(titleKey), meta: null } : null
+  return titleKey ? { title: t(titleKey), meta: null, collapsed: false } : null
 }

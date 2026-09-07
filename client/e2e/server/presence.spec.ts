@@ -206,7 +206,12 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     // the state recovers is what makes it a state rather than a latch.
     await bob.unroute('**/api/v1/trips/*/sync**')
     await quickAddItem(alice, third)
-    await expect(visiblePage(bob).getByTestId(`m4-row-${second}`)).toBeVisible()
+    // Waited on the row Alice just added, not on the one Bob missed: ✓✓ says
+    // every device is at the *head*, and the head is `third`. Waiting for
+    // `second` asked for less than the next line asserts, and left the rest
+    // to the retry — which held on an idle machine and failed on a loaded
+    // CI runner (run 34163387665).
+    await expect(visiblePage(bob).getByTestId(`m4-row-${third}`)).toBeVisible()
     await expect(visiblePage(alice).getByTestId('presence-in-sync')).toBeVisible()
     await expect(visiblePage(alice).getByTestId('presence-behind')).toHaveCount(0)
 

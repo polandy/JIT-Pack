@@ -801,10 +801,10 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
       })
 
     // One deliberate scroll to a mid-list offset, through ion-content's own
-    // API. Deliberately not the bottom: collapsing the header line shortens
-    // the scrolled content by its own height, so an offset at the very end
-    // is clamped back up again and the line re-opens — a wobble of the
-    // screen's own, and not what this case is about.
+    // API. A mid-list offset because that is what "where it was" means here;
+    // the very end used to be unusable — the clamp that a collapse provokes
+    // read as an upward scroll and re-opened the line — and E2E-M4-70 is
+    // where that wobble is now held down (FR-21.17).
     const SCROLLED_TO = 200
     await content.evaluate(
       (el, top) =>
@@ -1022,7 +1022,11 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   // right of a checkbox row. The control now sits at the row's other edge,
   // so the lead column holds the names straight and the container edge
   // holds the controls; both halves are asserted, because either one alone
-  // would pass on a row that had lost the other. Built through M8 per spec
+  // would pass on a row that had lost the other. The lead column's *third*
+  // shape — a lone per-person instance — is E2E-M4-72: this pair is a
+  // checkbox row against a stepper row, and neither of them has a traveler,
+  // so the general claim in the comment above was never tested against the
+  // row that broke it. Built through M8 per spec
   // §2.4, because a quantity can only come from a position; measured on
   // rendered boxes, not on the stylesheet.
   test('E2E-M4-56: a checkbox row and a stepper row start the name at the same x', async ({
@@ -1431,5 +1435,258 @@ test.describe('M4 — the row says how an item is obtained, unless it is the usu
     // …and the one that goes without saying is not, on the very same row
     // shape that just proved the glyph renders.
     await expect(packed.getByTitle('Pack')).toHaveCount(0)
+  })
+})
+
+/**
+ * The head that never yielded (FR-21.17) and the column that had no measure
+ * for a row (FR-21.18) — the two halves of the M4 read-through of
+ * 2026-09-07 that are about the screen's shape rather than its numbers.
+ *
+ * Both are claims about rendered pixels, so both are asserted as rendered
+ * pixels: a stylesheet cannot say whether the head actually gave its space
+ * back, and a route table cannot say how far a name sits from its checkbox.
+ *
+ * Motion is reduced for the same reason E2E-M4-45 reduces it: the head and
+ * the line under it both travel, and a height read mid-transition is not a
+ * height the screen holds. The app has its own instant path, so this is not
+ * a test switching off the thing it watches.
+ */
+test.describe('M4 — the shape of the screen @local @m4', () => {
+  useReducedMotion(test)
+
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * A yielded head is not exactly zero pixels tall: the collapse animates a
+   * grid track to `0fr`, and the browser rounds that to a fraction. Below a
+   * pixel is the assertion; the standing head is measured against 40.
+   */
+  const YIELDED_PX = 2
+  const STANDING_PX = 40
+
+  /**
+   * The head's height once it has *settled*, polled rather than read once.
+   *
+   * The collapse travels over a transition, and a single `evaluate` reads
+   * whatever frame it lands on — which is how the first version of this case
+   * passed here and failed on CI with 28 px and 53 px, both mid-flight. The
+   * wait is on the rendered end state, never on a clock; this is the same
+   * seam `toHaveCSS` gives E2E-M4-45 for the header line.
+   */
+  const headHeight = (page: Page) =>
+    expect.poll(() =>
+      page.getByTestId('page-head').evaluate((el) => el.getBoundingClientRect().height),
+    )
+
+  /** ion-content's own scroller, which is where an offset is real. */
+  function scroller(page: Page): Locator {
+    return visible(page).locator('ion-content.pack-content')
+  }
+  const scrollTo = (page: Page, top: number | 'bottom') =>
+    scroller(page).evaluate(async (el, to) => {
+      const content = el as unknown as { getScrollElement(): Promise<HTMLElement> }
+      const s = await content.getScrollElement()
+      s.scrollTop = to === 'bottom' ? s.scrollHeight : to
+    }, top)
+
+  /*
+   * E2E-M4-70 (FR-21.17): the page head goes down with the header line, and
+   * comes back with it.
+   *
+   * The third step is the one that carries the defect this case was written
+   * for. Collapsing the head hands its height to the scroll viewport, which
+   * shortens the scrollable range by the same amount; the browser clamps
+   * `scrollTop` down to fit, and that clamp arrives at the scroll handler
+   * looking exactly like an upward scroll. Measured before the fix, on a
+   * 1280×900 window, the head opened and shut on a single flick near the
+   * end of the list. Asserting at the very bottom is therefore not
+   * thoroughness — it is the only place the bug lives.
+   */
+  test('E2E-M4-70: the page head yields to the list, and holds at the bottom', async ({ page }) => {
+    test.slow()
+    await page.setViewportSize({ width: 390, height: 640 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, SCROLL_ROWS)
+
+    const head = page.getByTestId('page-head')
+    const line = visible(page).getByTestId('m4-header')
+    // The positive signal the rest of the case is measured against: the head
+    // is standing, and it is standing at a height worth reclaiming.
+    await expect(head).not.toHaveClass(/collapsed/)
+    await headHeight(page).toBeGreaterThan(STANDING_PX)
+
+    // Straight to the end, in one gesture, with the head still standing —
+    // which is the only arrangement in which the clamp can bite. Reaching
+    // the bottom from an *already* collapsed head changes no height, so it
+    // proves nothing: that sequence stayed green against the unguarded
+    // build, and this one does not.
+    await scrollTo(page, 'bottom')
+    await expect(head).toHaveClass(/collapsed/)
+    await expect(line).toHaveClass(/collapsed/)
+    await headHeight(page).toBeLessThan(YIELDED_PX)
+
+    // Any upward scroll brings both back — the other half of the owner's
+    // 2026-08-19 rule, and what makes the collapse a yield rather than a
+    // one-way disappearance.
+    await scrollTo(page, 40)
+    await expect(head).not.toHaveClass(/collapsed/)
+    await expect(line).not.toHaveClass(/collapsed/)
+    await headHeight(page).toBeGreaterThan(STANDING_PX)
+
+    // And the ordinary case, mid-list, where nothing is clamping.
+    await scrollTo(page, 200)
+    await expect(head).toHaveClass(/collapsed/)
+    await expect(line).toHaveClass(/collapsed/)
+    await headHeight(page).toBeLessThan(YIELDED_PX)
+  })
+
+  /*
+   * E2E-M4-71 (FR-21.18): on a window wide enough to have the choice, the
+   * packing list takes the control measure.
+   *
+   * Asserted as a *comparison* against a screen that takes the reading
+   * measure at the same viewport, not against the number 600: a bare width
+   * assertion would also pass on a build where the column had collapsed for
+   * some unrelated reason, and it would have to be rewritten the day either
+   * measure is retuned. What the rule promises is that these two screens
+   * differ, and that the packing row is the narrower of them.
+   */
+  test('E2E-M4-71: a packing row is measured for its control, not for prose', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt'])
+
+    const columnWidth = () =>
+      page.locator('.app-content').evaluate((el) => el.getBoundingClientRect().width)
+    const rowWidth = () =>
+      visible(page)
+        .getByTestId('m4-row-Zelt')
+        .evaluate((el) => el.getBoundingClientRect().width)
+
+    const packingColumn = await columnWidth()
+    // The row is inside the column it is capped by — the positive signal
+    // that the cap reached the rows rather than only the frame around them.
+    expect(await rowWidth()).toBeLessThanOrEqual(packingColumn)
+
+    // A screen that reads as prose, in the same window, through the app's
+    // own navigation rather than a reload.
+    await page.getByTestId('header-settings').click()
+    await expect(visible(page).getByTestId('settings-language')).toBeVisible()
+    const readingColumn = await columnWidth()
+
+    // The window is wide enough that either measure could have applied, so
+    // the difference is a decision and not a consequence of the frame.
+    expect(readingColumn).toBeGreaterThan(packingColumn)
+
+    // Back out the way in, so the case leaves the app where it found it —
+    // a pushed page left on the stack eats taps meant for the one on
+    // screen, and the suite fails the case that leaked it (ADR-012).
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    // …and the column went back with it, which is the half of the rule a
+    // one-way navigation could not show.
+    await expect.poll(columnWidth).toBe(packingColumn)
+  })
+  /*
+   * E2E-M4-72 (FR-21.19): the lead column is one thing wide, on every kind
+   * of row.
+   *
+   * The kind that broke it is a *lone* per-person instance: one traveler
+   * checked, so `packingView` renders no cluster and folds the person into
+   * the label instead (`Wanderstöcke · Andy`). The row drew the face **and**
+   * the mark slot, and started its name 32 px right of every sibling in the
+   * same group — 481 px against 449 px, measured at 1280 px on the sample
+   * data. Both the unit case and E2E-M4-56 claimed this rule in general and
+   * tested it only against rows with no traveler.
+   */
+  test('E2E-M4-72: a per-person row starts its name where every other row does', async ({
+    page,
+  }) => {
+    test.slow()
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Velohelme'])
+
+    // The per-person path, with exactly one person checked — which is what
+    // produces a flat row rather than a cluster.
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-mode-per-person').click()
+    await page.getByTestId('quick-add-input').locator('input').fill('Wanderstöcke')
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    await page.getByTestId('membership-check-Andy').click()
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
+    await page.getByTestId('membership-close').click()
+    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+
+    const list = visible(page)
+    const perPerson = list.getByTestId('m4-row-Wanderstöcke')
+    const plain = list.getByTestId('m4-row-Velohelme')
+
+    // It really is the lone-instance shape, and it really does still name the
+    // person — without which the equality below would be satisfied by a row
+    // that had simply lost its traveler.
+    await expect(list.getByTestId('m4-cluster-Wanderstöcke')).toHaveCount(0)
+    await expect(perPerson).toContainText('Andy')
+
+    const perPersonName = (await perPerson.locator('h3').first().boundingBox())!
+    const plainName = (await plain.locator('h3').first().boundingBox())!
+    expect(perPersonName.x).toBe(plainName.x)
+
+    // The rule under it, so a future row that aligns by accident does not
+    // pass: the column itself is one width.
+    const perPersonLead = (await perPerson.locator('.row-lead').boundingBox())!
+    const plainLead = (await plain.locator('.row-lead').boundingBox())!
+    expect(perPersonLead.width).toBe(plainLead.width)
+  })
+
+  /*
+   * E2E-M4-73 (FR-21.20): a cluster head is a line of the list; its people
+   * are the ones stepping in.
+   *
+   * The indent and its rule used to sit on the whole cluster, head included,
+   * so the item's name sat 8 px right of every other item name and only 6 px
+   * left of its own travelers — 457 against 449 and 463, measured at 1280 px.
+   * A head that close to its children reads as one of them. Both halves are
+   * asserted: an equality alone would pass on a build that had also flattened
+   * the children, and the step alone on one that had left the head inset.
+   */
+  test('E2E-M4-73: a cluster head lines up with the item rows, its people step in', async ({
+    page,
+  }) => {
+    test.slow()
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Velohelme'])
+
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-mode-per-person').click()
+    await page.getByTestId('quick-add-input').locator('input').fill('Regenjacke')
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    for (const who of ['Andy', 'Sia']) {
+      await page.getByTestId(`membership-check-${who}`).click()
+      await expect(page.getByTestId(`membership-qty-${who}`)).toHaveText('1')
+    }
+    await page.getByTestId('membership-close').click()
+    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+
+    const list = visible(page)
+    const nameX = async (locator: Locator, selector: string) =>
+      (await locator.locator(selector).first().boundingBox())!.x
+
+    const plainRow = await nameX(list.getByTestId('m4-row-Velohelme'), 'h3')
+    const head = await nameX(list.getByTestId('m4-cluster-Regenjacke'), '.cluster-name')
+    const child = await nameX(list.getByTestId('m4-child-Regenjacke-Andy'), 'h3')
+
+    // It is a cluster, with people under it — without which the two
+    // assertions below would be about rows that do not exist.
+    await expect(list.getByTestId('m4-child-Regenjacke-Sia')).toBeVisible()
+
+    // The head is one of the list's lines…
+    expect(head).toBe(plainRow)
+    // …and the people under it are indented from it, not level with it.
+    expect(child).toBeGreaterThan(head)
   })
 })

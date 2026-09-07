@@ -340,6 +340,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The scale carried the exceptions and Ionic carried the body (2026-09-07)](#the-scale-carried-the-exceptions-and-ionic-carried-the-body-2026-09-07) — FR-21.14: a token nobody read, and a rule that never applied.
 - [The card M2 was not going to get (2026-09-07)](#the-card-m2-was-not-going-to-get-2026-09-07) — FR-21.15: two structural objections, both answerable.
 - [Six fractions, three meanings, one of them a recorded decision (2026-09-07)](#six-fractions-three-meanings-one-of-them-a-recorded-decision-2026-09-07) — FR-25.22/21.16: what a baseline of quantity-1 rows could never see.
+- [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17 … 21.20: a collapse read as a gesture, one measure doing two jobs, two rules only a render caught.
 
 ## Deviations
 
@@ -13964,3 +13965,66 @@ comprehensive over screens and blind to a rule, and nothing reports that — whi
 asserts computed type rather than adding a 29th picture, and why E2E-M5-18's head now reads `0/6`
 against children of 2, 3 and 1: the numbers in a fixture are what decide whether a case can tell
 two rules apart.
+
+## A rule stayed behind when its element moved (2026-09-07)
+
+M4's page head never yielded, and its list had no measure for a control row. Both were read off a
+render of the sample data, not off the stylesheet, and both turned out to be older decisions that
+had quietly stopped applying.
+
+**The owner's 2026-08-19 call was that scrolling M4 down takes the whole header line, the trip's
+name included.** ADR-050 then moved the name out of that line into the frame's page head, and the
+collapse stayed behind with the figures. Nobody reversed anything: the sentence in the code comment,
+in the UI-Spec and in the doc-comment at the top of the view all still said "the name goes with it",
+and for eleven days it described only the 39 px of figures while the 89 px carrying the name stood.
+This is the failure mode to watch after a refactor that moves an element between owners — the rule
+about it is written where the element used to be, and it goes on reading as true.
+
+**The collapse read its own effect as a gesture.** Handing the head's height to the scroll viewport
+shortens the scrollable range by exactly that much, and the browser answers by clamping `scrollTop`
+down; through `@ion-scroll` that clamp is indistinguishable from an upward scroll, so the head came
+back, the range grew, and the head went down again. Traced on a 1280×900 window, it settled open
+after one flick — the feature simply did not work near the end of a list. The cheap fixes were both
+wrong: a bigger threshold is a guess about how far a clamp can move, and a position-based rule with
+hysteresis is immune but gives up the half of the owner's rule that says any upward scroll brings
+the head back. What is actually true is narrower — a clamp can only ever leave the scroller at its
+own **bottom** — so that is the one place the rule stops reading direction.
+
+**The same wobble was already written down as accepted.** E2E-M4-45 carried a comment explaining
+that it scrolls to a mid-list offset deliberately, because at the very end the header line "is
+clamped back up again and the line re-opens — a wobble of the screen's own". It had been diagnosed
+correctly, described precisely, and left in place as a property of the screen. A defect that a test
+comment has explained is a defect that will not be found again by testing.
+
+**The test order was the whole proof.** The first version of E2E-M4-70 scrolled to 200, then to the
+bottom, and stayed green with the guard deleted: reaching the bottom with the head *already*
+collapsed changes no height, so nothing clamps. Only a single gesture from a standing head into the
+last stretch of the list reproduces it. The assertion that failed against the unguarded build was
+the header **line**, which is how the old accepted wobble got closed too.
+
+**The column had one measure for two jobs.** UX-17 capped the content at 960 px because edge to edge
+a settings row put its label 1100 px from its control — and then accepted, in writing, that "a long
+packing row no longer uses the space it could". Measured at 1280 px, an M4 child row still put `Sia`
+834 px from her checkbox. The distance is a property of the row, not of the window, so a measure
+chosen by reading comfort could never answer it; there are two now (`--jp-measure-read`,
+`--jp-measure-list`), and which one a screen takes is a field in the route table for the same reason
+the column lives in the frame at all. 834 px became 474 px, and the phone changed by nothing, both
+measures being inert below their own width.
+
+**A third finding came from the owner looking at the picture.** Shown the rendered before/after, he
+said two rows on M4 were not aligned. They were not: a lone per-person instance draws the
+traveller's face beside the mark slot and started its name 32 px right of its siblings. What is
+worth writing down is not the defect but why nothing caught it — `PackingRow.spec.ts` asserted "an
+item row does not draw an avatar" against `traveler: null`, the one input that cannot falsify it,
+and E2E-M4-56 compared a checkbox row with a stepper row, neither of which has a traveller. The rule
+was written down twice, in general terms, and tested twice against the inputs that agreed with it. A
+render found it in one glance.
+
+**And a fourth, from the same pair of eyes on the same picture.** The cluster's indent and its rule
+sat on the whole block, so the head travelled in with its children: `Regenjacke` started its name 8
+px right of `Wandersocken` above it and 6 px left of `Andy` below it. A head that close to its
+children reads as one of them. The step belongs to the people — they are what is nested, the head is
+what they are nested under. Worth noting together with FR-21.16 three days earlier, which fixed the
+*size* of the same line: one axis of a hierarchy being repaired says nothing about the other, and
+both were found by looking rather than by any test. The count so far on this one component: three
+defects, three renders, no red build.

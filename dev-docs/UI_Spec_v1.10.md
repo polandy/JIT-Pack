@@ -229,8 +229,13 @@ These patterns apply to every screen and are specified once.
   chips across 1176 px — lines that read as several things rather than one. The cap needs no breakpoint of its own:
   below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays full width**, because it is the
   app's frame rather than its content — the logo belongs at the window's corner and the gear at the opposite one.
-  Accepted cost: on a very wide screen a long packing row no longer uses the space it could; the revisit trigger is
-  the first screen whose content genuinely wants more than the column.
+  **The column has two measures (added 2026-09-07, FR-21.18).** The cap above is the *reading* measure, 960 px. A
+  screen whose content is control rows — a name at one edge and the control that acts on it at the other — takes the
+  narrower *control* measure of 600 px instead, named in the route table as `meta.measure: 'list'`; M4 is the first
+  and so far only caller. That resolves the cost this paragraph used to accept: measured at 1280 px, an M4 child row
+  put `Sia` 834 px from her checkbox, and 474 px at the control measure. Both values live once, as `--jp-measure-*`
+  in `theme/surfaces.css`, and both are inert below their own width. The revisit trigger is the second screen to ask
+  for the control measure.
 * **G-10 (Trip Presence & Group Sync):** Distinct from G-2, which reflects only *your own* device's connection state,
   this pattern shows who else is currently on the same trip and whether the *group* is caught up. It lives in the
   trip-level header (M4's sticky header, not the global app header of G-9), since presence is meaningless outside a
@@ -831,7 +836,10 @@ These patterns apply to every screen and are specified once.
     which freed one slot and made the 2026-08-19 measurement stale, so the question was reopened — and closed unchanged.
     A name that only just fits is worse than a name that is somewhere else: the gain would have been one header row on
     mobile, and the risk was the "S…" this rule was written to end. The measurement is not owed again unless the bar
-    loses another element.
+    loses another element. **Amended 2026-09-07 (FR-21.17):** ADR-050 has since moved the name out of this line
+    altogether — it is the G-9 page head, above the bar's outlet, and the sentence "the name with it" above described
+    only the figures for eleven days. The head now collapses on the same gesture, which is what the 2026-08-19 call
+    said; measured, that is 89 px of a 390×844 phone returned to the list.
   * **The list stays where it was left** (2026-08-21, revised 2026-09-05). Opening an item is a state of the list's own
     page (ADR-046), so the list never leaves the screen and keeps its offset and its folded header line by simply
     staying. Was: the item's path replaced the route, which mounted the list afresh at the top — on a forty-row list,
@@ -914,6 +922,10 @@ These patterns apply to every screen and are specified once.
   exists to state. Three levels, three weights: the group heading, then a per-person cluster's name (FR-25.1), then the
   rows. **The second and third levels had the same inversion, found the same way on 2026-09-07** and fixed by FR-21.16:
   the cluster's name was set below the traveler rows under it. One level being repaired says nothing about the next.
+  **And the same day, the other axis (FR-21.20):** the cluster's indent and its rule sat on the whole block, so the
+  head was carried in with its children — 8 px right of every other item name and only 6 px left of its own
+  travelers. They belong to the **children**: a head names an item, exactly like the plain row beside it, and stands
+  in the same name column.
   And **each group is its own block** — a bordered card carrying its rows — because with nothing but a gap between
   them, two categories run into each other on a long list. The concept mock had the card from the start; the first
   implementation dropped it.
@@ -943,6 +955,11 @@ These patterns apply to every screen and are specified once.
       holds the controls. E2E-M4-56 asserts both, because either one alone passes on a row that has lost the other.
     The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row added by quick-add carries none until
     it exists in the inventory, and shows an empty slot rather than a placeholder.
+    * **The lead column is one glyph wide (added 2026-09-07, FR-21.19).** The mark on an item row, the traveler's face
+      on a child row under a cluster — never both. The case that had both is a *lone* per-person instance, which
+      renders as an item row with the person folded into its label (`Wanderstöcke · Andy`); it drew the face beside
+      the mark slot and started its name 32 px right of every sibling. Reported off a render by the owner; both tests
+      that claimed the rule had only ever been given rows without a traveler.
   * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline
     text input with autocomplete suggestions from the master item inventory (M9). Enter on free text creates a new
     ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is

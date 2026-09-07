@@ -104,13 +104,13 @@ const emit = defineEmits<{
     @pointerup="emit('pressEnd')"
     @pointercancel="emit('pressEnd')"
   >
-    <!-- The lead column: what the row *is*. A child row keeps the column
-         even with nobody in it, because it has no mark to hold it open; an
-         item row's mark slot holds its own width (FR-28.4), so the names
-         line up across both kinds. -->
+    <!-- The lead column: what the row *is*, and exactly one thing wide. A
+         child row keeps the column even with nobody in it, because it has no
+         mark to hold it open; an item row's mark slot holds its own width
+         (FR-28.4), so the names line up across both kinds. -->
     <div slot="start" class="row-lead">
       <UserAvatar
-        v-if="traveler || props.variant === 'child'"
+        v-if="props.variant === 'child'"
         class="row-avatar"
         :name="traveler?.name"
         :seed="traveler?.id"
@@ -311,8 +311,13 @@ const emit = defineEmits<{
   margin-inline-end: 10px;
 }
 
-/* The traveler avatar shares the mark's column (24px + 8px = the mark slot's
-   22px + 10px), so child rows and item rows start their names at the same x. */
+/* The traveler avatar *is* the child row's column (24px + 8px = the mark
+   slot's 22px + 10px), so child rows and item rows start their names at the
+   same x. It is never drawn beside the mark: a lone per-person instance
+   renders as an item row, and stacking the two put its name 32 px right of
+   every sibling in the same group (FR-21.19). The person is not lost — that
+   row's label is `<item> · <traveler>`, which is what `packingView` builds
+   precisely because no cluster head is there to say it. */
 .row-avatar {
   flex: none;
   margin-inline-end: 8px;

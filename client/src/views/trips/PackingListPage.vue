@@ -11,8 +11,9 @@
  *    weight, open prep and the presence facepile. It stays unfiltered
  *    whatever the list shows (G-12), so a short list is never mistaken for
  *    a finished trip. It hides on scroll-down and returns on any upward
- *    scroll, which is where the list height comes from — the name goes with
- *    it, deliberately.
+ *    scroll, which is where the list height comes from — and the page head
+ *    above it goes with it, deliberately (the name used to live in this
+ *    line, and the owner's call was that it goes too).
  *  - **Actions in the app bar** (G-12): search behind its icon (FR-25.11k)
  *    and fold-all (FR-25.16). No ⋯ overflow — three destinations behind an
  *    unlabelled glyph is exactly where concept testing kept failing.
@@ -107,6 +108,8 @@ import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { nextHeadState } from '@/lib/headScroll'
+import type { HeadScrollState } from '@/lib/headScroll'
 import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -475,17 +478,22 @@ const shoppingCount = computed(() => {
 })
 
 /**
- * The header line yields to the list on the way down and comes back on any
- * upward scroll. A threshold keeps it from flickering on the rubber-band
- * overscroll at the top, where the direction flips every frame.
+ * The header line *and the page head above it* yield to the list on the way
+ * down and come back on any upward scroll. The rule itself is a pure step in
+ * `lib/headScroll.ts` — its one interesting case is a collapse being read as
+ * a gesture, which nothing can reach through a listener.
  */
-const headCollapsed = ref(false)
-let lastScrollTop = 0
+const head = ref<HeadScrollState>({ top: 0, collapsed: false })
+const headCollapsed = computed(() => head.value.collapsed)
+
+/** The scroller behind the ion-content, resolved from the first event. */
+let scrollEl: HTMLElement | null = null
 function onScroll(event: CustomEvent<{ scrollTop: number }>) {
-  const top = event.detail.scrollTop
-  if (Math.abs(top - lastScrollTop) < 8) return
-  headCollapsed.value = top > lastScrollTop && top > 48
-  lastScrollTop = top
+  if (scrollEl === null) {
+    const content = event.target as { getScrollElement?: () => Promise<HTMLElement> }
+    void content.getScrollElement?.().then((el) => (scrollEl = el))
+  }
+  head.value = nextHeadState(head.value, { top: event.detail.scrollTop, viewport: scrollEl })
 }
 
 // --- App-bar cluster (G-12) --------------------------------------------
@@ -1107,8 +1115,19 @@ const tripName = computed(() => trip.value?.name ?? t('packing.title'))
  * "S…" — so M4 registered no title there and its header line led with the
  * name. The bar names no page any more, so nothing turns on the viewport and
  * the header line is one row of figures at every width.
+ *
+ * The third argument is why the name is *still* the header line's business:
+ * the owner's 2026-08-19 call was that scrolling down takes the whole line,
+ * name included. ADR-050 moved the name into the frame and the collapse
+ * stayed behind with the figures, so the biggest block on the screen became
+ * the one thing that never yielded — 89 of a phone's 844 px, permanently, on
+ * the screen that is scrolled most. The head now yields on the same gesture.
  */
-setHeaderTitle(() => tripName.value)
+setHeaderTitle(
+  () => tripName.value,
+  undefined,
+  () => headCollapsed.value,
+)
 </script>
 
 <template>
@@ -1269,32 +1288,33 @@ setHeaderTitle(() => tripName.value)
                   :master="clusterMaster(entry)"
                 />
 
-                <PackingRow
-                  v-for="child in entry.children"
-                  :key="child.item.id"
-                  class="child-row"
-                  variant="child"
-                  :item="child.item"
-                  :label="child.traveler?.name ?? child.label"
-                  :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
-                  :done="child.done"
-                  :locked="locked(child.item)"
-                  :closing-pass="closingPass"
-                  :notes="rowNotes(child.item)"
-                  :traveler="child.traveler"
-                  :edge-avatar="edgeAvatarFor(child.item)"
-                  @open="openItem(child.item.id)"
-                  @menu="openRowMenu(child.item)"
-                  @press-start="(e: PointerEvent) => onRowPress(child.item, e)"
-                  @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
-                  @press-end="hold.cancel()"
-                  @pass-toggle="onPassToggle(child.item)"
-                  @increment="onIncrement(child.item)"
-                  @decrement="onDecrement(child.item)"
-                  @complete="onComplete(child.item)"
-                  @zero="onZero(child.item)"
-                  @toggle="onToggle(child.item)"
-                />
+                <div class="cluster-children">
+                  <PackingRow
+                    v-for="child in entry.children"
+                    :key="child.item.id"
+                    variant="child"
+                    :item="child.item"
+                    :label="child.traveler?.name ?? child.label"
+                    :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
+                    :done="child.done"
+                    :locked="locked(child.item)"
+                    :closing-pass="closingPass"
+                    :notes="rowNotes(child.item)"
+                    :traveler="child.traveler"
+                    :edge-avatar="edgeAvatarFor(child.item)"
+                    @open="openItem(child.item.id)"
+                    @menu="openRowMenu(child.item)"
+                    @press-start="(e: PointerEvent) => onRowPress(child.item, e)"
+                    @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                    @press-end="hold.cancel()"
+                    @pass-toggle="onPassToggle(child.item)"
+                    @increment="onIncrement(child.item)"
+                    @decrement="onDecrement(child.item)"
+                    @complete="onComplete(child.item)"
+                    @zero="onZero(child.item)"
+                    @toggle="onToggle(child.item)"
+                  />
+                </div>
               </div>
 
               <PackingRow
@@ -1602,9 +1622,10 @@ ion-content.pack-content::part(scroll) {
     padding 0.18s ease;
 }
 
-/* Scrolling down still takes the whole line, name included (owner call,
-   2026-08-19): you know which packing list you are on, and the rows are
-   what the screen is for. Any upward scroll brings it back. */
+/* Scrolling down still takes the whole line (owner call, 2026-08-19): you
+   know which packing list you are on, and the rows are what the screen is
+   for. Any upward scroll brings it back. The name is no longer in here —
+   the same flag collapses the frame's page head, see setHeaderTitle. */
 .trip-line.collapsed {
   max-height: 0;
   padding-block: 0;
@@ -1739,13 +1760,18 @@ ion-content.pack-content::part(scroll) {
 }
 
 /* --- Per-person cluster ----------------------------------------------- */
-.cluster {
+
+/*
+ * The rule and the step belong to the *children*, not to the block
+ * (FR-21.20). Until 2026-09-07 they were on `.cluster`, which carried the
+ * head in with them: the item's name sat 8 px right of every other item
+ * name in the list and only 6 px left of its own travelers — so the head
+ * read as one of its children rather than as their heading. The head is a
+ * line of the list; the people under it are the ones stepping in.
+ */
+.cluster-children {
   border-inline-start: 2px solid var(--ct-surface1);
   margin-inline-start: 12px;
-}
-
-.child-row {
-  --padding-start: 8px;
 }
 
 /* --- FR-25.2: the pack-out ------------------------------------------- */

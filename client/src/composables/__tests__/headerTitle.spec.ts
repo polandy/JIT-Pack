@@ -36,8 +36,12 @@ describe('page heads are keyed by route path', () => {
     setHeadFor('/trips/new', 'New trip', 'Step 1 of 4')
     setHeadFor('/trips/t1', 'Samedan 2026', null)
 
-    expect(headFor('/trips/new')).toEqual({ title: 'New trip', meta: 'Step 1 of 4' })
-    expect(headFor('/trips/t1')).toEqual({ title: 'Samedan 2026', meta: null })
+    expect(headFor('/trips/new')).toEqual({
+      title: 'New trip',
+      meta: 'Step 1 of 4',
+      collapsed: false,
+    })
+    expect(headFor('/trips/t1')).toEqual({ title: 'Samedan 2026', meta: null, collapsed: false })
   })
 
   it('a late unmount of the previous page does not wipe the current head', () => {
@@ -78,6 +82,7 @@ describe('resolveHead answers what the frame renders', () => {
     expect(resolveHead('/trips/t1/shopping', 'container.title')).toEqual({
       title: 'Shopping',
       meta: 'Samedan 2026',
+      collapsed: false,
     })
   })
 
@@ -85,6 +90,7 @@ describe('resolveHead answers what the frame renders', () => {
     expect(resolveHead('/trips/t1/shopping', 'container.title')).toEqual({
       title: 'Luggage',
       meta: null,
+      collapsed: false,
     })
   })
 
@@ -116,11 +122,11 @@ describe('resolveHead answers what the frame renders', () => {
 describe('setHeaderTitle wires both lines, and follows their data', () => {
   beforeEach(() => clearHeadFor(PATH))
 
-  function mountWith(title: () => string, meta?: () => string | null) {
+  function mountWith(title: () => string, meta?: () => string | null, collapsed?: () => boolean) {
     return mount(
       defineComponent({
         setup: () => {
-          setHeaderTitle(title, meta)
+          setHeaderTitle(title, meta, collapsed)
           return () => null
         },
       }),
@@ -133,7 +139,7 @@ describe('setHeaderTitle wires both lines, and follows their data', () => {
       () => 'Samedan 2026',
     )
 
-    expect(headFor(PATH)).toEqual({ title: 'Shopping', meta: 'Samedan 2026' })
+    expect(headFor(PATH)).toEqual({ title: 'Shopping', meta: 'Samedan 2026', collapsed: false })
   })
 
   it('follows the meta line when its data arrives after the first render', async () => {
@@ -153,7 +159,38 @@ describe('setHeaderTitle wires both lines, and follows their data', () => {
   it('leaves the meta line null for a screen that registers only a name', () => {
     mountWith(() => 'Items')
 
-    expect(headFor(PATH)).toEqual({ title: 'Items', meta: null })
+    expect(headFor(PATH)).toEqual({ title: 'Items', meta: null, collapsed: false })
+  })
+
+  /**
+   * FR-21.17. The screen that yields its head is the one that scrolls, so
+   * the flag has to reach the frame from the page — and it has to *keep*
+   * reaching it: the first version registered the head once and read the
+   * getter only at setup, which is indistinguishable from working until
+   * the first scroll.
+   */
+  it('follows the collapse flag the page drives, both ways', async () => {
+    const yielded = ref(false)
+    mountWith(
+      () => 'Samedan 2026',
+      undefined,
+      () => yielded.value,
+    )
+    expect(headFor(PATH)?.collapsed).toBe(false)
+
+    yielded.value = true
+    await Promise.resolve()
+    expect(headFor(PATH)?.collapsed).toBe(true)
+
+    yielded.value = false
+    await Promise.resolve()
+    expect(headFor(PATH)?.collapsed).toBe(false)
+  })
+
+  it('leaves a screen that drives nothing with a head that never yields', () => {
+    mountWith(() => 'Items')
+
+    expect(headFor(PATH)?.collapsed).toBe(false)
   })
 
   it('clears its own path when the page unmounts', () => {
