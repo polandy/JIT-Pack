@@ -911,7 +911,9 @@ taken straight from a phone camera never reaches the server unprocessed.
   arrives at the scroll handler as an upward scroll, re-opens the head, and lengthens the range again. Measured on a
   1280×900 window, the head opened and shut on a single flick near the end of the list; the same wobble is why
   E2E-M4-45 was written to stop short of the bottom. A clamp can only ever leave the scroller at its own bottom, so
-  that is where the rule stops reading direction: an upward reading taken at the bottom is not a gesture.
+  that is where the rule stops reading direction: an upward reading taken at the bottom is not a gesture. The
+  rule is a pure step (`lib/headScroll.ts`) rather than a scroll listener, because that is the only shape in
+  which the clamp case can be reached by a test at all.
 * **FR-21.18 (A List of Controls Takes a Narrower Column Than a Page of Prose — added 2026-09-07):** UX-17's content
   column has two measures, and a screen says which one it takes. The default is the **reading** measure (960 px),
   sized so a line of body copy stays in the comfortable range. A screen whose content is control rows — a name at

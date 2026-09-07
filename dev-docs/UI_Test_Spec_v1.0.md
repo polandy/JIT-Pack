@@ -2356,7 +2356,10 @@ landed, that no test has ever rendered.
   than an element that never had a size. The bottom of the list is where the case earns its keep — the head's own
   collapse shortens the scrollable range, the browser clamps `scrollTop`, and that clamp reads as an upward scroll.
   The order matters and is written into the case: reaching the bottom with the head **already** down changes no
-  height and stays green against the unguarded build.
+  height and stays green against the unguarded build. Heights are **polled** rather than read once — the collapse
+  travels over a transition, and a single read lands on whatever frame it finds; the first version passed locally
+  and failed on CI at 28 px and 53 px, both mid-flight. The rule itself also has a unit
+  (`lib/__tests__/headScroll.spec.ts`), which is where the one-pixel tolerance around the bottom is pinned.
 * **E2E-M4-71** `all` (FR-21.18, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): on a 1280 px window
   the packing list takes the control measure and a settings screen, in the same window and reached through the app's
   own gear, takes the reading one. Asserted as the difference between the two rather than against 600, so the case
