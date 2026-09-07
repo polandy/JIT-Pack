@@ -801,10 +801,10 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
       })
 
     // One deliberate scroll to a mid-list offset, through ion-content's own
-    // API. Deliberately not the bottom: collapsing the header line shortens
-    // the scrolled content by its own height, so an offset at the very end
-    // is clamped back up again and the line re-opens — a wobble of the
-    // screen's own, and not what this case is about.
+    // API. A mid-list offset because that is what "where it was" means here;
+    // the very end used to be unusable — the clamp that a collapse provokes
+    // read as an upward scroll and re-opened the line — and E2E-M4-70 is
+    // where that wobble is now held down (FR-21.17).
     const SCROLLED_TO = 200
     await content.evaluate(
       (el, top) =>
@@ -1431,5 +1431,139 @@ test.describe('M4 — the row says how an item is obtained, unless it is the usu
     // …and the one that goes without saying is not, on the very same row
     // shape that just proved the glyph renders.
     await expect(packed.getByTitle('Pack')).toHaveCount(0)
+  })
+})
+
+/**
+ * The head that never yielded (FR-21.17) and the column that had no measure
+ * for a row (FR-21.18) — the two halves of the M4 read-through of
+ * 2026-09-07 that are about the screen's shape rather than its numbers.
+ *
+ * Both are claims about rendered pixels, so both are asserted as rendered
+ * pixels: a stylesheet cannot say whether the head actually gave its space
+ * back, and a route table cannot say how far a name sits from its checkbox.
+ *
+ * Motion is reduced for the same reason E2E-M4-45 reduces it: the head and
+ * the line under it both travel, and a height read mid-transition is not a
+ * height the screen holds. The app has its own instant path, so this is not
+ * a test switching off the thing it watches.
+ */
+test.describe('M4 — the shape of the screen @local @m4', () => {
+  useReducedMotion(test)
+
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * A yielded head is not exactly zero pixels tall: the collapse animates a
+   * grid track to `0fr`, and the browser rounds that to a fraction. Below a
+   * pixel is the assertion; the standing head is measured against 40.
+   */
+  const YIELDED_PX = 2
+
+  /** The rendered height of the frame's one page head, settled. */
+  const headHeight = (page: Page) =>
+    page.getByTestId('page-head').evaluate((el) => el.getBoundingClientRect().height)
+
+  /** ion-content's own scroller, which is where an offset is real. */
+  function scroller(page: Page): Locator {
+    return visible(page).locator('ion-content.pack-content')
+  }
+  const scrollTo = (page: Page, top: number | 'bottom') =>
+    scroller(page).evaluate(async (el, to) => {
+      const content = el as unknown as { getScrollElement(): Promise<HTMLElement> }
+      const s = await content.getScrollElement()
+      s.scrollTop = to === 'bottom' ? s.scrollHeight : to
+    }, top)
+
+  /*
+   * E2E-M4-70 (FR-21.17): the page head goes down with the header line, and
+   * comes back with it.
+   *
+   * The third step is the one that carries the defect this case was written
+   * for. Collapsing the head hands its height to the scroll viewport, which
+   * shortens the scrollable range by the same amount; the browser clamps
+   * `scrollTop` down to fit, and that clamp arrives at the scroll handler
+   * looking exactly like an upward scroll. Measured before the fix, on a
+   * 1280×900 window, the head opened and shut on a single flick near the
+   * end of the list. Asserting at the very bottom is therefore not
+   * thoroughness — it is the only place the bug lives.
+   */
+  test('E2E-M4-70: the page head yields to the list, and holds at the bottom', async ({ page }) => {
+    test.slow()
+    await page.setViewportSize({ width: 390, height: 640 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, SCROLL_ROWS)
+
+    const head = page.getByTestId('page-head')
+    const line = visible(page).getByTestId('m4-header')
+    // The positive signal the rest of the case is measured against: the head
+    // is standing, and it is standing at a height worth reclaiming.
+    await expect(head).not.toHaveClass(/collapsed/)
+    expect(await headHeight(page)).toBeGreaterThan(40)
+
+    // Straight to the end, in one gesture, with the head still standing —
+    // which is the only arrangement in which the clamp can bite. Reaching
+    // the bottom from an *already* collapsed head changes no height, so it
+    // proves nothing: that sequence stayed green against the unguarded
+    // build, and this one does not.
+    await scrollTo(page, 'bottom')
+    await expect(head).toHaveClass(/collapsed/)
+    await expect(line).toHaveClass(/collapsed/)
+    expect(await headHeight(page)).toBeLessThan(YIELDED_PX)
+
+    // Any upward scroll brings both back — the other half of the owner's
+    // 2026-08-19 rule, and what makes the collapse a yield rather than a
+    // one-way disappearance.
+    await scrollTo(page, 40)
+    await expect(head).not.toHaveClass(/collapsed/)
+    await expect(line).not.toHaveClass(/collapsed/)
+    expect(await headHeight(page)).toBeGreaterThan(40)
+
+    // And the ordinary case, mid-list, where nothing is clamping.
+    await scrollTo(page, 200)
+    await expect(head).toHaveClass(/collapsed/)
+    await expect(line).toHaveClass(/collapsed/)
+    expect(await headHeight(page)).toBeLessThan(YIELDED_PX)
+  })
+
+  /*
+   * E2E-M4-71 (FR-21.18): on a window wide enough to have the choice, the
+   * packing list takes the control measure.
+   *
+   * Asserted as a *comparison* against a screen that takes the reading
+   * measure at the same viewport, not against the number 600: a bare width
+   * assertion would also pass on a build where the column had collapsed for
+   * some unrelated reason, and it would have to be rewritten the day either
+   * measure is retuned. What the rule promises is that these two screens
+   * differ, and that the packing row is the narrower of them.
+   */
+  test('E2E-M4-71: a packing row is measured for its control, not for prose', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt'])
+
+    const columnWidth = () =>
+      page.locator('.app-content').evaluate((el) => el.getBoundingClientRect().width)
+    const rowWidth = () =>
+      visible(page)
+        .getByTestId('m4-row-Zelt')
+        .evaluate((el) => el.getBoundingClientRect().width)
+
+    const packingColumn = await columnWidth()
+    // The row is inside the column it is capped by — the positive signal
+    // that the cap reached the rows rather than only the frame around them.
+    expect(await rowWidth()).toBeLessThanOrEqual(packingColumn)
+
+    // A screen that reads as prose, in the same window, through the app's
+    // own navigation rather than a reload.
+    await page.getByTestId('header-settings').click()
+    await expect(visible(page).getByTestId('settings-language')).toBeVisible()
+    const readingColumn = await columnWidth()
+
+    // The window is wide enough that either measure could have applied, so
+    // the difference is a decision and not a consequence of the frame.
+    expect(readingColumn).toBeGreaterThan(packingColumn)
   })
 })

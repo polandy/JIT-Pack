@@ -40,6 +40,26 @@
   --jp-r-lg: 26px; /* sheet tops and heroes   (prototype --r-lg)       */
   --jp-r-pill: 999px; /* anything whose radius is half its own height     */
 
+  /* --- Content measures ------------------------------------------------
+   * How wide the frame's content column is allowed to grow (UX-17, G-9).
+   * Two values, because a column is measured by what it holds:
+   *
+   *  - `read` is the reading measure — a line of body copy kept in the
+   *    comfortable range. Every screen gets it unless it asks otherwise.
+   *  - `list` is the *control* measure, for a screen whose content is rows
+   *    carrying a name at one edge and a control at the other. It is
+   *    narrower for a reason the reading measure cannot express: at 960 px
+   *    an M4 row put `Sia` and her checkbox some 800 px apart, and the eye
+   *    has to cross that to connect a row to the thing that acts on it.
+   *    UX-17 named this failure at 1100 px and fixed the worst of it; what
+   *    it did not say is that the distance is a property of the *row*, not
+   *    of the window, so one measure could never answer both.
+   *
+   * Both are inert below their own width, so the phone keeps every pixel.
+   */
+  --jp-measure-read: 960px;
+  --jp-measure-list: 600px;
+
   /* --- Round controls -------------------------------------------------
    * The diameter of a round control in a sheet header. One value because
    * the header holds a *pair* of them — the save indicator beside the ✕ —

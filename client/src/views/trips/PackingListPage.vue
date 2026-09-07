@@ -11,8 +11,9 @@
  *    weight, open prep and the presence facepile. It stays unfiltered
  *    whatever the list shows (G-12), so a short list is never mistaken for
  *    a finished trip. It hides on scroll-down and returns on any upward
- *    scroll, which is where the list height comes from — the name goes with
- *    it, deliberately.
+ *    scroll, which is where the list height comes from — and the page head
+ *    above it goes with it, deliberately (the name used to live in this
+ *    line, and the owner's call was that it goes too).
  *  - **Actions in the app bar** (G-12): search behind its icon (FR-25.11k)
  *    and fold-all (FR-25.16). No ⋯ overflow — three destinations behind an
  *    unlabelled glyph is exactly where concept testing kept failing.
@@ -475,17 +476,48 @@ const shoppingCount = computed(() => {
 })
 
 /**
- * The header line yields to the list on the way down and comes back on any
- * upward scroll. A threshold keeps it from flickering on the rubber-band
- * overscroll at the top, where the direction flips every frame.
+ * The header line *and the page head above it* yield to the list on the way
+ * down and come back on any upward scroll. A threshold keeps it from
+ * flickering on the rubber-band overscroll at the top, where the direction
+ * flips every frame.
  */
 const headCollapsed = ref(false)
 let lastScrollTop = 0
+
+/** Below this the head is never in the way, so the gesture is ignored. */
+const HEAD_YIELD_AFTER_PX = 48
+/** Smaller than a deliberate swipe: the rubber-band's own jitter. */
+const SCROLL_NOISE_PX = 8
+
+/**
+ * A reading taken with the list already at its bottom is not a gesture.
+ *
+ * Yielding the head hands its height to the scroll viewport, which shortens
+ * the scrollable range by exactly as much, and the browser answers by
+ * clamping `scrollTop` down. Read back through `@ion-scroll` that clamp is
+ * an upward scroll, which brings the head back, which lengthens the range
+ * again — measured on a 1280×900 desktop, the head opened and shut on one
+ * flick near the end of the list. The clamp can only ever leave the
+ * scroller at its own bottom, which is where the rule stops reading
+ * direction; a user scrolling up leaves the bottom on the next event.
+ */
+function atBottom(el: HTMLElement | null, top: number): boolean {
+  return el !== null && top + el.clientHeight >= el.scrollHeight - 1
+}
+
+/** The scroller behind the ion-content, resolved from the first event. */
+let scrollEl: HTMLElement | null = null
 function onScroll(event: CustomEvent<{ scrollTop: number }>) {
   const top = event.detail.scrollTop
-  if (Math.abs(top - lastScrollTop) < 8) return
-  headCollapsed.value = top > lastScrollTop && top > 48
+  if (scrollEl === null) {
+    const content = event.target as { getScrollElement?: () => Promise<HTMLElement> }
+    void content.getScrollElement?.().then((el) => (scrollEl = el))
+  }
+  if (Math.abs(top - lastScrollTop) < SCROLL_NOISE_PX) return
+  const up = top < lastScrollTop
   lastScrollTop = top
+  if (up && atBottom(scrollEl, top)) return
+  headCollapsed.value = !up && top > HEAD_YIELD_AFTER_PX
 }
 
 // --- App-bar cluster (G-12) --------------------------------------------
@@ -1107,8 +1139,19 @@ const tripName = computed(() => trip.value?.name ?? t('packing.title'))
  * "S…" — so M4 registered no title there and its header line led with the
  * name. The bar names no page any more, so nothing turns on the viewport and
  * the header line is one row of figures at every width.
+ *
+ * The third argument is why the name is *still* the header line's business:
+ * the owner's 2026-08-19 call was that scrolling down takes the whole line,
+ * name included. ADR-050 moved the name into the frame and the collapse
+ * stayed behind with the figures, so the biggest block on the screen became
+ * the one thing that never yielded — 89 of a phone's 844 px, permanently, on
+ * the screen that is scrolled most. The head now yields on the same gesture.
  */
-setHeaderTitle(() => tripName.value)
+setHeaderTitle(
+  () => tripName.value,
+  undefined,
+  () => headCollapsed.value,
+)
 </script>
 
 <template>
@@ -1602,9 +1645,10 @@ ion-content.pack-content::part(scroll) {
     padding 0.18s ease;
 }
 
-/* Scrolling down still takes the whole line, name included (owner call,
-   2026-08-19): you know which packing list you are on, and the rows are
-   what the screen is for. Any upward scroll brings it back. */
+/* Scrolling down still takes the whole line (owner call, 2026-08-19): you
+   know which packing list you are on, and the rows are what the screen is
+   for. Any upward scroll brings it back. The name is no longer in here —
+   the same flag collapses the frame's page head, see setHeaderTitle. */
 .trip-line.collapsed {
   max-height: 0;
   padding-block: 0;

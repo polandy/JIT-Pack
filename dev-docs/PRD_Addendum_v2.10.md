@@ -894,6 +894,41 @@ taken straight from a phone camera never reaches the server unprocessed.
   sat above it. This is the case invariant 9b exists for: every colour and every size in both blocks was a legal token.
 
   M4's per-person cluster is the app's most-read block, so it is also where an inverted hierarchy costs most.
+* **FR-21.17 (The Page Head Yields With the Line Under It — added 2026-09-07):** On a screen that drives it, the G-9
+  page head collapses on a downward scroll and returns on any upward one, together with the screen's own header
+  line. M4 is the first and so far only such screen; every other page head stands, which is the default.
+
+  **This restores an owner call rather than making a new one.** On 2026-08-19 it was decided that scrolling M4 down
+  takes the whole header line, *the trip's name included* — you know which list you are on, and the rows are what
+  the screen is for. ADR-050 then moved the name out of that line and into the frame's page head, and the rule
+  stayed behind with the figures. What was left was the inverse of the decision: the 39 px of figures yielded and
+  the 89 px carrying the name did not, so the biggest block on the most-scrolled screen was the only one that never
+  moved. Measured on a 390×844 phone against the sample data, 329 of 844 px stood between the app bar and the first
+  row.
+
+  **The collapse must not read its own effect as a gesture.** Handing the head's height to the scroll viewport
+  shortens the scrollable range by the same amount, and the browser answers by clamping `scrollTop` down — which
+  arrives at the scroll handler as an upward scroll, re-opens the head, and lengthens the range again. Measured on a
+  1280×900 window, the head opened and shut on a single flick near the end of the list; the same wobble is why
+  E2E-M4-45 was written to stop short of the bottom. A clamp can only ever leave the scroller at its own bottom, so
+  that is where the rule stops reading direction: an upward reading taken at the bottom is not a gesture.
+* **FR-21.18 (A List of Controls Takes a Narrower Column Than a Page of Prose — added 2026-09-07):** UX-17's content
+  column has two measures, and a screen says which one it takes. The default is the **reading** measure (960 px),
+  sized so a line of body copy stays in the comfortable range. A screen whose content is control rows — a name at
+  one edge, the control that acts on it at the other — takes the **control** measure (600 px) instead. M4 is the
+  first screen to ask for it.
+
+  **One measure could never answer both, and UX-17 half said so.** It was added because edge to edge a settings row
+  put its label and its control 1100 px apart, and it accepted as a cost that "on a very wide screen a long packing
+  row no longer uses the space it could". Measured on a 1280×900 window with the sample data, an M4 child row still
+  put `Sia` 834 px from her checkbox; at the control measure it is 474 px. The distance is a property of the *row*,
+  not of the window, which is why capping by reading comfort leaves it unfixed.
+
+  Below its own width each measure is inert, so nothing changes on a phone — the same reason UX-17 needs no
+  breakpoint. Which measure a screen takes is a field in the route table (`meta.measure`), for the reason the column
+  itself lives in the frame: a screen that has to remember to cap itself is a screen that will forget. The revisit
+  trigger is the second screen to ask for the control measure, at which point the two measures are a pattern rather
+  than a rule with one caller.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

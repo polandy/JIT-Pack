@@ -255,6 +255,15 @@ const router = useRouter()
 /** G-9's page head: what the frame renders above the outlet, if anything. */
 const pageHead = computed(() => resolveHead(route.path, route.meta.titleKey))
 
+/**
+ * UX-17's column, at the measure the screen's content asks for. A screen
+ * whose content is control rows says so in the route table; everything else
+ * gets the reading measure without deciding anything.
+ */
+const contentMeasure = computed(() =>
+  route.meta.measure === 'list' ? 'var(--jp-measure-list)' : 'var(--jp-measure-read)',
+)
+
 // A session that ends — the IdP refusing the refresh, or the account
 // deactivated (FR-23.3) — returns to the login. Attached here, in setup,
 // because a child's `onMounted` makes the request that can end it before
@@ -342,11 +351,16 @@ async function saveBackup() {
       />
       <div class="app-body">
         <NavRail />
-        <main class="app-content">
+        <main class="app-content" :style="{ maxWidth: contentMeasure }">
           <!-- G-9: the screen's name, once, for every screen that registers
                one — including the tab roots, which used to write their own
                (ADR-050). -->
-          <PageHead v-if="pageHead" :title="pageHead.title" :meta="pageHead.meta" />
+          <PageHead
+            v-if="pageHead"
+            :title="pageHead.title"
+            :meta="pageHead.meta"
+            :collapsed="pageHead.collapsed"
+          />
           <div class="app-outlet">
             <IonRouterOutlet />
           </div>
@@ -398,14 +412,14 @@ async function saveBackup() {
      column is a column. */
   display: flex;
   flex-direction: column;
-  max-width: 960px;
   margin-inline: auto;
   width: 100%;
   /* G-9's content column (UX-17). One rule for every screen, and here
      rather than per view: a screen that had to remember to cap itself is
-     a screen that will forget. Sized so a line of body copy stays in the
-     readable range rather than to a device — below it the cap is inert,
-     which is why it needs no breakpoint of its own. */
+     a screen that will forget. The width itself is bound above, because
+     which of the two measures a screen takes is the screen's own answer
+     (`meta.measure`) — see --jp-measure-* in theme/surfaces.css. Below the
+     measure the cap is inert, which is why it needs no breakpoint. */
 }
 
 .app-outlet {
