@@ -235,7 +235,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01 … E2E-G13-06 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
-| Visual baselines | E2E-VIS-01 … E2E-VIS-10 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
+| Visual baselines | E2E-VIS-01 … E2E-VIS-11 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03, E2E-G14-04 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
@@ -249,6 +249,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit and, since 2026-08-30, FR-25.15's absent Save button), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01 (rewritten 2026-08-30: the Gepäck dimension over a real bag, FR-10.4), E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | M2 trip list rows | E2E-M2-12 (locale dates, UX-5), E2E-M2-08 (the *Imported* chip), E2E-M2-03 (the traveller pile), E2E-M2-02 (series grouping → M16), E2E-M2-16 (the empty state) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
+| M2 hero (FR-21.15) | E2E-M2-17 (the running trip is a card, keeps its actions, and is not also a row) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 row actions (the slide menu) | E2E-M2-06 (no Share without a session), E2E-M2-07 (export, both branches) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 opening segment (FR-2.8) | E2E-M2-13, E2E-M2-13b, E2E-M2-13c, E2E-M2-13d | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |

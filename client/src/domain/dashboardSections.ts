@@ -6,6 +6,7 @@
  * directory — the dashboard renders what these return and decides nothing.
  */
 
+import { byDeparture, type PlannableTrip } from './trips'
 import { TRIP_STATUS_PLANNING } from '@/types/domain'
 
 /** A trip row, reduced to what the two sections need. */
@@ -118,17 +119,6 @@ export function latePackersDepartingToday(
 }
 
 /**
- * The shape M1's lookahead reads off a trip. A structural subset of `Trip`,
- * so the screen hands its rows over unmapped and this file keeps importing
- * no store type.
- */
-export interface PlannableTrip {
-  status: string
-  start_date: string | null
-  name: string
-}
-
-/**
  * The trips that are planned but not yet running, soonest departure first
  * (FR-6.1, UI-Spec M1).
  *
@@ -140,38 +130,9 @@ export interface PlannableTrip {
  * empty the section in Local and Single-User Mode — the same trap FR-6.1's
  * personal filter was struck for.
  *
- * The ordering itself is `byDeparture` below, shared with the running trips.
+ * The ordering itself is `byDeparture`, which lives beside the rest of the
+ * trip vocabulary since M2's hero started sharing it (FR-21.15).
  */
 export function plannedTripsByDeparture<T extends PlannableTrip>(trips: readonly T[]): T[] {
   return trips.filter((trip) => trip.status === TRIP_STATUS_PLANNING).sort(byDeparture)
-}
-
-/**
- * The same order over trips a caller has already chosen — M1's running ones.
- * It takes no status of its own precisely because "active" is the screen's
- * predicate and not this module's; what is shared is the *ordering*.
- *
- * M1's hero is the head of this list (FR-21.13), which is why the order had
- * to become a rule rather than stay whatever the store handed over. It was
- * IndexedDB's key order over random ids: with two active trips the screen
- * named a different one as *the* trip you are on depending on the browser,
- * and E2E-M1-09 found it by disagreeing with itself between Chromium and
- * WebKit.
- */
-export function byDepartureSoonestFirst<T extends PlannableTrip>(trips: readonly T[]): T[] {
-  return [...trips].sort(byDeparture)
-}
-
-/**
- * Soonest first; an undated trip sorts last rather than first, because
- * FR-2.1b makes the date optional — „no date yet" says the departure is
- * unknown, never that it is imminent. Name breaks the tie so the order is
- * total, and therefore the same on every device.
- */
-function byDeparture(a: PlannableTrip, b: PlannableTrip): number {
-  return (
-    Number(a.start_date === null) - Number(b.start_date === null) ||
-    (a.start_date ?? '').localeCompare(b.start_date ?? '') ||
-    a.name.localeCompare(b.name)
-  )
 }

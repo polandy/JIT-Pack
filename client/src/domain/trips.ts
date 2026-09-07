@@ -108,6 +108,63 @@ export function nextLifecycleStep(trip: Pick<Trip, 'status'> | undefined | null)
 }
 
 /** Whether the trip is the one being packed right now — four screens ask. */
-export function isActive(trip: Pick<Trip, 'status'> | undefined | null): boolean {
+export function isActive(trip: { status: string } | undefined | null): boolean {
   return trip?.status === TRIP_STATUS_ACTIVE
+}
+
+/**
+ * A trip reduced to what the departure order needs.
+ *
+ * The three fields are the whole contract, so a screen hands its rows over
+ * unmapped and this module keeps importing no store type.
+ */
+export interface PlannableTrip {
+  status: string
+  start_date: string | null
+  name: string
+}
+
+/**
+ * Soonest first; an undated trip sorts last rather than first, because
+ * FR-2.1b makes the date optional — „no date yet" says the departure is
+ * unknown, never that it is imminent. Name breaks the tie so the order is
+ * total, and therefore the same on every device.
+ */
+export function byDeparture(a: PlannableTrip, b: PlannableTrip): number {
+  return (
+    Number(a.start_date === null) - Number(b.start_date === null) ||
+    (a.start_date ?? '').localeCompare(b.start_date ?? '') ||
+    a.name.localeCompare(b.name)
+  )
+}
+
+/**
+ * The same order over trips a caller has already chosen — M1's running ones.
+ * It takes no status of its own precisely because "active" is the screen's
+ * predicate and not this function's; what is shared is the *ordering*.
+ *
+ * M1's hero is the head of this list (FR-21.13), which is why the order had
+ * to become a rule rather than stay whatever the store handed over. It was
+ * IndexedDB's key order over random ids: with two active trips the screen
+ * named a different one as *the* trip you are on depending on the browser,
+ * and E2E-M1-09 found it by disagreeing with itself between Chromium and
+ * WebKit.
+ */
+export function byDepartureSoonestFirst<T extends PlannableTrip>(trips: readonly T[]): T[] {
+  return [...trips].sort(byDeparture)
+}
+
+/**
+ * The trip a screen puts its hero on: the running one that departs soonest,
+ * or nothing where none is running (FR-21.13/FR-21.15).
+ *
+ * M1 and M2 both ask, and they have to get the same answer — two screens
+ * naming a different trip as *the* trip you are on is worse than neither
+ * naming one. So the choice is a rule here rather than each screen taking
+ * the head of a list it happened to sort its own way: M2 orders its segments
+ * newest-first through {@link tripOrderKey}, which is a different order, and
+ * its hero is deliberately not the head of what it lists.
+ */
+export function heroTripOf<T extends PlannableTrip>(trips: readonly T[]): T | null {
+  return byDepartureSoonestFirst(trips.filter(isActive))[0] ?? null
 }
