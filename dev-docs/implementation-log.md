@@ -14191,6 +14191,13 @@ reordered, and the store already owns both feeds. The cost is that `itemList` an
 that reason and was right to — the derived list is still the *retired-inclusive* one, and carries the
 same obligation.
 
+**The one consequence taken on purpose:** every FR-27.4 ledger entry written before this date holds
+`category_name: null`, so the first refresh of an existing planning trip proposes none → tag for each
+row. Considered and rejected: treating null → value as "not a change" for this one field, which would
+hide a real difference behind a special case that outlives the reason for it. The refresh shows its
+proposal before applying, and `refresh.spec.ts` now pins the behaviour so the next reader meets it as
+a decision rather than as a surprise.
+
 **The unit tests could not have caught it, by construction.** Every generation spec builds its own
 `masterItem(...)` fixture and sets `category_name` there — the answer the store never supplied. The
 driving case therefore starts at the store and ends at the generated row, and E2E-M4-77 walks the one

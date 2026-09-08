@@ -387,6 +387,31 @@ describe('planRefresh — changes that land (FR-27.4)', () => {
     })
   })
 
+  /**
+   * FR-24.2, 2026-09-08: generation used to hand every row `category_name:
+   * null`, so every ledger entry written before that date holds one. The
+   * first refresh after the fix therefore sees a real change — nothing to a
+   * tag — and propagates it like any other. That is the intended answer, not
+   * a migration: the refresh exists to carry template-side changes onto the
+   * list, the user is shown the proposal before it applies, and it happens
+   * once per row. The case is here so the next reader meets it as a decision.
+   */
+  it('carries a category onto a row whose ledger entry predates FR-24.2 (from none to the tag)', () => {
+    const entry = ledgerEntry('item-kamera', { name: 'Kamera', category_name: null })
+    const plan = planRefresh(
+      input({
+        masterItems: [masterItem('item-kamera', 'Kamera', { category_name: 'Technik' })],
+        items: [tripItem(entry.trip_item_id, { source_item_id: 'item-kamera', name: 'Kamera' })],
+        ledger: [entry],
+      }),
+    )
+    expect(plan.update[0]?.fields).toEqual({ category_name: 'Technik' })
+    expect(plan.log[0]).toMatchObject({
+      kind: 'changed',
+      detail: { field: 'category_name', from: null, to: 'Technik' },
+    })
+  })
+
   it('applies a master-item rename and its weight, not only the amount', () => {
     const entry = ledgerEntry('item-kamera', { name: 'Kamera', weight_grams: null })
     const plan = planRefresh(

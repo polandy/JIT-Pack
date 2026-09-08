@@ -1316,7 +1316,10 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   of M4's grouping, M6's shopping groups and M12's analytics — while the same item added by hand carried its tag. The
   field is gone; the inventory is handed to generation as `CategorisedMasterItem`, carrying the key
   `domain/tags.withCategories` derives. It is derived on read, not stored, so renaming or reordering a tag moves the
-  next generated row with it.
+  next generated row with it. **One consequence is taken on purpose:** every FR-27.4 ledger entry written before this
+  date holds `category_name: null`, so the first refresh of an existing planning trip sees a real change — none to the
+  tag — and propagates it like any other. That is the refresh doing its job rather than a migration: the proposal is
+  shown before it applies, and it happens once per row.
 * **FR-24.4 (Lean Inventory List with Configurable Properties — added 2026-08-08, realised in the concept):** The
   inventory list (M9) is **lean by default**: primary-tag avatar + name per row, nothing else — the inventory is a
   lookup surface, not a spreadsheet, and the previous layout (all tags as chips, weight and price right-aligned on every
