@@ -1,4 +1,5 @@
 import type { MessageKey } from '@/i18n'
+import type { TripViewId } from '@/lib/tripViews'
 
 /**
  * The back-target contract (Navigation_Concept §7, ADR-011).
@@ -53,6 +54,12 @@ declare module 'vue-router' {
      * that has to remember to cap itself is a screen that will forget.
      */
     measure?: 'list'
+    /**
+     * Which of the trip's four views this route is (FR-21.21). The frame
+     * renders the switcher from it, so a view is offered its siblings by
+     * being listed in the route table rather than by remembering to.
+     */
+    tripView?: TripViewId
   }
 }
 

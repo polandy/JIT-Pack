@@ -30,6 +30,9 @@ defineProps<{
     <div class="head-body">
       <h1 class="head-title jp-page-title" data-testid="header-title">{{ title }}</h1>
       <p v-if="meta" class="head-meta jp-meta" data-testid="header-meta">{{ meta }}</p>
+      <!-- What else this page's subject has (FR-21.21). Inside the body, so
+           it yields with the name on a screen that collapses its head. -->
+      <slot />
     </div>
   </div>
 </template>

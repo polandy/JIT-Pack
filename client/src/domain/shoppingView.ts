@@ -90,3 +90,16 @@ export function buildShoppingList(items: TripItem[], travelers: Traveler[]): Sho
 
   return [...groups.values()]
 }
+
+/**
+ * buyRowCount counts **things to buy**, not `trip_items` rows (FR-25.6): an
+ * aggregated per-person item is one of them, so a count over rows promises
+ * three where the list renders one.
+ *
+ * Here rather than in a view because two places state it — M6's own segments
+ * and the trip switcher's shopping pill, which sit on the screen together and
+ * disagreed by exactly that aggregation the first time they did (FR-21.21).
+ */
+export function buyRowCount(items: TripItem[], travelers: Traveler[]): number {
+  return buildShoppingList(items, travelers).reduce((n, group) => n + group.rows.length, 0)
+}

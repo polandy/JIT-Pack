@@ -50,16 +50,13 @@ import {
   removeCircleOutline,
   refreshOutline,
   buildOutline,
-  cartOutline,
   chevronDownOutline,
   contractOutline,
   createOutline,
   expandOutline,
   funnelOutline,
-  briefcaseOutline,
   lockOpenOutline,
   playOutline,
-  statsChartOutline,
 } from 'ionicons/icons'
 
 import { stateFor } from '@/domain/packState'
@@ -67,6 +64,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
+import RevealBar from '@/components/global/RevealBar.vue'
 import FilterSheet from '@/components/global/FilterSheet.vue'
 import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
@@ -470,13 +468,6 @@ const presenceNames = computed<Record<string, string>>(() =>
 )
 const openPrepCount = computed(() => tripStore.getOpenTodos(props.tripId).length)
 
-// M6 entry: the count is what makes the entry worth a tap. At zero the word
-// is offered without it, because the destination exists either way.
-const shoppingCount = computed(() => {
-  const lists = tripStore.getShoppingItems(props.tripId)
-  return lists.buyBefore.length + lists.buyLocal.length
-})
-
 /**
  * The header line *and the page head above it* yield to the list on the way
  * down and come back on any upward scroll. The rule itself is a pure step in
@@ -542,42 +533,13 @@ setHeaderActions(() => {
   // would be two doors into a room you are standing in. Search, filter and
   // fold stay: they are why the pass is a mode of M4 at all.
   if (closingPass.value) return items
-  // The trip's other three views (ADR-050). They were three glyphs in the
-  // content's own header line, which is how M4 came to show seven icons
-  // above the list; as words they say where they go, and the shopping count
-  // rides in the word rather than as a badge the menu cannot render.
-  items.push(
-    {
-      id: 'm4-nav-shopping',
-      icon: cartOutline,
-      label:
-        shoppingCount.value > 0
-          ? t('packing.shoppingCount', { n: shoppingCount.value })
-          : t('packing.shopping'),
-      overflow: true,
-      onClick: () => router.push(tripSubPath(props.tripId, 'shopping')),
-    },
-    {
-      id: 'm4-nav-luggage',
-      icon: briefcaseOutline,
-      label: t('packing.luggage'),
-      overflow: true,
-      onClick: () => router.push(tripSubPath(props.tripId, 'containers')),
-    },
-    {
-      id: 'm4-nav-analytics',
-      icon: statsChartOutline,
-      label: t('packing.analytics'),
-      overflow: true,
-      onClick: () => router.push(tripSubPath(props.tripId, 'analytics')),
-    },
-  )
-  // FR-2.7: the trip's own properties. Before the lifecycle steps, because
-  // it is the one action here that changes the trip rather than advancing it.
+  // The trip's other three views are the switcher under the page's name now
+  // (FR-21.21, ADR-051), so what is left behind the ⋮ is what *changes* the
+  // trip rather than where you can go with it.
   //
-  // Behind the ⋮ from here down (UX-13): search, filter and fold are tapped
-  // while packing, these once per trip — and as words in the menu they say
-  // what they do, which six glyphs in a row could not.
+  // FR-2.7: the trip's own properties, before the lifecycle steps — it is
+  // the one action here that changes the trip instead of advancing it. As
+  // words in the menu they say what they do, which a glyph could not.
   items.push({
     id: 'm4-edit',
     icon: createOutline,
@@ -1383,27 +1345,21 @@ setHeaderTitle(
 
       <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
            state the count, name the people, one tap to reveal. -->
-      <button
+      <RevealBar
         v-if="view.doneCount > 0 && !closingPass"
-        class="reveal-bar"
-        :class="{ on: showDone }"
-        data-testid="m4-done-bar"
-        @click="showDone = !showDone"
-      >
-        {{
+        :open="showDone"
+        :label="
           showDone
             ? t('packing.hidePacked', { n: view.doneCount })
             : t('packing.showPacked', { n: view.doneCount })
-        }}
-      </button>
-      <button
+        "
+        testid="m4-done-bar"
+        @toggle="showDone = !showDone"
+      />
+      <RevealBar
         v-if="view.hiddenOtherCount > 0 || showOthers"
-        class="reveal-bar"
-        :class="{ on: showOthers }"
-        data-testid="m4-others-bar"
-        @click="showOthers = !showOthers"
-      >
-        {{
+        :open="showOthers"
+        :label="
           showOthers
             ? t('packing.othersShown', {
                 n: view.hiddenOtherCount,
@@ -1413,8 +1369,10 @@ setHeaderTitle(
                 n: view.hiddenOtherCount,
                 who: view.hiddenOtherNames.join(' · '),
               })
-        }}
-      </button>
+        "
+        testid="m4-others-bar"
+        @toggle="showOthers = !showOthers"
+      />
 
       <!-- Preparation (FR-7.3): the open todos of the whole trip, resolvable
            without opening each item. -->
@@ -1848,24 +1806,6 @@ ion-content.pack-content::part(scroll) {
 }
 
 /* --- Bars, cards and sections ----------------------------------------- */
-.reveal-bar {
-  display: block;
-  width: calc(100% - 24px);
-  margin: 10px 12px;
-  padding: 10px;
-  border: 1px dashed var(--ct-surface2);
-  border-radius: var(--jp-r-md);
-  background: none;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-  cursor: pointer;
-}
-
-.reveal-bar.on {
-  border-style: solid;
-  color: var(--ct-text);
-}
-
 .prep-section {
   margin-top: 16px;
   border-top: 1px solid var(--ct-surface0);

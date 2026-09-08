@@ -341,6 +341,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The card M2 was not going to get (2026-09-07)](#the-card-m2-was-not-going-to-get-2026-09-07) — FR-21.15: two structural objections, both answerable.
 - [Six fractions, three meanings, one of them a recorded decision (2026-09-07)](#six-fractions-three-meanings-one-of-them-a-recorded-decision-2026-09-07) — FR-25.22/21.16: what a baseline of quantity-1 rows could never see.
 - [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17 … 21.20: a collapse read as a gesture, one measure doing two jobs, two rules only a render caught.
+- [A cost written down is not a cost paid (2026-09-08)](#a-cost-written-down-is-not-a-cost-paid-2026-09-08) — FR-21.21/21.22: the trip's views leave the ⋮, and a dashed edge stops meaning two things.
 
 ## Deviations
 
@@ -14028,3 +14029,51 @@ what they are nested under. Worth noting together with FR-21.16 three days earli
 *size* of the same line: one axis of a hierarchy being repaired says nothing about the other, and
 both were found by looking rather than by any test. The count so far on this one component: three
 defects, three renders, no red build.
+
+## A cost written down is not a cost paid (2026-09-08)
+
+Findings 5 and 9 of the M4 review. Five is the app bar: three of its seven slots go to view
+options, two to controls that belong to no trip, and the five places a reader actually goes sit
+behind one ⋮ with no word on it. Nine is one bar in the list — the only one of its kind the review
+claimed, and that part was wrong in a way worth keeping.
+
+**ADR-050 had priced this and moved on.** Its consequences say, in as many words, *„§3.25's 'one tap
+each' for the trip's three views is spent"*. Eleven days later the review read the result off a
+render and reported it as a defect. Both are right: the decision was correct with what it knew, and
+an accepted cost is still a cost — it stays payable, and nothing in a repository ever comes back to
+ask whether the price is still worth it. What made it payable *now* was a change nobody made for
+this reason: FR-21.17 taught the page head to collapse, so a band under the name stopped costing a
+long list its height permanently. **The revisit trigger of an ADR is rarely the thing that fires
+it.**
+
+**The shape that answered it is not another bar.** Four pills inside the head — `Packliste`,
+`Einkaufen (n)`, `Gepäck`, `Auswertung` — rendered once by the frame from `meta.tripView`, the way
+the content measure is chosen. The bar gains nothing, the ⋮ keeps only what *changes* the trip, and
+the switcher renders on all four screens, which is the part the menu never had at all: from the
+shopping list to the luggage used to mean going back to M4 first. Rejected: promoting one view back
+onto the bar (it re-opens the argument the three-glyph budget settled, once per screen and per
+reviewer, which is how seven glyphs happened) and a trip-level tab bar (a second anchor model, and
+56 px that never collapse).
+
+**The first render of the pill disagreed with the screen under it.** It said *Einkaufen (3)* and sat
+directly above M6's own segments saying *(1)* and *(1)*. The ⋮ entry it replaced had counted
+`trip_items` rows for as long as it existed; M6 counts **things to buy**, where a per-person item is
+one thing (FR-25.6). Nothing had found it because the two numbers were never on one screen — the
+defect needed a *layout* to become visible, not a test. `buyRowCount` is one exported function now,
+read by both. This is finding 2's family, three weeks after finding 2.
+
+**Four words fit a 390 px row with six pixels to spare; the glyphs do not.** 352 of 358, measured —
+adding the icons takes 448 and pushes the fourth pill off the edge. So the pills are words on a
+phone and words with glyphs from 480 px up, and E2E-G12-05, whose whole point is that four
+destinations did not reach for one icon, reads them at the desktop width.
+
+**„The only dashed element in the app" was six of them, in five stylesheets, meaning four different
+things.** The reported defect was real — a dashed outline reads as a drop zone or a placeholder, and
+the reveal bar is a button that counts rows which exist — but the reason given for it did not
+survive being checked. Chasing it down was worth more than the fix: the app was using one mark for
+*a place where something is not yet* (the empty picker slot, the quick-add invitation, the browse
+hand-over) and for *a control on things that are* (three reveal bars) and for *a row that cannot be
+added again* (M9's included result). The rule is written down now, one of the six moved to the other
+side of it, and the three bars are one component rather than twenty identical declarations in two
+stylesheets. **A wrong reason attached to a right finding is worth reading to the end**: it was the
+part that turned a one-line fix into a rule.

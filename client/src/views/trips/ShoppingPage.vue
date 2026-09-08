@@ -38,7 +38,8 @@ import { computed, ref } from 'vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { buildShoppingList, type ShoppingRow } from '@/domain/shoppingView'
+import { buildShoppingList, buyRowCount, type ShoppingRow } from '@/domain/shoppingView'
+import RevealBar from '@/components/global/RevealBar.vue'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { ShoppingMode, TripItem } from '@/types/domain'
@@ -95,13 +96,9 @@ const travelers = computed(() => tripStore.getTravelers(props.tripId))
 
 const grouped = computed(() => buildShoppingList(activeList.value, travelers.value))
 
-/**
- * What each tab's segment counts: **things to buy**, not `trip_items` rows.
- * An aggregated per-person item is one of them (FR-25.6), so a segment that
- * counted rows would promise three where the list renders one.
- */
-function buyRowCount(items: TripItem[]): number {
-  return buildShoppingList(items, travelers.value).reduce((n, group) => n + group.rows.length, 0)
+/** This screen's tabs and the trip switcher's pill count the same way. */
+function tabCount(items: TripItem[]): number {
+  return buyRowCount(items, travelers.value)
 }
 
 /**
@@ -188,12 +185,10 @@ setHeaderTitle(
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
         <IonSegmentButton :value="ITEM_MODE_BUY_BEFORE" data-testid="m6-tab-before">
-          <IonLabel>{{
-            t('shopping.beforeDeparture', { n: buyRowCount(lists.buyBefore) })
-          }}</IonLabel>
+          <IonLabel>{{ t('shopping.beforeDeparture', { n: tabCount(lists.buyBefore) }) }}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton :value="ITEM_MODE_BUY_LOCAL" data-testid="m6-tab-local">
-          <IonLabel>{{ t('shopping.atDestination', { n: buyRowCount(lists.buyLocal) }) }}</IonLabel>
+          <IonLabel>{{ t('shopping.atDestination', { n: tabCount(lists.buyLocal) }) }}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
 
@@ -243,19 +238,17 @@ setHeaderTitle(
 
       <!-- FR-25.11j: what was bought from this list. Same affordance as M4's
            FR-25.2 done bar — the count is in the label, and one tap reveals. -->
-      <button
+      <RevealBar
         v-if="boughtRows.length > 0"
-        class="reveal-bar"
-        :class="{ on: showBought }"
-        data-testid="m6-bought-bar"
-        @click="showBought = !showBought"
-      >
-        {{
+        :open="showBought"
+        :label="
           showBought
             ? t('shopping.hideBought', { n: boughtRows.length })
             : t('shopping.showBought', { n: boughtRows.length })
-        }}
-      </button>
+        "
+        testid="m6-bought-bar"
+        @toggle="showBought = !showBought"
+      />
 
       <IonList v-if="showBought && boughtRows.length > 0" data-testid="m6-bought-list">
         <IonItem v-for="row in boughtRows" :key="row.key" data-testid="m6-bought-row">
@@ -276,26 +269,6 @@ setHeaderTitle(
 </template>
 
 <style scoped>
-/* Same shape as M4's FR-25.2 reveal bar: an outline that is dashed while it
-   hides something and solid while it shows it. */
-.reveal-bar {
-  display: block;
-  width: calc(100% - 24px);
-  margin: 10px 12px;
-  padding: 10px;
-  border: 1px dashed var(--ct-surface2);
-  border-radius: var(--jp-r-md);
-  background: none;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
-  cursor: pointer;
-}
-
-.reveal-bar.on {
-  border-style: solid;
-  color: var(--ct-text);
-}
-
 .recipients {
   display: flex;
   align-items: center;
