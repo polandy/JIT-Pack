@@ -11,7 +11,7 @@
  * See ADR-014 for why the assignment is a row rather than a set on the item.
  */
 
-import type { ItemTag, MasterItem, Tag } from '@/types/domain'
+import type { CategorisedMasterItem, ItemTag, MasterItem, Tag } from '@/types/domain'
 
 /**
  * Group key for items carrying no tag. Not a real tag: it is a leftover
@@ -57,6 +57,52 @@ export function primaryTagOf(itemId: string, assignments: ItemTag[], tags: Tag[]
 }
 
 /**
+ * Each item's primary tag name, indexed by item id — the answer
+ * {@link primaryTagOf} gives one item, for every item at once.
+ *
+ * Indexed in one pass over the assignments rather than by asking each item
+ * for its tags: the readable per-item helpers each scan the whole assignment
+ * list, which turns a whole-inventory question into items x assignments — and
+ * the grouping below runs on every keystroke in the M9 search (NFR-4.3).
+ * Ties on position fall to the lower id, exactly as tagsOfItem orders them.
+ */
+function primaryTagNames(assignments: ItemTag[], tags: Tag[]): Map<string, string> {
+  const byId = new Map(tags.map((t) => [t.id, t]))
+
+  const primaryAssignment = new Map<string, ItemTag>()
+  for (const a of assignments) {
+    if (!byId.has(a.tag_id)) continue // its tag is gone; not a heading
+    const current = primaryAssignment.get(a.item_id)
+    if (!current || byPositionThenId(a, current) < 0) primaryAssignment.set(a.item_id, a)
+  }
+
+  const names = new Map<string, string>()
+  for (const [itemID, a] of primaryAssignment) {
+    const name = byId.get(a.tag_id)?.name
+    if (name !== undefined) names.set(itemID, name)
+  }
+  return names
+}
+
+/**
+ * The items, each carrying the grouping key a trip row snapshots (FR-24.2).
+ *
+ * The category *is* the primary tag's name — there is no column behind it
+ * (see {@link CategorisedMasterItem}), and a caller that generates trip rows
+ * has to be handed the answer rather than left to find it. Null where the
+ * item carries no tag: the leftover bucket is a rendering decision, made by
+ * whoever renders it, not a name written onto the row.
+ */
+export function withCategories(
+  items: MasterItem[],
+  assignments: ItemTag[],
+  tags: Tag[],
+): CategorisedMasterItem[] {
+  const names = primaryTagNames(assignments, tags)
+  return items.map((item) => ({ ...item, category_name: names.get(item.id) ?? null }))
+}
+
+/**
  * Items filed under their primary tag's name, groups ordered by the tag's
  * `sort_order` and items by name within each. Untagged items land in the
  * `UNTAGGED_KEY` bucket, which is present only when something is in it.
@@ -67,23 +113,11 @@ export function groupByPrimaryTag(
   tags: Tag[],
 ): Map<string, MasterItem[]> {
   const byId = new Map(tags.map((t) => [t.id, t]))
-
-  // Indexed in one pass over the assignments rather than by asking each item
-  // for its tags: the readable per-item helpers each scan the whole
-  // assignment list, which turns the grouping into items x assignments — and
-  // this runs on every keystroke in the M9 search (NFR-4.3).
-  // Ties on position fall to the lower id, exactly as tagsOfItem orders them.
-  const primaryAssignment = new Map<string, ItemTag>()
-  for (const a of assignments) {
-    if (!byId.has(a.tag_id)) continue // its tag is gone; not a heading
-    const current = primaryAssignment.get(a.item_id)
-    if (!current || byPositionThenId(a, current) < 0) primaryAssignment.set(a.item_id, a)
-  }
+  const primaryName = primaryTagNames(assignments, tags)
 
   const buckets = new Map<string, MasterItem[]>()
   for (const item of items) {
-    const primary = primaryAssignment.get(item.id)
-    const key = (primary && byId.get(primary.tag_id)?.name) ?? UNTAGGED_KEY
+    const key = primaryName.get(item.id) ?? UNTAGGED_KEY
     const bucket = buckets.get(key) ?? []
     bucket.push(item)
     buckets.set(key, bucket)

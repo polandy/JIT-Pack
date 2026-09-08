@@ -19,6 +19,7 @@ import type {
   GeneratedPosition,
   ItemDependency,
   ItemTodo,
+  CategorisedMasterItem,
   MasterItem,
   Tag,
   Template,
@@ -65,6 +66,9 @@ export interface TripReads {
 export interface MasterReads {
   readonly tagList: Tag[]
   readonly itemList: MasterItem[]
+  /** The same rows carrying their FR-24.2 grouping key — what anything that
+   * generates trip items reads (`CategorisedMasterItem`). */
+  readonly categorisedItemList: CategorisedMasterItem[]
   readonly activeItemList: MasterItem[]
   readonly templateList: Template[]
   readonly activeTemplateList: Template[]

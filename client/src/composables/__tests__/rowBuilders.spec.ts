@@ -133,13 +133,6 @@ const CASES: BuilderCase[] = [
     expected: {
       id: 'it-1',
       name: 'Zelt',
-      // The one carve-out, and it is not the display decoration the type
-      // says it is: `items` has no such column and no mapper fills it, so it
-      // is `undefined` on every master item there has ever been. A master
-      // item's category is its primary tag (ADR-014), which is what
-      // QuickAddItem reads; the three call sites that read this field
-      // instead get nothing, and closing that is its own change.
-      category_name: undefined,
       weight_grams: 2400,
       value_cents: 39900,
       image_hash: 'abcdef0123456789',

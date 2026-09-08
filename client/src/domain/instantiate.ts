@@ -13,7 +13,7 @@ import { includedTemplatesOf } from './templates'
 import type { DependencyResolution, ResolvedCompanion } from './dependencies'
 import type {
   ItemMode,
-  MasterItem,
+  CategorisedMasterItem,
   Template,
   TemplateDedup,
   TemplateInclude,
@@ -46,7 +46,7 @@ export interface GenerationInput {
   /** FR-27.7: the preparation tasks hanging off template positions. */
   templateItemTasks: TemplateItemTask[]
   templateItems: TemplateItem[]
-  masterItems: MasterItem[]
+  masterItems: CategorisedMasterItem[]
   trip: GenerationTrip
   /**
    * FR-27.3: master items the user picked one by one, beside the templates.
@@ -166,7 +166,7 @@ export function withCompanions(
   items: GeneratedItem[],
   resolution: DependencyResolution,
   accepted: ReadonlySet<string>,
-  masterItems: MasterItem[],
+  masterItems: CategorisedMasterItem[],
 ): GeneratedItem[] {
   const byID = new Map(masterItems.map((i) => [i.id, i]))
 

@@ -59,7 +59,10 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
     "FR-27.8's containment list is the navigable half of the delete card's reference count, which reads the complete list for the same reason — a retired Vorlage still holds the item, and a list shorter than the number above it would contradict it. The row says it is retired.",
 }
 
-const COMPLETE_LIST = /\.(itemList|templateList)\b/
+// `categorisedItemList` is `itemList` with each row's FR-24.2 grouping key
+// attached, so it is the same complete list and carries the same obligation:
+// a retired row still has to resolve. Reading it is reading the complete list.
+const COMPLETE_LIST = /\.(itemList|categorisedItemList|templateList)\b/
 
 /** The file that declares all four getters is not a caller of them. */
 const DEFINITION = 'src/stores/masterStore.ts'

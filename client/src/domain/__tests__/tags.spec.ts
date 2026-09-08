@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { groupByPrimaryTag, tagsOfItem, primaryTagOf, UNTAGGED_KEY } from '@/domain/tags'
+import {
+  groupByPrimaryTag,
+  tagsOfItem,
+  primaryTagOf,
+  withCategories,
+  UNTAGGED_KEY,
+} from '@/domain/tags'
 import type { ItemTag, MasterItem, Tag } from '@/types/domain'
 
 /**
@@ -139,5 +145,46 @@ describe('two tags at one position (FR-24.2)', () => {
 
     expect([...one.keys()]).toEqual(['Kleidung'])
     expect([...other.keys()]).toEqual(['Kleidung'])
+  })
+})
+
+/**
+ * The grouping key a *trip* row snapshots (FR-24.2). It was a field on
+ * `MasterItem` that nothing anywhere wrote — `items` has no such column —
+ * so every row a Vorlage generated arrived with no category and landed in
+ * M4's, M6's and M12's leftover bucket, while an item added by hand through
+ * the quick-add got its tag. The rule is the item's *primary* tag, and it
+ * lives here so the one place that knew it is no longer a view.
+ */
+describe('withCategories (FR-24.2)', () => {
+  it('gives each item the name of its primary tag', () => {
+    const items = [item('i-badehose', 'Badehose')]
+    const assignments = [assign('i-badehose', 't-sommer', 1), assign('i-badehose', 't-kleidung', 0)]
+
+    expect(withCategories(items, assignments, tags)[0]!.category_name).toBe('Kleidung')
+  })
+
+  it('says null for an untagged item rather than inventing a bucket name', () => {
+    expect(withCategories([item('i-lose', 'Lose')], [], tags)[0]!.category_name).toBeNull()
+  })
+
+  it('skips an assignment whose tag is gone, as the grouping does', () => {
+    const assignments = [assign('i-x', 't-deleted', 0), assign('i-x', 't-sommer', 1)]
+
+    expect(withCategories([item('i-x', 'X')], assignments, tags)[0]!.category_name).toBe('Sommer')
+  })
+
+  it('breaks a tie on position by the assignment id, exactly as the grouping does', () => {
+    const items = [item('i-tie', 'Tie')]
+    const assignments = [assign('i-tie', 't-sommer', 0), assign('i-tie', 't-kleidung', 0)]
+    const grouped = [...groupByPrimaryTag(items, assignments, tags).keys()]
+
+    expect(withCategories(items, assignments, tags)[0]!.category_name).toBe(grouped[0])
+  })
+
+  it('keeps every other field of the item', () => {
+    const one = { ...item('i-full', 'Full'), weight_grams: 120, icon: '🧦' }
+
+    expect(withCategories([one], [], tags)[0]).toMatchObject({ ...one, category_name: null })
   })
 })

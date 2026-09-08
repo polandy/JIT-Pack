@@ -1308,7 +1308,18 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   arrival order: two devices could file the same item under two different headings and neither was wrong. The rule is
   applied at read time, in one place (`client/src/domain/tags.ts`), so the M9 grouping and the M10 chip order cannot
   disagree. This is the item-editor counterpart to the reusable filter bar used across the list screens (search + chip
-  axis).
+  axis). **The same tag is what a trip row is filed under, and generation did not know it (corrected 2026-09-08).** A
+  `trip_items` row snapshots one grouping key, `category_name`, and the rule is the master item's primary tag — written
+  once, in the quick-add, and nowhere else. Template instantiation, the FR-20 companion resolution and the FR-27.4
+  refresh all read a `category_name` *on the master item*, an optional field that `items` has no column for and that
+  nothing in the client ever wrote, so every row a Vorlage produced arrived with none and fell into the leftover bucket
+  of M4's grouping, M6's shopping groups and M12's analytics — while the same item added by hand carried its tag. The
+  field is gone; the inventory is handed to generation as `CategorisedMasterItem`, carrying the key
+  `domain/tags.withCategories` derives. It is derived on read, not stored, so renaming or reordering a tag moves the
+  next generated row with it. **One consequence is taken on purpose:** every FR-27.4 ledger entry written before this
+  date holds `category_name: null`, so the first refresh of an existing planning trip sees a real change — none to the
+  tag — and propagates it like any other. That is the refresh doing its job rather than a migration: the proposal is
+  shown before it applies, and it happens once per row.
 * **FR-24.4 (Lean Inventory List with Configurable Properties — added 2026-08-08, realised in the concept):** The
   inventory list (M9) is **lean by default**: primary-tag avatar + name per row, nothing else — the inventory is a
   lookup surface, not a spreadsheet, and the previous layout (all tags as chips, weight and price right-aligned on every

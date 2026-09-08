@@ -2404,6 +2404,11 @@ landed, that no test has ever rendered.
 * **E2E-M4-76** `all` (FR-21.24, new 2026-09-08) — **implemented** (`e2e/packing-list.spec.ts`): the composer is
   offered once. The collapsed pill is absent **and** the composer is closed, then the FAB opens it — the absence alone
   would stay green on a screen that had lost both doors, which is the failure the case is guarding against.
+* **E2E-M4-77** `all` (FR-24.2, new 2026-09-08) — **implemented** (`e2e/packing-list.spec.ts`): a row generated from
+  a group is filed under the master item's primary tag. An item tagged in M9, added as a position, followed into a trip
+  — M4's default grouping heads it with the tag, while an untagged position beside it stays in the leftover bucket.
+  That second row is the positive signal: one heading for everything would satisfy the first assertion on its own, and
+  the bucket is also what the whole list used to fall into.
 * **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27): the bar keeps *Suchen*, *Filter* and *Zuklappen* and carries the
   rest behind the ⋮ — `m4-edit` and `m4-start` are gone as glyphs, the menu **names** both in words, and picking
   *„Reise-Eigenschaften"* lands on the rendered M22 edit screen. The last step is what separates the menu from a

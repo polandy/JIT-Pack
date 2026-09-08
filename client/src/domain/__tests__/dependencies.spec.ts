@@ -7,14 +7,19 @@ import {
   dependencyCycleError,
   type DependencyResolutionInput,
 } from '../dependencies'
-import type { ItemDependency, MasterItem } from '@/types/domain'
+import type { CategorisedMasterItem, ItemDependency } from '@/types/domain'
 
-function master(id: string, name: string, extra: Partial<MasterItem> = {}): MasterItem {
+function master(
+  id: string,
+  name: string,
+  extra: Partial<CategorisedMasterItem> = {},
+): CategorisedMasterItem {
   return {
     id,
     name,
     weight_grams: null,
     value_cents: null,
+    category_name: null,
     ...extra,
   }
 }

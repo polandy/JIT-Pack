@@ -24,7 +24,7 @@ import type {
 import type { PullChange } from '@/api/types'
 import { applyToSink, codecFor, type RowSinks, type SyncRow } from '@/sync/tableRegistry'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
-import { groupByPrimaryTag, primaryTagOf, tagsOfItem } from '@/domain/tags'
+import { groupByPrimaryTag, primaryTagOf, tagsOfItem, withCategories } from '@/domain/tags'
 import { activeOnly } from '@/domain/masterDeletion'
 import { retiredOnly } from '@/domain/masterRestore'
 
@@ -64,6 +64,20 @@ export const useMasterStore = defineStore('master', () => {
    * history reads it is data loss. Display surfaces read `activeItemList`.
    */
   const itemList = computed(() => [...items.value.values()])
+
+  /**
+   * The same inventory as generation reads it, each row carrying the grouping
+   * key a trip item snapshots (FR-24.2, {@link CategorisedMasterItem}).
+   *
+   * Everything that *creates* trip rows takes this list rather than
+   * `itemList`: the category is the item's primary tag, and a domain function
+   * cannot go and look it up. Derived rather than stored because it depends on
+   * two other feeds — a tag renamed or reordered changes it, and a snapshot
+   * would then be a category nothing in the inventory still shows.
+   */
+  const categorisedItemList = computed(() =>
+    withCategories(itemList.value, itemTagList.value, tagList.value),
+  )
 
   /** Every template, retired ones included — see `itemList` (ADR-032). */
   const templateList = computed(() => [...templates.value.values()])
@@ -242,6 +256,11 @@ export const useMasterStore = defineStore('master', () => {
     return primaryTagOf(itemId, itemTagList.value, tagList.value)
   }
 
+  /** The grouping key a trip row would snapshot for this item (FR-24.2). */
+  function categoryOf(itemId: string): string | null {
+    return getPrimaryTag(itemId)?.name ?? null
+  }
+
   /**
    * Search items by name substring (case-insensitive). See MIN_SEARCH_LENGTH.
    * Retired items are absent: every caller is an offer — the quick-add
@@ -394,6 +413,7 @@ export const useMasterStore = defineStore('master', () => {
     tagList,
     itemTagList,
     itemList,
+    categorisedItemList,
     templateList,
     activeItemList,
     activeTemplateList,
@@ -423,6 +443,7 @@ export const useMasterStore = defineStore('master', () => {
     itemsByPrimaryTag,
     getItemTags,
     getPrimaryTag,
+    categoryOf,
     searchItems,
     childRows,
     applyChange,

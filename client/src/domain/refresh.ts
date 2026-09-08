@@ -25,7 +25,7 @@ import type {
   ChangeDetail,
   GeneratedPosition,
   ItemTodo,
-  MasterItem,
+  CategorisedMasterItem,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -92,7 +92,7 @@ export interface RefreshInput {
   includes: TemplateInclude[]
   templateItems: TemplateItem[]
   templateItemTasks: TemplateItemTask[]
-  masterItems: MasterItem[]
+  masterItems: CategorisedMasterItem[]
   travelers: Traveler[]
   items: TripItem[]
   todos: ItemTodo[]
