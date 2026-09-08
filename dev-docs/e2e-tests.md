@@ -4639,7 +4639,11 @@ pill, which is the assertion that would have caught it.
 whatever it held, so nothing about its size was worth measuring and nothing did.
 **E2E-M5-25** measures it twice — shorter than 80 % of the viewport for a bare item, and
 taller once *Details* is unfolded — because the first clause alone would pass on a sheet
-that had simply been given a smaller fixed height. The measurement is taken off
+that had simply been given a smaller fixed height. **Its first draft measured the wrong
+element and was unfalsifiable**: it read the sheet's inner scroll box, which is as tall
+as its content under either build, and the empty third of the old sheet was the *modal*
+around it. Restoring `--height: 88%` left the case green, which is how the draft was
+caught; it reads `.modal-wrapper` now and goes red at 774 px of 880. The measurement is taken off
 `data-presented`, the flag `SheetModal` already carried for exactly this reason: an
 enter animation whose duration nobody controls is not something to wait out.
 

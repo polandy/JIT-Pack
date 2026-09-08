@@ -452,7 +452,11 @@ test.describe('M5 item detail @local @m5', () => {
     // The presented state, not a wait: Ionic's enter animation is a duration
     // nobody controls, and a box measured during it is not a height.
     await expect(page.getByTestId('m5-modal')).toHaveAttribute('data-presented', 'true')
-    const box = page.getByTestId('m5-modal').locator('.sheet-box')
+    // The *modal*, not the box inside it: with a fixed `--height` the box is
+    // still only as tall as its content, and the empty third is the modal
+    // around it — so a case measuring the box would have passed against the
+    // very build this one is about (proved by mutation, 2026-09-08).
+    const box = page.getByTestId('m5-modal').locator('.modal-wrapper').first()
     const folded = (await box.boundingBox())!.height
     expect(folded).toBeLessThan(880 * 0.8)
 
