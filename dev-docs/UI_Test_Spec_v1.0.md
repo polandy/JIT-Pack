@@ -2531,7 +2531,10 @@ a different screen and one built nowhere (see below, and UI-Spec M22).
   getting the trip back from its chevron. It lives with the global patterns rather than in the M22 unit because that is
   where the four navigation defects of 2026-08-13 were missed — a route that changes without repainting, and a back that
   leaves the previous screen on the display. Asserted on the painted page, and the return is checked against M4's own
-  actions rather than against the absence of the editor alone.
+  actions rather than against the absence of the editor alone. *(Extended 2026-09-08: the return also asserts that the
+  page head names the trip. Until ADR-050 M4 was the one screen registering no title below the G-9 breakpoint — 54 px
+  beside six glyphs rendered "Samedan Sommer" as "S…" — so the actions had to stand in for a name the screen was
+  designed not to show. The name is now there at every width, and this is the case that says so.)*
 * **E2E-M22-04** `all` (FR-2.7): a trip that has started keeps its roster and offers **no** removal control — the ✕ is
   gone, the reason is rendered under the list, and adding still works. *(Revised 2026-08-21: the case first asserted
   `aria-disabled` on a control that stayed on screen; the owner overruled that in the hand — see UI-Spec M22.)* Two
