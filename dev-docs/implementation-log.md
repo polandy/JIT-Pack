@@ -343,6 +343,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17 … 21.20: a collapse read as a gesture, one measure doing two jobs, two rules only a render caught.
 - [A cost written down is not a cost paid (2026-09-08)](#a-cost-written-down-is-not-a-cost-paid-2026-09-08) — FR-21.21/21.22: the trip's views leave the ⋮, and a dashed edge stops meaning two things.
 - [A prop that withholds one branch renders the other (2026-09-08)](#a-prop-that-withholds-one-branch-renders-the-other-2026-09-08) — FR-21.23 … 21.25: one door on two screens, a sheet that was always 88 %, and three roundings of one fraction.
+- [A clock nobody checked outranked every clock (2026-09-08)](#a-clock-nobody-checked-outranked-every-clock-2026-09-08) — the push took the client's HLC on trust, and one byte above `f` made a field permanently unwritable.
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — FR-24.2: every generated row lost its category, and two tests had written the defect down as expected.
 
 ## Deviations
@@ -14119,6 +14120,45 @@ sit around long enough to become three.
 A labelled invitation that is only reachable from the top of a forty-row list is worth less than a
 ＋ that is always under the thumb — but it is a real loss, and it is the reason the M6 caller, which
 has no FAB, keeps the pill.
+
+## A clock nobody checked outranked every clock (2026-09-08)
+
+Finding 11 of the 2026-08-22 bug review, verified still open against `49d8575a` before anything was
+written: the push handler built a `sync.Mutation` straight out of the envelope and never looked at
+its `hlc`. Nothing in production called `sync.Parse` at all — the only caller in the repository was
+a store test.
+
+**A malformed clock is not a parse failure, it is a permanent one.** The merge rule is plain string
+comparison (§3), so a value outside the format does not fail to order — it orders wherever its bytes
+fall. `"~"` is 0x7E, above every hex digit and above the `-` separators, so it beats every clock the
+protocol can generate, for as long as the row exists. The reproduction in `hlc_validation_test.go`
+is two mutations in one batch: the forged one sets the quantity to 99, the honest one behind it sets
+it to 5, and before the fix the row stayed at 99 with `updated_hlc = "~"` — unwritable by anyone, on
+any device, with no conflict logged, because nothing lost a comparison.
+
+**The guard is a round trip, not a second reading of the format.** `sync.Valid` asks whether the
+value is exactly what `format` would have written for the parts `Parse` decomposes it into. Written
+as its own set of checks it would have been a second description of the format, free to drift from
+the first; as a round trip it also rejects what `Parse` tolerates but the generator never writes — a
+signed `millis`, an uppercase counter — without anyone having to notice those cases.
+
+**The vocabulary was declared twice and checked nowhere**, which is the shape that let `outcome` and
+`status` disagree for months (see `pushcontract_test.go`). `store.RejectReason` and
+`client/src/sync/rejectionReasons.ts` are deliberately two declarations, because the sentence has to
+be written in a language the server does not know — but nothing tied them together, so adding a
+reason server-side would have shipped a refusal the user is told nothing about. `TestRejectReasons_
+ClientKnowsEveryOneTheServerCanSend` reads both files as source and compares the sets in both
+directions; it was mutation-proven by removing the new client entry, and named the missing reason.
+
+**A rule stays where its element was — again.** `observeRemote` in the client explains its tolerance
+of an unparseable remote clock with "the server stores an HLC verbatim and does not check". That
+sentence stopped being true with this change, and the tolerance is still right for a different
+reason: rows written before the guard are still on the server. Same trap as FR-21.17's collapse
+comment, four days apart.
+
+**Not covered by an e2e case, on purpose.** The client half is one catalogue string for a refusal
+only a broken client can provoke — there is no path through the UI that produces a malformed clock,
+so a Playwright case would have to forge the push, which is what the Go test already does.
 
 ## A field three call sites read and nothing wrote (2026-09-08)
 

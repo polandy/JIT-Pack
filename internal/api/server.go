@@ -486,6 +486,17 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 			MutationID: m.MutationID, Op: syncpkg.Op(m.Op), Table: m.Table,
 			ID: m.ID, Fields: m.Fields, HLC: syncpkg.HLC(m.HLC),
 		}
+		// Invariant 3 reaches the clock too: it is a client value that
+		// decides who wins, and one outside the format (Sync-API §3) sorts
+		// above every real clock rather than failing to sort. Refused before
+		// the store sees it, like the mark below.
+		if !syncpkg.Valid(mut.HLC) {
+			out.Results = append(out.Results, MutationResult{
+				MutationID: m.MutationID, Outcome: OutcomeRejected,
+				Error: string(store.ReasonMalformedHLC),
+			})
+			continue
+		}
 		if prepare != nil {
 			prepare(&mut)
 		}

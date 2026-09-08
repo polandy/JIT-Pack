@@ -123,6 +123,11 @@ const (
 	// ReasonTemplateScope is the FR-27.1 two-level rule and the FR-27.6 scope
 	// switches that protect it — structural, not a matter of permission.
 	ReasonTemplateScope RejectReason = "template_scope"
+	// ReasonMalformedHLC is a clock outside the protocol's format (§3).
+	// Lexicographic order is the merge rule, so an unorderable string is not
+	// a parse failure but a permanent one: stored once, it outranks every
+	// clock a device can generate and the field can never be written again.
+	ReasonMalformedHLC RejectReason = "malformed_hlc"
 	// ReasonConstraintViolated is everything the schema itself refused: a
 	// foreign key whose parent is gone, a UNIQUE two devices raced into, a
 	// CHECK the mutation's values fail.
