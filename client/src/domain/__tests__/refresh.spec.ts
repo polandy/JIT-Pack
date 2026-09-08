@@ -17,9 +17,9 @@ import {
 } from '../refresh'
 import { followsGroups } from '../trips'
 import type {
+  CategorisedMasterItem,
   GeneratedPosition,
   ItemTodo,
-  MasterItem,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -54,8 +54,12 @@ function template(id: string, name: string, kind: Template['kind'] = 'group'): T
   return { id, owner_id: 'user-a', name, kind }
 }
 
-function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): MasterItem {
-  return { id, name, weight_grams: null, value_cents: null, ...extra }
+function masterItem(
+  id: string,
+  name: string,
+  extra: Partial<CategorisedMasterItem> = {},
+): CategorisedMasterItem {
+  return { id, name, weight_grams: null, value_cents: null, category_name: null, ...extra }
 }
 
 function position(

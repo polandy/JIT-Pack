@@ -343,6 +343,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17 … 21.20: a collapse read as a gesture, one measure doing two jobs, two rules only a render caught.
 - [A cost written down is not a cost paid (2026-09-08)](#a-cost-written-down-is-not-a-cost-paid-2026-09-08) — FR-21.21/21.22: the trip's views leave the ⋮, and a dashed edge stops meaning two things.
 - [A prop that withholds one branch renders the other (2026-09-08)](#a-prop-that-withholds-one-branch-renders-the-other-2026-09-08) — FR-21.23 … 21.25: one door on two screens, a sheet that was always 88 %, and three roundings of one fraction.
+- [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — FR-24.2: every generated row lost its category, and two tests had written the defect down as expected.
 
 ## Deviations
 
@@ -14118,3 +14119,44 @@ sit around long enough to become three.
 A labelled invitation that is only reachable from the top of a forty-row list is worth less than a
 ＋ that is always under the thumb — but it is a real loss, and it is the reason the M6 caller, which
 has no FAB, keeps the pill.
+
+## A field three call sites read and nothing wrote (2026-09-08)
+
+Finding 13 of the 2026-08-22 bug review. `MasterItem.category_name` was an optional field with a
+doc-comment calling it "denormalised for display only". There is no such column on `items`, and no
+mapper anywhere filled it, so it was `undefined` on every master item that has ever existed. Template
+instantiation, the FR-20 companion resolution and the FR-27.4 refresh all read it — so every row a
+Vorlage produced arrived with no category and fell into the leftover bucket of M4's grouping (which is
+its *default* axis), M6's shopping groups and M12's analytics. An item added by hand through the
+quick-add got its tag, because the quick-add is the one place the rule was written.
+
+**Two tests had already written the defect down as the expected result.** `rowBuilders.spec.ts`
+asserted `category_name: undefined` behind a six-line comment that says exactly what is wrong and
+ends "closing that is its own change" — a `satisfies Record<keyof MasterItem, unknown>` census, so
+the field could not simply be forgotten, only affirmed. And `instantiate.spec.ts` ends its companion
+fixture with `} as MasterItem`, a cast that exists **because** the fixture had to lie to the type
+system to give a master item a category. **A deferred finding parked in a test comment stays
+deferred; a fixture that needs a cast is telling you the type is wrong.**
+
+**The fix was to delete the field, not to fill it.** Deleting it turned an invisible defect into
+four compiler errors in the domain and, once those were typed as `CategorisedMasterItem`, eight more
+at the call sites — every place that had been handing generation a category-less inventory. Nothing
+had to be found by reading; the type system enumerated it. The rule itself now lives once, in
+`domain/tags.withCategories`, sharing the one-pass primary-tag index `groupByPrimaryTag` already had,
+so the position tie-break (FR-24.2, settled 2026-08-25) cannot be implemented twice and disagree.
+
+**Derived on read, deliberately.** A stored snapshot would go stale the moment a tag is renamed or
+reordered, and the store already owns both feeds. The cost is that `itemList` and
+`categorisedItemList` are two lists; the census in `masterListFiltering.spec.ts` went red for exactly
+that reason and was right to — the derived list is still the *retired-inclusive* one, and carries the
+same obligation.
+
+**The unit tests could not have caught it, by construction.** Every generation spec builds its own
+`masterItem(...)` fixture and sets `category_name` there — the answer the store never supplied. The
+driving case therefore starts at the store and ends at the generated row, and E2E-M4-77 walks the one
+path a user has: tag an item in M9, make it a position, follow the group into a trip.
+
+**Two operating slips worth not repeating.** Running a second `e2e.sh` while the first was finishing
+gave "port 4173 is already used", which says nothing about the build; and grepping a log file that a
+still-running job later truncates reported the *previous* run's failures as if they were the new
+ones. Wait for the job, not for a pattern in its output.

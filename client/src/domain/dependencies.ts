@@ -10,13 +10,13 @@
  */
 
 import { computeQuantity } from './instantiate'
-import type { ItemDependency, MasterItem } from '@/types/domain'
+import type { CategorisedMasterItem, ItemDependency } from '@/types/domain'
 
 export interface DependencyResolutionInput {
   /** Items already on the list (generated or explicit). */
   onList: { source_item_id: string | null; quantity: number }[]
   dependencies: ItemDependency[]
-  masterItems: MasterItem[]
+  masterItems: CategorisedMasterItem[]
 }
 
 /** A required companion to add — trip-global, mode pack, like any resolved item. */

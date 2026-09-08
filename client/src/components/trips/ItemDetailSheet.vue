@@ -231,7 +231,7 @@ const suggestedCompanions = computed(() => {
   return resolveDependencies({
     onList: tripStore.getItems(props.tripId),
     dependencies: masterStore.getCompanionDependencies(source),
-    masterItems: masterStore.itemList,
+    masterItems: masterStore.categorisedItemList,
   }).suggested
 })
 

@@ -55,6 +55,7 @@ function fakeMasterReads(templates: Template[] = []): MasterReads {
   return {
     tagList: [],
     itemList: [],
+    categorisedItemList: [],
     activeItemList: [],
     templateList: templates,
     activeTemplateList: templates,

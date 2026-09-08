@@ -87,7 +87,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
         masterStore.getTemplateItems(t.id),
       ),
       templateItemTasks: masterStore.templateItemTaskList,
-      masterItems: masterStore.itemList,
+      masterItems: masterStore.categorisedItemList,
       attributes: trip.attributes,
       duration_days: trip.duration_days,
       travelers: tripStore.getTravelers(tripId),
