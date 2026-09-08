@@ -348,6 +348,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A gate that only knew two spellings of a colour (2026-09-08)](#a-gate-that-only-knew-two-spellings-of-a-colour-2026-09-08) — invariant 9b was enforced against hex and `rgb()` alone; every notation CSS gained after 2011 walked past it.
 - [Two helpers with one name and different rows (2026-09-08)](#two-helpers-with-one-name-and-different-rows-2026-09-08) — the review called it a duplicate forced by the package split; the two `openTestStore`s were never the same function.
 - [A rule the code had already stopped following (2026-09-08)](#a-rule-the-code-had-already-stopped-following-2026-09-08) — the M4 title's width rule died with ADR-050 and stood on, present tense, in two specs and a test comment.
+- [The wider measure had no screen (2026-09-08)](#the-wider-measure-had-no-screen-2026-09-08) — UX-17's column was already built; the census behind closing it retired the reading measure a day after it was added.
 
 ## Deviations
 
@@ -14344,3 +14345,39 @@ numbers and a one-line `setHeaderTitle(...)` call that no longer existed — the
 arguments across four lines. Grep the worktree you are editing. And commenting a call out is not a
 neutral mutation in a type-checked build: it left the import unused, the build failed, and the run
 that "proved" nothing exited 127 for want of a bundle.
+
+---
+
+## The wider measure had no screen (2026-09-08)
+
+**UX-17 was already built, and that is not what the render showed.** The last open item of the UX
+review of 2026-08-25 read *"≥1280 px the content stretches edge to edge"* and was filed as an owner
+decision. The cap had landed on 2026-08-27 and gained a second measure on 2026-09-07 (FR-21.18), so
+the item was closed on paper. Nineteen screens rendered at 1440 px against the sample data said
+otherwise — not about the cap, which works, but about the number in it.
+
+**The switcher and the measures were built a day apart and were never rendered together.** FR-21.21
+made the trip's four views peers, one tap from each other; FR-21.18 gave one of the four a 600 px
+column and left the other three at 960 px. Measured: the column sat at 460–1060 on the packing list
+and 280–1240 on the shopping list, so the page's own name moved 180 px sideways on every use of the
+pills that exist to be used. **Two rules can each be right and still be wrong together, and only a
+render of the pair says so.**
+
+**The census answered the FR's revisit trigger by falsifying its premise.** FR-21.18 said the
+trigger was *the second screen to ask for the control measure*. What the census found was that no
+screen wanted the **first** one: at 960 px the chevron that opens a row sat 855 px from its name on
+M8 and 890 px on M12, and a settings toggle 857 px from its label — the same failure UX-17 was
+written about, halved and left standing. The reading claim did not hold either; at this type size a
+960 px line of body copy runs to some 120 characters, against the ~75 the token's own comment named
+as comfortable. A trigger phrased as *the next caller of X* cannot fire when the answer is that X
+has no callers at all.
+
+**Two screens were checked on purpose rather than by sampling**, because both could have wanted the
+width and would have been invisible in a list of nineteen: the CSV importer's column-mapping step,
+driven with a real four-trip table rather than opened empty, and the weight analytics. Both read the
+same at either measure. The importer did surface an unrelated defect that predates this work — at
+both measures, the year input's placeholder runs into the series select beside it.
+
+**What the change costs is left in the spec, not hidden.** On a 1440 px window the app now uses
+600 px of it. That is the trade UX-17 made and this extends: a row whose control is 855 px from its
+name is not using the space, it is spending the reader's eye on crossing it.

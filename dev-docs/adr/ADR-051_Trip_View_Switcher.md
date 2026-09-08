@@ -22,7 +22,7 @@ shopping list to the luggage meant going back to M4 first, because the ⋮ only 
 2. **The bar keeps its size.** Whatever the answer is, it must not put glyphs back on the bar — the budget is what
    stopped seven from becoming eight.
 3. **Told once.** Four screens carry this. A rule each of them has to remember is a rule one of them will forget
-   (UX-17, FR-21.18).
+   (UX-17, FR-21.18 — superseded by FR-21.26, which this decision is what triggered).
 4. **Sideways, not just down.** Four views of one trip are peers; the reader moves between them.
 5. **Height is not free.** A phone has 844 px, and M4's own head and header line already take 190 of them.
 

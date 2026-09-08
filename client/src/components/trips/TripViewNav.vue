@@ -11,8 +11,8 @@
  * packing list first.
  *
  * The frame renders it, once, from `meta.tripView` — the same shape as the
- * content measure (FR-21.18): a screen that had to remember to offer its
- * siblings is a screen that will forget.
+ * content column it sits in (G-9): a screen that had to remember to offer
+ * its siblings is a screen that will forget.
  */
 import { IonIcon, useIonRouter } from '@ionic/vue'
 import { computed } from 'vue'
