@@ -115,6 +115,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [E2E-M5-12 — the flake was a second mount (2026-09-05)](#e2e-m5-12--the-flake-was-a-second-mount-2026-09-05) — three red WebKit runs, zero local ones; an element identity turns a load-dependent window into an assertion.
 - [The wizard's FR-20.4 tap is still owed a case (2026-09-06)](#the-wizards-fr-204-tap-is-still-owed-a-case-2026-09-06) — a control with no test id at all, and the seed gap that had made it unreachable.
 - [Five cases that had to be reversed, not repaired (2026-09-06)](#five-cases-that-had-to-be-reversed-not-repaired-2026-09-06) — what ADR-050 does to a suite written against the bar it removes.
+- [The switcher moved five cases, and left one owed (2026-09-08)](#the-switcher-moved-five-cases-and-left-one-owed-2026-09-08) — FR-21.21/21.22: what a nav that renders on four screens does to a helper, and the one testid still in no test.
 
 ## The rule that comes before the units
 
@@ -4561,3 +4562,31 @@ the app declares `m4-nav-shopping` and its two siblings as whole literals in a d
 no prefix `m4-nav-` exists anywhere for the gate to match. The helper now maps the three names. The
 gate was right — a prefix that matches nothing is how an absence assertion becomes unfalsifiable.
 
+## The switcher moved five cases, and left one owed (2026-09-08)
+
+FR-21.21 takes the trip's three destinations out of the bar's ⋮ and puts four pills
+under the page's name, on all four trip screens. Five cases moved with them and one
+change ships without a case at all.
+
+**`openTripView` is one click again.** It had grown into open-the-menu-then-click when
+ADR-050 sent the entries into the ⋮; it clicks the pill now, and works from any of the
+four screens rather than from M4 alone. One thing was added rather than removed: the
+helper scrolls the visible page's `ion-content` to the top first, unconditionally,
+because on M4 the head yields on the way down (FR-21.17) and takes the switcher with
+it — a case that had scrolled would otherwise click a pill of zero height. Not a
+branch, a step: a conditional "if it is not visible" would tolerate both states, which
+is the shape that hides a defect.
+
+**E2E-G12-05** now reads the glyph vocabulary off the pills, at the desktop width,
+because the pills carry their glyphs only from 480 px up. **E2E-G12-07** was rewritten
+a second time — its original clause ("one tap each. No ⋯ exists") was reversed by
+UX-13 and again by ADR-050, and FR-21.21 makes the first half true again, so the case
+now pins four named pills, the marked current one, and the sideways step. **E2E-M4-11**
+and **E2E-M6-04** read the shopping count off the pill instead of the action sheet.
+
+**What is owed.** `m8-hit-included` — the template editor's already-included search
+result — occurs in no test, which is the dependable sign that nothing has ever
+operated it. FR-21.22 changed its dashed edge to a muted solid one, so the rule is
+true in the code and unasserted in the suite. It is not a defect and not a regression
+risk of this PR; it is a control that has never had a case, recorded here so the next
+M8 pass does not have to rediscover it.
