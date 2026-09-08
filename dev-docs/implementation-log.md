@@ -14249,6 +14249,13 @@ message about the palette. Scoping the rule to properties that can carry a colou
 mode a *miss* instead, and a miss is the failure this gate already had; a gate that cries about
 prose is one people learn to distrust.
 
+**And the guard against a truncated file had a false-green case.** The mix rule reads to a balanced
+close, which on a source whose parenthesis never closes runs to the end of the file; the guard that
+skips it was written with a fixture that ended right after the truncated call, so removing the
+guard changed nothing and the case passed either way. It needed a *tail* — a second rule after the
+broken one — before the runaway scan had anything to swallow. A case whose fixture cannot express
+the bug is not a test of it, and only running it against the unfixed code says which kind it is.
+
 **The mix rule reads the file, not the line.** Every other rule here is a line matcher, which is
 enough until a value wraps — and `palette.css` wraps two of its own mixes. Balanced-paren
 extraction over the whole comment-stripped source costs one function and removes the class of miss

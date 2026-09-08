@@ -149,6 +149,26 @@ describe('design-tokens-gate: colour', () => {
     expect(code).toBe(0)
   })
 
+  it('says nothing about a file whose parentheses never close', () => {
+    // A truncated source is a parse failure, which the rest of `make ci`
+    // reports far better; without the guard the scan would read the
+    // remainder of the file as one mix and blame its first line.
+    const { code } = gateOver(
+      'Fixture.vue',
+      [
+        '<style scoped>',
+        '.x {',
+        '  background: color-mix(in srgb, var(--jp-brand) 14%',
+        '}',
+        '.y {',
+        '  padding: var(--jp-gap);',
+        '}',
+        '</style>',
+      ].join('\n'),
+    )
+    expect(code).toBe(0)
+  })
+
   it('refuses to report ok when it scanned nothing', () => {
     workspace = mkdtempSync(join(tmpdir(), 'tokens-gate-'))
     let status = 0

@@ -205,6 +205,11 @@ function findRawMixes(source) {
       if (source[end] === '(') depth++
       else if (source[end] === ')' && --depth === 0) break
     }
+    // An unbalanced call is not a colour finding — it is a file that does
+    // not parse, which every other tool in `make ci` says better than
+    // this one would. Judging it here would report the remainder of the
+    // file as one enormous mix.
+    if (depth !== 0) continue
     const body = source.slice(m.index + m[0].length, end)
     // Nested mixes are removed rather than judged: each is found again by
     // this same scan, and reporting it twice would name one line twice.
@@ -213,7 +218,6 @@ function findRawMixes(source) {
       found.push({
         line: source.slice(0, m.index).split('\n').length,
         text: `color-mix(${body.replace(/\s+/g, ' ')})`,
-        rest,
       })
     }
   }
