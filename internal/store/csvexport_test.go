@@ -10,7 +10,7 @@ import (
 // NFR-4.5: the flat dump resolves traveler and container to *names*, because
 // the file is read by a person in a spreadsheet and internal ids are noise.
 func TestTripCSVRows_ResolvesTravelerAndContainerNames(t *testing.T) {
-	st := openTestStore(t)
+	st := openEmptyStore(t)
 	for _, q := range []string{
 		`INSERT INTO trips (id, name, year) VALUES ('t1', 'Samedan', 2026)`,
 		`INSERT INTO travelers (id, trip_id, name) VALUES ('tr1', 't1', 'Andy')`,
@@ -50,7 +50,7 @@ func TestTripCSVRows_ResolvesTravelerAndContainerNames(t *testing.T) {
 // A trip that is not there is not an empty trip: the caller has to be able to
 // tell "no rows" from "no such trip".
 func TestTripCSVRows_UnknownTrip_IsNotAnEmptyList(t *testing.T) {
-	st := openTestStore(t)
+	st := openEmptyStore(t)
 	_, err := st.TripCSVRows(context.Background(), "nope")
 	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("err = %v, want sql.ErrNoRows", err)

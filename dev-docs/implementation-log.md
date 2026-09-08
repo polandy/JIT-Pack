@@ -346,6 +346,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A clock nobody checked outranked every clock (2026-09-08)](#a-clock-nobody-checked-outranked-every-clock-2026-09-08) — the push took the client's HLC on trust, and one byte above `f` made a field permanently unwritable.
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — FR-24.2: every generated row lost its category, and two tests had written the defect down as expected.
 - [A gate that only knew two spellings of a colour (2026-09-08)](#a-gate-that-only-knew-two-spellings-of-a-colour-2026-09-08) — invariant 9b was enforced against hex and `rgb()` alone; every notation CSS gained after 2011 walked past it.
+- [Two helpers with one name and different rows (2026-09-08)](#two-helpers-with-one-name-and-different-rows-2026-09-08) — the review called it a duplicate forced by the package split; the two `openTestStore`s were never the same function.
 
 ## Deviations
 
@@ -14271,3 +14272,29 @@ runs the script as a process against a fixture tree — 25 cases, each rule from
 `origin/main`'s copy over the same fixtures is what proved the point: six of seven new notations
 exited 0 against the old gate, and the seventh, `light-dark()`, was caught only incidentally by the
 hex literals inside it — written as `light-dark(var(--a), var(--b))` it passed too.
+
+
+## Two helpers with one name and different rows (2026-09-08)
+
+Design-review item T-13 read: `openTestStore` is defined twice, in `store_test.go` and
+`headseq_test.go`, *forced by the package split* — leave it, or move one. Reading the two before
+moving either is what changed the answer: they are not the same function. The internal one opens a
+store **and seeds a user and a trip**; the external one opens a bare store and seeds nothing. Forty
+call sites take the first, four take the second, and nothing at a call site says which — whether a
+test file declares `package store` or `package store_test` is not visible from the line that calls
+the helper.
+
+So the fix is the name, not the file. The external helper is now `openEmptyStore`, and a
+duplicate-by-accident became a difference that is stated. The move happened too, because the three
+shared external fixtures lived in `headseq_test.go` — a file named after one behaviour, holding the
+package's furniture, which is where nobody looks for it.
+
+**The rename makes a promise, so it gets a test.** `TestOpenEmptyStore_SeedsNothing` counts four
+tables, because the two helpers are one edit apart and a seed added to the empty one would hand
+every external test rows it never inserted. Proved by adding that seed: red, naming the table.
+Without it the new name would be a comment.
+
+**The general shape:** a review finding that says *duplicate* is a claim about two pieces of code
+being the same, and that claim is worth checking before acting on it. Here it was wrong in the
+direction that matters — the two were different, which is worse than duplication and invisible in
+exactly the way duplication is not.
