@@ -4595,6 +4595,16 @@ describes is real for a person too — two taps fast enough to meet a transition
 is Ionic's navigation rather than anything this switcher introduced; what changed is
 that the second tap is now one pill away instead of behind a menu.
 
+**A red shard that belongs to no PR.** `e2e (8)` failed on **E2E-M22-09** (WebKit, the
+M22 toast geometry) while this branch was under review. Measured rather than re-run:
+three repeats on the branch went 1 pass / 2 fail, and three repeats of the same case on
+`main` (`8c8052d9`) went 2 pass / 1 fail — so it is the case, not the change, and the
+screen it measures is one this branch does not touch. The reason is in its own wait:
+`document.getAnimations().every(a => a.playState !== 'running')` is true **before** the
+toast's enter animation starts and **after** its dismiss finishes, so the case can
+measure a toast that is not there and read a zero-height box. It is owed a settled
+signal of the toast's own; it is not owed a retry.
+
 **What is owed.** `m8-hit-included` — the template editor's already-included search
 result — occurs in no test, which is the dependable sign that nothing has ever
 operated it. FR-21.22 changed its dashed edge to a muted solid one, so the rule is
