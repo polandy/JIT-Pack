@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.7.0](https://github.com/polandy/JIT-Pack/compare/v0.6.0...v0.7.0) (2026-09-08)
+
+
+### Features
+
+* **client:** every fraction on M4 counts the same thing (FR-25.22, FR-21.16) ([8c8052d](https://github.com/polandy/JIT-Pack/commit/8c8052d93996a2915f1eee8feffdcd82176aee77))
+* **client:** M4 gives its space back, and every line that names an item stands in one column (FR-21.17 … 21.20) ([27bfb89](https://github.com/polandy/JIT-Pack/commit/27bfb89bc5d7c31027d652c1d2c6fd9b238ec4c1))
+* **client:** the packing list draws its own progress, and one door opens the quick-add (FR-21.23, FR-21.24, FR-21.25) ([49d8575](https://github.com/polandy/JIT-Pack/commit/49d8575aa387e9ef8e4d6ff717474d23b51c86ec))
+* **client:** the trip's four views are a switcher in the page head (FR-21.21, FR-21.22) ([5856fd9](https://github.com/polandy/JIT-Pack/commit/5856fd927960d51bc65e7479c53caf4e546dd315))
+
+
+### Bug Fixes
+
+* **client:** a generated row is filed under the item's tag (FR-24.2) ([e187736](https://github.com/polandy/JIT-Pack/commit/e187736ca8b131e0aa9dcbc007863715c497a8d9))
+* **client:** one content measure, kept by every screen (FR-21.26) ([aecabba](https://github.com/polandy/JIT-Pack/commit/aecabba363cddf025b1a99424fca16af80b0bb94))
+* **client:** the token gate reads a colour in every notation (invariant 9b) ([ae888f5](https://github.com/polandy/JIT-Pack/commit/ae888f5938989c0a690dbd13da5412dcd16eb006))
+* **sync:** a clock outside the format is refused, not stored ([8055493](https://github.com/polandy/JIT-Pack/commit/8055493c60ad99a1c73f6bb08d1f5168a2de68e3))
+
 ## [0.6.0](https://github.com/polandy/JIT-Pack/compare/v0.5.0...v0.6.0) (2026-09-07)
 
 
