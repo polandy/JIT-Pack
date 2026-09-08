@@ -3,7 +3,6 @@ import {
   expect,
   createTripViaWizard,
   openTripView,
-  tripActions,
   createTemplate,
   createTripFollowingGroup,
   addPosition,
@@ -1280,8 +1279,9 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
    *
    * The entry itself is always there — M6 is a screen, not a notification — so
    * the count is the part that carries information, and a `(0)` is worse than
-   * no number at all. Since ADR-050 the entry is a word in the bar's menu, so
-   * the count rides in the word: an action sheet renders no badge.
+   * no number at all. It rides in the word rather than in a badge: ADR-050
+   * put it there because an action sheet renders none, and FR-21.21's pill
+   * keeps it there because the word is what the reader is scanning.
    */
   test('E2E-M4-11: the shopping entry carries a count only once something is to be bought', async ({
     page,
@@ -1289,7 +1289,7 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await createTripViaWizard(page, TRIP)
     await quickAdd(page, ['Zelt'])
 
-    expect(await tripActions(page)).toContain('Shopping')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping')
 
     // Turning the row into a purchase is what puts it on M6 (FR-3.2).
     await visible(page).getByTestId('m4-row-Zelt').click()
@@ -1305,7 +1305,7 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    expect(await tripActions(page)).toContain('Shopping (1)')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (1)')
   })
 
   /**
@@ -1688,5 +1688,35 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     expect(head).toBe(plainRow)
     // …and the people under it are indented from it, not level with it.
     expect(child).toBeGreaterThan(head)
+  })
+
+  /*
+   * E2E-M4-74 (FR-21.22): the bar that reveals the packed rows is a button.
+   *
+   * It was drawn with a dashed outline and no fill — this app's mark for a
+   * place where something is *not yet*, worn by the empty picker slot and the
+   * quick-add invitation. On a control that reveals rows which exist and are
+   * counted in its own label, that mark reads as a drop zone or a
+   * placeholder. Both halves are asserted: the edge it no longer wears, and
+   * the state it now tells a reader who cannot see the caret.
+   */
+  test('E2E-M4-74: the reveal bar wears a button’s edge and says which way it goes', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Velohelme'])
+
+    // A packed row is what puts the bar on the screen (FR-25.2).
+    await visible(page).getByTestId('m4-row-Zelt').getByTestId('row-check').click()
+    const bar = visible(page).getByTestId('m4-done-bar')
+    await expect(bar).toHaveText('Show 1 packed')
+
+    await expect(bar).toHaveCSS('border-style', 'solid')
+    await expect(bar).toHaveAttribute('aria-expanded', 'false')
+
+    // And it does the one thing it says: the row it counted comes back.
+    await bar.click()
+    await expect(bar).toHaveAttribute('aria-expanded', 'true')
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
   })
 })

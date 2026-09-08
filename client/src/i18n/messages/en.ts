@@ -186,6 +186,7 @@ export const en = {
   'packing.shoppingCount': 'Shopping ({n})',
   'packing.luggage': 'Luggage',
   'packing.analytics': 'Analytics',
+  'packing.tripViews': "This trip's views",
   'packing.archive': 'Finish trip',
 
   // FR-25.20 — rows somebody else is responsible for.

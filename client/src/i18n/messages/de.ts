@@ -190,6 +190,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.shoppingCount': 'Einkaufen ({n})',
   'packing.luggage': 'Gepäck',
   'packing.analytics': 'Auswertung',
+  'packing.tripViews': 'Ansichten dieser Reise',
   'packing.archive': 'Reise abschliessen',
 
   // FR-25.20 — Packelemente, für die jemand anderes zuständig ist.

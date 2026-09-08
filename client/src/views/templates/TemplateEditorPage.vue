@@ -1110,9 +1110,12 @@ const mergeLines = computed(() =>
   font-size: var(--jp-text-sm);
 }
 
+/* Already in the template: a row that exists and cannot be added again.
+   Muted rather than dashed — a dashed edge is this app's mark for a place
+   where something is *not yet* (FR-21.22). */
 .result.included {
   cursor: default;
-  border-style: dashed;
+  color: var(--ct-subtext0);
 }
 
 .result-head {

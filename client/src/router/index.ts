@@ -104,6 +104,7 @@ export const routes: RouteRecordRaw[] = [
       overlayParent: tripPath(TRIP_ID_PARAM),
       // The packing list is rows, not prose (UX-17).
       measure: 'list',
+      tripView: 'packing',
     },
     name: 'trip-detail',
     component: () => import('@/views/trips/PackingListPage.vue'),
@@ -160,14 +161,14 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: tripSubPath(TRIP_ID_PARAM, 'analytics'),
-    meta: { parent: tripPath(TRIP_ID_PARAM) },
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'analytics' },
     name: 'trip-analytics',
     component: () => import('@/views/trips/AnalyticsPage.vue'),
     props: true,
   },
   {
     path: tripSubPath(TRIP_ID_PARAM, 'containers'),
-    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'container.title' },
+    meta: { parent: tripPath(TRIP_ID_PARAM), titleKey: 'container.title', tripView: 'luggage' },
     name: 'trip-containers',
     component: () => import('@/views/trips/ContainerPage.vue'),
     props: true,
@@ -212,7 +213,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: tripSubPath(TRIP_ID_PARAM, 'shopping'),
-    meta: { parent: tripPath(TRIP_ID_PARAM) },
+    meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'shopping' },
     name: 'trip-shopping',
     component: () => import('@/views/trips/ShoppingPage.vue'),
     props: true,

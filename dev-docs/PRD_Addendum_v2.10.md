@@ -959,6 +959,39 @@ taken straight from a phone camera never reaches the server unprocessed.
 
   Reported by the owner off a render, like FR-21.19 the same day. The list has one name column, and every kind of
   line that names an item — plain row, lone per-person row, cluster head — now stands in it.
+* **FR-21.21 (A Trip's Views Are Named in the Page — added 2026-09-08):** Every screen that is one of a trip's four
+  views — the packing list (M4), the shopping list (M6), the luggage (M11) and the analytics (M12) — carries a row of
+  four pills under the page's name (G-9): *Packliste*, *Einkaufen (n)*, *Gepäck*, *Auswertung*. The one being looked
+  at is marked (`aria-current="page"`) and inert; the other three are one tap each, **from any of the four**, so the
+  step from the shopping list to the luggage no longer goes back through M4 first. Which view a screen is comes from
+  the route table (`meta.tripView`), like the content measure of FR-21.18 — a screen that had to remember to offer
+  its siblings is a screen that will forget.
+
+  **This pays back a cost ADR-050 wrote down.** That decision moved the three views into the bar's ⋮ so the bar could
+  stop growing glyphs, and recorded §3.25's "one tap each" as spent. The M4 review of 2026-09-07 read the result off
+  a render: three of the bar's seven slots went to view options, two to things that belong to no trip, and the five
+  places the reader actually goes sat behind one glyph. ADR-051 weighs the ways back; what is left behind the ⋮ is
+  what *changes* the trip — its properties, and the one lifecycle step that is next.
+
+  **The count is things to buy, not rows** (FR-25.6), which is the arithmetic M6's own segments use. The menu entry
+  it replaced counted rows, and nothing noticed for as long as the two numbers were never on one screen: the pill
+  said *Einkaufen (3)* above segments saying *(1)* and *(1)* the first time it rendered. `buyRowCount` is now one
+  function in `domain/shoppingView.ts`, read by both.
+
+  **The pills are words on a phone and words with glyphs from 480 px up.** Four words fill a 390 px row to within
+  six pixels (measured: 352 of 358); the glyphs take 90 more and would push the fourth off the edge. The glyph
+  vocabulary itself is unchanged, and E2E-G12-05 reads it off the pills at the desktop width.
+* **FR-21.22 (A Dashed Edge Means *Not Yet* — added 2026-09-08):** A dashed outline marks a place where something is
+  not there: the empty picker slot (M9), the quick-add invitation, the browse hand-over. A control that acts on
+  content which *exists* is a solid, filled button. The reveal bars are that second kind — M4's *„{n} gepackte
+  anzeigen"* and its *others* bar (FR-25.2/25.20), M6's *„{n} gekaufte anzeigen"* (FR-25.11j) — and each states the
+  count of rows it is holding back, so a dashed edge told the reader those rows were a placeholder. They are one
+  `RevealBar` component now: a filled bar with a caret that turns, carrying `aria-expanded` for the reader who
+  cannot see the caret.
+
+  Reported by the owner off the same render as FR-21.19/21.20 — as "the only dashed element in the app", which was
+  the one part that did not hold: there were six, in five stylesheets, meaning four different things. M9's
+  *included* result was the other one on the wrong side of the rule and is solid and muted now.
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.
