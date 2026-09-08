@@ -1048,7 +1048,10 @@ taken straight from a phone camera never reaches the server unprocessed.
   copy runs to some 120 characters, where the comfortable range the token's own comment named ends around 75. At
   600 px the same settings paragraph wraps at 74. No screen in the app was found that the wider measure fitted,
   including the two charts and the four wizards; the CSV importer's step 2 was checked separately, because a column
-  mapping is the one content that could have needed the width, and it reads the same at both.
+  mapping is the one content that could have needed the width, and it reads the same at both. **Two of the nineteen
+  were read from their template rather than from a render** — the two conflict logs, which one device in Local Mode
+  cannot populate. Their rows are `ion-item`s with a wrapping label and an end slot, which is the shape the measure
+  is for; had either been a fixed-column table, this would have been the screen to keep the wider one.
 
   **The change reaches the tablet, and that is part of the cost.** Each measure is inert below its own width, so
   the phone is untouched — but the range it was inert over shrank from *under 960 px* to *under 600 px*, and a
