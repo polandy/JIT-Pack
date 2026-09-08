@@ -53,8 +53,10 @@ actions through the router meta and a small slot API.
   screen.
 - M4's collapsing header (§1.2 — trip name and presence migrate *into the top bar* on scroll) becomes unambiguous: there
   is only one bar to migrate into. **Overtaken 2026-08-19**, without touching this ADR's decision: the migration was
-  never built, and M4's G-12 cluster left the bar 54 px for a title. M4 now names itself in its own header line and
-  registers no app-bar title — the one bar stays one bar, and G-9 gained the case of a screen with no title in it.
+  never built, and M4's G-12 cluster left the bar 54 px for a title. ~~M4 now names itself in its own header line and~~
+  ~~registers no app-bar title~~ — **overtaken again 2026-09-06 by ADR-050**, which generalised the case rather than
+  keeping M4 as the exception: no screen's name is in the bar, every screen registers a title, and the G-9 page head
+  renders it. The one bar is still one bar; what changed is that it now names no page at all.
 
 **Cons**
 

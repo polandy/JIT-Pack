@@ -4,6 +4,7 @@ import {
   test,
   expect,
   createTripViaWizard,
+  expectTripOpen,
   openTripView,
   openQuickAdd,
   setDateField,
@@ -551,8 +552,14 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // not whatever the history happens to hold.
     await expect(page).toHaveURL(new RegExp(`${trip}$`))
     await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
-    // And the app bar belongs to M4 again: below the breakpoint that screen
-    // registers no title, so its own actions are the positive signal.
+    // And the head names the trip again rather than the editor it just left.
+    // The head is keyed by route path because Ionic keeps the outgoing page
+    // mounted through the transition, so "which name is showing" is the
+    // question that keying answers — and this is the moment it is asked.
+    // Until ADR-050 it could not be asked here at all: M4 was the one screen
+    // registering no title below the breakpoint, so the actions below had to
+    // stand in for a name the screen was designed not to show.
+    await expectTripOpen(page, TRIP.name)
     await expectTripActionOffered(page, 'edit')
     await expect(onVisibleScreen(page, 'trip-edit-name')).toHaveCount(0)
   })
