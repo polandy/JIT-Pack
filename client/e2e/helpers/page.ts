@@ -57,6 +57,28 @@ export async function writesLanded(page: Page) {
   )
 }
 
+/**
+ * Wait until the outlet holds exactly one painted page — the settled state
+ * between two Ionic transitions.
+ *
+ * `visiblePage` answers *which* page is painted; this answers *whether the
+ * app has finished moving*. Ionic marks an incoming page `ion-page-invisible`
+ * until its transition completes and leaves the outgoing one in the DOM
+ * meanwhile, so a locator can be visible, resolve, and then be detached
+ * mid-click. That is not a flake to retry: it is a navigation issued into a
+ * transition, and the second one lands somewhere neither the URL nor the
+ * screen agrees with. Measured on `‹ back` out of M6 — with the URL already
+ * at M4, the outlet still had M6 painted and M4 `ion-page-invisible`.
+ *
+ * The menu the trip switcher replaced had this wait by accident, in
+ * `sheet.onDidDismiss()`; a control that navigates directly needs it named.
+ */
+export async function pageSettled(page: Page) {
+  await expect(
+    page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden):not(.ion-page-invisible)'),
+  ).toHaveCount(1)
+}
+
 export function useReducedMotion(test: { use: (options: Record<string, unknown>) => void }): void {
   test.use({ reducedMotion: 'reduce' })
 }

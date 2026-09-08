@@ -8,7 +8,7 @@ import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 import { setDateField } from './ionic'
-import { visiblePage, writesLanded } from './page'
+import { pageSettled, visiblePage, writesLanded } from './page'
 import { PATH } from '../routes'
 
 /**
@@ -218,6 +218,10 @@ const TRIP_VIEW = {
  * has scrolled would otherwise click a pill of zero height.
  */
 export async function openTripView(page: Page, view: keyof typeof TRIP_VIEW): Promise<void> {
+  // Never into a transition: a pill is in the frame rather than in a page, so
+  // it stays clickable while the outlet is still swapping — and the
+  // navigation that click makes lands in a stack nobody can read (pageSettled).
+  await pageSettled(page)
   await visiblePage(page)
     .locator('ion-content')
     .first()

@@ -4584,6 +4584,17 @@ UX-13 and again by ADR-050, and FR-21.21 makes the first half true again, so the
 now pins four named pills, the marked current one, and the sideways step. **E2E-M4-11**
 and **E2E-M6-04** read the shopping count off the pill instead of the action sheet.
 
+**And one wait had been free until now.** E2E-M6-17 went red on CI and locally on
+the same step: back out of M6 to M4, then into M6 again, and the outlet ended up with
+the URL on one screen and the other one painted. The switcher pill is in the *frame*,
+so unlike a page's own control it stays clickable while Ionic is still swapping pages —
+and the ⋮ the helper used before had a settle step by accident, `sheet.onDidDismiss()`.
+`pageSettled` names it: exactly one page that is neither hidden nor
+`ion-page-invisible`. It is a settled state, not a wait on a clock. The hazard it
+describes is real for a person too — two taps fast enough to meet a transition — but it
+is Ionic's navigation rather than anything this switcher introduced; what changed is
+that the second tap is now one pill away instead of behind a menu.
+
 **What is owed.** `m8-hit-included` — the template editor's already-included search
 result — occurs in no test, which is the dependable sign that nothing has ever
 operated it. FR-21.22 changed its dashed edge to a muted solid one, so the rule is
