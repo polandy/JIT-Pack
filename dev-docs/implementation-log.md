@@ -345,6 +345,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A prop that withholds one branch renders the other (2026-09-08)](#a-prop-that-withholds-one-branch-renders-the-other-2026-09-08) — FR-21.23 … 21.25: one door on two screens, a sheet that was always 88 %, and three roundings of one fraction.
 - [A clock nobody checked outranked every clock (2026-09-08)](#a-clock-nobody-checked-outranked-every-clock-2026-09-08) — the push took the client's HLC on trust, and one byte above `f` made a field permanently unwritable.
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — FR-24.2: every generated row lost its category, and two tests had written the defect down as expected.
+- [A gate that only knew two spellings of a colour (2026-09-08)](#a-gate-that-only-knew-two-spellings-of-a-colour-2026-09-08) — invariant 9b was enforced against hex and `rgb()` alone; every notation CSS gained after 2011 walked past it.
 
 ## Deviations
 
@@ -14207,3 +14208,66 @@ path a user has: tag an item in M9, make it a position, follow the group into a 
 gave "port 4173 is already used", which says nothing about the build; and grepping a log file that a
 still-running job later truncates reported the *previous* run's failures as if they were the new
 ones. Wait for the job, not for a pattern in its output.
+
+
+## A gate that only knew two spellings of a colour (2026-09-08)
+
+`scripts/design-tokens-gate.mjs` had been green for weeks while matching
+`#hex|rgba?|hsla?` and nothing else. Every notation CSS has gained since — `oklch()`, `lab()`,
+`color()`, `light-dark()`, `color-mix()` — and all 148 colour names went past it unread. The gate
+was not enforcing invariant 9b; it was enforcing two spellings of it, and the difference is
+invisible from inside, because a guard that finds nothing looks exactly like a codebase that has
+nothing to find.
+
+**The census answered the design question before it was asked.** The open item had been recorded as
+a decision to make: is `color-mix()` a carve-out or a violation? Reading all 85 uses settled it —
+the 24 outside the theme files are without exception a role token tinted toward `transparent`
+(`color-mix(in srgb, var(--jp-brand) 14%, transparent)`), and the rest are palette.css deriving
+Ionic's shade/tint steps. The practice was already right; only the gate was blind. So `color-mix`
+became the fifth carve-out **by rule**: admitted when every colour argument is a `var(--…)`,
+`transparent` or `currentColor`, refused otherwise. Banning it outright was the alternative and
+would have cost 24 rewrites to fix nothing.
+
+**Two rules, because a colour hides in two different shapes.** A function is a token you can match;
+a name is prose. `color: white` is caught by an *allowlist* over properties whose whole value is a
+colour — the value has to reduce to tokens and the keywords that decline to name one, so a notation
+CSS adds next year is closed by default. `border: 1px solid red` cannot be caught that way, because
+the colour sits in the middle of three other decisions, so the 148 names are matched directly. A
+denylist is normally the wrong shape here — the module-boundary one this project replaced in #381
+was incomplete the day it was written — but this list is closed in kind: `rebeccapurple` was the
+last name added, in 2014.
+
+**And it was still incomplete on the day it was written.** The list came out at 147, and the
+external number is 148. The missing one was `black`. Nothing in the code could have said so; the
+count was the only check available, and it only worked because the total is a published fact.
+
+**The review of the first draft found the rule firing on prose.** The name rule matched a colour
+word after any colon, and `client/src` holds `.ts` as well as CSS: `markGreen: 'Mark as green'` in
+an i18n catalogue is a sentence, not a declaration. Nothing in the repository triggered it today,
+which is the uncomfortable part — it would have fired on whoever wrote that string next, with a
+message about the palette. Scoping the rule to properties that can carry a colour makes its failure
+mode a *miss* instead, and a miss is the failure this gate already had; a gate that cries about
+prose is one people learn to distrust.
+
+**And the guard against a truncated file had a false-green case.** The mix rule reads to a balanced
+close, which on a source whose parenthesis never closes runs to the end of the file; the guard that
+skips it was written with a fixture that ended right after the truncated call, so removing the
+guard changed nothing and the case passed either way. It needed a *tail* — a second rule after the
+broken one — before the runaway scan had anything to swallow. A case whose fixture cannot express
+the bug is not a test of it, and only running it against the unfixed code says which kind it is.
+
+**The mix rule reads the file, not the line.** Every other rule here is a line matcher, which is
+enough until a value wraps — and `palette.css` wraps two of its own mixes. Balanced-paren
+extraction over the whole comment-stripped source costs one function and removes the class of miss
+entirely.
+
+**`stripComments` had a hole of the same kind.** It knew `/* */` and `//`, so the first run flagged
+`<!-- the guard is a sentence, not only a grey button -->` in the FR-19.8 card. Prose names colours,
+and a `.vue` file carries HTML comments.
+
+**The gate now has a specification, and it is the only test this change could have.** No production
+code moved, so nothing else would have gone red. `client/src/theme/__tests__/designTokensGate.spec.ts`
+runs the script as a process against a fixture tree — 25 cases, each rule from both sides. Running
+`origin/main`'s copy over the same fixtures is what proved the point: six of seven new notations
+exited 0 against the old gate, and the seventh, `light-dark()`, was caught only incidentally by the
+hex literals inside it — written as `light-dark(var(--a), var(--b))` it passed too.

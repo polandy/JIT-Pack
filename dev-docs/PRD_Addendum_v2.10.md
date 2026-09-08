@@ -761,6 +761,17 @@ defaulting to dark, on a palette of its own (originally [Catppuccin](https://cat
   and a raw `box-shadow` outside the three theme files; `50%` and a `0 0 0 <n>px` ring are allowed by rule rather than
   by allowlist, because neither is a size decision. An empty sweep exits non-zero: a gate that scanned nothing must not
   report "ok".
+* **A colour is a colour in every notation it can be written in.** The gate reads hex, `rgb`/`hsl`, the CIE and OKLab
+  functions, `color()`, `light-dark()` and all 148 CSS colour names as the same decision, so the rule cannot be
+  stepped around by spelling. The names are read only in a property that can carry a colour — `client/src` holds `.ts`
+  as well as CSS, and a colour name there is usually an English word. `color-mix()` is the one function a view may
+  write, because it can be composed entirely of tokens — and the gate holds it to exactly that: every colour argument
+  must be a `var(--…)`, `transparent` or `currentColor`, checked over the whole file because a mix's arguments wrap.
+  Banning it outright was considered and rejected: all 24 uses outside the theme files tint a role token
+  (`color-mix(in srgb, var(--jp-brand) 14%, transparent)`), so the practice was already right and only the gate was
+  blind. `scripts/__tests__` has no home in this repo, so the gate's own cases live in
+  `client/src/theme/__tests__/designTokensGate.spec.ts`, which runs it as a process over a fixture tree — both what it
+  must reject and what it must keep letting through.
 * Both faces are the **variable** font, subset to latin and latin-ext — four `woff2` files, ~180 KB in total, under
   `client/src/assets/fonts/`. One file per subset covers the whole weight range, and Fraunces' optical-size axis is
   driven by the browser (`font-optical-sizing: auto`), which is the reason for shipping the variable file rather than
