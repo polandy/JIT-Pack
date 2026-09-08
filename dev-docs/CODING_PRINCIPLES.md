@@ -160,7 +160,9 @@ still names. On the client there is no equivalent worth enabling
 (`no-magic-numbers` fires on one-off view geometry far more often than on a
 threshold that carries a reason), so TypeScript is held to §4a by review —
 except for the one class that *is* gated: colours, type and shape, which
-`scripts/design-tokens-gate.mjs` rejects as raw values (invariant 9/9b).
+`scripts/design-tokens-gate.mjs` rejects as raw values (invariant 9/9b) — in
+every notation, because a rule that knows only the spellings that were in use
+when it was written is a rule about spelling rather than about colour.
 
 *Paid for on 2026-08-18 (FR-27.4):* `internal/store` switched on bare table
 names in five places across two packages. Adding a table meant finding all
