@@ -3801,6 +3801,18 @@ the tail is where a symbol system is actually decided. Results:
     the library later stays a swap of the module rather than a rewrite of every call site. **Revisit trigger:** a locale
     whose pluralization needs more than one/other forms, or a need for message-format features (gender, select, nested
     formats).
+  * **Where the requirement stops: a product statement is localized, a technical diagnosis is not** (owner,
+    2026-09-08, after an audit read every literal in `client/src`). *„No user-facing string is hard-coded" is about
+    the sentences the product speaks* — labels, hints, confirmations, notifications. It does not cover a diagnosis
+    about a broken input, which is written for whoever has to fix the file and stays English. The ten parse errors
+    of `client/src/domain/portable.ts`, rendered raw by M18, are the standing example. The boundary is also the
+    cheap answer: `domain/` may not import `i18n/` (invariant 4, `scripts/domain-purity-gate.mjs`), so translating
+    one of those errors means first turning it into a code the view resolves to a key — the `rejectionReasonKey`
+    shape in `SyncDetailSheet.vue`. Two further texts are deliberately English for their own reasons, recorded
+    above and in ADR-037: the worker's `FALLBACK_BODY`, and `manifest.webmanifest`'s description, which a static
+    manifest cannot localize at all. **What the audit measured**, so a later one need not repeat it: 1036 keys in
+    each catalogue with none missing on either side, and exactly one literal left in a production template — M17's
+    example server URL, whose own label is a key.
 * **NFR-4.1a (Durable Outbox — refines NFR-4.1, accepted 2026-08-21):** In Server Mode the queue of mutations that have
   not reached the server is kept **on the device** (IndexedDB), not in the open document: it is written per mutation,
   removed when the server acknowledges it, and replayed at the next app start **before the first pull**, so a change
