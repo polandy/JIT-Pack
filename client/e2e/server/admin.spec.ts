@@ -203,7 +203,7 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
 
     const ctxDaveAgain = await browser.newContext()
     const daveAgain = await loginAs(ctxDaveAgain, 'dave')
-    await expect(visiblePage(daveAgain).getByTestId('dashboard-greeting')).toBeVisible()
+    await expect(visiblePage(daveAgain).getByTestId('dashboard')).toBeVisible()
 
     // FR-23.4: the name the IdP supplied can be taken away. It is done last
     // on purpose — the row is addressed by that name, and a reset is the one

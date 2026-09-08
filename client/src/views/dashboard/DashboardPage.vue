@@ -44,6 +44,7 @@ import { t } from '@/i18n'
 import { loadSeenDelegations, markDelegationsSeen } from '@/local/delegationSeen'
 import { formatTripPeriod } from '@/lib/format'
 import { greetingKey } from '@/lib/greeting'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
 import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
@@ -127,6 +128,14 @@ function travelerLine(trip: Trip): string | null {
 }
 
 const greeting = computed(() => t(greetingKey(new Date().getHours())))
+
+// G-9/ADR-050: M1's name is its greeting, and the frame draws it like every
+// other screen's — M1 was the one tab root still writing its own heading into
+// the content, which put it 26 px lower and a size smaller than M2's beside it.
+setHeaderTitle(
+  () => greeting.value,
+  () => t('dashboard.subtitle'),
+)
 
 function tripKpis(trip: Trip) {
   return tripStore.kpis(trip.id)
@@ -264,15 +273,12 @@ async function handleRefresh(event: CustomEvent) {
 
 <template>
   <IonPage>
-    <IonContent class="ion-padding">
+    <!-- The screen itself, for a test that has to say which screen is up:
+         since ADR-050 M1's name is the frame's, not this page's. -->
+    <IonContent class="ion-padding" data-testid="dashboard">
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
       </IonRefresher>
-
-      <h1 class="dashboard-greeting jp-hero-title" data-testid="dashboard-greeting">
-        {{ greeting }}
-      </h1>
-      <p class="dashboard-subtitle">{{ t('dashboard.subtitle') }}</p>
 
       <!-- Empty state (G-7) -->
       <EmptyState
@@ -547,15 +553,6 @@ async function handleRefresh(event: CustomEvent) {
 </template>
 
 <style scoped>
-.dashboard-greeting {
-  margin: 16px 0 4px;
-}
-
-.dashboard-subtitle {
-  color: var(--ion-color-medium);
-  margin: 0 0 24px;
-}
-
 .trip-dates {
   font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);

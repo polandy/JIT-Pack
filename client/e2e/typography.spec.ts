@@ -39,7 +39,7 @@ test('E2E-G13-01: the UI face carries the body and the display face the page tit
 }) => {
   await seedMode({ mode: 'local' })
   await page.goto('/')
-  await expect(page.getByTestId('dashboard-greeting')).toBeVisible()
+  await expect(page.getByTestId('dashboard')).toBeVisible()
 
   // `.button-native` (an <a> here, since the CTA is a router link), not
   // the ion-button host: that is the node Ionic styles from
@@ -48,7 +48,9 @@ test('E2E-G13-01: the UI face carries the body and the display face the page tit
   expect(
     await resolvedFamily(page.getByTestId('dashboard-plan-trip').locator('.button-native')),
   ).toContain('hanken grotesk')
-  expect(await resolvedFamily(page.getByTestId('dashboard-greeting'))).toContain('fraunces')
+  // The page's name, which since ADR-050 the frame draws for every screen —
+  // outside the outlet, so it is read on the page rather than on the screen.
+  expect(await resolvedFamily(page.getByTestId('header-title'))).toContain('fraunces')
 
   // Resolving the family is not the same as having the bytes: a missing
   // asset leaves the computed style intact and paints the fallback.
@@ -76,7 +78,7 @@ test('E2E-G13-02: no font is fetched from a third-party host @local @g13', async
 
   await seedMode({ mode: 'local' })
   await page.goto('/')
-  await expect(page.getByTestId('dashboard-greeting')).toBeVisible()
+  await expect(page.getByTestId('dashboard')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
 
   expect(offSite).toEqual([])

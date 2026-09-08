@@ -203,11 +203,12 @@ These patterns apply to every screen and are specified once.
   the display role (`.jp-page-title`, G-13) with an optional second line under it — `.jp-meta` — naming what the
   screen belongs to, the trip for a trip sub-screen or the step for a wizard. It renders **once, in the frame**
   (`PageHead` in `App.vue`, above the router outlet and inside the content column), from the head each screen
-  registers, so no view decides whether to have one; a screen that registers nothing gets no head, which is the case
-  for M1. This replaced two arrangements at once: the bar's `ion-title`, which at 390 px beside M4's cluster rendered
-  "Samedan Sommer" as "S…", and the display-face `h1` the three tab roots had each written into their own content by
-  hand. Accepted cost: the head is a fixed band rather than part of the scroller, so it does not scroll away; the
-  revisit trigger is in ADR-050.
+  registers, so no view decides whether to have one; a screen that registers nothing gets no head. **Every screen
+  registers one since 2026-09-09 (FR-21.27)** — M1 was the exception until then, and its greeting sat 26 px lower and
+  a size smaller than the name of the tab beside it. This replaced two arrangements at once: the bar's `ion-title`,
+  which at 390 px beside M4's cluster rendered "Samedan Sommer" as "S…", and the display-face `h1` the three tab
+  roots had each written into their own content by hand. Accepted cost: the head is a fixed band rather than part of
+  the scroller, so it does not scroll away; the revisit trigger is in ADR-050.
 * **A trip's screen names the trip's other screens (added 2026-09-08, FR-21.21, ADR-051).** Under the page head, and
   inside it — so it yields with the name where a screen collapses its head (FR-21.17) — the four views of one trip
   are a row of pills: *Packliste*, *Einkaufen (n)*, *Gepäck*, *Auswertung*. The current one is marked and inert; the
@@ -406,7 +407,8 @@ These patterns apply to every screen and are specified once.
   * **Two faces, one job each.** **Fraunces** — a serif with an optical-size axis — carries titles and headline figures.
     **Hanken Grotesk** carries everything else, including every control. Nothing is set in a third face.
   * **The display face has five roles, and only those.** Page title (a tab root's own heading, e.g. *Trips*),
-    hero/greeting (M1), sheet title (M5's item name), app-bar title (G-9), headline figure (a KPI number — `.jp-figure`,
+    hero (a hero card's own name, M1/M2 — the M1 greeting left this role for the page title in 2026-09-09,
+    FR-21.27), sheet title (M5's item name), app-bar title (G-9), headline figure (a KPI number — `.jp-figure`,
     written with the M12 rebuild 2026-08-16 as its first user; M1's stats adopt it when that screen is rebuilt).
     Everything else — item names, group headings, chips, labels, buttons, body copy — is the UI face. A trip row's name
     is **not** a title: it is a list entry, and setting it in the serif would flatten the very hierarchy the serif
@@ -615,7 +617,9 @@ These patterns apply to every screen and are specified once.
   and a second hero is a second answer to which one that is. It is the only card in the app that paints brand on its
   own plane (G-11). The active trips are ordered **soonest departure first** — the hero is the head of that list, and
   before the rule existed the head was whatever IndexedDB handed over.
-* **Elements:** Greeting header with sync glyph (G-2) — the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag*
+* **Elements:** The greeting is the screen's **page head** (G-9, FR-21.27, 2026-09-09) — its title, with
+  *„Was beim Packen ansteht"* as the meta line under it — and is therefore drawn by the frame, at the same place and
+  size as every other screen's name; the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag*
   12–17, *Guten Abend* 18–21, and a neutral *Hallo* through the night (2026-08-26, UX review UX-15: everything below
   noon was morning, so 00:14 greeted the morning; night deliberately makes no time-of-day claim). The rule is the pure
   `greetingKey` in `lib/greeting.ts`. Trip cards render their dates through the one `formatTripPeriod` formatter (UX-5,
