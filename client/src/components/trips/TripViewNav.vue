@@ -14,8 +14,7 @@
  * content measure (FR-21.18): a screen that had to remember to offer its
  * siblings is a screen that will forget.
  */
-import { IonIcon } from '@ionic/vue'
-import { useIonRouter } from '@ionic/vue'
+import { IonIcon, useIonRouter } from '@ionic/vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { briefcaseOutline, cartOutline, listOutline, statsChartOutline } from 'ionicons/icons'
