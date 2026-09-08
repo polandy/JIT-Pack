@@ -6,7 +6,6 @@ import {
   chooseInSelect,
   createTripViaWizard,
   openTripView,
-  tripActions,
   visiblePage as visible,
 } from './fixtures'
 import { PATH } from './routes'
@@ -410,14 +409,13 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
 
     // The destination exists either way — hiding the entry would strand M6 on
     // a trip that has yet to need it. Only the count answers to the count, and
-    // since ADR-050 it is part of the word rather than a badge, because an
-    // action sheet renders no badge.
-    expect(await tripActions(page)).toContain('Shopping')
+    // it is part of the word rather than a badge (ADR-050, kept by FR-21.21's
+    // switcher).
+    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping')
 
     await openTripView(page, 'shopping')
     await expect(m6(page)).toBeVisible()
     await addOnOpenTab(page, 'Batterien')
-    await page.getByTestId('header-back').click()
-    expect(await tripActions(page)).toContain('Shopping (1)')
+    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (1)')
   })
 })

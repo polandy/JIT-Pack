@@ -115,6 +115,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [E2E-M5-12 — the flake was a second mount (2026-09-05)](#e2e-m5-12--the-flake-was-a-second-mount-2026-09-05) — three red WebKit runs, zero local ones; an element identity turns a load-dependent window into an assertion.
 - [The wizard's FR-20.4 tap is still owed a case (2026-09-06)](#the-wizards-fr-204-tap-is-still-owed-a-case-2026-09-06) — a control with no test id at all, and the seed gap that had made it unreachable.
 - [Five cases that had to be reversed, not repaired (2026-09-06)](#five-cases-that-had-to-be-reversed-not-repaired-2026-09-06) — what ADR-050 does to a suite written against the bar it removes.
+- [The switcher moved five cases, and left one owed (2026-09-08)](#the-switcher-moved-five-cases-and-left-one-owed-2026-09-08) — FR-21.21/21.22: what a nav that renders on four screens does to a helper, and the one testid still in no test.
 
 ## The rule that comes before the units
 
@@ -229,7 +230,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-19 (ADR-050 a tab root's head), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer), E2E-G8-01 (no delegation picker), E2E-G4-01 (the notification's landing) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.18: the packing column is measured for a control row, not for prose), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.18: the packing column is measured for a control row, not for prose), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-24 (FR-21.16: the head is set louder than its children, read off computed type), E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
@@ -4561,3 +4562,52 @@ the app declares `m4-nav-shopping` and its two siblings as whole literals in a d
 no prefix `m4-nav-` exists anywhere for the gate to match. The helper now maps the three names. The
 gate was right — a prefix that matches nothing is how an absence assertion becomes unfalsifiable.
 
+## The switcher moved five cases, and left one owed (2026-09-08)
+
+FR-21.21 takes the trip's three destinations out of the bar's ⋮ and puts four pills
+under the page's name, on all four trip screens. Five cases moved with them and one
+change ships without a case at all.
+
+**`openTripView` is one click again.** It had grown into open-the-menu-then-click when
+ADR-050 sent the entries into the ⋮; it clicks the pill now, and works from any of the
+four screens rather than from M4 alone. One thing was added rather than removed: the
+helper scrolls the visible page's `ion-content` to the top first, unconditionally,
+because on M4 the head yields on the way down (FR-21.17) and takes the switcher with
+it — a case that had scrolled would otherwise click a pill of zero height. Not a
+branch, a step: a conditional "if it is not visible" would tolerate both states, which
+is the shape that hides a defect.
+
+**E2E-G12-05** now reads the glyph vocabulary off the pills, at the desktop width,
+because the pills carry their glyphs only from 480 px up. **E2E-G12-07** was rewritten
+a second time — its original clause ("one tap each. No ⋯ exists") was reversed by
+UX-13 and again by ADR-050, and FR-21.21 makes the first half true again, so the case
+now pins four named pills, the marked current one, and the sideways step. **E2E-M4-11**
+and **E2E-M6-04** read the shopping count off the pill instead of the action sheet.
+
+**And one wait had been free until now.** E2E-M6-17 went red on CI and locally on
+the same step: back out of M6 to M4, then into M6 again, and the outlet ended up with
+the URL on one screen and the other one painted. The switcher pill is in the *frame*,
+so unlike a page's own control it stays clickable while Ionic is still swapping pages —
+and the ⋮ the helper used before had a settle step by accident, `sheet.onDidDismiss()`.
+`pageSettled` names it: exactly one page that is neither hidden nor
+`ion-page-invisible`. It is a settled state, not a wait on a clock. The hazard it
+describes is real for a person too — two taps fast enough to meet a transition — but it
+is Ionic's navigation rather than anything this switcher introduced; what changed is
+that the second tap is now one pill away instead of behind a menu.
+
+**A red shard that belongs to no PR.** `e2e (8)` failed on **E2E-M22-09** (WebKit, the
+M22 toast geometry) while this branch was under review. Measured rather than re-run:
+three repeats on the branch went 1 pass / 2 fail, and three repeats of the same case on
+`main` (`8c8052d9`) went 2 pass / 1 fail — so it is the case, not the change, and the
+screen it measures is one this branch does not touch. The reason is in its own wait:
+`document.getAnimations().every(a => a.playState !== 'running')` is true **before** the
+toast's enter animation starts and **after** its dismiss finishes, so the case can
+measure a toast that is not there and read a zero-height box. It is owed a settled
+signal of the toast's own; it is not owed a retry.
+
+**What is owed.** `m8-hit-included` — the template editor's already-included search
+result — occurs in no test, which is the dependable sign that nothing has ever
+operated it. FR-21.22 changed its dashed edge to a muted solid one, so the rule is
+true in the code and unasserted in the suite. It is not a defect and not a regression
+risk of this PR; it is a control that has never had a case, recorded here so the next
+M8 pass does not have to rediscover it.

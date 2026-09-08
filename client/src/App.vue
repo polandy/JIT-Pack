@@ -15,6 +15,7 @@ import { setCurrency } from '@/lib/currency'
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import PageHead from '@/components/global/PageHead.vue'
+import TripViewNav from '@/components/trips/TripViewNav.vue'
 import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
 import MigrationBanner from '@/components/global/MigrationBanner.vue'
@@ -262,6 +263,16 @@ const pageHead = computed(() => resolveHead(route.path, route.meta.titleKey))
  */
 const listMeasure = computed(() => route.meta.measure === 'list')
 
+/**
+ * FR-21.21: a trip's screen offers the trip's other screens, from the route
+ * table rather than from each view — the same reason the measure is there.
+ */
+const tripView = computed(() => route.meta.tripView)
+const tripViewId = computed(() => {
+  const id = route.params.tripId
+  return typeof id === 'string' ? id : null
+})
+
 // A session that ends — the IdP refusing the refresh, or the account
 // deactivated (FR-23.3) — returns to the login. Attached here, in setup,
 // because a child's `onMounted` makes the request that can end it before
@@ -358,7 +369,9 @@ async function saveBackup() {
             :title="pageHead.title"
             :meta="pageHead.meta"
             :collapsed="pageHead.collapsed"
-          />
+          >
+            <TripViewNav v-if="tripView && tripViewId" :trip-id="tripViewId" :current="tripView" />
+          </PageHead>
           <div class="app-outlet">
             <IonRouterOutlet />
           </div>

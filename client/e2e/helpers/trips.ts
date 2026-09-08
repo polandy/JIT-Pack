@@ -8,7 +8,7 @@ import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 import { setDateField } from './ionic'
-import { visiblePage, writesLanded } from './page'
+import { pageSettled, visiblePage, writesLanded } from './page'
 import { PATH } from '../routes'
 
 /**
@@ -196,29 +196,39 @@ export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
 }
 
 /**
- * The menu entry each of the trip's other views wears — the id its glyph
- * carried on M4's header line before ADR-050, which the bar keeps on the
- * action-sheet button. Written out rather than interpolated: the app declares
- * the three as whole literals, and `scripts/testid-gate.mjs` matches a
- * template literal by its literal edge, which `m4-nav-` has nowhere.
+ * The switcher pill each of the trip's other views wears (FR-21.21). Written
+ * out rather than interpolated: `scripts/testid-gate.mjs` matches a template
+ * literal by its literal edge, and the app builds these from `trip-view-`.
  */
 const TRIP_VIEW = {
-  shopping: 'm4-nav-shopping',
-  luggage: 'm4-nav-luggage',
-  analytics: 'm4-nav-analytics',
+  packing: 'trip-view-packing',
+  shopping: 'trip-view-shopping',
+  luggage: 'trip-view-luggage',
+  analytics: 'trip-view-analytics',
 } as const
 
 /**
- * M4 → one of the trip's other three views (ADR-050). They were glyphs in
- * M4's own header line until the bar's budget sent them into the ⋮, so the
- * step is *open the menu, then click* — absorbed here rather than in the
- * seven specs that used to click the glyph. Chosen by id rather than by word,
- * because the shopping entry names its count and its text is therefore data.
+ * One of the trip's four views → another (FR-21.21, ADR-051). They were
+ * glyphs on M4's header line, then words in the bar's ⋮ (ADR-050), and are
+ * pills under the page's name now — on all four screens, so this reaches the
+ * luggage from the shopping list without going back through M4.
+ *
+ * The head is scrolled back into view first, unconditionally: on M4 it yields
+ * on the way down (FR-21.17) and takes the switcher with it, so a case that
+ * has scrolled would otherwise click a pill of zero height.
  */
 export async function openTripView(page: Page, view: keyof typeof TRIP_VIEW): Promise<void> {
-  const sheet = await openTripMenu(page)
-  await sheet.getByTestId(TRIP_VIEW[view]).click()
-  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+  // Never into a transition: a pill is in the frame rather than in a page, so
+  // it stays clickable while the outlet is still swapping — and the
+  // navigation that click makes lands in a stack nobody can read (pageSettled).
+  await pageSettled(page)
+  await visiblePage(page)
+    .locator('ion-content')
+    .first()
+    .evaluate((el) => (el as HTMLElement & { scrollToTop?: (ms: number) => void }).scrollToTop?.(0))
+  const pill = page.getByTestId(TRIP_VIEW[view])
+  await expect(pill).toBeVisible()
+  await pill.click()
 }
 
 /**

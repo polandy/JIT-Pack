@@ -205,6 +205,13 @@ These patterns apply to every screen and are specified once.
   "Samedan Sommer" as "S…", and the display-face `h1` the three tab roots had each written into their own content by
   hand. Accepted cost: the head is a fixed band rather than part of the scroller, so it does not scroll away; the
   revisit trigger is in ADR-050.
+* **A trip's screen names the trip's other screens (added 2026-09-08, FR-21.21, ADR-051).** Under the page head, and
+  inside it — so it yields with the name where a screen collapses its head (FR-21.17) — the four views of one trip
+  are a row of pills: *Packliste*, *Einkaufen (n)*, *Gepäck*, *Auswertung*. The current one is marked and inert; the
+  other three are one tap, from any of the four. The frame renders it from `meta.tripView`, so the four screens
+  decide nothing. Words alone below 480 px, words with their G-12 glyphs above it: four words fill a 390 px row to
+  within six pixels, and the glyphs would push the fourth off the edge. This gives back what ADR-050 spent —
+  §3.25's "one tap each" — and takes the trip's destinations out of the ⋮, which keeps only what changes the trip.
 * **The bar's cluster is capped at three glyphs (added 2026-09-06, ADR-050).** A page describes its actions in
   registration order (G-12); the bar renders the first three that are not marked for the ⋮ and puts everything after
   them into the menu, ahead of the actions the page marked itself. M4 stood at seven glyphs, each of which had arrived
@@ -325,7 +332,8 @@ These patterns apply to every screen and are specified once.
   **The cluster has a size (added 2026-09-06, ADR-050):** the bar renders at most **three** glyphs from a page's list
   and puts the rest into the ⋮ in registration order, ahead of the entries the page marked itself. The page still
   chooses which three, by writing them first; what it can no longer do is add a fourth without noticing. M4's trip
-  destinations moved to the menu under this rule.
+  destinations moved to the menu under this rule — and **left it again on 2026-09-08** (FR-21.21, ADR-051): they are
+  the switcher under the page head now, and the ⋮ keeps what changes the trip rather than where you can go with it.
   **An overflow entry runs after the sheet closes, never inside its handler:** while an overlay is up Ionic marks the
   router outlet `aria-hidden`, and an action that navigates from within the handler leaves that flag behind — the screen
   then renders and responds to every tap while being absent from the accessibility tree.
@@ -454,6 +462,10 @@ These patterns apply to every screen and are specified once.
   * **Every sheet leaves the same way (added 2026-09-07).** The round close control is one design, drawn once: a
     filled circle on the sunken plane with a rim, at the round-control size. Nine sheets used to draw it themselves,
     in two designs split four against four — the same control, two appearances, and nothing recording which was meant.
+  * **A dashed edge means *not yet* (added 2026-09-08, FR-21.22).** It marks a place where something is missing and
+    could be put: the empty picker slot, the quick-add invitation, the hand-over into the full inventory. A control
+    that acts on content which exists is a solid, filled button — which is what the three reveal bars (FR-25.2,
+    FR-25.11j) became, each stating in its own label the count of rows it is holding back.
   * **One card class, not a card per screen.** `.jp-card` carries the plane, the border, the radius and the elevation
     together; a screen positions it and adds nothing. Its children defer to it, so no row can repaint itself a shade off
     the surface it sits in.
@@ -849,9 +861,10 @@ These patterns apply to every screen and are specified once.
     happens while the list is moving too.
   * **Actions live in the app bar (G-12), not in the header:** search (collapsed behind its icon), filter (badge =
     active facet count), fold-all — the three glyphs the bar's budget allows, and the three tapped while packing. The
-    trip's *other views* are **words in the ⋮** since 2026-09-06 (ADR-050): *Einkaufen* carrying its open count in the
-    word, *Gepäck*, *Auswertung*. They were icons on the trip line, which is how M4 came to show seven glyphs above the
-    list; an action sheet renders no badge, so the count moved into the label.
+    trip's *other views* were icons on the trip line, then words in the ⋮ (2026-09-06, ADR-050), and are the **G-9
+    switcher under the page head** since 2026-09-08 (FR-21.21, ADR-051): *Einkaufen* still carries its open count in
+    the word — things to buy, the same arithmetic M6's segments use — and the ⋮ is down to the trip's properties and
+    its one next lifecycle step.
   * **Faceted filter panel** (FR-25.11) replaces the old grouping bar + mode pill strip: a bottom sheet holding
     *Gruppieren nach*, an *Erledigte* switch, and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale. OR
     within a facet, AND across facets; active values appear as removable chips under the header. **Revised 2026-08-14
@@ -1191,10 +1204,10 @@ These patterns apply to every screen and are specified once.
   record. Each tab has its own reveal, and the reveal is **absent, not empty**, when nothing was bought from that list.
   Deliberately **not** remembered across a session the way M4's switch is (FR-25.18): the tab is not remembered either,
   so a restored reveal would open on a list the reader did not choose.
-* **States:** Both lists empty → M4's ⋮ keeps the **shopping entry** and drops only its **count** (corrected
-  2026-08-30 against the screen: the destination exists either way; since ADR-050 the count is part of the word rather
-  than a badge, because a menu renders none).
-* **Navigation:** From M4's ⋮; deep-linkable.
+* **States:** Both lists empty → the G-9 switcher keeps the **shopping pill** and drops only its **count** (corrected
+  2026-08-30 against the screen: the destination exists either way; the count is part of the word rather than a badge,
+  which is how ADR-050's menu carried it and how FR-21.21's pill still does).
+* **Navigation:** From the G-9 trip switcher, on any of the trip's four views (FR-21.21); deep-linkable.
 
 ### M7 — Template List
 
@@ -1472,7 +1485,8 @@ These patterns apply to every screen and are specified once.
 * **Actions:** Create/edit/delete containers; assign items from the unassigned bucket via the picker. **Deleting a
   container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would
   silently shorten the packing list.
-* **Navigation:** From the luggage button in M4's toolbar (as built 2026-08-16; the earlier idea of an "Edit containers"
+* **Navigation:** From *Gepäck* in the G-9 trip switcher (FR-21.21; the luggage was a toolbar button as built
+  2026-08-16, then a ⋮ entry; the earlier idea of an "Edit containers"
   entry inside the grouping switcher was not carried over) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the
   edge was never built** (read against the code 2026-08-30). M12's only navigation is to M4, and tapping a *Gepäck* bar
   sets the container facet there rather than opening this screen — which is the more useful landing anyway, since it
@@ -1516,7 +1530,7 @@ These patterns apply to every screen and are specified once.
   2026-08-30, that the instance has no configured currency and one would be an owner decision, was true when it was
   written and has not been since; the setting is `JITPACK_CURRENCY`. No series, or a series with no archived trips → the
   trend section is absent, not empty.
-* **Navigation:** From *Auswertung* in M4's ⋮ (G-12, ADR-050); trend section also from M16.
+* **Navigation:** From *Auswertung* in the G-9 trip switcher (FR-21.21, ADR-051); trend section also from M16.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 
