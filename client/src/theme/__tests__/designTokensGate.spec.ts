@@ -59,6 +59,14 @@ describe('design-tokens-gate: colour', () => {
     ],
     ['a named colour standing alone', 'color: rebeccapurple;', 'colour-keyword'],
     ['a named colour inside a shorthand', 'border: 1px solid red;', 'colour-name'],
+    [
+      'a named colour inside a gradient',
+      'background-image: linear-gradient(navy, teal);',
+      'colour-name',
+    ],
+    // `color` is a colour-only property, so the allowlist rule reaches an
+    // inline binding before the name rule needs to.
+    ['a named colour in an inline style binding', ':style="{ color: \'gold\' }"', 'colour-keyword'],
     ['a named colour in a custom property', '--ion-item-background: whitesmoke;', 'colour-keyword'],
     [
       'a mix carrying a hex argument',
@@ -110,6 +118,16 @@ describe('design-tokens-gate: colour', () => {
     const { code } = gateOver(
       'Fixture.vue',
       `<style scoped>\n.x {\n  ${declaration}\n}\n</style>\n`,
+    )
+    expect(code).toBe(0)
+  })
+
+  it('leaves a colour name in a catalogue string alone', () => {
+    // `en.ts` is scanned like every other source, and its values are
+    // sentences: `markGreen: 'Mark as green'` is prose after a colon.
+    const { code } = gateOver(
+      'copy.ts',
+      "export const copy = {\n  markGreen: 'Mark as green',\n  status: 'red',\n}\n",
     )
     expect(code).toBe(0)
   })

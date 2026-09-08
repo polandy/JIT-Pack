@@ -47,8 +47,25 @@ const MODERN_COLOUR_FN =
 const NAMED_COLOURS =
   'aliceblue|antiquewhite|aquamarine|aqua|azure|beige|bisque|black|blanchedalmond|blueviolet|blue|brown|burlywood|cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|cyan|darkblue|darkcyan|darkgoldenrod|darkgray|darkgreen|darkgrey|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|firebrick|floralwhite|forestgreen|fuchsia|gainsboro|ghostwhite|goldenrod|gold|gray|greenyellow|green|grey|honeydew|hotpink|indianred|indigo|ivory|khaki|lavenderblush|lavender|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgreen|lightgrey|lightpink|lightsalmon|lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|lightyellow|limegreen|lime|linen|magenta|maroon|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|navy|oldlace|olivedrab|olive|orangered|orange|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|papayawhip|peachpuff|peru|pink|plum|powderblue|purple|rebeccapurple|red|rosybrown|royalblue|saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|silver|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|tan|teal|thistle|tomato|turquoise|violet|wheat|whitesmoke|white|yellowgreen|yellow'
 
-/** A named colour standing as a whole token in a declaration's value. */
-const NAMED_COLOUR_VALUE = new RegExp(`:[^;{}]*(?:^|[\\s,(])(?:${NAMED_COLOURS})(?![-\\w])`)
+/**
+ * Properties that can carry a colour somewhere in their value — the
+ * colour-only ones above plus every shorthand and paint property that
+ * accepts one among other things.
+ *
+ * The name is checked, rather than any value that follows a colon,
+ * because a value is not the only thing a colon introduces: `en.ts` is
+ * scanned too, and `markGreen: 'Mark as green'` is a sentence. An
+ * omission here fails the way the gate already failed — quietly, as a
+ * miss — while the alternative fails loudly on prose, which teaches
+ * people to distrust the gate.
+ */
+const COLOUR_CAPABLE_PROP =
+  '--[-\\w]+|(?:[-\\w]+-)?color|fill|stroke|stop-color|flood-color|lighting-color|background(?:-image)?|border(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?|outline|box-shadow|text-shadow|text-decoration|text-emphasis|column-rule|caret|scrollbar-color|accent-color|list-style|filter|backdrop-filter|mask|border-image'
+
+/** A named colour standing as a whole token in such a property's value. */
+const NAMED_COLOUR_VALUE = new RegExp(
+  `(?:^|[;{\\s])(?:${COLOUR_CAPABLE_PROP}):[^;{}]*(?:^|[\\s,(])(?:${NAMED_COLOURS})(?![-\\w])`,
+)
 
 /**
  * A declaration whose *whole* value is a colour, capturing that value.
@@ -160,10 +177,11 @@ const RULES = [
   },
   {
     id: 'colour-name',
-    // The net under both rules above: a named colour reads as prose and
-    // hides in a shorthand, where no allowlist over whole values can
-    // reach it — `border: 1px solid red` names a colour in the middle of
-    // three other decisions.
+    // The net under both rules above: a named colour hides in a
+    // shorthand, where no allowlist over whole values can reach it —
+    // `border: 1px solid red` names a colour in the middle of three
+    // other decisions. Scoped to properties that can carry one, because
+    // a colour name is also an ordinary English word.
     match: NAMED_COLOUR_VALUE,
     why: 'colour belongs to src/theme/palette.css — use a --ct-* or --jp-* token',
   },

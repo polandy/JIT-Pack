@@ -14241,6 +14241,14 @@ last name added, in 2014.
 external number is 148. The missing one was `black`. Nothing in the code could have said so; the
 count was the only check available, and it only worked because the total is a published fact.
 
+**The review of the first draft found the rule firing on prose.** The name rule matched a colour
+word after any colon, and `client/src` holds `.ts` as well as CSS: `markGreen: 'Mark as green'` in
+an i18n catalogue is a sentence, not a declaration. Nothing in the repository triggered it today,
+which is the uncomfortable part — it would have fired on whoever wrote that string next, with a
+message about the palette. Scoping the rule to properties that can carry a colour makes its failure
+mode a *miss* instead, and a miss is the failure this gate already had; a gate that cries about
+prose is one people learn to distrust.
+
 **The mix rule reads the file, not the line.** Every other rule here is a line matcher, which is
 enough until a value wraps — and `palette.css` wraps two of its own mixes. Balanced-paren
 extraction over the whole comment-stripped source costs one function and removes the class of miss
