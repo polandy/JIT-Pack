@@ -1750,9 +1750,14 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
 
     await expect(ring).toHaveAttribute('aria-label', '25%')
     await expect(visible(page).getByTestId('m4-progress')).toContainText('1/4')
-    // A quarter of the track's own width, whatever the viewport made that.
-    const width = (await track.evaluate((el) => el.parentElement!.clientWidth)) * 0.25
-    await expect(track).toHaveCSS('width', `${width}px`)
+    // A quarter of the track's own width, whatever the viewport made that —
+    // as a ratio of two rendered boxes rather than a pixel string. Both are
+    // fractional on WebKit (19.0625 of 76.25), and `clientWidth` rounds one
+    // of them, so the string comparison was a rounding claim.
+    const share = await track.evaluate(
+      (el) => el.getBoundingClientRect().width / el.parentElement!.getBoundingClientRect().width,
+    )
+    expect(share).toBeCloseTo(0.25, 2)
   })
 
   /*
