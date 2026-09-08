@@ -59,7 +59,7 @@ import {
   playOutline,
 } from 'ionicons/icons'
 
-import { stateFor } from '@/domain/packState'
+import { packedPercent, stateFor } from '@/domain/packState'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -76,6 +76,8 @@ import PackingRow, {
 } from '@/components/trips/PackingRow.vue'
 import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
+import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
@@ -467,6 +469,25 @@ const presenceNames = computed<Record<string, string>>(() =>
   Object.fromEntries(participants.value.map((p) => [p.user_id, p.display_name])),
 )
 const openPrepCount = computed(() => tripStore.getOpenTodos(props.tripId).length)
+
+/**
+ * The ring in the header line, which is not the hero's: the line yields to
+ * the list on the way down (FR-21.17) and is the one figure on the screen
+ * that has to earn every pixel it keeps.
+ */
+const RING_SIZE_HEADER = 42
+
+/**
+ * What qualifies the share: the weight the trip is carrying, and the prep
+ * that is still owed. Under the sentence rather than beside it, because a
+ * figure reads as one line and this is the second (FR-21.23).
+ */
+const statsDetail = computed(() => {
+  const parts: string[] = []
+  if (kpis.value.totalWeight > 0) parts.push(formatWeight(kpis.value.totalWeight))
+  if (openPrepCount.value > 0) parts.push(t('packing.openPrep', { n: openPrepCount.value }))
+  return parts.length > 0 ? parts.join(' · ') : null
+})
 
 /**
  * The header line *and the page head above it* yield to the list on the way
@@ -1109,19 +1130,19 @@ setHeaderTitle(
            here as three glyphs; they are words in the bar's menu now
            (ADR-050), and the name is the page's own head. -->
       <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m4-header">
-        <!-- Where the trip stands, and who else is here. The whole line is
-             tabular, not just the counter: the weight beside it changes on
-             the same tap and would shift the counter sideways as it did. -->
+        <!-- Where the trip stands, and who else is here. Tabular throughout:
+             the weight under the share changes on the same tap as the share
+             itself, and proportional digits shift both as it does. -->
         <div class="trip-stats">
-          <div class="progress jp-num" data-testid="m4-progress">
-            <strong>{{ kpis.packedItems }}/{{ kpis.totalItems }}</strong>
-            <span v-if="kpis.totalWeight > 0" class="muted">
-              · {{ formatWeight(kpis.totalWeight) }}
-            </span>
-            <span v-if="openPrepCount > 0" class="muted prep">
-              · {{ t('packing.openPrep', { n: openPrepCount }) }}
-            </span>
-          </div>
+          <ProgressFigure
+            class="figure jp-num"
+            :percent="packedPercent(kpis)"
+            :headline="t('trips.itemSummary', { packed: kpis.packedItems, total: kpis.totalItems })"
+            :detail="statsDetail"
+            :ring-size="RING_SIZE_HEADER"
+            headline-testid="m4-progress"
+            detail-testid="m4-stats-detail"
+          />
           <PresenceFacepile
             v-if="presenceUsers.length > 1"
             :users="presenceUsers"
@@ -1189,6 +1210,7 @@ setHeaderTitle(
         v-if="!closingPass"
         ref="quickAdd"
         :is-active="active"
+        :show-trigger="false"
         :offer-groups="true"
         :offer-per-person="travelers.length > 1"
         :exclude-item-ids="quickAddExcludeIds"
@@ -1436,25 +1458,25 @@ setHeaderTitle(
       </IonModal>
 
       <!-- M5 (UI-Spec M5 + G-9): a sheet on a phone, a side panel on a
-           desktop — one content component either way. -->
-      <IonModal
+           desktop — one content component either way. The sheet is the app's
+           own chrome (U-3) and therefore as tall as what it holds: at a fixed
+           88 % of the viewport an item with no notes and no prep spent two
+           thirds of the screen on nothing (FR-21.25). -->
+      <SheetModal
         v-if="!isDesktop"
         :is-open="openItemId !== null"
-        class="item-modal"
-        data-testid="m5-modal"
-        @did-dismiss="closeItem"
+        testid="m5-modal"
+        @dismiss="closeItem"
       >
-        <IonContent class="item-sheet-content">
-          <ItemDetailSheet
-            v-if="openItemId"
-            :trip-id="tripId"
-            :item-id="openItemId"
-            :participants="participants"
-            :current-user-id="myUserId"
-            @close="closeItem"
-          />
-        </IonContent>
-      </IonModal>
+        <ItemDetailSheet
+          v-if="openItemId"
+          :trip-id="tripId"
+          :item-id="openItemId"
+          :participants="participants"
+          :current-user-id="myUserId"
+          @close="closeItem"
+        />
+      </SheetModal>
       <aside v-else-if="openItemId" class="item-panel" data-testid="m5-panel">
         <ItemDetailSheet
           :trip-id="tripId"
@@ -1510,19 +1532,6 @@ setHeaderTitle(
    the right edge rather than squeezing the list: the list keeps its
    measurements, so opening a detail never re-flows the rows underneath
    the finger that opened it. */
-.item-modal {
-  --height: 88%;
-  --border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
-  --background: var(--ct-mantle);
-  --box-shadow: var(--jp-shadow-sheet);
-  --backdrop-opacity: 0.62;
-  align-items: flex-end;
-}
-
-.item-sheet-content {
-  --background: var(--ct-mantle);
-}
-
 .item-panel {
   position: fixed;
   top: 56px;
@@ -1536,7 +1545,7 @@ setHeaderTitle(
   z-index: 20;
 }
 
-/* The header line collapses by giving up its own 84 px of the scrolled
+/* The header line collapses by giving up its own height in the scrolled
    content, and the browser answers that with a scroll-anchoring adjustment
    of the same size. Read back through @ion-scroll it is an upward scroll,
    which re-opens the line, which grows the content again — the line then
@@ -1570,9 +1579,9 @@ ion-content.pack-content::part(scroll) {
      so at z-index 2 the list painted straight over the trip's figures. */
   z-index: 10;
   overflow: hidden;
-  /* Two rows since the trip name moved down here: the name with the trip's
-     other views, then the figures with the facepile. */
-  max-height: 84px;
+  /* The figure's own height plus the padding: ring, share, what qualifies
+     it, and the track under them (FR-21.23). */
+  max-height: 96px;
   /* Clipped, never faded: a half-transparent sticky line reads as two
      lines printed on top of each other while the list slides past it. */
   transition:
@@ -1596,18 +1605,12 @@ ion-content.pack-content::part(scroll) {
   gap: 10px;
 }
 
-.progress {
+/* The ring is punched in the colour it sits on, and the header line is the
+   one place that is not a card. */
+.figure {
   flex: 1;
   min-width: 0;
-  font-size: var(--jp-text-md);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.muted {
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-sm);
+  --ring-hole: var(--ct-base);
 }
 
 .filter-count {

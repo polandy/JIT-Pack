@@ -50,13 +50,15 @@ withDefaults(
 }
 
 /* The hole, punched rather than composited: a ring drawn with a border
-   would round its own ends and lose the exact share at low percentages. */
+   would round its own ends and lose the exact share at low percentages.
+   It is painted in the surface it sits on, which is the card everywhere
+   except M4's header line — hence the variable rather than the token. */
 .ring::before {
   content: '';
   position: absolute;
   inset: 6px;
   border-radius: 50%;
-  background: var(--jp-surface-card);
+  background: var(--ring-hole, var(--jp-surface-card));
 }
 
 .share {

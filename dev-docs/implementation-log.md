@@ -342,6 +342,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Six fractions, three meanings, one of them a recorded decision (2026-09-07)](#six-fractions-three-meanings-one-of-them-a-recorded-decision-2026-09-07) — FR-25.22/21.16: what a baseline of quantity-1 rows could never see.
 - [A rule stayed behind when its element moved (2026-09-07)](#a-rule-stayed-behind-when-its-element-moved-2026-09-07) — FR-21.17 … 21.20: a collapse read as a gesture, one measure doing two jobs, two rules only a render caught.
 - [A cost written down is not a cost paid (2026-09-08)](#a-cost-written-down-is-not-a-cost-paid-2026-09-08) — FR-21.21/21.22: the trip's views leave the ⋮, and a dashed edge stops meaning two things.
+- [A prop that withholds one branch renders the other (2026-09-08)](#a-prop-that-withholds-one-branch-renders-the-other-2026-09-08) — FR-21.23 … 21.25: one door on two screens, a sheet that was always 88 %, and three roundings of one fraction.
 
 ## Deviations
 
@@ -14077,3 +14078,43 @@ added again* (M9's included result). The rule is written down now, one of the si
 side of it, and the three bars are one component rather than twenty identical declarations in two
 stylesheets. **A wrong reason attached to a right finding is worth reading to the end**: it was the
 part that turned a one-line fix into a rule.
+
+## A prop that withholds one branch renders the other (2026-09-08)
+
+Findings 6, 7 and 8 of the M4 eyeball pass, and the last of them (FR-21.23, FR-21.24, FR-21.25).
+Nothing here was hard; three things were only visible from a rendered screen, and one was only
+visible from a grep.
+
+**The finding named M4; the defect was on two screens.** The pill and the FAB standing on the
+packing list at the same time is a property of the *shared composer*, not of M4 — and M8's editor
+mounts the same component beside its own `m8-fab`. The owner could only report the screen they were
+looking at. **The habit that pays here is to ask who else mounts the component before writing the
+fix**, which is the same rule the review skill states for tests: one rule written into N call sites
+needs N cases.
+
+**Withholding a branch of a `v-if`/`v-else` renders the other one.** The composer was
+`v-if="!expanded"` on the pill with `v-else` on the form, so `showTrigger: false` did not remove the
+pill — it made the form permanent, standing open above the list on every load. The three unit tests
+written for the prop were all green: they asked whether the trigger was gone (it was) and whether
+`open()` still worked (it did). What found it was the screenshot script pressing Escape and waiting
+for the composer to disappear. **A pair written as if/else has a third state as soon as a condition
+gains a second term, and the test that names only the removed half cannot see it.**
+
+**A fixed height is a thing nothing measures.** M5 was `--height: 88%` whatever it held, so an item
+with no prep and no notes covered the list with three hundred pixels of nothing — and no case, no
+baseline and no unit test had anything to say about it, because a constant is not an observation.
+The chrome that sizes to content (`SheetModal`, U-3) had existed since the four other sheets were
+folded into it; the item sheet was simply a third copy of the same five modal variables that nobody
+had counted. Measured on a 390×844 phone: 743 px → 496 px folded, 717 px with *Details* open.
+
+**One fraction, three roundings.** The trip's packed share was computed in three places — the
+dashboard hero as an unrounded fraction, M2's list as a rounded percent, and now M4 — each a line
+long, each obviously correct, and no two agreeing on what 2/3 is. It is `packedPercent` beside
+`unitsOf` now, over the FR-25.22 units, so the ring, the track, the bar and the sentence are one
+arithmetic. **The cheapest §4a hoists are the ones that look too small to hoist**, which is why they
+sit around long enough to become three.
+
+**The cost taken on purpose:** the quick-add's pill named the action in words and the FAB does not.
+A labelled invitation that is only reachable from the top of a forty-row list is worth less than a
+＋ that is always under the thumb — but it is a real loss, and it is the reason the M6 caller, which
+has no FAB, keeps the pill.

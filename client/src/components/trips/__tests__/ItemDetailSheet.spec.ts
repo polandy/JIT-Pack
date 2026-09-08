@@ -549,3 +549,33 @@ describe('M5 FR-25.15 save indicator', () => {
     orchestratorFake.syncStatus.state.value = 'synced'
   })
 })
+
+/**
+ * FR-21.25 — the sheet's weight is the other way round.
+ *
+ * The two things a rendered look found are both assertable here: the control
+ * the sheet is *opened* for was the smallest thing on it, and the only two
+ * filled buttons belonged to prep and notes. A `fill` is what makes a button
+ * read as the page's answer, so it is the property the case pins.
+ */
+describe('M5 puts its weight on the action it is opened for (FR-21.25)', () => {
+  it('draws the pack control at a main action’s size, not a row’s', () => {
+    seedTrip('active')
+
+    const stepper = mountSheet().findComponent({ name: 'QuantityStepper' })
+
+    expect(stepper.props('large')).toBe(true)
+  })
+
+  it('leaves the filled button to nobody — prep and note commit quietly', () => {
+    seedTrip('active')
+    const wrapper = mountSheet()
+
+    const filled = wrapper
+      .findAllComponents({ name: 'IonButton' })
+      .filter((button) => button.props('fill') === undefined || button.props('fill') === 'solid')
+      .map((button) => button.attributes('data-testid'))
+
+    expect(filled).toEqual([])
+  })
+})

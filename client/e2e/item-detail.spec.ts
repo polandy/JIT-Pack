@@ -428,4 +428,38 @@ test.describe('M5 item detail @local @m5', () => {
     // comment the link landed on once it has found and scrolled to it.
     await expect(page.getByTestId('m5-sheet')).toHaveAttribute('data-flashed-comment', commentId)
   })
+
+  /*
+   * E2E-M5-25 (FR-21.25): the sheet is as tall as what it holds.
+   *
+   * It stood at a fixed 88 % of the viewport whatever was on it, so an item
+   * with no prep, no notes and its details folded away spent two thirds of
+   * the screen on nothing — while the list it covered was what the two
+   * thirds could have shown. Both halves are asserted, because a sheet that
+   * simply became short would pass the first: it is short *for this item*
+   * and grows when the item is given more to say.
+   */
+  test('E2E-M5-25: the sheet takes the height of its content, not of the screen', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 400, height: 880 })
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
+    await page.getByTestId('quick-add-confirm').click()
+    await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
+
+    // The presented state, not a wait: Ionic's enter animation is a duration
+    // nobody controls, and a box measured during it is not a height.
+    await expect(page.getByTestId('m5-modal')).toHaveAttribute('data-presented', 'true')
+    const box = page.getByTestId('m5-modal').locator('.sheet-box')
+    const folded = (await box.boundingBox())!.height
+    expect(folded).toBeLessThan(880 * 0.8)
+
+    // And it is the content that decides: everything Details folds away is
+    // the rest of the sheet, and unfolding it makes the sheet taller.
+    await page.getByTestId('m5-details').click()
+    await expect(page.getByTestId('m5-details')).toHaveClass(/open/)
+    await expect.poll(async () => (await box.boundingBox())!.height).toBeGreaterThan(folded)
+  })
 })

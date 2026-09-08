@@ -781,6 +781,7 @@ const mergeLines = computed(() =>
              scope so the commit says where the position lands. -->
         <QuickAddItem
           ref="quickAdd"
+          :show-trigger="false"
           :confirm-label="isGroup ? t('templates.addToGroup') : t('templates.addToTemplate')"
           :exclude-item-ids="positions.map((pos) => pos.item_id)"
           @add="onQuickAdd"

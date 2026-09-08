@@ -11,7 +11,7 @@
  * (`--jp-hero-wash`, G-11): identity marks the thing you are on, and there
  * is exactly one of those per screen.
  */
-import ProgressRing from '@/components/global/ProgressRing.vue'
+import ProgressFigure from '@/components/global/ProgressFigure.vue'
 
 withDefaults(
   defineProps<{
@@ -42,19 +42,16 @@ withDefaults(
     <h2 class="name jp-hero-title" data-testid="hero-name">{{ name }}</h2>
     <p v-if="meta" class="meta jp-meta" data-testid="hero-meta">{{ meta }}</p>
 
-    <div class="foot">
-      <ProgressRing :percent="percent" />
-      <div class="progress">
-        <b class="headline" data-testid="hero-progress">{{ progress }}</b>
-        <span v-if="detail" class="detail" data-testid="hero-detail">{{ detail }}</span>
-        <!-- The ring and the track say the same thing twice on purpose: the
-             ring is the glance, the track is where the eye goes when the
-             number is not the answer it wanted. -->
-        <div class="track"><i :style="{ width: `${Math.max(0, Math.min(100, percent))}%` }" /></div>
-      </div>
-    </div>
+    <ProgressFigure
+      class="hero-figure"
+      :percent="percent"
+      :headline="progress"
+      :detail="detail"
+      headline-testid="hero-progress"
+      detail-testid="hero-detail"
+    />
 
-    <div v-if="$slots.foot" class="foot actions">
+    <div v-if="$slots.foot" class="actions">
       <slot name="foot" />
     </div>
 
@@ -86,10 +83,7 @@ withDefaults(
   overflow-wrap: anywhere;
 }
 
-.foot {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.hero-figure {
   margin-top: 16px;
 }
 
@@ -101,41 +95,11 @@ withDefaults(
  * controls, which the row got for free from the list's own dividers.
  */
 .actions {
+  display: flex;
+  align-items: center;
   gap: 2px;
-  justify-content: flex-start;
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--jp-surface-border);
-}
-
-.progress {
-  flex: 1;
-  min-width: 0;
-}
-
-.headline {
-  display: block;
-  font-size: var(--jp-text-md);
-  font-weight: var(--jp-weight-semibold);
-}
-
-.detail {
-  font-size: var(--jp-text-sm);
-  color: var(--ct-subtext0);
-}
-
-.track {
-  height: 6px;
-  margin-top: 8px;
-  overflow: hidden;
-  border-radius: var(--jp-r-pill);
-  background: var(--jp-surface-border);
-}
-
-.track i {
-  display: block;
-  height: 100%;
-  border-radius: var(--jp-r-pill);
-  background: var(--jp-done);
 }
 </style>

@@ -983,7 +983,9 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
    * survives unchanged is the search field, which is absent until it is
    * opened — and that is what nothing asserted.
    */
-  test('E2E-G12-04: the header line is one row of figures at either width', async ({ page }) => {
+  test('E2E-G12-04: the header line carries the figure and nothing else at either width', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 860 })
     await createTripViaWizard(page, TRIP)
     await quickAdd(page, ['Zelt'])
@@ -995,8 +997,10 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     // rather than always carries.
     await expect(page.getByTestId('m4-search-input')).toHaveCount(0)
 
-    // One row means the line is no taller than the row inside it. Measured,
-    // not read off the stylesheet: a second row would show as height here
+    // The line is the figure plus its padding and nothing more — since
+    // FR-21.23 the figure is itself two lines and a track, so "one row" is
+    // no longer the measurement; "nothing stacked beside it" is. Measured,
+    // not read off the stylesheet: a second block would show as height here
     // whatever the flex direction says.
     const phoneLine = (await header.boundingBox())!
     const phoneStats = (await stats.boundingBox())!
@@ -1718,5 +1722,53 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await bar.click()
     await expect(bar).toHaveAttribute('aria-expanded', 'true')
     await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+  })
+
+  /*
+   * E2E-M4-75 (FR-21.23): the screen where the progress is *made* says how
+   * far along the trip is the way every other screen says it — a ring, the
+   * share in words and a track. It had said it as a bare fraction.
+   *
+   * All three are asserted against the same pack, because the point of the
+   * figure is that they cannot disagree: the ring and the track are drawn
+   * from one percentage, and the sentence counts the units under it
+   * (FR-25.22).
+   */
+  test('E2E-M4-75: the header line answers the trip as a ring, a sentence and a track', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Schlafsack', 'Kocher', 'Stirnlampe'])
+
+    const ring = visible(page).getByTestId('progress-ring')
+    await expect(ring).toHaveAttribute('aria-label', '0%')
+    await expect(visible(page).getByTestId('m4-progress')).toContainText('0/4')
+    const track = visible(page).getByTestId('m4-header').locator('.track i')
+    await expect(track).toHaveCSS('width', '0px')
+
+    await packRow(page, 'Zelt')
+
+    await expect(ring).toHaveAttribute('aria-label', '25%')
+    await expect(visible(page).getByTestId('m4-progress')).toContainText('1/4')
+    // A quarter of the track's own width, whatever the viewport made that.
+    const width = (await track.evaluate((el) => el.parentElement!.clientWidth)) * 0.25
+    await expect(track).toHaveCSS('width', `${width}px`)
+  })
+
+  /*
+   * E2E-M4-76 (FR-21.24): one door to the composer, not two.
+   *
+   * The collapsed pill sat above the list and the FAB hovered over it, both
+   * opening the same form. The case pins the absence *and* the door that is
+   * left — an absence alone would stay green on a screen that lost both.
+   */
+  test('E2E-M4-76: the list offers the quick-add once, through the FAB', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+
+    await expect(visible(page).getByTestId('quick-add-open')).toHaveCount(0)
+    await expect(visible(page).getByTestId('quick-add-input')).toHaveCount(0)
+
+    await openQuickAdd(page)
+    await expect(visible(page).getByTestId('quick-add-input')).toBeVisible()
   })
 })

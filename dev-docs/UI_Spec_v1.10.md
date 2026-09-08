@@ -7,6 +7,9 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-08 — **M4**: the header line is a ring, a sentence and a track (FR-21.23), and the quick-add has one
+  door per screen — M8's too (FR-21.24). **M5**: the sheet takes its content's height and its weight goes to the
+  control it was opened for (FR-21.25).
 * 2026-09-07 — **G-13**: the type table carries the body text, not Ionic (FR-21.14).
 * 2026-09-07 — **M1** opens on a hero card for the trip you are on (FR-21.13), and **M2**'s *Active* segment opens on
   the same card (FR-21.15).
@@ -852,6 +855,11 @@ These patterns apply to every screen and are specified once.
     altogether — it is the G-9 page head, above the bar's outlet, and the sentence "the name with it" above described
     only the figures for eleven days. The head now collapses on the same gesture, which is what the 2026-08-19 call
     said; measured, that is 89 px of a 390×844 phone returned to the list.
+  * **The line draws the trip as a figure, not as a fraction** (2026-09-08, FR-21.23): a ring, the share in words
+    (*„1/4 gepackt"*) and a track, with the weight and the open prep on the second line under it. It is the same
+    `ProgressFigure` M1's and M2's hero cards carry, from the same percentage — M4 was the one screen without it, and
+    it is the screen where the progress is made. Measured on a 390×844 phone: 39 px before, 59 px while it stands,
+    and it still yields entirely on the way down (FR-21.17).
   * **The list stays where it was left** (2026-08-21, revised 2026-09-05). Opening an item is a state of the list's own
     page (ADR-046), so the list never leaves the screen and keeps its offset and its folded header line by simply
     staying. Was: the item's path replaced the route, which mounted the list afresh at the top — on a forty-row list,
@@ -865,6 +873,11 @@ These patterns apply to every screen and are specified once.
     switcher under the page head** since 2026-09-08 (FR-21.21, ADR-051): *Einkaufen* still carries its open count in
     the word — things to buy, the same arithmetic M6's segments use — and the ⋮ is down to the trip's properties and
     its one next lifecycle step.
+  * **One door to the quick-add** (2026-09-08, FR-21.24): the ＋ FAB, and nothing else. The composer's own collapsed
+    pill sat above the list saying the same thing as the FAB hovering over it — the FAB is what stays, because it is
+    reachable from anywhere in a list and the pill only from the top of one. M8's editor had the identical pair and
+    made the identical choice; M6, which has no FAB, is where the pill is still the way in. *Rejected:* dropping the
+    FAB instead, which would have put the app's one-tap add behind a scroll to the top on the longest list it has.
   * **Faceted filter panel** (FR-25.11) replaces the old grouping bar + mode pill strip: a bottom sheet holding
     *Gruppieren nach*, an *Erledigte* switch, and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale. OR
     within a facet, AND across facets; active values appear as removable chips under the header. **Revised 2026-08-14
@@ -1083,6 +1096,14 @@ These patterns apply to every screen and are specified once.
   lists), and opening or closing *replaces* rather than pushes: the sheet is a state of the screen, and one screen keeps
   one history entry. **On a phone the sheet's ✕ (or a swipe) is the way out** — its backdrop covers the app bar, so `‹
   back` is deliberately unreachable there; with the desktop panel, back closes the panel first (`meta.overlayQuery`).
+* **The sheet is as tall as what it holds** (2026-09-08, FR-21.25), through the app's own `SheetModal` chrome rather
+  than a third copy of the same five modal variables. It had been a fixed 88 % of the viewport whatever was on it: an
+  item with no prep, no notes and *Details* folded away spent two thirds of the screen on nothing, over the list that
+  could have used it (measured on a 390×844 phone: 743 px → 496 px, growing to the 85 % ceiling once *Details* is
+  unfolded). Two inversions of weight went with it, both read off the same render: the pack control is drawn at a main
+  action's size rather than a row's — it is why the sheet is opened — and the *Add* buttons of prep and notes stop
+  being the only filled buttons on it, since a fill is what makes a button read as the screen's answer. A composer's
+  field and its button share a height and an edge.
 * **The reference photo is small** (44 px beside the title, FR-22.1): it helps recognise the thing without taking the
   top of a screen most rows have no photo for. **The same slot carries the item mark when there is no photo** (G-15,
   Addendum FR-28.4) and stays empty when there is neither — the sheet's identity block is the one place both answers to
