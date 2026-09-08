@@ -1050,6 +1050,12 @@ taken straight from a phone camera never reaches the server unprocessed.
   including the two charts and the four wizards; the CSV importer's step 2 was checked separately, because a column
   mapping is the one content that could have needed the width, and it reads the same at both.
 
+  **The change reaches the tablet, and that is part of the cost.** Each measure is inert below its own width, so
+  the phone is untouched — but the range it was inert over shrank from *under 960 px* to *under 600 px*, and a
+  768 px window that used to run edge to edge now carries 84 px of margin either side. Rendered at 768 px and at
+  900 px before adopting it: the list reads as a column rather than as a full-width sheet, which is the same
+  argument as on the desktop, one screen size down.
+
   The cost is accepted rather than hidden: on a 1440 px window the app now uses 600 px of it, and a list of short
   names leaves more empty space beside it than before. That is the same trade UX-17 made and this only extends —
   desktop is not the primary surface, and a row whose control is 855 px from its name is not using the space, it is

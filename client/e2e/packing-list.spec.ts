@@ -1584,6 +1584,12 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
       visible(page)
         .getByTestId('m4-row-Zelt')
         .evaluate((el) => el.getBoundingClientRect().width)
+    // The pop is finished, not merely started. Asserted here rather than
+    // left to the ADR-012 fixture, because that one runs after the case and
+    // reports a leak this case is in a position to prevent: the first
+    // version of it stacked two pushes and popped one, and only CI's copy of
+    // the guard said so.
+    const oneLivePage = () => expect.poll(() => visible(page).count()).toBe(1)
 
     const column = await columnWidth()
     // Narrower than the window, so the cap is doing something at all. The
@@ -1594,25 +1600,32 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // that the cap reached the rows rather than only the frame around them.
     expect(await rowWidth()).toBeLessThanOrEqual(column)
 
+    // Each step is pushed and popped before the next one, rather than
+    // stacked: two pages deep leaves the outlet showing both, and the suite
+    // fails the case that leaked them (ADR-012). It is also the truer
+    // reading of the rule — what has to hold is that going *and coming
+    // back* keeps the width, on each of the two kinds of destination.
+
     // A sibling view of the same trip, one tap away through the switcher
-    // that made the two measures untenable.
-    // Unscoped: the switcher is rendered by the frame's PageHead, above the
-    // router outlet, so it is not inside the visible page.
+    // that made the two measures untenable. Unscoped: the switcher is
+    // rendered by the frame's PageHead, above the router outlet, so it is
+    // not inside the visible page.
     await page.getByTestId('trip-view-luggage').click()
     await expect(visible(page).getByTestId('m11-unassigned-title')).toBeVisible()
     expect(await columnWidth()).toBe(column)
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await oneLivePage()
+    await expect.poll(columnWidth).toBe(column)
 
     // And a screen off the trip entirely, reached through the app's own
     // navigation rather than a reload.
     await page.getByTestId('header-settings').click()
     await expect(visible(page).getByTestId('settings-language')).toBeVisible()
     expect(await columnWidth()).toBe(column)
-
-    // Back out the way in, so the case leaves the app where it found it —
-    // a pushed page left on the stack eats taps meant for the one on
-    // screen, and the suite fails the case that leaked it (ADR-012).
     await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m11-unassigned-title')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await oneLivePage()
     await expect.poll(columnWidth).toBe(column)
   })
   /*

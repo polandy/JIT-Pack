@@ -245,8 +245,10 @@ These patterns apply to every screen and are specified once.
   carrying a name at one edge and the control that acts on it at the other, and at 960 px that control sat 855 px from
   its name on M8, 890 px on M12 and 857 px on M17 — the same failure the 960 px cap was written to fix, halved. One
   measure rather than a per-screen choice because the trip's four views are peers a tap apart (ADR-051), and a column
-  that changed width between them moved the page under the reader. The revisit trigger is a screen whose content is
-  genuinely a page of prose or a wide table; the census of 2026-09-08 rendered all nineteen and found none.
+  that changed width between them moved the page under the reader. It is still inert below its own width, but that
+  width moved, so a 768 px tablet now carries a margin where it used to run edge to edge. The revisit trigger is a
+  screen whose content is genuinely a page of prose or a wide table; the census of 2026-09-08 rendered all nineteen
+  and found none.
 * **G-10 (Trip Presence & Group Sync):** Distinct from G-2, which reflects only *your own* device's connection state,
   this pattern shows who else is currently on the same trip and whether the *group* is caught up. It lives in the
   trip-level header (M4's sticky header, not the global app header of G-9), since presence is meaningless outside a
