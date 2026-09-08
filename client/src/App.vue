@@ -257,15 +257,9 @@ const router = useRouter()
 const pageHead = computed(() => resolveHead(route.path, route.meta.titleKey))
 
 /**
- * UX-17's column takes the narrower control measure when the screen's
- * content is rows rather than prose. A screen says so in the route table;
- * everything else gets the reading measure without deciding anything.
- */
-const listMeasure = computed(() => route.meta.measure === 'list')
-
-/**
  * FR-21.21: a trip's screen offers the trip's other screens, from the route
- * table rather than from each view — the same reason the measure is there.
+ * table rather than from each view — the same reason the content column is
+ * capped by the frame and not by the views.
  */
 const tripView = computed(() => route.meta.tripView)
 const tripViewId = computed(() => {
@@ -360,7 +354,7 @@ async function saveBackup() {
       />
       <div class="app-body">
         <NavRail />
-        <main class="app-content" :class="{ 'measure-list': listMeasure }">
+        <main class="app-content">
           <!-- G-9: the screen's name, once, for every screen that registers
                one — including the tab roots, which used to write their own
                (ADR-050). -->
@@ -425,17 +419,14 @@ async function saveBackup() {
   flex-direction: column;
   margin-inline: auto;
   width: 100%;
-  max-width: var(--jp-measure-read);
+  max-width: var(--jp-measure);
   /* G-9's content column (UX-17). One rule for every screen, and here
      rather than per view: a screen that had to remember to cap itself is
      a screen that will forget. Below the measure the cap is inert, which
-     is why it needs no breakpoint of its own. */
-}
-
-/* FR-21.18: a screen whose content is control rows, where the distance
-   from a name to the control that acts on it is what the cap is for. */
-.app-content.measure-list {
-  max-width: var(--jp-measure-list);
+     is why it needs no breakpoint of its own. One measure rather than the
+     two of FR-21.18, because the trip's four views are peers a tap apart
+     (ADR-051) and a column that changed width between them moved the page
+     under the reader — see FR-21.26. */
 }
 
 .app-outlet {

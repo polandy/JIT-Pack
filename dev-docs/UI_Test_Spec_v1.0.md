@@ -2370,12 +2370,11 @@ landed, that no test has ever rendered.
   travels over a transition, and a single read lands on whatever frame it finds; the first version passed locally
   and failed on CI at 28 px and 53 px, both mid-flight. The rule itself also has a unit
   (`lib/__tests__/headScroll.spec.ts`), which is where the one-pixel tolerance around the bottom is pinned.
-* **E2E-M4-71** `all` (FR-21.18, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): on a 1280 px window
-  the packing list takes the control measure and a settings screen, in the same window and reached through the app's
-  own gear, takes the reading one. Asserted as the difference between the two rather than against 600, so the case
-  does not have to be rewritten the day a measure is retuned and cannot pass on a build where the column collapsed
-  for an unrelated reason; the row is measured inside its column first, which is what says the cap reached the rows
-  and not only the frame around them.
+* **E2E-M4-71** `all` (FR-21.26, new 2026-09-07, rewritten 2026-09-08) — **implemented**
+  (`e2e/packing-list.spec.ts`): on a 1280 px window the content column is narrower than the room it is given, a row sits
+  inside it, and the width does not change when the reader steps to a sibling view of the trip (Luggage) or off the
+  trip entirely (Settings) and back. It asserted the opposite until FR-21.18 was superseded — that M4's column
+  *differed* from the screens around it.
 * **E2E-M4-72** `all` (FR-21.19, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): a lone per-person
   instance — one traveler checked, so no cluster and the person folded into the label — starts its name at the same
   x as a plain row in the same list, and its lead column is the same width. Both are asserted, since a name that

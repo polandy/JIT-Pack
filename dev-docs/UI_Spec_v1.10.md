@@ -233,19 +233,20 @@ These patterns apply to every screen and are specified once.
   spans the remaining width and additionally hosts page-level primary actions inline (e.g., M2's "New trip" FAB, M4's
   G-12 action cluster) instead of floating over content. Below the breakpoint, the mobile layout (bottom tabs,
   floating FAB, compact logo mark) applies unchanged. **The content stops at a column (added 2026-08-27, UX-17):**
-  beside the rail the content area is capped at **960 px and centred**, one rule in `App.vue` for every screen rather
-  than a decision each view has to remember — and since ADR-050 the page head sits inside that column, for the same
-  reason. Edge to edge a settings row put its label and its control 1100 px apart and M9's tag segment spread three
-  chips across 1176 px — lines that read as several things rather than one. The cap needs no breakpoint of its own:
-  below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays full width**, because it is the
-  app's frame rather than its content — the logo belongs at the window's corner and the gear at the opposite one.
-  **The column has two measures (added 2026-09-07, FR-21.18).** The cap above is the *reading* measure, 960 px. A
-  screen whose content is control rows — a name at one edge and the control that acts on it at the other — takes the
-  narrower *control* measure of 600 px instead, named in the route table as `meta.measure: 'list'`; M4 is the first
-  and so far only caller. That resolves the cost this paragraph used to accept: measured at 1280 px, an M4 child row
-  put `Sia` 834 px from her checkbox, and 474 px at the control measure. Both values live once, as `--jp-measure-*`
-  in `theme/surfaces.css`, and both are inert below their own width. The revisit trigger is the second screen to ask
-  for the control measure.
+  beside the rail the content area is **capped and centred** (the width is named two sentences down), one rule in
+  `App.vue` for every screen rather than a decision each view has to remember — and since ADR-050 the page head sits
+  inside that column, for the same reason. Edge to edge a settings row put its label and its control 1100 px apart and
+  M9's tag segment spread three chips across 1176 px — lines that read as several things rather than one. The cap
+  needs no breakpoint of its own: below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays
+  full width**, because it is the app's frame rather than its content — the logo belongs at the window's corner and
+  the gear at the opposite one. **The column is 600 px, and one measure (revised 2026-09-08, FR-21.26; it was 960 px
+  from 2026-08-27, and for one day two measures under FR-21.18).** `--jp-measure` in `theme/surfaces.css`, read once
+  by `App.vue`. It is narrower than a reading column because this app has no page of prose: every screen is rows
+  carrying a name at one edge and the control that acts on it at the other, and at 960 px that control sat 855 px from
+  its name on M8, 890 px on M12 and 857 px on M17 — the same failure the 960 px cap was written to fix, halved. One
+  measure rather than a per-screen choice because the trip's four views are peers a tap apart (ADR-051), and a column
+  that changed width between them moved the page under the reader. The revisit trigger is a screen whose content is
+  genuinely a page of prose or a wide table; the census of 2026-09-08 rendered all nineteen and found none.
 * **G-10 (Trip Presence & Group Sync):** Distinct from G-2, which reflects only *your own* device's connection state,
   this pattern shows who else is currently on the same trip and whether the *group* is caught up. It lives in the
   trip-level header (M4's sticky header, not the global app header of G-9), since presence is meaningless outside a

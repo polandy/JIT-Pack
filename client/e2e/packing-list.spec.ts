@@ -1449,8 +1449,9 @@ test.describe('M4 — the row says how an item is obtained, unless it is the usu
 
 /**
  * The head that never yielded (FR-21.17) and the column that had no measure
- * for a row (FR-21.18) — the two halves of the M4 read-through of
- * 2026-09-07 that are about the screen's shape rather than its numbers.
+ * for a row (FR-21.18, superseded by FR-21.26) — the two halves of the M4
+ * read-through of 2026-09-07 that are about the screen's shape rather than
+ * its numbers.
  *
  * Both are claims about rendered pixels, so both are asserted as rendered
  * pixels: a stylesheet cannot say whether the head actually gave its space
@@ -1553,18 +1554,27 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
   })
 
   /*
-   * E2E-M4-71 (FR-21.18): on a window wide enough to have the choice, the
-   * packing list takes the control measure.
+   * E2E-M4-71 (FR-21.26): on a window wide enough to have a choice, the
+   * content column is one width, and every screen the reader steps to keeps
+   * it.
    *
-   * Asserted as a *comparison* against a screen that takes the reading
-   * measure at the same viewport, not against the number 600: a bare width
-   * assertion would also pass on a build where the column had collapsed for
-   * some unrelated reason, and it would have to be rewritten the day either
-   * measure is retuned. What the rule promises is that these two screens
-   * differ, and that the packing row is the narrower of them.
+   * The rule it replaces was the opposite one: FR-21.18 gave M4 a narrower
+   * column than the screens around it, and this case asserted that they
+   * *differed*. What that produced is the defect underneath FR-21.26 — the
+   * trip's four views are one tap apart (ADR-051), so the page moved and
+   * changed width every time the reader used them.
+   *
+   * Two assertions, because either alone is passable by a broken build. The
+   * equality alone would hold on a build with no cap at all, where every
+   * screen is the window; the cap alone would hold on the build this case
+   * was written against. So the column has to be narrower than the room it
+   * is given *and* the same on each screen.
    */
-  test('E2E-M4-71: a packing row is measured for its control, not for prose', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 })
+  test('E2E-M4-71: one content measure, and the screens the reader steps to keep it', async ({
+    page,
+  }) => {
+    const VIEWPORT = 1280
+    await page.setViewportSize({ width: VIEWPORT, height: 900 })
     await createTripViaWizard(page, TRIP)
     await quickAdd(page, ['Zelt'])
 
@@ -1575,29 +1585,35 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
         .getByTestId('m4-row-Zelt')
         .evaluate((el) => el.getBoundingClientRect().width)
 
-    const packingColumn = await columnWidth()
+    const column = await columnWidth()
+    // Narrower than the window, so the cap is doing something at all. The
+    // rail takes a bite out of the window, which is why this is not a
+    // comparison against the viewport width exactly.
+    expect(column).toBeLessThan(VIEWPORT / 2 + 100)
     // The row is inside the column it is capped by — the positive signal
     // that the cap reached the rows rather than only the frame around them.
-    expect(await rowWidth()).toBeLessThanOrEqual(packingColumn)
+    expect(await rowWidth()).toBeLessThanOrEqual(column)
 
-    // A screen that reads as prose, in the same window, through the app's
-    // own navigation rather than a reload.
+    // A sibling view of the same trip, one tap away through the switcher
+    // that made the two measures untenable.
+    // Unscoped: the switcher is rendered by the frame's PageHead, above the
+    // router outlet, so it is not inside the visible page.
+    await page.getByTestId('trip-view-luggage').click()
+    await expect(visible(page).getByTestId('m11-unassigned-title')).toBeVisible()
+    expect(await columnWidth()).toBe(column)
+
+    // And a screen off the trip entirely, reached through the app's own
+    // navigation rather than a reload.
     await page.getByTestId('header-settings').click()
     await expect(visible(page).getByTestId('settings-language')).toBeVisible()
-    const readingColumn = await columnWidth()
-
-    // The window is wide enough that either measure could have applied, so
-    // the difference is a decision and not a consequence of the frame.
-    expect(readingColumn).toBeGreaterThan(packingColumn)
+    expect(await columnWidth()).toBe(column)
 
     // Back out the way in, so the case leaves the app where it found it —
     // a pushed page left on the stack eats taps meant for the one on
     // screen, and the suite fails the case that leaked it (ADR-012).
     await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-    // …and the column went back with it, which is the half of the rule a
-    // one-way navigation could not show.
-    await expect.poll(columnWidth).toBe(packingColumn)
+    await expect(visible(page).getByTestId('m11-unassigned-title')).toBeVisible()
+    await expect.poll(columnWidth).toBe(column)
   })
   /*
    * E2E-M4-72 (FR-21.19): the lead column is one thing wide, on every kind
