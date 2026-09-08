@@ -1803,9 +1803,10 @@ arrives here, that the row's controls write, and that the group is read back fro
   the todo lands `open`). What no surface does is *show it inline*: neither the mapping list nor the confirm summary
   mentions a question mark or the tasks the commit is about to create, so the user meets them first inside the trip.
   **Not implemented, and not a test gap — owner decision.** Documents leaning on the clause: UI-Spec M15 Step 2, which
-  even supplies the example wording. Recorded with it, because it is the same sentence: **the task's body is a
-  hard-coded English string** in `commitImport` (`Imported with '?' — clarify: …`), which NFR-4.12 would put on the
-  catalogue like the notification bodies (ADR-037).
+  even supplies the example wording. *(The second half of this note is settled: the task's body was a hard-coded
+  English string in `commitImport`, and is now `import.wizard.noiseTodo` in both catalogues, rendered with `t()` in
+  `composables/sync/actions/tripCreation.ts`. Corrected 2026-09-08 by the audit behind NFR-4.12's scope bullet — the
+  sentence had outlived the migration it asked for.)*
 * **E2E-M15-03** `all` (FR-16.3) — **implemented 2026-08-30** (`e2e/spreadsheet-import.spec.ts`): step 3 had existed
   since the wizard was built and **no test had ever opened it**, because every fixture in the unit imports into an empty
   device, where there is nothing to be a duplicate *of*. The inventory is therefore built by an import of its own — M15
