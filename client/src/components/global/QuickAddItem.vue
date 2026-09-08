@@ -4,6 +4,11 @@
  *
  * Collapsed by default and opened by M4's ＋ FAB, so the add path is one
  * tap from anywhere in the list rather than a target to scroll back to.
+ * On M4 and M8 the FAB is the *only* way in (`showTrigger: false`,
+ * FR-21.24): the collapsed pill sat above the list saying the same thing as
+ * the FAB hovering over it, and a screen that offers one action twice has
+ * to be read twice before it can be used once. M6, which has no FAB, is
+ * where the pill is still the way in.
  * Opening no longer focuses the input (FR-25.13c, owner 2026-08-21): the
  * empty composer leads with tappable chips — related to what the scope
  * already carries, and recently used — and an auto-raised soft keyboard
@@ -92,6 +97,13 @@ const props = withDefaults(
      * is what puts the two one-tap verbs on the rows — M4 only.
      */
     browseRowStates?: ReadonlyMap<string, BrowseRowSummary>
+    /**
+     * FR-21.24: whether the collapsed form shows its own trigger. M4 and M8
+     * turn it off because their FAB is the same door, and the two stood on
+     * the screen at once saying the same thing. M6 has no FAB and keeps the
+     * pill, because otherwise the composer has no way in at all.
+     */
+    showTrigger?: boolean
   }>(),
   {
     isActive: false,
@@ -100,6 +112,7 @@ const props = withDefaults(
     offerGroups: false,
     offerPerPerson: false,
     browseRowStates: undefined,
+    showTrigger: true,
   },
 )
 
@@ -398,12 +411,17 @@ function onKeydown(event: KeyboardEvent) {
 
 <template>
   <div class="quick-add" :class="{ expanded }">
-    <button v-if="!expanded" class="quick-add-trigger" data-testid="quick-add-open" @click="toggle">
+    <button
+      v-if="!expanded && showTrigger"
+      class="quick-add-trigger"
+      data-testid="quick-add-open"
+      @click="toggle"
+    >
       <IonIcon :icon="addCircleOutline" />
       <span>{{ t('quickAdd.trigger') }}</span>
     </button>
 
-    <div v-else class="quick-add-form">
+    <div v-if="expanded" class="quick-add-form">
       <!-- FR-25.8: the same two words the membership editor uses, because it
            is the editor this mode opens. -->
       <div v-if="offerPerPerson" class="seg" role="tablist">

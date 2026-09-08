@@ -116,6 +116,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [The wizard's FR-20.4 tap is still owed a case (2026-09-06)](#the-wizards-fr-204-tap-is-still-owed-a-case-2026-09-06) — a control with no test id at all, and the seed gap that had made it unreachable.
 - [Five cases that had to be reversed, not repaired (2026-09-06)](#five-cases-that-had-to-be-reversed-not-repaired-2026-09-06) — what ADR-050 does to a suite written against the bar it removes.
 - [The switcher moved five cases, and left one owed (2026-09-08)](#the-switcher-moved-five-cases-and-left-one-owed-2026-09-08) — FR-21.21/21.22: what a nav that renders on four screens does to a helper, and the one testid still in no test.
+- [Three cases for a figure, a door and a height (2026-09-08)](#three-cases-for-a-figure-a-door-and-a-height-2026-09-08) — FR-21.23/21.24/21.25: the duplicate door that was on two screens, and what a fixed sheet height hides from a case.
 
 ## The rule that comes before the units
 
@@ -230,7 +231,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-19 (ADR-050 a tab root's head), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer), E2E-G8-01 (no delegation picker), E2E-G4-01 (the notification's landing) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.18: the packing column is measured for a control row, not for prose), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.18: the packing column is measured for a control row, not for prose), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes), E2E-M4-75 (FR-21.23: the header line as a ring, a sentence and a track), E2E-M4-76 (FR-21.24: one door to the quick-add) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-24 (FR-21.16: the head is set louder than its children, read off computed type), E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
@@ -4611,3 +4612,43 @@ operated it. FR-21.22 changed its dashed edge to a muted solid one, so the rule 
 true in the code and unasserted in the suite. It is not a defect and not a regression
 risk of this PR; it is a control that has never had a case, recorded here so the next
 M8 pass does not have to rediscover it.
+
+## Three cases for a figure, a door and a height (2026-09-08)
+
+FR-21.23/21.24/21.25 — findings 6, 7 and 8 of the M4 eyeball pass. Three screens, four
+cases, and one of them exists because of what the *second* screen turned out to be
+doing.
+
+**The duplicate door was on two screens, and the finding named one.** The owner
+reported the quick-add pill and the ＋ FAB standing on M4 at the same time. The pill is
+part of the shared composer, and grepping for its other callers found M8's editor
+mounting the identical pair — pill above the positions, `m8-fab` over them. So the rule
+is a prop each caller passes, and one screen keeping it says nothing about the other:
+**E2E-M4-76** and **E2E-M8-25** are the same assertion twice, deliberately. Both pin the
+absence *and* the door that is left, because an absence alone stays green on a screen
+that has lost both.
+
+**Withholding the trigger opened the form.** The composer's template was
+`v-if="!expanded"` on the pill with a `v-else` on the form, so a caller that asked for
+no trigger got the *form* rendered permanently instead. It was the shot script, not a
+unit test, that found it — `tripWithRows` presses Escape and waits for the composer to
+go away, and it never did. The spec now pins the closed state as well as the missing
+pill, which is the assertion that would have caught it.
+
+**A fixed sheet height hides what a case can ask.** M5 stood at 88 % of the viewport
+whatever it held, so nothing about its size was worth measuring and nothing did.
+**E2E-M5-25** measures it twice — shorter than 80 % of the viewport for a bare item, and
+taller once *Details* is unfolded — because the first clause alone would pass on a sheet
+that had simply been given a smaller fixed height. **Its first draft measured the wrong
+element and was unfalsifiable**: it read the sheet's inner scroll box, which is as tall
+as its content under either build, and the empty third of the old sheet was the *modal*
+around it. Restoring `--height: 88%` left the case green, which is how the draft was
+caught; it reads `.modal-wrapper` now and goes red at 774 px of 880. The measurement is taken off
+`data-presented`, the flag `SheetModal` already carried for exactly this reason: an
+enter animation whose duration nobody controls is not something to wait out.
+
+**The figure's third part had to be computed, not stated.** **E2E-M4-75** reads the
+ring's `aria-label`, the sentence and the track's rendered width against one pack. The
+track's expected width comes from the container it was rendered in (`clientWidth × 0.25`)
+rather than from a pixel figure, so the case says *a quarter of the track* and does not
+quietly become a claim about a viewport.

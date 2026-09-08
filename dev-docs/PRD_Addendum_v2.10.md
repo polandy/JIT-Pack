@@ -992,6 +992,31 @@ taken straight from a phone camera never reaches the server unprocessed.
   Reported by the owner off the same render as FR-21.19/21.20 — as "the only dashed element in the app", which was
   the one part that did not hold: there were six, in five stylesheets, meaning four different things. M9's
   *included* result was the other one on the wrong side of the rule and is solid and muted now.
+* **FR-21.23 (The Packing List Draws Its Own Progress — added 2026-09-08):** M4's header line answers *how far along
+  am I* the way M1 and M2 answer it: a ring, the share in words, and a track under them. It had answered with a bare
+  fraction in a grey line — so the screen where the progress is actually *made* was the one screen without the figure
+  every other screen had. The three parts are one component (`ProgressFigure`) drawn from one percentage
+  (`packedPercent`, over the FR-25.22 units), so the ring and the track cannot disagree with the sentence or with the
+  group heads under it. The line still yields to the list on the way down (FR-21.17) and costs 20 px more than the
+  fraction did while it stands.
+* **FR-21.24 (One Door Per Screen to the Quick-Add — added 2026-09-08):** A screen offers the shared composer
+  (FR-5.6/25.13) exactly once. M4 and M8 offered it twice: a collapsed, labelled pill above the list *and* a ＋ FAB
+  hovering over it, both opening the same form, both on the screen at the same time. The FAB is the door that stays,
+  because it is reachable from anywhere in a list and the pill is only reachable by scrolling back to the top of one.
+  M6 has no FAB and keeps the pill, so the composer's trigger is a caller's decision (`showTrigger`), not a constant.
+
+  *The cost, accepted:* the pill named the action in words and the FAB does not. Weighed against a labelled
+  invitation that is out of reach for most of the screen's life, and against a screen that says one thing twice —
+  which has to be read twice before it can be used once.
+* **FR-21.25 (M5 Puts Its Weight on What It Was Opened For — added 2026-09-08):** The item sheet is as tall as its
+  content and no taller — it stood at a fixed 88 % of the viewport, so an item with no prep and no notes spent two
+  thirds of the screen on nothing while covering the list that could have used it (measured on a 390×844 phone: 743 px
+  before, 496 px after, and it grows to the 85 % ceiling when *Details* is unfolded). It is the app's own `SheetModal`
+  now rather than a third copy of the same five modal variables. Two further inversions from the same render: the pack
+  control — the reason the sheet is opened — is drawn at a main action's size rather than a row's, and the two *Add*
+  buttons of prep and notes stop being the only filled buttons on the sheet, since a fill is what makes a button read
+  as the screen's answer. The field and the button that commits it share a height and an edge.
+
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

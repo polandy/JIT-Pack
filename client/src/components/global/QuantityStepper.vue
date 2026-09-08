@@ -13,12 +13,21 @@ import { computed } from 'vue'
 import { t } from '@/i18n'
 import { LONG_PRESS_MS } from '@/composables/useLongPress'
 
-const props = defineProps<{
-  quantity: number
-  packed: number
-  /** G-3: somebody else holds this row, so it reads but does not write. */
-  disabled?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    quantity: number
+    packed: number
+    /** G-3: somebody else holds this row, so it reads but does not write. */
+    disabled?: boolean
+    /**
+     * The control at the size of a screen's main action rather than a row's
+     * (FR-21.25). M5 is opened to pack the thing, and the control that does
+     * it was the smallest thing on the sheet.
+     */
+    large?: boolean
+  }>(),
+  { disabled: false, large: false },
+)
 
 const emit = defineEmits<{
   increment: []
@@ -70,6 +79,7 @@ function onMinusUp() {
   <div
     v-if="isCheckbox"
     class="stepper-checkbox"
+    :class="{ large }"
     data-testid="row-check"
     @click="disabled || emit('toggle')"
   >
@@ -77,7 +87,7 @@ function onMinusUp() {
   </div>
 
   <!-- qty>1: stepper -->
-  <div v-else class="stepper">
+  <div v-else class="stepper" :class="{ large }">
     <button
       class="stepper-btn"
       :disabled="disabled || packed <= 0"
@@ -113,6 +123,12 @@ function onMinusUp() {
   cursor: pointer;
 }
 
+/* One control at two sizes, not two controls (G-6): a row's checkbox and
+   the sheet's main action are the same thing seen from different distances. */
+.stepper-checkbox.large ion-checkbox {
+  --size: 30px;
+}
+
 .stepper {
   display: inline-flex;
   align-items: center;
@@ -131,6 +147,17 @@ function onMinusUp() {
   cursor: pointer;
   color: var(--ion-text-color);
   font-size: var(--jp-icon-sm);
+}
+
+.stepper.large .stepper-btn {
+  width: 38px;
+  height: 38px;
+  font-size: var(--jp-icon-md);
+}
+
+.stepper.large .stepper-count {
+  min-width: 48px;
+  font-size: var(--jp-text-lg);
 }
 
 .stepper-btn:disabled {
