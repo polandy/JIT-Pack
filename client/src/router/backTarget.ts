@@ -46,15 +46,6 @@ declare module 'vue-router' {
      */
     titleKey?: MessageKey
     /**
-     * Which measure the frame's content column takes (UX-17). Absent means
-     * the reading measure; `'list'` asks for the narrower control measure,
-     * for a screen whose content is rows with a name at one edge and the
-     * control that acts on it at the other. A route-table field rather than
-     * a per-view rule, for the reason the column itself is one: a screen
-     * that has to remember to cap itself is a screen that will forget.
-     */
-    measure?: 'list'
-    /**
      * Which of the trip's four views this route is (FR-21.21). The frame
      * renders the switcher from it, so a view is offered its siblings by
      * being listed in the route table rather than by remembering to.

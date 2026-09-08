@@ -925,7 +925,9 @@ taken straight from a phone camera never reaches the server unprocessed.
   that is where the rule stops reading direction: an upward reading taken at the bottom is not a gesture. The
   rule is a pure step (`lib/headScroll.ts`) rather than a scroll listener, because that is the only shape in
   which the clamp case can be reached by a test at all.
-* **FR-21.18 (A List of Controls Takes a Narrower Column Than a Page of Prose — added 2026-09-07):** UX-17's content
+* **~~FR-21.18 (A List of Controls Takes a Narrower Column Than a Page of Prose — added 2026-09-07)~~ — superseded
+  2026-09-08 by FR-21.26: the second caller its revisit trigger named never arrived, because the census found no
+  screen for the *first* measure. Kept for the measurements in it.** UX-17's content
   column has two measures, and a screen says which one it takes. The default is the **reading** measure (960 px),
   sized so a line of body copy stays in the comfortable range. A screen whose content is control rows — a name at
   one edge, the control that acts on it at the other — takes the **control** measure (600 px) instead. M4 is the
@@ -1027,6 +1029,40 @@ taken straight from a phone camera never reaches the server unprocessed.
   control — the reason the sheet is opened — is drawn at a main action's size rather than a row's, and the two *Add*
   buttons of prep and notes stop being the only filled buttons on the sheet, since a fill is what makes a button read
   as the screen's answer. The field and the button that commits it share a height and an edge.
+
+* **FR-21.26 (One Content Measure — added 2026-09-08, supersedes FR-21.18):** The frame's content column has one
+  width, `--jp-measure` (600 px), and every screen takes it. UX-17's cap stays what it was — inert below its own
+  width, one rule in `App.vue` rather than a decision each view remembers — but there is no longer a second, wider
+  measure a screen can ask for, and no `meta.measure` in the route table.
+
+  **The two measures of FR-21.18 lasted a day, and the switcher of FR-21.21 is what ended them.** That decision made
+  the trip's four views peers, one tap apart (ADR-051, driver 4). Three of them took the 960 px reading measure and
+  M4 took the 600 px control measure, so a tap on *Einkaufen* moved the page's name 180 px to the left and widened
+  everything under it — measured at 1440 px: the column sat at 460–1060 on the packing list and 280–1240 on the
+  shopping list. A reader using the pills, which exist to be used, saw the page jump on every step.
+
+  **The census that decided it also found the reading measure had no screen.** Nineteen screens were rendered at
+  1440 px against the sample data, at both measures. At 960 px the chevron that opens a row sat 855 px from its name
+  on M8 and 890 px on M12; a settings toggle sat 857 px from its label — the very failure UX-17 was written about,
+  halved and then left standing. And the reading claim did not hold either: at this type size a 960 px line of body
+  copy runs to some 120 characters, where the comfortable range the token's own comment named ends around 75. At
+  600 px the same settings paragraph wraps at 74. No screen in the app was found that the wider measure fitted,
+  including the two charts and the four wizards; the CSV importer's step 2 was checked separately, because a column
+  mapping is the one content that could have needed the width, and it reads the same at both. **Two of the nineteen
+  were read from their template rather than from a render** — the two conflict logs, which one device in Local Mode
+  cannot populate. Their rows are `ion-item`s with a wrapping label and an end slot, which is the shape the measure
+  is for; had either been a fixed-column table, this would have been the screen to keep the wider one.
+
+  **The change reaches the tablet, and that is part of the cost.** Each measure is inert below its own width, so
+  the phone is untouched — but the range it was inert over shrank from *under 960 px* to *under 600 px*, and a
+  768 px window that used to run edge to edge now carries 84 px of margin either side. Rendered at 768 px and at
+  900 px before adopting it: the list reads as a column rather than as a full-width sheet, which is the same
+  argument as on the desktop, one screen size down.
+
+  The cost is accepted rather than hidden: on a 1440 px window the app now uses 600 px of it, and a list of short
+  names leaves more empty space beside it than before. That is the same trade UX-17 made and this only extends —
+  desktop is not the primary surface, and a row whose control is 855 px from its name is not using the space, it is
+  spending the reader's eye on crossing it.
 
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
