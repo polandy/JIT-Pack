@@ -271,11 +271,23 @@ export interface ItemTag {
   position: number
 }
 
+/**
+ * A master item as generation reads it: the item, plus the one grouping key a
+ * trip row snapshots (FR-24.2).
+ *
+ * Deliberately not a field of {@link MasterItem}: `items` has no such column,
+ * and the category is the item's *primary tag*, which only a caller holding
+ * the tag assignments can name. It was an optional field there for months,
+ * written by nothing, so every row a Vorlage generated arrived without a
+ * category — `domain/tags.withCategories` is what fills it now.
+ */
+export interface CategorisedMasterItem extends MasterItem {
+  category_name: string | null
+}
+
 export interface MasterItem {
   id: string
   name: string
-  /** Denormalised for display only — the trip row's grouping snapshot. */
-  category_name?: string
   weight_grams: number | null
   value_cents: number | null
   /** FR-22.1: hash of the item's reference photo, null when it has none.

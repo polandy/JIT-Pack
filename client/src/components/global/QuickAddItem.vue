@@ -268,7 +268,7 @@ function emitMasterItem(item: MasterItem, decided?: AddedItemDecision) {
       // The generated row carries one grouping key, which since FR-24.1 is
       // the master item's *primary* tag (FR-24.2) — the trip side keeps a
       // single snapshot, it does not gain the whole set.
-      categoryName: masterStore.getPrimaryTag(item.id)?.name ?? null,
+      categoryName: masterStore.categoryOf(item.id),
       perPerson: perPerson.value,
     },
     decided,

@@ -17,7 +17,7 @@ import {
 } from '../instantiate'
 import type { DependencyResolution } from '../dependencies'
 import type {
-  MasterItem,
+  CategorisedMasterItem,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -42,12 +42,17 @@ function include(templateId: string, includedTemplateId: string): TemplateInclud
   }
 }
 
-function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): MasterItem {
+function masterItem(
+  id: string,
+  name: string,
+  extra: Partial<CategorisedMasterItem> = {},
+): CategorisedMasterItem {
   return {
     id,
     name,
     weight_grams: 100,
     value_cents: null,
+    category_name: null,
     ...extra,
   }
 }
@@ -881,13 +886,13 @@ describe('the rows a wizard draft is made of', () => {
     via_item_name: 'Kamera',
   }
 
-  const DRONE: MasterItem = {
+  const DRONE: CategorisedMasterItem = {
     id: 'item-drone',
     name: 'Drohne',
     category_name: 'Technik',
     weight_grams: 900,
     value_cents: 80000,
-  } as MasterItem
+  }
 
   describe('withCompanions', () => {
     it('leaves a list with nothing to pull in exactly as it was', () => {

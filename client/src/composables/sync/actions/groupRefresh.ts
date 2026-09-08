@@ -135,7 +135,7 @@ export function createGroupRefreshActions(
         masterStore.getTemplateItems(t.id),
       ),
       templateItemTasks: masterStore.templateItemTaskList,
-      masterItems: masterStore.itemList,
+      masterItems: masterStore.categorisedItemList,
       travelers: tripStore.getTravelers(tripId),
       items: tripStore.getItems(tripId),
       todos: tripStore.getTodos(tripId),

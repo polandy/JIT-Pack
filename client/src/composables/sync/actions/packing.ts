@@ -414,7 +414,7 @@ export function createPackingActions(ctx: SyncContext) {
     const resolution = resolveDependencies({
       onList,
       dependencies: masterStore.dependencyList,
-      masterItems: masterStore.itemList,
+      masterItems: masterStore.categorisedItemList,
     })
     const added: string[] = []
     for (const companion of resolution.required) {

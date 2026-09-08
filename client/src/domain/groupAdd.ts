@@ -19,7 +19,7 @@
 
 import { generateTripItems, type GeneratedItem } from './instantiate'
 import type {
-  MasterItem,
+  CategorisedMasterItem,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -36,7 +36,7 @@ export interface GroupAdditionInput {
   includes: TemplateInclude[]
   templateItems: TemplateItem[]
   templateItemTasks: TemplateItemTask[]
-  masterItems: MasterItem[]
+  masterItems: CategorisedMasterItem[]
   /** The trip's attributes, for the FR-15.2 conditions. */
   attributes: Record<string, unknown> | null
   duration_days: number | null

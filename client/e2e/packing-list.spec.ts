@@ -16,7 +16,7 @@ import type { Locator, Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
 import { packRow } from './helpers/m4'
-import { createItem } from './helpers/m9'
+import { backToInventory, createItem } from './helpers/m9'
 
 /**
  * M4 — packing list (UI-Test-Spec §4, unit "M4 packing list").
@@ -31,6 +31,11 @@ import { createItem } from './helpers/m9'
  * a category, a traveler or a buy mode, and none of those can be set from
  * M4 today. They land with M5 and the M9/M10 rebuild, which is what
  * produces such rows through the app's own paths (spec §2.4).
+ *
+ * The category half of that sentence was true for a second reason nobody
+ * had looked for: until 2026-09-08 a generated row *could not* carry one,
+ * because generation read a field nothing wrote (FR-24.2). E2E-M4-77 is the
+ * path that now produces one.
  */
 
 const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31', travelers: ['Andy', 'Sia'] }
@@ -1775,5 +1780,41 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
 
     await openQuickAdd(page)
     await expect(visible(page).getByTestId('quick-add-input')).toBeVisible()
+  })
+
+  /*
+   * E2E-M4-77 (FR-24.2): a generated row is filed under the item's tag.
+   *
+   * M4 groups by category by default, and every row a Vorlage produced
+   * landed in the leftover bucket: generation read a `category_name` on the
+   * master item that nothing ever wrote. The case builds the one path that
+   * proves it — tag an item in M9, put it in a group, follow the group into
+   * a trip — and asserts the heading. The untagged row beside it is the
+   * positive signal that the bucket still exists and the case is reading a
+   * real grouping rather than one heading for everything.
+   */
+  test('E2E-M4-77: a row generated from a group carries the item’s tag as its heading', async ({
+    page,
+  }) => {
+    test.slow()
+    await page.goto(PATH.items)
+    await createItem(page, 'Badehose', { tags: ['Sommer'] })
+    await backToInventory(page)
+    await page.goto(PATH.templates)
+    await createTemplate(page, 'group', 'Strand')
+    await addPosition(page, 'Badehose')
+    await addPosition(page, 'Schlüssel')
+    await page.keyboard.press('Escape')
+
+    await createTripFollowingGroup(page, 'Strandprobe', 'Strand')
+
+    // Rows are siblings of their heading, not children of it, so membership
+    // is read off the heading's tally: one row under the tag, one in the
+    // leftover bucket. Before the fix there was no `Sommer` heading at all
+    // and the bucket said 0/2 — which is what makes 0/1 here falsifiable.
+    await expect(visible(page).getByTestId('m4-group-Sommer')).toContainText('0/1')
+    await expect(visible(page).getByTestId('m4-group-none')).toContainText('0/1')
+    await expect(visible(page).getByTestId('m4-row-Badehose')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-row-Schlüssel')).toBeVisible()
   })
 })

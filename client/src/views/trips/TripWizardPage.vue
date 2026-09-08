@@ -339,7 +339,7 @@ const generation = computed(() => {
     includes: masterStore.includeList,
     templateItemTasks: masterStore.templateItemTaskList,
     templateItems: templates.flatMap((t) => masterStore.getTemplateItems(t.id)),
-    masterItems: masterStore.itemList,
+    masterItems: masterStore.categorisedItemList,
     trip: {
       duration_days: duration.value,
       attributes: attributes.value,
@@ -357,7 +357,7 @@ const companionResolution = computed(() =>
       quantity: i.quantity,
     })),
     dependencies: masterStore.dependencyList,
-    masterItems: masterStore.itemList,
+    masterItems: masterStore.categorisedItemList,
   }),
 )
 
@@ -395,7 +395,7 @@ const draftItems = computed(() =>
     applyReviewOverrides(generation.value.items, quantityOverrides.value),
     companionResolution.value,
     acceptedSuggestions.value,
-    masterStore.itemList,
+    masterStore.categorisedItemList,
   ),
 )
 

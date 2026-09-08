@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { planGroupAddition, type GroupAdditionInput } from '../groupAdd'
 import type {
-  MasterItem,
+  CategorisedMasterItem,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -19,8 +19,8 @@ function group(id: string, name: string): Template {
   return { id, owner_id: 'user-a', name, kind: 'group' }
 }
 
-function masterItem(id: string, name: string): MasterItem {
-  return { id, name, weight_grams: 100, value_cents: null }
+function masterItem(id: string, name: string): CategorisedMasterItem {
+  return { id, name, weight_grams: 100, value_cents: null, category_name: null }
 }
 
 function templateItem(
