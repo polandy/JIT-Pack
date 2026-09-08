@@ -3,7 +3,9 @@
  * M1 — Dashboard "My Tasks"
  *
  * Single entry point: "what do I have to do right now?" across all active trips.
- * Shows greeting, per-trip cards with open items, empty state with CTA.
+ * Per-trip cards with open items, empty state with CTA. The greeting is the
+ * screen's name and therefore its page head, drawn by the frame (G-9,
+ * FR-21.27).
  */
 import {
   IonPage,
