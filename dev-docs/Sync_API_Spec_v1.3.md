@@ -140,6 +140,12 @@ to open.
   response the client advances `last_seen_hlc` to the maximum observed. `device_id` is random per installation and only
   breaks ties.
 * **Comparison** is plain string comparison; the server never trusts client wall clocks beyond HLC semantics.
+* **The format is validated on push** (added 2026-09-08). Because comparison is lexicographic, a value outside the
+  format does not fail to sort — it sorts wherever its bytes fall, and one above `f` (`"~"`, say) outranks every clock
+  the protocol can produce, so the field it lands on can never be written again by any device. A clock is a client
+  value that decides a correctness question, which invariant 3 says is never trusted: the server refuses a mutation
+  whose `hlc` is not exactly what the generator would have written for its own parts, with `malformed_hlc` (§5), and
+  the rest of the batch still applies.
 
 ## 4. Pull Protocol
 
@@ -365,6 +371,7 @@ copy until it discards it (lazy, same semantics as trip deletes).
   | `still_referenced` | a delete other rows still depend on — see the bullet below |
   | `template_scope` | the FR-27.1 two-level rule, or an FR-27.6 scope switch that would break it |
   | `constraint_violated` | the schema itself refused: a foreign key, a `UNIQUE`, a `CHECK` |
+  | `malformed_hlc` | the mutation's clock is outside the §3 format, so it cannot be ordered — a client bug |
 
   It is a vocabulary rather than a sentence because the sentence belongs to whoever renders it, in a language the server
   does not know. Values outside the set — the validation errors, or an older server saying nothing — are diagnostics,

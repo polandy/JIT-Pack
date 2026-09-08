@@ -3626,6 +3626,13 @@ the tail is where a symbol system is actually decided. Results:
     reasoning: a task must carry a state, because every todo row is rendered as open or resolved, but a *plain* comment
     carrying a leftover `task_state` is noise nothing reads — and the reverse CHECK that would tidy it away would refuse
     a demotion whose whole content is `is_task = 0`.
+  * **The clock is a client value, and invariant 3 reaches it too (added 2026-09-08).** Comparison is lexicographic
+    (Sync-API §3), so a clock outside the format does not fail to sort — it sorts wherever its bytes fall, and one
+    above `f` outranks every clock a device can generate. Stored, it wins that field's LWW for good: nobody, on any
+    device, can ever write the field again, and no conflict is logged because nothing lost a comparison. The server
+    therefore refuses a mutation whose `hlc` is not exactly what the generator would have written (`malformed_hlc`,
+    Sync-API §5), the same way it refuses to take the client's word for who packed a row. It is a client bug rather
+    than a user's mistake, so the copy says so, and the rest of the batch still applies.
   * **Clarified 2026-08-23, against the screen:** a conflict entry records a value that was **overwritten**, not merely
     a field that lost the write. A push carries fields it did not change — an FR-2.7 date edit writes `start_date` and
     `end_date` together — and the merge logged every one of them, so the log offered entries reading `2026 → 2026` with

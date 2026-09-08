@@ -107,10 +107,11 @@ export class HLCGenerator {
  * `observe` throwing is right for the generator's own contract, and wrong at
  * the boundary where a pull meets another device's data: the clock is an
  * optimisation for causality (§3), not a gate on rendering, so one unusable
- * value must never cost the page it arrived in. It can be produced — the
- * server stores an HLC verbatim and does not check its device id — and a
- * throw would then make every *other* row of that partition unreachable on
- * every device, for as long as the row exists.
+ * value must never cost the page it arrived in. The server now refuses such
+ * a clock at push time rather than storing it, but the tolerance stays: a
+ * row that was written before that guard existed is still on the server, and
+ * a throw would make every *other* row of its partition unreachable on every
+ * device for as long as it lives.
  */
 export function observeRemote(gen: HLCGenerator, remote: string): boolean {
   try {

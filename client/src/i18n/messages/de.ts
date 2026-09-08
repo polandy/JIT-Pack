@@ -115,6 +115,8 @@ export const de: Record<keyof typeof en, string> = {
     'Das würde die Regel brechen, dass eine Vorlage Gruppen enthält und eine Gruppe Artikel.',
   'sync.detail.rejected.constraintViolated':
     'Etwas, worauf sie sich bezieht, gibt es auf dem Server nicht mehr.',
+  'sync.detail.rejected.malformedHlc':
+    'Der Zeitstempel dieser Änderung war unbrauchbar — dieses Gerät hat sie fehlerhaft erzeugt.',
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',
