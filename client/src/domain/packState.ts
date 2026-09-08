@@ -62,3 +62,16 @@ export function unitsOf(row: { packed_count: number; quantity: number }): PackUn
   if (row.quantity <= 0) return { done: 1, total: 1 }
   return { done: Math.min(Math.max(row.packed_count, 0), row.quantity), total: row.quantity }
 }
+
+/**
+ * How far along a trip is, as a whole percentage (FR-21.23).
+ *
+ * The screens that draw a ring, a track or a bar all drew this fraction
+ * themselves, once each, and the three had drifted apart in rounding alone.
+ * It reads the trip line's units, so the figure agrees with the counter
+ * printed beside it (FR-25.22).
+ */
+export function packedPercent(kpis: { packedItems: number; totalItems: number }): number {
+  if (kpis.totalItems <= 0) return 0
+  return Math.round((kpis.packedItems / kpis.totalItems) * 100)
+}

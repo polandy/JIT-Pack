@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { isFullyPacked, isPartlyPacked, stateFor, unitsOf } from '../packState'
+import { isFullyPacked, isPartlyPacked, packedPercent, stateFor, unitsOf } from '../packState'
 
 describe('stateFor (FR-25.2, FR-25.13f, FR-5.5)', () => {
   it.each([
@@ -73,5 +73,24 @@ describe('unitsOf (FR-25.22) — what a row contributes to the fractions above i
       .map(unitsOf)
       .reduce((a, b) => ({ done: a.done + b.done, total: a.total + b.total }))
     expect(sum).toEqual({ done: 2, total: 6 })
+  })
+})
+
+describe('packedPercent — one share for every ring, track and bar (FR-21.23)', () => {
+  it.each([
+    ['nothing packed', 0, 26, 0],
+    ['a third of it', 9, 26, 35],
+    ['all of it', 26, 26, 100],
+    // The three screens that drew this fraction rounded it three ways; a
+    // whole percent is what a ring and a track can both show.
+    ['rounded to the nearest whole percent', 1, 3, 33],
+    ['rounded up, not truncated', 2, 3, 67],
+  ] as const)('%s', (_name, packedItems, totalItems, expected) => {
+    expect(packedPercent({ packedItems, totalItems })).toBe(expected)
+  })
+
+  it('an empty trip is 0 %, not a division by zero', () => {
+    expect(packedPercent({ packedItems: 0, totalItems: 0 })).toBe(0)
+    expect(packedPercent({ packedItems: 3, totalItems: 0 })).toBe(0)
   })
 })

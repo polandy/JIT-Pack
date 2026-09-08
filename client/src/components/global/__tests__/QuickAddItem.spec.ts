@@ -118,3 +118,33 @@ describe('QuickAddItem — FR-25.8 per-person mode', () => {
     expect(added[0]![1]).toBe('packed')
   })
 })
+
+describe('QuickAddItem — one door per screen (FR-21.24)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+  })
+
+  it('shows its own trigger where the screen has no other way in', () => {
+    expect(open().find('[data-testid="quick-add-open"]').exists()).toBe(true)
+  })
+
+  it('renders no trigger for a caller that owns one already (M4’s FAB)', () => {
+    const wrapper = open({ showTrigger: false })
+
+    expect(wrapper.find('[data-testid="quick-add-open"]').exists()).toBe(false)
+    // And renders nothing else either: the form and the trigger were an
+    // if/else pair, so withholding the trigger left the form standing open
+    // above the list, which is what the closed state exists to prevent.
+    expect(wrapper.find('[data-testid="quick-add-input"]').exists()).toBe(false)
+  })
+
+  it('still opens when the caller asks, which is the only way left', async () => {
+    const wrapper = open({ showTrigger: false })
+
+    await (wrapper.vm as unknown as { open: () => Promise<void> }).open()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="quick-add-input"]').exists()).toBe(true)
+  })
+})

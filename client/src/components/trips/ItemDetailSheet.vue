@@ -411,6 +411,7 @@ const packedStamp = computed(() => {
         :quantity="item.quantity"
         :packed="item.packed_count"
         :disabled="isLocked"
+        :large="true"
         @increment="onIncrement"
         @decrement="onDecrement"
         @complete="onComplete"
@@ -488,7 +489,7 @@ const packedStamp = computed(() => {
           @keydown.enter="addTodo"
         />
         <IonButton
-          size="small"
+          fill="outline"
           :disabled="!newTodoText.trim()"
           data-testid="m5-todo-add"
           @click="addTodo"
@@ -537,7 +538,7 @@ const packedStamp = computed(() => {
           @keydown.enter="addComment"
         />
         <IonButton
-          size="small"
+          fill="outline"
           :disabled="!newCommentText.trim()"
           data-testid="m5-note-add"
           @click="addComment"
@@ -719,6 +720,9 @@ const packedStamp = computed(() => {
 
 <style scoped>
 .sheet-body {
+  /* One height for a composer's field and its button, named once because
+     two sections build the same pair (FR-21.25). */
+  --composer-height: 40px;
   padding: 4px 16px 24px;
 }
 
@@ -755,7 +759,7 @@ const packedStamp = computed(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 14px 12px;
   border-radius: var(--jp-r);
   background: var(--ct-surface0);
 }
@@ -914,9 +918,14 @@ const packedStamp = computed(() => {
   }
 }
 
+/*
+ * FR-21.25: the field and the button that commits it are one control, so
+ * they share a height and an edge. They shared neither, and the pair read
+ * as a box with something floating beside it.
+ */
 .composer {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   margin-top: 6px;
 }
@@ -925,7 +934,15 @@ const packedStamp = computed(() => {
   --background: var(--ct-surface0);
   --padding-start: 12px;
   --padding-end: 12px;
+  min-height: var(--composer-height);
   border-radius: var(--jp-r-md);
+}
+
+.composer ion-button {
+  --border-radius: var(--jp-r-md);
+  height: var(--composer-height);
+  margin: 0;
+  flex: none;
 }
 
 /* --- details --- */

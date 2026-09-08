@@ -68,6 +68,24 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await page.goto(PATH.templates)
   })
 
+  /*
+   * E2E-M8-25 (FR-21.24): the editor offers its composer once.
+   *
+   * The same duplication M4 had, on the second screen that mounts the shared
+   * composer: a collapsed pill above the positions and a FAB over them, both
+   * opening the same form. The rule is written into the component, so one
+   * screen keeping it says nothing about the other — hence a case per site.
+   */
+  test('E2E-M8-25: the editor offers the quick-add once, through the FAB', async ({ page }) => {
+    await createTemplate(page, 'group', 'Makro')
+
+    await expect(visiblePage(page).getByTestId('quick-add-open')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('quick-add-input')).toHaveCount(0)
+
+    await openQuickAdd(page, 'm8-fab')
+    await expect(visiblePage(page).getByTestId('quick-add-input')).toBeVisible()
+  })
+
   test('E2E-M8-07, E2E-M8-13, E2E-M8-12: a Gruppe shows only positions, and the quick-add lands a Standard row', async ({
     page,
   }) => {
