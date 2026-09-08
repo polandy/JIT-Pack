@@ -381,9 +381,11 @@ These patterns apply to every screen and are specified once.
     **Revisit trigger:** a bar glyph that turns out to be unlearnable moves behind the ⋮; if one ever cannot, the bubble
     is back on the table. Note also that the *four navigation anchors* are not subject to the naming rule at all: both
     the rail and the tab bar render a visible label.
-  * **What stays out of the cluster:** identity and progress. The screen's own header line keeps the trip name,
-    packed/total, weight and open-prep, **unfiltered** — real progress must remain visible regardless of the current
-    view.
+  * **What stays out of the cluster:** identity and progress. ~~The screen's own header line keeps the trip name,~~
+    ~~packed/total, weight and open-prep~~ — **corrected 2026-09-08:** identity is the **page head** since ADR-050, not
+    the header line, and the line carries the figures alone. The rule the bullet is making is unchanged and is the
+    point: neither belongs in the action cluster. The line stays **unfiltered**, so real progress remains visible
+    regardless of the current view.
   * **Active state still shows below.** When a filter is set, the removable chip row (FR-25.11a) appears under the
     header; when nothing is filtered, no row is drawn at all. The cluster is an entry point, not a status display — the
     badge says *that* something is filtered, the chips say *what*.
@@ -836,25 +838,24 @@ These patterns apply to every screen and are specified once.
 * **Redesign complete (Addendum §3.25) — mocked and settled 2026-07-17 … 2026-08-08.** The screen was re-mocked from
   scratch to give the actual packing far more room. The full reasoning per decision lives in the addendum; what M4 *is*
   now:
-  * **The header line** — the trip name with the trip's other views, then packed/total · weight · open-prep with the
-    presence facepile — and nothing else. It stays **unfiltered**, so real progress is visible whatever the current view
-    shows. On scroll-**down** the whole line hides, the name with it, and any upward scroll brings it back. **Revised
-    2026-08-19 (owner):** the name used to live in the app bar and the line was to carry it only while scrolled. Both
-    halves were wrong. The bar cannot hold it — with search, filter, fold-all, the FR-27.5 lifecycle step, the sync
-    glyph and the settings gear beside it, 54 px were left at 390 px and "Samedan 2026" rendered as **"S…"**, measured
-    off the visual baseline. And nothing needs to migrate up on scroll: you know which packing list you are on, and the
-    rows are what the screen is for. So below the G-9 breakpoint the name leads the line, the line takes two rows, and
-    **M4 registers no app-bar title** — the one screen in the app without one; the chevron still leads out. **At and
-    above the breakpoint the bar has the room and takes the title back, and the line drops the name** rather than
-    printing it twice, which returns it to a single row. The rule is: the trip is named exactly once, and the width
-    decides where. **Re-decided 2026-08-30 (owner): it stays as it is.** PR #230 folded the bar's actions into a ⋮ menu,
-    which freed one slot and made the 2026-08-19 measurement stale, so the question was reopened — and closed unchanged.
-    A name that only just fits is worse than a name that is somewhere else: the gain would have been one header row on
-    mobile, and the risk was the "S…" this rule was written to end. The measurement is not owed again unless the bar
-    loses another element. **Amended 2026-09-07 (FR-21.17):** ADR-050 has since moved the name out of this line
-    altogether — it is the G-9 page head, above the bar's outlet, and the sentence "the name with it" above described
-    only the figures for eleven days. The head now collapses on the same gesture, which is what the 2026-08-19 call
-    said; measured, that is 89 px of a 390×844 phone returned to the list.
+  * **The header line** — packed/total · weight · open-prep with the presence facepile, and nothing else. It stays
+    **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line
+    hides and any upward scroll brings it back.
+  * **~~Where the trip's name lives: the width decides (owner, 2026-08-19; re-decided 2026-08-30)~~ — superseded
+    2026-09-06 by ADR-050, and this bullet folded 2026-09-08.** The ruling was: below the G-9 breakpoint the name leads
+    the header line in display type and **M4 registers no app-bar title**, the one screen in the app without one; at and
+    above the breakpoint the bar takes the title back and the line drops the name rather than printing it twice. It
+    closed unchanged on 2026-08-30 when PR #230's ⋮ freed a slot, with the note that *the measurement is not owed again
+    unless the bar loses another element*. **That trigger fired, and larger than it was written for:** ADR-050 did not
+    free a slot, it took the name out of the bar for every screen. So nothing here depends on the viewport any more —
+    the trip is named once, in the **G-9 page head**, at every width, and M4 registers a title like everything else.
+    What the ruling got right is kept and is why the head is where it is: **"S…" names nothing.** With search, filter,
+    fold-all, the FR-27.5 lifecycle step, the sync glyph and the settings gear beside it, 54 px were left at 390 px and
+    "Samedan 2026" rendered as **"S…"** — measured off the visual baseline, and weighed on a rendered four-way round
+    (`dev-docs/UI_Concept_M4Title_variants.html`). The scroll half is untouched and was settled by the same owner
+    reasoning — *you generally know which packing list you are on* — which also retired the "identity migrates into the
+    app bar on scroll" directive rather than building it. **Amended 2026-09-07 (FR-21.17):** the head collapses on the
+    same gesture as the line, which is 89 px of a 390×844 phone returned to the list.
   * **The line draws the trip as a figure, not as a fraction** (2026-09-08, FR-21.23): a ring, the share in words
     (*„1/4 gepackt"*) and a track, with the weight and the open prep on the second line under it. It is the same
     `ProgressFigure` M1's and M2's hero cards carry, from the same percentage — M4 was the one screen without it, and

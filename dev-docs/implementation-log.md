@@ -347,6 +347,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — FR-24.2: every generated row lost its category, and two tests had written the defect down as expected.
 - [A gate that only knew two spellings of a colour (2026-09-08)](#a-gate-that-only-knew-two-spellings-of-a-colour-2026-09-08) — invariant 9b was enforced against hex and `rgb()` alone; every notation CSS gained after 2011 walked past it.
 - [Two helpers with one name and different rows (2026-09-08)](#two-helpers-with-one-name-and-different-rows-2026-09-08) — the review called it a duplicate forced by the package split; the two `openTestStore`s were never the same function.
+- [A rule the code had already stopped following (2026-09-08)](#a-rule-the-code-had-already-stopped-following-2026-09-08) — the M4 title's width rule died with ADR-050 and stood on, present tense, in two specs and a test comment.
 
 ## Deviations
 
@@ -14298,3 +14299,48 @@ Without it the new name would be a comment.
 being the same, and that claim is worth checking before acting on it. Here it was wrong in the
 direction that matters — the two were different, which is worse than duplication and invisible in
 exactly the way duplication is not.
+
+
+## A rule the code had already stopped following (2026-09-08)
+
+The last open review item was *„M4 forgoes its title below 900 px — re-measure with one element
+fewer"*. It needed no measurement: the constraint was gone. The rule had said the trip is named
+once and the width decides where — below the G-9 breakpoint the header line leads with the name and
+**M4 registers no app-bar title**, above it the bar takes the title back. ADR-050 took the name out
+of the bar for *every* screen, so there is nothing for the width to decide; the trip is named in the
+page head, and M4 registers a title like everything else. Read off the mobile visual baseline, which
+has shown "Samedan 2026" at full display size since the Bergluft work landed.
+
+**The spec had written its own trigger and nobody read it back.** The 2026-08-30 re-decision closed
+the question with: *the measurement is not owed again unless the bar loses another element.* That
+condition fired, and larger than it was written for — ADR-050 did not free a slot, it removed the
+category. A revisit trigger only works if something goes looking for it; this one was found by
+someone reading the item as a layout task.
+
+**Three places lagged, and the PRD did not.** The Addendum carries a supersession entry dated
+2026-09-06 pointing at FR-21.10, which is what made the others legible as drift rather than as the
+truth: the UI-Spec's M4 bullet still stated the width rule in the present tense with a contradicting
+amendment appended at the end (the folding case of T-12, three weeks on), the G-12 bullet still said
+the header line keeps the trip name, and ADR-011's consequence still named M4 as the screen without
+a bar title. **When a rule dies, grep for the sentence, not the file** — the doc that was updated is
+the one that proves the others were not.
+
+**A test comment carried the dead rule too, and it was load-bearing.** E2E-M22-06 checked the return
+from the trip editor against M4's *actions*, explaining that the screen "registers no title below
+the breakpoint" — a workaround for a promise that was false by design. It can now assert the head,
+which is the stronger signal.
+
+**The mutation proof corrected the change itself.** Registering `'MUTATED'` as M4's title turned the
+case red on both browsers — at `helpers/trips.ts:112`, inside `createTripViaWizard`, *before*
+reaching the new line. So the rule was already covered by `expectTripOpen` at the mobile viewport,
+and the inline assertion was a duplicate two lines from an identical one. What the moment actually
+adds is the **return** path — the head naming the trip rather than the editor it just left, which is
+the question `useHeaderTitle`'s route-path keying exists to answer — so it reuses the named helper
+and says that instead. **A mutation proof tells you which assertion caught it, and that is a
+different fact from whether the suite went red.**
+
+**Two operating notes.** The main checkout was two commits behind, so a `grep -n` there gave line
+numbers and a one-line `setHeaderTitle(...)` call that no longer existed — the real call takes three
+arguments across four lines. Grep the worktree you are editing. And commenting a call out is not a
+neutral mutation in a type-checked build: it left the import unused, the build failed, and the run
+that "proved" nothing exited 127 for want of a bundle.
