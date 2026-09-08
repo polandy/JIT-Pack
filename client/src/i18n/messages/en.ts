@@ -111,6 +111,8 @@ export const en = {
     'It would break the rule that a Vorlage contains groups and a group contains items.',
   'sync.detail.rejected.constraintViolated':
     'Something it refers to no longer exists on the server.',
+  'sync.detail.rejected.malformedHlc':
+    'The change carried an unusable timestamp — this device produced it wrongly.',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',

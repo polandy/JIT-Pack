@@ -147,3 +147,49 @@ func TestHLC_LexicographicOrderMatchesCausalOrder(t *testing.T) {
 		}
 	}
 }
+
+// A client's HLC is a claim about ordering, and lexicographic order is the
+// whole merge rule (§6): a string outside the format sorts wherever its
+// bytes fall, so `"~"` outranks every real clock and the row it lands on can
+// never be edited again. NFR-4.2a.
+func TestValid_RejectsAnythingThatIsNotACanonicalHLC(t *testing.T) {
+	cases := []struct {
+		name string
+		hlc  HLC
+		want bool
+	}{
+		{"generated", HLC("1783862400123-000f-a1b2c3d4"), true},
+		{"empty", HLC(""), false},
+		{"above every real clock", HLC("~"), false},
+		{"padded to the right length", HLC("~~~~~~~~~~~~~~~~~~~~~~~~~~~"), false},
+		{"too short", HLC("1783862400123-000f-a1b2c3d"), false},
+		{"too long", HLC("1783862400123-000f-a1b2c3d40"), false},
+		{"separators moved", HLC("1783862400123x000f-a1b2c3d4"), false},
+		{"millis not a number", HLC("17838624001x3-000f-a1b2c3d4"), false},
+		{"millis signed", HLC("+783862400123-000f-a1b2c3d4"), false},
+		{"counter not hex", HLC("1783862400123-00zf-a1b2c3d4"), false},
+		{"counter uppercase", HLC("1783862400123-000F-a1b2c3d4"), false},
+		{"device id uppercase", HLC("1783862400123-000f-A1B2C3D4"), false},
+		{"device id not hex", HLC("1783862400123-000f-zzzzzzzz"), false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := Valid(tc.hlc); got != tc.want {
+				t.Errorf("Valid(%q) = %v, want %v", tc.hlc, got, tc.want)
+			}
+		})
+	}
+}
+
+// Whatever the generator produces is by definition acceptable — the check
+// and the format are one decision, not two that have to be kept equal.
+func TestValid_AcceptsEveryClockTheGeneratorProduces(t *testing.T) {
+	clock := &fakeClock{millis: 1}
+	g := newTestGenerator(t, clock)
+	for i := 0; i < 32; i++ {
+		clock.millis += int64(i % 2)
+		if h := g.Next(); !Valid(h) {
+			t.Fatalf("Valid(%q) = false for a generated clock", h)
+		}
+	}
+}
