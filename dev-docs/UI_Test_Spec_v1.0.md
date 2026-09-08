@@ -847,8 +847,8 @@ rather than registered.
   makes it taller. The second half is what makes the first mean *content-sized*: a sheet that had merely been given a
   smaller fixed height would pass the first clause alone. Measured off the presented state (`data-presented`), never
   off a wait, because Ionic's enter animation is a duration nobody controls — and measured on the **modal**, not on the
-  scroll box inside it: the box was only ever as tall as its content, so the first draft of this case stayed green against
-  the very build it is about. Proved by mutation before it was believed.
+  scroll box inside it: the box was only ever as tall as its content, so the first draft of this case stayed green
+  against the very build it is about. Proved by mutation before it was believed.
 * **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam*. One row remains at quantity **5** — the sum, not the
   largest — and the preparation todo written on the surviving row before the conversion is still on it afterwards. That
   last clause is the one worth having: ADR-036 chose keep-and-repoint over delete-and-recreate precisely so a structural
