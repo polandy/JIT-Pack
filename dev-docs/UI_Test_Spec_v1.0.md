@@ -2398,8 +2398,9 @@ landed, that no test has ever rendered.
 * **E2E-M4-75** `all` (FR-21.23, new 2026-09-08) — **implemented** (`e2e/packing-list.spec.ts`): the header line's
   ring, sentence and track are read before and after one row of four is packed — 0 %, *0/4*, a track of zero width,
   then 25 %, *1/4*, and a track a quarter of its own container. All three against the same pack, because the point of
-  the figure is that they cannot disagree; the track's expected width is computed from the container it was rendered
-  in, so the case does not restate a viewport.
+  the figure is that they cannot disagree; the track is asserted as a **ratio** of two rendered boxes, so the case
+  states neither a viewport nor a rounding — its first draft compared a pixel string and went red on WebKit at
+  19.0625 px against a `clientWidth` that had rounded to 19.
 * **E2E-M4-76** `all` (FR-21.24, new 2026-09-08) — **implemented** (`e2e/packing-list.spec.ts`): the composer is
   offered once. The collapsed pill is absent **and** the composer is closed, then the FAB opens it — the absence alone
   would stay green on a screen that had lost both doors, which is the failure the case is guarding against.
