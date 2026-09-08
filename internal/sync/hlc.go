@@ -105,6 +105,23 @@ func Parse(h HLC) (millis int64, counter int, deviceID string, err error) {
 	return millis, counter, deviceID, nil
 }
 
+// Valid reports whether h is a clock this protocol could have produced.
+//
+// Ordering *is* the merge rule (§6, NFR-4.2a) and it is lexicographic, so a
+// string outside the format does not merely fail to parse — it sorts
+// wherever its bytes happen to fall, and one above `f` wins every field for
+// good. The test is a round trip rather than a second reading of the format:
+// a value is valid exactly when it is what the generator would have written
+// for the parts it decomposes into, which also rejects the shapes Parse
+// tolerates but never writes (a signed millis, uppercase hex).
+func Valid(h HLC) bool {
+	millis, counter, deviceID, err := Parse(h)
+	if err != nil {
+		return false
+	}
+	return format(millis, counter, deviceID) == h
+}
+
 func format(millis int64, counter int, deviceID string) HLC {
 	return HLC(fmt.Sprintf("%013d-%04x-%s", millis, counter, deviceID))
 }
