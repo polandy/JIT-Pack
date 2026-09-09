@@ -83,7 +83,7 @@ test('E2E-M19-01: choosing Local Mode persists the choice, asks to keep the data
 
   // Shown exactly once: the choice survives a reload.
   await page.reload()
-  await expect(page.getByTestId('dashboard-greeting')).toBeVisible()
+  await expect(page.getByTestId('dashboard')).toBeVisible()
   await expect(page.getByTestId('mode-selection')).toHaveCount(0)
 })
 
@@ -98,7 +98,7 @@ test('E2E-G7-01: M1: local mode boots into an empty dashboard @smoke @local', as
 
   // Mode is chosen → M19 is gone, the app shell renders.
   await expect(page.getByTestId('mode-selection')).toHaveCount(0)
-  await expect(page.getByTestId('dashboard-greeting')).toBeVisible()
+  await expect(page.getByTestId('dashboard')).toBeVisible()
 
   // Fresh Local Mode has no trips → empty state + CTA (G-7).
   await expect(page.getByTestId('dashboard-empty')).toBeVisible()

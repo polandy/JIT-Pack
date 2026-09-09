@@ -600,7 +600,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.getByTestId('header-back').click()
 
     await atPath(page, '/tabs/dashboard')
-    await expect(onVisibleScreen(page, 'dashboard-greeting')).toBeVisible()
+    await expect(onVisibleScreen(page, 'dashboard')).toBeVisible()
   })
 
   /*
@@ -699,7 +699,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   test('E2E-G9-15: the settings gear is everywhere but on settings itself', async ({ page }) => {
     await page.setViewportSize(MOBILE)
     await page.goto(PATH.dashboard)
-    await expect(onVisibleScreen(page, 'dashboard-greeting')).toBeVisible()
+    await expect(onVisibleScreen(page, 'dashboard')).toBeVisible()
     await expect(page.getByTestId('header-settings')).toBeVisible()
 
     await page.getByTestId('header-settings').click()
@@ -849,6 +849,11 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * vanished would break no other case, because none of them ever had a test
    * id. The import control is the second half: it moved from beside the name
    * into the bar's cluster, and a move is only complete if it still works.
+   *
+   * M1 is the fourth root and joined them on 2026-09-09 (FR-21.27). It had
+   * kept its own `h1` — the greeting — which put the app's first line 26 px
+   * lower and a size smaller than the tab beside it, and left this case
+   * asserting "a tab root" while one of them was not one.
    */
   test('E2E-G9-19: a tab root names itself in the page head, and its control is in the bar', async ({
     page,
@@ -869,6 +874,15 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     await page.goto(PATH.trips)
     await expect(page.getByTestId('header-title')).toHaveText('Trips')
+
+    // M1's name is its greeting and the subtitle is the meta line under it —
+    // the two lines the page used to draw into its own content. The screen
+    // itself is asserted as visible, because since the move the head would
+    // stand there unchanged if the dashboard had failed to render at all.
+    await page.goto(PATH.dashboard)
+    await expect(onVisibleScreen(page, 'dashboard')).toBeVisible()
+    await expect(page.getByTestId('header-title')).not.toBeEmpty()
+    await expect(page.getByTestId('header-meta')).toHaveText('Your packing tasks')
   })
 
   /*
