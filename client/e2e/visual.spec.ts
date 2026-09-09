@@ -63,9 +63,17 @@ useReducedMotion(test)
  */
 async function freeze(page: Page) {
   await page.addInitScript(() => {
-    let n = 0
+    // The counter lives in `sessionStorage` rather than in this closure,
+    // because `addInitScript` runs again on **every navigation** — a local
+    // `let n = 0` restarts there, and the next row created hands back an id
+    // an earlier one already has. Found 2026-09-09 building E2E-VIS-12: its
+    // three trips are created across navigations, so all three took the same
+    // id and the last one silently overwrote the other two, leaving a
+    // dashboard with nothing active on it and no error anywhere.
+    const KEY = 'e2e-uuid-counter'
     const uuid = () => {
-      n += 1
+      const n = Number(sessionStorage.getItem(KEY) ?? '0') + 1
+      sessionStorage.setItem(KEY, String(n))
       const hex = n.toString(16).padStart(12, '0')
       return `00000000-0000-4000-8000-${hex}` as `${string}-${string}-${string}-${string}-${string}`
     }
@@ -372,6 +380,45 @@ test('E2E-VIS-10: visual: M1 with the hero card @local @visual', async ({ page, 
   await expect(page.getByTestId('hero-name')).toBeVisible()
   await settled(page)
   await expect(page).toHaveScreenshot('m1-hero.png')
+})
+
+// E2E-VIS-12: M1's other cards (FR-21.28, G-14). The dashboard's only picture
+// was of the hero, so the blocks under it — a following trip and the planned
+// lookahead — had never been photographed, and that is exactly where the
+// screen kept Ionic's card: another radius, another shadow and an inset of
+// its own, which no stylesheet gate can see because it is not our stylesheet.
+test('E2E-VIS-12: visual: M1 below the hero @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  // Every trip carries a departure date: which one is the hero is
+  // `byDepartureSoonestFirst`, and a dateless pair orders by nothing — the
+  // trap E2E-M1-09 was written after.
+  await createTripViaWizard(page, {
+    name: 'Samedan 2026',
+    startDate: '2026-09-20',
+    travelers: ['Andy', 'Mia'],
+  })
+  for (const name of ['Zelt', 'Schlafsack']) {
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill(name)
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
+  }
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('quick-add-input')).toBeHidden()
+  await tripAction(page, 'start')
+
+  // A second *active* trip, so the list card under the hero is in the shot,
+  // and a third left planned for the lookahead section below it.
+  await createTripViaWizard(page, { name: 'Elba', startDate: '2026-11-02' })
+  await tripAction(page, 'start')
+  await createTripViaWizard(page, { name: 'Lofoten', startDate: '2027-05-01' })
+
+  await page.goto(PATH.dashboard)
+  await expect(visiblePage(page).getByTestId('dashboard-planned')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('dashboard-trip-Elba')).toBeVisible()
+  await settled(page)
+  await expect(page).toHaveScreenshot('m1-below-hero.png')
 })
 
 // E2E-VIS-11: M2 with the trip you are on at its head (FR-21.15). The `trips`

@@ -349,6 +349,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two helpers with one name and different rows (2026-09-08)](#two-helpers-with-one-name-and-different-rows-2026-09-08) — the review called it a duplicate forced by the package split; the two `openTestStore`s were never the same function.
 - [A rule the code had already stopped following (2026-09-08)](#a-rule-the-code-had-already-stopped-following-2026-09-08) — the M4 title's width rule died with ADR-050 and stood on, present tense, in two specs and a test comment.
 - [The wider measure had no screen (2026-09-08)](#the-wider-measure-had-no-screen-2026-09-08) — UX-17's column was already built; the census behind closing it retired the reading measure a day after it was added.
+- [A card no gate could see (2026-09-09)](#a-card-no-gate-could-see-2026-09-09) — M1 kept Ionic's card through every design pass: a component painting from its own stylesheet passes our gate.
 
 ## Deviations
 
@@ -14381,3 +14382,39 @@ both measures, the year input's placeholder runs into the series select beside i
 **What the change costs is left in the spec, not hidden.** On a 1440 px window the app now uses
 600 px of it. That is the trade UX-17 made and this extends: a row whose control is 855 px from its
 name is not using the space, it is spending the reader's eye on crossing it.
+
+## A card no gate could see (2026-09-09)
+
+The owner said the dashboard's tile did not look like the one on M2. It did not: rendered at 430 px,
+M1's *„Geplant"* card sat 26 px from the page edge at 4 px radius under Material's three-layer black
+shadow, ten pixels further in than the hero card directly above it, which is `.jp-card` at 18 px and
+the flavour's own lift. Two cards a finger apart, disagreeing about where the page's edge is.
+
+**Why four design passes walked past it.** G-14 was written against exactly this class of defect,
+and `design-tokens-gate.mjs` reads every stylesheet under `client/src` for a raw radius, a raw
+shadow, a raw colour. M1 declared none: it wrote `<IonCard>` and inherited all three from Ionic's
+own stylesheet, which the gate does not read and cannot — it is not our file. **A screen can hold
+every rule we can check and still be built out of another system's parts.** The census that finds
+this is not a grep for literals but a grep for the *component*: two files in `client/src` still used
+`<IonCard>`, M1 and the mode chooser, against seventeen using `.jp-card`.
+
+**The surface was carrying more than the surface.** The card also owned each section's title, so
+converting it moved four titles into the section head of G-13 — which put the counts in the numeric
+face and cost the four decorative icons in those titles, no section head in the app having one. That
+is a copy change riding on a shape change, and it is written into FR-21.28 rather than left as a
+surprise in the diff.
+
+**The new baseline found a trap in the visual harness on its way in.** `freeze()` replaces
+`crypto.randomUUID` with a counter so the images are deterministic — and it installs that through
+`addInitScript`, which Playwright runs again on **every navigation**, resetting the counter to zero
+with it. One trip per case had never noticed. Three trips created across navigations all took the
+same id, each silently overwriting the last, and the case rendered a dashboard with nothing active
+on it: no error, no warning, a screen that looked like a filtering bug in the code under test. The
+counter now lives in `sessionStorage`, which survives a navigation inside the tab. **A deterministic
+id source has to be as long-lived as the data it names.**
+
+**What the e2e cases could actually be given.** A radius is not assertable through Playwright in any
+way that means something, but the class is: both amended cases now read the section's head and count
+separately and assert `.jp-card` on the block, which is red against the old screen and green against
+this one. The visual baselines carry the rest — and one of them had to be added, because M1's only
+picture was of the hero card, and the sections this entry is about had never been photographed.

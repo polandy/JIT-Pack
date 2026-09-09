@@ -477,8 +477,10 @@ These patterns apply to every screen and are specified once.
     that acts on content which exists is a solid, filled button — which is what the three reveal bars (FR-25.2,
     FR-25.11j) became, each stating in its own label the count of rows it is holding back.
   * **One card class, not a card per screen.** `.jp-card` carries the plane, the border, the radius and the elevation
-    together; a screen positions it and adds nothing. Its children defer to it, so no row can repaint itself a shade off
-    the surface it sits in.
+    together; a screen positions it and adds nothing. **M1 was the last exception and stopped being one 2026-09-09**
+    (FR-21.28): a screen that keeps Ionic's `ion-card` keeps Ionic's radius, inset and shadow with it, and the two
+    surfaces read as two systems the moment they are on one page. Its children defer to it, so no row can repaint
+    itself a shade off the surface it sits in.
   * **Radius is a six-step scale**: checkbox, inline control, block, card, sheet, pill. A radius that is half its own
     element's height is a **pill**, not a small step — that is what the client's stray 2/4/7 px values all actually
     meant. A circle keeps `50%`, because a circle is a shape rather than a size. The smallest step was added 2026-09-06
@@ -617,6 +619,13 @@ These patterns apply to every screen and are specified once.
   and a second hero is a second answer to which one that is. It is the only card in the app that paints brand on its
   own plane (G-11). The active trips are ordered **soonest departure first** — the hero is the head of that list, and
   before the rule existed the head was whatever IndexedDB handed over.
+* **Its blocks are the app's card (added 2026-09-09, FR-21.28).** Every section on M1 — delegation, last-minute,
+  prep, the trip cards under the hero, the planned lookahead — is `.jp-card` (G-14) under a section head (G-13). Until
+  then M1 was the one screen still drawing Ionic's card: 10 px further in than the hero above it, at a quarter of its
+  radius and under a shadow from a system nothing else here uses. A section's count moved with the name into the head,
+  so it is set in the numeric face; the titles' icons went, section heads elsewhere having none. The cards under the
+  hero took the hero's own `ProgressFigure` at the list ring size with it, in place of a full-width progress bar and a
+  count written beside it — one progress design for the screen, and the same one M2's rows read.
 * **Elements:** The greeting is the screen's **page head** (G-9, FR-21.27, 2026-09-09) — its title, with
   *„Was beim Packen ansteht"* as the meta line under it — and is therefore drawn by the frame, at the same place and
   size as every other screen's name; the greeting buckets the hour: *Guten Morgen* 05–11, *Guten Tag*

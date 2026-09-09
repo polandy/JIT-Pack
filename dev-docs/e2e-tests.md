@@ -227,7 +227,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Unit | Spec cases | Mode | File |
 |---|---|---|---|
 | Harness smoke | E2E-M19-01 (full since 2026-08-30 — the choice itself, the persistence request and the reload), E2E-M19-04, E2E-G7-01 (the Dashboard's half) | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
-| M1 dashboard (populated) | E2E-M1-01 (card, open count, three previews, the remainder, and the card into M4), E2E-M1-02 (the prep card, and that ticking resolves on the trip), E2E-M1-06/06b (the departure-day section), E2E-M1-07 (the prep name opens its row), E2E-M1-03b (no delegation section without accounts), E2E-M1-08 (the planned-trips section, and that starting a trip moves it) | `local` | [`dashboard.spec.ts`](../client/e2e/dashboard.spec.ts) |
+| M1 dashboard (populated) | E2E-M1-01 (card, open count, three previews, the remainder, and the card into M4), E2E-M1-02 (the prep card, and that ticking resolves on the trip), E2E-M1-06/06b (the departure-day section), E2E-M1-07 (the prep name opens its row; its head, count and card role since FR-21.28), E2E-M1-03b (no delegation section without accounts), E2E-M1-08 (the planned-trips section, and that starting a trip moves it; its head, count and card role since FR-21.28) | `local` | [`dashboard.spec.ts`](../client/e2e/dashboard.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-19 (ADR-050 a tab root's head, M1 included since FR-21.27), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
@@ -238,7 +238,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01 … E2E-G13-06 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
-| Visual baselines | E2E-VIS-01 … E2E-VIS-11 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
+| Visual baselines | E2E-VIS-01 … E2E-VIS-12 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03, E2E-G14-04 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |

@@ -165,6 +165,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-VIS-05 | Visual M4 in Tag | all | One flavour spot-check rather than a second copy of every state: the flavour is decided in one token block, and one screen using brand, done, both planes and the elevation ink is enough to notice it moving. Doubling the set would double what an image-digest bump rewrites, for coverage of the same block. |
 | E2E-VIS-06 | Visual M11 container list | all | The first baseline outside M4, added on the owner's decision of 2026-08-16 when M11 was eyeballed. It earns its place on three things no other baseline renders: a load bar whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and the card list itself. The load is real — a master item with a weight, quick-added through its suggestion — because a bar with nothing in it grades nothing. |
 | E2E-VIS-07 | Visual M11 container sheet | all | Not a second copy of E2E-VIS-04's plane: this is the M5 sheet grammar applied to a container, and the load line and pairing chips inside it exist on no other surface. |
+| E2E-VIS-12 | Visual M1 below the hero | all | **New 2026-09-09** (FR-21.28). M1's only baseline is of the hero card, so the blocks under it — the following trip and the planned lookahead — had never been photographed, and that is where the screen had kept Ionic's card: another radius, another inset, another shadow, none of which a stylesheet gate can see, because it is not our stylesheet. Three trips, each with a departure date, so which one is the hero is the rule (`byDepartureSoonestFirst`) rather than the fixture. |
 | E2E-VIS-11 | Visual M2 with the hero card | all | **New 2026-09-07.** The `trips` tab-root baseline is an *empty* state, so the segment carrying the hero (FR-21.15) had no picture of itself. It is the one thing on that screen a stylesheet cannot be read for: a card inside a list of cards, which is exactly the collision G-14 exists for. Captured with a second trip of the same series below it, so the hero *and* the group it was lifted out of are in one frame, and with rows on the trip — a ring reading 0/0 is a picture of the card rather than of what the card says. |
 | E2E-VIS-10 | Visual M1 with the hero card | all | **New 2026-09-07.** The four tab-root baselines are all *empty* states, so until this one the screen every rebuild lands on had no picture of itself with data — and the hero (FR-21.13) is exactly what an empty dashboard cannot show. The trip is **started** first: a trip out of the wizard is planned, and M1 lists what is active, which is why the tab-root baseline shows an empty state at all. |
 | E2E-VIS-09 | Visual M16 series profile | all | **New 2026-08-31.** The screen that had no coverage at any layer until 2026-08-30, and whose first render found FR-13.3's checklist input at **width 0** — Ionic gives `ion-select` `width: 100%`, and as a flex item that is a basis of the whole row. That is the class this gate exists for: every assertion passed, the element was in the DOM with the right computed flex and height, and only the pixel said the box was empty. The row is captured **with content on both sides**, a select carrying a value beside an input carrying text, because an empty row of the same geometry would not show the collapse coming back. |
@@ -256,7 +257,9 @@ stable references for the traceability matrix.
   page that failed to load says nothing.
 * **E2E-M1-07** `all` (FR-7.3) — **new 2026-08-31**: the prep card's item name opens **that row's** sheet, asserted on
   the sheet's own todo rather than on the trip having opened. UI-Spec M1 had promised the jump since the screen shipped
-  and the name was a `<p>` with no handler.
+  and the name was a `<p>` with no handler. **Extended 2026-09-09 (FR-21.28):** the section's name is its head
+  and the number its count, and the block under it carries `.jp-card` — the assertion that M1 is drawing the app's
+  card rather than Ionic's, which no screenshot of this screen had ever shown.
 * **E2E-M1-09** `all` (FR-21.13) — **new 2026-09-07**: the trip departing **soonest** is the hero; the later one is
   still a list card. The case seeds **two** active trips on purpose — the promise is a singular, and a screen with one
   trip would be green whether the rule said "the one" or "every one". The later trip's visible card is the positive
@@ -270,7 +273,8 @@ stable references for the traceability matrix.
   the trip must **not** also be an active card), and the absent card could be the screen this case was written against,
   which showed the trip nowhere (so the section must be there). **Starting the trip is the positive signal behind the
   absence** — the same trip changes sides, which is what says the section is keyed on the status rather than listing a
-  leftover.
+  leftover. **Extended 2026-09-09 (FR-21.28)** the same way as E2E-M1-07: head, count, and the card class on
+  the block.
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
