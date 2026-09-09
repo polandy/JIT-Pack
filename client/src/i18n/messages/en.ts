@@ -150,6 +150,7 @@ export const en = {
   'packing.openPrep': '{n} preparation open | {n} preparations open',
   // FR-25.21 — "Who needs this?": membership and per-person amounts.
   'membership.title': 'Who needs this?',
+  'membership.all': 'Everyone on the trip',
   'membership.shared': 'Shared',
   'membership.perPerson': 'Per person',
   'membership.hintShared': 'One row for the whole trip.',

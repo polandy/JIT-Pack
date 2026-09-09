@@ -153,6 +153,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
   // FR-25.21 — „Wer braucht das?": Mitgliedschaft und Mengen pro Person.
   'membership.title': 'Wer braucht das?',
+  'membership.all': 'Alle Reisenden',
   'membership.shared': 'Gemeinsam',
   'membership.perPerson': 'Pro Person',
   'membership.hintShared': 'Eine Zeile für die ganze Reise.',

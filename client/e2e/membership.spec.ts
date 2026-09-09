@@ -136,6 +136,43 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     expect(head.size).toBe(plainRow.size)
   })
 
+  /*
+   * FR-25.21c. The tap is made from a *partial* membership carrying a chosen
+   * amount, because that is the half a select-all can get wrong: the missing
+   * travelers arrive at one and Leonardo's three stay three. The head's own
+   * state is read before and after — mixed, then checked — so the case cannot
+   * pass against a control that only writes and never reports.
+   */
+  test('E2E-M5-26: one tap adds the missing travelers and leaves a chosen amount alone', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+
+    await openMembership(page, ITEM)
+    await page.getByTestId('membership-per-person').click()
+    await setMember(page, 'Leonardo', 3)
+
+    const all = page.getByTestId('membership-check-all')
+    await expect(all).toHaveAttribute('aria-checked', 'mixed')
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveCount(0)
+
+    await all.click()
+
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
+    await expect(page.getByTestId('membership-qty-Mia')).toHaveText('1')
+    await expect(page.getByTestId('membership-qty-Leonardo')).toHaveText('3')
+    await expect(page.getByTestId('membership-summary')).toContainText('5')
+    // Nothing left to add, and the head says so rather than offering the tap.
+    await expect(all).toHaveAttribute('aria-checked', 'true')
+    await expect(all).toHaveClass(/checkbox-disabled/)
+    await closeAll(page)
+
+    const list = visiblePage(page)
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`).getByTestId('row-check')).toBeVisible()
+    await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/5')
+  })
+
   test('E2E-M5-19: removing a packed traveler is confirmed; removing a costless one is not', async ({
     page,
   }) => {

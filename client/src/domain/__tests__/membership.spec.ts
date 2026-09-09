@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  everyoneMembers,
+  membershipCoverage,
   membershipRows,
   planMembership,
   type MembershipInput,
@@ -408,5 +410,62 @@ describe('planMembership — the state follows the numbers', () => {
 
     expect(plan.update[0]!.fields.state).toBeUndefined()
     expect(plan.totals).toEqual({ quantity: 3, packed: 3 })
+  })
+})
+
+describe('everyoneMembers (FR-25.21c — the select-all shortcut)', () => {
+  it('adds the missing travelers at one and leaves a chosen amount alone', () => {
+    const next = everyoneMembers(TRAVELERS, [{ traveler_id: LEO.id, quantity: 3 }])
+    expect(next).toEqual([
+      { traveler_id: ANDY.id, quantity: 1 },
+      { traveler_id: LEO.id, quantity: 3 },
+      { traveler_id: MIA.id, quantity: 1 },
+    ])
+  })
+
+  it('is the whole roster in trip order when nobody is a member yet', () => {
+    expect(everyoneMembers(TRAVELERS, []).map((m) => m.traveler_id)).toEqual([
+      ANDY.id,
+      LEO.id,
+      MIA.id,
+    ])
+  })
+
+  it('plans nothing once everybody is already a member', () => {
+    const rows = [
+      row('r-andy', { assigned_traveler_id: ANDY.id, quantity: 1 }),
+      row('r-leo', { assigned_traveler_id: LEO.id, quantity: 3 }),
+      row('r-mia', { assigned_traveler_id: MIA.id, quantity: 1 }),
+    ]
+    const members = everyoneMembers(TRAVELERS, [
+      { traveler_id: ANDY.id, quantity: 1 },
+      { traveler_id: LEO.id, quantity: 3 },
+      { traveler_id: MIA.id, quantity: 1 },
+    ])
+    expect(planMembership(input(rows, { kind: 'perPerson', members })).empty).toBe(true)
+  })
+})
+
+describe('membershipCoverage (FR-25.21c)', () => {
+  it('reads none, some and all off the roster', () => {
+    expect(membershipCoverage(TRAVELERS, [])).toBe('none')
+    expect(membershipCoverage(TRAVELERS, [{ traveler_id: ANDY.id, quantity: 2 }])).toBe('some')
+    expect(
+      membershipCoverage(
+        TRAVELERS,
+        TRAVELERS.map((t) => ({ traveler_id: t.id, quantity: 1 })),
+      ),
+    ).toBe('all')
+  })
+
+  it('counts only travelers the trip still has, so a stale row cannot read as full', () => {
+    const gone = { traveler_id: 'tr-removed', quantity: 1 }
+    expect(membershipCoverage(TRAVELERS, [gone])).toBe('none')
+    expect(
+      membershipCoverage(TRAVELERS, [
+        ...TRAVELERS.map((t) => ({ traveler_id: t.id, quantity: 1 })),
+        gone,
+      ]),
+    ).toBe('all')
   })
 })

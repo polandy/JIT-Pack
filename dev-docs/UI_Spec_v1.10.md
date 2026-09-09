@@ -1157,7 +1157,11 @@ These patterns apply to every screen and are specified once.
   never a popover: a stepper per traveler does not fit in one. The row reads the current state (`Gemeinsam`, or `Andy 2
   · Leonardo 3 · Mia 1`, truncated with a count past what fits); the sheet carries a `Gemeinsam` / `Pro Person` segment
   and, under it, one line per traveler with a **checkbox and a quantity stepper**, and a footer summing *„3 Personen · 6
-  Stück"*. **No save button** — every control commits immediately (G-5, FR-25.15), and the `Pro Person` tab only reveals
+  Stück"*. The roster opens with a **head row *„Alle Reisenden"*** (FR-25.21c): the same checkbox grammar as the lines
+  under it, tri-state — mixed while only some are members — so it reports the membership as well as changing it. It only
+  ever adds, at one each, and keeps every amount somebody chose; once everybody is a member it is checked and no longer
+  offers a tap, because the way back is the *Gemeinsam* tab, which sums the amounts and asks first (FR-25.21b).
+  **No save button** — every control commits immediately (G-5, FR-25.15), and the `Pro Person` tab only reveals
   the roster: checking a person is the write. Absent under two travelers (G-8), read-only under a foreign claim on any
   instance (G-3); *Packed by* delegation picker **with a "niemand" clear** (FR-4.2/6.2); mode selector (🧳/🛒/📍, FR-3.1);
   **optional** container picker default none (FR-10.2); Late Packer ⏰ flag; *Unused/Missing* flags (FR-9.1, active trips

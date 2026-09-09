@@ -17,10 +17,12 @@
  */
 import { IonAlert, IonCheckbox, IonIcon } from '@ionic/vue'
 import { addOutline, lockClosedOutline, removeOutline } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import {
+  everyoneMembers,
+  membershipCoverage,
   membershipRows,
   planMembership,
   type MembershipPlan,
@@ -188,6 +190,42 @@ function toggle(travelerId: string) {
   apply(targetFor([...current, { traveler_id: travelerId, quantity: 1 }]))
 }
 
+/**
+ * FR-25.21c: how much of the roster is already a member — the head row's own
+ * answer, and what decides whether it still has anything to add.
+ */
+const coverage = computed(() => membershipCoverage(travelers.value, currentMembers()))
+
+/**
+ * The shortcut only ever enlarges the membership: it adds the travelers who
+ * have no row, at one each, and leaves every chosen amount standing. Coming
+ * back the other way is the *Gemeinsam* tab, which sums the amounts and says so
+ * first (FR-25.21b) — an unchecked *Alle* would be a second, silent path to the
+ * same destructive rewrite.
+ */
+function checkEveryone() {
+  if (coverage.value === 'all') return
+  apply(targetFor(everyoneMembers(travelers.value, currentMembers())))
+  void nextTick(syncAllBox)
+}
+
+const allBox = ref<InstanceType<typeof IonCheckbox> | null>(null)
+
+/**
+ * Ionic's checkbox flips its own DOM state on a tap, and Vue's diff then sees
+ * the bound value unchanged — so a head row that only ever *adds* would be left
+ * showing the opposite of what it just did, and a tap a confirm has not yet
+ * answered would show the answer in advance. The row reports the membership as
+ * much as it changes it, so its state is written back from the model after
+ * every tap rather than left to the toggle.
+ */
+function syncAllBox() {
+  const el = allBox.value?.$el as { checked: boolean; indeterminate: boolean } | undefined
+  if (!el) return
+  el.checked = coverage.value !== 'none'
+  el.indeterminate = coverage.value === 'some'
+}
+
 function step(travelerId: string, by: number) {
   apply(
     targetFor(
@@ -282,6 +320,19 @@ const confirmMessage = computed(() => {
     </p>
 
     <ul v-if="showRoster" class="list">
+      <li class="row all" :class="{ done: coverage === 'all' }">
+        <IonCheckbox
+          ref="allBox"
+          :checked="coverage !== 'none'"
+          :indeterminate="coverage === 'some'"
+          :disabled="isLocked || coverage === 'all'"
+          :aria-label="t('membership.all')"
+          data-testid="membership-check-all"
+          @ion-change="checkEveryone"
+        />
+        <span class="count jp-num" aria-hidden="true">{{ travelers.length }}</span>
+        <span class="nm">{{ t('membership.all') }}</span>
+      </li>
       <li
         v-for="tr in travelers"
         :key="tr.id"
@@ -421,6 +472,34 @@ const confirmMessage = computed(() => {
 
 .row.off {
   opacity: 0.55;
+}
+
+/* FR-25.21c: the head row belongs to the list and is not one of its people —
+   the sunken plane is what says so, the same step the segmented control uses. */
+.row.all {
+  background: var(--jp-surface-sunken);
+  border-bottom-color: var(--ct-surface1);
+}
+
+.row.all .nm {
+  font-weight: var(--jp-weight-semibold);
+}
+
+.count {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ct-surface1);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-2xs);
+}
+
+.row.all.done .count {
+  background: var(--jp-done);
+  color: var(--ct-on-accent);
 }
 
 .nm {
