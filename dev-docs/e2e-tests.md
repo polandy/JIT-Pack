@@ -2446,6 +2446,17 @@ If a UI path to a refusal ever returns — a series delete control is the likely
 one — it should carry an e2e case again, because the client half of that path
 is the half these two were written to protect.
 
+**A seventh reason arrived 2026-09-09 and does not change that** (`row_deleted`,
+ADR-052: a write older than the delete no longer re-creates the row). It has no
+UI path either, and for a second reason on top of the one above — producing it
+needs two devices and a write that was made before a delete it never saw, which
+is a clock ordering rather than a control anyone can tap. Where it is asserted:
+the refusal, the row staying gone on both partitions and the tombstone that
+repairs the pushing device — `internal/store/resurrection_test.go`; the reason
+having a sentence in both catalogues — the census in
+`client/src/sync/__tests__/rejectionReasons.spec.ts`, which iterates the
+vocabulary and so covered it the moment it was added.
+
 ## The restore's hard case is the one only a rendered test could show (2026-08-25)
 
 M23's three cases are the way back from a retire, and the middle one is the

@@ -113,6 +113,8 @@ export const en = {
     'Something it refers to no longer exists on the server.',
   'sync.detail.rejected.malformedHlc':
     'The change carried an unusable timestamp — this device produced it wrongly.',
+  'sync.detail.rejected.rowDeleted':
+    'Somebody deleted the entry after you made this change — the server did not bring it back.',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',

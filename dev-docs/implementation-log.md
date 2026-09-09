@@ -351,6 +351,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The wider measure had no screen (2026-09-08)](#the-wider-measure-had-no-screen-2026-09-08) — UX-17's column was already built; the census behind closing it retired the reading measure a day after it was added.
 - [A card no gate could see (2026-09-09)](#a-card-no-gate-could-see-2026-09-09) — M1 kept Ionic's card through every design pass: a component painting from its own stylesheet passes our gate.
 
+- [A delete had no memory to compare against](#a-delete-had-no-memory-to-compare-against) — the resurrection defect, why the fix reads `change_log`, and the measurement that rewrote its own ADR.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14418,3 +14419,54 @@ way that means something, but the class is: both amended cases now read the sect
 separately and assert `.jp-card` on the block, which is red against the old screen and green against
 this one. The visual baselines carry the rest — and one of them had to be added, because M1's only
 picture was of the hero card, and the sections this entry is about had never been photographed.
+
+
+## A delete had no memory to compare against
+
+Found by re-reading the 2026-08-22 bug review against the code rather than against its own status
+notes (finding 9, the last unverified Critical). It was still there, and it was the review's most
+expensive shape: a rule that is *absent* rather than wrong, so nothing in the diff of any later PR
+could have shown it.
+
+**The defect.** `persist` deletes a row with `DELETE FROM`, and the entity's only remaining trace is
+its `change_log` tombstone. So a write made before the delete and pushed after it — an offline
+device catching up — arrived at an id the server holds nothing for. That is byte for byte the state
+a genuinely new row arrives in, and `Merge` treated it as one: its "nothing to compare against"
+branch applies every field the mutation carries. The deleted row came back with the values it had
+before somebody deleted it, and it reached every other device as an ordinary change. Nobody was
+told, on any screen, that a delete had been undone.
+
+**Why the fix reads the log rather than keeping the row.** The obvious repair is a `deleted` column
+per table, which is the purest fit for the merge model — but invariant 2 prices a schema change at
+deleting every development database and hand-migrating the family instance, and the change log
+already records every delete, in the right feed, with the delete's clock. ADR-052 has the matrix.
+The rule the guard states is the one the delete branch already states in the other direction:
+**strictly newer wins.** That is not decoration — refusing *every* write to a deleted id would pass
+the resurrection tests and break the client's undo and FR-24.3's restore, both of which re-insert
+the row they removed under the same id. There is a test whose only job is to fail if the clock
+comparison is dropped, and it was mutation-proved by dropping it.
+
+**The trap I nearly built instead.** `sync.Row.HLC` is documented as the row's clock "kept for
+tombstones", so the elegant-looking move is to have `loadRow` return the tombstone's clock for a row
+that is gone and let `Merge` compare against it unchanged. It would have been a silent regression:
+the delete branch reads `res.Deleted = m.HLC > row.HLC`, so a stale *delete* of an already-deleted
+row would have flipped to `Deleted = false`, fallen through to `persist`'s `case !exists`, and
+inserted an empty row. The guard therefore sits in `applyMutation` beside the other pre-merge
+checks, and `internal/sync` is untouched.
+
+**The measurement rewrote the ADR I had already written.** The first draft called the lookup's cost
+immaterial. It is not, and the benchmark said so within a minute: on the master feed an insert goes
+from 0.80 ms at an empty log to 8.0 ms at 20 000 entries, and with the guard disabled the same
+benchmark stays flat — the whole growth is the lookup, linear in a log nothing compacts. What made
+the decision hold anyway was the *second* measurement, of the other feed: the trip partition stays
+flat at ~1.1 ms through the same 20 000 entries, because `idx_change_log_trip (trip_id, seq)` bounds
+it to one trip's own history — **and the trip feed is the one carrying the burst**, since a wizard
+writes about a hundred `trip_items` and only a handful of master rows. So the expensive feed is the
+one nobody writes in bulk. That asymmetry is the whole reason no index is needed yet, it is not
+something I would have guessed, and the revisit trigger is now a count anyone can re-measure rather
+than a feeling. `BenchmarkTombstoneLookup_*` ships for that purpose.
+
+**What the vocabulary gate did.** Adding `ReasonRowDeleted` turned
+`TestRejectReasons_ClientKnowsEveryOneTheServerCanSend` red immediately, naming the file and the
+missing entry — a refusal the user would have been told nothing about, caught before the client was
+touched. It is the cheapest guard in the repository and it earned its keep again.

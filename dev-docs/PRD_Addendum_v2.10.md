@@ -3708,7 +3708,11 @@ the tail is where a symbol system is actually decided. Results:
 * **NFR-4.2a (Conflict Resolution Strategy — refines NFR-4.2):** Offline conflicts are resolved with field-level
   Last-Write-Wins based on hybrid logical clocks, with two domain rules taking precedence: (1) terminal states win over
   transient states (*Packed* beats *Packing Now*), and (2) additive operations (comments, tasks, flags) are always
-  merged, never overwritten. Every automatic resolution is written to a conflict log surfaced in the UI so users can
+  merged, never overwritten. **A delete takes part in that ordering rather than standing outside it (added 2026-09-09,
+  ADR-052):** it is an all-fields decision, so a write only creates a deleted row again if it is strictly newer than
+  the delete. An older one — the edit an offline device made before somebody else deleted the row — is refused with
+  `row_deleted` instead of quietly undoing the delete, which is the same loss as an overwritten field with nobody
+  told about it. Every automatic resolution is written to a conflict log surfaced in the UI so users can
   audit and manually revert. **The revert was built 2026-08-22 and is an ordinary new mutation with a fresh server HLC,
   not an undo of the past** (ADR-023, Sync-API §6.1): it wins by being newer, it reaches every device through the normal
   change feed, it is refused where the merge rules of §6 outrank it (a `packing_now` restored onto a packed row) or
