@@ -853,6 +853,16 @@ rather than registered.
   off a wait, because Ionic's enter animation is a duration nobody controls — and measured on the **modal**, not on the
   scroll box inside it: the box was only ever as tall as its content, so the first draft of this case stayed green
   against the very build it is about. Proved by mutation before it was believed.
+* **E2E-M5-26** `all` (FR-25.21c, new 2026-09-09) — **implemented** (`e2e/membership.spec.ts`): the *„Alle
+  Reisenden"* head row, tapped out of a **partial** membership that already carries a chosen amount (Leonardo 3). The
+  two missing travelers arrive at 1, Leonardo stays at 3, and the footer reads 5 — a shortcut that reset the amounts
+  would pass every count-based clause and fail this one. The head's own state is read before and after (`aria-checked`
+  *mixed*, then *true*), because a select-all that writes without reporting is half the control: the mixed state is
+  what answers *„sind alle dabei?"* on opening, and the full state is asserted as an *ordinary* checked box — a second
+  tap on it leaves the amounts and the footer where they are and the box checked, which is the positive signal that the
+  no-op is a no-op rather than an unnoticed toggle. The case also holds the **row layout**: both checkboxes are read off
+  their rendered geometry as sitting right of the stepper and past the sheet's midline, where M4's pack control sits —
+  a DOM order would be satisfied by markup a `flex-direction` could still reverse.
 * **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam*. One row remains at quantity **5** — the sum, not the
   largest — and the preparation todo written on the surviving row before the conversion is still on it afterwards. That
   last clause is the one worth having: ADR-036 chose keep-and-repoint over delete-and-recreate precisely so a structural

@@ -1814,6 +1814,22 @@ locked.
     reading first; a single traveler leaving asks only when their row carries something. Both destructive conversions —
     removing a traveler whose row has progress or notes, and collapsing N rows into one — are confirmed with the outcome
     stated *before* it happens, the FR-24.3/ADR-032 idiom; a traveler whose row is untouched is removed silently.
+    **FR-25.21c (the roster has a head row — added 2026-09-09):** checking five people one at a time is five taps for
+    the answer *„alle"*, which is the common one on a family trip — a sunscreen, a toothbrush, a rain jacket. The
+    roster therefore opens with **„Alle Reisenden"**, a row wearing the same checkbox grammar as the lines under it
+    rather than a link or a chip, because the sheet has exactly two kinds of control today (the tab and the row) and a
+    third would have to be learned. It is **tri-state** — mixed while only some travelers are members — so it also
+    answers *„sind alle dabei?"*, which is otherwise read by counting. **It only ever enlarges the membership:** the
+    travelers who have no row arrive at the floor of one and every amount somebody chose is left standing, so the
+    shortcut can never overwrite a decision. **Unchecking it is deliberately not the reverse.** An empty membership is
+    not a state the model has — nobody per-person means *gemeinsam* — so the way back stays the *Gemeinsam* tab, which
+    sums the amounts and confirms the outcome first (b); a second, silent path to that rewrite is exactly what the
+    confirm exists to prevent. Once everybody is a member the head is simply a checked box: the tap changes nothing, and
+    it is deliberately **not** disabled (owner, 2026-09-09) — a faded control is the G-3 lock's sentence about a row
+    somebody else has claimed, and saying it here about a full roster would make one appearance mean two things. It
+    writes
+    through the same `apply()` as every other control, so FR-5.5's *weggelassen* question is asked once for the whole
+    tap rather than once per person, and G-3 freezes it with the rest of the editor.
   * **FR-25.14 (Per-person items have no aggregate stepper — 2026-08-07):** in M5, a per-person item's total renders as
     a **read-only progress chip** ("0/3"), never as a +/− stepper. Found in concept testing: the sheet showed the summed
     quantity inside a stepper that could not be operated, and should not be — "+1" cannot say *for whom*. The working
