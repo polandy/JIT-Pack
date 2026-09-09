@@ -167,6 +167,34 @@ describe('spreadOverEveryTraveler (FR-25.13g)', () => {
     expect(harness.fetch).not.toHaveBeenCalled()
   })
 
+  it('refuses a plan that would delete a row, because its undo could not put one back', () => {
+    // Every traveler has a row *and* a shared row is still there: the planner
+    // reads the leftover shared row as a member nobody asked for and plans a
+    // delete for it. The undo restores fields and removes inserts — a deleted
+    // row is not something it can bring back, so nothing is written at all.
+    seedTrip([
+      sharedRow(),
+      ...['tr-a', 'tr-b', 'tr-c'].map((travelerId) =>
+        change(TABLE.tripItems, `ti-${travelerId}`, {
+          trip_id: TRIP_ID,
+          name: NAME,
+          source_item_id: SHORTS,
+          quantity: 1,
+          packed_count: 0,
+          state: 'open',
+          mode: 'pack',
+          assigned_traveler_id: travelerId,
+        }),
+      ),
+    ])
+
+    const result = orchestrator().spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+
+    expect(result.outcome).toBe(SPREAD.wouldDelete)
+    expect(rowsOf()).toHaveLength(4)
+    expect(harness.fetch).not.toHaveBeenCalled()
+  })
+
   it('reaches the outbox as one push, so a disconnect cannot strand half a fan-out', async () => {
     seedTrip([sharedRow()])
 

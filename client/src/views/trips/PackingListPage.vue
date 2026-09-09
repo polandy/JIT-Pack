@@ -121,6 +121,7 @@ import { confirmAction } from '@/lib/confirm'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { SPREAD } from '@/composables/sync/actions/packing'
+import { rowsCarryingContent } from '@/domain/membership'
 import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
@@ -1015,19 +1016,12 @@ function onBrowseSpread(itemId: string) {
   browseUndo.set(itemId, () => orchestrator.restoreMembership(props.tripId, restore))
 }
 
-/**
- * Which of these rows a delete would cost more than the row (FR-7.1/7.3). The
- * planner has no I/O, so it is told — the same answer the membership editor
- * works out for the same question.
- */
+/** What a delete of these rows would cost beyond the rows (FR-7.1/7.3). */
 function rowsWithContent(rows: TripItem[]): string[] {
-  return rows
-    .filter(
-      (row) =>
-        tripStore.getItemComments(props.tripId, row.id).length > 0 ||
-        tripStore.getTodos(props.tripId).some((todo) => todo.trip_item_id === row.id),
-    )
-    .map((row) => row.id)
+  return rowsCarryingContent(rows, {
+    hasComments: (rowId) => tripStore.getItemComments(props.tripId, rowId).length > 0,
+    hasTodo: (rowId) => tripStore.getTodos(props.tripId).some((t) => t.trip_item_id === rowId),
+  })
 }
 
 /**

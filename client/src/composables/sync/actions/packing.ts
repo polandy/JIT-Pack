@@ -38,8 +38,8 @@ export const SPREAD = {
   done: 'done',
   /** The rows already express it — nothing was written. */
   nothing: 'nothing',
-  /** It would have cost a packed row or a comment thread: the editor must ask. */
-  wouldDestroy: 'would-destroy',
+  /** The plan wanted to delete a row: nothing was written, and the screen says so. */
+  wouldDelete: 'would-delete',
 } as const
 
 export type SpreadOutcome = (typeof SPREAD)[keyof typeof SPREAD]
@@ -60,7 +60,7 @@ interface SpreadResult {
 
 /** What {@link createPackingActions.addItemForEveryTraveler} hands back. */
 interface ForAllAddResult extends SpreadResult {
-  /** The row the add wrote — what the editor opens on when the spread declined. */
+  /** The row the add wrote, which is there whatever the spread went on to do. */
   id: string
   /** Every row the tap left behind, which its undo takes out again. */
   ids: string[]
@@ -459,13 +459,13 @@ export function createPackingActions(ctx: SyncContext) {
    * kept and only the travelers who have none are added, at the floor of one —
    * so a spread can enlarge a membership and never rewrite one (FR-25.21c).
    *
-   * **It only ever adds.** A row belonging to somebody who has left the trip is
-   * kept out of the plan entirely rather than swept up by it: the planner would
-   * read it as a member nobody asked for and delete it, which is a decision the
-   * editor's confirm exists to take (ADR-036) and a run has no room for. What
-   * is left cannot lose anything — and the plan is still read before it is
-   * written, because a set that changed under the tap must not turn a one-tap
-   * spread into a silent delete.
+   * **It only ever adds**, and that is checked twice. A row belonging to
+   * somebody who has left the trip is kept out of the plan to begin with — the
+   * planner would read it as a member nobody asked for and delete it, which is
+   * a decision ADR-036 puts a confirm on and a run has no room for. And a plan
+   * that still comes back carrying a delete is not written at all: the undo
+   * this returns restores fields and removes inserts, so a row a spread deleted
+   * would be one the line's *„Rückgängig"* could not bring back.
    */
   function spreadOverEveryTraveler(
     tripId: string,
@@ -482,7 +482,7 @@ export function createPackingActions(ctx: SyncContext) {
       members: everyoneMembers(travelers, membersOfRows(mine, travelers)),
     }
     const plan = membershipPlanFor(tripId, mine, target, rowsWithContent)
-    if (plan.destructive.length > 0) return { outcome: SPREAD.wouldDestroy, restore: null }
+    if (plan.delete.length > 0) return { outcome: SPREAD.wouldDelete, restore: null }
     if (plan.empty) return { outcome: SPREAD.nothing, restore: null }
 
     const restore = restorePointFor(mine, plan)
@@ -504,12 +504,12 @@ export function createPackingActions(ctx: SyncContext) {
   ): ForAllAddResult {
     const { id, companions } = quickAddItem(tripId, name, opts, isActive)
     const row = tripStore.getItems(tripId).find((item) => item.id === id)
-    // A row this device just wrote is in the store; if it is not, the spread
-    // has nothing to plan from, and saying so sends the caller to the editor
-    // rather than leaving a shared row behind without a word.
-    const spread = row
+    // A row this device just wrote is in the store. If it is not, the spread
+    // has nothing to plan from and the tap has left an ordinary shared row
+    // behind — which the caller reports rather than passing off as a fan-out.
+    const spread: SpreadResult = row
       ? spreadOverEveryTraveler(tripId, [row], [])
-      : { outcome: SPREAD.wouldDestroy, restore: null }
+      : { outcome: SPREAD.nothing, restore: null }
     return {
       id,
       companions,

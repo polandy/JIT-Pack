@@ -4711,8 +4711,8 @@ spread it never performed, the bundle rebuilt, and E2E-M4-78 went red on the clu
 on the line's own „für alle · 3 Personen", which the sheet writes from its own ledger and would have
 kept saying against the broken build. That is why the case asserts M4 after the sheet closes at all.
 
-**One branch is deliberately not here.** A spread that would delete a packed row belonging to a
-traveler who has left the trip writes nothing and reports it; reaching that state through the UI
-means removing a traveler whose row is packed and then opening the sheet, which is three screens of
-setup for a guard whose whole job is to be unreachable. It is covered where it can be stated in one
-line — `composables/__tests__/spreadForAll.spec.ts`, against a store that simply holds such a row.
+**One branch is deliberately not here.** A spread whose plan carries a delete — a row of a traveler
+who has left the trip, or a leftover shared row beside a complete per-person set — writes nothing and
+reports it. Reaching either state through the UI is several screens of setup for a guard whose whole
+job is to be unreachable; it is covered where it can be stated in one line,
+`composables/__tests__/spreadForAll.spec.ts`, against a store that simply holds such a row.

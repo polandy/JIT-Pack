@@ -148,7 +148,7 @@ export const en = {
   'packing.companionsAdded':
     '“{names}” came along — it is required for what you added | “{names}” came along — they are required for what you added',
   'packing.forAllRefused':
-    'Not distributed: some rows belong to somebody who no longer travels. Decide that in the “Who needs this?” sheet.',
+    'Not distributed: doing so would delete a row. Decide that in the “Who needs this?” sheet.',
   'packing.skippedToastWith': '“{name}” stays at home — along with {companions}',
   'packing.packedToast': '“{name}” packed ✓',
   'packing.openPrep': '{n} preparation open | {n} preparations open',

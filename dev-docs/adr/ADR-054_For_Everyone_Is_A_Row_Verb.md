@@ -101,9 +101,11 @@ traveler's and its comments, todos and progress survive.
 **No editor opens.** FR-25.8's mode has to close the sheet before its editor can be presented; this verb ends in the
 sheet, which is what lets the taps run.
 
-**The spread only ever adds.** A row belonging to somebody who has left the trip is filtered out of the plan rather
-than swept into it — the planner would otherwise read it as a member nobody asked for and delete it. The plan is still
-read before it is written, and a plan that would destroy something is not written at all; the screen says so.
+**The spread only ever adds, and that is checked twice.** A row belonging to somebody who has left the trip is
+filtered out of the plan rather than swept into it — the planner would otherwise read it as a member nobody asked for
+and delete it. And a plan that still comes back carrying a delete of any kind is not written at all, because the undo
+this verb offers restores fields and removes inserts: a row a spread deleted is one *„Rückgängig"* could not bring
+back. The screen reports the refusal.
 
 **Absent, not disabled** (G-8), below two travelers — the number that decides FR-25.8's mode, now named once as
 `MIN_TRAVELERS_FOR_PER_PERSON` — on a line that already reaches everybody, on settled and locked lines, and in a sheet

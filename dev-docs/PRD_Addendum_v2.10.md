@@ -2144,10 +2144,12 @@ locked.
       close the sheet first; this verb ends in the sheet, which is what lets a run of them be tapped one after another.
       The amount stays one per person: setting different amounts is the editor's, one screen away, and asking here
       would rebuild it.
-    * **It only ever adds.** A row belonging to somebody who has left the trip is left out of the plan entirely rather
-      than swept up by it — the planner would read it as a member nobody asked for and *delete* it, which is a decision
-      ADR-036 gives a confirm and a run has no room for. The plan is still read before it is written, and where it
-      would destroy something nothing is written and the screen says so.
+    * **It only ever adds, checked twice.** A row belonging to somebody who has left the trip is left out of the plan
+      entirely rather than swept up by it — the planner would read it as a member nobody asked for and *delete* it,
+      which is a decision ADR-036 gives a confirm and a run has no room for. And a plan that still comes back carrying
+      a delete of any kind is not written at all: the line's *„Rückgängig"* restores fields and removes what was
+      inserted, so a row a spread deleted would be one the way back could not bring back. Nothing is written, and the
+      screen says so.
     * **The verb is absent where it would do nothing** (G-8): below two travelers, on a line that already reaches every
       traveler, on settled and locked lines, and in a sheet that renders no verbs at all (M6, M8). Absent rather than
       disabled, for FR-25.13f's reason.

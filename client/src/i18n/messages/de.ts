@@ -151,7 +151,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.companionsAdded':
     '„{names}“ kam mit — es gehört zwingend dazu | „{names}“ kamen mit — sie gehören zwingend dazu',
   'packing.forAllRefused':
-    'Nicht verteilt: Es gibt Zeilen von jemandem, der nicht mehr mitreist. Das entscheidest du im Blatt „Wer braucht das?“.',
+    'Nicht verteilt: Dafür müsste eine Zeile gelöscht werden. Das entscheidest du im Blatt „Wer braucht das?“.',
   'packing.skippedToastWith': '„{name}“ bleibt zu Hause — mit {companions}',
   'packing.packedToast': '„{name}“ gepackt ✓',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',

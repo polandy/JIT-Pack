@@ -27,6 +27,7 @@ import {
   everyoneMembers,
   membershipCoverage,
   membershipRows,
+  rowsCarryingContent,
   planMembership,
   type MembershipPlan,
   type MembershipTarget,
@@ -68,15 +69,12 @@ const rows = computed(() => (item.value ? membershipRows(allItems.value, item.va
  * Which rows a delete would cost something beyond the row: a comment thread or
  * a preparation todo (FR-7.1/7.3). The planner has no I/O, so it is told.
  */
-const rowsWithContent = computed(() => {
-  const ids = new Set<string>()
-  for (const row of rows.value) {
-    if (tripStore.getItemComments(props.tripId, row.id).length > 0) ids.add(row.id)
-    else if (tripStore.getTodos(props.tripId).some((todo) => todo.trip_item_id === row.id))
-      ids.add(row.id)
-  }
-  return [...ids]
-})
+const rowsWithContent = computed(() =>
+  rowsCarryingContent(rows.value, {
+    hasComments: (rowId) => tripStore.getItemComments(props.tripId, rowId).length > 0,
+    hasTodo: (rowId) => tripStore.getTodos(props.tripId).some((t) => t.trip_item_id === rowId),
+  }),
+)
 
 const perPerson = computed(() => rows.value.some((r) => r.assigned_traveler_id !== null))
 

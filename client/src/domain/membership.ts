@@ -419,3 +419,22 @@ export function membersOfRows(rows: TripItem[], travelers: Traveler[]): Membersh
       quantity: byTraveler.get(traveler.id)?.quantity ?? MIN_QUANTITY,
     }))
 }
+
+/**
+ * Which of these rows a delete would cost more than the row itself: a comment
+ * thread (FR-7.1) or a preparation todo (FR-7.3). This module has no I/O, so
+ * the two questions are asked of the caller — one callback each rather than
+ * two prepared lists, so a caller cannot pass a list it built for other rows.
+ *
+ * It is the answer {@link planMembership}'s `rowsWithContent` wants, and it
+ * lives here because both callers of the planner need it and a second copy is
+ * how the two stop agreeing about what a conversion may destroy.
+ */
+export function rowsCarryingContent(
+  rows: TripItem[],
+  content: { hasComments: (rowId: string) => boolean; hasTodo: (rowId: string) => boolean },
+): string[] {
+  return rows
+    .filter((row) => content.hasComments(row.id) || content.hasTodo(row.id))
+    .map((row) => row.id)
+}
