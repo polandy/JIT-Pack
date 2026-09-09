@@ -14,6 +14,9 @@
  *
  * Membership is the checkbox. A checked traveler's stepper floors at 1, since
  * 0 already means FR-5.5 *skipped* and one control must not carry two decisions.
+ * It sits at the **end** of the row, where M4's G-6 pack control sits: a person
+ * arriving here has just come off that list, and a row's decision is made on
+ * the same side of the screen in both places (owner, 2026-09-09).
  */
 import { IonAlert, IonCheckbox, IonIcon } from '@ionic/vue'
 import { addOutline, lockClosedOutline, removeOutline } from 'ionicons/icons'
@@ -321,6 +324,8 @@ const confirmMessage = computed(() => {
 
     <ul v-if="showRoster" class="list">
       <li class="row all" :class="{ done: coverage === 'all' }">
+        <span class="count jp-num" aria-hidden="true">{{ travelers.length }}</span>
+        <span class="nm">{{ t('membership.all') }}</span>
         <IonCheckbox
           ref="allBox"
           :checked="coverage !== 'none'"
@@ -330,8 +335,6 @@ const confirmMessage = computed(() => {
           data-testid="membership-check-all"
           @ion-change="checkEveryone"
         />
-        <span class="count jp-num" aria-hidden="true">{{ travelers.length }}</span>
-        <span class="nm">{{ t('membership.all') }}</span>
       </li>
       <li
         v-for="tr in travelers"
@@ -339,13 +342,6 @@ const confirmMessage = computed(() => {
         class="row"
         :class="{ off: amountOf(tr.id) === null }"
       >
-        <IonCheckbox
-          :checked="amountOf(tr.id) !== null"
-          :disabled="isLocked"
-          :aria-label="tr.name"
-          :data-testid="`membership-check-${tr.name}`"
-          @ion-change="toggle(tr.id)"
-        />
         <UserAvatar :name="tr.name" :seed="tr.id" :size="24" />
         <span class="nm">{{ tr.name }}</span>
         <span v-if="amountOf(tr.id) !== null" class="stepper">
@@ -369,6 +365,13 @@ const confirmMessage = computed(() => {
             <IonIcon :icon="addOutline" />
           </button>
         </span>
+        <IonCheckbox
+          :checked="amountOf(tr.id) !== null"
+          :disabled="isLocked"
+          :aria-label="tr.name"
+          :data-testid="`membership-check-${tr.name}`"
+          @ion-change="toggle(tr.id)"
+        />
       </li>
     </ul>
 

@@ -1157,7 +1157,9 @@ These patterns apply to every screen and are specified once.
   never a popover: a stepper per traveler does not fit in one. The row reads the current state (`Gemeinsam`, or `Andy 2
   · Leonardo 3 · Mia 1`, truncated with a count past what fits); the sheet carries a `Gemeinsam` / `Pro Person` segment
   and, under it, one line per traveler with a **checkbox and a quantity stepper**, and a footer summing *„3 Personen · 6
-  Stück"*. The roster opens with a **head row *„Alle Reisenden"*** (FR-25.21c): the same checkbox grammar as the lines
+  Stück"*. **The checkbox sits at the end of the row**, where M4's G-6 pack control sits (owner, 2026-09-09): a person
+  reaching this sheet has just come off that list, and a row's decision belongs on the same side of the screen in both
+  places. The roster opens with a **head row *„Alle Reisenden"*** (FR-25.21c): the same checkbox grammar as the lines
   under it, tri-state — mixed while only some are members — so it reports the membership as well as changing it. It only
   ever adds, at one each, and keeps every amount somebody chose; once everybody is a member it is checked and no longer
   offers a tap, because the way back is the *Gemeinsam* tab, which sums the amounts and asks first (FR-25.21b).

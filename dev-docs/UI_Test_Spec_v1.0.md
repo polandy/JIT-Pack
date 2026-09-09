@@ -858,7 +858,9 @@ rather than registered.
   two missing travelers arrive at 1, Leonardo stays at 3, and the footer reads 5 — a shortcut that reset the amounts
   would pass every count-based clause and fail this one. The head's own state is read before and after (`aria-checked`
   *mixed*, then *true*), because a select-all that writes without reporting is half the control: the mixed state is
-  what answers *„sind alle dabei?"* on opening.
+  what answers *„sind alle dabei?"* on opening. The case also holds the **row layout**: both checkboxes are read off
+  their rendered geometry as sitting right of the stepper and past the sheet's midline, where M4's pack control sits —
+  a DOM order would be satisfied by markup a `flex-direction` could still reverse.
 * **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam*. One row remains at quantity **5** — the sum, not the
   largest — and the preparation todo written on the surviving row before the conversion is still on it afterwards. That
   last clause is the one worth having: ADR-036 chose keep-and-repoint over delete-and-recreate precisely so a structural

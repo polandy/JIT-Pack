@@ -165,6 +165,23 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     // Nothing left to add, and the head says so rather than offering the tap.
     await expect(all).toHaveAttribute('aria-checked', 'true')
     await expect(all).toHaveClass(/checkbox-disabled/)
+
+    // The decision sits where M4's pack control sits — read off the rendered
+    // geometry, because the row's order is the whole rule and a DOM order is
+    // not it: `flex-direction` alone would satisfy the markup and fail the eye.
+    const box = async (testId: string) => {
+      const rect = await page.getByTestId(testId).boundingBox()
+      if (!rect) throw new Error(`${testId} has no box`)
+      return rect
+    }
+    const check = await box('membership-check-Andy')
+    const stepper = await box('membership-qty-Andy')
+    const row = await box('membership-sheet')
+    expect(check.x).toBeGreaterThan(stepper.x + stepper.width)
+    expect(check.x).toBeGreaterThan(row.x + row.width / 2)
+    const headCheck = await box('membership-check-all')
+    expect(headCheck.x).toBeGreaterThan(row.x + row.width / 2)
+
     await closeAll(page)
 
     const list = visiblePage(page)
