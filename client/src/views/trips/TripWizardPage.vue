@@ -314,13 +314,9 @@ const taskCount = computed(() =>
   generation.value.items.reduce((sum, item) => sum + item.tasks.length, 0),
 )
 
-/**
- * FR-1.4: the items an empty roster left unplaceable, named once each. A
- * Vorlage and one of its Gruppen can both carry the same per-person position,
- * and the preview would then ask twice for the same traveler.
- */
+/** FR-1.4: the items still waiting for somebody to belong to, named in a row. */
 const unassignableNames = computed(() =>
-  [...new Set(generation.value.unassignable.map((u) => u.item_name))].join(', '),
+  generation.value.unassignable.map((u) => u.item_name).join(', '),
 )
 
 /**

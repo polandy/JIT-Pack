@@ -264,7 +264,12 @@ export interface GenerationResult {
   merged: MergedOverlap[]
   /** Picked single items that were already on the list — "nicht doppelt". */
   alreadyIncluded: AlreadyIncludedItem[]
-  /** Per-person positions the empty roster left unplaceable (FR-1.4). */
+  /**
+   * Per-person positions the empty roster left unplaceable (FR-1.4), one
+   * entry per *item*: a Vorlage and one of its Gruppen can both carry the
+   * same position, and asking twice for the same traveller reads as two
+   * problems.
+   */
   unassignable: UnassignableItem[]
 }
 
@@ -453,7 +458,10 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
     excluded: excluded.filter((e) => !placed.has(e.item_id)),
     merged,
     alreadyIncluded,
-    unassignable: unassignable.filter((u) => !placed.has(u.item_id)),
+    unassignable: unassignable.filter(
+      (u, i) =>
+        !placed.has(u.item_id) && unassignable.findIndex((o) => o.item_id === u.item_id) === i,
+    ),
   }
 }
 

@@ -2784,7 +2784,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-1.1 | E2E | M9-01 (grouped list), M9-10 (search), M10-07 (creation mode — the assertion the retired M9-02 and M10-01 both duplicated), M8-04 |
 | FR-1.2 | E2E | M7-07 (the list and what a row says), M7-08/09 (creating one, and its scope), M8-06 (add **and** remove — the remove half only since 2026-08-30). **M7-01 and M7-03 are retired 2026-08-30** — the shared list is FR-1.6's simplification with nothing to render, and the name prompt was rejected in 2026-08-15's variant pass. |
 | FR-1.3 | DOC/N-A | retired 2026-08-08 — plain integer quantities (M8-01 covers the stepper) |
-| FR-1.4 | E2E | M8-02 |
+| FR-1.4 | E2E | M8-02; M3-21 for the case the fan-out has nobody to expand over (FR-2.5b, ADR-053) |
 | FR-1.5 | DOC/N-A | retired 2026-08-08 with FR-1.3 |
 | FR-1.6 | E2E+UNIT | M14-02 (direct write), M18-01 (an imported template is shared instance-wide like every other — the word „private" in this row's earlier wording was never a property of any template) — MVP shared model; M7-10 + M8-24 + M21-05 (the name is the instance-wide key: create, rename, M8's picker adopting the group that holds it, and M21's two writers — including the rule that exists nowhere else, that the Vorlage and the bundle group it writes in one pass must differ from each other); `domain/nameCollision.ts` (the matching rule), `composables/__tests__/nameCollision.spec.ts` (the orchestrator refuses the write, Local Mode included); publish/fork cases parked with the FR-1.6 stub |
 | FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
@@ -2794,6 +2794,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-2.4 | E2E | M3-10, M8-05 (the note's wording, corrected to the FR-27.4 model 2026-08-30); the M10 usage count is asserted in M10-14/15 (M10-02 retired 2026-08-30 — its „delete blocked" half was reversed by FR-24.3) |
 | FR-2.5 | E2E | M3-03 |
+| FR-2.5b | E2E+UNIT | M3-21 (the preview names what an empty roster cannot place, and one traveller takes the block away); `domain/__tests__/instantiate.spec.ts` (the report, its falsifier and the two filters), `domain/__tests__/groupAdd.spec.ts` + `lib/__tests__/groupAdditionMessage.spec.ts` (FR-27.10's sixth outcome) |
 | FR-2.7 | E2E+UNIT | M22-01 (name and dates), M22-02/03/05/11 (the roster's three affordances and what each does to the per-person rows), M22-04/07 (removal ends at departure), M22-08 (a partial edit is still a whole row), M22-10 (an archived trip's editor is read-only throughout **and says so**), M22-12 (the year, corrected and read back through M2); `TripEditPage.spec.ts` (the FR-2.1d date bound) and `composables/__tests__/tripProperties.spec.ts` (the mutations). **The year is on the screen since 2026-08-31** (M22-12, owner decision — it had a reader everywhere and a writer only at creation), and the **series** is edited on M16 instead, which is what PRD FR-2.7's opening paragraph already said. |
 | FR-3.1 | E2E | M5-02 (the control), shopping.spec.ts (the write) |
 | FR-3.2 | E2E | M6-01/04, M4-11 |

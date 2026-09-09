@@ -488,7 +488,7 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.groupAdded':
     'Gruppe „{name}“ hinzugefügt — {n} Position | Gruppe „{name}“ hinzugefügt — {n} Positionen',
   'quickAdd.groupAlreadyPart': ', {n} schon dabei',
-  'quickAdd.groupNeedsTravelerPart': ', {n} braucht noch Reisende | {n} brauchen noch Reisende',
+  'quickAdd.groupNeedsTravelerPart': ', {n} braucht noch jemanden | {n} brauchen noch jemanden',
   'quickAdd.groupNeedsTravelers':
     'Gruppe „{name}“ braucht Reisende — {n} Position ist pro Person | Gruppe „{name}“ braucht Reisende — {n} Positionen sind pro Person',
   'quickAdd.groupAllPresent': 'Gruppe „{name}“ ist schon vollständig dabei',

@@ -129,13 +129,9 @@ export function planGroupAddition(input: GroupAdditionInput): GroupAdditionPlan 
     })
   }
 
-  const unassignable: string[] = []
-  for (const u of resolved.unassignable) {
-    if (present(u.item_id, u.item_name)) continue
-    if (reported.has(u.item_id)) continue
-    reported.add(u.item_id)
-    unassignable.push(u.item_name)
-  }
+  const unassignable = resolved.unassignable
+    .filter((u) => !present(u.item_id, u.item_name))
+    .map((u) => u.item_name)
 
   return { add, alreadyPresent, unassignable }
 }

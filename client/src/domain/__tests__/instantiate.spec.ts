@@ -484,6 +484,30 @@ describe('generateTripItems reports what an empty roster cannot place (FR-1.4)',
     expect(res.unassignable).toEqual([])
   })
 
+  it('asks once for an item two contributors both carry per person', () => {
+    // The Vorlage and the Gruppe under it both want a sleeping bag per head.
+    // Two entries would read as two problems with two remedies; there is one.
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Camping')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1')],
+        masterItems: [masterItem('i1', 'Schlafsack')],
+        templateItems: [
+          templateItem('ti1', 't1', 'i1', { assignment: 'per_person' }),
+          templateItem('ti2', 'g1', 'i1', { assignment: 'per_person' }),
+        ],
+        trip: noTravelers,
+      }),
+    )
+
+    expect(res.items).toEqual([])
+    // Named by its first contributor, the same rule the merge report follows.
+    expect(res.unassignable).toEqual([
+      { item_id: 'i1', item_name: 'Schlafsack', template_id: 't1' },
+    ])
+  })
+
   it('leaves a trip-global position alone — it needs nobody', () => {
     const res = generateTripItems(
       input({
