@@ -1064,6 +1064,21 @@ taken straight from a phone camera never reaches the server unprocessed.
   desktop is not the primary surface, and a row whose control is 855 px from its name is not using the space, it is
   spending the reader's eye on crossing it.
 
+* **FR-21.27 (M1's Greeting Is M1's Page Head — added 2026-09-09):** The dashboard registers a head like every
+  other screen (G-9, ADR-050): the time-of-day greeting is its title and *„Was beim Packen ansteht"* the meta line under
+  it. The hand-written `h1` in M1's content is gone with the three tab roots' copies that ADR-050 already collected.
+
+  **It was the one screen ADR-050 left out, and the misalignment was visible without measuring.** Rendered side by
+  side at 430 px: on M2 and M3 the name sits 6 px under the bar at 34 px; on M1 the greeting sat at 26 px lower and
+  28 px, because it was an `h1` inside an `ion-padding` content with a further 16 px of margin of its own. Switching
+  tabs moved the first line of the app down and shrank it.
+
+  **Two costs, both accepted.** The greeting takes the page-title role rather than the hero one, so it is the larger
+  size — which is what makes it line up with the screens beside it. And, being the frame's band, it no longer scrolls
+  away with M1's cards; that is ADR-050's stated cost, now paid on the last screen that had avoided it. The screen
+  keeps a `data-testid` of its own (`dashboard`), because a test that says *which* screen is up can no longer point
+  at the greeting: the head is outside the router outlet.
+
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

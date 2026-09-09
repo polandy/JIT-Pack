@@ -38,6 +38,6 @@ test('E2E-M19-02, E2E-NFR-02: a Single-User instance offers no OIDC, so the app 
   await page.goto('/')
 
   expect((await config).status()).toBe(501)
-  await expect(visiblePage(page).getByTestId('dashboard-greeting')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('dashboard')).toBeVisible()
   await expect(page.getByTestId('login-action')).toHaveCount(0)
 })

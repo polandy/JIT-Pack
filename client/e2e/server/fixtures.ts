@@ -56,7 +56,7 @@ export async function loginAs(
 
   // The callback replaces itself with the dashboard once the exchange is
   // done, so the greeting is the proof that a session exists.
-  await expect(visiblePage(page).getByTestId('dashboard-greeting')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('dashboard')).toBeVisible()
   return page
 }
 
