@@ -601,11 +601,9 @@ func updateRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.Me
 // entity belongs to exactly one partition, and a lookup that read both would
 // let one trip's log speak about another's row.
 //
-// It costs a scan of the feed per write that finds no row — which is every
-// insert. The index that would make it a seek cannot be added while
-// invariant 2 stands (a schema change means every database is refused and
-// reseeded), so the cost is taken deliberately and named here: revisit it
-// with the first migration after the ADR-018 trigger.
+// It scans: no index serves this predicate, and adding one is a schema
+// change. Why that is affordable anyway, what it was measured at and when to
+// revisit it — ADR-052. `BenchmarkTombstoneLookup_*` re-measures it.
 func tombstoneHLC(ctx context.Context, tx *sql.Tx, f feed, table, id string) (sync.HLC, error) {
 	where, args := f.where()
 	args = append(args, table, id)
