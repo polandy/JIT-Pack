@@ -10,27 +10,15 @@
 import {
   IonPage,
   IonContent,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonItem,
   IonLabel,
   IonCheckbox,
-  IonProgressBar,
   IonButton,
   IonIcon,
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue'
-import {
-  trainOutline,
-  addOutline,
-  buildOutline,
-  personOutline,
-  alarmOutline,
-  calendarOutline,
-} from 'ionicons/icons'
+import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -42,6 +30,7 @@ import {
   plannedTripsByDeparture,
 } from '@/domain/dashboardSections'
 import EmptyState from '@/components/global/EmptyState.vue'
+import SectionHead from '@/components/global/SectionHead.vue'
 import { t } from '@/i18n'
 import { loadSeenDelegations, markDelegationsSeen } from '@/local/delegationSeen'
 import { formatTripPeriod } from '@/lib/format'
@@ -53,6 +42,7 @@ import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
 import { useIdentity } from '@/composables/useTripIdentity'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
 
 const tripStore = useTripStore()
@@ -301,17 +291,13 @@ async function handleRefresh(event: CustomEvent) {
         full — the aggregation below stays unfiltered either way, because a
         personal filter would empty the screen in exactly those two modes.
       -->
-      <IonCard v-if="delegated.length > 0" class="prep-card" data-testid="dashboard-delegated">
-        <IonCardHeader>
-          <IonCardTitle>
-            <IonIcon :icon="personOutline" />
-            {{ t('dashboard.delegated', { n: delegated.length }) }}
-            <span v-if="newDelegations > 0" class="new-badge" data-testid="dashboard-delegated-new">
-              {{ t('dashboard.delegatedNew', { n: newDelegations }) }}
-            </span>
-          </IonCardTitle>
-        </IonCardHeader>
-        <IonCardContent>
+      <template v-if="delegated.length > 0">
+        <SectionHead
+          :title="t('dashboard.delegated', { n: delegated.length })"
+          :count="newDelegations > 0 ? t('dashboard.delegatedNew', { n: newDelegations }) : null"
+          data-testid="dashboard-delegated-head"
+        />
+        <div class="jp-card prep-card rows-card" data-testid="dashboard-delegated">
           <IonItem
             v-for="row in delegated"
             :key="row.itemId"
@@ -329,22 +315,20 @@ async function handleRefresh(event: CustomEvent) {
               <p>{{ row.tripName }}</p>
             </IonLabel>
           </IonItem>
-        </IonCardContent>
-      </IonCard>
+        </div>
+      </template>
 
       <!--
         FR-5.1: the rows somebody deliberately left until the last morning,
         on the morning it is. Absent on every other day — a permanent section
         counting down to a date is a different feature.
       -->
-      <IonCard v-if="latePackers.length > 0" class="prep-card" data-testid="dashboard-late">
-        <IonCardHeader>
-          <IonCardTitle>
-            <IonIcon :icon="alarmOutline" />
-            {{ t('dashboard.latePackers', { n: latePackers.length }) }}
-          </IonCardTitle>
-        </IonCardHeader>
-        <IonCardContent>
+      <template v-if="latePackers.length > 0">
+        <SectionHead
+          :title="t('dashboard.latePackers', { n: latePackers.length })"
+          data-testid="dashboard-late-head"
+        />
+        <div class="jp-card prep-card rows-card" data-testid="dashboard-late">
           <IonItem
             v-for="row in latePackers"
             :key="row.itemId"
@@ -359,54 +343,55 @@ async function handleRefresh(event: CustomEvent) {
               <p>{{ row.tripName }}</p>
             </IonLabel>
           </IonItem>
-        </IonCardContent>
-      </IonCard>
+        </div>
+      </template>
 
       <!-- Prep to do (FR-7.3) -->
-      <IonCard v-if="totalOpenTodos > 0" class="prep-card" data-testid="dashboard-prep">
-        <IonCardHeader>
-          <IonCardTitle>
-            <IonIcon :icon="buildOutline" />
-            {{ t('dashboard.prepTodo', { n: totalOpenTodos }) }}
-          </IonCardTitle>
-        </IonCardHeader>
-        <IonCardContent>
-          <div
-            v-for="group in prepTodos"
-            :key="`${group.tripId}-${group.itemName}`"
-            class="prep-group"
-          >
-            <!--
-              A button, not a `<p>` with a handler: the name is the way into
-              the row it names (UI-Spec M1, FR-7.3), and a tap target has to
-              be one for the keyboard and for assistive tech as well.
-            -->
-            <button
-              type="button"
-              class="prep-item-name"
-              :data-testid="`dashboard-prep-item-${group.itemName}`"
-              @click="openItem(group.tripId, group.itemId)"
+      <template v-if="totalOpenTodos > 0">
+        <SectionHead
+          :title="t('dashboard.prepTodo')"
+          :count="totalOpenTodos"
+          data-testid="dashboard-prep-head"
+        />
+        <div class="jp-card prep-card" data-testid="dashboard-prep">
+          <div class="card-body">
+            <div
+              v-for="group in prepTodos"
+              :key="`${group.tripId}-${group.itemName}`"
+              class="prep-group"
             >
-              {{ group.itemName }}
-              <span class="prep-trip-label">{{ group.tripName }}</span>
-            </button>
-            <IonItem
-              v-for="todo in group.todos"
-              :key="todo.id"
-              lines="none"
-              class="dashboard-item"
-              :data-testid="`dashboard-todo-${todo.body}`"
-            >
-              <IonCheckbox
-                slot="start"
-                :checked="false"
-                @ionChange="toggleDashboardTodo(group.tripId, todo)"
-              />
-              <IonLabel>{{ todo.body }}</IonLabel>
-            </IonItem>
+              <!--
+                A button, not a `<p>` with a handler: the name is the way into
+                the row it names (UI-Spec M1, FR-7.3), and a tap target has to
+                be one for the keyboard and for assistive tech as well.
+              -->
+              <button
+                type="button"
+                class="prep-item-name"
+                :data-testid="`dashboard-prep-item-${group.itemName}`"
+                @click="openItem(group.tripId, group.itemId)"
+              >
+                {{ group.itemName }}
+                <span class="prep-trip-label">{{ group.tripName }}</span>
+              </button>
+              <IonItem
+                v-for="todo in group.todos"
+                :key="todo.id"
+                lines="none"
+                class="dashboard-item"
+                :data-testid="`dashboard-todo-${todo.body}`"
+              >
+                <IonCheckbox
+                  slot="start"
+                  :checked="false"
+                  @ionChange="toggleDashboardTodo(group.tripId, todo)"
+                />
+                <IonLabel>{{ todo.body }}</IonLabel>
+              </IonItem>
+            </div>
           </div>
-        </IonCardContent>
-      </IonCard>
+        </div>
+      </template>
 
       <!--
         The trip that is next, as a card rather than as a row (FR-21.13).
@@ -464,32 +449,38 @@ async function handleRefresh(event: CustomEvent) {
       </TripHero>
 
       <!-- Trip cards -->
-      <IonCard
+      <RouterLink
         v-for="trip in followingTrips"
         :key="trip.id"
-        button
-        :router-link="tripPath(trip.id)"
+        class="jp-card trip-card"
+        :to="tripPath(trip.id)"
         :data-testid="`dashboard-trip-${trip.name}`"
       >
-        <IonCardHeader>
-          <IonCardTitle>{{ trip.name }}</IonCardTitle>
+        <div class="trip-card-head">
+          <h3 class="trip-card-name">{{ trip.name }}</h3>
           <p class="trip-dates">{{ formatTripPeriod(trip) }}</p>
-        </IonCardHeader>
+        </div>
 
-        <IonProgressBar :value="progressFraction(trip)" />
-
-        <IonCardContent>
-          <p class="item-summary" :data-testid="`dashboard-summary-${trip.name}`">
-            {{
+        <div class="trip-card-body">
+          <!-- The same figure the hero carries, one ring size down: a trip's
+               progress is one composition in this app, and M2's list rows
+               read it the same way. -->
+          <ProgressFigure
+            :percent="progressFraction(trip) * 100"
+            :headline="
               t('trips.itemSummary', {
                 packed: tripKpis(trip).packedItems,
                 total: tripKpis(trip).totalItems,
               })
-            }}
-            <span v-if="openItemCount(trip.id) > 0">
-              &middot; {{ t('dashboard.openCount', { n: openItemCount(trip.id) }) }}
-            </span>
-          </p>
+            "
+            :detail="
+              openItemCount(trip.id) > 0
+                ? t('dashboard.openCount', { n: openItemCount(trip.id) })
+                : null
+            "
+            :ring-size="44"
+            :headline-testid="`dashboard-summary-${trip.name}`"
+          />
 
           <IonItem
             v-for="item in previewItems(trip.id)"
@@ -519,21 +510,20 @@ async function handleRefresh(event: CustomEvent) {
           >
             {{ t('dashboard.moreItems', { n: openItemCount(trip.id) - 3 }) }}
           </p>
-        </IonCardContent>
-      </IonCard>
+        </div>
+      </RouterLink>
       <!--
         FR-6.1: the trips that have not started yet. Below the active cards,
         because M1 answers "what do I have to do right now?" first and this is
         what comes after it.
       -->
-      <IonCard v-if="plannedTrips.length > 0" data-testid="dashboard-planned">
-        <IonCardHeader>
-          <IonCardTitle>
-            <IonIcon :icon="calendarOutline" />
-            {{ t('dashboard.planned', { n: plannedTrips.length }) }}
-          </IonCardTitle>
-        </IonCardHeader>
-        <IonCardContent>
+      <template v-if="plannedTrips.length > 0">
+        <SectionHead
+          :title="t('dashboard.planned')"
+          :count="plannedTrips.length"
+          data-testid="dashboard-planned-head"
+        />
+        <div class="jp-card rows-card" data-testid="dashboard-planned">
           <IonItem
             v-for="trip in plannedTrips"
             :key="trip.id"
@@ -548,23 +538,61 @@ async function handleRefresh(event: CustomEvent) {
               <p>{{ formatTripPeriod(trip) }}</p>
             </IonLabel>
           </IonItem>
-        </IonCardContent>
-      </IonCard>
+        </div>
+      </template>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
+/*
+ * G-14: the app's card, positioned by the screen and painted by nobody.
+ * These blocks were Ionic's `ion-card` until 2026-09-09 (FR-21.28) — a
+ * second radius, a second elevation and a 10 px inset of its own, which put
+ * them a visible step in from the hero card above them.
+ */
+.trip-card,
+.prep-card {
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* The hero above the first of these sets no margin of its own, so the gap
+   between the two cards is this one's to make. */
+.trip-card {
+  margin-top: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.trip-card-head {
+  padding: 14px 16px 0;
+}
+
+/* A card whose whole content is rows: the rows bring their own inset, so the
+   card only owes them the space above the first and under the last. */
+.rows-card {
+  padding-block: 6px;
+}
+
+.trip-card-body {
+  padding: 12px 16px 14px;
+}
+
+.card-body {
+  padding: 10px 6px 12px;
+}
+
+.trip-card-name {
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-semibold);
+  margin: 0;
+}
+
 .trip-dates {
   font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);
   margin: 4px 0 0;
-}
-
-.item-summary {
-  font-size: var(--jp-text-base);
-  color: var(--ion-color-medium);
-  margin-bottom: 8px;
 }
 
 .dashboard-item {
@@ -613,16 +641,6 @@ async function handleRefresh(event: CustomEvent) {
    role (G-11), because it is the one thing here that is *news*. */
 .dashboard-item.is-new {
   border-inline-start: 3px solid var(--jp-action);
-}
-
-.new-badge {
-  margin-inline-start: 8px;
-  padding: 2px 8px;
-  border-radius: var(--jp-r-pill);
-  background: var(--jp-action);
-  color: var(--ct-base);
-  font-size: var(--jp-text-xs);
-  font-weight: var(--jp-weight-semibold);
 }
 
 .prep-trip-label {

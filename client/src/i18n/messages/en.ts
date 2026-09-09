@@ -1059,8 +1059,8 @@ export const en = {
   'dashboard.delegatedNewRow': '{name} — new',
   'dashboard.delegatedNew': '{n} new',
   'dashboard.latePackers': '{n} last thing to pack | {n} last things to pack',
-  'dashboard.planned': 'Planned ({n})',
-  'dashboard.prepTodo': 'Prep to do ({n})',
+  'dashboard.planned': 'Planned',
+  'dashboard.prepTodo': 'Prep to do',
   'dashboard.openCount': '{n} open',
   'dashboard.moreItems': '+{n} more',
 
