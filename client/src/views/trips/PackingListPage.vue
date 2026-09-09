@@ -1025,8 +1025,9 @@ function rowsWithContent(rows: TripItem[]): string[] {
 }
 
 /**
- * The one thing a spread can decline to do: a row of somebody who no longer
- * travels would have to go, and only the editor may ask about that.
+ * A spread declines rather than deletes: its own way back cannot recreate a
+ * row, so a plan carrying a delete is refused and said out loud. Deciding it
+ * belongs to the membership editor, which has the confirm for it (ADR-036).
  */
 function reportSpreadRefused() {
   return presentToast({
