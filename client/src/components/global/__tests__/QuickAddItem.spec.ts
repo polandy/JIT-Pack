@@ -54,7 +54,7 @@ describe('QuickAddItem — FR-25.8 per-person mode', () => {
   })
 
   it('adds gemeinsam by default, and per person only after the mode is chosen', async () => {
-    const wrapper = open({ offerPerPerson: true })
+    const wrapper = open({ travelerCount: 2 })
     await expand(wrapper)
 
     await type(wrapper, NAME)
@@ -71,7 +71,7 @@ describe('QuickAddItem — FR-25.8 per-person mode', () => {
   })
 
   it('forgets the mode when the composer closes, so a run does not outlive itself', async () => {
-    const wrapper = open({ offerPerPerson: true })
+    const wrapper = open({ travelerCount: 2 })
     await expand(wrapper)
     await wrapper.find('[data-testid="quick-add-mode-per-person"]').trigger('click')
 
@@ -100,7 +100,7 @@ describe('QuickAddItem — FR-25.8 per-person mode', () => {
     // The sheet is an Ionic modal, which renders no slot content under jsdom;
     // stubbing it keeps the browse-sheet — and its dismiss — reachable.
     const wrapper = open(
-      { offerPerPerson: true },
+      { travelerCount: 2 },
       { stubs: { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } } },
     )
     await expand(wrapper)
@@ -116,6 +116,40 @@ describe('QuickAddItem — FR-25.8 per-person mode', () => {
     expect(added).toHaveLength(1)
     expect((added[0]![0] as { perPerson: boolean }).perPerson).toBe(true)
     expect(added[0]![1]).toBe('packed')
+  })
+
+  /**
+   * FR-25.13g: the third verb takes the other route on purpose. It carries no
+   * mode and waits for no dismissal, because nothing opens after it — that is
+   * what keeps a run of „für alle" taps inside the sheet.
+   */
+  it('passes „für alle" straight out with the item’s fields, sheet still open', async () => {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: 'items',
+      id: ITEM.id,
+      deleted: false,
+      row: { name: ITEM.name },
+    })
+    const wrapper = open(
+      { travelerCount: 2 },
+      { stubs: { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } } },
+    )
+    await expand(wrapper)
+    await wrapper.find('[data-testid="quick-add-mode-per-person"]').trigger('click')
+    await wrapper.find('[data-testid="quick-add-browse-open"]').trigger('click')
+
+    await wrapper
+      .findComponent(InventoryBrowseSheet)
+      .vm.$emit('add-for-all', { ...ITEM, weight_grams: 180 })
+
+    expect(wrapper.emitted('addForAll')?.[0]?.[0]).toMatchObject({
+      name: ITEM.name,
+      sourceItemId: ITEM.id,
+      weightGrams: 180,
+    })
+    // Not the plain add, and not held back by the FR-25.8 mode either.
+    expect(wrapper.emitted('add')).toBeUndefined()
   })
 })
 

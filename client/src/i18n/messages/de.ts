@@ -150,6 +150,8 @@ export const de: Record<keyof typeof en, string> = {
   'packing.skippedToast': '„{name}“ bleibt zu Hause',
   'packing.companionsAdded':
     '„{names}“ kam mit — es gehört zwingend dazu | „{names}“ kamen mit — sie gehören zwingend dazu',
+  'packing.forAllRefused':
+    'Nicht verteilt: Dafür müsste eine Zeile gelöscht werden. Das entscheidest du im Blatt „Wer braucht das?“.',
   'packing.skippedToastWith': '„{name}“ bleibt zu Hause — mit {companions}',
   'packing.packedToast': '„{name}“ gepackt ✓',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
@@ -511,11 +513,15 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.browseAllCarried': 'Alles aus dem Inventar ist schon drin.',
   'quickAdd.browseShowAnyway': 'Trotzdem anzeigen',
   'quickAdd.browseSubtitleVerbs': 'Tipp = hinzufügen · ✓ gepackt · ✕ nicht einpacken',
+  'quickAdd.browseSubtitleForAll':
+    'Tipp = hinzufügen · 👥 für alle · ✓ gepackt · ✕ nicht einpacken',
   'quickAdd.browsePackedNow': 'eingepackt',
+  'quickAdd.browseForAllNow': 'für alle',
   'quickAdd.browseSkippedNow': 'bleibt zu Hause',
   'quickAdd.browseIsPacked': 'schon eingepackt',
   'quickAdd.browseIsSkipped': 'bleibt zu Hause',
   'quickAdd.browseRowCount': '{n} Personen',
+  'quickAdd.browseForAllLabel': '„{name}" für alle {n} Reisenden auf die Liste nehmen',
   'quickAdd.browsePackLabel': '„{name}" als eingepackt markieren',
   'quickAdd.browseSkipLabel': '„{name}" bewusst nicht einpacken',
   'quickAdd.browseUndoLabel': '„{name}": letzte Aktion rückgängig machen',

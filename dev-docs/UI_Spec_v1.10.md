@@ -1035,17 +1035,26 @@ These patterns apply to every screen and are specified once.
     Personen"*). The acted line stays where it is, says what happened and carries *„Rückgängig"* for as long as the
     sheet is open — the sheet still has no toast. A settled line states *„schon eingepackt"* / *„bleibt zu Hause"* and
     offers nothing, a G-3-locked one names its holder. **M4 only:** the verbs appear for a caller that reports the
-    per-item packing states, which M6 and M8 do not (G-8). **Since FR-25.8 (2026-08-29) the composer carries a mode:** a
-    two-button segment above the field, *Gemeinsam* / *Pro Person*, wearing the same two words as the membership editor
-    because it is that editor the mode opens. An add made in *Pro Person* writes the row and opens the editor on it,
-    already on the roster — the mode is the answer to which tab that is — and checking the travelers is what fans the
-    row out into the FR-25.1 cluster (ADR-036's keep-and-repoint, so the row typed a moment ago *is* the first
-    traveler's row). The mode survives an add, because rows are entered in runs, and is forgotten when the composer
-    closes. It is **absent** — not disabled — wherever there is nobody to distribute over: on M8, whose Vorlage has no
-    people, and on a trip with fewer than two travelers (G-8). **The mode governs FR-25.13f's two verbs as well:** an
-    *already packed* or *stays home* tap made in *Pro Person* writes the row with its decision and opens the editor on
-    it, so the decision is distributed rather than dropped — and, like the plain add, it waits for the sheet to be gone
-    before the editor is presented.
+    per-item packing states, which M6 and M8 do not (G-8). **Since FR-25.13g (2026-09-09) a third verb stands before
+    them in M4:** 👥 *für alle*, which puts the item on every traveler's list in that one tap — on a free line it adds
+    and distributes, on a carried one it gives the travelers who have none a row of their own at amount one, keeping
+    the amount anybody already chose (ADR-036 keep-and-repoint, ADR-054). No editor opens and the sheet stays open,
+    which is what lets the taps run; the line then reads *„für alle · 3 Personen"* with *„Rückgängig"* beside it. The
+    verb is **absent** where it would do nothing (G-8): under two travelers, on a line that already reaches every
+    traveler, on settled and locked lines, and wherever the two verbs above are absent. A line this run has just added
+    shows its *„Rückgängig"* and no 👥 — reopening the sheet offers it again. The head names all three (*„Tipp =
+    hinzufügen · 👥 für alle · ✓ gepackt · ✕ nicht einpacken"*). Its glyph wears the brand role and its border the
+    plain one: rendered, a brand-edged box on every free line read as a column of warnings. **Since FR-25.8
+    (2026-08-29) the composer carries a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*,
+    wearing the same two words as the membership editor because it is that editor the mode opens. An add made in *Pro
+    Person* writes the row and opens the editor on it, already on the roster — the mode is the answer to which tab
+    that is — and checking the travelers is what fans the row out into the FR-25.1 cluster (ADR-036's
+    keep-and-repoint, so the row typed a moment ago *is* the first traveler's row). The mode survives an add, because
+    rows are entered in runs, and is forgotten when the composer closes. It is **absent** — not disabled — wherever
+    there is nobody to distribute over: on M8, whose Vorlage has no people, and on a trip with fewer than two
+    travelers (G-8). **The mode governs FR-25.13f's two verbs as well:** an *already packed* or *stays home* tap made
+    in *Pro Person* writes the row with its decision and opens the editor on it, so the decision is distributed rather
+    than dropped — and, like the plain add, it waits for the sheet to be gone before the editor is presented.
   * Collapsed sections: "Consciously skipped" items (FR-5.5), "Late Packers" (pinned to bottom until departure day, then
     pinned to top), and **"Preparation" (FR-7.3)** — all open prep todos for the trip, grouped by item with traveler
     avatar. Visible to all trip members; resolving a todo is restricted to the item's assignee or trip owner. Tap item

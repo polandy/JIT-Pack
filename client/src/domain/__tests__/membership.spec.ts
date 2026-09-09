@@ -12,6 +12,7 @@ import {
   type MembershipInput,
   type MembershipTarget,
 } from '../membership'
+import { membersOfRows, rowsCarryingContent } from '../membership'
 import { propagatedItemId } from '../refresh'
 import type { Traveler, TripItem } from '@/types/domain'
 
@@ -467,5 +468,68 @@ describe('membershipCoverage (FR-25.21c)', () => {
         gone,
       ]),
     ).toBe('all')
+  })
+})
+
+describe('membersOfRows (FR-25.13g — the membership rows already express)', () => {
+  it("reads each traveler's own amount, in trip order rather than row order", () => {
+    const rows = [
+      row('r-mia', { assigned_traveler_id: MIA.id, quantity: 3 }),
+      row('r-andy', { assigned_traveler_id: ANDY.id, quantity: 2 }),
+    ]
+
+    expect(membersOfRows(rows, TRAVELERS)).toEqual([
+      { traveler_id: ANDY.id, quantity: 2 },
+      { traveler_id: MIA.id, quantity: 3 },
+    ])
+  })
+
+  it('is empty for a shared row: it belongs to nobody in particular', () => {
+    expect(membersOfRows([row('r1')], TRAVELERS)).toEqual([])
+  })
+
+  it('leaves out a row whose traveler has left the trip', () => {
+    const rows = [
+      row('r-andy', { assigned_traveler_id: ANDY.id, quantity: 1 }),
+      row('r-gone', { assigned_traveler_id: 'tr-removed', quantity: 4 }),
+    ]
+
+    expect(membersOfRows(rows, TRAVELERS)).toEqual([{ traveler_id: ANDY.id, quantity: 1 }])
+  })
+
+  it('feeds everyoneMembers: what is chosen is kept, what is missing joins at one', () => {
+    const rows = [row('r-leo', { assigned_traveler_id: LEO.id, quantity: 5 })]
+
+    expect(everyoneMembers(TRAVELERS, membersOfRows(rows, TRAVELERS))).toEqual([
+      { traveler_id: ANDY.id, quantity: 1 },
+      { traveler_id: LEO.id, quantity: 5 },
+      { traveler_id: MIA.id, quantity: 1 },
+    ])
+  })
+})
+
+describe('rowsCarryingContent (what a delete would cost beyond the row)', () => {
+  const rows = [row('r-comment'), row('r-todo'), row('r-bare')]
+  const content = {
+    hasComments: (id: string) => id === 'r-comment',
+    hasTodo: (id: string) => id === 'r-todo',
+  }
+
+  it('names a row with a comment thread and one with a preparation todo', () => {
+    expect(rowsCarryingContent(rows, content)).toEqual(['r-comment', 'r-todo'])
+  })
+
+  it('names a row once when it carries both', () => {
+    expect(rowsCarryingContent(rows, { hasComments: () => true, hasTodo: () => true })).toEqual([
+      'r-comment',
+      'r-todo',
+      'r-bare',
+    ])
+  })
+
+  it('is empty where nothing hangs off the rows — a delete then costs the row alone', () => {
+    expect(rowsCarryingContent(rows, { hasComments: () => false, hasTodo: () => false })).toEqual(
+      [],
+    )
   })
 })

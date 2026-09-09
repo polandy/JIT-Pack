@@ -2481,6 +2481,14 @@ landed, that no test has ever rendered.
   before — a second pass over the same inventory packs it without the sheet closing. **63** the line's own
   *„Rückgängig"* takes the whole write back: the line is an offer again and no row is left behind, on the working list
   or behind the reveal bar.
+* **E2E-M4-78/79** `all` (FR-25.13g, added 2026-09-09) — **implemented** (`e2e/membership.spec.ts`): the browse-sheet's
+  third verb, 👥 *für alle*. **78** one tap on a free line, and the assertion is made twice over: the line reports the
+  number of people it reached, the sheet is **still visible** and no membership editor was presented over it (the run
+  posture, which is E2E-M4-65's rule the other way round), and after the sheet closes M4 renders the item as **one**
+  cluster with a child per traveler — three rows sharing a name is the shape FR-25.8 forbids. **79** the same verb on a
+  line the trip already carries: the sheet is closed and reopened first, because within one run a line the run itself
+  added offers the way back and nothing else, and afterwards the shared row is gone *as a row of its own* — it became
+  one of the three (ADR-036) rather than being left beside them.
 * **E2E-M4-48** `all` (FR-28.4/FR-25.1, added 2026-08-22) — **implemented** (`e2e/item-mark.spec.ts`): a per-person
   position generated for two travelers renders as one cluster, and the **cluster head** — the line that names the item
   once — carries the item's mark (the same `packing` ladder as a single row); the traveler children carry none. Found on
