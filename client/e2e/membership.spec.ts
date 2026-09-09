@@ -8,6 +8,7 @@
  * and its children carry *different* amounts.
  */
 import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
+import { createMasterItem } from './helpers/templates'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 
@@ -359,6 +360,84 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     // control that can only say one thing is worse than no control.
     await expect(page.getByTestId('quick-add-mode-per-person')).toHaveCount(0)
     await expect(page.getByTestId('quick-add-input')).toBeVisible()
+  })
+
+  /**
+   * FR-25.13g — the whole point of the verb is that the run does not stop: no
+   * editor opens, the sheet stays up, and the rows are there when it closes.
+   * Asserted on the rendered cluster for this file's own reason, and the sheet
+   * being *visible* afterwards is the positive signal that nothing was
+   * presented over it (E2E-M4-65 is the same question the other way round).
+   */
+  test('E2E-M4-78: „für alle" gives every traveler a row without leaving the sheet', async ({
+    page,
+  }) => {
+    await createMasterItem(page, 'Sonnenhut')
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await expect(sheet).toBeVisible()
+
+    await sheet
+      .getByTestId('browse-row-free')
+      .filter({ hasText: 'Sonnenhut' })
+      .getByTestId('browse-for-all')
+      .click()
+
+    // The line says how many people it reached — a bare „hinzugefügt" would
+    // claim less than the tap did (FR-25.13f's rule for a verb over a set).
+    await expect(sheet.getByTestId('browse-for-all-now')).toContainText('3')
+    await expect(sheet).toBeVisible()
+    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(sheet).toHaveCount(0)
+    const list = visiblePage(page)
+    for (const traveler of TRIP.travelers) {
+      await expect(list.getByTestId(`m4-child-Sonnenhut-${traveler}`)).toBeVisible()
+    }
+    // Named once: three rows sharing a name is the shape FR-25.8 forbids.
+    await expect(list.getByTestId('m4-row-Sonnenhut')).toHaveCount(0)
+  })
+
+  /**
+   * The same verb on a line the trip already carries — the correction for a
+   * shared row that turns out to be everybody's (ADR-036 keep-and-repoint).
+   * Within one run of the sheet a line the run itself added offers the way
+   * *back* and nothing else, so the sheet is closed and reopened here, which
+   * is also the state a second visit is in.
+   */
+  test('E2E-M4-79: „für alle" spreads a row the trip already carries', async ({ page }) => {
+    await createMasterItem(page, 'Sonnenhut')
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await sheet.getByTestId('browse-row-free').filter({ hasText: 'Sonnenhut' }).click()
+    await expect(sheet.getByTestId('browse-added-now')).toBeVisible()
+    await sheet.getByTestId('browse-close').click()
+    await expect(sheet).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m4-row-Sonnenhut')).toBeVisible()
+
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
+    await expect(sheet).toBeVisible()
+    await sheet
+      .getByTestId('browse-row-carried')
+      .filter({ hasText: 'Sonnenhut' })
+      .getByTestId('browse-for-all')
+      .click()
+    await expect(sheet.getByTestId('browse-for-all-now')).toContainText('3')
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(sheet).toHaveCount(0)
+    const list = visiblePage(page)
+    for (const traveler of TRIP.travelers) {
+      await expect(list.getByTestId(`m4-child-Sonnenhut-${traveler}`)).toBeVisible()
+    }
+    // The shared row is gone as a row of its own: it *became* one of the three
+    // (ADR-036), rather than being left beside them.
+    await expect(list.getByTestId('m4-row-Sonnenhut')).toHaveCount(0)
   })
 
   test('E2E-M4-65: a per-person add from the browse-sheet closes it first', async ({ page }) => {

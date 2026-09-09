@@ -147,6 +147,8 @@ export const en = {
   'packing.skippedToast': '“{name}” stays at home',
   'packing.companionsAdded':
     '“{names}” came along — it is required for what you added | “{names}” came along — they are required for what you added',
+  'packing.forAllRefused':
+    'Not distributed: some rows belong to somebody who no longer travels. Decide that in the “Who needs this?” sheet.',
   'packing.skippedToastWith': '“{name}” stays at home — along with {companions}',
   'packing.packedToast': '“{name}” packed ✓',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
@@ -500,11 +502,14 @@ export const en = {
   'quickAdd.browseAllCarried': 'Everything in the inventory is already in.',
   'quickAdd.browseShowAnyway': 'Show anyway',
   'quickAdd.browseSubtitleVerbs': 'Tap = add · ✓ packed · ✕ leave behind',
+  'quickAdd.browseSubtitleForAll': 'Tap = add · 👥 for everyone · ✓ packed · ✕ leave behind',
   'quickAdd.browsePackedNow': 'packed',
+  'quickAdd.browseForAllNow': 'for everyone',
   'quickAdd.browseSkippedNow': 'staying home',
   'quickAdd.browseIsPacked': 'already packed',
   'quickAdd.browseIsSkipped': 'staying home',
   'quickAdd.browseRowCount': '{n} people',
+  'quickAdd.browseForAllLabel': 'Put "{name}" on the list for all {n} travellers',
   'quickAdd.browsePackLabel': 'Mark "{name}" as packed',
   'quickAdd.browseSkipLabel': 'Deliberately leave "{name}" behind',
   'quickAdd.browseUndoLabel': '"{name}": undo the last action',

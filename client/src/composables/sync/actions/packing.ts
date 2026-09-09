@@ -15,11 +15,57 @@ import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
 import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
-import { planMembership, type MembershipTarget } from '@/domain/membership'
+import {
+  everyoneMembers,
+  membersOfRows,
+  planMembership,
+  type MembershipPlan,
+  type MembershipTarget,
+  type MembershipUpdate,
+} from '@/domain/membership'
 import { companionAsGenerated, generatedFrom } from '@/domain/instantiate'
 import type { AddedItemDecision } from '@/sync/mutations'
 import type { ItemMode, ReviewFlag, ShoppingMode, TripItem } from '@/types/domain'
 import type { SyncContext } from '../context'
+
+/**
+ * What a one-tap spread did (FR-25.13g). A result code rather than a sentence:
+ * the wording is the screen's, and two of the three outcomes are states the
+ * caller has to act on, not report.
+ */
+export const SPREAD = {
+  /** Every traveler has a row now, and `restore` takes that back. */
+  done: 'done',
+  /** The rows already express it — nothing was written. */
+  nothing: 'nothing',
+  /** It would have cost a packed row or a comment thread: the editor must ask. */
+  wouldDestroy: 'would-destroy',
+} as const
+
+export type SpreadOutcome = (typeof SPREAD)[keyof typeof SPREAD]
+
+/** What a spread wrote, in the shape that takes it back again. */
+export interface MembershipRestore {
+  /** The re-pointed rows, with the field values they had before. */
+  update: MembershipUpdate[]
+  /** The rows the spread created, which an undo deletes. */
+  inserted: string[]
+}
+
+interface SpreadResult {
+  outcome: SpreadOutcome
+  /** Non-null exactly when `outcome` is `done`. */
+  restore: MembershipRestore | null
+}
+
+/** What {@link createPackingActions.addItemForEveryTraveler} hands back. */
+interface ForAllAddResult extends SpreadResult {
+  /** The row the add wrote — what the editor opens on when the spread declined. */
+  id: string
+  /** Every row the tap left behind, which its undo takes out again. */
+  ids: string[]
+  companions: string[]
+}
 
 /** createPackingActions binds the packing group to one sync context. */
 export function createPackingActions(ctx: SyncContext) {
@@ -209,15 +255,34 @@ export function createPackingActions(ctx: SyncContext) {
     target: MembershipTarget,
     rowsWithContent: string[],
   ) {
-    const plan = planMembership({
+    const plan = membershipPlanFor(tripId, rows, target, rowsWithContent)
+    if (!plan.empty) applyMembershipPlan(tripId, rows, plan)
+    return plan
+  }
+
+  /**
+   * What a membership change would do, without doing any of it. Split out for
+   * FR-25.13g: the browse-sheet's one-tap „für alle" has no way to ask a
+   * question, so it reads the plan first and declines to write one that would
+   * destroy something.
+   */
+  function membershipPlanFor(
+    tripId: string,
+    rows: TripItem[],
+    target: MembershipTarget,
+    rowsWithContent: string[],
+  ): MembershipPlan {
+    return planMembership({
       tripId,
       rows,
       travelers: tripStore.getTravelers(tripId),
       rowsWithContent,
       target,
     })
-    if (plan.empty) return plan
+  }
 
+  /** Turn a plan into mutations — one enqueue, so a conversion is one unit. */
+  function applyMembershipPlan(tripId: string, rows: TripItem[], plan: MembershipPlan) {
     const byId = new Map(rows.map((r) => [r.id, r]))
     const muts = []
 
@@ -248,7 +313,6 @@ export function createPackingActions(ctx: SyncContext) {
     }
 
     enqueueAndDrain('trip', tripId, ...muts)
-    return plan
   }
 
   function assignContainer(tripId: string, item: TripItem, containerId: string | null) {
@@ -389,6 +453,120 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   /**
+   * FR-25.13g: give every traveler of the trip a row for this item, in one tap.
+   *
+   * The membership is `everyoneMembers`' — an amount somebody already chose is
+   * kept and only the travelers who have none are added, at the floor of one —
+   * so a spread can enlarge a membership and never rewrite one (FR-25.21c).
+   *
+   * **It only ever adds.** A row belonging to somebody who has left the trip is
+   * kept out of the plan entirely rather than swept up by it: the planner would
+   * read it as a member nobody asked for and delete it, which is a decision the
+   * editor's confirm exists to take (ADR-036) and a run has no room for. What
+   * is left cannot lose anything — and the plan is still read before it is
+   * written, because a set that changed under the tap must not turn a one-tap
+   * spread into a silent delete.
+   */
+  function spreadOverEveryTraveler(
+    tripId: string,
+    rows: TripItem[],
+    rowsWithContent: string[],
+  ): SpreadResult {
+    const travelers = tripStore.getTravelers(tripId)
+    const roster = new Set(travelers.map((traveler) => traveler.id))
+    const mine = rows.filter(
+      (row) => row.assigned_traveler_id === null || roster.has(row.assigned_traveler_id),
+    )
+    const target: MembershipTarget = {
+      kind: 'perPerson',
+      members: everyoneMembers(travelers, membersOfRows(mine, travelers)),
+    }
+    const plan = membershipPlanFor(tripId, mine, target, rowsWithContent)
+    if (plan.destructive.length > 0) return { outcome: SPREAD.wouldDestroy, restore: null }
+    if (plan.empty) return { outcome: SPREAD.nothing, restore: null }
+
+    const restore = restorePointFor(mine, plan)
+    applyMembershipPlan(tripId, mine, plan)
+    return { outcome: SPREAD.done, restore }
+  }
+
+  /**
+   * FR-25.13g: add a row from the browse-sheet and spread it over the whole
+   * roster in the same tap. The add is {@link quickAddItem}'s, so a row born
+   * this way carries the same defaults, the same FR-9.1 flag and the same
+   * FR-20.4 companions as any other.
+   */
+  function addItemForEveryTraveler(
+    tripId: string,
+    name: string,
+    opts: Parameters<typeof quickAddItem>[2],
+    isActive: boolean,
+  ): ForAllAddResult {
+    const { id, companions } = quickAddItem(tripId, name, opts, isActive)
+    const row = tripStore.getItems(tripId).find((item) => item.id === id)
+    // A row this device just wrote is in the store; if it is not, the spread
+    // has nothing to plan from, and saying so sends the caller to the editor
+    // rather than leaving a shared row behind without a word.
+    const spread = row
+      ? spreadOverEveryTraveler(tripId, [row], [])
+      : { outcome: SPREAD.wouldDestroy, restore: null }
+    return {
+      id,
+      companions,
+      outcome: spread.outcome,
+      ids: [id, ...(spread.restore?.inserted ?? [])],
+      restore: spread.restore,
+    }
+  }
+
+  /**
+   * Take back a spread: the rows it inserted go again, and the row it
+   * re-pointed gets the values it had. A row somebody else has deleted in the
+   * meantime is left alone, for {@link removeAddedItem}'s reason.
+   */
+  function restoreMembership(tripId: string, restore: MembershipRestore) {
+    const byId = new Map(tripStore.getItems(tripId).map((row) => [row.id, row]))
+    const muts = []
+    for (const u of restore.update) {
+      const row = byId.get(u.id)
+      if (!row) continue
+      const mut = mutations.setMembershipFields(u.id, u.fields)
+      muts.push({ mutation: mut, optimistic: optimisticUpdate(mut, itemRow(row)) })
+    }
+    for (const id of restore.inserted) {
+      if (!byId.has(id)) continue
+      const mut = mutations.deleteTripItem(id)
+      muts.push({
+        mutation: mut,
+        optimistic: [
+          ...cascadeChanges(TABLE.tripItems, id, { tripStore, masterStore }),
+          optimisticDelete(mut),
+        ],
+      })
+    }
+    if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
+  }
+
+  /** The values a plan is about to overwrite — the undo, read before the write. */
+  function restorePointFor(rows: TripItem[], plan: MembershipPlan): MembershipRestore {
+    const byId = new Map(rows.map((row) => [row.id, row]))
+    const update: MembershipUpdate[] = []
+    for (const u of plan.update) {
+      const row = byId.get(u.id)
+      if (!row) continue
+      const fields: MembershipUpdate['fields'] = {}
+      if (u.fields.assigned_traveler_id !== undefined) {
+        fields.assigned_traveler_id = row.assigned_traveler_id
+      }
+      if (u.fields.quantity !== undefined) fields.quantity = row.quantity
+      if (u.fields.packed_count !== undefined) fields.packed_count = row.packed_count
+      if (u.fields.state !== undefined) fields.state = row.state
+      update.push({ id: u.id, fields })
+    }
+    return { update, inserted: plan.insert.map((insert) => insert.id) }
+  }
+
+  /**
    * What an add hands back: the row it wrote, and the required companions it
    * pulled in with it (FR-20.4). The id is what FR-25.8's per-person add opens
    * the membership editor on; the names are what the screen says.
@@ -434,6 +612,9 @@ export function createPackingActions(ctx: SyncContext) {
 
   return {
     setMembership,
+    spreadOverEveryTraveler,
+    addItemForEveryTraveler,
+    restoreMembership,
     packIncrement,
     packDecrement,
     packComplete,

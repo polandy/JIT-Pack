@@ -34,11 +34,13 @@
  * takes no new control — the composer the user already types into filters
  * groups beside items, under their own heading and visibly not an item.
  *
- * M4 also offers the **per-person mode** here (FR-25.8, `offerPerPerson`):
+ * M4 also offers the **per-person mode** here (FR-25.8, `travelerCount`):
  * *Gesamt* stays the default for the common case and *Pro Person* is one tap
  * away. The composer only carries the choice on the `add` event — it knows
  * nothing about rows, and who gets how many is decided in the membership
- * editor the caller opens.
+ * editor the caller opens. The same number puts FR-25.13g's „für alle" on the
+ * browse-sheet's rows, which is the other posture of the same question: there
+ * the tap distributes at once and no editor opens at all.
  *
  * **Deliberately no collapse-on-blur**, which FR-25.13a's wording allows
  * for an empty form. Collapsing removes a block from the flow *above* the
@@ -61,6 +63,7 @@ import InventoryBrowseSheet from '@/components/global/InventoryBrowseSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import { chipSuggestions } from '@/domain/quickAddChips'
+import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { PREVIEW_ROW_NAMES, previewLines, resolvedLines } from '@/domain/templates'
 import type { AddedItemDecision } from '@/sync/mutations'
 import type { BrowseRowSummary } from '@/domain/browseRows'
@@ -86,11 +89,14 @@ const props = withDefaults(
     /** FR-27.10: offer whole groups beside the items (M4 only). */
     offerGroups?: boolean
     /**
-     * FR-25.8: offer the *Pro Person* mode. The caller decides, because a
-     * template has no travelers (M8) and neither has a trip with fewer than
-     * two of them (G-8) — there is no membership to distribute.
+     * How many travelers the scope has. It decides two things at once, which
+     * is why it is one number rather than two booleans: FR-25.8's *Pro Person*
+     * mode and FR-25.13g's „für alle" verb in the browse-sheet. A template has
+     * no travelers (M8) and a trip travelling alone has no membership to
+     * distribute either, so below {@link MIN_TRAVELERS_FOR_PER_PERSON} both are
+     * absent rather than disabled (G-8).
      */
-    offerPerPerson?: boolean
+    travelerCount?: number
     /**
      * FR-25.13f: the packing state of what the scope carries, per master
      * item. Passed straight through to the browse-sheet, where its presence
@@ -110,11 +116,20 @@ const props = withDefaults(
     confirmLabel: undefined,
     excludeItemIds: () => [],
     offerGroups: false,
-    offerPerPerson: false,
+    travelerCount: 0,
     browseRowStates: undefined,
     showTrigger: true,
   },
 )
+
+/** The fields an add carries over, whichever verb sent it (FR-25.7 defaults). */
+export interface BrowseAddition {
+  name: string
+  sourceItemId: string | null
+  weightGrams: number | null
+  valueCents: number | null
+  categoryName: string | null
+}
 
 const emit = defineEmits<{
   /**
@@ -123,19 +138,21 @@ const emit = defineEmits<{
    * has always meant.
    */
   add: [
-    item: {
-      name: string
-      sourceItemId: string | null
-      weightGrams: number | null
-      valueCents: number | null
-      categoryName: string | null
-      /** FR-25.8: the add was made in *Pro Person* mode. */
-      perPerson: boolean
-    },
+    /** FR-25.8's mode rides along; every other field is {@link BrowseAddition}. */
+    item: BrowseAddition & { perPerson: boolean },
     decided?: AddedItemDecision,
   ]
   /** FR-27.10: expand this group onto the trip — the caller reports the result. */
   addGroup: [templateId: string]
+  /**
+   * FR-25.13g: add this master item with a row for every traveler. It is its
+   * own emit rather than the `add` above with `perPerson: true`, because that
+   * mode ends in the membership editor and this verb deliberately does not —
+   * the run stays in the sheet.
+   */
+  addForAll: [item: BrowseAddition]
+  /** FR-25.13g: give every traveler still without a row for it one. */
+  spreadCarried: [itemId: string]
   /** FR-25.13f: pack every row the scope carries for this master item. */
   packCarried: [itemId: string]
   /** FR-25.13f: leave every row the scope carries for this master item home. */
@@ -155,6 +172,9 @@ const query = ref('')
  * *Gesamt* is the default the FR keeps, so the next opening starts there.
  */
 const perPerson = ref(false)
+
+/** FR-25.8: the mode is offered only where there is a membership to make. */
+const offerPerPerson = computed(() => props.travelerCount >= MIN_TRAVELERS_FOR_PER_PERSON)
 const inputRef = ref<InstanceType<typeof IonInput> | null>(null)
 
 const suggestions = computed(() => {
@@ -257,25 +277,44 @@ function toggle() {
  */
 defineExpose({ open, expanded })
 
-function emitMasterItem(item: MasterItem, decided?: AddedItemDecision) {
-  emit(
-    'add',
-    {
-      name: item.name,
-      sourceItemId: item.id,
-      weightGrams: item.weight_grams,
-      valueCents: item.value_cents,
-      // The generated row carries one grouping key, which since FR-24.1 is
-      // the master item's *primary* tag (FR-24.2) — the trip side keeps a
-      // single snapshot, it does not gain the whole set.
-      categoryName: masterStore.categoryOf(item.id),
-      perPerson: perPerson.value,
-    },
-    decided,
-  )
+/**
+ * What one master item becomes on the way to an add. Built once, because
+ * FR-25.13g's „für alle" takes the same fields down a different action and a
+ * second copy would be a second set of defaults.
+ */
+function additionOf(item: MasterItem) {
+  return {
+    name: item.name,
+    sourceItemId: item.id,
+    weightGrams: item.weight_grams,
+    valueCents: item.value_cents,
+    // The generated row carries one grouping key, which since FR-24.1 is
+    // the master item's *primary* tag (FR-24.2) — the trip side keeps a
+    // single snapshot, it does not gain the whole set.
+    categoryName: masterStore.categoryOf(item.id),
+  }
+}
+
+/** The bookkeeping every add from the sheet or the list leaves behind. */
+function afterAdd(item: MasterItem) {
   recordRecentItem(item.id)
   recentsVersion.value++
   query.value = ''
+}
+
+function emitMasterItem(item: MasterItem, decided?: AddedItemDecision) {
+  emit('add', { ...additionOf(item), perPerson: perPerson.value }, decided)
+  afterAdd(item)
+}
+
+/**
+ * FR-25.13g: the sheet's „für alle". It never carries the FR-25.8 mode — the
+ * verb *is* the answer to who gets it, and the caller distributes without an
+ * editor, which is what keeps the run in the sheet.
+ */
+function onBrowseAddForAll(item: MasterItem) {
+  emit('addForAll', additionOf(item))
+  afterAdd(item)
 }
 
 function selectSuggestion(item: MasterItem) {
@@ -580,7 +619,10 @@ function onKeydown(event: KeyboardEvent) {
         <InventoryBrowseSheet
           :carried-item-ids="excludeItemIds"
           :row-states="browseRowStates"
+          :traveler-count="travelerCount"
           @add="onBrowseAdd"
+          @add-for-all="onBrowseAddForAll"
+          @spread-to-all="emit('spreadCarried', $event.id)"
           @add-packed="onBrowseAddPacked"
           @add-skipped="onBrowseAddSkipped"
           @pack="emit('packCarried', $event.id)"

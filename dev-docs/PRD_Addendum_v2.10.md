@@ -2124,6 +2124,42 @@ locked.
       wants FR-25.11j's *gekauft* beside them rather than these two alone.
     * **No wire, no schema, no ADR.** One insert gains an optional decided state; everything else is the existing pack
       and skip actions called from a second surface. Identical in Server, Single-User and Local Mode.
+  * **FR-25.13g („Für alle" in the browse-sheet — owner request 2026-09-09, chosen from four rendered variants, built
+    2026-09-09):** the sheet can add an item and it can decide what happens to it, but it cannot say **who needs it**.
+    Adding a per-person item was FR-25.8's composer mode, which ends each add in the membership editor — one sheet per
+    item, which is exactly the „nachträglich pro Artikel" the request names. So the line gains a **third verb, 👥
+    (*für alle*)**, and the variants weighed are worth recording (ADR-054): **(A)** a *Gemeinsam / Pro Person* segment
+    in the sheet head, **(B)** a third verb on the line, **(C)** the roster unfolding inside the line, **(D)** a *Für
+    alle* offer appearing beside *Rückgängig* after an ordinary add. **B won** (owner, 2026-09-09): the decision is per
+    item rather than per run, so A's mode would be paid for on nearly every line and fails silently the way modes do —
+    the same reasoning that decided FR-25.13f's own round the same way. C reorders the list under the finger, which
+    FR-25.13e forbids on purpose, and buys a traveler *subset* the membership editor already offers. D costs a second
+    tap for the common case and only exists in the seconds after an add. The rules:
+    * **One tap, one row per traveler, amount one.** On a **free** line the tap adds the row and hands it to everybody;
+      on a line the trip **already carries** it gives the travelers who have none a row of their own, keeping the amount
+      anybody already chose — the FR-25.21c shortcut's rule, so a spread can enlarge a membership and never rewrite
+      one. The rows are ADR-036's keep-and-repoint: the existing row *becomes* the first traveler's, so its comments,
+      todos and packing progress survive the spread rather than being deleted beside it.
+    * **No editor opens, and that is the point.** FR-25.8's mode ends in the membership editor and therefore has to
+      close the sheet first; this verb ends in the sheet, which is what lets a run of them be tapped one after another.
+      The amount stays one per person: setting different amounts is the editor's, one screen away, and asking here
+      would rebuild it.
+    * **It only ever adds.** A row belonging to somebody who has left the trip is left out of the plan entirely rather
+      than swept up by it — the planner would read it as a member nobody asked for and *delete* it, which is a decision
+      ADR-036 gives a confirm and a run has no room for. The plan is still read before it is written, and where it
+      would destroy something nothing is written and the screen says so.
+    * **The verb is absent where it would do nothing** (G-8): below two travelers, on a line that already reaches every
+      traveler, on settled and locked lines, and in a sheet that renders no verbs at all (M6, M8). Absent rather than
+      disabled, for FR-25.13f's reason.
+    * **On a line this run itself added the offer is *Rückgängig*, not 👥.** The acted line's job is the way back
+      (FR-25.13f), and a fourth control beside a state and an undo leaves the name nothing on a phone. Reopening the
+      sheet offers the spread again, because the row is then simply a carried one. Accepted cost, and the one thing
+      variant D would have done better.
+    * **Where it says how many it reached**, it uses FR-25.13f's own sentence — *„für alle · 3 Personen"* — for the
+      same reason: a tap that wrote three rows must not report as one.
+    * **No wire, no schema.** The membership planner, the add and the undo are the ones FR-25.8, FR-25.21 and
+      FR-25.13f already own; what is new is one composite action and the row that offers it. Identical in Server,
+      Single-User and Local Mode.
   * **Defect found while re-mocking (2026-08-07):** the shopping lists selected open items by comparing the item's own
     `packed`/`quantity`. A per-person item carries neither — those live on its per-traveler instances — so the
     comparison was `undefined < undefined`, and **any per-person item in a buy mode silently never reached the shopping

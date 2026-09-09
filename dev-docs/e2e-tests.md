@@ -118,6 +118,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [The switcher moved five cases, and left one owed (2026-09-08)](#the-switcher-moved-five-cases-and-left-one-owed-2026-09-08) — FR-21.21/21.22: what a nav that renders on four screens does to a helper, and the one testid still in no test.
 - [Three cases for a figure, a door and a height (2026-09-08)](#three-cases-for-a-figure-a-door-and-a-height-2026-09-08) — FR-21.23/21.24/21.25: the duplicate door that was on two screens, and what a fixed sheet height hides from a case.
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — why M4's grouping had one bucket, and the case that now walks the path a user has.
+- [„Für alle" needed the sheet to be reopened (2026-09-09)](#für-alle-needed-the-sheet-to-be-reopened-2026-09-09) — FR-25.13g: the case that could not be written the obvious way, and the one branch e2e deliberately does not reach.
 
 ## The rule that comes before the units
 
@@ -233,7 +234,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-19 (ADR-050 a tab root's head, M1 included since FR-21.27), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer), E2E-G8-01 (no delegation picker), E2E-G4-01 (the notification's landing) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.26: one content measure, kept by every screen the reader steps to), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes), E2E-M4-75 (FR-21.23: the header line as a ring, a sentence and a track), E2E-M4-76 (FR-21.24: one door to the quick-add), E2E-M4-77 (FR-24.2: a generated row is filed under the item's tag) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
-| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-24 (FR-21.16: the head is set louder than its children, read off computed type), E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M5-26 (FR-25.21c: the *Alle Reisenden* head row adds the missing travelers and keeps a chosen amount), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
+| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-24 (FR-21.16: the head is set louder than its children, read off computed type), E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M5-26 (FR-25.21c: the *Alle Reisenden* head row adds the missing travelers and keeps a chosen amount), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path), E2E-M4-78/79 (FR-25.13g: „für alle" on a free line and on a carried one) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01 … E2E-G13-06 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -4689,3 +4690,29 @@ built bundle, so a source-only edit proves nothing.
 
 This also amends the file header of `packing-list.spec.ts`, which had recorded "no row can carry a
 category" as a limitation of M4. It was true for a second reason nobody had looked for.
+
+## „Für alle" needed the sheet to be reopened (2026-09-09)
+
+**E2E-M4-78/79** cover FR-25.13g, the browse-sheet's third verb. They live in
+`membership.spec.ts` rather than `packing-list.spec.ts` with the other browse cases, because what
+they assert is the *membership* the tap produced — one cluster, one child per traveler — and that is
+this file's subject and its `m4-child-…` vocabulary.
+
+**The second case could not be written the obvious way.** The natural script is: add the item, then
+tap 👥 on the same line. It times out, and the timeout is the feature: a line the run itself has just
+acted on shows what it did and *„Rückgängig"*, and no verbs at all (FR-25.13f's ledger outranks the
+props). So E2E-M4-79 closes the sheet and reopens it, which is both a real user path and the state
+every later visit is in. Worth recording because the failure looks like a missing control and is a
+deliberate one — and because it is the one thing variant D of the concept round would have done
+better (PRD FR-25.13g).
+
+**Mutation-proven**, both directions of the same edit: `addItemForEveryTraveler` was made to report a
+spread it never performed, the bundle rebuilt, and E2E-M4-78 went red on the cluster assertion — not
+on the line's own „für alle · 3 Personen", which the sheet writes from its own ledger and would have
+kept saying against the broken build. That is why the case asserts M4 after the sheet closes at all.
+
+**One branch is deliberately not here.** A spread that would delete a packed row belonging to a
+traveler who has left the trip writes nothing and reports it; reaching that state through the UI
+means removing a traveler whose row is packed and then opening the sheet, which is three screens of
+setup for a guard whose whole job is to be unreachable. It is covered where it can be stated in one
+line — `composables/__tests__/spreadForAll.spec.ts`, against a store that simply holds such a row.

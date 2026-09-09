@@ -8,12 +8,17 @@
  * be offered at all is a property of the set, not of any one row. That
  * summary is this function, and it is the sheet's only source for it.
  *
+ * Since FR-25.13g the summary also answers *how much of the roster this item
+ * already reaches*, because the one-tap „für alle" may only be offered where
+ * somebody is still missing — the same set-shaped question, asked of people
+ * instead of states.
+ *
  * Rows without a `source_item_id` are deliberately absent: they were typed
  * by hand and the sheet cannot match them to an inventory line. Matching
  * them by name is FR-27.10's rule for whole groups, and a second, quieter
  * copy of it here is exactly the drift FR-25.11g warns about.
  */
-import type { TripItem } from '@/types/domain'
+import type { Traveler, TripItem } from '@/types/domain'
 
 /** The state the sheet renders for a master item the scope already carries. */
 export type BrowseRowState = 'open' | 'packed' | 'skipped' | 'locked'
@@ -23,6 +28,13 @@ export interface BrowseRowSummary {
   state: BrowseRowState
   /** Every trip row generated from this master item, in the given order. */
   itemIds: string[]
+  /**
+   * FR-25.13g: how many of the trip's travelers already have a row of their
+   * own for this item. Counted against the roster the caller passes, so a row
+   * left behind by a traveler who has since left the trip is not somebody the
+   * sheet can offer to reach.
+   */
+  travelersReached: number
   /** G-3's sentence naming the holder — non-null exactly when `locked`. */
   lockNote: string | null
 }
@@ -47,6 +59,7 @@ export interface BrowseRowSummary {
 export function browseRowStates(
   items: readonly TripItem[],
   lockNoteOf: (item: TripItem) => string | null,
+  travelers: readonly Traveler[],
 ): Map<string, BrowseRowSummary> {
   const rows = new Map<string, TripItem[]>()
   for (const item of items) {
@@ -56,16 +69,29 @@ export function browseRowStates(
     else rows.set(item.source_item_id, [item])
   }
 
+  const roster = new Set(travelers.map((traveler) => traveler.id))
   const summaries = new Map<string, BrowseRowSummary>()
   for (const [sourceItemId, group] of rows) {
     const lockNote = group.map(lockNoteOf).find((note) => note !== null) ?? null
     summaries.set(sourceItemId, {
       state: lockNote !== null ? 'locked' : settledState(group),
       itemIds: group.map((item) => item.id),
+      travelersReached: travelersReached(group, roster),
       lockNote,
     })
   }
   return summaries
+}
+
+/** The travelers of the roster this item already has a row for, counted once each. */
+function travelersReached(group: readonly TripItem[], roster: ReadonlySet<string>): number {
+  const reached = new Set<string>()
+  for (const item of group) {
+    if (item.assigned_traveler_id !== null && roster.has(item.assigned_traveler_id)) {
+      reached.add(item.assigned_traveler_id)
+    }
+  }
+  return reached.size
 }
 
 function settledState(group: readonly TripItem[]): BrowseRowState {

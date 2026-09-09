@@ -31,6 +31,14 @@ import type { Traveler, TripItem } from '@/types/domain'
 /** The smallest amount a member can carry — 0 is FR-5.5's *skipped*, not absence. */
 const MIN_QUANTITY = 1
 
+/**
+ * How many travelers a trip needs before per-person membership is offered at
+ * all (FR-25.8, FR-25.13g). One traveler has no membership to distribute: the
+ * composer's mode and the browse-sheet's „für alle" are both **absent** there
+ * rather than disabled (G-8), and this is the one place that number is decided.
+ */
+export const MIN_TRAVELERS_FOR_PER_PERSON = 2
+
 /** What the editor asks for: one shared row, or a row per named traveler. */
 export type MembershipTarget =
   { kind: 'shared' } | { kind: 'perPerson'; members: MembershipMember[] }
@@ -387,4 +395,27 @@ export function everyoneMembers(
 ): MembershipMember[] {
   const byTraveler = new Map(members.map((m) => [m.traveler_id, m]))
   return travelers.map((t) => byTraveler.get(t.id) ?? { traveler_id: t.id, quantity: MIN_QUANTITY })
+}
+
+/**
+ * The membership a set of rows already expresses, in trip order.
+ *
+ * A row assigned to somebody the trip no longer has is left out for the reason
+ * {@link membershipCoverage} gives: it is not a member the roster can show, and
+ * counting it would let a partial membership read as a full one. What it is
+ * *not* is a licence to delete that row — that decision stays with the caller
+ * and its confirm (ADR-036).
+ */
+export function membersOfRows(rows: TripItem[], travelers: Traveler[]): MembershipMember[] {
+  const byTraveler = new Map<string, TripItem>()
+  for (const row of rows) {
+    if (row.assigned_traveler_id !== null) byTraveler.set(row.assigned_traveler_id, row)
+  }
+  return travelers
+    .filter((traveler) => byTraveler.has(traveler.id))
+    .map((traveler) => ({
+      traveler_id: traveler.id,
+      // Non-null by the filter above; the map is keyed by the same ids.
+      quantity: byTraveler.get(traveler.id)?.quantity ?? MIN_QUANTITY,
+    }))
 }

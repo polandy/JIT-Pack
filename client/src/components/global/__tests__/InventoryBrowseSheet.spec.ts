@@ -328,7 +328,7 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     return new Map(
       Object.entries(entries).map(([id, value]) => [
         id,
-        { itemIds: [`row-${id}`], lockNote: null, ...value },
+        { itemIds: [`row-${id}`], travelersReached: 0, lockNote: null, ...value },
       ]),
     )
   }
@@ -448,5 +448,148 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
 
     expect(wrapper.find('[data-testid="browse-locked"]').text()).toContain('Sia is packing this')
     expect(wrapper.findAll('[data-testid="browse-pack"]')).toHaveLength(3)
+  })
+})
+
+describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
+  const THREE_TRAVELERS = 3
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    browseHideCarried().reload()
+    seed()
+  })
+
+  function states(
+    entries: Record<string, Partial<BrowseRowSummary> & { state: BrowseRowSummary['state'] }>,
+  ): ReadonlyMap<string, BrowseRowSummary> {
+    return new Map(
+      Object.entries(entries).map(([id, value]) => [
+        id,
+        { itemIds: [`row-${id}`], travelersReached: 0, lockNote: null, ...value },
+      ]),
+    )
+  }
+
+  function mountForAll(props: {
+    carriedItemIds?: string[]
+    rowStates?: ReadonlyMap<string, BrowseRowSummary>
+    travelerCount?: number
+  }) {
+    return mount(InventoryBrowseSheet, {
+      props: {
+        carriedItemIds: [],
+        rowStates: states({}),
+        travelerCount: THREE_TRAVELERS,
+        ...props,
+      },
+    })
+  }
+
+  /** The „für alle" control on the line whose name is `name`. */
+  function forAllOn(wrapper: ReturnType<typeof mountForAll>, name: string) {
+    const row = wrapper
+      .findAll('[data-testid="browse-row-free"], [data-testid="browse-row-carried"]')
+      .find((candidate) => candidate.text().includes(name))
+    return row?.find('[data-testid="browse-for-all"]')
+  }
+
+  it('offers the verb on a free line and adds for everybody in one tap', async () => {
+    const wrapper = mountForAll({})
+
+    await forAllOn(wrapper, 'Badehose')!.trigger('click')
+
+    expect(wrapper.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    // The plain add is not what this tap is: a sheet that emitted both would
+    // write the row twice.
+    expect(wrapper.emitted('add')).toBeUndefined()
+  })
+
+  it('says how many people the tap reached, and offers the way back', async () => {
+    const wrapper = mountForAll({})
+
+    await forAllOn(wrapper, 'Badehose')!.trigger('click')
+
+    const state = wrapper.get('[data-testid="browse-for-all-now"]')
+    expect(state.text()).toContain('for everyone')
+    // FR-25.13f's rule for a verb that reaches a set: a single ✓ that packed
+    // three rows claims less than it did, and so would a silent „added".
+    expect(state.text()).toContain('3 people')
+    expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(true)
+  })
+
+  it('is absent where there is nobody to distribute over (G-8)', () => {
+    const alone = mountForAll({ travelerCount: 1 })
+    const nobody = mountForAll({ travelerCount: 0 })
+
+    expect(alone.find('[data-testid="browse-for-all"]').exists()).toBe(false)
+    expect(nobody.find('[data-testid="browse-for-all"]').exists()).toBe(false)
+    // The other two verbs are untouched by the roster: what the trip carries
+    // can be packed by one traveler as well as by three.
+    expect(alone.find('[data-testid="browse-pack"]').exists()).toBe(true)
+  })
+
+  it('is absent where the sheet has no verbs at all (M6/M8)', () => {
+    const wrapper = mount(InventoryBrowseSheet, {
+      props: { carriedItemIds: [], travelerCount: THREE_TRAVELERS },
+    })
+
+    expect(wrapper.find('[data-testid="browse-for-all"]').exists()).toBe(false)
+  })
+
+  it('offers the spread on a carried line only while somebody is still without a row', () => {
+    const partly = mountForAll({
+      carriedItemIds: ['i-badehose'],
+      rowStates: states({ 'i-badehose': { state: 'open', travelersReached: 2 } }),
+    })
+    const everybody = mountForAll({
+      carriedItemIds: ['i-badehose'],
+      rowStates: states({ 'i-badehose': { state: 'open', travelersReached: THREE_TRAVELERS } }),
+    })
+
+    expect(forAllOn(partly, 'Badehose')?.exists()).toBe(true)
+    expect(forAllOn(everybody, 'Badehose')?.exists()).toBe(false)
+    // The line is still there and still says what it is — the verb that would
+    // do nothing is what goes, not the row.
+    expect(everybody.find('[data-testid="browse-carried-state"]').text()).toContain('already in')
+  })
+
+  it('emits the spread on a carried line, not a second add', async () => {
+    const wrapper = mountForAll({
+      carriedItemIds: ['i-badehose'],
+      rowStates: states({ 'i-badehose': { state: 'open', travelersReached: 1 } }),
+    })
+
+    await forAllOn(wrapper, 'Badehose')!.trigger('click')
+
+    expect(wrapper.emitted('spreadToAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    expect(wrapper.emitted('addForAll')).toBeUndefined()
+  })
+
+  it('offers nothing on a settled or locked line, „für alle" included', () => {
+    const wrapper = mountForAll({
+      carriedItemIds: ['i-badehose', 'i-pullover'],
+      rowStates: states({
+        'i-badehose': { state: 'packed' },
+        'i-pullover': { state: 'locked', lockNote: 'Sia is packing that' },
+      }),
+    })
+
+    expect(forAllOn(wrapper, 'Badehose')?.exists()).toBe(false)
+    expect(forAllOn(wrapper, 'Pullover')?.exists()).toBe(false)
+  })
+
+  it('names the verb and the number it would reach, for the screen reader', () => {
+    const wrapper = mountForAll({})
+
+    expect(forAllOn(wrapper, 'Badehose')!.attributes('aria-label')).toBe(
+      'Put "Badehose" on the list for all 3 travellers',
+    )
+  })
+
+  it('tells the head what the three verbs do', () => {
+    expect(mountForAll({}).text()).toContain('for everyone')
+    expect(mountForAll({ travelerCount: 1 }).text()).not.toContain('for everyone')
   })
 })
