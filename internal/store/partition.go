@@ -164,6 +164,23 @@ func (s *Store) applyMutation(ctx context.Context, m sync.Mutation, p partition)
 		return s.reject(ctx, tx, m, row, p, refused, p.relogScopeRefusal)
 	}
 
+	// A write that finds no row is either the first write of a new entity or
+	// the last write of a deleted one, and only the tombstone tells them
+	// apart: Merge's "nothing to compare against" branch applies every field
+	// a mutation carries, which for the second case re-creates a row someone
+	// deleted. Strictly newer wins, the same direction the delete branch
+	// decides in (`m.HLC > row.HLC`) — so an undo or an FR-24.3 restore, made
+	// after the delete with a fresh clock, still re-creates its row.
+	if m.Op != sync.OpDelete && !row.Exists {
+		tomb, err := tombstoneHLC(ctx, tx, p.feed, m.Table, m.ID)
+		if err != nil {
+			return MutationResult{}, err
+		}
+		if tomb != "" && m.HLC <= tomb {
+			return s.reject(ctx, tx, m, row, p, ReasonRowDeleted, true)
+		}
+	}
+
 	merged := sync.Merge(row, m)
 
 	// Asked before the delete rather than read out of the failure it would

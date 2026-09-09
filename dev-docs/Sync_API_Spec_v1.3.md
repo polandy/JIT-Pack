@@ -8,6 +8,9 @@ distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. **All fo
 fallen behind; see the §8 row. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
 
 **Revision history** — newest first. Every rule is current text in the section named; the entry says what it replaced.
+* **2026-09-09 (ADR-052) — §5/§6:** a write older than the tombstone is `rejected` with `row_deleted` instead of
+  re-creating the row. Was: a delete left nothing to compare a later-arriving older write against, so the merge's
+  "unknown id" branch applied every field it carried and the deleted row came back, silently, on every device.
 * **2026-09-04 (G-2) — §8:** the NFR-4.5 export carries every table of both partitions. Was: a hand-written query list
   beside the feed's visibility rules, which had lost `item_dependencies` (the whole FR-20.1 graph) and `trip_members`
   (every restored trip's roster) with nothing to say so; both lists are views of one per-table declaration now.
@@ -372,6 +375,7 @@ copy until it discards it (lazy, same semantics as trip deletes).
   | `template_scope` | the FR-27.1 two-level rule, or an FR-27.6 scope switch that would break it |
   | `constraint_violated` | the schema itself refused: a foreign key, a `UNIQUE`, a `CHECK` |
   | `malformed_hlc` | the mutation's clock is outside the §3 format, so it cannot be ordered — a client bug |
+  | `row_deleted` | the row is gone and the delete is newer than this write — see the bullet below |
 
   It is a vocabulary rather than a sentence because the sentence belongs to whoever renders it, in a language the server
   does not know. Values outside the set — the validation errors, or an older server saying nothing — are diagnostics,
@@ -411,6 +415,22 @@ copy until it discards it (lazy, same semantics as trip deletes).
   was. The client cannot always predict which it will get (it holds only the trip partitions it has opened), and does
   not need to: the pull carries the truth. **Whether the permissive behaviour is wanted for the other entities too is an
   owner decision**, not a defect.
+* **A write older than the delete does not bring the row back** (added 2026-09-09). A delete removes the row itself, so
+  the entity's only remaining trace is its `change_log` tombstone — and a write made before the delete, pushed after it
+  by a device that was offline meanwhile, therefore arrived at an id the server holds nothing for. That is the same
+  state a genuinely new row arrives in, and the merge treated it as one: every field applied, the row re-created with
+  the values it had before somebody deleted it, and the resurrection reached every other device as an ordinary change.
+  The tombstone is now read where the row is missing, and **a write must be strictly newer than it to create the row
+  again** — the same direction the delete branch decides in (`m.hlc > row.updated_hlc`), so the two cannot disagree.
+  Older is `rejected` with `row_deleted`, and ADR-031's repair applies with nothing changed: there is no server row, so
+  the re-log is a tombstone, and the phantom leaves the pushing device on its next pull. Strictly newer still applies,
+  which is what keeps the two paths that legitimately re-create a deleted id working — the client's undo and FR-24.3's
+  restore both re-insert the row they removed, under the same id, with a fresh clock. The word `row_deleted` is
+  deliberately the one §6.1's revert endpoint already answers with: one meaning, one spelling. The cost is a lookup in
+  the feed's log for every write that finds no row, which is every insert, and it is unindexed — affordable because
+  the feed carrying the burst (a trip creation's a hundred `trip_items`) is the one `idx_change_log_trip` already
+  bounds, while the master feed that scales sees single-digit inserts per action. Measured, weighed and given a
+  numeric revisit trigger in ADR-052.
 * **A constraint the database refuses is `rejected`, never a 5xx.** A foreign key whose target another device deleted, a
   quantity merged below what is already packed, a partial upsert whose row is gone: the statement fails, the transaction
   survives, and the mutation is answered as the refusal it is. Returning an error instead would make the whole batch a
@@ -478,6 +498,7 @@ untouched:
 for each mutation m:
   if mutation_id already recorded → return recorded result        (P-5)
   if permission check fails (trip role, FR-4.5) → rejected
+  if id unknown and a tombstone for it is newer → rejected (row_deleted)
   if op == insert and id unknown → apply whole row, log change;
                                    every column's clock := m.hlc
   if op == delete → apply tombstone if m.hlc > row.updated_hlc, else merged(no-op)

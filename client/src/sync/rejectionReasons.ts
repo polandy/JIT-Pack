@@ -21,6 +21,7 @@ export const REJECTION_REASON = Object.freeze({
   templateScope: 'template_scope',
   constraintViolated: 'constraint_violated',
   malformedHlc: 'malformed_hlc',
+  rowDeleted: 'row_deleted',
 } as const)
 
 /** One of the reasons above. */
@@ -33,6 +34,7 @@ const REASON_KEYS: Record<RejectionReason, MessageKey> = {
   [REJECTION_REASON.templateScope]: 'sync.detail.rejected.templateScope',
   [REJECTION_REASON.constraintViolated]: 'sync.detail.rejected.constraintViolated',
   [REJECTION_REASON.malformedHlc]: 'sync.detail.rejected.malformedHlc',
+  [REJECTION_REASON.rowDeleted]: 'sync.detail.rejected.rowDeleted',
 }
 
 /**
