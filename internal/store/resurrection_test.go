@@ -86,6 +86,11 @@ func TestApplyMutation_AnUpsertOlderThanTheTombstone_DoesNotResurrectTheTripItem
 		t.Fatal(err)
 	}
 
+	// Everything so far — the insert and the delete's own tombstone — is
+	// behind the device's cursor. Without this the assertion below would be
+	// satisfied by the delete's tombstone and could never fail.
+	caughtUp := pullAfter(t, s, testTrip, 0).NextCursor
+
 	res, err := s.ApplyMutation(ctx, testTrip, testUser, sync.Mutation{
 		MutationID: "rt-3", Op: sync.OpUpsert, Table: TableTripItems, ID: "ti-socken",
 		Fields: map[string]any{"trip_id": testTrip, "name": "Socken", "quantity": 2, "packed_count": 2},
@@ -105,6 +110,21 @@ func TestApplyMutation_AnUpsertOlderThanTheTombstone_DoesNotResurrectTheTripItem
 	}
 	if count != 0 {
 		t.Errorf("trip_items rows = %d, want 0 — the deleted row came back", count)
+	}
+
+	// And the repair reaches this partition's feed, not the master one: the
+	// re-log writes to whichever feed the refusal happened in, and a device
+	// pulling the trip is the only one that can drop this phantom.
+	page := pullAfter(t, s, testTrip, caughtUp)
+	var tombstoned bool
+	for _, c := range page.Changes {
+		if c.Table == TableTripItems && c.ID == "ti-socken" && c.Deleted {
+			tombstoned = true
+		}
+	}
+	if !tombstoned {
+		t.Errorf("the trip's feed carries no tombstone for the refused row, so the pushing "+
+			"device keeps it: %d changes offered", len(page.Changes))
 	}
 }
 
