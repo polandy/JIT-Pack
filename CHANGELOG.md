@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/polandy/JIT-Pack/compare/v0.7.0...v0.7.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* **client:** M1's greeting is M1's page head (FR-21.27) ([89d2814](https://github.com/polandy/JIT-Pack/commit/89d2814f8e7528258a441fb22cff3c30b21d9b57))
+
 ## [0.7.0](https://github.com/polandy/JIT-Pack/compare/v0.6.0...v0.7.0) (2026-09-08)
 
 
