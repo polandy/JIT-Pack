@@ -120,6 +120,9 @@ import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/
 import { confirmAction } from '@/lib/confirm'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import { SPREAD } from '@/composables/sync/actions/packing'
+import { rowsCarryingContent } from '@/domain/membership'
+import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
@@ -258,8 +261,10 @@ const quickAddExcludeIds = computed(() => [
  * and G-3's holders — the sheet renders the answer and emits the verb.
  */
 const browseStates = computed(() =>
-  browseRowStates(allItems.value, (item) =>
-    locked(item) ? (lockNote(item) ?? t('packing.lockedByUnknown')) : null,
+  browseRowStates(
+    allItems.value,
+    (item) => (locked(item) ? (lockNote(item) ?? t('packing.lockedByUnknown')) : null),
+    travelers.value,
   ),
 )
 
@@ -929,23 +934,18 @@ const membershipItemId = ref<string | null>(null)
  */
 const browseUndo = new Map<string, () => void>()
 
-function onQuickAdd(
-  item: {
-    name: string
-    sourceItemId: string | null
-    weightGrams: number | null
-    valueCents: number | null
-    categoryName: string | null
-    perPerson: boolean
-  },
-  decided?: AddedItemDecision,
-) {
-  const opts = {
+/** The master item's own fields, as an add takes them (FR-25.7 defaults). */
+function quickAddOptions(item: BrowseAddition) {
+  return {
     sourceItemId: item.sourceItemId,
     weightGrams: item.weightGrams,
     valueCents: item.valueCents,
     categoryName: item.categoryName,
   }
+}
+
+function onQuickAdd(item: BrowseAddition & { perPerson: boolean }, decided?: AddedItemDecision) {
+  const opts = quickAddOptions(item)
   const { id: addedId, companions } = decided
     ? orchestrator.addDecidedItem(props.tripId, item.name, opts, active.value, decided)
     : orchestrator.quickAddItem(props.tripId, item.name, opts, active.value)
@@ -955,20 +955,85 @@ function onQuickAdd(
     browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
   }
   if (item.perPerson) membershipItemId.value = addedId
-  // FR-20.4: say what came along. Named rather than counted, the way FR-20.2's
-  // skip names what it took with it — a bare number sends the reader looking
-  // for what changed, which is the complaint this answers.
-  if (companions.length > 0) {
-    void presentToast({
-      message: t('packing.companionsAdded', {
-        n: companions.length,
-        names: companions.join(', '),
-      }),
-      // Above the composer's own anchor, like every other M4 toast: this one
-      // fires while the quick-add is still open for the next entry.
-      positionAnchor: FAB_ANCHOR.m4,
+  announceCompanions(companions)
+}
+
+/**
+ * FR-20.4: say what came along. Named rather than counted, the way FR-20.2's
+ * skip names what it took with it — a bare number sends the reader looking for
+ * what changed, which is the complaint this answers.
+ */
+function announceCompanions(companions: string[]) {
+  if (companions.length === 0) return
+  void presentToast({
+    message: t('packing.companionsAdded', {
+      n: companions.length,
+      names: companions.join(', '),
+    }),
+    // Above the composer's own anchor, like every other M4 toast: this one
+    // fires while the quick-add is still open for the next entry.
+    positionAnchor: FAB_ANCHOR.m4,
+  })
+}
+
+/**
+ * FR-25.13g: the browse-sheet's „für alle" on a line the trip does not carry
+ * yet — one tap adds the row and hands it to every traveler.
+ *
+ * The undo takes out **every** row the tap left behind, the re-pointed one
+ * included: none of them existed before it.
+ */
+function onBrowseAddForAll(item: BrowseAddition) {
+  const result = orchestrator.addItemForEveryTraveler(
+    props.tripId,
+    item.name,
+    quickAddOptions(item),
+    active.value,
+  )
+  if (item.sourceItemId) {
+    const ids = result.ids
+    browseUndo.set(item.sourceItemId, () => {
+      for (const id of ids) orchestrator.removeAddedItem(props.tripId, id)
     })
   }
+  if (result.outcome !== SPREAD.done) void reportSpreadRefused()
+  announceCompanions(result.companions)
+}
+
+/**
+ * FR-25.13g on a line the trip already carries: the travelers without a row
+ * for it get one, and what is already there keeps the amount somebody chose
+ * (ADR-036 keep-and-repoint).
+ */
+function onBrowseSpread(itemId: string) {
+  const rows = rowsOfMasterItem(itemId)
+  const result = orchestrator.spreadOverEveryTraveler(props.tripId, rows, rowsWithContent(rows))
+  if (result.outcome !== SPREAD.done || !result.restore) {
+    void reportSpreadRefused()
+    return
+  }
+  const restore = result.restore
+  browseUndo.set(itemId, () => orchestrator.restoreMembership(props.tripId, restore))
+}
+
+/** What a delete of these rows would cost beyond the rows (FR-7.1/7.3). */
+function rowsWithContent(rows: TripItem[]): string[] {
+  return rowsCarryingContent(rows, {
+    hasComments: (rowId) => tripStore.getItemComments(props.tripId, rowId).length > 0,
+    hasTodo: (rowId) => tripStore.getTodos(props.tripId).some((t) => t.trip_item_id === rowId),
+  })
+}
+
+/**
+ * A spread declines rather than deletes: its own way back cannot recreate a
+ * row, so a plan carrying a delete is refused and said out loud. Deciding it
+ * belongs to the membership editor, which has the confirm for it (ADR-036).
+ */
+function reportSpreadRefused() {
+  return presentToast({
+    message: t('packing.forAllRefused'),
+    positionAnchor: FAB_ANCHOR.m4,
+  })
 }
 
 /** Every row the trip carries for one master item (FR-25.21's fan-out). */
@@ -1212,10 +1277,12 @@ setHeaderTitle(
         :is-active="active"
         :show-trigger="false"
         :offer-groups="true"
-        :offer-per-person="travelers.length > 1"
+        :traveler-count="travelers.length"
         :exclude-item-ids="quickAddExcludeIds"
         :browse-row-states="browseStates"
         @add="onQuickAdd"
+        @add-for-all="onBrowseAddForAll"
+        @spread-carried="onBrowseSpread"
         @add-group="onQuickAddGroup"
         @pack-carried="onBrowsePack"
         @skip-carried="onBrowseSkip"

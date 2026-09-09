@@ -41,6 +41,13 @@
  *    caller's write landing, and after it, the row says what *this run* did
  *    to it and offers the way back — which is why the ledger below is local
  *    and lives exactly as long as the sheet does.
+ *
+ * **FR-25.13g** adds the third verb the wardrobe needs as often as the other
+ * two: *für alle*. It is the only one that answers *who* rather than *whether*,
+ * and it exists only where there are at least two travelers to answer it about
+ * — on a free line it adds and distributes in one tap, on a carried one it
+ * gives the people who have no row for the item one (ADR-036). Rule 1 holds
+ * here too: what a spread may cost is the caller's question, not this sheet's.
  */
 import { IonIcon } from '@ionic/vue'
 import {
@@ -49,10 +56,12 @@ import {
   closeOutline,
   createOutline,
   lockClosedOutline,
+  peopleOutline,
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
 import { browseHideCarried } from '@/composables/useBrowseHideCarried'
+import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { UNTAGGED_KEY } from '@/domain/tags'
@@ -69,6 +78,13 @@ const props = defineProps<{
    * out and the sheet stays the pure add surface it was.
    */
   rowStates?: ReadonlyMap<string, BrowseRowSummary>
+  /**
+   * FR-25.13g: how many travelers a „für alle" would reach. Below
+   * {@link MIN_TRAVELERS_FOR_PER_PERSON} the verb is **absent** rather than
+   * disabled (G-8) — M6 and M8 pass nothing and never see it, and neither
+   * does a trip travelling alone, where there is no membership to distribute.
+   */
+  travelerCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -78,6 +94,10 @@ const emit = defineEmits<{
   addPacked: [item: MasterItem]
   /** FR-25.13f: add as FR-5.5 *skipped* — the decision, recorded. */
   addSkipped: [item: MasterItem]
+  /** FR-25.13g: add it with a row for every traveler, in this one tap. */
+  addForAll: [item: MasterItem]
+  /** FR-25.13g: give the travelers who have no row for it one (ADR-036). */
+  spreadToAll: [item: MasterItem]
   /** FR-25.13f: pack what the scope already carries, all of its rows. */
   pack: [item: MasterItem]
   /** FR-25.13f: skip what the scope already carries, all of its rows. */
@@ -97,7 +117,7 @@ const tagFilter = ref<string | null>(null)
 const { hideCarried, toggle: toggleHideCarried } = browseHideCarried()
 
 /** What one tap in this run did to a row — FR-25.13f's local ledger. */
-type RunVerb = 'added' | 'packed' | 'skipped'
+type RunVerb = 'added' | 'forAll' | 'packed' | 'skipped'
 
 /** A verb, and how many trip rows it reached (FR-25.21's per-person set). */
 interface RunRecord {
@@ -111,6 +131,7 @@ interface RunRecord {
  */
 const RUN_STATE_TESTID: Record<RunVerb, string> = {
   added: 'browse-added-now',
+  forAll: 'browse-for-all-now',
   packed: 'browse-packed-now',
   skipped: 'browse-skipped-now',
 }
@@ -118,6 +139,7 @@ const RUN_STATE_TESTID: Record<RunVerb, string> = {
 /** What each verb says of itself once it has landed on the row. */
 const RUN_STATE_TEXT = {
   added: 'quickAdd.browseAddedJustNow',
+  forAll: 'quickAdd.browseForAllNow',
   packed: 'quickAdd.browsePackedNow',
   skipped: 'quickAdd.browseSkippedNow',
 } as const
@@ -189,6 +211,12 @@ const carried = computed(() => new Set(props.carriedItemIds))
 /** FR-25.13f: the verbs exist only where the caller reports packing states. */
 const verbs = computed(() => props.rowStates !== undefined)
 
+/** How many people one tap on „für alle" would reach — 0 where nobody travels. */
+const travelerCount = computed(() => props.travelerCount ?? 0)
+
+/** FR-25.13g: whether „für alle" is on offer at all in this scope. */
+const forAll = computed(() => travelerCount.value >= MIN_TRAVELERS_FOR_PER_PERSON)
+
 /**
  * How many rows the switch is hiding, or would hide — always counted **inside
  * the current tag filter**, because a number that does not match what the
@@ -215,7 +243,7 @@ type RowView =
   | { kind: 'acted'; text: string; testid: string; done: boolean; undoable: boolean }
   | { kind: 'locked'; text: string }
   | { kind: 'settled'; text: string }
-  | { kind: 'carried'; text: string; verbs: boolean }
+  | { kind: 'carried'; text: string; verbs: boolean; spread: boolean }
   | { kind: 'free' }
 
 function rowView(item: MasterItem): RowView {
@@ -241,7 +269,14 @@ function rowView(item: MasterItem): RowView {
   if (state?.state === 'packed') return { kind: 'settled', text: t('quickAdd.browseIsPacked') }
   if (state?.state === 'skipped') return { kind: 'settled', text: t('quickAdd.browseIsSkipped') }
   if (carried.value.has(item.id)) {
-    return { kind: 'carried', text: t('quickAdd.browseAlreadyIn'), verbs: verbs.value }
+    return {
+      kind: 'carried',
+      text: t('quickAdd.browseAlreadyIn'),
+      verbs: verbs.value,
+      // A set that already reaches everybody has no spread left to offer, and
+      // a verb that would do nothing is furniture (FR-25.13g).
+      spread: forAll.value && (state?.travelersReached ?? 0) < travelerCount.value,
+    }
   }
   return { kind: 'free' }
 }
@@ -276,6 +311,21 @@ function onAdd(item: MasterItem): void {
   record(item.id, 'added', 1)
 }
 
+function onAddForAll(item: MasterItem): void {
+  emit('addForAll', item)
+  record(item.id, 'forAll', travelerCount.value)
+}
+
+/**
+ * The same verb on a line the trip already carries: the caller re-points what
+ * is there (ADR-036) and may refuse to, in which case it takes the tap into
+ * the membership editor and this sheet is on its way out with it.
+ */
+function onSpreadToAll(item: MasterItem): void {
+  emit('spreadToAll', item)
+  record(item.id, 'forAll', travelerCount.value)
+}
+
 function onAddPacked(item: MasterItem): void {
   emit('addPacked', item)
   record(item.id, 'packed', 1)
@@ -301,6 +351,12 @@ function onUndo(item: MasterItem): void {
   forget(item.id)
 }
 
+/** What the head says the taps do — three verbs where „für alle" is offered. */
+const subtitle = computed(() => {
+  if (!verbs.value) return t('quickAdd.browseSubtitle')
+  return forAll.value ? t('quickAdd.browseSubtitleForAll') : t('quickAdd.browseSubtitleVerbs')
+})
+
 /** The heading a group renders — the untagged bucket is not a tag name. */
 function groupLabel(key: string): string {
   return key === UNTAGGED_KEY ? t('items.untagged') : key
@@ -311,7 +367,7 @@ function groupLabel(key: string): string {
   <section class="sheet-body" data-testid="inventory-browse-sheet">
     <SheetHead
       :title="t('quickAdd.browseTitle')"
-      :meta="verbs ? t('quickAdd.browseSubtitleVerbs') : t('quickAdd.browseSubtitle')"
+      :meta="subtitle"
       close-testid="browse-close"
       @close="emit('close')"
     />
@@ -461,6 +517,18 @@ function groupLabel(key: string): string {
                  add and decide together; on a carried one they act on every
                  row that item has (FR-25.21). -->
             <span v-if="verbs && (view.kind === 'free' || view.kind === 'carried')" class="acts">
+              <!-- FR-25.13g: „für alle". First of the three, because it is the
+                   only one that answers *who*; ✓ and ✕ answer *whether*. -->
+              <button
+                v-if="view.kind === 'free' ? forAll : view.spread"
+                class="act for-all"
+                type="button"
+                data-testid="browse-for-all"
+                :aria-label="t('quickAdd.browseForAllLabel', { name: item.name, n: travelerCount })"
+                @click="view.kind === 'free' ? onAddForAll(item) : onSpreadToAll(item)"
+              >
+                <IonIcon :icon="peopleOutline" aria-hidden="true" />
+              </button>
               <button
                 class="act pack"
                 type="button"
@@ -716,6 +784,14 @@ function groupLabel(key: string): string {
 .act.pack {
   color: var(--jp-done);
   border-color: var(--ct-surface2);
+}
+
+/* The one verb that adds people rather than settling a state, so its glyph
+   carries the brand role rather than the done one (G-11). The border stays
+   the neutral one every verb wears: rendered, a brand-edged box on every free
+   line read as a column of warnings down the sheet. */
+.act.for-all {
+  color: var(--jp-brand);
 }
 
 .act.skip {
