@@ -117,6 +117,8 @@ export const de: Record<keyof typeof en, string> = {
     'Etwas, worauf sie sich bezieht, gibt es auf dem Server nicht mehr.',
   'sync.detail.rejected.malformedHlc':
     'Der Zeitstempel dieser Änderung war unbrauchbar — dieses Gerät hat sie fehlerhaft erzeugt.',
+  'sync.detail.rejected.rowDeleted':
+    'Jemand hat den Eintrag gelöscht, nachdem Sie diese Änderung gemacht haben — der Server hat ihn nicht wieder angelegt.',
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',

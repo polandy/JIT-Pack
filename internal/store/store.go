@@ -132,6 +132,10 @@ const (
 	// foreign key whose parent is gone, a UNIQUE two devices raced into, a
 	// CHECK the mutation's values fail.
 	ReasonConstraintViolated RejectReason = "constraint_violated"
+	// ReasonRowDeleted is a write that lost to a delete it never saw: the
+	// row is gone and the tombstone is newer, so creating it again would
+	// undo somebody else's delete rather than merge with it (Sync-API §6).
+	ReasonRowDeleted RejectReason = "row_deleted"
 )
 
 // The trip roles (FR-4.5/4.7), named once: they are compared against in
@@ -582,6 +586,40 @@ func updateRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.Me
 		return fmt.Errorf("update %s %s: %w", table, id, err)
 	}
 	return nil
+}
+
+// tombstoneHLC is the clock of the newest delete this feed recorded for one
+// entity, or the empty clock when it never deleted it.
+//
+// A delete removes the row itself (persist), so once it has happened the
+// entity's only trace is here — and a write that arrives afterwards has
+// nothing left to be compared against. Reading the tombstone gives the
+// comparison back: the change log is the delete's memory, and this is the
+// one caller that needs to remember.
+//
+// The feed is part of the question rather than a filter over the answer: an
+// entity belongs to exactly one partition, and a lookup that read both would
+// let one trip's log speak about another's row.
+//
+// It costs a scan of the feed per write that finds no row — which is every
+// insert. The index that would make it a seek cannot be added while
+// invariant 2 stands (a schema change means every database is refused and
+// reseeded), so the cost is taken deliberately and named here: revisit it
+// with the first migration after the ADR-018 trigger.
+func tombstoneHLC(ctx context.Context, tx *sql.Tx, f feed, table, id string) (sync.HLC, error) {
+	where, args := f.where()
+	args = append(args, table, id)
+	var hlc string
+	err := tx.QueryRowContext(ctx, `SELECT hlc FROM change_log
+	         WHERE `+where+` AND entity_table = ? AND entity_id = ? AND deleted = 1
+	         ORDER BY hlc DESC LIMIT 1`, args...).Scan(&hlc)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("tombstone %s %s: %w", table, id, err)
+	}
+	return sync.HLC(hlc), nil
 }
 
 // appendChangeLog writes one change feed entry, under the feed of the
