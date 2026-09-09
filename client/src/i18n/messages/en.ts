@@ -477,6 +477,9 @@ export const en = {
   'quickAdd.groupAdded':
     'Group “{name}” added — {n} position | Group “{name}” added — {n} positions',
   'quickAdd.groupAlreadyPart': ', {n} already there',
+  'quickAdd.groupNeedsTravelerPart': ', {n} still needs a traveler | {n} still need a traveler',
+  'quickAdd.groupNeedsTravelers':
+    'Group “{name}” needs a traveler — {n} position is per person | Group “{name}” needs a traveler — {n} positions are per person',
   'quickAdd.groupAllPresent': 'Group “{name}” is already fully on the list',
   'quickAdd.groupEmpty': 'Group “{name}” contributes nothing to this trip',
   'quickAdd.groupNotReady': 'Trip data is still loading — please try again in a moment',
@@ -808,6 +811,9 @@ export const en = {
   'wizard.mergesTitle': 'Carried once',
   'wizard.excludedSummary': '{n} excluded by conditions',
   'wizard.excludedLine': '{item} — skipped: {reason}',
+  'wizard.unassignableTitle': 'Waiting for a traveler',
+  'wizard.unassignableLine':
+    '{names} — planned per person, but nobody is on the trip. Add someone in step 2.',
 
   // FR-27.12 — looking inside a group.
   'templates.peekOpen': 'Show what is in “{name}”',

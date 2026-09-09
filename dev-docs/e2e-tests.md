@@ -256,7 +256,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M2 row actions (the slide menu) | E2E-M2-06 (no Share without a session), E2E-M2-07 (export, both branches) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 opening segment (FR-2.8) | E2E-M2-13, E2E-M2-13b, E2E-M2-13c, E2E-M2-13d | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
-| M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
+| M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18, E2E-M3-21 (FR-2.5b empty roster) | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08, E2E-M15-10 (G-17 file trigger), E2E-M15-03, E2E-M15-11, E2E-M15-12 (all three new 2026-08-30), E2E-M15-13, E2E-M15-02, E2E-M15-04b (the three promises built 2026-08-31), **E2E-NFR-07** (the state behind the refusal, 2026-09-01) | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
@@ -1170,6 +1170,12 @@ injecting rows (spec §2.4), which is why the M7/M8 helpers moved into
    footer count, and the merge named with both groups. **E2E-M3-13** — the
    preview's task count, and the task arriving on the generated row as an
    FR-7.3 todo that M4 counts in its header and lists in the prep section.
+   **E2E-M3-21** (added 2026-09-09, FR-2.5b/ADR-053) — a per-person position
+   on a trip whose roster was left empty is *named* in the preview rather than
+   dropped from it. Its second half is the falsifier and the remedy in one:
+   back to step 2, one traveller, and the block goes while the count rises.
+   Written because the defect had no symptom on any screen — the count simply
+   came out lower than the group contains, and nothing said so.
 2. **The unit immediately found a real defect, and it was WebKit-only by
    accident rather than by browser.** The merge read „in Wildlife & Makro"
    there and „in Makro & Wildlife" on Chromium, from identical data:
