@@ -76,7 +76,12 @@ describe('addGroupToTrip (FR-27.10)', () => {
     expect(rows.map((r) => r.name)).toEqual(['Kamera'])
     expect(rows[0]?.source_template_id).toBe(GROUP_ID)
     expect(rows[0]?.source_item_id).toBe(ITEM_ID)
-    expect(report).toEqual({ groupName: 'Makro Fotografie', added: 1, alreadyPresent: [] })
+    expect(report).toEqual({
+      groupName: 'Makro Fotografie',
+      added: 1,
+      alreadyPresent: [],
+      unassignable: [],
+    })
   })
 
   it('never flags the added rows Missing — the plan grew, nothing was missing', async () => {
@@ -109,6 +114,37 @@ describe('addGroupToTrip (FR-27.10)', () => {
     expect(todos.map((t) => t.body)).toEqual(['Akkus laden'])
   })
 
+  it('carries the FR-2.5b positions no traveler could take through to the report', async () => {
+    // The one line joining `planGroupAddition` to the sentence M4 shows. Both
+    // ends are unit-tested; without a non-empty case here a hard-coded `[]`
+    // would satisfy every other assertion in this file.
+    const orch = await localOrchestrator()
+    const tripStore = useTripStore()
+    seedWorld()
+    tripStore.applyChanges([{ ...change(TABLE.travelers, 'trv-1', {}), deleted: true }])
+    useMasterStore().applyChanges([
+      change(TABLE.templateItems, 'pos-1', {
+        template_id: GROUP_ID,
+        item_id: ITEM_ID,
+        quantity: 1,
+        assignment: 'per_person',
+        dedup: 'max',
+        default_mode: 'pack',
+        late_packer: 0,
+      }),
+    ])
+
+    const report = orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+
+    expect(tripStore.getItems(TRIP_ID)).toEqual([])
+    expect(report).toEqual({
+      groupName: 'Makro Fotografie',
+      added: 0,
+      alreadyPresent: [],
+      unassignable: ['Kamera'],
+    })
+  })
+
   it('reports what the trip already carried instead of duplicating it', async () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
@@ -122,6 +158,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
       groupName: 'Makro Fotografie',
       added: 0,
       alreadyPresent: ['Kamera'],
+      unassignable: [],
     })
   })
 

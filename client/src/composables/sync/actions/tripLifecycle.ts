@@ -134,6 +134,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
       groupName: template.name,
       added: plan.add.length,
       alreadyPresent: plan.alreadyPresent,
+      unassignable: plan.unassignable,
     }
   }
 

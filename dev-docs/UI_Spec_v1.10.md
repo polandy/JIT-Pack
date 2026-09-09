@@ -816,7 +816,11 @@ These patterns apply to every screen and are specified once.
   contributing groups** („Kamera nur 1× — in Makro & Wildlife", FR-27.2) instead of an anonymous count, and states the
   preparation tasks the trip inherits („📋 2 Vorbereitungs-Aufgaben übernommen", FR-27.7). Live preview footer also:
   resulting item count, deduplicated overlaps listed with the applied merge strategy (FR-2.3); items excluded by
-  conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter"). **Implemented (Addendum 3.20):**
+  conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter"). **And, since 2026-09-09
+  (FR-2.5b/ADR-053), the per-person positions the trip's roster cannot place** — named in an *open* block
+  (*„Braucht Reisende"*) rather than a collapsed one, because unlike an exclusion nobody decided against them: the
+  block names the items and the step that fixes it. It is absent whenever the roster holds anybody, and a position
+  whose item another contributor already placed is not among them. **Implemented (Addendum 3.20):**
   the footer additionally reports companion items pulled in automatically ("+ 2 companion items (battery,
   screwdriver)"); step 4 lists them with their main item, notes FR-20.3 dedups ("already on the list, not duplicated"),
   and offers suggested companions as opt-in checkboxes (FR-20.4).

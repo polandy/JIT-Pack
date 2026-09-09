@@ -148,6 +148,56 @@ describe('planGroupAddition (FR-27.10)', () => {
     expect(plan.add.map((a) => a.traveler_id)).toEqual(['trv-1', 'trv-2'])
   })
 
+  it('reports a per-person position an empty roster left unplaceable (FR-1.4)', () => {
+    // Without the report the tap answers "contributes nothing to this trip",
+    // which is false twice over: the group does contribute, and the remedy is
+    // a traveler rather than a different trip.
+    const plan = planGroupAddition(
+      input({
+        templateItems: [
+          templateItem('ti-1', 'grp-macro', 'item-ring', { assignment: 'per_person' }),
+        ],
+        travelers: [],
+      }),
+    )
+
+    expect(plan.add).toEqual([])
+    expect(plan.unassignable).toEqual(['Ringblitz'])
+  })
+
+  it('reports nothing unplaceable once the trip has a traveler', () => {
+    // The falsifier: a report that is always populated passes the case above.
+    const plan = planGroupAddition(
+      input({
+        templateItems: [
+          templateItem('ti-1', 'grp-macro', 'item-ring', { assignment: 'per_person' }),
+        ],
+        travelers: [traveler('trv-1', 'Andy')],
+      }),
+    )
+
+    expect(plan.add.map((a) => a.traveler_id)).toEqual(['trv-1'])
+    expect(plan.unassignable).toEqual([])
+  })
+
+  it('leaves an unplaceable position unreported when the trip already carries it', () => {
+    // Same stance as `alreadyPresent`: the item is on the list, so asking for
+    // a traveler on its account would be work with nothing behind it.
+    const plan = planGroupAddition(
+      input({
+        templateItems: [
+          templateItem('ti-1', 'grp-macro', 'item-ring', { assignment: 'per_person' }),
+        ],
+        travelers: [],
+        items: [tripItem('row-1', 'Ringblitz', { source_item_id: 'item-ring' })],
+      }),
+    )
+
+    expect(plan.add).toEqual([])
+    expect(plan.unassignable).toEqual([])
+    expect(plan.alreadyPresent).toEqual([])
+  })
+
   it('counts a per-person fan-out as present, so no trip-global third row appears', () => {
     const plan = planGroupAddition(
       input({

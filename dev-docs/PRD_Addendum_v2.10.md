@@ -3352,6 +3352,26 @@ the tail is where a symbol system is actually decided. Results:
     two travellers with one name make every per-person row ambiguous — so the setting refuses to produce either, rather
     than the wizard having to.
 
+* **FR-2.5b (An empty roster reports what it cannot place — new 2026-09-09, ADR-053):** A per-person position
+  (FR-1.4) fans out over the trip's travellers, so on a trip with nobody on it it produces **no row at all**. That is
+  a state the product allows — step 2 accepts an empty roster and says so, and it is what a fresh device starts the
+  wizard in, because FR-2.5a's defaults are empty until somebody configures them — and until now generation simply
+  dropped those positions: the M3 preview counted lower than the picked groups contain and named none of the
+  difference. Generation therefore **reports them**, as its own category beside the FR-15.2 exclusions rather than
+  as one of them: no condition decided against these, and what they lack is a traveller rather than a different trip.
+  * **M3 step 3** names them in an open block (*„Braucht Reisende"*) with the items and the step that fixes it.
+    Deliberately not folded away like the exclusions above it — an exclusion is a decision the trip made, this is a
+    decision nobody made.
+  * **FR-27.10's group add** answers *„braucht Reisende"* instead of *„steuert zu dieser Reise nichts bei"*, which was
+    false about a group whose every position is per-person, and unactionable besides.
+  * **A position whose item another contributor placed is not reported** — trip-global from a second group, or picked
+    as an FR-27.3 single item. It is on the list, so asking for a traveller on its account would be work with nothing
+    behind it. Same rule the exclusion report already follows.
+  * **The refresh (FR-27.4) is deliberately excepted.** There the roster is *part of the plan* — a traveller added
+    gets the per-person positions, one removed takes their untouched rows with them — so a trip whose roster went
+    empty is supposed to lose them, and a report would contradict the removal planned beside it. ADR-053 carries the
+    revisit trigger.
+
 * **FR-2.5 (Traveler vs. User Separation):** The system strictly distinguishes between a *Traveler* (a trip-level record
   with a **name**) and a *User* (an OIDC-provisioned account per Section 2, or the implicit local user per FR-17.2). A
   Traveler can optionally be linked to a User account; Travelers without accounts (typically children) are fully

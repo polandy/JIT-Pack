@@ -15,7 +15,8 @@ import { PATH } from './routes'
  * Covers E2E-M3-11 (the two scopes as separate sections, and a composition
  * that resolves for real: deduped count, merge named with both groups) and
  * E2E-M3-13 (the FR-27.7 task count in the preview, and the task arriving on
- * the generated row as an FR-7.3 todo).
+ * the generated row as an FR-7.3 todo) and E2E-M3-21 (a per-person position an
+ * empty roster cannot place is named rather than dropped).
  *
  * Local Mode throughout, and deliberately: generation, include expansion and
  * task materialisation all run client-side (invariant 4), so the mode without
@@ -262,6 +263,53 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // fails as a strict-mode violation depending on which frame it lands in.
     // The row id is unique, and it is also the stronger claim.
     await expect(visible(page).getByTestId('m4-row-Drohne')).toBeVisible()
+  })
+
+  // E2E-M3-21 (FR-1.4/FR-2.5): a per-person position on a trip with nobody on
+  // it fans out to nothing. Step 2 accepts an empty roster — it says so, and
+  // it is the state a fresh device starts the wizard in — so the preview is
+  // the last place the difference is visible, and it used to show none: the
+  // count simply came out lower than the group contains.
+  test('E2E-M3-21: the preview names a per-person position an empty roster cannot place', async ({
+    page,
+  }) => {
+    await page.goto(PATH.templates)
+    await createTemplate(page, 'group', 'Camping')
+    await addPosition(page, 'Zelt')
+    await addPosition(page, 'Schlafsack')
+    await visible(page).locator('ion-item h2').filter({ hasText: 'Schlafsack' }).first().click()
+    await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
+    await page.getByTestId('m8-details').click()
+    await page.getByTestId('m8-assign-person').click()
+    await expect(page.getByTestId('m8-assign-person')).toHaveClass(/sel/)
+    await page.getByTestId('m8-position-close').click()
+    await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
+    await backToList(page)
+
+    // Straight through step 2 without naming anybody, which is where a fresh
+    // device leaves it (FR-2.5a configures defaults; none are configured).
+    await wizardToStepThree(page, 'Zeltprobe')
+    await visible(page).getByTestId('wizard-section-groups').locator('ion-checkbox').first().click()
+
+    // The trip-global position is placed, the per-person one is named rather
+    // than dropped — and not as an exclusion: no condition decided against it.
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('1 item')
+    const waiting = visible(page).getByTestId('wizard-unassignable')
+    await expect(waiting).toContainText('Schlafsack')
+    await expect(waiting).toContainText('nobody is on the trip')
+
+    // The falsifier, and the remedy the sentence names: one traveler back in
+    // step 2 places the position and takes the block away. Without it the two
+    // assertions above would also pass against a block that is always shown.
+    await page.getByTestId('wizard-back').click()
+    await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+    await page.getByTestId('wizard-add-traveler').click()
+    await page.getByTestId('wizard-traveler-name').last().locator('input').fill('Andy')
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+
+    await expect(visible(page).getByTestId('wizard-unassignable')).toHaveCount(0)
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('2 items')
   })
 
   test('E2E-M3-13: a position task is previewed and lands as a prep todo on the generated row', async ({

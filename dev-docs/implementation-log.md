@@ -352,6 +352,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A card no gate could see (2026-09-09)](#a-card-no-gate-could-see-2026-09-09) — M1 kept Ionic's card through every design pass: a component painting from its own stylesheet passes our gate.
 
 - [A delete had no memory to compare against](#a-delete-had-no-memory-to-compare-against) — the resurrection defect, why the fix reads `change_log`, and the measurement that rewrote its own ADR.
+- [A position that vanished between two screens (2026-09-09)](#a-position-that-vanished-between-two-screens-2026-09-09) — the defect whose only symptom was a lower number; why the report went into the resolution and not into step 2's gate.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14470,3 +14471,39 @@ than a feeling. `BenchmarkTombstoneLookup_*` ships for that purpose.
 `TestRejectReasons_ClientKnowsEveryOneTheServerCanSend` red immediately, naming the file and the
 missing entry — a refusal the user would have been told nothing about, caught before the client was
 touched. It is the cheapest guard in the repository and it earned its keep again.
+
+## A position that vanished between two screens (2026-09-09)
+
+FR-1.4's per-person positions fan out over the trip's travellers. On a trip with nobody on it that
+fan-out produces zero rows, and until now those positions were simply gone: no report, no reason,
+nothing. **The defect's whole symptom was a number being lower than it should be.** M3's preview
+said „7 Artikel" where the picked groups hold nine, the two missing ones were per-person, and every
+report on that screen — merges, duplicates, exclusions — is a list of things that *happened*, so
+none of them had anything to say about something that did not. That is why it survived a bug review
+that read the screen: there is nothing on the screen to read.
+
+**The state is legitimate, which is what decided the fix.** The obvious repair is to make step 2
+refuse an empty roster, and it is wrong for two reasons that only showed up when I went looking for
+the second caller. A trip picking nothing but trip-global positions has no use for a roster, so the
+gate would ask a question for nothing — the same reasoning that retired Adult/Child with FR-25.9.
+And a wizard gate reaches exactly one of the three paths that generate: FR-27.10 adds a group to a
+trip that already exists, whose roster can have been emptied afterwards, with no wizard step
+anywhere in sight. Putting the report in the resolution instead means both callers inherit it.
+ADR-053 has the third option (fall back to trip-global) and why it is worse than either.
+
+**The group-add message was actively lying, and I only found it by following the caller.** With an
+empty roster and a group whose every position is per-person, `planGroupAddition` returned nothing
+added and nothing recognised — which `groupAdditionMessage` answers with *„steuert zu dieser Reise
+nichts bei"*. The group contributes plenty. That sentence has existed since FR-27.10 shipped, it is
+unit-tested, and the test is right about the case it describes; the case it does *not* describe was
+unreachable to write because the resolution reported nothing to distinguish it by. A sixth outcome
+fixes it, and the ordering matters: when nothing landed, the actionable half wins over the true one,
+because „schon vollständig dabei" would send the user looking for rows that are not there.
+
+**FR-27.4 is excepted on purpose, and that is the part worth writing down.** The refresh runs the
+same resolution, so it would have been free to report the same thing — and it must not. There the
+roster *is* part of the plan: a traveller added gets the per-person positions, one removed takes
+their untouched rows with them, which is a decision the refresh already implements. A „needs a
+traveller" line beside a planned removal contradicts it. The gap that leaves — a trip that never had
+travellers and follows a group is told nothing at refresh time — is real, and it is ADR-053's first
+revisit trigger rather than something the report should have papered over.
