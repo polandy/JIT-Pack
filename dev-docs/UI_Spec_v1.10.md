@@ -1161,8 +1161,9 @@ These patterns apply to every screen and are specified once.
   reaching this sheet has just come off that list, and a row's decision belongs on the same side of the screen in both
   places. The roster opens with a **head row *„Alle Reisenden"*** (FR-25.21c): the same checkbox grammar as the lines
   under it, tri-state — mixed while only some are members — so it reports the membership as well as changing it. It only
-  ever adds, at one each, and keeps every amount somebody chose; once everybody is a member it is checked and no longer
-  offers a tap, because the way back is the *Gemeinsam* tab, which sums the amounts and asks first (FR-25.21b).
+  ever adds, at one each, and keeps every amount somebody chose; once everybody is a member it is an ordinary checked
+  box whose tap changes nothing — not a disabled one, which is the G-3 lock's appearance — because the way back is the
+  *Gemeinsam* tab, which sums the amounts and asks first (FR-25.21b).
   **No save button** — every control commits immediately (G-5, FR-25.15), and the `Pro Person` tab only reveals
   the roster: checking a person is the write. Absent under two travelers (G-8), read-only under a foreign claim on any
   instance (G-3); *Packed by* delegation picker **with a "niemand" clear** (FR-4.2/6.2); mode selector (🧳/🛒/📍, FR-3.1);

@@ -162,9 +162,17 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await expect(page.getByTestId('membership-qty-Mia')).toHaveText('1')
     await expect(page.getByTestId('membership-qty-Leonardo')).toHaveText('3')
     await expect(page.getByTestId('membership-summary')).toContainText('5')
-    // Nothing left to add, and the head says so rather than offering the tap.
+    // Nothing left to add, and the head says so as an ordinary checked box —
+    // not a faded one, which is the G-3 lock's sentence about a claimed row.
     await expect(all).toHaveAttribute('aria-checked', 'true')
-    await expect(all).toHaveClass(/checkbox-disabled/)
+    await expect(all).not.toHaveClass(/checkbox-disabled/)
+
+    // Tapping it again therefore has to be answerable: it changes nothing, and
+    // the box comes back checked rather than following its own toggle.
+    await all.click()
+    await expect(all).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('membership-qty-Leonardo')).toHaveText('3')
+    await expect(page.getByTestId('membership-summary')).toContainText('5')
 
     // The decision sits where M4's pack control sits — read off the rendered
     // geometry, because the row's order is the whole rule and a DOM order is

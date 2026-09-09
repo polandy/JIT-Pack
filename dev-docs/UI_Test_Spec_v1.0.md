@@ -858,7 +858,9 @@ rather than registered.
   two missing travelers arrive at 1, Leonardo stays at 3, and the footer reads 5 — a shortcut that reset the amounts
   would pass every count-based clause and fail this one. The head's own state is read before and after (`aria-checked`
   *mixed*, then *true*), because a select-all that writes without reporting is half the control: the mixed state is
-  what answers *„sind alle dabei?"* on opening. The case also holds the **row layout**: both checkboxes are read off
+  what answers *„sind alle dabei?"* on opening, and the full state is asserted as an *ordinary* checked box — a second
+  tap on it leaves the amounts and the footer where they are and the box checked, which is the positive signal that the
+  no-op is a no-op rather than an unnoticed toggle. The case also holds the **row layout**: both checkboxes are read off
   their rendered geometry as sitting right of the stepper and past the sheet's midline, where M4's pack control sits —
   a DOM order would be satisfied by markup a `flex-direction` could still reverse.
 * **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam*. One row remains at quantity **5** — the sum, not the

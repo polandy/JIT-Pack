@@ -205,10 +205,16 @@ const coverage = computed(() => membershipCoverage(travelers.value, currentMembe
  * back the other way is the *Gemeinsam* tab, which sums the amounts and says so
  * first (FR-25.21b) — an unchecked *Alle* would be a second, silent path to the
  * same destructive rewrite.
+ *
+ * With everybody already a member there is nothing to add, and the tap changes
+ * nothing — but the box is still drawn as an ordinary checked one (owner,
+ * 2026-09-09): disabling it wore the same fade as a G-3 lock, which is a
+ * different sentence about a row nobody has claimed.
  */
 function checkEveryone() {
-  if (coverage.value === 'all') return
-  apply(targetFor(everyoneMembers(travelers.value, currentMembers())))
+  if (coverage.value !== 'all') {
+    apply(targetFor(everyoneMembers(travelers.value, currentMembers())))
+  }
   void nextTick(syncAllBox)
 }
 
@@ -330,7 +336,7 @@ const confirmMessage = computed(() => {
           ref="allBox"
           :checked="coverage !== 'none'"
           :indeterminate="coverage === 'some'"
-          :disabled="isLocked || coverage === 'all'"
+          :disabled="isLocked"
           :aria-label="t('membership.all')"
           data-testid="membership-check-all"
           @ion-change="checkEveryone"
