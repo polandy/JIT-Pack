@@ -236,6 +236,22 @@ export interface MergedOverlap {
   sources: Template[]
 }
 
+/**
+ * A per-person position with nobody to belong to (FR-1.4): the trip's roster
+ * is empty, so the fan-out produced no row at all.
+ *
+ * Its own category rather than an {@link ExcludedItem}, because the two ask
+ * for different things. A condition kept an item out on purpose and the trip
+ * is the answer; this one nothing decided against — what it lacks is a
+ * traveler, and until it is named the position is simply missing from a
+ * preview that counts fewer rows than the groups contain.
+ */
+export interface UnassignableItem {
+  item_id: string
+  item_name: string
+  template_id: string
+}
+
 /** FR-27.3: a single item the resolution already carried, named not counted. */
 export interface AlreadyIncludedItem {
   item_id: string
@@ -248,6 +264,8 @@ export interface GenerationResult {
   merged: MergedOverlap[]
   /** Picked single items that were already on the list — "nicht doppelt". */
   alreadyIncluded: AlreadyIncludedItem[]
+  /** Per-person positions the empty roster left unplaceable (FR-1.4). */
+  unassignable: UnassignableItem[]
 }
 
 /** Inclusive day count matching the trips.duration_days DB definition (FR-2.1a: null without start date). */
@@ -275,6 +293,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
   }
 
   const excluded: ExcludedItem[] = []
+  const unassignable: UnassignableItem[] = []
   const byKey = new Map<
     string,
     {
@@ -302,6 +321,19 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
           item_name: master.name,
           template_id: ti.template_id,
           reason: failure,
+        })
+        continue
+      }
+
+      // A per-person position over an empty roster fans out to nothing. M3
+      // lets that state exist (step 2 accepts a trip with nobody on it), so
+      // the position has to be reported rather than dropped between two
+      // screens — the preview is the only place the difference is visible.
+      if (ti.assignment === 'per_person' && input.trip.travelers.length === 0) {
+        unassignable.push({
+          item_id: ti.item_id,
+          item_name: master.name,
+          template_id: ti.template_id,
         })
         continue
       }
@@ -412,7 +444,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
   }
 
   // An item another contributor placed is on the list, so reporting it as
-  // excluded states something false about it. §3.27 makes this the normal case
+  // excluded — or as waiting for a traveler — states something false about it. §3.27 makes this the normal case
   // rather than the exotic one: sharing an item across groups is the point —
   // and since FR-27.3 a hand-picked single is such a contributor, which is
   // also the override for a condition that kept the item out (FR-15.2).
@@ -421,6 +453,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
     excluded: excluded.filter((e) => !placed.has(e.item_id)),
     merged,
     alreadyIncluded,
+    unassignable: unassignable.filter((u) => !placed.has(u.item_id)),
   }
 }
 

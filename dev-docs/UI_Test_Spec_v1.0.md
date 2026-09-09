@@ -423,6 +423,12 @@ stable references for the traceability matrix.
   is disabled" would pass the first half alone. The picker is **re-opened** rather than opened: one that already holds a
   value opens on that value's month, so the grid under test is the same on any day of any year, while an empty picker
   opens on *today* and the case would rot with the calendar.
+* **E2E-M3-21** `local` (FR-2.5b/FR-1.4) — **new 2026-09-09**: a group carrying one trip-global and one per-person
+  position, previewed on a trip whose step 2 was walked through without naming anybody: the count states the one row
+  placed, and the *„Braucht Reisende"* block names the other position — not the exclusion block, which stays empty
+  because no condition kept it out. The case then goes **back to step 2 and adds one traveller**, which takes the
+  block away and lifts the count to two: without that half the two assertions above would also pass against a block
+  that is always shown.
 * **E2E-M3-19** `all` (G-16): Enter in a step's plain field is the step's *Weiter* — nothing happens while the gate
   holds (empty name), the same keypress on the same field advances once it opens, and a step-2 traveller name fires the
   same way; step 3's single-item search is G-16-exempt, so Enter there does not advance — proven live by the button

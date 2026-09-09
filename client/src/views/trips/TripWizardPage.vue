@@ -315,6 +315,15 @@ const taskCount = computed(() =>
 )
 
 /**
+ * FR-1.4: the items an empty roster left unplaceable, named once each. A
+ * Vorlage and one of its Gruppen can both carry the same per-person position,
+ * and the preview would then ask twice for the same traveler.
+ */
+const unassignableNames = computed(() =>
+  [...new Set(generation.value.unassignable.map((u) => u.item_name))].join(', '),
+)
+
+/**
  * FR-27.2: a merge is reported by name — "Kamera nur 1× — in Makro & Wildlife".
  * The same two sentences the M8 resolution footer uses: it is the same fact
  * about the same composition, and two wordings would eventually disagree.
@@ -1060,6 +1069,24 @@ setHeaderTitle(
               {{ t('wizard.excludedLine', { item: ex.item_name, reason: ex.reason }) }}
             </p>
           </details>
+          <!-- FR-1.4: per-person positions with nobody to belong to. Open
+               rather than folded away like the exclusions above, because no
+               condition decided against them — the roster did, and the remedy
+               is one step back. -->
+          <div
+            v-if="generation.unassignable.length > 0"
+            class="preview-block"
+            data-testid="wizard-unassignable"
+          >
+            <h3>{{ t('wizard.unassignableTitle') }}</h3>
+            <p>
+              {{
+                t('wizard.unassignableLine', {
+                  names: unassignableNames,
+                })
+              }}
+            </p>
+          </div>
         </div>
       </section>
 

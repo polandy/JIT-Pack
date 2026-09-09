@@ -60,6 +60,18 @@ export interface GroupAdditionPlan {
    * would have placed it — the user thinks in items, not in rows.
    */
   alreadyPresent: string[]
+  /**
+   * Names of the group's per-person positions that an empty roster left with
+   * nobody to belong to (FR-1.4). Reported for the same reason as the line
+   * above: a group that placed nothing has to say why, and "needs a traveler"
+   * is a different answer from "contributes nothing to this trip" — one of
+   * them is actionable.
+   *
+   * A position whose item the trip already carries is not among them: it is on
+   * the list, so asking for a traveler on its account would be work with
+   * nothing behind it.
+   */
+  unassignable: string[]
 }
 
 /**
@@ -93,15 +105,15 @@ export function planGroupAddition(input: GroupAdditionInput): GroupAdditionPlan 
   )
   const presentNames = new Set(input.items.map((i) => normalizeName(i.name)))
 
+  const present = (itemId: string, name: string) =>
+    presentItemIds.has(itemId) || presentNames.has(normalizeName(name))
+
   const add: PlannedGroupAdd[] = []
   const alreadyPresent: string[] = []
   const reported = new Set<string>()
 
   for (const generated of resolved.items) {
-    const present =
-      presentItemIds.has(generated.source_item_id) ||
-      presentNames.has(normalizeName(generated.name))
-    if (present) {
+    if (present(generated.source_item_id, generated.name)) {
       if (!reported.has(generated.source_item_id)) {
         reported.add(generated.source_item_id)
         alreadyPresent.push(generated.name)
@@ -117,7 +129,15 @@ export function planGroupAddition(input: GroupAdditionInput): GroupAdditionPlan 
     })
   }
 
-  return { add, alreadyPresent }
+  const unassignable: string[] = []
+  for (const u of resolved.unassignable) {
+    if (present(u.item_id, u.item_name)) continue
+    if (reported.has(u.item_id)) continue
+    reported.add(u.item_id)
+    unassignable.push(u.item_name)
+  }
+
+  return { add, alreadyPresent, unassignable }
 }
 
 /** Tolerant enough for "Powerbank" vs "powerbank ", deliberately no further. */
@@ -135,4 +155,6 @@ export interface GroupAdditionReport {
   groupName: string
   added: number
   alreadyPresent: string[]
+  /** FR-1.4: the per-person positions still waiting for somebody to belong to. */
+  unassignable: string[]
 }

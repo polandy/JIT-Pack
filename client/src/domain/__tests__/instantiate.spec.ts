@@ -405,6 +405,101 @@ describe('generateTripItems with composed templates (§3.27)', () => {
 })
 
 /**
+ * FR-1.4/FR-2.5: a per-person position needs somebody to belong to, and an
+ * empty roster is a state M3 lets the user reach — step 2 accepts it, and the
+ * screen even says per-person items need a traveler. What it did not do was
+ * say which ones went missing afterwards, so the preview counted fewer rows
+ * than the groups contain and named none of the difference.
+ *
+ * The report is a category of its own rather than an exclusion: no condition
+ * kept these out, nothing about the trip says they do not belong, and the
+ * remedy is a traveler rather than a different trip.
+ */
+describe('generateTripItems reports what an empty roster cannot place (FR-1.4)', () => {
+  const noTravelers = { duration_days: 5, attributes: null, travelers: [] }
+
+  it('names a per-person position it could not place instead of dropping it', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Unterhosen')],
+        templateItems: [templateItem('ti1', 't1', 'i1', { assignment: 'per_person' })],
+        trip: noTravelers,
+      }),
+    )
+
+    expect(res.items).toEqual([])
+    expect(res.unassignable).toEqual([
+      { item_id: 'i1', item_name: 'Unterhosen', template_id: 't1' },
+    ])
+  })
+
+  it('keeps it out of the exclusion report, which is about conditions', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Unterhosen')],
+        templateItems: [templateItem('ti1', 't1', 'i1', { assignment: 'per_person' })],
+        trip: noTravelers,
+      }),
+    )
+
+    expect(res.excluded).toEqual([])
+  })
+
+  it('reports nothing once a traveler exists — the roster is what decides', () => {
+    // The falsifier for the two above: an unconditional report would pass them
+    // both and this one is the only thing that says the roster was read.
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Unterhosen')],
+        templateItems: [templateItem('ti1', 't1', 'i1', { assignment: 'per_person' })],
+        trip: { duration_days: 5, attributes: null, travelers: [{ name: 'Andy' }] },
+      }),
+    )
+
+    expect(res.items.map((i) => i.traveler_index)).toEqual([0])
+    expect(res.unassignable).toEqual([])
+  })
+
+  it('stays quiet about an item another position placed trip-global', () => {
+    // Same rule the exclusion report follows: the item is on the list, so
+    // saying it could not be placed states something false about it.
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Wandern')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1')],
+        masterItems: [masterItem('i1', 'Trinkflasche')],
+        templateItems: [
+          templateItem('ti1', 't1', 'i1', { assignment: 'per_person' }),
+          templateItem('ti2', 'g1', 'i1'),
+        ],
+        trip: noTravelers,
+      }),
+    )
+
+    expect(res.items.map((i) => i.name)).toEqual(['Trinkflasche'])
+    expect(res.unassignable).toEqual([])
+  })
+
+  it('leaves a trip-global position alone — it needs nobody', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Zelt')],
+        templateItems: [templateItem('ti1', 't1', 'i1')],
+        trip: noTravelers,
+      }),
+    )
+
+    expect(res.items.map((i) => i.name)).toEqual(['Zelt'])
+    expect(res.unassignable).toEqual([])
+  })
+})
+
+/**
  * FR-27.7: a template position can carry preparation tasks, and generation
  * hands each one to the trip item as an ordinary FR-7.3 todo. No new flag is
  * involved — the open todo is what keeps the row from counting as done.

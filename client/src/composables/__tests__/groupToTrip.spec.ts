@@ -76,7 +76,12 @@ describe('addGroupToTrip (FR-27.10)', () => {
     expect(rows.map((r) => r.name)).toEqual(['Kamera'])
     expect(rows[0]?.source_template_id).toBe(GROUP_ID)
     expect(rows[0]?.source_item_id).toBe(ITEM_ID)
-    expect(report).toEqual({ groupName: 'Makro Fotografie', added: 1, alreadyPresent: [] })
+    expect(report).toEqual({
+      groupName: 'Makro Fotografie',
+      added: 1,
+      alreadyPresent: [],
+      unassignable: [],
+    })
   })
 
   it('never flags the added rows Missing — the plan grew, nothing was missing', async () => {
@@ -122,6 +127,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
       groupName: 'Makro Fotografie',
       added: 0,
       alreadyPresent: ['Kamera'],
+      unassignable: [],
     })
   })
 

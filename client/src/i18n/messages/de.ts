@@ -488,6 +488,9 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.groupAdded':
     'Gruppe „{name}“ hinzugefügt — {n} Position | Gruppe „{name}“ hinzugefügt — {n} Positionen',
   'quickAdd.groupAlreadyPart': ', {n} schon dabei',
+  'quickAdd.groupNeedsTravelerPart': ', {n} braucht noch Reisende | {n} brauchen noch Reisende',
+  'quickAdd.groupNeedsTravelers':
+    'Gruppe „{name}“ braucht Reisende — {n} Position ist pro Person | Gruppe „{name}“ braucht Reisende — {n} Positionen sind pro Person',
   'quickAdd.groupAllPresent': 'Gruppe „{name}“ ist schon vollständig dabei',
   'quickAdd.groupEmpty': 'Gruppe „{name}“ steuert zu dieser Reise nichts bei',
   'quickAdd.groupNotReady': 'Reisedaten werden noch geladen — bitte gleich noch einmal',
@@ -815,6 +818,9 @@ export const de: Record<keyof typeof en, string> = {
   'wizard.mergesTitle': 'Nur einmal dabei',
   'wizard.excludedSummary': '{n} durch Bedingungen ausgeschlossen',
   'wizard.excludedLine': '{item} — übersprungen: {reason}',
+  'wizard.unassignableTitle': 'Braucht Reisende',
+  'wizard.unassignableLine':
+    '{names} — pro Person geplant, aber niemand ist eingetragen. In Schritt 2 jemanden hinzufügen.',
 
   // FR-27.12 — in eine Gruppe hineinschauen.
   'templates.peekOpen': 'Zeigen, was in „{name}“ ist',
