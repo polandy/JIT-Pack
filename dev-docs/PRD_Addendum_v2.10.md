@@ -1079,6 +1079,28 @@ taken straight from a phone camera never reaches the server unprocessed.
   keeps a `data-testid` of its own (`dashboard`), because a test that says *which* screen is up can no longer point
   at the greeting: the head is outside the router outlet.
 
+* **FR-21.28 (M1's Cards Are the App's Card — added 2026-09-09):** Every block on the dashboard — the delegation
+  section, the last-minute section, the prep section, the trip cards under the hero and the planned lookahead — is the
+  card of G-14 (`.jp-card`), headed where it needs a name by the section head of G-13. M1 was the last screen in the
+  app still drawing Ionic's `ion-card`, which is a second radius, a second elevation and an inset of its own.
+
+  **Measured at 430 px rather than argued from the stylesheet.** The hero card sits 16 px from the page edge, 398 px
+  wide, with the 18 px card radius and the flavour's own lift; the *„Geplant"* card under it sat 26 px in, 378 px
+  wide, at 4 px radius, under Material's three-layer black shadow. Two cards, a finger apart, disagreeing about where
+  the page's edge is — which is what the owner saw and reported as the dashboard's tile not looking like the one on
+  M2.
+
+  **What changes with the surface, because a card was carrying them.** Each section's name leaves the card and becomes
+  a section head, so the count sits in the numeric face beside the name rather than in brackets inside the title
+  (*„Geplant (1)"* → *„Geplant"* with *1*); the four decorative icons in those titles go, no section head in the app
+  having one; and the delegation section's *„n neu"* badge becomes that head's count, the one place a section's
+  number belongs. The rows, their test ids and every route out of them are untouched.
+
+  **A trip's progress is one composition, and the following cards now use it.** They drew a bare Ionic progress bar
+  edge to edge across the card and wrote the packed count under it as a paragraph of their own; they carry the same
+  `ProgressFigure` the hero and M2's rows do, one ring size down. That is the app's only progress design, so the last
+  bar of the other kind is gone with the last card of the other kind.
+
 * **FR-22.1 (Optional Item Photo):** Each item in the central item database (FR-1.1) can optionally have one photo
   attached. Absence is the default and the common case — this is a reference aid, not a required field, and nothing else
   in the product (quantities, dedup, sync) depends on its presence.

@@ -169,7 +169,13 @@ test.describe('M1 dashboard @local @m1', () => {
     await page.goto(PATH.dashboard)
 
     const prep = visible(page).getByTestId('dashboard-prep')
-    await expect(prep).toContainText('Prep to do (1)')
+    // The name is the section's head and the number its count (G-13), and
+    // the block under it is the app's card rather than Ionic's (G-14,
+    // FR-21.28) — M1 was the last screen drawing a card of its own.
+    const prepHead = visible(page).getByTestId('dashboard-prep-head')
+    await expect(prepHead).toContainText('Prep to do')
+    await expect(prepHead).toContainText('1')
+    await expect(prep).toHaveClass(/jp-card/)
     // Grouped by item (the FR's own word), not a flat list of task bodies.
     await expect(prep.getByTestId('dashboard-prep-item-Kamera')).toBeVisible()
     await expect(prep.getByTestId(`dashboard-todo-${TODO}`)).toBeVisible()
@@ -205,7 +211,11 @@ test.describe('M1 dashboard @local @m1', () => {
     await page.goto(PATH.dashboard)
 
     const planned = visible(page).getByTestId('dashboard-planned')
-    await expect(planned).toContainText('Planned (1)')
+    const plannedHead = visible(page).getByTestId('dashboard-planned-head')
+    await expect(plannedHead).toContainText('Planned')
+    await expect(plannedHead).toContainText('1')
+    // G-14/FR-21.28: the app's card, the one the hero above it is.
+    await expect(planned).toHaveClass(/jp-card/)
     // The one thing this card says about the trip besides its name: when it
     // leaves, through the app's single temporal formatter.
     await expect(planned.getByTestId('dashboard-planned-Elba')).toContainText('from')

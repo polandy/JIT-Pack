@@ -1071,8 +1071,8 @@ export const de: Record<keyof typeof en, string> = {
   'dashboard.delegatedNewRow': '{name} — neu',
   'dashboard.delegatedNew': '{n} neu',
   'dashboard.latePackers': '{n} letzte Sache | {n} letzte Sachen',
-  'dashboard.planned': 'Geplant ({n})',
-  'dashboard.prepTodo': 'Vorzubereiten ({n})',
+  'dashboard.planned': 'Geplant',
+  'dashboard.prepTodo': 'Vorzubereiten',
   'dashboard.openCount': '{n} offen',
   'dashboard.moreItems': '+{n} weitere',
 
