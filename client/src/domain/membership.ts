@@ -355,3 +355,36 @@ function planPerPerson(
     empty: update.length === 0 && insert.length === 0 && removed.length === 0,
   }
 }
+
+/** How much of the roster an item's membership covers — what the FR-25.21c select-all reports. */
+export type MembershipCoverage = 'none' | 'some' | 'all'
+
+/**
+ * membershipCoverage says whether none, some or every traveler of the trip is
+ * a member. Only travelers the trip still has are counted: a row pointing at a
+ * removed traveler is not somebody the roster can show as checked, and letting
+ * it count would make a partial set read as full.
+ */
+export function membershipCoverage(
+  travelers: Traveler[],
+  members: MembershipMember[],
+): MembershipCoverage {
+  const ids = new Set(members.map((m) => m.traveler_id))
+  const covered = travelers.filter((t) => ids.has(t.id)).length
+  if (covered === 0) return 'none'
+  return covered === travelers.length ? 'all' : 'some'
+}
+
+/**
+ * everyoneMembers is FR-25.21c's shortcut: the membership that has the whole
+ * roster in it. An amount somebody chose is a decision and is kept — the
+ * shortcut only adds the travelers who have none, at the floor of one, so
+ * tapping it can enlarge a membership and never rewrite one.
+ */
+export function everyoneMembers(
+  travelers: Traveler[],
+  members: MembershipMember[],
+): MembershipMember[] {
+  const byTraveler = new Map(members.map((m) => [m.traveler_id, m]))
+  return travelers.map((t) => byTraveler.get(t.id) ?? { traveler_id: t.id, quantity: MIN_QUANTITY })
+}

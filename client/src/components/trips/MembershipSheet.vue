@@ -14,13 +14,18 @@
  *
  * Membership is the checkbox. A checked traveler's stepper floors at 1, since
  * 0 already means FR-5.5 *skipped* and one control must not carry two decisions.
+ * It sits at the **end** of the row, where M4's G-6 pack control sits: a person
+ * arriving here has just come off that list, and a row's decision is made on
+ * the same side of the screen in both places (owner, 2026-09-09).
  */
 import { IonAlert, IonCheckbox, IonIcon } from '@ionic/vue'
 import { addOutline, lockClosedOutline, removeOutline } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import {
+  everyoneMembers,
+  membershipCoverage,
   membershipRows,
   planMembership,
   type MembershipPlan,
@@ -188,6 +193,48 @@ function toggle(travelerId: string) {
   apply(targetFor([...current, { traveler_id: travelerId, quantity: 1 }]))
 }
 
+/**
+ * FR-25.21c: how much of the roster is already a member — the head row's own
+ * answer, and what decides whether it still has anything to add.
+ */
+const coverage = computed(() => membershipCoverage(travelers.value, currentMembers()))
+
+/**
+ * The shortcut only ever enlarges the membership: it adds the travelers who
+ * have no row, at one each, and leaves every chosen amount standing. Coming
+ * back the other way is the *Gemeinsam* tab, which sums the amounts and says so
+ * first (FR-25.21b) — an unchecked *Alle* would be a second, silent path to the
+ * same destructive rewrite.
+ *
+ * With everybody already a member there is nothing to add, and the tap changes
+ * nothing — but the box is still drawn as an ordinary checked one (owner,
+ * 2026-09-09): disabling it wore the same fade as a G-3 lock, which is a
+ * different sentence about a row nobody has claimed.
+ */
+function checkEveryone() {
+  if (coverage.value !== 'all') {
+    apply(targetFor(everyoneMembers(travelers.value, currentMembers())))
+  }
+  void nextTick(syncAllBox)
+}
+
+const allBox = ref<InstanceType<typeof IonCheckbox> | null>(null)
+
+/**
+ * Ionic's checkbox flips its own DOM state on a tap, and Vue's diff then sees
+ * the bound value unchanged — so a head row that only ever *adds* would be left
+ * showing the opposite of what it just did, and a tap a confirm has not yet
+ * answered would show the answer in advance. The row reports the membership as
+ * much as it changes it, so its state is written back from the model after
+ * every tap rather than left to the toggle.
+ */
+function syncAllBox() {
+  const el = allBox.value?.$el as { checked: boolean; indeterminate: boolean } | undefined
+  if (!el) return
+  el.checked = coverage.value !== 'none'
+  el.indeterminate = coverage.value === 'some'
+}
+
 function step(travelerId: string, by: number) {
   apply(
     targetFor(
@@ -282,19 +329,25 @@ const confirmMessage = computed(() => {
     </p>
 
     <ul v-if="showRoster" class="list">
+      <li class="row all" :class="{ done: coverage === 'all' }">
+        <span class="count jp-num" aria-hidden="true">{{ travelers.length }}</span>
+        <span class="nm">{{ t('membership.all') }}</span>
+        <IonCheckbox
+          ref="allBox"
+          :checked="coverage !== 'none'"
+          :indeterminate="coverage === 'some'"
+          :disabled="isLocked"
+          :aria-label="t('membership.all')"
+          data-testid="membership-check-all"
+          @ion-change="checkEveryone"
+        />
+      </li>
       <li
         v-for="tr in travelers"
         :key="tr.id"
         class="row"
         :class="{ off: amountOf(tr.id) === null }"
       >
-        <IonCheckbox
-          :checked="amountOf(tr.id) !== null"
-          :disabled="isLocked"
-          :aria-label="tr.name"
-          :data-testid="`membership-check-${tr.name}`"
-          @ion-change="toggle(tr.id)"
-        />
         <UserAvatar :name="tr.name" :seed="tr.id" :size="24" />
         <span class="nm">{{ tr.name }}</span>
         <span v-if="amountOf(tr.id) !== null" class="stepper">
@@ -318,6 +371,13 @@ const confirmMessage = computed(() => {
             <IonIcon :icon="addOutline" />
           </button>
         </span>
+        <IonCheckbox
+          :checked="amountOf(tr.id) !== null"
+          :disabled="isLocked"
+          :aria-label="tr.name"
+          :data-testid="`membership-check-${tr.name}`"
+          @ion-change="toggle(tr.id)"
+        />
       </li>
     </ul>
 
@@ -421,6 +481,34 @@ const confirmMessage = computed(() => {
 
 .row.off {
   opacity: 0.55;
+}
+
+/* FR-25.21c: the head row belongs to the list and is not one of its people —
+   the sunken plane is what says so, the same step the segmented control uses. */
+.row.all {
+  background: var(--jp-surface-sunken);
+  border-bottom-color: var(--ct-surface1);
+}
+
+.row.all .nm {
+  font-weight: var(--jp-weight-semibold);
+}
+
+.count {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ct-surface1);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-2xs);
+}
+
+.row.all.done .count {
+  background: var(--jp-done);
+  color: var(--ct-on-accent);
 }
 
 .nm {

@@ -136,6 +136,68 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     expect(head.size).toBe(plainRow.size)
   })
 
+  /*
+   * FR-25.21c. The tap is made from a *partial* membership carrying a chosen
+   * amount, because that is the half a select-all can get wrong: the missing
+   * travelers arrive at one and Leonardo's three stay three. The head's own
+   * state is read before and after — mixed, then checked — so the case cannot
+   * pass against a control that only writes and never reports.
+   */
+  test('E2E-M5-26: one tap adds the missing travelers and leaves a chosen amount alone', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+
+    await openMembership(page, ITEM)
+    await page.getByTestId('membership-per-person').click()
+    await setMember(page, 'Leonardo', 3)
+
+    const all = page.getByTestId('membership-check-all')
+    await expect(all).toHaveAttribute('aria-checked', 'mixed')
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveCount(0)
+
+    await all.click()
+
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
+    await expect(page.getByTestId('membership-qty-Mia')).toHaveText('1')
+    await expect(page.getByTestId('membership-qty-Leonardo')).toHaveText('3')
+    await expect(page.getByTestId('membership-summary')).toContainText('5')
+    // Nothing left to add, and the head says so as an ordinary checked box —
+    // not a faded one, which is the G-3 lock's sentence about a claimed row.
+    await expect(all).toHaveAttribute('aria-checked', 'true')
+    await expect(all).not.toHaveClass(/checkbox-disabled/)
+
+    // Tapping it again therefore has to be answerable: it changes nothing, and
+    // the box comes back checked rather than following its own toggle.
+    await all.click()
+    await expect(all).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('membership-qty-Leonardo')).toHaveText('3')
+    await expect(page.getByTestId('membership-summary')).toContainText('5')
+
+    // The decision sits where M4's pack control sits — read off the rendered
+    // geometry, because the row's order is the whole rule and a DOM order is
+    // not it: `flex-direction` alone would satisfy the markup and fail the eye.
+    const box = async (testId: string) => {
+      const rect = await page.getByTestId(testId).boundingBox()
+      if (!rect) throw new Error(`${testId} has no box`)
+      return rect
+    }
+    const check = await box('membership-check-Andy')
+    const stepper = await box('membership-qty-Andy')
+    const row = await box('membership-sheet')
+    expect(check.x).toBeGreaterThan(stepper.x + stepper.width)
+    expect(check.x).toBeGreaterThan(row.x + row.width / 2)
+    const headCheck = await box('membership-check-all')
+    expect(headCheck.x).toBeGreaterThan(row.x + row.width / 2)
+
+    await closeAll(page)
+
+    const list = visiblePage(page)
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`).getByTestId('row-check')).toBeVisible()
+    await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/5')
+  })
+
   test('E2E-M5-19: removing a packed traveler is confirmed; removing a costless one is not', async ({
     page,
   }) => {
