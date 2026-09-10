@@ -16,6 +16,15 @@ import (
 
 func newSingleUserTestServer(t *testing.T) (*httptest.Server, string) {
 	t.Helper()
+	srv, localID, _ := newSingleUserTestServerWithStore(t)
+	return srv, localID
+}
+
+// newSingleUserTestServerWithStore hands back the store beside the
+// transport, for the tests that have to seed or read rows no Single-User
+// endpoint exposes.
+func newSingleUserTestServerWithStore(t *testing.T) (*httptest.Server, string, *store.Store) {
+	t.Helper()
 	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
 		t.Fatalf("store.OpenForTest: %v", err)
@@ -34,7 +43,7 @@ func newSingleUserTestServer(t *testing.T) (*httptest.Server, string) {
 
 	srv := httptest.NewServer(api.NewSingleUser(st, localID, api.Options{}).Handler())
 	t.Cleanup(srv.Close)
-	return srv, localID
+	return srv, localID, st
 }
 
 func TestSingleUserMode_PushPullWorkWithoutAnyToken(t *testing.T) {
