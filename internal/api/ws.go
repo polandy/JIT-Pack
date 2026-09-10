@@ -132,3 +132,17 @@ func (s *Server) isMember(r *http.Request, tripID, userID string) bool {
 	ok, err := s.identity.isMember(r.Context(), tripID, userID)
 	return err == nil && ok
 }
+
+// mayReceiveTripEvents is the hub's gate (ADR-056). The subscribe frame
+// above is the only moment the socket ever proved anything, and both of
+// the things it proved expire while the socket stays open: a membership
+// is revoked by an ordinary master mutation, an account by an admin. So
+// the hub asks again for every send, and neither of those paths has to
+// remember the hub exists.
+func (s *Server) mayReceiveTripEvents(ctx context.Context, tripID, userID string) bool {
+	if !s.identity.isActive(ctx, userID) {
+		return false
+	}
+	ok, err := s.identity.isMember(ctx, tripID, userID)
+	return err == nil && ok
+}

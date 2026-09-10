@@ -358,6 +358,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Four rules that were right about the ordinary case (2026-09-10)](#four-rules-that-were-right-about-the-ordinary-case-2026-09-10) — the minors of the 2026-08-22 review, and the test that had written the bug down as the rule.
 - [A body limit that only the spec enforced (2026-09-10)](#a-body-limit-that-only-the-spec-enforced-2026-09-10) — a documented 5 MB cap no handler ever applied, and why the two new ones differ.
 - [Three screens that treated an interruption as an answer (2026-09-10)](#three-screens-that-treated-an-interruption-as-an-answer-2026-09-10) — a wrong reassurance is read as the truth; the stepper borrowed the constant and left the cancellations.
+- [A socket outlived the permission that opened it (2026-09-10)](#a-socket-outlived-the-permission-that-opened-it-2026-09-10) — the drop-on-revocation fix was a list of call sites, incomplete the day it would have been written.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14725,3 +14726,50 @@ fails for real. The first draft of E2E-M19-05 asserted the network-failure branc
 the preview proxy answers with a gateway status rather than refusing the connection, so the branch under test was the
 502 one. The case was rewritten to assert what actually happens; the rejected-fetch half stayed a unit case, because
 routing one would have asserted against the route.
+
+## A socket outlived the permission that opened it (2026-09-10)
+
+The last of the 2026-08-22 review's Minors, and it was not one. Filed as *„WS-Abo überlebt den Mitgliedschaftsentzug"*
+among the small stuff, it is the same class of defect as the review's own Fund 1 — an authorization boundary that is
+checked once and then trusted forever — only in the channel nobody had audited. `ws.go` asked `isMember` when the
+`subscribe` frame arrived and never again, and `Hub.Unsubscribe` is reachable from exactly one place: the client's own
+`unsubscribe` frame. **There was no server-side path to drop a subscriber at all.** A removed member's open socket kept
+receiving `trip.changed`, the G-3 lock and unlock events *with the item's name*, and the presence list, for as long as
+they left the tab open.
+
+**The interesting part is not that it was fixed but which fix was rejected.** The obvious one is a
+`Hub.DropSubscriber(userID, tripID)` called from whatever removes a membership — cheap, and it corrects the presence
+roster instantly. It was rejected because it is a *list*, and the list is incomplete on the day it is written: a
+`trip_members` delete pushed through the master partition, a trip delete cascading its members, an admin deleting or
+deactivating an account, and whatever next quarter adds. Nothing fails when a path is forgotten; the leak just quietly
+comes back. It also has to name a row that has just been deleted — the membership's `trip_id`/`user_id` are exactly what
+is no longer there to read. So the hub asks instead, on every send, and no revocation path needs to know the hub exists
+(ADR-056).
+
+**The same seam closed a second hole for one extra clause, and it was worth naming separately.** `authenticate` runs at
+the dial and nowhere else, so an account deactivated under FR-23.3 — which is meant to cut access immediately, and does
+cut every HTTP request — was still being fed over its socket. Membership and account are two different permissions
+expiring the same way, and the test says so by keeping the deactivated user a *member* of the trip: if the case passed
+because the membership had also gone, it would be a second spelling of the first case rather than a second rule.
+
+**Both new cases assert an absence, so both needed a positive signal — and one was not enough.** The remaining member
+receiving the same `trip.changed` proves the push reached the hub at all, but it says nothing about whether the revoked
+socket is alive or merely slow. The second signal is ordering: the revoked socket is sent `{"ping": true}` and must read
+`pong` as its *next* frame. A `trip.changed` queued ahead of it fails the assertion, and nothing waits on a clock. This
+is deliberately not the shape of the two cases already in the file — `TestWS_NonMemberCannotSubscribe` and
+`TestHub_Unsubscribe_StopsReceiving` both assert an absence by letting a 200–300 ms read deadline expire, which is the
+pattern the backlog still owes a fix for. Against the unfixed build both new cases report the defect in their failure
+message, not just a red name.
+
+`Subscribers(tripID)` changed meaning as a side effect and was left that way on purpose: it now counts who a trip's
+events would actually reach rather than who is in the map, which turns a revocation into a settled state a unit test can
+read with no socket timing at all.
+
+**The cost, written down because it is real.** Two indexed lookups per subscribed connection per broadcast, on the sync
+path — small for a trip with a handful of members, and the revisit trigger in ADR-056 names the size at which it stops
+being small. And the presence roster other members hold keeps a revoked user until the next presence event, because
+nothing rebroadcasts at the moment of revocation.
+
+One deliberate asymmetry in the hub's constructor: `headSeq` may be nil and `mayReceive` may not — a nil gate admits
+nobody. `in_sync` is an optimisation and degrades quietly; an authorization gate that fails open is worse than one that
+fails shut, and total silence is loud in a test.

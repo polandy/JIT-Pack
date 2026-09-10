@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+
+	"jitpack/internal/store"
 )
 
 func wsConnectAuth(t *testing.T, srv *testWSServer, userID string) *websocket.Conn {
@@ -36,8 +38,16 @@ type testWSServer struct {
 
 func newTestWSServer(t *testing.T) *testWSServer {
 	t.Helper()
-	srv := newTestServer(t)
-	return &testWSServer{url: srv.URL, inner: srv}
+	srv, _ := newTestWSServerWithStore(t)
+	return srv
+}
+
+// newTestWSServerWithStore hands back the store too, for the cases that have
+// to end a membership or an account behind the socket's back.
+func newTestWSServerWithStore(t *testing.T) (*testWSServer, *store.Store) {
+	t.Helper()
+	srv, st := newTestServerWithStore(t)
+	return &testWSServer{url: srv.URL, inner: srv}, st
 }
 
 func wsSendMsg(t *testing.T, ws *websocket.Conn, msg any) {

@@ -105,13 +105,15 @@ func (s *Server) isAdminEmail(email string, verified bool) bool {
 func newServer(st *store.Store, opts Options) *Server {
 	s := &Server{
 		store:          st,
-		hub:            NewHub(st.HeadSeq),
 		currency:       opts.Currency,
 		pushContact:    opts.PushContact,
 		wsIdleOverride: opts.WSIdle,
 		adminEmails:    emailSet(opts.AdminEmails),
 		now:            opts.Now,
 	}
+	// The gate reads s.identity, which both constructors fill in after
+	// this one returns — a method value is what makes that legal.
+	s.hub = NewHub(st.HeadSeq, s.mayReceiveTripEvents)
 	if s.now == nil {
 		s.now = time.Now
 	}
