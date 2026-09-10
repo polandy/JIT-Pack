@@ -356,6 +356,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two tests that were green for the wrong reason (2026-09-10)](#two-tests-that-were-green-for-the-wrong-reason-2026-09-10) — the mode guard had nothing to prove; a test-only seam would have left a shutdown hole.
 - [An audit entry outlived the row it audited (2026-09-10)](#an-audit-entry-outlived-the-row-it-audited-2026-09-10) — why the conflict log stopped listing deleted entities, and what made `trips` look exempt.
 - [Four rules that were right about the ordinary case (2026-09-10)](#four-rules-that-were-right-about-the-ordinary-case-2026-09-10) — the minors of the 2026-08-22 review, and the test that had written the bug down as the rule.
+- [A body limit that only the spec enforced (2026-09-10)](#a-body-limit-that-only-the-spec-enforced-2026-09-10) — a documented 5 MB cap no handler ever applied, and why the two new ones differ.
 - [Three screens that treated an interruption as an answer (2026-09-10)](#three-screens-that-treated-an-interruption-as-an-answer-2026-09-10) — a wrong reassurance is read as the truth; the stepper borrowed the constant and left the cancellations.
 ## Deviations
 
@@ -14636,6 +14637,45 @@ rather than saying no.
 **What this batch did not touch.** The `MaxBytesReader` minor and the WebSocket subscription that survives
 a membership revocation are in `internal/api` and belong to a separate change; the review's Minor list also
 still holds the view-level items and the orchestrator's unserialised drains.
+
+## A body limit that only the spec enforced (2026-09-10)
+
+Sync-API §9 has promised `request body ≤ 5 MB (import: 20 MB)` since v1.0. No handler enforced
+either number. The import half named endpoints that ADR-025 deleted, and every one of the eight JSON
+bodies went straight from the connection into `json.NewDecoder`, so one request could make the
+server allocate as much as it liked. The two *binary* uploads were fine — both read through an
+`io.LimitReader` (ADR-002) — which is probably why nobody noticed: the surface that looks dangerous
+was guarded, and the surface that reads as ordinary JSON was not.
+
+**`maxPushBatch` looked like the missing limit and is not.** It caps how many mutations one push may
+carry, and a mutation's `fields` are free-form JSON — so a single one carries as much as it wants,
+and the count is checked only once the whole envelope is in memory. A test that pushes one valid
+mutation whose `name` is 9 MB long was applied, and answered 200.
+
+**Why two limits rather than one.** A push carries a whole outbox chunk; every other body is
+fixed-shape — a login code, a refresh token, a subscription, a preferences map. Sizing both for the
+push would leave the small ones 8 MB of room they have no use for, and two of those endpoints
+(`/auth/token`, `/auth/refresh`) answer before anyone has proved who they are. So: 8 MB for the
+push, 64 KB for everything else.
+
+**The push number is deliberately far above what a device can reach, and §5 is the reason.** The
+outbox treats a 4xx as a permanent refusal and parks the whole chunk. A limit a real client could
+hit would therefore not slow an attacker down — it would take a user's changes away, 200 mutations
+at a time, and that is the same failure shape as bug-review finding 2. So the number was measured
+rather than picked: a full batch of 200 `trip_items` rows with every syncable column set is about
+200 KB, and 8 MB is forty times that. The test that pushes exactly such a batch is in the diff for
+that reason — it is not there to cover the limit, it is there to keep a later, tighter one honest.
+
+**413 rather than 422.** A body over the limit is well-formed JSON; only the status separates "send
+a smaller one" from "you sent nonsense". `payload_too_large` joins the generated `ErrorCode`
+vocabulary, so the client gets it as a union member without a second declaration (ADR-026).
+
+Two traps met while writing the tests, both worth the sentence. A fixture that fills every column
+has to respect the CHECKs — `bought_from` is the `mode` vocabulary, not free text, and a batch that
+looked like a size failure was 200 `constraint_violated`. And the Single-User display-name case
+proves less than its name suggests: the store refuses a 128 KB name on its own (FR-17.13), so its
+"nothing was saved" clause is true either way and only the status code falsifies. That is written
+into the test rather than left for the next reader to discover.
 
 ## Three screens that treated an interruption as an answer (2026-09-10)
 
