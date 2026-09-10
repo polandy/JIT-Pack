@@ -3,7 +3,6 @@ package api
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -68,8 +67,8 @@ type displayNameRequest struct {
 // layer; this handler only maps that error to the wire format.
 func (s *Server) handlePutDisplayName(w http.ResponseWriter, r *http.Request) {
 	var req displayNameRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "malformed request body")
+	if err := decodeJSON(w, r, maxJSONBodyBytes, &req); err != nil {
+		writeDecodeError(w, err, "malformed request body")
 		return
 	}
 	if err := s.store.SetDisplayName(r.Context(), r.PathValue(PathUserID), req.DisplayName); err != nil {

@@ -732,8 +732,9 @@ minimal and the footprint goal (NFR-4.3) intact.
   and both sides are checked against it. The list that stood here had drifted into fiction — it named `conflict`, which
   no handler has ever sent, and `rate_limited`, retired with Demo Mode in Addendum v2.10, while omitting eleven codes
   that are sent daily. Prose about *why* an error is raised stays here; the vocabulary is generated.
-* Limits: push batch ≤ 200 mutations; pull limit ≤ 1000; request body ≤ 5 MB (import: 20 MB); WebSocket idle timeout 5
-  min with client ping — **implemented on both sides 2026-09-01**, having been a sentence only. The client sends
+* Limits: push batch ≤ 200 mutations; pull limit ≤ 1000; **push body ≤ 8 MB, every other JSON body ≤ 64 KB**, both
+  answered `413 payload_too_large`; WebSocket idle timeout 5 min with client ping — **implemented on both sides
+  2026-09-01**, having been a sentence only. The client sends
   `{"ping": true}` every 30 s on an open socket and treats *any* frame within 10 s as life; a ping nothing answers
   closes the socket on the client's side and starts the §7 redial, which is the only way a half-open connection (a phone
   that changed networks, a killed proxy worker) is ever noticed — a dead TCP peer fires no event. The server gives every
@@ -741,6 +742,16 @@ minimal and the footprint goal (NFR-4.3) intact.
   G-10 presence list stops carrying devices that left without saying so. App-level rather than protocol pings because a
   browser cannot send the latter, and because the client needs a frame it can *see* to know the connection is still
   two-way. A reverse proxy's idle timeout therefore only has to exceed 30 s.
+* **A body limit was written here long before one existed** (corrected 2026-09-10). The line above used to promise
+  `request body ≤ 5 MB (import: 20 MB)`; no handler enforced either number, the import half named endpoints retired
+  with ADR-025, and every JSON body was decoded straight off the connection. The batch cap is not the same promise —
+  a mutation's `fields` are free-form JSON, and 200 of them are counted only once the envelope is already in memory.
+  The two caps differ because their bodies do: a push carries a whole outbox chunk, while every other body is
+  fixed-shape, and two of those endpoints (`/auth/token`, `/auth/refresh`) answer before anyone has proved who they
+  are. 8 MB is set far above what a device can produce — a full batch of 200 trip_items rows with every syncable
+  column set measures around 200 KB — because §5 has the outbox park a 4xx permanently: a limit a real client could
+  reach would cost the user the whole chunk. The two binary uploads keep their own, tighter limits (ADR-002).
+
 * `GET /health` unauthenticated for container health checks.
 
 ## 10. Versioning & Compatibility
