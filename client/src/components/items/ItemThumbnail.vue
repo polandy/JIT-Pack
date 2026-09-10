@@ -15,21 +15,48 @@ const props = withDefaults(defineProps<{ item: MasterItem; size?: number }>(), {
 const orchestrator = useOrchestrator()
 const url = ref<string | null>(null)
 
+/**
+ * The read this mount is currently waiting for.
+ *
+ * An object URL is the one handle in this client that nothing else holds
+ * once the ref has moved past it, so the answer that arrives *second* has to
+ * be recognised and revoked rather than assigned. Two arrive routinely: M9
+ * renders a thumbnail per row, so a filter keystroke changes the item under
+ * a mount whose predecessor is still reading IndexedDB, and scrolling the
+ * list unmounts rows mid-read by design.
+ */
+let generation = 0
+
+function revoke(candidate: string | null) {
+  if (candidate?.startsWith('blob:')) URL.revokeObjectURL(candidate)
+}
+
 function release() {
-  if (url.value?.startsWith('blob:')) URL.revokeObjectURL(url.value)
+  revoke(url.value)
   url.value = null
 }
 
 watch(
   () => [props.item.id, props.item.image_hash],
   async () => {
+    const mine = ++generation
     release()
-    url.value = await orchestrator.itemImageUrl(props.item)
+    const resolved = await orchestrator.itemImageUrl(props.item)
+    if (mine !== generation) {
+      revoke(resolved)
+      return
+    }
+    url.value = resolved
   },
   { immediate: true },
 )
 
-onUnmounted(release)
+// The counter moves on unmount too, so a read still in flight is superseded
+// rather than assigned to a ref nothing renders any more.
+onUnmounted(() => {
+  generation++
+  release()
+})
 </script>
 
 <template>

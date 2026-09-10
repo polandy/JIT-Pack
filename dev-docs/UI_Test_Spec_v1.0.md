@@ -2242,6 +2242,13 @@ against a screen rather than against a stylesheet (G-14).
 * **E2E-M19-04** `local` (FR-19.1) — **implemented** (`smoke.spec.ts`): the field carries the page's origin and Connect
   is reachable without typing. Asserted on the inner `button`, since `toBeEnabled()` on an `ion-button` host is
   false-green.
+* **E2E-M19-05** `local` (FR-19.1, Sync-API §2) — **new 2026-09-10** (`login-screen.spec.ts`): a `server`-mode device on
+  the login screen whose `/auth/config` comes back as a gateway failure is told the server did not answer, is *not* told
+  the server requires no login, and keeps the sign-in. The 501 is the only answer that means no login is needed, and
+  both non-answers used to be `!resp.ok` and set the same flag. The default project is the fixture here — it runs no
+  backend behind its preview, so the failure is real rather than routed. The second non-answer, a fetch that never
+  lands, is a unit case in `LoginPage.spec.ts`: a preview server cannot be asked to produce a rejected fetch, and
+  routing one would assert against the route.
 
 ### M20 — User Administration
 * **E2E-M20-01** `server` (FR-23.2) — **implemented 2026-08-28**, in `e2e/server/admin.spec.ts`, and re-read clause by
