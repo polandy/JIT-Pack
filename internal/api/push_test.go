@@ -3,8 +3,10 @@ package api_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 )
@@ -17,6 +19,9 @@ type fakePushService struct {
 	srv      *httptest.Server
 	received chan *http.Request
 	status   int
+	// held, when non-nil, keeps every delivery inside the handler until
+	// it is closed — a push service that has not answered yet.
+	held chan struct{}
 }
 
 func newFakePushService(t *testing.T, status int) *fakePushService {
@@ -24,10 +29,25 @@ func newFakePushService(t *testing.T, status int) *fakePushService {
 	f := &fakePushService{received: make(chan *http.Request, 4), status: status}
 	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.received <- r.Clone(context.Background())
+		if f.held != nil {
+			<-f.held
+		}
 		w.WriteHeader(f.status)
 	}))
 	t.Cleanup(f.srv.Close)
 	return f
+}
+
+// holdDeliveries makes every delivery block after it has been recorded,
+// and returns the release. Registered as a cleanup as well, because
+// httptest's own Close waits for the handler this is holding.
+func (f *fakePushService) holdDeliveries(t *testing.T) (release func()) {
+	t.Helper()
+	f.held = make(chan struct{})
+	var once sync.Once
+	release = func() { once.Do(func() { close(f.held) }) }
+	t.Cleanup(release)
+	return release
 }
 
 func (f *fakePushService) waitForDelivery(t *testing.T) *http.Request {
@@ -82,28 +102,59 @@ func TestWebPush_DeliveredOnNotification(t *testing.T) {
 }
 
 func TestWebPush_GoneSubscriptionIsDropped(t *testing.T) {
-	srv, st := newTestServerWithStore(t)
+	srv, st, apiSrv := newTestServerWithAPI(t)
 	push := newFakePushService(t, http.StatusGone)
 	registerSubscription(t, srv, userB, push.srv.URL+"/sub-gone")
 	seedItem(t, srv, "item-1", "Zelt")
 
 	pushAs(t, srv, userA, mutation("item-1", "m-delegate", "upsert",
 		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
+
+	// Two signals, in this order and for two different reasons: the
+	// delivery says the send goroutine exists (the push response can
+	// reach the client before it is even started), and WaitDetached says
+	// it has finished acting on the 410. Reading the subscriptions in
+	// between is what used to need a three-second poll.
+	push.waitForDelivery(t)
+	if err := apiSrv.WaitDetached(context.Background()); err != nil {
+		t.Fatalf("WaitDetached: %v", err)
+	}
+
+	subs, err := st.PushSubscriptions(context.Background(), userB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(subs) != 0 {
+		t.Fatalf("gone subscription still registered: %+v", subs)
+	}
+}
+
+// NFR-4.6 shutdown budget: WaitDetached is bounded, so a push service
+// that never answers cannot hold the process open. The delivery below is
+// held open for the length of the assertion, and the context is already
+// done — so what the test measures is the choice, never a duration.
+func TestWebPush_WaitDetachedGivesUpWithTheContext(t *testing.T) {
+	srv, _, apiSrv := newTestServerWithAPI(t)
+	push := newFakePushService(t, http.StatusCreated)
+	release := push.holdDeliveries(t)
+	registerSubscription(t, srv, userB, push.srv.URL+"/sub-slow")
+	seedItem(t, srv, "item-1", "Zelt")
+
+	pushAs(t, srv, userA, mutation("item-1", "m-delegate", "upsert",
+		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
 	push.waitForDelivery(t)
 
-	deadline := time.Now().Add(3 * time.Second)
-	for {
-		subs, err := st.PushSubscriptions(context.Background(), userB)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(subs) == 0 {
-			return
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("gone subscription still registered: %+v", subs)
-		}
-		time.Sleep(20 * time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := apiSrv.WaitDetached(ctx); !errors.Is(err, context.Canceled) {
+		t.Errorf("WaitDetached = %v, want context.Canceled", err)
+	}
+
+	// And the same call answers nil once the delivery lands, so the
+	// error above is the deadline rather than a wait that never ends.
+	release()
+	if err := apiSrv.WaitDetached(context.Background()); err != nil {
+		t.Errorf("WaitDetached after release = %v, want nil", err)
 	}
 }
 

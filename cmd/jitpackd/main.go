@@ -130,5 +130,10 @@ func main() {
 	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("shutdown: %v", err)
 	}
+	// The requests are answered; their Web Push deliveries may not be.
+	// Same budget, because both are the one shutdown deadline.
+	if err := srv.WaitDetached(shutdownCtx); err != nil {
+		log.Printf("gave up on in-flight web push deliveries: %v", err)
+	}
 	log.Print("stopped")
 }

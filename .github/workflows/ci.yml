@@ -113,6 +113,11 @@ jobs:
       # composable — even type-only — costs every module reaching it the
       # property the package exists for, and nothing red says so.
       - run: node ../scripts/domain-purity-gate.mjs
+      # And last of the same family: a test that waits on the wall clock
+      # passes for a reason nothing states, and keeps passing once the
+      # behaviour under it is gone. No job can see that — every one of
+      # them is watching the test pass.
+      - run: node ../scripts/no-sleep-gate.mjs
       - run: npx vitest run
 
   # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned
