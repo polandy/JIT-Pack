@@ -83,6 +83,34 @@ describe('useLongPress', () => {
     expect(fired).toEqual(['wandern'])
   })
 
+  it('a disarming names what it disarmed, so a release can tell a tap from a hold', () => {
+    const p = press()
+    p.down('plus', 10, 10)
+
+    // The stepper's release has to answer two questions at once: stop the
+    // hold, and decide whether this was the tap that steps by one. A void
+    // cancel makes the caller keep that state a second time, which is the
+    // copy QuantityStepper had and where its cancelled gestures were lost.
+    expect(p.cancel()).toBe('plus')
+  })
+
+  it('a disarming of nothing names nothing — a cancelled gesture is not a tap', () => {
+    const p = press()
+    p.down('plus', 10, 10)
+    p.move(10, 10 + LONG_PRESS_SLOP_PX + 1)
+
+    expect(p.cancel()).toBeNull()
+  })
+
+  it('names nothing after the hold fired, so the release is not also a tap', () => {
+    const p = press()
+    p.down('plus', 10, 10)
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+
+    expect(p.cancel()).toBeNull()
+    expect(fired).toEqual(['plus'])
+  })
+
   it('fires once per press, not once per elapsed interval', () => {
     const p = press()
     p.down('makro', 10, 10)

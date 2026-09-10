@@ -357,6 +357,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An audit entry outlived the row it audited (2026-09-10)](#an-audit-entry-outlived-the-row-it-audited-2026-09-10) — why the conflict log stopped listing deleted entities, and what made `trips` look exempt.
 - [Four rules that were right about the ordinary case (2026-09-10)](#four-rules-that-were-right-about-the-ordinary-case-2026-09-10) — the minors of the 2026-08-22 review, and the test that had written the bug down as the rule.
 - [A body limit that only the spec enforced (2026-09-10)](#a-body-limit-that-only-the-spec-enforced-2026-09-10) — a documented 5 MB cap no handler ever applied, and why the two new ones differ.
+- [Three screens that treated an interruption as an answer (2026-09-10)](#three-screens-that-treated-an-interruption-as-an-answer-2026-09-10) — a wrong reassurance is read as the truth; the stepper borrowed the constant and left the cancellations.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14675,3 +14676,52 @@ looked like a size failure was 200 `constraint_violated`. And the Single-User di
 proves less than its name suggests: the store refuses a 128 KB name on its own (FR-17.13), so its
 "nothing was saved" clause is true either way and only the status code falsifies. That is written
 into the test rather than left for the next reader to discover.
+
+## Three screens that treated an interruption as an answer (2026-09-10)
+
+The view group of the 2026-08-22 review, and the same shape as the four domain minors before it, one layer up: each of
+the three had a correct answer for the case it was written for, and filed everything that was *not an answer* under the
+answer it happened to resemble.
+
+**The login screen's third state was missing, and the two it had were the wrong two.** `GET /auth/config` answers the
+endpoints when a login is needed and **501 `not_configured`** when it is not — that status is the whole of what makes a
+Single-User instance single-user (E2E-M19-02). The screen read `resp.ok`, so a reverse proxy's 502 and a 500 both said
+*no login needed*, and the `catch` for an unreachable server set the same flag deliberately. The result rendered both
+sentences at once: *„Server nicht erreichbar“* above *„Dieser Server verlangt keine Anmeldung“*. The reassuring half was
+the false one, which is the part worth remembering — a wrong error message is read as an error, a wrong reassurance is
+read as the truth. The sign-in now stays offered on every non-answer, because attempting the login is the only thing
+left that can find out; that is also App.vue's existing behaviour, which never routed to the login screen on a failure
+at all. Reaching the screen in that state therefore takes a direct navigation or a server going down between App.vue's
+check and this mount — narrow, and the reason the case is a cheap one rather than a big one.
+
+**The stepper had borrowed the constant and left the logic behind.** `QuantityStepper` imported `LONG_PRESS_MS` from
+`useLongPress` and then ran its own `setTimeout` pair — while `PackingRow`, the row these two buttons sit inside, wires
+the composable properly: `pointermove` for the travel slop, `pointercancel`, `pointerup`. Every one of those the stepper
+lacked wrote to the trip on its own. A flick that begins on ✚ is a scroll: the browser takes the pointer to scroll with
+it and fires `pointercancel`, so no up and no leave ever arrive, the 500 ms run out undisturbed, and the row packs
+itself completely. If the finger left the 28 px circle first, `pointerleave` was wired to *commit* the tap instead — so
+the same flick stepped the row by one. Neither is a rare gesture on a list a person scrolls with a thumb.
+
+The interface gained one thing to make the reuse possible: `cancel()` now returns the payload it disarmed rather than
+nothing. That is precisely the difference between a release and a cancellation seen from the caller — a release that
+disarms an armed hold is the tap; one that disarms nothing is a gesture something else already took away. The row
+callers ignore the return, and the alternative was for the stepper to keep a second copy of the armed state, which is
+the copy it had.
+
+**The thumbnail had no way to recognise the answer that arrives second.** `ItemThumbnail` released its object URL,
+awaited the orchestrator and assigned whatever came back. Two reads overlapping is ordinary — M9 renders one per row, a
+filter keystroke changes the item under a mount mid-read, and scrolling unmounts rows mid-read by design — and whichever
+resolved last won, painting a stale photo and leaking the current one's blob. The `onUnmounted(release)` had the same
+hole from the other end: it ran while a read was in flight, so the URL that arrived afterwards was never revoked by
+anything. A generation counter answers both, including on unmount, where it is the *counter* that has to move —
+releasing a ref that is still null revokes nothing.
+
+**Two of the three could not be driven from Playwright, and saying so is part of the entry.** `pointercancel` is the
+browser taking the pointer away; nothing in a case can ask for it, which is the same reason `useLongPress`' own docblock
+gives for unit-testing the 500 ms. The overlapping reads need the two promises resolved out of order, which means
+holding them — a seam a spec has and a browser does not. What *is* an e2e case is the login screen, and the default
+project turned out to be its fixture rather than an obstacle: it runs no backend behind its preview, so `/auth/config`
+fails for real. The first draft of E2E-M19-05 asserted the network-failure branch and went red against the fixed build —
+the preview proxy answers with a gateway status rather than refusing the connection, so the branch under test was the
+502 one. The case was rewritten to assert what actually happens; the rejected-fetch half stayed a unit case, because
+routing one would have asserted against the route.

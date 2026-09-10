@@ -8,10 +8,10 @@
  */
 import { IonCheckbox, IonIcon } from '@ionic/vue'
 import { removeOutline, addOutline } from 'ionicons/icons'
-import { computed } from 'vue'
+import { computed, onUnmounted } from 'vue'
 
 import { t } from '@/i18n'
-import { LONG_PRESS_MS } from '@/composables/useLongPress'
+import { useLongPress } from '@/composables/useLongPress'
 
 const props = withDefaults(
   defineProps<{
@@ -41,37 +41,46 @@ const isCheckbox = computed(() => props.quantity === 1)
 const isComplete = computed(() => props.packed >= props.quantity)
 const isPartial = computed(() => props.packed > 0 && props.packed < props.quantity)
 
-let longPressTimer: ReturnType<typeof setTimeout> | null = null
+/**
+ * The two holds, on the gesture the row around them already uses.
+ *
+ * This was a hand-rolled `setTimeout` pair that borrowed only the 500 ms
+ * from `useLongPress` and left its three cancellations behind, while
+ * `PackingRow` — the very row these buttons sit in — wires all of them.
+ * Each missing one wrote to the trip on its own:
+ *
+ * - no `pointercancel`: the browser takes the pointer to scroll the list
+ *   with it, no up and no leave ever arrives, and half a second later the
+ *   row packs itself completely;
+ * - no travel slop: a flick that begins on ✚ is a scroll, not a hold;
+ * - a leave that *committed* rather than cancelled: dragging off the 28 px
+ *   circle counted as the tap, so the same flick stepped the row by one;
+ * - no clearing on unmount: a filter or a navigation takes the row away
+ *   mid-press, and the emit still lands on whatever the parent does next.
+ */
+type Side = 'plus' | 'minus'
 
-function onPlusDown() {
-  longPressTimer = setTimeout(() => {
-    emit('complete')
-    longPressTimer = null
-  }, LONG_PRESS_MS)
+const hold = useLongPress<Side>((side) => {
+  if (side === 'plus') emit('complete')
+  else emit('zero')
+})
+
+function onDown(side: Side, event: PointerEvent) {
+  hold.down(side, event.clientX, event.clientY)
 }
 
-function onPlusUp() {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer)
-    longPressTimer = null
-    emit('increment')
-  }
+function onMove(event: PointerEvent) {
+  hold.move(event.clientX, event.clientY)
 }
 
-function onMinusDown() {
-  longPressTimer = setTimeout(() => {
-    emit('zero')
-    longPressTimer = null
-  }, LONG_PRESS_MS)
+/** A release that disarms *this* button's armed hold is its tap. */
+function onUp(side: Side) {
+  if (hold.cancel() !== side) return
+  if (side === 'plus') emit('increment')
+  else emit('decrement')
 }
 
-function onMinusUp() {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer)
-    longPressTimer = null
-    emit('decrement')
-  }
-}
+onUnmounted(() => void hold.cancel())
 </script>
 
 <template>
@@ -91,9 +100,11 @@ function onMinusUp() {
     <button
       class="stepper-btn"
       :disabled="disabled || packed <= 0"
-      @pointerdown="onMinusDown"
-      @pointerup="onMinusUp"
-      @pointerleave="onMinusUp"
+      @pointerdown="(e: PointerEvent) => onDown('minus', e)"
+      @pointermove="onMove"
+      @pointerup="onUp('minus')"
+      @pointercancel="hold.cancel()"
+      @pointerleave="hold.cancel()"
       data-testid="row-minus"
       :aria-label="t('packing.decrease')"
     >
@@ -105,9 +116,11 @@ function onMinusUp() {
     <button
       class="stepper-btn"
       :disabled="disabled || packed >= quantity"
-      @pointerdown="onPlusDown"
-      @pointerup="onPlusUp"
-      @pointerleave="onPlusUp"
+      @pointerdown="(e: PointerEvent) => onDown('plus', e)"
+      @pointermove="onMove"
+      @pointerup="onUp('plus')"
+      @pointercancel="hold.cancel()"
+      @pointerleave="hold.cancel()"
       data-testid="row-plus"
       :aria-label="t('packing.increase')"
     >

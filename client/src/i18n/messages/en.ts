@@ -1099,6 +1099,7 @@ export const en = {
   'login.action': 'Sign in with SSO',
   'login.serverUnreachable': 'Server unreachable',
   'login.noOidc': 'This server does not offer OIDC login',
+  'login.checkFailed': 'The server did not say whether a login is needed.',
   'login.startFailed': 'Could not start the login flow',
   'login.completing': 'Completing sign-in…',
   'login.interrupted': 'Login was interrupted — please try again.',

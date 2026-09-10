@@ -166,6 +166,14 @@ These patterns apply to every screen and are specified once.
 * **G-6 (Quantity Stepper):** Wherever quantities appear, a unified stepper component is used: tap = ±1, long-press =
   complete/zero (units retired with FR-1.8, 2026-08-08 — quantities are bare numbers). **Decided: items with quantity =
   1 use a plain checkbox instead of the stepper**; the stepper itself only ever appears for quantity > 1.
+  **A gesture the browser or the finger took away writes nothing (added 2026-09-10):** the stepper runs on the same
+  `useLongPress` as the row around it, so its holds disarm on `pointercancel`, past the travel slop, on leaving the
+  button and on unmount. It had borrowed only the 500 ms from that composable and kept its own timer, which meant a
+  flick beginning on ✚ either packed the row completely — the browser takes the pointer to scroll with it, so neither an
+  up nor a leave ever arrives and the timer runs out undisturbed — or stepped it by one, because leaving the 28 px
+  circle used to *commit* the tap rather than cancel it. Leaving now cancels, which is what a native button does, and
+  the two holds are driven by unit test rather than by Playwright: `pointercancel` is the browser taking the pointer
+  away and cannot be asked for from a case.
 * **G-7 (Empty States):** Every list screen defines an empty state with a single primary action (e.g., Templates empty →
   "Create first template" / "Import from spreadsheet"). **One component renders all of them**
   (`components/global/EmptyState.vue`, 2026-09-03): a centred column of illustration, the one sentence that names the
@@ -1855,7 +1863,15 @@ token would prove nothing there is anything to prove.
   the truth one step later, at the login attempt, where the server answers for itself. The pre-filled origin above is
   why nobody has missed it.
 * **States:** Local Mode has no failure state (a denied persistent-storage request is not blocking — it surfaces later
-  as the NFR-4.11 warning in the G-2 detail). A syntactically invalid URL disables *Connect* and says so inline. ~~An
+  as the NFR-4.11 warning in the G-2 detail). A syntactically invalid URL disables *Connect* and says so inline.
+  **The login screen this leads to has three states, not two (added 2026-09-10):** `GET /auth/config` says *a login is
+  needed* by answering with the IdP's endpoints and *no login is needed* by answering **501** `not_configured` — and
+  that status is the only thing that means it. An unreachable server, a reverse proxy's 502 and a 500 are no answer at
+  all, and the screen used to file every one of them under *no login needed*: it showed *„Server nicht erreichbar“* and
+  *„Dieser Server verlangt keine Anmeldung“* in the same breath, the reassuring half being the false one. Now only the
+  501 hides the sign-in; anything else names the failure and leaves the button, because attempting the login is the only
+  thing left that can find out. The sign-in path draws the same line — a 502 there reports a server that did not answer,
+  not a server without OIDC. ~~An
   unreachable server URL shows an inline error and keeps the user on this screen~~ — **struck 2026-08-31 with the health
   check above (owner decision, E2E-M19-03):** with no connectivity check there is nothing to report, so an unreachable
   instance is accepted and shows as offline on the G-2 glyph afterwards.

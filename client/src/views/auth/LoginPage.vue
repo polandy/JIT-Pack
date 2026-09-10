@@ -4,6 +4,12 @@
  * (GET /auth/config, zero client config), generates PKCE material, and
  * redirects to the IdP. Servers without OIDC (Single-User, plain
  * HS256) answer 501 — no login is needed there.
+ *
+ * **The question has three answers, not two.** 501 is the only one that
+ * means no login is needed; an unreachable server, a proxy's 502 and a 500
+ * are no answer at all. Both were `!resp.ok` here, so this screen told a
+ * person whose server was down that it was unreachable *and* that they could
+ * head back to the app — the reassuring half being the false one.
  */
 import { API } from '@/api/routes'
 import type { AuthConfigResponse } from '@/api/types'
@@ -15,16 +21,26 @@ import { buildAuthorizeURL, challengeS256, generateVerifier } from '@/auth/pkce'
 import { serverBaseUrl } from '@/config'
 import { t } from '@/i18n'
 
+/** The status that means "this instance has no OIDC" and nothing else. */
+const NOT_CONFIGURED = 501
+
 const error = ref('')
+
+/**
+ * What the server said about needing a login: `null` while nothing has been
+ * asked or nothing usable came back, so only an explicit `false` — the 501 —
+ * ever hides the sign-in.
+ */
 const loginRequired = ref<boolean | null>(null)
 
 onMounted(async () => {
   try {
     const resp = await fetch(`${serverBaseUrl()}${API.authConfig}`)
-    loginRequired.value = resp.ok
+    if (resp.ok) loginRequired.value = true
+    else if (resp.status === NOT_CONFIGURED) loginRequired.value = false
+    else error.value = t('login.checkFailed')
   } catch {
     error.value = t('login.serverUnreachable')
-    loginRequired.value = false
   }
 })
 
@@ -33,7 +49,10 @@ async function signIn() {
   try {
     const resp = await fetch(`${serverBaseUrl()}${API.authConfig}`)
     if (!resp.ok) {
-      error.value = t('login.noOidc')
+      // Same distinction as on mount: only 501 is the instance answering
+      // that it has no OIDC. Anything else is a fault, and naming it as a
+      // missing feature sends the reader after the wrong thing.
+      error.value = resp.status === NOT_CONFIGURED ? t('login.noOidc') : t('login.checkFailed')
       return
     }
     const config = (await resp.json()) as AuthConfigResponse

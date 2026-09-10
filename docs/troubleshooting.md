@@ -291,6 +291,30 @@ variables are unset, and the server is only accepting externally minted session 
 **Fix:** if you meant to have logins, set the OIDC variables (see
 [Configuration](configuration.md)) and restart.
 
+## "The server did not say whether a login is needed."
+
+**Symptom:** a user on the sign-in screen sees that sentence, or *"Server unreachable"*,
+instead of either the sign-in prompt or the note that this instance needs no login. The
+*Sign in with SSO* button is still offered.
+
+**Cause:** the app asked `/api/v1/auth/config` and got neither answer it understands. Two
+answers exist — the IdP's endpoints, meaning *log in*, and `501 not_configured`, meaning
+*no login here*. Anything else is a fault between the browser and the server: most often a
+reverse proxy answering `502` or `504` because it cannot reach the container, or the
+container having stopped. The app deliberately does not guess: telling somebody their
+server needs no login when the server is simply down is worse than telling them nothing.
+
+**Fix:** ask the endpoint yourself from the same host the browser uses:
+
+```bash
+curl -i https://jitpack.example.com/api/v1/auth/config
+```
+
+A `200` or a `501` means the app will settle on its own after a reload. Any other status,
+or no response at all, is the proxy or the container — check that the container is running
+and that the proxy forwards to it (see
+[Putting a reverse proxy in front](installation.md#putting-a-reverse-proxy-in-front)).
+
 ## `502` with code `idp_error` on login
 
 ```json
