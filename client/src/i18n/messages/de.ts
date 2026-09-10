@@ -1113,6 +1113,7 @@ export const de: Record<keyof typeof en, string> = {
   'login.action': 'Mit SSO anmelden',
   'login.serverUnreachable': 'Server nicht erreichbar',
   'login.noOidc': 'Dieser Server bietet keine OIDC-Anmeldung an',
+  'login.checkFailed': 'Der Server hat nicht beantwortet, ob eine Anmeldung nötig ist.',
   'login.startFailed': 'Die Anmeldung liess sich nicht starten',
   'login.completing': 'Anmeldung wird abgeschlossen…',
   'login.interrupted': 'Die Anmeldung wurde unterbrochen — bitte noch einmal versuchen.',
