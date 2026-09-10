@@ -120,6 +120,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — why M4's grouping had one bucket, and the case that now walks the path a user has.
 - [„Für alle" needed the sheet to be reopened (2026-09-09)](#für-alle-needed-the-sheet-to-be-reopened-2026-09-09) — FR-25.13g: the case that could not be written the obvious way, and the one branch e2e deliberately does not reach.
 - [Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)](#owed-a-webkit-case-lost-its-click-to-the-fr-197-banner-2026-09-09) — **open**: a helper every M3-built trip goes through, and a banner that reflowed the page under the pointer.
+- [Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)](#owed-e2e-m17-01s-sheet-did-not-close-a-fourth-time-under-load-2026-09-10) — **open**: two artifacts disagree about which screen the locator queried.
 
 ## The rule that comes before the units
 
@@ -4754,3 +4755,38 @@ against a moving target treats the symptom and would hide the next occurrence.
 
 Evidence: run `34410995185`, job `e2e (7)`, `main` at `bcfadb03`; report artifact
 `playwright-report-shard-7` carries the screenshot, the aria snapshot and the trace.
+
+## Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)
+
+**Open.** A fourth observation on the thread *„Three intermittents, one signature"* — and the first
+one where the diff can be ruled out arithmetically rather than argued about: PR #424 changes **no
+file under `client/`** at all, so the browser runs byte-identical code to the `main` run that passed
+`e2e-server` an hour earlier.
+
+The failure is in the `assignTo` helper (`server/multi-user.spec.ts:742`), not in the case: after the
+click on `m5-close`, `m5-sheet` still resolves to one element for the whole five seconds. It is the
+first of the three `assignTo` calls, the *control* half — the one that only establishes that a
+delegation reaches Carol at all — so nothing about M17's preference is implicated.
+
+**What the artifacts show.** The screenshot has the sheet open on the right of a wide viewport, on
+the right trip, reading *Assigned to · Carol*: the write landed and the helper's own settled signal
+was satisfied. So this is the same shape as the FR-19.7 note above — a click reported as a success
+with the app not moving — with a different control and no banner anywhere in frame. What is in
+frame, overlapping the sheet's bottom corner, is the FAB.
+
+**What does not add up, and is worth more than the failure itself.** The error-context aria snapshot
+taken at the same moment shows a *different screen*: the trips list, with the trip this case built
+absent from it. Screenshot and snapshot disagree about what page the object of the assertion was on,
+and that disagreement is unexplained. Until it is, neither artifact can be used to argue about where
+the sheet lived — which is why nothing here is called a cause.
+
+**What is owed**, in the order that pays: settle which of the two artifacts describes the page the
+locator queried, because the answer decides the question. If the sheet outlived a navigation, the
+finding is that `assignTo` queries `page` rather than `visiblePage(page)` — an unscoped locator finds
+a sheet on a hidden Ionic page and would then fail forever, and the working agreement's second e2e
+rule already forbids it. If the sheet simply did not close, the finding is a lost click and belongs
+with the FR-19.7 observation above. Scoping the locator before knowing which would close the case
+without answering it, and the previous three have already been closed by a green re-run once.
+
+Evidence: run `34440006053`, job `e2e-server`, `test/deterministic-push` at `c53ea926`; artifact
+`playwright-report-server` carries the screenshots and the aria snapshot.

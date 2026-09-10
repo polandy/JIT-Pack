@@ -1,11 +1,18 @@
 package api_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"jitpack/internal/store"
 )
+
+// allNotifications is a read limit above anything these tests create, so
+// a count they assert is the whole table rather than a page of it.
+const allNotifications = 50
 
 // FR-6.2 end-to-end over real HTTP: delegation, @mention, and task
 // triggers detected in push batches; fetch/read/prefs endpoints.
@@ -251,29 +258,63 @@ func TestNotifications_WSNotificationCreated(t *testing.T) {
 	}
 }
 
-// FR-17.3: Single-User Mode has no second party — the FR-6.2 detection
-// must not run at all, even if a push carries a foreign packer_user_id.
-func TestNotifications_SingleUserMode_Inert(t *testing.T) {
-	srv, _ := newSingleUserTestServer(t)
-
-	body := map[string]any{"mutations": []any{
-		mutation("item-1", "m1", "insert",
-			map[string]any{"trip_id": trip, "name": "Zelt"}, "0000000001000-0000-aaaaaaaa"),
-	}}
-	resp, _ := doJSON(t, http.MethodPost, pushURL(srv), "", body)
+// pushLocal pushes without a token, the way every Single-User Mode client
+// does (FR-17.2).
+func pushLocal(t *testing.T, srv *httptest.Server, mutations ...map[string]any) {
+	t.Helper()
+	anyMuts := make([]any, len(mutations))
+	for i, m := range mutations {
+		anyMuts[i] = m
+	}
+	resp, raw := doJSON(t, http.MethodPost, pushURL(srv), "",
+		map[string]any{"mutations": anyMuts})
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("push status = %d", resp.StatusCode)
+		t.Fatalf("push status = %d (body %s)", resp.StatusCode, raw)
 	}
+}
 
-	resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/notifications", "", nil)
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("list status = %d", resp.StatusCode)
+// FR-17.3: Single-User Mode has no second party, so the FR-6.2 detection
+// does not run — and the two pushes below are the ones that do fire it
+// elsewhere: TestNotifications_DelegationNotifiesTarget makes exactly
+// them and gets a notification. What that one has and this one must not
+// is the mode, so everything else the rule reads has to be true here too
+// — hence the second member and the foreign packer, seeded rather than
+// left absent. They are not a contrived state either: an instance that
+// ran as a server once and was restarted single-user still carries them.
+func TestNotifications_SingleUserMode_ForeignPackerNotifiesNobody(t *testing.T) {
+	srv, localID, st := newSingleUserTestServerWithStore(t)
+	seedSecondMember(t, st, localID)
+
+	pushLocal(t, srv, mutation("item-1", "m1", "insert",
+		map[string]any{"trip_id": trip, "name": "Zelt"}, "0000000001000-0000-aaaaaaaa"))
+	pushLocal(t, srv, mutation("item-1", "m-delegate", "upsert",
+		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
+
+	for _, target := range []string{userB, localID} {
+		got, err := st.ListNotifications(context.Background(), target, false, allNotifications)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) != 0 {
+			t.Errorf("notifications for %s = %d, want 0", target, len(got))
+		}
 	}
-	var out notificationList
-	if err := json.Unmarshal(raw, &out); err != nil {
-		t.Fatal(err)
+}
+
+// seedSecondMember gives the Single-User store the two-member trip the
+// FR-6.2 rule requires, so the mode is the only thing left that can
+// suppress a notification.
+func seedSecondMember(t *testing.T, st *store.Store, localID string) {
+	t.Helper()
+	seed := []string{
+		`INSERT OR IGNORE INTO users (id, oidc_subject, display_name) VALUES ('` + userB + `', 'auth|b', 'Sarah')`,
+		`UPDATE users SET display_name = 'Andy' WHERE id = '` + localID + `'`,
+		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('` + trip + `', '` + localID + `', 'owner')`,
+		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('` + trip + `', '` + userB + `', 'editor')`,
 	}
-	if len(out.Notifications) != 0 {
-		t.Errorf("notifications = %d, want 0", len(out.Notifications))
+	for _, q := range seed {
+		if _, err := st.DB().Exec(q); err != nil {
+			t.Fatalf("seed %q: %v", q, err)
+		}
 	}
 }

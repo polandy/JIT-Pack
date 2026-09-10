@@ -4,6 +4,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,6 +54,37 @@ type Server struct {
 	// adminEmails (FR-23.1): the lowercased Options.AdminEmails
 	// allowlist, matched against the token's email claim.
 	adminEmails map[string]bool
+	// detached counts the background work a request started and then
+	// stopped waiting for — today only Web Push delivery. See
+	// WaitDetached for what it is counted for.
+	detached sync.WaitGroup
+}
+
+// WaitDetached blocks until the background work started by requests
+// already served has finished, or until ctx is done — in which case it
+// returns ctx.Err() and that work is abandoned mid-flight.
+//
+// It exists because a detached delivery is not a fire-and-forget in the
+// only moment that matters: process shutdown. A notification created a
+// millisecond before SIGTERM has already answered its push and pinged
+// the WebSocket, and its Web Push send is the one part still in the air
+// — exiting under it drops the notification for exactly the clients it
+// was invented for, the backgrounded and the closed ones (NFR-4.6).
+//
+// Call it only once the server has stopped accepting requests: it makes
+// no promise about work a request starts while it waits.
+func (s *Server) WaitDetached(ctx context.Context) error {
+	done := make(chan struct{})
+	go func() {
+		s.detached.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // isAdminEmail resolves the FR-23.1 allowlist; a token without an

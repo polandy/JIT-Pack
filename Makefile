@@ -35,7 +35,7 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: pins log-index spec-width case-ids e2e-helpers testids wire-check proxy-host fmt-check test tidy-check go-lint client
+ci: pins log-index spec-width case-ids e2e-helpers testids no-sleep wire-check proxy-host fmt-check test tidy-check go-lint client
 
 # Cheap and first: the toolchain majors are named in three files each, and a
 # disagreement is invisible to every other check (see the script's header).
@@ -70,6 +70,13 @@ e2e-helpers:
 # *absence* asserted against an id the app never declared is green forever.
 testids:
 	@$(RUN) node scripts/testid-gate.mjs
+
+# And last of that family: a test that waits on the wall clock passes for a
+# reason nothing states, and goes on passing after the behaviour under it is
+# gone. Every other check here is watching that test pass (see the script for
+# the two spellings it reads, and the ones it cannot).
+no-sleep:
+	@$(RUN) node scripts/no-sleep-gate.mjs
 
 # The client's wire types are generated, so a Go-side change that the client
 # has not followed is a red build rather than a hand-test later (ADR-026).

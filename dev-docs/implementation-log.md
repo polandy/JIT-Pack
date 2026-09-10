@@ -353,6 +353,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 
 - [A delete had no memory to compare against](#a-delete-had-no-memory-to-compare-against) — the resurrection defect, why the fix reads `change_log`, and the measurement that rewrote its own ADR.
 - [A position that vanished between two screens (2026-09-09)](#a-position-that-vanished-between-two-screens-2026-09-09) — the defect whose only symptom was a lower number; why the report went into the resolution and not into step 2's gate.
+- [Two tests that were green for the wrong reason (2026-09-10)](#two-tests-that-were-green-for-the-wrong-reason-2026-09-10) — the mode guard had nothing to prove; a test-only seam would have left a shutdown hole.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14507,3 +14508,53 @@ their untouched rows with them, which is a decision the refresh already implemen
 traveller" line beside a planned removal contradicts it. The gap that leaves — a trip that never had
 travellers and follows a group is told nothing at refresh time — is real, and it is ADR-053's first
 revisit trigger rather than something the report should have papered over.
+
+## Two tests that were green for the wrong reason (2026-09-10)
+
+Findings 22a and 22b of the 2026-08-22 bug review, and they turn out to be one shape twice: a test
+whose *comment* described a stronger promise than its body could keep.
+
+**22b was unfalsifiable, and I proved it before changing anything.** `TestNotifications_SingleUserMode_Inert`
+promised FR-17.3 held "even if a push carries a foreign `packer_user_id`" — and pushed a plain
+insert carrying none. I replaced the mode guard in `handlePush` with `if true`, ran it, and it
+stayed green: with no delegation in the batch and no second member on the trip, `planNotifications`
+returns nil for three independent reasons before the mode is ever consulted. The rewritten case
+seeds all three away — a second member, a display name, a foreign packer — so the mode is the only
+thing left that can suppress a notification, and the same mutation now fails it. That the seeded
+state looks odd for a Single-User instance is the point rather than a problem: an instance that ran
+as a server once and was restarted single-user carries exactly those rows.
+
+**22a's fix was better than the test it was written for.** The Web Push suite polled the store for
+three seconds waiting for a 410-Gone subscription to be dropped. The obvious repair is a completion
+hook in `api.Options` that only the test sets, and I rejected it on a rule this project has already
+paid for once: a seam with a single caller, and that caller the test asserting through it, is a
+seam nothing keeps honest. Looking for a signal production would also act on found a real hole —
+`go s.sendWebPush(…)` is detached from the request *and* from the process, so SIGTERM discards a
+delivery already promised to a notification, for precisely the backgrounded clients Web Push exists
+to reach. So the goroutines are counted, `WaitDetached(ctx)` drains them, and `cmd/jitpackd` calls
+it after the HTTP drain on the deadline it already had. ADR-055 has the third option (send
+synchronously) and why undoing the detachment is worse than the bug.
+
+**The trap in that test is the ordering, and it is not obvious.** `WaitDetached` alone is not
+enough, because the push handler writes its response *before* it runs the FR-6.2 side effects: the
+client can be back from `pushAs` while the goroutine that would have registered itself does not yet
+exist, and a drain of nothing returns instantly. Waiting for the delivery to reach the fake push
+service first is what makes the drain mean something — the request exists, therefore so does the
+goroutine. Mutation-proved twenty times over, so that "red" is a verdict rather than a coin toss.
+
+**And the review of my own test found the same fault in it.** The bounded-wait case checked each
+call's return value: `context.Canceled` when the context was already done, nil once the delivery was
+released. A `WaitDetached` that ignored the WaitGroup entirely and answered `ctx.Err()` passed both
+— because the second context is `Background()`, whose `Err()` is nil. "Bounded" and "actually
+waited" are two promises and only the first was being asserted. Both calls are now read against the
+subscription instead: still registered while the delivery is held, gone once the drain returns. That
+is the rule the whole PR is about, applied one level up, and it took a mutation to see it.
+
+**The gate that keeps it says less than the rule it serves, on purpose.** `scripts/no-sleep-gate.mjs`
+reads two spellings, `time.Sleep` in a Go test and `waitForTimeout` in a Playwright spec, and the
+repository is now at zero of both — the one moment such a check can be added without a cleanup
+campaign in front of it. What it cannot see is the same mistake spelled as a short read deadline
+("the socket stayed quiet for 200 ms, therefore nothing was sent"), which is what the same review
+found in `ws_test.go`, `master_test.go` and `hub_test.go`. Those are still open. A gate named for
+the whole rule while checking a third of it is how a green run starts meaning less than it looks
+like, so the script's own header names the gap first.
