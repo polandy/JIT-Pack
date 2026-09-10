@@ -47,7 +47,7 @@ Notes on that file:
 - **A misconfigured web root stops the container.** If `JITPACK_WEB_ROOT` points somewhere without an `index.html`, `jitpackd` exits at startup naming the path, rather than starting and serving a white page to the first person who opens a browser.
 - The container above runs in **single-user mode**, which performs no authentication whatsoever. For a multi-user instance behind an identity provider, see [Authentication](authentication.md); the full variable list is in [Configuration](configuration.md).
 
-`jitpackd` handles SIGTERM and shuts the HTTP server down gracefully with a five-second drain, so an ordinary `docker compose down` is a clean stop.
+`jitpackd` handles SIGTERM and shuts the HTTP server down gracefully with a five-second drain, so an ordinary `docker compose down` is a clean stop. The same five seconds also cover push notifications already on their way to a browser's push service, so a stop does not silently drop one; if that service is unreachable, the stop takes the full five seconds and says so in the log.
 
 ---
 

@@ -3827,7 +3827,10 @@ the tail is where a symbol system is actually decided. Results:
   dependence on third-party cloud services. Web clients use standards-based Web Push with self-generated VAPID keys.
   Native mobile clients prefer UnifiedPush; FCM/APNs support is an optional, explicitly opt-in build configuration.
   In-app notifications over the existing WebSocket channel (FR-4.4) serve as the universal fallback. Not applicable in
-  Single-User Mode (FR-17.3).
+  Single-User Mode (FR-17.3) — the detection does not run there at all, whatever the pushed rows say, because the mode
+  and not the data is what decides it. A Web Push send is detached from the request that earned it but not from the
+  process: shutdown drains the sends still in flight within its existing deadline, since the clients this reaches are
+  by definition the ones the WebSocket fallback cannot (ADR-055).
 * **NFR-4.7 (Import Robustness):** The import wizard (3.16) must tolerate real-world spreadsheet noise: merged category
   header rows, empty columns, trailing question marks in item names (imported as an attached open task per FR-7.2), and
   mixed-language labels. Imports are transactional: a failed import leaves no partial data behind. **Two clauses of this

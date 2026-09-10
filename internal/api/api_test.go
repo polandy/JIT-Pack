@@ -29,6 +29,14 @@ func newTestServer(t *testing.T) *httptest.Server {
 
 func newTestServerWithStore(t *testing.T) (*httptest.Server, *store.Store) {
 	t.Helper()
+	srv, st, _ := newTestServerWithAPI(t)
+	return srv, st
+}
+
+// newTestServerWithAPI hands back the *api.Server too, for the tests that
+// need something the HTTP surface does not expose — WaitDetached.
+func newTestServerWithAPI(t *testing.T) (*httptest.Server, *store.Store, *api.Server) {
+	t.Helper()
 	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
 		t.Fatalf("store.OpenForTest: %v", err)
@@ -48,9 +56,10 @@ func newTestServerWithStore(t *testing.T) (*httptest.Server, *store.Store) {
 			t.Fatalf("seed %q: %v", q, err)
 		}
 	}
-	srv := httptest.NewServer(api.New(st, testSecret, api.Options{}).Handler())
+	apiSrv := api.New(st, testSecret, api.Options{})
+	srv := httptest.NewServer(apiSrv.Handler())
 	t.Cleanup(srv.Close)
-	return srv, st
+	return srv, st, apiSrv
 }
 
 func token(t *testing.T, sub string, secret []byte) string {

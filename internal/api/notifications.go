@@ -141,6 +141,11 @@ func (s *Server) createAndNotify(ctx context.Context, userID, kind string, paylo
 	}
 	s.hub.NotifyNotificationCreated(userID, id)
 	// Web Push rides along detached (NFR-4.6): the response and the WS
-	// ping must never wait on a third-party push service.
-	go s.sendWebPush(userID, id, kind, payload)
+	// ping must never wait on a third-party push service. Detached from
+	// the request, not from the process — see Server.WaitDetached.
+	s.detached.Add(1)
+	go func() {
+		defer s.detached.Done()
+		s.sendWebPush(userID, id, kind, payload)
+	}()
 }
