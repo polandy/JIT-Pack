@@ -51,24 +51,33 @@ func firstConflictID(t *testing.T, srv *httptest.Server, path string) string {
 	return out.Conflicts[0].ID
 }
 
-func conflictReverted(t *testing.T, srv *httptest.Server, path string) bool {
+type listedConflict struct {
+	ID       string `json:"id"`
+	Reverted bool   `json:"reverted"`
+}
+
+func listConflicts(t *testing.T, srv *httptest.Server, path string) []listedConflict {
 	t.Helper()
 	resp, raw := doJSON(t, http.MethodGet, srv.URL+path, token(t, userA, testSecret), nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("list status = %d, body %s", resp.StatusCode, raw)
 	}
 	var out struct {
-		Conflicts []struct {
-			Reverted bool `json:"reverted"`
-		} `json:"conflicts"`
+		Conflicts []listedConflict `json:"conflicts"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatalf("decode: %v (%s)", err, raw)
 	}
-	if len(out.Conflicts) != 1 {
-		t.Fatalf("conflicts = %d, want 1", len(out.Conflicts))
+	return out.Conflicts
+}
+
+func conflictReverted(t *testing.T, srv *httptest.Server, path string) bool {
+	t.Helper()
+	entries := listConflicts(t, srv, path)
+	if len(entries) != 1 {
+		t.Fatalf("conflicts = %d, want 1", len(entries))
 	}
-	return out.Conflicts[0].Reverted
+	return entries[0].Reverted
 }
 
 func TestRevertConflict_RestoresTheLoserAndHintsThePull_NFR42a(t *testing.T) {
@@ -130,7 +139,7 @@ func TestRevertConflict_SecondAttemptIsAConflict_NFR42a(t *testing.T) {
 }
 
 func TestRevertConflict_DeletedRowIsRefused_NFR42a(t *testing.T) {
-	srv := newTestServer(t)
+	srv, st := newTestServerWithStore(t)
 	id := seedTripConflict(t, srv)
 	body := map[string]any{"mutations": []any{
 		mutation("item-r1", "rv-del", "delete", nil, "0000000003000-0000-cccccccc"),
@@ -149,8 +158,20 @@ func TestRevertConflict_DeletedRowIsRefused_NFR42a(t *testing.T) {
 	if code := errorCode(t, raw); code != "row_deleted" {
 		t.Errorf("error code = %q, want row_deleted", code)
 	}
-	if conflictReverted(t, srv, "/api/v1/trips/"+trip+"/conflicts") {
+	// Read the flag in the log rather than through the list: since
+	// 2026-09-10 the list leaves out the entries whose row is gone (§6),
+	// which is this entry exactly. The promise is still the one the name
+	// makes — a refused revert marks nothing spent.
+	var reverted bool
+	if err := st.DB().QueryRow(
+		`SELECT reverted FROM conflict_log WHERE id = ?`, id).Scan(&reverted); err != nil {
+		t.Fatalf("read the entry: %v", err)
+	}
+	if reverted {
 		t.Error("a refused revert must leave the entry open")
+	}
+	if n := len(listConflicts(t, srv, "/api/v1/trips/"+trip+"/conflicts")); n != 0 {
+		t.Errorf("conflicts = %d, want 0: an entry whose row is deleted is not offered", n)
 	}
 }
 

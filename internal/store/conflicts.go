@@ -42,6 +42,9 @@ const (
 // ListConflicts returns a trip's conflict log, newest first. Rows live as
 // long as the trip does: conflict_log.trip_id cascades on delete, and the
 // compaction NFR-4.2a describes for an archived trip is not built.
+//
+// An entry whose row has since been deleted is left out — see
+// entityPresent.
 func (s *Store) ListConflicts(ctx context.Context, tripID string) ([]ConflictEntry, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT `+conflictColumns+` FROM conflict_log WHERE trip_id = ?`+conflictOrder,
@@ -49,7 +52,11 @@ func (s *Store) ListConflicts(ctx context.Context, tripID string) ([]ConflictEnt
 	if err != nil {
 		return nil, fmt.Errorf("list conflicts: %w", err)
 	}
-	return scanConflicts(rows)
+	entries, err := scanConflicts(rows)
+	if err != nil {
+		return nil, err
+	}
+	return s.presentEntries(ctx, entries)
 }
 
 // ListMasterConflicts returns the master partition's conflict log for one
@@ -78,7 +85,57 @@ func (s *Store) ListMasterConflicts(ctx context.Context, userID string) ([]Confl
 			visible = append(visible, c)
 		}
 	}
-	return visible, nil
+	return s.presentEntries(ctx, visible)
+}
+
+// presentEntries drops the entries whose entity no longer exists.
+//
+// Both logs need it and neither gets it from the schema: conflict_log
+// carries the two partitions' entries in one table, keyed by table name
+// and id, so it has no foreign key to the row it names and nothing
+// cascades. `trips` looked exempt only because its visibility hangs on a
+// membership that does cascade — two different behaviours per table, and
+// neither of them decided (2026-08-22 review, finding 27).
+//
+// Left out rather than kept, because an entry outlives its use before it
+// outlives its row: the client has no name to show for a deleted entity
+// and falls back to the bare kind, and a revert of it answers
+// `409 row_deleted` (ErrConflictRowGone) — so a listed one offers a
+// control that cannot work. Where a record is meant to survive its
+// subject it says so by storing what it needs, the way a lock event
+// stores `item_name` (ADR-028).
+func (s *Store) presentEntries(ctx context.Context, entries []ConflictEntry) ([]ConflictEntry, error) {
+	present := entries[:0]
+	for _, c := range entries {
+		ok, err := s.entityPresent(ctx, c.EntityTable, c.EntityID)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			present = append(present, c)
+		}
+	}
+	return present, nil
+}
+
+// entityPresent answers whether one conflict entry's row is still there.
+// An unknown table denies: the same safe half masterVisible takes, and a
+// table name reaching here that tableSpecs does not know would be one no
+// push could have written.
+func (s *Store) entityPresent(ctx context.Context, table, id string) (bool, error) {
+	if _, known := tableSpecs[table]; !known {
+		return false, nil
+	}
+	var one int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT 1 FROM `+table+` WHERE id = ?`, id).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("conflict entity %s %s: %w", table, id, err)
+	}
+	return true, nil
 }
 
 func scanConflicts(rows *sql.Rows) ([]ConflictEntry, error) {
