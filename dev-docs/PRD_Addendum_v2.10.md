@@ -385,7 +385,11 @@ items are the user's data while these are bookkeeping the refresh can re-derive.
   `mode` and a position's `default_mode` are read only when they name one of the three modes — anything else restores as
   🧳 *packen*, the way `bought_from` and `status` are already read only from their own vocabularies. Until then those two
   fields passed through unchecked, so a file could put a value into the database that no chip, no facet and no filter
-  matches, on a row the app then renders as procurement.
+  matches, on a row the app then renders as procurement. **A trip's two dates are read the same way (added
+  2026-09-10):** `start_date` and `end_date` are taken only when they are a real calendar date in `YYYY-MM-DD`,
+  and dropped otherwise — the trip keeps the dateless shape FR-2.1a already allows for. They are the one field the
+  database cannot check: the column is plain text, and the duration derived from it computes to nothing over nonsense
+  rather than refusing it, so `2024-02-30` would reach every screen that renders a trip's span.
 * **FR-18.6 (Distinct from Full Backup):** This format is explicitly not a substitute for the full-instance backup
   (NFR-4.5): it captures exactly one template or one trip's packing list, with no user accounts, sync metadata, or
   conflict history — it exists for sharing and portability, not disaster recovery.
@@ -556,7 +560,13 @@ companions, M5 suggestion hint.
   reason ("weggelassen: „Drohne“ ist nicht dabei") rather than being silently deleted. *Built 2026-08-18:* the selection
   is `coSkipTargets` in `client/src/domain/dependencies.ts` and the reason is `skippedVia` beside it — derived from the
   graph and the current states, so it cannot go stale; the skip announces the companions by name and one undo restores
-  the whole cascade (FR-5.5).
+  the whole cascade (FR-5.5). **Nothing depends on itself (corrected 2026-09-10):** M10 refuses to *save* an edge that
+  closes a circle, but that guard lives in one screen while the rows also arrive by sync — from another device, or a
+  build older than the guard — so the walk that collects the dependents has to survive a cycle. It does; what it must
+  not do is report the item it started at, and it did. A `per_person` position expands to one row per traveller, all of
+  them carrying the same master item, and the selection excludes the skipped row by row id — so on cyclic data the
+  traveller's siblings followed it off the list. `skippedVia` asked the same question and would have named one of those
+  rows as the reason for another.
 * **FR-20.3 (Deduplication Against Explicit Items):** A dependent item may also already be on the list in its own right
   — added directly, or pulled in by a different template. Resolution deduplicates by `source_item_id`: if the item is
   already explicit on the list, the dependency does not create a second instance; quantities merge under the existing
@@ -2515,15 +2525,20 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   M4 — the trip's *Danach* phase carried it until that hub was dropped 2026-08-08), the user creates a reusable
   template. Rows **fold back into the groups they came from** via `source_template_id` provenance; ad-hoc rows are
   matched against master items by name (FR-16.3-style tolerant matching, unknown names create master items first —
-  FR-9.2 mechanics). Recognised groups are **referenced, not copied** — they stay independently maintainable. Per group,
-  rows the trip **added** under it offer a choice: **"Gruppe aktualisieren"** (the deviation flows back into the group,
-  reaching everything that includes it, incl. the FR-27.4 question on the trips that still follow it) or **"nur in diese
-  Vorlage"** (kept as an own position of the new template). Default is *update* — the trip mutation is treated as
-  learned truth, the same stance as the M14 review assistant. Group positions that were *absent* on the trip are
-  reported but leave the group untouched (a skipped tripod is trip history, not a group edit). Loose ad-hoc rows become
-  own positions of the new template, optionally bundled into a **new group** instead (name prompt) when they form a
-  reusable unit. The result is a composed template (FR-27.1) named by the user — next year's M3 run starts from it.
-  **Built 2026-08-19.** Four things settled while building, each visible in the screen or in what it refused to do:
+  FR-9.2 mechanics). **Which of the group's positions a recognised row *is* follows the same provenance (corrected
+  2026-09-10):** the row's master item names the position, and the name is consulted only for a row that has no master
+  item. Renaming a generated row on the trip is ordinary M4 editing, and matching by name alone reported that rename
+  twice — as a position the trip had added, and as one it had dropped — so the trip's own wording became a second
+  position in next year's template. Recognised groups are **referenced, not copied** — they stay independently
+  maintainable. Per group, rows the trip **added** under it offer a choice: **"Gruppe aktualisieren"** (the deviation
+  flows back into the group, reaching everything that includes it, incl. the FR-27.4 question on the trips that still
+  follow it) or **"nur in diese Vorlage"** (kept as an own position of the new template). Default is *update* — the trip
+  mutation is treated as learned truth, the same stance as the M14 review assistant. Group positions that were *absent*
+  on the trip are reported but leave the group untouched (a skipped tripod is trip history, not a group edit). Loose
+  ad-hoc rows become own positions of the new template, optionally bundled into a **new group** instead (name prompt)
+  when they form a reusable unit. The result is a composed template (FR-27.1) named by the user — next year's M3 run
+  starts from it. **Built 2026-08-19.** Four things settled while building, each visible in the screen or in what it
+  refused to do:
 
   * **The entry needed a lifecycle step that did not exist.** M21 lives on an archived trip, both archive affordances
     are gated on *active*, and nothing user-facing called `activateTrip` — so the whole screen was unreachable. M4's app
@@ -2865,7 +2880,9 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   group none the wiser — the same reasoning FR-27.5 applies to its fold-back. **Every row names its target group and
   lets it be changed** (the picker offers groups only); an *unused* proposal targets the group the row came from, a
   *missing* proposal — an ad-hoc row with no provenance — defaults to the group that contributed most of the trip, which
-  is what the user thinks of as "the list". Applying states the **blast radius** ("wirkt auf N Reisen", FR-27.4) and is
+  is what the user thinks of as "the list"; **a tie is broken by group name (added 2026-09-10)**, because the rows
+  arrive in whatever order sync produced them and "whichever was seen first" would have two devices propose two
+  different groups for the same trip. Applying states the **blast radius** ("wirkt auf N Reisen", FR-27.4) and is
   logged as an applied change on those trips, so nothing lands silently. **Presentation: a list, not a card stack**
   (supersedes the 2026-07-17 card-stack decision) — the harvest of a trip is a handful of one-line judgements, and a
   stack shows one at a time while hiding how much is left, the same dishonesty FR-25.11a rejects on the packing list.
