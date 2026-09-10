@@ -10,7 +10,6 @@ package api
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -142,6 +141,10 @@ func NewTokenID() string {
 	return hex.EncodeToString(b)
 }
 
+// msgAPITokenFieldsRequired is answered for a body that would not decode;
+// MintAPIToken phrases its own refusal for one that decoded without them.
+const msgAPITokenFieldsRequired = "name and expiry required"
+
 // handleMintAPIToken answers the one route in this API whose body is a
 // credential (FR-23.7).
 func (s *Server) handleMintAPIToken(w http.ResponseWriter, r *http.Request) {
@@ -168,8 +171,8 @@ func (s *Server) handleMintAPIToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req APITokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "name and expiry required")
+	if err := decodeJSON(w, r, maxJSONBodyBytes, &req); err != nil {
+		writeDecodeError(w, err, msgAPITokenFieldsRequired)
 		return
 	}
 	out, err := MintAPIToken(s.sessionSecret, req, userID, NewTokenID(), s.now().UTC())

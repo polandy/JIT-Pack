@@ -501,8 +501,8 @@ func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation
 // writing an error response itself.
 func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpkg.Mutation), apply func(syncpkg.Mutation) (store.MutationResult, error)) (PushResponse, []syncpkg.Mutation, bool) {
 	var req PushRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "malformed push envelope")
+	if err := decodeJSON(w, r, maxPushBodyBytes, &req); err != nil {
+		writeDecodeError(w, err, "malformed push envelope")
 		return PushResponse{}, nil, false
 	}
 	if len(req.Mutations) > maxPushBatch {
