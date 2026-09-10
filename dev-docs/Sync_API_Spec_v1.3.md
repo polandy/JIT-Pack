@@ -631,6 +631,19 @@ schema change was owed.
   recompute `in_sync` — and `{"ping": true}`, the §9 keepalive, answered with a `pong` event. `user:` frames are
   accepted but redundant: `notification.created` is delivered to every connection *authenticated* as the target user, so
   a client can never miss (or steal) the event by (mis)subscribing.
+* **A subscription ends when the permission does, and the server decides that on every send (ADR-056, corrected
+  2026-09-10).** `subscribe` is refused for a trip the caller is not a member of, and until this date that refusal was
+  the *only* check the socket ever passed: the hub then broadcast to whoever its in-memory subscription map still
+  named. Nothing server-side could take a subscription away — `unsubscribe` is reachable from the client's own frame
+  and from nowhere else — so a removed member's open socket kept receiving `trip.changed`, the G-3 `item.locked` /
+  `item.unlocked` events *including the item's name*, and the presence list, until that person closed the tab. The hub
+  now asks, for every event and every presence payload, whether that connection's user may still receive this trip:
+  the account is active (FR-23.3) and the membership is current (FR-4.7). Both questions go through the mode's
+  identity, so Single-User Mode answers yes to both and behaves exactly as before. Nothing on the wire changes — a
+  revoked device is simply no longer told, and its next pull already refuses. Two consequences worth knowing: the
+  presence roster other members hold keeps a revoked user until the next presence event (nothing rebroadcasts at the
+  moment of revocation), and a membership restored after a mistake resumes with no re-subscribe, because the
+  subscription itself was never taken away.
 * **The socket is a subscription, not a session, and the client treats it as one (implemented 2026-09-01).** P-1 has
   named *reconnect* as one of the four things the read path serves since v1.0, and until this date the client had none:
   a closed socket was nulled and never dialled again, so a device whose connection the server restart under it (the

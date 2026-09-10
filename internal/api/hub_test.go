@@ -12,11 +12,20 @@ import (
 	"github.com/coder/websocket"
 )
 
+// allowAll is the gate every case here passes: these test the hub's
+// mechanics, and the one case about the gate itself hands in its own.
+func allowAll(context.Context, string, string) bool { return true }
+
 // wsEcho sets up a test server with a hub where clients can connect,
 // subscribe, and receive events. Returns the hub and server.
 func wsTestServer(t *testing.T, headSeq HeadSeqFunc) (*Hub, *httptest.Server) {
 	t.Helper()
-	hub := NewHub(headSeq)
+	return wsTestServerGated(t, headSeq, allowAll)
+}
+
+func wsTestServerGated(t *testing.T, headSeq HeadSeqFunc, mayReceive ReceiveFunc) (*Hub, *httptest.Server) {
+	t.Helper()
+	hub := NewHub(headSeq, mayReceive)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /ws", func(w http.ResponseWriter, r *http.Request) {
 		ws, err := websocket.Accept(w, r, nil)
@@ -268,5 +277,33 @@ func TestHub_MultipleTrips_Isolation(t *testing.T) {
 	_, received := wsReadTimeout(t, ws1, 200*time.Millisecond)
 	if received {
 		t.Error("ws1 received event for trip-2")
+	}
+}
+
+// The gate is asked per send, so the count of who a trip reaches is a
+// settled state a revocation can be asserted against — no deadline, no
+// second socket. Both halves are here on purpose: a gate that refused
+// everybody would satisfy the first clause alone.
+func TestHub_SubscribersCountsOnlyTheStillAuthorised(t *testing.T) {
+	revoked := map[string]bool{}
+	gate := func(_ context.Context, _ string, userID string) bool { return !revoked[userID] }
+
+	hub, srv := wsTestServerGated(t, nil, gate)
+	ws1 := wsConnect(t, srv, "andy")
+	wsSend(t, ws1, map[string]string{"action": "subscribe", "trip_id": "trip-1"})
+	wsRead(t, ws1) // presence
+	ws2 := wsConnect(t, srv, "sarah")
+	wsSend(t, ws2, map[string]string{"action": "subscribe", "trip_id": "trip-1"})
+	wsRead(t, ws1) // presence update
+	wsRead(t, ws2) // presence
+
+	if n := hub.Subscribers("trip-1"); n != 2 {
+		t.Fatalf("subscribers = %d, want 2 before the revocation", n)
+	}
+
+	revoked["sarah"] = true
+
+	if n := hub.Subscribers("trip-1"); n != 1 {
+		t.Errorf("subscribers = %d, want 1 — the hub still counts a revoked socket", n)
 	}
 }
