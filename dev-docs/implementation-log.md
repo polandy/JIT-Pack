@@ -355,6 +355,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A position that vanished between two screens (2026-09-09)](#a-position-that-vanished-between-two-screens-2026-09-09) — the defect whose only symptom was a lower number; why the report went into the resolution and not into step 2's gate.
 - [Two tests that were green for the wrong reason (2026-09-10)](#two-tests-that-were-green-for-the-wrong-reason-2026-09-10) — the mode guard had nothing to prove; a test-only seam would have left a shutdown hole.
 - [An audit entry outlived the row it audited (2026-09-10)](#an-audit-entry-outlived-the-row-it-audited-2026-09-10) — why the conflict log stopped listing deleted entities, and what made `trips` look exempt.
+- [Four rules that were right about the ordinary case (2026-09-10)](#four-rules-that-were-right-about-the-ordinary-case-2026-09-10) — the minors of the 2026-08-22 review, and the test that had written the bug down as the rule.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14587,3 +14588,46 @@ conflict log stores no such copy, so it has nothing to be readable *with*.
 
 **What the fix is not.** The rows stay in `conflict_log`; they stop being listed. The compaction
 NFR-4.2a describes for an archived trip is still unbuilt, and this is not it.
+
+
+## Four rules that were right about the ordinary case (2026-09-10)
+
+Four Minors from the 2026-08-22 bug review, all in `client/src/domain`. They have nothing in common as
+code; what they share is the shape of the mistake. Each rule was written for the case the author had in
+front of them, and each is wrong about a case that is one step to the side — a cycle, a tie, a rename, a
+date that is not one. None of them fails loudly, which is why all four survived a year of green suites.
+
+**One of them was already written down as the intended behaviour.** `dependentsOf` returns the transitive
+dependents of an item, and on cyclic data the walk comes back through the item it started at. The existing
+test was called *„terminates on cyclic data"* — a promise the code kept — and then asserted
+`new Set(['battery', 'camera'])`, putting `camera` among its own dependents. The name covered termination;
+the assertion quietly covered one thing more. The cost is not theoretical: `coSkipTargets` excludes the
+skipped row *by row id*, so a second row of the same master item — a per-person row, or one simply added
+twice — followed the first one off the list. The visited set and the result set are two sets, and only the
+first one needs the start in it.
+
+**The M21 comment was right about the fallback and silent about the rule.** `namesMatch` carried a
+deliberate justification for matching a trip row against a group position by name: an ad-hoc row typed on
+the trip has no master item, and recognising it as the tripod the group already knows about is the whole
+point. All true — and it is an argument for the name as a *fallback*, which the code then used as the only
+question. A row generated from a position carries `source_item_id`; renaming it on the trip is ordinary M4
+editing, and name-only matching reported that one rename twice, as a position the trip had added and as one
+it had dropped. Folding the trip back then wrote the user's trip-specific wording into next year's template
+as a second position beside the original. The fix is one question ahead of the old one — a row that names a
+master item is judged by that alone — and the second test guards the direction that would have been easy to
+get wrong: a row renamed *into* a position's name is still an addition, or the id path would have swallowed
+the name path's job.
+
+**The other two are the same word: deterministic.** M14's *missing* proposal defaults to the group that
+contributed most of the trip, and on a tie took whichever it had counted first — which is the order sync
+produced the rows in, so two devices could propose two different groups for the same trip. The M21 group
+list already sorts by name for exactly this reason; the tie now breaks the same way. And the portable
+importer read `start_date` and `end_date` as any non-empty string while the neighbouring `year` had a
+plausibility guard. `trips.start_date` is a plain TEXT column and the `duration_days` it feeds computes to
+NULL over nonsense rather than refusing it, so `tomorrow` reached every screen that renders a trip's span.
+Rejecting `2024-02-30` needs the round trip, not the regex: JavaScript rolls that date forward to March
+rather than saying no.
+
+**What this batch did not touch.** The `MaxBytesReader` minor and the WebSocket subscription that survives
+a membership revocation are in `internal/api` and belong to a separate change; the review's Minor list also
+still holds the view-level items and the orchestrator's unserialised drains.

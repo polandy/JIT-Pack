@@ -157,8 +157,15 @@ function dominantGroup(items: TripItem[], groupsByID: Map<string, Template>): Te
   let best: Template | null = null
   let bestCount = 0
   for (const [id, count] of counts) {
-    if (count > bestCount) {
-      best = groupsByID.get(id)!
+    const candidate = groupsByID.get(id)!
+    // On a tie the name decides, for the same reason the M21 group list is
+    // sorted by it: the rows arrive in whatever order sync produced, so
+    // "the first one seen" would make two devices propose two groups.
+    if (
+      count > bestCount ||
+      (count === bestCount && best !== null && candidate.name.localeCompare(best.name) < 0)
+    ) {
+      best = candidate
       bestCount = count
     }
   }

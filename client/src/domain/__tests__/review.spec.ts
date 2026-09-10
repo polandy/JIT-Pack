@@ -196,6 +196,30 @@ describe('buildReviewProposals — missing flags default to the dominant group (
     expect(proposals[0]?.groupId).toBe('g2')
   })
 
+  it('breaks a tie by group name, so two devices propose the same group', () => {
+    // Sync hands the rows over in whatever order it produced. With the counts
+    // equal, the first one seen used to win — which is the row order, and that
+    // is not a fact about the trip.
+    const alpin = group('g2', { name: 'Alpin' })
+    const zelten = group('g1', { name: 'Zelten' })
+    const seil = tripItem({ id: 'a', source_template_id: 'g2', source_item_id: 'i1', name: 'Seil' })
+    const zelt = tripItem({ id: 'b', source_template_id: 'g1', source_item_id: 'i2', name: 'Zelt' })
+    const missing = tripItem({ id: 'd', flag_missing: true, name: 'Sonnencreme' })
+
+    for (const items of [
+      [zelt, seil, missing],
+      [seil, zelt, missing],
+    ]) {
+      const proposals = buildReviewProposals({
+        templates: [alpin, zelten],
+        templateItems: () => [],
+        masterItems: [],
+        items,
+      })
+      expect(proposals[0]?.groupId).toBe('g2')
+    }
+  })
+
   it('matches an ad-hoc missing item to a master item by name (case-insensitive)', () => {
     const proposals = buildReviewProposals({
       templates,

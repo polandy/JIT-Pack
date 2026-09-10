@@ -91,6 +91,26 @@ describe('parsePortable (FR-18.5)', () => {
     })
   })
 
+  // FR-18.4: a date is the one field the schema cannot check for us —
+  // `trips.start_date` is a plain TEXT column, and `duration_days` computes
+  // to NULL rather than complaining. A value that is not a calendar date is
+  // therefore dropped at the door, exactly like an implausible `year`.
+  it.each([
+    ['a word', 'tomorrow'],
+    ['a day the month does not have', '2024-02-30'],
+    ['a partial date', '2026-08'],
+    ['a date with the wrong separator', '2026/08/01'],
+  ])('drops %s rather than importing it as a trip date', (_label, value) => {
+    const result = parsePortable(`kind: trip
+name: Engadin
+start_date: "${value}"
+end_date: "${value}"
+items: []
+`)
+    expect(result.error).toBeNull()
+    expect(result.doc).toMatchObject({ start_date: null, end_date: null })
+  })
+
   it('parses a trip document with travelers, containers, and progress', () => {
     const result = parsePortable(tripYAML)
     expect(result.error).toBeNull()
