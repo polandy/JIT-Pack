@@ -1,8 +1,11 @@
 package api_test
 
 import (
+	"context"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/coder/websocket"
 )
@@ -137,4 +140,39 @@ func TestWS_ADeactivatedAccountStopsReceivingTripEvents(t *testing.T) {
 		t.Fatalf("deactivated account's next frame = %v, want pong — a session that "+
 			"can no longer make a request is still being fed over its socket", evt["type"])
 	}
+}
+
+// Invariant 5, and the reason this case exists rather than a note: the new
+// gate asks two questions the Single-User store cannot answer — there is no
+// membership row for the implicit user and no admin surface to deactivate
+// them — so both have to be answered by the identity instead. A gate that
+// consulted the store directly would silence every event in this mode, and
+// nothing else in the suite drives the hub here.
+func TestSingleUserMode_TheImplicitUserStillReceivesTripEvents(t *testing.T) {
+	srv, _, _ := newSingleUserTestServerWithStore(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	ws, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http")+"/ws", nil)
+	if err != nil {
+		t.Fatalf("dial without a token: %v", err)
+	}
+	defer ws.CloseNow()
+
+	wsSendMsg(t, ws, map[string]any{"subscribe": []string{"trip:" + trip}})
+	if evt := wsReadMsg(t, ws); evt["type"] != "presence" {
+		t.Fatalf("type = %v, want presence", evt["type"])
+	}
+
+	body := map[string]any{"mutations": []any{
+		mutation("item-single-ws", "ws-su-1", "insert",
+			map[string]any{"trip_id": trip, "name": "Zahnbürste", "quantity": 1},
+			"0000000012000-0000-aaaaaaaa"),
+	}}
+	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/trips/"+trip+"/sync", "", body)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("push status = %d, body %s", resp.StatusCode, raw)
+	}
+
+	wsDrainUntil(t, ws, "trip.changed")
 }
