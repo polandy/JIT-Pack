@@ -14,7 +14,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -49,8 +48,12 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		CodeVerifier string `json:"code_verifier"`
 		RedirectURI  string `json:"redirect_uri"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Code == "" {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "code, code_verifier, redirect_uri required")
+	if err := decodeJSON(w, r, maxJSONBodyBytes, &req); err != nil {
+		writeDecodeError(w, err, msgAuthCodeRequired)
+		return
+	}
+	if req.Code == "" {
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, msgAuthCodeRequired)
 		return
 	}
 
@@ -75,8 +78,12 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.RefreshToken == "" {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "refresh_token required")
+	if err := decodeJSON(w, r, maxJSONBodyBytes, &req); err != nil {
+		writeDecodeError(w, err, msgRefreshTokenRequired)
+		return
+	}
+	if req.RefreshToken == "" {
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, msgRefreshTokenRequired)
 		return
 	}
 	now := s.now().UTC()
@@ -164,6 +171,10 @@ const (
 	msgSessionCleanupFailed = "session cleanup failed"
 	msgOIDCNotConfigured    = "OIDC login is not configured"
 	msgProvisioningFailed   = "user provisioning failed"
+	// Each of these is answered twice — once for a body that would not
+	// decode, once for one that decoded without the field.
+	msgAuthCodeRequired     = "code, code_verifier, redirect_uri required"
+	msgRefreshTokenRequired = "refresh_token required"
 )
 
 // authErrorResponses is the one place a broker failure becomes an HTTP

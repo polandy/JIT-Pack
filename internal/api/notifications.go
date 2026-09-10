@@ -7,7 +7,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -82,8 +81,8 @@ func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Reque
 	// missing key means "leave it enabled" (UI-Spec M17), and a struct would
 	// decode it as false and silently switch the kind off.
 	var prefs map[string]bool
-	if err := json.NewDecoder(r.Body).Decode(&prefs); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "malformed prefs body")
+	if err := decodeJSON(w, r, maxJSONBodyBytes, &prefs); err != nil {
+		writeDecodeError(w, err, "malformed prefs body")
 		return
 	}
 	if err := s.store.SetNotificationPrefs(r.Context(), userID, prefs); err != nil {

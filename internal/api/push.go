@@ -86,13 +86,23 @@ type pushSubscriptionBody struct {
 	} `json:"keys"`
 }
 
+// What the two subscription endpoints answer with, each from two places:
+// a body that would not decode, and one that decoded without the field.
+const (
+	msgSubscriptionFieldsRequired = "endpoint and keys required"
+	msgEndpointRequired           = "endpoint required"
+)
+
 // handleRegisterPushSubscription serves POST /api/v1/push/subscriptions.
 func (s *Server) handleRegisterPushSubscription(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(userIDKey).(string)
 	var body pushSubscriptionBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil ||
-		body.Endpoint == "" || body.Keys.P256dh == "" || body.Keys.Auth == "" {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "endpoint and keys required")
+	if err := decodeJSON(w, r, maxJSONBodyBytes, &body); err != nil {
+		writeDecodeError(w, err, msgSubscriptionFieldsRequired)
+		return
+	}
+	if body.Endpoint == "" || body.Keys.P256dh == "" || body.Keys.Auth == "" {
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, msgSubscriptionFieldsRequired)
 		return
 	}
 	err := s.store.SavePushSubscription(r.Context(), store.PushSubscription{
@@ -112,8 +122,12 @@ func (s *Server) handleDeletePushSubscription(w http.ResponseWriter, r *http.Req
 	var body struct {
 		Endpoint string `json:"endpoint"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Endpoint == "" {
-		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "endpoint required")
+	if err := decodeJSON(w, r, maxJSONBodyBytes, &body); err != nil {
+		writeDecodeError(w, err, msgEndpointRequired)
+		return
+	}
+	if body.Endpoint == "" {
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, msgEndpointRequired)
 		return
 	}
 	if err := s.store.DeleteUserPushSubscription(r.Context(), userID, body.Endpoint); err != nil {

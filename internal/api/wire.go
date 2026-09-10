@@ -399,6 +399,7 @@ type ErrorCode string
 // Every code the server sends.
 const (
 	ErrValidation           ErrorCode = "validation"
+	ErrPayloadTooLarge      ErrorCode = "payload_too_large"
 	ErrUnauthorized         ErrorCode = "unauthorized"
 	ErrForbidden            ErrorCode = "forbidden"
 	ErrNotFound             ErrorCode = "not_found"

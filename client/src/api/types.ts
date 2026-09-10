@@ -431,6 +431,7 @@ export interface LockEventListResponse {
  */
 export type ErrorCode =
   | 'validation'
+  | 'payload_too_large'
   | 'unauthorized'
   | 'forbidden'
   | 'not_found'
@@ -451,6 +452,7 @@ export type ErrorCode =
 
 export const ERROR_CODE = {
   validation: 'validation',
+  payload_too_large: 'payload_too_large',
   unauthorized: 'unauthorized',
   forbidden: 'forbidden',
   not_found: 'not_found',
