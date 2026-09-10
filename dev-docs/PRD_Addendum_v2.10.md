@@ -560,10 +560,13 @@ companions, M5 suggestion hint.
   reason ("weggelassen: „Drohne“ ist nicht dabei") rather than being silently deleted. *Built 2026-08-18:* the selection
   is `coSkipTargets` in `client/src/domain/dependencies.ts` and the reason is `skippedVia` beside it — derived from the
   graph and the current states, so it cannot go stale; the skip announces the companions by name and one undo restores
-  the whole cascade (FR-5.5). **Nothing depends on itself (corrected 2026-09-10):** the dependency editor (M10) does not
-  forbid a cycle, and the walk that collects the dependents has to pass back through the item it started at in order to
-  terminate at all — it just must not report it. It did, and a second row of that same item on the list, a per-person
-  one or one added twice, followed the first one off the list.
+  the whole cascade (FR-5.5). **Nothing depends on itself (corrected 2026-09-10):** M10 refuses to *save* an edge that
+  closes a circle, but that guard lives in one screen while the rows also arrive by sync — from another device, or a
+  build older than the guard — so the walk that collects the dependents has to survive a cycle. It does; what it must
+  not do is report the item it started at, and it did. A `per_person` position expands to one row per traveller, all of
+  them carrying the same master item, and the selection excludes the skipped row by row id — so on cyclic data the
+  traveller's siblings followed it off the list. `skippedVia` asked the same question and would have named one of those
+  rows as the reason for another.
 * **FR-20.3 (Deduplication Against Explicit Items):** A dependent item may also already be on the list in its own right
   — added directly, or pulled in by a different template. Resolution deduplicates by `source_item_id`: if the item is
   already explicit on the list, the dependency does not create a second instance; quantities merge under the existing

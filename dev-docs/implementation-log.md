@@ -14605,6 +14605,10 @@ the assertion quietly covered one thing more. The cost is not theoretical: `coSk
 skipped row *by row id*, so a second row of the same master item — a per-person row, or one simply added
 twice — followed the first one off the list. The visited set and the result set are two sets, and only the
 first one needs the start in it.
+M10 does refuse to *save* an edge that closes a circle (`dependencyCycleError`), which is why this looked
+unreachable at first read. It is not: that guard is one screen's save-time validator, and dependency rows
+arrive by sync as well — from another device, or from a build older than the guard. `skippedVia` asked the
+same question one function down and would have named one per-person row as the reason another was skipped.
 
 **The M21 comment was right about the fallback and silent about the rule.** `namesMatch` carried a
 deliberate justification for matching a trip row against a group position by name: an ad-hoc row typed on
