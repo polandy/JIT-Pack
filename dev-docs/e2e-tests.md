@@ -119,6 +119,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Three cases for a figure, a door and a height (2026-09-08)](#three-cases-for-a-figure-a-door-and-a-height-2026-09-08) — FR-21.23/21.24/21.25: the duplicate door that was on two screens, and what a fixed sheet height hides from a case.
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — why M4's grouping had one bucket, and the case that now walks the path a user has.
 - [„Für alle" needed the sheet to be reopened (2026-09-09)](#für-alle-needed-the-sheet-to-be-reopened-2026-09-09) — FR-25.13g: the case that could not be written the obvious way, and the one branch e2e deliberately does not reach.
+- [Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)](#owed-a-webkit-case-lost-its-click-to-the-fr-197-banner-2026-09-09) — **open**: a helper every M3-built trip goes through, and a banner that reflowed the page under the pointer.
 
 ## The rule that comes before the units
 
@@ -4716,3 +4717,40 @@ who has left the trip, or a leftover shared row beside a complete per-person set
 reports it. Reaching either state through the UI is several screens of setup for a guard whose whole
 job is to be unreachable; it is covered where it can be stated in one line,
 `composables/__tests__/spreadForAll.spec.ts`, against a store that simply holds such a row.
+
+## Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)
+
+**Open.** This section is the todo, not its answer. `E2E-G14-01` failed once on `main`, on a tree that
+is byte for byte the tree of the commit that had passed the same suite twenty-five minutes earlier,
+and passed on the re-run. What is written here is what the artifacts show, so the next occurrence is
+read rather than re-run.
+
+The failure is in `createTripViaWizard`, not in the case: after the click on *Next*, `wizard-step-2`
+never appears (`helpers/trips.ts:82`). Every other case in the shard passed, so the helper is the
+blast radius — any of the many units that build a trip through M3 can inherit this.
+
+**The click was reported as a success, and the app did not move.** The trace has the click on
+`wizard-next` taking 390 ms and returning without error; `next()` in `TripWizardPage.vue` is an
+unconditional `step.value++` with no gate of its own. The screenshot then shows the page still on
+step 1, the name filled and *Next* enabled — and the FR-19.7 update banner, *„New version ready"*,
+occupying the top of the page. A banner inserted above the content shifts everything below it, which
+is the shape that costs a click: Playwright's stability and hit-target checks both passed on the
+old geometry, and the dispatch landed beside the button. Load is what widens that window, which is
+also why it shows under WebKit on a full shard and nowhere else.
+
+**Why the banner was there at all is not explained.** `swUpdateReady` is set only when a *replacement*
+worker reaches `installed` while a controller already exists (`pwa/register.ts`), and none of that
+should be reachable here: the trace has one navigation and one `/sw.js` request in a fresh context,
+`pwa-offline.spec.ts` — the only unit that installs a second worker on purpose — is Chromium-only,
+and the built `sw.js` is byte-stable within a build because its version is a content hash. So either
+a service-worker registration outlives its browser context in WebKit, or the flag has a path nothing
+here accounts for. Both are worth knowing; neither is established.
+
+**What is owed**, in the order that pays: reproduce the banner in a case (a WebKit unit that boots
+twice and asserts the banner is *absent*, which today nothing does), and only then decide where the
+fix belongs — the seam is a production one either way, either in `watchForUpdate`'s notion of an
+update or in a global banner being allowed to reflow the page under a pointer. Hardening the helper
+against a moving target treats the symptom and would hide the next occurrence.
+
+Evidence: run `34410995185`, job `e2e (7)`, `main` at `bcfadb03`; report artifact
+`playwright-report-shard-7` carries the screenshot, the aria snapshot and the trace.
