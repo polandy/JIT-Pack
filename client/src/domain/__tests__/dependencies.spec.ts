@@ -174,9 +174,20 @@ describe('dependentsOf', () => {
     expect(dependentsOf('plate', deps)).toEqual(new Set())
   })
 
-  it('terminates on cyclic data', () => {
+  it('terminates on cyclic data, and no item depends on itself', () => {
+    // The walk has to come back through the start to terminate at all; what
+    // it must not do is report it. A second row of the same master item is a
+    // row of its own on the list, and would follow the first one out of it.
     const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'camera', 'battery')]
-    expect(dependentsOf('camera', deps)).toEqual(new Set(['battery', 'camera']))
+    expect(dependentsOf('camera', deps)).toEqual(new Set(['battery']))
+  })
+
+  it('leaves a second row of the skipped item alone on cyclic data (FR-20.2)', () => {
+    const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'camera', 'battery')]
+    const main = { id: 'r1', source_item_id: 'camera', state: 'open' }
+    const twin = { id: 'r2', source_item_id: 'camera', state: 'open' }
+
+    expect(coSkipTargets(main, [main, twin], deps).map((r) => r.id)).toEqual([])
   })
 })
 
