@@ -429,6 +429,10 @@ stable references for the traceability matrix.
   because no condition kept it out. The case then goes **back to step 2 and adds one traveller**, which takes the
   block away and lifts the count to two: without that half the two assertions above would also pass against a block
   that is always shown.
+* **E2E-M3-22** `local` (G-17) — **new 2026-09-10**: the *Reise erstellen* button is pressed twice as fast as a hand can
+  make it, and the trip list afterwards holds one trip. The create writes the whole trip synchronously and then leaves
+  the screen, so between the write and the repaint the button is still under the finger; the second press used to write
+  a second trip with the same name, the same dates and the same positions, and neither screen said so.
 * **E2E-M3-19** `all` (G-16): Enter in a step's plain field is the step's *Weiter* — nothing happens while the gate
   holds (empty name), the same keypress on the same field advances once it opens, and a step-2 traveller name fires the
   same way; step 3's single-item search is G-16-exempt, so Enter there does not advance — proven live by the button

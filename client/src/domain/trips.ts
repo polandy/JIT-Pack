@@ -168,3 +168,28 @@ export function byDepartureSoonestFirst<T extends PlannableTrip>(trips: readonly
 export function heroTripOf<T extends PlannableTrip>(trips: readonly T[]): T | null {
   return byDepartureSoonestFirst(trips.filter(isActive))[0] ?? null
 }
+
+/**
+ * calendarDate answers whether `v` is a real calendar day in `YYYY-MM-DD`,
+ * returning it unchanged, or null.
+ *
+ * The one field the database cannot check for us: `trips.start_date` is a
+ * plain TEXT column, and the `duration_days` it feeds computes to NULL over
+ * nonsense rather than refusing it. So a value that is not a date is dropped
+ * at the door, exactly like an implausible `year` — an optional date the
+ * document did not really state (FR-2.1a/2.1b) is a smaller loss than one
+ * every screen then has to render.
+ *
+ * It lives here rather than in either caller because both doors into the app
+ * need it: the portable document (FR-18.4) and the spreadsheet header
+ * (FR-16.2). It was private to the first of them, so the second grew its own
+ * weaker check and let the 30th of February through.
+ */
+export function calendarDate(v: unknown): string | null {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null
+  const parsed = new Date(`${v}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime())) return null
+  // The round trip is what rejects a day the month does not have: JavaScript
+  // rolls 2024-02-30 forward to March rather than saying no.
+  return parsed.toISOString().slice(0, 10) === v ? v : null
+}

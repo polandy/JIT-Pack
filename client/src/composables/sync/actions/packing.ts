@@ -367,6 +367,8 @@ export function createPackingActions(ctx: SyncContext) {
       weightGrams?: number | null
       valueCents?: number | null
       categoryName?: string | null
+      /** What a companion's dependency asked for; one where nobody said. */
+      quantity?: number
       mode?: ItemMode
     },
     isActive: boolean,

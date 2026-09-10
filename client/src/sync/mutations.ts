@@ -341,6 +341,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       weightGrams?: number | null
       valueCents?: number | null
       categoryName?: string | null
+      /** Defaults to one — a companion brings the dependency's own (FR-20.4). */
+      quantity?: number
       flagMissing?: boolean
       mode?: ItemMode
       decided?: AddedItemDecision
@@ -356,7 +358,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
       category_name: opts.categoryName ?? null,
-      quantity: skipped ? 0 : 1,
+      // A skip is a quantity of zero whatever was asked for (FR-5.5).
+      quantity: skipped ? 0 : (opts.quantity ?? 1),
       packed_count: packed ? 1 : 0,
       state: opts.decided ?? 'open',
       packed_at: packed ? nowIso() : null,

@@ -37,11 +37,21 @@ export interface DedupedCompanion {
   via_item_name: string
 }
 
-/** A suggested companion awaiting the user's tap (FR-20.4). */
+/**
+ * A suggested companion awaiting the user's tap (FR-20.4).
+ *
+ * It carries the item's own fields for the same reason {@link
+ * ResolvedCompanion} does: whoever accepts the suggestion writes a trip row
+ * from it, and a caller that has to look the item up again is a caller that
+ * can forget to (M5's chip wrote rows with no category and a quantity of one).
+ */
 export interface SuggestedCompanion {
   dependency_id: string
   item_id: string
   name: string
+  category_name: string | null
+  weight_grams: number | null
+  value_cents: number | null
   quantity: number
   via_item_name: string
 }
@@ -95,6 +105,9 @@ export function resolveDependencies(input: DependencyResolutionInput): Dependenc
             dependency_id: d.id,
             item_id: d.item_id,
             name: companion.name,
+            category_name: companion.category_name ?? null,
+            weight_grams: companion.weight_grams,
+            value_cents: companion.value_cents,
             quantity,
             via_item_name: main.name,
           })

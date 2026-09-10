@@ -294,6 +294,36 @@ describe('M3 step 4 — the default action (G-16)', () => {
 
     expect(orchestratorFake.createTripFromWizard).toHaveBeenCalledTimes(1)
   })
+
+  /**
+   * G-17: the create is one act, and the screen leaves afterwards — but the
+   * leaving is a route change, and the button stays under the finger until
+   * it happens. An impatient second tap used to write a second trip, and the
+   * Enter key above could do it without a second tap at all.
+   */
+  it('writes one trip however often the button is pressed', async () => {
+    seedComposition()
+    const wrapper = await mountAtStepFour()
+
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+    await wrapper.get('.qty-input').trigger('keydown.enter')
+
+    expect(orchestratorFake.createTripFromWizard).toHaveBeenCalledTimes(1)
+  })
+
+  it('says so on the button, rather than letting it look ready again', async () => {
+    seedComposition()
+    const wrapper = await mountAtStepFour()
+
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    const create = wrapper
+      .findAllComponents({ name: 'IonButton' })
+      .find((button) => button.attributes('data-testid') === 'wizard-create')!
+
+    expect(create.props('disabled')).toBe(true)
+  })
 })
 
 describe('M3 step 3 — template composition (§3.27)', () => {

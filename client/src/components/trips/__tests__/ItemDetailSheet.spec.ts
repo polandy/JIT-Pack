@@ -9,13 +9,16 @@
  * and it is absent before the trip runs, where a judgement about it
  * would be meaningless.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import ItemDetailSheet from '../ItemDetailSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
-import type { ItemMode, Trip, TripItem, TripStatus } from '@/types/domain'
+import { useMasterStore } from '@/stores/masterStore'
+import { setCurrency } from '@/lib/currency'
+import { formatValue } from '@/lib/format'
+import type { ItemMode, MasterItem, Trip, TripItem, TripStatus } from '@/types/domain'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
@@ -29,6 +32,7 @@ const orchestratorFake = {
   packToggle: vi.fn(),
   setPacker: vi.fn(),
   lockHolder: vi.fn(() => null as string | null),
+  quickAddItem: vi.fn(() => ({ id: 'ti-new', companions: [] })),
 }
 
 /** Two accounts on the trip — what Server Mode looks like (FR-4.5). */
@@ -577,5 +581,120 @@ describe('M5 puts its weight on the action it is opened for (FR-21.25)', () => {
       .map((button) => button.attributes('data-testid'))
 
     expect(filled).toEqual([])
+  })
+})
+
+/**
+ * The context line under the name — "Kleidung · 300 g · 24.90" — and the
+ * FR-20.4 chip beside it. Both said less than they knew: the amount was a
+ * bare `toFixed(2)` while every other amount in the app carries the
+ * instance's currency (FR-21.9), and the chip wrote a row without the
+ * category the row is filed under (FR-24.2) or the quantity the dependency
+ * asked for.
+ */
+describe('M5 says what it knows (FR-21.9, FR-20.4/FR-24.2)', () => {
+  /** The item behind the row, with the facts the context line reads. */
+  function seedMasterItem(extra: Partial<MasterItem> = {}) {
+    const masterStore = useMasterStore()
+    masterStore.applyChange({
+      seq: 0,
+      table: 'items',
+      id: 'mi-hose',
+      deleted: false,
+      row: { name: 'Regenhose', weight_grams: 300, value_cents: 2490, ...extra },
+    })
+    return masterStore
+  }
+
+  /**
+   * The trip row names its master item — what the FR-20.4 chips hang off —
+   * and carries its own copy of the facts, which is what the line reads.
+   */
+  function linkRowToMaster(tripStore: ReturnType<typeof useTripStore>) {
+    const row = tripStore.getItems('t1').find((i) => i.id === 'ti1')!
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        ...row,
+        source_item_id: 'mi-hose',
+        category_name: 'Kleidung',
+        weight_grams: 300,
+        value_cents: 2490,
+      },
+    })
+  }
+
+  afterEach(() => setCurrency(null))
+
+  it('renders the amount in the instance currency, like every other amount', () => {
+    const tripStore = seedTrip('active')
+    seedMasterItem()
+    linkRowToMaster(tripStore)
+    setCurrency('CHF')
+
+    const meta = mountSheet().findComponent({ name: 'SheetHead' }).props('meta') as string
+
+    // Intl places symbol and separators; what this pins is that the amount
+    // went through `formatValue` at all — a bare toFixed says "24.90".
+    expect(meta).toContain(formatValue(2490))
+    expect(meta).not.toContain('24.90 ')
+  })
+
+  it('gives an accepted companion its category and its quantity', async () => {
+    const tripStore = seedTrip('active')
+    const masterStore = seedMasterItem()
+    linkRowToMaster(tripStore)
+    masterStore.applyChange({
+      seq: 0,
+      table: 'items',
+      id: 'mi-guertel',
+      deleted: false,
+      row: { name: 'Gürtel', weight_grams: 80, value_cents: 1500 },
+    })
+    masterStore.applyChange({
+      seq: 0,
+      table: 'tags',
+      id: 'tag-kleidung',
+      deleted: false,
+      row: { name: 'Kleidung', sort_order: 0 },
+    })
+    masterStore.applyChange({
+      seq: 0,
+      table: 'item_tags',
+      id: 'it-1',
+      deleted: false,
+      row: { item_id: 'mi-guertel', tag_id: 'tag-kleidung', sort_order: 0 },
+    })
+    masterStore.applyChange({
+      seq: 0,
+      table: 'item_dependencies',
+      id: 'dep-1',
+      deleted: false,
+      row: {
+        item_id: 'mi-guertel',
+        depends_on_item_id: 'mi-hose',
+        mode: 'suggested',
+        quantity: 2,
+      },
+    })
+
+    const wrapper = mountSheet()
+    await wrapper.get('[data-testid="m5-companion-Gürtel"]').trigger('click')
+
+    expect(orchestratorFake.quickAddItem).toHaveBeenCalledWith(
+      't1',
+      'Gürtel',
+      expect.objectContaining({
+        sourceItemId: 'mi-guertel',
+        categoryName: 'Kleidung',
+        quantity: 2,
+        weightGrams: 80,
+        valueCents: 1500,
+      }),
+      true,
+    )
   })
 })
