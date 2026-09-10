@@ -99,16 +99,18 @@ export function recogniseTripComposition(input: RecognitionInput): TripCompositi
   const groups: RecognisedGroup[] = []
   for (const [groupId, tripItems] of rowsByGroup) {
     const group = byId.get(groupId)!
-    const positionNames = input.positions
-      .filter((p) => p.template_id === groupId)
-      .map((p) => itemNames.get(p.item_id))
-      .filter((n): n is string => n !== undefined)
+    const positions = input.positions.filter((p) => p.template_id === groupId)
 
     groups.push({
       group,
       tripItems,
-      added: tripItems.filter((row) => !positionNames.some((n) => namesMatch(n, row.name))),
-      absent: positionNames.filter((n) => !tripItems.some((row) => namesMatch(n, row.name))),
+      added: tripItems.filter((row) => !positions.some((p) => carries(row, p, itemNames))),
+      absent: positions
+        .filter((p) => !tripItems.some((row) => carries(row, p, itemNames)))
+        .map((p) => itemNames.get(p.item_id))
+        // A position naming a master item this device has not synced can be
+        // reported as absent by nothing but its name, and it has none.
+        .filter((n): n is string => n !== undefined),
     })
   }
 
@@ -119,10 +121,27 @@ export function recogniseTripComposition(input: RecognitionInput): TripCompositi
 }
 
 /**
+ * carries decides whether a trip row is the group's position, generated.
+ *
+ * The row's master item answers it outright when it has one — a name is
+ * editable on the trip, and renaming the row there used to report the drift
+ * twice: once as a new own position, once as a position the trip had dropped.
+ *
+ * The name is the fallback, not a second opinion. It is what recognises an
+ * ad-hoc row typed on the trip, which has no master item yet and is the very
+ * tripod the group already knows about; a row that *does* name a master item
+ * is judged by that one alone, or a rename into a position's name would
+ * swallow a genuine addition.
+ */
+function carries(row: TripItem, position: TemplateItem, names: Map<string, string>): boolean {
+  if (row.source_item_id !== null) return row.source_item_id === position.item_id
+  const name = names.get(position.item_id)
+  return name !== undefined && namesMatch(name, row.name)
+}
+
+/**
  * namesMatch decides whether a trip row and a template position are the same
- * thing. Deliberately name-based rather than by `source_item_id`: an ad-hoc
- * row typed on the trip has no master item yet, and the whole point of the
- * comparison is to notice it is the tripod the group already knows about.
+ * thing by name — see `carries` for when that question is the one asked.
  * Case- and whitespace-tolerant only — the FR-16.3 fuzzy matcher belongs to
  * the master-item fold, where a wrong guess is reviewable, not here, where it
  * would silently swallow a deviation.

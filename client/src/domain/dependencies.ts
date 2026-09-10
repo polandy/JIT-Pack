@@ -144,11 +144,17 @@ export function resolveDependencies(input: DependencyResolutionInput): Dependenc
  */
 export function dependentsOf(itemID: string, dependencies: ItemDependency[]): Set<string> {
   const out = new Set<string>()
+  // Cyclic data walks back through the start, and the visited set has to
+  // remember it or the walk never ends. The result must not carry it: an
+  // item is not its own dependent, and a second row of it on the list would
+  // otherwise follow the first one out.
+  const seen = new Set<string>([itemID])
   const queue = [itemID]
   while (queue.length > 0) {
     const current = queue.shift()!
     for (const d of dependencies) {
-      if (d.depends_on_item_id === current && !out.has(d.item_id)) {
+      if (d.depends_on_item_id === current && !seen.has(d.item_id)) {
+        seen.add(d.item_id)
         out.add(d.item_id)
         queue.push(d.item_id)
       }

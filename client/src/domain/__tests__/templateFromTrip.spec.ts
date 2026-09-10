@@ -120,6 +120,39 @@ describe('recogniseTripComposition (FR-27.5)', () => {
     expect(result.groups[0]!.absent).toEqual([])
   })
 
+  it('RenamedGeneratedRow_IsStillItsPosition_BecauseProvenanceOutranksTheName', () => {
+    // Renaming the row on the trip is what M4 invites; the position it was
+    // generated from is recorded in `source_item_id` and does not move with
+    // it. Matching by name alone reported the drift twice — once as a new own
+    // position, once as a position the trip had dropped.
+    const renamed = { ...row('r1', 'Stativ (das grosse)', 'grp-makro'), source_item_id: 'itm-1' }
+    const result = recogniseTripComposition({
+      tripItems: [renamed],
+      templates: [makro],
+      positions: [position('p1', 'grp-makro', 'itm-1')],
+      masterItems: items,
+    })
+
+    expect(result.groups[0]!.added).toEqual([])
+    expect(result.groups[0]!.absent).toEqual([])
+  })
+
+  it('RowFromAnotherMasterItem_IsStillAnAddition_EvenWhenItBorrowsAPositionName', () => {
+    // The name is the fallback for a row that has no master item, never a
+    // second opinion about one that has: this row is a Zelt the user renamed
+    // to something the group happens to stock, and it is an addition.
+    const borrowed = { ...row('r1', 'Ringlicht', 'grp-makro'), source_item_id: 'itm-3' }
+    const result = recogniseTripComposition({
+      tripItems: [borrowed],
+      templates: [makro],
+      positions: [position('p2', 'grp-makro', 'itm-2')],
+      masterItems: items,
+    })
+
+    expect(result.groups[0]!.added.map((r) => r.id)).toEqual(['r1'])
+    expect(result.groups[0]!.absent).toEqual(['Ringlicht'])
+  })
+
   it('RowFromAFerienVorlage_IsLooseNotRecognised_BecauseFR271ForbidsTheReference', () => {
     const result = recogniseTripComposition({
       tripItems: [row('r1', 'Reisepass', 'tpl-ferien')],
