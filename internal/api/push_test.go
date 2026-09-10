@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"jitpack/internal/store"
 )
 
 // NFR-4.6: Web Push against a fake push service — real VAPID signing and
@@ -120,22 +122,20 @@ func TestWebPush_GoneSubscriptionIsDropped(t *testing.T) {
 		t.Fatalf("WaitDetached: %v", err)
 	}
 
-	subs, err := st.PushSubscriptions(context.Background(), userB)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(subs) != 0 {
+	if subs := subscriptions(t, st, userB); len(subs) != 0 {
 		t.Fatalf("gone subscription still registered: %+v", subs)
 	}
 }
 
 // NFR-4.6 shutdown budget: WaitDetached is bounded, so a push service
-// that never answers cannot hold the process open. The delivery below is
-// held open for the length of the assertion, and the context is already
-// done — so what the test measures is the choice, never a duration.
+// that never answers cannot hold the process open — and bounded is not
+// the same as never waiting, which is why each of the two calls below is
+// checked against the subscription rather than against its own return.
+// The push service answers 410 and is held there, so "the work has
+// finished" has a visible consequence to be read for.
 func TestWebPush_WaitDetachedGivesUpWithTheContext(t *testing.T) {
-	srv, _, apiSrv := newTestServerWithAPI(t)
-	push := newFakePushService(t, http.StatusCreated)
+	srv, st, apiSrv := newTestServerWithAPI(t)
+	push := newFakePushService(t, http.StatusGone)
 	release := push.holdDeliveries(t)
 	registerSubscription(t, srv, userB, push.srv.URL+"/sub-slow")
 	seedItem(t, srv, "item-1", "Zelt")
@@ -149,13 +149,32 @@ func TestWebPush_WaitDetachedGivesUpWithTheContext(t *testing.T) {
 	if err := apiSrv.WaitDetached(ctx); !errors.Is(err, context.Canceled) {
 		t.Errorf("WaitDetached = %v, want context.Canceled", err)
 	}
+	if n := len(subscriptions(t, st, userB)); n != 1 {
+		t.Errorf("subscriptions while the delivery is held = %d, want 1 — "+
+			"WaitDetached returned an error over work that was already done", n)
+	}
 
-	// And the same call answers nil once the delivery lands, so the
-	// error above is the deadline rather than a wait that never ends.
+	// And once the delivery lands it answers nil, having actually waited:
+	// the 410 has been acted on by the time it returns.
 	release()
 	if err := apiSrv.WaitDetached(context.Background()); err != nil {
 		t.Errorf("WaitDetached after release = %v, want nil", err)
 	}
+	if n := len(subscriptions(t, st, userB)); n != 0 {
+		t.Errorf("subscriptions after the drain = %d, want 0", n)
+	}
+}
+
+// subscriptions reads userpush registrations straight from the store —
+// there is no endpoint that lists them, by design (M17 offers the opt-out
+// for the device it runs on, never a roster).
+func subscriptions(t *testing.T, st *store.Store, user string) []store.PushSubscription {
+	t.Helper()
+	subs, err := st.PushSubscriptions(context.Background(), user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return subs
 }
 
 func TestWebPush_VAPIDKeyStableAcrossRequests(t *testing.T) {

@@ -14542,6 +14542,14 @@ exist, and a drain of nothing returns instantly. Waiting for the delivery to rea
 service first is what makes the drain mean something — the request exists, therefore so does the
 goroutine. Mutation-proved twenty times over, so that "red" is a verdict rather than a coin toss.
 
+**And the review of my own test found the same fault in it.** The bounded-wait case checked each
+call's return value: `context.Canceled` when the context was already done, nil once the delivery was
+released. A `WaitDetached` that ignored the WaitGroup entirely and answered `ctx.Err()` passed both
+— because the second context is `Background()`, whose `Err()` is nil. "Bounded" and "actually
+waited" are two promises and only the first was being asserted. Both calls are now read against the
+subscription instead: still registered while the delivery is held, gone once the drain returns. That
+is the rule the whole PR is about, applied one level up, and it took a mutation to see it.
+
 **The gate that keeps it says less than the rule it serves, on purpose.** `scripts/no-sleep-gate.mjs`
 reads two spellings, `time.Sleep` in a Go test and `waitForTimeout` in a Playwright spec, and the
 repository is now at zero of both — the one moment such a check can be added without a cleanup
