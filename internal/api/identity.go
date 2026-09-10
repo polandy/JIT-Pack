@@ -48,6 +48,11 @@ type identity interface {
 	authenticate(r *http.Request) (context.Context, error)
 	// isMember reports whether userID may act inside tripID.
 	isMember(ctx context.Context, tripID, userID string) (bool, error)
+	// isActive reports whether the account may still act at all
+	// (FR-23.3). authenticate asks this at the door; a WebSocket that is
+	// already open has to ask again, because it outlives the answer
+	// (ADR-056).
+	isActive(ctx context.Context, userID string) bool
 	// ownsProfile reports whether the caller may write the profile the
 	// request path names (invariant 3: the client never picks).
 	ownsProfile(r *http.Request, userID string) bool
@@ -78,6 +83,9 @@ func (i singleUserIdentity) authenticate(r *http.Request) (context.Context, erro
 func (singleUserIdentity) isMember(context.Context, string, string) (bool, error) {
 	return true, nil
 }
+
+// There is no account to deactivate, and no admin surface to do it from.
+func (singleUserIdentity) isActive(context.Context, string) bool { return true }
 
 // One implicit user: whoever the path names, it is them.
 func (singleUserIdentity) ownsProfile(*http.Request, string) bool { return true }
@@ -123,6 +131,14 @@ func (i sessionIdentity) authenticate(r *http.Request) (context.Context, error) 
 	}
 	ctx := context.WithValue(r.Context(), userIDKey, sub)
 	return context.WithValue(ctx, tokenKindKey, stringClaim(claims, claimKind)), nil
+}
+
+// A lookup that fails is a refusal: the gate this feeds (ADR-056) runs on
+// every send, so a database that is briefly unavailable must go quiet
+// rather than keep a deactivated account supplied.
+func (i sessionIdentity) isActive(ctx context.Context, userID string) bool {
+	state, err := i.accounts.AccountStatus(ctx, userID)
+	return err == nil && state == store.AccountActive
 }
 
 func (i sessionIdentity) isMember(ctx context.Context, tripID, userID string) (bool, error) {

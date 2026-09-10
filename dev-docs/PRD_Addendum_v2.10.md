@@ -1235,7 +1235,11 @@ instance-admin role — accordingly stays declarative and out of the UI entirely
   provisioning does **not** resurrect a deactivated account: a deactivated user authenticating at the IdP again stays
   deactivated — otherwise deactivation would be meaningless under FR-23.6. Reactivation is the exact inverse and
   restores access with everything as it was (push subscriptions require the client to re-register, which the existing
-  registration flow does on next app start). Accounts currently holding the instance-admin role cannot be deactivated;
+  registration flow does on next app start). **"All access" includes a socket that is already open** (corrected
+  2026-09-10, ADR-056): authentication happens once, at the dial, so until that date a deactivated account whose every
+  HTTP request was refused kept receiving its trips' WebSocket events. The hub now re-asks on every send, so the
+  silence arrives with the next event rather than with the next reconnect — and reactivation resumes it just as
+  quietly, with no re-subscribe. Accounts currently holding the instance-admin role cannot be deactivated;
   the operator removes them from `JITPACK_ADMIN_EMAILS` first, which keeps the environment variable and the database
   from contradicting each other. **On the client, that 403 ends the session** (revised 2026-08-28): the tokens are
   dropped and the app returns to the login screen. Without it a deactivated account keeps tokens that still look valid

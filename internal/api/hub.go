@@ -27,20 +27,30 @@ type conn struct {
 // Injected so the hub has no direct store dependency.
 type HeadSeqFunc func(ctx context.Context, tripID string) (int64, error)
 
+// ReceiveFunc reports whether a user may still be sent a trip's events.
+// Injected for the same reason as HeadSeqFunc, and asked again for every
+// send rather than remembered from the subscribe frame (ADR-056): a
+// socket outlives both the membership and the account that authorised it.
+type ReceiveFunc func(ctx context.Context, tripID, userID string) bool
+
 // Hub manages WebSocket connections and their trip subscriptions.
 type Hub struct {
 	mu    sync.Mutex
 	conns map[*conn]struct{}
 
-	headSeq HeadSeqFunc
+	headSeq    HeadSeqFunc
+	mayReceive ReceiveFunc
 }
 
 // NewHub creates a hub. headSeq may be nil if in_sync is not needed
-// (e.g. in unit tests that only test broadcast).
-func NewHub(headSeq HeadSeqFunc) *Hub {
+// (e.g. in unit tests that only test broadcast); mayReceive may not, and
+// a nil one admits nobody — an authorization gate that fails open is
+// worse than one that fails shut, and total silence is loud in a test.
+func NewHub(headSeq HeadSeqFunc, mayReceive ReceiveFunc) *Hub {
 	return &Hub{
-		conns:   make(map[*conn]struct{}),
-		headSeq: headSeq,
+		conns:      make(map[*conn]struct{}),
+		headSeq:    headSeq,
+		mayReceive: mayReceive,
 	}
 }
 
@@ -158,31 +168,38 @@ func (h *Hub) connsOf(userID string) []*conn {
 	return targets
 }
 
-// Subscribers returns the number of connections subscribed to a trip.
+// Subscribers returns the number of connections a trip's events would
+// reach — subscribed *and* still authorised, which is what makes it a
+// settled state a test can assert a revocation against.
 func (h *Hub) Subscribers(tripID string) int {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	n := 0
-	for c := range h.conns {
-		if c.trips[tripID] {
-			n++
-		}
-	}
-	return n
+	return len(h.subscribersOf(tripID))
 }
 
-// broadcast sends an event to all connections subscribed to a trip.
-func (h *Hub) broadcast(tripID string, evt WSEvent) {
+// subscribersOf returns the connections a trip's events may go to right
+// now. The authorisation runs outside the mutex because it reaches the
+// database, and the two steps are separate for that reason alone.
+func (h *Hub) subscribersOf(tripID string) []*conn {
 	h.mu.Lock()
-	targets := make([]*conn, 0)
+	subscribed := make([]*conn, 0)
 	for c := range h.conns {
 		if c.trips[tripID] {
-			targets = append(targets, c)
+			subscribed = append(subscribed, c)
 		}
 	}
 	h.mu.Unlock()
 
-	h.send(targets, evt)
+	allowed := make([]*conn, 0, len(subscribed))
+	for _, c := range subscribed {
+		if h.mayReceive != nil && h.mayReceive(context.Background(), tripID, c.userID) {
+			allowed = append(allowed, c)
+		}
+	}
+	return allowed
+}
+
+// broadcast sends an event to every connection a trip may reach.
+func (h *Hub) broadcast(tripID string, evt WSEvent) {
+	h.send(h.subscribersOf(tripID), evt)
 }
 
 // send writes an event to the given connections.
@@ -204,6 +221,10 @@ func (h *Hub) send(targets []*conn, evt WSEvent) {
 // broadcastPresence builds the presence list for a trip and sends it
 // to all subscribed connections.
 func (h *Hub) broadcastPresence(tripID string) {
+	// One authorised set answers both halves: who is listed, and who is
+	// told. A revoked member is neither.
+	targets := h.subscribersOf(tripID)
+
 	h.mu.Lock()
 	// Collect unique users, their device count, and their best cursor.
 	type userState struct {
@@ -212,10 +233,7 @@ func (h *Hub) broadcastPresence(tripID string) {
 		cursor  int64
 	}
 	users := map[string]*userState{}
-	for c := range h.conns {
-		if !c.trips[tripID] {
-			continue
-		}
+	for _, c := range targets {
 		if existing, ok := users[c.userID]; ok {
 			existing.devices++
 			// Take the highest cursor among the user's connections.
@@ -258,7 +276,7 @@ func (h *Hub) broadcastPresence(tripID string) {
 			"users":   members,
 		},
 	}
-	h.broadcast(tripID, evt)
+	h.send(targets, evt)
 }
 
 // newConn creates a tracked connection.
