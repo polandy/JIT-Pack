@@ -141,13 +141,12 @@ func NewTokenID() string {
 	return hex.EncodeToString(b)
 }
 
-// handleMintAPIToken answers the one route in this API whose body is a
-// credential (FR-23.7).
-
 // msgAPITokenFieldsRequired is answered for a body that would not decode;
 // MintAPIToken phrases its own refusal for one that decoded without them.
 const msgAPITokenFieldsRequired = "name and expiry required"
 
+// handleMintAPIToken answers the one route in this API whose body is a
+// credential (FR-23.7).
 func (s *Server) handleMintAPIToken(w http.ResponseWriter, r *http.Request) {
 	// First, before the body is even read. In Single-User Mode `authed` is
 	// bypassed entirely, so this handler is reachable with no credential at

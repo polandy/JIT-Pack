@@ -128,6 +128,7 @@ What it must get right is small, and each item is something that fails quietly:
 - **Forward the browser's `Host` header, port included.** The WebSocket handshake compares the request's `Origin` against its `Host`, and the browser's `Origin` carries the port. A proxy that rewrites `Host` to the container name turns every dial into a `403` — and so does one that merely drops the port: in nginx that is the difference between `$http_host` (correct) and `$host` (which strips it), so an instance published on, say, `:3000` is refused even though the hostname matched. The failure is the worst kind: the app loads, every REST call succeeds, and only live updates never arrive.
 - **Pass the upgrade headers through** (`Upgrade` and `Connection`) and use HTTP/1.1 for `/ws`, or the handshake never completes.
 - **Do not cut idle connections quickly.** A sync socket is idle most of the time; nginx's default `proxy_read_timeout` of 60 seconds closes it repeatedly.
+- **Raise the proxy's request body limit to at least 8 MB.** A device that has been offline sends its queued changes in one request, and the server accepts up to 8 MB of them. nginx's default is 1 MB, and what it refuses never reaches JIT-Pack: the browser gets nginx's own HTML error page instead of the app's, and the app can only report that the server refused the change — the queued edits are then set aside on the device rather than saved. Traefik has no such default and needs nothing.
 - **Keep it one origin.** The API sets no CORS headers at all, so a client served from `https://app.example.com` cannot call an API on `https://api.example.com` — there is no configuration to open that up.
 
 ### Traefik
@@ -193,6 +194,7 @@ server {
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 3600s;
+        client_max_body_size 8m;
     }
 }
 ```
