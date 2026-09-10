@@ -253,3 +253,99 @@ func TestApplyMutation_UnchangedFieldsFromJSON_LogNoConflict(t *testing.T) {
 		t.Errorf("conflicts = %+v, want the one from before", after)
 	}
 }
+
+// Fund 27 of the 2026-08-22 bug review, observed on the :3000 instance: a
+// template was deleted and its `templates · name` entry stayed in the
+// master log. The entry is unreadable and unrevertable once the row is
+// gone — the client has no name for it (it falls back to the bare kind)
+// and a revert answers `409 row_deleted` — so listing it offers a control
+// that cannot work. The row it names is what makes an entry an audit
+// record; without it there is nothing to audit.
+func TestListMasterConflicts_DropsAnEntryWhoseRowIsGone(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	// Distinct names: two templates of one owner collide on a unique
+	// constraint, and the second push would be rejected rather than merged.
+	for _, id := range []string{"tpl-gone", "tpl-kept"} {
+		applyMaster(t, s, testUser, masterMut(sync.OpUpsert, TableTemplates, id, "rg-seed-"+id,
+			map[string]any{"owner_id": testUser, "name": "Ferien " + id}, "0000000002000-0000-bbbbbbbb"))
+		applyMaster(t, s, testUser, masterMut(sync.OpUpsert, TableTemplates, id, "rg-stale-"+id,
+			map[string]any{"name": "Sommerferien " + id}, "0000000001000-0000-aaaaaaaa"))
+	}
+
+	before, err := s.ListMasterConflicts(ctx, testUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(before) != 2 {
+		t.Fatalf("conflicts before the delete = %d, want 2", len(before))
+	}
+
+	applyMaster(t, s, testUser, masterMut(sync.OpDelete, TableTemplates, "tpl-gone", "rg-del",
+		nil, "0000000003000-0000-cccccccc"))
+
+	after, err := s.ListMasterConflicts(ctx, testUser)
+	if err != nil {
+		t.Fatalf("ListMasterConflicts: %v", err)
+	}
+
+	// Both halves asserted: a list that simply returned nothing would
+	// satisfy "the deleted template is gone" on its own.
+	if len(after) != 1 {
+		t.Fatalf("conflicts after the delete = %+v, want the surviving template's alone", after)
+	}
+	if after[0].EntityID != "tpl-kept" {
+		t.Errorf("entity = %q, want tpl-kept", after[0].EntityID)
+	}
+}
+
+// The trip partition has the same shape and no membership cascade to hide
+// it behind: deleting the packing row a conflict names leaves the entry in
+// that trip's log for as long as the trip lives.
+func TestListConflicts_DropsAnEntryWhoseRowIsGone(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	for _, id := range []string{"item-gone", "item-kept"} {
+		seed := upsert(id, "tg-seed-"+id,
+			map[string]any{"trip_id": testTrip, "name": "Socken", "quantity": 5},
+			"0000000002000-0000-bbbbbbbb")
+		if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
+			t.Fatal(err)
+		}
+		stale := upsert(id, "tg-stale-"+id, map[string]any{"quantity": 9},
+			"0000000001000-0000-aaaaaaaa")
+		if _, err := s.ApplyMutation(ctx, testTrip, testUser, stale); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	before, err := s.ListConflicts(ctx, testTrip)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(before) != 2 {
+		t.Fatalf("conflicts before the delete = %d, want 2", len(before))
+	}
+
+	del := sync.Mutation{
+		MutationID: "tg-del", Op: sync.OpDelete, Table: TableTripItems, ID: "item-gone",
+		HLC: sync.HLC("0000000003000-0000-cccccccc"),
+	}
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, del); err != nil {
+		t.Fatal(err)
+	}
+
+	after, err := s.ListConflicts(ctx, testTrip)
+	if err != nil {
+		t.Fatalf("ListConflicts: %v", err)
+	}
+
+	if len(after) != 1 {
+		t.Fatalf("conflicts after the delete = %+v, want the surviving row's alone", after)
+	}
+	if after[0].EntityID != "item-kept" {
+		t.Errorf("entity = %q, want item-kept", after[0].EntityID)
+	}
+}
