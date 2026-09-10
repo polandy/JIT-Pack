@@ -46,6 +46,7 @@ var storeErrorResponses = []errorResponse{
 	{store.ErrMasterTableNotDeletable, http.StatusInternalServerError, ErrInternal, "table has no delete endpoint"},
 
 	{store.ErrItemNotFound, http.StatusNotFound, ErrNotFound, "no such item"},
+	{store.ErrTripNotFound, http.StatusNotFound, ErrTripNotFound, "trip not found"},
 	{store.ErrItemImageTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
 	{store.ErrAvatarTooLarge, http.StatusUnprocessableEntity, ErrValidation, ""},
 	{store.ErrInvalidDisplayName, http.StatusUnprocessableEntity, ErrValidation, ""},

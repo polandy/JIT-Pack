@@ -50,6 +50,7 @@ func storeErrorNames(t *testing.T) map[error]string {
 		store.ErrMasterRowNotFound:       "ErrMasterRowNotFound",
 		store.ErrMasterTableNotDeletable: "ErrMasterTableNotDeletable",
 		store.ErrItemNotFound:            "ErrItemNotFound",
+		store.ErrTripNotFound:            "ErrTripNotFound",
 		store.ErrItemImageTooLarge:       "ErrItemImageTooLarge",
 		store.ErrAvatarTooLarge:          "ErrAvatarTooLarge",
 		store.ErrInvalidDisplayName:      "ErrInvalidDisplayName",

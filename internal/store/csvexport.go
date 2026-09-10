@@ -3,8 +3,15 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 )
+
+// ErrTripNotFound is returned when an export names a trip that is not there.
+// A sentinel rather than sql.ErrNoRows, so the caller can tell it from the
+// query having failed — and so `internal/api` can answer it without
+// importing database/sql (invariant 1).
+var ErrTripNotFound = errors.New("trip not found")
 
 // TripCSVRow is one line of the flat per-trip dump (NFR-4.5). Traveler and
 // container are resolved to names here because the file is for a spreadsheet,
@@ -29,7 +36,7 @@ func (s *Store) TripCSVRows(ctx context.Context, tripID string) ([]TripCSVRow, e
 		return nil, fmt.Errorf("trip: %w", err)
 	}
 	if exists == 0 {
-		return nil, sql.ErrNoRows
+		return nil, ErrTripNotFound
 	}
 
 	rows, err := s.db.QueryContext(ctx, `

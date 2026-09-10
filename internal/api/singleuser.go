@@ -18,7 +18,9 @@ const maxAvatarUploadBytes = 100 * 1024
 func (s *Server) handleGetAvatar(w http.ResponseWriter, r *http.Request) {
 	data, err := s.store.GetAvatar(r.Context(), r.PathValue(PathUserID))
 	if err != nil {
-		writeError(w, http.StatusNotFound, ErrNotFound, "no avatar for this user")
+		// Not 404: a client told the avatar is absent renders the initials
+		// and stops asking, which is the wrong answer to a database fault.
+		writeStoreError(w, err, "could not read this avatar")
 		return
 	}
 	if data == nil {
