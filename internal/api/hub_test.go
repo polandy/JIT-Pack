@@ -320,6 +320,9 @@ type fakePeer struct {
 	release chan struct{} // closed by the test to let every Write finish
 	closed  chan struct{} // closed by CloseNow
 	block   bool
+	// blockClose makes CloseNow park too, which the real one can do for up
+	// to 15 s while it waits for the connection's own goroutines to exit.
+	blockClose bool
 
 	mu     sync.Mutex
 	frames [][]byte
@@ -350,6 +353,9 @@ func (p *fakePeer) Write(_ context.Context, _ websocket.MessageType, data []byte
 
 func (p *fakePeer) CloseNow() error {
 	close(p.closed)
+	if p.blockClose {
+		<-p.release
+	}
 	return nil
 }
 
@@ -456,5 +462,46 @@ func TestHub_AReadingPeerKeepsEveryFrameInOrder(t *testing.T) {
 	case <-peer.closed:
 		t.Error("a peer that read everything was disconnected")
 	default:
+	}
+}
+
+// Dropping a peer must not do to the broadcast what the drop exists to
+// prevent. `CloseNow` is not cheap — the real one waits for the
+// connection's own goroutines to exit, up to fifteen seconds — so a drop
+// decided on the broadcast path must not be *performed* on it.
+func TestHub_DroppingAPeerDoesNotStallTheBroadcastEither(t *testing.T) {
+	hub := NewHub(nil, allowAll)
+	stalled, reading := newFakePeer(true), newFakePeer(false)
+	stalled.blockClose = true
+	a, b := newConn(stalled, "u-a"), newConn(reading, "u-b")
+	hub.Register(a)
+	hub.Register(b)
+	defer func() {
+		close(stalled.release)
+		hub.Unregister(a)
+		hub.Unregister(b)
+	}()
+	hub.Subscribe(a, "t1")
+	hub.Subscribe(b, "t1")
+	<-stalled.entered // its pump is parked; the queue is empty
+
+	// Fill the queue, then overrun it — the next broadcast is the one that
+	// decides to drop it, and it is a broadcast the other peer is in too.
+	for i := 0; i < wsSendQueue; i++ {
+		hub.NotifyTripChanged("t1", int64(i))
+	}
+	hub.NotifyTripChanged("t1", 999)
+	<-stalled.closed // it was dropped, and CloseNow is now parked
+
+	hub.NotifyTripChanged("t1", 1000)
+
+	for {
+		var evt WSEvent
+		if err := json.Unmarshal(<-reading.got, &evt); err != nil {
+			t.Fatalf("unmarshal frame: %v", err)
+		}
+		if evt.Type == EventTripChanged && evt.Payload["head_seq"] == float64(1000) {
+			return
+		}
 	}
 }

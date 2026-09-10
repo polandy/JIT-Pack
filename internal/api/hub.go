@@ -324,6 +324,25 @@ func (c *conn) stop() {
 	c.stopOnce.Do(func() { close(c.done) })
 }
 
+// drop ends the connection because its peer has stopped reading.
+//
+// The close is **detached**, and that is the whole point of the method:
+// `CloseNow` waits for the connection's own goroutines to exit — up to
+// fifteen seconds in the library — and the caller is a broadcast. Deciding
+// to drop a peer on the broadcast path is fine; performing the drop there
+// would be the very stall this design exists to remove.
+func (c *conn) drop() {
+	c.stopOnce.Do(func() {
+		close(c.done)
+		slog.Info("ws peer fell behind, disconnecting", "user", c.userID)
+		go func() {
+			if err := c.ws.CloseNow(); err != nil {
+				slog.Debug("close slow ws", "user", c.userID, "error", err)
+			}
+		}()
+	})
+}
+
 // pump is the only writer to this peer, which is what keeps its events in
 // order now that they are queued rather than written where they arise.
 func (c *conn) pump() {
@@ -356,10 +375,6 @@ func (c *conn) enqueue(data []byte) {
 	select {
 	case c.out <- data:
 	default:
-		slog.Info("ws peer fell behind, disconnecting", "user", c.userID)
-		c.stop()
-		if err := c.ws.CloseNow(); err != nil {
-			slog.Debug("close slow ws", "user", c.userID, "error", err)
-		}
+		c.drop()
 	}
 }

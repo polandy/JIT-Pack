@@ -92,6 +92,11 @@ queue is full is closed and stops being written to; the handler's read loop disc
 so there is still exactly one path out of the hub. The write timeout stays at 5 s per frame, now bounding one socket
 rather than the broadcast.
 
+**The close itself is detached.** `CloseNow` waits for the connection's own goroutines to exit — the library gives that
+wait fifteen seconds — and the caller here is a broadcast. Deciding to drop a peer on the broadcast path is the
+design; *performing* the drop there would have reintroduced the stall in the one code path meant to end it, which is
+what a case with a `CloseNow` that parks caught in review.
+
 ## Consequences
 
 **Positive**
