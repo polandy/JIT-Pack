@@ -13,11 +13,15 @@ import { mount } from '@vue/test-utils'
 import GroupChangesProposal from '../GroupChangesProposal.vue'
 import type { RefreshPlan } from '@/domain/refresh'
 
-function logLine(item: string, kind: 'added' | 'removed' | 'changed' = 'added') {
+function logLine(
+  item: string,
+  kind: 'added' | 'removed' | 'changed' = 'added',
+  group: [string, string] = ['g1', 'Makro Fotografie'],
+) {
   return {
     trip_id: 't1',
-    source_template_id: 'g1',
-    source_template_name: 'Makro Fotografie',
+    source_template_id: group[0],
+    source_template_name: group[1],
     kind,
     item_name: item,
     detail: null,
@@ -33,6 +37,22 @@ function mountCard(log: RefreshPlan['log']) {
 }
 
 describe('GroupChangesProposal (FR-27.4)', () => {
+  /**
+   * The lead is a sentence about *groups*, and it was counted in changes —
+   * so one group that moved two positions announced itself in the plural.
+   */
+  it('counts groups in its lead, not changes', () => {
+    const wrapper = mountCard([logLine('Stativ'), logLine('Kamera', 'removed')])
+
+    expect(wrapper.get('.lead').text()).toBe('A group this trip follows has changed.')
+  })
+
+  it('says the plural when two groups really moved', () => {
+    const wrapper = mountCard([logLine('Stativ'), logLine('Zelt', 'added', ['g2', 'Camping'])])
+
+    expect(wrapper.get('.lead').text()).toBe('The groups this trip follows have changed.')
+  })
+
   it('names every change before it asks — a count alone can only be guessed at', () => {
     const wrapper = mountCard([logLine('Stativ'), logLine('Kamera', 'removed')])
 

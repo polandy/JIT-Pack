@@ -109,6 +109,7 @@ import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { nextHeadState } from '@/lib/headScroll'
+import { collapseRow } from '@/lib/rowCollapse'
 import type { HeadScrollState } from '@/lib/headScroll'
 import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
@@ -859,25 +860,9 @@ function onZero(item: TripItem) {
  *  the setting can change while the screen is open. */
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
-/**
- * Collapse a leaving row to zero height.
- *
- * `height: auto` does not animate, so the height is measured and pinned
- * before being driven to 0 — the one thing CSS alone cannot express here.
- * With reduced motion the hook finishes immediately, which removes the row
- * on the next frame exactly as it did before this feature.
- */
+/** Collapse a leaving row to zero height — the rules are in `collapseRow`. */
 function onRowLeave(el: Element, done: () => void) {
-  const node = el as HTMLElement
-  if (reducedMotion.matches) {
-    done()
-    return
-  }
-  node.style.height = `${node.offsetHeight}px`
-  // Read back, or the browser coalesces both writes and nothing transitions.
-  void node.offsetHeight
-  node.style.height = '0'
-  node.addEventListener('transitionend', done, { once: true })
+  collapseRow(el as HTMLElement, done, reducedMotion.matches)
 }
 
 const { rowUndo, packAnnouncements, announcePacked, announceSkipped } = usePackAnnouncer()

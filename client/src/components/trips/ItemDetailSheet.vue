@@ -56,7 +56,7 @@ import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { membershipRows } from '@/domain/membership'
 import { canJudgeUnused, isActive } from '@/domain/trips'
-import { formatWeight } from '@/lib/format'
+import { formatValue, formatWeight } from '@/lib/format'
 import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
@@ -236,14 +236,18 @@ const suggestedCompanions = computed(() => {
 })
 
 function addCompanion(companion: SuggestedCompanion) {
-  const master = masterStore.getItem(companion.item_id)
+  // Every field comes from the resolution rather than a second lookup: it
+  // knows the category the row is filed under (FR-24.2) and the quantity
+  // the dependency asked for, and this chip used to write neither.
   orchestrator.quickAddItem(
     props.tripId,
     companion.name,
     {
       sourceItemId: companion.item_id,
-      weightGrams: master?.weight_grams ?? null,
-      valueCents: master?.value_cents ?? null,
+      categoryName: companion.category_name,
+      weightGrams: companion.weight_grams,
+      valueCents: companion.value_cents,
+      quantity: companion.quantity,
     },
     active.value,
   )
@@ -335,7 +339,7 @@ const contextLine = computed(() => {
   const parts: string[] = []
   if (item.value?.category_name) parts.push(item.value.category_name)
   if (item.value?.weight_grams) parts.push(formatWeight(item.value.weight_grams))
-  if (item.value?.value_cents) parts.push(`${(item.value.value_cents / 100).toFixed(2)}`)
+  if (item.value?.value_cents) parts.push(formatValue(item.value.value_cents))
   return parts.join(' · ')
 })
 

@@ -74,6 +74,7 @@ import { tripOrderKey } from '@/domain/trips'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 import { tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useSubmitOnce } from '@/composables/useSubmitOnce'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const route = useRoute()
@@ -400,7 +401,6 @@ const draftItems = computed(() =>
     applyReviewOverrides(generation.value.items, quantityOverrides.value),
     companionResolution.value,
     acceptedSuggestions.value,
-    masterStore.categorisedItemList,
   ),
 )
 
@@ -577,28 +577,33 @@ function back() {
   if (step.value > 1) step.value--
 }
 
+/** G-17: the create runs once, and the screen leaves behind it. */
+const creation = useSubmitOnce()
+
 function createTrip() {
-  const tripId = orchestrator.createTripFromWizard({
-    name: name.value.trim(),
-    year: year.value,
-    startDate: startDate.value || null,
-    endDate: endDate.value || null,
-    attributes: attributes.value,
-    travelers: travelers.value.map((t) => ({ name: t.name.trim() })),
-    items: draftItems.value,
-    // FR-27.4: what the trip follows from here on. The picks, not the
-    // resolved composition — a group reached through a Vorlage is followed
-    // *because* the Vorlage includes it, and re-resolving that link each
-    // time is what lets a group added to the Vorlage later reach the trip.
-    sourceTemplateIds: [...selectedTemplateIds.value],
-    seriesId: seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null,
-    newSeriesName: seriesChoice.value === 'new' ? newSeriesName.value.trim() : null,
-    checklistItems: includeChecklist.value
-      ? offeredChecklist.value.map((c) => ({ label: c.label, mode: c.mode }))
-      : [],
-    members: shares.value,
+  creation.submit(() => {
+    const tripId = orchestrator.createTripFromWizard({
+      name: name.value.trim(),
+      year: year.value,
+      startDate: startDate.value || null,
+      endDate: endDate.value || null,
+      attributes: attributes.value,
+      travelers: travelers.value.map((t) => ({ name: t.name.trim() })),
+      items: draftItems.value,
+      // FR-27.4: what the trip follows from here on. The picks, not the
+      // resolved composition — a group reached through a Vorlage is followed
+      // *because* the Vorlage includes it, and re-resolving that link each
+      // time is what lets a group added to the Vorlage later reach the trip.
+      sourceTemplateIds: [...selectedTemplateIds.value],
+      seriesId: seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null,
+      newSeriesName: seriesChoice.value === 'new' ? newSeriesName.value.trim() : null,
+      checklistItems: includeChecklist.value
+        ? offeredChecklist.value.map((c) => ({ label: c.label, mode: c.mode }))
+        : [],
+      members: shares.value,
+    })
+    router.replace(tripPath(tripId))
   })
-  router.replace(tripPath(tripId))
 }
 
 // ADR-050: the frame renders this page head, above the outlet.
@@ -1242,6 +1247,7 @@ setHeaderTitle(
           v-if="step === 4"
           data-testid="wizard-create"
           color="primary"
+          :disabled="creation.submitted.value"
           @click="createTrip"
         >
           {{ t('wizard.createTrip', { n: comingCount }) }}

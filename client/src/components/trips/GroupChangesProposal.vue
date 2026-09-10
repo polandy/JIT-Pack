@@ -32,6 +32,11 @@ const INLINE_LIMIT = 10
 
 const expanded = ref(false)
 const changes = computed(() => props.plan.log)
+/**
+ * The lead speaks about groups, so it is counted in groups: one group that
+ * moved two positions used to announce itself as "the groups … have changed".
+ */
+const groupCount = computed(() => new Set(changes.value.map((c) => c.source_template_id)).size)
 const folds = computed(() => changes.value.length > INLINE_LIMIT)
 const shown = computed(() =>
   folds.value && !expanded.value ? changes.value.slice(0, INLINE_LIMIT) : changes.value,
@@ -41,7 +46,7 @@ const shown = computed(() =>
 <template>
   <section class="jp-card proposal" data-testid="m4-group-proposal">
     <p class="jp-eyebrow">{{ t('trips.proposedTitle') }}</p>
-    <p class="lead">{{ t('trips.proposedLead', { n: changes.length }) }}</p>
+    <p class="lead">{{ t('trips.proposedLead', { n: groupCount }) }}</p>
 
     <ul class="changes" data-testid="m4-group-proposal-changes">
       <li v-for="(entry, index) in shown" :key="`${entry.item_name}-${index}`">

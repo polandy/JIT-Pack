@@ -279,6 +279,11 @@ describe('parseTripDate', () => {
     ['2026-08-10', { year: 2026, endDate: '2026-08-10' }],
     ['nonsense', null],
     ['', null],
+    // A day the month does not have is not a date. `Date.parse` rolls it
+    // forward to March rather than saying no, so the shape test alone let
+    // a spreadsheet cell import a trip that ends on a day nobody had.
+    ['2024-02-30', null],
+    ['2025-13-01', null],
   ] as const)('%s → %o', (input, want) => {
     expect(parseTripDate(input)).toEqual(want)
   })

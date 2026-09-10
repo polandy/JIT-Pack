@@ -429,6 +429,10 @@ stable references for the traceability matrix.
   because no condition kept it out. The case then goes **back to step 2 and adds one traveller**, which takes the
   block away and lifts the count to two: without that half the two assertions above would also pass against a block
   that is always shown.
+* **E2E-M3-22** `local` (G-17) — **new 2026-09-10**: the *Reise erstellen* button is pressed twice as fast as a hand can
+  make it, and the trip list afterwards holds one trip. The create writes the whole trip synchronously and then leaves
+  the screen, so between the write and the repaint the button is still under the finger; the second press used to write
+  a second trip with the same name, the same dates and the same positions, and neither screen said so.
 * **E2E-M3-19** `all` (G-16): Enter in a step's plain field is the step's *Weiter* — nothing happens while the gate
   holds (empty name), the same keypress on the same field advances once it opens, and a step-2 traveller name fires the
   same way; step 3's single-item search is G-16-exempt, so Enter there does not advance — proven live by the button
@@ -1347,7 +1351,9 @@ test body under it separates a wrong number from a missing test.**
   renders an amount without carrying it is a red case rather than a quiet omission. **Two clauses, both asserted:** the
   row contains `CHF`, and it contains `129.50` — naming a currency labels an amount and never converts it, and the
   second assertion is what says so. Mutation-proved: with the `style: currency` option removed the row reads `129.50`
-  alone, which is exactly the pre-FR-21.9 rendering.
+  alone, which is exactly the pre-FR-21.9 rendering. **M5's context line joined the rule on 2026-09-10** — it was
+  the last place printing a bare two-decimal amount; asserted in `ItemDetailSheet.spec.ts` rather than as a second
+  `single` case, because what can go wrong there is the formatter that was bypassed, not the delivery of the code.
 * **E2E-M9-10** `all` (FR-1.1) — **new 2026-08-30** (`e2e/inventory.spec.ts`): the search **filters**. E2E-G12-02
   asserts that the magnifier opens *this* screen's field and no other screen's; that typing into it narrows the list is
   a different promise, and it had no assertion anywhere — M9-01's sentence carried the word and nothing more. A term the
@@ -2855,7 +2861,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-15.2 | E2E+UNIT | M3-06, M8-03 (chips set **and** clear, one value per axis); instantiate.ts |
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
 | FR-16.1 | E2E | M15-05, M15-06, M15-07, M15-08, M15-11 (the category-*row* layout, 2026-08-30), M15-12 (the mapping gate and the include toggle). **M15-01 is retired** — six promises in one sentence, distributed over those cases; its *grid preview* clause is unbuilt and open with the owner. |
-| FR-16.2 | E2E | M2-08 (the *„Importiert"* chip, built 2026-08-31 — `trips.imported` had a writer and no reader until then), M15-05, M15-11 (archived trips with their original quantities, landed and read back in Local Mode). **M15-04's *target series* half is unbuilt** — the picker is on step 2 and the commit writes `series_id`, but the confirm never names it; owner decision. |
+| FR-16.2 | E2E | M2-08 (the *„Importiert"* chip, built 2026-08-31 — `trips.imported` had a writer and no reader until then), M15-05, M15-11 (archived trips with their original quantities, landed and read back in Local Mode); `domain/trips.ts` (`calendarDate` — the header date is a day that exists, shared with FR-18.4). **M15-04's *target series* half is unbuilt** — the picker is on step 2 and the commit writes `series_id`, but the confirm never names it; owner decision. |
 | FR-16.3 | E2E+UNIT | M15-03 (both branches of the choice at M15's own step 3, 2026-08-30 — until then the step had never been opened by a test), M15-09, M18-03 (both branches of the choice, 2026-08-30); spreadsheet.ts — **one rule, two lists**: `findDuplicates` serves M15's step 3 and, through `matchPortableItems`, M18's preview; there is no shared component. **M9-03 is not coverage of this row and never was** — the FR is deduplication *on import*, which the three cases beside it discharge; M9's multi-select merge is a UI-Spec clause nothing built (see M9-03). |
 | FR-17.1/17.2 | E2E | G1-01, G8-01 (Single-User surface) |
 | FR-17.3 | E2E+UNIT | M2-06, M3-05, M17-08; M5-08 in ItemDetailSheet.spec.ts |
@@ -2881,7 +2887,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-20.1 | E2E+UNIT | M10-03 (the default mode, the read-only reverse list, and the cycle refused in words — written 2026-08-30), M5-23; dependencies.ts |
 | FR-20.2 | E2E+UNIT | M4-07; dependencies.ts |
 | FR-20.3 | E2E+UNIT | M3-07; dependencies.ts |
-| FR-20.4 | E2E+UNIT | M3-07, M4-40 (required), M5-23 (suggested); dependencies.ts |
+| FR-20.4 | E2E+UNIT | M3-07, M4-40 (required), M5-23 (suggested); dependencies.ts (a suggestion carries the item's own fields, so accepting one writes the category and the quantity it names — `ItemDetailSheet.spec.ts` asserts the chip passes both) |
 | FR-21.1/21.2 | E2E+UNIT | G11-01 (Nacht default); palette.css (every rgb twin agrees with its hex, in both flavours) |
 | FR-21.3 | E2E | M17-06 |
 | FR-21.4 | E2E | G11-01 (no flash before paint) |
@@ -2924,6 +2930,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back), M6-22 (the destination tab's own reveal) |
 | FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
 | G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
+| G-18 | E2E+UNIT | M3-22 (two presses of *Reise erstellen*, one trip — red-proved against the unlatched build); `TripWizardPage.spec.ts` (the button reports itself spent), `ClonePage.spec.ts` (the second press is ignored, and the clone that wrote nothing leaves the screen usable) |
 | FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
 | FR-25.17 | E2E | M4-24 (packed-by stamp, cleared on un-pack); M6-05 for the buying counterpart |
 | FR-25.18 | E2E | M4-28 (filter/switch/grouping survive navigation + reload, fresh session unfiltered, chips visible) |
@@ -2938,7 +2945,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-27.14 | E2E+UNIT | M8-16 (footer opens the list, provenance, marks, read-only); `domain/__tests__/templates.spec.ts` (sources, merged, per-person, mode, conditions), `GroupPeekSheet.spec.ts` (provenance only where a composition can differ) |
 | FR-27.12 | E2E+UNIT | M3-17 (row summary + peek sheet), M14-04 (the peek on a proposal's target group — **the sheet's M14 surface, unclaimed by any id until 2026-08-30**); `domain/templates.ts` (`resolvedLines` ordering/dropping, `previewLines` truncation), `GroupPeekSheet.spec.ts` (resolved list, read-only, empty state) |
 | FR-27.3 | E2E+UNIT | M3-12 (offered, counted, reported, removable, and on the trip); `domain/instantiate.ts` (single items resolve *after* the templates: already-there is reported, a per-person fan-out counts as present, a condition-excluded item is overridden, a double pick is one pick, a stale id is ignored); `views/trips/TripWizardPage.spec.ts` (the picker's chips, the report, the draft's null provenance) |
-| FR-27.4 | E2E+UNIT | M8-05 (warning wording), M8-09 (offered → applied → M2 log), M8-19 (refused, and not asked again), M18-08 (both answers survive a device restore), M21-03, FLOW-09; `domain/trips.ts` (`followsGroups` past/not-past), `domain/refresh.ts` (`declinePlan` per position, `proposedChangeCount` excludes bookkeeping), `composables/groupRefresh` (propose writes nothing, accept, decline), `views/trips/TripListPage.spec.ts` (both chips), `components/trips/GroupChangesProposal.spec.ts` (names every change, fold, decline note) |
+| FR-27.4 | E2E+UNIT | M8-05 (warning wording), M8-09 (offered → applied → M2 log), M8-19 (refused, and not asked again), M18-08 (both answers survive a device restore), M21-03, FLOW-09; `domain/trips.ts` (`followsGroups` past/not-past), `domain/refresh.ts` (`declinePlan` per position, `proposedChangeCount` excludes bookkeeping), `composables/groupRefresh` (propose writes nothing, accept, decline), `views/trips/TripListPage.spec.ts` (both chips), `components/trips/GroupChangesProposal.spec.ts` (names every change, fold, decline note, and the lead counted in groups rather than in changes) |
 | FR-27.5 | E2E | M21-01/02/02b/03/03b/03c, M21-04 (only the *checked* loose rows are carried) and M21-05 (the two names M21 writes, FR-1.6) since 2026-08-30, M4-43, FLOW-09 |
 | FR-27.6 | E2E+UNIT | M7-07 (scope tabs/sections), M7-08 (create chooser), M8-07 (scope-shaped editor), M8-10 (guarded switch), M8-24 (the inline creation meets a taken name), M3-11 (wizard sections); `domain/templates.ts` (`scopeSwitchBlock`: both guards, both free directions) |
 | FR-27.7 | E2E | M8-11 (task list + count chip + propagation log), M3-13 (preview count, todo on the generated item); blocking = existing FR-7.3/25.2 M4 cases |

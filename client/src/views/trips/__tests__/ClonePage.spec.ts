@@ -29,7 +29,7 @@ vi.mock('vue-router', () => ({
 
 const orchestratorFake = {
   ...tripScreenStub(),
-  cloneTrip: vi.fn(() => null),
+  cloneTrip: vi.fn((): string | null => null),
 }
 
 function seedSource() {
@@ -150,5 +150,38 @@ describe('ClonePage — the two dates bound each other (FR-2.1d)', () => {
     // open must be able to reach any day in either field.
     expect(fields(wrapper).start.props('max')).toBe('')
     expect(fields(wrapper).end.props('min')).toBe('')
+  })
+})
+
+/**
+ * G-17 — the clone is one act. It writes and then leaves, and the button
+ * stays under the finger until the route changes; a second tap used to
+ * write a second trip, with the same name, on the same day.
+ */
+describe('M19 writes one clone however often the button is pressed', () => {
+  it('ignores the second press', async () => {
+    seedSource()
+    orchestratorFake.loadedTrips.add('src')
+    orchestratorFake.cloneTrip.mockReturnValue('trip-2')
+    const wrapper = mountPage()
+
+    await wrapper.get('.confirm').trigger('click')
+    await wrapper.get('.confirm').trigger('click')
+
+    expect(orchestratorFake.cloneTrip).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the door open when the clone did not happen', async () => {
+    // `cloneTrip` returns null when the source is gone — nothing was written
+    // and nowhere was navigated to, so the screen must still be usable.
+    seedSource()
+    orchestratorFake.loadedTrips.add('src')
+    orchestratorFake.cloneTrip.mockReturnValue(null)
+    const wrapper = mountPage()
+
+    await wrapper.get('.confirm').trigger('click')
+    await wrapper.get('.confirm').trigger('click')
+
+    expect(orchestratorFake.cloneTrip).toHaveBeenCalledTimes(2)
   })
 })

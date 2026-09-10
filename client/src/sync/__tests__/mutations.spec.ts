@@ -165,6 +165,25 @@ describe('createMutations', () => {
     expect(mutation.fields?.['flag_missing']).toBe(1)
   })
 
+  it('addTripItem writes the quantity it was given, and one where nobody said', () => {
+    const m = createMutations(mockHLC())
+
+    expect(m.addTripItem('t1', 'Ersatzakku', { quantity: 2 }).mutation.fields?.['quantity']).toBe(2)
+    expect(m.addTripItem('t1', 'Towel', {}).mutation.fields?.['quantity']).toBe(1)
+  })
+
+  it('a skip-add is a quantity of zero whatever was asked for (FR-5.5)', () => {
+    // The two rules meet here: a companion brings its dependency's quantity,
+    // and a decided *skipped* row is the statement that none are coming.
+    const m = createMutations(mockHLC())
+
+    expect(
+      m.addTripItem('t1', 'Ersatzakku', { quantity: 2, decided: 'skipped' }).mutation.fields?.[
+        'quantity'
+      ],
+    ).toBe(0)
+  })
+
   it('createTrip creates insert with planning status', () => {
     const m = createMutations(mockHLC())
     const { mutation, id } = m.createTrip('Beach', 2026, '2026-08-01', '2026-08-07')
