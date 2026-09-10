@@ -354,6 +354,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A delete had no memory to compare against](#a-delete-had-no-memory-to-compare-against) — the resurrection defect, why the fix reads `change_log`, and the measurement that rewrote its own ADR.
 - [A position that vanished between two screens (2026-09-09)](#a-position-that-vanished-between-two-screens-2026-09-09) — the defect whose only symptom was a lower number; why the report went into the resolution and not into step 2's gate.
 - [Two tests that were green for the wrong reason (2026-09-10)](#two-tests-that-were-green-for-the-wrong-reason-2026-09-10) — the mode guard had nothing to prove; a test-only seam would have left a shutdown hole.
+- [An audit entry outlived the row it audited (2026-09-10)](#an-audit-entry-outlived-the-row-it-audited-2026-09-10) — why the conflict log stopped listing deleted entities, and what made `trips` look exempt.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14558,3 +14559,31 @@ campaign in front of it. What it cannot see is the same mistake spelled as a sho
 found in `ws_test.go`, `master_test.go` and `hub_test.go`. Those are still open. A gate named for
 the whole rule while checking a third of it is how a green run starts meaning less than it looks
 like, so the script's own header names the gap first.
+
+## An audit entry outlived the row it audited (2026-09-10)
+
+Finding 27 of the 2026-08-22 bug review, and the only one of that batch that was found by *using* the
+instance rather than by reading code: a template was deleted on :3000 and its `templates · name` entry
+stayed in the master conflict log, naming an entity that no longer existed.
+
+**The premise in the finding was half right, and the wrong half is the useful part.** It reads as a
+`templates` problem — `masterVisible(TableTemplates)` returns true unconditionally, while `trips` hangs
+its visibility on a membership that cascades. That is true, and it is why the two tables *appeared* to
+behave differently. But visibility was never the mechanism: `conflict_log` holds both partitions'
+entries in one table, keyed by table name and id, so it carries no foreign key to the row it names and
+nothing cascades for any table. The trip partition has exactly the same hole with no visibility filter
+in front of it at all — delete a packing row and its entry stays in that trip's log for as long as the
+trip lives. Two tests, not one.
+
+**Dropped at read time rather than deleted with the entity.** A cascade would have to be written into
+every delete path and would throw the record away; the filter is one query per entry, beside the
+`masterVisible` query the master log already runs per entry, and it decides nothing permanently. What
+decided it against keeping the entries visible is that such an entry can do neither of the things
+NFR-4.2a promises: `ConflictLogPage` has no name to show for a deleted entity and falls back to the
+bare kind (*„Vorlage"*), and the revert answers `409 row_deleted` — so the list was offering a control
+that could not work. The precedent for the other choice is in the schema already: a lock event stores
+`item_name` on itself precisely so the record stays readable after the row is gone (ADR-028). The
+conflict log stores no such copy, so it has nothing to be readable *with*.
+
+**What the fix is not.** The rows stay in `conflict_log`; they stop being listed. The compaction
+NFR-4.2a describes for an archived trip is still unbuilt, and this is not it.
