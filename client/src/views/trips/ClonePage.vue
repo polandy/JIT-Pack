@@ -31,6 +31,7 @@ import { tripYearChoices } from '@/domain/tripYears'
 import { t } from '@/i18n'
 import { tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useSubmitOnce } from '@/composables/useSubmitOnce'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const props = defineProps<{ tripId: string }>()
@@ -101,15 +102,22 @@ const previewSummary = computed(() => {
 
 const valid = computed(() => name.value.trim() !== '' && sourceLoaded.value)
 
+/** G-17: the clone runs once, and the screen leaves behind it. */
+const creation = useSubmitOnce()
+
 function clone() {
-  const tripId = orchestrator.cloneTrip(props.tripId, {
-    name: name.value.trim(),
-    year: year.value,
-    startDate: startDate.value || null,
-    endDate: endDate.value || null,
-    options: options.value,
+  creation.submit(() => {
+    const tripId = orchestrator.cloneTrip(props.tripId, {
+      name: name.value.trim(),
+      year: year.value,
+      startDate: startDate.value || null,
+      endDate: endDate.value || null,
+      options: options.value,
+    })
+    // No id is "nothing was written": the source is gone, the screen stays.
+    if (!tripId) return false
+    router.replace(tripPath(tripId))
   })
-  if (tripId) router.replace(tripPath(tripId))
 }
 
 // ADR-050: the frame renders this page head, above the outlet.
@@ -198,7 +206,12 @@ setHeaderTitle(
 
         <IonNote data-testid="clone-preview">{{ previewSummary }}</IonNote>
 
-        <IonButton expand="block" class="confirm" :disabled="!valid" @click="clone">
+        <IonButton
+          expand="block"
+          class="confirm"
+          :disabled="!valid || creation.submitted.value"
+          @click="clone"
+        >
           {{ t('clone.create') }}
         </IonButton>
       </template>

@@ -93,10 +93,41 @@ describe('resolveDependencies', () => {
         dependency_id: 'd1',
         item_id: 'plate',
         name: 'Arca-Swiss-Platte',
+        category_name: null,
+        weight_grams: null,
+        value_cents: null,
         quantity: 1,
         via_item_name: 'Kamera',
       },
     ])
+  })
+
+  it('carries the suggestion\u2019s own fields, like the required one does', () => {
+    // The chip that accepts a suggestion had to look the item up again to
+    // write a row, and M5 forgot to \u2014 so an accepted suggestion landed
+    // with no category (FR-24.2) and a quantity of one whatever the
+    // dependency said. The resolution knows all of it already.
+    const tripod = master('tripod', 'Stativ', {
+      category_name: 'Fotografie',
+      weight_grams: 1400,
+      value_cents: 24900,
+    })
+    const res = resolveDependencies(
+      input({
+        masterItems: [camera, tripod],
+        dependencies: [dep('d1', 'tripod', 'camera', 'suggested', 2)],
+      }),
+    )
+    expect(res.suggested[0]).toEqual({
+      dependency_id: 'd1',
+      item_id: 'tripod',
+      name: 'Stativ',
+      category_name: 'Fotografie',
+      weight_grams: 1400,
+      value_cents: 24900,
+      quantity: 2,
+      via_item_name: 'Kamera',
+    })
   })
 
   it('dedups against items already explicit on the list (FR-20.3)', () => {

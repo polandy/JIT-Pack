@@ -1,5 +1,5 @@
 import { test, expect, expectTripOpen } from './fixtures'
-import { createTripViaWizard, setDateField } from './fixtures'
+import { createTripViaWizard, setDateField, visiblePage, writesLanded } from './fixtures'
 import type { Locator } from '@playwright/test'
 import { PATH } from './routes'
 
@@ -278,4 +278,31 @@ test('E2E-M3-20: the end picker offers no day before the start already set @loca
   // "Everything is disabled" would pass the first assertion on its own.
   await expect(september.filter({ hasText: /^5$/ })).toBeDisabled()
   await expect(september.filter({ hasText: /^15$/ })).toBeEnabled()
+})
+
+// E2E-M3-22 (G-17): the create is one act. It writes the whole trip and then
+// leaves the screen, and until the route repaints the button is still under
+// the finger — so an impatient second press wrote a second trip with the same
+// name and the same contents, with nothing on either screen to say so.
+test('E2E-M3-22: pressing create twice makes one trip @local @m3', async ({ page, seedMode }) => {
+  await seedMode({ mode: 'local' })
+  await page.goto(PATH.newTrip)
+
+  await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await page.getByTestId('wizard-next').click()
+  await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+  await page.getByTestId('wizard-next').click()
+  await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+  await page.getByTestId('wizard-next').click()
+  await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+
+  // Two presses of the same button, as fast as a hand can make them.
+  await page.getByTestId('wizard-create').dblclick()
+
+  await expectTripOpen(page, TRIP.name)
+  await writesLanded(page)
+
+  // The list is where a second trip would be visible, and it says one.
+  await page.goto(PATH.trips)
+  await expect(visiblePage(page).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
 })

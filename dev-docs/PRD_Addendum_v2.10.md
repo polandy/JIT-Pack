@@ -162,6 +162,10 @@ consumable/BUY_LOCAL exclusion logic and any other reference to repack elsewhere
   already validated rather than asked for a second time. And because FR-16.2 always produces *archived* trips while M2
   opens on *Active*, a successful migration used to end on the words "No active trips" — the same miss the restore path
   had (ADR-024), fixed the same way, through the `status` route query.
+  **A date in a sheet's header has to be a day that exists (fixed 2026-09-10).** The header cell was checked for shape
+  and then handed to the engine, which rolls the 30th of February forward to March rather than refusing it — so a
+  typo imported a trip that ended on a day nobody had. It now goes through the same calendar check the portable
+  document uses (FR-18.4), which is a round trip: a date that does not come back unchanged is not a date.
 * **FR-16.3 (Deduplication on Import):** The wizard detects near-duplicate item names across imports and existing master
   data and offers merge suggestions before committing. **A name the file itself lists twice is folded without asking
   (added 2026-08-23):** `items` is UNIQUE (name), and the prompt above compares the file against the *inventory* and
@@ -2486,7 +2490,10 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   the refusal is pressed: **a refused position stops following the group in that trip** — a refused addition is not
   offered again, a refused removal stays, a refused change keeps the trip's value. M2 carries **two chips**: „⟳ N
   Änderungen vorgeschlagen“ (a pointer — the decision is at the trip) and the retrospective „⟳ N Änderungen aus Gruppen
-  übernommen“ with its expandable log. The proposal chip can only speak for a trip whose partition the device holds,
+  übernommen“ with its expandable log. **The card's opening sentence is counted in groups, not in changes** (fixed
+  2026-09-10): it says that a group this trip follows has changed, and it was pluralised on the number of *lines* below
+  it, so one group that moved two positions announced itself as several. The chips above are counted in changes, which
+  is what they name. The proposal chip can only speak for a trip whose partition the device holds,
   which is why M4 asks again on open rather than trusting the list. Mechanism: a re-resolution diff on trip open and
   after every master pull — client-side, identical in Local Mode (invariant 4). **Built 2026-08-18 (migration 023,
   ADR-016).** Three facts the schema did not carry make the rule decidable: `trip_template_sources` records what a trip

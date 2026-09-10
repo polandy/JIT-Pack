@@ -15,6 +15,8 @@
 
 import type { MasterItem } from '@/types/domain'
 
+import { calendarDate } from './trips'
+
 // --- Parsing ---
 
 /** parseSpreadsheet splits CSV text into a grid, auto-detecting the delimiter. */
@@ -263,13 +265,16 @@ export interface ParsedTripDate {
   endDate: string | null
 }
 
-/** parseTripDate accepts a bare year or a full ISO date, refusing anything else. */
+/**
+ * parseTripDate accepts a bare year or a full ISO date, refusing anything
+ * else — the day included: `calendarDate` is what rejects a day the month
+ * does not have, which a shape test plus `Date.parse` waves through.
+ */
 export function parseTripDate(input: string): ParsedTripDate | null {
   const v = input.trim()
   if (/^\d{4}$/.test(v)) return { year: Number(v), endDate: null }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v))) {
-    return { year: Number(v.slice(0, 4)), endDate: v }
-  }
+  const day = calendarDate(v)
+  if (day !== null) return { year: Number(day.slice(0, 4)), endDate: day }
   return null
 }
 

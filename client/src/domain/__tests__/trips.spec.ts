@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import {
   byDepartureSoonestFirst,
+  calendarDate,
   canJudgeUnused,
   heroTripOf,
   isActive,
@@ -212,5 +213,32 @@ describe('heroTripOf (FR-21.15, the trip M1 and M2 both name)', () => {
     // Undated sorts last (FR-2.1b) — last of one is still the trip you are on.
     const undated: T[] = [{ id: 'u', name: 'Irgendwann', status: 'active', start_date: null }]
     expect(heroTripOf(undated)?.id).toBe('u')
+  })
+})
+
+/**
+ * The check both doors into the app share: a spreadsheet header (FR-16.2)
+ * and a portable document (FR-18.4). It was private to the second of them,
+ * and the first grew a weaker one that let the 30th of February through.
+ */
+describe('calendarDate', () => {
+  it.each([
+    ['a real day comes back unchanged', '2026-08-10', '2026-08-10'],
+    ['a leap day in a leap year is a day', '2024-02-29', '2024-02-29'],
+    ['a day the month does not have is not one', '2024-02-30', null],
+    ['and neither is one the year does not have', '2025-02-29', null],
+    ['a thirteenth month', '2025-13-01', null],
+    ['a zeroth day', '2025-01-00', null],
+    ['the right shape is not enough', '9999-99-99', null],
+    ['a date with a time is not a calendar day', '2026-08-10T12:00:00Z', null],
+    ['a slashed date', '10.08.2026', null],
+    ['the empty string', '', null],
+  ])('%s', (_name, input, want) => {
+    expect(calendarDate(input)).toBe(want)
+  })
+
+  it.each([[null], [undefined], [20260810], [{}]])('refuses a non-string: %o', (input) => {
+    // It reads a parsed document, so the value can be anything YAML makes.
+    expect(calendarDate(input)).toBeNull()
   })
 })

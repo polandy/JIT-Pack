@@ -1001,32 +1001,22 @@ describe('the rows a wizard draft is made of', () => {
     dependency_id: 'dep-1',
     item_id: 'item-drone',
     name: 'Drohne',
-    quantity: 1,
-    via_item_name: 'Kamera',
-  }
-
-  const DRONE: CategorisedMasterItem = {
-    id: 'item-drone',
-    name: 'Drohne',
     category_name: 'Technik',
     weight_grams: 900,
     value_cents: 80000,
+    quantity: 1,
+    via_item_name: 'Kamera',
   }
 
   describe('withCompanions', () => {
     it('leaves a list with nothing to pull in exactly as it was', () => {
       const items = [generated()]
 
-      expect(withCompanions(items, resolution(), new Set(), [])).toEqual(items)
+      expect(withCompanions(items, resolution(), new Set())).toEqual(items)
     })
 
     it('appends a required companion as a row of its own (FR-20.2)', () => {
-      const rows = withCompanions(
-        [generated()],
-        resolution({ required: [REQUIRED] }),
-        new Set(),
-        [],
-      )
+      const rows = withCompanions([generated()], resolution({ required: [REQUIRED] }), new Set())
 
       expect(rows).toHaveLength(2)
       expect(rows[1]).toEqual({
@@ -1047,24 +1037,16 @@ describe('the rows a wizard draft is made of', () => {
     })
 
     it('leaves a suggestion out until it is accepted (FR-20.4)', () => {
-      const rows = withCompanions(
-        [generated()],
-        resolution({ suggested: [SUGGESTED] }),
-        new Set(),
-        [DRONE],
-      )
+      const rows = withCompanions([generated()], resolution({ suggested: [SUGGESTED] }), new Set())
 
       expect(rows).toHaveLength(1)
     })
 
-    it('adds an accepted suggestion, with the item facts a suggestion does not carry', () => {
-      // A `SuggestedCompanion` names an item and a quantity and nothing
-      // else, so the weight and the price have to come from the inventory.
+    it('adds an accepted suggestion with the item facts the suggestion carries', () => {
       const rows = withCompanions(
         [generated()],
         resolution({ suggested: [SUGGESTED] }),
         new Set(['item-drone']),
-        [DRONE],
       )
 
       expect(rows).toHaveLength(2)
@@ -1082,20 +1064,20 @@ describe('the rows a wizard draft is made of', () => {
 
     it('accepts a suggestion whose item the inventory no longer holds', () => {
       // The tap and the master row can disagree — another device may have
-      // retired the item since the resolution ran. The name and quantity
-      // are the suggestion's own, so the row is still writable.
+      // retired the item since the resolution ran. The row is written from
+      // the resolution, which is also the list the user was reading, so it
+      // is still writable and still says what the review said.
       const rows = withCompanions(
         [generated()],
         resolution({ suggested: [SUGGESTED] }),
         new Set(['item-drone']),
-        [],
       )
 
       expect(rows[1]).toMatchObject({
         name: 'Drohne',
-        category_name: null,
-        weight_grams: null,
-        value_cents: null,
+        category_name: 'Technik',
+        weight_grams: 900,
+        value_cents: 80000,
       })
     })
 
@@ -1106,7 +1088,6 @@ describe('the rows a wizard draft is made of', () => {
         [generated()],
         resolution({ required: [REQUIRED], suggested: [SUGGESTED] }),
         new Set(['item-drone']),
-        [DRONE],
       )
 
       expect(rows.map((r) => r.name)).toEqual(['Kamera', 'Ersatzakku', 'Drohne'])

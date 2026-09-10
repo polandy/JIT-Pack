@@ -121,6 +121,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [„Für alle" needed the sheet to be reopened (2026-09-09)](#für-alle-needed-the-sheet-to-be-reopened-2026-09-09) — FR-25.13g: the case that could not be written the obvious way, and the one branch e2e deliberately does not reach.
 - [Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)](#owed-a-webkit-case-lost-its-click-to-the-fr-197-banner-2026-09-09) — **open**: a helper every M3-built trip goes through, and a banner that reflowed the page under the pointer.
 - [Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)](#owed-e2e-m17-01s-sheet-did-not-close-a-fourth-time-under-load-2026-09-10) — **open**: two artifacts disagree about which screen the locator queried.
+- [The second press that made a second trip (2026-09-10)](#the-second-press-that-made-a-second-trip-2026-09-10) — E2E-M3-22: a case whose red run is the whole point, and the assertion that needed the list rather than the wizard.
 
 ## The rule that comes before the units
 
@@ -233,7 +234,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M1 dashboard (populated) | E2E-M1-01 (card, open count, three previews, the remainder, and the card into M4), E2E-M1-02 (the prep card, and that ticking resolves on the trip), E2E-M1-06/06b (the departure-day section), E2E-M1-07 (the prep name opens its row; its head, count and card role since FR-21.28), E2E-M1-03b (no delegation section without accounts), E2E-M1-08 (the planned-trips section, and that starting a trip moves it; its head, count and card role since FR-21.28) | `local` | [`dashboard.spec.ts`](../client/e2e/dashboard.spec.ts) |
 | Login screen — the third answer | E2E-M19-05 (a `/auth/config` that is neither the endpoints nor the 501 is reported as a failure, never as "no login needed"; the sign-in stays) | `local` | [`login-screen.spec.ts`](../client/e2e/login-screen.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
-| M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
+| M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound), E2E-M3-22 (G-18 one create per press) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-19 (ADR-050 a tab root's head, M1 included since FR-21.27), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer), E2E-G8-01 (no delegation picker), E2E-G4-01 (the notification's landing) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.26: one content measure, kept by every screen the reader steps to), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes), E2E-M4-75 (FR-21.23: the header line as a ring, a sentence and a track), E2E-M4-76 (FR-21.24: one door to the quick-add), E2E-M4-77 (FR-24.2: a generated row is filed under the item's tag) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
@@ -4791,3 +4792,30 @@ without answering it, and the previous three have already been closed by a green
 
 Evidence: run `34440006053`, job `e2e-server`, `test/deterministic-push` at `c53ea926`; artifact
 `playwright-report-server` carries the screenshots and the aria snapshot.
+
+## The second press that made a second trip (2026-09-10)
+
+**E2E-M3-22** (G-18) exists because of what it does against the build before the
+fix, not because of what it does after it: two presses of *Reise erstellen*, and
+the trip list holds **two** trips with the same name, the same dates and the same
+positions. That run is the case's whole justification, and it was made before the
+guard was written — the build was rebuilt with the latch removed, and the case read
+`Received: 2` where it wanted 1.
+
+Two things it had to get right.
+
+**The assertion belongs to the list, not to the wizard.** The obvious place to
+look is the button: press it, assert it is now disabled. But the create *leaves* —
+`router.replace` runs in the same tick — so by the time an assertion could read the
+button, the screen it lives on is gone. What is left behind is the trip, and M2 is
+where a second one would be visible. The count is scoped to the visible page, so a
+hidden M2 still in the outlet cannot answer for it.
+
+**One `dblclick`, not two `click`s.** Playwright resolves the locator once and then
+dispatches both presses, which is exactly the sequence a hand makes; two separate
+`click` calls would re-resolve in between and find the button already gone, so the
+case would pass against the defect for the wrong reason.
+
+The trip list is also why the case says `trip-row-…` rather than the hero card: a
+second trip of the same name lands in the grouped list below, so the row count is a
+signal for the duplicate specifically rather than for "a trip exists".

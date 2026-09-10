@@ -157,19 +157,15 @@ export function companionAsGenerated(companion: ResolvedCompanion): GeneratedTri
  * un-need the companion its presence asked for, and re-resolving after the
  * review would silently make it so.
  *
- * `masterItems` is needed for the suggested half alone: a
- * {@link ResolvedCompanion} already carries the item's facts (it exists only
- * where the master row does), while a suggestion carries a name and a
- * quantity and nothing else.
+ * It needs no inventory of its own: both halves of the resolution carry the
+ * item's facts as they stood when it ran, which is also the snapshot the
+ * review the user just read was showing.
  */
 export function withCompanions(
   items: GeneratedItem[],
   resolution: DependencyResolution,
   accepted: ReadonlySet<string>,
-  masterItems: CategorisedMasterItem[],
 ): GeneratedItem[] {
-  const byID = new Map(masterItems.map((i) => [i.id, i]))
-
   const asGeneratedItem = (companion: ResolvedCompanion): GeneratedItem => ({
     ...companionAsGenerated(companion),
     source_item_id: companion.item_id,
@@ -179,20 +175,9 @@ export function withCompanions(
     tasks: [],
   })
 
-  const taken = resolution.suggested
-    .filter((s) => accepted.has(s.item_id))
-    .map((s) => {
-      const master = byID.get(s.item_id)
-      return asGeneratedItem({
-        item_id: s.item_id,
-        name: s.name,
-        category_name: master?.category_name ?? null,
-        weight_grams: master?.weight_grams ?? null,
-        value_cents: master?.value_cents ?? null,
-        quantity: s.quantity,
-        via_item_name: s.via_item_name,
-      })
-    })
+  // A suggestion carries the item's own fields, so accepting one is the
+  // same shape as a required companion rather than a second lookup.
+  const taken = resolution.suggested.filter((s) => accepted.has(s.item_id)).map(asGeneratedItem)
 
   return [...items, ...resolution.required.map(asGeneratedItem), ...taken]
 }

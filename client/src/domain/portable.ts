@@ -12,6 +12,7 @@
 import { parse, parseAllDocuments, stringify } from 'yaml'
 
 import { findDuplicates } from './spreadsheet'
+import { calendarDate } from './trips'
 import { includedTemplatesOf } from './templates'
 import type {
   AppliedChange,
@@ -658,25 +659,6 @@ export function serializeTrip(args: {
 
 function str(v: unknown): string | null {
   return typeof v === 'string' && v !== '' ? v : null
-}
-
-/**
- * A calendar date in `YYYY-MM-DD`, or null.
- *
- * The one field the database cannot check for us: `trips.start_date` is a
- * plain TEXT column, and the `duration_days` it feeds computes to NULL over
- * nonsense rather than refusing it. So a value that is not a date is dropped
- * at the door, exactly like an implausible `year` — an optional date the
- * document did not really state (FR-2.1a/2.1b) is a smaller loss than one
- * every screen then has to render.
- */
-function calendarDate(v: unknown): string | null {
-  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null
-  const parsed = new Date(`${v}T00:00:00Z`)
-  if (Number.isNaN(parsed.getTime())) return null
-  // The round trip is what rejects a day the month does not have: JavaScript
-  // rolls 2024-02-30 forward to March rather than saying no.
-  return parsed.toISOString().slice(0, 10) === v ? v : null
 }
 
 /** A plausible year, or null — a garbage value must not become one. */
