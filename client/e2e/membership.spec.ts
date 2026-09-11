@@ -538,6 +538,12 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(menu).toBeVisible()
     await menu.getByRole('button', { name: 'Theo' }).click()
     await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Theo')
+    // The outgoing sheet stays in the DOM (`overlay-hidden`) through its
+    // dismiss animation; `openTravelerMenu`'s own re-entrancy guard means a
+    // long press in that window is a no-op, not a second overlay — so the
+    // second press has to wait for the first sheet to actually be gone
+    // rather than racing it (a settled-state wait, not a timing guess).
+    await expect(menu).toHaveCount(0)
 
     // FR-25.13h's multi-select over the menu too: a second long press picks
     // a second traveler for the *same* row — an action sheet has no way to

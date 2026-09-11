@@ -450,9 +450,14 @@ function onForAllContextMenu(view: RowView, item: MasterItem): void {
  * a `create()` that rejects never wedges the tap dead — the same shape
  * `TemplateListPage`'s row menu uses, keyed by item id rather than a bare
  * boolean so a second row's own „für alle" is never caught in a first row's
- * guard.
+ * guard. The same field also guards re-entrancy: `sheet.dismiss()` fires an
+ * animation, and Ionic keeps the outgoing `ion-action-sheet` in the DOM
+ * (`overlay-hidden`, not removed) until it finishes — a second long press in
+ * that window must wait rather than `create()` a second overlay on top of
+ * the first (found by E2E-M4-81 hitting it every run, not intermittently).
  */
 async function openTravelerMenu(item: MasterItem): Promise<void> {
+  if (forAllMenuItemId !== null) return
   personHold.cancel()
   forAllMenuItemId = item.id
   try {
