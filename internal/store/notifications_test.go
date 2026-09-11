@@ -158,6 +158,28 @@ func TestTripMemberNamesAndTripItemInfo(t *testing.T) {
 	}
 }
 
+// FR-2.5 → ADR-058: TravelerLinkedUser is planRosterAssignment's only I/O,
+// so its three answers — linked, unlinked, unknown traveler — are pinned
+// directly rather than only through the push-level integration test.
+func TestTravelerLinkedUser(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO users (id, oidc_subject, display_name) VALUES ('user-sarah', 'auth|s', 'Sarah')`)
+	mustExec(t, s, `INSERT INTO trip_members (trip_id, user_id, role) VALUES (?, 'user-sarah', 'editor')`, testTrip)
+	mustExec(t, s, `INSERT INTO travelers (id, trip_id, name, linked_user_id) VALUES ('trav-linked', ?, 'Sarah', 'user-sarah')`, testTrip)
+	mustExec(t, s, `INSERT INTO travelers (id, trip_id, name) VALUES ('trav-unlinked', ?, 'Max')`, testTrip)
+
+	if userID, ok, err := s.TravelerLinkedUser(ctx, "trav-linked"); err != nil || !ok || userID != "user-sarah" {
+		t.Errorf("linked = %q/%v/%v, want user-sarah/true/nil", userID, ok, err)
+	}
+	if userID, ok, err := s.TravelerLinkedUser(ctx, "trav-unlinked"); err != nil || ok || userID != "" {
+		t.Errorf("unlinked = %q/%v/%v, want empty/false/nil", userID, ok, err)
+	}
+	if _, _, err := s.TravelerLinkedUser(ctx, "trav-ghost"); err == nil {
+		t.Error("expected an error for a traveler id that does not exist")
+	}
+}
+
 // The kind set is closed, and the wire contract's NotificationPrefs is held
 // against it (see internal/api's wire_test.go). A caller that could append to
 // the returned slice would widen what SetNotificationPrefs accepts without

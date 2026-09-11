@@ -122,6 +122,47 @@ func TestNotifications_AssignmentAlongsidePackStillDelegates_FR25_19(t *testing.
 	}
 }
 
+// FR-2.5 → ADR-058, end to end: assigning a row to a traveler linked to an
+// account notifies that account, the same way an explicit packer_user_id
+// delegation does — this is the glue (internal/api/notifications.go's
+// resolveTraveler closure, internal/store's TravelerLinkedUser) that
+// TestPlanRosterAssignment_* in notificationrules_test.go cannot reach,
+// since that file drives the pure decision with fakes, never the store.
+func TestNotifications_RosterAssignmentNotifiesLinkedAccount(t *testing.T) {
+	srv, st := newTestServerWithStore(t)
+	seedItem(t, srv, "item-1", "Zelt")
+	if _, err := st.DB().Exec(`INSERT INTO travelers (id, trip_id, name, linked_user_id) VALUES ('trav-1', ?, 'Sarah', ?)`, trip, userB); err != nil {
+		t.Fatalf("seed traveler: %v", err)
+	}
+
+	pushAs(t, srv, userA, mutation("item-1", "m-assign", "upsert",
+		map[string]any{"assigned_traveler_id": "trav-1"}, "0000000002000-0000-aaaaaaaa"))
+
+	got := listNotifications(t, srv, userB, "")
+	if len(got.Notifications) != 1 || got.Notifications[0].Kind != "delegation" {
+		t.Fatalf("notifications = %+v, want one delegation", got.Notifications)
+	}
+}
+
+// The dedup half of ADR-058: an explicit packer_user_id delegation and a
+// roster assignment naming the same linked account, in the same mutation,
+// must not double-notify.
+func TestNotifications_RosterAssignmentDedupsWithExplicitDelegation(t *testing.T) {
+	srv, st := newTestServerWithStore(t)
+	seedItem(t, srv, "item-1", "Zelt")
+	if _, err := st.DB().Exec(`INSERT INTO travelers (id, trip_id, name, linked_user_id) VALUES ('trav-1', ?, 'Sarah', ?)`, trip, userB); err != nil {
+		t.Fatalf("seed traveler: %v", err)
+	}
+
+	pushAs(t, srv, userA, mutation("item-1", "m-assign", "upsert",
+		map[string]any{"assigned_traveler_id": "trav-1", "packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
+
+	got := listNotifications(t, srv, userB, "")
+	if len(got.Notifications) != 1 {
+		t.Fatalf("notifications = %+v, want exactly one, not two", got.Notifications)
+	}
+}
+
 func TestNotifications_MentionInComment(t *testing.T) {
 	srv := newTestServer(t)
 	seedItem(t, srv, "item-1", "Zelt")
