@@ -250,16 +250,20 @@ These patterns apply to every screen and are specified once.
   M9's tag segment spread three chips across 1176 px — lines that read as several things rather than one. The cap
   needs no breakpoint of its own: below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays
   full width**, because it is the app's frame rather than its content — the logo belongs at the window's corner and
-  the gear at the opposite one. **The column is 600 px, and one measure (revised 2026-09-08, FR-21.26; it was 960 px
-  from 2026-08-27, and for one day two measures under FR-21.18).** `--jp-measure` in `theme/surfaces.css`, read once
-  by `App.vue`. It is narrower than a reading column because this app has no page of prose: every screen is rows
-  carrying a name at one edge and the control that acts on it at the other, and at 960 px that control sat 855 px from
-  its name on M8, 890 px on M12 and 857 px on M17 — the same failure the 960 px cap was written to fix, halved. One
-  measure rather than a per-screen choice because the trip's four views are peers a tap apart (ADR-051), and a column
-  that changed width between them moved the page under the reader. It is still inert below its own width, but that
-  width moved, so a 768 px tablet now carries a margin where it used to run edge to edge. The revisit trigger is a
-  screen whose content is genuinely a page of prose or a wide table; the census of 2026-09-08 rendered all nineteen
-  and found none.
+  the gear at the opposite one. **The column is `clamp(600px, 82vw, 900px)`, and one measure (revised 2026-09-11; it
+  was a flat 600 px from 2026-09-08, 960 px from 2026-08-27, and for one day two measures under FR-21.18).**
+  `--jp-measure` in `theme/surfaces.css`, read once by `App.vue`. It is narrower than a reading column because this
+  app has no page of prose: every screen is rows carrying a name at one edge and the control that acts on it at the
+  other, and at 960 px that control sat 855 px from its name on M8, 890 px on M12 and 857 px on M17 — the same
+  failure the 960 px cap was written to fix, halved. One measure rather than a per-screen choice because the trip's
+  four views are peers a tap apart (ADR-051), and a column that changed width between them moved the page under the
+  reader. It is still inert below its own width. The flat 600 px cap from 2026-09-08 left that margin static above
+  its own width too: on an iPad mini it ran the same 600 px as a phone turned sideways, stranding the frame's native
+  scrollbar in the unused gutter instead of at the screen edge. The `clamp()` keeps the one-token, no-breakpoint
+  shape of the rule but lets the column grow with the viewport up to 900 px — the app's one other breakpoint (G-9's
+  own rail switch), so no second desktop measure exists to drift from this one. The revisit trigger is a screen whose
+  content is genuinely a page of prose or a wide table; the census of 2026-09-08 rendered all nineteen and found
+  none.
 * **G-10 (Trip Presence & Group Sync):** Distinct from G-2, which reflects only *your own* device's connection state,
   this pattern shows who else is currently on the same trip and whether the *group* is caught up. It lives in the
   trip-level header (M4's sticky header, not the global app header of G-9), since presence is meaningless outside a

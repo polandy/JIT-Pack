@@ -52,9 +52,17 @@
    * this type size a 960 px line of body copy runs to some 120 characters,
    * so it was not a reading measure either.
    *
-   * Inert below its own width, so the phone keeps every pixel.
+   * Inert below its own width, so the phone keeps every pixel. Above it the
+   * measure now grows with the viewport instead of jumping straight to the
+   * cap: a flat 600px left an iPad mini's extra width unused on both sides
+   * of the column, with the frame's native scrollbar stranded in that gap
+   * rather than sitting at the screen edge. `82vw` (not 100vw) still leaves
+   * a visible gutter at every tablet width rather than running the column
+   * edge-to-edge; `900px` reuses the app's one other breakpoint (G-9's
+   * sheet/panel switch) as the cap, so no second desktop measure exists to
+   * drift from this one.
    */
-  --jp-measure: 600px;
+  --jp-measure: clamp(600px, 82vw, 900px);
 
   /* --- Round controls -------------------------------------------------
    * The diameter of a round control in a sheet header. One value because
