@@ -36,6 +36,10 @@ type itemFacts struct {
 // the store call and the logging behind it.
 type itemResolver func(itemID string) (itemFacts, bool)
 
+// travelerResolver answers a traveler's linked account (FR-2.5 →
+// ADR-058), reporting false when the traveler has none or cannot be read.
+type travelerResolver func(travelerID string) (linkedUserID string, ok bool)
+
 // planNotifications turns one push's mutations into the notifications they
 // earn, in the order they should be delivered. It reads nothing and writes
 // nothing: every input is a parameter.
@@ -49,6 +53,7 @@ func planNotifications(
 	results []MutationResult,
 	members []store.MemberName,
 	resolve itemResolver,
+	resolveTraveler travelerResolver,
 ) []plannedNotification {
 	if len(members) < 2 {
 		return nil
@@ -65,6 +70,7 @@ func planNotifications(
 		switch m.Table {
 		case store.TableTripItems:
 			plan = append(plan, planDelegation(tripID, actor, actorName, m, resolve)...)
+			plan = append(plan, planRosterAssignment(tripID, actor, actorName, m, members, resolve, resolveTraveler, plan)...)
 		case store.TableComments:
 			if m.Op == syncpkg.OpInsert {
 				plan = append(plan, planComment(tripID, actor, actorName, m, members, resolve)...)
@@ -90,6 +96,52 @@ func planDelegation(tripID, actor, actorName string, m syncpkg.Mutation, resolve
 	}
 	return []plannedNotification{{
 		UserID: target,
+		Kind:   store.NotifyDelegation,
+		Payload: map[string]any{
+			payloadTripID: tripID, payloadItemID: m.ID,
+			payloadActorID: actor, payloadActorName: actorName, payloadItemName: facts.Name,
+		},
+	}}
+}
+
+// planRosterAssignment fires when a push points assigned_traveler_id at a
+// traveler linked to an account (FR-2.5 → ADR-058). "You were assigned
+// this item's packing" and "you're the linked account of its traveler"
+// read as the same sentence to the recipient, so this reuses
+// store.NotifyDelegation rather than adding a fifth notification kind and
+// preference the product has not asked for. already is the plan built so
+// far for this mutation: if planDelegation already notified the same
+// person for the same item, this stays silent.
+func planRosterAssignment(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, resolve itemResolver, resolveTraveler travelerResolver,
+	already []plannedNotification,
+) []plannedNotification {
+	travelerID, _ := m.Fields["assigned_traveler_id"].(string)
+	if travelerID == "" {
+		return nil
+	}
+	linkedUserID, ok := resolveTraveler(travelerID)
+	if !ok || linkedUserID == "" || linkedUserID == actor {
+		return nil
+	}
+	// ADR-058: the notification pipeline trusts trip_members as its whole
+	// recipient universe; a linked account that left the trip earns
+	// nothing rather than a deep link it can no longer open.
+	if displayNameOf(members, linkedUserID) == "" {
+		return nil
+	}
+	for _, p := range already {
+		if p.UserID == linkedUserID && p.Kind == store.NotifyDelegation {
+			return nil
+		}
+	}
+	facts, ok := resolve(m.ID)
+	if !ok {
+		return nil
+	}
+	return []plannedNotification{{
+		UserID: linkedUserID,
 		Kind:   store.NotifyDelegation,
 		Payload: map[string]any{
 			payloadTripID: tripID, payloadItemID: m.ID,
