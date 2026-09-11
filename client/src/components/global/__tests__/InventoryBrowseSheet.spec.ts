@@ -17,6 +17,7 @@ import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
 import { browseHideCarried } from '@/composables/useBrowseHideCarried'
 import { useMasterStore } from '@/stores/masterStore'
 import type { BrowseRowSummary } from '@/domain/browseRows'
+import type { Traveler } from '@/types/domain'
 
 function tag(id: string, name: string, sortOrder: number) {
   useMasterStore().applyChange({
@@ -591,5 +592,131 @@ describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
   it('tells the head what the three verbs do', () => {
     expect(mountForAll({}).text()).toContain('for everyone')
     expect(mountForAll({ travelerCount: 1 }).text()).not.toContain('for everyone')
+  })
+})
+
+describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
+  const ANDY: Traveler = { id: 'tr-a', trip_id: 't1', name: 'Andy', linked_user_id: null }
+  const NINA: Traveler = { id: 'tr-b', trip_id: 't1', name: 'Nina', linked_user_id: null }
+  const MILA: Traveler = { id: 'tr-c', trip_id: 't1', name: 'Mila', linked_user_id: null }
+  const THEO: Traveler = { id: 'tr-d', trip_id: 't1', name: 'Theo', linked_user_id: null }
+  const THREE: Traveler[] = [ANDY, NINA, MILA]
+  const FOUR: Traveler[] = [ANDY, NINA, MILA, THEO]
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    browseHideCarried().reload()
+    seed()
+  })
+
+  function mountAssign(travelers: Traveler[] = THREE) {
+    return mount(InventoryBrowseSheet, {
+      props: {
+        carriedItemIds: [],
+        rowStates: new Map(),
+        travelerCount: travelers.length,
+        travelers,
+      },
+    })
+  }
+
+  function rowFree(wrapper: ReturnType<typeof mountAssign>, name: string) {
+    return wrapper
+      .findAll('[data-testid="browse-row-free"]')
+      .find((candidate) => candidate.text().includes(name))!
+  }
+
+  it('gives each of up to three travelers a button of their own, in trip order', () => {
+    const row = rowFree(mountAssign(), 'Badehose')
+
+    expect(
+      row.findAll('[data-testid^="browse-assign-"]').map((b) => b.attributes('data-testid')),
+    ).toEqual(['browse-assign-Andy', 'browse-assign-Nina', 'browse-assign-Mila'])
+  })
+
+  it('emits the assignment for exactly the traveler whose button was tapped', async () => {
+    const wrapper = mountAssign()
+
+    await rowFree(wrapper, 'Badehose').get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTraveler')?.[0]).toMatchObject([{ id: 'i-badehose' }, 'tr-b'])
+    // A dedicated write, not a second add and not a „für alle" in disguise.
+    expect(wrapper.emitted('add')).toBeUndefined()
+    expect(wrapper.emitted('addForAll')).toBeUndefined()
+  })
+
+  it('says who it went to, and offers the way back', async () => {
+    const wrapper = mountAssign()
+
+    await rowFree(wrapper, 'Badehose').get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Nina')
+    expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(true)
+  })
+
+  it('offers no inline buttons above three travelers, and leaves 👥 exactly as it was', () => {
+    const row = rowFree(mountAssign(FOUR), 'Badehose')
+
+    expect(row.findAll('[data-testid^="browse-assign-"]')).toHaveLength(0)
+    expect(row.find('[data-testid="browse-for-all"]').exists()).toBe(true)
+  })
+
+  it('leaves 👥\'s plain tap meaning „für alle", whichever shape the row is in', async () => {
+    const three = mountAssign(THREE)
+    const four = mountAssign(FOUR)
+
+    await rowFree(three, 'Badehose').get('[data-testid="browse-for-all"]').trigger('click')
+    await rowFree(four, 'Badehose').get('[data-testid="browse-for-all"]').trigger('click')
+
+    expect(three.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    expect(four.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    expect(three.emitted('assignToTraveler')).toBeUndefined()
+    expect(four.emitted('assignToTraveler')).toBeUndefined()
+  })
+
+  it('names the traveler for the screen reader', () => {
+    const row = rowFree(mountAssign(), 'Badehose')
+
+    expect(row.get('[data-testid="browse-assign-Nina"]').attributes('aria-label')).toBe(
+      'Assign "Badehose" to Nina',
+    )
+  })
+
+  it('is absent below two travelers, same as „für alle" (G-8)', () => {
+    const row = rowFree(mountAssign([ANDY]), 'Badehose')
+
+    expect(row.findAll('[data-testid^="browse-assign-"]')).toHaveLength(0)
+  })
+})
+
+describe("InventoryBrowseSheet — the name's long-press tooltip (FR-25.13h)", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    seed()
+  })
+
+  it('shows the full name on a long press, and nothing before one', async () => {
+    const wrapper = mountSheet()
+    const row = wrapper
+      .findAll('[data-testid="browse-row"]')
+      .find((candidate) => candidate.text().includes('Badehose'))!
+
+    expect(wrapper.find('[data-testid="browse-name-tip"]').exists()).toBe(false)
+
+    await row.trigger('contextmenu')
+
+    expect(wrapper.get('[data-testid="browse-name-tip"]').text()).toBe('Badehose')
+  })
+
+  it('a plain tap still adds — a long press does not', async () => {
+    const wrapper = mountSheet()
+    const row = wrapper
+      .findAll('[data-testid="browse-row"]')
+      .find((candidate) => candidate.text().includes('Badehose'))!
+
+    await row.trigger('click')
+
+    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
   })
 })

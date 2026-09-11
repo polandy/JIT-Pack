@@ -464,6 +464,77 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await page.getByTestId('membership-check-Andy').click()
     await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
   })
+
+  /**
+   * FR-25.13h — the browse-sheet's per-traveler avatar button, up to three
+   * travelers. TRIP has exactly three, so this is also the boundary the
+   * long-press menu takes over above.
+   */
+  test('E2E-M4-80: an avatar button assigns the row to that one traveler', async ({ page }) => {
+    await createMasterItem(page, 'Sonnenhut')
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    const row = sheet.getByTestId('browse-row-free').filter({ hasText: 'Sonnenhut' })
+    await expect(row).toBeVisible()
+
+    // 👥 is still there and still one tap, exactly as FR-25.13g left it — the
+    // avatar buttons are an addition, not a replacement.
+    await expect(row.getByTestId('browse-for-all')).toBeVisible()
+    await row.getByTestId('browse-assign-Leonardo').click()
+
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Leonardo')
+    await sheet.getByTestId('browse-close').click()
+    await expect(sheet).toHaveCount(0)
+
+    // Named once, not a cluster: this is one row for one traveler, not a
+    // spread — the shape FR-25.13g's own case would leave behind instead.
+    const list = visiblePage(page)
+    await expect(list.getByTestId('m4-row-Sonnenhut')).toBeVisible()
+    await expect(list.getByTestId('m4-cluster-Sonnenhut')).toHaveCount(0)
+  })
+
+  /**
+   * FR-25.13h above three travelers: the line keeps FR-25.13g's shape and a
+   * long press on 👥 opens the menu instead. `dispatchEvent('contextmenu')`
+   * is the same seam `E2E-M7-04` drives — the handler a real touch long-press
+   * fires into, without a real-time 500 ms hold (see `useLongPress`).
+   */
+  test('E2E-M4-81: a long press on 👥 opens a menu above three travelers', async ({ page }) => {
+    const FOUR = { name: 'Familienskiwoche', travelers: ['Andy', 'Leonardo', 'Mia', 'Theo'] }
+    // Both items exist before the trip, so the run stays inside one open
+    // sheet (FR-25.13d) rather than leaving M4 mid-test to create the second.
+    await createMasterItem(page, 'Sonnenhut')
+    await createMasterItem(page, 'Sonnenschirm')
+    await createTripViaWizard(page, FOUR)
+    await openQuickAdd(page)
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    const hutRow = sheet.getByTestId('browse-row-free').filter({ hasText: 'Sonnenhut' })
+    await expect(hutRow).toBeVisible()
+
+    // No avatar buttons at four — the line stays exactly the shape E2E-M4-78
+    // renders it in, room for 👥/✓/✕ and nothing else.
+    await expect(hutRow.getByTestId(/^browse-assign-/)).toHaveCount(0)
+
+    await hutRow.getByTestId('browse-for-all').dispatchEvent('contextmenu')
+    const menu = page.locator('ion-action-sheet')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: 'Theo' }).click()
+    // Scoped to the sheet, not to `hutRow`: an acted line's own testid moves
+    // from `browse-row-free` to `browse-row-carried` (E2E-M4-78/79's reason).
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Theo')
+
+    // The plain tap on a different line still means „für alle" —
+    // unconditionally, whichever gesture the line beside it just took.
+    await sheet
+      .getByTestId('browse-row-free')
+      .filter({ hasText: 'Sonnenschirm' })
+      .getByTestId('browse-for-all')
+      .click()
+    await expect(sheet.getByTestId('browse-for-all-now')).toContainText('4')
+  })
 })
 
 /**

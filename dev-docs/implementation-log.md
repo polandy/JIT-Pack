@@ -359,6 +359,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A body limit that only the spec enforced (2026-09-10)](#a-body-limit-that-only-the-spec-enforced-2026-09-10) — a documented 5 MB cap no handler ever applied, and why the two new ones differ.
 - [Three screens that treated an interruption as an answer (2026-09-10)](#three-screens-that-treated-an-interruption-as-an-answer-2026-09-10) — a wrong reassurance is read as the truth; the stepper borrowed the constant and left the cancellations.
 - [A socket outlived the permission that opened it (2026-09-10)](#a-socket-outlived-the-permission-that-opened-it-2026-09-10) — the drop-on-revocation fix was a list of call sites, incomplete the day it would have been written.
+- [A row learned to name one traveler instead of all of them (2026-09-11)](#a-row-learned-to-name-one-traveler-instead-of-all-of-them-2026-09-11) — why the write is the everybody-planner with a roster of one, and why a carried line was left untouched.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14773,3 +14774,35 @@ nothing rebroadcasts at the moment of revocation.
 One deliberate asymmetry in the hub's constructor: `headSeq` may be nil and `mayReceive` may not — a nil gate admits
 nobody. `in_sync` is an optimisation and degrades quietly; an authorization gate that fails open is worse than one that
 fails shut, and total silence is loud in a test.
+
+## A row learned to name one traveler instead of all of them (2026-09-11)
+
+FR-25.13g's 👥 answers *who* for everybody in one tap; the one thing it still could not do was answer it for
+**one** named traveler, which sent the request back through the membership editor FR-25.13g had specifically been
+built to route around. The mockups the owner reviewed settled the shape before any code was written — up to three
+travelers get an avatar button of their own in the line, and above that a long press on 👥 opens a menu instead,
+with 👥's plain tap left untouched in both shapes.
+
+**The write is `domain/membership.ts`'s planner, not a new mechanism.** `addItemForEveryTraveler` calls it with
+`everyoneMembers(travelers, …)`; the new `addItemForOneTraveler` calls the same planner with a target of exactly
+one traveler at the row's own quantity. Nothing new is stored — `assigned_traveler_id` is FR-25.21's own field —
+and because a brand-new row is never already anybody's member, the "keep what somebody already chose" branch
+`spreadOverEveryTraveler` needs for a *carried* line never has to run here: the add and the assignment are one
+unit, and the undo is the same delete every other free-line add already uses. That is also why this stayed a
+`ForAllAddResult`-free `AddResult` rather than a second `SpreadResult` shape — there is no fan-out to restore.
+
+**Scope was cut to free lines on purpose, not by oversight.** Every mockup drawn for this feature showed the
+control on a line the trip does not carry yet; a carried line keeps exactly the 👥/spread FR-25.13g gave it. The
+generalisation is obvious if it turns out to be wanted — `spreadOverEveryTraveler`'s own `everyoneMembers` target
+becomes a one-traveler target the same way the free-line write did — but nothing forced it into this PR, and a
+smaller diff was the more honest shape of what was actually decided.
+
+**The two long presses in one sheet needed a rule, not a coincidence.** 👥's long press (the traveler menu, above
+three) and the name's long press (the tooltip an ellipsis now hides more often) are two different targets, so they
+never race — but an open tooltip left over from one line while a different control is pressed would read as a
+stale label pointing at nothing. A capture-phase `pointerdown` on the sheet root closes it the instant any other
+press starts, which is cheaper than tracking which of the two gestures owns "the" open overlay.
+
+**The avatar-button testid is keyed by traveler name, not id**, matching `membership-check-${name}` and every
+other per-traveler testid already in the suite — a UUID a Playwright case cannot predict ahead of time would have
+made E2E-M4-80 impossible to write without first reading it back out of the store.

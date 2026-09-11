@@ -48,8 +48,17 @@
  * — on a free line it adds and distributes in one tap, on a carried one it
  * gives the people who have no row for the item one (ADR-036). Rule 1 holds
  * here too: what a spread may cost is the caller's question, not this sheet's.
+ *
+ * **FR-25.13h** answers the same *who* for one named traveler instead of
+ * everybody, on a free line only (a carried line keeps exactly the 👥/spread
+ * FR-25.13g gave it). Up to {@link INLINE_PERSON_BUTTONS_MAX} travelers get an
+ * avatar button of their own beside 👥; above that the line stays the shape it
+ * already had and a long press on 👥 opens a menu instead — its plain tap
+ * keeps meaning *für alle* either way, which is the one thing this FR must not
+ * cost. A second, unrelated long press on the name shows what its ellipsis
+ * hid, because the buttons take room the name used to have.
  */
-import { IonIcon } from '@ionic/vue'
+import { IonIcon, actionSheetController } from '@ionic/vue'
 import {
   addCircleOutline,
   checkmarkOutline,
@@ -57,17 +66,20 @@ import {
   createOutline,
   lockClosedOutline,
   peopleOutline,
+  personOutline,
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
 import { browseHideCarried } from '@/composables/useBrowseHideCarried'
+import { useLongPress } from '@/composables/useLongPress'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import type { BrowseRowSummary } from '@/domain/browseRows'
-import type { MasterItem } from '@/types/domain'
+import type { MasterItem, Traveler } from '@/types/domain'
 import SheetHead from '@/components/global/SheetHead.vue'
+import UserAvatar from '@/components/global/UserAvatar.vue'
 
 const props = defineProps<{
   /** Item ids the scope already carries — rendered as "already in". */
@@ -85,6 +97,12 @@ const props = defineProps<{
    * does a trip travelling alone, where there is no membership to distribute.
    */
   travelerCount?: number
+  /**
+   * FR-25.13h: the roster itself, trip order — what the per-traveler avatar
+   * buttons and the long-press menu are built from. M6 and M8 pass nothing,
+   * same as {@link travelerCount}, and see neither.
+   */
+  travelers?: Traveler[]
 }>()
 
 const emit = defineEmits<{
@@ -98,6 +116,8 @@ const emit = defineEmits<{
   addForAll: [item: MasterItem]
   /** FR-25.13g: give the travelers who have no row for it one (ADR-036). */
   spreadToAll: [item: MasterItem]
+  /** FR-25.13h: add it assigned to exactly one named traveler. */
+  assignToTraveler: [item: MasterItem, travelerId: string]
   /** FR-25.13f: pack what the scope already carries, all of its rows. */
   pack: [item: MasterItem]
   /** FR-25.13f: skip what the scope already carries, all of its rows. */
@@ -117,12 +137,14 @@ const tagFilter = ref<string | null>(null)
 const { hideCarried, toggle: toggleHideCarried } = browseHideCarried()
 
 /** What one tap in this run did to a row — FR-25.13f's local ledger. */
-type RunVerb = 'added' | 'forAll' | 'packed' | 'skipped'
+type RunVerb = 'added' | 'forAll' | 'assigned' | 'packed' | 'skipped'
 
 /** A verb, and how many trip rows it reached (FR-25.21's per-person set). */
 interface RunRecord {
   verb: RunVerb
   rows: number
+  /** FR-25.13h: who an `assigned` record went to — the other verbs leave it unset. */
+  travelerName?: string
 }
 
 /**
@@ -132,6 +154,7 @@ interface RunRecord {
 const RUN_STATE_TESTID: Record<RunVerb, string> = {
   added: 'browse-added-now',
   forAll: 'browse-for-all-now',
+  assigned: 'browse-assigned-now',
   packed: 'browse-packed-now',
   skipped: 'browse-skipped-now',
 }
@@ -140,14 +163,15 @@ const RUN_STATE_TESTID: Record<RunVerb, string> = {
 const RUN_STATE_TEXT = {
   added: 'quickAdd.browseAddedJustNow',
   forAll: 'quickAdd.browseForAllNow',
+  assigned: 'quickAdd.browseAssignedNow',
   packed: 'quickAdd.browsePackedNow',
   skipped: 'quickAdd.browseSkippedNow',
 } as const
 
 const actedNow = ref<ReadonlyMap<string, RunRecord>>(new Map())
 
-function record(itemId: string, verb: RunVerb, rows: number): void {
-  actedNow.value = new Map(actedNow.value).set(itemId, { verb, rows })
+function record(itemId: string, verb: RunVerb, rows: number, travelerName?: string): void {
+  actedNow.value = new Map(actedNow.value).set(itemId, { verb, rows, travelerName })
 }
 
 function forget(itemId: string): void {
@@ -216,6 +240,27 @@ const travelerCount = computed(() => props.travelerCount ?? 0)
 
 /** FR-25.13g: whether „für alle" is on offer at all in this scope. */
 const forAll = computed(() => travelerCount.value >= MIN_TRAVELERS_FOR_PER_PERSON)
+
+/**
+ * FR-25.13h: how many travelers may sit as their own button, in trip order,
+ * before a row instead offers a long press on 👥. Past this many the buttons
+ * would not fit beside ✓/✕ at a legible size without wrapping the line, which
+ * FR-25.13h forbids on purpose (an ellipsis costs a name nothing; a second row
+ * costs the sheet its one-line rhythm).
+ */
+const INLINE_PERSON_BUTTONS_MAX = 3
+
+const travelerList = computed(() => props.travelers ?? [])
+
+/** FR-25.13h: the buttons a free line renders — empty wherever „für alle" is. */
+const inlineTravelers = computed(() =>
+  forAll.value && travelerList.value.length <= INLINE_PERSON_BUTTONS_MAX ? travelerList.value : [],
+)
+
+/** FR-25.13h: whether 👥 answers a long press with the traveler menu instead. */
+const usePersonMenu = computed(
+  () => forAll.value && travelerList.value.length > INLINE_PERSON_BUTTONS_MAX,
+)
 
 /**
  * How many rows the switch is hiding, or would hide — always counted **inside
@@ -297,6 +342,9 @@ function derivedAdd(item: MasterItem): RunRecord | undefined {
  * single ✓ that quietly packed three people's rows claims less than it did.
  */
 function actedText(act: RunRecord): string {
+  // FR-25.13h: this one names who, not how many — the other verbs already
+  // count rows, and a count of one traveler would say the same thing twice.
+  if (act.verb === 'assigned') return t(RUN_STATE_TEXT.assigned, { name: act.travelerName ?? '' })
   const text = t(RUN_STATE_TEXT[act.verb])
   return act.rows > 1 ? `${text} · ${t('quickAdd.browseRowCount', { n: act.rows })}` : text
 }
@@ -324,6 +372,107 @@ function onAddForAll(item: MasterItem): void {
 function onSpreadToAll(item: MasterItem): void {
   emit('spreadToAll', item)
   record(item.id, 'forAll', travelerCount.value)
+}
+
+/**
+ * FR-25.13h: 👥's plain tap on a free line — untouched by whether the line
+ * also offers the long-press menu. `forAllMenuActive` is what stops the
+ * release-click of a long press from slipping through as a second, unwanted
+ * „für alle" the instant the menu opens (the same guard the M7 row menu uses
+ * for its own press-and-hold).
+ */
+let forAllMenuActive = false
+
+function onForAllTap(view: RowView, item: MasterItem): void {
+  if (view.kind === 'free') {
+    if (forAllMenuActive) return
+    onAddForAll(item)
+    return
+  }
+  onSpreadToAll(item)
+}
+
+const personHold = useLongPress<MasterItem>(openTravelerMenu)
+
+function onForAllPointerDown(view: RowView, item: MasterItem, e: PointerEvent): void {
+  if (view.kind !== 'free' || !usePersonMenu.value) return
+  personHold.down(item, e.clientX, e.clientY)
+}
+
+function onForAllContextMenu(view: RowView, item: MasterItem): void {
+  if (view.kind !== 'free' || !usePersonMenu.value) return
+  void openTravelerMenu(item)
+}
+
+/**
+ * FR-25.13h: the menu a long press on 👥 opens above three travelers — *für
+ * alle* first (the plain tap's own action, offered again for a thumb already
+ * in the menu), then each traveler. `forAllMenuActive` brackets the whole
+ * async lifetime in `try`/`finally`, so a `create()` that rejects never wedges
+ * the tap dead — the same shape `TemplateListPage`'s row menu uses.
+ */
+async function openTravelerMenu(item: MasterItem): Promise<void> {
+  personHold.cancel()
+  forAllMenuActive = true
+  try {
+    const sheet = await actionSheetController.create({
+      header: item.name,
+      buttons: [
+        {
+          text: t('quickAdd.browseForAllNow'),
+          icon: peopleOutline,
+          handler: () => onAddForAll(item),
+        },
+        ...travelerList.value.map((traveler) => ({
+          text: traveler.name,
+          icon: personOutline,
+          handler: () => onAssignToTraveler(item, traveler),
+        })),
+        { text: t('common.cancel'), role: 'cancel' },
+      ],
+    })
+    await sheet.present()
+    await sheet.onDidDismiss()
+  } finally {
+    forAllMenuActive = false
+  }
+}
+
+/** FR-25.13h: the avatar-button / menu-pick write — one row, one traveler. */
+function onAssignToTraveler(item: MasterItem, traveler: Traveler): void {
+  emit('assignToTraveler', item, traveler.id)
+  record(item.id, 'assigned', 1, traveler.name)
+}
+
+// --- FR-25.13h's second, unrelated long press: the name's own tooltip ------
+
+/** The item whose full name a long press is showing, truncated or not. */
+const tooltipItemId = ref<string | null>(null)
+
+/**
+ * Guards the release-click the same way `forAllMenuActive` does for 👥's,
+ * except there is no overlay to bracket it with — the tooltip is local state,
+ * so the flag lives only across the one tap it has to swallow.
+ */
+let nameHoldFired = false
+
+const nameHold = useLongPress<MasterItem>((item) => {
+  nameHold.cancel()
+  nameHoldFired = true
+  tooltipItemId.value = item.id
+})
+
+function onNameTap(item: MasterItem): void {
+  if (nameHoldFired) {
+    nameHoldFired = false
+    return
+  }
+  onAdd(item)
+}
+
+/** A press starting anywhere else in the sheet closes an open tooltip. */
+function onSheetPressStart(): void {
+  tooltipItemId.value = null
 }
 
 function onAddPacked(item: MasterItem): void {
@@ -364,7 +513,11 @@ function groupLabel(key: string): string {
 </script>
 
 <template>
-  <section class="sheet-body" data-testid="inventory-browse-sheet">
+  <section
+    class="sheet-body"
+    data-testid="inventory-browse-sheet"
+    @pointerdown.capture="onSheetPressStart"
+  >
     <SheetHead
       :title="t('quickAdd.browseTitle')"
       :meta="subtitle"
@@ -455,7 +608,13 @@ function groupLabel(key: string): string {
               class="row-name row-add-target"
               type="button"
               data-testid="browse-row"
-              @click="onAdd(item)"
+              :title="item.name"
+              @click="onNameTap(item)"
+              @pointerdown="(e: PointerEvent) => nameHold.down(item, e.clientX, e.clientY)"
+              @pointermove="(e: PointerEvent) => nameHold.move(e.clientX, e.clientY)"
+              @pointerup="nameHold.cancel()"
+              @pointercancel="nameHold.cancel()"
+              @contextmenu.prevent="tooltipItemId = item.id"
             >
               <span data-testid="browse-row-name">{{ item.name }}</span>
               <!-- The ⊕ steps aside for the two verbs: three glyphs beside a
@@ -464,6 +623,14 @@ function groupLabel(key: string): string {
               <IonIcon v-if="!verbs" :icon="addCircleOutline" class="row-add" aria-hidden="true" />
             </button>
             <span v-else class="row-name">{{ item.name }}</span>
+
+            <!-- FR-25.13h: what the name's own long press hides behind its
+                 ellipsis. A sibling of the button rather than its child — a
+                 `<div>` positioned off a `<button>` is one more place a tap
+                 could land somewhere unexpected. -->
+            <div v-if="tooltipItemId === item.id" class="name-tip" data-testid="browse-name-tip">
+              {{ item.name }}
+            </div>
 
             <!-- What this run did, and the way back out of it. -->
             <template v-if="view.kind === 'acted'">
@@ -525,10 +692,32 @@ function groupLabel(key: string): string {
                 type="button"
                 data-testid="browse-for-all"
                 :aria-label="t('quickAdd.browseForAllLabel', { name: item.name, n: travelerCount })"
-                @click="view.kind === 'free' ? onAddForAll(item) : onSpreadToAll(item)"
+                @click="onForAllTap(view, item)"
+                @pointerdown="(e: PointerEvent) => onForAllPointerDown(view, item, e)"
+                @pointermove="(e: PointerEvent) => personHold.move(e.clientX, e.clientY)"
+                @pointerup="personHold.cancel()"
+                @pointercancel="personHold.cancel()"
+                @contextmenu.prevent="onForAllContextMenu(view, item)"
               >
                 <IonIcon :icon="peopleOutline" aria-hidden="true" />
               </button>
+              <!-- FR-25.13h: up to three travelers, a button of their own —
+                   free lines only, right where 👥 already answers *who*. -->
+              <template v-if="view.kind === 'free'">
+                <button
+                  v-for="traveler in inlineTravelers"
+                  :key="traveler.id"
+                  class="act assign"
+                  type="button"
+                  :data-testid="`browse-assign-${traveler.name}`"
+                  :aria-label="
+                    t('quickAdd.browseAssignLabel', { name: item.name, traveler: traveler.name })
+                  "
+                  @click="onAssignToTraveler(item, traveler)"
+                >
+                  <UserAvatar :name="traveler.name" :seed="traveler.id" :size="20" />
+                </button>
+              </template>
               <button
                 class="act pack"
                 type="button"
@@ -674,6 +863,7 @@ function groupLabel(key: string): string {
 }
 
 .row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -683,6 +873,23 @@ function groupLabel(key: string): string {
   text-align: left;
   color: var(--ct-text);
   font-size: var(--jp-text-md);
+}
+
+/* FR-25.13h: anchored to the row, not the name button — a fixed left edge
+   reads better than one that would jump with however far the name truncated. */
+.name-tip {
+  position: absolute;
+  left: 2px;
+  bottom: calc(100% + 4px);
+  z-index: 1;
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: var(--jp-r-sm);
+  background: var(--ct-surface2);
+  color: var(--ct-text);
+  font-size: var(--jp-text-xs);
+  box-shadow: var(--jp-shadow);
+  white-space: normal;
 }
 
 .row-name {
@@ -792,6 +999,15 @@ function groupLabel(key: string): string {
    line read as a column of warnings down the sheet. */
 .act.for-all {
   color: var(--jp-brand);
+}
+
+/* FR-25.13h: an avatar is its own shape already, so the square target that
+   carries every other verb would frame a circle a second time. */
+.act.assign {
+  width: auto;
+  height: auto;
+  border: none;
+  padding: 0;
 }
 
 .act.skip {

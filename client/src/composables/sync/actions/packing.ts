@@ -522,6 +522,38 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   /**
+   * FR-25.13h: add a row from the browse-sheet assigned to exactly one
+   * traveler, in the same tap — the avatar-button / long-press-popover path
+   * beside FR-25.13g's „für alle".
+   *
+   * Unlike {@link addItemForEveryTraveler} this never fans out: the add is
+   * one row, and giving it to one traveler is `domain/membership.ts`'s own
+   * planner called with a target of exactly that traveler, at the row's own
+   * quantity. A traveler id the trip does not have is silently dropped by
+   * the planner (invariant 3) and the row is left an ordinary shared one —
+   * the same fallback a plain add already has.
+   */
+  function addItemForOneTraveler(
+    tripId: string,
+    name: string,
+    opts: Parameters<typeof quickAddItem>[2],
+    isActive: boolean,
+    travelerId: string,
+  ): AddResult {
+    const { id, companions } = quickAddItem(tripId, name, opts, isActive)
+    const row = tripStore.getItems(tripId).find((item) => item.id === id)
+    if (row) {
+      const target: MembershipTarget = {
+        kind: 'perPerson',
+        members: [{ traveler_id: travelerId, quantity: row.quantity }],
+      }
+      const plan = membershipPlanFor(tripId, [row], target, [])
+      if (!plan.empty) applyMembershipPlan(tripId, [row], plan)
+    }
+    return { id, companions }
+  }
+
+  /**
    * Take back a spread: the rows it inserted go again, and the row it
    * re-pointed gets the values it had. A row somebody else has deleted in the
    * meantime is left alone, for {@link removeAddedItem}'s reason.
@@ -616,6 +648,7 @@ export function createPackingActions(ctx: SyncContext) {
     setMembership,
     spreadOverEveryTraveler,
     addItemForEveryTraveler,
+    addItemForOneTraveler,
     restoreMembership,
     packIncrement,
     packDecrement,

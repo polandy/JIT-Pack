@@ -2189,6 +2189,31 @@ locked.
     comparison was `undefined < undefined`, and **any per-person item in a buy mode silently never reached the shopping
     list at all.** Quantity and packed count must be aggregated over the instances wherever an item is treated as a
     whole. Covered by E2E-M6-05.
+  * **FR-25.13h (Assign one traveler from the browse-sheet — owner request 2026-09-11, built 2026-09-11):**
+    FR-25.13g's 👥 answers *who* for everybody; the line still had no one-tap way to answer it for **one** named
+    traveler, which forced the same detour through the membership editor FR-25.13g was built to remove. The line gains
+    a second shape of the same answer, decided by how many travelers there are to draw:
+    * **Up to three travelers, a button per person, in the line.** Each traveler gets a small avatar button beside 👥,
+      ✓ and ✕ — a tap adds the row assigned to exactly that traveler, one write, no editor. The line never wraps to a
+      second row: the buttons shrink slightly rather than grow the line, and the name truncates with an ellipsis
+      correspondingly earlier — it already did this for any long name, the buttons just make it more likely.
+    * **Above three, a long press on 👥 instead.** The line keeps today's shape — 👥, ✓, ✕, nothing added — and a
+      press-and-hold on 👥 opens a small menu naming *für alle* first, then every traveler. `INLINE_PERSON_BUTTONS_MAX`
+      names the threshold once, beside `MIN_TRAVELERS_FOR_PER_PERSON`.
+    * **👥's plain tap is untouched in both shapes.** It is the one thing this FR must not cost: „für alle" stays a
+      single tap whether the line shows three avatar buttons or none, and the long press is a second gesture on the
+      same target, never a detour the first one now has to take.
+    * **A long press on the name shows what the ellipsis hid**, in a small label above the line — a second, unrelated
+      target from 👥's, so the two presses never race each other. Opening a new press anywhere else in the sheet
+      closes it; nothing here is a menu with a choice to make.
+    * **Free lines only, for now.** The mockups this FR was decided from only ever drew the assignment control on a
+      line the trip does not carry yet; a carried line keeps exactly the 👥/spread it has from FR-25.13g. *Revisit
+      trigger:* if a carried line turns out to want the same per-traveler shortcut, it is FR-25.13g's `spreadToAll`
+      generalised to one traveler rather than everybody, not a new mechanism.
+    * **No wire, no schema, no ADR.** The row an avatar button or a menu pick writes is `domain/membership.ts`'s own
+      planner, called with a target of exactly one traveler — the same planner FR-25.13g calls with the whole roster.
+      Nothing new is stored; `assigned_traveler_id` is the field FR-25.21 already owns. Identical in Server,
+      Single-User and Local Mode.
 * **FR-25.7 (Template-Item Entry — Sensible Defaults & Progressive Disclosure):** The template editor's per-item form
   (M8) currently exposes **all** parameters at once (quantity, per-person vs. trip-global, procurement mode, dedup
   strategy, conditions, Late Packer), which makes adding a single item to a template cumbersome — yet templates

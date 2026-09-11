@@ -1064,8 +1064,16 @@ These patterns apply to every screen and are specified once.
     traveler, on settled and locked lines, and wherever the two verbs above are absent. A line this run has just added
     shows its *„Rückgängig"* and no 👥 — reopening the sheet offers it again. The head names all three (*„Tipp =
     hinzufügen · 👥 für alle · ✓ gepackt · ✕ nicht einpacken"*). Its glyph wears the brand role and its border the
-    plain one: rendered, a brand-edged box on every free line read as a column of warnings. **Since FR-25.8
-    (2026-08-29) the composer carries a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*,
+    plain one: rendered, a brand-edged box on every free line read as a column of warnings. **Since FR-25.13h
+    (2026-09-11) a free line can also name one traveler.** Up to three travelers, an avatar button per person sits
+    beside 👥, in trip order; a tap adds the row assigned to that one traveler, no editor, one write. The line never
+    grows a second row for it — the buttons shrink a step and the name's existing ellipsis simply triggers earlier.
+    Above three travelers the line stays exactly as FR-25.13g drew it, and a **long press on 👥** opens a small menu
+    instead — *für alle* first, then each traveler by name — while a plain tap on 👥 keeps meaning *für alle* in
+    either shape, unconditionally. A second, unrelated **long press on the name** shows what its ellipsis hid, in a
+    small label above the line; a new press starting anywhere else in the sheet closes it. Free lines only — a line
+    the trip already carries keeps 👥/spread as FR-25.13g left it. **Since FR-25.8 (2026-08-29) the composer carries
+    a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*,
     wearing the same two words as the membership editor because it is that editor the mode opens. An add made in *Pro
     Person* writes the row and opens the editor on it, already on the roster — the mode is the answer to which tab
     that is — and checking the travelers is what fans the row out into the FR-25.1 cluster (ADR-036's

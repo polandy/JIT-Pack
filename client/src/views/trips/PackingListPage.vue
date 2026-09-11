@@ -986,6 +986,27 @@ function onBrowseAddForAll(item: BrowseAddition) {
 }
 
 /**
+ * FR-25.13h: the browse-sheet's avatar button / long-press pick on a line the
+ * trip does not carry yet — one tap adds the row assigned to that traveler.
+ *
+ * One row, so the undo is the same delete every other free-line add uses —
+ * unlike {@link onBrowseAddForAll} there is no spread to take back.
+ */
+function onBrowseAssignForTraveler(item: BrowseAddition, travelerId: string) {
+  const { id: addedId, companions } = orchestrator.addItemForOneTraveler(
+    props.tripId,
+    item.name,
+    quickAddOptions(item),
+    active.value,
+    travelerId,
+  )
+  if (item.sourceItemId) {
+    browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
+  }
+  announceCompanions(companions)
+}
+
+/**
  * FR-25.13g on a line the trip already carries: the travelers without a row
  * for it get one, and what is already there keeps the amount somebody chose
  * (ADR-036 keep-and-repoint).
@@ -1263,10 +1284,12 @@ setHeaderTitle(
         :show-trigger="false"
         :offer-groups="true"
         :traveler-count="travelers.length"
+        :travelers="travelers"
         :exclude-item-ids="quickAddExcludeIds"
         :browse-row-states="browseStates"
         @add="onQuickAdd"
         @add-for-all="onBrowseAddForAll"
+        @assign-for-traveler="onBrowseAssignForTraveler"
         @spread-carried="onBrowseSpread"
         @add-group="onQuickAddGroup"
         @pack-carried="onBrowsePack"
