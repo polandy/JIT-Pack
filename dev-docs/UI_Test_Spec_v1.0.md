@@ -2494,14 +2494,18 @@ landed, that no test has ever rendered.
   before — a second pass over the same inventory packs it without the sheet closing. **63** the line's own
   *„Rückgängig"* takes the whole write back: the line is an offer again and no row is left behind, on the working list
   or behind the reveal bar.
-* **E2E-M4-78/79** `all` (FR-25.13g, added 2026-09-09) — **implemented** (`e2e/membership.spec.ts`): the browse-sheet's
-  third verb, 👥 *für alle*. **78** one tap on a free line, and the assertion is made twice over: the line reports the
-  number of people it reached, the sheet is **still visible** and no membership editor was presented over it (the run
-  posture, which is E2E-M4-65's rule the other way round), and after the sheet closes M4 renders the item as **one**
-  cluster with a child per traveler — three rows sharing a name is the shape FR-25.8 forbids. **79** the same verb on a
-  line the trip already carries: the sheet is closed and reopened first, because within one run a line the run itself
-  added offers the way back and nothing else, and afterwards the shared row is gone *as a row of its own* — it became
-  one of the three (ADR-036) rather than being left beside them.
+* **E2E-M4-78/79** `all` (FR-25.13g, added 2026-09-09; 78 corrected 2026-09-11 after a live check on the family
+  instance) — **implemented** (`e2e/membership.spec.ts`): the browse-sheet's third verb, 👥 *für alle*. **78** one tap
+  on a free line with TRIP's three travelers — the boundary FR-25.13h also uses — so the write is the same one an
+  avatar tap makes: the sheet is **still visible**, no membership editor was presented over it (the run posture, which
+  is E2E-M4-65's rule the other way round), the line reports who it reached by name in roster order, and every avatar
+  it just selected stays visible and selected — the original assertion (a bare count, an `acted` line with no avatars
+  left to deselect) was the bug a live check found (FR-25.13h's addendum note). After the sheet closes M4 renders the
+  item as **one** cluster with a child per traveler — three rows sharing a name is the shape FR-25.8 forbids. **79**
+  the same verb on a **carried** line, which has no avatar buttons and keeps FR-25.13g's original bulk shape: the
+  sheet is closed and reopened first, because within one run a line the run itself added offers the way back and
+  nothing else, and afterwards the shared row is gone *as a row of its own* — it became one of the three (ADR-036)
+  rather than being left beside them.
 * **E2E-M4-80/81** `all` (FR-25.13h, added 2026-09-11, multi-select added 2026-09-11) —
   **implemented** (`e2e/membership.spec.ts`): assigning a free line to one or more named travelers instead of
   everybody, multi-select in both shapes. **80** at three travelers (the boundary), an avatar button per traveler

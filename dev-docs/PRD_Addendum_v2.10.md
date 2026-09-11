@@ -2213,6 +2213,14 @@ locked.
     * **👥's plain tap is untouched in every shape.** It is the one thing this FR must not cost: „für alle" stays a
       single tap whether the line shows avatar buttons, none, or is already mid-selection, and the long press is a
       second gesture on the same target, never a detour the first one now has to take.
+    * **At up to three travelers, 👥's tap *is* select-all, not a shortcut past it (correction, owner live check
+      2026-09-11):** the first cut routed the plain tap through FR-25.13g's own bulk verb, which closes the line as
+      `acted` — at exactly three travelers that is the same set the avatar buttons could have reached, but closing it
+      took the buttons, and with them the only way to take one traveler back off; the live check on the family
+      instance found no control left to deselect after 👥. The fix is to make 👥, wherever it sits beside avatar
+      buttons, write through the identical `assignToTravelers` path an avatar tap uses — the whole roster as the
+      selected set — so the row stays `assigning` and every traveler it just picked stays a live toggle. Above three
+      travelers, where there is no avatar row to keep open for, 👥 keeps FR-25.13g's original bulk verb unchanged.
     * **A long press on the name shows what the ellipsis hid**, in a small label above the line — a second, unrelated
       target from 👥's, so the two presses never race each other. Opening a new press anywhere else in the sheet
       closes it; nothing here is a menu with a choice to make.

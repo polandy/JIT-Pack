@@ -739,6 +739,31 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     expect(wrapper.find('[data-testid="browse-assigned-now"]').exists()).toBe(false)
   })
 
+  it('👥 with ≤3 travelers selects every avatar, still deselectable one at a time', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-for-all"]').trigger('click')
+
+    // The same write an avatar tap makes, for the whole roster at once — not
+    // the bulk `addForAll` verb, which would close the row and take the
+    // avatar buttons (and so any way to deselect) with it.
+    expect(wrapper.emitted('assignToTravelers')?.[0]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-a', 'tr-b', 'tr-c'],
+    ])
+    expect(wrapper.emitted('addForAll')).toBeUndefined()
+    expect(row.findAll('[data-testid^="browse-assign-"].selected')).toHaveLength(3)
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-a', 'tr-c'],
+    ])
+    expect(row.get('[data-testid="browse-assign-Nina"]').classes()).not.toContain('selected')
+  })
+
   it('offers no inline buttons above three travelers, and leaves 👥 exactly as it was', () => {
     const row = rowFree(mountAssign(FOUR), 'Badehose')
 
@@ -746,16 +771,23 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     expect(row.find('[data-testid="browse-for-all"]').exists()).toBe(true)
   })
 
-  it('leaves 👥\'s plain tap meaning „für alle", whichever shape the row is in', async () => {
+  it('👥 stays the bulk verb above three travelers, but becomes the select-all write at ≤3', async () => {
     const three = mountAssign(THREE)
     const four = mountAssign(FOUR)
 
     await rowFree(three, 'Badehose').get('[data-testid="browse-for-all"]').trigger('click')
     await rowFree(four, 'Badehose').get('[data-testid="browse-for-all"]').trigger('click')
 
-    expect(three.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    // ≤3: 👥 writes the same assignment an avatar tap would, so the row stays
+    // `assigning` and every traveler it just picked can still be deselected.
+    expect(three.emitted('assignToTravelers')?.[0]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-a', 'tr-b', 'tr-c'],
+    ])
+    expect(three.emitted('addForAll')).toBeUndefined()
+    // Past three there is no avatar row to keep open for — 👥 is still the
+    // popover's own accumulate-only bulk verb.
     expect(four.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
-    expect(three.emitted('assignToTravelers')).toBeUndefined()
     expect(four.emitted('assignToTravelers')).toBeUndefined()
   })
 

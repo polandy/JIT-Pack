@@ -411,7 +411,21 @@ function onSpreadToAll(item: MasterItem): void {
  */
 let forAllMenuItemId: string | null = null
 
+/**
+ * FR-25.13h: with ≤3 travelers, 👥 sits beside their own avatar buttons and
+ * has to mean the same thing a tap on every one of them would — a bulk verb
+ * here (`onAddForAll`/`onSpreadToAll`) closes the row as `acted`, which drops
+ * the avatar buttons and leaves the trip's own „für alle" with no way to
+ * take one traveler back out (found live: three taps in, a fourth to
+ * deselect had nothing to press). Past three, 👥 stays the popover's own
+ * bulk verb — that surface has always been accumulate-only by decision.
+ */
 function onForAllTap(view: RowView, item: MasterItem): void {
+  if (inlineTravelers.value.length > 0 && (view.kind === 'free' || view.kind === 'assigning')) {
+    if (forAllMenuItemId === item.id) return
+    writeAssignment(item, new Set(inlineTravelers.value.map((traveler) => traveler.id)))
+    return
+  }
   if (view.kind === 'free') {
     if (forAllMenuItemId === item.id) return
     onAddForAll(item)

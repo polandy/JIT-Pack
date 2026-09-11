@@ -361,6 +361,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A socket outlived the permission that opened it (2026-09-10)](#a-socket-outlived-the-permission-that-opened-it-2026-09-10) — the drop-on-revocation fix was a list of call sites, incomplete the day it would have been written.
 - [A row learned to name one traveler instead of all of them (2026-09-11)](#a-row-learned-to-name-one-traveler-instead-of-all-of-them-2026-09-11) — why the write is the everybody-planner with a roster of one, and why a carried line was left untouched.
 - [FR-25.13h's one-traveler shape did not survive its first live look (2026-09-11)](#fr-2513hs-one-traveler-shape-did-not-survive-its-first-live-look-2026-09-11) — a shrunk box, not a shrunk glyph, was the real touch-target bug; a test titled its own defect as a feature.
+- [„für alle" at three travelers had a write of its own, the wrong one (2026-09-11)](#für-alle-at-three-travelers-had-a-write-of-its-own-the-wrong-one-2026-09-11) — 👥 routed through the bulk verb beside avatar buttons doing the same job, taking deselection with it.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14853,3 +14854,27 @@ same treatment for the same reason: a second long press on an `assigning` line s
 `offersPersonMenu` checks for `assigning` beside `free` rather than `free` alone — an action sheet has no visual
 "already picked" state to show, so a second pick there only ever adds, and taking a traveler back off past that
 point is the line's Undo, not a second gesture on the menu.
+
+## „für alle" at three travelers had a write of its own, the wrong one (2026-09-11)
+
+A third live check on the family instance, after the section above merged and redeployed: with all three avatar
+buttons tapped on, there was no way back — deselecting one traveler had nothing to press. The row looked identical
+to one built by tapping every avatar, but it was not the same row underneath.
+
+`onForAllTap`'s `free` branch called `onAddForAll`, FR-25.13g's original bulk verb, regardless of whether the line
+also had avatar buttons beside it. That verb records `RunVerb` `forAll`, not `assigned`, so `rowView` returned the
+line as `kind: 'acted'` — settled, undoable only as a whole, and past the template's `v-if` that keeps avatar
+buttons on `free`/`assigning` lines alone. 👥's own tap, at exactly the boundary where it sits beside three avatar
+buttons doing the identical job, took the buttons away by finishing the run they belonged to. Every entry into
+*für alle* had this shape at ≤3 travelers — the popover's menu button routed through the same function too, though
+that path is unreachable there since `usePersonMenu` only turns on above three.
+
+The fix does not touch `usePersonMenu` or the >3 popover, which stays exactly FR-25.13g's original bulk verb —
+there is no avatar row to keep open for past three, and no live report asked for one. Where `inlineTravelers` is
+non-empty, `onForAllTap` now calls `writeAssignment` with the whole inline roster as the target set — the same
+function an avatar tap calls — instead of `onAddForAll`/`onSpreadToAll`. The row stays `assigning`, not `acted`;
+👥's tap is still exactly one tap, still reaches everybody in one motion, and the three avatars it just turned on
+are still there to turn back off. `E2E-M4-78` carried the old assumption as its own assertion (a bare "3", an
+`acted` line with no avatars left) and needed the same correction as the unit test that shared its shape.
+`E2E-M4-79`'s carried line is untouched: it never had avatar buttons to lose in the first place, and 👥 there
+still means FR-25.13g's original bulk spread.

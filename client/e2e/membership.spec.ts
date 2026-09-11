@@ -363,11 +363,16 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
   })
 
   /**
-   * FR-25.13g — the whole point of the verb is that the run does not stop: no
-   * editor opens, the sheet stays up, and the rows are there when it closes.
-   * Asserted on the rendered cluster for this file's own reason, and the sheet
-   * being *visible* afterwards is the positive signal that nothing was
-   * presented over it (E2E-M4-65 is the same question the other way round).
+   * FR-25.13g/h — the whole point of the verb is that the run does not stop:
+   * no editor opens, the sheet stays up, and the rows are there when it
+   * closes. TRIP has exactly three travelers, so 👥 here is the same write
+   * three avatar taps would make (FR-25.13h) — `assigning`, not the bulk
+   * `acted` verb, precisely so the three it just picked stay deselectable
+   * (found live: no way back from 👥's own "all three" once it closed the
+   * row). Asserted on the rendered cluster for this file's own reason, and
+   * the sheet being *visible* afterwards is the positive signal that nothing
+   * was presented over it (E2E-M4-65 is the same question the other way
+   * round).
    */
   test('E2E-M4-78: „für alle" gives every traveler a row without leaving the sheet', async ({
     page,
@@ -379,15 +384,17 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     const sheet = page.getByTestId('inventory-browse-sheet')
     await expect(sheet).toBeVisible()
 
-    await sheet
-      .getByTestId('browse-row-free')
-      .filter({ hasText: 'Sonnenhut' })
-      .getByTestId('browse-for-all')
-      .click()
+    const row = sheet.getByTestId('browse-row-free').filter({ hasText: 'Sonnenhut' })
+    await row.getByTestId('browse-for-all').click()
 
-    // The line says how many people it reached — a bare „hinzugefügt" would
-    // claim less than the tap did (FR-25.13f's rule for a verb over a set).
-    await expect(sheet.getByTestId('browse-for-all-now')).toContainText('3')
+    // The line says who it reached — roster order, the same label an avatar
+    // tap would leave (FR-25.13h).
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Andy, Leonardo, Mia')
+    // Every avatar it just selected is still there and still deselectable —
+    // the exact thing 👥's old bulk verb took away.
+    await expect(row.getByTestId('browse-assign-Andy')).toHaveClass(/selected/)
+    await expect(row.getByTestId('browse-assign-Leonardo')).toHaveClass(/selected/)
+    await expect(row.getByTestId('browse-assign-Mia')).toHaveClass(/selected/)
     await expect(sheet).toBeVisible()
     await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
 
