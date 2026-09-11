@@ -635,12 +635,15 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     ).toEqual(['browse-assign-Andy', 'browse-assign-Nina', 'browse-assign-Mila'])
   })
 
-  it('emits the assignment for exactly the traveler whose button was tapped', async () => {
+  it('emits the whole set for exactly the traveler whose button was tapped', async () => {
     const wrapper = mountAssign()
 
     await rowFree(wrapper, 'Badehose').get('[data-testid="browse-assign-Nina"]').trigger('click')
 
-    expect(wrapper.emitted('assignToTraveler')?.[0]).toMatchObject([{ id: 'i-badehose' }, 'tr-b'])
+    expect(wrapper.emitted('assignToTravelers')?.[0]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-b'],
+    ])
     // A dedicated write, not a second add and not a „für alle" in disguise.
     expect(wrapper.emitted('add')).toBeUndefined()
     expect(wrapper.emitted('addForAll')).toBeUndefined()
@@ -653,6 +656,87 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
 
     expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Nina')
     expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(true)
+  })
+
+  it('multi-select: a second avatar adds to the set instead of replacing it', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-b', 'tr-c'],
+    ])
+    expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Nina, Mila')
+    // Still one row, one Undo — multi-select is still one running action.
+    expect(wrapper.findAll('[data-testid="browse-undo"]')).toHaveLength(1)
+  })
+
+  it('multi-select: the row stays open and tappable after the first traveler', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    // The row is still `browse-row-free` — the avatar buttons have to stay
+    // reachable for a second tap, unlike every other verb's row.
+    expect(row.attributes('data-testid')).toBe('browse-row-free')
+    expect(row.findAll('[data-testid^="browse-assign-"]')).toHaveLength(3)
+  })
+
+  it('tapping a selected avatar again removes just that traveler, not the whole item', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[2]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-c'],
+    ])
+    expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Mila')
+    expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).not.toContain('Nina')
+  })
+
+  it('deselecting the last traveler is the same outcome as „Rückgängig"', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([{ id: 'i-badehose' }, []])
+    expect(wrapper.find('[data-testid="browse-assigned-now"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(false)
+  })
+
+  it('a selected avatar carries the selected state, an unselected one does not', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(row.get('[data-testid="browse-assign-Nina"]').classes()).toContain('selected')
+    expect(row.get('[data-testid="browse-assign-Mila"]').classes()).not.toContain('selected')
+  })
+
+  it('Undo on an assigning line clears every traveler it held, not just the last one', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
+    await row.get('[data-testid="browse-undo"]').trigger('click')
+
+    expect(wrapper.emitted('undo')?.[0]).toMatchObject([{ id: 'i-badehose' }])
+    expect(row.findAll('[data-testid^="browse-assign-"]').at(0)?.classes()).not.toContain(
+      'selected',
+    )
+    expect(wrapper.find('[data-testid="browse-assigned-now"]').exists()).toBe(false)
   })
 
   it('offers no inline buttons above three travelers, and leaves 👥 exactly as it was', () => {
@@ -671,15 +755,22 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
 
     expect(three.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
     expect(four.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
-    expect(three.emitted('assignToTraveler')).toBeUndefined()
-    expect(four.emitted('assignToTraveler')).toBeUndefined()
+    expect(three.emitted('assignToTravelers')).toBeUndefined()
+    expect(four.emitted('assignToTravelers')).toBeUndefined()
   })
 
-  it('names the traveler for the screen reader', () => {
-    const row = rowFree(mountAssign(), 'Badehose')
+  it('names the traveler for the screen reader, and says "remove" once selected', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
 
     expect(row.get('[data-testid="browse-assign-Nina"]').attributes('aria-label')).toBe(
       'Assign "Badehose" to Nina',
+    )
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(row.get('[data-testid="browse-assign-Nina"]').attributes('aria-label')).toBe(
+      'Remove "Badehose" from Nina',
     )
   })
 

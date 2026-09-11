@@ -2502,13 +2502,17 @@ landed, that no test has ever rendered.
   line the trip already carries: the sheet is closed and reopened first, because within one run a line the run itself
   added offers the way back and nothing else, and afterwards the shared row is gone *as a row of its own* — it became
   one of the three (ADR-036) rather than being left beside them.
-* **E2E-M4-80/81** `all` (FR-25.13h, added 2026-09-11) — **implemented** (`e2e/membership.spec.ts`): assigning a free
-  line to one named traveler instead of everybody. **80** at three travelers (the boundary), an avatar button per
-  traveler sits beside 👥; tapping one writes the row assigned to exactly that traveler, 👥 itself is asserted still
-  present and unchanged, and after closing the sheet M4 renders **one** row rather than a cluster — the shape that
-  tells this apart from FR-25.13g's spread. **81** at four travelers the line keeps FR-25.13g's shape with no avatar
-  buttons, and a `contextmenu` dispatch on 👥 (the same seam E2E-M7-04 drives, standing in for a real long press per
-  `useLongPress`) opens a menu naming each traveler; picking one writes the assignment, and a plain tap on 👥 on a
+* **E2E-M4-80/81** `all` (FR-25.13h, added 2026-09-11, multi-select added 2026-09-11) —
+  **implemented** (`e2e/membership.spec.ts`): assigning a free line to one or more named travelers instead of
+  everybody, multi-select in both shapes. **80** at three travelers (the boundary), an avatar button per traveler
+  sits beside 👥; tapping one writes the row assigned to exactly that traveler and the row stays `browse-row-free`
+  rather than moving to `carried`, a second avatar joins the same row instead of starting a second one (asserted as
+  *„Leonardo, Mia"*), and tapping the first again removes just that traveler, leaving one — after closing the sheet
+  M4 renders **one** row rather than a cluster, the shape that tells this apart from FR-25.13g's spread. 👥 itself is
+  asserted present and unchanged throughout. **81** at four travelers the line keeps FR-25.13g's shape with no
+  avatar buttons, and a `contextmenu` dispatch on 👥 (the same seam E2E-M7-04 drives, standing in for a real long
+  press per `useLongPress`) opens a menu naming each traveler; picking one writes the assignment, a second
+  long-press-and-pick adds a second traveler to the same row (asserted as *„Theo, Mia"*), and a plain tap on 👥 on a
   second line still means *für alle*, unconditionally.
 * **E2E-M4-48** `all` (FR-28.4/FR-25.1, added 2026-08-22) — **implemented** (`e2e/item-mark.spec.ts`): a per-person
   position generated for two travelers renders as one cluster, and the **cluster head** — the line that names the item

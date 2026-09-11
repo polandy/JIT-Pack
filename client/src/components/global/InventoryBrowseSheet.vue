@@ -49,14 +49,19 @@
  * gives the people who have no row for the item one (ADR-036). Rule 1 holds
  * here too: what a spread may cost is the caller's question, not this sheet's.
  *
- * **FR-25.13h** answers the same *who* for one named traveler instead of
- * everybody, on a free line only (a carried line keeps exactly the 👥/spread
- * FR-25.13g gave it). Up to {@link INLINE_PERSON_BUTTONS_MAX} travelers get an
- * avatar button of their own beside 👥; above that the line stays the shape it
- * already had and a long press on 👥 opens a menu instead — its plain tap
- * keeps meaning *für alle* either way, which is the one thing this FR must not
- * cost. A second, unrelated long press on the name shows what its ellipsis
- * hid, because the buttons take room the name used to have.
+ * **FR-25.13h** answers the same *who* for one or more named travelers
+ * instead of everybody, on a free line only (a carried line keeps exactly the
+ * 👥/spread FR-25.13g gave it). Up to {@link INLINE_PERSON_BUTTONS_MAX}
+ * travelers get an avatar button of their own beside 👥; above that the line
+ * stays the shape it already had and a long press on 👥 opens a menu instead
+ * — its plain tap keeps meaning *für alle* either way, which is the one thing
+ * this FR must not cost. **Multi-select**: an avatar button toggles — tapping
+ * a second one assigns the item to both, tapping a selected one again takes
+ * that traveler back off, and the line stays open for more rather than
+ * closing after the first tap the way the other four verbs do. Emptying the
+ * set is the same as the line's own *„Rückgängig"*. A second, unrelated long
+ * press on the name shows what its ellipsis hid, because the buttons take
+ * room the name used to have.
  */
 import { IonIcon, actionSheetController } from '@ionic/vue'
 import {
@@ -116,8 +121,8 @@ const emit = defineEmits<{
   addForAll: [item: MasterItem]
   /** FR-25.13g: give the travelers who have no row for it one (ADR-036). */
   spreadToAll: [item: MasterItem]
-  /** FR-25.13h: add it assigned to exactly one named traveler. */
-  assignToTraveler: [item: MasterItem, travelerId: string]
+  /** FR-25.13h: add or update it with exactly this set of travelers assigned. */
+  assignToTravelers: [item: MasterItem, travelerIds: string[]]
   /** FR-25.13f: pack what the scope already carries, all of its rows. */
   pack: [item: MasterItem]
   /** FR-25.13f: skip what the scope already carries, all of its rows. */
@@ -146,6 +151,15 @@ interface RunRecord {
   /** FR-25.13h: who an `assigned` record went to — the other verbs leave it unset. */
   travelerName?: string
 }
+
+/**
+ * FR-25.13h: which travelers a free line's avatar buttons currently have
+ * toggled on, keyed by master item id. Kept beside `actedNow` rather than
+ * folded into it — the ledger is "what happened", this is "what is still
+ * open to change", and only the `assigned` verb has anything left to change
+ * after its first tap.
+ */
+const assignedTravelers = ref<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
 
 /**
  * The testid a run state renders under. Named once rather than built from
@@ -286,6 +300,7 @@ const allCarried = computed(() => !noMatch.value && shown.value.length === 0)
  */
 type RowView =
   | { kind: 'acted'; text: string; testid: string; done: boolean; undoable: boolean }
+  | { kind: 'assigning'; text: string; selected: ReadonlySet<string> }
   | { kind: 'locked'; text: string }
   | { kind: 'settled'; text: string }
   | { kind: 'carried'; text: string; verbs: boolean; spread: boolean }
@@ -297,6 +312,16 @@ function rowView(item: MasterItem): RowView {
   // exactly as FR-25.13d wrote it — the e2e case for M8 is what said so.
   const act = (verbs.value ? actedNow.value.get(item.id) : undefined) ?? derivedAdd(item)
   if (act) {
+    // FR-25.13h's multi-select: an `assigned` line stays open for more taps
+    // rather than closing the way the other four verbs do, so it renders its
+    // own kind — the avatar buttons beside it need `.acts` to stay visible.
+    if (act.verb === 'assigned') {
+      return {
+        kind: 'assigning',
+        text: actedText(act),
+        selected: assignedTravelers.value.get(item.id) ?? new Set(),
+      }
+    }
     return {
       kind: 'acted',
       text: actedText(act),
@@ -397,24 +422,35 @@ function onForAllTap(view: RowView, item: MasterItem): void {
 
 const personHold = useLongPress<MasterItem>(openTravelerMenu)
 
+/**
+ * A row keeps offering the long-press menu once it is already `assigning`
+ * (>3 travelers, at least one already picked) — only `acted`, `locked`,
+ * `settled` and `carried` are past taking any more of this run's taps.
+ */
+function offersPersonMenu(view: RowView): boolean {
+  return (view.kind === 'free' || view.kind === 'assigning') && usePersonMenu.value
+}
+
 function onForAllPointerDown(view: RowView, item: MasterItem, e: PointerEvent): void {
-  if (view.kind !== 'free' || !usePersonMenu.value) return
+  if (!offersPersonMenu(view)) return
   personHold.down(item, e.clientX, e.clientY)
 }
 
 function onForAllContextMenu(view: RowView, item: MasterItem): void {
-  if (view.kind !== 'free' || !usePersonMenu.value) return
+  if (!offersPersonMenu(view)) return
   void openTravelerMenu(item)
 }
 
 /**
  * FR-25.13h: the menu a long press on 👥 opens above three travelers — *für
  * alle* first (the plain tap's own action, offered again for a thumb already
- * in the menu), then each traveler. `forAllMenuItemId` brackets the whole
- * async lifetime in `try`/`finally`, so a `create()` that rejects never wedges
- * the tap dead — the same shape `TemplateListPage`'s row menu uses, keyed by
- * item id rather than a bare boolean so a second row's own „für alle" is
- * never caught in a first row's guard.
+ * in the menu, routed through {@link onForAllTap} so it re-points an already
+ * `assigning` row instead of adding a second one), then each traveler.
+ * `forAllMenuItemId` brackets the whole async lifetime in `try`/`finally`, so
+ * a `create()` that rejects never wedges the tap dead — the same shape
+ * `TemplateListPage`'s row menu uses, keyed by item id rather than a bare
+ * boolean so a second row's own „für alle" is never caught in a first row's
+ * guard.
  */
 async function openTravelerMenu(item: MasterItem): Promise<void> {
   personHold.cancel()
@@ -426,12 +462,12 @@ async function openTravelerMenu(item: MasterItem): Promise<void> {
         {
           text: t('quickAdd.browseForAllNow'),
           icon: peopleOutline,
-          handler: () => onAddForAll(item),
+          handler: () => onForAllTap(rowView(item), item),
         },
         ...travelerList.value.map((traveler) => ({
           text: traveler.name,
           icon: personOutline,
-          handler: () => onAssignToTraveler(item, traveler),
+          handler: () => onAssignFromMenu(item, traveler),
         })),
         { text: t('common.cancel'), role: 'cancel' },
       ],
@@ -443,10 +479,48 @@ async function openTravelerMenu(item: MasterItem): Promise<void> {
   }
 }
 
-/** FR-25.13h: the avatar-button / menu-pick write — one row, one traveler. */
-function onAssignToTraveler(item: MasterItem, traveler: Traveler): void {
-  emit('assignToTraveler', item, traveler.id)
-  record(item.id, 'assigned', 1, traveler.name)
+/**
+ * FR-25.13h's write, shared by both pickers: hand the planner the *whole*
+ * desired set, not the one traveler that was just tapped — a second tap has
+ * to add a second traveler to the row this run already wrote, never a second,
+ * unrelated row for the same item. Emptying the set is `undo` in disguise —
+ * the ledger stops recording it, exactly as if „Rückgängig" had been tapped.
+ */
+function writeAssignment(item: MasterItem, next: ReadonlySet<string>): void {
+  const map = new Map(assignedTravelers.value)
+  if (next.size === 0) map.delete(item.id)
+  else map.set(item.id, next)
+  assignedTravelers.value = map
+
+  emit('assignToTravelers', item, [...next])
+
+  if (next.size === 0) {
+    forget(item.id)
+    return
+  }
+  const names = travelerList.value.filter((traveler) => next.has(traveler.id)).map((t) => t.name)
+  record(item.id, 'assigned', next.size, names.join(', '))
+}
+
+/** The avatar button beside 👥 (≤3 travelers): toggles the tapped traveler. */
+function onAssignToggle(item: MasterItem, traveler: Traveler): void {
+  const current = assignedTravelers.value.get(item.id) ?? new Set<string>()
+  const next = new Set(current)
+  if (next.has(traveler.id)) next.delete(traveler.id)
+  else next.add(traveler.id)
+  writeAssignment(item, next)
+}
+
+/**
+ * The long-press menu's own pick (>3 travelers): an action sheet has no way
+ * to show a traveler as already selected, so a pick here only ever adds —
+ * taking one back off stays the line's own „Rückgängig", which removes the
+ * item outright rather than one traveler at a time.
+ */
+function onAssignFromMenu(item: MasterItem, traveler: Traveler): void {
+  const next = new Set(assignedTravelers.value.get(item.id) ?? new Set<string>())
+  next.add(traveler.id)
+  writeAssignment(item, next)
 }
 
 // --- FR-25.13h's second, unrelated long press: the name's own tooltip ------
@@ -505,6 +579,13 @@ function onSkip(item: MasterItem): void {
 function onUndo(item: MasterItem): void {
   emit('undo', item)
   forget(item.id)
+  // FR-25.13h: „Rückgängig" on an `assigning` line takes back every traveler
+  // it holds, not just the last one — the same set a full deselect reaches.
+  if (assignedTravelers.value.has(item.id)) {
+    const map = new Map(assignedTravelers.value)
+    map.delete(item.id)
+    assignedTravelers.value = map
+  }
 }
 
 /** What the head says the taps do — three verbs where „für alle" is offered. */
@@ -607,8 +688,12 @@ function groupLabel(key: string): string {
                control that does nothing is worse than none. -->
           <div
             class="row"
-            :class="{ dim: view.kind !== 'free' }"
-            :data-testid="view.kind === 'free' ? 'browse-row-free' : 'browse-row-carried'"
+            :class="{ dim: view.kind !== 'free' && view.kind !== 'assigning' }"
+            :data-testid="
+              view.kind === 'free' || view.kind === 'assigning'
+                ? 'browse-row-free'
+                : 'browse-row-carried'
+            "
           >
             <button
               v-if="view.kind === 'free'"
@@ -629,7 +714,7 @@ function groupLabel(key: string): string {
                    subtitle carries what the plain tap does (FR-25.13f). -->
               <IonIcon v-if="!verbs" :icon="addCircleOutline" class="row-add" aria-hidden="true" />
             </button>
-            <span v-else class="row-name">{{ item.name }}</span>
+            <span v-else class="row-name" :title="item.name">{{ item.name }}</span>
 
             <!-- FR-25.13h: what the name's own long press hides behind its
                  ellipsis. A sibling of the button rather than its child — a
@@ -651,6 +736,25 @@ function groupLabel(key: string): string {
               </span>
               <button
                 v-if="view.undoable"
+                class="undo"
+                type="button"
+                data-testid="browse-undo"
+                :aria-label="t('quickAdd.browseUndoLabel', { name: item.name })"
+                @click="onUndo(item)"
+              >
+                {{ t('packing.undo') }}
+              </button>
+            </template>
+
+            <!-- FR-25.13h: an `assigning` line stays open for more avatar
+                 taps rather than closing like the other four verbs — same
+                 pill and Undo as `acted`, but `.acts` below keeps rendering. -->
+            <template v-else-if="view.kind === 'assigning'">
+              <span class="carried-state is-added" data-testid="browse-assigned-now">
+                <IonIcon :icon="checkmarkOutline" aria-hidden="true" />
+                {{ view.text }}
+              </span>
+              <button
                 class="undo"
                 type="button"
                 data-testid="browse-undo"
@@ -690,11 +794,17 @@ function groupLabel(key: string): string {
             <!-- FR-25.13f: the two verbs, one tap each. On a free line they
                  add and decide together; on a carried one they act on every
                  row that item has (FR-25.21). -->
-            <span v-if="verbs && (view.kind === 'free' || view.kind === 'carried')" class="acts">
+            <span
+              v-if="
+                verbs &&
+                (view.kind === 'free' || view.kind === 'carried' || view.kind === 'assigning')
+              "
+              class="acts"
+            >
               <!-- FR-25.13g: „für alle". First of the three, because it is the
                    only one that answers *who*; ✓ and ✕ answer *whether*. -->
               <button
-                v-if="view.kind === 'free' ? forAll : view.spread"
+                v-if="view.kind === 'carried' ? view.spread : forAll"
                 class="act for-all"
                 type="button"
                 data-testid="browse-for-all"
@@ -709,20 +819,33 @@ function groupLabel(key: string): string {
                 <IonIcon :icon="peopleOutline" aria-hidden="true" />
               </button>
               <!-- FR-25.13h: up to three travelers, a button of their own —
-                   free lines only, right where 👥 already answers *who*. -->
-              <template v-if="view.kind === 'free'">
+                   free and `assigning` lines only, right where 👥 already
+                   answers *who*. Multi-select: each one toggles, and a
+                   selected traveler carries a ring so a second glance can
+                   tell who the item already has without reading the pill. -->
+              <template v-if="view.kind === 'free' || view.kind === 'assigning'">
                 <button
                   v-for="traveler in inlineTravelers"
                   :key="traveler.id"
                   class="act assign"
+                  :class="{ selected: view.kind === 'assigning' && view.selected.has(traveler.id) }"
                   type="button"
                   :data-testid="`browse-assign-${traveler.name}`"
+                  :aria-pressed="view.kind === 'assigning' && view.selected.has(traveler.id)"
                   :aria-label="
-                    t('quickAdd.browseAssignLabel', { name: item.name, traveler: traveler.name })
+                    view.kind === 'assigning' && view.selected.has(traveler.id)
+                      ? t('quickAdd.browseUnassignLabel', {
+                          name: item.name,
+                          traveler: traveler.name,
+                        })
+                      : t('quickAdd.browseAssignLabel', {
+                          name: item.name,
+                          traveler: traveler.name,
+                        })
                   "
-                  @click="onAssignToTraveler(item, traveler)"
+                  @click="onAssignToggle(item, traveler)"
                 >
-                  <UserAvatar :name="traveler.name" :seed="traveler.id" :size="20" />
+                  <UserAvatar :name="traveler.name" :seed="traveler.id" :size="24" />
                 </button>
               </template>
               <button
@@ -1008,13 +1131,25 @@ function groupLabel(key: string): string {
   color: var(--jp-brand);
 }
 
-/* FR-25.13h: an avatar is its own shape already, so the square target that
-   carries every other verb would frame a circle a second time. */
+/* FR-25.13h: the same 34×34 touch target the other three verbs get (`.act`
+   above) — only the frame is dropped, because an avatar is its own shape
+   already and a square border would draw it a second time. Shrinking the
+   *box* rather than just the glyph was the original mistake here: the
+   tappable area was the visible 20px circle and nothing more, live-tested
+   and found too small to hit reliably. */
 .act.assign {
-  width: auto;
-  height: auto;
   border: none;
+  background: none;
   padding: 0;
+}
+
+/* FR-25.13h's multi-select: a ring rather than a fill, so a selected avatar
+   still reads as *that person's* colour — the ring is the one shadow
+   invariant 9b carves out unconditionally, because it casts no light and is
+   a selection mark rather than elevation. */
+.act.assign.selected {
+  box-shadow: 0 0 0 2px var(--jp-action);
+  border-radius: 50%;
 }
 
 .act.skip {

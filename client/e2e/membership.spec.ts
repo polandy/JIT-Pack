@@ -466,11 +466,13 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
   })
 
   /**
-   * FR-25.13h — the browse-sheet's per-traveler avatar button, up to three
-   * travelers. TRIP has exactly three, so this is also the boundary the
-   * long-press menu takes over above.
+   * FR-25.13h — the browse-sheet's per-traveler avatar buttons, up to three
+   * travelers, multi-select. TRIP has exactly three, so this is also the
+   * boundary the long-press menu takes over above.
    */
-  test('E2E-M4-80: an avatar button assigns the row to that one traveler', async ({ page }) => {
+  test('E2E-M4-80: avatar buttons multi-select — tap adds, a second tap on the same one removes', async ({
+    page,
+  }) => {
     await createMasterItem(page, 'Sonnenhut')
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
@@ -485,10 +487,23 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await row.getByTestId('browse-assign-Leonardo').click()
 
     await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Leonardo')
+    // The row stays `browse-row-free` — unlike every other verb, this one
+    // has to keep the avatar buttons reachable for a second tap.
+    await expect(row).toHaveAttribute('data-testid', 'browse-row-free')
+
+    // A second traveler joins the same row instead of starting a new one.
+    await row.getByTestId('browse-assign-Mia').click()
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Leonardo, Mia')
+
+    // Tapping the first traveler again takes just that one back off.
+    await row.getByTestId('browse-assign-Leonardo').click()
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Mia')
+    await expect(sheet.getByTestId('browse-assigned-now')).not.toContainText('Leonardo')
+
     await sheet.getByTestId('browse-close').click()
     await expect(sheet).toHaveCount(0)
 
-    // Named once, not a cluster: this is one row for one traveler, not a
+    // Named once, not a cluster: one traveler ended up on the row, not a
     // spread — the shape FR-25.13g's own case would leave behind instead.
     const list = visiblePage(page)
     await expect(list.getByTestId('m4-row-Sonnenhut')).toBeVisible()
@@ -522,9 +537,18 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     const menu = page.locator('ion-action-sheet')
     await expect(menu).toBeVisible()
     await menu.getByRole('button', { name: 'Theo' }).click()
-    // Scoped to the sheet, not to `hutRow`: an acted line's own testid moves
-    // from `browse-row-free` to `browse-row-carried` (E2E-M4-78/79's reason).
     await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Theo')
+
+    // FR-25.13h's multi-select over the menu too: a second long press picks
+    // a second traveler for the *same* row — an action sheet has no way to
+    // show a pick as already selected, so this path only ever adds.
+    // `hutRow` still resolves it: an `assigning` line keeps `browse-row-free`
+    // rather than moving to `browse-row-carried` the way `acted` lines do
+    // (E2E-M4-78/79's reason) — it has to stay reachable for the next pick.
+    await hutRow.getByTestId('browse-for-all').dispatchEvent('contextmenu')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: 'Mia' }).click()
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Theo, Mia')
 
     // The plain tap on a different line still means „für alle" —
     // unconditionally, whichever gesture the line beside it just took.

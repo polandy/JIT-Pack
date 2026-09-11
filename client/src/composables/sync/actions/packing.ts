@@ -522,35 +522,69 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   /**
-   * FR-25.13h: add a row from the browse-sheet assigned to exactly one
-   * traveler, in the same tap — the avatar-button / long-press-popover path
-   * beside FR-25.13g's „für alle".
+   * FR-25.13h: add or update a row from the browse-sheet with exactly this
+   * set of travelers assigned — the avatar-button / long-press-popover path
+   * beside FR-25.13g's „für alle". Multi-select: the caller always passes
+   * the *whole* desired set, not one traveler at a time, so a second tap
+   * adds a second traveler to the row this run already wrote instead of
+   * starting a second, unrelated one — a live tap-through-two-avatars found
+   * that the single-traveler version of this call did exactly that, because
+   * every call went through {@link quickAddItem} regardless of whether the
+   * item already had a row.
    *
-   * Unlike {@link addItemForEveryTraveler} this never fans out: the add is
-   * one row, and giving it to one traveler is `domain/membership.ts`'s own
-   * planner called with a target of exactly that traveler, at the row's own
-   * quantity. A traveler id the trip does not have is silently dropped by
-   * the planner (invariant 3) and the row is left an ordinary shared one —
-   * the same fallback a plain add already has.
+   * `existingRows` is this item's own rows if the sheet already wrote any —
+   * the caller already has them from FR-25.13f's `rowsOfMasterItem` lookup,
+   * so this asks for them rather than re-deriving `source_item_id` itself.
+   * Emptying the set takes back what this run added, the same outcome the
+   * row's own *„Rückgängig"* reaches: `domain/membership.ts`'s planner reads
+   * a `perPerson` target with no members as nothing to plan rather than as
+   * "remove everyone" (it is what a shared-to-nothing conversion would mean
+   * nowhere else in the app), so the empty case is handled here explicitly.
+   * A traveler id the trip does not have is silently dropped by the planner
+   * (invariant 3) and the row is left an ordinary shared one — the same
+   * fallback a plain add already has.
    */
-  function addItemForOneTraveler(
+  function setTravelerAssignment(
     tripId: string,
     name: string,
     opts: Parameters<typeof quickAddItem>[2],
     isActive: boolean,
-    travelerId: string,
+    existingRows: TripItem[],
+    travelerIds: string[],
   ): AddResult {
-    const { id, companions } = quickAddItem(tripId, name, opts, isActive)
-    const row = tripStore.getItems(tripId).find((item) => item.id === id)
-    if (row) {
-      const target: MembershipTarget = {
-        kind: 'perPerson',
-        members: [{ traveler_id: travelerId, quantity: row.quantity }],
+    if (existingRows.length === 0) {
+      const { id, companions } = quickAddItem(tripId, name, opts, isActive)
+      const row = tripStore.getItems(tripId).find((item) => item.id === id)
+      if (row && travelerIds.length > 0) {
+        const target: MembershipTarget = {
+          kind: 'perPerson',
+          members: travelerIds.map((travelerId) => ({
+            traveler_id: travelerId,
+            quantity: row.quantity,
+          })),
+        }
+        setMembership(tripId, [row], target, [])
       }
-      const plan = membershipPlanFor(tripId, [row], target, [])
-      if (!plan.empty) applyMembershipPlan(tripId, [row], plan)
+      return { id, companions }
     }
-    return { id, companions }
+
+    // Non-null: the `existingRows.length === 0` branch above already returned.
+    const template = existingRows[0]!
+
+    if (travelerIds.length === 0) {
+      for (const row of existingRows) removeAddedItem(tripId, row.id)
+      return { id: template.id, companions: [] }
+    }
+
+    const target: MembershipTarget = {
+      kind: 'perPerson',
+      members: travelerIds.map((travelerId) => ({
+        traveler_id: travelerId,
+        quantity: template.quantity,
+      })),
+    }
+    setMembership(tripId, existingRows, target, [])
+    return { id: template.id, companions: [] }
   }
 
   /**
@@ -648,7 +682,7 @@ export function createPackingActions(ctx: SyncContext) {
     setMembership,
     spreadOverEveryTraveler,
     addItemForEveryTraveler,
-    addItemForOneTraveler,
+    setTravelerAssignment,
     restoreMembership,
     packIncrement,
     packDecrement,

@@ -986,22 +986,31 @@ function onBrowseAddForAll(item: BrowseAddition) {
 }
 
 /**
- * FR-25.13h: the browse-sheet's avatar button / long-press pick on a line the
- * trip does not carry yet — one tap adds the row assigned to that traveler.
+ * FR-25.13h: the browse-sheet's avatar buttons / long-press pick — always
+ * sent as the whole desired set of travelers, so a second tap adds a second
+ * traveler to the row this run already wrote (or removes one, tapped again)
+ * rather than starting a second, unrelated row for the same item.
  *
- * One row, so the undo is the same delete every other free-line add uses —
- * unlike {@link onBrowseAddForAll} there is no spread to take back.
+ * `rowsOfMasterItem` is read fresh rather than passed a cached id: the sheet
+ * itself has no row ids to hand back after the first tap (it only ever sees
+ * `BrowseAddition`s), and the undo has the same shape — recomputed live at
+ * the moment it fires, so it always removes whatever this run currently has
+ * for the item rather than a snapshot that a later toggle already changed.
  */
-function onBrowseAssignForTraveler(item: BrowseAddition, travelerId: string) {
-  const { id: addedId, companions } = orchestrator.addItemForOneTraveler(
+function onBrowseAssignForTravelers(item: BrowseAddition, travelerIds: string[]) {
+  const { companions } = orchestrator.setTravelerAssignment(
     props.tripId,
     item.name,
     quickAddOptions(item),
     active.value,
-    travelerId,
+    item.sourceItemId ? rowsOfMasterItem(item.sourceItemId) : [],
+    travelerIds,
   )
   if (item.sourceItemId) {
-    browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
+    const itemId = item.sourceItemId
+    browseUndo.set(itemId, () => {
+      for (const row of rowsOfMasterItem(itemId)) orchestrator.removeAddedItem(props.tripId, row.id)
+    })
   }
   announceCompanions(companions)
 }
@@ -1289,7 +1298,7 @@ setHeaderTitle(
         :browse-row-states="browseStates"
         @add="onQuickAdd"
         @add-for-all="onBrowseAddForAll"
-        @assign-for-traveler="onBrowseAssignForTraveler"
+        @assign-for-travelers="onBrowseAssignForTravelers"
         @spread-carried="onBrowseSpread"
         @add-group="onQuickAddGroup"
         @pack-carried="onBrowsePack"

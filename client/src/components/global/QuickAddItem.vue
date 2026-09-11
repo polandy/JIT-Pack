@@ -160,8 +160,8 @@ const emit = defineEmits<{
   addForAll: [item: BrowseAddition]
   /** FR-25.13g: give every traveler still without a row for it one. */
   spreadCarried: [itemId: string]
-  /** FR-25.13h: add this master item assigned to exactly one traveler. */
-  assignForTraveler: [item: BrowseAddition, travelerId: string]
+  /** FR-25.13h: add or update this master item with exactly this set of travelers assigned. */
+  assignForTravelers: [item: BrowseAddition, travelerIds: string[]]
   /** FR-25.13f: pack every row the scope carries for this master item. */
   packCarried: [itemId: string]
   /** FR-25.13f: leave every row the scope carries for this master item home. */
@@ -327,12 +327,13 @@ function onBrowseAddForAll(item: MasterItem) {
 }
 
 /**
- * FR-25.13h: the sheet's per-traveler avatar button / long-press pick. Same
+ * FR-25.13h: the sheet's per-traveler avatar buttons / long-press pick. Same
  * shape as {@link onBrowseAddForAll} for the same reason — the verb answers
- * who without an editor, so the run stays in the sheet.
+ * who without an editor, so the run stays in the sheet. Multi-select: the
+ * sheet always sends the whole desired set, not one traveler at a time.
  */
-function onBrowseAssignForTraveler(item: MasterItem, travelerId: string) {
-  emit('assignForTraveler', additionOf(item), travelerId)
+function onBrowseAssignForTravelers(item: MasterItem, travelerIds: string[]) {
+  emit('assignForTravelers', additionOf(item), travelerIds)
   afterAdd(item)
 }
 
@@ -642,7 +643,7 @@ function onKeydown(event: KeyboardEvent) {
           :travelers="travelers"
           @add="onBrowseAdd"
           @add-for-all="onBrowseAddForAll"
-          @assign-to-traveler="onBrowseAssignForTraveler"
+          @assign-to-travelers="onBrowseAssignForTravelers"
           @spread-to-all="emit('spreadCarried', $event.id)"
           @add-packed="onBrowseAddPacked"
           @add-skipped="onBrowseAddSkipped"
