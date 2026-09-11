@@ -554,7 +554,10 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await hutRow.getByTestId('browse-for-all').dispatchEvent('contextmenu')
     await expect(menu).toBeVisible()
     await menu.getByRole('button', { name: 'Mia' }).click()
-    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Theo, Mia')
+    // Roster order (Andy, Leonardo, Mia, Theo), not tap order — the label is
+    // built by filtering the roster to the selected set, so it stays stable
+    // regardless of which traveler was picked first.
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Mia, Theo')
 
     // The plain tap on a different line still means „für alle" —
     // unconditionally, whichever gesture the line beside it just took.
