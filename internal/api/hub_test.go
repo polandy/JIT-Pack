@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -305,5 +306,202 @@ func TestHub_SubscribersCountsOnlyTheStillAuthorised(t *testing.T) {
 
 	if n := hub.Subscribers("trip-1"); n != 1 {
 		t.Errorf("subscribers = %d, want 1 — the hub still counts a revoked socket", n)
+	}
+}
+
+// --- ADR-057: a broadcast waits for no peer ---------------------------------
+
+// fakePeer is a connection that has stopped reading. `Write` parks until the
+// test releases it and ignores the context, which is what a socket whose peer
+// has vanished looks like from here — the kernel buffer fills, and the write
+// neither completes nor fails until something times it out.
+type fakePeer struct {
+	entered chan struct{} // one token per Write that has begun
+	release chan struct{} // closed by the test to let every Write finish
+	closed  chan struct{} // closed by CloseNow
+	block   bool
+	// blockClose makes CloseNow park too, which the real one can do for up
+	// to 15 s while it waits for the connection's own goroutines to exit.
+	blockClose bool
+
+	mu     sync.Mutex
+	frames [][]byte
+	got    chan []byte // one token per completed Write
+}
+
+func newFakePeer(block bool) *fakePeer {
+	return &fakePeer{
+		entered: make(chan struct{}, 1024),
+		release: make(chan struct{}),
+		closed:  make(chan struct{}),
+		block:   block,
+		got:     make(chan []byte, 1024),
+	}
+}
+
+func (p *fakePeer) Write(_ context.Context, _ websocket.MessageType, data []byte) error {
+	p.entered <- struct{}{}
+	if p.block {
+		<-p.release
+	}
+	p.mu.Lock()
+	p.frames = append(p.frames, data)
+	p.mu.Unlock()
+	p.got <- data
+	return nil
+}
+
+func (p *fakePeer) CloseNow() error {
+	close(p.closed)
+	if p.blockClose {
+		<-p.release
+	}
+	return nil
+}
+
+// TestHub_ABroadcastDoesNotWaitForAStalledPeer is the case ADR-057 exists
+// for. Its failure mode against the serial implementation is a *hang*: there,
+// the second peer's write is not attempted until the first one's returns, and
+// the first one never does — so run it with `-timeout` when proving it.
+func TestHub_ABroadcastDoesNotWaitForAStalledPeer(t *testing.T) {
+	hub := NewHub(nil, allowAll)
+	stalled, reading := newFakePeer(true), newFakePeer(false)
+	a, b := newConn(stalled, "u-a"), newConn(reading, "u-b")
+	hub.Register(a)
+	hub.Register(b)
+	defer func() {
+		close(stalled.release)
+		hub.Unregister(a)
+		hub.Unregister(b)
+	}()
+	hub.Subscribe(a, "t1")
+	hub.Subscribe(b, "t1")
+
+	// Both are subscribed, so both are already being written to (presence).
+	// Wait until the stalled peer is *inside* a write: from here on it is
+	// holding a frame that will not complete.
+	<-stalled.entered
+
+	hub.NotifyTripChanged("t1", 7)
+
+	// The reading peer has the event while the other is still parked. No
+	// deadline is involved: the channel read is the rendezvous.
+	var evt WSEvent
+	for {
+		frame := <-reading.got
+		if err := json.Unmarshal(frame, &evt); err != nil {
+			t.Fatalf("unmarshal frame: %v", err)
+		}
+		if evt.Type == EventTripChanged {
+			break
+		}
+	}
+	if got := evt.Payload["head_seq"]; got != float64(7) {
+		t.Errorf("head_seq = %v, want 7", got)
+	}
+}
+
+// TestHub_APeerThatCannotKeepUpIsDisconnected pins the other half of the
+// decision: the queue is bounded, and the peer that overruns it is dropped
+// rather than waited for or grown for.
+func TestHub_APeerThatCannotKeepUpIsDisconnected(t *testing.T) {
+	hub := NewHub(nil, allowAll)
+	stalled := newFakePeer(true)
+	c := newConn(stalled, "u-a")
+	hub.Register(c)
+	defer func() {
+		close(stalled.release)
+		hub.Unregister(c)
+	}()
+
+	// The pump is parked inside the first write, so the queue is empty and
+	// its remaining capacity is exactly wsSendQueue. Without this rendezvous
+	// the count below would depend on whether the pump had run yet.
+	hub.NotifyMasterChanged("u-a", 1)
+	<-stalled.entered
+
+	for i := 0; i < wsSendQueue; i++ {
+		hub.NotifyMasterChanged("u-a", int64(i+2))
+	}
+	select {
+	case <-stalled.closed:
+		t.Fatal("dropped while the queue could still hold the frame")
+	default:
+	}
+
+	hub.NotifyMasterChanged("u-a", 999)
+
+	<-stalled.closed // the overrun frame is what disconnects it
+}
+
+// A peer that reads keeps every frame, in the order the hub sent them: the
+// queue is a buffer, not a sampler, and one pump per connection is what
+// makes that true now that the write no longer happens where the event does.
+func TestHub_AReadingPeerKeepsEveryFrameInOrder(t *testing.T) {
+	hub := NewHub(nil, allowAll)
+	peer := newFakePeer(false)
+	c := newConn(peer, "u-a")
+	hub.Register(c)
+	defer hub.Unregister(c)
+
+	const sent = 20
+	for i := 0; i < sent; i++ {
+		hub.NotifyMasterChanged("u-a", int64(i))
+	}
+
+	for i := 0; i < sent; i++ {
+		var evt WSEvent
+		if err := json.Unmarshal(<-peer.got, &evt); err != nil {
+			t.Fatalf("unmarshal frame %d: %v", i, err)
+		}
+		if got := evt.Payload["seq"]; got != float64(i) {
+			t.Fatalf("frame %d carries seq %v, want %d", i, got, i)
+		}
+	}
+	select {
+	case <-peer.closed:
+		t.Error("a peer that read everything was disconnected")
+	default:
+	}
+}
+
+// Dropping a peer must not do to the broadcast what the drop exists to
+// prevent. `CloseNow` is not cheap — the real one waits for the
+// connection's own goroutines to exit, up to fifteen seconds — so a drop
+// decided on the broadcast path must not be *performed* on it.
+func TestHub_DroppingAPeerDoesNotStallTheBroadcastEither(t *testing.T) {
+	hub := NewHub(nil, allowAll)
+	stalled, reading := newFakePeer(true), newFakePeer(false)
+	stalled.blockClose = true
+	a, b := newConn(stalled, "u-a"), newConn(reading, "u-b")
+	hub.Register(a)
+	hub.Register(b)
+	defer func() {
+		close(stalled.release)
+		hub.Unregister(a)
+		hub.Unregister(b)
+	}()
+	hub.Subscribe(a, "t1")
+	hub.Subscribe(b, "t1")
+	<-stalled.entered // its pump is parked; the queue is empty
+
+	// Fill the queue, then overrun it — the next broadcast is the one that
+	// decides to drop it, and it is a broadcast the other peer is in too.
+	for i := 0; i < wsSendQueue; i++ {
+		hub.NotifyTripChanged("t1", int64(i))
+	}
+	hub.NotifyTripChanged("t1", 999)
+	<-stalled.closed // it was dropped, and CloseNow is now parked
+
+	hub.NotifyTripChanged("t1", 1000)
+
+	for {
+		var evt WSEvent
+		if err := json.Unmarshal(<-reading.got, &evt); err != nil {
+			t.Fatalf("unmarshal frame: %v", err)
+		}
+		if evt.Type == EventTripChanged && evt.Payload["head_seq"] == float64(1000) {
+			return
+		}
 	}
 }

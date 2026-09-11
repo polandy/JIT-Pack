@@ -13,14 +13,40 @@ import (
 	"github.com/coder/websocket"
 )
 
+// wsWriter is the writable half of a WebSocket connection — the whole of
+// one, as far as the hub is concerned. An interface so a test can hold a
+// peer that has stopped reading without holding a real socket open, which
+// is the one state the hub's delivery rules are about.
+type wsWriter interface {
+	Write(ctx context.Context, typ websocket.MessageType, p []byte) error
+	CloseNow() error
+}
+
+// wsSendQueue is how many events a connection may fall behind by before it
+// is disconnected instead of waited for (ADR-057). Deep enough that an
+// ordinary burst — a push applying a few dozen rows — never reaches it,
+// shallow enough that a dead peer costs a bounded amount of memory.
+const wsSendQueue = 64
+
+// wsWriteTimeout bounds one write to one peer. It no longer delays anybody
+// else, so it is a reaper for a socket the kernel has stopped draining
+// rather than the pacing of the broadcast.
+const wsWriteTimeout = 5 * time.Second
+
 // conn is a tracked WebSocket connection.
 type conn struct {
-	ws     *websocket.Conn
+	ws     wsWriter
 	userID string
 	// trips this connection is subscribed to.
 	trips map[string]bool
 	// pullCursors tracks the last known pull cursor per trip.
 	pullCursors map[string]int64
+	// out holds the frames written but not yet sent to this peer, and is
+	// drained by its own goroutine — see `pump`.
+	out chan []byte
+	// done ends the pump. Closed once, by `stop`.
+	done     chan struct{}
+	stopOnce sync.Once
 }
 
 // HeadSeqFunc returns the current change_log head sequence for a trip.
@@ -54,16 +80,18 @@ func NewHub(headSeq HeadSeqFunc, mayReceive ReceiveFunc) *Hub {
 	}
 }
 
-// Register adds a connection to the hub.
+// Register adds a connection to the hub and starts writing to it.
 func (h *Hub) Register(c *conn) {
 	h.mu.Lock()
 	h.conns[c] = struct{}{}
 	h.mu.Unlock()
+	go c.pump()
 }
 
 // Unregister removes a connection and broadcasts presence updates for
 // all trips it was subscribed to.
 func (h *Hub) Unregister(c *conn) {
+	c.stop()
 	h.mu.Lock()
 	delete(h.conns, c)
 	trips := make([]string, 0, len(c.trips))
@@ -202,7 +230,9 @@ func (h *Hub) broadcast(tripID string, evt WSEvent) {
 	h.send(h.subscribersOf(tripID), evt)
 }
 
-// send writes an event to the given connections.
+// send hands an event to the given connections and returns. It never waits
+// for a peer: one that cannot keep up is disconnected (ADR-057), because a
+// broadcast that waits makes one stalled socket everybody's stall.
 func (h *Hub) send(targets []*conn, evt WSEvent) {
 	data, err := json.Marshal(evt)
 	if err != nil {
@@ -210,11 +240,7 @@ func (h *Hub) send(targets []*conn, evt WSEvent) {
 		return
 	}
 	for _, c := range targets {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		if err := c.ws.Write(ctx, websocket.MessageText, data); err != nil {
-			slog.Debug("write to ws", "user", c.userID, "error", err)
-		}
-		cancel()
+		c.enqueue(data)
 	}
 }
 
@@ -279,12 +305,76 @@ func (h *Hub) broadcastPresence(tripID string) {
 	h.send(targets, evt)
 }
 
-// newConn creates a tracked connection.
-func newConn(ws *websocket.Conn, userID string) *conn {
+// newConn creates a tracked connection. It does not start writing — that
+// begins at `Register`, and ends at `Unregister`.
+func newConn(ws wsWriter, userID string) *conn {
 	return &conn{
 		ws:          ws,
 		userID:      userID,
 		trips:       make(map[string]bool),
 		pullCursors: make(map[string]int64),
+		out:         make(chan []byte, wsSendQueue),
+		done:        make(chan struct{}),
+	}
+}
+
+// stop ends this connection's pump. Idempotent: `Unregister` runs on the
+// handler's defer, and a write failure ends the pump on its own.
+func (c *conn) stop() {
+	c.stopOnce.Do(func() { close(c.done) })
+}
+
+// drop ends the connection because its peer has stopped reading.
+//
+// The close is **detached**, and that is the whole point of the method:
+// `CloseNow` waits for the connection's own goroutines to exit — up to
+// fifteen seconds in the library — and the caller is a broadcast. Deciding
+// to drop a peer on the broadcast path is fine; performing the drop there
+// would be the very stall this design exists to remove.
+func (c *conn) drop() {
+	c.stopOnce.Do(func() {
+		close(c.done)
+		slog.Info("ws peer fell behind, disconnecting", "user", c.userID)
+		go func() {
+			if err := c.ws.CloseNow(); err != nil {
+				slog.Debug("close slow ws", "user", c.userID, "error", err)
+			}
+		}()
+	})
+}
+
+// pump is the only writer to this peer, which is what keeps its events in
+// order now that they are queued rather than written where they arise.
+func (c *conn) pump() {
+	for {
+		select {
+		case <-c.done:
+			return
+		case data := <-c.out:
+			ctx, cancel := context.WithTimeout(context.Background(), wsWriteTimeout)
+			err := c.ws.Write(ctx, websocket.MessageText, data)
+			cancel()
+			if err != nil {
+				// The peer is gone; the handler's read loop is about to
+				// discover the same thing and unregister.
+				slog.Debug("write to ws", "user", c.userID, "error", err)
+				return
+			}
+		}
+	}
+}
+
+// enqueue hands one frame to the peer's pump, or gives up on the peer.
+//
+// A full queue is not backpressure to wait out: a WebSocket event is a
+// *hint* that something changed, and the client's own reconnect-and-pull
+// recovers everything it names (Sync-API §7). Disconnecting a peer that has
+// stopped reading therefore costs it a reconnect and costs everybody else
+// nothing, where waiting for it costs every other subscriber the wait.
+func (c *conn) enqueue(data []byte) {
+	select {
+	case c.out <- data:
+	default:
+		c.drop()
 	}
 }

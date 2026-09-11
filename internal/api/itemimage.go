@@ -14,7 +14,13 @@ const maxItemImageUploadBytes = 150 * 1024
 // sensitivity presentation data. The ETag is the stored image_hash.
 func (s *Server) handleGetItemImage(w http.ResponseWriter, r *http.Request) {
 	data, hash, err := s.store.GetItemImage(r.Context(), r.PathValue(PathItemID))
-	if err != nil || data == nil {
+	if err != nil {
+		// A read that failed is not an item without a photo: 404 tells the
+		// client to stop asking, and the fault would be logged nowhere.
+		writeStoreError(w, err, "could not read this item's image")
+		return
+	}
+	if data == nil {
 		writeError(w, http.StatusNotFound, ErrNotFound, "no image for this item")
 		return
 	}

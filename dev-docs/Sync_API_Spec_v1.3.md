@@ -644,6 +644,14 @@ schema change was owed.
   presence roster other members hold keeps a revoked user until the next presence event (nothing rebroadcasts at the
   moment of revocation), and a membership restored after a mistake resumes with no re-subscribe, because the
   subscription itself was never taken away.
+* **A broadcast waits for no peer, and a peer that cannot keep up is disconnected (ADR-057, 2026-09-10).** The hub
+  wrote to its subscribers in a loop with a 5 s deadline per write, so one socket the kernel had stopped draining —
+  a phone out of range whose TCP connection has not failed yet — delayed every *other* subscriber by up to that
+  deadline, one after another. Each connection now owns a bounded queue and a single writer, and a connection whose
+  queue overruns is **closed** rather than waited for: an event carries no rows (P-1), and the client's
+  reconnect-and-pull recovers everything the gap contained. Two things follow for a client author: a socket may close
+  for no reason the client can see and the reconnect path is the answer to all of them, and events for one socket
+  keep their order, so `item.locked` can never arrive after its `item.unlocked`.
 * **The socket is a subscription, not a session, and the client treats it as one (implemented 2026-09-01).** P-1 has
   named *reconnect* as one of the four things the read path serves since v1.0, and until this date the client had none:
   a closed socket was nulled and never dialled again, so a device whose connection the server restart under it (the

@@ -2,9 +2,10 @@ package store_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"testing"
+
+	"jitpack/internal/store"
 )
 
 // NFR-4.5: the flat dump resolves traveler and container to *names*, because
@@ -52,7 +53,7 @@ func TestTripCSVRows_ResolvesTravelerAndContainerNames(t *testing.T) {
 func TestTripCSVRows_UnknownTrip_IsNotAnEmptyList(t *testing.T) {
 	st := openEmptyStore(t)
 	_, err := st.TripCSVRows(context.Background(), "nope")
-	if !errors.Is(err, sql.ErrNoRows) {
-		t.Fatalf("err = %v, want sql.ErrNoRows", err)
+	if !errors.Is(err, store.ErrTripNotFound) {
+		t.Fatalf("err = %v, want store.ErrTripNotFound", err)
 	}
 }

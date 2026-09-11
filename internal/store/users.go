@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 // EnsureOIDCUser returns the users.id for an OIDC subject, provisioning
@@ -27,12 +28,9 @@ import (
 // initial provisioning. Deactivation is never touched — a login must
 // not resurrect a deactivated account (FR-23.3/23.6).
 func (s *Store) EnsureOIDCUser(ctx context.Context, subject, displayName, email string, isAdmin *bool) (string, error) {
-	name := strings.TrimSpace(displayName)
+	name := sanitizeDisplayName(displayName)
 	if name == "" {
-		name = subject
-	}
-	if len(name) > 50 {
-		name = name[:50] // users.display_name CHECK constraint
+		name = sanitizeDisplayName(subject)
 	}
 
 	// NULL carries "leave the role as it stands" all the way into SQL, so
@@ -134,4 +132,31 @@ func (s *Store) ResolveUserRef(ctx context.Context, ref string) (string, error) 
 	default:
 		return "", fmt.Errorf("%w: %q names %d accounts", ErrUserRefAmbiguous, ref, len(ids))
 	}
+}
+
+// sanitizeDisplayName makes an IdP's claim fit FR-17.13, or returns "" when
+// nothing of it survives.
+//
+// It sanitises rather than refuses, because this runs on the login path and
+// a name is not a credential: the two other writers of this column —
+// SetDisplayName and the client before it — reject what does not fit,
+// because there a person is choosing the value and can be told. Here nobody
+// is: the value came from an identity provider nobody in this system
+// controls, and refusing it would turn somebody's Unicode-happy directory
+// entry into a failed login.
+func sanitizeDisplayName(claim string) string {
+	name := strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, claim)
+	name = strings.TrimSpace(name)
+	// Runes, not bytes: the column's CHECK counts characters, and a byte cut
+	// can also split a rune and store invalid UTF-8.
+	if runes := []rune(name); len(runes) > maxDisplayNameChars {
+		name = string(runes[:maxDisplayNameChars])
+	}
+	// Trailing whitespace can reappear where the cut landed on it.
+	return strings.TrimSpace(name)
 }

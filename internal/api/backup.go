@@ -51,7 +51,7 @@ func (s *Server) handleExportTripCSV(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue(PathTripID)
 	items, err := s.store.TripCSVRows(r.Context(), tripID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, ErrTripNotFound, "trip not found")
+		writeStoreError(w, err, "could not export this trip")
 		return
 	}
 
