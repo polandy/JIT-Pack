@@ -3512,6 +3512,15 @@ the tail is where a symbol system is actually decided. Results:
     and nothing may describe it as one; **the built way to say „this row is that person's" is FR-25.19's assignment**,
     which names an account directly.
 
+  * **Superseded 2026-09-11 (ADR-058): the revisit trigger fired.** The chosen trigger is the notification one —
+    assigning a `trip_items` row's *Assigned to* to a traveler whose `linked_user_id` is set now notifies that
+    account (`planRosterAssignment`, reusing FR-6.2's `NotifyDelegation` kind rather than adding a fifth). The link
+    gained one new rule as its price: **it may only ever name a current `trip_members` row of the same trip.** The
+    notification pipeline trusts `trip_members` as its whole recipient universe, and a link outside it would be a
+    deep link the recipient's device cannot open — so the server refuses the write (`not_a_trip_member`) and the CLI
+    checks the same rule before sending it. The operator sequence is therefore invite, then link, not the reverse.
+    Cross-device packing-record attribution — the decision's other candidate trigger — remains unbuilt.
+
 ### 3.4 Multi-User & Collaboration
 
 * **FR-4.5 (Roles & Permissions):** Trip sharing (FR-4.1) supports three roles: *Owner* (immutable for the trip creator

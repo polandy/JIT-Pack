@@ -111,7 +111,15 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 		}
 		return itemFacts{Name: name, PackerUserID: packer}, true
 	}
-	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve) {
+	resolveTraveler := func(travelerID string) (string, bool) {
+		linkedUserID, ok, err := s.store.TravelerLinkedUser(ctx, travelerID)
+		if err != nil {
+			slog.Error("notification traveler lookup", "traveler", travelerID, "error", err)
+			return "", false
+		}
+		return linkedUserID, ok
+	}
+	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve, resolveTraveler) {
 		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
 	}
 }

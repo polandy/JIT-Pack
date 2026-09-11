@@ -362,6 +362,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A row learned to name one traveler instead of all of them (2026-09-11)](#a-row-learned-to-name-one-traveler-instead-of-all-of-them-2026-09-11) — why the write is the everybody-planner with a roster of one, and why a carried line was left untouched.
 - [FR-25.13h's one-traveler shape did not survive its first live look (2026-09-11)](#fr-2513hs-one-traveler-shape-did-not-survive-its-first-live-look-2026-09-11) — a shrunk box, not a shrunk glyph, was the real touch-target bug; a test titled its own defect as a feature.
 - [„für alle" at three travelers had a write of its own, the wrong one (2026-09-11)](#für-alle-at-three-travelers-had-a-write-of-its-own-the-wrong-one-2026-09-11) — 👥 routed through the bulk verb beside avatar buttons doing the same job, taking deselection with it.
+- [A revisit trigger fired for a column left deliberately inert (2026-09-11)](#a-revisit-trigger-fired-for-a-column-left-deliberately-inert-2026-09-11) — FR-2.5's `linked_user_id` gets a reader (ADR-058), and the membership rule it cost.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14878,3 +14879,43 @@ are still there to turn back off. `E2E-M4-78` carried the old assumption as its 
 `acted` line with no avatars left) and needed the same correction as the unit test that shared its shape.
 `E2E-M4-79`'s carried line is untouched: it never had avatar buttons to lose in the first place, and 👥 there
 still means FR-25.13g's original bulk spread.
+
+## A revisit trigger fired for a column left deliberately inert (2026-09-11)
+
+`travelers.linked_user_id` had been sitting in the schema since FR-2.5, writable only through `jitpack traveler
+--user`, with no reader anywhere (the 2026-09-01 entry above, "keep, do not build"). That decision named its own
+revisit trigger up front — a notification addressed to the person behind a roster row, or cross-device attribution
+of a packing record — and asked the owner which one fired first. The answer was the notification.
+
+**The obvious version of "notify the linked account" is one line: read `linked_user_id`, send it a `NotifyDelegation`
+the way `planDelegation` already does for `packer_user_id`.** What made it not one line is that `planNotifications`
+has exactly one trust boundary — `trip_members` — and every rule in the file leans on it without saying so twice.
+`planDelegation` never checks whether `packer_user_id` is a member because nothing upstream lets it be anything
+else: the client can only write an account id that came from `GET /api/users`, and FR-25.19's assignment UI already
+scopes that picker to the trip. `linked_user_id` had no such upstream discipline — it is a CLI flag against the
+whole instance's directory, unconstrained by anything except a `users(id)` foreign key. Add the naive notification
+rule as written and the first CLI run that links a traveler to an account not yet invited to the trip produces a
+notification whose deep link nobody can open: the recipient's own trip pull is scoped to `trip_members`, so the
+row the link points at is one their device is never handed.
+
+**So the column's price for gaining a reader was a membership rule it never had.** `validTravelerLink`
+(`internal/store/travelers.go`) rejects a `linked_user_id` that does not name a current `trip_members` row of the
+same trip, with a new `not_a_trip_member` reason; the CLI checks the identical condition before it ever builds the
+mutation, so the ordinary mistake — link before invite — fails with a sentence rather than a silent orphaned link or
+a server round trip. Unlinking needed none of this: a nil value always clears, because there is no invalid trip to
+point the notification at once the pointer is empty. ADR-058 records the two rejected alternatives — granting
+`trip_members` automatically on link (a role decision the feature does not otherwise need, invented as a side
+effect of a field with no UI before this), and shipping the notification unchecked (the broken case above).
+
+**One thing the naive version would also have gotten wrong: double-counting.** `assigned_traveler_id` and
+`packer_user_id` are different questions — who a row is for, and who volunteered to pack it — but they can name the
+same person, and when they do, one delegation notification is the honest count, not two. `planRosterAssignment`
+checks the mutation's own `packer_user_id` (via the same `itemResolver` `planDelegation` already used) and stays
+silent when it already names the same account `linked_user_id` resolves to. Getting this from a fresh read of the
+two columns, rather than by trusting that they cannot collide, is what the FR-25.19 log entry already warned about
+for a different pair of these fields — two client-writable columns describing overlapping decisions do collide, and
+the test (`TestPlanRosterAssignment_DedupsAgainstDelegation_WhenPackerIsTheSameLinkedUser`) is what proves the
+silence rather than assumes it.
+
+Cross-device packing-record attribution, the decision's other named trigger, remains exactly as unbuilt as before —
+firing one trigger was never a reason to build the other's machinery too.

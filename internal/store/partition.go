@@ -108,9 +108,12 @@ func tripPartition(tripID, userID string) partition {
 		tables:  tripPartitionTables,
 		feed:    tripFeed(tripID),
 		actorID: userID,
-		scope: func(_ context.Context, _ *sql.Tx, m *sync.Mutation, row sync.Row) (RejectReason, error) {
+		scope: func(ctx context.Context, tx *sql.Tx, m *sync.Mutation, row sync.Row) (RejectReason, error) {
 			if !belongsToTrip(tripID, *m, row.Fields, row.Exists) {
 				return ReasonOutOfScope, nil
+			}
+			if m.Table == TableTravelers {
+				return validTravelerLink(ctx, tx, tripID, row.Fields, m)
 			}
 			return ReasonNone, nil
 		},
