@@ -22,6 +22,7 @@ export const REJECTION_REASON = Object.freeze({
   constraintViolated: 'constraint_violated',
   malformedHlc: 'malformed_hlc',
   rowDeleted: 'row_deleted',
+  notATripMember: 'not_a_trip_member',
 } as const)
 
 /** One of the reasons above. */
@@ -35,6 +36,7 @@ const REASON_KEYS: Record<RejectionReason, MessageKey> = {
   [REJECTION_REASON.constraintViolated]: 'sync.detail.rejected.constraintViolated',
   [REJECTION_REASON.malformedHlc]: 'sync.detail.rejected.malformedHlc',
   [REJECTION_REASON.rowDeleted]: 'sync.detail.rejected.rowDeleted',
+  [REJECTION_REASON.notATripMember]: 'sync.detail.rejected.notATripMember',
 }
 
 /**

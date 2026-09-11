@@ -115,6 +115,8 @@ export const en = {
     'The change carried an unusable timestamp — this device produced it wrongly.',
   'sync.detail.rejected.rowDeleted':
     'Somebody deleted the entry after you made this change — the server did not bring it back.',
+  'sync.detail.rejected.notATripMember':
+    'That person is not a member of this trip — invite them before linking their account.',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',

@@ -43,9 +43,11 @@ export interface TravelerOptions extends Connection {
   year: number | null
   names: string[]
   /**
-   * An account to record the person as, by id or display name. Recorded and
-   * not acted on — FR-2.5's 2026-09-01 decision: the link has no reader, and
-   * the built way to make a row somebody's is FR-25.19's assignment.
+   * An account to record the person as, by id or display name. The account
+   * must already be a member of the trip (FR-2.5, ADR-058) — the link feeds
+   * a notification (planRosterAssignment) when a row is assigned to this
+   * traveler, and a deep link into a trip the account cannot open is worse
+   * than none. Invite them first, then link.
    */
   user: string | null
   dryRun: boolean
@@ -66,7 +68,7 @@ rows they own, and that question belongs on the screen that asks it (M22).
 Flags:
   --trip TRIP    trip id, or its name (required)
   --year YEAR    which trip, when one name means several
-  --user WHO     record which account the person is (nothing reads it yet)
+  --user WHO     link the person to an account already on the trip
   --server URL   instance base URL (default $${ENV_SERVER}, else ${DEFAULT_SERVER})
   --token TOKEN  bearer token for an instance with accounts (default $${ENV_TOKEN})
   --dry-run      report what would be added without adding it`
@@ -186,6 +188,14 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
       linkedUserId = resolved.userId
     } catch (e) {
       io.write(`${API.users}: ${message(e)}`)
+      return EXIT.failed
+    }
+    // FR-2.5 → ADR-058: the server refuses a link to an account that is not
+    // a trip member, since the notification it feeds would deep-link into a
+    // trip that account cannot open. Checking here fails fast with a
+    // sentence, rather than the server's generic rejection.
+    if (!trips.getMembers(trip.id).some((m) => m.user_id === linkedUserId)) {
+      io.write(`${where}: ${opts.user} is not a member of this trip — invite them before linking`)
       return EXIT.failed
     }
   }

@@ -38,6 +38,7 @@ function fakeTripReads(asked: string[] = []): TripReads {
     getTrip: () => undefined,
     getItems: (tripId) => (asked.push('getItems'), tripId === TRIP_ID ? [ITEM] : []),
     getTravelers: () => [],
+    getMembers: () => [],
     getContainers: (tripId) => (
       asked.push('getContainers'),
       tripId === TRIP_ID ? [LEFT, RIGHT] : []

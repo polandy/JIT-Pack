@@ -26,6 +26,19 @@ func resolverFor(items map[string]itemFacts) itemResolver {
 	}
 }
 
+// travelerResolverFor answers from a map and reports false for anything
+// else, which is how a case says "this traveler is unlinked or unknown".
+func travelerResolverFor(links map[string]string) travelerResolver {
+	return func(travelerID string) (string, bool) {
+		u, ok := links[travelerID]
+		return u, ok
+	}
+}
+
+// noTravelerLinks is the resolver for every case that is not about
+// FR-2.5/ADR-058's roster-assignment rule.
+func noTravelerLinks(string) (string, bool) { return "", false }
+
 // allApplied is the result vector for n mutations that all landed, so a case
 // that is not about outcomes does not have to spell one out.
 func allApplied(n int) []MutationResult {
@@ -248,7 +261,7 @@ func TestPlanNotifications_EveryFR62Trigger(t *testing.T) {
 			if results == nil {
 				results = allApplied(len(tc.muts))
 			}
-			got := recipients(planNotifications("trip-1", "u-actor", tc.muts, results, members, resolverFor(tc.items)))
+			got := recipients(planNotifications("trip-1", "u-actor", tc.muts, results, members, resolverFor(tc.items), noTravelerLinks))
 			if len(got) != len(tc.want) {
 				t.Fatalf("plan = %v, want %v", got, tc.want)
 			}
@@ -258,6 +271,81 @@ func TestPlanNotifications_EveryFR62Trigger(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestPlanRosterAssignment_LinkedTravelerNotifiesTheirAccount and its
+// siblings pin FR-2.5 → ADR-058: assigning a row to a traveler linked to
+// an account notifies that account, the same way an explicit
+// packer_user_id delegation would.
+func TestPlanRosterAssignment_LinkedTravelerNotifiesTheirAccount(t *testing.T) {
+	const zelt, traveler = "ti-zelt", "trv-sarah"
+	resolve := resolverFor(map[string]itemFacts{zelt: {Name: "Zelt"}})
+	resolveTraveler := travelerResolverFor(map[string]string{traveler: "u-sarah"})
+
+	plan := planNotifications("trip-1", "u-actor",
+		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"assigned_traveler_id": traveler})},
+		allApplied(1), notificationRuleMembers, resolve, resolveTraveler)
+
+	if got := recipients(plan); len(got) != 1 || got[0] != "u-sarah/"+store.NotifyDelegation {
+		t.Fatalf("plan = %v, want one delegation to u-sarah", got)
+	}
+}
+
+func TestPlanRosterAssignment_DedupsAgainstDelegation_WhenPackerIsTheSameLinkedUser(t *testing.T) {
+	const zelt, traveler = "ti-zelt", "trv-sarah"
+	resolve := resolverFor(map[string]itemFacts{zelt: {Name: "Zelt"}})
+	resolveTraveler := travelerResolverFor(map[string]string{traveler: "u-sarah"})
+
+	plan := planNotifications("trip-1", "u-actor",
+		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{
+			"assigned_traveler_id": traveler, "packer_user_id": "u-sarah",
+		})},
+		allApplied(1), notificationRuleMembers, resolve, resolveTraveler)
+
+	if got := recipients(plan); len(got) != 1 || got[0] != "u-sarah/"+store.NotifyDelegation {
+		t.Fatalf("plan = %v, want exactly one delegation to u-sarah, not two", got)
+	}
+}
+
+func TestPlanRosterAssignment_UnlinkedTraveler_NoOp(t *testing.T) {
+	const zelt, traveler = "ti-zelt", "trv-sarah"
+	resolve := resolverFor(map[string]itemFacts{zelt: {Name: "Zelt"}})
+
+	plan := planNotifications("trip-1", "u-actor",
+		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"assigned_traveler_id": traveler})},
+		allApplied(1), notificationRuleMembers, resolve, noTravelerLinks)
+
+	if got := recipients(plan); len(got) != 0 {
+		t.Fatalf("plan = %v, want nothing for an unlinked traveler", got)
+	}
+}
+
+func TestPlanRosterAssignment_TargetNotATripMember_NoOp(t *testing.T) {
+	const zelt, traveler = "ti-zelt", "trv-ghost"
+	resolve := resolverFor(map[string]itemFacts{zelt: {Name: "Zelt"}})
+	resolveTraveler := travelerResolverFor(map[string]string{traveler: "u-departed"})
+
+	plan := planNotifications("trip-1", "u-actor",
+		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"assigned_traveler_id": traveler})},
+		allApplied(1), notificationRuleMembers, resolve, resolveTraveler)
+
+	if got := recipients(plan); len(got) != 0 {
+		t.Fatalf("plan = %v, want nothing for a linked user who left the trip", got)
+	}
+}
+
+func TestPlanRosterAssignment_TargetIsActor_NoOp(t *testing.T) {
+	const zelt, traveler = "ti-zelt", "trv-actor"
+	resolve := resolverFor(map[string]itemFacts{zelt: {Name: "Zelt"}})
+	resolveTraveler := travelerResolverFor(map[string]string{traveler: "u-actor"})
+
+	plan := planNotifications("trip-1", "u-actor",
+		[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"assigned_traveler_id": traveler})},
+		allApplied(1), notificationRuleMembers, resolve, resolveTraveler)
+
+	if got := recipients(plan); len(got) != 0 {
+		t.Fatalf("plan = %v, want nothing when the actor assigns themselves", got)
 	}
 }
 
@@ -272,7 +360,7 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 	t.Run("delegation", func(t *testing.T) {
 		plan := planNotifications("trip-1", "u-actor",
 			[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"packer_user_id": "u-sarah"})},
-			allApplied(1), notificationRuleMembers, resolve)
+			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks)
 		if len(plan) != 1 {
 			t.Fatalf("plan = %v, want one delegation", recipients(plan))
 		}
@@ -287,7 +375,7 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 			[]syncpkg.Mutation{commentMutation(comment, map[string]any{
 				"body": "seal the seams", "trip_item_id": zelt, "is_task": true,
 			})},
-			allApplied(1), notificationRuleMembers, resolve)
+			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks)
 		if len(plan) != 1 {
 			t.Fatalf("plan = %v, want one task", recipients(plan))
 		}
@@ -302,7 +390,7 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 	t.Run("a comment on no item carries no item keys", func(t *testing.T) {
 		plan := planNotifications("trip-1", "u-actor",
 			[]syncpkg.Mutation{commentMutation(comment, map[string]any{"body": "@Sarah hi"})},
-			allApplied(1), notificationRuleMembers, resolve)
+			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks)
 		if len(plan) != 1 {
 			t.Fatalf("plan = %v, want one mention", recipients(plan))
 		}
@@ -316,7 +404,7 @@ func TestPlanNotifications_PayloadCarriesTheDeepLink(t *testing.T) {
 	t.Run("an actor who has left the trip is unnamed, not missing", func(t *testing.T) {
 		plan := planNotifications("trip-1", "u-ghost",
 			[]syncpkg.Mutation{tripItemMutation(zelt, map[string]any{"packer_user_id": "u-sarah"})},
-			allApplied(1), notificationRuleMembers, resolve)
+			allApplied(1), notificationRuleMembers, resolve, noTravelerLinks)
 		if len(plan) != 1 {
 			t.Fatalf("plan = %v, want one delegation", recipients(plan))
 		}
@@ -349,7 +437,7 @@ func TestPlanNotifications_PreviewIsTruncated(t *testing.T) {
 	body := strings.Repeat("ä", previewLen+10)
 	plan := planNotifications("trip-1", "u-actor",
 		[]syncpkg.Mutation{commentMutation("c-1", map[string]any{"body": body + " @Sarah"})},
-		allApplied(1), notificationRuleMembers, resolverFor(nil))
+		allApplied(1), notificationRuleMembers, resolverFor(nil), noTravelerLinks)
 	if len(plan) != 1 {
 		t.Fatalf("plan = %v, want one mention", recipients(plan))
 	}

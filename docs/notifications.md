@@ -2,7 +2,8 @@
 
 JIT-Pack notifies people when someone else's action concerns them. Four things trigger a notification, and only these:
 
-- **Delegation** — someone hands you the responsibility for packing an item.
+- **Delegation** — someone hands you the responsibility for packing an item, either directly or by assigning the
+  item to a traveler linked to your account (see [Linking a person to an account](command-line.md#linking-a-person-to-an-account)).
 - **Mention** — a comment names you with `@display-name`.
 - **Task** — a comment on an item is flagged as a task; the item's packer is notified.
 - **Row taken over** — you had started packing a row and somebody else took it over (see [Two people, one row](multi-user-setup.md#6-two-people-one-row)).

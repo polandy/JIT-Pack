@@ -136,6 +136,12 @@ const (
 	// row is gone and the tombstone is newer, so creating it again would
 	// undo somebody else's delete rather than merge with it (Sync-API §6).
 	ReasonRowDeleted RejectReason = "row_deleted"
+	// ReasonNotATripMember is a traveler's linked_user_id naming an account
+	// that is not (or no longer) a trip_members row of the same trip
+	// (FR-2.5, ADR-058): the notification pipeline trusts trip_members as
+	// its whole recipient universe, so a link outside it would be a deep
+	// link the recipient's device cannot open.
+	ReasonNotATripMember RejectReason = "not_a_trip_member"
 )
 
 // The trip roles (FR-4.5/4.7), named once: they are compared against in

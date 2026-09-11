@@ -29,6 +29,7 @@ import type {
   Traveler,
   Trip,
   TripItem,
+  TripMember,
   TripSeries,
   TripTemplateSource,
 } from '@/types/domain'
@@ -52,6 +53,8 @@ export interface TripReads {
   getTrip(id: string): Trip | undefined
   getItems(tripId: string): TripItem[]
   getTravelers(tripId: string): Traveler[]
+  /** The trip's synced membership roster (FR-4.5) — who linked_user_id may name (FR-2.5, ADR-058). */
+  getMembers(tripId: string): TripMember[]
   getContainers(tripId: string): Container[]
   getTodos(tripId: string): ItemTodo[]
   getTemplateSources(tripId: string): TripTemplateSource[]
