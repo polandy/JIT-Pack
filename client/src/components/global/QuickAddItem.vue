@@ -69,7 +69,7 @@ import type { AddedItemDecision } from '@/sync/mutations'
 import type { BrowseRowSummary } from '@/domain/browseRows'
 import { recentItemIds, recordRecentItem } from '@/local/quickAddRecents'
 import { previewText } from '@/lib/groupPreview'
-import type { MasterItem } from '@/types/domain'
+import type { MasterItem, Traveler } from '@/types/domain'
 
 /**
  * How many matches the composer offers per kind. The list sits under a soft
@@ -98,6 +98,12 @@ const props = withDefaults(
      */
     travelerCount?: number
     /**
+     * FR-25.13h: the roster itself, passed straight through to the
+     * browse-sheet's avatar buttons and long-press menu. Absent wherever
+     * {@link travelerCount} would keep the browse-sheet's 👥 off anyway.
+     */
+    travelers?: Traveler[]
+    /**
      * FR-25.13f: the packing state of what the scope carries, per master
      * item. Passed straight through to the browse-sheet, where its presence
      * is what puts the two one-tap verbs on the rows — M4 only.
@@ -117,6 +123,7 @@ const props = withDefaults(
     excludeItemIds: () => [],
     offerGroups: false,
     travelerCount: 0,
+    travelers: () => [],
     browseRowStates: undefined,
     showTrigger: true,
   },
@@ -153,6 +160,8 @@ const emit = defineEmits<{
   addForAll: [item: BrowseAddition]
   /** FR-25.13g: give every traveler still without a row for it one. */
   spreadCarried: [itemId: string]
+  /** FR-25.13h: add or update this master item with exactly this set of travelers assigned. */
+  assignForTravelers: [item: BrowseAddition, travelerIds: string[]]
   /** FR-25.13f: pack every row the scope carries for this master item. */
   packCarried: [itemId: string]
   /** FR-25.13f: leave every row the scope carries for this master item home. */
@@ -314,6 +323,17 @@ function emitMasterItem(item: MasterItem, decided?: AddedItemDecision) {
  */
 function onBrowseAddForAll(item: MasterItem) {
   emit('addForAll', additionOf(item))
+  afterAdd(item)
+}
+
+/**
+ * FR-25.13h: the sheet's per-traveler avatar buttons / long-press pick. Same
+ * shape as {@link onBrowseAddForAll} for the same reason — the verb answers
+ * who without an editor, so the run stays in the sheet. Multi-select: the
+ * sheet always sends the whole desired set, not one traveler at a time.
+ */
+function onBrowseAssignForTravelers(item: MasterItem, travelerIds: string[]) {
+  emit('assignForTravelers', additionOf(item), travelerIds)
   afterAdd(item)
 }
 
@@ -620,8 +640,10 @@ function onKeydown(event: KeyboardEvent) {
           :carried-item-ids="excludeItemIds"
           :row-states="browseRowStates"
           :traveler-count="travelerCount"
+          :travelers="travelers"
           @add="onBrowseAdd"
           @add-for-all="onBrowseAddForAll"
+          @assign-to-travelers="onBrowseAssignForTravelers"
           @spread-to-all="emit('spreadCarried', $event.id)"
           @add-packed="onBrowseAddPacked"
           @add-skipped="onBrowseAddSkipped"

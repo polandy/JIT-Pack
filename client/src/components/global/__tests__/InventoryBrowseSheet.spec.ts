@@ -17,6 +17,7 @@ import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
 import { browseHideCarried } from '@/composables/useBrowseHideCarried'
 import { useMasterStore } from '@/stores/masterStore'
 import type { BrowseRowSummary } from '@/domain/browseRows'
+import type { Traveler } from '@/types/domain'
 
 function tag(id: string, name: string, sortOrder: number) {
   useMasterStore().applyChange({
@@ -591,5 +592,254 @@ describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
   it('tells the head what the three verbs do', () => {
     expect(mountForAll({}).text()).toContain('for everyone')
     expect(mountForAll({ travelerCount: 1 }).text()).not.toContain('for everyone')
+  })
+})
+
+describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
+  const ANDY: Traveler = { id: 'tr-a', trip_id: 't1', name: 'Andy', linked_user_id: null }
+  const NINA: Traveler = { id: 'tr-b', trip_id: 't1', name: 'Nina', linked_user_id: null }
+  const MILA: Traveler = { id: 'tr-c', trip_id: 't1', name: 'Mila', linked_user_id: null }
+  const THEO: Traveler = { id: 'tr-d', trip_id: 't1', name: 'Theo', linked_user_id: null }
+  const THREE: Traveler[] = [ANDY, NINA, MILA]
+  const FOUR: Traveler[] = [ANDY, NINA, MILA, THEO]
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    browseHideCarried().reload()
+    seed()
+  })
+
+  function mountAssign(travelers: Traveler[] = THREE) {
+    return mount(InventoryBrowseSheet, {
+      props: {
+        carriedItemIds: [],
+        rowStates: new Map(),
+        travelerCount: travelers.length,
+        travelers,
+      },
+    })
+  }
+
+  function rowFree(wrapper: ReturnType<typeof mountAssign>, name: string) {
+    return wrapper
+      .findAll('[data-testid="browse-row-free"]')
+      .find((candidate) => candidate.text().includes(name))!
+  }
+
+  it('gives each of up to three travelers a button of their own, in trip order', () => {
+    const row = rowFree(mountAssign(), 'Badehose')
+
+    expect(
+      row.findAll('[data-testid^="browse-assign-"]').map((b) => b.attributes('data-testid')),
+    ).toEqual(['browse-assign-Andy', 'browse-assign-Nina', 'browse-assign-Mila'])
+  })
+
+  it('emits the whole set for exactly the traveler whose button was tapped', async () => {
+    const wrapper = mountAssign()
+
+    await rowFree(wrapper, 'Badehose').get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[0]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-b'],
+    ])
+    // A dedicated write, not a second add and not a „für alle" in disguise.
+    expect(wrapper.emitted('add')).toBeUndefined()
+    expect(wrapper.emitted('addForAll')).toBeUndefined()
+  })
+
+  it('says who it went to, and offers the way back', async () => {
+    const wrapper = mountAssign()
+
+    await rowFree(wrapper, 'Badehose').get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Nina')
+    expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(true)
+  })
+
+  it('multi-select: a second avatar adds to the set instead of replacing it', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-b', 'tr-c'],
+    ])
+    expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Nina, Mila')
+    // Still one row, one Undo — multi-select is still one running action.
+    expect(wrapper.findAll('[data-testid="browse-undo"]')).toHaveLength(1)
+  })
+
+  it('multi-select: the row stays open and tappable after the first traveler', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    // The row is still `browse-row-free` — the avatar buttons have to stay
+    // reachable for a second tap, unlike every other verb's row.
+    expect(row.attributes('data-testid')).toBe('browse-row-free')
+    expect(row.findAll('[data-testid^="browse-assign-"]')).toHaveLength(3)
+  })
+
+  it('tapping a selected avatar again removes just that traveler, not the whole item', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[2]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-c'],
+    ])
+    expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Mila')
+    expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).not.toContain('Nina')
+  })
+
+  it('deselecting the last traveler is the same outcome as „Rückgängig"', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([{ id: 'i-badehose' }, []])
+    expect(wrapper.find('[data-testid="browse-assigned-now"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(false)
+  })
+
+  it('a selected avatar carries the selected state, an unselected one does not', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(row.get('[data-testid="browse-assign-Nina"]').classes()).toContain('selected')
+    expect(row.get('[data-testid="browse-assign-Mila"]').classes()).not.toContain('selected')
+  })
+
+  it('Undo on an assigning line clears every traveler it held, not just the last one', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+    await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
+    await row.get('[data-testid="browse-undo"]').trigger('click')
+
+    expect(wrapper.emitted('undo')?.[0]).toMatchObject([{ id: 'i-badehose' }])
+    expect(row.findAll('[data-testid^="browse-assign-"]').at(0)?.classes()).not.toContain(
+      'selected',
+    )
+    expect(wrapper.find('[data-testid="browse-assigned-now"]').exists()).toBe(false)
+  })
+
+  it('👥 with ≤3 travelers selects every avatar, still deselectable one at a time', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    await row.get('[data-testid="browse-for-all"]').trigger('click')
+
+    // The same write an avatar tap makes, for the whole roster at once — not
+    // the bulk `addForAll` verb, which would close the row and take the
+    // avatar buttons (and so any way to deselect) with it.
+    expect(wrapper.emitted('assignToTravelers')?.[0]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-a', 'tr-b', 'tr-c'],
+    ])
+    expect(wrapper.emitted('addForAll')).toBeUndefined()
+    expect(row.findAll('[data-testid^="browse-assign-"].selected')).toHaveLength(3)
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-a', 'tr-c'],
+    ])
+    expect(row.get('[data-testid="browse-assign-Nina"]').classes()).not.toContain('selected')
+  })
+
+  it('offers no inline buttons above three travelers, and leaves 👥 exactly as it was', () => {
+    const row = rowFree(mountAssign(FOUR), 'Badehose')
+
+    expect(row.findAll('[data-testid^="browse-assign-"]')).toHaveLength(0)
+    expect(row.find('[data-testid="browse-for-all"]').exists()).toBe(true)
+  })
+
+  it('👥 stays the bulk verb above three travelers, but becomes the select-all write at ≤3', async () => {
+    const three = mountAssign(THREE)
+    const four = mountAssign(FOUR)
+
+    await rowFree(three, 'Badehose').get('[data-testid="browse-for-all"]').trigger('click')
+    await rowFree(four, 'Badehose').get('[data-testid="browse-for-all"]').trigger('click')
+
+    // ≤3: 👥 writes the same assignment an avatar tap would, so the row stays
+    // `assigning` and every traveler it just picked can still be deselected.
+    expect(three.emitted('assignToTravelers')?.[0]).toMatchObject([
+      { id: 'i-badehose' },
+      ['tr-a', 'tr-b', 'tr-c'],
+    ])
+    expect(three.emitted('addForAll')).toBeUndefined()
+    // Past three there is no avatar row to keep open for — 👥 is still the
+    // popover's own accumulate-only bulk verb.
+    expect(four.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    expect(four.emitted('assignToTravelers')).toBeUndefined()
+  })
+
+  it('names the traveler for the screen reader, and says "remove" once selected', async () => {
+    const wrapper = mountAssign()
+    const row = rowFree(wrapper, 'Badehose')
+
+    expect(row.get('[data-testid="browse-assign-Nina"]').attributes('aria-label')).toBe(
+      'Assign "Badehose" to Nina',
+    )
+
+    await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
+
+    expect(row.get('[data-testid="browse-assign-Nina"]').attributes('aria-label')).toBe(
+      'Remove "Badehose" from Nina',
+    )
+  })
+
+  it('is absent below two travelers, same as „für alle" (G-8)', () => {
+    const row = rowFree(mountAssign([ANDY]), 'Badehose')
+
+    expect(row.findAll('[data-testid^="browse-assign-"]')).toHaveLength(0)
+  })
+})
+
+describe("InventoryBrowseSheet — the name's long-press tooltip (FR-25.13h)", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    seed()
+  })
+
+  it('shows the full name on a long press, and nothing before one', async () => {
+    const wrapper = mountSheet()
+    const row = wrapper
+      .findAll('[data-testid="browse-row"]')
+      .find((candidate) => candidate.text().includes('Badehose'))!
+
+    expect(wrapper.find('[data-testid="browse-name-tip"]').exists()).toBe(false)
+
+    await row.trigger('contextmenu')
+
+    expect(wrapper.get('[data-testid="browse-name-tip"]').text()).toBe('Badehose')
+  })
+
+  it('a plain tap still adds — a long press does not', async () => {
+    const wrapper = mountSheet()
+    const row = wrapper
+      .findAll('[data-testid="browse-row"]')
+      .find((candidate) => candidate.text().includes('Badehose'))!
+
+    await row.trigger('click')
+
+    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
   })
 })

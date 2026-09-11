@@ -515,6 +515,9 @@ export const en = {
   'quickAdd.browsePackLabel': 'Mark "{name}" as packed',
   'quickAdd.browseSkipLabel': 'Deliberately leave "{name}" behind',
   'quickAdd.browseUndoLabel': '"{name}": undo the last action',
+  'quickAdd.browseAssignedNow': 'assigned to {name}',
+  'quickAdd.browseAssignLabel': 'Assign "{name}" to {traveler}',
+  'quickAdd.browseUnassignLabel': 'Remove "{name}" from {traveler}',
 
   // Faceted filter panel (FR-25.11), shared by M4 and M6.
   'filter.title': 'Filter',

@@ -359,6 +359,9 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A body limit that only the spec enforced (2026-09-10)](#a-body-limit-that-only-the-spec-enforced-2026-09-10) — a documented 5 MB cap no handler ever applied, and why the two new ones differ.
 - [Three screens that treated an interruption as an answer (2026-09-10)](#three-screens-that-treated-an-interruption-as-an-answer-2026-09-10) — a wrong reassurance is read as the truth; the stepper borrowed the constant and left the cancellations.
 - [A socket outlived the permission that opened it (2026-09-10)](#a-socket-outlived-the-permission-that-opened-it-2026-09-10) — the drop-on-revocation fix was a list of call sites, incomplete the day it would have been written.
+- [A row learned to name one traveler instead of all of them (2026-09-11)](#a-row-learned-to-name-one-traveler-instead-of-all-of-them-2026-09-11) — why the write is the everybody-planner with a roster of one, and why a carried line was left untouched.
+- [FR-25.13h's one-traveler shape did not survive its first live look (2026-09-11)](#fr-2513hs-one-traveler-shape-did-not-survive-its-first-live-look-2026-09-11) — a shrunk box, not a shrunk glyph, was the real touch-target bug; a test titled its own defect as a feature.
+- [„für alle" at three travelers had a write of its own, the wrong one (2026-09-11)](#für-alle-at-three-travelers-had-a-write-of-its-own-the-wrong-one-2026-09-11) — 👥 routed through the bulk verb beside avatar buttons doing the same job, taking deselection with it.
 - [A revisit trigger fired for a column left deliberately inert (2026-09-11)](#a-revisit-trigger-fired-for-a-column-left-deliberately-inert-2026-09-11) — FR-2.5's `linked_user_id` gets a reader (ADR-058), and the membership rule it cost.
 ## Deviations
 
@@ -14774,6 +14777,108 @@ nothing rebroadcasts at the moment of revocation.
 One deliberate asymmetry in the hub's constructor: `headSeq` may be nil and `mayReceive` may not — a nil gate admits
 nobody. `in_sync` is an optimisation and degrades quietly; an authorization gate that fails open is worse than one that
 fails shut, and total silence is loud in a test.
+
+## A row learned to name one traveler instead of all of them (2026-09-11)
+
+FR-25.13g's 👥 answers *who* for everybody in one tap; the one thing it still could not do was answer it for
+**one** named traveler, which sent the request back through the membership editor FR-25.13g had specifically been
+built to route around. The mockups the owner reviewed settled the shape before any code was written — up to three
+travelers get an avatar button of their own in the line, and above that a long press on 👥 opens a menu instead,
+with 👥's plain tap left untouched in both shapes.
+
+**The write is `domain/membership.ts`'s planner, not a new mechanism.** `addItemForEveryTraveler` calls it with
+`everyoneMembers(travelers, …)`; the new `addItemForOneTraveler` calls the same planner with a target of exactly
+one traveler at the row's own quantity. Nothing new is stored — `assigned_traveler_id` is FR-25.21's own field —
+and because a brand-new row is never already anybody's member, the "keep what somebody already chose" branch
+`spreadOverEveryTraveler` needs for a *carried* line never has to run here: the add and the assignment are one
+unit, and the undo is the same delete every other free-line add already uses. That is also why this stayed a
+`ForAllAddResult`-free `AddResult` rather than a second `SpreadResult` shape — there is no fan-out to restore.
+
+**Scope was cut to free lines on purpose, not by oversight.** Every mockup drawn for this feature showed the
+control on a line the trip does not carry yet; a carried line keeps exactly the 👥/spread FR-25.13g gave it. The
+generalisation is obvious if it turns out to be wanted — `spreadOverEveryTraveler`'s own `everyoneMembers` target
+becomes a one-traveler target the same way the free-line write did — but nothing forced it into this PR, and a
+smaller diff was the more honest shape of what was actually decided.
+
+**The two long presses in one sheet needed a rule, not a coincidence.** 👥's long press (the traveler menu, above
+three) and the name's long press (the tooltip an ellipsis now hides more often) are two different targets, so they
+never race — but an open tooltip left over from one line while a different control is pressed would read as a
+stale label pointing at nothing. A capture-phase `pointerdown` on the sheet root closes it the instant any other
+press starts, which is cheaper than tracking which of the two gestures owns "the" open overlay.
+
+**The avatar-button testid is keyed by traveler name, not id**, matching `membership-check-${name}` and every
+other per-traveler testid already in the suite — a UUID a Playwright case cannot predict ahead of time would have
+made E2E-M4-80 impossible to write without first reading it back out of the store.
+
+## FR-25.13h's one-traveler shape did not survive its first live look (2026-09-11)
+
+The section above shipped as a PR and, before it merged, got what CLAUDE.md's working agreement asks for anyway —
+the maintainer opened it on the running family instance rather than judging it from the diff. Two things came back
+wrong, both premises rather than polish, and both are why this is a second section and not an edit to the first.
+
+**The touch target was never 34px — it only looked like the other three.** `.act.assign` read `width: auto; height:
+auto; border: none; padding: 0`, which does not shrink a 34px button's *frame*, it replaces the button's box
+outright with whatever the 20px `UserAvatar` inside it measures. The other three verbs (👥, ✓, ✕) share one `.act`
+rule that sets the box; this one silently opted out of it while looking, in a screenshot, like it belonged to the
+same row. Nothing in a vitest mount or a Playwright click catches a target that is merely *small* — both drive a
+`click()` at the element's center regardless of its size — which is exactly why "render it, look at it" stays a
+release gate CI cannot replace. The fix keeps `.act`'s inherited 34×34 box and only drops the frame the avatar
+doesn't need, and needed no change to the row's layout budget: `.row-name` already absorbs any width change via
+`flex: 1; min-width: 0` plus its existing ellipsis, which is the same seam FR-25.13h's name-tooltip was built for.
+
+**"One traveler, one tap, done" was the wrong shape for how the sheet is actually used.** The request was to keep
+tapping — assign an item to more than one person without leaving the row. `addItemForOneTraveler` could not do
+that safely: every call went through `quickAddItem` regardless of whether the item already had a row, so a second
+avatar tap did not extend the first traveler's row, it silently wrote a second, unrelated "Sonnencreme" onto the
+list. The very existence of this bug had been recorded as a *feature* — the first version's own test was titled
+*"a second tap for somebody else is a second row"* and asserted exactly the defect as the spec. Nothing in that
+test was wrong on its own terms; the terms were wrong, because nobody had yet tried tapping the row twice from a
+phone.
+
+The replacement, `setTravelerAssignment`, takes the whole desired set of traveler ids on every call rather than
+one at a time — the caller (the sheet, keeping a `Set<travelerId>` per item for the run) always re-reads the
+item's *current* rows first and hands the union or difference back. A first tap still goes through `quickAddItem`
+once; every tap after that calls `domain/membership.ts`'s planner directly against the rows that already exist,
+the same planner `spreadOverEveryTraveler` already drives with the *whole* roster — this is that planner with an
+arbitrary subset instead, not a second mechanism. One case fell out of the planner's own contract rather than
+needing new code: `planMembership`'s `perPerson` branch reads a target with zero members as *nothing to plan*, not
+as *remove everyone* (nowhere else in the app does emptying a membership mean deleting the item), so a set that
+toggles down to empty is handled explicitly in `setTravelerAssignment` as the row's own delete — the same outcome
+its *„Rückgängig"* reaches.
+
+**The row had to stop closing after the first tap.** Every other browse-sheet verb (`added`, `forAll`, `packed`,
+`skipped`) converts the line to a settled summary the instant it fires, which is exactly wrong for a verb that
+expects more taps. `RowView` grew a fifth kind, `assigning`, alongside `acted` — same ledger entry, same testid
+family, but `.acts` keeps rendering underneath it, and the row keeps reporting itself as `browse-row-free` rather
+than `browse-row-carried` so the avatar buttons stay reachable. The long-press menu above three travelers got the
+same treatment for the same reason: a second long press on an `assigning` line still has to open, so
+`offersPersonMenu` checks for `assigning` beside `free` rather than `free` alone — an action sheet has no visual
+"already picked" state to show, so a second pick there only ever adds, and taking a traveler back off past that
+point is the line's Undo, not a second gesture on the menu.
+
+## „für alle" at three travelers had a write of its own, the wrong one (2026-09-11)
+
+A third live check on the family instance, after the section above merged and redeployed: with all three avatar
+buttons tapped on, there was no way back — deselecting one traveler had nothing to press. The row looked identical
+to one built by tapping every avatar, but it was not the same row underneath.
+
+`onForAllTap`'s `free` branch called `onAddForAll`, FR-25.13g's original bulk verb, regardless of whether the line
+also had avatar buttons beside it. That verb records `RunVerb` `forAll`, not `assigned`, so `rowView` returned the
+line as `kind: 'acted'` — settled, undoable only as a whole, and past the template's `v-if` that keeps avatar
+buttons on `free`/`assigning` lines alone. 👥's own tap, at exactly the boundary where it sits beside three avatar
+buttons doing the identical job, took the buttons away by finishing the run they belonged to. Every entry into
+*für alle* had this shape at ≤3 travelers — the popover's menu button routed through the same function too, though
+that path is unreachable there since `usePersonMenu` only turns on above three.
+
+The fix does not touch `usePersonMenu` or the >3 popover, which stays exactly FR-25.13g's original bulk verb —
+there is no avatar row to keep open for past three, and no live report asked for one. Where `inlineTravelers` is
+non-empty, `onForAllTap` now calls `writeAssignment` with the whole inline roster as the target set — the same
+function an avatar tap calls — instead of `onAddForAll`/`onSpreadToAll`. The row stays `assigning`, not `acted`;
+👥's tap is still exactly one tap, still reaches everybody in one motion, and the three avatars it just turned on
+are still there to turn back off. `E2E-M4-78` carried the old assumption as its own assertion (a bare "3", an
+`acted` line with no avatars left) and needed the same correction as the unit test that shared its shape.
+`E2E-M4-79`'s carried line is untouched: it never had avatar buttons to lose in the first place, and 👥 there
+still means FR-25.13g's original bulk spread.
 
 ## A revisit trigger fired for a column left deliberately inert (2026-09-11)
 
