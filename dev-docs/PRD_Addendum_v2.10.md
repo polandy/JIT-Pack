@@ -223,7 +223,11 @@ so historical references stay resolvable.)
     rule note is shown only once the field was touched — an untouched default must never open the screen with a standing
     error. **Revised 2026-08-26** (UX review): the original `[A-Za-z0-9._-]` charset contradicted this very requirement
     — it rejected the seeded "Demo User", every IdP-sourced name with a space, and any name with a diacritic. The rule
-    now admits every name the system itself hands out.
+    now admits every name the system itself hands out. **The IdP's name is sanitised rather than refused (2026-09-10):**
+    a name that arrives on the OIDC token has nobody to be told about it, so the login path strips control
+    characters, trims the edges and cuts to 50 *characters* — and only where the claim leaves nothing behind does the
+    subject stand in. It had been cutting at 50 **bytes**, which is a different rule from the one both other writers of
+    this column apply: it halved the allowance of a Cyrillic or CJK name for no reason and could store half a rune.
   * *Profile picture:* the user selects a source photo and positions a circular crop over it (pan/zoom); the client then
     renders the selected region to a **256×256 px square JPEG (quality ≈ 0.8)** on an offscreen canvas and uploads that
     — the user is never asked about resolution, format, or file size. The circular presentation is a CSS mask applied at

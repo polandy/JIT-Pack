@@ -19,6 +19,13 @@ var (
 
 const maxAvatarBytes = 100 * 1024
 
+// maxDisplayNameChars is FR-17.13's allowance, in *characters* — which is
+// what `users.display_name`'s CHECK counts, SQLite's `length()` being
+// character-based on TEXT. It is stated once here because a second place
+// counting bytes for it truncated a Cyrillic name to half its allowance and
+// could leave half a rune behind.
+const maxDisplayNameChars = 50
+
 // displayNamePattern accepts every name the system itself hands out —
 // the seeded "Demo User", IdP-sourced names with spaces or diacritics —
 // while rejecting control characters and edge whitespace (FR-17.13).

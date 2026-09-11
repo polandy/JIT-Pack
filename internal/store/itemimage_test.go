@@ -91,6 +91,36 @@ func TestSetItemImage_RejectsOversized(t *testing.T) {
 	}
 }
 
+// FR-22.4 is enforced three times on purpose — handler, store, and the
+// column's own CHECK — and the third layer had no test of its own: the size
+// CHECK could have been deleted from schema.sql and every suite stayed green.
+// It is the layer that still holds when a future writer reaches the table
+// without going through SetItemImage, which is the only reason it exists.
+func TestItemImages_TheColumnRefusesAnOversizedBlobItself(t *testing.T) {
+	s := openTestStore(t)
+	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-camera', 'Kamera')`)
+
+	oversized := make([]byte, maxItemImageBytes+1)
+	_, err := s.db.Exec(
+		`INSERT INTO item_images (item_id, image, mime) VALUES ('item-camera', ?, 'image/jpeg')`,
+		oversized)
+	if err == nil {
+		t.Fatal("the database accepted an oversized image — the FR-22.4 CHECK is gone")
+	}
+	if !isConstraintViolation(err) {
+		t.Errorf("refused, but not as a constraint failure: %v", err)
+	}
+
+	// And the limit is a limit, not a ban: the largest allowed blob goes in.
+	// Without this half the case would also pass against `length(image) <= 0`.
+	atTheLimit := make([]byte, maxItemImageBytes)
+	if _, err := s.db.Exec(
+		`INSERT INTO item_images (item_id, image, mime) VALUES ('item-camera', ?, 'image/jpeg')`,
+		atTheLimit); err != nil {
+		t.Fatalf("a blob of exactly the limit was refused: %v", err)
+	}
+}
+
 func TestSetItemImage_UnknownItemReturnsNotFound(t *testing.T) {
 	s := openTestStore(t)
 	if _, err := s.SetItemImage(context.Background(), "ghost", []byte("x")); !errors.Is(err, ErrItemNotFound) {
