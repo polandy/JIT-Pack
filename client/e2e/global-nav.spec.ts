@@ -33,6 +33,7 @@ const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31' }
 
 const DESKTOP = { width: 1280, height: 900 }
 const MOBILE = { width: 400, height: 860 }
+const TABLET = { width: 744, height: 1133 } // iPad mini portrait, logical points
 
 /**
  * An element, but only where it sits on a screen the user can see.
@@ -918,5 +919,36 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(row).toBeVisible()
     const narrow = (await row.boundingBox())!
     expect(narrow.width).toBeGreaterThan(MOBILE.width - 60)
+  })
+
+  /*
+   * E2E-G9-20 (G-9, FR-21.26): the column also grows in the tablet gap
+   * between the phone width it is inert below and the desktop breakpoint
+   * above which it goes flat again — an iPad mini otherwise ran the same
+   * capped column as a phone turned sideways, stranding the frame's
+   * native scrollbar in the unused gutter rather than at the screen edge.
+   */
+  test('E2E-G9-20: an iPad-mini-width screen gets a wider column than the desktop cap', async ({
+    page,
+  }) => {
+    await page.setViewportSize(DESKTOP)
+    await page.goto(PATH.settings)
+    const area = () => page.locator('.app-content').boundingBox()
+
+    const capped = (await area())!.width
+
+    await page.setViewportSize(TABLET)
+    const tablet = (await area())!.width
+
+    // Wider than the flat desktop cap — the gap is no longer inert…
+    expect(tablet).toBeGreaterThan(capped + 40)
+    // …but still short of the viewport, so a gutter remains on both sides.
+    expect(tablet).toBeLessThan(TABLET.width - 40)
+
+    // Past the app's other breakpoint the column is capped flat again,
+    // same as the desktop measurement above — the widening does not
+    // simply keep growing into a normal laptop window.
+    await page.setViewportSize(DESKTOP)
+    expect((await area())!.width).toBe(capped)
   })
 })
