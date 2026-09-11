@@ -1048,10 +1048,13 @@ taken straight from a phone camera never reaches the server unprocessed.
   buttons of prep and notes stop being the only filled buttons on the sheet, since a fill is what makes a button read
   as the screen's answer. The field and the button that commits it share a height and an edge.
 
-* **FR-21.26 (One Content Measure — added 2026-09-08, supersedes FR-21.18):** The frame's content column has one
-  width, `--jp-measure` (600 px), and every screen takes it. UX-17's cap stays what it was — inert below its own
-  width, one rule in `App.vue` rather than a decision each view remembers — but there is no longer a second, wider
-  measure a screen can ask for, and no `meta.measure` in the route table.
+* **FR-21.26 (One Content Measure — added 2026-09-08, supersedes FR-21.18; revised 2026-09-11):** The frame's
+  content column has one width, `--jp-measure` (`clamp(600px, 92vw, 900px)`), and every screen takes it. UX-17's
+  cap stays what it was — inert below its own width, one rule in `App.vue` rather than a decision each view
+  remembers — but there is no longer a second, wider measure a screen can ask for, and no `meta.measure` in the
+  route table. The flat 600 px this shipped with at first left the same margin at a phone's width and an iPad
+  mini's, stranding the frame's native scrollbar in the unused gutter; the `clamp()` lets the one measure grow up
+  to the app's other breakpoint (900 px) instead of adding a second one.
 
   **The two measures of FR-21.18 lasted a day, and the switcher of FR-21.21 is what ended them.** That decision made
   the trip's four views peers, one tap apart (ADR-051, driver 4). Three of them took the 960 px reading measure and

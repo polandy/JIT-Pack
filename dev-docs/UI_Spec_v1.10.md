@@ -250,7 +250,7 @@ These patterns apply to every screen and are specified once.
   M9's tag segment spread three chips across 1176 px — lines that read as several things rather than one. The cap
   needs no breakpoint of its own: below it, it is inert, so the phone keeps every pixel it has. The **bar itself stays
   full width**, because it is the app's frame rather than its content — the logo belongs at the window's corner and
-  the gear at the opposite one. **The column is `clamp(600px, 82vw, 900px)`, and one measure (revised 2026-09-11; it
+  the gear at the opposite one. **The column is `clamp(600px, 92vw, 900px)`, and one measure (revised 2026-09-11; it
   was a flat 600 px from 2026-09-08, 960 px from 2026-08-27, and for one day two measures under FR-21.18).**
   `--jp-measure` in `theme/surfaces.css`, read once by `App.vue`. It is narrower than a reading column because this
   app has no page of prose: every screen is rows carrying a name at one edge and the control that acts on it at the

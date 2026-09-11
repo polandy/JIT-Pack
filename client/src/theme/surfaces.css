@@ -56,13 +56,16 @@
    * measure now grows with the viewport instead of jumping straight to the
    * cap: a flat 600px left an iPad mini's extra width unused on both sides
    * of the column, with the frame's native scrollbar stranded in that gap
-   * rather than sitting at the screen edge. `82vw` (not 100vw) still leaves
+   * rather than sitting at the screen edge. `92vw` (not 100vw) still leaves
    * a visible gutter at every tablet width rather than running the column
-   * edge-to-edge; `900px` reuses the app's one other breakpoint (G-9's
-   * sheet/panel switch) as the cap, so no second desktop measure exists to
-   * drift from this one.
+   * edge-to-edge, but is steep enough to matter where it has to: at an
+   * iPad mini's 744 px an 82vw factor computed to 610 px, ten pixels above
+   * the old flat cap — indistinguishable from the bug it was meant to fix.
+   * `900px` reuses the app's one other breakpoint (G-9's sheet/panel
+   * switch) as the cap, so no second desktop measure exists to drift from
+   * this one.
    */
-  --jp-measure: clamp(600px, 82vw, 900px);
+  --jp-measure: clamp(600px, 92vw, 900px);
 
   /* --- Round controls -------------------------------------------------
    * The diameter of a round control in a sheet header. One value because
