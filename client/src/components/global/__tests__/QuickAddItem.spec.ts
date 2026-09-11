@@ -151,6 +151,44 @@ describe('QuickAddItem — FR-25.8 per-person mode', () => {
     // Not the plain add, and not held back by the FR-25.8 mode either.
     expect(wrapper.emitted('add')).toBeUndefined()
   })
+
+  /**
+   * FR-25.13h: the same shape as „für alle" one test up, for the same
+   * reason — the sheet's per-traveler pick (avatar button or long-press
+   * menu) answers *who* without an editor, so it takes the un-deferred route
+   * `onBrowseAddForAll` already does rather than the FR-25.8 mode's.
+   */
+  it('passes a single-traveler assignment straight out with the item’s fields and the traveler id', async () => {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: 'items',
+      id: ITEM.id,
+      deleted: false,
+      row: { name: ITEM.name },
+    })
+    const wrapper = open(
+      { travelerCount: 2 },
+      { stubs: { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } } },
+    )
+    await expand(wrapper)
+    await wrapper.find('[data-testid="quick-add-mode-per-person"]').trigger('click')
+    await wrapper.find('[data-testid="quick-add-browse-open"]').trigger('click')
+
+    await wrapper
+      .findComponent(InventoryBrowseSheet)
+      .vm.$emit('assign-to-traveler', { ...ITEM, weight_grams: 180 }, 'trav-nina')
+
+    const emitted = wrapper.emitted('assignForTraveler')?.[0]
+    expect(emitted?.[0]).toMatchObject({
+      name: ITEM.name,
+      sourceItemId: ITEM.id,
+      weightGrams: 180,
+    })
+    expect(emitted?.[1]).toBe('trav-nina')
+    // Not the plain add, not „für alle", and not held back by the mode.
+    expect(wrapper.emitted('add')).toBeUndefined()
+    expect(wrapper.emitted('addForAll')).toBeUndefined()
+  })
 })
 
 describe('QuickAddItem — one door per screen (FR-21.24)', () => {
