@@ -376,16 +376,19 @@ function onSpreadToAll(item: MasterItem): void {
 
 /**
  * FR-25.13h: 👥's plain tap on a free line — untouched by whether the line
- * also offers the long-press menu. `forAllMenuActive` is what stops the
+ * also offers the long-press menu. `forAllMenuItemId` is what stops the
  * release-click of a long press from slipping through as a second, unwanted
- * „für alle" the instant the menu opens (the same guard the M7 row menu uses
- * for its own press-and-hold).
+ * „für alle" the instant that *same row's* menu opens — scoped to the one
+ * item, not a bare boolean, because a boolean here blocked *every* row's
+ * „für alle" for as long as any single row's menu was open or dismissing
+ * (found by E2E-M4-81: a plain tap on a second row went silently nowhere
+ * while the first row's menu was still animating closed).
  */
-let forAllMenuActive = false
+let forAllMenuItemId: string | null = null
 
 function onForAllTap(view: RowView, item: MasterItem): void {
   if (view.kind === 'free') {
-    if (forAllMenuActive) return
+    if (forAllMenuItemId === item.id) return
     onAddForAll(item)
     return
   }
@@ -407,13 +410,15 @@ function onForAllContextMenu(view: RowView, item: MasterItem): void {
 /**
  * FR-25.13h: the menu a long press on 👥 opens above three travelers — *für
  * alle* first (the plain tap's own action, offered again for a thumb already
- * in the menu), then each traveler. `forAllMenuActive` brackets the whole
+ * in the menu), then each traveler. `forAllMenuItemId` brackets the whole
  * async lifetime in `try`/`finally`, so a `create()` that rejects never wedges
- * the tap dead — the same shape `TemplateListPage`'s row menu uses.
+ * the tap dead — the same shape `TemplateListPage`'s row menu uses, keyed by
+ * item id rather than a bare boolean so a second row's own „für alle" is
+ * never caught in a first row's guard.
  */
 async function openTravelerMenu(item: MasterItem): Promise<void> {
   personHold.cancel()
-  forAllMenuActive = true
+  forAllMenuItemId = item.id
   try {
     const sheet = await actionSheetController.create({
       header: item.name,
@@ -434,7 +439,7 @@ async function openTravelerMenu(item: MasterItem): Promise<void> {
     await sheet.present()
     await sheet.onDidDismiss()
   } finally {
-    forAllMenuActive = false
+    forAllMenuItemId = null
   }
 }
 
@@ -450,9 +455,11 @@ function onAssignToTraveler(item: MasterItem, traveler: Traveler): void {
 const tooltipItemId = ref<string | null>(null)
 
 /**
- * Guards the release-click the same way `forAllMenuActive` does for 👥's,
+ * Guards the release-click the same way `forAllMenuItemId` does for 👥's,
  * except there is no overlay to bracket it with — the tooltip is local state,
- * so the flag lives only across the one tap it has to swallow.
+ * so the flag lives only across the one tap it has to swallow. It needs no
+ * item scope the way `forAllMenuItemId` does: a name's long press never
+ * opens an overlay another row's tap could get trapped under.
  */
 let nameHoldFired = false
 
