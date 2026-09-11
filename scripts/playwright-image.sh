@@ -14,12 +14,12 @@
 # Dockerfiles, not shell scripts. Bumping it is deliberate — it rewrites every
 # visual baseline (ADR-013), so it belongs in its own PR.
 # shellcheck disable=SC2034  # read by the scripts that source this file
-PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e" # v1.62.1-noble
+PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27" # v1.63.0-noble
 
 # The version the digest above resolves to, repeated as data so it can be
 # checked rather than trusted.
 # shellcheck disable=SC2034  # read by require_matching_playwright_version below
-PLAYWRIGHT_VERSION="1.62.1"
+PLAYWRIGHT_VERSION="1.63.0"
 
 # require_matching_playwright_version fails early, and by name, when the image
 # and client/package-lock.json have drifted apart.
