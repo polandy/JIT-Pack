@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.0](https://github.com/polandy/JIT-Pack/compare/v0.7.2...v0.8.0) (2026-09-11)
+
+
+### Features
+
+* **client:** the browse-sheet puts an item on every traveller in one tap (FR-25.13g) ([bcfadb0](https://github.com/polandy/JIT-Pack/commit/bcfadb034f013c25352d017c62ffaee994ce3444))
+* **client:** the membership roster gets an "Alle Reisenden" head row (FR-25.21c) ([7768753](https://github.com/polandy/JIT-Pack/commit/776875303c7cb515f4bad986ae024b7f8115fcb5))
+
+
+### Bug Fixes
+
+* **api:** a broadcast waits for no peer, and an error stops reading as a 404 (ADR-057) ([90facd1](https://github.com/polandy/JIT-Pack/commit/90facd15b7955c0af0749634b1d58293b9a96123))
+* **api:** a request body is bounded before it is decoded ([b59f4fd](https://github.com/polandy/JIT-Pack/commit/b59f4fdb1d6e3f7f17520ca41877756ded360c69))
+* **api:** a Web Push delivery is no longer discarded by shutdown (NFR-4.6, ADR-055) ([b5657b6](https://github.com/polandy/JIT-Pack/commit/b5657b6166ffd3d0cf59c30f9596cd263e2681be))
+* **api:** a WebSocket subscription is authorised on every send (ADR-056) ([798f740](https://github.com/polandy/JIT-Pack/commit/798f740c4da2c7feec580ee5adbc126b4e6fa2cb))
+* **client:** a per-person position an empty roster cannot place is reported (FR-2.5b) ([ecc5452](https://github.com/polandy/JIT-Pack/commit/ecc5452851d471d033d5242402b2289acc49bb8f))
+* **client:** six minors on four screens (G-18, FR-21.9, FR-20.4, FR-16.2) ([cbca88e](https://github.com/polandy/JIT-Pack/commit/cbca88eacd4927e0b8d6931c40d1ed9fc4466e03))
+* **client:** three screens that treated an interruption as an answer ([2333362](https://github.com/polandy/JIT-Pack/commit/2333362be9ff8368fcaf043f01728d2a4165901e))
+* **domain:** four rules that were right about the ordinary case ([51f96dd](https://github.com/polandy/JIT-Pack/commit/51f96dd45a233f32cdf8194503e3677c6668df2c))
+* **store:** a conflict entry stops outliving the row it audits (NFR-4.2a) ([864591e](https://github.com/polandy/JIT-Pack/commit/864591eb94ef400b92e65fbe81781a8c07d88e66))
+* **sync:** a write older than the delete does not bring the row back (ADR-052) ([f1ed411](https://github.com/polandy/JIT-Pack/commit/f1ed411eae903d82583d452583492ca8f82fd993))
+
 ## [0.7.2](https://github.com/polandy/JIT-Pack/compare/v0.7.1...v0.7.2) (2026-09-09)
 
 
