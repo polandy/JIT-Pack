@@ -1070,8 +1070,22 @@ These patterns apply to every screen and are specified once.
     traveler, on settled and locked lines, and wherever the two verbs above are absent. A line this run has just added
     shows its *„Rückgängig"* and no 👥 — reopening the sheet offers it again. The head names all three (*„Tipp =
     hinzufügen · 👥 für alle · ✓ gepackt · ✕ nicht einpacken"*). Its glyph wears the brand role and its border the
-    plain one: rendered, a brand-edged box on every free line read as a column of warnings. **Since FR-25.8
-    (2026-08-29) the composer carries a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*,
+    plain one: rendered, a brand-edged box on every free line read as a column of warnings. **Since FR-25.13h
+    (2026-09-11) a free line can also name one or more travelers, multi-select.** Up to three travelers, an avatar
+    button per person sits beside 👥, in trip order, sized to the same touch-target floor 👥/✓/✕ use (a first cut
+    that only shrank the visible glyph read as impractical to tap on a live check). A tap **toggles**: assigning a
+    second traveler is a second tap on their button, and the line stays open, offering more avatars and its own
+    *„Rückgängig"*, rather than closing the way the other four verbs do; tapping an already-selected avatar again
+    takes just that traveler back off, and emptying the set reaches the same outcome as *„Rückgängig"* itself. The
+    line never grows a second row for it — the buttons shrink a step and the name's existing ellipsis simply
+    triggers earlier. Above three travelers the line stays exactly as FR-25.13g drew it, and a **long press on 👥**
+    opens a small menu instead — *für alle* first, then each traveler by name; a second long press and a second pick
+    adds a second traveler to the same row the same way the inline buttons do, an action sheet having no way to
+    show a pick as already selected, so a pick here only ever adds. A plain tap on 👥 keeps meaning *für alle* in
+    every shape, unconditionally. A second, unrelated **long press on the name** shows what its ellipsis hid, in a
+    small label above the line; a new press starting anywhere else in the sheet closes it. Free lines only — a line
+    the trip already carries keeps 👥/spread as FR-25.13g left it. **Since FR-25.8 (2026-08-29) the composer carries
+    a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*,
     wearing the same two words as the membership editor because it is that editor the mode opens. An add made in *Pro
     Person* writes the row and opens the editor on it, already on the roster — the mode is the answer to which tab
     that is — and checking the travelers is what fans the row out into the FR-25.1 cluster (ADR-036's

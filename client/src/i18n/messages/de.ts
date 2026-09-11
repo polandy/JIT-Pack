@@ -527,6 +527,9 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.browsePackLabel': '„{name}" als eingepackt markieren',
   'quickAdd.browseSkipLabel': '„{name}" bewusst nicht einpacken',
   'quickAdd.browseUndoLabel': '„{name}": letzte Aktion rückgängig machen',
+  'quickAdd.browseAssignedNow': 'zugewiesen an {name}',
+  'quickAdd.browseAssignLabel': '„{name}" {traveler} zuweisen',
+  'quickAdd.browseUnassignLabel': '„{name}" {traveler} nicht mehr zuweisen',
 
   // Facetten-Filter (FR-25.11), geteilt von M4 und M6.
   'filter.title': 'Filter',

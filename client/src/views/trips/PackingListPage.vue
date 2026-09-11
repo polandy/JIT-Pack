@@ -986,6 +986,36 @@ function onBrowseAddForAll(item: BrowseAddition) {
 }
 
 /**
+ * FR-25.13h: the browse-sheet's avatar buttons / long-press pick — always
+ * sent as the whole desired set of travelers, so a second tap adds a second
+ * traveler to the row this run already wrote (or removes one, tapped again)
+ * rather than starting a second, unrelated row for the same item.
+ *
+ * `rowsOfMasterItem` is read fresh rather than passed a cached id: the sheet
+ * itself has no row ids to hand back after the first tap (it only ever sees
+ * `BrowseAddition`s), and the undo has the same shape — recomputed live at
+ * the moment it fires, so it always removes whatever this run currently has
+ * for the item rather than a snapshot that a later toggle already changed.
+ */
+function onBrowseAssignForTravelers(item: BrowseAddition, travelerIds: string[]) {
+  const { companions } = orchestrator.setTravelerAssignment(
+    props.tripId,
+    item.name,
+    quickAddOptions(item),
+    active.value,
+    item.sourceItemId ? rowsOfMasterItem(item.sourceItemId) : [],
+    travelerIds,
+  )
+  if (item.sourceItemId) {
+    const itemId = item.sourceItemId
+    browseUndo.set(itemId, () => {
+      for (const row of rowsOfMasterItem(itemId)) orchestrator.removeAddedItem(props.tripId, row.id)
+    })
+  }
+  announceCompanions(companions)
+}
+
+/**
  * FR-25.13g on a line the trip already carries: the travelers without a row
  * for it get one, and what is already there keeps the amount somebody chose
  * (ADR-036 keep-and-repoint).
@@ -1263,10 +1293,12 @@ setHeaderTitle(
         :show-trigger="false"
         :offer-groups="true"
         :traveler-count="travelers.length"
+        :travelers="travelers"
         :exclude-item-ids="quickAddExcludeIds"
         :browse-row-states="browseStates"
         @add="onQuickAdd"
         @add-for-all="onBrowseAddForAll"
+        @assign-for-travelers="onBrowseAssignForTravelers"
         @spread-carried="onBrowseSpread"
         @add-group="onQuickAddGroup"
         @pack-carried="onBrowsePack"
