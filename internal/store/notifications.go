@@ -230,3 +230,19 @@ func (s *Store) TripItemInfo(ctx context.Context, itemID string) (name, packerUs
 	}
 	return name, packerUserID, nil
 }
+
+// TravelerLinkedUser returns a traveler's linked account (FR-2.5 →
+// ADR-058), reporting false when the traveler has none, is unlinked, or
+// cannot be read.
+func (s *Store) TravelerLinkedUser(ctx context.Context, travelerID string) (linkedUserID string, ok bool, err error) {
+	var linked *string
+	err = s.db.QueryRowContext(ctx,
+		`SELECT linked_user_id FROM travelers WHERE id = ?`, travelerID).Scan(&linked)
+	if err != nil {
+		return "", false, fmt.Errorf("traveler %s: %w", travelerID, err)
+	}
+	if linked == nil || *linked == "" {
+		return "", false, nil
+	}
+	return *linked, true, nil
+}

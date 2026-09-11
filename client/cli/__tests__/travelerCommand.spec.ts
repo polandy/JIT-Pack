@@ -68,6 +68,11 @@ class FakeInstance {
     this.addTripRow(tripId, 'trip_template_sources', 'src-1', { template_id: 'tpl-1' })
   }
 
+  /** One trip_members row (FR-4.5) — what --user may link a traveler to (FR-2.5, ADR-058). */
+  addMember(tripId: string, userId: string, id = `tm-${userId}`): void {
+    this.addMaster('trip_members', id, { trip_id: tripId, user_id: userId, role: 'editor' })
+  }
+
   /** One traveler already on a trip, which is what makes a second add a no-op. */
   addTraveler(tripId: string, id: string, name: string): void {
     const feed = (this.trip[tripId] ??= [])
@@ -298,9 +303,10 @@ describe('runTraveler add', () => {
 
   // FR-2.5: the link is what makes the person on the trip the account on the
   // instance, and it is the half no import ever wrote.
-  it('links the account named by --user', async () => {
+  it('links the account named by --user, once it is a trip member', async () => {
     instance.addTrip('trip-1', 'Cannobio', 2026)
     instance.users = [{ user_id: 'u-sia', display_name: 'Sia' }]
+    instance.addMember('trip-1', 'u-sia')
 
     await runTraveler(
       { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: 'Sia', dryRun: false },
@@ -321,6 +327,23 @@ describe('runTraveler add', () => {
 
     expect(code).toBe(EXIT.failed)
     expect(instance.pushed).toHaveLength(0)
+  })
+
+  // FR-2.5 → ADR-058: a link the notification pipeline could not act on is
+  // refused before anything is written, not silently accepted and orphaned.
+  it('refuses --user for an account that is not yet a trip member', async () => {
+    instance.addTrip('trip-1', 'Cannobio', 2026)
+    instance.users = [{ user_id: 'u-sia', display_name: 'Sia' }]
+    const it0 = io()
+
+    const code = await runTraveler(
+      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: 'Sia', dryRun: false },
+      it0,
+    )
+
+    expect(code).toBe(EXIT.failed)
+    expect(instance.pushed).toHaveLength(0)
+    expect(it0.lines.join('\n')).toContain('not a member')
   })
 
   // An account can only be linked to one person, so --user with two names is

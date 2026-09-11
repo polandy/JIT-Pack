@@ -119,6 +119,8 @@ export const de: Record<keyof typeof en, string> = {
     'Der Zeitstempel dieser Änderung war unbrauchbar — dieses Gerät hat sie fehlerhaft erzeugt.',
   'sync.detail.rejected.rowDeleted':
     'Jemand hat den Eintrag gelöscht, nachdem Sie diese Änderung gemacht haben — der Server hat ihn nicht wieder angelegt.',
+  'sync.detail.rejected.notATripMember':
+    'Diese Person ist kein Mitglied dieser Reise — laden Sie sie ein, bevor Sie den Account verknüpfen.',
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',
