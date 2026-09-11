@@ -52,20 +52,23 @@
    * this type size a 960 px line of body copy runs to some 120 characters,
    * so it was not a reading measure either.
    *
-   * Inert below its own width, so the phone keeps every pixel. Above it the
-   * measure now grows with the viewport instead of jumping straight to the
-   * cap: a flat 600px left an iPad mini's extra width unused on both sides
-   * of the column, with the frame's native scrollbar stranded in that gap
-   * rather than sitting at the screen edge. `92vw` (not 100vw) still leaves
-   * a visible gutter at every tablet width rather than running the column
-   * edge-to-edge, but is steep enough to matter where it has to: at an
-   * iPad mini's 744 px an 82vw factor computed to 610 px, ten pixels above
-   * the old flat cap — indistinguishable from the bug it was meant to fix.
-   * `900px` reuses the app's one other breakpoint (G-9's sheet/panel
-   * switch) as the cap, so no second desktop measure exists to drift from
-   * this one.
+   * Inert below its own width, so the phone keeps every pixel — and, since
+   * 2026-09-11, inert above the app's one other breakpoint (900px, G-9's
+   * sheet/panel switch) too: a flat 600px left an iPad mini's extra width
+   * unused on both sides of the column, with the frame's native scrollbar
+   * stranded in that gap rather than sitting at the screen edge, so the
+   * value grows across the gap between the two. A single `clamp()` cannot
+   * do that and stay flat past 900px — `vw` only rises with the viewport,
+   * so a factor steep enough to matter at an iPad mini's 744px (a gentler
+   * 82vw computed to 610px there, indistinguishable from the bug) reaches
+   * the 900px ceiling by ~978px and stays pinned there for every wider
+   * desktop window too, widening a column E2E-M4-71 checks stays capped
+   * well below the window (`toBeLessThan(VIEWPORT / 2 + 100)` at a 1280px
+   * viewport). The media query is the one token redefined in one narrow
+   * band instead — the same shape `palette.css` already uses for its two
+   * flavours — rather than a second value.
    */
-  --jp-measure: clamp(600px, 92vw, 900px);
+  --jp-measure: 600px;
 
   /* --- Round controls -------------------------------------------------
    * The diameter of a round control in a sheet header. One value because
@@ -97,6 +100,18 @@
    * nothing. Its own weight, restated per flavour beside the ink.
    */
   --jp-scrim: rgba(var(--jp-shadow-ink-rgb), var(--jp-scrim-alpha));
+}
+
+/* The tablet gap for --jp-measure (see the token's own comment above): grows
+ * past the flat 600px only between the phone width it is already inert
+ * below and the 900px desktop breakpoint, where G-9's own layout switch
+ * takes over. `92vw` leaves a real gutter rather than a near-miss — at an
+ * iPad mini's 744px it computes to 684px (~30px/side), not the ~10px an
+ * 82vw factor left. */
+@media (min-width: 600px) and (max-width: 899px) {
+  :root {
+    --jp-measure: 92vw;
+  }
 }
 
 /* --- The card -------------------------------------------------------- */
