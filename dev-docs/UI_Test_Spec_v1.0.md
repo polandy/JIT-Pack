@@ -1495,6 +1495,13 @@ E2E-M23-04.
   does, so it could not tell the two states apart — the first draft measured the language `ion-select` and passed the
   cap assertion against the unfixed build. Both halves matter: the second is what keeps the column from becoming a
   margin on the phone the app is built for (UX-17).
+* **E2E-G9-20** `all` (G-9, FR-21.26) — **new 2026-09-11**, in `e2e/global-nav.spec.ts`: the same settings screen's
+  `.app-content` is measured at a desktop width (1280 px, where it is capped flat), then at an iPad mini's 744 px —
+  wider than the desktop measurement by more than 40 px, so the tablet gap is no longer inert, and still short of the
+  viewport by the same margin, so a gutter survives on both sides. A third measurement back at 1280 px matches the
+  first exactly, which is the case a `clamp()`-based first attempt at this fix could not have passed: `vw` only rises
+  with the viewport, so a factor steep enough to widen the column on an iPad mini also left it pinned at its ceiling
+  for every wider desktop window, mutation-proving against exactly that build.
 * **E2E-M23-04** `all` (FR-24.3, ADR-032) — **new 2026-08-30**: the other thing FR-24.3 retires. A group a trip was
   generated from is deleted from M7, and the confirm carries the sentence E2E-M7-11's twin does not — *hidden, not
   removed* — before the tap; the row leaves M7, appears on **M23's Vorlagen segment** (with the items segment asserted

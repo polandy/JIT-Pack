@@ -1606,6 +1606,22 @@ setHeaderTitle(
    moves. */
 ion-content.pack-content::part(scroll) {
   overflow-anchor: none;
+  /* The measure column (surfaces.css) no longer spans the full viewport on
+     a tablet, which otherwise leaves the browser's default scrollbar
+     rendered at the true screen edge, disconnected from the content it
+     scrolls. A thin, token-coloured bar reads as this list's own control
+     instead of a stray line in the gutter. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--ct-overlay1) transparent;
+}
+
+ion-content.pack-content::part(scroll)::-webkit-scrollbar {
+  width: 6px;
+}
+
+ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
+  background: var(--ct-overlay1);
+  border-radius: var(--jp-r-pill);
 }
 
 /* FR-25.11h: nothing may sit permanently under the FAB. The list has to be
