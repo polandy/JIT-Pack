@@ -555,6 +555,10 @@ export const de: Record<keyof typeof en, string> = {
   'facet.flagMissing': 'fehlt',
   'facet.flagUnused': 'ungenutzt',
   'facet.flagPrep': 'Hat Vorbereitung',
+  'facet.status': 'Status',
+  'facet.statusPacked': 'Gepackt',
+  'facet.statusSkipped': 'Bewusst weggelassen',
+  'facet.statusNotPacked': 'Noch nicht gepackt',
 
   'group.category': 'Kategorie',
   'group.person': 'Person',

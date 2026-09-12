@@ -75,6 +75,7 @@ describe('usePackingFilter (FR-25.18)', () => {
       mode: [],
       container: [],
       flag: [],
+      status: [],
     })
   })
 

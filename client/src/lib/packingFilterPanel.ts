@@ -24,18 +24,19 @@ import type {
   GroupingOption,
 } from '@/components/global/FilterSheet.vue'
 import { FACET_KEYS, NO_VALUE } from '@/domain/packingView'
-import type { FlagFacetValue, PackingView } from '@/domain/packingView'
+import type { FlagFacetValue, PackStatusFacetValue, PackingView } from '@/domain/packingView'
 import { t, type MessageKey } from '@/i18n'
 import { modeLabel } from '@/lib/modeLabels'
 import type { FacetKey, Facets, GroupBy } from '@/types/domain'
 
-/** The five axes M4 offers, each named once. */
+/** The six axes M4 offers, each named once. */
 export const FACET_LABELS: Record<FacetKey, MessageKey> = {
   person: 'facet.person',
   category: 'facet.category',
   mode: 'facet.mode',
   container: 'facet.container',
   flag: 'facet.flag',
+  status: 'facet.status',
 }
 
 /** One glyph per axis, so the panel is scannable before it is read. */
@@ -45,6 +46,7 @@ export const FACET_ICONS: Record<FacetKey, string> = {
   mode: cartOutline,
   container: briefcaseOutline,
   flag: flagOutline,
+  status: contrastOutline,
 }
 
 const GROUP_ICONS: Record<GroupBy, string> = {
@@ -58,6 +60,12 @@ const FLAG_LABELS: Record<FlagFacetValue, MessageKey> = {
   late: 'facet.flagLate',
   missing: 'facet.flagMissing',
   prep: 'facet.flagPrep',
+}
+
+const STATUS_LABELS: Record<PackStatusFacetValue, MessageKey> = {
+  packed: 'facet.statusPacked',
+  skipped: 'facet.statusSkipped',
+  not_packed: 'facet.statusNotPacked',
 }
 
 /** The grouping axis, in the order the segment offers it. */
@@ -78,6 +86,7 @@ export function optionLabel(key: FacetKey, value: string, label: string | null):
   }
   if (key === 'mode') return modeLabel(value)
   if (key === 'flag') return t(FLAG_LABELS[value as FlagFacetValue])
+  if (key === 'status') return t(STATUS_LABELS[value as PackStatusFacetValue])
   return value
 }
 

@@ -543,6 +543,10 @@ export const en = {
   'facet.flagMissing': 'Missing',
   'facet.flagUnused': 'Unused',
   'facet.flagPrep': 'Has preparation',
+  'facet.status': 'Status',
+  'facet.statusPacked': 'Packed',
+  'facet.statusSkipped': 'Consciously skipped',
+  'facet.statusNotPacked': 'Not yet packed',
 
   'group.category': 'Category',
   'group.person': 'Person',

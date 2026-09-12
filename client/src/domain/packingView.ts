@@ -36,6 +36,7 @@ export const FACET_KEYS: readonly FacetKey[] = [
   'mode',
   'container',
   'flag',
+  'status',
 ] as const
 
 /**
@@ -51,9 +52,24 @@ const MODE_VALUES: readonly ItemMode[] = ITEM_MODES
 export const FLAG_VALUES = ['late', 'missing', 'prep'] as const
 export type FlagFacetValue = (typeof FLAG_VALUES)[number]
 
+/**
+ * The *Status* facet (FR-25.11l): three buckets, not the five raw
+ * {@link ItemState} values — `packing_now`/`partial` collapse into
+ * `not_packed` because the owner asked "packed / skipped / not yet packed",
+ * and a fourth or fifth chip would answer a question nobody asked.
+ */
+export const PACK_STATUS_VALUES = ['packed', 'skipped', 'not_packed'] as const
+export type PackStatusFacetValue = (typeof PACK_STATUS_VALUES)[number]
+
+function packStatusOf(item: TripItem): PackStatusFacetValue {
+  if (item.state === 'packed') return 'packed'
+  if (item.state === 'skipped') return 'skipped'
+  return 'not_packed'
+}
+
 /** An unfiltered facet set — the state every fresh session starts from (FR-25.18). */
 export function noFacets(): Facets {
-  return { person: [], category: [], mode: [], container: [], flag: [] }
+  return { person: [], category: [], mode: [], container: [], flag: [], status: [] }
 }
 
 /** A single packable row — either a plain item or one traveler's instance of a per-person item. */
@@ -327,6 +343,8 @@ function valuesOf(item: TripItem, key: FacetKey, hasOpenPrep: boolean): string[]
       if (hasOpenPrep) flags.push('prep')
       return flags
     }
+    case 'status':
+      return [packStatusOf(item)]
   }
 }
 
@@ -388,6 +406,15 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   /** FR-9.3: taken along, in whole or in part — and not consciously left behind. */
   const wasPacked = (item: TripItem) => item.packed_count > 0 && item.state !== 'skipped'
 
+  /**
+   * FR-25.11l: picking a Status value is asking to *see* that bucket, so it
+   * overrides the Erledigte switch for exactly the rows it names — selecting
+   * "gepackt" with Erledigte off would otherwise match every packed row in
+   * `passesFacets` and then hide every one of them again as done, showing
+   * nothing for a filter that reports a nonzero count.
+   */
+  const revealedByStatus = (item: TripItem) => facets.status.includes(packStatusOf(item))
+
   const matching = items.filter(
     (item) => (!packedOnly || wasPacked(item)) && passesFacets(item) && matchesSearch(item),
   )
@@ -395,7 +422,9 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   // Offered for reveal only what revealing would actually show: rows already
   // excluded by a facet, the search or the done rule stay out of the count, or
   // the bar promises rows that one tap does not produce.
-  const others = matching.filter((item) => othersJob(item) && (showDone || !done(item)))
+  const others = matching.filter(
+    (item) => othersJob(item) && (showDone || !done(item) || revealedByStatus(item)),
+  )
   const hiddenOtherCount = showOthers ? 0 : others.length
   const hiddenOtherNames = showOthers
     ? []
@@ -416,7 +445,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   for (const item of shown) {
     if (done(item)) {
       doneCount += 1
-      if (!showDone) continue
+      if (!showDone && !revealedByStatus(item)) continue
     }
     visible.push(item)
   }
@@ -607,8 +636,12 @@ function buildFacetValues(ctx: {
 
   const result = {} as Record<FacetKey, FacetValue[]>
   for (const key of FACET_KEYS) {
+    // FR-25.11l: Status is the one axis that names a done-state, so counting
+    // only open rows would report zero for "gepackt"/"weggelassen" no matter
+    // how many there are — the opposite of every other facet's rule.
+    const candidates = key === 'status' ? items : open
     const counts = new Map<string, number>()
-    for (const item of open) {
+    for (const item of candidates) {
       if (!passesFacets(item, key)) continue
       for (const value of valuesOf(item, key, hasOpenPrep(item))) {
         counts.set(value, (counts.get(value) ?? 0) + 1)
@@ -655,6 +688,7 @@ function labelFor(
 function sortFacetValues(key: FacetKey, values: FacetValue[]): FacetValue[] {
   if (key === 'mode') return orderBy(values, MODE_VALUES)
   if (key === 'flag') return orderBy(values, FLAG_VALUES)
+  if (key === 'status') return orderBy(values, PACK_STATUS_VALUES)
   return [...values].sort((a, b) => {
     if (a.value === NO_VALUE) return b.value === NO_VALUE ? 0 : -1
     if (b.value === NO_VALUE) return 1

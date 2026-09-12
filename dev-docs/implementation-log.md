@@ -365,6 +365,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A revisit trigger fired for a column left deliberately inert (2026-09-11)](#a-revisit-trigger-fired-for-a-column-left-deliberately-inert-2026-09-11) — FR-2.5's `linked_user_id` gets a reader (ADR-058), and the membership rule it cost.
 - [Four drawings, and the one that cost a tap (2026-09-11)](#four-drawings-and-the-one-that-cost-a-tap-2026-09-11) — FR-25.23's cluster fold: why the other three were rejected, and the fold-state name that was almost a trap.
 - [A decision that reported itself as progress (2026-09-12)](#a-decision-that-reported-itself-as-progress-2026-09-12) — FR-25.22's skipped-row unit was reversed once 57 skipped items read as `57/284 gepackt`.
+- [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14962,3 +14963,29 @@ the number that actually gets read — a person does not parse `x/y` as "x decis
 and a skipped row is neither packed nor part of what remains, so it now contributes nothing to either half of the
 fraction. `unitsOf` is the one place this is decided (`domain/packState.ts`), so the fix reaches the trip line, every
 group/cluster head and `tripStore.kpis` at once; no second implementation to find and fix in step.
+
+## A facet that filters on doneness fights the switch that hides it (2026-09-12)
+
+The owner asked for a third M4 filter axis: *gepackt* / *bewusst weggelassen* / *noch nicht gepackt* (FR-25.11l).
+Adding the axis itself — a sixth `FacetKey`, a bucket function over `ItemState`, a chip for each value — was the easy
+half; two of the panel's existing rules were written for facets that are blind to doneness, and Status is the one
+axis whose entire point is doneness, so both broke in a way no test caught until it was traced through by hand.
+
+**Rule 1, `buildFacetValues`: counts run over open rows only** ("offering to filter for finished work misleads",
+`packingView.ts`). Correct for Person/Kategorie/Gepäck/Merkmale — nobody wants a count of how many *done* rows are
+in a category — and exactly backwards for Status, whose values *are* done-states: counting only open rows means
+"Gepackt" and "Bewusst weggelassen" would always read `0`, no matter how many packed or skipped rows exist. Status
+is now the one facet counted over the whole set, not `open`.
+
+**Rule 2, the render loop: a done row is dropped unless Erledigte is on.** `passesFacets` runs before that drop, so
+selecting "Gepackt" narrows `matching` down to packed rows correctly — and then the very next pass throws every one
+of them away again as done, because Erledigte was never touched. The filter would report a nonzero match count and
+render an empty list, which is the exact contradiction FR-25.11e exists to forbid on every *other* path into an
+empty state. The fix: a Status selection overrides the done-drop for the bucket it names (`revealedByStatus`,
+`packingView.ts`) — picking a value is *asking* to see it, so it wins over a switch the user never touched. Applied
+in both places the done-drop happens: the visible list and the FR-25.20 "others" reveal count, or the second would
+undercount how many other-people rows a reveal would show while a Status filter is narrowing them.
+
+Both wrinkles were found by writing the failing case first (`describe('status facet (FR-25.11l)', …)` in
+`packingView.spec.ts`) rather than by reading the two functions cold — the second in particular reads as obviously
+correct until a concrete `showDone: false` + `status: ['packed']` case is run against it.

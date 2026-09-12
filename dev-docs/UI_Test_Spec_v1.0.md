@@ -602,9 +602,9 @@ in WebKit.
   unused — and a facet value bites while the sheet is still open: the head's outcome line and the list behind it both
   follow the tap. Closing only closes.
 * **E2E-M4-15** `all` (FR-25.11a/b): M4 shows a single filter row; tapping it opens the sheet with *Gruppieren nach*
-  plus the five facet groups (Person, Kategorie, Beschaffung, Gepäck, Merkmale). Selecting a person narrows the list,
-  and the selection appears as a removable chip in the collapsed row; tapping the chip's × restores the unfiltered list.
-  Asserts the grouping switcher is **not** present as a second bar in the header.
+  plus the six facet groups (Person, Kategorie, Beschaffung, Gepäck, Merkmale, Status since FR-25.11l). Selecting a
+  person narrows the list, and the selection appears as a removable chip in the collapsed row; tapping the chip's ×
+  restores the unfiltered list. Asserts the grouping switcher is **not** present as a second bar in the header.
 * **E2E-M4-16** `all` (FR-25.11c) — **implemented** (`domain/__tests__/packingView.spec.ts`: *ORs the values within one
   facet* / *ANDs across facets*): the OR-within / AND-across rule is arithmetic over a row list and is asserted where it
   lives. Building the world it needs through the browser — rows carrying two categories, three travelers and a buy mode
@@ -626,6 +626,10 @@ in WebKit.
   same empty value, and one shared label makes Person read as „keine Kategorie". The case asserts the Person bucket's
   label differs from the Category bucket's and is not a form of *Alle* — the FR's own wrong answer, since the bucket
   means *nobody in particular*, not *everybody*.
+* **E2E-M4-85** `all` (FR-25.11l): selecting **Status → Bewusst weggelassen** with *Erledigte* off shows the skipped
+  row and hides everything else — proving the override, not just the bucketing (`packingView.spec.ts` already proves
+  the arithmetic; this is the panel wiring). Then switching to **Status → Gepackt** shows the packed row instead. The
+  chip row names the picked value the same way every other facet's chip does.
 * **E2E-M4-21** `all` (UI-Spec M4 group presentation): the group heading's computed size is **larger** than an item
   row's, and a group's rows sit in one block of their own. Asserted on computed style rather than on a class, because
   the defect was purely visual: everything rendered, in the wrong order of importance.
@@ -2968,6 +2972,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.11i | E2E | M6-17; M4-14 (reveal, dimmed, still interactive) |
 | FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back), M6-22 (the destination tab's own reveal) |
 | FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
+| FR-25.11l | E2E+UNIT | M4-85 (panel wiring, override); `packingView.spec.ts` (bucketing, whole-set counts) |
 | G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
 | G-18 | E2E+UNIT | M3-22 (two presses of *Reise erstellen*, one trip — red-proved against the unlatched build); `TripWizardPage.spec.ts` (the button reports itself spent), `ClonePage.spec.ts` (the second press is ignored, and the clone that wrote nothing leaves the screen usable) |
 | FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |

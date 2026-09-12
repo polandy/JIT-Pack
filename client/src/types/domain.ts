@@ -161,8 +161,8 @@ export const REVIEW_FLAG_FIELD = {
 
 export type GroupBy = 'category' | 'container' | 'person' | 'status'
 
-/** The axes M4's filter panel offers, in panel order (FR-25.11b). */
-export type FacetKey = 'person' | 'category' | 'mode' | 'container' | 'flag'
+/** The axes M4's filter panel offers, in panel order (FR-25.11b/25.11l). */
+export type FacetKey = 'person' | 'category' | 'mode' | 'container' | 'flag' | 'status'
 
 /**
  * The selected values per facet (FR-25.11c). An empty array means *no
