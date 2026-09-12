@@ -123,6 +123,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)](#owed-e2e-m17-01s-sheet-did-not-close-a-fourth-time-under-load-2026-09-10) — **open**: two artifacts disagree about which screen the locator queried.
 - [The second press that made a second trip (2026-09-10)](#the-second-press-that-made-a-second-trip-2026-09-10) — E2E-M3-22: a case whose red run is the whole point, and the assertion that needed the list rather than the wizard.
 - [The cluster learns to fold, and the suite learns to open it (2026-09-11)](#the-cluster-learns-to-fold-and-the-suite-learns-to-open-it-2026-09-11) — E2E-M4-82: eleven cases that reached for a child row, and the layer where nothing went red.
+- [Two assertions that could not fail — the 2026-08-22 review's minors 2 and 3 (2026-09-11)](#two-assertions-that-could-not-fail--the-2026-08-22-reviews-minors-2-and-3-2026-09-11) — `toBeEnabled()` on an ion-button host, and a URL-only check after `m5-close`.
 
 ## The rule that comes before the units
 
@@ -4853,3 +4854,33 @@ failing number did.
 The new case is **E2E-M4-82**, and it asserts both halves of the fold together
 because either alone is what a half-built fold looks like: children gone with
 nothing in their place, or a head that summarises rows it never hid.
+
+## Two assertions that could not fail — the 2026-08-22 review's minors 2 and 3 (2026-09-11)
+
+Neither case below was wrong about the *behaviour* — both had already caught a real regression once,
+by a click that would have thrown had the control it followed actually been disabled or the sheet
+actually stayed open. What they got wrong was the clause placed to prove it, which is why a rendered
+defect on either screen would have kept both green.
+
+**E2E-M3-15** (`global-nav.spec.ts`) asserted `toBeEnabled()` on `wizard-next` itself. An Ionic
+`ion-button`'s host element is never DOM-disabled — only the native `<button>` inside it carries the
+attribute — so the assertion was true whether or not the control could actually be pressed, exactly
+the shape `smoke.spec.ts` and `trip-creation.spec.ts` already carry a comment about. Reaching through
+to `.locator('button')` was proven live before being trusted: renaming the id to a testid that does
+not exist turns the case red, which the original assertion cannot do at all.
+
+**E2E-M5-10** (`item-detail.spec.ts`) asserted only the URL after closing the M5 sheet. A route change
+that does not repaint keeps a URL assertion green — the working agreement's own rule — and the sheet
+staying open, or the packing list underneath never becoming the visible page, would both have passed.
+The fix adds the two positive checks the sibling cases (E2E-M5-09 and the one at line 195) already
+carry: the sheet's count is 0, and `visiblePage(page)` resolves to the packing list. Proven the same
+way — a deliberately wrong testid on the added assertion turns the case red before being reverted.
+
+**While in the file**, all three `new RegExp(\`${path}$\`)` interpolations quoted the trip path
+unescaped: a future path containing `.`, `?` or another regex metacharacter would silently change
+what the assertion matches instead of failing loudly. All three now go through a local
+`escapeRegExp`.
+
+See `TODO-minors-pr3.md` (items 1–3) for the batch this closes; item 1 (the `client-devcode`
+Makefile target reading a stale `dist/` with no `client-build` prerequisite) needed no e2e case —
+it was proven directly against a fabricated stale build, recorded in the PR only.

@@ -315,7 +315,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     await page.getByTestId('wizard-name').locator('input').fill('Samedan irgendwann')
     // No date touched anywhere: straight through the wizard.
-    await expect(page.getByTestId('wizard-next')).toBeEnabled()
+    // Reach through to the inner button: `toBeEnabled()` on the ion-button
+    // host checks nothing, since a disabled IonButton keeps its host element
+    // enabled and only disables the button inside it (see smoke.spec.ts).
+    await expect(page.getByTestId('wizard-next').locator('button')).toBeEnabled()
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-2')).toBeVisible()
     await page.getByTestId('wizard-next').click()

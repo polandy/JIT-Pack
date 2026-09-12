@@ -21,6 +21,15 @@ import {
  */
 const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31' }
 
+/**
+ * `path` is a URL fragment interpolated into a `RegExp`; unescaped, a future
+ * path containing `?`, `.` or another metacharacter silently changes what
+ * the assertion matches instead of failing loudly.
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 test.describe('M5 item detail @local @m5', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
@@ -45,7 +54,7 @@ test.describe('M5 item detail @local @m5', () => {
 
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-    await expect(page).toHaveURL(new RegExp(`${path}$`))
+    await expect(page).toHaveURL(new RegExp(`${escapeRegExp(path)}$`))
   })
 
   // E2E-M5-10 (G-4): the route is the state, so a cold boot straight onto
@@ -70,7 +79,12 @@ test.describe('M5 item detail @local @m5', () => {
     // route rule behind back is unit-tested in backTarget.spec.ts, where it
     // governs the desktop panel and the browser's own back button.
     await page.getByTestId('m5-close').click()
-    await expect(page).toHaveURL(new RegExp(`${path}$`))
+    // The URL alone proves nothing — a route change that does not repaint
+    // keeps every URL assertion green (working agreement). The sheet must be
+    // gone *and* the packing list must be the rendered page behind it.
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-header')).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`${escapeRegExp(path)}$`))
   })
 
   // E2E-M5-11 (UI-Spec M5 rework): first level is packing, preparation and
@@ -181,7 +195,7 @@ test.describe('M5 item detail @local @m5', () => {
     // The sheet is gone, and the *packing list* is what remains — a bug
     // here lands on /tabs/trips, two screens back.
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-    await expect(page).toHaveURL(new RegExp(`${path}$`))
+    await expect(page).toHaveURL(new RegExp(`${escapeRegExp(path)}$`))
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
   })
 
