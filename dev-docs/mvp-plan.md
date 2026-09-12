@@ -4,11 +4,12 @@ Status: **approved by the owner 2026-08-20** (scope cut incl. deferring FR-27.13
 this push, merges stay serialized with explicit go-ahead). **Wave 1 is merged** (2026-08-21): Track A `56f15a3`, Track B
 `2b89504`, Track D `980ba1b`; **D's release cut followed on 2026-08-28** — `v0.2.0`, the first release with an image
 that starts against today's schema. **Wave 2 is merged too** (2026-08-21): Track C `61a790b`, Track F `46c1690`, Track G
-`2607317` (its steps 1 and 2 — the M14 eyeball on `:3000`, step 3, is still owed). **Track E (i18n) is the only track of
-the two waves still running.** **Track J is merged** (`443327d`, FR-2.7/M22) and **Track I is built** (variant A, the
-fifth route class). §5 records where they touch. Written from a full-repo survey (client/UX gaps + server/deploy
-readiness). Any session picking up a track: read `CLAUDE.md` fully first, then this file, then only the files your track
-names.
+`2607317`. **Track E (i18n) is done** — closed 2026-08-22 with M17, the last screen; no view is without `t()` any
+more (verified 2026-09-11). **Track J is merged** (`443327d`, FR-2.7/M22) and **Track I is built** (variant A, the
+fifth route class). **What is still owed of the two waves is Track G step 3 alone**, the owner's M14 eyeball — the
+one deliverable no agent session can produce. §5 records where they touch. Written from a full-repo survey
+(client/UX gaps + server/deploy readiness). Any session picking up a track: read `CLAUDE.md` fully first, then this
+file, then only the files your track names.
 
 ## 1. Goal and definition of done
 
@@ -192,7 +193,10 @@ Files: `.github/workflows/docker.yml`, `release.yml`, `Dockerfile`, `docker-comp
    example (systemd timer with `sqlite3 .backup`).
 6. `mkdocs build --strict` gates all of it.
 
-### Track E — i18n completion *(S1 · effort M · no dependencies, wide but shallow)*
+### Track E — i18n completion *(S1 · effort M · no dependencies, wide but shallow)* — **✅ DONE 2026-08-22**
+
+All three PR groups landed; M17 was the last screen. Verified 2026-09-11: no view under `client/src/views` is without
+`t()`. `CLAUDE.md`'s backlog item 4 carries the closing line.
 
 Files: the zero-`t()` views listed in §3 S1, `client/src/i18n/messages/{en,de}.ts`, catalogue-integrity test.
 
@@ -214,11 +218,10 @@ new sections (old file) still succeeds — the current behaviour becomes the doc
 
 Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per ADR-012), `dev-docs/e2e-tests.md`.
 
-1. M4 scroll restoration when a detail sheet closes (the ADR-012 overlay amendment's carried cost). Assert on rendered
-   position, not URL.
-2. Write E2E-M12-03's positive half (unblocked since the lifecycle step exists).
-3. Stage real proposals on :3000 (`docker stop jitpack-dev-web` frees the port) and get the owner's M14 eyeball —
-   deliverable is a click-path note or artifact link, per the standing eyeball rule.
+1. ~~M4 scroll restoration when a detail sheet closes~~ ✅ done (the ADR-012 overlay amendment's carried cost).
+2. ~~Write E2E-M12-03's positive half~~ ✅ done 2026-08-21 — both halves, see `dev-docs/e2e-tests.md`.
+3. **Still owed.** Stage real proposals on :3000 (`docker stop jitpack-dev-web` frees the port) and get the owner's
+   M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.
 
 ### Track J — a trip cannot be edited after it is created *(owner-found 2026-08-21 · **merged `443327d`**, FR-2.7 / M22)*
 
