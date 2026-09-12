@@ -12,6 +12,7 @@ import {
 import { fillIonic } from './helpers/ionic'
 import type { Locator, Page } from '@playwright/test'
 import { backToInventory, createItem } from './helpers/m9'
+import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
 /**
@@ -369,6 +370,8 @@ test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12
     await expect(form.getByTestId('m10-section-photo')).toHaveText('Foto')
     await expect(form.getByTestId('m10-section-depends')).toHaveText('Hängt ab von')
     await expect(form.getByTestId('m10-add-dependency')).toContainText('Abhängigkeit hinzufügen')
+    await expect(form.getByTestId('m10-section-companions')).toHaveText('Begleitartikel')
+    await expect(form.getByTestId('m10-add-companion')).toContainText('Begleitartikel hinzufügen')
 
     // The dependency picker is behind a tap, and carried three literals of
     // its own — the search, the empty answer, and the way out.
@@ -416,13 +419,13 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     await backToInventory(page)
     await openItem(page, 'Kamera')
 
-    // The reverse list: the items that need this one. It only reads — the
-    // relation is owned by the item that declared it, so this row offers
-    // neither the mode select nor the removal the other side has (FR-20.4).
-    const companion = visiblePage(page).getByTestId('m10-companion-Ersatzakku')
-    await expect(companion).toContainText('Required')
-    await expect(companion.locator('ion-select')).toHaveCount(0)
-    await expect(companion.locator('ion-button')).toHaveCount(0)
+    // The reverse list: the items that need this one. It shows the same
+    // relation from the other end, with the same mode the dependent side
+    // declared (FR-20.4).
+    await expect(visiblePage(page).getByTestId('m10-companion-Ersatzakku')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-companion-mode-Ersatzakku')).toContainText(
+      'Required',
+    )
 
     // The circle: the Kamera cannot in turn depend on the Ersatzakku.
     await visiblePage(page).getByTestId('m10-add-dependency').click()
@@ -440,6 +443,74 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     await visiblePage(page).getByTestId('m10-dependency-cancel').click()
     await expect(visiblePage(page).getByTestId('m10-dependency-mode-Ersatzakku')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('m10-companion-Ersatzakku')).toBeVisible()
+  })
+
+  /*
+   * FR-20.1 says an item can carry dependencies "in either direction", and
+   * the relation is one row either way — but only the dependent's editor
+   * could write it, so declaring "the tripod needs this plate" meant leaving
+   * the item in hand and finding the other one first.
+   */
+  test('E2E-M10-20: a companion is declared, re-moded and removed from the main item', async ({
+    page,
+  }) => {
+    test.slow() // both items are built through M10's own form (§2.4)
+
+    await createItem(page, 'Arca-Platte')
+    await writesLanded(page)
+    await backToInventory(page)
+    await createItem(page, 'Teleobjektiv')
+
+    // Declared from the main item's side: the lens takes the plate along.
+    await visiblePage(page).getByTestId('m10-add-companion').click()
+    await visiblePage(page).getByTestId('m10-companion-pick-Arca-Platte').click()
+    await expect(visiblePage(page).getByTestId('m10-companion-mode-Arca-Platte')).toContainText(
+      'Required',
+    )
+
+    // The same edge, read from the end that has always been able to write it:
+    // this is what says the relation was stored rather than only drawn.
+    await writesLanded(page)
+    await backToInventory(page)
+    await openItem(page, 'Arca-Platte')
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Teleobjektiv')).toContainText(
+      'Required',
+    )
+
+    // A circle refused from this direction too — the lens cannot become the
+    // plate's companion while the plate is already the lens's.
+    await visiblePage(page).getByTestId('m10-add-companion').click()
+    await visiblePage(page).getByTestId('m10-companion-pick-Teleobjektiv').click()
+    await expect(visiblePage(page).getByTestId('m10-companion-error')).toContainText(
+      'Teleobjektiv → Arca-Platte → Teleobjektiv',
+    )
+    await visiblePage(page).getByTestId('m10-companion-cancel').click()
+    // Refused at save time: the dependent side still lists exactly the one
+    // relation, and the picker's own row is gone rather than written.
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Teleobjektiv')).toHaveCount(1)
+
+    // Mode and removal are the main item's to change as well.
+    await writesLanded(page)
+    await backToInventory(page)
+    await openItem(page, 'Teleobjektiv')
+    await visiblePage(page).getByTestId('m10-companion-mode-Arca-Platte').click()
+    await page.getByRole('radio', { name: 'Suggested' }).click()
+    await writesLanded(page)
+    await backToInventory(page)
+    await openItem(page, 'Arca-Platte')
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Teleobjektiv')).toContainText(
+      'Suggested',
+    )
+
+    await writesLanded(page)
+    await backToInventory(page)
+    await openItem(page, 'Teleobjektiv')
+    await visiblePage(page).getByTestId('m10-companion-remove-Arca-Platte').click()
+    await expect(visiblePage(page).getByTestId('m10-companion-mode-Arca-Platte')).toHaveCount(0)
+    await writesLanded(page)
+    await backToInventory(page)
+    await openItem(page, 'Arca-Platte')
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Teleobjektiv')).toHaveCount(0)
   })
 
   test('E2E-M10-04: a photo is added, replaced, and removed on the item', async ({ page }) => {
