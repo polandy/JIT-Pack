@@ -212,6 +212,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
   }) => {
     await page.goto(PATH.items)
     await createItem(page, 'Zahnbürste')
+    await backToInventory(page)
     await createItem(page, 'Shampoo')
 
     await page.goto(PATH.templates)
