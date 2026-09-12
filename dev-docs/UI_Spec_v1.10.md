@@ -1546,7 +1546,10 @@ These patterns apply to every screen and are specified once.
   reject. On success the route *replaces* rather than pushes, so "back" lands on the inventory and not on a creation
   form for an item that now exists. **Implemented (Addendum 3.20):** a "Depends on" section listing this item's declared
   dependencies with a required/suggested mode toggle per row, an add-picker with save-time cycle rejection, and a
-  read-only *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **Localized 2026-08-22 (NFR-4.12)**,
+  *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **The two lists are symmetric since 2026-09-12:**
+  *Begleitartikel* was read-only and sat below the delete card; it now carries the same add-picker, mode toggle and
+  removal as *„Hängt ab von"* and sits directly beneath it, because an editable section under the destructive one is
+  read as part of it. **Localized 2026-08-22 (NFR-4.12)**,
   which settled two words this section had left open: the modes are *nötig* / *empfohlen* as written here, and the
   reverse list is *Begleitartikel* — the word M3 already uses for the same relation. This section's earlier *„Wird
   gebraucht von"* named it backwards: the list holds the items that need this one, not the ones it is needed by.

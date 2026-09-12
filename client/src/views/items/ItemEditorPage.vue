@@ -314,17 +314,23 @@ const showMainPicker = ref(false)
 const mainSearch = ref('')
 const dependencyError = ref<DependencyCycleError | null>(null)
 
+const showCompanionPicker = ref(false)
+const companionSearch = ref('')
+const companionError = ref<DependencyCycleError | null>(null)
+
 /** Joins the hops of a rejected cycle for FR-20.1's error line. */
 const CYCLE_PATH_SEPARATOR = ' → '
 
 /** The domain reports the fault; this screen is what words it (NFR-4.12). */
-const dependencyErrorText = computed(() => {
-  const fault = dependencyError.value
+function dependencyFaultText(fault: DependencyCycleError | null): string {
   if (!fault) return ''
   return fault.reason === 'self'
     ? t('items.editor.dependencySelf', { name: fault.names[0] ?? '' })
     : t('items.editor.dependencyCycle', { path: fault.names.join(CYCLE_PATH_SEPARATOR) })
-})
+}
+
+const dependencyErrorText = computed(() => dependencyFaultText(dependencyError.value))
+const companionErrorText = computed(() => dependencyFaultText(companionError.value))
 
 const pickableMains = computed(() =>
   dependencyOffer(
@@ -332,6 +338,23 @@ const pickableMains = computed(() =>
     {
       excludeId: props.itemId,
       takenIds: new Set(dependsOn.value.map((d) => d.depends_on_item_id)),
+    },
+  ),
+)
+
+/**
+ * The items this one can still be given as a companion: the same offer as
+ * {@link pickableMains}, read from the other end — minus this item and minus
+ * whatever already depends on it.
+ */
+const pickableCompanions = computed(() =>
+  dependencyOffer(
+    companionSearch.value
+      ? masterStore.searchItems(companionSearch.value)
+      : masterStore.activeItemList,
+    {
+      excludeId: props.itemId,
+      takenIds: new Set(companions.value.map((d) => d.item_id)),
     },
   ),
 )
@@ -375,6 +398,42 @@ function onDependencyModeChange(dependencyId: string, mode: DependencyMode) {
 }
 
 function onRemoveDependency(dependencyId: string) {
+  orchestrator.deleteItemDependency(dependencyId)
+}
+
+function closeCompanionPicker() {
+  showCompanionPicker.value = false
+  companionSearch.value = ''
+}
+
+/**
+ * FR-20.1 written backwards: the picked item becomes the dependent and this
+ * one its main item. The stored row is the same edge either way, so the
+ * cycle validator is asked about that edge and not about the direction the
+ * user happened to declare it from.
+ */
+function onAddCompanion(companionItemId: string) {
+  if (!props.itemId) return
+  const error = dependencyCycleError(
+    masterStore.dependencyList,
+    { item_id: companionItemId, depends_on_item_id: props.itemId },
+    itemName,
+  )
+  if (error) {
+    companionError.value = error
+    return
+  }
+  companionError.value = null
+  closeCompanionPicker()
+  orchestrator.addItemDependency(companionItemId, props.itemId)
+}
+
+function onCompanionModeChange(dependencyId: string, mode: DependencyMode) {
+  const dep = companions.value.find((d) => d.id === dependencyId)
+  if (dep) orchestrator.updateItemDependency(dep, { mode })
+}
+
+function onRemoveCompanion(dependencyId: string) {
   orchestrator.deleteItemDependency(dependencyId)
 }
 
@@ -785,6 +844,97 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           </div>
 
           <!--
+            FR-20.1 from the other end: the items that depend on this one. The
+            same relation as the section above, written from the main item's
+            side, so the pair is declared wherever the user happens to be
+            standing.
+          -->
+          <SectionHead :title="t('items.editor.companions')" data-testid="m10-section-companions" />
+          <p class="section-hint">
+            {{ t('items.editor.companionsHint', { name: item.name }) }}
+          </p>
+
+          <IonList v-if="companions.length > 0">
+            <IonItem v-for="dep in companions" :key="dep.id">
+              <IonLabel :data-testid="`m10-companion-${itemName(dep.item_id)}`">
+                {{ itemName(dep.item_id) }}
+              </IonLabel>
+              <IonSelect
+                :value="dep.mode"
+                interface="popover"
+                slot="end"
+                :data-testid="`m10-companion-mode-${itemName(dep.item_id)}`"
+                @ionChange="(e: CustomEvent) => onCompanionModeChange(dep.id, e.detail.value)"
+              >
+                <IonSelectOption value="required">{{ modeLabel('required') }}</IonSelectOption>
+                <IonSelectOption value="suggested">{{ modeLabel('suggested') }}</IonSelectOption>
+              </IonSelect>
+              <IonButton
+                fill="clear"
+                color="danger"
+                slot="end"
+                :aria-label="t('items.editor.companionRemove')"
+                :data-testid="`m10-companion-remove-${itemName(dep.item_id)}`"
+                @click="onRemoveCompanion(dep.id)"
+              >
+                <IonIcon slot="icon-only" :icon="trashOutline" />
+              </IonButton>
+            </IonItem>
+          </IonList>
+
+          <IonNote
+            v-if="companionError"
+            color="danger"
+            class="field-error"
+            data-testid="m10-companion-error"
+          >
+            <IonIcon :icon="warningOutline" />
+            {{ companionErrorText }}
+          </IonNote>
+
+          <IonButton
+            v-if="!showCompanionPicker"
+            expand="block"
+            fill="outline"
+            data-testid="m10-add-companion"
+            @click="showCompanionPicker = true"
+          >
+            <IonIcon slot="start" :icon="addOutline" />
+            {{ t('items.editor.companionAdd') }}
+          </IonButton>
+
+          <div v-else class="main-picker">
+            <IonSearchbar
+              :value="companionSearch"
+              :placeholder="t('items.editor.dependencySearchPlaceholder')"
+              :debounce="200"
+              @ionInput="(e: CustomEvent) => (companionSearch = e.detail.value ?? '')"
+            />
+            <IonList>
+              <IonItem
+                v-for="companion in pickableCompanions"
+                :key="companion.id"
+                button
+                :data-testid="`m10-companion-pick-${companion.name}`"
+                @click="onAddCompanion(companion.id)"
+              >
+                <IonLabel>{{ companion.name }}</IonLabel>
+              </IonItem>
+              <IonItem v-if="pickableCompanions.length === 0" lines="none">
+                <IonLabel color="medium">{{ t('items.editor.dependencyNoMatch') }}</IonLabel>
+              </IonItem>
+            </IonList>
+            <IonButton
+              fill="clear"
+              expand="block"
+              data-testid="m10-companion-cancel"
+              @click="closeCompanionPicker()"
+            >
+              {{ t('common.cancel') }}
+            </IonButton>
+          </div>
+
+          <!--
             FR-27.8: which groups and Vorlagen hold this item. It sits above
             the delete card on purpose — the card's count is this list's
             length, and the reader arriving to decide whether an edit is safe
@@ -904,27 +1054,6 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               {{ t('items.editor.delete') }}
             </IonButton>
           </section>
-
-          <template v-if="companions.length > 0">
-            <SectionHead
-              :title="t('items.editor.companions')"
-              data-testid="m10-section-companions"
-            />
-            <p class="section-hint">
-              {{ t('items.editor.companionsHint', { name: item.name }) }}
-            </p>
-            <IonList>
-              <IonItem
-                v-for="dep in companions"
-                :key="dep.id"
-                lines="none"
-                :data-testid="`m10-companion-${itemName(dep.item_id)}`"
-              >
-                <IonLabel>{{ itemName(dep.item_id) }}</IonLabel>
-                <IonNote slot="end">{{ modeLabel(dep.mode) }}</IonNote>
-              </IonItem>
-            </IonList>
-          </template>
         </template>
       </template>
     </IonContent>

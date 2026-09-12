@@ -435,6 +435,8 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.dependencyCycle': 'Das schlösse einen Kreis: {path}.',
   'items.editor.companions': 'Begleitartikel',
   'items.editor.companionsHint': 'Diese Artikel hängen von {name} ab:',
+  'items.editor.companionAdd': 'Begleitartikel hinzufügen',
+  'items.editor.companionRemove': 'Begleitartikel entfernen',
   'items.editor.containedIn': 'Enthalten in',
   'items.editor.containedPositions': '{n} Position | {n} Positionen',
   'items.editor.tripCommentsPartial':

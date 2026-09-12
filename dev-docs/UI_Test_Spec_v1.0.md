@@ -1553,13 +1553,18 @@ E2E-M23-04.
   drive it as *setup* (E2E-M5-23 and the skip-item cascade both declare a dependency through this screen to get a
   companion onto a trip), and E2E-M10-13 reads its heading for a German word — a heading is not a behaviour, and a
   fixture is not an assertion. Three clauses, all on M10 itself: a new relation is *nötig* until someone says otherwise,
-  which is what makes FR-20.4's cascade the default; the **reverse list only reads** — the companion row carries the
-  mode as text and offers neither the select nor the removal the declaring side has, since the relation is owned by the
-  item that needs the companion; and a dependency that would **close a circle is refused before the write**, naming the
+  which is what makes FR-20.4's cascade the default; the **reverse list shows the same mode** the declaring side chose;
+  and a dependency that would **close a circle is refused before the write**, naming the
   hops (`Kamera → Ersatzakku → Kamera`) rather than saying *invalid*. The refusal is asserted against a positive signal
   on the same screen: the companion row is still there afterwards, so „no dependency row" cannot be produced by a page
   that rendered nothing. The cycle arithmetic itself stays in `domain/__tests__/dependencies`; what is new here is that
-  the fault reaches a user as a sentence.
+  the fault reaches a user as a sentence. **Amended 2026-09-12:** the clause that the reverse list *only reads* is gone
+  with the read-only list itself (FR-20.1) — it is E2E-M10-20 that now covers what that row does.
+* **E2E-M10-20** `all` (FR-20.1/20.4) — **new 2026-09-12** (`inventory.spec.ts`): the *Begleitartikel* list writes its
+  own end of the relation. A companion is declared from the main item, re-moded and removed there, and **every one of
+  those three is asserted on the other item's editor** — the edge is read where it was not declared, which is what
+  separates a stored relation from a drawn one. The cycle refusal is asserted from this direction as well, against the
+  dependent side still listing exactly one relation: the same edge, so the same answer, whichever end posed it.
 * **E2E-M10-04** `all` (FR-22.1/22.5) — **new 2026-08-30** (`inventory.spec.ts`): the reference photo is added, replaced
   and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Like the
   dependency section above it, this had no `data-testid` anywhere — the signature of a screen no test has rendered. Two
