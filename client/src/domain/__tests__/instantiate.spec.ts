@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   applyReviewOverrides,
+  reviewKeyOf,
   companionAsGenerated,
   durationDays,
   generateTripItems,
@@ -1095,26 +1096,44 @@ describe('the rows a wizard draft is made of', () => {
   })
 
   describe('applyReviewOverrides', () => {
-    const cases: [string, Record<number, number>, number[]][] = [
+    const CAM = generated({ quantity: 1 })
+    const STATIV = generated({ source_item_id: 'item-stativ', name: 'Stativ', quantity: 4 })
+    const camKey = reviewKeyOf(CAM)
+    const stativKey = reviewKeyOf(STATIV)
+
+    const cases: [string, Record<string, number>, number[]][] = [
       ['no override leaves every quantity alone', {}, [1, 4]],
-      ['an override replaces one quantity', { 1: 2 }, [1, 2]],
-      ['a zero is kept, because it is the FR-5.5 skip', { 0: 0 }, [0, 4]],
-      ['every row can be overridden at once', { 0: 3, 1: 3 }, [3, 3]],
-      ['an override past the end changes nothing', { 7: 9 }, [1, 4]],
+      ['an override replaces one quantity', { [stativKey]: 2 }, [1, 2]],
+      ['a zero is kept, because it is the FR-5.5 skip', { [camKey]: 0 }, [0, 4]],
+      ['every row can be overridden at once', { [camKey]: 3, [stativKey]: 3 }, [3, 3]],
+      ['an override for an unknown row changes nothing', { 'item-missing:group': 9 }, [1, 4]],
     ]
 
     for (const [name, overrides, expected] of cases) {
       it(`${name}`, () => {
-        const items = [generated({ quantity: 1 }), generated({ name: 'Stativ', quantity: 4 })]
+        const items = [CAM, STATIV]
 
         expect(applyReviewOverrides(items, overrides).map((i) => i.quantity)).toEqual(expected)
       })
     }
 
-    it('changes nothing else about the row it rewrites', () => {
-      const [row] = applyReviewOverrides([generated({ tasks: ['Akku laden'] })], { 0: 0 })
+    // FR-2.6: the review list can reorder while a user is editing it — a row
+    // is dropped, a history suggestion is accepted, or a step-2 change
+    // upstream reshuffles the generation. Keying by position would then move
+    // the override onto whichever row now sits in that slot instead of the
+    // one the user actually touched (the bug this test guards against).
+    it('an override follows the item across reordering, not the slot it was made in', () => {
+      const overrides = { [stativKey]: 2 }
+      const reordered = [STATIV, CAM]
 
-      expect(row).toEqual({ ...generated(), quantity: 0 })
+      expect(applyReviewOverrides(reordered, overrides).map((i) => i.quantity)).toEqual([2, 1])
+    })
+
+    it('changes nothing else about the row it rewrites', () => {
+      const row = generated({ tasks: ['Akku laden'] })
+      const [result] = applyReviewOverrides([row], { [reviewKeyOf(row)]: 0 })
+
+      expect(result).toEqual({ ...generated(), quantity: 0 })
     })
 
     it('leaves the rows it was given untouched', () => {
@@ -1122,7 +1141,7 @@ describe('the rows a wizard draft is made of', () => {
       // place would make the review's own preview follow the draft.
       const items = [generated({ quantity: 1 })]
 
-      applyReviewOverrides(items, { 0: 0 })
+      applyReviewOverrides(items, { [reviewKeyOf(items[0]!)]: 0 })
 
       expect(items[0]!.quantity).toBe(1)
     })
