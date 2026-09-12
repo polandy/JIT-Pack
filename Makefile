@@ -219,8 +219,11 @@ client-build: $(CLIENT_DEPS)
 client-cli: $(CLIENT_DEPS)
 	cd client && $(RUN) npm run build:cli
 
-# After client-build: it reads what the build actually emitted.
-client-devcode:
+# After client-build: it reads what the build actually emitted. The
+# prerequisite is what makes that true — `make -j` guarantees nothing about
+# ordering, and a standalone `make client-devcode` would otherwise read
+# whatever stale (or missing) dist/ happened to be lying around.
+client-devcode: client-build
 	$(RUN) node scripts/dev-code-gate.mjs
 
 client-test: $(CLIENT_DEPS)
