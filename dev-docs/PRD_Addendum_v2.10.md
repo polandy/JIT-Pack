@@ -1945,7 +1945,10 @@ locked.
     "counted over open rows only": Status names a done-state on purpose, so its counts run over the *whole* set, or
     "Gepackt"/"Bewusst weggelassen" would always read zero. This is the M4 half of the same "show me packed/skipped
     rows" request the inventory browse-sheet made about its own screen; the two were not built together; the
-    browse-sheet's undo-across-openings gap is unrelated and still open.
+    browse-sheet's undo-across-openings gap is unrelated and still open. **Owner-ruled 2026-09-12: the wording stays
+    three-shaped here and stays a single "nur Entschiedenes" switch on the browse-sheet (FR-25.13i)** — the tasks
+    differ (this facet filters a list; that switch finds rows to reset), "entschieden" names the *union* the
+    three-value facet has no single word for, and the sheet's row has no space for a segmented control.
 * **FR-25.5 (Container Assignment Optional & De-emphasized — refines FR-10.2):** Assigning an item to a luggage
   container (FR-10.2) **defaults to none** and is de-emphasized in the packing flow (M4/M5) so that container management
   never becomes a step the user must clear in order to pack. It remains fully available for those who want it (M11), but
