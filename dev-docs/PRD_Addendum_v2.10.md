@@ -2266,6 +2266,11 @@ locked.
       skipped together rather than two: both are the same stuck state to the person looking for them, and the line
       says which it is anyway. *Revisit trigger:* if a pass over the packed rows alone turns out to be the real
       task, this becomes a three-value control rather than a second switch beside it.
+    * **It deliberately does not share FR-25.11l's words** (owner, 2026-09-12, asked because the two were built the
+      same day): M4's Status facet names the three states separately — *Gepackt*, *Bewusst weggelassen*, *Noch nicht
+      gepackt* — and this switch names their union, which that facet has no word for. The shapes differ because the
+      tasks do: the facet filters a list somebody is reading, this finds the lines somebody is about to reset, and a
+      segmented control has no room on the sheet's row. The divergence is a ruling, not an oversight.
     * **It inherits FR-25.13e's snapshot rule, and needs it more.** What the filter shows is the set that was decided
       **when it was switched on** (re-taken when the tag axis moves), not the live one — so resetting a line leaves it
       in place, flipping to *„schon drin"* with its verbs back, exactly as an acted line stays put during a run of
