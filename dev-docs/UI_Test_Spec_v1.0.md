@@ -2525,6 +2525,22 @@ landed, that no test has ever rendered.
   press per `useLongPress`) opens a menu naming each traveler; picking one writes the assignment, a second
   long-press-and-pick adds a second traveler to the same row (asserted as *„Theo, Mia"*), and a plain tap on 👥 on a
   second line still means *für alle*, unconditionally.
+* **E2E-M4-82** `all` (FR-25.23, added 2026-09-11) — **implemented** (`e2e/membership.spec.ts`): the cluster fold. A
+  per-person item with Andy 2 and Leonardo 3 renders **shut**: `aria-expanded="false"`, neither child row present, and
+  the head answering for both of them — two faces in roster order (asserted by their `aria-label`, since a face shows
+  initials) and „5 offen", the open count in **units** (FR-25.22). Tapping opens it: the children appear with their own
+  `0/2` and `0/3`, the faces leave the head and the head returns to `0/5` — the positive signal that nothing states the
+  same thing twice. Tapping again shuts it, because a one-way control is a reveal and not a fold.
+
+  **Both halves are asserted in one case on purpose:** either one alone is what a half-built fold looks like —
+  children gone with nothing in their place, or a head summarising rows it never hid. And it is an e2e case rather
+  than a unit because the fold is state on the *screen*: `ClusterHead` renders whatever `collapsed` it is handed, and
+  a unit of it cannot tell whether M4 hands back the value its own click asked for.
+
+  **It also changed the suite around it.** Every case that reached for a `m4-child-…` row now opens the cluster first
+  through `openCluster` in `e2e/helpers/m4.ts`, and the two cases that read `done/total` off a *shut* head were moved
+  to read it open. Nothing in Vitest went red when the children were hidden — no unit had ever operated a child row,
+  which is exactly the unfalsifiable-coverage trap this suite's own rules warn about.
 * **E2E-M4-48** `all` (FR-28.4/FR-25.1, added 2026-08-22) — **implemented** (`e2e/item-mark.spec.ts`): a per-person
   position generated for two travelers renders as one cluster, and the **cluster head** — the line that names the item
   once — carries the item's mark (the same `packing` ladder as a single row); the traveler children carry none. Found on

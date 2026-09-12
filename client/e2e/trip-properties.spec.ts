@@ -14,7 +14,7 @@ import {
   createTemplate,
   visiblePage as visible,
 } from './fixtures'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
 
 /**
@@ -87,15 +87,31 @@ async function tripWithTwoTravellers(page: Page, name: string): Promise<string> 
  * child row per traveller — and falls back to a flat "item · person" row when
  * only one instance is left. Both shapes have to count, or the removal case
  * would read its own success as a missing row.
+ *
+ * Both accessors open the cluster first (FR-25.23). It is not enough to open
+ * it once per test: the fold is view state, so every `page.goto` here starts
+ * it shut again.
  */
-function pantsRowFor(page: Page, traveller: string) {
+async function showPants(page: Page): Promise<void> {
+  const head = visible(page).getByTestId('m4-cluster-Regenhose')
+  // Wait for the position in *whichever* shape it took, so the branch below
+  // reads a settled list rather than one that has not painted yet.
+  await expect(head.or(visible(page).getByTestId('m4-row-Regenhose')).first()).toBeVisible()
+  if ((await head.count()) === 0) return
+  if ((await head.getAttribute('aria-expanded')) === 'false') await head.click()
+  await expect(head).toHaveAttribute('aria-expanded', 'true')
+}
+
+async function pantsRowFor(page: Page, traveller: string): Promise<Locator> {
+  await showPants(page)
   return visible(page)
     .getByTestId(`m4-child-Regenhose-${traveller}`)
     .or(visible(page).getByTestId('m4-row-Regenhose').filter({ hasText: traveller }))
 }
 
 /** Every traveller's share, whichever shape M4 chose. */
-function pantsRows(page: Page) {
+async function pantsRows(page: Page): Promise<Locator> {
+  await showPants(page)
   return visible(page)
     .getByTestId(/^m4-child-Regenhose-/)
     .or(visible(page).getByTestId('m4-row-Regenhose'))
@@ -171,7 +187,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     page,
   }) => {
     const trip = await tripWithTwoTravellers(page, 'Sommerferien')
-    await expect(pantsRows(page)).toHaveCount(2)
+    await expect(await pantsRows(page)).toHaveCount(2)
 
     await openTripEdit(page)
     await visible(page).getByTestId('traveler-add-input').locator('input').fill('Mia')
@@ -185,8 +201,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     await localWriteSettled(page)
     await page.goto(trip)
-    await expect(pantsRows(page)).toHaveCount(3)
-    await expect(pantsRowFor(page, 'Mia')).toBeVisible()
+    await expect(await pantsRows(page)).toHaveCount(3)
+    await expect(await pantsRowFor(page, 'Mia')).toBeVisible()
   })
 
   /*
@@ -238,7 +254,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     page,
   }) => {
     const trip = await tripWithTwoTravellers(page, 'Skiferien')
-    await expect(pantsRows(page)).toHaveCount(2)
+    await expect(await pantsRows(page)).toHaveCount(2)
 
     /*
      * Pack Xenia's share first, and that is not decoration — it is what makes
@@ -249,8 +265,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
      * gone. Proved by mutation — detaching by position instead of by traveller
      * left this case green until the packed state was asserted.
      */
-    await pantsRowFor(page, 'Xenia').getByTestId('row-plus').click()
-    await expect(pantsRowFor(page, 'Xenia')).toContainText('1/2')
+    await (await pantsRowFor(page, 'Xenia')).getByTestId('row-plus').click()
+    await expect(await pantsRowFor(page, 'Xenia')).toContainText('1/2')
 
     await openTripEdit(page)
     // By name: Ionic sets an input's value as a property, not an attribute, so
@@ -273,10 +289,10 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // separate facts. A count alone would be satisfied by a removal that took
     // both and a generation that put one back, which is the failure this case
     // exists for.
-    await expect(pantsRowFor(page, 'Zoe')).toHaveCount(0)
-    await expect(pantsRowFor(page, 'Xenia')).toBeVisible()
+    await expect(await pantsRowFor(page, 'Zoe')).toHaveCount(0)
+    await expect(await pantsRowFor(page, 'Xenia')).toBeVisible()
     // The same row, not a fresh one that looks like it.
-    await expect(pantsRowFor(page, 'Xenia')).toContainText('1/2')
+    await expect(await pantsRowFor(page, 'Xenia')).toContainText('1/2')
   })
 
   test('E2E-M22-08: an edited trip is still on M2, because an edit is not the whole row', async ({
@@ -303,8 +319,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     const trip = await tripWithTwoTravellers(page, 'Osterferien')
 
     // Zoe's own share, part-packed: this is what the question is about.
-    await pantsRowFor(page, 'Zoe').getByTestId('row-plus').click()
-    await expect(pantsRowFor(page, 'Zoe')).toContainText('1/2')
+    await (await pantsRowFor(page, 'Zoe')).getByTestId('row-plus').click()
+    await expect(await pantsRowFor(page, 'Zoe')).toContainText('1/2')
 
     await openTripEdit(page)
     await visible(page).getByTestId('traveler-row-Zoe').getByRole('button').click()
@@ -323,8 +339,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // Zoe's name nor a child test id, so "Zoe's row is not there" is equally
     // true of a row that was only detached from her. One Regenhose row left
     // is what says it was deleted.
-    await expect(pantsRows(page)).toHaveCount(1)
-    await expect(pantsRowFor(page, 'Zoe')).toHaveCount(0)
+    await expect(await pantsRows(page)).toHaveCount(1)
+    await expect(await pantsRowFor(page, 'Zoe')).toHaveCount(0)
     await expect(visible(page).getByTestId('m4-row-Regenhose')).toContainText('Xenia')
   })
 
@@ -453,8 +469,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     const trip = await tripWithTwoTravellers(page, 'Namenswechsel')
 
     // Her share, part-packed: the work that a remove-plus-add would lose.
-    await pantsRowFor(page, 'Xenia').getByTestId('row-plus').click()
-    await expect(pantsRowFor(page, 'Xenia')).toContainText('1/2')
+    await (await pantsRowFor(page, 'Xenia')).getByTestId('row-plus').click()
+    await expect(await pantsRowFor(page, 'Xenia')).toContainText('1/2')
 
     await openTripEdit(page)
     const field = visible(page).getByTestId('traveler-row-Xenia').locator('input')
@@ -471,8 +487,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // Two shares still, and hers is the same row: a rename that had gone
     // through a removal would have taken the packed count with it, and one
     // that had gone through an addition would have left three.
-    await expect(pantsRows(page)).toHaveCount(2)
-    await expect(pantsRowFor(page, 'Xenia Meier')).toContainText('1/2')
+    await expect(await pantsRows(page)).toHaveCount(2)
+    await expect(await pantsRowFor(page, 'Xenia Meier')).toContainText('1/2')
   })
 
   test('E2E-M22-07: a planning trip does offer the removal control', async ({ page }) => {

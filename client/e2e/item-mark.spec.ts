@@ -11,6 +11,7 @@ import {
   useReducedMotion,
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
+import { openCluster } from './helpers/m4'
 import { backToInventory, createItem } from './helpers/m9'
 import { PATH } from './routes'
 
@@ -251,6 +252,8 @@ test.describe('§3.28 the item mark', () => {
     await expect(page.getByTestId('wizard-step-4')).toBeVisible()
     await page.getByTestId('wizard-create').click()
 
+    // FR-25.23: the cluster is shut, so the children have to be asked for.
+    await openCluster(page, 'Zelt')
     await expect(page.getByTestId('m4-child-Zelt-Andy')).toBeVisible()
     await expect(page.getByTestId('m4-child-Zelt-Sia')).toBeVisible()
     // The head names the item once and carries its mark; the children name

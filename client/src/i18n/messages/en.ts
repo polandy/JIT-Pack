@@ -190,7 +190,7 @@ export const en = {
   'packing.closeSearch': 'Close search',
   'packing.foldAll': 'Collapse all groups',
   'packing.unfoldAll': 'Expand all groups',
-  'packing.groupOpen': '{n} open',
+  'packing.openCount': '{n} open',
   'packing.shopping': 'Shopping',
   'packing.shoppingCount': 'Shopping ({n})',
   'packing.luggage': 'Luggage',
