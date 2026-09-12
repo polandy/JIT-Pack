@@ -61,7 +61,9 @@ import {
   applyReviewOverrides,
   durationDays,
   generateTripItems,
+  reviewKeyOf,
   withCompanions,
+  type GeneratedItem,
   type MergedOverlap,
 } from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
@@ -378,7 +380,10 @@ function toggleSuggestion(itemId: string, checked: boolean) {
 }
 
 // --- Step 4: quantity review + destination checklist offer (FR-13.3) ---
-const quantityOverrides = ref<Record<number, number>>({})
+// Keyed by `reviewKeyOf`, not by position — the review list can reorder
+// while it is open (a drop, a suggestion accepted, a step-2 change
+// upstream), and an override must follow the row it was made on.
+const quantityOverrides = ref<Record<string, number>>({})
 const includeChecklist = ref(true)
 
 const offeredChecklist = computed(() => {
@@ -387,8 +392,8 @@ const offeredChecklist = computed(() => {
   return profile ? masterStore.getChecklistItems(profile.id) : []
 })
 
-function reviewQuantity(index: number): number {
-  return quantityOverrides.value[index] ?? generation.value.items[index]!.quantity
+function reviewQuantity(item: GeneratedItem): number {
+  return quantityOverrides.value[reviewKeyOf(item)] ?? item.quantity
 }
 
 /**
@@ -411,26 +416,27 @@ const draftItems = computed(() =>
  * would leave the next trip nothing to learn from, and would mean this one act
  * behaved differently here than everywhere else in the product.
  */
-function dropRow(index: number) {
-  quantityOverrides.value = { ...quantityOverrides.value, [index]: 0 }
+function dropRow(item: GeneratedItem) {
+  quantityOverrides.value = { ...quantityOverrides.value, [reviewKeyOf(item)]: 0 }
 }
 
-function restoreRow(index: number) {
-  const { [index]: _dropped, ...rest } = quantityOverrides.value
+function restoreRow(item: GeneratedItem) {
+  const key = reviewKeyOf(item)
+  const { [key]: _dropped, ...rest } = quantityOverrides.value
   quantityOverrides.value = rest
 }
 
-function isDropped(index: number): boolean {
-  return reviewQuantity(index) === 0
+function isDropped(item: GeneratedItem): boolean {
+  return reviewQuantity(item) === 0
 }
 
 /** What is actually coming — a count that ignored a dropped row would lie. */
 const comingCount = computed(() => draftItems.value.filter((i) => i.quantity > 0).length)
 
-function overrideQuantity(index: number, value: string) {
+function overrideQuantity(item: GeneratedItem, value: string) {
   const qty = Number(value)
   if (!Number.isFinite(qty) || qty < 0) return
-  quantityOverrides.value = { ...quantityOverrides.value, [index]: Math.floor(qty) }
+  quantityOverrides.value = { ...quantityOverrides.value, [reviewKeyOf(item)]: Math.floor(qty) }
 }
 
 /** The series' own trips — the history FR-14.2's median is taken over. */
@@ -482,20 +488,18 @@ const suggestions = computed(() => {
 
 /** The history suggestion for a row, only when it differs from the value
  * currently shown (nothing to offer otherwise). */
-function suggestionFor(index: number): QuantitySuggestion | null {
-  const src = generation.value.items[index]?.source_item_id
-  if (!src) return null
-  const s = suggestions.value.get(src)
-  return s && s.suggested !== reviewQuantity(index) ? s : null
+function suggestionFor(item: GeneratedItem): QuantitySuggestion | null {
+  const s = suggestions.value.get(item.source_item_id)
+  return s && s.suggested !== reviewQuantity(item) ? s : null
 }
 
 function suggestionHint(s: QuantitySuggestion): string {
   return s.history.map((h) => `${h.year}: ${h.quantity}`).join(' · ')
 }
 
-function acceptSuggestion(index: number) {
-  const s = suggestionFor(index)
-  if (s) quantityOverrides.value = { ...quantityOverrides.value, [index]: s.suggested }
+function acceptSuggestion(item: GeneratedItem) {
+  const s = suggestionFor(item)
+  if (s) quantityOverrides.value = { ...quantityOverrides.value, [reviewKeyOf(item)]: s.suggested }
 }
 
 function travelerName(index: number | null): string | null {
@@ -1096,10 +1100,10 @@ setHeaderTitle(
         <SectionHead :title="t('wizard.sectionReview')" />
         <IonList v-if="generation.items.length > 0">
           <IonItem
-            v-for="(item, index) in generation.items"
-            :key="index"
+            v-for="item in generation.items"
+            :key="reviewKeyOf(item)"
             class="review-row"
-            :class="{ dropped: isDropped(index) }"
+            :class="{ dropped: isDropped(item) }"
             data-testid="wizard-review-row"
           >
             <IonLabel>
@@ -1114,7 +1118,7 @@ setHeaderTitle(
                 <span v-if="isShoppingMode(item.mode)" class="mark">
                   {{ modeLabel(item.mode) }}
                 </span>
-                <span v-if="isDropped(index)" class="mark">{{ t('wizard.dropped') }}</span>
+                <span v-if="isDropped(item)" class="mark">{{ t('wizard.dropped') }}</span>
               </h3>
               <p>
                 <template v-if="travelerName(item.traveler_index)"
@@ -1124,41 +1128,41 @@ setHeaderTitle(
               </p>
               <!-- FR-14.2: history hint "2024: 5 · 2025: 6 → suggested 6" -->
               <button
-                v-if="suggestionFor(index)"
+                v-if="suggestionFor(item)"
                 type="button"
                 class="history-hint"
                 data-testid="wizard-history-hint"
-                @click="acceptSuggestion(index)"
+                @click="acceptSuggestion(item)"
               >
                 {{
                   t('wizard.reviewUseSuggestion', {
-                    history: suggestionHint(suggestionFor(index)!),
-                    n: suggestionFor(index)!.suggested,
+                    history: suggestionHint(suggestionFor(item)!),
+                    n: suggestionFor(item)!.suggested,
                   })
                 }}
               </button>
             </IonLabel>
             <span slot="end" class="qty-value jp-num" data-testid="wizard-review-qty">
-              {{ reviewQuantity(index) }}
+              {{ reviewQuantity(item) }}
             </span>
             <IonInput
-              v-if="!isDropped(index)"
+              v-if="!isDropped(item)"
               slot="end"
               class="qty-input"
               type="number"
               min="0"
-              :value="reviewQuantity(index)"
+              :value="reviewQuantity(item)"
               :aria-label="t('wizard.reviewQuantity')"
               @keydown.enter="stepDefaultAction"
-              @ionInput="(e: CustomEvent) => overrideQuantity(index, e.detail.value ?? '')"
+              @ionInput="(e: CustomEvent) => overrideQuantity(item, e.detail.value ?? '')"
             />
             <button
-              v-if="!isDropped(index)"
+              v-if="!isDropped(item)"
               slot="end"
               class="row-action"
               :aria-label="t('wizard.dropRow', { name: item.name })"
               data-testid="wizard-review-drop"
-              @click="dropRow(index)"
+              @click="dropRow(item)"
             >
               <IonIcon :icon="closeOutline" />
             </button>
@@ -1168,7 +1172,7 @@ setHeaderTitle(
               class="row-action"
               :aria-label="t('wizard.restoreRow', { name: item.name })"
               data-testid="wizard-review-restore"
-              @click="restoreRow(index)"
+              @click="restoreRow(item)"
             >
               <IonIcon :icon="refreshOutline" />
             </button>

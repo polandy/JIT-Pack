@@ -183,8 +183,24 @@ export function withCompanions(
 }
 
 /**
+ * reviewKeyOf is the FR-2.6 review step's stable identity for a generated
+ * row: the source item plus which traveler it is for. FR-27.2 already merges
+ * same-item overlaps into one row per traveler before the review ever sees
+ * the list, so no two rows share a pairing — an override can key off it
+ * instead of the row's position, which changes under the review's own
+ * feet (a drop, a suggestion accepted, a step-2 change upstream).
+ */
+export function reviewKeyOf(
+  item: Pick<GeneratedItem, 'source_item_id' | 'traveler_index'>,
+): string {
+  return `${item.source_item_id}:${item.traveler_index ?? 'group'}`
+}
+
+/**
  * applyReviewOverrides replaces the quantity of the rows the FR-2.6 review
- * step changed, keyed by position in the generated list.
+ * step changed, keyed by `reviewKeyOf` rather than position — the generated
+ * list can reorder while the review is open, and an override must follow the
+ * row it was made on, not whichever row now sits in that slot.
  *
  * A zero is the review's way of saying *„bewusst weggelassen"* (FR-5.5), not
  * a deletion: the row stays and reaches the trip, where
@@ -193,11 +209,12 @@ export function withCompanions(
  */
 export function applyReviewOverrides(
   items: GeneratedItem[],
-  overrides: Readonly<Record<number, number>>,
+  overrides: Readonly<Record<string, number>>,
 ): GeneratedItem[] {
-  return items.map((item, index) =>
-    index in overrides ? { ...item, quantity: overrides[index]! } : item,
-  )
+  return items.map((item) => {
+    const key = reviewKeyOf(item)
+    return key in overrides ? { ...item, quantity: overrides[key]! } : item
+  })
 }
 
 export interface ExcludedItem {
