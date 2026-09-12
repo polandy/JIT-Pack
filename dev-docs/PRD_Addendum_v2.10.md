@@ -3574,11 +3574,17 @@ the tail is where a symbol system is actually decided. Results:
     * **It is absent below two members** (G-8), which covers Local Mode, Single-User Mode and an unshared
       Server-Mode trip in one rule: with one member the only linkable account is the one that would never be
       notified, and a control whose every answer is inert is worse than none.
-    * **Adding a traveller still adds them unlinked.** The ＋ row takes a name and nothing else, and the link is a
-      second act on the row it created. Linking *while* adding is what the CLI does, and it is safe there because
-      the operator adds one person at a time; on M22 the add is the FR-27.4 refresh's trigger, so a link supplied
-      in the same act would notify the linked account once per generated per-person row — the notification storm
-      the 2026-09-01 decision named as its reason not to build a reader at all.
+    * ~~**Adding a traveller still adds them unlinked.** The ＋ row takes a name and nothing else, and the link is a
+      second act on the row it created.~~ **Amended 2026-09-13 (owner): the add row takes the account too.** The
+      separation was reasoned from the write, not from the hand: the person being added to a shared trip is usually
+      one of the people it is already shared with, and making that a correction after the fact hid it behind a
+      control nobody was looking for. What the reasoning was actually about survives as an **ordering rule in one
+      place**: `addTravelerToTrip` inserts the traveller **unlinked**, lets FR-27.4 generate its per-person rows, and
+      writes the link as its own mutation afterwards. Inserted already linked, every one of those generated rows
+      would have earned the account a delegation notification (`planRosterAssignment` fires on any push pointing an
+      `assigned_traveler_id` at a linked traveller) — the notification storm the 2026-09-01 decision named as its
+      reason not to build a reader at all. The rule lives in the action rather than on the screen, so
+      `jitpack traveler --user`, which used to link on the insert, is quiet now too.
 
 ### 3.4 Multi-User & Collaboration
 

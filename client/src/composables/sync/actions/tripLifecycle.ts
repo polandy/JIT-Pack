@@ -201,11 +201,17 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    * rather than leave the user guessing which rows appeared. Null when the
    * trip cannot be seen or its data is not loaded.
    *
-   * `linkedUserId` is the account the person is (FR-2.5). M22 adds people
-   * unlinked and links them afterwards with `linkTraveler` — the two acts
-   * are separate on purpose, see UI-Spec M22; `jitpack traveler --user`
-   * links while adding, and reaches this rather than the bare mutation so
-   * the plan follows there too.
+   * `linkedUserId` is the account the person *is* (FR-2.5), set in the same
+   * act by M22's add row and by `jitpack traveler --user`. It is written
+   * **after** the consequences and as its own mutation rather than on the
+   * insert, and that ordering is the whole reason this parameter is handled
+   * here instead of being passed to `mutations.addTraveler`:
+   * `planRosterAssignment` notifies a linked account for every push that
+   * points an `assigned_traveler_id` at their traveller, so a row that
+   * arrived already linked would earn that account one delegation
+   * notification per per-person row FR-27.4 generates for them. Inserted
+   * unlinked, those rows find no account to tell, and the link that follows
+   * moves no assignment of its own.
    */
   function addTravelerToTrip(
     tripId: string,
@@ -216,13 +222,16 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     if (!trip) return null
     if (!tripDataLoaded(tripId)) return null
 
-    const { mutation, id } = mutations.addTraveler(tripId, name, linkedUserId)
+    const { mutation, id } = mutations.addTraveler(tripId, name, null)
     enqueueAndDrain('trip', tripId, {
       mutation,
       optimistic: optimisticInsert(mutation),
     })
 
-    return { travelerId: id, ...applyTravelerConsequences(tripId, trip) }
+    const consequences = applyTravelerConsequences(tripId, trip)
+    if (linkedUserId !== null) linkTraveler(tripId, id, linkedUserId)
+
+    return { travelerId: id, ...consequences }
   }
 
   /**

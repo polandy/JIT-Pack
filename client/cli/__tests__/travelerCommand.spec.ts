@@ -39,13 +39,25 @@ class FakeInstance {
 
   /** One master row of any table, so a fixture can build a whole group. */
   addMaster(table: string, id: string, row: Record<string, unknown>): void {
-    this.master.push({ seq: this.master.length + 1, table, id, deleted: false, row: { id, ...row } })
+    this.master.push({
+      seq: this.master.length + 1,
+      table,
+      id,
+      deleted: false,
+      row: { id, ...row },
+    })
   }
 
   /** One row in a trip's own partition. */
   addTripRow(tripId: string, table: string, id: string, row: Record<string, unknown>): void {
     const feed = (this.trip[tripId] ??= [])
-    feed.push({ seq: feed.length + 1, table, id, deleted: false, row: { id, trip_id: tripId, ...row } })
+    feed.push({
+      seq: feed.length + 1,
+      table,
+      id,
+      deleted: false,
+      row: { id, trip_id: tripId, ...row },
+    })
   }
 
   /**
@@ -54,7 +66,11 @@ class FakeInstance {
    */
   addFollowedGroup(tripId: string, itemName: string): void {
     this.addMaster('items', 'itm-1', { name: itemName })
-    this.addMaster('templates', 'tpl-1', { owner_id: 'u-1', name: 'Makro', kind: 'group' })
+    this.addMaster('templates', 'tpl-1', {
+      owner_id: 'u-1',
+      name: 'Makro',
+      kind: 'group',
+    })
     this.addMaster('template_items', 'tpi-1', {
       template_id: 'tpl-1',
       item_id: 'itm-1',
@@ -65,12 +81,18 @@ class FakeInstance {
       default_mode: 'pack',
       late_packer: false,
     })
-    this.addTripRow(tripId, 'trip_template_sources', 'src-1', { template_id: 'tpl-1' })
+    this.addTripRow(tripId, 'trip_template_sources', 'src-1', {
+      template_id: 'tpl-1',
+    })
   }
 
   /** One trip_members row (FR-4.5) — what --user may link a traveler to (FR-2.5, ADR-058). */
   addMember(tripId: string, userId: string, id = `tm-${userId}`): void {
-    this.addMaster('trip_members', id, { trip_id: tripId, user_id: userId, role: 'editor' })
+    this.addMaster('trip_members', id, {
+      trip_id: tripId,
+      user_id: userId,
+      role: 'editor',
+    })
   }
 
   /** One traveler already on a trip, which is what makes a second add a no-op. */
@@ -91,14 +113,21 @@ class FakeInstance {
       const body = JSON.parse(String(init.body)) as { mutations: Mutation[] }
       this.pushed.push({ path, mutations: body.mutations })
       return Response.json({
-        results: body.mutations.map((m) => ({ mutation_id: m.mutation_id, outcome: 'applied' })),
+        results: body.mutations.map((m) => ({
+          mutation_id: m.mutation_id,
+          outcome: 'applied',
+        })),
         pull_hint: { next_cursor: 0 },
       })
     }
     if (path === '/api/v1/users') return Response.json({ users: this.users })
     const tripMatch = /^\/api\/v1\/trips\/([^/]+)\/sync$/.exec(path)
     const feed = tripMatch ? (this.trip[tripMatch[1]!] ?? []) : this.master
-    return Response.json({ changes: feed, next_cursor: feed.length, has_more: false })
+    return Response.json({
+      changes: feed,
+      next_cursor: feed.length,
+      has_more: false,
+    })
   }
 }
 
@@ -140,7 +169,11 @@ describe('parseTravelerArgs', () => {
       ['list', '--trip', 'X', '--server', 'http://flag:3000', '--token', 'flag'],
       env({ JITPACK_SERVER: 'http://env:3000', JITPACK_TOKEN: 'env' }),
     )
-    expect(parsed).toMatchObject({ ok: true, serverUrl: 'http://flag:3000', token: 'flag' })
+    expect(parsed).toMatchObject({
+      ok: true,
+      serverUrl: 'http://flag:3000',
+      token: 'flag',
+    })
   })
 
   it('takes from the environment what the flags omit', () => {
@@ -148,7 +181,11 @@ describe('parseTravelerArgs', () => {
       ['list', '--trip', 'X'],
       env({ JITPACK_SERVER: 'http://env:3000', JITPACK_TOKEN: 'env' }),
     )
-    expect(parsed).toMatchObject({ ok: true, serverUrl: 'http://env:3000', token: 'env' })
+    expect(parsed).toMatchObject({
+      ok: true,
+      serverUrl: 'http://env:3000',
+      token: 'env',
+    })
   })
 
   it('refuses an action it does not know rather than guessing one', () => {
@@ -156,11 +193,15 @@ describe('parseTravelerArgs', () => {
   })
 
   it('refuses an add with no name rather than succeeding emptily', () => {
-    expect(parseTravelerArgs(['add', '--trip', 'X'], env({}))).toMatchObject({ ok: false })
+    expect(parseTravelerArgs(['add', '--trip', 'X'], env({}))).toMatchObject({
+      ok: false,
+    })
   })
 
   it('refuses any action without a trip, because a traveler belongs to one', () => {
-    expect(parseTravelerArgs(['add', 'Andy'], env({}))).toMatchObject({ ok: false })
+    expect(parseTravelerArgs(['add', 'Andy'], env({}))).toMatchObject({
+      ok: false,
+    })
   })
 
   it('refuses a flag it does not know', () => {
@@ -172,9 +213,15 @@ describe('parseTravelerArgs', () => {
   // and the other on stderr with exit 2.
   it('separates asking for help from getting it wrong', () => {
     for (const flag of ['-h', '--help']) {
-      expect(parseTravelerArgs([flag], env({}))).toEqual({ ok: false, help: true })
+      expect(parseTravelerArgs([flag], env({}))).toEqual({
+        ok: false,
+        help: true,
+      })
     }
-    expect(parseTravelerArgs([], env({}))).toMatchObject({ ok: false, error: expect.any(String) })
+    expect(parseTravelerArgs([], env({}))).toMatchObject({
+      ok: false,
+      error: expect.any(String),
+    })
   })
 })
 
@@ -187,7 +234,15 @@ describe('runTraveler add', () => {
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Andy'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Andy'],
+        user: null,
+        dryRun: false,
+      },
       it0,
     )
 
@@ -205,7 +260,15 @@ describe('runTraveler add', () => {
     instance.addTrip('trip-1', 'Cannobio', 2026)
 
     await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Andy', 'Sia'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Andy', 'Sia'],
+        user: null,
+        dryRun: false,
+      },
       io(),
     )
 
@@ -221,7 +284,15 @@ describe('runTraveler add', () => {
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['andy ', 'Sia'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['andy ', 'Sia'],
+        user: null,
+        dryRun: false,
+      },
       it0,
     )
 
@@ -235,7 +306,15 @@ describe('runTraveler add', () => {
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Andy'], user: null, dryRun: true },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Andy'],
+        user: null,
+        dryRun: true,
+      },
       it0,
     )
 
@@ -253,7 +332,15 @@ describe('runTraveler add', () => {
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Andy'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Andy'],
+        user: null,
+        dryRun: false,
+      },
       it0,
     )
 
@@ -267,7 +354,15 @@ describe('runTraveler add', () => {
     instance.addTrip('trip-2', 'Cannobio', 2026)
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: 2026, names: ['Andy'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: 2026,
+        names: ['Andy'],
+        user: null,
+        dryRun: false,
+      },
       io(),
     )
 
@@ -280,7 +375,15 @@ describe('runTraveler add', () => {
     instance.addTrip('trip-2', 'Cannobio', 2026)
 
     await runTraveler(
-      { ...conn, action: 'add', trip: 'trip-1', year: null, names: ['Andy'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'trip-1',
+        year: null,
+        names: ['Andy'],
+        user: null,
+        dryRun: false,
+      },
       io(),
     )
 
@@ -292,7 +395,15 @@ describe('runTraveler add', () => {
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Samedan', year: null, names: ['Andy'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Samedan',
+        year: null,
+        names: ['Andy'],
+        user: null,
+        dryRun: false,
+      },
       it0,
     )
 
@@ -303,17 +414,37 @@ describe('runTraveler add', () => {
 
   // FR-2.5: the link is what makes the person on the trip the account on the
   // instance, and it is the half no import ever wrote.
-  it('links the account named by --user, once it is a trip member', async () => {
+  // The link is a *second* mutation, after the traveller's insert and after
+  // whatever FR-27.4 generates for them — not a field on the insert, which is
+  // what it used to be. A row that arrived already linked earns its account
+  // one delegation notification per generated per-person row
+  // (`planRosterAssignment`), which nobody running this command can see.
+  it('links the account named by --user after inserting the person unlinked', async () => {
     instance.addTrip('trip-1', 'Cannobio', 2026)
     instance.users = [{ user_id: 'u-sia', display_name: 'Sia' }]
     instance.addMember('trip-1', 'u-sia')
+    // The per-person rows FR-27.4 generates are what would be notified about.
+    instance.addFollowedGroup('trip-1', 'Kamera')
 
     await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: 'Sia', dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Sia'],
+        user: 'Sia',
+        dryRun: false,
+      },
       io(),
     )
 
-    expect(instance.mutations[0]?.fields?.['linked_user_id']).toBe('u-sia')
+    const roster = instance.mutations.filter((m) => m.table === 'travelers')
+    expect(roster).toHaveLength(2)
+    expect(roster[0]?.fields?.['linked_user_id'] ?? null).toBeNull()
+    expect(roster[1]?.fields?.['linked_user_id']).toBe('u-sia')
+    const tables = instance.mutations.map((m) => m.table)
+    expect(tables.lastIndexOf('travelers')).toBeGreaterThan(tables.lastIndexOf('trip_items'))
   })
 
   it('refuses an unknown account rather than writing an unlinked traveler', async () => {
@@ -321,7 +452,15 @@ describe('runTraveler add', () => {
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: 'Sia', dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Sia'],
+        user: 'Sia',
+        dryRun: false,
+      },
       it0,
     )
 
@@ -337,7 +476,15 @@ describe('runTraveler add', () => {
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: 'Sia', dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Sia'],
+        user: 'Sia',
+        dryRun: false,
+      },
       it0,
     )
 
@@ -353,7 +500,15 @@ describe('runTraveler add', () => {
     instance.users = [{ user_id: 'u-sia', display_name: 'Sia' }]
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia', 'Andy'], user: 'Sia', dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Sia', 'Andy'],
+        user: 'Sia',
+        dryRun: false,
+      },
       io(),
     )
 
@@ -370,7 +525,15 @@ describe('runTraveler list', () => {
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'list', trip: 'Cannobio', year: null, names: [], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'list',
+        trip: 'Cannobio',
+        year: null,
+        names: [],
+        user: null,
+        dryRun: false,
+      },
       it0,
     )
 
@@ -385,7 +548,15 @@ describe('runTraveler list', () => {
     const it0 = io()
 
     await runTraveler(
-      { ...conn, action: 'list', trip: 'Cannobio', year: null, names: [], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'list',
+        trip: 'Cannobio',
+        year: null,
+        names: [],
+        user: null,
+        dryRun: false,
+      },
       it0,
     )
 
@@ -408,7 +579,15 @@ describe('runTraveler add — the trip follows the roster (FR-2.7/FR-27.4)', () 
     const it0 = io()
 
     const code = await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Sia'],
+        user: null,
+        dryRun: false,
+      },
       it0,
     )
 
@@ -430,7 +609,15 @@ describe('runTraveler add — the trip follows the roster (FR-2.7/FR-27.4)', () 
     const it0 = io()
 
     await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: null, dryRun: false },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Sia'],
+        user: null,
+        dryRun: false,
+      },
       it0,
     )
 
@@ -442,7 +629,15 @@ describe('runTraveler add — the trip follows the roster (FR-2.7/FR-27.4)', () 
     instance.addFollowedGroup('trip-1', 'Zahnbürste')
 
     await runTraveler(
-      { ...conn, action: 'add', trip: 'Cannobio', year: null, names: ['Sia'], user: null, dryRun: true },
+      {
+        ...conn,
+        action: 'add',
+        trip: 'Cannobio',
+        year: null,
+        names: ['Sia'],
+        user: null,
+        dryRun: true,
+      },
       io(),
     )
 

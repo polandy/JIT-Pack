@@ -110,6 +110,16 @@ const startDate = ref('')
 const endDate = ref('')
 const newTraveler = ref('')
 
+/**
+ * The select's value for *nobody*. Not `null`, which `IonSelect` reads as "no
+ * value chosen" — it would then render its placeholder instead of the option
+ * the user picked; the screen turns it back into the `null` the store means.
+ */
+const NO_ACCOUNT = ''
+
+/** The account the person being typed into the add row is (FR-2.5). */
+const newTravelerAccount = ref(NO_ACCOUNT)
+
 /*
  * The form mirrors the trip until the user types. Watching the *loaded* trip
  * rather than initialising once matters in Local Mode: the page can render
@@ -192,20 +202,26 @@ async function reportTravelerChange(
   await say(parts.length > 0 ? parts.join(' · ') : fallback)
 }
 
+/**
+ * Adding takes the account in the same gesture as the name (owner,
+ * 2026-09-13): the two-step version made the common case — a person who is
+ * already on the trip being added as a traveller — read as a control the user
+ * had to discover after the fact. The picker resets with the field, because
+ * the next person is a different one far more often than not.
+ */
 async function addTraveler(): Promise<void> {
   const value = newTraveler.value.trim()
   if (!value) return
+  const account = newTravelerAccount.value
   newTraveler.value = ''
-  const report = orchestrator.addTravelerToTrip(props.tripId, value)
+  newTravelerAccount.value = NO_ACCOUNT
+  const report = orchestrator.addTravelerToTrip(
+    props.tripId,
+    value,
+    account === NO_ACCOUNT ? null : account,
+  )
   await reportTravelerChange(report, t('tripEdit.reportNothing'))
 }
-
-/**
- * The select's value for *nobody*. Not `null`, which `IonSelect` reads as "no
- * value chosen" — it would then render its placeholder instead of the option
- * the user picked; the screen turns it back into the `null` the store means.
- */
-const NO_ACCOUNT = ''
 
 /**
  * The link commits on change, like the year: this screen has no save button
@@ -434,6 +450,31 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
             @ionInput="newTraveler = String($event.detail.value ?? '')"
             @keyup.enter="addTraveler"
           />
+          <!--
+            The same choice as the rows above, offered before the person
+            exists: whoever is being added is usually one of the people the
+            trip is already shared with, and making that a second act after
+            the ＋ hid it behind a control nobody was looking for.
+          -->
+          <IonSelect
+            v-if="canLink"
+            slot="end"
+            class="link"
+            interface="popover"
+            :aria-label="t('tripEdit.addTravelerAccount')"
+            :value="newTravelerAccount"
+            data-testid="traveler-add-link"
+            @ionChange="newTravelerAccount = String($event.detail.value)"
+          >
+            <IonSelectOption :value="NO_ACCOUNT">{{ t('tripEdit.linkedNobody') }}</IonSelectOption>
+            <IonSelectOption
+              v-for="person in linkable"
+              :key="person.user_id"
+              :value="person.user_id"
+            >
+              {{ person.display_name }}
+            </IonSelectOption>
+          </IonSelect>
           <IonButton
             slot="end"
             :disabled="newTraveler.trim().length === 0"

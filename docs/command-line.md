@@ -135,9 +135,11 @@ assigning them a row notify their account, the same way assigning a row to someb
 directly does.
 
 **You can do this in the app as well**, and for one or two people that is the shorter
-way: open the trip, edit it, and pick the account beside the traveler's name. The picker
-offers the trip's members, so it appears only on a trip you have shared with somebody.
-The command is for doing it in bulk, or for a trip you are setting up from a script:
+way: open the trip, edit it, and pick the account beside the traveler's name — or, when
+you are adding the person right now, pick it beside the name field before you press Add.
+Either picker offers the trip's members, so they appear only on a trip you have shared
+with somebody. The command is for doing it in bulk, or for a trip you are setting up from
+a script:
 
 ```bash
 node client/dist-cli/jitpack.mjs traveler add --trip "Cannobio" --user "Sia" Sia
