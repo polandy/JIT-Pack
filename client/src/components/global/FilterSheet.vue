@@ -23,11 +23,17 @@
  * A bottom sheet rather than an inline accordion: M4 is full-screen with
  * the tab bar hidden to win list height, which a panel pushing the list
  * down would hand straight back.
+ *
+ * Shares `SheetModal`'s chrome since U-3 (2026-09-02 review): the sized
+ * variant (`height="86%"`, `grab="wide"`) keeps this panel's own dimensions
+ * pixel-identical to before the fold, so folding it in cost no design
+ * decision — only `SheetModal.vue` grew the two props this needed.
  */
-import { IonModal, IonContent, IonIcon, IonCheckbox, IonLabel } from '@ionic/vue'
+import { IonContent, IonIcon, IonCheckbox, IonLabel } from '@ionic/vue'
 
 import { t } from '@/i18n'
 import SheetHead from '@/components/global/SheetHead.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
 
 /** One offer inside a facet — already worded and counted by the caller. */
 export interface FilterOption {
@@ -82,15 +88,14 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <IonModal
+  <SheetModal
     :is-open="open"
-    class="sheet-modal"
-    data-testid="filter-sheet"
-    @did-dismiss="emit('close')"
+    testid="filter-sheet"
+    height="86%"
+    grab="wide"
+    @dismiss="emit('close')"
   >
     <IonContent class="sheet">
-      <div class="grab" />
-
       <SheetHead :title="t('filter.title')" close-testid="filter-close" @close="emit('close')">
         <template #meta>
           <!-- The outcome of what is already in force, not a promise. -->
@@ -173,25 +178,13 @@ const emit = defineEmits<{
         </label>
       </section>
     </IonContent>
-  </IonModal>
+  </SheetModal>
 </template>
 
 <style scoped>
-/* A bottom sheet by height and anchoring rather than by Ionic's drag
-   breakpoints: with breakpoints the modal box stays full-height and is
-   translated down, which pushed the panel's own controls off the screen.
-   The lighter surface, the rim and the shadow are what lift it off the list
-   behind it — at --ct-base it read as part of the same page. */
-.sheet-modal {
-  --height: 86%;
-  --border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
-  --background: var(--ct-mantle);
-  --box-shadow: var(--jp-shadow-sheet);
-  --backdrop-opacity: 0.62;
-  align-items: flex-end;
-}
-
 .sheet {
+  flex: 1;
+  min-height: 0;
   --background: var(--ct-mantle);
   --padding-start: 16px;
   --padding-end: 16px;
