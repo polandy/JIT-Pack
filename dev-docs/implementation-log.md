@@ -15063,4 +15063,8 @@ facet does not carry the same risk despite also removing a row from view on the 
 (packing a row while filtered to *„Noch nicht gepackt"* makes it vanish immediately) — because this is the same
 FR-25.2 done-row-drop M4 has shipped and tested since before this facet existed, not a new *sequential, by-position*
 worklist. Every M4 row action targets one specifically read, named row (`m4-row-<name>`, its own checkbox); nothing
-on this screen invites the rapid same-spot re-tap the browse-sheet's per-row buttons do. No snapshot was added.
+on this screen invites the rapid same-spot re-tap the browse-sheet's per-row buttons do. What actually accelerates
+the hazard there is a fixed right-edge action column, so successive taps land at the same x-position and the finger
+never travels to what it is aiming at — M4's checkbox sits on the row a person is reading, not a fixed column. **The
+question is worth re-asking, not settled for good**: the day M4 grows a fixed-column bulk verb per row while a
+Status filter is active is the day this reasoning stops holding. No snapshot was added.
