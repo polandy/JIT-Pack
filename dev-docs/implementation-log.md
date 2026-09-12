@@ -365,6 +365,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A revisit trigger fired for a column left deliberately inert (2026-09-11)](#a-revisit-trigger-fired-for-a-column-left-deliberately-inert-2026-09-11) — FR-2.5's `linked_user_id` gets a reader (ADR-058), and the membership rule it cost.
 - [Four drawings, and the one that cost a tap (2026-09-11)](#four-drawings-and-the-one-that-cost-a-tap-2026-09-11) — FR-25.23's cluster fold: why the other three were rejected, and the fold-state name that was almost a trap.
 - [A decision that reported itself as progress (2026-09-12)](#a-decision-that-reported-itself-as-progress-2026-09-12) — FR-25.22's skipped-row unit was reversed once 57 skipped items read as `57/284 gepackt`.
+- [The link a shell could write and a screen could not (2026-09-12)](#the-link-a-shell-could-write-and-a-screen-could-not-2026-09-12) — M22 gets the account picker; the select assertion that was green against a refused write.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14962,3 +14963,34 @@ the number that actually gets read — a person does not parse `x/y` as "x decis
 and a skipped row is neither packed nor part of what remains, so it now contributes nothing to either half of the
 fraction. `unitsOf` is the one place this is decided (`domain/packState.ts`), so the fix reaches the trip line, every
 group/cluster head and `tripStore.kpis` at once; no second implementation to find and fix in step.
+
+## The link a shell could write and a screen could not (2026-09-12)
+
+ADR-058 gave `travelers.linked_user_id` a reader the day before; its only *writer* stayed
+`jitpack traveler --user`, so a fact about a person — which account she is — was reachable only from a shell on the
+server. M22's roster row now carries the picker. Three things the diff does not say:
+
+**Two decisions had to be read backwards from M5.** M5's *Assigned to* excludes the viewer and hides itself when
+there is nobody else, and copying both rules here would have been wrong in the first case and right in the second.
+The account most worth recording on a roster row is *my own*, because the link exists so that **somebody else's**
+assignment reaches me; `planRosterAssignment` skips the actor, so linking myself is free and silent exactly when it
+should be. What does carry over is the second rule: below two members the only linkable account is the one that
+would never be notified, so the control is absent rather than inert (G-8).
+
+**Adding still adds unlinked, on purpose.** The CLI links while adding and is safe doing so — one person, typed by an
+operator. On M22 the add is FR-27.4's trigger: every per-person position is generated in the same act, each one an
+`assigned_traveler_id` write, and a link supplied alongside would fire one delegation notification per generated row.
+That storm is precisely what the 2026-09-01 „keep, do not build" decision named as its reason to build no reader at
+all. The link is therefore a second act on the row the ＋ created.
+
+**The e2e case was green against a write the server had refused**, and the reason generalises. `ion-select` renders
+its options as light-DOM children, so the element's text content is the value *plus every choice on offer* —
+`"No accountAliceBobNo account"`. `toContainText('Bob')` was true before the tap, and stayed true after a rollback.
+The assertion reads `ion-select .select-text`, the rendered value alone. Found by rendering the screen for the
+eyeball pass rather than by the case: the failure dump carried the rejection toast the case had never noticed.
+**Read the value, not the control** — an assertion naming any text a user could choose is unfalsifiable by
+construction. The ledger carries it as a rule for every select.
+
+**And one hour was spent on a defect that did not exist**: the rejection above was reproduced against a `dist` built
+from a deliberately mutated source that had already been reverted — the red-proof build, still on disk. A mutation
+proof ends with a rebuild, not with a `git checkout`.

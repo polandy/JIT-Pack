@@ -1985,6 +1985,13 @@ token would prove nothing there is anything to prove.
   document's addition rather than the PRD's, and the owner ruled to honour it (E2E-M22-12).
   And the **series** was listed here too: it is edited on **M16**, whose *detach/attach trips*
   action is its one writer — which PRD FR-2.7's opening paragraph already said.
+  Since 2026-09-12 each traveller row also carries an **account picker** (FR-2.5, ADR-058) — *„Kein Konto"* or one
+  of the trip's members — in the row's end slot, between the name and the ✕. In the end slot rather than on a
+  second line: the roster reads as a list of people, and a line per row would push the fourth traveller off a
+  phone screen for a fact that is empty on most rows; the control states itself through its value, so it carries
+  no visible label, only an aria one. One sentence under the list says what an account *does* (the person is told
+  when an item is assigned to them) and what may be picked (members only), because that is a rule about the trip's
+  notifications rather than a property of one person.
 * **What a traveller change does** is FR-27.4's rule as revised 2026-08-21, and the screen states it rather than
   performing it silently: adding applies **immediately** and reports the FR-27.10 way — what was added, what that person
   already had, what this trip's conditions excluded. Removing takes their **unpacked** rows. What happens to a row that
@@ -2012,9 +2019,13 @@ token would prove nothing there is anything to prove.
   the explanation together: the screen answers no tap and offers no reason, which is the shape the
   owner ruled against on 2026-08-21 for the started trip, reached by a different route. **Owner
   decision:** a sentence for the archived state, or the silence accepted on purpose.
-* **Modes:** unchanged in all three. The screen edits trip-level records, not membership — sharing
-  and roles remain FR-4.5's roster (`/trips/:tripId/members`), which is hidden outside Server Mode
-  per G-8. Local Mode has the full screen: travellers are trip records, not accounts (FR-19.3).
+* **Modes:** unchanged in all three for name, dates, year and roster. The screen edits trip-level records, not
+  membership — sharing and roles remain FR-4.5's roster (`/trips/:tripId/members`), which is hidden outside Server
+  Mode per G-8. Local Mode has the full screen: travellers are trip records, not accounts (FR-19.3). The **account
+  picker is the one part that is not in all three**: it renders only where the trip has more than one member, which
+  is never in Local Mode (no accounts at all) and never in Single-User Mode (one member row, the creator's). The
+  same rule hides it on an unshared Server-Mode trip — the account it could name is the one `planRosterAssignment`
+  never notifies, so the control would be present and inert, which is what G-8 exists to prevent.
 
 ### M23 — Hidden Items and Templates (FR-24.3) — *built 2026-08-25*
 

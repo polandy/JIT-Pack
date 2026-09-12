@@ -635,6 +635,16 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('upsert', TABLE.travelers, travelerId, { name })
   }
 
+  /**
+   * linkTraveler records which account a traveler *is* (FR-2.5, ADR-058), or
+   * clears that record with `null`. The server refuses a link naming anybody
+   * who is not a current member of the same trip (`not_a_trip_member`), which
+   * is why M22 offers only members.
+   */
+  function linkTraveler(travelerId: string, userId: string | null): Mutation {
+    return make('upsert', TABLE.travelers, travelerId, { linked_user_id: userId })
+  }
+
   /** removeTraveler tombstones the traveler row. What happens to the rows
    * assigned to them is FR-27.4's rule, applied by the orchestrator. */
   function removeTravelerRow(travelerId: string): Mutation {
@@ -1108,6 +1118,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     updateTripStatus,
     updateTrip,
     renameTraveler,
+    linkTraveler,
     removeTravelerRow,
     deleteTrip,
     createImportedTrip,
