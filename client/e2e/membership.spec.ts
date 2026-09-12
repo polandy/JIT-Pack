@@ -8,6 +8,7 @@
  * and its children carry *different* amounts.
  */
 import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
+import { openCluster } from './helpers/m4'
 import { createMasterItem } from './helpers/templates'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -32,6 +33,8 @@ async function seedTrip(page: Page) {
  * is the very shape these cases assert.
  */
 async function openMembership(page: Page, itemName: string, from?: string) {
+  // FR-25.23: reaching a traveler's own row means opening the cluster first.
+  if (from) await openCluster(page, itemName)
   const target = from
     ? visiblePage(page).getByTestId(`m4-child-${itemName}-${from}`)
     : visiblePage(page).getByTestId(`m4-row-${itemName}`)
@@ -78,6 +81,8 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     // The item is named once — the cluster head — with one child per traveler.
     const list = visiblePage(page)
     await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toBeVisible()
+    // FR-25.23: shut by default, so the three amounts are one tap away.
+    await openCluster(page, ITEM)
     await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toContainText('0/2')
     await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
     // G-6: a quantity of one renders a checkbox rather than a stepper, so Mia's
@@ -126,6 +131,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
         return { size: parseFloat(style.fontSize), weight: Number(style.fontWeight) }
       })
 
+    await openCluster(page, ITEM)
     const head = await type(list.getByTestId(`m4-cluster-${ITEM}`).locator('.cluster-name'))
     const child = await type(list.getByTestId(`m4-child-${ITEM}-Andy`).locator('h3'))
     const plainRow = await type(list.getByTestId(`m4-row-${PLAIN}`).locator('h3'))
@@ -194,6 +200,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await closeAll(page)
 
     const list = visiblePage(page)
+    await openCluster(page, ITEM)
     await expect(list.getByTestId(`m4-child-${ITEM}-Andy`).getByTestId('row-check')).toBeVisible()
     await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
     await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/5')
@@ -212,6 +219,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await closeAll(page)
 
     // Pack one of Leonardo's, so removing him would cost something.
+    await openCluster(page, ITEM)
     const child = visiblePage(page).getByTestId(`m4-child-${ITEM}-Leonardo`)
     await child.getByTestId('row-plus').click()
     await expect(child).toContainText('1/2')
@@ -272,6 +280,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     // exists to protect: delete-and-recreate would collapse the amounts just as
     // correctly and lose this.
     const TODO = 'Groesse pruefen'
+    await openCluster(page, ITEM)
     await visiblePage(page).getByTestId(`m4-child-${ITEM}-Leonardo`).click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
     await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
@@ -335,6 +344,9 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
 
     const list = visiblePage(page)
+    // FR-25.23: shut, the head answers in open units; the done/total the rest
+    // of this case is about is what it says once it is open.
+    await openCluster(page, ITEM)
     await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/5')
     await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toContainText('0/2')
     await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
@@ -401,6 +413,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await sheet.getByTestId('browse-close').click()
     await expect(sheet).toHaveCount(0)
     const list = visiblePage(page)
+    await openCluster(page, 'Sonnenhut')
     for (const traveler of TRIP.travelers) {
       await expect(list.getByTestId(`m4-child-Sonnenhut-${traveler}`)).toBeVisible()
     }
@@ -439,6 +452,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await sheet.getByTestId('browse-close').click()
     await expect(sheet).toHaveCount(0)
     const list = visiblePage(page)
+    await openCluster(page, 'Sonnenhut')
     for (const traveler of TRIP.travelers) {
       await expect(list.getByTestId(`m4-child-Sonnenhut-${traveler}`)).toBeVisible()
     }
@@ -663,6 +677,7 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
     await closeAll(page)
 
     const list = visiblePage(page)
+    await openCluster(page, ITEM)
     await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/2')
 
     await list.getByTestId(`m4-child-${ITEM}-Leonardo`).getByTestId('row-check').click()
@@ -679,5 +694,59 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
     // The flat row is testid'd by the item *name* (the „· Andy" is only in the
     // label), so this one locator is the whole negative half.
     await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
+  })
+
+  /*
+   * FR-25.23. The cost the fold was bought with is that a cluster no longer
+   * shows its people, so the shut head has to answer for them — and the two
+   * halves are asserted together here because passing either one alone is
+   * what a half-built fold looks like: children gone with nothing in their
+   * place, or a head that summarises rows it never hid.
+   *
+   * It is an e2e case rather than a unit because the fold is state on the
+   * screen, not in the view model: `ClusterHead` renders whatever `collapsed`
+   * it is handed, and a unit of it cannot tell whether M4 hands it back the
+   * value its own click asked for.
+   */
+  test('E2E-M4-82: a per-person cluster starts shut and answers for the rows it hides', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+
+    await openMembership(page, ITEM)
+    await page.getByTestId('membership-per-person').click()
+    await setMember(page, 'Andy', 2)
+    await setMember(page, 'Leonardo', 3)
+    await closeAll(page)
+
+    const list = visiblePage(page)
+    const head = list.getByTestId(`m4-cluster-${ITEM}`)
+
+    // Shut is the default — the defect FR-25.23 answers is that the head used
+    // to be one line *more* than the rows, never one instead of them.
+    await expect(head).toHaveAttribute('aria-expanded', 'false')
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toHaveCount(0)
+    await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toHaveCount(0)
+
+    // Shut, it says who — one face per instance, in roster order — and how
+    // much is left, in units rather than people (FR-25.22).
+    await expect(head.getByTestId('user-avatar')).toHaveCount(2)
+    await expect(head.getByTestId('user-avatar').nth(0)).toHaveAttribute('aria-label', 'Andy')
+    await expect(head.getByTestId('user-avatar').nth(1)).toHaveAttribute('aria-label', 'Leonardo')
+    await expect(head).toContainText('5 open')
+
+    // Opening it hands the statement back to the children, so the head stops
+    // making it twice.
+    await head.click()
+    await expect(head).toHaveAttribute('aria-expanded', 'true')
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toContainText('0/2')
+    await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
+    await expect(head.getByTestId('user-avatar')).toHaveCount(0)
+    await expect(head).toContainText('0/5')
+
+    // And it shuts again: a one-way control is a reveal, not a fold.
+    await head.click()
+    await expect(head).toHaveAttribute('aria-expanded', 'false')
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toHaveCount(0)
   })
 })

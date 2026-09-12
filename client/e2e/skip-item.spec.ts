@@ -7,7 +7,13 @@ import {
   visiblePage,
   useReducedMotion,
 } from './fixtures'
-import { assignTraveler, chooseInRowMenu, openRowMenu, tripWithRows } from './helpers/m4'
+import {
+  assignTraveler,
+  chooseInRowMenu,
+  openCluster,
+  openRowMenu,
+  tripWithRows,
+} from './helpers/m4'
 
 /**
  * "Deliberately not packed" (UI-Test-Spec §3, M4/M5; Addendum FR-5.5, FR-20.2).
@@ -230,6 +236,8 @@ test('E2E-M4-42: a per-person child row can be left behind too @local @m4', asyn
   await assignTraveler(page, unassignedZelt(), 'Andy')
   await assignTraveler(page, unassignedZelt(), 'Sia')
 
+  // FR-25.23: two instances are a cluster, and a cluster starts shut.
+  await openCluster(page, 'Zelt')
   const andy = page.getByTestId('m4-child-Zelt-Andy')
   await expect(andy).toBeVisible()
 
