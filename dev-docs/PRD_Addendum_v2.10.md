@@ -2437,10 +2437,13 @@ locked.
   and filter footer counted rows in words. The consequence a person actually meets is small and wrong: a row that is
   one of two packed contributes **nothing** to its group, so a group can be worked on all morning and still read `0/2`.
 
-  **A skipped row counts as one unit, done.** FR-5.5's *bewusst nicht einpacken* is a quantity of nothing, so on the
-  numbers alone it would contribute `0/0` and a group of considered, deliberately unpacked rows would read as if it
-  held nothing at all. The decision was made, and reporting decisions is what the fraction is for. This is decided once
-  in `domain/packState.ts` beside `stateFor`, because it is the same reading of the same two numbers.
+  **A skipped row counts as no units — `0/0` (amended 2026-09-12).** FR-5.5's *bewusst nicht einpacken* is a quantity
+  of nothing. It had counted as one unit, done — the decision was made, and reporting decisions seemed like what the
+  fraction was for — but on a trip carrying many consciously-skipped rows that read as progress nothing earned: 57
+  skipped items made the trip line say `57/284 gepackt` while not a single item had been packed. The trip line is the
+  number a person actually reads, so a skipped row is neither packed nor part of what is left to pack; it drops out of
+  both halves of every fraction it used to inflate. This is decided once in `domain/packState.ts` beside `stateFor`,
+  because it is the same reading of the same two numbers.
 
   **What is *not* a fraction stays a count with a noun.** „2 gepackte anzeigen" and the filter sheet's „zeigt 13
   Packelemente" count **rows**, correctly — a reveal toggle promises how many lines will appear, which is not a
