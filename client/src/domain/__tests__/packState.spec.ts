@@ -58,9 +58,9 @@ describe('unitsOf (FR-25.22) — what a row contributes to the fractions above i
     expect(unitsOf({ packed_count, quantity })).toEqual(expected)
   })
 
-  it('a skipped row counts as one unit, done — never 0/0 (FR-5.5)', () => {
-    expect(unitsOf({ packed_count: 0, quantity: 0 })).toEqual({ done: 1, total: 1 })
-    expect(unitsOf({ packed_count: 0, quantity: -2 })).toEqual({ done: 1, total: 1 })
+  it('a skipped row counts as no units — 0/0, not packed and not owed (amends FR-25.22)', () => {
+    expect(unitsOf({ packed_count: 0, quantity: 0 })).toEqual({ done: 0, total: 0 })
+    expect(unitsOf({ packed_count: 0, quantity: -2 })).toEqual({ done: 0, total: 0 })
   })
 
   it('is a total, so the fractions above a row compose by adding', () => {
@@ -72,7 +72,7 @@ describe('unitsOf (FR-25.22) — what a row contributes to the fractions above i
     const sum = rows
       .map(unitsOf)
       .reduce((a, b) => ({ done: a.done + b.done, total: a.total + b.total }))
-    expect(sum).toEqual({ done: 2, total: 6 })
+    expect(sum).toEqual({ done: 1, total: 5 })
   })
 })
 

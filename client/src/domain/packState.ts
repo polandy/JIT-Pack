@@ -53,13 +53,17 @@ export interface PackUnits {
  * head and the trip line alike — so the three compose instead of counting
  * three different things (FR-25.22).
  *
- * FR-5.5's skipped row is the one case the numbers cannot express: it has no
- * units at all, and counting it as `0/0` would make a group of considered,
- * deliberately unpacked rows read as if nothing were there. It counts as one
- * unit, done — the decision was made, which is what the fraction reports.
+ * FR-5.5's skipped row contributes no units at all — `0/0` — so a
+ * *bewusst nicht eingepackt* row is neither packed nor part of what is left
+ * to pack. It had counted as one unit, done, but on a trip with many
+ * consciously-skipped rows that read as progress nothing earned: 57 skipped
+ * items made the trip line say `57/284 gepackt` while not a single item had
+ * been packed. Reporting the decision cost more than it was worth once the
+ * trip line was the number a person actually reads (owner, 2026-09-12,
+ * amending FR-25.22).
  */
 export function unitsOf(row: { packed_count: number; quantity: number }): PackUnits {
-  if (row.quantity <= 0) return { done: 1, total: 1 }
+  if (row.quantity <= 0) return { done: 0, total: 0 }
   return { done: Math.min(Math.max(row.packed_count, 0), row.quantity), total: row.quantity }
 }
 

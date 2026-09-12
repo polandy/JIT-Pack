@@ -361,7 +361,7 @@ describe('tripStore', () => {
     expect(k.packedValue).toBe(3500) // 500*1 + 1000*3
   })
 
-  it('counts a skipped row as one unit, done — the FR-25.22 arithmetic M4 draws', () => {
+  it('counts a skipped row as no units — not packed, not owed (amends FR-25.22)', () => {
     const tripStore = useTripStore()
     tripStore.applyChange({
       seq: 1,
@@ -380,10 +380,11 @@ describe('tripStore', () => {
     })
 
     const k = tripStore.kpis('t1')
-    // On the numbers alone this row is 0/0, and a trip of nothing but
-    // considered rows would read 0 % for ever (FR-5.5).
-    expect(k.totalItems).toBe(1)
-    expect(k.packedItems).toBe(1)
+    // A consciously-skipped row is neither packed nor part of what is left
+    // to pack — it must not inflate the trip line the way a real packed row
+    // does, or a trip with many skipped rows reads as further along than it is.
+    expect(k.totalItems).toBe(0)
+    expect(k.packedItems).toBe(0)
   })
 
   it('handles travelers', () => {

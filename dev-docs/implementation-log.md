@@ -364,6 +364,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [„für alle" at three travelers had a write of its own, the wrong one (2026-09-11)](#für-alle-at-three-travelers-had-a-write-of-its-own-the-wrong-one-2026-09-11) — 👥 routed through the bulk verb beside avatar buttons doing the same job, taking deselection with it.
 - [A revisit trigger fired for a column left deliberately inert (2026-09-11)](#a-revisit-trigger-fired-for-a-column-left-deliberately-inert-2026-09-11) — FR-2.5's `linked_user_id` gets a reader (ADR-058), and the membership rule it cost.
 - [Four drawings, and the one that cost a tap (2026-09-11)](#four-drawings-and-the-one-that-cost-a-tap-2026-09-11) — FR-25.23's cluster fold: why the other three were rejected, and the fold-state name that was almost a trap.
+- [A decision that reported itself as progress (2026-09-12)](#a-decision-that-reported-itself-as-progress-2026-09-12) — FR-25.22's skipped-row unit was reversed once 57 skipped items read as `57/284 gepackt`.
 - [The link a shell could write and a screen could not (2026-09-12)](#the-link-a-shell-could-write-and-a-screen-could-not-2026-09-12) — M22 gets the account picker; the select assertion that was green against a refused write.
 ## Deviations
 
@@ -14951,6 +14952,17 @@ and the interface comment says why, because the next person to add a fold here w
 header's is, it pushed the item's name 22 px off the x every other item row's name sits on; E2E-M4-73 measures exactly
 that (FR-21.20) and failed on the number. It trails the name instead. The group header can afford a leading caret
 because a group name is a heading *over* the rows; a cluster head is one *of* them.
+
+## A decision that reported itself as progress (2026-09-12)
+
+FR-25.22 had `unitsOf` count a skipped row (FR-5.5's *bewusst nicht einpacken*) as one unit, done, rather than `0/0`
+— the premise being that a decision was made and reporting decisions is what the fraction is for. The owner reported
+the consequence directly: a trip with 57 consciously-skipped items and nothing yet packed read its trip line as
+`57/284 gepackt`, which looks like a quarter of the work is finished when none of it is. The premise was wrong for
+the number that actually gets read — a person does not parse `x/y` as "x decisions made", they read it as "x done" —
+and a skipped row is neither packed nor part of what remains, so it now contributes nothing to either half of the
+fraction. `unitsOf` is the one place this is decided (`domain/packState.ts`), so the fix reaches the trip line, every
+group/cluster head and `tripStore.kpis` at once; no second implementation to find and fix in step.
 
 ## The link a shell could write and a screen could not (2026-09-12)
 

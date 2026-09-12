@@ -205,12 +205,12 @@ describe('hiding done rows (FR-25.2)', () => {
     expect(result.openRowCount).toBe(2)
   })
 
-  it('counts a skipped row as one unit, done — a decision is not an absence (FR-25.22)', () => {
+  it('counts a skipped row as no units — neither packed nor owed (amends FR-25.22)', () => {
     const result = view([item({ quantity: 0, packed_count: 0, state: 'skipped' })], {
       showDone: true,
     })
-    expect(result.groups[0]?.doneCount).toBe(1)
-    expect(result.groups[0]?.totalCount).toBe(1)
+    expect(result.groups[0]?.doneCount).toBe(0)
+    expect(result.groups[0]?.totalCount).toBe(0)
   })
 
   it('drops a group entirely once every row in it is done', () => {
