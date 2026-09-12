@@ -323,6 +323,13 @@ const backupReminderText = computed(() => {
 const modeText = computed(() =>
   mode === 'local' ? t('settings.modeLocal') : t('settings.modeServer', { url: serverBaseUrl() }),
 )
+
+// Build-time constants (vite.config.ts's `define`, git describe/rev-parse or
+// the Docker build's APP_VERSION/APP_COMMIT args) — same in every mode,
+// since this names the build itself rather than anything server-side.
+const appVersionText = computed(() =>
+  t('settings.aboutVersion', { version: __APP_VERSION__, commit: __APP_COMMIT__ }),
+)
 /**
  * Re-read the stamp whenever the screen is entered. The backup that clears
  * this warning is taken on the G-2 sheet — another component — so a value
@@ -805,6 +812,7 @@ async function exportTripCSV() {
           <IonLabel>
             <h3>JIT-Pack</h3>
             <p>{{ modeText }}</p>
+            <p data-testid="settings-app-version">{{ appVersionText }}</p>
           </IonLabel>
         </IonItem>
       </IonList>

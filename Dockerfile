@@ -15,6 +15,14 @@
 # that — moving the major is one change in all three files.
 FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS client
 
+# The Settings "About" section (M17) names the build. This stage has no
+# `.git` (only `client/` is in its context), so the release tag and commit
+# come in as build args instead of vite.config.ts's `git describe` fallback.
+ARG APP_VERSION=dev
+ARG APP_COMMIT=unknown
+ENV APP_VERSION=${APP_VERSION}
+ENV APP_COMMIT=${APP_COMMIT}
+
 WORKDIR /app
 COPY client/package.json client/package-lock.json ./
 RUN npm ci
