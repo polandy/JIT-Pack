@@ -1428,7 +1428,8 @@ decision, not a test gap.
   and the action is **absent** on an unmarked item — removal is worded as removal and never offered as "choose the empty
   one".
 * **E2E-M10-13** `all` (NFR-4.12) — **new 2026-08-22**: the sections that exist only once the item is saved — photo,
-  *Hängt ab von*, the dependency picker — are rendered from the catalogue, asserted with the app language set to German.
+  *Hängt ab von*, the dependency picker, and since 2026-09-12 the *Begleitartikel* heading and its add-trigger — are
+  rendered from the catalogue, asserted with the app language set to German.
   English cannot carry this case: the finished English literal and the catalogue lookup that replaced it produce the
   same pixels, which is precisely how M10's half stayed untranslated through a migration that reported itself complete.
 * **E2E-M10-14** `all` (FR-24.3) — **new 2026-08-25** (`e2e/lifecycle-delete.spec.ts`): an item a group position holds

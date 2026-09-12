@@ -370,6 +370,8 @@ test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12
     await expect(form.getByTestId('m10-section-photo')).toHaveText('Foto')
     await expect(form.getByTestId('m10-section-depends')).toHaveText('Hängt ab von')
     await expect(form.getByTestId('m10-add-dependency')).toContainText('Abhängigkeit hinzufügen')
+    await expect(form.getByTestId('m10-section-companions')).toHaveText('Begleitartikel')
+    await expect(form.getByTestId('m10-add-companion')).toContainText('Begleitartikel hinzufügen')
 
     // The dependency picker is behind a tap, and carried three literals of
     // its own — the search, the empty answer, and the way out.
