@@ -201,13 +201,18 @@ async function addTraveler(): Promise<void> {
 }
 
 /**
+ * The select's value for *nobody*. Not `null`, which `IonSelect` reads as "no
+ * value chosen" — it would then render its placeholder instead of the option
+ * the user picked; the screen turns it back into the `null` the store means.
+ */
+const NO_ACCOUNT = ''
+
+/**
  * The link commits on change, like the year: this screen has no save button
- * (the M8 pattern), and a select has no blur to commit on. `''` is the
- * select's value for *nobody*, because `IonSelect` treats `null` as "no
- * value chosen" and would render the placeholder instead of the option.
+ * (the M8 pattern), and a select has no blur to commit on.
  */
 function linkTraveler(travelerId: string, value: string): void {
-  orchestrator.linkTraveler(props.tripId, travelerId, value === '' ? null : value)
+  orchestrator.linkTraveler(props.tripId, travelerId, value === NO_ACCOUNT ? null : value)
 }
 
 function renameTraveler(travelerId: string, value: string): void {
@@ -363,11 +368,13 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
               interface="popover"
               :disabled="readOnly"
               :aria-label="t('tripEdit.linkedAccountOf', { name: traveler.name })"
-              :value="traveler.linked_user_id ?? ''"
+              :value="traveler.linked_user_id ?? NO_ACCOUNT"
               :data-testid="`traveler-link-${traveler.id}`"
               @ionChange="(e: CustomEvent) => linkTraveler(traveler.id, String(e.detail.value))"
             >
-              <IonSelectOption value="">{{ t('tripEdit.linkedNobody') }}</IonSelectOption>
+              <IonSelectOption :value="NO_ACCOUNT">{{
+                t('tripEdit.linkedNobody')
+              }}</IonSelectOption>
               <IonSelectOption
                 v-for="person in linkable"
                 :key="person.user_id"
