@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.0](https://github.com/polandy/JIT-Pack/compare/v0.8.0...v0.9.0) (2026-09-12)
+
+
+### Features
+
+* **api:** notify a linked traveler's account on roster assignment (FR-2.5, ADR-058) ([51ba4ec](https://github.com/polandy/JIT-Pack/commit/51ba4ec4cb3d99fb540faac607a31f8a1339f451))
+* **client:** a per-person cluster folds, and starts shut (FR-25.23) ([#442](https://github.com/polandy/JIT-Pack/issues/442)) ([c9a9749](https://github.com/polandy/JIT-Pack/commit/c9a9749ff6beffa59fe74e2bfc2e31c21b0c848a))
+* **client:** assign one or more travelers from the inventory browse-sheet (FR-25.13h) ([3b14038](https://github.com/polandy/JIT-Pack/commit/3b14038f0ae122cd219a41b70a1476df6bc0fba7))
+* **client:** show app version + commit hash in header and Settings About ([c409b32](https://github.com/polandy/JIT-Pack/commit/c409b32e748c69e63830ccca27532f5b6503f1c4))
+
+
+### Bug Fixes
+
+* **client:** let the tablet-width content measure grow on M4 (FR-21.26) ([1ceca8b](https://github.com/polandy/JIT-Pack/commit/1ceca8beb65ebd2337c34d00b36f23217eec571c))
+
 ## [0.8.0](https://github.com/polandy/JIT-Pack/compare/v0.7.2...v0.8.0) (2026-09-11)
 
 
