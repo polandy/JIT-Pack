@@ -13,7 +13,7 @@ payload=$(cat)
 file=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null)
 
 case "$file" in
-  */internal/store/migrations/*)
+  internal/store/migrations/* | */internal/store/migrations/*)
     printf '%s\n' '{"permissionDecision":"deny","permissionDecisionReason":"CLAUDE.md invariant 2 (ADR-018): the development phase has no DDL migrations. Edit internal/store/schema.sql instead; there is no upgrade path, so a change that would have needed a backfill is a reseed."}'
     ;;
   *)

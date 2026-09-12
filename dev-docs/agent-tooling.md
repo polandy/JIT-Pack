@@ -41,18 +41,20 @@ difference is silent:
 `format-file.sh` originally read `file_path` and branched on `$CLAUDE_PROJECT_DIR`. Under Copilot
 both were empty, so the hook exited 0 having formatted nothing — a green, quiet, entirely inert
 hook, and the only symptom would have been a `format` job failing on a branch days later. It now
-reads either spelling and derives the root with `git rev-parse` when the variable is unset.
+reads either spelling, normalises a relative path against the repository root and derives that root
+with `git rev-parse` when the variable is unset.
 
 **The general rule this leaves behind:** a hook shared by both tools reads both spellings of the
-edited path and never depends on `CLAUDE_PROJECT_DIR` being set. A hook that assumes one tool's
-payload does not fail — it does nothing, which is worse.
+edited path, tolerates either an absolute or a repository-relative filename and never depends on
+`CLAUDE_PROJECT_DIR` being set. A hook that assumes one tool's payload does not fail — it does
+nothing, which is worse.
 
 ## Why the migrations guard is a hook rather than a rule
 
 Claude Code can refuse a write by path with a `permissions.deny` rule in its settings. Copilot CLI
 has no repository-level deny rules — repository policy for it is `.github/hooks/` — so invariant 2's
 speed bump against `internal/store/migrations/**` is a `PreToolUse` hook that returns
-`permissionDecision: "deny"`.
+`permissionDecision: "deny"` for both absolute and repository-relative paths.
 
 Two properties of that hook are deliberate:
 

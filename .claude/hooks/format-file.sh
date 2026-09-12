@@ -9,11 +9,17 @@
 # spellings and derive the root when it is unset, or the hook silently formats
 # nothing under one of the two.
 payload=$(cat)
-file=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty')
-[ -n "$file" ] && [ -f "$file" ] || exit 0
+raw_file=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty')
+[ -n "$raw_file" ] || exit 0
 
-root=${CLAUDE_PROJECT_DIR:-$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null)}
+root=${CLAUDE_PROJECT_DIR:-$(git -C "$(dirname "$raw_file")" rev-parse --show-toplevel 2>/dev/null)}
 [ -n "$root" ] || exit 0
+
+case "$raw_file" in
+  /*) file=$raw_file ;;
+  *) file=$root/$raw_file ;;
+esac
+[ -f "$file" ] || exit 0
 
 case "$file" in
   *.go)
