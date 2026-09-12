@@ -769,10 +769,15 @@ test.describe('M4 packing list @local @m4', () => {
       .getByTestId('browse-reopen')
       .click()
 
-    // Emptied by its own success: the list says which kind of empty this is
-    // and carries the way out of it.
-    await expect(sheet.getByTestId('browse-no-settled')).toBeVisible()
-    await sheet.getByTestId('browse-show-all').click()
+    // FR-25.13e's snapshot rule, which this filter inherits: a reset line
+    // stays where it is and flips to „schon drin" rather than dropping out of
+    // the list — a row vanishing here would reflow the next one into the
+    // finger mid-pass. The count is the live one, so it says what is left.
+    await expect(sheet.getByTestId('browse-row-carried')).toHaveCount(2)
+    await expect(sheet.getByTestId('browse-carried-state')).toHaveCount(2)
+    await expect(sheet.getByTestId('browse-settled-count')).toHaveText('0 decided')
+
+    await sheet.getByTestId('browse-settled-toggle').click()
     await expect(sheet.getByTestId('browse-row').filter({ hasText: 'Kocher' })).toBeVisible()
 
     await sheet.getByTestId('browse-close').click()

@@ -2534,8 +2534,11 @@ landed, that no test has ever rendered.
   is on the **working list**, not behind the reveal bar and not reading as skipped — which is what separates a reset
   from a line that merely stopped saying it. **84** packs one item and skips another, reopens, and asserts the count
   (*„2 decided"*), that the filter leaves the *undecided* line out, and that FR-25.13e's switch is gone while it is on;
-  resetting both empties the list into its own sentence, *„Alle anzeigen"* brings the inventory back, and M4 reads
-  `0/2` with both rows present — two resets, both landed, neither restoring a state the other wrote.
+  resetting both leaves **both lines in place** reading *„schon drin"* — the snapshot rule, without which the first
+  reset would reflow the second row into the finger — with the live count at *„0 decided"*, switching the filter off
+  brings the undecided line back, and M4 reads `0/2` with both rows present: two resets, both landed, neither
+  restoring a state the other wrote. The *„nothing decided here"* sentence is reached by the tag axis instead and is
+  pinned in the component's unit tests, there being no tagged inventory in this case.
 * **E2E-M4-82** `all` (FR-25.23, added 2026-09-11) — **implemented** (`e2e/membership.spec.ts`): the cluster fold. A
   per-person item with Andy 2 and Leonardo 3 renders **shut**: `aria-expanded="false"`, neither child row present, and
   the head answering for both of them — two faces in roster order (asserted by their `aria-label`, since a face shows

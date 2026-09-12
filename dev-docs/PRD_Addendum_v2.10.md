@@ -2266,14 +2266,22 @@ locked.
       skipped together rather than two: both are the same stuck state to the person looking for them, and the line
       says which it is anyway. *Revisit trigger:* if a pass over the packed rows alone turns out to be the real
       task, this becomes a three-value control rather than a second switch beside it.
+    * **It inherits FR-25.13e's snapshot rule, and needs it more.** What the filter shows is the set that was decided
+      **when it was switched on** (re-taken when the tag axis moves), not the live one — so resetting a line leaves it
+      in place, flipping to *„schon drin"* with its verbs back, exactly as an acted line stays put during a run of
+      adds. Without it the first reset of a pass deletes its own row, reflows the rows below into the finger and
+      throws away the only feedback the sheet gives; here that is worse than in FR-25.13e, because the pass *is* a run
+      of taps down one list. The count beside the switch stays **live** rather than following the snapshot: during a
+      pass *„1 entschieden"* under two listed rows is the honest reading of how much is left to do.
     * **It is transient, where FR-25.13e's switch is remembered.** Hiding what is already in is a posture somebody
       works in; a pass over the decisions is a task somebody finishes, and a filter that outlived its task would
       open the sheet on a fraction of the inventory with nothing saying why. It also **takes precedence** over that
       switch rather than composing with it — every decided row is a carried one, so the two together can only ever
       render nothing — and the switch steps aside entirely while it is on, rather than sitting there inert.
-    * **Emptied by its own success, it says so:** resetting the last decision leaves *„Hier ist noch nichts gepackt
-      oder zu Hause gelassen."* with *„Alle anzeigen"* beside it — a third kind of empty next to FR-25.13e's two,
-      and like both it carries the way out.
+    * **Its own kind of empty says so:** a tag the filter finds nothing decided under leaves *„Hier ist noch nichts
+      gepackt oder zu Hause gelassen."* with *„Alle anzeigen"* beside it — a third kind of empty next to FR-25.13e's
+      two, and like both it carries the way out. It is reached by moving the tag axis, never by a reset, which the
+      snapshot rule above keeps on the screen.
     * **No wire, no schema, no ADR.** Both writes are the existing unskip and zero-pack actions called from a second
       surface, and the filter is local view state. Identical in Server, Single-User and Local Mode.
 * **FR-25.7 (Template-Item Entry — Sensible Defaults & Progressive Disclosure):** The template editor's per-item form

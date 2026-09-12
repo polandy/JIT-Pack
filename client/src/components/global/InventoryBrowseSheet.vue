@@ -78,7 +78,10 @@
  *    sheet's, per rule 1 above.
  * 2. **A filter shows the decided lines alone**, so the pass over them is not a
  *    scroll through the whole inventory. It is local and transient, unlike
- *    FR-25.13e's remembered switch: this is a task, not a posture.
+ *    FR-25.13e's remembered switch: this is a task, not a posture. It does
+ *    inherit that switch's **snapshot**, and needs it more — a pass is a run
+ *    of taps down one list, so a line reset in the middle of it has to stay
+ *    put and flip rather than take the row below it into the finger.
  */
 import { IonIcon, actionSheetController } from '@ionic/vue'
 import {
@@ -235,7 +238,12 @@ function retakeSnapshot(): void {
 watch(hideCarried, (on) => {
   if (on) retakeSnapshot()
 })
-watch(tagFilter, retakeSnapshot)
+watch(tagFilter, () => {
+  retakeSnapshot()
+  // The count and the list are both scoped to the tag axis, so a tag change
+  // starts a new pass rather than carrying the old one's set into it.
+  if (settledOnly.value) retakeSettledSnapshot()
+})
 
 /**
  * The M9 rule verbatim: a tag filter matches an item with the tag anywhere
@@ -259,8 +267,23 @@ const filtered = computed<MasterItem[]>(() => {
  */
 const settledOnly = ref(false)
 
+/**
+ * FR-25.13e's snapshot rule, applied to this filter for the same reason it
+ * exists there: the set shown is the one that was decided **when the filter
+ * went on**, not the live one. Without it the first reset of a pass drops its
+ * own row out of the list, reflows the rows below it into the finger and
+ * deletes the only feedback the sheet gives — a row that stays and flips to
+ * *„schon drin"*. Re-taken on the same events `hidden` is.
+ */
+const settledAtSwitch = ref<ReadonlySet<string>>(new Set())
+
+function retakeSettledSnapshot(): void {
+  settledAtSwitch.value = new Set(filtered.value.filter(isSettled).map((item) => item.id))
+}
+
 function toggleSettledOnly(): void {
   settledOnly.value = !settledOnly.value
+  if (settledOnly.value) retakeSettledSnapshot()
 }
 
 /** Whether the caller reports this item as packed or skipped, all rows alike. */
@@ -274,7 +297,7 @@ const shown = computed<MasterItem[]>(() => {
   // FR-25.13i outranks FR-25.13e rather than composing with it: the switch
   // hides what the trip carries, and every decided line is carried, so the
   // two together can only ever render nothing.
-  if (settledOnly.value) return filtered.value.filter(isSettled)
+  if (settledOnly.value) return filtered.value.filter((item) => settledAtSwitch.value.has(item.id))
   return hideCarried.value
     ? filtered.value.filter((item) => !hidden.value.has(item.id))
     : filtered.value
@@ -354,8 +377,13 @@ const offerSettledFilter = computed(
 
 const noMatch = computed(() => filtered.value.length === 0)
 
-/** FR-25.13i's own empty: there are lines, just no decided ones among them. */
-const noSettled = computed(() => settledOnly.value && !noMatch.value && settledCount.value === 0)
+/**
+ * FR-25.13i's own empty: there are lines, just none this pass is about. Read
+ * off `shown` rather than off {@link settledCount}, because the snapshot keeps
+ * a row that was just reset in place — the list is empty only when the tag
+ * axis has moved somewhere nothing was decided, never as a reset's own result.
+ */
+const noSettled = computed(() => settledOnly.value && !noMatch.value && shown.value.length === 0)
 
 /** Everything the filter matches is carried and hidden — success, not emptiness. */
 const allCarried = computed(() => !noMatch.value && !noSettled.value && shown.value.length === 0)

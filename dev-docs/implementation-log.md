@@ -14990,3 +14990,10 @@ every decided row is carried, so composing the two renders nothing. Hence a seco
 rather than composing, with the older switch stepping aside entirely while it is on. It is transient where that one
 is remembered: hiding what is already in is a posture, a pass over the decisions is a task, and a task that outlived
 itself would open the sheet on a fraction of the inventory with nothing saying why.
+
+**The first cut of that filter re-introduced the defect FR-25.13e's snapshot exists to prevent**, and the review
+caught it rather than the tests: filtering on the *live* settled set means the first reset of a pass deletes its own
+row, reflows the rows below it into the finger, and throws away the flip that is the sheet's only feedback. Both e2e
+cases were green over it, because a Playwright locator re-queried by name cannot notice that the row it wants has
+moved — only a person tapping twice in the same place can. The filter now shows the set decided when it was switched
+on, exactly as FR-25.13e does, and the count beside it stays live so it still says how much of the pass is left.

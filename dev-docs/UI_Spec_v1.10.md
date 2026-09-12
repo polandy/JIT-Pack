@@ -1103,9 +1103,12 @@ These patterns apply to every screen and are specified once.
     does not restore an amount a skip zeroed. A locked line is untouched by it (FR-5.7). Above the FR-25.13e switch
     a second line counts the decided rows inside the current tag filter (*„2 entschieden"*) and offers
     *„nur Entschiedenes"*, which shows those rows alone — the pass the reset exists for, instead of a scroll through
-    the whole inventory. It is transient rather than remembered, unlike the FR-25.13e switch (a task, not a posture),
+    the whole inventory. What it shows is FR-25.13e's **snapshot**: the rows decided when it was switched on (re-taken
+    when the tag axis moves), so a line reset during the pass stays in place and flips to *„schon drin"* with its
+    verbs back, instead of vanishing under the finger; the count beside the switch stays live and says how much of
+    the pass is left. It is transient rather than remembered, unlike the FR-25.13e switch (a task, not a posture),
     it takes precedence over that switch, which steps aside entirely while it is on, and it is absent where nothing
-    has been decided. Emptying it by resetting the last decision states *„Hier ist noch nichts gepackt oder zu Hause
+    has been decided. A tag it finds nothing decided under states *„Hier ist noch nichts gepackt oder zu Hause
     gelassen."* with *„Alle anzeigen"* beside it — a third kind of empty next to the two FR-25.13e already has.
     **Since FR-25.8 (2026-08-29) the composer carries
     a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*,

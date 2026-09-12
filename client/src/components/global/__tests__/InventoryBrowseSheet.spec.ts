@@ -568,7 +568,7 @@ describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
     expect(wrapper.emitted('addForAll')).toBeUndefined()
   })
 
-  it('offers nothing on a settled or locked line, „für alle" included', () => {
+  it('keeps every verb off a settled or locked line, „für alle" included', () => {
     const wrapper = mountForAll({
       carriedItemIds: ['i-badehose', 'i-pullover'],
       rowStates: states({
@@ -940,6 +940,28 @@ describe('InventoryBrowseSheet — taking a settled decision back (FR-25.13i)', 
     expect(nothingDecided.find('[data-testid="browse-settled-toggle"]').exists()).toBe(false)
     // An open carried line is not a decided one: it still has both verbs.
     expect(nothingDecided.find('[data-testid="browse-pack"]').exists()).toBe(true)
+  })
+
+  it('keeps a reset line in place and lets it flip, FR-25.13e’s rule (snapshot)', async () => {
+    const wrapper = mountSettled()
+    await wrapper.get('[data-testid="browse-settled-toggle"]').trigger('click')
+
+    const pullover = () =>
+      wrapper
+        .findAll('[data-testid="browse-row-carried"]')
+        .find((row) => row.text().includes('Pullover'))!
+    await pullover().get('[data-testid="browse-reopen"]').trigger('click')
+    // What the caller reports back once the reset has landed.
+    await wrapper.setProps({
+      rowStates: states({ 'i-badehose': { state: 'packed' }, 'i-pullover': { state: 'open' } }),
+    })
+
+    // The row stays where it was and says what happened to it, rather than
+    // dropping out of the filter and reflowing the row below into the finger.
+    expect(settledNames(wrapper)).toHaveLength(2)
+    expect(pullover().get('[data-testid="browse-carried-state"]').text()).toContain('already in')
+    // And the count is the live one: it says how much of the pass is left.
+    expect(wrapper.get('[data-testid="browse-settled-count"]').text()).toBe('1 decided')
   })
 
   it('says which kind of empty a decided-only list is, and offers the way out', async () => {
