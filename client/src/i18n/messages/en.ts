@@ -1252,6 +1252,10 @@ export const en = {
   'tripEdit.startDate': 'Start',
   'tripEdit.endDate': 'End',
   'tripEdit.travelerName': 'Traveller name',
+  'tripEdit.linkedAccountOf': 'Account for {name}',
+  'tripEdit.linkedNobody': 'No account',
+  'tripEdit.linkNote':
+    'An account beside a traveller means that person is told when an item is assigned to them. Only members of this trip can be picked.',
   'tripEdit.addTraveler': 'Add a traveller',
   'tripEdit.add': 'Add',
   'tripEdit.removeTraveler': 'Remove {name}',

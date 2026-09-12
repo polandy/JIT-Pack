@@ -29,7 +29,7 @@ import {
   alertController,
 } from '@ionic/vue'
 import { addOutline, closeOutline } from 'ionicons/icons'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import DateField from '@/components/global/DateField.vue'
 import { tripYearChoices } from '@/domain/tripYears'
@@ -37,6 +37,7 @@ import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import { useTripStore } from '@/stores/tripStore'
 import { useTripScreen } from '@/composables/useTripScreen'
+import { useTripIdentity } from '@/composables/useTripIdentity'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { TravelerChangeReport } from '@/types/domain'
 import { useOrchestrator } from '@/composables/useOrchestrator'
@@ -49,6 +50,34 @@ const orchestrator = useOrchestrator()
 
 const { trip } = useTripScreen(props.tripId, orchestrator)
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
+
+const { participants, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+onMounted(loadIdentity)
+
+/**
+ * Who a traveller may be recorded as (FR-2.5, ADR-058): the trip's own
+ * members, and nobody else. The server refuses a link outside `trip_members`
+ * with `not_a_trip_member`, so a picker offering the directory would earn a
+ * rejection toast for a name it had just shown as a choice.
+ *
+ * Myself is on the list, unlike M5's *Assigned to* — there the sole user is
+ * already every row's packer, here the account being recorded is *most*
+ * often my own, because the point of the link is that somebody else's
+ * assignment reaches me.
+ */
+const linkable = computed(() => {
+  const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
+  return participants.value.filter((p) => members.has(p.user_id))
+})
+
+/**
+ * G-8: the control is absent where it can mean nothing rather than present
+ * and inert. Local Mode has no accounts at all, and a trip with one member —
+ * every Single-User trip, and an unshared Server-Mode one — can only link a
+ * traveller to the one person who would never be notified about their own
+ * assignment (`planRosterAssignment` skips the actor).
+ */
+const canLink = computed(() => linkable.value.length > 1)
 
 /**
  * An archived trip is read-only here for the same reason FR-27.4 never touches
@@ -169,6 +198,21 @@ async function addTraveler(): Promise<void> {
   newTraveler.value = ''
   const report = orchestrator.addTravelerToTrip(props.tripId, value)
   await reportTravelerChange(report, t('tripEdit.reportNothing'))
+}
+
+/**
+ * The select's value for *nobody*. Not `null`, which `IonSelect` reads as "no
+ * value chosen" — it would then render its placeholder instead of the option
+ * the user picked; the screen turns it back into the `null` the store means.
+ */
+const NO_ACCOUNT = ''
+
+/**
+ * The link commits on change, like the year: this screen has no save button
+ * (the M8 pattern), and a select has no blur to commit on.
+ */
+function linkTraveler(travelerId: string, value: string): void {
+  orchestrator.linkTraveler(props.tripId, travelerId, value === NO_ACCOUNT ? null : value)
 }
 
 function renameTraveler(travelerId: string, value: string): void {
@@ -311,6 +355,35 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
               @ionBlur="renameTraveler(traveler.id, String($event.target.value ?? ''))"
             />
             <!--
+              In the end slot beside the ✕ rather than under the name: the
+              roster is read as a list of people, and a second line per row
+              would push the fourth traveller off a phone screen for a fact
+              that is empty on most rows. It states itself through its value
+              — a name, or „no account" — so it needs no label of its own.
+            -->
+            <IonSelect
+              v-if="canLink"
+              slot="end"
+              class="link"
+              interface="popover"
+              :disabled="readOnly"
+              :aria-label="t('tripEdit.linkedAccountOf', { name: traveler.name })"
+              :value="traveler.linked_user_id ?? NO_ACCOUNT"
+              :data-testid="`traveler-link-${traveler.id}`"
+              @ionChange="(e: CustomEvent) => linkTraveler(traveler.id, String(e.detail.value))"
+            >
+              <IonSelectOption :value="NO_ACCOUNT">{{
+                t('tripEdit.linkedNobody')
+              }}</IonSelectOption>
+              <IonSelectOption
+                v-for="person in linkable"
+                :key="person.user_id"
+                :value="person.user_id"
+              >
+                {{ person.display_name }}
+              </IonSelectOption>
+            </IonSelect>
+            <!--
               Absent rather than disabled once the trip has started (owner,
               2026-08-21). The first version rendered it refusing every tap, on
               the reasoning that a vanished control gets hunted for; in the hand
@@ -329,6 +402,13 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
             </IonButton>
           </IonItem>
         </IonList>
+
+        <!-- What the account column is for, said once under the list rather
+             than per row: it is a rule about the trip's notifications, not a
+             property of one person (FR-2.5, ADR-058). -->
+        <p v-if="canLink" class="note" data-testid="traveler-link-note">
+          {{ t('tripEdit.linkNote') }}
+        </p>
 
         <!--
           The reason removal is gone is stated once, under the list: it is a
@@ -386,6 +466,12 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
 .add-row {
   --padding-start: 0;
   margin-top: 8px;
+}
+
+/* Bounded, so a long display name cannot squeeze the name field out of the
+   row; the select ellipsises its own value. */
+.link {
+  max-width: 40%;
 }
 
 .note {

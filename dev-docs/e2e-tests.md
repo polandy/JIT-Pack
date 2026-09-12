@@ -32,6 +32,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [E2E-M7-07 — one clause short of what it claimed (2026-08-30)](#e2e-m7-07--one-clause-short-of-what-it-claimed-2026-08-30) — the row's resolved count, the only arithmetic the row does, untested while the id read as complete.
 - [E2E-M7-04 — how the case is split, and why](#e2e-m7-04--how-the-case-is-split-and-why) — the `contextmenu` handler, and the guard asserted both ways.
 - [E2E-M20-07 — the cache had to earn its freshness (2026-09-05)](#e2e-m20-07--the-cache-had-to-earn-its-freshness-2026-09-05) — a before/after pair on one locator; why a case can be owed by a change that makes nothing new visible.
+- [E2E-M22-13 — an `ion-select`'s text is its whole option list (2026-09-12)](#e2e-m22-13--an-ion-selects-text-is-its-whole-option-list-2026-09-12) — a case that was green against a link the server had refused, and the locator that fixed it.
 - [E2E-G9-18 — the deep link that only Local Mode survived (2026-09-05)](#e2e-g9-18--the-deep-link-that-only-local-mode-survived-2026-09-05) — one screen pulled the trip partition and six relied on it; why the case had to be written in `single`.
 - [The visual unit — the only one that asserts appearance](#the-visual-unit--the-only-one-that-asserts-appearance) — why it is a separate project outside `npm run test:e2e`, and what surfaces, colour and typography each do *not* prove.
 - [What the M4 unit deliberately leaves out (rewritten 2026-08-30)](#what-the-m4-unit-deliberately-leaves-out-rewritten-2026-08-30) — two waits that ended without anybody noticing — the paragraph that stood here was wrong in both halves.
@@ -285,7 +286,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02 (rewritten 2026-09-01), E2E-PWA-03, **E2E-PWA-04** (the update policy, new 2026-09-01), **E2E-PWA-05 / E2E-PWA-05b** (FR-19.7 — applying it now, and *Später*, new 2026-09-02), **E2E-NFR-01** (the offline *write*, 2026-09-01) | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Storage durability (NFR-4.11) | E2E-NFR-03, E2E-NFR-03b | `local` | [`storage-durability.spec.ts`](../client/e2e/storage-durability.spec.ts) |
 | Web Push registration (NFR-4.6) | E2E-NFR-06 | `server` | [`server/push.spec.ts`](../client/e2e/server/push.spec.ts) |
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), **E2E-FLOW-01b** (the member's pack on the owner's screen, since 2026-09-01), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), **E2E-FLOW-01b** (the member's pack on the owner's screen, since 2026-09-01), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind), **E2E-M22-13** (M22 records a traveller as an account, since 2026-09-12) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06, **E2E-M20-07** (a deactivation reaches the sharing picker, since 2026-09-05) | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
@@ -1784,6 +1785,8 @@ What each promise is kept by:
 | **rename in place** | **E2E-M22-11** | **New 2026-08-30.** The third roster affordance, never operated in a browser; it asserts that a rename is not a removal plus an addition. |
 | removal ends at departure — no ✕, and one sentence saying why | E2E-M22-04 + E2E-M22-07 | The positive half is what keeps „no ✕" from passing against a screen that renders none. |
 | an archived trip's editor is read-only throughout | **E2E-M22-10** | **New 2026-08-30, and it says why since 2026-08-31.** The note sits above both cards: rendering it inside the travellers card made a sentence about the whole screen read as a rule about people — found by looking, not by asserting. |
+| **a traveller is recorded as an account, and the instance keeps it** | **E2E-M22-13** (`server/multi-user.spec.ts`) | **New 2026-09-12.** Only the `server` project can ask it: the picker offers `trip_members`, and a trip with one member renders no control. The reload is the assertion — the link is written optimistically, so the value standing straight after the tap says only that the screen painted it. |
+| the picker offers members and nobody else, and is absent below two | `TripEditPage.spec.ts` | A directory account that is not on the trip, and the one-member trip, are cheaper to seed as rows than as a second logged-in browser. |
 | an edit is a partial write and the trip stays on M2 | E2E-M22-08 | |
 | the confirmation toast clears the tab bar | E2E-M22-09 | Geometry, because a screenshot cannot tell a covered toast from a translucent one. |
 
@@ -4893,6 +4896,26 @@ what the assertion matches instead of failing loudly. All three now go through a
 See `TODO-minors-pr3.md` (items 1–3) for the batch this closes; item 1 (the `client-devcode`
 Makefile target reading a stale `dist/` with no `client-build` prerequisite) needed no e2e case —
 it was proven directly against a fabricated stale build, recorded in the PR only.
+
+## E2E-M22-13 — an `ion-select`'s text is its whole option list (2026-09-12)
+
+The case for M22's new account picker (FR-2.5, ADR-058) was written as
+„after the pick, the row's select contains Bob" — and it passed against a
+build whose write the server had **refused**. `ion-select` renders its
+options as light-DOM children, so the element's text content is
+`"No accountAliceBobNo account"`: the value *and* every choice on offer.
+`toContainText('Bob')` was therefore satisfied by Bob being offered, which
+was true before the tap and stays true when the write is rolled back.
+
+What it is asserted on instead is `ion-select .select-text` — the rendered
+value alone, which reads `No account` when the link was refused. The proof
+is a build mutated to link a non-member: green on the first version of the
+case, red on this one, and the rejection toast (`not_a_trip_member`) visible
+in the failure's context dump.
+
+The rule this generalises to, for every future select: **read the value, not
+the control.** An `ion-select` assertion that names any text a user could
+choose is unfalsifiable by construction.
 
 ## A decision that could only be taken back from the other screen (2026-09-12)
 

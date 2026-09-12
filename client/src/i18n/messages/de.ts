@@ -1267,6 +1267,10 @@ export const de: Record<keyof typeof en, string> = {
   'tripEdit.startDate': 'Beginn',
   'tripEdit.endDate': 'Ende',
   'tripEdit.travelerName': 'Name der reisenden Person',
+  'tripEdit.linkedAccountOf': 'Konto von {name}',
+  'tripEdit.linkedNobody': 'Kein Konto',
+  'tripEdit.linkNote':
+    'Ein Konto neben einer reisenden Person heisst: diese Person wird benachrichtigt, wenn ihr ein Packelement zugewiesen wird. Zur Auswahl stehen nur Mitglieder dieser Reise.',
   'tripEdit.addTraveler': 'Reisende:n hinzufügen',
   'tripEdit.add': 'Hinzufügen',
   'tripEdit.removeTraveler': '{name} entfernen',
