@@ -1106,6 +1106,24 @@ function onBrowseSkip(itemId: string) {
   browseUndo.set(itemId, () => orchestrator.restoreSkip(props.tripId, records))
 }
 
+/**
+ * FR-25.13i: put every row this master item stands for back on the list,
+ * whoever decided it and whenever.
+ *
+ * Not `onBrowseUndo`: that one replays a closure this run recorded, and a
+ * decision from yesterday — or from another device — left none. So this is a
+ * **reset** rather than a restore, and deliberately the same two writes M4's
+ * own row menu makes: a skipped row comes back at amount one (FR-5.5's skip
+ * zeroed it, and only the row's own history knows what it was), a packed one
+ * keeps its amount and loses its packed count.
+ */
+function onBrowseReopen(itemId: string) {
+  for (const row of rowsOfMasterItem(itemId)) {
+    if (row.state === 'skipped') orchestrator.unskipItem(props.tripId, row)
+    else orchestrator.packZero(props.tripId, row)
+  }
+}
+
 function onBrowseUndo(itemId: string) {
   const undo = browseUndo.get(itemId)
   if (!undo) return
@@ -1318,6 +1336,7 @@ setHeaderTitle(
         @pack-carried="onBrowsePack"
         @skip-carried="onBrowseSkip"
         @undo-browse="onBrowseUndo"
+        @reopen-carried="onBrowseReopen"
       />
 
       <IonList v-if="view.groups.length > 0">

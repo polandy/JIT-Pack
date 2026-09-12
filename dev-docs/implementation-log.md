@@ -364,6 +364,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [„für alle" at three travelers had a write of its own, the wrong one (2026-09-11)](#für-alle-at-three-travelers-had-a-write-of-its-own-the-wrong-one-2026-09-11) — 👥 routed through the bulk verb beside avatar buttons doing the same job, taking deselection with it.
 - [A revisit trigger fired for a column left deliberately inert (2026-09-11)](#a-revisit-trigger-fired-for-a-column-left-deliberately-inert-2026-09-11) — FR-2.5's `linked_user_id` gets a reader (ADR-058), and the membership rule it cost.
 - [Four drawings, and the one that cost a tap (2026-09-11)](#four-drawings-and-the-one-that-cost-a-tap-2026-09-11) — FR-25.23's cluster fold: why the other three were rejected, and the fold-state name that was almost a trap.
+- [A clause priced the wrong half of „one screen away" (2026-09-12)](#a-clause-priced-the-wrong-half-of-one-screen-away-2026-09-12) — FR-25.13i reverses FR-25.13f for settled lines; reset rather than restore, and what that costs a skipped row.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14950,3 +14951,30 @@ and the interface comment says why, because the next person to add a fold here w
 header's is, it pushed the item's name 22 px off the x every other item row's name sits on; E2E-M4-73 measures exactly
 that (FR-21.20) and failed on the number. It trails the name instead. The group header can afford a leading caret
 because a group name is a heading *over* the rows; a cluster head is one *of* them.
+
+## A clause priced the wrong half of „one screen away" (2026-09-12)
+
+FR-25.13f ruled that a settled line in the browse-sheet states its decision and offers nothing, because undoing it is
+M4's job one screen away. The premise was not the distance — it was that the *„Rückgängig"* the same FR put on an
+acted line would still be there when somebody wanted it. It is not: the ledger it reads is local to the sheet and
+Ionic destroys the modal's content on dismiss, so the way back is gone the moment the sheet is closed. Within a run
+the clause reads as a reasonable division of labour; one reopen later it reads as a row that cannot be changed from
+the surface its decision was made on. The owner hit it on the family instance, which is where a clause like this one
+gets tested — not in the cases, all of which act inside a single opening.
+
+**The reversal is only the settled half.** A locked line still offers nothing, for FR-25.13f's own reason, which was
+never about lifetimes: a takeover is FR-5.7's confirmed step and must not be a one-tap verb.
+
+**Reset, not restore, and that is a decision with a price.** The new control cannot be FR-25.13f's undo — that
+replays a closure the run recorded, and the whole case is a decision the run did not make. So it writes what M4's own
+row menu writes: unskip, or zero the packed count. For a packed row that is lossless. For a skipped one it is not:
+FR-5.5's skip zeroes the amount, so a skip of three socks reset here returns one sock. The alternative is a column
+holding the pre-skip amount on every row, paid for forever to spare a correction the stepper makes in one tap — it
+was rejected, and the cost is written into FR-25.13i rather than left to be found.
+
+**The filter is half the feature, not a convenience beside it.** A control on rows scattered through a hundred-line
+inventory is a control nobody finds, and FR-25.13e's switch cannot serve here — it hides what the trip carries, and
+every decided row is carried, so composing the two renders nothing. Hence a second filter that *takes precedence*
+rather than composing, with the older switch stepping aside entirely while it is on. It is transient where that one
+is remembered: hiding what is already in is a posture, a pass over the decisions is a task, and a task that outlived
+itself would open the sheet on a fraction of the inventory with nothing saying why.

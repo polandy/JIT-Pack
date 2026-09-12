@@ -429,7 +429,7 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(false)
   })
 
-  it('states a settled row and offers it nothing', () => {
+  it('states a settled row and keeps the three verbs off it (its way back is FR-25.13i)', () => {
     const wrapper = mountWithVerbs(
       ['i-badehose', 'i-pullover'],
       states({ 'i-badehose': { state: 'packed' }, 'i-pullover': { state: 'skipped' } }),
@@ -810,6 +810,167 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     const row = rowFree(mountAssign([ANDY]), 'Badehose')
 
     expect(row.findAll('[data-testid^="browse-assign-"]')).toHaveLength(0)
+  })
+})
+
+/**
+ * FR-25.13i — the way back out of a settled line, and the filter that finds
+ * the settled lines in the first place.
+ *
+ * FR-25.13f left a packed or skipped line stating its state and offering
+ * nothing, on the grounds that undoing it is M4's job one screen away. What
+ * that costs shows up the moment the sheet is closed: the run's ledger dies
+ * with it, so the line's own *„Rückgängig"* dies too, and a decision made a
+ * minute ago is only reachable from the screen behind this one. The rules
+ * pinned here: a settled line carries the way back whoever settled it and
+ * whenever, it **resets** rather than restores, and the settled lines can be
+ * filtered down to — without which a pass over them is a scroll through the
+ * whole inventory.
+ */
+describe('InventoryBrowseSheet — taking a settled decision back (FR-25.13i)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    browseHideCarried().reload()
+    seed()
+  })
+
+  function states(
+    entries: Record<string, Partial<BrowseRowSummary> & { state: BrowseRowSummary['state'] }>,
+  ): ReadonlyMap<string, BrowseRowSummary> {
+    return new Map(
+      Object.entries(entries).map(([id, value]) => [
+        id,
+        { itemIds: [`row-${id}`], travelersReached: 0, lockNote: null, ...value },
+      ]),
+    )
+  }
+
+  /** Badehose packed, Pullover left at home; Ladekabel and Sonnenhut free. */
+  function mountSettled() {
+    return mount(InventoryBrowseSheet, {
+      props: {
+        carriedItemIds: ['i-badehose', 'i-pullover'],
+        rowStates: states({
+          'i-badehose': { state: 'packed' },
+          'i-pullover': { state: 'skipped' },
+        }),
+      },
+    })
+  }
+
+  function settledNames(wrapper: ReturnType<typeof mountSettled>): string[] {
+    return wrapper.findAll('[data-testid="browse-row-carried"]').map((row) => row.text())
+  }
+
+  it('offers the way back on every settled line, whoever settled it and whenever', () => {
+    // Nothing in this mount was tapped in this run: the states arrive as
+    // props, which is exactly the case FR-25.13f had no answer for.
+    const wrapper = mountSettled()
+
+    expect(wrapper.findAll('[data-testid="browse-reopen"]')).toHaveLength(2)
+    // The line still says what it is — the state is not what goes.
+    expect(wrapper.findAll('[data-testid="browse-settled"]').map((s) => s.text())).toEqual([
+      'already packed',
+      'staying home',
+    ])
+  })
+
+  it('emits the reset for the line it sits on, and only for that one', async () => {
+    const wrapper = mountSettled()
+
+    const pullover = wrapper
+      .findAll('[data-testid="browse-row-carried"]')
+      .find((row) => row.text().includes('Pullover'))!
+    await pullover.get('[data-testid="browse-reopen"]').trigger('click')
+
+    expect(wrapper.emitted('reopen')?.[0]?.[0]).toMatchObject({ id: 'i-pullover' })
+    expect(wrapper.emitted('reopen')).toHaveLength(1)
+    // Not the run ledger's undo: there is nothing of this run's to take back,
+    // and the caller's two ways back write different things.
+    expect(wrapper.emitted('undo')).toBeUndefined()
+  })
+
+  it('offers no way back where the caller reports no states at all (M6/M8, G-8)', () => {
+    const wrapper = mountSheet(['i-pullover'])
+
+    // The positive signal that this is the verb-free sheet and not an empty
+    // one: the carried line is rendered, it simply has no control.
+    expect(wrapper.find('[data-testid="browse-carried-state"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="browse-reopen"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browse-settled-toggle"]').exists()).toBe(false)
+  })
+
+  it('shows the decided lines alone while the filter is on, and counts them', async () => {
+    const wrapper = mountSettled()
+    expect(wrapper.get('[data-testid="browse-settled-count"]').text()).toBe('2 decided')
+
+    await wrapper.get('[data-testid="browse-settled-toggle"]').trigger('click')
+
+    expect(settledNames(wrapper)).toEqual([
+      expect.stringContaining('Badehose'),
+      expect.stringContaining('Pullover'),
+    ])
+    // The free lines are what the filter takes away — the pass is over the
+    // decisions, not over the inventory.
+    expect(wrapper.findAll('[data-testid="browse-row"]')).toHaveLength(0)
+
+    await wrapper.get('[data-testid="browse-settled-toggle"]').trigger('click')
+
+    expect(wrapper.findAll('[data-testid="browse-row"]')).toHaveLength(2)
+  })
+
+  it("puts FR-25.13e's switch away while the filter is on — it would do nothing", async () => {
+    const wrapper = mountSettled()
+    expect(wrapper.find('[data-testid="browse-hide-toggle"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="browse-settled-toggle"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="browse-hide-toggle"]').exists()).toBe(false)
+  })
+
+  it('offers the filter only where something has been decided', () => {
+    const nothingDecided = mount(InventoryBrowseSheet, {
+      props: {
+        carriedItemIds: ['i-badehose'],
+        rowStates: states({ 'i-badehose': { state: 'open' } }),
+      },
+    })
+
+    expect(nothingDecided.find('[data-testid="browse-settled-toggle"]').exists()).toBe(false)
+    // An open carried line is not a decided one: it still has both verbs.
+    expect(nothingDecided.find('[data-testid="browse-pack"]').exists()).toBe(true)
+  })
+
+  it('says which kind of empty a decided-only list is, and offers the way out', async () => {
+    const wrapper = mountSettled()
+    await wrapper.get('[data-testid="browse-settled-toggle"]').trigger('click')
+
+    // Both decisions live under Kleidung; Technik has none, so the filter
+    // empties — a different answer from "no items carry this tag".
+    await wrapper.get('[data-testid="browse-tag-Technik"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="browse-no-settled"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="browse-no-match"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="browse-show-all"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="browse-no-settled"]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-testid="browse-row"]')).toHaveLength(1)
+  })
+
+  it('a locked line keeps offering nothing — a takeover is FR-5.7, not a reset', () => {
+    const wrapper = mount(InventoryBrowseSheet, {
+      props: {
+        carriedItemIds: ['i-badehose'],
+        rowStates: states({
+          'i-badehose': { state: 'locked', lockNote: 'Sia is packing this right now' },
+        }),
+      },
+    })
+
+    expect(wrapper.find('[data-testid="browse-locked"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="browse-reopen"]').exists()).toBe(false)
   })
 })
 

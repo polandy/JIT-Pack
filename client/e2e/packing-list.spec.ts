@@ -684,6 +684,106 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-done-bar')).toBeHidden()
   })
 
+  /**
+   * E2E-M4-83 (FR-25.13i): a decision outlives the sheet, and so must the way
+   * back out of it.
+   *
+   * The case is written across a **close and reopen** on purpose: that is the
+   * exact boundary FR-25.13f's line-local „Rückgängig" could not cross, and
+   * the reason the settled line needed a control of its own. The assertions on
+   * M4 afterwards are what separate a reset from a line that merely stopped
+   * saying „staying home" — the row has to be back on the working list.
+   */
+  test('E2E-M4-83: a settled line can be reset after the sheet was reopened (FR-25.13i)', async ({
+    page,
+  }) => {
+    await inventory(page, ['Zelt', 'Lampe'])
+    await createTripViaWizard(page, TRIP)
+
+    let sheet = await openBrowseSheet(page)
+    await sheet.getByRole('button', { name: 'Deliberately leave "Zelt" behind' }).click()
+    await expect(sheet.getByTestId('browse-skipped-now')).toHaveCount(1)
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // The run's ledger died with the modal: the line now renders from the trip
+    // alone, states its decision, and carries FR-25.13i's reset instead of the
+    // undo it no longer has.
+    sheet = await openBrowseSheet(page)
+    const zelt = sheet.getByTestId('browse-row-carried').filter({ hasText: 'Zelt' })
+    await expect(zelt.getByTestId('browse-settled')).toHaveText(/staying home/i)
+    await expect(sheet.getByTestId('browse-undo')).toHaveCount(0)
+
+    await zelt.getByTestId('browse-reopen').click()
+
+    // What is left is an ordinary carried line — so a second decision is one
+    // tap away, which is the point of resetting rather than deleting.
+    await expect(zelt.getByTestId('browse-carried-state')).toHaveText(/already in/i)
+    await expect(zelt.getByTestId('browse-pack')).toBeVisible()
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    // Back on the working list at amount one, not behind the reveal bar: the
+    // skip is undone on the row, not only in the sheet's wording.
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Zelt')).not.toContainText(/deliberately skipped/i)
+    await expect(page.getByTestId('m4-done-bar')).toBeHidden()
+  })
+
+  /**
+   * E2E-M4-84 (FR-25.13i): the filter that makes the reset reachable — in a
+   * real inventory the decided lines are scattered through the whole list, so
+   * a control nothing can find is a control nobody has.
+   */
+  test('E2E-M4-84: the sheet can show what has been decided, and nothing else (FR-25.13i)', async ({
+    page,
+  }) => {
+    await inventory(page, ['Zelt', 'Lampe', 'Kocher'])
+    await createTripViaWizard(page, TRIP)
+
+    let sheet = await openBrowseSheet(page)
+    await sheet.getByRole('button', { name: 'Mark "Lampe" as packed' }).click()
+    await sheet.getByRole('button', { name: 'Deliberately leave "Zelt" behind' }).click()
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    sheet = await openBrowseSheet(page)
+    await expect(sheet.getByTestId('browse-settled-count')).toHaveText('2 decided')
+    await sheet.getByTestId('browse-settled-toggle').click()
+
+    // Only the two decisions are left: Kocher, which nothing was decided
+    // about, is what the filter takes away.
+    await expect(sheet.getByTestId('browse-settled')).toHaveCount(2)
+    await expect(sheet.getByTestId('browse-row')).toHaveCount(0)
+    // FR-25.13e's switch steps aside rather than sitting there doing nothing.
+    await expect(sheet.getByTestId('browse-hide-toggle')).toHaveCount(0)
+
+    await sheet
+      .getByTestId('browse-row-carried')
+      .filter({ hasText: 'Lampe' })
+      .getByTestId('browse-reopen')
+      .click()
+    await sheet
+      .getByTestId('browse-row-carried')
+      .filter({ hasText: 'Zelt' })
+      .getByTestId('browse-reopen')
+      .click()
+
+    // Emptied by its own success: the list says which kind of empty this is
+    // and carries the way out of it.
+    await expect(sheet.getByTestId('browse-no-settled')).toBeVisible()
+    await sheet.getByTestId('browse-show-all').click()
+    await expect(sheet.getByTestId('browse-row').filter({ hasText: 'Kocher' })).toBeVisible()
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    // Both decisions really were reset: two open rows, nothing packed and
+    // nothing left at home.
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
+    await expect(page.getByTestId('m4-progress')).toContainText('0/2')
+  })
+
   // E2E-M4-02 (FR-8.2/25.18): the grouping is durable per trip — it arranges
   // rows rather than hiding them, so nothing can be lost behind it.
   test('E2E-M4-02: the grouping choice survives a reload', async ({ page }) => {
