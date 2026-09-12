@@ -1045,11 +1045,13 @@ These patterns apply to every screen and are specified once.
     ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is
     active, new items are auto-flagged *Missing* (FR-9.1). The input stays expanded after adding for rapid entry; Escape
     or the close button collapses it. No navigation away from M4 required. **Since FR-25.13c (2026-08-21):** the FAB
-    expands the composer **without focusing it**, because while the field is empty it leads with two tappable chip rows
-    — *„Passt zu {Tags}"* (items sharing a primary tag with what the trip already carries) and *„Zuletzt verwendet"*
-    (the device-local trail) — and the raised keyboard would cover them; a chip tap adds with the FR-25.7 defaults and
-    stays in chip mode. What the trip already carries is offered in **no** row and no longer in the autocomplete either;
-    typing hides the chips and the suggestions take over. **Since FR-25.13d (2026-08-22)** the empty composer also
+    expands the composer **without focusing it**, because while the field is empty it leads with a tappable
+    *„Zuletzt verwendet"* chip row (the device-local trail) — and the raised keyboard would cover it; a chip tap adds
+    with the FR-25.7 defaults and stays in chip mode. (A second row, *„Passt zu {Tags}"* — items sharing a primary tag
+    with what the trip already carries — shipped alongside it and was **removed 2026-09-12**, owner: it read as noise
+    rather than a suggestion.) What the trip already carries is offered in **no** row and no longer in the
+    autocomplete either; typing hides the chips and the suggestions take over. **Since FR-25.13d (2026-08-22)** the
+    empty composer also
     carries the *„Mehr aus dem Inventar…"* line, opening the **inventory browse-sheet**: the whole inventory in a bottom
     sheet, grouped like M9 by primary tag and filtered along the M9 tag axis (any of an item's tags), one-tap rows that
     stay open for runs, a carried item stating *„schon drin"* in place of its add control and flipping to that state
@@ -1387,9 +1389,9 @@ These patterns apply to every screen and are specified once.
     an included Gruppe cannot be promoted — the editor names the consumers ("Eingebunden in: …") instead of failing
     opaquely.
   * **Adding a position is the packing list's quick-add, verbatim** (FR-25.13, extended to M8 2026-08-08): ＋ FAB
-    expansion — **without focus since FR-25.13c (2026-08-21)**, because the empty composer leads with the chip rows
-    (related by primary tag to the template's own positions, and the device-local recents), which the raised keyboard
-    would cover — master-item autocomplete, a visible scope-labelled confirm, Enter, the field stays open (and never
+    expansion — **without focus since FR-25.13c (2026-08-21)**, because the empty composer leads with the
+    device-local recents chip row, which the raised keyboard would cover — master-item autocomplete, a visible
+    scope-labelled confirm, Enter, the field stays open (and never
     blur-collapses, FR-25.13a as revised 2026-08-13), a duplicate is reported rather than added twice and is **not
     offered** in chips or autocomplete to begin with, and free text creates the master item (FR-1.1). The composer's
     *„Mehr aus dem Inventar…"* browse-sheet (FR-25.13d) is here too, verbatim — described once at M4's quick-add.

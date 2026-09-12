@@ -707,12 +707,12 @@ in WebKit.
   *same component* with the group offer switched off, so M4 gaining groups could hand them to a screen where FR-27.1
   forbids nesting one. The case asserts the absence beside a **positive signal** — the free-text hint, which is the line
   M4 hides when groups match, so a leaked prop reddens it. Mutation-proved on both browsers.
-* **E2E-M8-21** `all` (FR-25.13c, added 2026-08-21) — **implemented** (`e2e/template-editor.spec.ts`): the empty
-  composer offers the chip rows — the related row headed by the contributing tag ("Passt zu Hygiene"), fed by the
-  group's own contents; a chosen item is offered in **no** row, asserted beside the rendered chip that proves the row
-  exists; a chip tap lands an FR-25.7 Standard row without the keyboard ever rising; and the recents trail crosses
-  scopes — a fresh group offers what the last one just used, recency first. Tagged inventory is built through M10's own
-  path, because the related row keys on primary tags and nothing else.
+* **E2E-M8-21** `all` (FR-25.13c, added 2026-08-21, related row removed 2026-09-12) — **implemented**
+  (`e2e/template-editor.spec.ts`): the empty composer offers the recent-items chip row; a chosen item is never
+  offered again, asserted beside a chip tap that lands an FR-25.7 Standard row without the keyboard ever rising; and
+  the trail crosses scopes — a fresh group offers what the last one just used, recency first. **The related row —
+  "Passt zu {Tags}", items sharing a primary tag with the scope's contents — was removed** (owner, 2026-09-12: it
+  read as noise, most visibly under the *Diverses* catch-all tag); this case's tagged-inventory setup went with it.
 * **E2E-M8-22** `all` (FR-25.13d, added 2026-08-22) — **implemented** (`e2e/template-editor.spec.ts`): the empty
   composer's *„Mehr aus dem Inventar…"* line opens the browse-sheet; the tag axis narrows on **any** tag (the two
   matching rows are the positive signal for the absent third); two taps land two positions in a run, each tapped row

@@ -207,14 +207,13 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(visiblePage(page).getByTestId('m8-positions-empty')).toBeVisible()
   })
 
-  test('E2E-M8-21: the empty composer offers chips, never the already chosen, and a chip lands a row (FR-25.13c)', async ({
+  test('E2E-M8-21: the empty composer offers recently used chips, never the already chosen (FR-25.13c)', async ({
     page,
   }) => {
-    // Tagged inventory through M10's own path: two Hygiene items, one Technik.
     await page.goto(PATH.items)
-    await createTaggedItem(page, 'Zahnbürste', 'Hygiene')
-    await createTaggedItem(page, 'Shampoo', 'Hygiene')
-    await createTaggedItem(page, 'Ladekabel', 'Technik')
+    await createItem(page, 'Zahnbürste')
+    await backToInventory(page)
+    await createItem(page, 'Shampoo')
 
     await page.goto(PATH.templates)
     await createTemplate(page, 'group', 'Bad')
@@ -249,24 +248,14 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
       visiblePage(page).locator('ion-item').filter({ hasText: 'Zahnbürste' }).first(),
     ).toBeVisible()
 
-    // The emptied composer now offers the related row: the other Hygiene
-    // item, headed by the tag — and the chosen Zahnbürste is not offered
-    // again in it (the positive signal for that absence is Shampoo,
-    // rendered in the very same row).
-    const chipArea = visiblePage(page).getByTestId('quick-add-chips')
-    await expect(chipArea).toContainText('Goes with Hygiene')
-    const related = visiblePage(page).getByTestId('quick-add-chip-related')
-    await expect(related.filter({ hasText: 'Shampoo' })).toBeVisible()
-    await expect(related.filter({ hasText: 'Zahnbürste' })).toHaveCount(0)
-    // Technik shares no tag with the group's contents.
-    await expect(related.filter({ hasText: 'Ladekabel' })).toHaveCount(0)
-
-    // One tap on the chip lands a Standard row (FR-25.7 defaults).
-    await related.filter({ hasText: 'Shampoo' }).click()
-    const row = visiblePage(page).locator('ion-item').filter({ hasText: 'Shampoo' }).first()
-    await expect(row).toContainText('Standard')
-    // Both Hygiene items are chosen now, so the composer has nothing left
-    // to offer — the rows above are the positive signal.
+    // A second position, also via the typed autocomplete, so the trail
+    // carries two items — the composer has nothing left to offer for this
+    // scope, since both are already chosen (the positive signal below).
+    await input.fill('Sham')
+    await visiblePage(page)
+      .getByTestId('quick-add-suggestion')
+      .filter({ hasText: 'Shampoo' })
+      .click()
     await expect(visiblePage(page).getByTestId('quick-add-chips')).toHaveCount(0)
 
     // The trail crosses scopes: a fresh group offers the two items just

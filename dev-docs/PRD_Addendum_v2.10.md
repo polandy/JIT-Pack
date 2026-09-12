@@ -2037,13 +2037,15 @@ locked.
     literally true. Rules: **(a)** the ＋ FAB expands the composer but **no longer focuses it** — this turns around
     FR-25.13's and 25.13a's "expands and focuses", because the auto-raised keyboard would cover exactly the chips; the
     accepted cost is one extra tap for whoever wants to type, and the field's own tap raises the keyboard as before.
-    **(b)** Two rows while the field is empty, both capped and both **excluding everything the scope already carries**:
-    *„Passt zu {Tags}"* — items sharing a primary tag (FR-24.2) with the scope's contents, alphabetical, headed only by
-    tags that actually contribute a chip — and *„Zuletzt verwendet"*, a **device-local** recency trail (a typing
-    convenience, not domain data — deliberately unsynced, the review-dismissals stance; free-text adds record nothing,
-    they have no master item yet at the composer's level). **(c)** A chip tap is the FR-25.7 one-tap add with defaults
-    and does *not* refocus the field — the user is tapping through an offer, and the keyboard would end it; a typed
-    suggestion pick keeps refocusing, that user is in a typing run. **(d)** The same change closes the hiding gap on M4:
+    **(b)** One row while the field is empty, capped and **excluding everything the scope already carries**:
+    *„Zuletzt verwendet"*, a **device-local** recency trail (a typing convenience, not domain data — deliberately
+    unsynced, the review-dismissals stance; free-text adds record nothing, they have no master item yet at the
+    composer's level). ~~A second row, *„Passt zu {Tags}"* — items sharing a primary tag (FR-24.2) with the scope's
+    contents — shipped alongside it and was removed 2026-09-12 (owner: the tag-based offer read as noise rather than
+    a suggestion, most visibly when the contributing tag was the *Diverses* catch-all).~~ **(c)** A chip tap is the
+    FR-25.7 one-tap add with defaults and does *not* refocus the field — the user is tapping through an offer, and
+    the keyboard would end it; a typed suggestion pick keeps refocusing, that user is in a typing run. **(d)** The
+    same change closes the hiding gap on M4:
     **what a scope already carries is never offered**, in chips *or* autocomplete — M8 already excluded its positions,
     M4 now passes the trip's items (skipped rows included: bringing one back is FR-5.5's reveal-and-undo, not a second
     add). Typing yields: chips disappear at the first character and the autocomplete takes over.
