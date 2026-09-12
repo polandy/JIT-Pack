@@ -10,9 +10,9 @@
  * to be read twice before it can be used once. M6, which has no FAB, is
  * where the pill is still the way in.
  * Opening no longer focuses the input (FR-25.13c, owner 2026-08-21): the
- * empty composer leads with tappable chips — related to what the scope
- * already carries, and recently used — and an auto-raised soft keyboard
- * would cover exactly those. Typing is one tap on the field away.
+ * empty composer leads with a tappable row of recently used items, and an
+ * auto-raised soft keyboard would cover it. Typing is one tap on the field
+ * away.
  *
  * **The visible confirm button is the primary commit.** A phone has no
  * Enter key in reach, and leaving the action to the soft keyboard's
@@ -199,9 +199,8 @@ const suggestions = computed(() => {
 const recentsVersion = ref(0)
 
 /**
- * FR-25.13c: the empty composer's chip rows. `excludeItemIds` doubles as
- * the scope's contents, so what is already chosen is both the *context*
- * for the related row and hidden from every row.
+ * FR-25.13c: the empty composer's recent-items chip row. `excludeItemIds`
+ * doubles as the scope's contents, so what is already chosen is hidden.
  */
 const chips = computed(() => {
   void recentsVersion.value
@@ -209,18 +208,11 @@ const chips = computed(() => {
     items: masterStore.activeItemList,
     chosenItemIds: props.excludeItemIds,
     recentItemIds: recentItemIds(),
-    primaryTagOf: (itemId) => masterStore.getPrimaryTag(itemId),
   })
 })
 
 /** Chips yield to the autocomplete as soon as typing starts. */
-const showChips = computed(
-  () =>
-    query.value.trim().length === 0 &&
-    (chips.value.related.length > 0 || chips.value.recent.length > 0),
-)
-
-const relatedTagNames = computed(() => chips.value.relatedTags.map((tag) => tag.name).join(' · '))
+const showChips = computed(() => query.value.trim().length === 0 && chips.value.recent.length > 0)
 
 /**
  * FR-27.10: the groups whose name the query matches, each with the FR-27.12
@@ -539,36 +531,18 @@ function onKeydown(event: KeyboardEvent) {
       <!-- FR-25.13c: the empty composer offers chips before it asks for
            typing — the reason open() no longer raises the keyboard. -->
       <div v-if="showChips" class="chip-rows" data-testid="quick-add-chips">
-        <template v-if="chips.related.length > 0">
-          <p class="chip-heading jp-eyebrow">
-            {{ t('quickAdd.relatedHeading', { tags: relatedTagNames }) }}
-          </p>
-          <div class="chip-row">
-            <button
-              v-for="item in chips.related"
-              :key="item.id"
-              class="chip"
-              data-testid="quick-add-chip-related"
-              @click="selectChip(item)"
-            >
-              {{ item.name }}
-            </button>
-          </div>
-        </template>
-        <template v-if="chips.recent.length > 0">
-          <p class="chip-heading jp-eyebrow">{{ t('quickAdd.recentHeading') }}</p>
-          <div class="chip-row">
-            <button
-              v-for="item in chips.recent"
-              :key="item.id"
-              class="chip"
-              data-testid="quick-add-chip-recent"
-              @click="selectChip(item)"
-            >
-              {{ item.name }}
-            </button>
-          </div>
-        </template>
+        <p class="chip-heading jp-eyebrow">{{ t('quickAdd.recentHeading') }}</p>
+        <div class="chip-row">
+          <button
+            v-for="item in chips.recent"
+            :key="item.id"
+            class="chip"
+            data-testid="quick-add-chip-recent"
+            @click="selectChip(item)"
+          >
+            {{ item.name }}
+          </button>
+        </div>
       </div>
 
       <!-- FR-25.13d: the door to the browse-sheet — the *Zusammenstellen*
