@@ -41,6 +41,7 @@ Read this file fully before touching code. It is the orientation document: what 
 | What does the suite actually cover, and what is owed? | `dev-docs/e2e-tests.md` — the ledger; read and update it, a green `e2e` job is not a verified UI. **It opens with an index**, like the log: scan that and open only what it names. |
 | How do I run and write an e2e case? | `client/e2e/README.md` — **the on-ramp**: running one case on this host, the helper catalogue, the binding conventions (they live there, not in the ledger) |
 | How do I write code here? | `dev-docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
+| Which agent CLI reads which config file? | `dev-docs/agent-tooling.md` — Claude Code and Copilot CLI share one configuration; this is what each actually reads |
 | What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history. **It opens with an index**: one line per section, so scan that and open only what it names. |
 
 Only the current version of each document is kept. Never write a "v2" of a doc — replace the file and update its own revision note.
@@ -233,7 +234,7 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 
 ## Don'ts & pointers
 
-- Don't add a migration (invariant 2, ADR-018) — `.claude/settings.json` denies creating `internal/store/migrations/**` as a speed bump; a schema change edits `internal/store/schema.sql`.
+- Don't add a migration (invariant 2, ADR-018) — a schema change edits `internal/store/schema.sql`. Both agent CLIs carry the same speed bump: `.claude/settings.json` denies creating `internal/store/migrations/**`, and `.github/hooks/jitpack.json` runs `scripts/agent-guard-migrations.sh` for Copilot, which has no repository-level deny rules. See `dev-docs/agent-tooling.md`.
 - Don't restructure `dev-docs/implementation-log.md`; append to it — and **only when the work earns an entry**. Its own "What earns an entry" section is the rule: if the diff and the commit message tell the same story, write no entry; what belongs there is what the code cannot show (a rejected option, a wrong premise, a cost accepted on purpose, a trap with a price). An entry that lands also gets a line in the file's index — `scripts/log-index-gate.mjs` enforces that, so an unindexed section fails `make ci`.
 - Don't grow `CLAUDE.md` with history. It is loaded in full for every session, so a closed backlog item shrinks to one line and a pointer; the narrative belongs in the log.
 - Don't duplicate the schema into docs, and don't duplicate an ADR's rationale into a code comment — a `// see ADR-00N` pointer is enough.

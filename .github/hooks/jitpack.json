@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "matcher": "Edit|Write",
+        "bash": "scripts/agent-guard-migrations.sh",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}
