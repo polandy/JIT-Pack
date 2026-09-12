@@ -691,6 +691,7 @@ export const de: Record<keyof typeof en, string> = {
   'settings.conflictLogNote':
     'Automatisch aufgelöste Zusammenführungen werden je Reise protokolliert — öffne eine Reise und tippe auf die Synchronisationsanzeige in der Kopfzeile.',
   'settings.about': 'Über',
+  'settings.aboutVersion': 'Version {version} · {commit}',
   // M23 — Ausgeblendete Stammdaten (FR-24.3).
   'retired.title': 'Ausgeblendete Stammdaten',
   'retired.hint':

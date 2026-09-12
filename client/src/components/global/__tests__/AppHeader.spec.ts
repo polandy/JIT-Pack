@@ -63,6 +63,17 @@ describe('AppHeader — the left slot (G-9)', () => {
     expect(wrapper.find('[data-testid="header-logo"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="header-back"]').exists()).toBe(false)
   })
+
+  it('names the running build beside the wordmark, from the vite define', () => {
+    route.path = '/tabs/trips'
+    route.meta = {}
+
+    const wrapper = mountHeader()
+
+    // __APP_VERSION__ is vite.config.ts's `define`; vitest.config.ts merges
+    // the same config, so this is the value a real build would carry too.
+    expect(wrapper.find('[data-testid="header-app-version"]').text()).toBe(`v${__APP_VERSION__}`)
+  })
 })
 
 /**

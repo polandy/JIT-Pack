@@ -684,6 +684,7 @@ export const en = {
   'settings.conflictLogNote':
     'Automatic merge resolutions are logged per trip — open a trip and tap the sync indicator in the header to review them.',
   'settings.about': 'About',
+  'settings.aboutVersion': 'Version {version} · {commit}',
   // M23 — Hidden master data (FR-24.3): what a delete only hid, and the way back.
   'retired.title': 'Hidden master data',
   'retired.hint':
