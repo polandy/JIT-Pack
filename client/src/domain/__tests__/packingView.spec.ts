@@ -301,6 +301,85 @@ describe('per-person clusters (FR-25.1)', () => {
     expect(result.groups).toHaveLength(0)
   })
 
+  describe('the cluster folds, and is shut by default (FR-25.23)', () => {
+    it('is collapsed unless the caller names it expanded, unlike a group', () => {
+      const result = view([shorts(andy), shorts(leo)])
+      const [entry] = result.groups[0]?.entries ?? []
+      if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+      // The defect FR-25.23 answers: the head is an *extra* line over rows
+      // that are always open, so a cluster costs more lines than it saves.
+      expect(entry.collapsed).toBe(true)
+    })
+
+    it('expands exactly the cluster whose key was named', () => {
+      const items = [
+        shorts(andy),
+        shorts(leo),
+        item({ name: 'Jacket', source_item_id: 'src-jacket', assigned_traveler_id: andy.id }),
+        item({ name: 'Jacket', source_item_id: 'src-jacket', assigned_traveler_id: leo.id }),
+      ]
+      const shut = view(items)
+      const shortsEntry = shut.groups[0]?.entries.find(
+        (e) => e.kind === 'cluster' && e.name === 'Shorts',
+      )
+      if (shortsEntry?.kind !== 'cluster') throw new Error('expected a cluster')
+      const shortsKey = shortsEntry.key
+
+      const result = view(items, { expandedClusters: [shortsKey] })
+      const byName = new Map(
+        result.groups[0]?.entries
+          .filter((e) => e.kind === 'cluster')
+          .map((e) => [e.name, e.collapsed]),
+      )
+      expect(byName.get('Shorts')).toBe(false)
+      expect(byName.get('Jacket')).toBe(true)
+    })
+
+    it('builds the children even while shut, so unfolding costs no rebuild', () => {
+      const result = view([shorts(andy), shorts(leo)])
+      const [entry] = result.groups[0]?.entries ?? []
+      if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+      expect(entry.collapsed).toBe(true)
+      expect(entry.children).toHaveLength(2)
+    })
+
+    it('answers with the open units a shut head hides, like FR-25.16 does for a group', () => {
+      const result = view([
+        shorts(andy, { quantity: 2 }),
+        shorts(leo, { quantity: 3, packed_count: 1 }),
+      ])
+      const [entry] = result.groups[0]?.entries ?? []
+      if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+      // Units, not people (FR-25.22): five wanted, one packed, four still open.
+      expect(entry.totalCount).toBe(5)
+      expect(entry.doneCount).toBe(1)
+      expect(entry.openCount).toBe(4)
+    })
+
+    it('carries one face per instance over the full set, so a shut head still says who', () => {
+      const result = view([
+        shorts(andy),
+        shorts(leo, { quantity: 2, packed_count: 2, state: 'packed' }),
+        shorts(mia),
+      ])
+      const [entry] = result.groups[0]?.entries ?? []
+      if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+      // Leo's row is hidden (FR-25.2) but his face is not: the shut head
+      // stands in for every instance, including the ones already packed —
+      // the same set its done/total counts.
+      expect(entry.children).toHaveLength(2)
+      expect(entry.faces.map((f) => f.traveler?.name)).toEqual(['Andy', 'Leo', 'Mia'])
+      expect(entry.faces.map((f) => f.done)).toEqual([false, true, false])
+    })
+
+    it('orders the faces by the trip roster, not by when the rows were made', () => {
+      const result = view([shorts(mia), shorts(andy), shorts(leo)])
+      const [entry] = result.groups[0]?.entries ?? []
+      if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+      expect(entry.faces.map((f) => f.traveler?.name)).toEqual(['Andy', 'Leo', 'Mia'])
+    })
+  })
+
   it('renders a lone instance flat, labelled "Item · Person" — a one-child cluster is noise', () => {
     const result = view([shorts(andy)])
     const [entry] = result.groups[0]?.entries ?? []

@@ -15,7 +15,7 @@ import {
 import type { Locator, Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
-import { packRow } from './helpers/m4'
+import { openCluster, packRow } from './helpers/m4'
 import { backToInventory, createItem } from './helpers/m9'
 
 /**
@@ -1713,6 +1713,10 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     const list = visible(page)
     const nameX = async (locator: Locator, selector: string) =>
       (await locator.locator(selector).first().boundingBox())!.x
+
+    // FR-25.23: the children only exist once the cluster is open, and this
+    // case is about where their names land.
+    await openCluster(page, 'Regenjacke')
 
     const plainRow = await nameX(list.getByTestId('m4-row-Velohelme'), 'h3')
     const head = await nameX(list.getByTestId('m4-cluster-Regenjacke'), '.cluster-name')

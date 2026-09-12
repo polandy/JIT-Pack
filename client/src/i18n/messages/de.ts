@@ -194,7 +194,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.closeSearch': 'Suche schliessen',
   'packing.foldAll': 'Alle zuklappen',
   'packing.unfoldAll': 'Alle aufklappen',
-  'packing.groupOpen': '{n} offen',
+  'packing.openCount': '{n} offen',
   'packing.shopping': 'Einkauf',
   'packing.shoppingCount': 'Einkaufen ({n})',
   'packing.luggage': 'Gepäck',

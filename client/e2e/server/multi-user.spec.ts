@@ -7,6 +7,7 @@ import {
   visiblePage,
   tripAction,
 } from '../fixtures'
+import { openCluster } from '../helpers/m4'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
@@ -693,10 +694,14 @@ test.describe('Two accounts on one instance @server', () => {
 
     const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
+    // FR-25.23: the cluster is shut on arrival, and the fold is per device —
+    // both of them have to open it before a traveler's own row exists.
+    await openCluster(bob, item)
     await expect(visiblePage(bob).getByTestId(`m4-child-${item}-Leonardo`)).toBeVisible()
     await subscribedBob
 
     await alice.goto(tripPath)
+    await openCluster(alice, item)
     await claimRow(alice, `m4-child-${item}-Andy`)
 
     // Bob opens the editor from Leonardo's row: unclaimed, so M5 itself is
@@ -780,6 +785,7 @@ async function makePerPerson(
   await page.getByTestId('membership-close').click()
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+  await openCluster(page, item)
   await expect(visiblePage(page).getByTestId(`m4-child-${item}-${travelers[0]}`)).toBeVisible()
 }
 

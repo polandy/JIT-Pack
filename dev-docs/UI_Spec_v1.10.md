@@ -954,6 +954,13 @@ These patterns apply to every screen and are specified once.
     people done) — a head that could not be added up from the lines beneath it, which is what made six fractions on one
     screen mean three different things. **And the head is set louder than its children** (FR-21.16): the item is what
     is being packed and the person only qualifies it, so the head takes the row size and the child steps down.
+  * **A cluster folds too, and starts shut** (FR-25.23, 2026-09-11): the child rows are not rendered until the head is
+    tapped, so a per-person item is **one** line on the list rather than one line per traveler — it used to be one line
+    *more* than its travelers. Shut, the head carries **a face per instance in roster order** (ringed in the done
+    colour once that instance is dealt with) and the **open count in units** („4 offen"); open, it hands both
+    statements back to the children and returns to `done/total`. The caret **trails the item's name** instead of
+    leading the line, because leading it would move the name off the x every other item row's name sits on (FR-21.20).
+    The fold is view state per cluster key and is deliberately **not** persisted, unlike the FR-25.18 filter.
   * **One avatar at the right edge** (FR-25.3/25.19), set apart from the traveler avatar on the left: it shows the
     **assignee** while the row is open (blue ring) and **who actually packed it** once it is packed (green ring +
     check). Never both — the left avatar already answers *for whom*, and a third circle makes the row unreadable.
