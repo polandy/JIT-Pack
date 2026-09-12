@@ -8,6 +8,7 @@ import {
   tripAction,
 } from '../fixtures'
 import { openCluster } from '../helpers/m4'
+import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
@@ -658,6 +659,68 @@ test.describe('Two accounts on one instance @server', () => {
     await ctxAlice.close()
     await ctxBob.close()
   })
+  /**
+   * E2E-M22-13 (FR-2.5, ADR-058): M22 records which account a traveller is,
+   * and the server keeps it.
+   *
+   * The `server` project is the only one that can ask this at all: the
+   * picker offers `trip_members` and nothing else, and a trip with one
+   * member — every Local and Single-User one — renders no control (G-8).
+   *
+   * The reload is the whole assertion. The link is written optimistically
+   * like every other row edit, so the value standing straight after the tap
+   * says only that the screen painted it; a link the server refused
+   * (`not_a_trip_member`) is rolled back (ADR-031), and what survives a
+   * reload is therefore what the instance accepted rather than what this
+   * device drew.
+   */
+  test('E2E-M22-13: a traveller is recorded as an account, and the instance keeps it', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Vercors ${id}`
+
+    // Bob logs in first: the directory carries an account once the IdP has
+    // vouched for it, and Alice can only share with somebody who is there.
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip, travelers: ['Bo'] })
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    await alice.goto(`${tripPath}/edit`)
+    const roster = visiblePage(alice).getByTestId('traveler-row-Bo')
+    await expect(roster).toBeVisible()
+
+    // `.select-text` is the *rendered value*, and reading anything wider is
+    // how this case was false-green for an hour: an `ion-select`'s own text
+    // content is its whole option list, so „contains Bob" was satisfied by
+    // the choice being offered rather than by its being taken.
+    const link = roster.locator('ion-select .select-text')
+
+    // Before the pick the row says the traveller is nobody's account, which
+    // is what makes the assertion after it a change rather than a coincidence.
+    await expect(link).toHaveText('No account')
+
+    await roster.locator('ion-select').click()
+    await alice
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: ACCOUNT_NAMES.bob })
+      .click()
+    await expect(link).toHaveText(ACCOUNT_NAMES.bob)
+    await writesLanded(alice)
+
+    await alice.reload()
+    await expect(
+      visiblePage(alice).getByTestId('traveler-row-Bo').locator('ion-select .select-text'),
+    ).toHaveText(ACCOUNT_NAMES.bob)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
   /**
    * E2E-G3-04 (FR-25.21, G-3): the membership editor is frozen by a claim on
    * **any** instance of the item, and says whose.

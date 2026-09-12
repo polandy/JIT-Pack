@@ -132,7 +132,12 @@ Add `--year 2026`, or pass the trip's id, which is never ambiguous.
 A traveler is a person on a trip; an account is someone who signs in. The link records
 which account a person is, and — once they are already a member of the trip — makes
 assigning them a row notify their account, the same way assigning a row to somebody
-directly does:
+directly does.
+
+**You can do this in the app as well**, and for one or two people that is the shorter
+way: open the trip, edit it, and pick the account beside the traveler's name. The picker
+offers the trip's members, so it appears only on a trip you have shared with somebody.
+The command is for doing it in bulk, or for a trip you are setting up from a script:
 
 ```bash
 node client/dist-cli/jitpack.mjs traveler add --trip "Cannobio" --user "Sia" Sia
