@@ -366,6 +366,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Four drawings, and the one that cost a tap (2026-09-11)](#four-drawings-and-the-one-that-cost-a-tap-2026-09-11) — FR-25.23's cluster fold: why the other three were rejected, and the fold-state name that was almost a trap.
 - [A decision that reported itself as progress (2026-09-12)](#a-decision-that-reported-itself-as-progress-2026-09-12) — FR-25.22's skipped-row unit was reversed once 57 skipped items read as `57/284 gepackt`.
 - [The link a shell could write and a screen could not (2026-09-12)](#the-link-a-shell-could-write-and-a-screen-could-not-2026-09-12) — M22 gets the account picker; the select assertion that was green against a refused write.
+- [A clause priced the wrong half of „one screen away" (2026-09-12)](#a-clause-priced-the-wrong-half-of-one-screen-away-2026-09-12) — FR-25.13i reverses FR-25.13f for settled lines; reset rather than restore, and what that costs a skipped row.
 - [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 ## Deviations
 
@@ -14996,6 +14997,40 @@ construction. The ledger carries it as a rule for every select.
 from a deliberately mutated source that had already been reverted — the red-proof build, still on disk. A mutation
 proof ends with a rebuild, not with a `git checkout`.
 
+## A clause priced the wrong half of „one screen away" (2026-09-12)
+
+FR-25.13f ruled that a settled line in the browse-sheet states its decision and offers nothing, because undoing it is
+M4's job one screen away. The premise was not the distance — it was that the *„Rückgängig"* the same FR put on an
+acted line would still be there when somebody wanted it. It is not: the ledger it reads is local to the sheet and
+Ionic destroys the modal's content on dismiss, so the way back is gone the moment the sheet is closed. Within a run
+the clause reads as a reasonable division of labour; one reopen later it reads as a row that cannot be changed from
+the surface its decision was made on. The owner hit it on the family instance, which is where a clause like this one
+gets tested — not in the cases, all of which act inside a single opening.
+
+**The reversal is only the settled half.** A locked line still offers nothing, for FR-25.13f's own reason, which was
+never about lifetimes: a takeover is FR-5.7's confirmed step and must not be a one-tap verb.
+
+**Reset, not restore, and that is a decision with a price.** The new control cannot be FR-25.13f's undo — that
+replays a closure the run recorded, and the whole case is a decision the run did not make. So it writes what M4's own
+row menu writes: unskip, or zero the packed count. For a packed row that is lossless. For a skipped one it is not:
+FR-5.5's skip zeroes the amount, so a skip of three socks reset here returns one sock. The alternative is a column
+holding the pre-skip amount on every row, paid for forever to spare a correction the stepper makes in one tap — it
+was rejected, and the cost is written into FR-25.13i rather than left to be found.
+
+**The filter is half the feature, not a convenience beside it.** A control on rows scattered through a hundred-line
+inventory is a control nobody finds, and FR-25.13e's switch cannot serve here — it hides what the trip carries, and
+every decided row is carried, so composing the two renders nothing. Hence a second filter that *takes precedence*
+rather than composing, with the older switch stepping aside entirely while it is on. It is transient where that one
+is remembered: hiding what is already in is a posture, a pass over the decisions is a task, and a task that outlived
+itself would open the sheet on a fraction of the inventory with nothing saying why.
+
+**The first cut of that filter re-introduced the defect FR-25.13e's snapshot exists to prevent**, and the review
+caught it rather than the tests: filtering on the *live* settled set means the first reset of a pass deletes its own
+row, reflows the rows below it into the finger, and throws away the flip that is the sheet's only feedback. Both e2e
+cases were green over it, because a Playwright locator re-queried by name cannot notice that the row it wants has
+moved — only a person tapping twice in the same place can. The filter now shows the set decided when it was switched
+on, exactly as FR-25.13e does, and the count beside it stays live so it still says how much of the pass is left.
+
 ## A facet that filters on doneness fights the switch that hides it (2026-09-12)
 
 The owner asked for a third M4 filter axis: *gepackt* / *bewusst weggelassen* / *noch nicht gepackt* (FR-25.11l).
@@ -15021,3 +15056,11 @@ undercount how many other-people rows a reveal would show while a Status filter 
 Both wrinkles were found by writing the failing case first (`describe('status facet (FR-25.11l)', …)` in
 `packingView.spec.ts`) rather than by reading the two functions cold — the second in particular reads as obviously
 correct until a concrete `showDone: false` + `status: ['packed']` case is run against it.
+
+**Checked against #452's own snapshot finding (same session, same day):** their FR-25.13i filter first read the
+*live* settled set and re-introduced FR-25.13e's reflow-under-the-finger defect on repeated resets. M4's Status
+facet does not carry the same risk despite also removing a row from view on the same tap that changes its state
+(packing a row while filtered to *„Noch nicht gepackt"* makes it vanish immediately) — because this is the same
+FR-25.2 done-row-drop M4 has shipped and tested since before this facet existed, not a new *sequential, by-position*
+worklist. Every M4 row action targets one specifically read, named row (`m4-row-<name>`, its own checkbox); nothing
+on this screen invites the rapid same-spot re-tap the browse-sheet's per-row buttons do. No snapshot was added.
