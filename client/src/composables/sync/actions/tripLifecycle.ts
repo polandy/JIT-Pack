@@ -169,6 +169,27 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
   }
 
   /**
+   * linkTraveler records which account a traveler is, or clears that record
+   * (FR-2.5, ADR-058). Like `renameTraveler` it touches the roster row and
+   * nothing else: the link feeds notifications, and no position on the list
+   * depends on it, so FR-27.4's consequences have nothing to follow here.
+   *
+   * The caller is responsible for offering only members of this trip — the
+   * server refuses anything else with `not_a_trip_member`, and an outbox
+   * that has to be un-rejected is a worse answer than a picker that never
+   * offered the name.
+   */
+  function linkTraveler(tripId: string, travelerId: string, userId: string | null): void {
+    const traveler = tripStore.getTravelers(tripId).find((t) => t.id === travelerId)
+    if (!traveler || (traveler.linked_user_id ?? null) === userId) return
+    const mutation = mutations.linkTraveler(travelerId, userId)
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, travelerRow(traveler)),
+    })
+  }
+
+  /**
    * addTravelerToTrip adds a person to a trip that already exists (FR-2.7)
    * and lets the trip's plan follow **immediately** — the FR-27.4 amendment
    * of 2026-08-21. It performs no resolution of its own: the travelers were
@@ -180,9 +201,11 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    * rather than leave the user guessing which rows appeared. Null when the
    * trip cannot be seen or its data is not loaded.
    *
-   * `linkedUserId` is the account the person is (FR-2.5). M22 has no control
-   * for it and passes nothing; `jitpack traveler --user` does, and reaches
-   * this rather than the bare mutation so the plan follows there too.
+   * `linkedUserId` is the account the person is (FR-2.5). M22 adds people
+   * unlinked and links them afterwards with `linkTraveler` — the two acts
+   * are separate on purpose, see UI-Spec M22; `jitpack traveler --user`
+   * links while adding, and reaches this rather than the bare mutation so
+   * the plan follows there too.
    */
   function addTravelerToTrip(
     tripId: string,
@@ -352,6 +375,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     addGroupToTrip,
     updateTrip,
     renameTraveler,
+    linkTraveler,
     addTravelerToTrip,
     packedRowsOf,
     removeTraveler,

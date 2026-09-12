@@ -2654,6 +2654,16 @@ a different screen and one built nowhere (see below, and UI-Spec M22).
   shares rather than three. The composable pins that on the mutation; the screen's blur handler reads the value off the
   Ionic host and no unit test sees it.
 
+* **E2E-M22-13** `server` (FR-2.5, ADR-058) — **new 2026-09-12**: the roster's account picker. It has to be a
+  multi-identity case rather than an `all` one: the picker offers `trip_members` and a trip with a single member
+  renders no control, so `local` and `single` can only assert its absence — which `TripEditPage.spec.ts` does, beside
+  the membership filter, both cheaper as rows than as a second browser. Alice shares the trip with Bob, records the
+  traveller as Bob's account, and the value survives a **reload**: the write is optimistic like every other row edit,
+  so the value standing straight after the tap says only that the screen painted it. Asserted on
+  `ion-select .select-text`, the rendered value — an `ion-select`'s own text content is its whole option list, which
+  made the first version of this case green against a link the server had refused (see the ledger's section on it).
+  Red-proved by linking a non-member: `not_a_trip_member`, rolled back, the select back to *„Kein Konto"*.
+
 **Two elements UI-Spec M22 lists and M22 does not render** (found 2026-08-30 by reading the
 element list against the template — neither is a test gap, and neither may be tested until it is
 decided):

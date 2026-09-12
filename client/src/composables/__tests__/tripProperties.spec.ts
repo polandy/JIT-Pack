@@ -7,7 +7,7 @@
  * traveller change actually runs that rule — immediately, per the 2026-08-21
  * amendment — and that it runs it per row rather than per position.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
@@ -31,13 +31,13 @@ function change(table: string, id: string, row: Record<string, unknown>): PullCh
   return { seq: 0, table, id, deleted: false, row }
 }
 
-async function localOrchestrator(today = TODAY) {
+async function localOrchestrator(today = TODAY, save = () => Promise.resolve()) {
   const orch = useSyncOrchestrator({
     baseUrl: 'http://localhost',
     getToken: () => null,
     today: () => today,
     local: {
-      save: () => Promise.resolve(),
+      save,
       load: () => Promise.resolve([]),
       requestDurability: () => Promise.resolve(true),
     } as never,
@@ -192,6 +192,60 @@ describe('renameTraveler (FR-2.7)', () => {
         .getTravelers(TRIP_ID)
         .find((t) => t.id === 'trv-z')?.linked_user_id,
     ).toBe('u-zoe')
+  })
+})
+
+describe('linkTraveler (FR-2.5, ADR-058)', () => {
+  const travelerLink = () =>
+    useTripStore()
+      .getTravelers(TRIP_ID)
+      .find((t) => t.id === 'trv-z')?.linked_user_id
+
+  it('records the account a traveller is, and keeps their rows', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+    seedGeneratedRows(orch)
+
+    const before = pantsRows().map((r) => r.id)
+    orch.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
+
+    expect(travelerLink()).toBe('u-zoe')
+    // The link is a fact about the person, not about the plan: FR-27.4 has
+    // nothing to follow here, and a row that moved would mean it did.
+    expect(pantsRows().map((r) => r.id)).toEqual(before)
+  })
+
+  it('clears the link when nobody is picked', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+    useTripStore().applyChanges([
+      change(TABLE.travelers, 'trv-z', { trip_id: TRIP_ID, name: 'Zoe', linked_user_id: 'u-zoe' }),
+    ])
+
+    orch.linkTraveler(TRIP_ID, 'trv-z', null)
+
+    // `null` has to reach the row as a deliberate clear. A mutation that
+    // dropped the field instead would leave the old account linked and the
+    // screen showing „no account" over it.
+    expect(travelerLink()).toBeNull()
+  })
+
+  it('writes nothing when the link is already what it would be set to', async () => {
+    // The durable-write sink is the positive signal: every applied change
+    // passes through it (FR-19.2), so "no write" is a recorded absence
+    // beside a recorded presence rather than an assertion about nothing.
+    const save = vi.fn(() => Promise.resolve())
+    const orch = await localOrchestrator(TODAY, save)
+    seedTrip()
+    save.mockClear()
+
+    orch.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
+    expect(save).toHaveBeenCalledTimes(1)
+
+    // `IonSelect` emits `ionChange` while it paints its own value, so a
+    // no-op that still wrote would push a mutation per visit to this screen.
+    orch.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
+    expect(save).toHaveBeenCalledTimes(1)
   })
 })
 

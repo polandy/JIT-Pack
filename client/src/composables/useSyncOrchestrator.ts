@@ -859,6 +859,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     addGroupToTrip: tripLifecycleActions.addGroupToTrip,
     updateTrip: tripLifecycleActions.updateTrip,
     renameTraveler: tripLifecycleActions.renameTraveler,
+    linkTraveler: tripLifecycleActions.linkTraveler,
     addTravelerToTrip: tripLifecycleActions.addTravelerToTrip,
     removeTraveler: tripLifecycleActions.removeTraveler,
     packedRowsOf: tripLifecycleActions.packedRowsOf,
