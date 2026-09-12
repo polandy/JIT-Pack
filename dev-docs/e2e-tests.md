@@ -119,7 +119,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Three cases for a figure, a door and a height (2026-09-08)](#three-cases-for-a-figure-a-door-and-a-height-2026-09-08) — FR-21.23/21.24/21.25: the duplicate door that was on two screens, and what a fixed sheet height hides from a case.
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — why M4's grouping had one bucket, and the case that now walks the path a user has.
 - [„Für alle" needed the sheet to be reopened (2026-09-09)](#für-alle-needed-the-sheet-to-be-reopened-2026-09-09) — FR-25.13g: the case that could not be written the obvious way, and the one branch e2e deliberately does not reach.
-- [Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)](#owed-a-webkit-case-lost-its-click-to-the-fr-197-banner-2026-09-09) — **open**: a helper every M3-built trip goes through, and a banner that reflowed the page under the pointer.
+- [Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)](#owed-a-webkit-case-lost-its-click-to-the-fr-197-banner-2026-09-09) — **closed 2026-09-12, PR #449**: Playwright's WebKit driver, not the app, misreported a service-worker update.
 - [Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)](#owed-e2e-m17-01s-sheet-did-not-close-a-fourth-time-under-load-2026-09-10) — **open**: two artifacts disagree about which screen the locator queried.
 - [The second press that made a second trip (2026-09-10)](#the-second-press-that-made-a-second-trip-2026-09-10) — E2E-M3-22: a case whose red run is the whole point, and the assertion that needed the list rather than the wizard.
 - [The cluster learns to fold, and the suite learns to open it (2026-09-11)](#the-cluster-learns-to-fold-and-the-suite-learns-to-open-it-2026-09-11) — E2E-M4-82: eleven cases that reached for a child row, and the layer where nothing went red.
@@ -4759,6 +4759,27 @@ against a moving target treats the symptom and would hide the next occurrence.
 
 Evidence: run `34410995185`, job `e2e (7)`, `main` at `bcfadb03`; report artifact
 `playwright-report-shard-7` carries the screenshot, the aria snapshot and the trace.
+
+**Closed 2026-09-12, PR #449.** Two more occurrences of the same helper losing a click to the same
+banner — `E2E-G12-03` (`packing-list.spec.ts`) and `E2E-M4-38` (`skip-item.spec.ts`), both surfaced
+within an hour of each other on an unrelated PR's re-runs — is what finally answered "why the banner
+was there at all". `client/e2e/pwa-offline.spec.ts` already carried the missing half of the
+explanation in its own header comment: *"Playwright's service-worker support is Chromium's"*. It
+skips itself on WebKit for that reason, but nothing stopped the app's ordinary boot path
+(`registerAppServiceWorker()`, unconditional in a production build, which is what e2e drives) from
+registering a worker on every *other* WebKit case too — and Playwright's WebKit driver does not
+reliably reflect `updatefound`/`controller` state for that registration, occasionally flipping
+`swUpdateReady` true with no real update behind it.
+
+That reframes the question this section left open: **is a service-worker registration
+outliving its browser context in WebKit, or does the flag have an unexplained path** — as neither.
+The registration is real and scoped correctly; it is Playwright's WebKit automation of the
+service-worker lifecycle that is unreliable, a limitation this codebase already knew about and had
+already worked around once, just not everywhere. Real Safari/WebKit users are unaffected — the
+banner's production logic in `pwa/register.ts` is untouched — which is why the fix is neither of the
+two production seams this section named: `client/playwright.config.ts`'s `webkit` project now sets
+`serviceWorkers: 'block'`, so the artifact cannot occur in a project that was never meaningfully
+exercising real service-worker behaviour to begin with (`pwa-offline.spec.ts` stays Chromium-only).
 
 ## Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)
 

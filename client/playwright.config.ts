@@ -180,7 +180,21 @@ export default defineConfig({
     {
       name: 'webkit',
       testIgnore: ['**/visual.spec.ts', BACKEND_SPECS, SERVER_SPECS],
-      use: { ...devices['Desktop Safari'] },
+      /*
+       * `pwa-offline.spec.ts` already documents why: "Playwright's
+       * service-worker support is Chromium's" — under WebKit it registers,
+       * but `updatefound`/`controller` do not reliably reflect a fresh
+       * context. The app boots `registerAppServiceWorker()` unconditionally
+       * in a production build (which is what e2e drives), so every WebKit
+       * case — not just the PWA ones — was exposed to a spurious
+       * `swUpdateReady` flip and the FR-19.7 banner it renders, stealing
+       * whatever click was in flight underneath it. WebKit never exercised
+       * real SW behaviour anyway — that project is chromium-only — so
+       * blocking registration here removes the artifact at its source.
+       * dev-docs/e2e-tests.md: "a WebKit case lost its click to the FR-19.7
+       * banner (2026-09-09)".
+       */
+      use: { ...devices['Desktop Safari'], serviceWorkers: 'block' },
     },
     /*
      * Backend-backed cases (UI-Test-Spec §2.2, mode `single`): a real
