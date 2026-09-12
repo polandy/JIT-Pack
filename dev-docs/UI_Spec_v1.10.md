@@ -1069,7 +1069,8 @@ These patterns apply to every screen and are specified once.
     already carries they act on all of its rows, naming the count where it is more than one (*„eingepackt · 3
     Personen"*). The acted line stays where it is, says what happened and carries *„Rückgängig"* for as long as the
     sheet is open — the sheet still has no toast. A settled line states *„schon eingepackt"* / *„bleibt zu Hause"* and
-    offers nothing, a G-3-locked one names its holder. **M4 only:** the verbs appear for a caller that reports the
+    since FR-25.13i carries *„zurücksetzen"* beside it; a G-3-locked one names its holder and offers nothing at all.
+    **M4 only:** the verbs appear for a caller that reports the
     per-item packing states, which M6 and M8 do not (G-8). **Since FR-25.13g (2026-09-09) a third verb stands before
     them in M4:** 👥 *für alle*, which puts the item on every traveler's list in that one tap — on a free line it adds
     and distributes, on a carried one it gives the travelers who have none a row of their own at amount one, keeping
@@ -1093,7 +1094,23 @@ These patterns apply to every screen and are specified once.
     show a pick as already selected, so a pick here only ever adds. A plain tap on 👥 keeps meaning *für alle* in
     every shape, unconditionally. A second, unrelated **long press on the name** shows what its ellipsis hid, in a
     small label above the line; a new press starting anywhere else in the sheet closes it. Free lines only — a line
-    the trip already carries keeps 👥/spread as FR-25.13g left it. **Since FR-25.8 (2026-08-29) the composer carries
+    the trip already carries keeps 👥/spread as FR-25.13g left it. **Since FR-25.13i (2026-09-12) a settled line has
+    a way back, and the sheet a second filter.** The line's right edge carries *„zurücksetzen"* where the caller
+    reports packing states at all (M4; G-8 keeps it off M6 and M8, like the verbs), and one tap puts every row the
+    item has back on the list — a skipped one at amount one, a packed one with its count cleared, the same two writes
+    M4's own row menu makes. It is a **reset, not FR-25.13f's undo**: it is driven by what the trip says rather than
+    by the run's ledger, so it works on a decision made yesterday, on another device, or by somebody else, and it
+    does not restore an amount a skip zeroed. A locked line is untouched by it (FR-5.7). Above the FR-25.13e switch
+    a second line counts the decided rows inside the current tag filter (*„2 entschieden"*) and offers
+    *„nur Entschiedenes"*, which shows those rows alone — the pass the reset exists for, instead of a scroll through
+    the whole inventory. What it shows is FR-25.13e's **snapshot**: the rows decided when it was switched on (re-taken
+    when the tag axis moves), so a line reset during the pass stays in place and flips to *„schon drin"* with its
+    verbs back, instead of vanishing under the finger; the count beside the switch stays live and says how much of
+    the pass is left. It is transient rather than remembered, unlike the FR-25.13e switch (a task, not a posture),
+    it takes precedence over that switch, which steps aside entirely while it is on, and it is absent where nothing
+    has been decided. A tag it finds nothing decided under states *„Hier ist noch nichts gepackt oder zu Hause
+    gelassen."* with *„Alle anzeigen"* beside it — a third kind of empty next to the two FR-25.13e already has.
+    **Since FR-25.8 (2026-08-29) the composer carries
     a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*,
     wearing the same two words as the membership editor because it is that editor the mode opens. An add made in *Pro
     Person* writes the row and opens the editor on it, already on the roster — the mode is the answer to which tab

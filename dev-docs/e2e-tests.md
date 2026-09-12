@@ -125,6 +125,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [The second press that made a second trip (2026-09-10)](#the-second-press-that-made-a-second-trip-2026-09-10) — E2E-M3-22: a case whose red run is the whole point, and the assertion that needed the list rather than the wizard.
 - [The cluster learns to fold, and the suite learns to open it (2026-09-11)](#the-cluster-learns-to-fold-and-the-suite-learns-to-open-it-2026-09-11) — E2E-M4-82: eleven cases that reached for a child row, and the layer where nothing went red.
 - [Two assertions that could not fail — the 2026-08-22 review's minors 2 and 3 (2026-09-11)](#two-assertions-that-could-not-fail--the-2026-08-22-reviews-minors-2-and-3-2026-09-11) — `toBeEnabled()` on an ion-button host, and a URL-only check after `m5-close`.
+- [A decision that could only be taken back from the other screen (2026-09-12)](#a-decision-that-could-only-be-taken-back-from-the-other-screen-2026-09-12) — E2E-M4-83/84: the case had to cross a sheet reopen, and the picture that was of the mutant.
 
 ## The rule that comes before the units
 
@@ -240,7 +241,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound), E2E-M3-22 (G-18 one create per press) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-20 (FR-21.26 tablet-gap measure), E2E-G9-19 (ADR-050 a tab root's head, M1 included since FR-21.27), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer), E2E-G8-01 (no delegation picker), E2E-G4-01 (the notification's landing) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.26: one content measure, kept by every screen the reader steps to), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes), E2E-M4-75 (FR-21.23: the header line as a ring, a sentence and a track), E2E-M4-76 (FR-21.24: one door to the quick-add), E2E-M4-77 (FR-24.2: a generated row is filed under the item's tag) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.26: one content measure, kept by every screen the reader steps to), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes), E2E-M4-75 (FR-21.23: the header line as a ring, a sentence and a track), E2E-M4-76 (FR-21.24: one door to the quick-add), E2E-M4-77 (FR-24.2: a generated row is filed under the item's tag), E2E-M4-83/84 (FR-25.13i: a settled line is reset after the sheet was reopened, and the decided-only filter that finds it) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-24 (FR-21.16: the head is set louder than its children, read off computed type), E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M5-26 (FR-25.21c: the *Alle Reisenden* head row adds the missing travelers and keeps a chosen amount), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path), E2E-M4-78/79 (FR-25.13g: „für alle" on a free line and on a carried one), E2E-M4-80/81 (FR-25.13h: assigning travelers, multi-select — the avatar buttons up to three, the long-press menu above), E2E-M4-82 (FR-25.23: the cluster folds, starts shut, and the shut head answers with faces and an open count) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
@@ -4915,3 +4916,32 @@ in the failure's context dump.
 The rule this generalises to, for every future select: **read the value, not
 the control.** An `ion-select` assertion that names any text a user could
 choose is unfalsifiable by construction.
+
+## A decision that could only be taken back from the other screen (2026-09-12)
+
+**E2E-M4-83/84** (`packing-list.spec.ts`) cover FR-25.13i, and the first of them is written the way
+it is for one reason: it **closes the sheet and reopens it** before touching anything. Every
+FR-25.13f case acts inside one opening, where the acted line carries *„Rückgängig"* and the suite
+has a control to click. That is exactly the window the defect lives outside of — the run's ledger
+dies with the modal, so the case that would have caught the missing way back is the one that steps
+over the boundary first. E2E-M4-79 had already learned the same lesson for FR-25.13g's spread, for
+the same structural reason; this is the second time the interesting state of this sheet is the one
+after a reopen.
+
+**The absence is asserted with a positive signal beside it.** `browse-undo` having count 0 would be
+green on an empty sheet, on a sheet that failed to open, and on a build where the row never
+rendered at all — so it is asserted next to the settled line's own text (*„staying home"*) and its
+new control, on the same row locator. That pair is what makes the clause mean „the ledger is gone
+**and** something else took its place" rather than „nothing was found".
+
+**The M4 assertions afterwards are the case**, not decoration. A reset that only stopped the sheet
+saying *„bleibt zu Hause"* would keep every in-sheet assertion green; what says the write landed is
+the row being back on the working list, the reveal bar being gone, and (in 84) the header reading
+`0/2`. The mutation proof went through that layer: `onBrowseReopen` stubbed to a no-op turns both
+cases red on exactly those clauses, and nothing else in the suite noticed — which is also the honest
+measure of how much of this path anything else covers.
+
+**One trap cost a rebuild.** The screenshots for the eyeball pass were rendered straight after the
+red proof and showed the reset doing nothing — the mutation was still in `client/dist`, because
+reverting the source does not rebuild the bundle `vite preview` serves. Anything rendered between a
+mutation proof and the next `make client-build` is a picture of the mutant.

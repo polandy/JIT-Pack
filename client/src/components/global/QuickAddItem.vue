@@ -168,6 +168,11 @@ const emit = defineEmits<{
   skipCarried: [itemId: string]
   /** FR-25.13f: take back what the sheet last did to this master item. */
   undoBrowse: [itemId: string]
+  /**
+   * FR-25.13i: put every row this master item has back to *open*, whenever it
+   * was packed or skipped — not this run's undo, which only knows its own taps.
+   */
+  reopenCarried: [itemId: string]
 }>()
 
 const masterStore = useMasterStore()
@@ -624,6 +629,7 @@ function onKeydown(event: KeyboardEvent) {
           @pack="emit('packCarried', $event.id)"
           @skip="emit('skipCarried', $event.id)"
           @undo="emit('undoBrowse', $event.id)"
+          @reopen="emit('reopenCarried', $event.id)"
           @free-text="onBrowseFreeText"
           @close="browseOpen = false"
         />
