@@ -561,7 +561,13 @@ companions, M5 suggestion hint.
   ("companion of"). Examples: a spare camera battery is only relevant if the camera is packed; a screwdriver is only
   relevant if the drone is packed; a spare Arca-Swiss plate is an optional companion to a telephoto lens. A dependency
   is a relation with its own attributes (mode, FR-20.4; optional quantity), not a single foreign key on the item — one
-  item can have several dependencies, in either direction.
+  item can have several dependencies, in either direction. **Declarable from either end (2026-09-12):** the M10 editor
+  writes the same row from the dependent's side (*„Hängt ab von"*) and from the main item's (*„Begleitartikel"*), where
+  the reverse list used to only read. The direction a relation is declared from is the user's position, not a property
+  of the relation: standing on the tripod, „this needs the Arca plate" is the sentence at hand, and having to leave the
+  item, find the plate and declare it backwards is the same edge written the long way. Both ends carry the same three
+  controls — the mode toggle, removal, and the save-time cycle refusal, which is asked about the *edge* and so answers
+  identically whichever side posed it.
 * **FR-20.2 (Resolution at Instantiation & Packing):** A dependent item appears on a trip's packing list only if its
   main item is on the list and not skipped (FR-5.5). If the main item is later skipped or removed, its dependents are
   marked "co-skipped" and surfaced with the other done rows (FR-25.2, which superseded the collapsed section) carrying a
@@ -601,7 +607,8 @@ companions, M5 suggestion hint.
   section); quick-adding an item with required companions (FR-5.6) proposes them alongside it.
 * **Cycle detection:** belongs in save-time validation — a dependency cycle cannot be persisted.
 * **UI:** managed in M10 (Item Editor) as a new "Depends on / Companions" section with a required/suggested mode toggle
-  per dependency; surfaced as a preview note in M3 and a hint in M5 per FR-20.4.
+  per dependency, **each of the two lists writing its own end of the relation** (FR-20.1); surfaced as a preview note in
+  M3 and a hint in M5 per FR-20.4.
 
 ### 3.21 Theming (Dark Mode Default)
 
@@ -2144,7 +2151,9 @@ locked.
       line for a list, the undo puts them back regardless, and a half-list would be worse than none.
     * **Settled and locked lines offer nothing.** A line whose rows are all packed or all skipped states that and stops
       (undoing it is M4's job, one screen away); a line G-3 says somebody else is packing names the holder instead — a
-      takeover is FR-5.7's confirmed step and must not be a one-tap verb.
+      takeover is FR-5.7's confirmed step and must not be a one-tap verb. **The settled half of this clause is
+      reversed by FR-25.13i (2026-09-12)**, which found what „one screen away" costs once the sheet has been closed;
+      the locked half stands unchanged, for the reason given here.
     * **M4 only, for now** (owner, 2026-08-29). M8 has no packing states at all, and M6 — the same trip, the same rows —
       is a different thought in a shop, where *gekauft* is the verb that matters. Mechanically the gate is that the
       caller passes the per-item states or does not: **the sheet renders verbs only for a caller that reports them**
@@ -2238,6 +2247,55 @@ locked.
       planner, called with a target of exactly the selected set — the same planner FR-25.13g calls with the whole
       roster. Nothing new is stored; `assigned_traveler_id` is the field FR-25.21 already owns. Identical in Server,
       Single-User and Local Mode.
+  * **FR-25.13i (A settled line's way back, and the filter that finds it — owner request 2026-09-12, built
+    2026-09-12):** FR-25.13f ruled that a settled line states its decision and offers nothing, on the grounds that
+    undoing it is M4's job one screen away. What that ruling did not price in is the *„Rückgängig"* it relies on
+    being **line-local and as short-lived as the modal**: reopen the sheet and it is gone, so an item left at home a
+    minute ago can no longer be brought back from the surface the decision was made on. The owner hit exactly that
+    on the family instance — a skipped row stuck, with no way back from the sheet. Two halves, and neither works
+    alone: a control nobody can find in a hundred-row inventory is a control nobody has, and a filter onto rows
+    nothing can be done to is a list to look at. The rules:
+    * **The settled line carries *„zurücksetzen"***, on the same G-8 gate the verbs use — the caller reports packing
+      states or it does not, so M6 and M8 keep exactly the sheet they had. A **locked** line still offers nothing:
+      FR-25.13f's reason for that half is untouched, a takeover is FR-5.7's confirmed step.
+    * **It resets, it does not restore.** The write is the pair M4's own row menu already makes — a skipped row comes
+      back open at amount one, a packed one keeps its amount and loses its packed count — and it acts on every row
+      the item has (FR-25.21's fan-out), like the verbs. Deliberately **not** FR-25.13f's undo, which replays a
+      closure this run recorded: the whole point is a decision *this run did not make*, so there is no closure to
+      replay, and on a skipped row there is no way back to the amount FR-5.5's skip zeroed either. The accepted cost
+      is that one number: a skip of three socks reset here returns one sock. Nothing else on the row is touched, and
+      the alternative — storing the pre-skip amount so it could be restored — is a schema field paid for on every
+      row to spare a correction that M4's own stepper makes in one tap.
+    * **What is left is an ordinary carried line**, with both verbs back on it, which is what makes a *different*
+      decision one tap away rather than a second trip through the composer.
+    * **A second filter finds the decided rows**, *„nur Entschiedenes"*, with the count beside it
+      (*„2 entschieden"*), counted inside the current tag filter for FR-25.13e's reason. One switch for packed and
+      skipped together rather than two: both are the same stuck state to the person looking for them, and the line
+      says which it is anyway. *Revisit trigger:* if a pass over the packed rows alone turns out to be the real
+      task, this becomes a three-value control rather than a second switch beside it.
+    * **It deliberately does not share FR-25.11l's words** (owner, 2026-09-12, asked because the two were built the
+      same day): M4's Status facet names the three states separately — *Gepackt*, *Bewusst weggelassen*, *Noch nicht
+      gepackt* — and this switch names their union, which that facet has no word for. The shapes differ because the
+      tasks do: the facet filters a list somebody is reading, this finds the lines somebody is about to reset, and a
+      segmented control has no room on the sheet's row. The divergence is a ruling, not an oversight.
+    * **It inherits FR-25.13e's snapshot rule, and needs it more.** What the filter shows is the set that was decided
+      **when it was switched on** (re-taken when the tag axis moves), not the live one — so resetting a line leaves it
+      in place, flipping to *„schon drin"* with its verbs back, exactly as an acted line stays put during a run of
+      adds. Without it the first reset of a pass deletes its own row, reflows the rows below into the finger and
+      throws away the only feedback the sheet gives; here that is worse than in FR-25.13e, because the pass *is* a run
+      of taps down one list. The count beside the switch stays **live** rather than following the snapshot: during a
+      pass *„1 entschieden"* under two listed rows is the honest reading of how much is left to do.
+    * **It is transient, where FR-25.13e's switch is remembered.** Hiding what is already in is a posture somebody
+      works in; a pass over the decisions is a task somebody finishes, and a filter that outlived its task would
+      open the sheet on a fraction of the inventory with nothing saying why. It also **takes precedence** over that
+      switch rather than composing with it — every decided row is a carried one, so the two together can only ever
+      render nothing — and the switch steps aside entirely while it is on, rather than sitting there inert.
+    * **Its own kind of empty says so:** a tag the filter finds nothing decided under leaves *„Hier ist noch nichts
+      gepackt oder zu Hause gelassen."* with *„Alle anzeigen"* beside it — a third kind of empty next to FR-25.13e's
+      two, and like both it carries the way out. It is reached by moving the tag axis, never by a reset, which the
+      snapshot rule above keeps on the screen.
+    * **No wire, no schema, no ADR.** Both writes are the existing unskip and zero-pack actions called from a second
+      surface, and the filter is local view state. Identical in Server, Single-User and Local Mode.
 * **FR-25.7 (Template-Item Entry — Sensible Defaults & Progressive Disclosure):** The template editor's per-item form
   (M8) currently exposes **all** parameters at once (quantity, per-person vs. trip-global, procurement mode, dedup
   strategy, conditions, Late Packer), which makes adding a single item to a template cumbersome — yet templates

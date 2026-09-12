@@ -62,6 +62,26 @@
  * set is the same as the line's own *„Rückgängig"*. A second, unrelated long
  * press on the name shows what its ellipsis hid, because the buttons take
  * room the name used to have.
+ *
+ * **FR-25.13i** reverses FR-25.13f's *„settled lines offer nothing"* for the
+ * settled half (locked lines keep it, because a takeover is FR-5.7's confirmed
+ * step). That clause held only while the sheet was open: the ledger above dies
+ * with the modal, so the moment it is reopened a decision made a minute ago has
+ * no way back here at all. Two things follow, and they only work together —
+ * the control would be unreachable in a long inventory without the filter, and
+ * the filter would show a list nothing can be done to without the control:
+ *
+ * 1. **A settled line carries a reset**, driven by `rowStates` rather than by
+ *    the ledger, so whoever settled it and whenever is irrelevant. It *resets*
+ *    (back to open) rather than restoring what the row held before — the same
+ *    write M4's own *„Doch einpacken"* makes, and the caller's, not this
+ *    sheet's, per rule 1 above.
+ * 2. **A filter shows the decided lines alone**, so the pass over them is not a
+ *    scroll through the whole inventory. It is local and transient, unlike
+ *    FR-25.13e's remembered switch: this is a task, not a posture. It does
+ *    inherit that switch's **snapshot**, and needs it more — a pass is a run
+ *    of taps down one list, so a line reset in the middle of it has to stay
+ *    put and flip rather than take the row below it into the finger.
  */
 import { IonIcon, actionSheetController } from '@ionic/vue'
 import {
@@ -129,6 +149,12 @@ const emit = defineEmits<{
   skip: [item: MasterItem]
   /** Take back what this run last did to that item. */
   undo: [item: MasterItem]
+  /**
+   * FR-25.13i: put every row the scope carries for this item back to *open*,
+   * whenever and by whomever it was packed or skipped. Distinct from
+   * {@link undo}, which reverses this run's own last verb and nothing else.
+   */
+  reopen: [item: MasterItem]
   /** The footer line: back to the composer's field for a new name. */
   freeText: []
   close: []
@@ -212,7 +238,12 @@ function retakeSnapshot(): void {
 watch(hideCarried, (on) => {
   if (on) retakeSnapshot()
 })
-watch(tagFilter, retakeSnapshot)
+watch(tagFilter, () => {
+  retakeSnapshot()
+  // The count and the list are both scoped to the tag axis, so a tag change
+  // starts a new pass rather than carrying the old one's set into it.
+  if (settledOnly.value) retakeSettledSnapshot()
+})
 
 /**
  * The M9 rule verbatim: a tag filter matches an item with the tag anywhere
@@ -227,10 +258,50 @@ const filtered = computed<MasterItem[]>(() => {
   return masterStore.activeItemList.filter((item) => onTag.has(item.id))
 })
 
-/** What the list actually renders once the FR-25.13e switch has had its say. */
-const shown = computed<MasterItem[]>(() =>
-  hideCarried.value ? filtered.value.filter((item) => !hidden.value.has(item.id)) : filtered.value,
-)
+/**
+ * FR-25.13i: the decided-lines-only pass. Deliberately a plain local `ref`
+ * rather than a second `browseHideCarried`-style preference — FR-25.13e's
+ * switch is a posture somebody works in, this is a task somebody finishes,
+ * and a filter that outlived its task would open the sheet on a fraction of
+ * the inventory with no memory of why.
+ */
+const settledOnly = ref(false)
+
+/**
+ * FR-25.13e's snapshot rule, applied to this filter for the same reason it
+ * exists there: the set shown is the one that was decided **when the filter
+ * went on**, not the live one. Without it the first reset of a pass drops its
+ * own row out of the list, reflows the rows below it into the finger and
+ * deletes the only feedback the sheet gives — a row that stays and flips to
+ * *„schon drin"*. Re-taken on the same events `hidden` is.
+ */
+const settledAtSwitch = ref<ReadonlySet<string>>(new Set())
+
+function retakeSettledSnapshot(): void {
+  settledAtSwitch.value = new Set(filtered.value.filter(isSettled).map((item) => item.id))
+}
+
+function toggleSettledOnly(): void {
+  settledOnly.value = !settledOnly.value
+  if (settledOnly.value) retakeSettledSnapshot()
+}
+
+/** Whether the caller reports this item as packed or skipped, all rows alike. */
+function isSettled(item: MasterItem): boolean {
+  const state = props.rowStates?.get(item.id)?.state
+  return state === 'packed' || state === 'skipped'
+}
+
+/** What the list actually renders once both filters have had their say. */
+const shown = computed<MasterItem[]>(() => {
+  // FR-25.13i outranks FR-25.13e rather than composing with it: the switch
+  // hides what the trip carries, and every decided line is carried, so the
+  // two together can only ever render nothing.
+  if (settledOnly.value) return filtered.value.filter((item) => settledAtSwitch.value.has(item.id))
+  return hideCarried.value
+    ? filtered.value.filter((item) => !hidden.value.has(item.id))
+    : filtered.value
+})
 
 /**
  * The rendered list: M9's grouping, each line already paired with the state
@@ -288,10 +359,34 @@ const hideableCount = computed(
     ).length,
 )
 
+/**
+ * FR-25.13i: how many decided lines the tag filter is showing — the same
+ * "counted inside the current tag filter" rule {@link hideableCount} follows,
+ * for the same reason.
+ */
+const settledCount = computed(() => filtered.value.filter(isSettled).length)
+
+/**
+ * FR-25.13i: whether the filter is offered. Absent where nothing has been
+ * decided, present regardless while it is *on* — a switch that vanished as the
+ * last decision it shows is reset would strand the list it had just emptied.
+ */
+const offerSettledFilter = computed(
+  () => verbs.value && (settledCount.value > 0 || settledOnly.value),
+)
+
 const noMatch = computed(() => filtered.value.length === 0)
 
+/**
+ * FR-25.13i's own empty: there are lines, just none this pass is about. Read
+ * off `shown` rather than off {@link settledCount}, because the snapshot keeps
+ * a row that was just reset in place — the list is empty only when the tag
+ * axis has moved somewhere nothing was decided, never as a reset's own result.
+ */
+const noSettled = computed(() => settledOnly.value && !noMatch.value && shown.value.length === 0)
+
 /** Everything the filter matches is carried and hidden — success, not emptiness. */
-const allCarried = computed(() => !noMatch.value && shown.value.length === 0)
+const allCarried = computed(() => !noMatch.value && !noSettled.value && shown.value.length === 0)
 
 /**
  * What one line renders. The five kinds are exclusive and asked in this
@@ -302,7 +397,7 @@ type RowView =
   | { kind: 'acted'; text: string; testid: string; done: boolean; undoable: boolean }
   | { kind: 'assigning'; text: string; selected: ReadonlySet<string> }
   | { kind: 'locked'; text: string }
-  | { kind: 'settled'; text: string }
+  | { kind: 'settled'; text: string; reopen: boolean }
   | { kind: 'carried'; text: string; verbs: boolean; spread: boolean }
   | { kind: 'free' }
 
@@ -336,8 +431,14 @@ function rowView(item: MasterItem): RowView {
   if (state?.state === 'locked' && state.lockNote !== null) {
     return { kind: 'locked', text: state.lockNote }
   }
-  if (state?.state === 'packed') return { kind: 'settled', text: t('quickAdd.browseIsPacked') }
-  if (state?.state === 'skipped') return { kind: 'settled', text: t('quickAdd.browseIsSkipped') }
+  // FR-25.13i: the reset rides on the caller's states, so it is offered
+  // wherever they are reported at all — the same G-8 gate the verbs use.
+  if (state?.state === 'packed') {
+    return { kind: 'settled', text: t('quickAdd.browseIsPacked'), reopen: verbs.value }
+  }
+  if (state?.state === 'skipped') {
+    return { kind: 'settled', text: t('quickAdd.browseIsSkipped'), reopen: verbs.value }
+  }
   if (carried.value.has(item.id)) {
     return {
       kind: 'carried',
@@ -595,6 +696,15 @@ function onSkip(item: MasterItem): void {
   record(item.id, 'skipped', rowsOf(item.id))
 }
 
+/**
+ * FR-25.13i: the settled line's reset. It records nothing in the ledger — the
+ * row it leaves behind is an ordinary carried one, which already renders both
+ * verbs and therefore its own way back to a decision.
+ */
+function onReopen(item: MasterItem): void {
+  emit('reopen', item)
+}
+
 function onUndo(item: MasterItem): void {
   emit('undo', item)
   forget(item.id)
@@ -656,9 +766,29 @@ function groupLabel(key: string): string {
       </button>
     </div>
 
+    <!-- FR-25.13i: the pass over what has already been decided. Above the
+         FR-25.13e switch because it takes precedence over it, and the switch
+         steps aside entirely while it is on rather than sitting there inert. -->
+    <div v-if="offerSettledFilter" class="hide-line">
+      <span class="jp-num" data-testid="browse-settled-count">{{
+        t('quickAdd.browseSettledCount', { n: settledCount })
+      }}</span>
+      <button
+        class="hide-toggle"
+        type="button"
+        data-testid="browse-settled-toggle"
+        :aria-pressed="settledOnly"
+        :aria-label="t('quickAdd.browseSettledOnlyLabel', { n: settledCount })"
+        @click="toggleSettledOnly()"
+      >
+        <span class="switch" :class="{ on: settledOnly }" aria-hidden="true"></span>
+        {{ t('quickAdd.browseSettledOnly') }}
+      </button>
+    </div>
+
     <!-- FR-25.13e: the count states what is in the way, the switch puts it
          away. Absent at zero — a control that would do nothing is furniture. -->
-    <div v-if="hideableCount > 0" class="hide-line">
+    <div v-if="hideableCount > 0 && !settledOnly" class="hide-line">
       <span class="jp-num" data-testid="browse-hide-count">{{
         hideCarried
           ? t('quickAdd.browseHiddenCount', { n: hideableCount })
@@ -679,6 +809,20 @@ function groupLabel(key: string): string {
 
     <p v-if="noMatch" class="no-match" data-testid="browse-no-match">
       {{ t('quickAdd.browseNoMatch') }}
+    </p>
+
+    <!-- FR-25.13i: a third kind of empty. „Nothing decided here" is neither an
+         inventory gap nor a finished list, and like both it carries its exit. -->
+    <p v-else-if="noSettled" class="no-match" data-testid="browse-no-settled">
+      {{ t('quickAdd.browseNoSettled') }}
+      <button
+        class="show-anyway"
+        type="button"
+        data-testid="browse-show-all"
+        @click="toggleSettledOnly()"
+      >
+        {{ t('quickAdd.browseShowAll') }}
+      </button>
     </p>
 
     <!-- Its own sentence: an inventory gap and a finished list are different
@@ -794,13 +938,23 @@ function groupLabel(key: string): string {
               {{ view.text }}
             </span>
 
-            <span
-              v-else-if="view.kind === 'settled'"
-              class="carried-state"
-              data-testid="browse-settled"
-            >
-              {{ view.text }}
-            </span>
+            <!-- FR-25.13i: the settled line states its decision and, where the
+                 caller reports states at all, carries the way out of it. -->
+            <template v-else-if="view.kind === 'settled'">
+              <span class="carried-state" data-testid="browse-settled">
+                {{ view.text }}
+              </span>
+              <button
+                v-if="view.reopen"
+                class="undo"
+                type="button"
+                data-testid="browse-reopen"
+                :aria-label="t('quickAdd.browseReopenLabel', { name: item.name })"
+                @click="onReopen(item)"
+              >
+                {{ t('quickAdd.browseReopen') }}
+              </button>
+            </template>
 
             <span
               v-else-if="view.kind === 'carried'"

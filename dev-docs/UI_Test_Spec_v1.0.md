@@ -1428,7 +1428,8 @@ decision, not a test gap.
   and the action is **absent** on an unmarked item — removal is worded as removal and never offered as "choose the empty
   one".
 * **E2E-M10-13** `all` (NFR-4.12) — **new 2026-08-22**: the sections that exist only once the item is saved — photo,
-  *Hängt ab von*, the dependency picker — are rendered from the catalogue, asserted with the app language set to German.
+  *Hängt ab von*, the dependency picker, and since 2026-09-12 the *Begleitartikel* heading and its add-trigger — are
+  rendered from the catalogue, asserted with the app language set to German.
   English cannot carry this case: the finished English literal and the catalogue lookup that replaced it produce the
   same pixels, which is precisely how M10's half stayed untranslated through a migration that reported itself complete.
 * **E2E-M10-14** `all` (FR-24.3) — **new 2026-08-25** (`e2e/lifecycle-delete.spec.ts`): an item a group position holds
@@ -1553,13 +1554,18 @@ E2E-M23-04.
   drive it as *setup* (E2E-M5-23 and the skip-item cascade both declare a dependency through this screen to get a
   companion onto a trip), and E2E-M10-13 reads its heading for a German word — a heading is not a behaviour, and a
   fixture is not an assertion. Three clauses, all on M10 itself: a new relation is *nötig* until someone says otherwise,
-  which is what makes FR-20.4's cascade the default; the **reverse list only reads** — the companion row carries the
-  mode as text and offers neither the select nor the removal the declaring side has, since the relation is owned by the
-  item that needs the companion; and a dependency that would **close a circle is refused before the write**, naming the
+  which is what makes FR-20.4's cascade the default; the **reverse list shows the same mode** the declaring side chose;
+  and a dependency that would **close a circle is refused before the write**, naming the
   hops (`Kamera → Ersatzakku → Kamera`) rather than saying *invalid*. The refusal is asserted against a positive signal
   on the same screen: the companion row is still there afterwards, so „no dependency row" cannot be produced by a page
   that rendered nothing. The cycle arithmetic itself stays in `domain/__tests__/dependencies`; what is new here is that
-  the fault reaches a user as a sentence.
+  the fault reaches a user as a sentence. **Amended 2026-09-12:** the clause that the reverse list *only reads* is gone
+  with the read-only list itself (FR-20.1) — it is E2E-M10-20 that now covers what that row does.
+* **E2E-M10-20** `all` (FR-20.1/20.4) — **new 2026-09-12** (`inventory.spec.ts`): the *Begleitartikel* list writes its
+  own end of the relation. A companion is declared from the main item, re-moded and removed there, and **every one of
+  those three is asserted on the other item's editor** — the edge is read where it was not declared, which is what
+  separates a stored relation from a drawn one. The cycle refusal is asserted from this direction as well, against the
+  dependent side still listing exactly one relation: the same edge, so the same answer, whichever end posed it.
 * **E2E-M10-04** `all` (FR-22.1/22.5) — **new 2026-08-30** (`inventory.spec.ts`): the reference photo is added, replaced
   and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Like the
   dependency section above it, this had no `data-testid` anywhere — the signature of a screen no test has rendered. Two
@@ -2525,6 +2531,20 @@ landed, that no test has ever rendered.
   press per `useLongPress`) opens a menu naming each traveler; picking one writes the assignment, a second
   long-press-and-pick adds a second traveler to the same row (asserted as *„Theo, Mia"*), and a plain tap on 👥 on a
   second line still means *für alle*, unconditionally.
+* **E2E-M4-83/84** `all` (FR-25.13i, added 2026-09-12) — **implemented** (`e2e/packing-list.spec.ts`): the settled
+  line's way back, and the filter that finds it. **83** is written **across a close and a reopen** on purpose: that is
+  the boundary FR-25.13f's line-local *„Rückgängig"* cannot cross, and the whole reason the settled line needed a
+  control of its own. An item skipped from the sheet is reopened as a settled line that states *„staying home"*, shows
+  **no** `browse-undo` (the positive signal that the run's ledger really did die with the modal) and carries
+  *„zurücksetzen"*; one tap turns it into an ordinary carried line with both verbs back, and on M4 afterwards the row
+  is on the **working list**, not behind the reveal bar and not reading as skipped — which is what separates a reset
+  from a line that merely stopped saying it. **84** packs one item and skips another, reopens, and asserts the count
+  (*„2 decided"*), that the filter leaves the *undecided* line out, and that FR-25.13e's switch is gone while it is on;
+  resetting both leaves **both lines in place** reading *„schon drin"* — the snapshot rule, without which the first
+  reset would reflow the second row into the finger — with the live count at *„0 decided"*, switching the filter off
+  brings the undecided line back, and M4 reads `0/2` with both rows present: two resets, both landed, neither
+  restoring a state the other wrote. The *„nothing decided here"* sentence is reached by the tag axis instead and is
+  pinned in the component's unit tests, there being no tagged inventory in this case.
 * **E2E-M4-82** `all` (FR-25.23, added 2026-09-11) — **implemented** (`e2e/membership.spec.ts`): the cluster fold. A
   per-person item with Andy 2 and Leonardo 3 renders **shut**: `aria-expanded="false"`, neither child row present, and
   the head answering for both of them — two faces in roster order (asserted by their `aria-label`, since a face shows
