@@ -363,6 +363,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [FR-25.13h's one-traveler shape did not survive its first live look (2026-09-11)](#fr-2513hs-one-traveler-shape-did-not-survive-its-first-live-look-2026-09-11) — a shrunk box, not a shrunk glyph, was the real touch-target bug; a test titled its own defect as a feature.
 - [„für alle" at three travelers had a write of its own, the wrong one (2026-09-11)](#für-alle-at-three-travelers-had-a-write-of-its-own-the-wrong-one-2026-09-11) — 👥 routed through the bulk verb beside avatar buttons doing the same job, taking deselection with it.
 - [A revisit trigger fired for a column left deliberately inert (2026-09-11)](#a-revisit-trigger-fired-for-a-column-left-deliberately-inert-2026-09-11) — FR-2.5's `linked_user_id` gets a reader (ADR-058), and the membership rule it cost.
+- [Four drawings, and the one that cost a tap (2026-09-11)](#four-drawings-and-the-one-that-cost-a-tap-2026-09-11) — FR-25.23's cluster fold: why the other three were rejected, and the fold-state name that was almost a trap.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -14919,3 +14920,33 @@ silence rather than assumes it.
 
 Cross-device packing-record attribution, the decision's other named trigger, remains exactly as unbuilt as before —
 firing one trigger was never a reason to build the other's machinery too.
+
+## Four drawings, and the one that cost a tap (2026-09-11)
+
+The complaint was that a per-person item renders one line per traveler, so the packing list of a family trip is the
+same item name written down again and again. Four answers were drawn as phone frames in
+`dev-docs/UI_Concept_PerPersonRows_variants.html` and measured against the same trip: **today 20 lines**, **A — the
+cluster folds, 6**, **B — faces on the head are themselves the pack controls, 6**, **C — my own rows first, 14**,
+**D — show only where the travelers differ, 14**.
+
+C and D were rejected for the same reason, and it is not the line count. Both decide *for* the reader which rows
+matter — C by whose they are, D by whether they are unusual — and both therefore have a state in which the thing you
+are looking for is not on the screen and nothing says so. A fold has no such state: everything is still there, one
+tap away, and the head says how much is behind it. B was not rejected at all; it is deferred, because it changes what
+a face *means* (a picture of a person becomes a button that packs their instance) and that is a decision worth making
+against a built fold rather than against a drawing.
+
+**What A costs, and why it was still chosen.** Packing one person's instance now takes a tap to open the cluster
+first. That is a real regression on the act the screen is named after — and it was accepted because reading the list
+is the far more frequent act, and reading it was what had stopped working. The cost is written into FR-25.23 rather
+than left to be rediscovered.
+
+**The fold-state name was almost a trap.** A group is open until you fold it, so `PackingListPage` holds
+`collapsedGroups`. A cluster is the opposite — shut until you open it — so the obvious symmetry, a second set also
+called "collapsed", would have held *exceptions to shut* under a name that says the opposite. It is `expandedClusters`,
+and the interface comment says why, because the next person to add a fold here will reach for the existing name first.
+
+**The caret's position was decided by a failing case, not by taste.** Put at the head of the line, as the group
+header's is, it pushed the item's name 22 px off the x every other item row's name sits on; E2E-M4-73 measures exactly
+that (FR-21.20) and failed on the number. It trails the name instead. The group header can afford a leading caret
+because a group name is a heading *over* the rows; a cluster head is one *of* them.

@@ -170,6 +170,8 @@ const {
   action: searchAction,
 } = useContextSearch('m4-search')
 const collapsedGroups = ref<string[]>([])
+/** FR-25.23: per-person clusters the user opened; shut is the default. */
+const expandedClusters = ref<string[]>([])
 const showPrep = ref(false)
 const filterOpen = ref(false)
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
@@ -304,6 +306,7 @@ const view = computed(() =>
     currentUserId: myUserId.value,
     showOthers: showOthers.value,
     collapsedGroups: collapsedGroups.value,
+    expandedClusters: expandedClusters.value,
     itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
     packedOnly: closingPass.value,
   }),
@@ -529,6 +532,17 @@ function toggleGroup(key: string) {
   collapsedGroups.value = collapsedGroups.value.includes(key)
     ? collapsedGroups.value.filter((k) => k !== key)
     : [...collapsedGroups.value, key]
+}
+
+/**
+ * FR-25.23: the opened set, not the shut one, because a cluster is shut by
+ * default. Keyed like a group's fold so a re-render — or packing one
+ * instance — does not close what the user just opened.
+ */
+function toggleCluster(key: string) {
+  expandedClusters.value = expandedClusters.value.includes(key)
+    ? expandedClusters.value.filter((k) => k !== key)
+    : [...expandedClusters.value, key]
 }
 
 /**
@@ -1321,7 +1335,7 @@ setHeaderTitle(
             <span class="group-count">
               {{
                 group.collapsed
-                  ? t('packing.groupOpen', { n: group.openCount })
+                  ? t('packing.openCount', { n: group.openCount })
                   : `${group.doneCount}/${group.totalCount}`
               }}
             </span>
@@ -1353,10 +1367,14 @@ setHeaderTitle(
                   :late="entry.latePacker"
                   :done-count="entry.doneCount"
                   :total-count="entry.totalCount"
+                  :open-count="entry.openCount"
+                  :collapsed="entry.collapsed"
+                  :faces="entry.faces"
                   :master="clusterMaster(entry)"
+                  @toggle="toggleCluster(entry.key)"
                 />
 
-                <div class="cluster-children">
+                <div v-if="!entry.collapsed" class="cluster-children">
                   <PackingRow
                     v-for="child in entry.children"
                     :key="child.item.id"
