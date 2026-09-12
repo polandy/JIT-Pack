@@ -1743,6 +1743,12 @@ M-number is retired and must not be reused. No repack entry appears in the M4 to
 
 ### M17 — Settings & Notifications
 
+**App info/version (2026-09-12).** The About block's version line names the running build: `git describe`
+(the release-please tag plus a commit count once ahead of it) and the short commit hash, e.g. `v0.8.0-4-g3b14038f`.
+The same string is shown, muted, beside the header wordmark (G-9) on a tab root in every mode — it names the build
+itself rather than anything server-side, so it needs no per-mode variant. A Docker-built image gets it from the build
+args the release workflow passes in, since that build stage has no `.git` to read.
+
 **Leaving Local Mode (FR-19.8, ADR-045) — added 2026-09-02.** A card *„Auf einen Server umziehen"* at the end of the
 **Local Mode** data section, absent in every other mode (G-8). It carries three numbered steps and states, above them,
 the one sentence that matters: the data stays on this device until step 3 has been done. **Step 1 — *„Sicherung

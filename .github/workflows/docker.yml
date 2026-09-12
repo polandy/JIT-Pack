@@ -48,3 +48,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Names the build in the Settings "About" section (M17): the client
+          # build stage has no `.git` to `git describe`/`rev-parse` itself
+          # (see the Dockerfile comment), so the tag that triggered this run
+          # and its commit are passed in explicitly.
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            APP_COMMIT=${{ github.sha }}

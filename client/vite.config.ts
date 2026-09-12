@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -12,6 +13,33 @@ import { E2E_API_PORT } from './e2e/backendPort'
 // The backend the e2e `single` project boots (playwright.config.ts). The
 // port is named once in e2e/backendPort.ts so the two files cannot drift.
 const E2E_API_TARGET = `http://localhost:${E2E_API_PORT}`
+
+/**
+ * The Settings "About" section (M17) shows what actually got built, not
+ * package.json's unmaintained "0.0.0" — release-please tags the real
+ * version (release-type: go), so `git describe` names it. This runs in a
+ * checkout that has `.git` (a dev machine, `npm run build`, the CI `client`
+ * job); the root Dockerfile's client stage does not (only `client/` is in
+ * its build context, ADR-043), so it passes APP_VERSION/APP_COMMIT as build
+ * args instead — read here as env vars, which take priority so a release
+ * image never falls back to "dev".
+ */
+function gitCommand(args: string[]): string | undefined {
+  try {
+    return execFileSync('git', args, { cwd: fileURLToPath(new URL('.', import.meta.url)) })
+      .toString()
+      .trim()
+  } catch {
+    return undefined
+  }
+}
+
+const appVersion = process.env.APP_VERSION || gitCommand(['describe', '--tags', '--always', '--dirty']) || 'dev'
+const appCommit = (
+  process.env.APP_COMMIT ||
+  gitCommand(['rev-parse', '--short=8', 'HEAD']) ||
+  'unknown'
+).slice(0, 8)
 
 /**
  * Injects the app-shell precache manifest into the built service worker
@@ -72,6 +100,10 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __APP_COMMIT__: JSON.stringify(appCommit),
   },
   /*
    * `vite preview` is the server the Playwright suite drives. The API sets
