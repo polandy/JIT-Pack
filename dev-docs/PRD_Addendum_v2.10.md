@@ -3579,6 +3579,23 @@ the tail is where a symbol system is actually decided. Results:
     checks the same rule before sending it. The operator sequence is therefore invite, then link, not the reverse.
     Cross-device packing-record attribution — the decision's other candidate trigger — remains unbuilt.
 
+  * **The link gets a screen, 2026-09-12: M22's roster row.** Until then `jitpack traveler --user` was its only
+    writer, which made a fact about a person reachable only from a shell on the server. Each roster row now carries
+    an account picker beside the ✕ (UI-Spec M22); what it offers is exactly `trip_members`, so the rule ADR-058
+    enforces cannot be broken from the screen that writes it. Three points settled while building:
+    * **The picker includes myself.** M5's *Assigned to* excludes the viewer, because the sole user is already
+      every row's packer. Here the opposite holds: the account most worth recording is my own, since the point of
+      the link is that *somebody else's* assignment reaches me — `planRosterAssignment` skips the actor, so a link
+      to myself costs nothing and is silent exactly when it should be.
+    * **It is absent below two members** (G-8), which covers Local Mode, Single-User Mode and an unshared
+      Server-Mode trip in one rule: with one member the only linkable account is the one that would never be
+      notified, and a control whose every answer is inert is worse than none.
+    * **Adding a traveller still adds them unlinked.** The ＋ row takes a name and nothing else, and the link is a
+      second act on the row it created. Linking *while* adding is what the CLI does, and it is safe there because
+      the operator adds one person at a time; on M22 the add is the FR-27.4 refresh's trigger, so a link supplied
+      in the same act would notify the linked account once per generated per-person row — the notification storm
+      the 2026-09-01 decision named as its reason not to build a reader at all.
+
 ### 3.4 Multi-User & Collaboration
 
 * **FR-4.5 (Roles & Permissions):** Trip sharing (FR-4.1) supports three roles: *Owner* (immutable for the trip creator
