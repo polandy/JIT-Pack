@@ -122,6 +122,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)](#owed-a-webkit-case-lost-its-click-to-the-fr-197-banner-2026-09-09) — **open**: a helper every M3-built trip goes through, and a banner that reflowed the page under the pointer.
 - [Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)](#owed-e2e-m17-01s-sheet-did-not-close-a-fourth-time-under-load-2026-09-10) — **open**: two artifacts disagree about which screen the locator queried.
 - [The second press that made a second trip (2026-09-10)](#the-second-press-that-made-a-second-trip-2026-09-10) — E2E-M3-22: a case whose red run is the whole point, and the assertion that needed the list rather than the wizard.
+- [The cluster learns to fold, and the suite learns to open it (2026-09-11)](#the-cluster-learns-to-fold-and-the-suite-learns-to-open-it-2026-09-11) — E2E-M4-82: eleven cases that reached for a child row, and the layer where nothing went red.
 - [Two assertions that could not fail — the 2026-08-22 review's minors 2 and 3 (2026-09-11)](#two-assertions-that-could-not-fail--the-2026-08-22-reviews-minors-2-and-3-2026-09-11) — `toBeEnabled()` on an ion-button host, and a URL-only check after `m5-close`.
 
 ## The rule that comes before the units
@@ -239,7 +240,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-20 (FR-21.26 tablet-gap measure), E2E-G9-19 (ADR-050 a tab root's head, M1 included since FR-21.27), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer), E2E-G8-01 (no delegation picker), E2E-G4-01 (the notification's landing) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.26: one content measure, kept by every screen the reader steps to), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes), E2E-M4-75 (FR-21.23: the header line as a ring, a sentence and a track), E2E-M4-76 (FR-21.24: one door to the quick-add), E2E-M4-77 (FR-24.2: a generated row is filed under the item's tag) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
-| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-24 (FR-21.16: the head is set louder than its children, read off computed type), E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M5-26 (FR-25.21c: the *Alle Reisenden* head row adds the missing travelers and keeps a chosen amount), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path), E2E-M4-78/79 (FR-25.13g: „für alle" on a free line and on a carried one), E2E-M4-80/81 (FR-25.13h: assigning travelers, multi-select — the avatar buttons up to three, the long-press menu above) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
+| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-24 (FR-21.16: the head is set louder than its children, read off computed type), E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M5-26 (FR-25.21c: the *Alle Reisenden* head row adds the missing travelers and keeps a chosen amount), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path), E2E-M4-78/79 (FR-25.13g: „für alle" on a free line and on a carried one), E2E-M4-80/81 (FR-25.13h: assigning travelers, multi-select — the avatar buttons up to three, the long-press menu above), E2E-M4-82 (FR-25.23: the cluster folds, starts shut, and the shut head answers with faces and an open count) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01 … E2E-G13-06 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -4820,6 +4821,39 @@ case would pass against the defect for the wrong reason.
 The trip list is also why the case says `trip-row-…` rather than the hero card: a
 second trip of the same name lands in the grouped list below, so the row count is a
 signal for the duplicate specifically rather than for "a trip exists".
+
+## The cluster learns to fold, and the suite learns to open it (2026-09-11)
+
+FR-25.23 made a per-person cluster shut by default, and **not one Vitest spec went
+red**. That is the finding worth keeping: 2762 unit tests, a whole suite over
+`packingView` and `PackingListPage`, and none of them had ever operated a traveler
+child row. The view model still built the children — the page simply stopped
+rendering them — so every unit assertion about a cluster's arithmetic stayed true
+while the screen lost half its content.
+
+The e2e layer found it immediately: eleven cases across five files reached for
+`m4-child-…`, and they failed on the first run. The repair is one helper,
+`openCluster` in `e2e/helpers/m4.ts`, which is idempotent and settles on
+`aria-expanded` rather than on the child appearing — a case that opens a cluster is
+not the case that asserts the fold.
+
+**Two cases failed for a second reason, and it is the more interesting one.**
+E2E-M4-12/58 and E2E-M4-14 read `0/5` and `0/2` off the head *before* opening it.
+Shut, the head no longer says `done/total`; it says „5 offen". Both assertions were
+moved after the open, which is where they belonged anyway — the fraction they are
+about is the one the children add up to, and a shut head is deliberately not making
+that statement.
+
+**E2E-M4-73 failed on geometry, and it was right to.** The fold needed a caret, the
+caret was put at the head of the line, and it pushed the item's name 22 px off the
+x every other item row's name sits on — the exact alignment FR-21.20 was written
+for, and the case measured it to the pixel. The caret now trails the name instead.
+No amount of reading the stylesheet would have said which of the two was wrong; the
+failing number did.
+
+The new case is **E2E-M4-82**, and it asserts both halves of the fold together
+because either alone is what a half-built fold looks like: children gone with
+nothing in their place, or a head that summarises rows it never hid.
 
 ## Two assertions that could not fail — the 2026-08-22 review's minors 2 and 3 (2026-09-11)
 

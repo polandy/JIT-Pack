@@ -99,3 +99,19 @@ export async function assignTraveler(
 export function row(page: Page, name: string): Locator {
   return visiblePage(page).getByTestId(`m4-row-${name}`)
 }
+
+/**
+ * Open a per-person cluster so its child rows render (FR-25.23).
+ *
+ * Since the cluster folds, and shut is its default, a test that wants a
+ * traveler's own row has to say so. Idempotent on purpose: a caller should be
+ * able to ask for the children without first knowing which state the head is
+ * in, and the `aria-expanded` it toggles is the settled signal to wait on
+ * rather than the child rows themselves.
+ */
+export async function openCluster(page: Page, name: string): Promise<void> {
+  const head = visiblePage(page).getByTestId(`m4-cluster-${name}`)
+  await expect(head).toBeVisible()
+  if ((await head.getAttribute('aria-expanded')) === 'false') await head.click()
+  await expect(head).toHaveAttribute('aria-expanded', 'true')
+}

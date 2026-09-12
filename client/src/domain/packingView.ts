@@ -67,6 +67,14 @@ export interface PackingRow {
   label: string
 }
 
+/** One instance's face on a shut cluster head (FR-25.23). */
+export interface ClusterFace {
+  /** `null` for an instance with no traveler on it. */
+  traveler: Traveler | null
+  /** Whether that instance is fully dealt with — the ring the head paints. */
+  done: boolean
+}
+
 /** Several instances of one per-person item, named once (FR-25.1). */
 export interface PackingCluster {
   kind: 'cluster'
@@ -75,6 +83,21 @@ export interface PackingCluster {
   /** Units over every instance, including the hidden done ones (FR-25.22). */
   doneCount: number
   totalCount: number
+  /** The units a shut head has to answer with, mirroring FR-25.16's group head. */
+  openCount: number
+  /**
+   * FR-25.23: shut unless the caller expanded it. The default is the opposite
+   * of a group's because a cluster head is an *extra* line over its children
+   * rather than a heading over a block — always open, it costs more lines than
+   * naming the item once saves.
+   */
+  collapsed: boolean
+  /**
+   * One face per instance over the same full set `doneCount`/`totalCount`
+   * counts, in roster order — so a shut head answers "who, and how far"
+   * without its children, including for instances FR-25.2 has hidden.
+   */
+  faces: ClusterFace[]
   /** Visible instances only. */
   children: PackingRow[]
   /** The mode glyph sits once on the cluster header, not on each child (FR-25.4a). */
@@ -173,6 +196,13 @@ export interface PackingViewInput {
   showOthers: boolean
   /** Group keys folded shut (FR-25.16) — by key, so a re-render keeps the fold. */
   collapsedGroups: string[]
+  /**
+   * FR-25.23: cluster keys the user opened. Named the other way round from
+   * `collapsedGroups` because the defaults are opposite — a group is open
+   * until folded, a cluster is folded until opened — and a set whose name
+   * says "collapsed" while holding the exceptions to shut is a trap.
+   */
+  expandedClusters?: string[]
   /** Ids of items carrying an unresolved preparation todo (FR-7.3). */
   itemsWithOpenPrep: string[]
   /**
@@ -313,6 +343,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     currentUserId,
     showOthers,
     collapsedGroups,
+    expandedClusters = [],
     itemsWithOpenPrep,
     packedOnly = false,
   } = input
@@ -323,8 +354,14 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   const nameByUserId = new Map(participants.map((p) => [p.user_id, p.display_name]))
   const openPrep = new Set(itemsWithOpenPrep)
   const folded = new Set(collapsedGroups)
+  const opened = new Set(expandedClusters)
 
   const done = (item: TripItem) => isDone(item, openPrep.has(item.id))
+
+  /** Roster order, for the two lists a cluster keeps of the same people. */
+  const byTravelerOrder = (a: { traveler: Traveler | null }, b: { traveler: Traveler | null }) =>
+    (travelerOrder.get(a.traveler?.id ?? '') ?? Number.MAX_SAFE_INTEGER) -
+    (travelerOrder.get(b.traveler?.id ?? '') ?? Number.MAX_SAFE_INTEGER)
 
   /** FR-25.11c: OR within a facet, AND across them. `skip` leaves one axis out (FR-25.11d). */
   function passesFacets(item: TripItem, skip?: FacetKey): boolean {
@@ -461,6 +498,9 @@ export function buildPackingView(input: PackingViewInput): PackingView {
         name: item.name,
         doneCount: 0,
         totalCount: 0,
+        openCount: 0,
+        collapsed: !opened.has(scopedKey),
+        faces: [],
         children: [],
         mode: item.mode,
         latePacker: false,
@@ -475,7 +515,10 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     cluster.latePacker = cluster.latePacker || item.late_packer
   }
 
-  // Cluster tallies over the full set, matching the group-header rule.
+  // Cluster tallies over the full set, matching the group-header rule. The
+  // faces come from the same pass for the same reason: a shut head stands in
+  // for every instance, so it must not answer over a narrower set than its
+  // own count does (FR-25.23).
   for (const item of shown) {
     const clusterKey = perPersonKey(item)
     if (clusterKey === null || (clusterSizes.get(clusterKey) ?? 0) <= 1) continue
@@ -485,14 +528,18 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     const units = unitsOf(item)
     cluster.totalCount += units.total
     cluster.doneCount += units.done
+    cluster.faces.push({
+      traveler: item.assigned_traveler_id
+        ? (travelerById.get(item.assigned_traveler_id) ?? null)
+        : null,
+      done: done(item),
+    })
   }
 
   for (const cluster of clusters.values()) {
-    cluster.children.sort(
-      (a, b) =>
-        (travelerOrder.get(a.traveler?.id ?? '') ?? Number.MAX_SAFE_INTEGER) -
-        (travelerOrder.get(b.traveler?.id ?? '') ?? Number.MAX_SAFE_INTEGER),
-    )
+    cluster.openCount = cluster.totalCount - cluster.doneCount
+    cluster.faces.sort(byTravelerOrder)
+    cluster.children.sort(byTravelerOrder)
   }
 
   /*

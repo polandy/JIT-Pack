@@ -2409,6 +2409,39 @@ locked.
   This **supersedes FR-25.21(a)**, which had kept the cluster head counting people. See the amendment there for why
   that argument did not survive its own feature's per-traveler amounts. FR-21.16 is the type half of the same
   reading of the same screen.
+* **FR-25.23 (A per-person cluster folds, and starts shut — added 2026-09-11):** A cluster (FR-25.1) **folds like a
+  group does** (FR-25.16), and **shut is its default**: the packing list shows one line per per-person item, not one
+  line per item *per traveler*.
+
+  **The defect it answers.** The cluster head was an *extra* line above children that were always open, so naming the
+  item once cost a line rather than saving any: four travelers who each need a rain jacket rendered five lines for one
+  item. On a trip whose roster is a family, the list a person opens is mostly the same item name written down again and
+  again, and the categories the grouping exists to separate are pushed off the screen. Measured on the mockup sheet
+  (`dev-docs/UI_Concept_PerPersonRows_variants.html`): the same trip is **20 lines today and 6 folded**.
+
+  **What a shut head owes.** Shut, the head is all that is left of the cluster, so — exactly as a folded group header
+  does — it has to answer what the hidden rows would have:
+  * **who**, as one **face per instance in roster order**, with the faces of instances already dealt with ringed in the
+    done colour. A face, not a name: the head has a name already, and it is the item's.
+  * **how far**, as the **open count in units** („4 offen"), the same arithmetic as everything else on M4 (FR-25.22).
+    Open, the head goes back to `done/total`, because the children are then making the per-person statement themselves
+    and a head that repeats it spends a line saying it twice.
+
+  **The caret trails the item's name** rather than leading the line. Leading it would push the name off the x that
+  every other item row's name sits on, which is the alignment FR-21.20 exists to hold — a cluster head is one of the
+  list's lines, not a heading over them.
+
+  **Folding is view state, and it is not persisted.** The expanded set is per cluster key and survives re-rendering, so
+  packing an instance does not shut the cluster you are working in; it does not survive a reload, unlike the FR-25.18
+  filter, because it is a position in a list rather than a choice about it. FR-25.16's last paragraph holds here
+  unchanged: a folded cluster with open instances is still on your list, and FR-25.2's disappearing rows are a
+  different rule entirely.
+
+  **The cost, stated rather than hidden:** packing one person's instance now costs a tap to open the cluster first.
+  That is the trade the mockup round was decided on — the common act on M4 is *reading* the list, and the list was
+  unreadable. The follow-up that removes the tap again is the avatar-per-instance variant (B on the sheet), where a
+  face on the shut head is itself the pack control; it is deliberately a second step, because it changes what a face
+  *is* and should be decided against a built fold rather than against a drawing.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.

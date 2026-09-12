@@ -88,3 +88,7 @@ generated — edit the builder, not the HTML:
 - [`UI_Concept_ClosingPass_variants.html`](UI_Concept_ClosingPass_variants.html) — where the
   FR-9.3 closing pass lives: its own screen against a mode of M4, with the table of what each
   answer costs; `node dev-docs/build-closing-pass-variants.mjs`.
+- [`UI_Concept_PerPersonRows_variants.html`](UI_Concept_PerPersonRows_variants.html) — what a
+  per-person item may cost in rendered lines (FR-25.1/25.21/25.22): today's always-open cluster
+  against a foldable one, an avatar-button row, a me-first list and a cluster that only expands
+  once its children differ; `node dev-docs/build-perperson-rows-variants.mjs`.
