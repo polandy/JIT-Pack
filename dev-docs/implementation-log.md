@@ -371,6 +371,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
 - [Four reasons a device could not say what was wrong (2026-09-13)](#four-reasons-a-device-could-not-say-what-was-wrong-2026-09-13) — the iPad diagnosis: what made it undiagnosable, and why the hung boot was the one nobody could have seen.
 - [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — one client's retry drained a rate limit shared with the login exchange; the IdP lifespan behind it.
+- [The pack that was painted but never sent (2026-09-13)](#the-pack-that-was-painted-but-never-sent-2026-09-13) — why the obvious barrier for `packItem` is the wrong one, and how the race was made to fail on demand.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15186,3 +15187,29 @@ stored from the machine while the refresher reads an injected clock is an expiry
 class was invisible to every gate we have: nothing in JIT-Pack logs a request, so the only record that a client is
 hammering a dependency lives in the dependency. When a symptom survives a healthy server and a correct payload, the
 next log to open is the one belonging to the thing being *called*.
+
+## The pack that was painted but never sent (2026-09-13)
+
+The 0.10.0 release run went red in E2E-M2-10 and green on the re-run — the shape that gets called a flake and
+re-run until it is forgotten. It was not one. `packItem` returned on the *click*: the row painted itself packed,
+the case asserted that paint, and then closed the context. If the push had not left yet it went with the context,
+and the device that had never opened the trip read `0/2 packed` off a server nobody had told. The case is honest;
+the helper was not.
+
+**It can be made to fail on demand**, which is what turns this from an opinion into a finding: 700 ms of delay in
+front of `pushPartition` in the built bundle reproduces the exact CI failure — same assertion, same `1/2` against
+`0/2` — every run. Restoring the barrier makes it pass with the delay still in. That is the same technique the
+`writesLanded` docblock records from #379, and the reason it is written down twice now is that the delay has to go
+into the *bundle*: Playwright drives the preview build, so a source-only edit proves nothing.
+
+**The obvious barrier is the wrong one, and it costs eight tests to find out.** Asserting the row's checkbox turned
+checked reads like the natural signal, and it fails in eight cases — because a packed row *leaves* the list
+(FR-25.2), so its checkbox is gone, and a refused pack (E2E-G2-05, E2E-G5-01) leaves the row exactly where it was.
+The row's own state is not a signal every caller shares. The header figure is: it moves on the optimistic write and
+it is on screen for every caller of this helper, so the barrier is "the figure is no longer what it was", then
+`writesLanded`.
+
+**Why both, in that order.** `writesLanded` on its own is satisfiable by the settled state the app was already in
+before the write was queued — a green that asserts nothing. A consequence of the click has to be observed first,
+which is exactly the pairing every other write helper in `helpers/` already uses; `serverMode.ts` was simply missed
+when #379 swept the rest.

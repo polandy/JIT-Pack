@@ -14,6 +14,7 @@
 import { expect, type BrowserContext, type Page } from '@playwright/test'
 
 import { seed, visiblePage } from './fixtures'
+import { writesLanded } from './helpers/page'
 
 /** Suffix that keeps one test's master data out of another's. */
 export function uniq(): string {
@@ -38,15 +39,33 @@ export async function quickAddItem(page: Page, name: string): Promise<void> {
   await input.locator('input').fill(name)
   await page.getByTestId('quick-add-confirm').click()
   await expect(visiblePage(page).getByTestId(`m4-row-${name}`)).toBeVisible()
+  await writesLanded(page)
 }
 
-/** Pack a row via its checkbox (G-6: the control acts, it never navigates). */
+/**
+ * Pack a row via its checkbox (G-6: the control acts, it never navigates),
+ * and return once the write has left rather than when the row painted.
+ *
+ * Two waits, and each is load-bearing. The **header figure changing** is the
+ * proof the click reached the app — the row's own state is not, because a
+ * packed row leaves the list (FR-25.2) while a refused one stays put.
+ * `writesLanded` is the proof the write settled — on its own it would be
+ * satisfied by the state the app was already in before this write.
+ * The log's 2026-09-13 entry has what the missing barrier cost.
+ */
 export async function packItem(page: Page, name: string): Promise<void> {
+  const progress = visiblePage(page).getByTestId('m4-progress')
+  // Read before the click, so "it changed" is a comparison against something:
+  // an absent figure would make the assertion below pass against nothing.
+  await expect(progress).not.toHaveText('')
+  const before = (await progress.textContent()) ?? ''
   await visiblePage(page)
     .getByTestId(`m4-row-${name}`)
     .getByTestId('row-check')
     .locator('ion-checkbox')
     .click()
+  await expect(progress).not.toHaveText(before)
+  await writesLanded(page)
 }
 
 /**
