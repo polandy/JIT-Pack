@@ -19,6 +19,7 @@ import {
   openQuickAdd,
   visiblePage as visible,
 } from './fixtures'
+import { writesLanded } from './helpers/page'
 import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -255,6 +256,16 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await seed(restored, { mode: 'local' })
 
     const restoreOnce = async () => {
+      // The restore writes its rows through the Local Mode store, and the
+      // `goto` below is a reload: a save still open when the navigation
+      // starts is cancelled with it, and the rows this preview is supposed to
+      // recognise were never on the device. The row rendered after the commit
+      // is the optimistic one and says nothing about that (see `writesLanded`);
+      // this is the settled signal, and without it the second preview reports
+      // "not here yet" about a trip that is — reproduced by slowing the Local
+      // Mode save by 500 ms, which fails at the marker below twice out of
+      // twice and passes twice out of twice with this line.
+      await writesLanded(restored)
       await restored.goto(PATH.trips)
       await restored.getByTestId('m2-portable-import').click()
       await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
