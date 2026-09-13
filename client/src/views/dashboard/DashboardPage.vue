@@ -279,9 +279,9 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
-      <!-- ADR-033: nothing pulled is not nothing planned. One component and
-           one spacing rule, so the notice is the same shape the state it
-           stands in for will take. -->
+      <!-- ADR-033: nothing pulled is not nothing planned. The same component
+           without its illustration, which is what makes it a notice rather
+           than the G-7 absence (G-7, M2's block says what that costs). -->
       <EmptyState
         v-if="isEmpty && !tripsKnown"
         :title="t('trips.listUnknown')"
