@@ -681,11 +681,13 @@ async function handleRefresh(event: CustomEvent) {
       </TripHero>
 
       <!--
-        Not here yet is not empty (ADR-033). The counts have been guarded
-        since FR-2.8; the screen itself was not, so a device whose master
-        pull had not landed told the user it had no trips. The same
-        component without its illustration: a notice, not the G-7 absence,
-        and the geometry does not jump when the list arrives.
+        Not here yet is not empty (ADR-033) — the guard the counts have had
+        since FR-2.8, on the screen. The same component *without* its
+        illustration on purpose: that is what makes it a notice rather than
+        the G-7 absence, and it keeps one spacing rule instead of adding a
+        second loading layout beside it. The block does change height when
+        the state settles — `EmptyState` drops the icon with a `v-if` — so
+        this buys one component, not a still frame.
       -->
       <EmptyState
         v-if="isEmpty && !countsKnown"

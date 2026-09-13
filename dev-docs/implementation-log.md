@@ -15271,8 +15271,10 @@ screen, which is exactly what made this morning's iPad report expensive — „n
 has not established, and says the one thing it does know.
 
 **The same component, minus its illustration.** A separate loading layout would have been a second block with its own
-spacing, and the list arriving would shift the page. `EmptyState` without an icon is a notice rather than the G-7
-absence, and the geometry is unchanged when the rows land.
+spacing to keep in step; `EmptyState` without an icon is a notice rather than the G-7 absence and costs no new rule.
+What it does *not* buy is a still frame — the icon is dropped with a `v-if`, so the block is shorter while unsettled
+and the title moves when the state resolves. Claiming otherwise is the kind of sentence only a rendered pixel
+settles, and this one was corrected by the session that measured it rather than by the one that wrote it.
 
 **The class is ten screens wide and this fixes one.** Measured while writing it: ten views render an empty state, and
 `TripListPage` is the only one that so much as mentions a hydration guard. The trip-partition screens (M4, M6, M11,
