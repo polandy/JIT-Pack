@@ -15191,26 +15191,33 @@ next log to open is the one belonging to the thing being *called*.
 ## The release tags were on a history nobody was on (2026-09-13)
 
 Deploying the FR-19.6/FR-19.9 work to the family instance needed a release, and the standing
-release PR proposed **`release 0.2.0`** — against an instance running `v0.9.0`. The PR was not
-stale: release-please had regenerated it minutes earlier, with a 249-line changelog reaching back
-into the migration era.
+release PR proposed **`release 0.2.0`** — against an instance running `v0.9.0`, with a 249-line
+changelog reaching back into the migration era. The PR was not stale: release-please had
+regenerated it minutes earlier.
 
 **The premise that was wrong is "a tag is on the branch it was cut from".** Every release tag from
-`v0.2.0` to `v0.9.0` points at a commit that is **not reachable from `main`**. The two lines
+`v0.1.0` to `v0.9.0` pointed at a commit that was **not reachable from `main`**. The two lines
 diverge at `22e65407` (2026-07-11) and run in parallel from there with the same subjects and the
-same author *and committer* timestamps — a re-created history, not a rebase. The content is
-untouched: `v0.9.0`'s tree and `main`'s `0bfeb62a` tree are the same object
-(`2b134dce`), which is why nobody noticed for two months and eight releases. Only a tool that walks
-back from the branch looking for its own releases could notice, and when it did, it reported the
-result as a version rather than as an error.
+same author *and committer* timestamps — a re-created history, not a rebase. The content was
+untouched: `v0.9.0`'s tree and `main`'s `0bfeb62a` tree are the same object (`2b134dce`), which is
+why nobody noticed for two months and eight releases. Only a tool that walks back from the branch
+looking for its own releases could notice, and when it did, it reported the result as a version
+rather than as an error.
 
-**So the two facts it was guessing are now written down.** `.release-please-manifest.json` states
-the current version, and `last-release-sha` in `release-please-config.json` states the commit on
-`main`'s own line that 0.9.0 was cut from. Neither depends on tag reachability, so the release PR is
-correct whether or not the tags are ever reattached — which is a separate decision, and a
-history-rewriting one.
+**Two answers were given, and both are in the repository.** The tags were reattached by hand with
+the owner's approval — `git tag -f v0.9.0 0bfeb62a` and a single-tag force-push, content-identical
+and therefore a no-op that nevertheless rebuilt the `0.9.0` image, since a tag push triggers
+`docker.yml`. That unblocked the cut: release-please then proposed `0.10.0` correctly, and it was
+released and rolled out the same afternoon. **`.release-please-manifest.json` is the other answer**,
+and it is the one that survives: it states the released version instead of deriving it from tag
+reachability. It earns its place because the repair was partial — `v0.9.0` and `v0.10.0` sit on
+`main`'s line now, **`v0.8.0` and older still do not** — so the next tool that walks past 0.10.0
+finds the same void. A `last-release-sha` pin was in this change too and was taken out again: it
+would have frozen the changelog's starting point at one commit forever, which is a second thing to
+maintain and the manifest already answers the question.
 
-**What this cost, stated plainly:** the running instance's build (`deb41aab`) is not a commit on
-`main`. It is content-identical to `0bfeb62a`, so nothing was ever deployed that `main` did not
-contain — but `git log` on `main` cannot find the commit the About block names, and neither can
+**What it cost while it stood:** the build the family instance ran (`deb41aab`) was not a commit on
+`main`. Content-identical to `0bfeb62a`, so nothing was ever deployed that `main` did not contain —
+but `git log` on `main` could not find the commit the M17 About block named, and neither could
 anyone reading a bug report against it.
+
