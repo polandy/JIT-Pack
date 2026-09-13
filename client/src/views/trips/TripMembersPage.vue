@@ -117,12 +117,12 @@ setHeaderTitle(
       <EmptyState
         v-else-if="!rosterKnown"
         :title="t('members.listUnknown')"
-        testid="m22-list-loading"
+        testid="members-list-loading"
       />
 
       <!-- Empty state (G-7): the rows are here, and there are none — a trip
            created offline, before its own membership row left the device. -->
-      <EmptyState v-else :icon="peopleOutline" :title="t('members.empty')" testid="m22-empty" />
+      <EmptyState v-else :icon="peopleOutline" :title="t('members.empty')" testid="members-empty" />
 
       <template v-if="view.canManage">
         <IonItem v-if="view.candidates.length > 0" lines="none">

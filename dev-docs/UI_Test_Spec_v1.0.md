@@ -638,6 +638,13 @@ in WebKit.
   row and hides everything else — proving the override, not just the bucketing (`packingView.spec.ts` already proves
   the arithmetic; this is the panel wiring). Then switching to **Status → Gepackt** shows the packed row instead. The
   chip row names the picked value the same way every other facet's chip does.
+* **E2E-M4-86** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-13):
+  the trip partition's half of E2E-M2-18. Opened straight onto M4 with every trip pull held, the screen shows
+  „Packliste wird geladen …" and **no** `packing-empty`; when the pull lands the notice goes and the G-7 state appears
+  with the FAB beside it. `single` because Local Mode hydrates the whole database before the first paint, so the mode
+  that cannot have the defect is also the cheapest to test — this is the one that can. The other eight screens in the
+  same sweep are unit-proved rather than driven here (one spec each, the guard flipped after the assertion): a held
+  pull per screen would buy nine minutes of pipeline for one rule, and the rule is the same one nine times.
 * **E2E-M4-21** `all` (UI-Spec M4 group presentation): the group heading's computed size is **larger** than an item
   row's, and a group's rows sit in one block of their own. Asserted on computed style rather than on a class, because
   the defect was purely visual: everything rendered, in the wrong order of importance.

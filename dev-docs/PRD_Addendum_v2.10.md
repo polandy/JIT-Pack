@@ -2999,6 +2999,12 @@ items**; turning a finished (and mutated) trip back **into a template for next y
     screen says *„Reisen werden geladen …"* instead and claims no absence. It persists for as long as no pull has
     succeeded, so an offline cold start stays on that notice rather than being told it owns nothing — the G-2
     indicator carries the reason and pull-to-refresh is the retry. UI-Spec M2, E2E-M2-18.
+  * **And so does every other screen that can say „nothing here" (amended 2026-09-13):** the clause above was written
+    for M2 because FR-2.8 needed it, but nothing about it is M2's. Nine screens rendered a G-7 state off rows they had
+    not read — M1, M7, M9, M23 and the FR-4.5 roster off the master partition, M4, M6 and M11 off the trip's own, and
+    the conflict log off a request still in flight. Each now says the list is loading first. The rule and the three
+    facts that answer it live with the pattern, in **UI-Spec G-7**; the roster's sentence was rewritten with it,
+    because *„No roster synced for this trip yet"* was both states in one breath. E2E-M4-86.
 
   **The segment states its count** — the second half of the request, and what makes the jump legible rather than
   mysterious: the user sees *why* they landed where they did, and, more often, that the two segments they are not on are

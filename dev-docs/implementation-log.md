@@ -374,6 +374,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — one client's retry drained a rate limit shared with the login exchange; the IdP lifespan behind it.
 - [The pack that was painted but never sent (2026-09-13)](#the-pack-that-was-painted-but-never-sent-2026-09-13) — why the obvious barrier for `packItem` is the wrong one, and how the race was made to fail on demand.
 - [The screen was never told what the counts knew (2026-09-13)](#the-screen-was-never-told-what-the-counts-knew-2026-09-13) — M2's empty state asserted an absence it had not established; ten screens still do.
+- [Nine more screens stopped claiming an absence (2026-09-13)](#nine-more-screens-stopped-claiming-an-absence-2026-09-13) — the sweep; two premises of the entry above were wrong, and one e2e case replaced nine.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15281,3 +15282,44 @@ settles, and this one was corrected by the session that measured it rather than 
 M12, M14) reach the same state through a different door — G-4's 2026-09-05 note already records that door being
 opened — and the master ones (M7, M8, M23, M1) share M2's exactly. The sweep is owed; it is not this PR, because each
 screen needs its own held-pull case and a sweep with one case would be the coverage claim without the coverage.
+
+## Nine more screens stopped claiming an absence (2026-09-13)
+
+The sweep the entry above says is owed. Nine views rendered a G-7 empty state off rows they had not read: M1, M7, M9,
+M23 and the FR-4.5 roster off the master partition, M4, M6 and M11 off the trip's own, and the conflict log off a
+request still in flight.
+
+**Two premises in that entry were wrong, and finding out was most of the work.** It named M8, M12 and M14 among the
+screens at risk and left out M9 and the roster. M8's *„not found"* line is an error about one record and M12/M14 render
+no `EmptyState` at all — M14's success state is deliberately not this component. The list that matters is the ten
+importers of `EmptyState.vue`, which is a grep rather than a guess, and it is the measurement this sweep was scoped
+from.
+
+**The second was the cost.** That entry deferred the sweep because *„each screen needs its own held-pull case, and a
+sweep with one case would be the coverage claim without the coverage"*. Nine held-pull e2e cases is roughly nine
+minutes of pipeline for one rule stated nine times, and a held pull is not the cheapest way to hold a store still —
+mounting the screen with the guard's signal in hand is, and it can flip that signal mid-case, which a route
+interception cannot do without a second navigation. So the shape is one e2e case on the partition that had none
+(**E2E-M4-86**, the trip partition, mirroring E2E-M2-18 on the master one) and one mount spec per screen, each
+asserting the notice *and* the absence of the G-7 state, then flipping the signal and asserting the reverse. All ten
+guards were mutation-proved one at a time: exactly one case red per screen, the M2 case included, which is what says
+the shared stub did not weaken it.
+
+**The seam was already there, and being there was not enough.** `useTripScreen` has returned `loaded` since U-10, with
+a doc comment saying in as many words that *„a screen with an empty state owes this guard"*. Eight of the nine screens
+destructured `trip` and left `loaded` on the table; the one that read it, `ClonePage`, is the one where summing an
+absence would have printed „0 Packelemente" and cloned exactly that. A comment on the producer does not reach the
+consumer. What would is a required prop on `EmptyState` — considered and not taken here, because on four of the ten
+sites the two states are different blocks with different conditions, and folding them into one component's props made
+M4's three-branch chain repeat the loading copy three times. The rule lives in **UI-Spec G-7** instead, where the next
+screen's author reads the pattern.
+
+**The roster said both states in one sentence.** *„No roster synced for this trip yet"* — under a comment that named
+the two things it could mean and offered the reader no way to tell which. It is now *„No members on this trip yet",*
+which is the only thing left to say once the rows are here, and the unsynced half is the notice.
+
+**Two costs accepted.** The notice never resolves on an offline cold start, exactly as on M2: `masterDataLoaded` turns
+on a *successful* drain, so a device that cannot reach the server stays on „loading" while the G-2 indicator carries
+the reason and pull-to-refresh is the retry. And the conflict log's `settled` flag stays true once set, so a re-read
+after a revert does not blank the verdict back to the notice — a screen that has an answer already must not pretend it
+has none, and that is its own case.
