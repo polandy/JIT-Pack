@@ -64,7 +64,7 @@ function go(href: string, event: MouseEvent): void {
 .nav-rail {
   display: none;
   flex-direction: column;
-  width: 80px;
+  width: var(--jp-nav-rail-w);
   min-height: 100%;
   background: var(--ion-background-color);
   border-right: 1px solid var(--ion-border-color);

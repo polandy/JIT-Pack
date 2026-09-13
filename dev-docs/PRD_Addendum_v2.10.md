@@ -542,7 +542,12 @@ removes the server entirely. Everything inherently multi-user or multi-device is
   state and is deliberately not stored: a full page load is the launch the waiting version takes over on anyway, so a
   stored dismissal could only hide an announcement that has stopped being true. It applies in all three modes — a bundle
   update is not a data operation, and Local Mode updates identically. Tradeoff (staleness against a reload that a person
-  did not schedule) is ADR-044.
+  did not schedule) is ADR-044. **The bar is over the content, not in it (added 2026-09-13, ADR-060, G-19):** it is the
+  one surface in the app that can appear while somebody is already using a screen, and a bar inserted into the column
+  moves every control below it out from under the finger — the press then lands beside the control and nothing happens
+  anywhere. It therefore renders in the frame's own layer, starting at the app bar's lower edge and, on a desktop width,
+  at the nav rail's right edge; its arrival and its dismissal change no other element's geometry. The accepted cost is
+  that it covers the top band of the content while it is up.
 * **FR-19.8 (Leaving Local Mode — accepted 2026-09-02):** A Local Mode device can move to a server **from M17, on the
   same device**, in three numbered steps on one card (*„Auf einen Server umziehen"*, Local Mode only, G-8). **(1) Back
   up:** the same whole-device export as the G-2 sheet's (FR-19.6 / NFR-4.11), one function called from both surfaces.
