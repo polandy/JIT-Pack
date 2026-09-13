@@ -16,7 +16,14 @@ import type { TripItem } from '@/types/domain'
  * catalogue.
  */
 export type RowMenuAction =
-  'takeover' | 'release' | 'unskip' | 'packingNow' | 'skip' | 'flagUnused' | 'unflagUnused'
+  | 'takeover'
+  | 'release'
+  | 'unskip'
+  | 'quantity'
+  | 'packingNow'
+  | 'skip'
+  | 'flagUnused'
+  | 'unflagUnused'
 
 /** Everything outside the row that decides what the row may offer. */
 export interface RowMenuContext {
@@ -47,6 +54,10 @@ export type RowMenuItem = Pick<TripItem, 'state' | 'flag_unused'>
  * `skipped` is read from the row rather than passed in, because a caller
  * that can disagree with the item about its own state is a caller that
  * eventually will.
+ *
+ * FR-25.24's *amount* leads an ordinary row's list: M4 puts it on the
+ * row's own count as well, but a row of one renders a checkbox and has no
+ * number to tap — the menu is where those rows can be corrected at all.
  */
 export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuAction[] {
   if (ctx.closingPass) return []
@@ -60,8 +71,12 @@ export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuA
       // you are in the middle of packing is not a thing anyone means.
       ['release']
     : item.state === 'skipped'
-      ? ['unskip']
-      : ['packingNow', 'skip']
+      ? // FR-25.24 is absent here on purpose: the editor's smallest amount
+        // is 1, so setting one on a skipped row would be an *unskip* that
+        // leaves the row's FR-20.2 companions behind — the one thing the
+        // entry above does correctly.
+        ['unskip']
+      : ['quantity', 'packingNow', 'skip']
 
   // FR-9.3: the judgement leaves the fold. *Unused* used to cost three taps
   // into M5's *Details* block, which nothing ever asks for.

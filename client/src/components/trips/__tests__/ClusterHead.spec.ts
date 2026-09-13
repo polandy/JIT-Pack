@@ -80,7 +80,7 @@ describe('ClusterHead (FR-25.1)', () => {
     expect(mountHead({ late: false }).find('.late-icon').exists()).toBe(false)
   })
 
-  describe('the head folds its cluster (FR-25.23)', () => {
+  describe('the head folds its cluster (FR-25.24)', () => {
     it('is a control, not a caption — it has to be operable to fold anything', () => {
       const wrapper = mountHead()
       expect(wrapper.get('[data-testid="m4-cluster-Zelt"]').element.tagName).toBe('BUTTON')

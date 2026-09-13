@@ -188,6 +188,16 @@ export const de: Record<keyof typeof en, string> = {
   'membership.confirmCollapseTitle': 'Wieder gemeinsam?',
   'membership.confirmCollapse':
     'Aus {rows} Zeilen wird eine mit {quantity} Stück, davon {packed} gepackt. Notizen und Vorbereitungs-Todos von {name}s Zeile bleiben; die übrigen Zeilen werden gelöscht.',
+  // FR-25.24 — die geplante Menge einer Zeile, änderbar auf M4 und M5.
+  'quantity.title': 'Menge',
+  'quantity.edit': 'Menge ändern',
+  'quantity.less': 'Eine weniger',
+  'quantity.more': 'Eine mehr',
+  'quantity.packedHint': '{n} davon ist schon gepackt | {n} davon sind schon gepackt',
+  'quantity.perDay': 'pro Tag · {n}',
+  'quantity.perTraveler': 'pro Person · {n}',
+  'quantity.zeroHint': 'Gar nicht mitnehmen? Das entscheidet „Nicht einpacken“.',
+
   'packing.packSection': 'Einpacken',
   'packing.prepSection': 'Vorbereitung',
   'packing.empty': 'Noch nichts auf dieser Liste',

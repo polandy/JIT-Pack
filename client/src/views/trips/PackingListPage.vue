@@ -39,6 +39,7 @@ import {
   IonFab,
   IonFabButton,
   IonModal,
+  IonPopover,
   actionSheetController,
 } from '@ionic/vue'
 import {
@@ -55,6 +56,7 @@ import {
   createOutline,
   expandOutline,
   funnelOutline,
+  layersOutline,
   lockOpenOutline,
   playOutline,
 } from 'ionicons/icons'
@@ -93,6 +95,9 @@ import { hasCollaborativeSession } from '@/mode'
 import { presentToast } from '@/lib/toast'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { useTripScreen } from '@/composables/useTripScreen'
+import QuantityEditor from '@/components/global/QuantityEditor.vue'
+import { quantityChoices } from '@/domain/quantityChoices'
+import { durationDays } from '@/domain/instantiate'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
@@ -170,7 +175,7 @@ const {
   action: searchAction,
 } = useContextSearch('m4-search')
 const collapsedGroups = ref<string[]>([])
-/** FR-25.23: per-person clusters the user opened; shut is the default. */
+/** FR-25.24: per-person clusters the user opened; shut is the default. */
 const expandedClusters = ref<string[]>([])
 const showPrep = ref(false)
 const filterOpen = ref(false)
@@ -342,6 +347,51 @@ function openItem(itemId: string) {
   router.replace(tripItemPath(props.tripId, itemId))
 }
 
+// --- FR-25.24: how many of this are coming along -------------------------
+//
+// The editor hangs off the row's own count rather than living a screen
+// away: correcting an amount is something a person does to five rows in a
+// row while looking at the list, and a sheet per row would cost the list
+// five times. M5 carries the same control in a block of its own, for the
+// other posture — one row, read properly.
+const quantityItemId = ref<string | null>(null)
+
+/**
+ * The tap that opened the editor, which is what Ionic anchors the popover
+ * to. Undefined when it was opened from the row menu, where there is no
+ * row on screen to point at any more — Ionic then centres it.
+ */
+const quantityEvent = ref<MouseEvent | undefined>(undefined)
+
+const quantityItem = computed(
+  () => allItems.value.find((row) => row.id === quantityItemId.value) ?? null,
+)
+
+const quantityChoiceList = computed(() =>
+  quantityChoices({
+    durationDays: durationDays(trip.value?.start_date ?? null, trip.value?.end_date ?? null),
+    travelerCount: travelers.value.length,
+    perPerson: Boolean(quantityItem.value?.assigned_traveler_id),
+  }),
+)
+
+/**
+ * G-3 and FR-9.3 keep the editor shut for the same reasons the stepper is
+ * inert: somebody else holds the row, or the screen is asking a different
+ * question and this is not an answer to it.
+ */
+function openQuantity(item: TripItem, event?: MouseEvent): void {
+  if (closingPass.value || locked(item)) return
+  quantityEvent.value = event
+  quantityItemId.value = item.id
+}
+
+function onSetQuantity(quantity: number): void {
+  const item = quantityItem.value
+  if (!item) return
+  orchestrator.setQuantity(props.tripId, item, quantity)
+}
+
 // --- Row menu: press and hold (FR-5.5, FR-5.2) --------------------------
 //
 // The same gesture M7 uses, chosen over the swipe it replaces: the swipe
@@ -378,6 +428,7 @@ const ROW_MENU_BUTTONS: Record<RowMenuAction, { labelKey: MessageKey; icon: stri
   takeover: { labelKey: 'packing.takeoverAction', icon: lockOpenOutline },
   release: { labelKey: 'packing.releaseAction', icon: lockOpenOutline },
   unskip: { labelKey: 'packing.unskipAction', icon: refreshOutline },
+  quantity: { labelKey: 'quantity.edit', icon: layersOutline },
   packingNow: { labelKey: 'mode.pack', icon: contrastOutline },
   skip: { labelKey: 'packing.skipAction', icon: closeCircleOutline },
   flagUnused: { labelKey: 'packing.flagUnusedAction', icon: removeCircleOutline },
@@ -394,6 +445,12 @@ function runRowMenu(action: RowMenuAction, item: TripItem): void {
       return
     case 'unskip':
       onUnskipItem(item)
+      return
+    case 'quantity':
+      // No event to hang it off: the menu is an overlay, and the row it was
+      // opened from may have scrolled. Ionic centres a popover with no
+      // reference, which is where the menu itself just was.
+      openQuantity(item)
       return
     case 'packingNow':
       onPackingNow(item)
@@ -535,7 +592,7 @@ function toggleGroup(key: string) {
 }
 
 /**
- * FR-25.23: the opened set, not the shut one, because a cluster is shut by
+ * FR-25.24: the opened set, not the shut one, because a cluster is shut by
  * default. Keyed like a group's fold so a re-render — or packing one
  * instance — does not close what the user just opened.
  */
@@ -1413,6 +1470,7 @@ setHeaderTitle(
                     @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
                     @press-end="hold.cancel()"
                     @pass-toggle="onPassToggle(child.item)"
+                    @edit-quantity="(e: MouseEvent) => openQuantity(child.item, e)"
                     @increment="onIncrement(child.item)"
                     @decrement="onDecrement(child.item)"
                     @complete="onComplete(child.item)"
@@ -1441,6 +1499,7 @@ setHeaderTitle(
                 @press-move="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
                 @press-end="hold.cancel()"
                 @pass-toggle="onPassToggle(entry.item)"
+                @edit-quantity="(e: MouseEvent) => openQuantity(entry.item, e)"
                 @increment="onIncrement(entry.item)"
                 @decrement="onDecrement(entry.item)"
                 @complete="onComplete(entry.item)"
@@ -1558,6 +1617,30 @@ setHeaderTitle(
       <!-- FR-25.8: the membership editor over a freshly quick-added row.
            `locked` is false because the id was minted a moment ago and nobody
            else can be holding a claim on it yet (G-3). -->
+      <!-- FR-25.24: the amount, over the list rather than instead of it —
+           the rows around the one being corrected are what makes the number
+           decidable. -->
+      <IonPopover
+        :is-open="quantityItemId !== null"
+        :event="quantityEvent"
+        data-testid="m4-quantity-popover"
+        @did-dismiss="quantityItemId = null"
+      >
+        <div class="qty-pop">
+          <p class="qty-pop-head">
+            <span class="jp-eyebrow">{{ t('quantity.title') }}</span>
+            <span class="qty-pop-name">{{ quantityItem?.name }}</span>
+          </p>
+          <QuantityEditor
+            v-if="quantityItem"
+            :quantity="quantityItem.quantity"
+            :packed="quantityItem.packed_count"
+            :choices="quantityChoiceList"
+            @update="onSetQuantity"
+          />
+        </div>
+      </IonPopover>
+
       <IonModal
         :is-open="membershipItemId !== null"
         data-testid="m4-membership-modal"
@@ -1649,6 +1732,25 @@ setHeaderTitle(
 </style>
 
 <style scoped>
+/* FR-25.24's popover holds one control and its name, so it is padded like
+   a card rather than like a screen. */
+.qty-pop {
+  padding: 16px 14px 12px;
+}
+
+.qty-pop-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 14px;
+  text-align: center;
+}
+
+.qty-pop-name {
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
+}
+
 /* M5 as a sheet (phone) or a panel (desktop, G-9). The panel is fixed to
    the right edge rather than squeezing the list: the list keeps its
    measurements, so opening a detail never re-flows the rows underneath

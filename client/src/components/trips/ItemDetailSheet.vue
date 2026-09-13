@@ -50,11 +50,14 @@ import { COMMENT_QUERY_PARAM } from '@/router/paths'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
+import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { membershipRows } from '@/domain/membership'
+import { quantityChoices } from '@/domain/quantityChoices'
+import { durationDays } from '@/domain/instantiate'
 import { canJudgeUnused, isActive } from '@/domain/trips'
 import { formatValue, formatWeight } from '@/lib/format'
 import { modeIcon, modeLabel } from '@/lib/modeLabels'
@@ -300,6 +303,29 @@ function onReviewFlag(flag: ReviewFlag, value: boolean) {
 function onLatePacker(value: boolean) {
   if (item.value && !isLocked.value) orchestrator.setLatePacker(props.tripId, item.value, value)
 }
+/**
+ * FR-25.24: M5's posture on the amount is the opposite of M4's. There is
+ * room here to show what the number is being weighed against — the trip's
+ * length, its travelers — so the quick amounts sit under the control
+ * rather than being the whole of it.
+ *
+ * A skipped row is not offered the block at all: the editor's smallest
+ * amount is 1, which on a skipped row is an unskip that leaves the row's
+ * FR-20.2 companions behind. The skip toggle below it is the control that
+ * decision belongs to.
+ */
+const quantityChoiceList = computed(() =>
+  quantityChoices({
+    durationDays: durationDays(trip.value?.start_date ?? null, trip.value?.end_date ?? null),
+    travelerCount: travelers.value.length,
+    perPerson: Boolean(item.value?.assigned_traveler_id),
+  }),
+)
+
+function onSetQuantity(quantity: number) {
+  if (item.value && !isLocked.value) orchestrator.setQuantity(props.tripId, item.value, quantity)
+}
+
 function onIncrement() {
   if (item.value && !isLocked.value) orchestrator.packIncrement(props.tripId, item.value)
 }
@@ -409,6 +435,22 @@ const packedStamp = computed(() => {
          Labelled like prep and notes below (UX pass 2026-08-25): without the
          eyebrow, a quantity-1 row rendered as an unlabelled box holding only
          a checkbox and the state chip. -->
+    <!-- FR-25.24: how many, before how many of them are in the bag. The
+         order is the order of the two questions — a stepper counting
+         towards a wrong target is the reason this block exists. -->
+    <template v-if="!isSkipped">
+      <h2 class="sl" data-testid="m5-quantity-label">{{ t('quantity.title') }}</h2>
+      <div class="qty-block" data-testid="m5-quantity">
+        <QuantityEditor
+          :quantity="item.quantity"
+          :packed="item.packed_count"
+          :choices="quantityChoiceList"
+          :disabled="isLocked"
+          @update="onSetQuantity"
+        />
+      </div>
+    </template>
+
     <h2 class="sl pack-label" data-testid="m5-pack-label">{{ t('packing.packSection') }}</h2>
     <div class="pack" data-testid="m5-pack">
       <QuantityStepper
@@ -759,6 +801,13 @@ const packedStamp = computed(() => {
 }
 
 /* --- packing --- */
+.qty-block {
+  padding: 14px 12px;
+  margin-bottom: 16px;
+  border-radius: var(--jp-r);
+  background: var(--ct-surface0);
+}
+
 .pack {
   display: flex;
   align-items: center;

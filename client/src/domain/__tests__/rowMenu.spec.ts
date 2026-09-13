@@ -32,10 +32,10 @@ interface Case {
 
 const cases: Case[] = [
   {
-    name: 'an ordinary open row offers packing it now and skipping it (FR-5.5)',
+    name: 'an ordinary open row offers its amount, packing it now and skipping it (FR-5.5)',
     item: OPEN,
     ctx: {},
-    want: ['packingNow', 'skip'],
+    want: ['quantity', 'packingNow', 'skip'],
   },
   {
     name: 'a skipped row offers only the way back (FR-5.5)',
@@ -89,13 +89,19 @@ const cases: Case[] = [
     name: 'a judgeable trip appends the unused mark after the row’s own actions (FR-9.3)',
     item: OPEN,
     ctx: { judgeable: true },
-    want: ['packingNow', 'skip', 'flagUnused'],
+    want: ['quantity', 'packingNow', 'skip', 'flagUnused'],
   },
   {
     name: 'a row already marked unused offers to take the mark off again',
     item: JUDGED,
     ctx: { judgeable: true },
-    want: ['packingNow', 'skip', 'unflagUnused'],
+    want: ['quantity', 'packingNow', 'skip', 'unflagUnused'],
+  },
+  {
+    name: 'a skipped row is offered no amount — 1 there is an unskip without its companions (FR-25.24)',
+    item: SKIPPED,
+    ctx: {},
+    want: ['unskip'],
   },
   {
     name: 'the judgement is offered on a skipped row too',

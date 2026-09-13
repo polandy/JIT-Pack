@@ -25,8 +25,14 @@ const props = withDefaults(
      * it was the smallest thing on the sheet.
      */
     large?: boolean
+    /**
+     * FR-25.24: the count is also the way into the row's planned amount.
+     * Off by default — a surface that cannot edit the amount must not
+     * render a control that looks like it can.
+     */
+    editable?: boolean
   }>(),
-  { disabled: false, large: false },
+  { disabled: false, large: false, editable: false },
 )
 
 const emit = defineEmits<{
@@ -35,6 +41,11 @@ const emit = defineEmits<{
   complete: []
   zero: []
   toggle: []
+  /**
+   * FR-25.24: the amount is to be changed. The event travels with it
+   * because M4 hangs its editor off the number that was tapped.
+   */
+  editQuantity: [event: MouseEvent]
 }>()
 
 const isCheckbox = computed(() => props.quantity === 1)
@@ -110,7 +121,22 @@ onUnmounted(() => void hold.cancel())
     >
       <IonIcon :icon="removeOutline" />
     </button>
-    <span class="stepper-count jp-num" :class="{ complete: isComplete, partial: isPartial }">
+    <!-- FR-25.24: `2/5` is two numbers answering two questions — the ±
+         beside it count the left one, and the right one is what the row is
+         *for*. Tapping the pair opens the amount, which is the only part of
+         it the stepper cannot reach. -->
+    <button
+      v-if="editable && !disabled"
+      type="button"
+      class="stepper-count jp-num"
+      :class="{ complete: isComplete, partial: isPartial }"
+      :aria-label="t('quantity.edit')"
+      data-testid="row-quantity"
+      @click="(e: MouseEvent) => emit('editQuantity', e)"
+    >
+      {{ packed }}/{{ quantity }}
+    </button>
+    <span v-else class="stepper-count jp-num" :class="{ complete: isComplete, partial: isPartial }">
       {{ packed }}/{{ quantity }}
     </span>
     <button
@@ -186,6 +212,30 @@ onUnmounted(() => void hold.cancel())
   min-width: 36px;
   text-align: center;
   font-size: var(--jp-text-sm);
+}
+
+/* A tap target the size of the buttons beside it, without the digits
+   drifting off the column they share with every other row (UX-9). */
+button.stepper-count {
+  height: 28px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: var(--jp-r-sm);
+  background: none;
+  color: inherit;
+  /* A button's UA face would otherwise break the column the digits share
+     with the `<span>` on every other row. */
+  font-family: var(--jp-font-ui);
+  font-weight: var(--jp-weight-semibold);
+  cursor: pointer;
+}
+
+button.stepper-count:active {
+  background: var(--ct-surface0);
+}
+
+.stepper.large button.stepper-count {
+  height: 38px;
 }
 
 .stepper-count.complete {

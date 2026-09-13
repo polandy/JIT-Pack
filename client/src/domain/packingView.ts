@@ -83,7 +83,7 @@ export interface PackingRow {
   label: string
 }
 
-/** One instance's face on a shut cluster head (FR-25.23). */
+/** One instance's face on a shut cluster head (FR-25.24). */
 export interface ClusterFace {
   /** `null` for an instance with no traveler on it. */
   traveler: Traveler | null
@@ -102,7 +102,7 @@ export interface PackingCluster {
   /** The units a shut head has to answer with, mirroring FR-25.16's group head. */
   openCount: number
   /**
-   * FR-25.23: shut unless the caller expanded it. The default is the opposite
+   * FR-25.24: shut unless the caller expanded it. The default is the opposite
    * of a group's because a cluster head is an *extra* line over its children
    * rather than a heading over a block — always open, it costs more lines than
    * naming the item once saves.
@@ -213,7 +213,7 @@ export interface PackingViewInput {
   /** Group keys folded shut (FR-25.16) — by key, so a re-render keeps the fold. */
   collapsedGroups: string[]
   /**
-   * FR-25.23: cluster keys the user opened. Named the other way round from
+   * FR-25.24: cluster keys the user opened. Named the other way round from
    * `collapsedGroups` because the defaults are opposite — a group is open
    * until folded, a cluster is folded until opened — and a set whose name
    * says "collapsed" while holding the exceptions to shut is a trap.
@@ -547,7 +547,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   // Cluster tallies over the full set, matching the group-header rule. The
   // faces come from the same pass for the same reason: a shut head stands in
   // for every instance, so it must not answer over a narrower set than its
-  // own count does (FR-25.23).
+  // own count does (FR-25.24).
   for (const item of shown) {
     const clusterKey = perPersonKey(item)
     if (clusterKey === null || (clusterSizes.get(clusterKey) ?? 0) <= 1) continue

@@ -8,7 +8,7 @@
  * `PackingRow` and this line share `RowGlyphs`. It reads no store: the
  * resolved master row arrives as a prop, like everything else.
  *
- * Since FR-25.23 it is also the cluster's fold control, and shut is the
+ * Since FR-25.24 it is also the cluster's fold control, and shut is the
  * default: the head used to be an extra line above children that were always
  * open, so naming the item once cost a line rather than saving any. Shut it
  * has to answer for the rows it hides — who, and how far — which is why it
@@ -43,9 +43,9 @@ defineProps<{
   late: boolean
   doneCount: number
   totalCount: number
-  /** What a shut head answers with in place of done/total (FR-25.23). */
+  /** What a shut head answers with in place of done/total (FR-25.24). */
   openCount: number
-  /** FR-25.23: shut is the default, so the children are not rendered. */
+  /** FR-25.24: shut is the default, so the children are not rendered. */
   collapsed: boolean
   /** One per instance, in roster order; only a shut head shows them. */
   faces: ClusterFace[]
@@ -84,7 +84,7 @@ defineEmits<{ toggle: [] }>()
     </span>
     <RowGlyphs :mode="mode" :late="late" />
     <!-- Shut, the head is the whole cluster: it has to say *who* as well as
-         how far, because no child row is left to name anybody (FR-25.23). -->
+         how far, because no child row is left to name anybody (FR-25.24). -->
     <span v-if="collapsed" class="cluster-faces">
       <UserAvatar
         v-for="(face, i) in faces"
@@ -107,7 +107,7 @@ defineEmits<{ toggle: [] }>()
   display: flex;
   align-items: center;
   gap: 8px;
-  /* It became a button for FR-25.23; without the reset it would arrive with
+  /* It became a button for FR-25.24; without the reset it would arrive with
      the agent stylesheet's own plane, rim and type. */
   width: 100%;
   background: none;

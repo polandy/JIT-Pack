@@ -184,6 +184,16 @@ export const en = {
   'membership.confirmCollapseTitle': 'Share it again?',
   'membership.confirmCollapse':
     '{rows} rows become one with {quantity} items, {packed} of them packed. Notes and preparation todos on {name}\u2019s row stay; the other rows are deleted.',
+  // FR-25.24 — the planned amount of a row, editable on M4 and M5.
+  'quantity.title': 'Amount',
+  'quantity.edit': 'Change the amount',
+  'quantity.less': 'One fewer',
+  'quantity.more': 'One more',
+  'quantity.packedHint': '{n} of them is packed already | {n} of them are packed already',
+  'quantity.perDay': 'one a day · {n}',
+  'quantity.perTraveler': 'one each · {n}',
+  'quantity.zeroHint': 'Leaving it at home? That is what “Do not pack this” decides.',
+
   'packing.packSection': 'Packing',
   'packing.prepSection': 'Preparation',
   'packing.empty': 'Nothing on this list yet',

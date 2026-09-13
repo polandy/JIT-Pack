@@ -155,6 +155,23 @@ describe('PackingRow — the control column (UX-9)', () => {
     expect(wrapper.find('[data-testid="m4-pass-toggle-Zelt"]').exists()).toBe(false)
   })
 
+  it('FR-25.24: the count opens the amount, and the row carries the tap onwards', async () => {
+    // A row of one renders a checkbox and has no number to tap, so the
+    // case that matters is a row of several.
+    const wrapper = mountRow({ item: item({ quantity: 4, packed_count: 1 }) })
+    const count = wrapper.get('[data-testid="row-quantity"]')
+
+    await count.trigger('click')
+
+    // The event travels with it: M4 anchors its editor to what was tapped.
+    expect(wrapper.emitted('editQuantity')?.[0]?.[0]).toBeInstanceOf(Event)
+  })
+
+  it('G-3: a held row offers no way into the amount either', () => {
+    const wrapper = mountRow({ locked: true, item: item({ quantity: 4 }) })
+    expect(wrapper.find('[data-testid="row-quantity"]').exists()).toBe(false)
+  })
+
   it('the stepper reports through the row, not around it', async () => {
     const wrapper = mountRow()
     const stepper = wrapper.findComponent({ name: 'QuantityStepper' })
