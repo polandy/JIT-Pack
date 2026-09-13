@@ -373,6 +373,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The release tags were on a history nobody was on (2026-09-13)](#the-release-tags-were-on-a-history-nobody-was-on-2026-09-13) — why release-please proposed 0.2.0 against a running v0.9.0, and what is now stated instead of inferred.
 - [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — one client's retry drained a rate limit shared with the login exchange; the IdP lifespan behind it.
 - [The pack that was painted but never sent (2026-09-13)](#the-pack-that-was-painted-but-never-sent-2026-09-13) — why the obvious barrier for `packItem` is the wrong one, and how the race was made to fail on demand.
+- [The screen was never told what the counts knew (2026-09-13)](#the-screen-was-never-told-what-the-counts-knew-2026-09-13) — M2's empty state asserted an absence it had not established; ten screens still do.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15255,3 +15256,28 @@ it is on screen for every caller of this helper, so the barrier is "the figure i
 before the write was queued — a green that asserts nothing. A consequence of the click has to be observed first,
 which is exactly the pairing every other write helper in `helpers/` already uses; `serverMode.ts` was simply missed
 when #379 swept the rest.
+
+## The screen was never told what the counts knew (2026-09-13)
+
+FR-2.8 guarded the counts and the opening walk against a list that had not arrived — `countsKnown`, the
+master-partition twin of `tripDataLoaded`, written with the comment *„zeros read off a list that has not come yet are
+not zeros"*. Twelve lines below it, `isEmpty` read the store directly. So the rule held everywhere except the one
+place a person actually reads: a device whose master pull was still in flight rendered **„Keine aktiven Reisen"** over
+a list that was on its way.
+
+**It survived because the two states look identical from the outside.** A failed pull and a slow pull paint the same
+screen, which is exactly what made this morning's iPad report expensive — „no trips" could not be told from „no trips
+*yet*", by the user or by me. The fix is not a spinner for its own sake: it is that the screen stops making a claim it
+has not established, and says the one thing it does know.
+
+**The same component, minus its illustration.** A separate loading layout would have been a second block with its own
+spacing to keep in step; `EmptyState` without an icon is a notice rather than the G-7 absence and costs no new rule.
+What it does *not* buy is a still frame — the icon is dropped with a `v-if`, so the block is shorter while unsettled
+and the title moves when the state resolves. Claiming otherwise is the kind of sentence only a rendered pixel
+settles, and this one was corrected by the session that measured it rather than by the one that wrote it.
+
+**The class is ten screens wide and this fixes one.** Measured while writing it: ten views render an empty state, and
+`TripListPage` is the only one that so much as mentions a hydration guard. The trip-partition screens (M4, M6, M11,
+M12, M14) reach the same state through a different door — G-4's 2026-09-05 note already records that door being
+opened — and the master ones (M7, M8, M23, M1) share M2's exactly. The sweep is owed; it is not this PR, because each
+screen needs its own held-pull case and a sweep with one case would be the coverage claim without the coverage.

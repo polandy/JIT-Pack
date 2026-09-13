@@ -1033,6 +1033,7 @@ export const en = {
   'trips.itemSummary': '{packed}/{total} packed',
   // ADR-033: a trip whose own rows are not on this device yet.
   'trips.itemsUnknown': 'Loading items …',
+  'trips.listUnknown': 'Loading trips …',
   'trips.new': 'New trip',
   'trips.actionExport': 'Export trip',
   'trips.actionShare': 'Share',
