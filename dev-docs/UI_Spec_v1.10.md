@@ -1555,8 +1555,8 @@ These patterns apply to every screen and are specified once.
   synced). **The leading slot follows G-15's inventory ladder — photo → item mark → primary-tag initial** (Addendum
   FR-28.4): the tag initial stays the last resort rather than the default it was, so a marked item is recognised here
   the same way it is on the packing list.
-* **The tag controls (2026-09-13, FR-24.8) — the swipe axis is gone.** Three chips for the tags holding the most
-  items, each with its count; **„Alle N Tags"** opening the filter sheet (every tag with its count, searchable,
+* **The tag controls (2026-09-13, FR-24.8, ADR-061) — the swipe axis is gone.** Three chips for the tags holding
+  the most items, each with its count; **„Alle N Tags"** opening the filter sheet (every tag with its count, searchable,
   several at once under *irgendeiner* / *alle*, plus the **„Ohne Tag"** bucket); and a removable chip for any chosen
   tag that is not one of the three. ~~The axis stands clear of the list (2026-08-26, UX-4)~~ — that clause and its
   case **E2E-M9-08** go with the control they measured; the geometry that replaced the promise is E2E-M9-13's, the

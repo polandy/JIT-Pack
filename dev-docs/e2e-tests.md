@@ -893,7 +893,7 @@ and the two saved-item sections nothing had ever rendered.
 | Case | Spec id | What it pins |
 |---|---|---|
 | an item on two tags renders once, under its primary tag | E2E-M9-01 | FR-24.2's whole guarantee. A naive "file under every tag" passes every unit test of the store and fails this. |
-| the tag axis filters on any tag, not only the primary one | E2E-M9-06 | The axis filters *wider* than the list groups — the two rules differ only in what is rendered. |
+| the tag chip filters on any tag, not only the primary one | E2E-M9-06 | The filter reaches *wider* than the list groups — the two rules differ only in what is rendered. *(It drove the `ion-segment` until FR-24.8; the same promise is now asserted on the chip that replaced it.)* |
 | the list is lean until the properties sheet says otherwise | E2E-M9-05 | FR-24.4 end to end: the weight exists on the item, is absent from the row, and appears after the toggle. Asserted on the row, not on `localStorage`. |
 | creating hides the sections an item cannot have yet | E2E-M10-07 | FR-24.5 "absent, not emptied", plus the "Mehr ▾" fold. |
 | a missing name is answered with a hint, not a dead button | E2E-M10-07 | The button stays live and says why — the failure mode a disabled control hides. |

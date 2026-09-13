@@ -1522,7 +1522,8 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   ranking two devices must agree on is arithmetic worth unit-testing. The app's fold now lives once, in
   `domain/search.ts`; it had been copied privately into the marks index and the group picker, and this would have been
   the third.
-* **FR-24.8 (Choosing a Tag Without a Swipe Axis — added 2026-09-13, implemented the same day):** M9's tag
+* **FR-24.8 (Choosing a Tag Without a Swipe Axis — added 2026-09-13, implemented the same day; the options and
+  their costs are **ADR-061**):** M9's tag
   `ion-segment` is **removed**. In its place: the **three tags holding the most items** as chips in the tool bar, each
   carrying its count; **„Alle N Tags"**, which opens a sheet listing every tag with its count, searchable, with several
   choosable at once under *irgendeiner* / *alle* and the **„Ohne Tag"** bucket the axis never had a chip for; and a
@@ -2160,7 +2161,9 @@ locked.
     add). Typing yields: chips disappear at the first character and the autocomplete takes over.
   * **FR-25.13d (Inventory browse-sheet — decided as the round's next stage, built 2026-08-22):** the round's second
     variant is the real answer to "assemble from the whole inventory": the FAB's composer gains a *„Mehr aus dem
-    Inventar…"* entry opening a bottom sheet over the full inventory — the M9 tag axis to filter, one-tap rows that stay
+    Inventar…"* entry opening a bottom sheet over the full inventory — **its own** tag axis to filter (the idiom M9
+    carried until FR-24.8 replaced it there; the sheet keeps the segment, having four tags on screen rather than a
+    screen-long list to navigate), one-tap rows that stay
     open for runs, an already-carried item stating *„schon drin"* in place of its add control (state, not an error),
     free text demoted to an explicit footer line. Chips answer "offer me something", the sheet answers "let me work
     through it"; building it means naming *Erfassen* (composer) and *Zusammenstellen* (sheet) as the two ways FR-25.13's

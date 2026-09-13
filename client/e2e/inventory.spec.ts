@@ -94,7 +94,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     expect(await groupHeadings(list)).not.toContain('sommer')
   })
 
-  test('E2E-M9-06: the tag axis filters on any tag, not only the primary one', async ({ page }) => {
+  test('E2E-M9-06: the tag chip filters on any tag, not only the primary one', async ({ page }) => {
     await createItem(page, 'Badehose', { tags: ['Kleidung', 'Sommer'] })
     await backToInventory(page)
     await createItem(page, 'Kabel', { tags: ['Technik'] })
@@ -104,7 +104,8 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(list.getByTestId('m9-row')).toHaveCount(2)
 
     // Sommer is the swimsuit's *second* tag; filtering by it must still
-    // surface the row — that reach is the point of the tag set.
+    // surface the row — that reach is the point of the tag set. The control
+    // is one of FR-24.8's three chips; it was a segment button until then.
     await list.getByTestId('m9-tag-chip-Sommer').click()
     await expect(list.getByTestId('m9-row')).toHaveCount(1)
     await expect(list.getByTestId('m9-row')).toContainText('Badehose')

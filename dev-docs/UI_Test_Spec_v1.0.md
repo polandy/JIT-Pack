@@ -1358,7 +1358,7 @@ test body under it separates a wrong number from a missing test.**
   the renumbering: **exactly those** — enabling the weight must leave the tags off the row, which is the whole reason
   FR-24.4 is three switches — and the **badge**, asserted from both sides, since „the badge reads 1" is equally
   satisfied by a badge that always reads 1.)*
-* **E2E-M9-06** `all` (FR-24.2) — **implemented**: the tag chip axis filters on **any** of an item's tags while the
+* **E2E-M9-06** `all` (FR-24.2) — **implemented**: the tag control filters on **any** of an item's tags while the
   grouping stays on the primary one — filtering by *Sommer* surfaces the swimsuit filed under *Kleidung*. Asserted on
   rendered rows, since the two rules differ only in what is painted. *(Ran under the id E2E-M9-02 until 2026-08-30.)*
 * **E2E-M9-07** `all` (FR-28.1/28.4/28.7) — **implemented 2026-08-22** (`item-mark.spec.ts`): a mark set in M10 appears
