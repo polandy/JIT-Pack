@@ -367,6 +367,13 @@ stable references for the traceability matrix.
   the list too; it asserts that the segment it chose is one that holds trips. The counts as rendered text (`0` on an
   empty segment, nothing while unknown) are E2E-M2-13's, and the settled guard's own failure mode is unit-proved in
   `TripListPage.spec.ts` by flipping the signal after the assertion.
+* **E2E-M2-18** `single` (FR-2.8, ADR-033, G-7) — **implemented** (`e2e/single/opening-segment.spec.ts`, 2026-09-13):
+  the *screen* waits too. The same held pull as E2E-M2-14, one layer up: while the master partition is outstanding M2
+  shows „Reisen werden geladen …" and **no** `m2-empty`, and once it lands the notice goes and the trip is on its
+  segment. Both halves are asserted together on purpose — the absence of the empty state means nothing without a
+  positive line saying what the screen is doing instead, and it is the pair that separates "guarded" from "rendered
+  nothing at all". Before the guard, `m2-empty` was present in exactly that window, which is what the case was written
+  against.
 
 ### M3 — Trip Creation Wizard
 * **E2E-M3-01** `all` (FR-2.1/2.1a/15.1): step 1 metadata — name, dates auto-compute + display duration, attribute chips

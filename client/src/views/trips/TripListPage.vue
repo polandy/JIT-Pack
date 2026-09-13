@@ -680,9 +680,22 @@ async function handleRefresh(event: CustomEvent) {
         </template>
       </TripHero>
 
+      <!--
+        Not here yet is not empty (ADR-033). The counts have been guarded
+        since FR-2.8; the screen itself was not, so a device whose master
+        pull had not landed told the user it had no trips. The same
+        component without its illustration: a notice, not the G-7 absence,
+        and the geometry does not jump when the list arrives.
+      -->
+      <EmptyState
+        v-if="isEmpty && !countsKnown"
+        :title="t('trips.listUnknown')"
+        testid="m2-list-loading"
+      />
+
       <!-- Empty state (G-7) -->
       <EmptyState
-        v-if="isEmpty"
+        v-else-if="isEmpty"
         :icon="trainOutline"
         :title="
           filter === 'active'
