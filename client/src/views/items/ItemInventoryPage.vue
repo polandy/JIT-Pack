@@ -178,6 +178,16 @@ const resultGroups = computed<[MatchReason, MasterItem[]][]>(() =>
 /** What a hit matched through, by item id — the row's second line. */
 const viaOf = computed(() => new Map(hits.value.map((hit) => [hit.id, hit.via])))
 
+/**
+ * The heading key the alphabetical run renders under. Not a tag name, like
+ * `UNTAGGED_KEY` is not one — both are bucket keys the label function knows,
+ * and a tag that happened to be called „alphabetical" would render this
+ * heading's word instead of its own. Accepted, as it already is for the
+ * untagged bucket: the cost is one wrong heading, and the alternative is a
+ * sentinel nobody can read in a debugger.
+ */
+const ALPHABETICAL_KEY = 'alphabetical'
+
 /** The unsearched list: grouped by primary tag, or one alphabetical run. */
 const groups = computed<[string, MasterItem[]][]>(() => {
   if (sort.value === 'alphabetical') {
@@ -186,9 +196,6 @@ const groups = computed<[string, MasterItem[]][]>(() => {
   }
   return [...masterStore.itemsByPrimaryTag(onTagFilter.value)]
 })
-
-/** The heading key the alphabetical run renders under — never a tag name. */
-const ALPHABETICAL_KEY = 'alphabetical'
 
 const shownCount = computed(() =>
   searching.value

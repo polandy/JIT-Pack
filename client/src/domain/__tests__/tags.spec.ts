@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   groupByPrimaryTag,
   tagsOfItem,
+  tagNamesByItem,
   primaryTagOf,
   withCategories,
   UNTAGGED_KEY,
@@ -186,5 +187,48 @@ describe('withCategories (FR-24.2)', () => {
     const one = { ...item('i-full', 'Full'), weight_grams: 120, icon: '🧦' }
 
     expect(withCategories([one], [], tags)[0]).toMatchObject({ ...one, category_name: null })
+  })
+})
+
+describe('tagNamesByItem (FR-24.7)', () => {
+  it('answers every item at once, each list primary first', () => {
+    const assignments = [
+      assign('i-badehose', 't-sommer', 1),
+      assign('i-badehose', 't-kleidung', 0),
+      assign('i-kabel', 't-technik', 0),
+    ]
+
+    const names = tagNamesByItem(assignments, tags)
+
+    // The same order tagsOfItem gives one item — the M9 row's initial is read
+    // from the first entry, so a different order here would refile the row.
+    expect(names.get('i-badehose')).toEqual(['Kleidung', 'Sommer'])
+    expect(names.get('i-kabel')).toEqual(['Technik'])
+  })
+
+  it('leaves an item with no assignment out rather than mapping it to an empty list', () => {
+    const names = tagNamesByItem([assign('i-kabel', 't-technik', 0)], tags)
+
+    expect(names.has('i-badehose')).toBe(false)
+    expect(names.get('i-badehose')).toBeUndefined()
+  })
+
+  it('skips an assignment whose tag is gone, like tagsOfItem does', () => {
+    // A pull can deliver the two tombstones in either order; half a row is
+    // not a name.
+    const assignments = [
+      assign('i-badehose', 't-kleidung', 0),
+      assign('i-badehose', 't-deleted', 1),
+    ]
+
+    expect(tagNamesByItem(assignments, tags).get('i-badehose')).toEqual(['Kleidung'])
+  })
+
+  it('breaks a shared position by the assignment id, as the grouping does', () => {
+    const assignments = [assign('i-badehose', 't-sommer', 0), assign('i-badehose', 't-kleidung', 0)]
+
+    // Two rows at one position is a legal intermediate state of a reorder
+    // (FR-24.2); `i-badehose-t-kleidung` sorts before `i-badehose-t-sommer`.
+    expect(tagNamesByItem(assignments, tags).get('i-badehose')).toEqual(['Kleidung', 'Sommer'])
   })
 })

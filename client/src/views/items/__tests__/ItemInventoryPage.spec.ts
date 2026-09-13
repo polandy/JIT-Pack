@@ -155,6 +155,26 @@ describe('M9 inventory — the tools stay on the screen (FR-24.6)', () => {
     expect(document.activeElement).toBe(document.body)
   })
 
+  it('offers the clear control only once there is something to clear', async () => {
+    seedItem('Sonnencreme')
+
+    const page = mountPage()
+    await flushPromises()
+
+    // The persistent row's ✕ empties the field instead of closing it, so an
+    // empty field must not render one: a control that does nothing reads as
+    // a broken one.
+    expect(page.find('[data-testid="search-clear"]').exists()).toBe(false)
+
+    await typeSearch(page, 'sonne')
+    expect(page.find('[data-testid="search-clear"]').exists()).toBe(true)
+
+    await page.find('[data-testid="search-clear"]').trigger('click')
+    await flushPromises()
+    expect(page.find('[data-testid="items-search-input"]').element).toHaveProperty('value', '')
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+  })
+
   it('counts the collection in the head, and what a filter leaves of it', async () => {
     seedItem('Sonnencreme', 'i1')
     seedItem('Sonnenbrille', 'i2')
