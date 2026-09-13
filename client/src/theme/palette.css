@@ -512,18 +512,10 @@ ion-app {
 /*
  * The page is opaque; only its `ion-content` is not.
  *
- * `ion-app` alone was the whole plane, and every page was a sheet of glass
- * over it. That reads correctly at rest and not at all during a
- * transition: Ionic's md animation keeps the leaving page mounted while
- * the entering one fades in, and two panes of glass show both screens at
- * once — the packing list legible through the settings form for the
- * length of the animation, every line of one crossing a line of the
- * other. A background is what occludes; opacity alone never does.
- *
- * The cost is named rather than hidden: the wash now shows only behind
- * the header and the page head, and its faint tail no longer reaches the
- * content below them. Measured at a maximum of 17/255 on M17 — the tail
- * is the part of the wash that had almost nothing left to give.
+ * A background is what occludes — opacity alone never does — so a page that
+ * only glazes `ion-app` shows the page it is replacing for the length of
+ * every transition. ADR-049 amendment 1 weighs that against what the opaque
+ * plane costs: the wash now stops at the page head.
  */
 ion-router-outlet > .ion-page {
   background: var(--jp-surface-page);

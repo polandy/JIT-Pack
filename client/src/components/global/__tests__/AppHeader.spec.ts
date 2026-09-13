@@ -25,6 +25,7 @@ const route = {
   fullPath: M4_PATH,
   meta: { parent: '/tabs/trips' } as Record<string, unknown>,
   params: { tripId: 'trip-1' } as Record<string, string>,
+  matched: [{}] as unknown[],
 }
 
 /**
@@ -55,6 +56,7 @@ beforeEach(() => {
   route.path = M4_PATH
   route.fullPath = M4_PATH
   route.meta = { parent: '/tabs/trips' }
+  route.matched = [{}]
   resolved.length = 0
 })
 
@@ -122,6 +124,21 @@ describe('AppHeader — the gear (G-1, ADR-012)', () => {
       query: enteredFrom(`${M4_PATH}?item=item-1`),
     })
     expect(wrapper.find('[data-testid="header-settings"]').html()).toContain('from=')
+  })
+
+  /*
+   * The guard's own rule: a path that matched no route is not an origin,
+   * because `‹` would carry the user to a URL that renders nothing.
+   */
+  it('records no origin when the current path matched no route', () => {
+    route.path = '/typo'
+    route.fullPath = '/typo'
+    route.matched = []
+
+    const wrapper = mountHeader()
+
+    expect(resolved).toEqual([])
+    expect(wrapper.find('[data-testid="header-settings"]').html()).not.toContain('from=')
   })
 
   it('offers no gear on settings itself, so nothing resolves a self-link', () => {

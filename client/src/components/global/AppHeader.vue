@@ -121,26 +121,24 @@ const onSettings = computed(() => route.path === PATH.settings)
 /**
  * Where the gear points — with the origin already in the href.
  *
- * The origin exists so `‹` returns to the screen the gear was pressed on
- * (Navigation_Concept §7), and the router would write it itself: the
- * stamping guard redirects any entry into an `acceptsFrom` route that
- * carries none (originStamp.ts). Writing it here instead is not a second
- * mechanism but the one that keeps the tap a *single* navigation, and
- * that is what the outlet needs. A redirect aborts the navigation Ionic's
- * `router-link` already staged as a forward push and re-issues it as a
- * replace; Ionic keeps the staged push, and the two disagree about which
- * page is leaving. From two pages deep it hid the wrong one: M17 came up
- * over a still-live packing list, both unhidden in the one outlet, taps
- * landing on whichever won the stacking order. Measured 2026-09-13 —
- * from a tab root the stack is too shallow for the two to disagree, which
- * is why it only ever showed up inside a trip.
+ * The router would write the origin itself: `originStamp.ts` redirects any
+ * entry into an `acceptsFrom` route that carries none. Writing it here is
+ * not a second mechanism but the thing that keeps the tap a *single*
+ * navigation, which is what the outlet needs — a redirect aborts the push
+ * Ionic's `router-link` had already staged, Ionic keeps the staged params,
+ * and from two pages deep the outlet then hides the wrong one (ADR-049
+ * amendment 1 records the reading; the log entry of 2026-09-13 records the
+ * measurement). The guard stays for the entry points that navigate
+ * programmatically; this is the one `router-link` into a stamped route.
  *
- * The guard stays: it answers for the entry points that navigate
- * programmatically, which stage nothing for Ionic to keep and so never
- * hit this. This is the one `router-link` into a stamped route.
+ * An unmatched path is no origin, which is the guard's own rule: `‹` would
+ * carry the user to a URL that renders nothing, and the fallback parent has
+ * to answer instead.
  */
-const settingsHref = computed(
-  () => router.resolve({ path: PATH.settings, query: enteredFrom(route.fullPath) }).fullPath,
+const settingsHref = computed(() =>
+  route.matched.length === 0
+    ? PATH.settings
+    : router.resolve({ path: PATH.settings, query: enteredFrom(route.fullPath) }).fullPath,
 )
 
 function goHome() {
