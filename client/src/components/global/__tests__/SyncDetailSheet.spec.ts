@@ -52,6 +52,65 @@ const text = (wrapper: ReturnType<typeof mountSheet>, testid: string) =>
 const has = (wrapper: ReturnType<typeof mountSheet>, testid: string) =>
   wrapper.find(`[data-testid="${testid}"]`).exists()
 
+/**
+ * FR-19.6 — the line that says *why*. Without it the sheet explained the four
+ * states and none of the reasons, which is what left an iPad on the family
+ * instance saying *offline* against a healthy server with nothing to report.
+ */
+describe('SyncDetailSheet — the last failed request (FR-19.6)', () => {
+  const AT = NOW - 90_000
+
+  it('names the status, the method and the path of the last failure', () => {
+    const wrapper = mountSheet({
+      state: 'offline',
+      lastFailure: { method: 'POST', path: '/api/v1/master/sync', status: 401, at: AT },
+    })
+
+    const line = text(wrapper, 'sync-detail-last-failure')
+    expect(line).toContain('401')
+    expect(line).toContain('POST')
+    expect(line).toContain('/api/v1/master/sync')
+  })
+
+  it('says that nothing answered when the request never arrived', () => {
+    const wrapper = mountSheet({
+      state: 'offline',
+      lastFailure: { method: 'GET', path: '/api/v1/me', status: null, at: AT },
+    })
+
+    const line = text(wrapper, 'sync-detail-last-failure')
+    expect(line).toContain('no answer')
+    expect(line).toContain('/api/v1/me')
+  })
+
+  it('still names it under a green glyph — a background drain that failed is the unwatched case', () => {
+    const wrapper = mountSheet({
+      state: 'synced',
+      lastFailure: { method: 'POST', path: '/api/v1/trips/t1/sync', status: 403, at: AT },
+    })
+
+    expect(has(wrapper, 'sync-detail-last-failure')).toBe(true)
+  })
+
+  it('says nothing while no request has failed', () => {
+    expect(has(mountSheet({ state: 'offline' }), 'sync-detail-last-failure')).toBe(false)
+  })
+
+  it('never names one in Local Mode, which sends no requests', () => {
+    const wrapper = mountSheet({
+      mode: 'local',
+      state: 'local',
+      storage: storage(),
+      lastFailure: { method: 'GET', path: '/api/v1/me', status: 500, at: AT },
+    })
+
+    expect(has(wrapper, 'sync-detail-last-failure')).toBe(false)
+    // The positive signal: the Local Mode half did render, so the absence
+    // above is the rule and not an unmounted sheet.
+    expect(has(wrapper, 'sync-detail-storage')).toBe(true)
+  })
+})
+
 describe('SyncDetailSheet — network states (G-2)', () => {
   it('names the state and explains what it means for the user', () => {
     const wrapper = mountSheet({ state: 'synced' })

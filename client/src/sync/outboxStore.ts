@@ -22,6 +22,13 @@ import type { Mutation } from '@/api/types'
 
 const DB_NAME = 'jitpack-outbox'
 const DB_VERSION = 1
+/**
+ * How long one `indexedDB.open()` may take before the queue is declared
+ * unusable. Generous, because a cold start on a phone with a large database
+ * is slow and a queue wrongly given up on costs durability; bounded, because
+ * the alternative is the boot path waiting for ever (see `open`).
+ */
+const OPEN_TIMEOUT_MS = 8_000
 /** Mutations enqueued and not yet acknowledged by the server. */
 const PENDING = 'pending'
 /** Mutations the server will never accept — out of the queue, kept as evidence. */
@@ -35,6 +42,45 @@ const BY_SEQ = 'by_seq'
  * uses so storage never has to know the partition grammar.
  */
 export type PartitionKey = string
+
+/** Why the outbox database could not be opened — the two silent cases. */
+export type OutboxOpenFailure = 'blocked' | 'timeout'
+
+/**
+ * The queue's storage could not be opened, in a way IndexedDB itself never
+ * reports as an error.
+ *
+ * `blocked` is another connection holding the database at a different
+ * version — on iOS the installed PWA and a Safari tab on the same origin,
+ * which is the ordinary case rather than the exotic one. `timeout` is the
+ * open neither succeeding nor failing for {@link OPEN_TIMEOUT_MS}. Both used
+ * to leave the returned promise pending for ever, and with it the boot path
+ * that awaits it: no error, no glyph change, no trips.
+ */
+export class OutboxUnavailableError extends Error {
+  constructor(public readonly failure: OutboxOpenFailure) {
+    super(`outbox storage ${failure}`)
+    this.name = 'OutboxUnavailableError'
+  }
+}
+
+/** Wiring for the one real store; both halves exist for the failure tests. */
+export interface IndexedDBOutboxStoreOptions {
+  /** Deadline for one open. Defaults to {@link OPEN_TIMEOUT_MS}. */
+  openTimeoutMs?: number
+  /**
+   * Timer seam: runs `fn` after `ms` and returns the canceller. Injected so
+   * the deadline can be reached deliberately instead of waited for — the
+   * same reason the sync layer injects its clock.
+   */
+  startTimer?: (ms: number, fn: () => void) => () => void
+}
+
+/** Real timers, used wherever no seam was supplied. */
+const defaultStartTimer = (ms: number, fn: () => void): (() => void) => {
+  const handle = setTimeout(fn, ms)
+  return () => clearTimeout(handle)
+}
 
 /** One queued, not-yet-pushed mutation as it comes back from storage. */
 export interface PendingMutation {
@@ -105,13 +151,35 @@ export class IndexedDBOutboxStore implements OutboxStore {
    */
   private seq = 0
 
+  private readonly openTimeoutMs: number
+  private readonly startTimer: (ms: number, fn: () => void) => () => void
+
+  constructor(options: IndexedDBOutboxStoreOptions = {}) {
+    this.openTimeoutMs = options.openTimeoutMs ?? OPEN_TIMEOUT_MS
+    this.startTimer = options.startTimer ?? defaultStartTimer
+  }
+
   whenSettled(): Promise<void> {
     return this.settled
   }
 
+  /**
+   * Opens the database, and always settles.
+   *
+   * `onsuccess` and `onerror` are not the whole story: an open the browser
+   * *blocks* fires neither, and a wedged IndexedDB fires nothing at all.
+   * Either left this promise pending, and `connect()` awaits it on the boot
+   * path — the app came up with no trips, no error and the glyph still
+   * saying what it said before. The service worker's own open has handled
+   * `onblocked` since it was written (`client/public/sw.js`); this one had
+   * neither that nor a deadline.
+   */
   private open(): Promise<IDBDatabase> {
     this.db ??= new Promise<IDBDatabase>((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION)
+      const cancelDeadline = this.startTimer(this.openTimeoutMs, () =>
+        reject(new OutboxUnavailableError('timeout')),
+      )
       req.onupgradeneeded = () => {
         const db = req.result
         if (!db.objectStoreNames.contains(PENDING)) {
@@ -121,8 +189,21 @@ export class IndexedDBOutboxStore implements OutboxStore {
           db.createObjectStore(PARKED, { keyPath: 'mutation_id' }).createIndex(BY_SEQ, 'seq')
         }
       }
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
+      req.onsuccess = () => {
+        cancelDeadline()
+        resolve(req.result)
+      }
+      req.onerror = () => {
+        cancelDeadline()
+        reject(req.error)
+      }
+      // Another connection holds the database at a different version. It may
+      // yet be released, but nothing here can make that happen, and waiting
+      // is the failure this handler exists to end.
+      req.onblocked = () => {
+        cancelDeadline()
+        reject(new OutboxUnavailableError('blocked'))
+      }
     })
       .then(async (db) => {
         this.seq = await highestSeq(db)

@@ -517,6 +517,19 @@ removes the server entirely. Everything inherently multi-user or multi-device is
   anybody performs. Restoring it is the ordinary FR-18.4 path, extended for it (see there); the file shape and its
   accepted cost are ADR-015.
 
+  **The detail names the last failed request (added 2026-09-13).** An iPad on the family instance showed no trips and
+  a permanent *offline* glyph while the server was healthy and held the data — and neither the person holding it nor
+  the maintainer could get any further, because a 401, a 500 and a dead radio are one indistinguishable dot and the
+  instance keeps no request log. The sheet therefore carries one diagnostic line: **the method, the path and the status
+  of the last request that failed**, or that nothing answered at all, with the time it happened. It is reported by the
+  transport rather than by the callers — every caller swallows its own failure on purpose (G-2 is the only surface
+  that says anything), and the last request to fail is not necessarily the one anybody was waiting for. Three
+  consequences the implementation had to decide. (1) **Status, method and path are not translated**: a diagnostic is
+  read out or copied, and NFR-4.12 translates screen copy, not error detail — the sentence around it is translated.
+  (2) **A later success does not clear it**, because a background drain that failed under a green glyph is exactly the
+  case nobody was watching; the line says *last failed*, not *currently failing*. (3) **A 401 that the refresh
+  repaired is not a failure** and is never shown — only a 401 whose retry also failed.
+
 * **FR-19.7 (Apply a Waiting Version Now — accepted 2026-09-02):** When NFR-4.13 has a newer build installed and
   waiting, the app offers to apply it immediately, in two places. (1) A **bar under the app bar**, on every screen,
   saying a new version is ready and carrying the action plus a *Later*; and (2) the **G-2 detail sheet**, where the
@@ -551,6 +564,21 @@ removes the server entirely. Everything inherently multi-user or multi-device is
   nothing; the outbox is untouched, because Local Mode never writes it. In Single-User Mode the card does not exist (the
   device is already in Server Mode); the bar can appear in Server Mode only, since only the switch sets the flag.
   Tradeoff (a file round-trip on one device against a replay engine or a second device) is ADR-045.
+* **FR-19.9 (Logging Out and Resetting the Connection — accepted 2026-09-13):** M17 carries a **Connection** block in
+  Server Mode (absent in Local Mode per G-8: there is no connection to name). It states the instance this device is
+  connected to, and offers the two ways off it. **Log out** ends the session — the same end an IdP refusing a refresh
+  brings about (FR-23.3's path), so the device returns to M16 and unsent changes stay queued on it; offered only where
+  there *is* a session, i.e. not in Single-User Mode, where the button could do nothing. **Reset connection** forgets
+  the session, the mode and the stored server URL and reloads, so M19 asks again. Both ask once before acting.
+  The second exists because **three device states had no repair inside the app at all**: a token the instance no
+  longer accepts, a mode chosen by mistake, and a stored server URL that wins over the page's own origin
+  (`client/src/config.ts`) and points somewhere that has stopped answering. Each of them could only be cleared through
+  iOS Settings → Safari → Website Data — and, for an installed PWA, by deleting it from the home screen as well, which
+  is also how the last copy of a Local Mode device's data is thrown away. **What the reset deliberately keeps:** the
+  device's sync identity, because two HLC stamps from one device must never order by a fresh random id (Sync-API §3);
+  the Local Mode row store, which FR-19.8 already leaves in place; and FR-19.8's *migration pending* flag, because the
+  restore it stands for is still owed if this device is pointed at a server again. Nothing on the device is deleted,
+  which is what the confirmation says. No ADR: nothing was traded — the surface was simply missing.
 ### 3.20 Item Dependencies ("Companion Items")
 
 **Status: implemented (2026-07-10)** — migration 011 (`item_dependencies`), `client/src/domain/dependencies.ts`

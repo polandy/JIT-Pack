@@ -348,6 +348,47 @@ describe('useSyncOrchestrator', () => {
     expect(orch.syncStatus.state.value).toBe('offline')
   })
 
+  /**
+   * FR-19.6: *offline* is one glyph for every cause, and the drain swallows
+   * the error that knew which one it was. The transport reports it instead, so
+   * the G-2 sheet can name the request — the wiring is what this asserts.
+   */
+  it('records which request failed, not only that the device is offline (FR-19.6)', async () => {
+    const AT = 1_757_000_000_000
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: () => AT,
+    })
+
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }))
+
+    await orch.drainMaster()
+
+    expect(orch.syncStatus.state.value).toBe('offline')
+    // A drain with an empty queue is a pull, and the pull is what failed.
+    expect(orch.syncStatus.lastFailure.value).toMatchObject({
+      status: 401,
+      method: 'GET',
+      at: AT,
+    })
+    expect(orch.syncStatus.lastFailure.value?.path).toContain('/sync')
+  })
+
+  it('keeps the failure after the next drain succeeds — nobody was watching when it failed', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }))
+    await orch.drainMaster()
+    expect(orch.syncStatus.lastFailure.value?.status).toBe(500)
+
+    mockPull()
+    await orch.drainMaster()
+
+    // The positive signal that the run really succeeded this time.
+    expect(orch.syncStatus.state.value).toBe('synced')
+    expect(orch.syncStatus.lastFailure.value?.status).toBe(500)
+  })
+
   it('enqueues mutations and updates pending count', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
 

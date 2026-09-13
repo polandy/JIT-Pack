@@ -369,6 +369,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A clause priced the wrong half of „one screen away" (2026-09-12)](#a-clause-priced-the-wrong-half-of-one-screen-away-2026-09-12) — FR-25.13i reverses FR-25.13f for settled lines; reset rather than restore, and what that costs a skipped row.
 - [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 - [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
+- [Four reasons a device could not say what was wrong (2026-09-13)](#four-reasons-a-device-could-not-say-what-was-wrong-2026-09-13) — the iPad diagnosis: what made it undiagnosable, and why the hung boot was the one nobody could have seen.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15099,3 +15100,57 @@ ends up linked, the rows end up generated. What separates the two builds is the 
 `tripLifecycle.seam.spec.ts` asserts it directly: two `travelers` writes, the first with no account, the
 `trip_items` writes between them. The e2e case (E2E-M22-14) covers what a browser *can* see, which is that the
 account survives being created with the person.
+
+## Four reasons a device could not say what was wrong (2026-09-13)
+
+An iPad on the family instance (`v0.9.0`) showed **no trips and a permanent *offline* glyph** while the instance was
+healthy and held the data. The diagnosis had to be done from a copy of the production database and from the device's
+own browser against the public endpoints: a paged master pull as the owner returns all 36 trips, 185 KB of JSON, and
+every endpoint answers. **Nothing on the server or in the payload explains the symptom** — but the diagnosis itself is
+the finding. Four separate client defects made it impossible to tell that from the device, and they are one PR because
+each of them is the same mistake in a different layer: a failure that had nowhere to be *said*.
+
+**The cause was never identified, and the fixes do not depend on it.** Two candidates remain — tokens written into a
+different storage jar than the installed PWA, or a stale `jitpack_server_url` on that device — and the discriminator
+is a plain Safari tab on the same origin. That question is open on purpose: every item below is a reason the device
+could not answer it, not an attempt to guess the answer.
+
+**1. The glyph said *offline* for every reason there is.** `drainMaster`/`drainTrip` catch and drop the error, which is
+correct — the sheet is the only surface that says anything — but the error was the only thing that knew whether this
+was a 401, a 500 or a dead radio. The report therefore comes from the **transport**, not from the callers: one
+`onFailure` in `APIClient`, because a caller swallowing its own failure is the design and because the last request to
+fail is not necessarily the one anybody was waiting for. Two things the line had to get right to be worth having. It
+is **not cleared by a later success** — a background trip drain that 403s under a green glyph is exactly the case
+nobody was watching — and a **401 the refresh repaired is not reported at all**, which is why the hook sits after the
+retry rather than on the first response.
+
+**2. There was no way out of a bad session.** `clearTokens` was called from no view, and M19 renders only while no mode
+is stored, so three states had no repair inside the app: a token the instance refuses, a mode chosen by mistake, and a
+stored server URL that wins over the page's origin and points nowhere. The repair was iOS Settings → Safari → Website
+Data — which on a Local Mode device throws away the only copy of its data. FR-19.9's block is small; what took the
+thinking was what the reset must **keep**: the device id (two HLC stamps from one device must never order by a fresh
+random id), the Local Mode store, and FR-19.8's *migration pending* flag, because the restore it stands for is still
+owed if the device is pointed at a server again.
+
+**3. A token past its expiry was handed out for ever.** `doRefresh` returned the *old* access token on every failure
+that was not a 401 — including a 400 and a 403, which are the refresh being **answered and refused**. With a 15-minute
+access TTL a device whose refresh path was broken therefore 401'd on every request from minute 15 onwards, never logged
+out, and showed nothing but *offline* — across restarts, because the same expired token was loaded again. The rule is
+now about whether the refresh was *answered* (ADR-059), and the retryable 4xx are named once in `api/status.ts`,
+shared with the outbox's identical question about a refused push. The honest cost is in the ADR: a proxy answering a
+stray 4xx in front of `/auth/refresh` now costs the user one login.
+
+**4. The one nobody could have found by reading.** `outboxStore.open()` resolved on `onsuccess` and rejected on
+`onerror` — and a *blocked* open fires **neither**. The installed PWA and a Safari tab on the same origin is the
+ordinary way to reach that on iOS. The promise never settled, so `await orchestrator?.connect()` never returned, so
+`drainMaster()` on the next line never ran: no data, no error, no change to the glyph, and nothing in any log. The
+service worker's own IndexedDB open has handled `onblocked` since it was written, twenty lines away in a different
+file — which is the whole lesson: the second implementation of a pattern does not inherit the first one's hard-won
+handler. Both an `onblocked` and a deadline, because "neither event fires" has more causes than the one we can name,
+and the existing *„not saved on this device"* degradation was already waiting to receive them.
+
+**What the tests could and could not reach.** Items 1–3 are ordinary units. Item 4 needed a fake `indexedDB` whose
+`open` hands the test the request and fires nothing — the only way to stand in the state where no event arrives — plus
+a timer seam, because the deadline has to be *reached* rather than waited for. The assertion that a successful open
+**cancels** its deadline is the one that keeps the seam honest: without it the test would pass against a build that
+leaves a timer running behind every open.

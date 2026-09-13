@@ -31,7 +31,8 @@ import {
 import { computed } from 'vue'
 
 import { SYNC_GLYPHS } from './syncGlyphs'
-import { formatNumber, t } from '@/i18n'
+import type { RequestFailure } from '@/api/client'
+import { currentLocale, formatNumber, t } from '@/i18n'
 import { reminderState } from '@/local/exportReminder'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
 import { rejectionReasonKey } from '@/sync/rejectionReasons'
@@ -72,6 +73,12 @@ const props = withDefaults(
      * dead socket under a green glyph was a deaf device that looked fine.
      */
     live?: boolean
+    /**
+     * The last request that failed, or null while none has (FR-19.6). Server
+     * Mode only — Local Mode sends none. The glyph cannot say *why* it is
+     * offline, and this is the line that can.
+     */
+    lastFailure?: RequestFailure | null
     /** Run mode: it, not the state, decides which half of the sheet applies. */
     mode: 'local' | 'server'
     /** Whether a trip is open, i.e. whether its own conflict log exists. */
@@ -95,7 +102,14 @@ const props = withDefaults(
   }>(),
   // Durability is assumed until the outbox reports it lost — a device that
   // never had a queue to keep has not failed to keep one.
-  { queueDurable: true, parkedCount: 0, conflictCount: 0, live: false, updateApplying: false },
+  {
+    queueDurable: true,
+    parkedCount: 0,
+    conflictCount: 0,
+    live: false,
+    updateApplying: false,
+    lastFailure: null,
+  },
 )
 
 const emit = defineEmits<{
@@ -130,6 +144,22 @@ const parkedReasonText = computed(() => {
   return key === null ? null : t(key)
 })
 const showConflicted = computed(() => !isLocal.value && (props.conflictCount ?? 0) > 0)
+
+/**
+ * The failed request in one sentence. Status, method and path stay as the
+ * transport wrote them — a technical diagnostic is not screen copy and is not
+ * translated (NFR-4.12's rule for error detail); only the sentence around it
+ * is. The time is the device's, formatted in the reader's locale.
+ */
+const lastFailureText = computed(() => {
+  const failure = props.lastFailure
+  if (!failure || isLocal.value) return null
+  const when = new Date(failure.at).toLocaleTimeString(currentLocale())
+  const { method, path, status } = failure
+  return status === null
+    ? t('sync.detail.lastFailureUnreachable', { when, method, path })
+    : t('sync.detail.lastFailure', { when, status, method, path })
+})
 
 const megabytes = (bytes: number) =>
   formatNumber(bytes / (1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -212,6 +242,24 @@ const backupAge = computed(() => {
       <IonIcon :icon="warningOutline" />
       <span>{{ t('sync.detail.liveGap') }}</span>
     </p>
+
+    <!--
+      FR-19.6: why the glyph says what it says. Four situations share one
+      symbol, and before this line a 401, a 500 and a dead radio were the
+      same offline dot — unreportable by the person holding the device and
+      unreachable for the maintainer, whose instance keeps no request log.
+      It survives a later success on purpose: a background drain that failed
+      under a green glyph is the case nobody was watching.
+    -->
+    <template v-if="lastFailureText">
+      <p class="warn" data-testid="sync-detail-last-failure">
+        <IonIcon :icon="warningOutline" />
+        <span class="diagnostic">{{ lastFailureText }}</span>
+      </p>
+      <p class="note" data-testid="sync-detail-last-failure-hint">
+        {{ t('sync.detail.lastFailureHint') }}
+      </p>
+    </template>
 
     <!-- NFR-4.13: a waiting update concerns every mode — the bundle, not the data. -->
     <template v-if="updateReady">
@@ -362,6 +410,12 @@ const backupAge = computed(() => {
 .update ion-icon {
   font-size: var(--jp-icon-sm);
   flex: none;
+}
+
+.diagnostic {
+  /* A path breaks where it must: the line is read out or copied, never wrapped
+     by hand. */
+  overflow-wrap: anywhere;
 }
 
 .warn {

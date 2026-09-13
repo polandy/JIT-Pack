@@ -383,6 +383,7 @@ async function saveBackup() {
           :parked-reason="syncStatus.parkedReason.value"
           :conflict-count="syncStatus.conflictCount.value"
           :live="syncStatus.live.value"
+          :last-failure="syncStatus.lastFailure.value"
           :mode="mode"
           :can-open-conflicts="mode === 'server' && tripId !== null"
           :storage="storage"
