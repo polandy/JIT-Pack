@@ -10,7 +10,7 @@
  */
 import { ref, type Ref } from 'vue'
 
-import { loadTokens } from '@/auth/tokens'
+import { clearTokens, loadTokens } from '@/auth/tokens'
 import { generateDeviceId } from '@/composables/sync/rows'
 
 /** The two modes a client can be in. */
@@ -59,6 +59,34 @@ export function switchToServer(serverUrl: string): void {
   chooseMode('server', serverUrl)
   localStorage.setItem(MIGRATION_PENDING_KEY, '1')
   migrationPending.value = true
+}
+
+/**
+ * FR-19.9 — forget this device's connection and let M19 ask again.
+ *
+ * The session, the mode and the server URL go; everything else stays. It is
+ * the only way back out of the three states a device could otherwise only be
+ * repaired from through the browser's website data (and, for an installed
+ * PWA, by deleting it from the home screen): a token the server no longer
+ * accepts, a mode chosen by mistake, and a stored server URL that wins over
+ * the page's own origin (`config.ts`) and points somewhere that has stopped
+ * answering.
+ *
+ * What deliberately survives: this device's id, because two HLC stamps from
+ * one device must never order by a fresh random id (Sync-API §3); the Local
+ * Mode row store, which FR-19.8 already leaves in place; and the *migration
+ * pending* flag, because the restore it stands for is still owed if the
+ * person points this device at a server again.
+ *
+ * `reload` is a parameter for the reason `pwa/register.ts`'s is: the
+ * orchestrator is built once per app start, so the choice only takes effect
+ * after one — and a test cannot navigate.
+ */
+export function resetConnection(reload: () => void = () => window.location.reload()): void {
+  clearTokens()
+  localStorage.removeItem(MODE_KEY)
+  localStorage.removeItem(SERVER_URL_KEY)
+  reload()
 }
 
 /**

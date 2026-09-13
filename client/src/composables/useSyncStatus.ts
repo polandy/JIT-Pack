@@ -7,6 +7,7 @@
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 
+import type { RequestFailure } from '@/api/client'
 import { t, type MessageKey } from '@/i18n'
 
 export type SyncState = 'synced' | 'syncing' | 'offline' | 'local'
@@ -69,6 +70,17 @@ export interface SyncStatus {
    * of everyone else's. Local Mode has no socket and reads this as false.
    */
   live: Ref<boolean>
+  /**
+   * The last request that failed, or null while none has (FR-19.6).
+   *
+   * The glyph carries four situations and a failure carries none of them: a
+   * 401, a 500 and a dead radio are one indistinguishable *offline*, so the
+   * person holding the device can report nothing and the maintainer — whose
+   * instance keeps no request log — can work backwards from nothing. It is
+   * deliberately **not** cleared by a later success: a background drain that
+   * failed under a green glyph is exactly the case nobody was looking at.
+   */
+  lastFailure: Ref<RequestFailure | null>
   /** Human-readable label for the current state. */
   label: ComputedRef<string>
 
@@ -94,6 +106,8 @@ export interface SyncStatus {
   setQueueDurable(durable: boolean): void
   /** Report whether the WebSocket is open. */
   setLive(live: boolean): void
+  /** Record the request that just failed — the transport's report (FR-19.6). */
+  setLastFailure(failure: RequestFailure): void
 }
 
 export function useSyncStatus(): SyncStatus {
@@ -108,6 +122,7 @@ export function useSyncStatus(): SyncStatus {
   // and a device that never had a queue to keep has lost nothing.
   const queueDurable = ref(true)
   const live = ref(false)
+  const lastFailure = ref<RequestFailure | null>(null)
 
   // Order matters, and 'syncing' deliberately outranks 'local': Local
   // Mode still writes, and while a write is open the honest answer is
@@ -179,6 +194,10 @@ export function useSyncStatus(): SyncStatus {
     live.value = isLive
   }
 
+  function setLastFailure(failure: RequestFailure) {
+    lastFailure.value = failure
+  }
+
   return {
     state,
     pendingCount,
@@ -187,6 +206,7 @@ export function useSyncStatus(): SyncStatus {
     conflictCount,
     queueDurable,
     live,
+    lastFailure,
     label,
     setSyncing,
     setSynced,
@@ -197,5 +217,6 @@ export function useSyncStatus(): SyncStatus {
     addConflicts,
     setQueueDurable,
     setLive,
+    setLastFailure,
   }
 }

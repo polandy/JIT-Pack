@@ -188,6 +188,45 @@ than 30 seconds, and the backend closes a connection that stays silent for five 
 device that vanished without closing its socket drops out of the trip's presence list on its
 own.
 
+## One device shows no data and a permanent "offline" glyph
+
+**Symptom:** the app on one phone, tablet or browser has no trips in it and the sync glyph
+in the top bar stays on *offline*, while the same account on another device works and the
+server is healthy.
+
+**First: ask the device what failed.** Tap the sync glyph. The detail sheet names the last
+request that did not succeed — its method, its path and the status the server answered, or
+that nothing answered at all — with the time it happened. That one line separates the
+causes, and it is worth reading out or copying into a bug report, because the server keeps
+no request log to look it up in:
+
+| What the line says | What it means |
+|---|---|
+| `401` on a `/sync` path | the device's session is no longer accepted. It should be sent back to the login by itself; if it is not, log out on the device (below). |
+| `403` | the account is deactivated, or it is not a member of the trip being loaded. See the `403` sections below. |
+| `502` or `500` | the server answered, and failed. The cause is in the server log — start with the sections above. |
+| `no answer from …` | nothing reached the server: the network, a proxy that is down, or — the case worth checking first — a **server address this device stored earlier** that no longer points anywhere. |
+| nothing at all | no request has failed in this session. The device is not talking to the server because it has not tried; check that it is not in Local Mode (the glyph then shows a device, not a cloud) and that the app was not left on a stale page. |
+
+**Then repair it from the app, not from the browser's settings.** Settings has a
+**Connection** block in Server Mode. It names the instance the device is pointed at — and
+that address is stored *on the device*, so it can differ from the one you are serving the
+app from. Two actions:
+
+* **Log out** ends the session and returns the device to the login screen. Changes that
+  have not been sent yet stay on the device and go out after the next login.
+* **Reset connection** forgets the session, the mode and the stored server address and
+  asks again on the next start — the first-launch question. Nothing on the device is
+  deleted. Use it when the stored address is wrong, when the mode was chosen by mistake,
+  or when logging out does not get the device back to a working login.
+
+!!! warning "Why this matters on an installed app"
+    Before these two actions existed, a device in this state could only be cleared through
+    the browser's website data — and for an app installed to the home screen, by deleting
+    it and installing again. On a **Local Mode** device that also throws away the only
+    copy of its data, since there is no server holding a second one. Export a backup from
+    the sync detail sheet before going anywhere near the browser's storage settings.
+
 ## `502` with code `idp_unreachable`
 
 **Symptom:** users are suddenly asked to log in again, or a refresh fails with:

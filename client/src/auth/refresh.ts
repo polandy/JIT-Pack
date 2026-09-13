@@ -4,19 +4,26 @@
  * decides *when* to use it: proactively shortly before expiry, and
  * reactively when a request came back 401 despite a fresh-looking token.
  *
- * Offline stretches are normal in this app, so a refresh that fails for
- * network reasons keeps the current token — the sync layer already tolerates
- * failing requests — but only while that token is still inside its own
- * expiry, and never without arming the backoff below. Only an explicit IdP
- * rejection ends the session: tokens are cleared and AUTH_EXPIRED_EVENT tells
- * the app to return to the login page.
+ * Offline stretches are normal in this app, so a refresh that could not be
+ * *delivered* keeps the current token — the sync layer already tolerates
+ * failing requests. A refresh that was **answered and refused** ends the
+ * session: tokens are cleared and AUTH_EXPIRED_EVENT tells the app to
+ * return to the login page. The distinction is the whole point of this
+ * module (ADR-059): keeping a token the server has stopped renewing turns
+ * an expired session into a device that 401s for ever and can only say
+ * *offline*.
+ *
+ * An undeliverable refresh also arms a backoff before the next one is
+ * attempted. That is the other half of the same rule: this endpoint replays
+ * a grant at the *IdP*, so a client that retries per request is a client
+ * that can take an IdP down.
  */
 
 import { API } from '@/api/routes'
+import { isClientError, isTransientClientStatus } from '@/api/status'
 import type { SessionTokens } from '@/api/types'
 import { defaultNowMs, type NowMs } from '@/lib/clock'
-
-import { clearTokens, loadTokens, saveTokens } from './tokens'
+import { clearTokens, loadTokens, type StoredTokens, saveTokens } from './tokens'
 
 /** Refresh this long before expiry so in-flight requests don't race the deadline. */
 const EXPIRY_SKEW_MS = 30_000
@@ -25,13 +32,15 @@ const EXPIRY_SKEW_MS = 30_000
  * How long to wait after a refresh that could not be completed, by
  * consecutive failure; the last entry is the ceiling.
  *
- * The interval is the point: this endpoint replays a grant at the *IdP*,
- * whose rate limit is shared with the authorization-code exchange behind the
- * login screen, so a client that retries per request takes everybody's login
- * down with its own session (the log's 2026-09-13 entry). The values are what
- * a person waits at worst for a recovered IdP to be noticed again; a pull, a
- * push or a resume meanwhile costs no request, because the token is refused
- * here rather than at the server.
+ * The interval is the point. This endpoint replays a grant at the IdP, whose
+ * rate limit is shared with the authorization-code exchange behind the login
+ * screen, so a client that retries once per request takes everybody's login
+ * down with its own dead session — including the 429 the rate limit itself
+ * answers with, which is transient and therefore retried (`api/status.ts`).
+ * The values are what a person waits at worst for a recovered IdP to be
+ * noticed again; a pull, a push or a resume meanwhile costs no request,
+ * because the answer is given here rather than fetched. See the log's
+ * 2026-09-13 entry.
  */
 const REFRESH_BACKOFF_MS = [5_000, 30_000, 120_000, 600_000] as const
 
@@ -86,9 +95,11 @@ export interface AuthRefresher {
 }
 
 /**
- * `now` is the clock the backoff is measured on. Injected for the reason the
- * sync layer injects its own: a test of an interval must be able to state
- * where it is in that interval, rather than wait to find out.
+ * Creates the refresher for one instance.
+ *
+ * `now` is injected for the same reason the sync layer's clock is: expiry is
+ * a comparison, and a test that cannot name the instant can only assert that
+ * a token was truthy (`lib/clock.ts`).
  */
 export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs): AuthRefresher {
   const base = baseUrl.replace(/\/+$/, '')
@@ -98,24 +109,25 @@ export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs):
   /** Nothing is sent to the IdP before this instant (see REFRESH_BACKOFF_MS). */
   let nextAttemptAt = 0
 
-  /** The stored token while it is still worth sending, and null once it is not. */
-  function usableToken(): string | null {
-    const tokens = loadTokens()
-    if (!tokens) return null
-    // Past its expiry the token is not a degraded answer but a wrong one: the
-    // server refuses it, and answering with it is what turned an outage into
-    // a request loop. The skew is deliberately *not* applied here — a token
-    // inside the skew window is still accepted, and holding it back during an
-    // outage would end a session the IdP has said nothing about.
+  /**
+   * The stored access token, or null once it is past its own expiry.
+   *
+   * A token that has expired is not a fallback: the server will refuse every
+   * request carrying it, and handing it out again is how a device with a
+   * broken refresh path 401s from minute 15 onwards — for ever, and through
+   * restarts, because the same token is loaded again. Null is the honest
+   * answer, and the request fails with a status G-2 can name (FR-19.6).
+   */
+  function unexpired(tokens: StoredTokens): string | null {
     return now() < tokens.expires_at ? tokens.access_token : null
   }
 
-  /** What a failed attempt answers, after arming the next one. */
-  function backOff(): string | null {
+  /** What an undeliverable attempt answers, after arming the next one. */
+  function backOff(tokens: StoredTokens): string | null {
     failures += 1
-    const delay = REFRESH_BACKOFF_MS[Math.min(failures - 1, REFRESH_BACKOFF_MS.length - 1)]!
-    nextAttemptAt = now() + delay
-    return usableToken()
+    nextAttemptAt =
+      now() + REFRESH_BACKOFF_MS[Math.min(failures - 1, REFRESH_BACKOFF_MS.length - 1)]!
+    return unexpired(tokens)
   }
 
   async function freshToken(): Promise<string | null> {
@@ -126,9 +138,12 @@ export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs):
   }
 
   function refresh(): Promise<string | null> {
-    // Inside the backoff window the IdP is not asked at all. The caller gets
-    // the same answer it would have got from a failed attempt, without one.
-    if (now() < nextAttemptAt) return Promise.resolve(usableToken())
+    // Inside the window the IdP is not asked at all: the caller is given the
+    // answer a failed attempt would have given it, without making one.
+    if (now() < nextAttemptAt) {
+      const tokens = loadTokens()
+      return Promise.resolve(tokens ? unexpired(tokens) : null)
+    }
     inflight ??= doRefresh().finally(() => {
       inflight = null
     })
@@ -147,21 +162,29 @@ export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs):
         body: JSON.stringify({ refresh_token: tokens.refresh_token }),
       })
     } catch {
-      return backOff()
+      // The request never arrived: nothing has been said about this session,
+      // so the token stays — unless it has already expired.
+      return backOff(tokens)
     }
 
-    if (resp.status === 401) {
+    // Answered and refused. 401 is the broker's word for a refresh token the
+    // IdP rejected; every other verdict in the range is this client asking
+    // wrongly, and no later attempt asks better. Retrying either of them is
+    // what made an expired session indistinguishable from a bad radio.
+    if (isClientError(resp.status) && !isTransientClientStatus(resp.status)) {
       endSession()
       return null
     }
-    if (!resp.ok) return backOff()
+    // A 5xx, or one of the transient 4xx: the instance is failing, not the
+    // session, and the next attempt can still succeed.
+    if (!resp.ok) return backOff(tokens)
 
     // Partial rather than SessionTokens: the server always sends all three,
     // but the guard below is about a body that is not one — an interposed
     // proxy, a truncated response — and a non-optional type would make it
     // read as dead code.
     const set = (await resp.json()) as Partial<SessionTokens>
-    if (!set.access_token) return backOff()
+    if (!set.access_token) return backOff(tokens)
     saveTokens(
       {
         access_token: set.access_token,

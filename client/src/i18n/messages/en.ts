@@ -55,6 +55,11 @@ export const en = {
     'Live updates are connected — changes from other devices arrive as they happen.',
   'sync.detail.liveGap':
     'Live updates are not connected right now. Reconnecting — until then, changes from other devices arrive with the next sync.',
+  'sync.detail.lastFailure': 'Last failed request, {when}: {status} on {method} {path}',
+  'sync.detail.lastFailureUnreachable':
+    'Last failed request, {when}: no answer from {method} {path}',
+  'sync.detail.lastFailureHint':
+    'Read that line out when you report a problem — it says what failed, not just that something did.',
   'sync.detail.pending': '{n} change waiting to be sent | {n} changes waiting to be sent',
   'sync.detail.conflicts': 'Conflicts in this trip',
   'sync.detail.conflictsMaster': 'Conflicts in inventory, groups and trip data',
@@ -695,6 +700,20 @@ export const en = {
   'settings.conflictLog': 'Conflict log',
   'settings.conflictLogNote':
     'Automatic merge resolutions are logged per trip — open a trip and tap the sync indicator in the header to review them.',
+  'settings.connection': 'Connection',
+  'settings.connectionServer': 'This device is connected to',
+  'settings.logout': 'Log out',
+  'settings.logoutHint':
+    'Ends the session on this device. Changes still waiting stay on the device.',
+  'settings.logoutConfirmTitle': 'Log out?',
+  'settings.logoutConfirmBody':
+    'This device returns to the login screen. Nothing is deleted, and changes that have not been sent yet stay on the device until you log in again.',
+  'settings.resetConnection': 'Reset connection',
+  'settings.resetConnectionHint':
+    'Forgets the session and the server address, then asks again on the next start. Use this when the app cannot reach its instance.',
+  'settings.resetConnectionConfirmTitle': 'Forget this connection?',
+  'settings.resetConnectionConfirmBody':
+    'The app asks which instance to use when it starts again. No data on this device is deleted.',
   'settings.about': 'About',
   'settings.aboutVersion': 'Version {version} · {commit}',
   // M23 — Hidden master data (FR-24.3): what a delete only hid, and the way back.

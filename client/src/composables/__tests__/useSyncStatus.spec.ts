@@ -127,3 +127,35 @@ describe('useSyncStatus — durable queue facts', () => {
     expect(status.queueDurable.value).toBe(false)
   })
 })
+
+/**
+ * FR-19.6 — the last failed request. The rule that needs a test of its own is
+ * the one that looks like a bug: it is *not* cleared by a later success.
+ */
+describe('useSyncStatus — the last failed request', () => {
+  const failure = { method: 'GET', path: '/api/v1/master/sync', status: 503, at: 1_757_000_000_000 }
+
+  it('has nothing to say before anything has failed', () => {
+    expect(useSyncStatus().lastFailure.value).toBeNull()
+  })
+
+  it('keeps the failure after the device is synced again — nobody was watching when it failed', () => {
+    const status = useSyncStatus()
+
+    status.setLastFailure(failure)
+    status.setSynced()
+
+    // The positive signal that the success really registered.
+    expect(status.state.value).toBe('synced')
+    expect(status.lastFailure.value).toEqual(failure)
+  })
+
+  it('carries the most recent one, not the first', () => {
+    const status = useSyncStatus()
+
+    status.setLastFailure(failure)
+    status.setLastFailure({ ...failure, status: null, at: failure.at + 1_000 })
+
+    expect(status.lastFailure.value?.status).toBeNull()
+  })
+})

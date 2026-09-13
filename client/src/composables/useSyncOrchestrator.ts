@@ -205,7 +205,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // store and no outbox to answer what a row asks while rendering.
   const locks = createLockState(currentUserId)
 
-  const client = new APIClient(config.baseUrl, config.getToken, config.onUnauthorized)
+  const client = new APIClient(config.baseUrl, config.getToken, {
+    onUnauthorized: config.onUnauthorized,
+    // FR-19.6: the glyph says *offline* for every reason there is, so the
+    // sheet behind it names the last request that actually failed.
+    onFailure: (failure) => syncStatus.setLastFailure(failure),
+    now,
+  })
 
   const hlc = new HLCGenerator(now, config.deviceId ?? deviceId())
   const mutations = createMutations(hlc, nowIso)

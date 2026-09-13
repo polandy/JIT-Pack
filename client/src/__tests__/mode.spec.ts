@@ -12,6 +12,7 @@ import {
   clearMigrationPending,
   loadMigrationPending,
   migrationPending,
+  resetConnection,
   switchToServer,
   hasCollaborativeSession,
   isValidServerUrl,
@@ -84,6 +85,49 @@ describe('switchToServer', () => {
     clearMigrationPending()
     expect(migrationPending.value).toBe(false)
     expect(loadMigrationPending()).toBe(false)
+  })
+})
+
+/**
+ * FR-19.9 — the way back out. A device with a token the server will not
+ * accept, a mode chosen by mistake or a stored URL that stopped answering had
+ * no repair inside the app at all: iOS Settings → Safari → Website Data, plus
+ * deleting an installed PWA from the home screen.
+ */
+describe('resetConnection', () => {
+  beforeEach(() => localStorage.clear())
+
+  const session = { access_token: 'a', refresh_token: 'r', expires_in: 3600 }
+
+  it('forgets the session, the mode and the server URL, and reloads', () => {
+    chooseMode('server', 'https://stale.example.com')
+    saveTokens(session)
+    let reloads = 0
+
+    resetConnection(() => (reloads += 1))
+
+    expect(readMode()).toBeNull()
+    expect(localStorage.getItem(SERVER_URL_KEY)).toBeNull()
+    expect(localStorage.getItem('jitpack_tokens')).toBeNull()
+    // The reload is the whole point: the orchestrator is built once per start.
+    expect(reloads).toBe(1)
+  })
+
+  it('keeps this device identity — an HLC that re-rolled it would order by chance', () => {
+    const id = deviceId()
+    chooseMode('server', 'https://stale.example.com')
+
+    resetConnection(() => {})
+
+    expect(localStorage.getItem(DEVICE_ID_KEY)).toBe(id)
+  })
+
+  it('keeps the restore FR-19.8 still owes — pointing at a server again does not pay it', () => {
+    switchToServer('https://stale.example.com')
+
+    resetConnection(() => {})
+
+    expect(localStorage.getItem(MIGRATION_PENDING_KEY)).not.toBeNull()
   })
 })
 

@@ -21,6 +21,8 @@ replaced and why. This index only says where to look.
   (ADR-049). **G-11**: the palette is *Bergluft* (ADR-048).
 * 2026-09-10 — **G-18** added: a create that leaves the screen happens once. **M5**: the context line's amount is an
   amount like every other (FR-21.9), and the FR-20.4 chip writes the position the resolution describes.
+* 2026-09-13 — **G-2**: the detail names the last failed request (FR-19.6). **M17** gains the Connection block —
+  log out, reset connection (FR-19.9).
 * 2026-09-02 — **M17** gains the FR-19.8 leave-Local-Mode card and the migration bar (ADR-045); M19 unchanged.
 * 2026-08-30 — **M8**: the FR-25.15 indicator's seam is `capturePending`, not the sync state (was wrong since
   2026-08-15).
@@ -91,7 +93,16 @@ These patterns apply to every screen and are specified once.
   describe *this* device's changes reaching the server, which stays true of a device whose socket is dead — and that
   device used to look synced while hearing nobody, which is how a one-directional sync on the family instance went
   unexplained for an afternoon. Both outcomes render a sentence, so the absence of live updates is a line and not a
-  blank. Local Mode has no socket and shows neither. **Waiting update (NFR-4.13, added 2026-08-20):** when a newer build
+  blank. Local Mode has no socket and shows neither. **The last failed request is named (added 2026-09-13,
+  FR-19.6):** in Server Mode the sheet carries one diagnostic line — the method, the path and the status of the last
+  request that failed, or that nothing answered at all, with the time — plus a note saying to read it out when
+  reporting a problem. Four situations share one glyph and a failure shares none of them, so *offline* was the same word
+  for a 401, a 500 and a dead radio; on the family instance that left the person holding the device with nothing to
+  report and the maintainer, whose instance keeps no request log, with nothing to work backwards from. Three rules the
+  line follows: the status, the method and the path are **not translated** (a diagnostic is copied, not read as screen
+  copy); a later success does **not** clear it, because a background drain that failed under a green glyph is the case
+  nobody was watching; and a 401 the token refresh repaired is not a failure and never appears. Local Mode sends no
+  requests and shows no line. **Waiting update (NFR-4.13, added 2026-08-20):** when a newer build
   of the app is installed and waiting for the next launch, the glyph carries a small action-coloured dot and the detail
   sheet states, above the mode-specific half, that a new version is ready and takes over the next time the app is
   opened. It is an annotation on the glyph, not a fifth state — the sync story is untouched. **The announcement carries
@@ -1803,6 +1814,18 @@ fortfahren? Die Daten bleiben nur in der Sicherungsdatei."*) and then clears the
 restore commits on M18 in Server Mode. It is the same component shape as the FR-19.7 bar and stacks below it if both are
 up. It is never shown in Local Mode — nothing there can set the flag — and not on the login screen, which has no app
 shell.
+
+**Connection (FR-19.9) — added 2026-09-13.** A block before *About*, in **Server Mode only** (G-8: Local Mode has no
+connection to name). It states the instance this device is connected to — the stored URL, which is what actually wins
+over the page's origin — and carries the two ways off it. ***Log out*** (*„Abmelden"*) ends the session and leaves the
+device on the login screen; it is offered only where there is a session, so not in Single-User Mode, where the button
+could do nothing. ***Reset connection*** (*„Verbindung zurücksetzen"*) forgets the session, the mode and the server
+URL and reloads, so **M19 asks again** — which is the point: M19 renders only while no mode is stored, so a device
+that had answered it once could never see it again, and a token the instance refuses, a mode chosen by mistake or a
+server URL that stopped answering had no repair inside the app at all. Both ask once; the reset's confirmation says
+that nothing on the device is deleted, because that is the question a person about to press it has. It is worded as
+the destructive one of the two all the same — it throws a decision away, and a Local Mode device's data is reachable
+afterwards only through the file it exported.
 
 **API tokens (FR-23.7, ADR-039) — added 2026-08-30.** A block between *Administration* and *Hidden master data*: a name
 field, an expiry select (an hour / a day / a week / 30 days / 90 days / a year / never, **90 preselected**), and a

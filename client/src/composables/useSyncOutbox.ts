@@ -19,6 +19,7 @@
  */
 
 import { APIRequestError, type APIClient } from '@/api/client'
+import { isClientError, isTransientClientStatus } from '@/api/status'
 import type { Mutation, PullChange, PushResponse } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import { hasFurtherPage } from '@/sync/pullProtocol'
@@ -42,12 +43,12 @@ const OUTCOME_REJECTED = 'rejected'
 const OUTCOME_MERGED = 'merged'
 
 /**
- * 4xx statuses a later attempt can still succeed on, so the batch behind
- * them stays queued. Everything else in the 4xx range means the server has
- * looked at this envelope and refused it — retrying forever would wedge the
- * queue and take every mutation behind it hostage.
+ * A 401 is retryable *here*: the client refreshes its token and sends the
+ * same envelope again (§2). The other statuses a later attempt can succeed
+ * on are `api/status.ts`'s, shared with the refresher so the two cannot
+ * disagree about what a 4xx means.
  */
-const RETRYABLE_CLIENT_STATUSES = new Set([401, 408, 425, 429])
+const RETRYABLE_STATUS = 401
 
 /** The reason recorded when the server refused the envelope without words. */
 const UNSPECIFIED_REJECTION = 'the server refused the change'
@@ -71,9 +72,9 @@ function partitionRef(key: PartitionKey): PartitionRef {
 function isPermanentRefusal(err: unknown): err is APIRequestError {
   return (
     err instanceof APIRequestError &&
-    err.status >= 400 &&
-    err.status < 500 &&
-    !RETRYABLE_CLIENT_STATUSES.has(err.status)
+    isClientError(err.status) &&
+    err.status !== RETRYABLE_STATUS &&
+    !isTransientClientStatus(err.status)
   )
 }
 

@@ -184,6 +184,8 @@ IdP refused the broker's client credentials — check JITPACK_OIDC_CLIENT_ID and
 
 The asymmetry is intentional. Mistaking a rejection for an outage costs a session row that lingers until it expires while the user is cut off anyway. Mistaking an outage for a rejection destroys every session on the instance, unrecoverably. So anything ambiguous resolves to "outage".
 
+One thing to know if something else sits in front of the refresh endpoint: the **client** ends its session whenever `/api/v1/auth/refresh` *answers* with a 4xx other than 408, 425 or 429 — not only on the 401 the broker sends for a genuine rejection. A request that never arrives, or that comes back 5xx, keeps the session, because offline is the normal condition. The asymmetry is on purpose: a client that kept retrying an unrenewable session showed nothing but an *offline* glyph for ever. The consequence for you is that a WAF, an auth proxy or a captive portal answering `403` in front of a healthy instance will log people out, and the server log will show nothing at all — the request never reached it. If users report being logged out while the instance logs no refreshes, look at what sits in front of it.
+
 Note that this tolerance applies to a **running** server only. At startup the IdP must be reachable, because a broker that came up without a verified issuer and a loaded JWKS could not validate anything — see [What fails fast at startup](configuration.md#what-fails-fast-at-startup).
 
 ---

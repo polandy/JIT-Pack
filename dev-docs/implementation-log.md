@@ -369,7 +369,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A clause priced the wrong half of „one screen away" (2026-09-12)](#a-clause-priced-the-wrong-half-of-one-screen-away-2026-09-12) — FR-25.13i reverses FR-25.13f for settled lines; reset rather than restore, and what that costs a skipped row.
 - [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 - [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
-- [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — an expired token answered as a degraded one; how one device's retry loop rate-limited everybody's login.
+- [Four reasons a device could not say what was wrong (2026-09-13)](#four-reasons-a-device-could-not-say-what-was-wrong-2026-09-13) — the iPad diagnosis: what made it undiagnosable, and why the hung boot was the one nobody could have seen.
+- [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — one client's retry drained a rate limit shared with the login exchange; the IdP lifespan behind it.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15101,39 +15102,87 @@ ends up linked, the rows end up generated. What separates the two builds is the 
 `trip_items` writes between them. The e2e case (E2E-M22-14) covers what a browser *can* see, which is that the
 account survives being created with the person.
 
+## Four reasons a device could not say what was wrong (2026-09-13)
+
+An iPad on the family instance (`v0.9.0`) showed **no trips and a permanent *offline* glyph** while the instance was
+healthy and held the data. The diagnosis had to be done from a copy of the production database and from the device's
+own browser against the public endpoints: a paged master pull as the owner returns all 36 trips, 185 KB of JSON, and
+every endpoint answers. **Nothing on the server or in the payload explains the symptom** — but the diagnosis itself is
+the finding. Four separate client defects made it impossible to tell that from the device, and they are one PR because
+each of them is the same mistake in a different layer: a failure that had nowhere to be *said*.
+
+**The cause was never identified, and the fixes do not depend on it.** Two candidates remain — tokens written into a
+different storage jar than the installed PWA, or a stale `jitpack_server_url` on that device — and the discriminator
+is a plain Safari tab on the same origin. That question is open on purpose: every item below is a reason the device
+could not answer it, not an attempt to guess the answer.
+
+**1. The glyph said *offline* for every reason there is.** `drainMaster`/`drainTrip` catch and drop the error, which is
+correct — the sheet is the only surface that says anything — but the error was the only thing that knew whether this
+was a 401, a 500 or a dead radio. The report therefore comes from the **transport**, not from the callers: one
+`onFailure` in `APIClient`, because a caller swallowing its own failure is the design and because the last request to
+fail is not necessarily the one anybody was waiting for. Two things the line had to get right to be worth having. It
+is **not cleared by a later success** — a background trip drain that 403s under a green glyph is exactly the case
+nobody was watching — and a **401 the refresh repaired is not reported at all**, which is why the hook sits after the
+retry rather than on the first response.
+
+**2. There was no way out of a bad session.** `clearTokens` was called from no view, and M19 renders only while no mode
+is stored, so three states had no repair inside the app: a token the instance refuses, a mode chosen by mistake, and a
+stored server URL that wins over the page's origin and points nowhere. The repair was iOS Settings → Safari → Website
+Data — which on a Local Mode device throws away the only copy of its data. FR-19.9's block is small; what took the
+thinking was what the reset must **keep**: the device id (two HLC stamps from one device must never order by a fresh
+random id), the Local Mode store, and FR-19.8's *migration pending* flag, because the restore it stands for is still
+owed if the device is pointed at a server again.
+
+**3. A token past its expiry was handed out for ever.** `doRefresh` returned the *old* access token on every failure
+that was not a 401 — including a 400 and a 403, which are the refresh being **answered and refused**. With a 15-minute
+access TTL a device whose refresh path was broken therefore 401'd on every request from minute 15 onwards, never logged
+out, and showed nothing but *offline* — across restarts, because the same expired token was loaded again. The rule is
+now about whether the refresh was *answered* (ADR-059), and the retryable 4xx are named once in `api/status.ts`,
+shared with the outbox's identical question about a refused push. The honest cost is in the ADR: a proxy answering a
+stray 4xx in front of `/auth/refresh` now costs the user one login.
+
+**4. The one nobody could have found by reading.** `outboxStore.open()` resolved on `onsuccess` and rejected on
+`onerror` — and a *blocked* open fires **neither**. The installed PWA and a Safari tab on the same origin is the
+ordinary way to reach that on iOS. The promise never settled, so `await orchestrator?.connect()` never returned, so
+`drainMaster()` on the next line never ran: no data, no error, no change to the glyph, and nothing in any log. The
+service worker's own IndexedDB open has handled `onblocked` since it was written, twenty lines away in a different
+file — which is the whole lesson: the second implementation of a pattern does not inherit the first one's hard-won
+handler. Both an `onblocked` and a deadline, because "neither event fires" has more causes than the one we can name,
+and the existing *„not saved on this device"* degradation was already waiting to receive them.
+
+**What the tests could and could not reach.** Items 1–3 are ordinary units. Item 4 needed a fake `indexedDB` whose
+`open` hands the test the request and fires nothing — the only way to stand in the state where no event arrives — plus
+a timer seam, because the deadline has to be *reached* rather than waited for. The assertion that a successful open
+**cancels** its deadline is the one that keeps the seam honest: without it the test would pass against a build that
+leaves a timer running behind every open.
+
 ## A refresh with no interval took the login screen down with it (2026-09-13)
 
-A tablet could log in and then saw an empty app with the G-2 glyph on *offline*. Nothing about it was
-device-specific, and nothing was wrong with the instance: the master feed was replayed against a copy of the
-production database and returned every trip the account is a member of, 185 KB over three pages, and the public
-endpoints answered correctly from the device itself. The evidence that decided it came from the IdP's log —
-`Rate Limit Exceeded` on `POST /api/oidc/token`, over and over, from the broker's single source address.
+The section above ends with the cause unidentified, and it stayed that way until the *login* broke too: „the server
+rejected the login", for everybody, on an instance whose own health checks were green. That symptom named the place
+the previous one could not. The evidence was in the IdP's log, which is not the one anybody had been reading —
+`Rate Limit Exceeded` on `POST /api/oidc/token`, continuously, from the broker's single source address, beside
+`Refresh Token expired at '2026-09-11 21:36:16 UTC'`.
 
-**The premise that was wrong: "an outage must not cost a session, so keep the token."** That rule is right, and
-`classifyTokenResponse` follows it deliberately — only a 400/401 `invalid_grant` ends a chain, everything else is
-an outage. What nobody had noticed is that the *client* implemented the same rule by handing its caller the access
-token it already had, **including when that token had expired**. An expired token is not a degraded answer; the
-server refuses it. So the request 401'd, the 401 path asked for a refresh, the refresh failed again, and the loop
-ran for as long as the app was open — with no interval anywhere in it.
+**A lifespan nobody had matched up.** Authelia's default `refresh_token` is 90 minutes; JIT-Pack's session chain is 90
+days and replays the IdP's token at every renewal. Any device closed for longer woke up holding a grant the IdP had
+already forgotten. The instance now gives the client its own lifespan (`lifespans.custom.jitpack`, 90 d), and the
+manual says why, because a self-hoster meets this on their first IdP — but the setting is not the finding.
 
-**A per-client rate limit is shared with the login screen.** Authelia's token endpoint serves the refresh grant
-*and* the authorization-code exchange. Once the loop had drained the bucket, `The server rejected the login`
-appeared for everyone, on an instance whose own health checks were green — which is why the first hour was spent
-looking at the device.
+**The finding is that one client's retry is everyone's outage.** Withholding the expired token (item 3 above) stops
+the *token* from being wrong; it does not stop the *asking*. Every request the app makes still ran the refresh, and
+the refresh replays a grant at the IdP, whose rate limit is per source address — and behind a server-side broker every
+user is one address. Worse, the endpoint being drained also serves the authorization-code exchange, so the first
+visible casualty was not sync but the login screen. And the 429 the limit answers with is, correctly, classified as
+transient: without an interval, the rule that keeps a session alive through a rate limit is the same rule that keeps
+the rate limit exhausted.
 
-**What made the loop possible in the first place was a lifespan nobody had matched up.** Authelia's default
-`refresh_token` is 90 minutes; JIT-Pack's session chain is 90 days and replays the IdP token at every renewal.
-Any device closed for longer woke up holding a grant the IdP had forgotten. The instance now gives the client its
-own lifespan (`lifespans.custom.jitpack`, 90d); the manual says why, because a self-hoster meets this on their
-first IdP.
+**So the fix is an interval, not another classification.** 5 s, 30 s, 2 min, 10 min per consecutive undeliverable
+attempt; inside the window nothing reaches the endpoint and the caller gets the answer a failed attempt would have
+given it. A landed refresh drops the ladder, so a recovered IdP is noticed at the next request.
 
-**The fix here is the interval, not the classification.** `createAuthRefresher` keeps a still-valid token through
-an outage exactly as before, answers `null` once that token is past its expiry, and arms a backoff — 5 s, 30 s,
-2 min, 10 min — during which no request reaches the endpoint at all. Callers are answered from the same rule
-without a request, so a screen that pulls, pushes and resumes still costs one attempt per window.
-
-**The clock is injected for the reason the sync layer injects its own.** A backoff is an interval, and a test of
-an interval has to be able to say where in it the next call happens; `saveTokens` takes the same clock, so the
-deadline it stores and the deadline the refresher reads are one clock rather than two. The four new cases were
-run against the pre-fix behaviour first — all four fail there, which is what makes them evidence rather than
-decoration.
+**Two things worth keeping.** A backoff is an interval, so the clock is injected — `saveTokens` too, since a deadline
+stored from the machine while the refresher reads an injected clock is an expiry no test can state. And the whole
+class was invisible to every gate we have: nothing in JIT-Pack logs a request, so the only record that a client is
+hammering a dependency lives in the dependency. When a symptom survives a healthy server and a correct payload, the
+next log to open is the one belonging to the thing being *called*.

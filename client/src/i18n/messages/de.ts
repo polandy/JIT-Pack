@@ -52,6 +52,11 @@ export const de: Record<keyof typeof en, string> = {
   'sync.detail.live': 'Live-Updates sind verbunden — Änderungen anderer Geräte kommen sofort an.',
   'sync.detail.liveGap':
     'Live-Updates sind gerade nicht verbunden. Verbindung wird wiederhergestellt — bis dahin kommen Änderungen anderer Geräte mit der nächsten Synchronisation.',
+  'sync.detail.lastFailure': 'Letzte fehlgeschlagene Anfrage, {when}: {status} bei {method} {path}',
+  'sync.detail.lastFailureUnreachable':
+    'Letzte fehlgeschlagene Anfrage, {when}: keine Antwort von {method} {path}',
+  'sync.detail.lastFailureHint':
+    'Diese Zeile bei einer Problemmeldung mitschicken — sie sagt, was fehlgeschlagen ist, nicht nur dass etwas fehlgeschlagen ist.',
   'sync.detail.pending':
     '{n} Änderung wartet auf den Versand | {n} Änderungen warten auf den Versand',
   'sync.detail.conflicts': 'Konflikte in dieser Reise',
@@ -702,6 +707,20 @@ export const de: Record<keyof typeof en, string> = {
   'settings.conflictLog': 'Konfliktprotokoll',
   'settings.conflictLogNote':
     'Automatisch aufgelöste Zusammenführungen werden je Reise protokolliert — öffne eine Reise und tippe auf die Synchronisationsanzeige in der Kopfzeile.',
+  'settings.connection': 'Verbindung',
+  'settings.connectionServer': 'Dieses Gerät ist verbunden mit',
+  'settings.logout': 'Abmelden',
+  'settings.logoutHint':
+    'Beendet die Sitzung auf diesem Gerät. Noch nicht gesendete Änderungen bleiben auf dem Gerät.',
+  'settings.logoutConfirmTitle': 'Abmelden?',
+  'settings.logoutConfirmBody':
+    'Dieses Gerät kehrt zur Anmeldung zurück. Es wird nichts gelöscht, und noch nicht gesendete Änderungen bleiben bis zur nächsten Anmeldung auf dem Gerät.',
+  'settings.resetConnection': 'Verbindung zurücksetzen',
+  'settings.resetConnectionHint':
+    'Vergisst die Sitzung und die Serveradresse und fragt beim nächsten Start erneut. Dafür gedacht, wenn die App ihre Instanz nicht erreicht.',
+  'settings.resetConnectionConfirmTitle': 'Diese Verbindung vergessen?',
+  'settings.resetConnectionConfirmBody':
+    'Beim nächsten Start fragt die App erneut, welche Instanz verwendet werden soll. Auf dem Gerät wird nichts gelöscht.',
   'settings.about': 'Über',
   'settings.aboutVersion': 'Version {version} · {commit}',
   // M23 — Ausgeblendete Stammdaten (FR-24.3).

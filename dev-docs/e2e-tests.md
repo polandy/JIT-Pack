@@ -33,6 +33,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [E2E-M7-04 — how the case is split, and why](#e2e-m7-04--how-the-case-is-split-and-why) — the `contextmenu` handler, and the guard asserted both ways.
 - [E2E-M20-07 — the cache had to earn its freshness (2026-09-05)](#e2e-m20-07--the-cache-had-to-earn-its-freshness-2026-09-05) — a before/after pair on one locator; why a case can be owed by a change that makes nothing new visible.
 - [E2E-M22-13 — an `ion-select`'s text is its whole option list (2026-09-12)](#e2e-m22-13--an-ion-selects-text-is-its-whole-option-list-2026-09-12) — a case that was green against a link the server had refused, and the locator that fixed it.
+- [E2E-G2-15 / E2E-M17-15/16 — what a device could not say, and could not do (2026-09-13)](#e2e-g2-15--e2e-m17-1516--what-a-device-could-not-say-and-could-not-do-2026-09-13) — why the diagnostic is driven by refusing the boot pull, and why the logout case reloads.
 - [E2E-G9-18 — the deep link that only Local Mode survived (2026-09-05)](#e2e-g9-18--the-deep-link-that-only-local-mode-survived-2026-09-05) — one screen pulled the trip partition and six relied on it; why the case had to be written in `single`.
 - [The visual unit — the only one that asserts appearance](#the-visual-unit--the-only-one-that-asserts-appearance) — why it is a separate project outside `npm run test:e2e`, and what surfaces, colour and typography each do *not* prove.
 - [What the M4 unit deliberately leaves out (rewritten 2026-08-30)](#what-the-m4-unit-deliberately-leaves-out-rewritten-2026-08-30) — two waits that ended without anybody noticing — the paragraph that stood here was wrong in both halves.
@@ -296,6 +297,8 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
 | M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08, **E2E-M17-14b** (FR-19.8's guard, both directions, since 2026-09-02) | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
 | M17 leaving Local Mode (FR-19.8, ADR-045) | **E2E-M17-14** (the whole move on one device, read back from the server), **E2E-M17-14c** (skip is not restore) — both since 2026-09-02 | `single` | [`single/leave-local-mode.spec.ts`](../client/e2e/single/leave-local-mode.spec.ts) |
+| Connection repair (FR-19.6 / FR-19.9) | **E2E-G2-15** (the sheet names the request that failed), **E2E-M17-15** (the connection is forgotten and M19 asks again) — both since 2026-09-13 | `single` | [`single/connection-repair.spec.ts`](../client/e2e/single/connection-repair.spec.ts) |
+| Logging out (FR-19.9) | **E2E-M17-16** (the session ends and stays ended across a reload) — since 2026-09-13 | `server` | [`server/logout.spec.ts`](../client/e2e/server/logout.spec.ts) |
 | M17 data export under a session (NFR-4.5) | E2E-M17-03 **/ E2E-NFR-05** | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
 
 **What this table does and does not say.** Every row names the cases that exist; it
@@ -655,6 +658,38 @@ in fact wrong (a stale one-shot swallow-next-click flag that ate the next
 legitimate tap because the hold's release click usually lands on the
 overlay, not the row); the red case that caught it is the dismissed-then-tap
 assertion that survives in the contextmenu case.
+
+## E2E-G2-15 / E2E-M17-15/16 — what a device could not say, and could not do (2026-09-13)
+
+Three cases out of one iPad. It showed no trips and a permanent *offline* glyph while the instance
+was healthy and held all 36 trips, and the diagnosis had to be done from a copy of the production
+database, because the device itself could report nothing and the instance keeps no request log.
+
+**Why the diagnostic case refuses the boot pull rather than a later one.** The condition being
+covered is an app that never got any data at all, so the refusal is installed on the page before
+`goto` — and the refusals are counted, because "the sheet says 503" is equally true of a build that
+never sent anything and made the line up. The status and the path are asserted *untranslated*: that
+is the FR-19.6 decision, not an oversight, and a case that accepted a localised status would let the
+line drift into screen copy.
+
+Two harness notes, the second one a trap. `bootPage` opens a page of its own, so a case that needs
+its routes installed **before the first navigation** calls `seed()` on its own page instead — the
+seeding is what the helper is for, the page it hands back is not. And `seed()` writes the mode with
+`addInitScript`, which runs before *every* navigation: the reset case was red for a whole run
+because the reload put `jitpack_mode` straight back, and M19 — the screen the case exists to
+assert — could never render. It now enters Server Mode **through M19 itself**, which is both the
+honest path and the only one that leaves the storage the reset is supposed to clear.
+
+**Why the logout case reloads.** `endSession` both clears storage and dispatches the event the app
+shell listens for, and the navigation to the login proves only the second half. A build that routed
+to the login while leaving the tokens in place would pass every assertion up to the reload and then
+land back on the dashboard — which is the defect shape, since the stale token is exactly what the
+action exists to remove.
+
+**What the reset case asserts, and why it is the whole case.** M19 renders only while no mode is
+stored (`App.vue`), so a device that had answered it once could never see it again. The reset landing
+on M19 is therefore the only observable difference between "the keys were removed" and "a dialog was
+dismissed".
 
 ## The visual unit — the only one that asserts appearance
 
