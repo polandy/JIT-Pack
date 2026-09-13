@@ -377,6 +377,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Nine more screens stopped claiming an absence (2026-09-13)](#nine-more-screens-stopped-claiming-an-absence-2026-09-13) — the sweep; two premises of the entry above were wrong, and one e2e case replaced nine.
 - [A click was reported as a success, and the app had not moved (2026-09-13)](#a-click-was-reported-as-a-success-and-the-app-had-not-moved-2026-09-13) — the banner left the column; what muting the observer had hidden, and what only a rendered pixel said.
 - [The inventory's tools stopped leaving with the list (2026-09-13)](#the-inventorys-tools-stopped-leaving-with-the-list-2026-09-13) — FR-24.6/24.7; the G-12 exception, two sort options that were refused, and a focus test that could not fail.
+- [The swipe axis was a filter nobody filtered with (2026-09-13)](#the-swipe-axis-was-a-filter-nobody-filtered-with-2026-09-13) — FR-24.8; why the replacement is navigation, the three options that lost, and a jump clamped by an overlay.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15409,3 +15410,36 @@ copy of the same `normalize('NFD')` line, one of them documented as „the app's
 `domain/search.ts` now, and it grew the half that made this worth doing: a stripped diacritic gets „gurtel" to
 „Gürtel" and never gets „guertel" there, so the rule runs both spellings. `nameCollision.foldName` deliberately stays
 a different rule — a hit there blocks a write, and „Frühling" and „Fruhling" are two names a user is entitled to.
+
+## The swipe axis was a filter nobody filtered with (2026-09-13)
+
+The owner's verdict on the rebuilt screen was about the one control phase 1 had left alone: the horizontally
+scrolling tag segment. Four replacements were drawn against the real vocabulary before anything was built — a filter
+sheet, a wrapping chip cloud, an anchored dropdown, and the one that won: **three chips, and the group heading as a
+jump**.
+
+**The measurement that decided it.** `3 of 184` items carry a second tag. The axis was built as a *filter*, and with
+a vocabulary that flat, filtering by tag almost never separates anything the grouping has not separated already —
+what the control actually bought was **arriving** at a group without fifteen screens of swiping. So the primary
+control is now navigation (the heading opens a list of groups and scrolls to one, leaving every row in place), and
+filtering keeps the questions that really are filters: two tags at once, and the untagged bucket. Both live behind
+„Alle N Tags".
+
+**What the three losing options cost.** The **chip cloud** is the nicest today and the only one that gets *worse*
+with use: 23 chips wrap to five or six rows of a bar that is sticky, and a growing instance makes that permanent. The
+**dropdown** is the cheapest and forecloses multi-select, which the next phase's bulk tagging needs. The **sheet
+alone** is thorough and scale-free, and charges the same two taps for the three tags that answer most questions.
+
+**Three consequences taken on purpose.** The sort left the tool bar for the app bar's G-12 cluster — measured at
+390 px, a fourth chip beside the three tags and the sheet's opener wraps the sticky bar to **three rows**, and that
+height is spent on every screen of the list. „Stillgelegt" is deliberately *not* a filter here, because FR-24.3
+settled that a retired row leaves this list rather than becoming a mode of it. And the untagged bucket is exclusive
+in the sheet: `filterByTags` reads it faithfully as a member of the selection, so „alle" plus a real tag is empty by
+construction — honest, useless, and therefore not offered.
+
+**The jump was clamped by the sheet it came from.** The first build scrolled **120 px of a 9 975 px jump**: while an
+Ionic overlay is presented the scroll host is locked, and the scroll was issued in the same breath as the dismissal.
+The fix keeps the chosen key until the sheet reports it is gone. What is worth writing down is that **the e2e case
+cannot catch this**: on any list an e2e builds through the UI the whole distance is inside the clamp, so the case
+passes against the defect. It was found by rendering the real instance, and the rule is now a unit test that asserts
+nothing scrolls before the dismissal — the e2e keeps the outcome, the unit keeps the ordering.

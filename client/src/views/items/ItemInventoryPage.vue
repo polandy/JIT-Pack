@@ -40,28 +40,37 @@ import {
   IonModal,
   IonRefresher,
   IonRefresherContent,
-  IonSegment,
-  IonSegmentButton,
   IonToggle,
   IonButton,
   actionSheetController,
 } from '@ionic/vue'
 import {
   addOutline,
+  chevronDownOutline,
   chevronForwardOutline,
   closeOutline,
   cloudUploadOutline,
   cubeOutline,
   eyeOutline,
+  funnelOutline,
   swapVerticalOutline,
 } from 'ionicons/icons'
-import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  ref,
+  useTemplateRef,
+  watch,
+  type ComponentPublicInstance,
+} from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import EmptyState from '@/components/global/EmptyState.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
+import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
+import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
@@ -69,7 +78,14 @@ import {
   INVENTORY_PROPERTIES,
   type InventoryProperty,
 } from '@/composables/useInventoryProperties'
-import { UNTAGGED_KEY, tagNamesByItem } from '@/domain/tags'
+import {
+  UNTAGGED_KEY,
+  filterByTags,
+  tagCounts,
+  tagNamesByItem,
+  topTagsByCount,
+  type TagFilterMode,
+} from '@/domain/tags'
 import { MARK_INDEX } from '@/domain/itemMarks'
 import {
   hitsByReason,
@@ -97,8 +113,18 @@ const sort = ref<SortMode>('grouped')
 const props = inventoryProperties()
 const propsOpen = ref(false)
 
-/** `null` = the "Alle" chip: no tag filter. */
-const tagFilter = ref<string | null>(null)
+/**
+ * How many tags the tool bar offers without opening the sheet (FR-24.8).
+ * Three is what fits one row beside the sort chip at 390 px with the longest
+ * tag name this instance carries; a fourth wraps the row.
+ */
+const TOP_TAG_COUNT = 3
+
+/** Tag ids, plus `UNTAGGED_KEY` for the leftover bucket (FR-24.8). */
+const selection = ref<string[]>([])
+const filterMode = ref<TagFilterMode>('any')
+const filterOpen = ref(false)
+const jumpOpen = ref(false)
 
 const searching = computed(() => isSearchQuery(search.value))
 
@@ -111,7 +137,22 @@ setHeaderActions(() => {
     badge: props.shownCount.value,
     onClick: () => (propsOpen.value = true),
   }
-  return [eye]
+  /*
+   * The sort is a glyph in the cluster and not a fourth chip in the bar
+   * (G-12). Measured at 390 px with this instance's vocabulary, a sort chip
+   * beside the three tags and the sheet's opener wraps the bar to three rows
+   * — and the bar is sticky, so that height is spent on every screen of a
+   * fifteen-screen list. Which order is active is legible from the list
+   * itself (tag headings, or one alphabetical run) and marked in the sheet.
+   */
+  const sortAction: HeaderAction = {
+    id: 'm9-sort',
+    icon: swapVerticalOutline,
+    label: t('items.sort'),
+    active: sort.value !== 'grouped',
+    onClick: chooseSort,
+  }
+  return [eye, sortAction]
 })
 
 /** The mark's search keywords, by emoji — resolved once, not per keystroke. */
@@ -134,16 +175,57 @@ const candidates = computed<ItemSearchCandidate[]>(() =>
   })),
 )
 
-/** The items the tag chip leaves, before anything is typed. */
-const onTagFilter = computed<MasterItem[]>(() => {
-  if (tagFilter.value === null) return masterStore.activeItemList
-  // Collected once from the assignment list; asking each item for its tags
-  // would scan that list per row (NFR-4.3).
-  const onTag = new Set(
-    masterStore.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id),
-  )
-  return masterStore.activeItemList.filter((item) => onTag.has(item.id))
+/** How many items each tag holds — the number every chip and row carries. */
+const counts = computed(() => tagCounts(masterStore.activeItemList, masterStore.itemTagList))
+
+const untaggedCount = computed(() => {
+  const tagged = new Set(masterStore.itemTagList.map((a) => a.item_id))
+  return masterStore.activeItemList.filter((item) => !tagged.has(item.id)).length
 })
+
+/** The three the tool bar offers without opening anything (FR-24.8). */
+const topTags = computed(() => topTagsByCount(masterStore.tagList, counts.value, TOP_TAG_COUNT))
+
+/** The items the tag selection leaves, before anything is typed. */
+const onTagFilter = computed<MasterItem[]>(() =>
+  filterByTags(
+    masterStore.activeItemList,
+    masterStore.itemTagList,
+    selection.value,
+    filterMode.value,
+  ),
+)
+
+/** A chosen tag's name — the bucket included, since it is choosable too. */
+function selectionLabel(id: string): string {
+  if (id === UNTAGGED_KEY) return t('items.untagged')
+  return masterStore.tagList.find((tag) => tag.id === id)?.name ?? id
+}
+
+/**
+ * The chosen tags that are *not* among the three chips, as their own
+ * removable chips: a filter the bar cannot show is a filter the user cannot
+ * see, which is the failure the scrollable axis had by construction.
+ */
+const extraSelected = computed(() => {
+  const top = new Set(topTags.value.map((tag) => tag.id))
+  return selection.value
+    .filter((id) => !top.has(id))
+    .map((id) => ({ id, label: selectionLabel(id) }))
+})
+
+function toggleTag(id: string) {
+  const next = new Set(selection.value)
+  // The bucket is exclusive — see TagFilterSheet for why.
+  next.delete(UNTAGGED_KEY)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selection.value = [...next]
+}
+
+function dropSelected(id: string) {
+  selection.value = selection.value.filter((entry) => entry !== id)
+}
 
 const byId = computed(() => new Map(masterStore.activeItemList.map((item) => [item.id, item])))
 
@@ -164,7 +246,9 @@ const hits = computed(() => {
  * it (FR-24.7).
  */
 const hitsOutsideFilter = computed(() =>
-  tagFilter.value === null || !searching.value ? [] : searchItems(candidates.value, search.value),
+  selection.value.length === 0 || !searching.value
+    ? []
+    : searchItems(candidates.value, search.value),
 )
 
 /** The result rows, grouped by why they matched (FR-24.7). */
@@ -206,12 +290,15 @@ const shownCount = computed(() =>
 const isEmpty = computed(() => masterStore.activeItemList.length === 0)
 const noResults = computed(() => !isEmpty.value && shownCount.value === 0)
 
-/** The filter the no-match state has to name, when one is active. */
-const activeTag = computed(() =>
-  tagFilter.value === null
-    ? null
-    : (masterStore.tagList.find((tag) => tag.id === tagFilter.value) ?? null),
+/**
+ * What the no-match state has to name. One chosen tag is named; several are
+ * not spelled out — „Kein Treffer in ‚Hygiene · Medis · Sport'" is a sentence
+ * nobody reads, and the chips above the empty state already say which.
+ */
+const filterName = computed(() =>
+  selection.value.length === 1 ? selectionLabel(selection.value[0]!) : null,
 )
+const filtering = computed(() => selection.value.length > 0)
 
 setHeaderTitle(
   () => t('items.title'),
@@ -220,7 +307,7 @@ setHeaderTitle(
     const total = masterStore.activeItemList.length
     // FR-24.6: the collection states its size, and says so differently once
     // something is narrowing it — „12 von 184" is the number a filter owes.
-    return searching.value || tagFilter.value !== null
+    return searching.value || filtering.value
       ? t('items.metaFiltered', { shown: shownCount.value, total })
       : t('items.metaAll', { items: total, tags: masterStore.tagList.length })
   },
@@ -311,6 +398,116 @@ function handleRefresh(event: CustomEvent) {
   ;(event.target as HTMLIonRefresherElement).complete()
 }
 
+/** The groups as the jump sheet lists them (FR-24.8). */
+const jumpGroups = computed(() =>
+  groups.value.map(([key, items]) => ({ key, label: groupLabel(key), count: items.length })),
+)
+
+/** Whether jumping is a question at all: one group is already on screen. */
+const canJump = computed(
+  () => !searching.value && sort.value === 'grouped' && jumpGroups.value.length > 1,
+)
+
+/**
+ * The section elements, by group key, so a jump has something to scroll to.
+ * A Map filled by the template rather than a query on `document`: the page is
+ * mounted twice during an Ionic transition, and a selector would find the
+ * outgoing copy as readily as this one.
+ */
+const sections = new Map<string, HTMLElement>()
+
+function registerSection(key: string, el: Element | null) {
+  if (el instanceof HTMLElement) sections.set(key, el)
+  else sections.delete(key)
+}
+
+/** The group whose rows the list is showing — what the sheet marks. */
+const currentGroup = ref<string | null>(null)
+
+/**
+ * The jump waits for the sheet to be *gone*, not merely closed.
+ *
+ * While an Ionic overlay is presented the scroll host is locked
+ * (`backdrop-no-scroll`), so a `scrollTo` issued in the same breath as the
+ * dismissal is clamped: measured on the family instance, a jump to the last
+ * group moved the list 120 px instead of 9 000. Keeping the key until the
+ * sheet reports it has dismissed makes the scroll a consequence of a settled
+ * state rather than a race against an animation.
+ */
+const pendingJump = ref<string | null>(null)
+
+function requestJump(key: string) {
+  pendingJump.value = key
+  jumpOpen.value = false
+}
+
+function onJumpDismissed() {
+  jumpOpen.value = false
+  const key = pendingJump.value
+  pendingJump.value = null
+  if (key !== null) void jumpTo(key)
+}
+
+async function openJump() {
+  // The sheet opens either way: which group is on screen decorates it, and a
+  // measurement that failed must not cost the control.
+  currentGroup.value = await topmostGroup()
+  jumpOpen.value = true
+}
+
+/** The first group whose heading has not yet scrolled past the tool bar. */
+async function topmostGroup(): Promise<string | null> {
+  const scroller = await scrollElement()
+  if (!scroller) return null
+  const box = scroller.getBoundingClientRect()
+  const edge = box.top + toolsHeight.value
+  let last: string | null = null
+  for (const [key] of groups.value) {
+    const el = sections.get(key)
+    if (!el) continue
+    if (el.getBoundingClientRect().top <= edge + 1) last = key
+    else break
+  }
+  return last ?? groups.value[0]?.[0] ?? null
+}
+
+/**
+ * Scroll the group into view (FR-24.8). It **scrolls and does not anchor**
+ * (owner decision, 2026-09-13): the rows above stay where they are, so a jump
+ * is undone by scrolling back rather than by a second jump.
+ *
+ * The offset is computed from the two boxes rather than from `offsetTop`,
+ * which is relative to whichever ancestor happens to be positioned — inside
+ * `ion-content` that is not the scroller.
+ */
+async function jumpTo(key: string) {
+  const scroller = await scrollElement()
+  const section = sections.get(key)
+  if (!scroller || !section) return
+  const top =
+    scroller.scrollTop +
+    section.getBoundingClientRect().top -
+    scroller.getBoundingClientRect().top -
+    toolsHeight.value
+  scroller.scrollTo({ top: Math.max(0, top), behavior: 'auto' })
+}
+
+const contentEl = useTemplateRef<ComponentPublicInstance>('content')
+
+/**
+ * `ion-content`'s own scroller — the element an offset is real in.
+ *
+ * Two hops rather than one: a template ref on an Ionic component resolves to
+ * the *component instance*, so the custom element (and with it
+ * `getScrollElement`) is behind `$el`. Reading it directly is the mistake
+ * that silently wedged the jump sheet: the await threw, and the sheet that
+ * was to open after it never did.
+ */
+async function scrollElement(): Promise<HTMLElement | null> {
+  const el = contentEl.value?.$el as HTMLIonContentElement | undefined
+  return el?.getScrollElement ? await el.getScrollElement() : null
+}
+
 /**
  * How far the group headings have to stay clear of the tool bar (FR-24.6).
  *
@@ -346,7 +543,7 @@ onBeforeUnmount(() => observer?.disconnect())
 
 <template>
   <IonPage>
-    <IonContent>
+    <IonContent ref="content">
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
       </IonRefresher>
@@ -367,50 +564,56 @@ onBeforeUnmount(() => observer?.disconnect())
           @close="search = ''"
         />
 
+        <!-- FR-24.8: the three biggest tags, then the door to the rest. The
+             swipe axis this replaces showed four of twenty-four chips and
+             clipped the fourth mid-word. -->
         <div class="toolrow">
-          <button type="button" class="chip" data-testid="m9-sort" @click="chooseSort">
-            <IonIcon :icon="swapVerticalOutline" />
-            {{ sortLabel(sort) }}
+          <button
+            v-for="tag in topTags"
+            :key="tag.id"
+            type="button"
+            class="chip"
+            :class="{ active: selection.includes(tag.id) }"
+            :aria-pressed="selection.includes(tag.id)"
+            :data-testid="`m9-tag-chip-${tag.name}`"
+            :title="tag.name"
+            @click="toggleTag(tag.id)"
+          >
+            <span class="chip-label">{{ tag.name }}</span>
+            <span class="chip-count jp-num">{{ counts.get(tag.id) ?? 0 }}</span>
           </button>
 
-          <!-- The active tag travels with the bar, so the filter that is
-               narrowing the list can always be read and dropped (FR-24.6). -->
           <button
-            v-if="activeTag"
+            v-if="masterStore.tagList.length > 0"
+            type="button"
+            class="chip"
+            :class="{ active: filtering }"
+            data-testid="m9-filter-open"
+            @click="filterOpen = true"
+          >
+            <IonIcon :icon="funnelOutline" />
+            {{ t('items.filterAll', { n: masterStore.tagList.length }) }}
+            <span v-if="selection.length > 0" class="chip-count jp-num">{{
+              selection.length
+            }}</span>
+          </button>
+
+          <!-- A chosen tag that is not one of the three still travels with the
+               bar: a filter the bar cannot show is one the user cannot see. -->
+          <button
+            v-for="entry in extraSelected"
+            :key="entry.id"
             type="button"
             class="chip active"
-            :aria-label="t('items.clearTag', { tag: activeTag.name })"
-            data-testid="m9-clear-tag"
-            @click="tagFilter = null"
+            :aria-label="t('items.clearTag', { tag: entry.label })"
+            :data-testid="`m9-clear-tag-${entry.label}`"
+            @click="dropSelected(entry.id)"
           >
-            {{ activeTag.name }}
+            {{ entry.label }}
             <IonIcon :icon="closeOutline" />
           </button>
         </div>
       </div>
-
-      <!-- Tag axis (FR-24.2) — an item surfaces under every tag it carries. -->
-      <IonSegment
-        v-if="masterStore.tagList.length > 0 && !isEmpty"
-        :value="tagFilter ?? 'all'"
-        scrollable
-        data-testid="m9-tag-axis"
-        @ionChange="
-          (e: CustomEvent) => (tagFilter = e.detail.value === 'all' ? null : e.detail.value)
-        "
-      >
-        <IonSegmentButton value="all">
-          <IonLabel>{{ t('items.tagFilterAll') }}</IonLabel>
-        </IonSegmentButton>
-        <IonSegmentButton
-          v-for="tag in masterStore.tagList"
-          :key="tag.id"
-          :value="tag.id"
-          :data-testid="`m9-tag-chip-${tag.name}`"
-        >
-          <IonLabel>{{ tag.name }}</IonLabel>
-        </IonSegmentButton>
-      </IonSegment>
 
       <!-- ADR-033: an inventory that has not arrived is not an empty one. -->
       <EmptyState
@@ -442,7 +645,13 @@ onBeforeUnmount(() => observer?.disconnect())
            outside it, rather than being a bare "nothing found". -->
       <EmptyState
         v-else-if="noResults"
-        :title="activeTag ? t('items.noMatchInTag', { tag: activeTag.name }) : t('items.noMatch')"
+        :title="
+          filterName
+            ? t('items.noMatchInTag', { tag: filterName })
+            : filtering
+              ? t('items.noMatchInFilter')
+              : t('items.noMatch')
+        "
         :hint="
           hitsOutsideFilter.length > 0
             ? t('items.noMatchElsewhere', { n: hitsOutsideFilter.length })
@@ -451,11 +660,11 @@ onBeforeUnmount(() => observer?.disconnect())
         testid="m9-no-match"
       >
         <IonButton
-          v-if="activeTag"
+          v-if="filtering"
           fill="outline"
           size="small"
           data-testid="m9-search-everywhere"
-          @click="tagFilter = null"
+          @click="selection = []"
         >
           {{ hitsOutsideFilter.length > 0 ? t('items.searchAll') : t('items.clearFilter') }}
         </IonButton>
@@ -465,16 +674,28 @@ onBeforeUnmount(() => observer?.disconnect())
         <section
           v-for="[key, groupItems] in searching ? resultGroups : groups"
           :key="key"
+          :ref="(el) => registerSection(key as string, el as Element | null)"
           class="tag-group"
         >
-          <h2
+          <!-- FR-24.8: the heading is the jump control. The axis was used to
+               *get somewhere*, not to filter — 3 of 184 items carry a second
+               tag — so the navigation is named as navigation and the list
+               stays whole. -->
+          <component
+            :is="canJump ? 'button' : 'h2'"
+            :type="canJump ? 'button' : undefined"
             class="group-head jp-eyebrow"
+            :class="{ jumpable: canJump }"
             :style="{ '--m9-tools-height': `${toolsHeight}px` }"
-            data-testid="m9-group-head"
+            :data-testid="canJump ? 'm9-jump-open' : undefined"
+            @click="canJump && openJump()"
           >
-            {{ searching ? reasonLabel(key as MatchReason) : groupLabel(key) }}
+            <span data-testid="m9-group-head">
+              {{ searching ? reasonLabel(key as MatchReason) : groupLabel(key) }}
+            </span>
             <span class="group-count">{{ groupItems.length }}</span>
-          </h2>
+            <IonIcon v-if="canJump" :icon="chevronDownOutline" class="group-jump" />
+          </component>
 
           <IonList class="jp-card group-card" lines="full">
             <IonItem
@@ -531,6 +752,28 @@ onBeforeUnmount(() => observer?.disconnect())
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>
+
+      <!-- FR-24.8: everything the three chips do not offer. -->
+      <TagFilterSheet
+        :is-open="filterOpen"
+        :tags="masterStore.tagList"
+        :counts="counts"
+        :untagged-count="untaggedCount"
+        :selection="selection"
+        :mode="filterMode"
+        :shown="shownCount"
+        @dismiss="filterOpen = false"
+        @update:selection="selection = $event"
+        @update:mode="filterMode = $event"
+      />
+
+      <GroupJumpSheet
+        :is-open="jumpOpen"
+        :groups="jumpGroups"
+        :current="currentGroup"
+        @dismiss="onJumpDismissed"
+        @jump="requestJump"
+      />
 
       <!-- FR-24.4 "Angezeigte Eigenschaften" — device-local, no save button. -->
       <IonModal
@@ -599,15 +842,30 @@ onBeforeUnmount(() => observer?.disconnect())
   color: var(--jp-action);
 }
 
-.chip ion-icon {
-  font-size: var(--jp-icon-xs);
+/* A tag name is free text, and this instance's longest is „Elektronisches
+   Zubehör": left alone, three chips plus the two controls wrap to three rows,
+   and the bar is sticky — that height is spent on every screen of the list.
+   The count stays outside the clamp, because a chip without its number is a
+   chip that stopped saying what it leads to. */
+.chip-label {
+  min-width: 0;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Clearance below the axis (UX-4): at 0px the active chip's underline sat
-   flush against the first group heading, which read as the heading sliding
-   under the bar. Inset to match M7's segment. */
-ion-segment {
-  margin: 0 12px 12px;
+.chip-count {
+  color: var(--ct-overlay1);
+  font-size: var(--jp-text-xs);
+}
+
+.chip.active .chip-count {
+  color: var(--jp-action);
+}
+
+.chip ion-icon {
+  font-size: var(--jp-icon-xs);
 }
 
 .tag-group {
@@ -637,6 +895,23 @@ ion-segment {
 
 .group-count {
   color: var(--ion-color-medium);
+}
+
+/* The heading is a control when it can jump (FR-24.8), and has to look like
+   one without becoming a second kind of chip: the caret is the affordance,
+   the row keeps the eyebrow's own weight and inset. */
+.group-head.jumpable {
+  width: 100%;
+  border: none;
+  background: var(--jp-surface-page);
+  text-align: start;
+  cursor: pointer;
+}
+
+.group-jump {
+  color: var(--jp-action);
+  font-size: var(--jp-icon-xs);
+  margin-inline-start: 2px;
 }
 
 /* The tile itself now lives in ItemMark with the ladder that decides when

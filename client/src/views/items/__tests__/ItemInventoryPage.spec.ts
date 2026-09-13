@@ -20,6 +20,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import ItemInventoryPage from '../ItemInventoryPage.vue'
+import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
+import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
+import { UNTAGGED_KEY } from '@/domain/tags'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/types/tables'
@@ -236,10 +239,9 @@ describe('M9 inventory — a dead end explains itself (FR-24.7)', () => {
     await flushPromises()
 
     // Filter to Hygiene, then search for something that exists elsewhere —
-    // the exact shape measured on the family instance.
-    await page.findComponent({ name: 'IonSegment' }).vm.$emit('ionChange', {
-      detail: { value: 't-hyg' },
-    })
+    // the exact shape measured on the family instance. The chip is one of the
+    // three the bar offers (FR-24.8); the axis it replaced is gone.
+    await page.find('[data-testid="m9-tag-chip-Hygiene"]').trigger('click')
     await flushPromises()
     await typeSearch(page, 'socken')
 
@@ -268,5 +270,216 @@ describe('M9 inventory — a dead end explains itself (FR-24.7)', () => {
     // No filter, so no count of what lies outside one, and no way-out button
     // that would only repeat what the field already offers.
     expect(page.find('[data-testid="m9-search-everywhere"]').exists()).toBe(false)
+  })
+})
+
+describe('M9 inventory — picking a tag without a swipe axis (FR-24.8)', () => {
+  /** Four tags, so the bar's three chips leave one behind the sheet. */
+  function seedVocabulary() {
+    seedTag('Diverses', 't-div', 0)
+    seedTag('Hygiene', 't-hyg', 1)
+    seedTag('Sport', 't-sport', 2)
+    seedTag('Wandern', 't-wan', 3)
+    seedItem('Sonnencreme', 'i1')
+    seedItem('Sonnenbrille', 'i2')
+    seedItem('Zahnbürste', 'i3')
+    seedItem('Laufschuhe', 'i4')
+    seedItem('Wanderstöcke', 'i5')
+    assignTag('i1', 't-div')
+    assignTag('i2', 't-div')
+    assignTag('i3', 't-hyg')
+    assignTag('i4', 't-sport')
+    assignTag('i4', 't-div', 1)
+    assignTag('i5', 't-wan')
+  }
+
+  it('offers the three biggest tags and no scrollable axis at all', async () => {
+    seedVocabulary()
+
+    const page = mountPage()
+    await flushPromises()
+
+    // Diverses 3, Hygiene 1, Sport 1, Wandern 1 — the first three by count,
+    // ties by axis order.
+    expect(page.find('[data-testid="m9-tag-chip-Diverses"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m9-tag-chip-Hygiene"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m9-tag-chip-Sport"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m9-tag-chip-Wandern"]').exists()).toBe(false)
+
+    // The control it replaced is gone rather than hidden.
+    expect(page.findComponent({ name: 'IonSegment' }).exists()).toBe(false)
+    // ...and the door to the rest names how many there are.
+    expect(page.find('[data-testid="m9-filter-open"]').text()).toContain(
+      t('items.filterAll', { n: 4 }),
+    )
+  })
+
+  it('carries each chip’s count, so a shortcut says what it leads to', async () => {
+    seedVocabulary()
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m9-tag-chip-Diverses"]').text()).toContain('3')
+    expect(page.find('[data-testid="m9-tag-chip-Hygiene"]').text()).toContain('1')
+  })
+
+  it('combines two tags under "all", which the single-select axis could not ask', async () => {
+    seedVocabulary()
+
+    const page = mountPage()
+    await flushPromises()
+
+    await page.find('[data-testid="m9-tag-chip-Diverses"]').trigger('click')
+    await flushPromises()
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(3)
+
+    await page.find('[data-testid="m9-tag-chip-Sport"]').trigger('click')
+    await flushPromises()
+    // Still "any": the union of the two.
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(3)
+
+    // The sheet's own controls are asserted in `TagFilterSheet.spec.ts`:
+    // Ionic renders an overlay's content only once it has presented, which
+    // never happens under jsdom. What the page owns is what it does with the
+    // sheet's contract, so the mode arrives the way the sheet sends it.
+    page.findComponent(TagFilterSheet).vm.$emit('update:mode', 'all')
+    await flushPromises()
+    // Only the item carrying both.
+    const rows = page.findAll('[data-testid="m9-row"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.text()).toContain('Laufschuhe')
+  })
+
+  it('keeps a tag that is not one of the three visible as its own chip', async () => {
+    seedVocabulary()
+
+    const page = mountPage()
+    await flushPromises()
+    page.findComponent(TagFilterSheet).vm.$emit('update:selection', ['t-wan'])
+    await flushPromises()
+
+    // Not among the three shortcuts, so the bar grows a chip for it —
+    // otherwise the list is narrowed by something the screen never shows.
+    const chip = page.find('[data-testid="m9-clear-tag-Wandern"]')
+    expect(chip.exists()).toBe(true)
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+
+    await chip.trigger('click')
+    await flushPromises()
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(5)
+  })
+
+  it('keeps the untagged bucket exclusive, because "all" plus a tag is empty by construction', async () => {
+    seedVocabulary()
+    seedItem('Loses Teil', 'i6')
+
+    const page = mountPage()
+    await flushPromises()
+    page.findComponent(TagFilterSheet).vm.$emit('update:selection', [UNTAGGED_KEY])
+    await flushPromises()
+    // ...and the other way round: a chip drops the bucket, which is the half
+    // the page owns.
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+    await page.find('[data-testid="m9-tag-chip-Diverses"]').trigger('click')
+    await flushPromises()
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(3)
+
+    page.findComponent(TagFilterSheet).vm.$emit('update:selection', [UNTAGGED_KEY])
+    await flushPromises()
+
+    // The tag went with it, so the screen shows the bucket rather than an
+    // impossible intersection.
+    const rows = page.findAll('[data-testid="m9-row"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.text()).toContain('Loses Teil')
+    expect(page.find('[data-testid="m9-tag-chip-Diverses"]').classes()).not.toContain('active')
+  })
+
+  it('offers the jump only while there is more than one group to jump between', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedTag('Diverses', 't-div')
+    assignTag('i1', 't-div')
+
+    const page = mountPage()
+    await flushPromises()
+    // One group: the heading is a heading, not a control.
+    expect(page.find('[data-testid="m9-jump-open"]').exists()).toBe(false)
+
+    seedItem('Zahnbürste', 'i3')
+    seedTag('Hygiene', 't-hyg', 1)
+    assignTag('i3', 't-hyg')
+    await flushPromises()
+    expect(page.findAll('[data-testid="m9-jump-open"]').length).toBe(2)
+
+    // ...and never while searching, where the headings are match reasons and
+    // the list is not the inventory's own order.
+    await typeSearch(page, 'sonne')
+    expect(page.find('[data-testid="m9-jump-open"]').exists()).toBe(false)
+  })
+})
+
+describe('M9 inventory — the jump waits for the sheet to be gone (FR-24.8)', () => {
+  /**
+   * The ordering rule, which the e2e case cannot falsify: while an Ionic
+   * overlay is presented the scroll host is locked, and a `scrollTo` issued
+   * in the same breath as the dismissal is clamped — measured on the family
+   * instance as 120 px of a 9 975 px jump. A short list (any list an e2e case
+   * builds through the UI) is reachable inside that clamp, so the defect is
+   * invisible there and the rule is asserted here instead.
+   */
+  function stubScroller(page: ReturnType<typeof mountPage>) {
+    const scrollTo = vi.fn()
+    const scroller = {
+      scrollTo,
+      scrollTop: 0,
+      getBoundingClientRect: () => ({ top: 0, height: 800 }) as DOMRect,
+    }
+    const content = page.find('ion-content').element as HTMLElement & {
+      getScrollElement?: () => Promise<unknown>
+    }
+    content.getScrollElement = () => Promise.resolve(scroller)
+    return scrollTo
+  }
+
+  it('scrolls only once the sheet reports it has dismissed', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedItem('Zahnbürste', 'i2')
+    seedTag('Diverses', 't-div')
+    seedTag('Hygiene', 't-hyg', 1)
+    assignTag('i1', 't-div')
+    assignTag('i2', 't-hyg')
+
+    const page = mountPage()
+    await flushPromises()
+    const scrollTo = stubScroller(page)
+
+    const sheet = page.findComponent(GroupJumpSheet)
+    sheet.vm.$emit('jump', 'Hygiene')
+    await flushPromises()
+
+    // Still presented: nothing has moved yet.
+    expect(scrollTo).not.toHaveBeenCalled()
+
+    sheet.vm.$emit('dismiss')
+    await flushPromises()
+
+    expect(scrollTo).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not scroll when the sheet is dismissed without a choice', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedTag('Diverses', 't-div')
+    assignTag('i1', 't-div')
+
+    const page = mountPage()
+    await flushPromises()
+    const scrollTo = stubScroller(page)
+
+    page.findComponent(GroupJumpSheet).vm.$emit('dismiss')
+    await flushPromises()
+
+    // Closing the sheet is not a jump — the key is consumed, never kept.
+    expect(scrollTo).not.toHaveBeenCalled()
   })
 })

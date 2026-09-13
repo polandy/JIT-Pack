@@ -1522,6 +1522,27 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   ranking two devices must agree on is arithmetic worth unit-testing. The app's fold now lives once, in
   `domain/search.ts`; it had been copied privately into the marks index and the group picker, and this would have been
   the third.
+* **FR-24.8 (Choosing a Tag Without a Swipe Axis — added 2026-09-13, implemented the same day):** M9's tag
+  `ion-segment` is **removed**. In its place: the **three tags holding the most items** as chips in the tool bar, each
+  carrying its count; **„Alle N Tags"**, which opens a sheet listing every tag with its count, searchable, with several
+  choosable at once under *irgendeiner* / *alle* and the **„Ohne Tag"** bucket the axis never had a chip for; and a
+  chip for any chosen tag that is not one of the three, so a filter the bar cannot show cannot exist. **The group
+  heading is the jump control**: it opens a list of the groups with their counts and **scrolls** to the one chosen
+  (owner decision 2026-09-13: scroll, do not anchor — the rows above stay where they were, so a jump is undone by
+  scrolling back). *Why the axis went:* it showed **4 of 24** chips at 390 px, clipped the fourth mid-word, kept no
+  scroll position, offered no counts and held one tag at a time. *Why the jump exists at all, and why it is the
+  primary control:* **3 of 184 items carry a second tag**, so filtering by tag almost never separated anything the
+  grouping had not separated already — what the axis actually bought was arriving at a group without fifteen screens
+  of swiping. That is navigation, and it is now named as navigation; real filtering (two tags, the untagged bucket)
+  stays behind the sheet, being the rarer question. *Considered and rejected:* a **wrapping chip cloud** (everything
+  visible without an overlay, but 23 chips expand to five or six rows of a sticky bar, and it degrades as the
+  vocabulary grows — the one option that gets worse with use); a **single anchored dropdown** (cheapest, but one tag
+  at a time, which forecloses the bulk selection §3.24's next phase needs); the **sheet alone** (thorough and
+  scale-free, but every tag costs the same two taps, including the three that answer most questions). **Three
+  consequences are taken on purpose:** the sort control moves into the app bar's G-12 cluster, because a fourth chip
+  wraps the sticky bar to three rows at 390 px; „Stillgelegt" is **not** offered as a filter, because FR-24.3 settled
+  that a retired row leaves this list rather than becoming a mode of it (M23 owns them); and the untagged bucket is
+  **exclusive** in the sheet, because „alle" plus a real tag is empty by construction.
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —

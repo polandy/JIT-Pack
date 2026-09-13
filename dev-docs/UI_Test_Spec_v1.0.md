@@ -1366,9 +1366,11 @@ test body under it separates a wrong number from a missing test.**
   the empty slot. **Both composer paths are exercised on purpose**, because they differ where it matters: the suggestion
   carries `source_item_id` and therefore a mark, the free-text confirm does not. *The photo rung is the component
   unit's, for the reason given at E2E-M5-15.*
-* **E2E-M9-08** `all` (UX review 2026-08-25, UX-4) — **implemented** (`e2e/inventory.spec.ts`): the first group heading
-  clears the tag axis by a visible gap. Asserted as geometry (bounding boxes on settled elements, not pixels): at a 0px
-  gap the active chip's underline sits flush against the heading and reads as the heading sliding under the bar.
+* ~~**E2E-M9-08**~~ `all` (UX review 2026-08-25, UX-4) — **retired 2026-09-13**, not unimplemented: it measured the gap
+  between the tag axis and the first group heading, and FR-24.8 removed the axis. The promise it stood for — a heading
+  that does not read as sliding under the control above it — is **E2E-M9-13**'s, which asserts the heading stacked
+  below the sticky tool bar. The id is struck rather than renumbered, so a reader arriving from an older commit lands
+  on the sentence that says where its promise went.
 * **E2E-M9-11** `all` (FR-24.7) — **implemented 2026-09-13** (`e2e/inventory.spec.ts`): the search reaches an umlaut
   name from **both** keyboard spellings („gurtel" and „guertel" → „Gürtel") and reaches an item through a **tag**,
   with the row stating what carried the match and the heading reading *Treffer im Tag*. Both halves were measured
@@ -1384,6 +1386,17 @@ test body under it separates a wrong number from a missing test.**
   **below** it rather than sliding under it. Geometry on settled boxes, like E2E-M9-08, and the scroll offset is read
   back as the positive signal that the list actually moved. **Proven red** on 2026-09-13 against a build with
   `position: static` on the bar.
+* **E2E-M9-14** `all` (FR-24.8) — **implemented 2026-09-13** (`e2e/inventory.spec.ts`): the axis is **gone from the
+  DOM**, the three chips carry their counts, and two tags combine under *alle* — the question a single-select segment
+  could not ask. The sheet's own footer count is asserted against the list's, so the two cannot drift into separate
+  arithmetic. Its dismissal is read from `data-presented`, because a sheet declared with `:is-open` stays in the DOM.
+* **E2E-M9-15** `all` (FR-24.8) — **implemented 2026-09-13** (`e2e/inventory.spec.ts`): the group heading opens the
+  jump list and the chosen group lands directly under the tool bar, **with every row still in the list** — filtering
+  takes rows away, jumping does not. Twelve rows on a 360 px viewport, because the case is only meaningful on a list
+  taller than the screen. **The ordering rule it cannot falsify is a unit test**: while an overlay is presented the
+  scroll host is locked, and a jump issued in the same breath is clamped (measured at 120 px of a 9 975 px jump on the
+  family instance); `ItemInventoryPage.spec.ts` asserts that nothing scrolls until the sheet reports it has dismissed,
+  and that a dismissal without a choice scrolls nothing at all.
 * **E2E-M9-09** `single` (FR-21.9) — **implemented 2026-08-30** (`e2e/single/instance-currency.spec.ts`): an item price
   is rendered with the currency the instance named. `single` rather than `all`, and that is the feature rather than a
   limitation of the case: the code comes from the server over `GET /api/v1/instance/config`, and Local Mode has none, so

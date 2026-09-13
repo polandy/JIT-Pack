@@ -172,3 +172,103 @@ export function groupByPrimaryTag(
   }
   return ordered
 }
+
+// --- FR-24.8: choosing tags without a swipe axis ----------------------------
+
+/**
+ * How several chosen tags combine (FR-24.8).
+ *
+ * `any` is the default and the one the old single-select axis approximated;
+ * `all` is the question that axis could not ask at all — „Wandern *und*
+ * Elektronisches".
+ */
+export type TagFilterMode = 'any' | 'all'
+
+/**
+ * How many of these items each tag holds, by tag id (FR-24.8).
+ *
+ * Counted over the items the caller passes rather than the whole inventory,
+ * because M9 counts what it shows: a retired row is not in the list and must
+ * not be in the number beside a chip. One pass over the assignments, for the
+ * reason {@link tagNamesByItem} gives — this is asked on every render of the
+ * chip row (NFR-4.3).
+ */
+export function tagCounts(items: MasterItem[], assignments: ItemTag[]): Map<string, number> {
+  const present = new Set(items.map((item) => item.id))
+  const counts = new Map<string, number>()
+  for (const a of assignments) {
+    if (!present.has(a.item_id)) continue
+    counts.set(a.tag_id, (counts.get(a.tag_id) ?? 0) + 1)
+  }
+  return counts
+}
+
+/**
+ * The tags the tool bar offers without opening anything (FR-24.8).
+ *
+ * Biggest first, because the chips are a shortcut and a shortcut to a tag
+ * holding one item saves nobody anything. Ties fall to the axis order and
+ * then to the name, so two devices offer the same three — a chip row that
+ * reorders itself between devices is a control nobody learns.
+ *
+ * A tag holding nothing is left out entirely rather than offered at zero: it
+ * would filter the list to an empty screen, which is a state to reach by
+ * choice and not by shortcut.
+ */
+export function topTagsByCount(tags: Tag[], counts: Map<string, number>, limit: number): Tag[] {
+  return tags
+    .filter((tag) => (counts.get(tag.id) ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) ||
+        a.sort_order - b.sort_order ||
+        a.name.localeCompare(b.name),
+    )
+    .slice(0, limit)
+}
+
+/**
+ * The items a tag selection leaves (FR-24.8).
+ *
+ * An empty selection narrows nothing. {@link UNTAGGED_KEY} may be a member of
+ * the selection and means *carries no tag at all*: under `any` it widens the
+ * result by the leftover bucket, and under `all` it contradicts every real
+ * tag beside it and therefore yields nothing. That is the faithful reading
+ * rather than a special case, and it is why the sheet keeps the bucket
+ * exclusive — the empty screen is honest but useless, so the control does not
+ * offer the way into it.
+ *
+ * Matching is on the item's **whole set**, not on its primary tag: the filter
+ * reaches wider than the grouping, which is FR-24.2's rule and the only
+ * reason a second tag is worth carrying.
+ */
+export function filterByTags(
+  items: MasterItem[],
+  assignments: ItemTag[],
+  selection: readonly string[],
+  mode: TagFilterMode,
+): MasterItem[] {
+  if (selection.length === 0) return items
+
+  const wanted = new Set(selection)
+  const untaggedWanted = wanted.delete(UNTAGGED_KEY)
+
+  const ofItem = new Map<string, Set<string>>()
+  for (const a of assignments) {
+    const tags = ofItem.get(a.item_id)
+    if (tags) tags.add(a.tag_id)
+    else ofItem.set(a.item_id, new Set([a.tag_id]))
+  }
+
+  return items.filter((item) => {
+    const tags = ofItem.get(item.id) ?? new Set<string>()
+    const untagged = tags.size === 0
+    if (wanted.size === 0) return untaggedWanted && untagged
+
+    const hits = [...wanted].filter((id) => tags.has(id)).length
+    const tagsMatch = mode === 'all' ? hits === wanted.size : hits > 0
+    return mode === 'all'
+      ? tagsMatch && (!untaggedWanted || untagged)
+      : tagsMatch || (untaggedWanted && untagged)
+  })
+}

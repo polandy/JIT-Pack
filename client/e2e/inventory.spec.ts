@@ -139,25 +139,123 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(eye.locator('ion-badge')).toHaveText('1')
   })
 
-  test('E2E-M9-08: the first group heading clears the tag axis instead of touching it', async ({
-    page,
-  }) => {
-    await createItem(page, 'Badehose', { tags: ['Kleidung'] })
+  /**
+   * E2E-M9-14 (FR-24.8): the axis is gone, and what replaced it can do the
+   * two things it could not — name how many items a tag holds, and hold two
+   * tags at once.
+   */
+  test('E2E-M9-14: three chips, a sheet behind them, and two tags at once', async ({ page }) => {
+    await createItem(page, 'Badehose', { tags: ['Kleidung', 'Sommer'] })
+    await backToInventory(page)
+    await createItem(page, 'Sonnenhut', { tags: ['Sommer'] })
+    await backToInventory(page)
+    await createItem(page, 'Kabel', { tags: ['Technik'] })
     await backToInventory(page)
 
     const list = visiblePage(page)
-    const axis = list.getByTestId('m9-tag-axis')
-    await expect(axis).toBeVisible()
-    const head = list.getByTestId('m9-group-head').first()
-    await expect(head).toBeVisible()
+    // The swipe axis is not merely hidden: the screen renders no segment at
+    // all any more. Asserted on the element rather than on the old test id —
+    // an absence assertion against an id nothing declares is green whatever
+    // the app does, which is what `scripts/testid-gate.mjs` refuses.
+    await expect(list.locator('ion-segment')).toHaveCount(0)
 
-    // Geometry, not pixels: at a 0px gap the segment's active underline sits
-    // flush against the heading and reads as the heading sliding under the
-    // axis (UX-4). Both elements are settled — the boxes are layout facts.
-    const axisBox = (await axis.boundingBox())!
-    const headBox = (await head.boundingBox())!
-    expect(headBox.y).toBeGreaterThanOrEqual(axisBox.y + axisBox.height + 8)
+    // A chip says what it leads to — the axis never carried a count.
+    await expect(list.getByTestId('m9-tag-chip-Sommer')).toContainText('2')
+
+    await list.getByTestId('m9-tag-chip-Sommer').click()
+    await expect(list.getByTestId('m9-row')).toHaveCount(2)
+
+    // Two tags, and the question the single-select axis could not ask.
+    await list.getByTestId('m9-tag-chip-Kleidung').click()
+    await expect(list.getByTestId('m9-row')).toHaveCount(2)
+    await list.getByTestId('m9-filter-open').click()
+    await expect(page.getByTestId('m9-filter-sheet')).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m9-filter-mode-all').click()
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-row')).toContainText('Badehose')
+
+    // The sheet's own count is the list's, not a second arithmetic. Written
+    // out at one, which is the singular arm of the catalogue entry.
+    await expect(page.getByTestId('m9-filter-apply')).toContainText('one item')
+    await page.getByTestId('m9-filter-close').click()
+    // A sheet declared with `:is-open` stays in the DOM and is marked hidden,
+    // so the settled signal is the presentation attribute, not the element.
+    await expect(page.getByTestId('m9-filter-sheet')).not.toHaveAttribute('data-presented', 'true')
   })
+
+  /**
+   * E2E-M9-15 (FR-24.8): what the axis was actually used for. The jump moves
+   * the list and takes nothing out of it — the owner's call, 2026-09-13:
+   * scrolling, not anchoring.
+   */
+  test('E2E-M9-15: the group heading jumps without filtering anything away', async ({ page }) => {
+    test.slow()
+    // Twelve rows in four groups, on a short viewport: the list has to be
+    // *tall* for this case to mean anything. While the sheet is up Ionic
+    // locks the scroll host, so a jump issued into that lock is clamped to
+    // what is already reachable — on a short list that is the whole distance,
+    // and the case would pass against the defect it exists for.
+    for (const [name, tag] of [
+      ['Anorak', 'Aussen'],
+      ['Buff', 'Aussen'],
+      ['Campingkocher', 'Aussen'],
+      ['Daunenjacke', 'Camping'],
+      ['Eispickel', 'Camping'],
+      ['Faltmatte', 'Camping'],
+      ['Gaskartusche', 'Kueche'],
+      ['Handtuch', 'Kueche'],
+      ['Isomatte', 'Kueche'],
+      ['Jause', 'Zuletzt'],
+      ['Kocher', 'Zuletzt'],
+      ['Lampe', 'Zuletzt'],
+    ] as const) {
+      await createItem(page, name, { tags: [tag] })
+      await backToInventory(page)
+    }
+    await page.setViewportSize({ width: 390, height: 360 })
+
+    const list = visiblePage(page)
+    const scroller = list.locator('ion-content')
+    const offset = () =>
+      scroller.evaluate(async (el) => {
+        const content = el as unknown as { getScrollElement(): Promise<HTMLElement> }
+        return (await content.getScrollElement()).scrollTop
+      })
+
+    expect(await offset()).toBe(0)
+    await expect(list.getByTestId('m9-row')).toHaveCount(12)
+
+    await list.getByTestId('m9-jump-open').first().click()
+    await expect(page.getByTestId('m9-jump-sheet')).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m9-jump-Zuletzt').click()
+
+    // The list moved — the positive signal that the jump did anything at all.
+    await expect.poll(offset).toBeGreaterThan(0)
+
+    // ...and it moved *to the group asked for*, which „scrolled a bit" would
+    // equally satisfy: while the sheet is up Ionic locks the scroll host, and
+    // a jump issued into that lock moved the list 120 px of the 9 000 it
+    // owed. The heading sits directly under the tool bar, within a row's
+    // height of it.
+    const tools = (await list.getByTestId('m9-tools').boundingBox())!
+    const target = (await list
+      .getByTestId('m9-group-head')
+      .filter({ hasText: 'Zuletzt' })
+      .boundingBox())!
+    expect(target.y).toBeGreaterThanOrEqual(tools.y + tools.height - 2)
+    expect(target.y).toBeLessThan(tools.y + tools.height + 60)
+    // ...and it is still the whole inventory: a jump is not a filter.
+    await expect(list.getByTestId('m9-row')).toHaveCount(12)
+    await expect(list.getByTestId('m9-tools')).toBeVisible()
+  })
+
+  /*
+   * E2E-M9-08 measured the gap between the tag axis and the first group
+   * heading (UX-4). The axis is gone with FR-24.8, and the geometry that
+   * replaced its promise — the heading stacked *below* the tool bar rather
+   * than sliding under it — is asserted by E2E-M9-13. The id is struck in
+   * the ledger rather than renumbered onto this case.
+   */
 
   /**
    * E2E-M9-10 (FR-1.1): the "searchable" half of M9-01's sentence, which
@@ -330,10 +428,12 @@ test.describe('M9 inventory — the empty state (G-7)', () => {
 
     const list = visiblePage(page)
     await expect(list.getByTestId('m9-empty')).toBeVisible()
-    // G-7 is an offer, not a shrug: the tag axis and the no-match state are
-    // both absent, so what is on screen is the empty state and not a list
-    // that happens to have painted nothing.
-    await expect(list.getByTestId('m9-tag-axis')).toHaveCount(0)
+    // G-7 is an offer, not a shrug: the tools and the no-match state are both
+    // absent, so what is on screen is the empty state and not a list that
+    // happens to have painted nothing. (It read `m9-tag-axis` until FR-24.8
+    // removed that control — an absence assertion against an element nothing
+    // renders any more is green by construction.)
+    await expect(list.getByTestId('m9-tools')).toHaveCount(0)
     await expect(list.getByTestId('m9-no-match')).toHaveCount(0)
 
     await list.getByTestId('m9-import').click()

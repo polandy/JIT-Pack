@@ -1538,28 +1538,34 @@ These patterns apply to every screen and are specified once.
 * **Purpose:** Central item database (FR-1.1) — the master-data screen for every item that can be packed.
 * **Rebuilt 2026-08-16** on the tag set (FR-24.1, ADR-014), together with M10.
 * **Elements (rebuilt 2026-09-13, FR-24.6):** a **tool bar that stays while the list scrolls** — the shared search
-  row, **always present rather than behind the G-12 magnifier** (the one exception to that pattern, see G-12), a
-  **sort** chip opening an action sheet with *Nach Tag gruppiert* / *Alle alphabetisch*, and a chip for the tag
-  currently narrowing the list, whose ✕ drops it. The **group headings stick directly under that bar**, at a height
-  the bar reports rather than a constant, because the bar grows a row when a filter is active. The page head's meta
-  line carries the collection's size and, while anything narrows it, what is left of it. Then a **tag chip axis** as
-  an `ion-segment`: *Alle* plus one chip per tag. Beside the magnifier in the app-bar cluster sits the **eye icon →
-  "Angezeigte Eigenschaften" sheet** (FR-24.4), carrying the count of shown properties as a badge — the same
-  `HeaderAction` badge the M4 filter uses. The list is grouped by each item's **primary tag** so a row appears exactly
+  row, **always present rather than behind the G-12 magnifier** (the one exception to that pattern, see G-12), and the
+  **tag controls of FR-24.8** below it. The **group headings stick directly under that bar**, at a height the bar
+  reports rather than a constant, because the bar grows a row when a tag outside the three is chosen. The page head's
+  meta line carries the collection's size and, while anything narrows it, what is left of it. In the app-bar cluster
+  sit the **eye icon → "Angezeigte Eigenschaften" sheet** (FR-24.4), carrying the count of shown properties as a
+  badge — the same `HeaderAction` badge the M4 filter uses — and the **sort** (*Nach Tag gruppiert* / *Alle
+  alphabetisch*), which is a glyph rather than a chip because a fourth chip wraps the sticky bar to three rows at
+  390 px, and which order is active is legible from the list itself. The list is grouped by each item's **primary
+  tag** so a row appears exactly
   once (FR-24.2); groups order by the tag's `sort_order`, items by name, and items carrying no tag collect in a trailing
   **"Ohne Tag"** bucket that is present only when something is in it. Per row **lean by default**: the leading slot +
   name; tags, weight and price appear only when enabled in the property sheet (device-local, `localStorage`, never
   synced). **The leading slot follows G-15's inventory ladder — photo → item mark → primary-tag initial** (Addendum
   FR-28.4): the tag initial stays the last resort rather than the default it was, so a marked item is recognised here
   the same way it is on the packing list.
-* **The axis stands clear of the list (2026-08-26, UX review UX-4):** the segment carries M7's inset and a visible gap
-  to the first group heading. At a 0px gap the active chip's underline sat flush against the heading and read as the
-  heading sliding under the bar — the 2026-08-25 review took it for a sticky-header clipping, but nothing on M9 has been
-  sticky since the §3.24 rebuild replaced the `IonItemDivider sticky` list; the defect was spacing alone. Asserted as
-  geometry by E2E-M9-08.
-* **The axis filters wider than it groups:** an item matches a chip when that tag is anywhere in its set, while the
-  grouping stays on the primary tag. Filtering by *Sommer* therefore surfaces the swimsuit filed under *Kleidung* — the
-  reach a single category could not give (FR-24.2).
+* **The tag controls (2026-09-13, FR-24.8) — the swipe axis is gone.** Three chips for the tags holding the most
+  items, each with its count; **„Alle N Tags"** opening the filter sheet (every tag with its count, searchable,
+  several at once under *irgendeiner* / *alle*, plus the **„Ohne Tag"** bucket); and a removable chip for any chosen
+  tag that is not one of the three. ~~The axis stands clear of the list (2026-08-26, UX-4)~~ — that clause and its
+  case **E2E-M9-08** go with the control they measured; the geometry that replaced the promise is E2E-M9-13's, the
+  heading stacked below the tool bar rather than sliding under it.
+* **The filter reaches wider than the grouping:** an item matches a chosen tag when that tag is anywhere in its set,
+  while the grouping stays on the primary one. Choosing *Sommer* therefore surfaces the swimsuit filed under
+  *Kleidung* — the reach a single category could not give (FR-24.2).
+* **The group heading is the jump (FR-24.8):** it opens the list of groups with their counts and **scrolls** to the
+  one chosen, leaving the list whole — filtering takes rows away, jumping does not. It is offered only where it is a
+  question: in the grouped order, outside a search, with more than one group. The scroll waits for the sheet to have
+  dismissed, because an overlay locks the scroll host while it is up.
 * **Searching (2026-09-13, FR-24.7):** the field matches **name, tags and mark keywords**, folding both spellings of
   an umlaut, and while a query is running the list leaves its tag groups: the results are grouped by **why** they
   matched, and a row that matched through something else says *über <tag>*. A **dead end names its cause** — with a
