@@ -424,6 +424,8 @@ export const en = {
   'items.editor.dependencyCycle': 'That would close a circle: {path}.',
   'items.editor.companions': 'Companions',
   'items.editor.companionsHint': 'These items depend on {name}:',
+  'items.editor.companionAdd': 'Add companion',
+  'items.editor.companionRemove': 'Remove companion',
   'items.editor.containedIn': 'Part of',
   'items.editor.containedPositions': '{n} position | {n} positions',
   'items.editor.tripCommentsPartial':
@@ -1261,6 +1263,7 @@ export const en = {
   'tripEdit.linkNote':
     'An account beside a traveller means that person is told when an item is assigned to them. Only members of this trip can be picked.',
   'tripEdit.addTraveler': 'Add a traveller',
+  'tripEdit.addTravelerAccount': 'Account for the new traveller',
   'tripEdit.add': 'Add',
   'tripEdit.removeTraveler': 'Remove {name}',
   'tripEdit.removeAfterStart': 'Travellers can only be removed before the trip starts.',

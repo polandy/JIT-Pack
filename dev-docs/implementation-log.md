@@ -368,6 +368,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The link a shell could write and a screen could not (2026-09-12)](#the-link-a-shell-could-write-and-a-screen-could-not-2026-09-12) — M22 gets the account picker; the select assertion that was green against a refused write.
 - [A clause priced the wrong half of „one screen away" (2026-09-12)](#a-clause-priced-the-wrong-half-of-one-screen-away-2026-09-12) — FR-25.13i reverses FR-25.13f for settled lines; reset rather than restore, and what that costs a skipped row.
 - [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
+- [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15068,3 +15069,33 @@ the hazard there is a fixed right-edge action column, so successive taps land at
 never travels to what it is aiming at — M4's checkbox sits on the row a person is reading, not a fixed column. **The
 question is worth re-asking, not settled for good**: the day M4 grows a fixed-column bulk verb per row while a
 Status filter is active is the day this reasoning stops holding. No snapshot was added.
+
+## A separation that was reasoned from the write (2026-09-13)
+
+M22's account picker shipped the day before with a rule attached: **adding a traveller adds them unlinked**, and the
+link is a second act on the row the ＋ created. The owner asked for the opposite the next morning — set the account
+while adding — and the ask is right for a reason the original reasoning never weighed. It had been argued entirely
+from the write: adding is FR-27.4's trigger, a linked traveller makes every generated per-person row a delegation
+notification, therefore keep the two acts apart. Nothing in that argument is about the hand. In the hand, the person
+being added to a *shared* trip is usually one of the people it is already shared with, so the common case was the one
+that cost two gestures, the second of them through a control the user had to notice after the fact.
+
+**What the argument was actually about survived, one layer down.** The notification storm is real, and it is a
+property of the *order the mutations are written in*, not of how many taps produced them.
+`addTravelerToTrip` now inserts the traveller **unlinked**, runs FR-27.4, and writes the link as its own mutation
+afterwards. `planRosterAssignment` fires on any push that points an `assigned_traveler_id` at a linked traveller, so
+the generated rows go by while there is no account to tell, and the link that follows moves no assignment of its own.
+One rule, in the action rather than on the screen — which is why the parameter is handled in `addTravelerToTrip`
+instead of being passed down to `mutations.addTraveler`, where it looks like it belongs.
+
+**And that ordering fixed a defect nobody had reported.** `jitpack traveler add --user` linked on the insert, which
+is precisely the storm the screen had been forbidden from causing: an operator adding one person to a trip that
+follows a group with per-person positions sent that account one notification per generated row. It was invisible
+because the only place it shows is somebody else's device. Putting the rule in the shared action closed it without a
+second thought about the CLI, which is the argument for the rule living there.
+
+**The seam test is the only place the order can be asserted.** A browser sees the same screen either way — the row
+ends up linked, the rows end up generated. What separates the two builds is the sequence of queued mutations, so
+`tripLifecycle.seam.spec.ts` asserts it directly: two `travelers` writes, the first with no account, the
+`trip_items` writes between them. The e2e case (E2E-M22-14) covers what a browser *can* see, which is that the
+account survives being created with the person.

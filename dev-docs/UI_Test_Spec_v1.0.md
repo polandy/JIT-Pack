@@ -1432,7 +1432,8 @@ decision, not a test gap.
   and the action is **absent** on an unmarked item — removal is worded as removal and never offered as "choose the empty
   one".
 * **E2E-M10-13** `all` (NFR-4.12) — **new 2026-08-22**: the sections that exist only once the item is saved — photo,
-  *Hängt ab von*, the dependency picker — are rendered from the catalogue, asserted with the app language set to German.
+  *Hängt ab von*, the dependency picker, and since 2026-09-12 the *Begleitartikel* heading and its add-trigger — are
+  rendered from the catalogue, asserted with the app language set to German.
   English cannot carry this case: the finished English literal and the catalogue lookup that replaced it produce the
   same pixels, which is precisely how M10's half stayed untranslated through a migration that reported itself complete.
 * **E2E-M10-14** `all` (FR-24.3) — **new 2026-08-25** (`e2e/lifecycle-delete.spec.ts`): an item a group position holds
@@ -1557,13 +1558,18 @@ E2E-M23-04.
   drive it as *setup* (E2E-M5-23 and the skip-item cascade both declare a dependency through this screen to get a
   companion onto a trip), and E2E-M10-13 reads its heading for a German word — a heading is not a behaviour, and a
   fixture is not an assertion. Three clauses, all on M10 itself: a new relation is *nötig* until someone says otherwise,
-  which is what makes FR-20.4's cascade the default; the **reverse list only reads** — the companion row carries the
-  mode as text and offers neither the select nor the removal the declaring side has, since the relation is owned by the
-  item that needs the companion; and a dependency that would **close a circle is refused before the write**, naming the
+  which is what makes FR-20.4's cascade the default; the **reverse list shows the same mode** the declaring side chose;
+  and a dependency that would **close a circle is refused before the write**, naming the
   hops (`Kamera → Ersatzakku → Kamera`) rather than saying *invalid*. The refusal is asserted against a positive signal
   on the same screen: the companion row is still there afterwards, so „no dependency row" cannot be produced by a page
   that rendered nothing. The cycle arithmetic itself stays in `domain/__tests__/dependencies`; what is new here is that
-  the fault reaches a user as a sentence.
+  the fault reaches a user as a sentence. **Amended 2026-09-12:** the clause that the reverse list *only reads* is gone
+  with the read-only list itself (FR-20.1) — it is E2E-M10-20 that now covers what that row does.
+* **E2E-M10-20** `all` (FR-20.1/20.4) — **new 2026-09-12** (`inventory.spec.ts`): the *Begleitartikel* list writes its
+  own end of the relation. A companion is declared from the main item, re-moded and removed there, and **every one of
+  those three is asserted on the other item's editor** — the edge is read where it was not declared, which is what
+  separates a stored relation from a drawn one. The cycle refusal is asserted from this direction as well, against the
+  dependent side still listing exactly one relation: the same edge, so the same answer, whichever end posed it.
 * **E2E-M10-04** `all` (FR-22.1/22.5) — **new 2026-08-30** (`inventory.spec.ts`): the reference photo is added, replaced
   and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Like the
   dependency section above it, this had no `data-testid` anywhere — the signature of a screen no test has rendered. Two
@@ -2681,6 +2687,15 @@ a different screen and one built nowhere (see below, and UI-Spec M22).
   `ion-select .select-text`, the rendered value — an `ion-select`'s own text content is its whole option list, which
   made the first version of this case green against a link the server had refused (see the ledger's section on it).
   Red-proved by linking a non-member: `not_a_trip_member`, rolled back, the select back to *„Kein Konto"*.
+
+* **E2E-M22-14** `server` (FR-2.5, owner 2026-09-13) — **new 2026-09-13**: the *add* row's account picker. A second
+  case rather than a clause on E2E-M22-13, because it drives a different write: the traveller does not exist yet, so
+  the account has to survive being created with them. Alice picks Bob before typing the name, presses ＋, and the new
+  row reads Bob's name after a **reload**. It also asserts the picker returning to *„Kein Konto"* — a sticky value
+  would silently make the next person the same account. What it cannot see is the ordering the write depends on (the
+  link is a second mutation *after* FR-27.4's rows, so the account is not notified once per generated row); that is
+  asserted on the queued mutations in `tripLifecycle.seam.spec.ts`, because the only browser-visible symptom would be
+  a notification count on a third device.
 
 **Two elements UI-Spec M22 lists and M22 does not render** (found 2026-08-30 by reading the
 element list against the template — neither is a test gap, and neither may be tested until it is

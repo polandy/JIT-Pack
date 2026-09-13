@@ -435,6 +435,8 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.dependencyCycle': 'Das schlösse einen Kreis: {path}.',
   'items.editor.companions': 'Begleitartikel',
   'items.editor.companionsHint': 'Diese Artikel hängen von {name} ab:',
+  'items.editor.companionAdd': 'Begleitartikel hinzufügen',
+  'items.editor.companionRemove': 'Begleitartikel entfernen',
   'items.editor.containedIn': 'Enthalten in',
   'items.editor.containedPositions': '{n} Position | {n} Positionen',
   'items.editor.tripCommentsPartial':
@@ -1276,6 +1278,7 @@ export const de: Record<keyof typeof en, string> = {
   'tripEdit.linkNote':
     'Ein Konto neben einer reisenden Person heisst: diese Person wird benachrichtigt, wenn ihr ein Packelement zugewiesen wird. Zur Auswahl stehen nur Mitglieder dieser Reise.',
   'tripEdit.addTraveler': 'Reisende:n hinzufügen',
+  'tripEdit.addTravelerAccount': 'Konto der neuen Person',
   'tripEdit.add': 'Hinzufügen',
   'tripEdit.removeTraveler': '{name} entfernen',
   'tripEdit.removeAfterStart':

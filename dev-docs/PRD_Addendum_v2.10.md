@@ -561,7 +561,13 @@ companions, M5 suggestion hint.
   ("companion of"). Examples: a spare camera battery is only relevant if the camera is packed; a screwdriver is only
   relevant if the drone is packed; a spare Arca-Swiss plate is an optional companion to a telephoto lens. A dependency
   is a relation with its own attributes (mode, FR-20.4; optional quantity), not a single foreign key on the item — one
-  item can have several dependencies, in either direction.
+  item can have several dependencies, in either direction. **Declarable from either end (2026-09-12):** the M10 editor
+  writes the same row from the dependent's side (*„Hängt ab von"*) and from the main item's (*„Begleitartikel"*), where
+  the reverse list used to only read. The direction a relation is declared from is the user's position, not a property
+  of the relation: standing on the tripod, „this needs the Arca plate" is the sentence at hand, and having to leave the
+  item, find the plate and declare it backwards is the same edge written the long way. Both ends carry the same three
+  controls — the mode toggle, removal, and the save-time cycle refusal, which is asked about the *edge* and so answers
+  identically whichever side posed it.
 * **FR-20.2 (Resolution at Instantiation & Packing):** A dependent item appears on a trip's packing list only if its
   main item is on the list and not skipped (FR-5.5). If the main item is later skipped or removed, its dependents are
   marked "co-skipped" and surfaced with the other done rows (FR-25.2, which superseded the collapsed section) carrying a
@@ -601,7 +607,8 @@ companions, M5 suggestion hint.
   section); quick-adding an item with required companions (FR-5.6) proposes them alongside it.
 * **Cycle detection:** belongs in save-time validation — a dependency cycle cannot be persisted.
 * **UI:** managed in M10 (Item Editor) as a new "Depends on / Companions" section with a required/suggested mode toggle
-  per dependency; surfaced as a preview note in M3 and a hint in M5 per FR-20.4.
+  per dependency, **each of the two lists writing its own end of the relation** (FR-20.1); surfaced as a preview note in
+  M3 and a hint in M5 per FR-20.4.
 
 ### 3.21 Theming (Dark Mode Default)
 
@@ -3641,11 +3648,17 @@ the tail is where a symbol system is actually decided. Results:
     * **It is absent below two members** (G-8), which covers Local Mode, Single-User Mode and an unshared
       Server-Mode trip in one rule: with one member the only linkable account is the one that would never be
       notified, and a control whose every answer is inert is worse than none.
-    * **Adding a traveller still adds them unlinked.** The ＋ row takes a name and nothing else, and the link is a
-      second act on the row it created. Linking *while* adding is what the CLI does, and it is safe there because
-      the operator adds one person at a time; on M22 the add is the FR-27.4 refresh's trigger, so a link supplied
-      in the same act would notify the linked account once per generated per-person row — the notification storm
-      the 2026-09-01 decision named as its reason not to build a reader at all.
+    * ~~**Adding a traveller still adds them unlinked.** The ＋ row takes a name and nothing else, and the link is a
+      second act on the row it created.~~ **Amended 2026-09-13 (owner): the add row takes the account too.** The
+      separation was reasoned from the write, not from the hand: the person being added to a shared trip is usually
+      one of the people it is already shared with, and making that a correction after the fact hid it behind a
+      control nobody was looking for. What the reasoning was actually about survives as an **ordering rule in one
+      place**: `addTravelerToTrip` inserts the traveller **unlinked**, lets FR-27.4 generate its per-person rows, and
+      writes the link as its own mutation afterwards. Inserted already linked, every one of those generated rows
+      would have earned the account a delegation notification (`planRosterAssignment` fires on any push pointing an
+      `assigned_traveler_id` at a linked traveller) — the notification storm the 2026-09-01 decision named as its
+      reason not to build a reader at all. The rule lives in the action rather than on the screen, so
+      `jitpack traveler --user`, which used to link on the insert, is quiet now too.
 
 ### 3.4 Multi-User & Collaboration
 

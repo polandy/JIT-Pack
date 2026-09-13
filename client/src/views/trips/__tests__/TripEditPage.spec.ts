@@ -6,7 +6,7 @@
  * synced from a device that predates the bound, or imported — is still
  * editable rather than locked out of its own repair.
  */
-import { IonSelect } from '@ionic/vue'
+import { IonInput, IonSelect } from '@ionic/vue'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -72,9 +72,27 @@ function seedRoster(memberIds: string[], linkedUserId: string | null = null) {
       table: TABLE.tripMembers,
       id: `mem-${userId}`,
       deleted: false,
-      row: { trip_id: TRIP_ID, user_id: userId, role: i === 0 ? 'owner' : 'editor' },
+      row: {
+        trip_id: TRIP_ID,
+        user_id: userId,
+        role: i === 0 ? 'owner' : 'editor',
+      },
     })),
   ] as never)
+}
+
+/** The account picker on the add row, or nothing. */
+const addLinkSelect = (w: VueWrapper) =>
+  w.findAllComponents(IonSelect).filter((c) => c.attributes('data-testid') === 'traveler-add-link')
+
+/** Types a name into the add row and presses ＋. */
+async function addTraveler(w: VueWrapper, name: string): Promise<void> {
+  const input = w
+    .findAllComponents(IonInput)
+    .find((c) => c.attributes('data-testid') === 'traveler-add-input')!
+  input.vm.$emit('ionInput', { detail: { value: name } })
+  await w.find('[data-testid="traveler-add"]').trigger('click')
+  await flushPromises()
 }
 
 /** The account picker of the one traveller row, or nothing. */
@@ -142,7 +160,11 @@ describe('M22 — the two dates bound each other (FR-2.1d)', () => {
   })
 
   it('an archived trip’s dates stay read-only', () => {
-    seedTrip({ status: 'archived', start_date: '2026-08-22', end_date: '2026-09-05' })
+    seedTrip({
+      status: 'archived',
+      start_date: '2026-08-22',
+      end_date: '2026-09-05',
+    })
 
     const f = fields(mountPage())
     expect(f.start.props('readonly')).toBe(true)
@@ -215,5 +237,72 @@ describe('M22 — a traveller can be recorded as an account (FR-2.5, ADR-058)', 
     await flushPromises()
 
     expect(linkSelect(wrapper)[0]!.props('disabled')).toBe(true)
+  })
+})
+
+describe('M22 — a traveller can be added as an account (FR-2.5, owner 2026-09-13)', () => {
+  it('offers the same accounts as the rows above it', async () => {
+    seedTrip()
+    seedRoster(['u-alice', 'u-bob'])
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const options = addLinkSelect(wrapper)[0]!
+      .findAll('ion-select-option')
+      .map((o) => o.text())
+
+    // One rule, one set of names: the add row can only offer what the server
+    // would accept for the row it is about to create, which is `trip_members`
+    // and not the directory — Carol is in the second and not in the first.
+    expect(options).toEqual(['No account', 'Alice', 'Bob'])
+  })
+
+  it('adds the person already recorded as the account they are', async () => {
+    seedTrip()
+    seedRoster(['u-alice', 'u-bob'])
+    const wrapper = mountPage()
+    await flushPromises()
+
+    addLinkSelect(wrapper)[0]!.vm.$emit('ionChange', {
+      detail: { value: 'u-bob' },
+    })
+    await addTraveler(wrapper, 'Mia')
+
+    // One act, not two: the account reaches the same call as the name, so
+    // there is no window in which the person exists unlinked on any screen.
+    expect(orchestratorFake.addTravelerToTrip).toHaveBeenCalledWith(TRIP_ID, 'Mia', 'u-bob')
+  })
+
+  it('returns to *no account* for the next person', async () => {
+    seedTrip()
+    seedRoster(['u-alice', 'u-bob'])
+    const wrapper = mountPage()
+    await flushPromises()
+
+    addLinkSelect(wrapper)[0]!.vm.$emit('ionChange', {
+      detail: { value: 'u-bob' },
+    })
+    await addTraveler(wrapper, 'Mia')
+    await addTraveler(wrapper, 'Jon')
+
+    // The first call carrying Bob is the positive signal: without it, „the
+    // second call carries null" would pass against a picker that never
+    // worked at all. A sticky value would quietly make the children of the
+    // family the second parent's account.
+    expect(orchestratorFake.addTravelerToTrip).toHaveBeenNthCalledWith(1, TRIP_ID, 'Mia', 'u-bob')
+    expect(orchestratorFake.addTravelerToTrip).toHaveBeenNthCalledWith(2, TRIP_ID, 'Jon', null)
+    expect(addLinkSelect(wrapper)[0]!.props('value')).toBe('')
+  })
+
+  it('is absent where the row picker is, and then adds nobody’s account (G-8)', async () => {
+    seedTrip()
+    seedRoster(['u-alice'])
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(addLinkSelect(wrapper)).toHaveLength(0)
+
+    await addTraveler(wrapper, 'Mia')
+    expect(orchestratorFake.addTravelerToTrip).toHaveBeenCalledWith(TRIP_ID, 'Mia', null)
   })
 })

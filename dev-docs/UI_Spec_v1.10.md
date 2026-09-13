@@ -1565,7 +1565,10 @@ These patterns apply to every screen and are specified once.
   reject. On success the route *replaces* rather than pushes, so "back" lands on the inventory and not on a creation
   form for an item that now exists. **Implemented (Addendum 3.20):** a "Depends on" section listing this item's declared
   dependencies with a required/suggested mode toggle per row, an add-picker with save-time cycle rejection, and a
-  read-only *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **Localized 2026-08-22 (NFR-4.12)**,
+  *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **The two lists are symmetric since 2026-09-12:**
+  *Begleitartikel* was read-only and sat below the delete card; it now carries the same add-picker, mode toggle and
+  removal as *„Hängt ab von"* and sits directly beneath it, because an editable section under the destructive one is
+  read as part of it. **Localized 2026-08-22 (NFR-4.12)**,
   which settled two words this section had left open: the modes are *nötig* / *empfohlen* as written here, and the
   reverse list is *Begleitartikel* — the word M3 already uses for the same relation. This section's earlier *„Wird
   gebraucht von"* named it backwards: the list holds the items that need this one, not the ones it is needed by.
@@ -2008,6 +2011,14 @@ token would prove nothing there is anything to prove.
   no visible label, only an aria one. One sentence under the list says what an account *does* (the person is told
   when an item is assigned to them) and what may be picked (members only), because that is a rule about the trip's
   notifications rather than a property of one person.
+  **Since 2026-09-13 the add row carries the same picker** (owner), between the name field and ＋, so a person can
+  be added *as* the account they are in one act — on a shared trip the person being added is usually one of the
+  people it is already shared with, and a two-step version hid that behind a control found only afterwards. It
+  offers the same names as the row pickers and appears under the same rule, so the two are never out of step; it
+  returns to *„Kein Konto"* with the name field, because the next person is a different one far more often than
+  not. What the write does with it is FR-2.5's ordering rule, not a screen decision: the traveller is inserted
+  unlinked, FR-27.4's per-person rows follow, and the link is written last so the account is not told once per
+  generated row.
 * **What a traveller change does** is FR-27.4's rule as revised 2026-08-21, and the screen states it rather than
   performing it silently: adding applies **immediately** and reports the FR-27.10 way — what was added, what that person
   already had, what this trip's conditions excluded. Removing takes their **unpacked** rows. What happens to a row that
