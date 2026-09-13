@@ -64,3 +64,57 @@ test.describe('M2 opening segment, backend-backed @single @m2', () => {
     await context.close()
   })
 })
+
+/**
+ * E2E-M2-18 (FR-2.8, ADR-033, G-7) — the empty state is a claim, and it waits
+ * until the list can support it.
+ *
+ * The sibling defect of the case above, from the same cold start: the counts
+ * were guarded, the *screen* was not. `isEmpty` read the store directly, so a
+ * device whose master pull had not landed painted „No active trips" over a
+ * list that was merely on its way — the ADR-033 mistake in the one place the
+ * user actually reads. Nothing waits on a clock here either: the pull is held
+ * by a promise this test resolves.
+ */
+test.describe('M2 empty state, backend-backed @single @m2', () => {
+  test('E2E-M2-18: says the list is loading, and claims no absence until it has arrived', async ({
+    browser,
+  }) => {
+    const trip = `Hydrating ${uniq()}`
+    const context = await browser.newContext()
+    const setup = await bootPage(context)
+    await createTripViaWizard(setup, { name: trip })
+    await expect(setup.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    await setup.close()
+
+    const page = await context.newPage()
+    let release!: () => void
+    const held = new Promise<void>((resolve) => (release = resolve))
+    let firstPull = true
+    await page.route(MASTER_PULL, async (route) => {
+      if (firstPull) {
+        firstPull = false
+        await held
+      }
+      await route.fulfill({ response: await route.fetch() })
+    })
+    await page.goto(PATH.trips)
+
+    // The positive half: the screen says what is true — the list is coming.
+    await expect(visiblePage(page).getByTestId('m2-list-loading')).toBeVisible()
+    // The half this case exists for, which is only meaningful beside the
+    // line above: no absence is asserted while none has been established.
+    await expect(visiblePage(page).getByTestId('m2-empty')).toHaveCount(0)
+
+    release()
+
+    await expect(visiblePage(page).getByTestId('m2-list-loading')).toHaveCount(0)
+    // The trip is `planning`, and the segment is named rather than walked to:
+    // the run shares a database, so which segment the walk picks is not this
+    // case's business (see E2E-M2-14).
+    await visiblePage(page).getByTestId('trips-filter-planned').click()
+    await expect(visiblePage(page).getByTestId(`trip-row-${trip}`)).toBeVisible()
+
+    await context.close()
+  })
+})

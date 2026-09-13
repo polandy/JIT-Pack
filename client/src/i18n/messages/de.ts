@@ -1034,6 +1034,7 @@ export const de: Record<keyof typeof en, string> = {
   'trips.itemSummary': '{packed}/{total} gepackt',
   // ADR-033: a trip whose own rows are not on this device yet.
   'trips.itemsUnknown': 'Positionen werden geladen …',
+  'trips.listUnknown': 'Reisen werden geladen …',
   'trips.new': 'Neue Reise',
   'trips.actionExport': 'Reise exportieren',
   'trips.actionShare': 'Teilen',

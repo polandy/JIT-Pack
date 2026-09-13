@@ -465,6 +465,29 @@ describe('TripListPage — the opening segment (FR-2.8)', () => {
     expect(countOf(wrapper, 'archived')).toBe('(1)')
   })
 
+  it('says the list is loading rather than claiming it is empty (ADR-033, G-7)', async () => {
+    // The same guard as the case above, one layer up: it reached the counts
+    // and the walk, and not the screen. An unsettled device therefore told
+    // the user it had no trips — the one place the rule is read.
+    masterLoaded.value = false
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="m2-list-loading"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m2-empty"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain(t('trips.listUnknown'))
+
+    // Settled and genuinely empty: now the absence is established, and the
+    // G-7 state is the honest answer. Without this half the case above would
+    // pass against a screen that had simply stopped rendering either one.
+    masterLoaded.value = true
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="m2-list-loading"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m2-empty"]').exists()).toBe(true)
+  })
+
   it('writes each segment its count, zero included', async () => {
     seedTrip('planning')
     seedAlso('t2', 'Rom', 'planning')

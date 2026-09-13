@@ -680,9 +680,24 @@ async function handleRefresh(event: CustomEvent) {
         </template>
       </TripHero>
 
+      <!--
+        Not here yet is not empty (ADR-033) — the guard the counts have had
+        since FR-2.8, on the screen. The same component *without* its
+        illustration on purpose: that is what makes it a notice rather than
+        the G-7 absence, and it keeps one spacing rule instead of adding a
+        second loading layout beside it. The block does change height when
+        the state settles — `EmptyState` drops the icon with a `v-if` — so
+        this buys one component, not a still frame.
+      -->
+      <EmptyState
+        v-if="isEmpty && !countsKnown"
+        :title="t('trips.listUnknown')"
+        testid="m2-list-loading"
+      />
+
       <!-- Empty state (G-7) -->
       <EmptyState
-        v-if="isEmpty"
+        v-else-if="isEmpty"
         :icon="trainOutline"
         :title="
           filter === 'active'
