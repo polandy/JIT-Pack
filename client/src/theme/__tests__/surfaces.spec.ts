@@ -167,7 +167,7 @@ describe('the controls Material would shape are told once (ADR-049)', () => {
     expect(rule(surfaces, 'ion-checkbox')).toContain('--border-radius: var(--jp-r-xs)')
   })
 
-  it('paints the wash on ion-app, behind the frame\'s own bar and head', () => {
+  it("paints the wash on ion-app, behind the frame's own bar and head", () => {
     expect(rule(palette, 'ion-app')).toContain('var(--jp-wash), var(--jp-surface-page)')
     expect(value(palette, '--ion-toolbar-background')).toBe('transparent')
     // A transparent bar must not cast Material's shadow onto the page.
@@ -183,7 +183,7 @@ describe('the controls Material would shape are told once (ADR-049)', () => {
    * because the visual baselines only ever catch it at rest — they record
    * the wash's truncated tail, not the thing the opacity is for.
    */
-  it('gives the outlet\'s page an opaque plane, keeping its content transparent', () => {
+  it("gives the outlet's page an opaque plane, keeping its content transparent", () => {
     expect(rule(palette, 'ion-router-outlet > .ion-page')).toContain(
       'background: var(--jp-surface-page)',
     )
