@@ -799,9 +799,12 @@ These patterns apply to every screen and are specified once.
   reached the counts and the walk but not the screen, so a device whose master pull had not landed rendered *Keine
   aktiven Reisen* over a list that was on its way — the ADR-033 mistake in the one place the user reads it. Until the
   partition is settled the screen says **„Reisen werden geladen …"** instead: the same block without its illustration,
-  because it is a notice rather than an absence and the geometry must not jump when the rows arrive. The rule is
-  general and the sweep is not done — every other list screen still paints its empty state unguarded (measured
-  2026-09-13: ten screens carry one, M2 is the only one that asks).
+  because it is a notice rather than an absence — one component and one spacing rule, not a second loading layout
+  beside the G-7 one. It persists for as long as no pull has succeeded, so an **offline cold start stays on the
+  notice**, which is the same honest answer FR-2.8 already gives for the counts: the G-2 indicator carries the reason
+  and pull-to-refresh (`drainAll`) is the retry. The rule is general and the sweep is not done — every other list
+  screen still paints its empty state unguarded (measured 2026-09-13: ten screens carry one, M2 is the only one that
+  asks).
 * **States:** Archived trips render muted with final stats; imported legacy trips (FR-16.2) carry an **„Importiert"**
   chip — **built 2026-08-31** (owner decision). Until then it was specified, written and never rendered: M15's migration
   wrote `trips.imported`, the store carried it into `Trip.imported`, and no surface read it — a column with a writer and
