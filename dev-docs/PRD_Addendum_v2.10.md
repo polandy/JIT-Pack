@@ -2993,6 +2993,12 @@ items**; turning a finished (and mutated) trip back **into a template for next y
     Local Mode and the first completed master drain in Server Mode. **An offline cold start in Server Mode therefore
     shows no counts and does not walk**, which is the honest answer rather than a defect: that device has no trip list
     at all, and a walk over three zeros would be a decision taken about nothing.
+  * **The screen owes the same answer as the arithmetic (amended 2026-09-13):** the clause above was built into the
+    counts and the walk alone, so M2's *empty state* went on reading the list directly, and an unsettled device
+    rendered *„Keine aktiven Reisen"* over rows that were on their way. Until the master partition is settled the
+    screen says *„Reisen werden geladen …"* instead and claims no absence. It persists for as long as no pull has
+    succeeded, so an offline cold start stays on that notice rather than being told it owns nothing — the G-2
+    indicator carries the reason and pull-to-refresh is the retry. UI-Spec M2, E2E-M2-18.
 
   **The segment states its count** — the second half of the request, and what makes the jump legible rather than
   mysterious: the user sees *why* they landed where they did, and, more often, that the two segments they are not on are
