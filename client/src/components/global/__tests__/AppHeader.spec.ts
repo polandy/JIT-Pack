@@ -71,8 +71,13 @@ describe('AppHeader — the left slot (G-9)', () => {
     const wrapper = mountHeader()
 
     // __APP_VERSION__ is vite.config.ts's `define`; vitest.config.ts merges
-    // the same config, so this is the value a real build would carry too.
-    expect(wrapper.find('[data-testid="header-app-version"]').text()).toBe(`v${__APP_VERSION__}`)
+    // the same config, so this is the value a real build would carry too —
+    // and it is rendered **verbatim**. The old assertion restated the
+    // component's own `v${…}` template, so it would have passed against any
+    // prefix at all, which is how `vv0.10.0-1-g500b5e54` shipped: both
+    // sources of the string already carry the tag's own `v`, `git describe`
+    // and the release workflow's `APP_VERSION=${{ github.ref_name }}` alike.
+    expect(wrapper.find('[data-testid="header-app-version"]').text()).toBe(__APP_VERSION__)
   })
 })
 

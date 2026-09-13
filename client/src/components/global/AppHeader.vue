@@ -124,7 +124,12 @@ function goHome() {
 // __APP_VERSION__ is vite.config.ts's `define` (git describe, or the
 // Docker build's APP_VERSION arg) — shown beside the wordmark so the
 // running build is visible without opening Settings (M17).
-const appVersionLabel = computed(() => `v${__APP_VERSION__}`)
+//
+// Rendered verbatim: both sources already carry the tag's own `v`
+// (`git describe --tags` → `v0.10.0-1-g…`, and the release workflow passes
+// `APP_VERSION=${{ github.ref_name }}`, which is the tag name). Adding one
+// here made every build say `vv…`, the shipped image included.
+const appVersionLabel = computed(() => __APP_VERSION__)
 
 /**
  * The declared parent, not history.back(): a deep link opened from a
