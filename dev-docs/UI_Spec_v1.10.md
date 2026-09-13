@@ -23,6 +23,8 @@ replaced and why. This index only says where to look.
   amount like every other (FR-21.9), and the FR-20.4 chip writes the position the resolution describes.
 * 2026-09-13 — **G-2**: the detail names the last failed request (FR-19.6). **M17** gains the Connection block —
   log out, reset connection (FR-19.9).
+* 2026-09-13 — **G-19** added: a banner that can arrive while a screen is in use renders over the content, never in
+  the column (ADR-060, FR-19.7).
 * 2026-09-02 — **M17** gains the FR-19.8 leave-Local-Mode card and the migration bar (ADR-045); M19 unchanged.
 * 2026-08-30 — **M8**: the FR-25.15 indicator's seam is `capturePending`, not the sync state (was wrong since
   2026-08-15).
@@ -659,6 +661,16 @@ These patterns apply to every screen and are specified once.
   reports that it did nothing — M19's clone of a trip that has since been deleted writes nothing, navigates nowhere, and
   leaves a screen that must stay usable. Sites today: M3 step 4, M19's clone. Not a rule for a control that stays on its
   screen — a quick-add writes a row and the screen is still the answer, and pressing it twice means two rows on purpose.
+* **G-19 (A Banner That Can Arrive Never Moves The Page — new 2026-09-13, ADR-060):** The frame's banners sit under the
+  app bar, and which of the two kinds a banner is decides where it lives. A banner that can appear **while the screen is
+  in use** — FR-19.7's update offer, flipped by a worker that finished installing — renders in the frame's own layer
+  **over** the content (`.app-banner-layer`), never in the column: a bar inserted into the column shifts every target
+  below it out from under the finger already reaching for one, and the press then lands beside the control while the
+  app reports nothing at all. What it costs is stated rather than avoided — the layer covers the top band of the
+  content while it is up, and a press aimed at that band during its arrival hits the banner, which is visible under the
+  pointer when it is hit. A banner that can only ever be present **from the first paint** — FR-19.8's migration bar,
+  whose flag is read at boot after a reload — stays in the column, where it costs nothing and reflows nothing that was
+  already on screen. The same rule is why M5's desktop panel is fixed beside the list rather than squeezing it.
 * **Purpose:** Single entry point answering "what do I have to do right now?" across all active trips (FR-6.1).
 * **The first active trip is a hero card, the rest stay list cards (added 2026-09-07, FR-21.13).** It carries when the
   trip is, who is on it, a progress ring with the share in words beside it, a track, and — in the hero itself — the

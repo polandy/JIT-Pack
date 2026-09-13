@@ -80,6 +80,21 @@
    */
   --jp-control-round: 34px;
 
+  /* --- The app bar ----------------------------------------------------
+   * The height of the frame's top bar, and therefore the line every layer
+   * the frame puts *under* it starts at: the body column, M5's desktop
+   * panel, and the FR-19.7 banner's overlay. Three files read it, which is
+   * why it is a token and no longer three copies of `56px` (§4a).
+   */
+  --jp-app-bar-h: 56px;
+
+  /* --- The desktop rail -----------------------------------------------
+   * G-9's rail width. Read by the rail itself and by the FR-19.7 banner's
+   * layer, which starts where the rail ends — an overlay that began at the
+   * viewport edge covered the rail's first anchor (rendered 2026-09-13).
+   */
+  --jp-nav-rail-w: 80px;
+
   /* --- Elevation ----------------------------------------------------
    * Three casts, because the app raises surfaces in three directions and
    * each needs its shadow thrown the other way: a card lifts off the

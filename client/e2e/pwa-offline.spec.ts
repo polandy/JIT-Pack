@@ -362,6 +362,47 @@ test.describe('app shell offline (NFR-4.13)', () => {
    * E2E-PWA-05b — "Later" is a different outcome from applying. Without this
    * the dismissal could be wired to the same handler and no case would say so.
    */
+  /**
+   * E2E-PWA-06 (FR-19.7) — the announcement must not move the page underneath
+   * it. The banner arrives while somebody is already reaching for a control,
+   * and a bar inserted above the content shifts every target below it: the
+   * pointer check and the stability check both pass on the old geometry, and
+   * the dispatch lands beside the button. That is what cost `E2E-G14-01` its
+   * click on 2026-09-09 (dev-docs/e2e-tests.md) — a click Playwright reported
+   * as a success, on a page that had not moved on.
+   *
+   * The measurement is the content box before and after, read in the same
+   * layout both times: the banner's own visibility is the settled state, so
+   * nothing here waits on a clock.
+   */
+  test('E2E-PWA-06: the banner appears without moving the content under it', async ({ page }) => {
+    await page.goto(PATH.dashboard)
+    await serviceWorkerControlsPage(page)
+
+    const content = visiblePage(page)
+    await expect(content).toBeVisible()
+    const before = await content.boundingBox()
+
+    await page.evaluate(async () => {
+      const reg = await navigator.serviceWorker.register('/sw.js?e2e-update=6')
+      await new Promise<void>((resolve) => {
+        if (reg.waiting) return resolve()
+        const installing = reg.installing
+        if (!installing) return resolve()
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed') resolve()
+        })
+      })
+    })
+
+    // The provocation worked — without this the box comparison below would be
+    // green against a banner that never rendered.
+    await expect(page.getByTestId('update-banner')).toBeVisible()
+
+    const after = await content.boundingBox()
+    expect(after).toEqual(before)
+  })
+
   test('E2E-PWA-05b: "Later" hides the bar and keeps the offer everywhere else', async ({
     page,
   }) => {

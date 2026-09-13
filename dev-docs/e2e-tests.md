@@ -121,7 +121,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Three cases for a figure, a door and a height (2026-09-08)](#three-cases-for-a-figure-a-door-and-a-height-2026-09-08) — FR-21.23/21.24/21.25: the duplicate door that was on two screens, and what a fixed sheet height hides from a case.
 - [A field three call sites read and nothing wrote (2026-09-08)](#a-field-three-call-sites-read-and-nothing-wrote-2026-09-08) — why M4's grouping had one bucket, and the case that now walks the path a user has.
 - [„Für alle" needed the sheet to be reopened (2026-09-09)](#für-alle-needed-the-sheet-to-be-reopened-2026-09-09) — FR-25.13g: the case that could not be written the obvious way, and the one branch e2e deliberately does not reach.
-- [Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)](#owed-a-webkit-case-lost-its-click-to-the-fr-197-banner-2026-09-09) — **open**: a helper every M3-built trip goes through, and a banner that reflowed the page under the pointer.
+- [Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)](#owed-a-webkit-case-lost-its-click-to-the-fr-197-banner-2026-09-09) — **closed 2026-09-13** (ADR-060): the banner left the column, and E2E-PWA-06 states it as an equality.
 - [Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)](#owed-e2e-m17-01s-sheet-did-not-close-a-fourth-time-under-load-2026-09-10) — **open**: two artifacts disagree about which screen the locator queried.
 - [The second press that made a second trip (2026-09-10)](#the-second-press-that-made-a-second-trip-2026-09-10) — E2E-M3-22: a case whose red run is the whole point, and the assertion that needed the list rather than the wizard.
 - [The cluster learns to fold, and the suite learns to open it (2026-09-11)](#the-cluster-learns-to-fold-and-the-suite-learns-to-open-it-2026-09-11) — E2E-M4-82: eleven cases that reached for a child row, and the layer where nothing went red.
@@ -4787,7 +4787,7 @@ job is to be unreachable; it is covered where it can be stated in one line,
 
 ## Owed: a WebKit case lost its click to the FR-19.7 banner (2026-09-09)
 
-**Open.** This section is the todo, not its answer. `E2E-G14-01` failed once on `main`, on a tree that
+**Closed 2026-09-13 — see the closing note at the end of this section.** What follows is what the section said while it was open. `E2E-G14-01` failed once on `main`, on a tree that
 is byte for byte the tree of the commit that had passed the same suite twenty-five minutes earlier,
 and passed on the re-run. What is written here is what the artifacts show, so the next occurrence is
 read rather than re-run.
@@ -4821,6 +4821,34 @@ against a moving target treats the symptom and would hide the next occurrence.
 
 Evidence: run `34410995185`, job `e2e (7)`, `main` at `bcfadb03`; report artifact
 `playwright-report-shard-7` carries the screenshot, the aria snapshot and the trace.
+
+**How it closed (2026-09-13, ADR-060).**
+
+Two things happened, and only the second one is a fix.
+
+`531d5c3b` blocked service workers on the WebKit Playwright project, which is legitimate on its own
+terms — WebKit under Playwright never exercised real worker behaviour, so the block removes an artifact
+rather than a coverage — but it is a change to the *observer*: every real device kept the defect, and so
+did Chromium. That is why this section stayed open after it.
+
+The fix is the seam the section named. `UpdateBanner` was a flex child of the app's column, so flipping
+`swUpdateReady` moved everything below it. **E2E-PWA-06** now reads the content box before the worker is
+provoked and again once the bar is on screen and asserts the two are equal; against the unfixed build it
+reported the exact size of the defect — the content moved **64.78 px down and lost 64.78 px of height**.
+The bar moved into `.app-banner-layer`, a fixed layer at the app bar's lower edge (ADR-060, G-19).
+
+Two things this cost that the reasoning above did not predict, both found by *rendering* it rather than
+by reading the stylesheet:
+
+- At `left: 0` the overlay painted over the desktop rail's first anchor and took its taps. The layer is
+  inset past `--jp-nav-rail-w` beyond G-9's breakpoint.
+- The rail used to shift its four anchors down when a build was announced, which nobody had noticed
+  because it was the same reflow seen from a different seat.
+
+**Still not explained, and deliberately left open:** why the banner appeared in that WebKit context at
+all. The question is now unobservable in the suite — WebKit blocks workers, and the layout no longer
+converts the flip into a lost click — so it is recorded here rather than chased. If a WebKit device in
+the wild reports a spurious *New version ready*, this is the note to start from.
 
 ## Owed: E2E-M17-01's sheet did not close, a fourth time under load (2026-09-10)
 

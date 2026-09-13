@@ -76,7 +76,7 @@ The app updates itself: whenever it is opened with a connection, it fetches the 
 
 Once one is ready, the app says so in two places and lets you decide when to switch:
 
-- A bar appears under the app bar: **New version ready**, with **Update** beside it. **Later** hides the bar; the offer stays where the second place is.
+- A bar appears under the app bar: **New version ready**, with **Update** beside it. **Later** hides the bar; the offer stays where the second place is. The bar lies *over* the top of the screen rather than pushing it down, so nothing you were about to tap moves out from under your finger — while it is there it covers the top of the page, and **Later** puts it away.
 - The sync indicator in the app bar carries a small dot. Tap it, and the detail view says a new version is ready and offers **Update now**.
 
 Either button switches immediately: the app reloads onto the new version, which takes a moment. **Changes you have made are kept** — anything not yet sent to the server is stored on this device and goes out afterwards. What is not kept is text you were still typing into a form you had not saved, so finish that first.
