@@ -155,6 +155,18 @@ test.describe('M5 item detail @local @m5', () => {
     // Deliberately *not* scoped: an IonModal is teleported out of the page,
     // so a scoped count would be 0 whether one opened or not.
     await expect(page.getByTestId('m5-modal')).toHaveCount(0)
+
+    // G-9: the panel is offset by the app-bar height, which is
+    // `--jp-app-bar-h` since 2026-09-13. Read as the *resolved* style and
+    // not as a box: the panel is fixed inside a transformed Ionic page, so
+    // its containing block is the page rather than the viewport, and a box
+    // comparison against the bar would be asserting the transform. A token
+    // that stopped resolving computes to `auto` here, which moves the panel
+    // over the list while every assertion above stays green.
+    const offset = await page.evaluate(
+      () => getComputedStyle(document.querySelector('[data-testid="m5-panel"]')!).top,
+    )
+    expect(offset).toBe('56px')
   })
 
   // E2E-M5-13 (ADR-011 §overlay): the *browser's* back with the sheet open
