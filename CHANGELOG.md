@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.10.0](https://github.com/polandy/JIT-Pack/compare/v0.9.0...v0.10.0) (2026-09-13)
+
+
+### Features
+
+* agent-CLI tooling parity (hooks, docs) ([11a9579](https://github.com/polandy/JIT-Pack/commit/11a95791df74548feac1586ebc8b894a63ae9ae4))
+* **client:** a device can say what failed, and be repaired (FR-19.6, FR-19.9) ([a3a9eb9](https://github.com/polandy/JIT-Pack/commit/a3a9eb901248777329247bb75c0b57960a247a6e))
+* **client:** a settled browse-sheet line can be reset, and found (FR-25.13i) ([d7ce930](https://github.com/polandy/JIT-Pack/commit/d7ce9302cfe84b6d6b900f0936d2232943a6a3e4))
+* **client:** declare a dependency from the main item too (FR-20.1) ([56a38e7](https://github.com/polandy/JIT-Pack/commit/56a38e7f5a28719ac673451a6fcc9f6d9ba9d215))
+* **client:** M22 adds a traveller as an account in one act (FR-2.5) ([9a180a7](https://github.com/polandy/JIT-Pack/commit/9a180a76c29c72d81d820480e4c339822c6d3856))
+* **client:** M22 records a traveller as an account (FR-2.5, ADR-058) ([b4c28bd](https://github.com/polandy/JIT-Pack/commit/b4c28bd6163d04e27a0b59780659794d779e362a))
+* **client:** M4 packing list gets a Status facet (FR-25.11l) ([08975e1](https://github.com/polandy/JIT-Pack/commit/08975e1db25d0465003e2d38336fa70f3cc4899d))
+
+
+### Bug Fixes
+
+* **client:** a failed token refresh backs off instead of looping (Sync-API §2, ADR-059) ([6238117](https://github.com/polandy/JIT-Pack/commit/62381178b50c4b66290732a5ad817032dbf7931f))
+* **client:** a skipped row no longer counts as packed (amends FR-25.22) ([ff8a2db](https://github.com/polandy/JIT-Pack/commit/ff8a2db041b5380d472aad301981f4673f4ff722))
+* **client:** M3 review overrides follow the item, not the slot ([2c13c7a](https://github.com/polandy/JIT-Pack/commit/2c13c7a87fa89a7bd3a4061c54bd679981f73b94))
+* **client:** remove the quick-add composer's related-item chip row ([00fe818](https://github.com/polandy/JIT-Pack/commit/00fe81854b35463b79d388508132a55a699e1540))
+* close TODO-minors-pr3 items 1-3 (devcode rebuild, E2E-M3-15, E2E-M5-10) ([b95b5b0](https://github.com/polandy/JIT-Pack/commit/b95b5b01c79e667601a8f0fa8620fc79c005aa8d))
+* **e2e:** block service workers on the WebKit project ([531d5c3](https://github.com/polandy/JIT-Pack/commit/531d5c3bba2ba58d972358f37f1d4a6b0e2fad9b))
+
 ## [0.9.0](https://github.com/polandy/JIT-Pack/compare/v0.8.0...v0.9.0) (2026-09-12)
 
 
