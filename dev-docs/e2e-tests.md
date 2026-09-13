@@ -2254,6 +2254,16 @@ copy of every trip, silently, with the first still on screen — and a second
 copy of every Ferien-Vorlage under a `(import)` suffix, which is why the case
 carries all three document kinds rather than only the trip.
 
+**Why it went red on WebKit (2026-09-13), and what the case was missing.** The second preview
+reported *not here yet* about a trip that had just been restored. The cause is not the preview: the
+case committed the restore, asserted the row — the **optimistic** one — and then navigated, and the
+`goto` is a reload. A Local Mode save still open when a navigation starts is cancelled with it, so
+the rows the second preview is supposed to recognise had never reached the device. `writesLanded()`
+is the settled signal and the case now waits on it before each pass. Reproduced deliberately by
+slowing `IndexedDBPersistence.write` by 500 ms in the bundle: without the wait it fails at the
+marker twice out of twice, with it it passes twice out of twice on the same build — the same
+technique, and the same defect shape, as the 2026-09-02 note on `writesLanded` itself.
+
 Three things worth keeping from writing it:
 
 - **The assertion is `toHaveCount(1)`, not "no second row".** A case that only

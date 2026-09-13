@@ -370,6 +370,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 - [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
 - [Four reasons a device could not say what was wrong (2026-09-13)](#four-reasons-a-device-could-not-say-what-was-wrong-2026-09-13) — the iPad diagnosis: what made it undiagnosable, and why the hung boot was the one nobody could have seen.
+- [The release tags were on a history nobody was on (2026-09-13)](#the-release-tags-were-on-a-history-nobody-was-on-2026-09-13) — why release-please proposed 0.2.0 against a running v0.9.0, and what is now stated instead of inferred.
 - [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — one client's retry drained a rate limit shared with the login exchange; the IdP lifespan behind it.
 - [The pack that was painted but never sent (2026-09-13)](#the-pack-that-was-painted-but-never-sent-2026-09-13) — why the obvious barrier for `packItem` is the wrong one, and how the race was made to fail on demand.
 - [The screen was never told what the counts knew (2026-09-13)](#the-screen-was-never-told-what-the-counts-knew-2026-09-13) — M2's empty state asserted an absence it had not established; ten screens still do.
@@ -15188,6 +15189,47 @@ stored from the machine while the refresher reads an injected clock is an expiry
 class was invisible to every gate we have: nothing in JIT-Pack logs a request, so the only record that a client is
 hammering a dependency lives in the dependency. When a symptom survives a healthy server and a correct payload, the
 next log to open is the one belonging to the thing being *called*.
+
+## The release tags were on a history nobody was on (2026-09-13)
+
+Deploying the FR-19.6/FR-19.9 work to the family instance needed a release, and the standing
+release PR proposed **`release 0.2.0`** — against an instance running `v0.9.0`, with a 249-line
+changelog reaching back into the migration era. The PR was not stale: release-please had
+regenerated it minutes earlier.
+
+**The premise that was wrong is "a tag is on the branch it was cut from".** Every release tag from
+`v0.1.0` to `v0.9.0` pointed at a commit that was **not reachable from `main`**. The two lines
+diverge at `22e65407` (2026-07-11) and run in parallel from there with the same subjects and the
+same author *and committer* timestamps — a re-created history, not a rebase. The content was
+untouched: `v0.9.0`'s tree and `main`'s `0bfeb62a` tree are the same object (`2b134dce`), which is
+why nobody noticed for two months and eight releases. Only a tool that walks back from the branch
+looking for its own releases could notice, and when it did, it reported the result as a version
+rather than as an error.
+
+**Two answers were given, and both are in the repository.** The tags were reattached by hand with
+the owner's approval — `v0.9.0` first, which is what let release-please regenerate the release PR as
+`0.10.0` (released and rolled out to the family instance the same afternoon), and then the remaining
+fourteen, matched by **tree identity** rather than by subject, since the subjects differ by the
+`(#NNN)` suffix a squash merge adds. All fifteen are on `main`'s line again, so inferring would work
+today. **`.release-please-manifest.json` is the other answer, and it is the one that survives** —
+not because the tags are still broken, but because of what the episode showed: a tag is a movable
+label, and the repository had no other record of which version it had released. A force-push
+invalidated fifteen of them silently and a second one repaired them; neither event could have been
+noticed by anything that reads tags. The repair proved the same point twice over: the single
+force-push of `v0.9.0` re-triggered `docker.yml` and republished `ghcr…:0.9.0` under a **new
+digest** (harmless here — the instance pins a digest, and the old one still exists), while the
+push of the remaining thirteen in one go triggered **no run at all**, because GitHub fires nothing
+for a push of more than three tags. Which side of that line a release lands on is not something a
+repository should have to know. The manifest is a fact release-please maintains itself, in the
+history, where a force-push cannot quietly change it. A `last-release-sha` pin was in this change
+too and was taken out again: with the tags reachable it fixes the changelog's starting point at one
+commit for good, which is a second thing to maintain and answers a question the manifest already
+answers.
+
+**What it cost while it stood:** the build the family instance ran (`deb41aab`) was not a commit on
+`main`. Content-identical to `0bfeb62a`, so nothing was ever deployed that `main` did not contain —
+but `git log` on `main` could not find the commit the M17 About block named, and neither could
+anyone reading a bug report against it.
 
 ## The pack that was painted but never sent (2026-09-13)
 
