@@ -122,6 +122,10 @@ loading" for ever.
   · 170/170` instead of `0 %  · 0/0`.
 - The cost is the viewport, not the archive: 8 requests instead of 33 today, and the same 8 when there are 300 trips.
 - `ensureTripData` gives any future screen the same "I need this trip's rows" without opening the trip.
+- **Option A turned out to be the app's rule, not the ring's** (2026-09-13). FR-2.8 borrowed it for M2's counts, then
+  for M2's empty state, and a sweep the day after found nine more screens asserting an absence off rows they had not
+  read. All ten are now gated, on `masterDataLoaded()`, on `useTripScreen`'s `loaded`, or — for the conflict log — on
+  its own request having come back. The rule as a UI pattern is written in UI-Spec G-7; this is where it was decided.
 
 **Negative / accepted costs**
 

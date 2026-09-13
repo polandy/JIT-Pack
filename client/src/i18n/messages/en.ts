@@ -196,6 +196,7 @@ export const en = {
 
   'packing.packSection': 'Packing',
   'packing.prepSection': 'Preparation',
+  'packing.listUnknown': 'Loading the packing list …',
   'packing.empty': 'Nothing on this list yet',
   'packing.emptyHint': 'Add the first item with ＋.',
 
@@ -276,6 +277,7 @@ export const en = {
   'templates.itemCount': '{n} item | {n} items',
   'templates.groupCount': '{n} group | {n} groups',
   'templates.contains': 'contains:',
+  'templates.listUnknown': 'Loading templates …',
   'templates.empty': 'No templates yet',
   'templates.emptyHint':
     'Start with a group — a reusable block of items — or a vacation template built from groups.',
@@ -390,6 +392,7 @@ export const en = {
 
   'items.title': 'Inventory',
   'items.searchPlaceholder': 'Search inventory…',
+  'items.listUnknown': 'Loading the inventory …',
   'items.empty': 'No items yet',
   'items.emptyHint': 'Your inventory is what templates and packing lists are built from.',
   'items.noMatch': 'No item found',
@@ -732,6 +735,7 @@ export const en = {
     'Deleting something that is still in use hides it instead of removing it, so finished trips and the analytics keep reading it. Bring it back here.',
   'retired.segmentItems': 'Items',
   'retired.segmentTemplates': 'Templates',
+  'retired.listUnknown': 'Loading the archive …',
   'retired.emptyItems': 'Nothing is hidden — every item in the inventory is visible.',
   'retired.emptyTemplates': 'Nothing is hidden — every template and group is visible.',
   'retired.hiddenOn': 'Hidden on {date}',
@@ -796,6 +800,7 @@ export const en = {
   'container.pairingHint': 'Left/right pairs are flagged beyond {n} % imbalance.',
   'container.delete': 'Delete container',
   'container.deleteNote': 'Its items stay on the list, unassigned.',
+  'container.listUnknown': 'Loading the luggage …',
   'container.empty': 'No containers yet. Create one with ＋ to balance weight.',
   'container.unassigned': 'Unassigned items',
   'container.unassignedNone': 'Everything is assigned to a container.',
@@ -1161,7 +1166,8 @@ export const en = {
   'members.title': 'Members',
   'members.self': ' (you)',
   'members.remove': 'Remove member',
-  'members.empty': 'No roster synced for this trip yet.',
+  'members.listUnknown': 'Loading the roster …',
+  'members.empty': 'No members on this trip yet.',
   'members.addUser': 'Add user…',
   'members.addUserLabel': 'Add user',
   'members.allAdded': 'Everyone on this server is already a member.',
@@ -1175,6 +1181,7 @@ export const en = {
   'conflicts.takeoverLine': '{to} took the item over from {from}',
   'conflicts.titleMaster': 'Conflicts · shared data',
   'conflicts.unavailable': 'Conflict log unavailable — offline?',
+  'conflicts.listUnknown': 'Loading the log …',
   'conflicts.empty': 'No conflicts — every change merged cleanly',
   'conflicts.emptyMaster':
     'No conflicts in inventory, groups or trip data — every change merged cleanly',
@@ -1240,6 +1247,7 @@ export const en = {
   'shopping.undoBought': 'Not bought after all: {name}',
   'shopping.wentToPacking': 'on the packing list',
   'shopping.wentPacked': 'packed',
+  'shopping.listUnknown': 'Loading the shopping list …',
   'shopping.emptyBefore': 'Nothing to buy before departure',
   'shopping.emptyLocal': 'Nothing to buy at the destination',
 

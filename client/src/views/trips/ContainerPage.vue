@@ -59,7 +59,9 @@ const props = defineProps<{ tripId: string }>()
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
-const { trip } = useTripScreen(props.tripId, orchestrator)
+// ADR-033: whether this trip's own rows are on the device. Without it M11's
+// G-7 state invited the user to create luggage the trip already has.
+const { trip, loaded: rowsLoaded } = useTripScreen(props.tripId, orchestrator)
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const items = computed(() => tripStore.getItems(props.tripId))
@@ -127,9 +129,15 @@ setHeaderTitle(
   <IonPage>
     <IonContent>
       <div class="page-pad">
+        <EmptyState
+          v-if="containers.length === 0 && !rowsLoaded"
+          :title="t('container.listUnknown')"
+          testid="m11-list-loading"
+        />
+
         <!-- G-7 empty state: create is the FAB, already on screen. -->
         <EmptyState
-          v-if="containers.length === 0"
+          v-else-if="containers.length === 0"
           :icon="bagHandleOutline"
           :title="t('container.empty')"
           testid="m11-empty"

@@ -138,7 +138,13 @@ const router = useRouter()
 const route = useRoute()
 const orchestrator = useOrchestrator()
 
-const { trip, ensure: ensureTripRows } = useTripScreen(props.tripId, orchestrator)
+// ADR-033: `loaded` says whether this trip's partition is on the device. M4's
+// three empty states all read off rows that arrive after the screen paints.
+const {
+  trip,
+  loaded: rowsLoaded,
+  ensure: ensureTripRows,
+} = useTripScreen(props.tripId, orchestrator)
 
 // --- Identity, for FR-25.19/25.20 ---------------------------------------
 const {
@@ -1511,8 +1517,16 @@ setHeaderTitle(
         </template>
       </IonList>
 
-      <!-- An empty list means one of two things, and conflating them is how
-           a packing app tells someone they are finished when they are not. -->
+      <!-- An empty list means one of *three* things, and conflating them is how
+           a packing app tells someone they are finished when they are not. The
+           first is not a state of the list at all: until the partition is here
+           there is nothing to be narrowed, empty or done (ADR-033). -->
+      <EmptyState
+        v-else-if="!rowsLoaded"
+        :title="t('packing.listUnknown')"
+        testid="m4-list-loading"
+      />
+
       <EmptyState
         v-else-if="view.narrowed"
         :title="onlyOthersHidden ? t('packing.emptyOthersHead') : t('packing.noMatches')"

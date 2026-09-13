@@ -42,6 +42,7 @@ import {
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 import EmptyState from '@/components/global/EmptyState.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
@@ -60,6 +61,7 @@ import type { MasterItem } from '@/types/domain'
 import { PATH, itemPath } from '@/router/paths'
 
 const masterStore = useMasterStore()
+const orchestrator = useOrchestrator()
 const router = useRouter()
 const { term: search, isOpen: searchOpen, toggle: toggleSearch, action } = useContextSearch()
 
@@ -108,6 +110,15 @@ const groups = computed(() => masterStore.itemsByPrimaryTag(filtered.value))
 
 const isEmpty = computed(() => masterStore.activeItemList.length === 0)
 const noResults = computed(() => !isEmpty.value && filtered.value.length === 0)
+
+/**
+ * ADR-033: whether the inventory is on the device at all. `isEmpty` reads a
+ * store that starts empty in Server Mode, so without this the first paint of
+ * a cold start offers the spreadsheet importer to somebody who already owns
+ * two hundred items. `noResults` needs no guard — it sits behind `!isEmpty`,
+ * which means at least one item is already here.
+ */
+const itemsKnown = computed(() => orchestrator.masterDataLoaded())
 
 /** The heading a group renders — the untagged bucket is not a tag name. */
 function groupLabel(key: string): string {
@@ -183,9 +194,16 @@ function handleRefresh(event: CustomEvent) {
         </IonSegmentButton>
       </IonSegment>
 
+      <!-- ADR-033: an inventory that has not arrived is not an empty one. -->
+      <EmptyState
+        v-if="isEmpty && !itemsKnown"
+        :title="t('items.listUnknown')"
+        testid="m9-list-loading"
+      />
+
       <!-- G-7 empty state — M15 is the way in from here. -->
       <EmptyState
-        v-if="isEmpty"
+        v-else-if="isEmpty"
         :icon="cubeOutline"
         :title="t('items.empty')"
         :hint="t('items.emptyHint')"

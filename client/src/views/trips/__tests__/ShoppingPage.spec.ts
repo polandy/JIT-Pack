@@ -9,7 +9,7 @@
  * flow; the wiring — which orchestrator call, with which list — lives here.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import ShoppingPage from '../ShoppingPage.vue'
@@ -21,8 +21,10 @@ import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
+const tripScreen = tripScreenStub()
+
 const orchestratorFake = {
-  ...tripScreenStub(),
+  ...tripScreen,
   buyItem: vi.fn(),
   unbuyItem: vi.fn(),
   quickAddItem: vi.fn(),
@@ -72,6 +74,7 @@ function mountPage() {
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
+  tripScreen.loadedTrips.clear()
 })
 
 describe('M6 shopping — buying a row stays reversible (FR-25.11j)', () => {
@@ -249,5 +252,31 @@ describe('M6 shopping — a per-person item is one buy row (FR-25.6)', () => {
     expect(page.find('[data-testid="m6-row-for"]').exists()).toBe(false)
     await page.find('[data-testid="m6-row"] ion-checkbox').trigger('ionChange')
     expect(orchestratorFake.buyItem).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * ADR-033. „Nothing to buy before departure" is a sentence somebody leaves the
+ * house on, and until this trip's partition is here it is a guess. M6 read
+ * `grouped` — empty before the pull and empty when the list really is done —
+ * and said the same thing to both.
+ */
+describe('M6 shopping — an absence it has not read yet (ADR-033, G-7)', () => {
+  it('says the list is loading rather than claiming there is nothing to buy', async () => {
+    seedTrip([])
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m6-list-loading"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m6-empty"]').exists()).toBe(false)
+    expect(page.text()).toContain(t('shopping.listUnknown'))
+
+    tripScreen.loadedTrips.add('t1')
+    await flushPromises()
+
+    expect(page.find('[data-testid="m6-list-loading"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m6-empty"]').exists()).toBe(true)
+    expect(page.text()).toContain(t('shopping.emptyBefore'))
   })
 })

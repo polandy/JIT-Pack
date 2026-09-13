@@ -14,7 +14,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
-import { ref } from 'vue'
 
 import TripListPage from '../TripListPage.vue'
 import { useTripStore } from '@/stores/tripStore'
@@ -23,6 +22,7 @@ import { t } from '@/i18n'
 import type { AppliedChange } from '@/types/domain'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
+import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
@@ -44,7 +44,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
-const masterLoaded = ref(true)
+const master = masterDataStub()
 
 const orchestratorFake = {
   ...identityStub(),
@@ -58,11 +58,9 @@ const orchestratorFake = {
   // that fetches them. The set is what a test decides.
   loadedTrips: new Set<string>(),
   tripDataLoaded: vi.fn((tripId: string) => orchestratorFake.loadedTrips.has(tripId)),
-  // FR-2.8: whether the trip list itself is on the device. A ref, like both
-  // signals it stands in for — the screen reads it through a computed, and a
-  // plain property would make that computed permanently stale. Default true,
-  // so the cases above see a settled list; the FR-2.8 block drives it.
-  masterDataLoaded: vi.fn(() => masterLoaded.value),
+  // FR-2.8: whether the trip list itself is on the device. Default true, so
+  // the cases above see a settled list; the FR-2.8 block drives it.
+  ...master,
   ensureTripData: vi.fn(() => Promise.resolve()),
 }
 
@@ -114,7 +112,7 @@ beforeEach(() => {
   segment = 'planned'
   orchestratorFake.refreshProposals.value = {}
   orchestratorFake.loadedTrips = new Set<string>()
-  masterLoaded.value = true
+  master.masterLoaded.value = true
   setActivePinia(createPinia())
   vi.clearAllMocks()
   localStorage.clear()
@@ -447,7 +445,7 @@ describe('TripListPage — the opening segment (FR-2.8)', () => {
     // The sharpest edge in the FR: zeros read off an unpulled list are not
     // zeros. Without the guard this lands on the archive on every cold start
     // and stays there, because the walk decides on entry only.
-    masterLoaded.value = false
+    master.masterLoaded.value = false
     seedTrip('archived')
 
     const wrapper = mountPage()
@@ -458,7 +456,7 @@ describe('TripListPage — the opening segment (FR-2.8)', () => {
 
     // The same entry, now settled: the deferred decision is what fires here,
     // which is also what proves the assertion above was not simply empty.
-    masterLoaded.value = true
+    master.masterLoaded.value = true
     await flushPromises()
 
     expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
@@ -469,7 +467,7 @@ describe('TripListPage — the opening segment (FR-2.8)', () => {
     // The same guard as the case above, one layer up: it reached the counts
     // and the walk, and not the screen. An unsettled device therefore told
     // the user it had no trips — the one place the rule is read.
-    masterLoaded.value = false
+    master.masterLoaded.value = false
 
     const wrapper = mountPage()
     await flushPromises()
@@ -481,7 +479,7 @@ describe('TripListPage — the opening segment (FR-2.8)', () => {
     // Settled and genuinely empty: now the absence is established, and the
     // G-7 state is the honest answer. Without this half the case above would
     // pass against a screen that had simply stopped rendering either one.
-    masterLoaded.value = true
+    master.masterLoaded.value = true
     await flushPromises()
 
     expect(wrapper.find('[data-testid="m2-list-loading"]').exists()).toBe(false)

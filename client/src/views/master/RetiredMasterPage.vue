@@ -137,6 +137,14 @@ const emptyKey = computed<MessageKey>(() =>
 )
 
 /**
+ * ADR-033: the archive is a view of the master partition, so „nothing is
+ * hidden" is a claim about rows this device may not have yet. Stating it on a
+ * cold start is the one sentence on this screen a user would act on — they
+ * came here to find something they retired.
+ */
+const rowsKnown = computed(() => orchestrator.masterDataLoaded())
+
+/**
  * The sentence naming who holds the name. Asked through the orchestrator's
  * own rule rather than re-derived, so what the alert says and what refused
  * the restore can never disagree.
@@ -243,7 +251,13 @@ function hiddenOn(row: RetiredRow): string {
       </IonSegment>
 
       <EmptyState
-        v-if="rows.length === 0"
+        v-if="rows.length === 0 && !rowsKnown"
+        :title="t('retired.listUnknown')"
+        testid="m23-list-loading"
+      />
+
+      <EmptyState
+        v-else-if="rows.length === 0"
         :icon="archiveOutline"
         :title="t(emptyKey)"
         testid="m23-empty"

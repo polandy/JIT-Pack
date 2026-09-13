@@ -198,6 +198,16 @@ These patterns apply to every screen and are specified once.
   is a success state and paints its glyph in `--jp-done`; M8's and M10's "not found" line is an error about one record;
   and the inline hints inside a populated section (M11's unassigned box, M8's group and position lists, M3's steps)
   annotate a section rather than replace a screen.
+  **An empty state is a claim, and every one of them is gated on hydration** (ADR-033, swept 2026-09-13). A list that
+  has not arrived is not an empty list, and G-7's sentence is exactly the one a user acts on — so the pattern has a
+  state *before* itself: the same component, no illustration, one sentence saying the list is loading, and no primary
+  action. Which fact answers „has it arrived" depends on where the rows come from, and there are three:
+  `masterDataLoaded()` for the master partition (M1, M7, M9, M23, the FR-4.5 roster and M2 itself), `useTripScreen`'s
+  `loaded` for a trip's own rows (M4, M6, M11), and — for the conflict log, which fetches rather than syncs — its own
+  request having come back. The notice **persists for as long as nothing has arrived**, so an offline cold start stays
+  on it: the G-2 indicator carries the reason and pull-to-refresh is the retry, and a screen must never borrow G-2's job
+  by guessing an absence. The states that are *not* gated say why in the same breath: M9's *„no item found"* and M4's
+  *„no matches"* sit behind a non-empty list, so reaching either already proves the rows are here.
 * **G-1 icons (2026-08-14):** the four anchors are Dashboard · **Trips (a train)** · Templates · Items. The plane it
   shipped with said something untrue about the household: these are ground journeys, and the anchor icon is the first
   statement the app makes about itself. The same list feeds the desktop rail and the mobile bar (`router/anchors.ts`),

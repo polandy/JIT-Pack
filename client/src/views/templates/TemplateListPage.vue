@@ -126,6 +126,14 @@ const isEmpty = computed(() => visibleRows.value.length === 0)
 /** Nothing at all versus nothing *matching* — different sentences (G-7). */
 const hasTemplates = computed(() => masterStore.activeTemplateList.length > 0)
 
+/**
+ * ADR-033: and a third sentence before either of those is true. `hasTemplates`
+ * distinguishes „none" from „none matching", but both read off a master
+ * partition that arrives after this screen paints — so on a cold start M7 said
+ * „no templates yet" and offered to create the first of the twenty it holds.
+ */
+const templatesKnown = computed(() => orchestrator.masterDataLoaded())
+
 /** The sections shown under *Alle*; a single-scope tab renders one unlabelled list. */
 const sections = computed(() =>
   tab.value === 'all'
@@ -381,9 +389,16 @@ async function handleRefresh(event: CustomEvent) {
         </IonSegmentButton>
       </IonSegment>
 
+      <!-- ADR-033: nothing pulled is neither „none" nor „none matching". -->
+      <EmptyState
+        v-if="isEmpty && !templatesKnown"
+        :title="t('templates.listUnknown')"
+        testid="m7-list-loading"
+      />
+
       <!-- Empty state (G-7) -->
       <EmptyState
-        v-if="isEmpty"
+        v-else-if="isEmpty"
         :icon="listOutline"
         :title="hasTemplates ? t('templates.noMatch') : t('templates.empty')"
         :hint="hasTemplates ? undefined : t('templates.emptyHint')"
