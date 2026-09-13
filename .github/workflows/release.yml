@@ -3,15 +3,15 @@
 # GitHub release and the v* tag.
 #
 # The version it releases from is `.release-please-manifest.json`, stated in
-# the repository rather than inferred from the tags. Inferring it failed once,
-# and the reason is still half-true: the history was re-created on 2026-07-11
-# and every release tag stayed on the old line, content-identical but with
-# different SHAs. Walking back from `main`, release-please found none of its
-# own releases and proposed `0.2.0` against a running `v0.9.0`. `v0.9.0` and
-# `v0.10.0` have since been moved onto `main`'s line by hand; **v0.8.0 and
-# older have not**, so the moment anything walks past 0.10.0 it is back in the
-# void. The manifest does not care either way, and release-please maintains it
-# itself from here on.
+# the repository rather than derived from the tags, and release-please keeps it
+# up to date itself. The reason is no longer that the tags are broken: the
+# history was re-created on 2026-07-11 and all fifteen release tags stayed on
+# the old line, which is how release-please came to propose `0.2.0` against a
+# running `v0.9.0` — and on 2026-09-13 all fifteen were re-pointed onto `main`
+# by hand, matched by tree identity. The reason is what that episode showed:
+# **a tag is a movable label, and the repository had no other record of which
+# version it had released.** The manifest is that record, and it cannot be
+# silently invalidated by a force-push.
 #
 # It authenticates with a PAT (secrets.RELEASE_PLEASE_TOKEN) so the release
 # PR and the release tag are raised by a real user: events from the default

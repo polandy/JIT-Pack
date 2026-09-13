@@ -15206,16 +15206,24 @@ looking for its own releases could notice, and when it did, it reported the resu
 rather than as an error.
 
 **Two answers were given, and both are in the repository.** The tags were reattached by hand with
-the owner's approval — `git tag -f v0.9.0 0bfeb62a` and a single-tag force-push, content-identical
-and therefore a no-op that nevertheless rebuilt the `0.9.0` image, since a tag push triggers
-`docker.yml`. That unblocked the cut: release-please then proposed `0.10.0` correctly, and it was
-released and rolled out the same afternoon. **`.release-please-manifest.json` is the other answer**,
-and it is the one that survives: it states the released version instead of deriving it from tag
-reachability. It earns its place because the repair was partial — `v0.9.0` and `v0.10.0` sit on
-`main`'s line now, **`v0.8.0` and older still do not** — so the next tool that walks past 0.10.0
-finds the same void. A `last-release-sha` pin was in this change too and was taken out again: it
-would have frozen the changelog's starting point at one commit forever, which is a second thing to
-maintain and the manifest already answers the question.
+the owner's approval — `v0.9.0` first, which is what let release-please regenerate the release PR as
+`0.10.0` (released and rolled out to the family instance the same afternoon), and then the remaining
+fourteen, matched by **tree identity** rather than by subject, since the subjects differ by the
+`(#NNN)` suffix a squash merge adds. All fifteen are on `main`'s line again, so inferring would work
+today. **`.release-please-manifest.json` is the other answer, and it is the one that survives** —
+not because the tags are still broken, but because of what the episode showed: a tag is a movable
+label, and the repository had no other record of which version it had released. A force-push
+invalidated fifteen of them silently and a second one repaired them; neither event could have been
+noticed by anything that reads tags. The repair proved the same point twice over: the single
+force-push of `v0.9.0` re-triggered `docker.yml` and republished `ghcr…:0.9.0` under a **new
+digest** (harmless here — the instance pins a digest, and the old one still exists), while the
+push of the remaining thirteen in one go triggered **no run at all**, because GitHub fires nothing
+for a push of more than three tags. Which side of that line a release lands on is not something a
+repository should have to know. The manifest is a fact release-please maintains itself, in the
+history, where a force-push cannot quietly change it. A `last-release-sha` pin was in this change
+too and was taken out again: with the tags reachable it fixes the changelog's starting point at one
+commit for good, which is a second thing to maintain and answers a question the manifest already
+answers.
 
 **What it cost while it stood:** the build the family instance ran (`deb41aab`) was not a commit on
 `main`. Content-identical to `0bfeb62a`, so nothing was ever deployed that `main` did not contain —
