@@ -370,6 +370,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 - [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
 - [Four reasons a device could not say what was wrong (2026-09-13)](#four-reasons-a-device-could-not-say-what-was-wrong-2026-09-13) — the iPad diagnosis: what made it undiagnosable, and why the hung boot was the one nobody could have seen.
+- [The release tags were on a history nobody was on (2026-09-13)](#the-release-tags-were-on-a-history-nobody-was-on-2026-09-13) — why release-please proposed 0.2.0 against a running v0.9.0, and what is now stated instead of inferred.
 - [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — one client's retry drained a rate limit shared with the login exchange; the IdP lifespan behind it.
 ## Deviations
 
@@ -15186,3 +15187,30 @@ stored from the machine while the refresher reads an injected clock is an expiry
 class was invisible to every gate we have: nothing in JIT-Pack logs a request, so the only record that a client is
 hammering a dependency lives in the dependency. When a symptom survives a healthy server and a correct payload, the
 next log to open is the one belonging to the thing being *called*.
+
+## The release tags were on a history nobody was on (2026-09-13)
+
+Deploying the FR-19.6/FR-19.9 work to the family instance needed a release, and the standing
+release PR proposed **`release 0.2.0`** — against an instance running `v0.9.0`. The PR was not
+stale: release-please had regenerated it minutes earlier, with a 249-line changelog reaching back
+into the migration era.
+
+**The premise that was wrong is "a tag is on the branch it was cut from".** Every release tag from
+`v0.2.0` to `v0.9.0` points at a commit that is **not reachable from `main`**. The two lines
+diverge at `22e65407` (2026-07-11) and run in parallel from there with the same subjects and the
+same author *and committer* timestamps — a re-created history, not a rebase. The content is
+untouched: `v0.9.0`'s tree and `main`'s `0bfeb62a` tree are the same object
+(`2b134dce`), which is why nobody noticed for two months and eight releases. Only a tool that walks
+back from the branch looking for its own releases could notice, and when it did, it reported the
+result as a version rather than as an error.
+
+**So the two facts it was guessing are now written down.** `.release-please-manifest.json` states
+the current version, and `last-release-sha` in `release-please-config.json` states the commit on
+`main`'s own line that 0.9.0 was cut from. Neither depends on tag reachability, so the release PR is
+correct whether or not the tags are ever reattached — which is a separate decision, and a
+history-rewriting one.
+
+**What this cost, stated plainly:** the running instance's build (`deb41aab`) is not a commit on
+`main`. It is content-identical to `0bfeb62a`, so nothing was ever deployed that `main` did not
+contain — but `git log` on `main` cannot find the commit the About block names, and neither can
+anyone reading a bug report against it.

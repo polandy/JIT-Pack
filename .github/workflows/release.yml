@@ -2,6 +2,17 @@
 # release PR (CHANGELOG.md + next semver). Merging that PR creates the
 # GitHub release and the v* tag.
 #
+# The version it starts from is `.release-please-manifest.json`, and the point
+# it starts reading from is `last-release-sha` in `release-please-config.json`.
+# Both are stated in the repository rather than inferred, because inferring
+# them failed: every release tag from v0.2.0 to v0.9.0 points at a commit that
+# is *not* on `main` — the history was re-created on 2026-07-11 and the tags
+# stayed on the old line, content-identical but with different SHAs. Walking
+# back from `main`, release-please found none of its own releases and proposed
+# `0.2.0` against a running `v0.9.0`. Keep the two files in step with reality:
+# after a release lands, release-please updates the manifest itself, and
+# `last-release-sha` only has to move if the tags are ever reattached.
+#
 # It authenticates with a PAT (secrets.RELEASE_PLEASE_TOKEN) so the release
 # PR and the release tag are raised by a real user: events from the default
 # GITHUB_TOKEN never trigger other workflows, so with only GITHUB_TOKEN the
@@ -26,5 +37,6 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         with:
-          release-type: go
+          # No `release-type` input: it belongs to the config file now, and the
+          # two together are one place too many for the same decision.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
