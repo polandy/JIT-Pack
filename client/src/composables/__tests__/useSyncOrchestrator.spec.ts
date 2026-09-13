@@ -202,6 +202,41 @@ describe('useSyncOrchestrator', () => {
     expect(item.late_packer).toBe(true)
   })
 
+  // FR-25.24: the amount is written through the same funnel as a pack, and
+  // the optimistic row is what M4 renders while the push is in flight.
+  it('setQuantity clamps the packed count it would otherwise leave stranded', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'T-Shirt',
+        quantity: 5,
+        packed_count: 4,
+        state: 'partial',
+        mode: 'pack',
+        updated_hlc: '',
+      },
+    })
+
+    mockPush()
+    mockPull()
+
+    orch.setQuantity('t1', tripStore.getItems('t1')[0]!, 2)
+
+    // Four packed of a target of two is the row the schema's CHECK refuses,
+    // so the count comes down with the amount and the state follows it.
+    const updated = tripStore.getItems('t1')[0]!
+    expect(updated.quantity).toBe(2)
+    expect(updated.packed_count).toBe(2)
+    expect(updated.state).toBe('packed')
+  })
+
   it('skipItem sets state to skipped optimistically', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
