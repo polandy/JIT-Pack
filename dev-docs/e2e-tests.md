@@ -672,8 +672,13 @@ never sent anything and made the line up. The status and the path are asserted *
 is the FR-19.6 decision, not an oversight, and a case that accepted a localised status would let the
 line drift into screen copy.
 
-One harness note: `bootPage` opens its own page, so a case that needs a *routed* page seeds through
-it and then closes it. The seeding is what the helper is for; the page it hands back is not.
+Two harness notes, the second one a trap. `bootPage` opens a page of its own, so a case that needs
+its routes installed **before the first navigation** calls `seed()` on its own page instead — the
+seeding is what the helper is for, the page it hands back is not. And `seed()` writes the mode with
+`addInitScript`, which runs before *every* navigation: the reset case was red for a whole run
+because the reload put `jitpack_mode` straight back, and M19 — the screen the case exists to
+assert — could never render. It now enters Server Mode **through M19 itself**, which is both the
+honest path and the only one that leaves the storage the reset is supposed to clear.
 
 **Why the logout case reloads.** `endSession` both clears storage and dispatches the event the app
 shell listens for, and the navigation to the login proves only the second half. A build that routed

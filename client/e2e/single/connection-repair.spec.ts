@@ -8,31 +8,28 @@
  * that can carry them — the diagnostic and the Connection block are Server
  * Mode surfaces (G-8), and neither needs a second identity.
  */
-import { test, expect, visiblePage } from '../fixtures'
+import { test, expect, seed, visiblePage } from '../fixtures'
 import { PATH } from '../routes'
-import { bootPage } from '../serverMode'
 
 /** Both sync endpoints, whichever partition (NFR-4.14, ADR-027). */
 const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
 
 test('E2E-G2-15: the sync detail names the request that failed, not only that something did', async ({
-  browser,
+  page,
 }) => {
-  const context = await browser.newContext()
-  const page = await context.newPage()
+  // Seeded here rather than through `bootPage`, which opens a page of its own:
+  // the routes below have to be installed on *this* page before it navigates.
+  await seed(page, { mode: 'server' })
 
-  // Refused before the app ever starts, so the boot pull is what fails and
-  // the glyph has the same nothing to say it had on the iPad. Counted, so the
-  // case cannot pass in a world where no request was made at all.
+  // Refused before the app ever starts, so the boot pull is what fails and the
+  // glyph has the same nothing to say it had on the iPad. Counted, so the case
+  // cannot pass in a world where no request was made at all.
   let refused = 0
   await page.route(SYNC_PATH, (route) => {
     refused += 1
     return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
   })
 
-  const booted = await bootPage(context, PATH.trips)
-  // `bootPage` opens its own page; this case needs the routed one.
-  await booted.close()
   await page.goto(PATH.trips)
 
   await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'offline')
@@ -48,13 +45,24 @@ test('E2E-G2-15: the sync detail names the request that failed, not only that so
   const line = sheet.getByTestId('sync-detail-last-failure')
   await expect(line).toContainText('503')
   await expect(line).toContainText('/sync')
-
-  await context.close()
 })
 
-test('E2E-M17-15: the connection can be forgotten, and M19 asks again', async ({ browser }) => {
-  const context = await browser.newContext()
-  const page = await bootPage(context, PATH.settings)
+/**
+ * Deliberately **not** seeded through `bootPage`: `seed()` writes the mode with
+ * `addInitScript`, which runs before *every* navigation, so the reload after the
+ * reset would put the mode straight back and M19 could never render. The mode is
+ * therefore chosen the way a first launch chooses it — which is also the screen
+ * this case claims comes back.
+ */
+test('E2E-M17-15: the connection can be forgotten, and M19 asks again', async ({ page }) => {
+  await page.goto('/')
+
+  // First launch: the field is pre-filled with the page's own origin (FR-19.1).
+  await expect(page.getByTestId('mode-selection')).toBeVisible()
+  await page.getByTestId('mode-server-connect').click()
+  await expect(visiblePage(page).getByTestId('dashboard')).toBeVisible()
+
+  await page.goto(PATH.settings)
   const screen = visiblePage(page)
 
   // The block names the instance, and offers no logout: Single-User Mode has
@@ -72,6 +80,4 @@ test('E2E-M17-15: the connection can be forgotten, and M19 asks again', async ({
   // life of a device once its mode had been chosen.
   await expect(page.getByTestId('mode-selection')).toBeVisible()
   await expect(page.getByTestId('mode-local')).toBeVisible()
-
-  await context.close()
 })
