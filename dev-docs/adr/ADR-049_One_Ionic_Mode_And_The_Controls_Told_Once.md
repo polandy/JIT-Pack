@@ -119,13 +119,24 @@ Three options were rendered and compared pixel by pixel against the built app (4
 | Option | Transition | Cost at rest |
 |---|---|---|
 | Leave the page transparent | both screens at full strength throughout | none |
-| Opaque page, wash stays on `ion-app` *(accepted)* | leaving page occluded in proportion to the fade | wash's tail no longer reaches content — max 17/255 on M17 |
+| Opaque page, wash stays on `ion-app` *(accepted)* | leaving page occluded in proportion to the fade | wash's tail no longer reaches content — max 17/255 in the wash region, on M16 |
 | Opaque page, wash re-painted on the page with `background-attachment: fixed` | same as accepted | wash lands in the wrong place — max 100/255 on M4; `.ion-page` is its own containing block, so "fixed" resolves to the outlet rather than the viewport |
 
 Accepted: `ion-router-outlet > .ion-page` paints `--jp-surface-page`, `ion-app` keeps wash and surface, and
-`ion-content` stays transparent. The wash therefore shows behind the header bar and the page head and not below them.
-That is the part of the gradient that had almost nothing left to give — 17/255 at its worst — and it buys back the one
-thing the plane could not do, which is hide the screen you just left.
+`ion-content` stays transparent. The wash survives above the outlet's top edge because `AppHeader` and `PageHead` are
+rendered by `App.vue` *outside* the outlet and still sit on `ion-app`; below that edge it is gone. That is the part of
+the gradient that had almost nothing left to give, and it buys back the one thing the plane could not do, which is hide
+the screen you just left.
+
+**What the 26 rewritten baselines actually record**, decoded channel by channel rather than read off the stylesheet:
+
+- The wash is byte-identical above the cut and truncated below it. Twelve of the 26 change *only* there, and the
+  worst of those is **17/255**, on M16 — a shorter page head puts the cut higher, on a steeper part of the gradient.
+  Mean change per pixel never exceeds 0.37 on any baseline.
+- The other fourteen also carry deltas up to **213/255**, but confined: at most **482 pixels** on any one baseline —
+  0.15 % of that frame, `tab-trips` at 390x844 — and always glyph-shaped. That is text re-rasterising against a flat
+  opaque ground instead of a composited one, not a change of position. Recorded because "17/255" is the wash-region
+  figure and would otherwise read as the frame's.
 
 ## Revisit Trigger
 

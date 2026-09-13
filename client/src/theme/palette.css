@@ -515,7 +515,8 @@ ion-app {
  * A background is what occludes — opacity alone never does — so a page that
  * only glazes `ion-app` shows the page it is replacing for the length of
  * every transition. ADR-049 amendment 1 weighs that against what the opaque
- * plane costs: the wash now stops at the page head.
+ * plane costs: the wash now stops where the outlet starts, because the
+ * header and the page head render outside it and still sit on `ion-app`.
  */
 ion-router-outlet > .ion-page {
   background: var(--jp-surface-page);
