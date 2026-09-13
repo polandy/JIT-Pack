@@ -5,10 +5,11 @@
  * reactively when a request came back 401 despite a fresh-looking token.
  *
  * Offline stretches are normal in this app, so a refresh that fails for
- * network reasons keeps the current token — the sync layer already
- * tolerates failing requests. Only an explicit IdP rejection ends the
- * session: tokens are cleared and AUTH_EXPIRED_EVENT tells the app to
- * return to the login page.
+ * network reasons keeps the current token — the sync layer already tolerates
+ * failing requests — but only while that token is still inside its own
+ * expiry, and never without arming the backoff below. Only an explicit IdP
+ * rejection ends the session: tokens are cleared and AUTH_EXPIRED_EVENT tells
+ * the app to return to the login page.
  */
 
 import { API } from '@/api/routes'
@@ -24,19 +25,13 @@ const EXPIRY_SKEW_MS = 30_000
  * How long to wait after a refresh that could not be completed, by
  * consecutive failure; the last entry is the ceiling.
  *
- * Without this the refresher was a retry loop with no interval: an expired
- * access token was handed back to the caller, the request it went out on
- * answered 401, the 401 path asked for another refresh, and around it went
- * for as long as the app was open. On 2026-09-13 that loop — one device per
- * dead session, all arriving from the broker's single source address — sat
- * on Authelia's rate limit for the token endpoint. The same endpoint serves
- * the authorization-code exchange, so *logging in* failed for everybody
- * while the instance itself was healthy.
- *
- * The delays are what a person waits at worst for a recovered IdP to be
- * noticed again; a pull, a push or a resume that happens meanwhile costs no
- * request of its own, because the token is refused here rather than at the
- * server.
+ * The interval is the point: this endpoint replays a grant at the *IdP*,
+ * whose rate limit is shared with the authorization-code exchange behind the
+ * login screen, so a client that retries per request takes everybody's login
+ * down with its own session (the log's 2026-09-13 entry). The values are what
+ * a person waits at worst for a recovered IdP to be noticed again; a pull, a
+ * push or a resume meanwhile costs no request, because the token is refused
+ * here rather than at the server.
  */
 const REFRESH_BACKOFF_MS = [5_000, 30_000, 120_000, 600_000] as const
 
@@ -118,7 +113,7 @@ export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs):
   /** What a failed attempt answers, after arming the next one. */
   function backOff(): string | null {
     failures += 1
-    const delay = REFRESH_BACKOFF_MS[Math.min(failures, REFRESH_BACKOFF_MS.length) - 1]!
+    const delay = REFRESH_BACKOFF_MS[Math.min(failures - 1, REFRESH_BACKOFF_MS.length - 1)]!
     nextAttemptAt = now() + delay
     return usableToken()
   }
