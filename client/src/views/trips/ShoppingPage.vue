@@ -67,7 +67,9 @@ const tab = ref<ShoppingMode>(ITEM_MODE_BUY_BEFORE)
  */
 const showBought = ref(false)
 
-const { trip } = useTripScreen(props.tripId, orchestrator)
+// ADR-033: whether this trip's rows are here. „Nothing to buy" is a sentence
+// somebody leaves the house on, and a partition still in flight is not it.
+const { trip, loaded: rowsLoaded } = useTripScreen(props.tripId, orchestrator)
 const lists = computed(() => tripStore.getShoppingItems(props.tripId))
 const activeList = computed(() =>
   tab.value === ITEM_MODE_BUY_BEFORE ? lists.value.buyBefore : lists.value.buyLocal,
@@ -229,11 +231,18 @@ setHeaderTitle(
         </IonItemGroup>
       </IonList>
 
+      <EmptyState
+        v-else-if="!rowsLoaded"
+        :title="t('shopping.listUnknown')"
+        testid="m6-list-loading"
+      />
+
       <!-- Empty state (G-7) -->
       <EmptyState
         v-else
         :icon="bagHandleOutline"
         :title="t(tab === ITEM_MODE_BUY_BEFORE ? 'shopping.emptyBefore' : 'shopping.emptyLocal')"
+        testid="m6-empty"
       />
 
       <!-- FR-25.11j: what was bought from this list. Same affordance as M4's

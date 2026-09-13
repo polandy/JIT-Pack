@@ -200,6 +200,7 @@ export const de: Record<keyof typeof en, string> = {
 
   'packing.packSection': 'Einpacken',
   'packing.prepSection': 'Vorbereitung',
+  'packing.listUnknown': 'Packliste wird geladen …',
   'packing.empty': 'Noch nichts auf dieser Liste',
   'packing.emptyHint': 'Mit ＋ das erste Packelement hinzufügen.',
 
@@ -283,6 +284,7 @@ export const de: Record<keyof typeof en, string> = {
   'templates.itemCount': '{n} Artikel | {n} Artikel',
   'templates.groupCount': '{n} Gruppe | {n} Gruppen',
   'templates.contains': 'enthält:',
+  'templates.listUnknown': 'Vorlagen werden geladen …',
   'templates.empty': 'Noch keine Vorlagen',
   'templates.emptyHint':
     'Fang mit einer Gruppe an — einem wiederverwendbaren Baustein — oder mit einer Ferien-Vorlage, die Gruppen einbindet.',
@@ -401,6 +403,7 @@ export const de: Record<keyof typeof en, string> = {
 
   'items.title': 'Inventar',
   'items.searchPlaceholder': 'Inventar durchsuchen…',
+  'items.listUnknown': 'Inventar wird geladen …',
   'items.empty': 'Noch keine Artikel',
   'items.emptyHint': 'Dein Inventar ist die Grundlage für Vorlagen und Packlisten.',
   'items.noMatch': 'Kein Artikel gefunden',
@@ -739,6 +742,7 @@ export const de: Record<keyof typeof en, string> = {
     'Wer etwas löscht, das noch verwendet wird, blendet es aus statt es zu entfernen — abgeschlossene Reisen und die Auswertung lesen es weiter. Hier kommt es zurück.',
   'retired.segmentItems': 'Artikel',
   'retired.segmentTemplates': 'Vorlagen',
+  'retired.listUnknown': 'Archiv wird geladen …',
   'retired.emptyItems': 'Nichts ausgeblendet — jeder Artikel im Inventar ist sichtbar.',
   'retired.emptyTemplates': 'Nichts ausgeblendet — jede Vorlage und jede Gruppe ist sichtbar.',
   'retired.hiddenOn': 'Ausgeblendet am {date}',
@@ -803,6 +807,7 @@ export const de: Record<keyof typeof en, string> = {
   'container.pairingHint': 'Links/rechts-Paare werden ab {n} % Ungleichgewicht markiert.',
   'container.delete': 'Gepäckstück löschen',
   'container.deleteNote': 'Seine Positionen bleiben auf der Liste, ohne Zuordnung.',
+  'container.listUnknown': 'Gepäck wird geladen …',
   'container.empty': 'Noch kein Gepäck. Mit ＋ ein Gepäckstück anlegen und Gewicht verteilen.',
   'container.unassigned': 'Nicht zugeordnet',
   'container.unassignedNone': 'Alles ist einem Gepäckstück zugeordnet.',
@@ -1175,7 +1180,8 @@ export const de: Record<keyof typeof en, string> = {
   'members.title': 'Mitglieder',
   'members.self': ' (du)',
   'members.remove': 'Mitglied entfernen',
-  'members.empty': 'Für diese Reise ist noch keine Mitgliederliste angekommen.',
+  'members.listUnknown': 'Mitgliederliste wird geladen …',
+  'members.empty': 'Diese Reise hat noch keine Mitglieder.',
   'members.addUser': 'Konto hinzufügen…',
   'members.addUserLabel': 'Konto hinzufügen',
   'members.allAdded': 'Alle auf diesem Server sind schon dabei.',
@@ -1189,6 +1195,7 @@ export const de: Record<keyof typeof en, string> = {
   'conflicts.takeoverLine': '{to} hat den Artikel von {from} übernommen',
   'conflicts.titleMaster': 'Konflikte · Stammdaten',
   'conflicts.unavailable': 'Konfliktprotokoll nicht verfügbar — offline?',
+  'conflicts.listUnknown': 'Protokoll wird geladen …',
   'conflicts.empty': 'Keine Konflikte — alles sauber zusammengeführt',
   'conflicts.emptyMaster':
     'Keine Konflikte in Inventar, Gruppen oder Reisedaten — alles sauber zusammengeführt',
@@ -1255,6 +1262,7 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.undoBought': 'Doch nicht gekauft: {name}',
   'shopping.wentToPacking': 'auf der Packliste',
   'shopping.wentPacked': 'eingepackt',
+  'shopping.listUnknown': 'Einkaufsliste wird geladen …',
   'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
   'shopping.emptyLocal': 'Vor Ort ist nichts zu kaufen',
 

@@ -15,7 +15,7 @@ import ConflictLogPage from '../ConflictLogPage.vue'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
 import type { ConflictEntry, LockEvent } from '@/composables/useSyncOrchestrator'
-import { setLocale } from '@/i18n'
+import { setLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
@@ -349,5 +349,58 @@ describe('the takeover record', () => {
 
     expect(orchestrator.fetchLockEvents).toHaveBeenCalledWith('trip-1')
     expect(wrapper.find('[data-testid="lock-event-row"]').exists()).toBe(false)
+  })
+})
+
+/**
+ * ADR-033, for the one screen in this sweep that fetches rather than syncs.
+ * „No conflicts — every change merged cleanly" is a verdict, and until the
+ * request comes back nobody has read the data it is a verdict on. The seam is
+ * the request itself, held open: a settled flag, not a wait.
+ */
+describe('the log before its own request has come back (ADR-033, G-7)', () => {
+  it('says the log is loading rather than reporting a clean merge', async () => {
+    let release!: (entries: ConflictEntry[]) => void
+    orchestrator.fetchConflicts.mockReturnValue(
+      new Promise<ConflictEntry[]>((resolve) => (release = resolve)),
+    )
+
+    const wrapper = mount(ConflictLogPage, {
+      props: { tripId: 'trip-1' },
+      global: { provide: { [ORCHESTRATOR]: orchestrator } },
+    })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="conflict-list-loading"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="conflict-empty"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain(t('conflicts.listUnknown'))
+
+    // The answer arrives and it is genuinely empty: now the verdict is earned.
+    release([])
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="conflict-list-loading"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="conflict-empty"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain(t('conflicts.empty'))
+  })
+
+  it('keeps the verdict through a re-read rather than blanking it', async () => {
+    const wrapper = await mountPage()
+    expect(wrapper.find('[data-testid="conflict-row"]').exists()).toBe(true)
+
+    // A revert re-reads the log. The notice must not come back for it — the
+    // screen has an answer already, and hiding it would be the worse lie.
+    let release!: (entries: ConflictEntry[]) => void
+    orchestrator.fetchConflicts.mockReturnValue(
+      new Promise<ConflictEntry[]>((resolve) => (release = resolve)),
+    )
+    await wrapper.find('[data-testid="conflict-revert"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="conflict-list-loading"]').exists()).toBe(false)
+
+    release([])
+    await flushPromises()
+    expect(wrapper.find('[data-testid="conflict-empty"]').exists()).toBe(true)
   })
 })

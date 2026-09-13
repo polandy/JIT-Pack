@@ -47,6 +47,14 @@ const view = computed(() =>
   buildRosterView(tripStore.getMembers(props.tripId), directory.value, myUserId.value),
 )
 
+/**
+ * ADR-033: membership rows travel in the master partition, so an empty roster
+ * on a cold start is a roster that has not arrived. This screen said so in one
+ * breath — „no roster synced for this trip yet" — which is two states in one
+ * sentence and offers no way to tell which one you are looking at.
+ */
+const rosterKnown = computed(() => orchestrator.masterDataLoaded())
+
 function addMember(userId: string) {
   if (!userId) return
   orchestrator.addTripMember(props.tripId, userId, 'editor')
@@ -105,8 +113,16 @@ setHeaderTitle(
         </IonItem>
       </IonList>
 
-      <!-- Empty state (G-7): roster not synced yet, or a pre-sync trip -->
-      <EmptyState v-else :icon="peopleOutline" :title="t('members.empty')" />
+      <!-- ADR-033: not arrived yet, said as itself. -->
+      <EmptyState
+        v-else-if="!rosterKnown"
+        :title="t('members.listUnknown')"
+        testid="m22-list-loading"
+      />
+
+      <!-- Empty state (G-7): the rows are here, and there are none — a trip
+           created offline, before its own membership row left the device. -->
+      <EmptyState v-else :icon="peopleOutline" :title="t('members.empty')" testid="m22-empty" />
 
       <template v-if="view.canManage">
         <IonItem v-if="view.candidates.length > 0" lines="none">

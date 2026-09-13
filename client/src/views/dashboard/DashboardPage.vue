@@ -105,6 +105,13 @@ const plannedTrips = computed(() => plannedTripsByDeparture(tripStore.tripList))
 
 const isEmpty = computed(() => activeTrips.value.length === 0 && plannedTrips.value.length === 0)
 
+/**
+ * ADR-033: M1 counts off the same master partition M2 does, so it owes the
+ * same guard. A dashboard that has not pulled yet is not a dashboard with no
+ * trips, and G-7's „plan your first trip" is the wrong answer to it.
+ */
+const tripsKnown = computed(() => orchestrator.masterDataLoaded())
+
 /*
  * The one trip the screen is about, and the ones after it (FR-21.13).
  * `activeTrips` is ordered soonest departure first, so the hero is the trip
@@ -272,9 +279,18 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
+      <!-- ADR-033: nothing pulled is not nothing planned. One component and
+           one spacing rule, so the notice is the same shape the state it
+           stands in for will take. -->
+      <EmptyState
+        v-if="isEmpty && !tripsKnown"
+        :title="t('trips.listUnknown')"
+        testid="dashboard-list-loading"
+      />
+
       <!-- Empty state (G-7) -->
       <EmptyState
-        v-if="isEmpty"
+        v-else-if="isEmpty"
         :icon="trainOutline"
         :title="t('trips.emptyActive')"
         testid="dashboard-empty"

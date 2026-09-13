@@ -53,6 +53,14 @@ const trips = useTripStore()
 
 const conflicts = ref<ConflictEntry[]>([])
 const failed = ref(false)
+/**
+ * ADR-033, for the one screen here that fetches rather than syncs: until the
+ * request has come back, „no conflicts — every change merged cleanly" is a
+ * verdict on data nobody has read. It stays true across a reload — a re-read
+ * has an answer already, and blanking the screen to say so would be a worse
+ * lie than the one it replaced.
+ */
+const settled = ref(false)
 
 /**
  * FR-5.7's record, on this page but never in the list above it: a
@@ -71,6 +79,8 @@ async function load() {
     failed.value = false
   } catch {
     failed.value = true
+  } finally {
+    settled.value = true
   }
   if (!props.tripId) return
   try {
@@ -327,6 +337,12 @@ function formatTime(iso: string): string {
           </IonButton>
         </IonItem>
       </IonList>
+
+      <EmptyState
+        v-else-if="!settled"
+        :title="t('conflicts.listUnknown')"
+        testid="conflict-list-loading"
+      />
 
       <!-- Empty state (G-7) -->
       <EmptyState
