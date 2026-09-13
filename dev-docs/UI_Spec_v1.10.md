@@ -351,9 +351,11 @@ These patterns apply to every screen and are specified once.
   * **The components Ionic would paint itself are told once.** FAB, checkbox, toggle and progress bar are set in the
     token table as element rules, not per screen — so a FAB added six rebuilds from now is not a fresh decision about
     what colour the brand is.
-  * **The wash (2026-09-06, ADR-049).** Every page carries a breath of the brand at its top-left — a radial wash at
-    14 % on the page plane, painted once on the app element so the header bar and the content share it. It is the one
-    place identity sits on the ground rather than on a control, and the prototype had it while the build had lost it.
+  * **The wash (2026-09-06, ADR-049; amended 2026-09-13).** The app carries a breath of the brand at its top-left — a
+    radial wash at 14 % on the page plane, painted once on the app element, behind the header bar and the page head.
+    It is the one place identity sits on the ground rather than on a control, and the prototype had it while the build
+    had lost it. It stops there: the page itself paints an **opaque** plane, because a page that only glazes the app
+    element shows the page behind it for the length of every transition (ADR-049 amendment 1).
     The active tab carries the same tint as a soft pill behind its glyph, so the anchor you are on reads at a glance
     and not only by comparing hues.
   * **Revised 2026-08-14.** The three anchors were added (Addendum FR-21.7): the pattern said where colour comes from

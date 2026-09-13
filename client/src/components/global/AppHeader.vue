@@ -22,10 +22,10 @@ import {
 } from '@ionic/vue'
 import { chevronBackOutline, ellipsisVerticalOutline, settingsOutline } from 'ionicons/icons'
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import SyncIndicator from './SyncIndicator.vue'
-import { backTarget } from '@/router/backTarget'
+import { backTarget, enteredFrom } from '@/router/backTarget'
 import { actionsFor } from '@/composables/useHeaderActions'
 import { t } from '@/i18n'
 import type { SyncState } from '@/composables/useSyncStatus'
@@ -47,6 +47,7 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const ionRouter = useIonRouter()
 
 const back = computed(() => backTarget(route))
@@ -116,6 +117,31 @@ async function openOverflow() {
 // G-9: the gear is on every screen — except M17 itself, where it would
 // only reopen the screen it is on.
 const onSettings = computed(() => route.path === PATH.settings)
+
+/**
+ * Where the gear points — with the origin already in the href.
+ *
+ * The origin exists so `‹` returns to the screen the gear was pressed on
+ * (Navigation_Concept §7), and the router would write it itself: the
+ * stamping guard redirects any entry into an `acceptsFrom` route that
+ * carries none (originStamp.ts). Writing it here instead is not a second
+ * mechanism but the one that keeps the tap a *single* navigation, and
+ * that is what the outlet needs. A redirect aborts the navigation Ionic's
+ * `router-link` already staged as a forward push and re-issues it as a
+ * replace; Ionic keeps the staged push, and the two disagree about which
+ * page is leaving. From two pages deep it hid the wrong one: M17 came up
+ * over a still-live packing list, both unhidden in the one outlet, taps
+ * landing on whichever won the stacking order. Measured 2026-09-13 —
+ * from a tab root the stack is too shallow for the two to disagree, which
+ * is why it only ever showed up inside a trip.
+ *
+ * The guard stays: it answers for the entry points that navigate
+ * programmatically, which stage nothing for Ionic to keep and so never
+ * hit this. This is the one `router-link` into a stamped route.
+ */
+const settingsHref = computed(
+  () => router.resolve({ path: PATH.settings, query: enteredFrom(route.fullPath) }).fullPath,
+)
 
 function goHome() {
   ionRouter.navigate(PATH.dashboard, 'back', 'replace')
@@ -212,7 +238,7 @@ function goBack() {
         />
         <IonButton
           v-if="!onSettings"
-          :router-link="PATH.settings"
+          :router-link="settingsHref"
           data-testid="header-settings"
           :aria-label="t('settings.title')"
           :title="t('settings.title')"

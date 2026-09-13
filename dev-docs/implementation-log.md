@@ -375,6 +375,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The pack that was painted but never sent (2026-09-13)](#the-pack-that-was-painted-but-never-sent-2026-09-13) — why the obvious barrier for `packItem` is the wrong one, and how the race was made to fail on demand.
 - [The screen was never told what the counts knew (2026-09-13)](#the-screen-was-never-told-what-the-counts-knew-2026-09-13) — M2's empty state asserted an absence it had not established; ten screens still do.
 - [Nine more screens stopped claiming an absence (2026-09-13)](#nine-more-screens-stopped-claiming-an-absence-2026-09-13) — the sweep; two premises of the entry above were wrong, and one e2e case replaced nine.
+- [The settings form came up over a page that was still live (2026-09-13)](#the-settings-form-came-up-over-a-page-that-was-still-live-2026-09-13) — a guard that redirects aborts the navigation Ionic staged; and a transparent page cannot hide the one it replaces.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15323,3 +15324,38 @@ on a *successful* drain, so a device that cannot reach the server stays on „lo
 the reason and pull-to-refresh is the retry. And the conflict log's `settled` flag stays true once set, so a re-read
 after a revert does not blank the verdict back to the notice — a screen that has an answer already must not pretend it
 has none, and that is its own case.
+
+## The settings form came up over a page that was still live (2026-09-13)
+
+The owner's screenshot: M17's form rendered through M4's packing list, both legible, on a device that had simply
+tapped the gear inside a trip. It looked like a transparency bug and it was two of them, only one of which anybody
+would have guessed from the stylesheet.
+
+**The first was a leaked page, and the shape of the leak is the interesting part.** The gear was the one
+`router-link` in the app pointing at a route the origin-stamping guard rewrites (`originStamp.ts`, the
+`meta.acceptsFrom` class). A guard that returns a location does not amend the navigation, it aborts it and issues a
+second one — and Ionic's `router-link` had already staged the first as a *forward push* on the outlet. Ionic keeps the
+staged params when the aborted navigation never consumes them, so the replace that actually ran was recorded as a
+push, and the outlet hid the wrong page: the trip *list*, which was already hidden, instead of the trip. Two unhidden
+`.ion-page` elements at z-index 101, taps landing on whichever won the stacking order.
+
+**It only happens two pages deep, which is why every existing case was green.** From a tab root the outlet holds one
+page and there is nothing to disagree about. E2E-G1-04 taps this exact gear from inside a trip — and arrives there out
+of the wizard, one page deep. The `oneLivePage` fixture that would have caught it is auto-applied to every case in the
+suite and never saw two pages, because no case had ever reached a trip from M2's list and then used the bar. The new
+case (**E2E-G1-07**) does exactly that, and was mutation-proved: two live pages against the unfixed build.
+
+The fix is to stamp the origin in the gear's own href, so the guard finds nothing to rewrite and the tap stays one
+navigation. The guard stays for the entry points that navigate programmatically — `router.push` stages nothing for
+Ionic to keep, so they were never affected, which is also the reason the import flows never showed this.
+
+**The second was the page plane itself, and it survived the first fix.** ADR-049 painted wash and surface on
+`ion-app` and made every page transparent over it. At rest that is right; during a transition it means Ionic's md
+animation cross-fades two sheets of glass, and the leaving page reads at full strength for the whole animation
+because nothing occludes it — opacity on an element never does, only a background does. Three options were rendered
+and diffed pixel by pixel against the built app; the one accepted paints `--jp-surface-page` on the page and leaves
+the wash on `ion-app`, so the wash now shows behind the header and the page head and not below them. The rejected
+alternative was to re-paint the wash on the page with `background-attachment: fixed`, which lands it in the wrong
+place by up to 100/255: `.ion-page` is its own containing block, so *fixed* resolves to the outlet and not the
+viewport. The accepted cost is 17/255 at its worst — the tail of a gradient that had almost nothing left to give.
+ADR-049 amendment 1.

@@ -500,13 +500,33 @@ ion-progress-bar {
 /* ------------------------------------------------------------------ */
 
 /*
- * `ion-app` carries the page plane and the wash; the header bar and the
- * page's own content are transparent over it, so the wash runs under
- * both and the bar stops being a slab. A modal keeps its own background
- * — the selector reaches only the pages the router outlet mounts.
+ * `ion-app` carries the page plane and the wash, and the header bar is
+ * transparent over it, so the wash runs under the bar and the bar stops
+ * being a slab. A modal keeps its own background — the selectors below
+ * reach only the pages the router outlet mounts.
  */
 ion-app {
   background: var(--jp-wash), var(--jp-surface-page);
+}
+
+/*
+ * The page is opaque; only its `ion-content` is not.
+ *
+ * `ion-app` alone was the whole plane, and every page was a sheet of glass
+ * over it. That reads correctly at rest and not at all during a
+ * transition: Ionic's md animation keeps the leaving page mounted while
+ * the entering one fades in, and two panes of glass show both screens at
+ * once — the packing list legible through the settings form for the
+ * length of the animation, every line of one crossing a line of the
+ * other. A background is what occludes; opacity alone never does.
+ *
+ * The cost is named rather than hidden: the wash now shows only behind
+ * the header and the page head, and its faint tail no longer reaches the
+ * content below them. Measured at a maximum of 17/255 on M17 — the tail
+ * is the part of the wash that had almost nothing left to give.
+ */
+ion-router-outlet > .ion-page {
+  background: var(--jp-surface-page);
 }
 
 ion-router-outlet > .ion-page > ion-content {
