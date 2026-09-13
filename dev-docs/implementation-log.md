@@ -369,6 +369,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A clause priced the wrong half of „one screen away" (2026-09-12)](#a-clause-priced-the-wrong-half-of-one-screen-away-2026-09-12) — FR-25.13i reverses FR-25.13f for settled lines; reset rather than restore, and what that costs a skipped row.
 - [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 - [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
+- [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — an expired token answered as a degraded one; how one device's retry loop rate-limited everybody's login.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15099,3 +15100,40 @@ ends up linked, the rows end up generated. What separates the two builds is the 
 `tripLifecycle.seam.spec.ts` asserts it directly: two `travelers` writes, the first with no account, the
 `trip_items` writes between them. The e2e case (E2E-M22-14) covers what a browser *can* see, which is that the
 account survives being created with the person.
+
+## A refresh with no interval took the login screen down with it (2026-09-13)
+
+A tablet could log in and then saw an empty app with the G-2 glyph on *offline*. Nothing about it was
+device-specific, and nothing was wrong with the instance: the master feed was replayed against a copy of the
+production database and returned every trip the account is a member of, 185 KB over three pages, and the public
+endpoints answered correctly from the device itself. The evidence that decided it came from the IdP's log —
+`Rate Limit Exceeded` on `POST /api/oidc/token`, over and over, from the broker's single source address.
+
+**The premise that was wrong: "an outage must not cost a session, so keep the token."** That rule is right, and
+`classifyTokenResponse` follows it deliberately — only a 400/401 `invalid_grant` ends a chain, everything else is
+an outage. What nobody had noticed is that the *client* implemented the same rule by handing its caller the access
+token it already had, **including when that token had expired**. An expired token is not a degraded answer; the
+server refuses it. So the request 401'd, the 401 path asked for a refresh, the refresh failed again, and the loop
+ran for as long as the app was open — with no interval anywhere in it.
+
+**A per-client rate limit is shared with the login screen.** Authelia's token endpoint serves the refresh grant
+*and* the authorization-code exchange. Once the loop had drained the bucket, `The server rejected the login`
+appeared for everyone, on an instance whose own health checks were green — which is why the first hour was spent
+looking at the device.
+
+**What made the loop possible in the first place was a lifespan nobody had matched up.** Authelia's default
+`refresh_token` is 90 minutes; JIT-Pack's session chain is 90 days and replays the IdP token at every renewal.
+Any device closed for longer woke up holding a grant the IdP had forgotten. The instance now gives the client its
+own lifespan (`lifespans.custom.jitpack`, 90d); the manual says why, because a self-hoster meets this on their
+first IdP.
+
+**The fix here is the interval, not the classification.** `createAuthRefresher` keeps a still-valid token through
+an outage exactly as before, answers `null` once that token is past its expiry, and arms a backoff — 5 s, 30 s,
+2 min, 10 min — during which no request reaches the endpoint at all. Callers are answered from the same rule
+without a request, so a screen that pulls, pushes and resumes still costs one attempt per window.
+
+**The clock is injected for the reason the sync layer injects its own.** A backoff is an interval, and a test of
+an interval has to be able to say where in it the next call happens; `saveTokens` takes the same clock, so the
+deadline it stores and the deadline the refresher reads are one clock rather than two. The four new cases were
+run against the pre-fix behaviour first — all four fail there, which is what makes them evidence rather than
+decoration.

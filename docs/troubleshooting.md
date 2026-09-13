@@ -107,6 +107,29 @@ key endpoint is still unreachable from the server: check that the IdP is up, and
 check as at startup, above). Once the endpoint answers again, the next refresh picks the
 keys up by itself — no restart is needed.
 
+## "The server rejected the login", and devices that were logged in show nothing
+
+**Symptom:** the login screen ends in *The server rejected the login*, and any device that
+was already signed in shows an empty app with the sync indicator on *offline*. JIT-Pack
+itself is healthy — `/health` answers, and the API answers `401 unauthorized` to a request
+without a token, which is correct.
+
+**Cause:** the IdP is rate-limiting its token endpoint, and that endpoint serves two
+things — the login's authorization-code exchange *and* every session refresh. What fills
+the limit is usually not the logins: devices whose IdP refresh token has expired keep
+asking for a renewal that can no longer succeed, all of them arriving from the server's
+single address. Once the limit is reached, logging in fails too. Authelia logs it as
+`Rate Limit Exceeded` on `POST /api/oidc/token`, alongside the reason the renewals fail
+(`Refresh Token expired at …`).
+
+**Fix:** give the client a refresh-token lifetime that matches how long a device may stay
+closed — see [Give the client a refresh-token lifetime that covers being
+away](authentication.md#give-the-client-a-refresh-token-lifetime-that-covers-being-away).
+Restarting the IdP clears the limit so people can log in again immediately; without the
+lifetime change, the same devices will refill it. JIT-Pack clients back off between failed
+renewals (5 s, 30 s, 2 min, 10 min), so a single stale device cannot do this on its own —
+but a client older than that backoff can, and so can a fleet of them.
+
 ## Everything works, but nothing updates in real time
 
 **Symptom:** logging in, loading trips, and saving changes all work, but a change made on

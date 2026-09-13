@@ -121,7 +121,13 @@ to open.
   answers 401), and slides the chain's 90-day absolute expiry (NFR-4.4). Client behavior: the access token is refreshed
   proactively when it expires within 30 s, and reactively after a 401 (the failed request is retried once with the fresh
   token); concurrent refreshes coalesce into a single call. A refresh that fails for network reasons (or 502) keeps the
-  current token — offline is normal, not a logout. Only a 401 from this endpoint ends the session: the client clears its
+  current token — offline is normal, not a logout — **but only while that token is still inside its own expiry**: past
+  it the client answers its callers with no token at all, because handing back one the server refuses is what turns an
+  outage into a request loop. **A failed refresh also arms a backoff** — 5 s, 30 s, 2 min, then 10 min per consecutive
+  failure — during which no request reaches this endpoint and every caller is answered from the same rule. Both halves
+  are one requirement: the endpoint replays a grant at the *IdP*, whose rate limit is shared by every client of that
+  IdP and by the authorization-code exchange behind the login screen, so an unbounded retry from one device is an
+  outage for everyone (observed 2026-09-13). Only a 401 from this endpoint ends the session: the client clears its
   tokens and returns to the login page.
 * **Client discovery:** `GET /api/v1/auth/config` (unauthenticated) → `{ "authorize_url", "client_id" }` (from the
   discovery document) so the client needs only the server URL; servers without OIDC answer 501.
