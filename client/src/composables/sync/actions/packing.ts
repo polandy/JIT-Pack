@@ -136,6 +136,21 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   /**
+   * Set how many of a row are meant to come along (FR-25.24).
+   *
+   * The amount is the row's own, whatever the packing list around it is
+   * doing: a per-person row carries one traveler's share (FR-25.1), and
+   * the cluster head above it sums what its children say.
+   */
+  function setQuantity(tripId: string, item: TripItem, quantity: number) {
+    const mut = mutations.setQuantity(item.id, quantity, item.packed_count, item.state)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, itemRow(item)),
+    })
+  }
+
+  /**
    * Mark a row deliberately not packed (FR-5.5), taking its companions with
    * it (FR-20.2).
    *
@@ -690,6 +705,7 @@ export function createPackingActions(ctx: SyncContext) {
     packZero,
     restorePack,
     packToggle,
+    setQuantity,
     skipItem,
     restoreSkip,
     unskipItem,

@@ -53,6 +53,13 @@ export interface TripParticipant {
 }
 
 export type ItemState = 'open' | 'packing_now' | 'partial' | 'packed' | 'skipped'
+
+/**
+ * G-3's claim, as a value rather than a literal spelled in five files: the
+ * one state that is not a reading of the row's numbers but somebody holding
+ * the row (FR-5.2, see `domain/packState`).
+ */
+export const STATE_PACKING_NOW: ItemState = 'packing_now'
 export type ItemMode = 'pack' | 'buy_before' | 'buy_local'
 
 /**

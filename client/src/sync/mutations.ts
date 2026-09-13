@@ -12,6 +12,7 @@
 
 import { TABLE } from '@/types/tables'
 import { stateFor } from '@/domain/packState'
+import { clampQuantity } from '@/domain/quantityChoices'
 import type { GeneratedTripItemFields } from '@/domain/instantiate'
 import { dbBool, jsonColumn, rowFrom } from '@/sync/columns'
 import { newId } from '@/lib/ids'
@@ -22,6 +23,7 @@ import {
   ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
   REVIEW_FLAG_FIELD,
+  STATE_PACKING_NOW,
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
 } from '@/types/domain'
@@ -171,7 +173,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    */
   function startPackingNow(itemId: string): Mutation {
     return make('upsert', TABLE.tripItems, itemId, {
-      state: 'packing_now',
+      state: STATE_PACKING_NOW,
       packing_now_by: CLIENT_ACTOR_PLACEHOLDER,
       packing_now_at: nowIso(),
     })
@@ -211,6 +213,34 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
 
   function togglePacked(itemId: string, currentPacked: number): Mutation {
     return currentPacked > 0 ? packItem(itemId, 0, 'open') : packItem(itemId, 1, 'packed')
+  }
+
+  /**
+   * setQuantity writes the planned amount of a row (FR-25.24).
+   *
+   * Three fields, always together, because the database ties them: the
+   * schema's `CHECK (packed_count <= quantity)` means an amount cut below
+   * what is already packed is a refused row rather than a smaller one, so
+   * the count is clamped in the same mutation and the state re-read off
+   * the two numbers (`stateFor`).
+   *
+   * The one state it does not write is G-3's claim: somebody is holding
+   * the row, and a change of amount is not a pack transition, so the claim
+   * outlives it rather than being released by a bystander's edit.
+   */
+  function setQuantity(
+    itemId: string,
+    quantity: number,
+    currentPacked: number,
+    currentState: string,
+  ): Mutation {
+    const wanted = clampQuantity(quantity)
+    const packed = Math.min(Math.max(currentPacked, 0), wanted)
+    return make('upsert', TABLE.tripItems, itemId, {
+      quantity: wanted,
+      packed_count: packed,
+      ...(currentState === STATE_PACKING_NOW ? {} : { state: stateFor(packed, wanted) }),
+    })
   }
 
   function skipItem(itemId: string): Mutation {
@@ -1084,6 +1114,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     completePacked,
     zeroPacked,
     togglePacked,
+    setQuantity,
     skipItem,
     restoreSkipped,
     unskipItem,

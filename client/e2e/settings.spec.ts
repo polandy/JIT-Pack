@@ -1,4 +1,4 @@
-import { test, expect, seed, createTripViaWizard, visiblePage } from './fixtures'
+import { test, expect, seed, createTripViaWizard, visiblePage, PRESENTED_POPOVER } from './fixtures'
 import { quickAddItem } from './serverMode'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -82,7 +82,7 @@ test.describe('M17 device settings @local @m17', () => {
       .locator('ion-popover ion-select-popover ion-item')
       .filter({ hasText: 'Elba' })
       .click()
-    await expect(page.locator('ion-popover')).toHaveCount(0)
+    await expect(page.locator(PRESENTED_POPOVER)).toHaveCount(0)
 
     const tripYaml = page.waitForEvent('download')
     await yamlRow.getByRole('button', { name: 'Download' }).click()

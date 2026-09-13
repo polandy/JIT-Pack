@@ -134,6 +134,24 @@ describe('QuantityStepper — a gesture the browser took away is not a hold (G-6
     expect(w.emitted('increment')).toBeUndefined()
   })
 
+  // FR-25.24: the target half of `1/3` is the way into the amount, and only
+  // where the surface can actually change it.
+  it('offers the count as a control only when the surface asked for it', async () => {
+    const plain = mount(QuantityStepper, { props: { quantity: 3, packed: 1 } })
+    expect(plain.find('[data-testid="row-quantity"]').exists()).toBe(false)
+
+    const editable = mount(QuantityStepper, { props: { quantity: 3, packed: 1, editable: true } })
+    await editable.get('[data-testid="row-quantity"]').trigger('click')
+    expect(editable.emitted('editQuantity')).toHaveLength(1)
+  })
+
+  it('G-3: a locked stepper offers no way into the amount', () => {
+    const w = mount(QuantityStepper, {
+      props: { quantity: 3, packed: 1, editable: true, disabled: true },
+    })
+    expect(w.find('[data-testid="row-quantity"]').exists()).toBe(false)
+  })
+
   it('packs nothing after the row it sat on is gone', async () => {
     const w = stepper()
     await pointer(w, 'row-plus', 'pointerdown')

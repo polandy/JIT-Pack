@@ -32,6 +32,41 @@ describe('createMutations', () => {
     expect(mut.fields).toMatchObject({ packed_count: 5, state: 'packed' })
   })
 
+  // FR-25.24: the planned amount, and the two fields the schema ties to it.
+  it('setQuantity writes the amount, the clamped count and the state it implies', () => {
+    const m = createMutations(mockHLC())
+    // Four were packed of five; the row is corrected down to two.
+    const mut = m.setQuantity('i1', 2, 4, 'partial')
+    expect(mut.op).toBe('upsert')
+    expect(mut.table).toBe('trip_items')
+    // Without the clamp the row violates CHECK (packed_count <= quantity)
+    // and the server parks the whole mutation as a refusal.
+    expect(mut.fields).toEqual({ quantity: 2, packed_count: 2, state: 'packed' })
+  })
+
+  it('setQuantity leaves a count below the new amount where it is', () => {
+    const m = createMutations(mockHLC())
+    const mut = m.setQuantity('i1', 5, 2, 'partial')
+    expect(mut.fields).toEqual({ quantity: 5, packed_count: 2, state: 'partial' })
+  })
+
+  it('setQuantity keeps the editor inside its bounds (FR-25.24)', () => {
+    const m = createMutations(mockHLC())
+    // FR-5.5's zero belongs to the skip control, which also takes an
+    // item's companions with it.
+    expect(m.setQuantity('i1', 0, 0, 'open').fields).toMatchObject({ quantity: 1 })
+    expect(m.setQuantity('i1', 1000, 0, 'open').fields).toMatchObject({ quantity: 99 })
+  })
+
+  it('setQuantity does not release a claim somebody is holding (G-3)', () => {
+    const m = createMutations(mockHLC())
+    const mut = m.setQuantity('i1', 3, 1, 'packing_now')
+    // Changing how many are meant to come along is not a pack transition,
+    // so it writes no state — and the claim outlives it.
+    expect(mut.fields).toEqual({ quantity: 3, packed_count: 1 })
+    expect(mut.fields).not.toHaveProperty('state')
+  })
+
   it('decrementPacked goes to zero with open state', () => {
     const m = createMutations(mockHLC())
     const mut = m.decrementPacked('i1', 1, 3)

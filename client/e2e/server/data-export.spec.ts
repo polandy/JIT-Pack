@@ -18,7 +18,7 @@
  */
 import { readFile } from 'node:fs/promises'
 
-import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
+import { test, expect, createTripViaWizard, visiblePage, PRESENTED_POPOVER } from '../fixtures'
 import { quickAddItem, uniq } from '../serverMode'
 
 import { loginAs } from './fixtures'
@@ -55,7 +55,7 @@ test('E2E-M17-03, E2E-NFR-05: the full export and the trip CSV download and carr
     .locator('ion-select')
     .click()
   await alice.locator('ion-popover ion-select-popover ion-item').filter({ hasText: trip }).click()
-  await expect(alice.locator('ion-popover')).toHaveCount(0)
+  await expect(alice.locator(PRESENTED_POPOVER)).toHaveCount(0)
 
   const csvDownload = alice.waitForEvent('download')
   await screen

@@ -1,4 +1,12 @@
-import { test, expect, createTripViaWizard, openTripSwipe, seed, visiblePage } from '../fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  openTripSwipe,
+  seed,
+  visiblePage,
+  PRESENTED_POPOVER,
+} from '../fixtures'
 import { uniq } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs } from './fixtures'
@@ -446,9 +454,9 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
      */
     async function closePicker() {
       await alice
-        .locator('ion-popover')
+        .locator(PRESENTED_POPOVER)
         .evaluate((el: HTMLElement & { dismiss: () => Promise<unknown> }) => el.dismiss())
-      await expect(alice.locator('ion-popover')).toHaveCount(0)
+      await expect(alice.locator(PRESENTED_POPOVER)).toHaveCount(0)
     }
 
     /** M2 → the row's slide → Share, which is how a person reaches the roster. */

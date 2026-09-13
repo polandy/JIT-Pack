@@ -84,6 +84,8 @@ const emit = defineEmits<{
   pressMove: [event: PointerEvent]
   pressEnd: []
   passToggle: []
+  /** FR-25.24: the row's planned amount is to be changed, at this event. */
+  editQuantity: [event: MouseEvent]
   increment: []
   decrement: []
   complete: []
@@ -206,6 +208,8 @@ const emit = defineEmits<{
           v-else
           :quantity="item.quantity"
           :packed="item.packed_count"
+          :editable="true"
+          @edit-quantity="(e: MouseEvent) => emit('editQuantity', e)"
           @increment="emit('increment')"
           @decrement="emit('decrement')"
           @complete="emit('complete')"

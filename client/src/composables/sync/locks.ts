@@ -16,7 +16,7 @@
 import { ref } from 'vue'
 
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
-import type { TripItem } from '@/types/domain'
+import { STATE_PACKING_NOW, type TripItem } from '@/types/domain'
 
 /** The lock state one session holds, and the only way anything reads it. */
 export interface LockState {
@@ -92,7 +92,7 @@ export function createLockState(currentUserId: () => string | null): LockState {
   function syncedHolder(tripId: string, item: TripItem): string | null {
     const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
     if (ephemeral) return ephemeral.by_user
-    if (item.state !== 'packing_now') return null
+    if (item.state !== STATE_PACKING_NOW) return null
     return item.packing_now_by ?? ''
   }
 
@@ -133,7 +133,7 @@ export function createLockState(currentUserId: () => string | null): LockState {
   return {
     isLockedByOther: (tripId, item) => lockHolder(tripId, item) !== null,
     lockHolder,
-    holdsClaim: (tripId, item) => claimIsMine(tripId, item) && item.state === 'packing_now',
+    holdsClaim: (tripId, item) => claimIsMine(tripId, item) && item.state === STATE_PACKING_NOW,
     claim: (itemId) => void myLocks.add(itemId),
     release: (itemId) => void myLocks.delete(itemId),
     takeOver(tripId, itemId) {

@@ -31,6 +31,7 @@ const orchestratorFake = {
   setLatePacker: vi.fn(),
   packToggle: vi.fn(),
   setPacker: vi.fn(),
+  setQuantity: vi.fn(),
   lockHolder: vi.fn(() => null as string | null),
   quickAddItem: vi.fn(() => ({ id: 'ti-new', companions: [] })),
 }
@@ -551,6 +552,66 @@ describe('M5 FR-25.15 save indicator', () => {
     // A background pull is G-2's business; the sheet has nothing open.
     expect(wrapper.get('[data-testid="save-indicator"]').text()).toBe('✓')
     orchestratorFake.syncStatus.state.value = 'synced'
+  })
+})
+
+/**
+ * FR-25.24 — M5's own posture on the amount: a block of its own, above the
+ * stepper that counts towards it, with the trip's arithmetic under it.
+ */
+describe('M5 can change how many are coming along (FR-25.24)', () => {
+  it('writes the amount through the orchestrator', async () => {
+    seedTrip('active')
+    const wrapper = mountSheet()
+
+    wrapper.getComponent({ name: 'QuantityEditor' }).vm.$emit('update', 4)
+    await wrapper.vm.$nextTick()
+
+    expect(orchestratorFake.setQuantity).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'ti1' }),
+      4,
+    )
+  })
+
+  it('asks how many before how many are packed', () => {
+    seedTrip('active')
+    const html = mountSheet().html()
+
+    expect(html.indexOf('m5-quantity')).toBeGreaterThan(-1)
+    expect(html.indexOf('m5-quantity')).toBeLessThan(html.indexOf('m5-pack-label'))
+  })
+
+  it('offers no amount on a skipped row — that is the skip control’s decision (FR-5.5)', () => {
+    const tripStore = seedTrip('active')
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Regenhose',
+        quantity: 0,
+        packed_count: 0,
+        state: 'skipped',
+        mode: 'pack',
+      },
+    })
+
+    const wrapper = mountSheet()
+    expect(wrapper.find('[data-testid="m5-quantity"]').exists()).toBe(false)
+    // The positive signal the absence is read against: the sheet rendered.
+    expect(wrapper.find('[data-testid="m5-pack-label"]').exists()).toBe(true)
+  })
+
+  it('G-3: the editor reads but does not write while somebody else holds the row', () => {
+    seedTrip('active')
+    orchestratorFake.lockHolder.mockReturnValue('u-bob')
+
+    const editor = mountSheet(MEMBERS).getComponent({ name: 'QuantityEditor' })
+
+    expect(editor.props('disabled')).toBe(true)
   })
 })
 
