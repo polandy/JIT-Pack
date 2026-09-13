@@ -2684,6 +2684,15 @@ a different screen and one built nowhere (see below, and UI-Spec M22).
   made the first version of this case green against a link the server had refused (see the ledger's section on it).
   Red-proved by linking a non-member: `not_a_trip_member`, rolled back, the select back to *„Kein Konto"*.
 
+* **E2E-M22-14** `server` (FR-2.5, owner 2026-09-13) — **new 2026-09-13**: the *add* row's account picker. A second
+  case rather than a clause on E2E-M22-13, because it drives a different write: the traveller does not exist yet, so
+  the account has to survive being created with them. Alice picks Bob before typing the name, presses ＋, and the new
+  row reads Bob's name after a **reload**. It also asserts the picker returning to *„Kein Konto"* — a sticky value
+  would silently make the next person the same account. What it cannot see is the ordering the write depends on (the
+  link is a second mutation *after* FR-27.4's rows, so the account is not notified once per generated row); that is
+  asserted on the queued mutations in `tripLifecycle.seam.spec.ts`, because the only browser-visible symptom would be
+  a notification count on a third device.
+
 **Two elements UI-Spec M22 lists and M22 does not render** (found 2026-08-30 by reading the
 element list against the template — neither is a test gap, and neither may be tested until it is
 decided):

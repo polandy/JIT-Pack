@@ -63,7 +63,10 @@ function seedGroup() {
     kind: 'group',
     owner_id: 'u1',
   })
-  pullIn(ctx.masterStore, TABLE.items, ITEM_ID, { name: 'Kamera', weight_grams: 780 })
+  pullIn(ctx.masterStore, TABLE.items, ITEM_ID, {
+    name: 'Kamera',
+    weight_grams: 780,
+  })
   pullIn(ctx.masterStore, TABLE.templateItems, 'pos-1', {
     template_id: GROUP_ID,
     item_id: ITEM_ID,
@@ -120,8 +123,13 @@ describe('createTripLifecycleActions without an orchestrator', () => {
   })
 
   it('addGroupToTrip refuses while the trip’s own rows are not on the device', () => {
-    const { ctx: unloaded, queued: writes } = makeSeamContext({ tripDataLoaded: () => false })
-    pullIn(unloaded.tripStore, TABLE.trips, TRIP_ID, { name: 'Samedan', year: 2026 })
+    const { ctx: unloaded, queued: writes } = makeSeamContext({
+      tripDataLoaded: () => false,
+    })
+    pullIn(unloaded.tripStore, TABLE.trips, TRIP_ID, {
+      name: 'Samedan',
+      year: 2026,
+    })
     pullIn(unloaded.masterStore, TABLE.templates, GROUP_ID, {
       name: 'Makro Fotografie',
       kind: 'group',
@@ -149,9 +157,48 @@ describe('createTripLifecycleActions without an orchestrator', () => {
     expect(report?.added).toBe(1)
   })
 
+  it('links a new traveller *after* the per-person rows their arrival generates', () => {
+    seedTrip()
+    seedGroup()
+    // A per-person position beside the shared one: its generated row is what
+    // carries an `assigned_traveler_id`, and so the thing the server would
+    // notify the linked account about.
+    pullIn(ctx.masterStore, TABLE.templateItems, 'pos-2', {
+      template_id: GROUP_ID,
+      item_id: ITEM_ID,
+      quantity: 1,
+      assignment: 'per_person',
+      dedup: 'max',
+      default_mode: 'pack',
+      late_packer: 0,
+    })
+    pullIn(ctx.tripStore, TABLE.tripTemplateSources, 'src-1', {
+      trip_id: TRIP_ID,
+      template_id: GROUP_ID,
+    })
+
+    build(ctx).addTravelerToTrip(TRIP_ID, 'Andrea', 'u-andrea')
+
+    const writes = queued.flatMap((q) => q.muts).map((m) => m.mutation)
+    const roster = writes.filter((m) => m.table === TABLE.travelers)
+    // Two writes, not one: the insert carries no account, the link that
+    // follows carries it. Inserted linked, every generated row in between
+    // would have earned `u-andrea` its own delegation notification.
+    expect(roster).toHaveLength(2)
+    expect(roster[0]!.fields?.['linked_user_id'] ?? null).toBeNull()
+    expect(roster[1]!.fields).toMatchObject({ linked_user_id: 'u-andrea' })
+
+    const tables = writes.map((m) => m.table)
+    expect(tables.indexOf(TABLE.tripItems)).toBeGreaterThan(tables.indexOf(TABLE.travelers))
+    expect(tables.lastIndexOf(TABLE.travelers)).toBeGreaterThan(tables.lastIndexOf(TABLE.tripItems))
+  })
+
   it('removing a traveller detaches their packed row through the packing group', () => {
     seedTrip()
-    pullIn(ctx.tripStore, TABLE.travelers, TRAVELER_ID, { trip_id: TRIP_ID, name: 'Andrea' })
+    pullIn(ctx.tripStore, TABLE.travelers, TRAVELER_ID, {
+      trip_id: TRIP_ID,
+      name: 'Andrea',
+    })
     pullIn(ctx.tripStore, TABLE.tripItems, 'ti-1', {
       trip_id: TRIP_ID,
       name: 'Kamera',
@@ -167,13 +214,18 @@ describe('createTripLifecycleActions without an orchestrator', () => {
     // Default, not `includePacked`: the row stays and loses its assignment,
     // which is the packing group's write, not a delete.
     const detach = queued.find((q) => q.muts[0]!.mutation.table === TABLE.tripItems)
-    expect(detach?.muts[0]!.mutation.fields).toMatchObject({ assigned_traveler_id: null })
+    expect(detach?.muts[0]!.mutation.fields).toMatchObject({
+      assigned_traveler_id: null,
+    })
     expect(detach?.muts[0]!.mutation.op).not.toBe('delete')
   })
 
   it('removeTraveler refuses once the trip has started (FR-2.7)', () => {
     seedTrip('active')
-    pullIn(ctx.tripStore, TABLE.travelers, TRAVELER_ID, { trip_id: TRIP_ID, name: 'Andrea' })
+    pullIn(ctx.tripStore, TABLE.travelers, TRAVELER_ID, {
+      trip_id: TRIP_ID,
+      name: 'Andrea',
+    })
 
     // The control is disabled on a started trip; this is the second line,
     // and it exists because a store is reachable from more than one screen.
@@ -215,8 +267,14 @@ describe('createTripLifecycleActions without an orchestrator', () => {
    */
   it('deleteTrip tombstones every child row without queueing a mutation for it', () => {
     seedTrip()
-    pullIn(ctx.tripStore, TABLE.travelers, TRAVELER_ID, { trip_id: TRIP_ID, name: 'Ada' })
-    pullIn(ctx.tripStore, TABLE.comments, 'com-1', { trip_id: TRIP_ID, body: 'Karte' })
+    pullIn(ctx.tripStore, TABLE.travelers, TRAVELER_ID, {
+      trip_id: TRIP_ID,
+      name: 'Ada',
+    })
+    pullIn(ctx.tripStore, TABLE.comments, 'com-1', {
+      trip_id: TRIP_ID,
+      body: 'Karte',
+    })
 
     build(ctx).deleteTrip(TRIP_ID)
 

@@ -687,7 +687,10 @@ test.describe('Two accounts on one instance @server', () => {
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
 
-    const tripPath = await createTripViaWizard(alice, { name: trip, travelers: ['Bo'] })
+    const tripPath = await createTripViaWizard(alice, {
+      name: trip,
+      travelers: ['Bo'],
+    })
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
     await alice.goto(`${tripPath}/edit`)
@@ -715,6 +718,67 @@ test.describe('Two accounts on one instance @server', () => {
     await alice.reload()
     await expect(
       visiblePage(alice).getByTestId('traveler-row-Bo').locator('ion-select .select-text'),
+    ).toHaveText(ACCOUNT_NAMES.bob)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M22-14 (FR-2.5, owner 2026-09-13): the add row records the account in
+   * the same act as the name.
+   *
+   * The reload is the assertion for the same reason as in E2E-M22-13: the
+   * link is optimistic, and only what survives the reload is what the
+   * instance accepted. This case additionally proves the *order* the client
+   * writes in — the link is a second mutation after the rows FR-27.4
+   * generates — because a link that had ridden on the insert would be
+   * refused by nothing here and would merely notify the account once per
+   * generated row, which no assertion in the browser can see.
+   */
+  test('E2E-M22-14: a traveller can be added as an account in one act', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Chartreuse ${id}`
+
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, {
+      name: trip,
+      travelers: ['Bo'],
+    })
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    await alice.goto(`${tripPath}/edit`)
+    const page = visiblePage(alice)
+    const addLink = page.getByTestId('traveler-add-link')
+    await expect(addLink).toBeVisible()
+
+    // Picked before the name is typed, which is the order the control is
+    // built for: the account is a property of the person being added, not a
+    // correction made afterwards.
+    await addLink.click()
+    await alice
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: ACCOUNT_NAMES.bob })
+      .click()
+    await page.getByTestId('traveler-add-input').locator('input').fill('Kim')
+    await page.getByTestId('traveler-add').click()
+
+    const kim = page.getByTestId('traveler-row-Kim')
+    await expect(kim).toBeVisible()
+    // `.select-text` is the rendered value; an `ion-select`'s own text is its
+    // whole option list and would read „Bob" before anything was picked.
+    await expect(kim.locator('ion-select .select-text')).toHaveText(ACCOUNT_NAMES.bob)
+    // And the picker is back at nobody for the next person.
+    await expect(addLink.locator('.select-text')).toHaveText('No account')
+    await writesLanded(alice)
+
+    await alice.reload()
+    await expect(
+      visiblePage(alice).getByTestId('traveler-row-Kim').locator('ion-select .select-text'),
     ).toHaveText(ACCOUNT_NAMES.bob)
 
     await ctxAlice.close()

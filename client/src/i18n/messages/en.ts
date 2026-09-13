@@ -1259,6 +1259,7 @@ export const en = {
   'tripEdit.linkNote':
     'An account beside a traveller means that person is told when an item is assigned to them. Only members of this trip can be picked.',
   'tripEdit.addTraveler': 'Add a traveller',
+  'tripEdit.addTravelerAccount': 'Account for the new traveller',
   'tripEdit.add': 'Add',
   'tripEdit.removeTraveler': 'Remove {name}',
   'tripEdit.removeAfterStart': 'Travellers can only be removed before the trip starts.',

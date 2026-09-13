@@ -2009,6 +2009,14 @@ token would prove nothing there is anything to prove.
   no visible label, only an aria one. One sentence under the list says what an account *does* (the person is told
   when an item is assigned to them) and what may be picked (members only), because that is a rule about the trip's
   notifications rather than a property of one person.
+  **Since 2026-09-13 the add row carries the same picker** (owner), between the name field and ＋, so a person can
+  be added *as* the account they are in one act — on a shared trip the person being added is usually one of the
+  people it is already shared with, and a two-step version hid that behind a control found only afterwards. It
+  offers the same names as the row pickers and appears under the same rule, so the two are never out of step; it
+  returns to *„Kein Konto"* with the name field, because the next person is a different one far more often than
+  not. What the write does with it is FR-2.5's ordering rule, not a screen decision: the traveller is inserted
+  unlinked, FR-27.4's per-person rows follow, and the link is written last so the account is not told once per
+  generated row.
 * **What a traveller change does** is FR-27.4's rule as revised 2026-08-21, and the screen states it rather than
   performing it silently: adding applies **immediately** and reports the FR-27.10 way — what was added, what that person
   already had, what this trip's conditions excluded. Removing takes their **unpacked** rows. What happens to a row that

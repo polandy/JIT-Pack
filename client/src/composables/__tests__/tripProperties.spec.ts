@@ -366,6 +366,35 @@ describe('addTravelerToTrip (FR-2.7 + FR-27.4 amendment)', () => {
     expect(orch.refreshProposals.value[TRIP_ID]).toBeUndefined()
   })
 
+  it('records the account the new person is, in the same act (FR-2.5)', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+    seedGeneratedRows(orch)
+
+    const report = orch.addTravelerToTrip(TRIP_ID, 'Mia', 'u-mia')
+
+    const added = useTripStore()
+      .getTravelers(TRIP_ID)
+      .find((t) => t.id === report?.travelerId)
+    expect(added?.name).toBe('Mia')
+    expect(added?.linked_user_id).toBe('u-mia')
+    // And the plan still followed: the link is written around the refresh,
+    // not instead of it.
+    expect(pantsRows()).toHaveLength(3)
+  })
+
+  it('leaves the person unlinked when no account was picked', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+
+    const report = orch.addTravelerToTrip(TRIP_ID, 'Mia')
+
+    const added = useTripStore()
+      .getTravelers(TRIP_ID)
+      .find((t) => t.id === report?.travelerId)
+    expect(added?.linked_user_id).toBeNull()
+  })
+
   it('does not multiply a shared position — one tent stays one tent', async () => {
     const orch = await localOrchestrator()
     seedTrip()
