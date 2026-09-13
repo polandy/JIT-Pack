@@ -375,6 +375,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The pack that was painted but never sent (2026-09-13)](#the-pack-that-was-painted-but-never-sent-2026-09-13) — why the obvious barrier for `packItem` is the wrong one, and how the race was made to fail on demand.
 - [The screen was never told what the counts knew (2026-09-13)](#the-screen-was-never-told-what-the-counts-knew-2026-09-13) — M2's empty state asserted an absence it had not established; ten screens still do.
 - [Nine more screens stopped claiming an absence (2026-09-13)](#nine-more-screens-stopped-claiming-an-absence-2026-09-13) — the sweep; two premises of the entry above were wrong, and one e2e case replaced nine.
+- [A click was reported as a success, and the app had not moved (2026-09-13)](#a-click-was-reported-as-a-success-and-the-app-had-not-moved-2026-09-13) — the banner left the column; what muting the observer had hidden, and what only a rendered pixel said.
 - [The settings form came up over a page that was still live (2026-09-13)](#the-settings-form-came-up-over-a-page-that-was-still-live-2026-09-13) — a guard that redirects aborts the navigation Ionic staged; and a transparent page cannot hide the one it replaces.
 ## Deviations
 
@@ -15325,6 +15326,45 @@ the reason and pull-to-refresh is the retry. And the conflict log's `settled` fl
 after a revert does not blank the verdict back to the notice — a screen that has an answer already must not pretend it
 has none, and that is its own case.
 
+## A click was reported as a success, and the app had not moved (2026-09-13)
+
+`E2E-G14-01` lost a click on `main` in September and passed on the re-run, on a tree byte-identical to one that had
+passed twenty-five minutes earlier. The trace said the click on *Next* took 390 ms and returned **without error**, and
+the screenshot showed the wizard still on step 1 with the FR-19.7 update banner across the top. `next()` is an
+unconditional `step.value++`, so the app never received the press: a bar inserted above the content had shifted the
+button between Playwright's hit-target check and its dispatch, and the event landed beside it.
+
+**The first fix was to the observer, and it is why the item stayed open.** `531d5c3b` blocked service workers on the
+WebKit Playwright project. That is defensible on its own terms — Playwright hosts real worker behaviour only in
+Chromium, so the block removes an artifact rather than a coverage — but it changes what the suite can see and nothing
+about what a device does. Every real browser kept the defect, Chromium kept it in CI, and the ledger entry would have
+been closed on the strength of a green run. The rule it cost: **a green suite that was made green by narrowing the
+suite is not evidence about the product.**
+
+**The measurement is the whole case.** `E2E-PWA-06` reads the content box, provokes a waiting worker the way PWA-04/05
+already do, waits on the bar's own visibility, and reads the box again. Against the unfixed build the two differ by
+exactly **64.78 px down and 64.78 px of height** — a number, not an intermittent. It is also the shape that makes this
+testable at all: the defect is a property of the layout, and the flake was only the layout being observed through a
+race.
+
+**The option that lost.** Moving the bar to the bottom, above the tab bar, keeps the top of the content clear — and
+does not obtain the property. `.app-body` would still shrink, so a viewport-anchored FAB and the tab bar move and a
+scrolled-to-bottom list gets re-anchored by the browser. It relocates the moving targets instead of removing them, and
+costs FR-19.7's placement decision on the way. Reserving the space permanently obtains it and charges an empty band
+under the app bar on every screen forever, for an event that happens on the days a build ships. The layer over the
+content is ADR-060; FR-19.8's migration bar stays **in** the column, because `switchToServer` reloads and its flag is
+read at boot — that bar is either there from the first paint or never, so it cannot appear under a finger. The rule is
+about **when a banner can arrive**, not about banners.
+
+**Two things only the rendered pixel said.** At `left: 0` the new layer painted over the desktop rail's first anchor
+and swallowed its taps — invisible in the stylesheet, obvious in the screenshot. And the rail had been shifting its
+four anchors down whenever a build was announced, which nobody had reported because it was the same reflow seen from a
+different seat. The app bar's height was written out three times and the rail's width twice; both are tokens now.
+
+**Left unexplained on purpose.** Why a replacement worker reached `installed` in that WebKit context at all is still
+unknown, and is now unobservable — WebKit blocks workers in the suite, and the layout no longer converts the flip into
+a lost click. It is written down in the ledger rather than chased, so a device in the wild reporting a spurious *New
+version ready* has somewhere to start.
 ## The settings form came up over a page that was still live (2026-09-13)
 
 The owner's screenshot: M17's form rendered through M4's packing list, both legible, on a device that had simply

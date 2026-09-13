@@ -516,6 +516,11 @@ of any kind**, on any of the three ids.
 * **E2E-PWA-05b** `local` (FR-19.7): *Später* is its own outcome. The bar goes away, the old worker is **still** the
   controller, and the offer is still where it was before FR-19.7 — the dot, and the sheet's action behind it. Without
   this the dismissal could be wired to the same handler as the press and every other assertion would stay green.
+* **E2E-PWA-06** `local` (FR-19.7, G-19, ADR-060) — **new 2026-09-13**: the announcement arrives without moving the
+  page under it. The content box is read before the worker is provoked and again once the bar is on screen, and the two
+  are equal — the bar's own visibility is the settled state, so nothing waits on a clock. It is the case the ledger's
+  *„a WebKit case lost its click to the FR-19.7 banner"* asked for, written as a property of the layout rather than as a
+  hunt for the intermittent: before the fix the content moved 64.8 px down and lost the same height.
 
 *Chromium only:* Playwright hosts service workers only there; the worker under test is engine-independent and identical
 in WebKit.

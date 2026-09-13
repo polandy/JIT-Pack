@@ -1771,7 +1771,7 @@ setHeaderTitle(
    the finger that opened it. */
 .item-panel {
   position: fixed;
-  top: 56px;
+  top: var(--jp-app-bar-h);
   right: 0;
   bottom: 0;
   width: 400px;
