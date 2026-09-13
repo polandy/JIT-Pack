@@ -890,6 +890,31 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
+   * E2E-G9-21 (G-9, M17): the build names itself once, and the same way in
+   * both places that name it.
+   *
+   * The bar's label used to be `v${__APP_VERSION__}` while the string
+   * already carried the tag's own `v` — from `git describe --tags` and from
+   * the release workflow's `APP_VERSION=${{ github.ref_name }}` alike — so
+   * every build, the shipped image included, read `vv0.10.0-…`. The unit
+   * that covered it asserted the component's own template back to itself and
+   * would have passed against any prefix; this asserts the two surfaces
+   * agree, which is what the UI-Spec actually promises.
+   */
+  test('E2E-G9-21: the header and the About block name the same build', async ({ page }) => {
+    await page.goto(PATH.trips)
+    const header = page.getByTestId('header-app-version')
+    await expect(header).not.toBeEmpty()
+    const shown = (await header.innerText()).trim()
+
+    await page.goto(PATH.settings)
+    // "Version <string> · <commit>" — the About line carries the same build
+    // string, so a prefix invented by one surface shows up as a mismatch
+    // here rather than as a screenshot nobody reads.
+    await expect(onVisibleScreen(page, 'settings-app-version')).toContainText(shown)
+  })
+
+  /*
    * E2E-G9-16 (G-9): on a wide screen the content stops at a column.
    * Edge to edge, a settings row put its label and its control 1100 px
    * apart and the M9 tag segment spread three chips across 1176 px — a

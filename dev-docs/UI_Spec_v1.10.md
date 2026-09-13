@@ -1788,7 +1788,10 @@ M-number is retired and must not be reused. No repack entry appears in the M4 to
 **App info/version (2026-09-12).** The About block's version line names the running build: `git describe`
 (the release-please tag plus a commit count once ahead of it) and the short commit hash, e.g. `v0.8.0-4-g3b14038f`.
 The same string is shown, muted, beside the header wordmark (G-9) on a tab root in every mode — it names the build
-itself rather than anything server-side, so it needs no per-mode variant. A Docker-built image gets it from the build
+itself rather than anything server-side, so it needs no per-mode variant. **The same string means verbatim**: it
+already carries the tag's own `v` from both sources (`git describe --tags`, and the release workflow's
+`APP_VERSION=${{ github.ref_name }}`), so no surface prepends another — the bar did until 2026-09-13 and every
+build, the shipped image included, read `vv0.10.0-…` (E2E-G9-21). A Docker-built image gets it from the build
 args the release workflow passes in, since that build stage has no `.git` to read.
 
 **Leaving Local Mode (FR-19.8, ADR-045) — added 2026-09-02.** A card *„Auf einen Server umziehen"* at the end of the
