@@ -6,9 +6,9 @@
  * malformed cases matter as much as the good one — each of them must
  * answer "no account", never throw into a render.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 
-import { subjectOf } from '../tokens'
+import { loadTokens, saveTokens, subjectOf } from '../tokens'
 
 /** A session token shaped the way the server writes one (auth.go). */
 function token(claims: Record<string, unknown>): string {
@@ -29,5 +29,20 @@ describe('subjectOf', () => {
     expect(subjectOf('header.@@notbase64@@.sig')).toBeNull()
     expect(subjectOf(token({ exp: 1 }))).toBeNull()
     expect(subjectOf(token({ sub: 42 }))).toBeNull()
+  })
+})
+
+describe('saveTokens', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('measures the deadline from the clock it was given, not from the machine', () => {
+    const fixed = 1_700_000_000_000
+
+    saveTokens({ access_token: 'a', refresh_token: 'r', expires_in: 900 }, () => fixed)
+
+    // The refresher compares this against the same injected clock. Read from
+    // the machine instead, the two disagree by however far the test's clock
+    // sits from today — and every expiry decision becomes untestable.
+    expect(loadTokens()!.expires_at).toBe(fixed + 900_000)
   })
 })
