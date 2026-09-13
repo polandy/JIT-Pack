@@ -120,9 +120,14 @@ to open.
   untouched — then re-reads UserInfo (re-stamping FR-23.1, best-effort), rotates its own refresh token (a replayed one
   answers 401), and slides the chain's 90-day absolute expiry (NFR-4.4). Client behavior: the access token is refreshed
   proactively when it expires within 30 s, and reactively after a 401 (the failed request is retried once with the fresh
-  token); concurrent refreshes coalesce into a single call. A refresh that fails for network reasons (or 502) keeps the
-  current token — offline is normal, not a logout. Only a 401 from this endpoint ends the session: the client clears its
-  tokens and returns to the login page.
+  token); concurrent refreshes coalesce into a single call. A refresh that could not be **delivered** keeps the current
+  token — offline is normal, not a logout: a network error, a 5xx, or one of the 4xx whose cause is a moment rather than
+  a verdict (408, 425, 429). A refresh that was **answered and refused** ends the session: the client clears its tokens
+  and returns to the login page. That is every other 4xx, not only 401 — revised 2026-09-13, ADR-059, after a client
+  that retried a 403 or a 400 for ever turned an unrenewable session into a device that could only say *offline*. And a
+  kept token is only handed out while it is **still inside its own expiry**: a token past `expires_at` is null, because
+  sending it can produce nothing but the next 401 (`sessionAccessTTL` is 15 minutes, so a device with a broken refresh
+  path reached that state a quarter of an hour after login and stayed in it across restarts).
 * **Client discovery:** `GET /api/v1/auth/config` (unauthenticated) → `{ "authorize_url", "client_id" }` (from the
   discovery document) so the client needs only the server URL; servers without OIDC answer 501.
 * **Session claims:** `sub` **is** `users.id` — identity is established once, by the broker at login/refresh, never per

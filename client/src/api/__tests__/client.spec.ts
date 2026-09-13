@@ -95,7 +95,7 @@ describe('APIClient', () => {
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
     const onUnauthorized = vi.fn().mockResolvedValue('fresh-jwt')
-    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
+    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', { onUnauthorized })
 
     const result = await client.get('/api/v1/master/sync')
 
@@ -108,7 +108,7 @@ describe('APIClient', () => {
   it('throws the 401 when the refresh yields no token', async () => {
     fetchSpy.mockResolvedValueOnce(new Response(null, { status: 401 }))
     const onUnauthorized = vi.fn().mockResolvedValue(null)
-    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
+    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', { onUnauthorized })
 
     await expect(client.get('/api/v1/master/sync')).rejects.toMatchObject({ status: 401 })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
@@ -119,7 +119,7 @@ describe('APIClient', () => {
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
     const onUnauthorized = vi.fn().mockResolvedValue('still-rejected')
-    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
+    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', { onUnauthorized })
 
     await expect(client.get('/api/v1/master/sync')).rejects.toMatchObject({ status: 401 })
     expect(onUnauthorized).toHaveBeenCalledOnce()
@@ -133,12 +133,101 @@ describe('APIClient', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
+  /**
+   * FR-19.6. The device on the family instance showed nothing but *offline*
+   * while the server was healthy and held the data, and nobody — not the
+   * person holding it, not the maintainer reading an instance that keeps no
+   * request log — could tell a 401 from a 500 from a dead radio.
+   */
+  describe('reporting the request that failed', () => {
+    /** The instant every failure case is stamped with. */
+    const AT = 1_757_000_000_000
+
+    it('reports the status and the path of a failed request', async () => {
+      fetchSpy.mockResolvedValueOnce(new Response(null, { status: 500 }))
+      const failures: unknown[] = []
+      const client = new APIClient('http://localhost:8080', () => 'jwt', {
+        onFailure: (f) => failures.push(f),
+        now: () => AT,
+      })
+
+      await expect(client.post('/api/v1/master/sync', {})).rejects.toBeDefined()
+
+      expect(failures).toEqual([
+        { method: 'POST', path: '/api/v1/master/sync', status: 500, at: AT },
+      ])
+    })
+
+    it('reports a request that never arrived with no status at all', async () => {
+      fetchSpy.mockRejectedValueOnce(new TypeError('Load failed'))
+      const failures: unknown[] = []
+      const client = new APIClient('http://localhost:8080', () => 'jwt', {
+        onFailure: (f) => failures.push(f),
+        now: () => AT,
+      })
+
+      await expect(client.get('/api/v1/trips', { since: '3002' })).rejects.toBeDefined()
+
+      expect(failures).toEqual([
+        { method: 'GET', path: '/api/v1/trips?since=3002', status: null, at: AT },
+      ])
+    })
+
+    it('reports nothing for a 401 the refresh repaired — a renewed session was never a failure', async () => {
+      fetchSpy
+        .mockResolvedValueOnce(new Response(null, { status: 401 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+      const failures: unknown[] = []
+      const client = new APIClient('http://localhost:8080', () => 'stale-jwt', {
+        onUnauthorized: () => Promise.resolve('fresh-jwt'),
+        onFailure: (f) => failures.push(f),
+      })
+
+      // The positive signal the absence is asserted against: the retry ran
+      // and answered, so the 401 really did pass through this path.
+      expect(await client.get('/api/v1/master/sync')).toEqual({ ok: true })
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
+      expect(failures).toEqual([])
+    })
+
+    it('reports the 401 once the retry has failed too', async () => {
+      fetchSpy
+        .mockResolvedValueOnce(new Response(null, { status: 401 }))
+        .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      const failures: { status: number | null }[] = []
+      const client = new APIClient('http://localhost:8080', () => 'stale-jwt', {
+        onUnauthorized: () => Promise.resolve('still-rejected'),
+        onFailure: (f) => failures.push(f),
+      })
+
+      await expect(client.get('/api/v1/master/sync')).rejects.toMatchObject({ status: 401 })
+
+      expect(failures.map((f) => f.status)).toEqual([401])
+    })
+
+    it('reports a failed binary upload too — every request goes through one place', async () => {
+      fetchSpy.mockResolvedValueOnce(new Response(null, { status: 413 }))
+      const failures: { method: string; path: string; status: number | null }[] = []
+      const client = new APIClient('http://localhost:8080', () => 'jwt', {
+        onFailure: (f) => failures.push(f),
+      })
+
+      await expect(
+        client.putRaw('/api/v1/me/avatar', new Blob(['x']), 'image/jpeg'),
+      ).rejects.toBeDefined()
+
+      expect(failures).toEqual([
+        expect.objectContaining({ method: 'PUT', path: '/api/v1/me/avatar', status: 413 }),
+      ])
+    })
+  })
+
   it('retries blob downloads after a 401 (M17 exports)', async () => {
     fetchSpy
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response('data', { status: 200 }))
     const onUnauthorized = vi.fn().mockResolvedValue('fresh-jwt')
-    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
+    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', { onUnauthorized })
 
     const blob = await client.getBlob('/api/v1/me/export.json')
 

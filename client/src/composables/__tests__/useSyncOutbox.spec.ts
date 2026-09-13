@@ -424,6 +424,21 @@ describe('SyncOutbox durability', () => {
     expect(outbox.pendingCount('trip', 'trip-1')).toBe(0)
   })
 
+  it.each([
+    [401, 'the token is refreshed and the same envelope is sent again'],
+    [429, 'the rate limit passes'],
+  ])('a %i keeps the batch queued — %s', async (status) => {
+    const store = new FakeStore()
+    const outbox = makeOutbox(store)
+    client.post.mockRejectedValueOnce(new APIRequestError(status, null))
+
+    outbox.enqueue('master', null, makeMutation({ mutation_id: 'u1', table: 'items' }))
+    await expect(outbox.drain('master', null)).rejects.toBeDefined()
+
+    expect(outbox.pendingCount('master', null)).toBe(1)
+    expect(store.parked).toEqual([])
+  })
+
   it('a 5xx keeps the batch queued — the server is not refusing it, it is failing', async () => {
     const store = new FakeStore()
     const outbox = makeOutbox(store)

@@ -4,16 +4,21 @@
  * decides *when* to use it: proactively shortly before expiry, and
  * reactively when a request came back 401 despite a fresh-looking token.
  *
- * Offline stretches are normal in this app, so a refresh that fails for
- * network reasons keeps the current token — the sync layer already
- * tolerates failing requests. Only an explicit IdP rejection ends the
+ * Offline stretches are normal in this app, so a refresh that could not be
+ * *delivered* keeps the current token — the sync layer already tolerates
+ * failing requests. A refresh that was **answered and refused** ends the
  * session: tokens are cleared and AUTH_EXPIRED_EVENT tells the app to
- * return to the login page.
+ * return to the login page. The distinction is the whole point of this
+ * module (ADR-059): keeping a token the server has stopped renewing turns
+ * an expired session into a device that 401s for ever and can only say
+ * *offline*.
  */
 
 import { API } from '@/api/routes'
+import { isClientError, isTransientClientStatus } from '@/api/status'
 import type { SessionTokens } from '@/api/types'
-import { clearTokens, loadTokens, saveTokens } from './tokens'
+import { defaultNowMs, type NowMs } from '@/lib/clock'
+import { clearTokens, loadTokens, type StoredTokens, saveTokens } from './tokens'
 
 /** Refresh this long before expiry so in-flight requests don't race the deadline. */
 const EXPIRY_SKEW_MS = 30_000
@@ -68,14 +73,34 @@ export interface AuthRefresher {
   refresh(): Promise<string | null>
 }
 
-export function createAuthRefresher(baseUrl: string): AuthRefresher {
+/**
+ * Creates the refresher for one instance.
+ *
+ * `now` is injected for the same reason the sync layer's clock is: expiry is
+ * a comparison, and a test that cannot name the instant can only assert that
+ * a token was truthy (`lib/clock.ts`).
+ */
+export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs): AuthRefresher {
   const base = baseUrl.replace(/\/+$/, '')
   let inflight: Promise<string | null> | null = null
+
+  /**
+   * The stored access token, or null once it is past its own expiry.
+   *
+   * A token that has expired is not a fallback: the server will refuse every
+   * request carrying it, and handing it out again is how a device with a
+   * broken refresh path 401s from minute 15 onwards — for ever, and through
+   * restarts, because the same token is loaded again. Null is the honest
+   * answer, and the request fails with a status G-2 can name (FR-19.6).
+   */
+  function unexpired(tokens: StoredTokens): string | null {
+    return now() < tokens.expires_at ? tokens.access_token : null
+  }
 
   async function freshToken(): Promise<string | null> {
     const tokens = loadTokens()
     if (!tokens) return null
-    if (Date.now() < tokens.expires_at - EXPIRY_SKEW_MS) return tokens.access_token
+    if (now() < tokens.expires_at - EXPIRY_SKEW_MS) return tokens.access_token
     return refresh()
   }
 
@@ -98,21 +123,29 @@ export function createAuthRefresher(baseUrl: string): AuthRefresher {
         body: JSON.stringify({ refresh_token: tokens.refresh_token }),
       })
     } catch {
-      return tokens.access_token
+      // The request never arrived: nothing has been said about this session,
+      // so the token stays — unless it has already expired.
+      return unexpired(tokens)
     }
 
-    if (resp.status === 401) {
+    // Answered and refused. 401 is the broker's word for a refresh token the
+    // IdP rejected; every other verdict in the range is this client asking
+    // wrongly, and no later attempt asks better. Retrying either of them is
+    // what made an expired session indistinguishable from a bad radio.
+    if (isClientError(resp.status) && !isTransientClientStatus(resp.status)) {
       endSession()
       return null
     }
-    if (!resp.ok) return tokens.access_token
+    // A 5xx, or one of the transient 4xx: the instance is failing, not the
+    // session, and the next attempt can still succeed.
+    if (!resp.ok) return unexpired(tokens)
 
     // Partial rather than SessionTokens: the server always sends all three,
     // but the guard below is about a body that is not one — an interposed
     // proxy, a truncated response — and a non-optional type would make it
     // read as dead code.
     const set = (await resp.json()) as Partial<SessionTokens>
-    if (!set.access_token) return tokens.access_token
+    if (!set.access_token) return unexpired(tokens)
     saveTokens({
       access_token: set.access_token,
       // Some IdPs don't rotate refresh tokens on use — keep the old one then.

@@ -6,6 +6,9 @@ import { installHarness } from '@/__tests__/harness'
 
 const KEY = 'jitpack_tokens'
 
+/** The instant every expiry case stands on — the injected clock's answer. */
+const NOW = 1_757_000_000_000
+
 function storeTokens(
   overrides: Partial<{ access_token: string; refresh_token: string; expires_at: number }> = {},
 ) {
@@ -95,22 +98,75 @@ describe('createAuthRefresher', () => {
     window.removeEventListener(AUTH_EXPIRED_EVENT, expired)
   })
 
-  it('keeps the current token when the server is unreachable (offline tolerance)', async () => {
-    storeTokens({ expires_at: 0 })
+  it('keeps a still-valid token when the server is unreachable (offline tolerance)', async () => {
+    // Inside the skew window, so a refresh is attempted — but not yet expired,
+    // so the token it falls back on is one the server still accepts.
+    storeTokens({ expires_at: NOW + 5_000 })
     fetchSpy.mockRejectedValueOnce(new TypeError('network down'))
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', () => NOW)
 
     expect(await refresher.freshToken()).toBe('old-access')
     expect(loadTokens()!.refresh_token).toBe('old-refresh')
   })
 
-  it('keeps the current token on transient server errors', async () => {
-    storeTokens({ expires_at: 0 })
+  it('hands out no expired token when the server is unreachable — ADR-059: a token past its expiry only 401s again', async () => {
+    storeTokens({ expires_at: NOW - 1 })
+    fetchSpy.mockRejectedValueOnce(new TypeError('network down'))
+    const refresher = createAuthRefresher('http://server', () => NOW)
+
+    expect(await refresher.freshToken()).toBeNull()
+    // The session is not over — nothing was said about it — so the refresh
+    // token survives for the next attempt.
+    expect(loadTokens()!.refresh_token).toBe('old-refresh')
+  })
+
+  it('keeps a still-valid token on transient server errors', async () => {
+    storeTokens({ expires_at: NOW + 5_000 })
     fetchSpy.mockResolvedValueOnce(tokenResponse({ error: { code: 'idp_unreachable' } }, 502))
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', () => NOW)
 
     expect(await refresher.freshToken()).toBe('old-access')
     expect(loadTokens()).not.toBeNull()
+  })
+
+  it('hands out no expired token on a transient server error — ADR-059', async () => {
+    storeTokens({ expires_at: NOW - 1 })
+    fetchSpy.mockResolvedValueOnce(tokenResponse({ error: { code: 'idp_unreachable' } }, 500))
+    const refresher = createAuthRefresher('http://server', () => NOW)
+
+    expect(await refresher.freshToken()).toBeNull()
+    expect(loadTokens()).not.toBeNull()
+  })
+
+  it('keeps the session when the refresh is rate-limited (429) — a moment, not a verdict', async () => {
+    storeTokens({ expires_at: NOW + 5_000 })
+    fetchSpy.mockResolvedValueOnce(tokenResponse({ error: { code: 'rate_limited' } }, 429))
+    const refresher = createAuthRefresher('http://server', () => NOW)
+
+    expect(await refresher.freshToken()).toBe('old-access')
+    expect(loadTokens()).not.toBeNull()
+  })
+
+  it('ends the session when the refresh is answered and refused with a 400 — ADR-059', async () => {
+    storeTokens({ expires_at: NOW + 5_000 })
+    fetchSpy.mockResolvedValueOnce(tokenResponse({ error: { code: 'invalid_request' } }, 400))
+    const expired = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired)
+    const refresher = createAuthRefresher('http://server', () => NOW)
+
+    expect(await refresher.freshToken()).toBeNull()
+
+    expect(loadTokens()).toBeNull()
+    expect(expired).toHaveBeenCalledOnce()
+    window.removeEventListener(AUTH_EXPIRED_EVENT, expired)
+  })
+
+  it('hands out no expired token when the refreshed body carries none — ADR-059', async () => {
+    storeTokens({ expires_at: NOW - 1 })
+    fetchSpy.mockResolvedValueOnce(tokenResponse({ expires_in: 300 }, 200))
+    const refresher = createAuthRefresher('http://server', () => NOW)
+
+    expect(await refresher.freshToken()).toBeNull()
   })
 
   it('deduplicates concurrent refreshes into a single request', async () => {
