@@ -16,6 +16,19 @@ import type { Page } from '@playwright/test'
  * a navigation that does not repaint keeps every URL assertion green, and
  * during a transition two `.ion-page` elements exist at once.
  */
+/**
+ * The one popover that is actually *on screen*.
+ *
+ * Ionic keeps an `ion-popover` declared with `:is-open` in the DOM while it
+ * is shut and marks it `overlay-hidden`, so "no `ion-popover` at all" stopped
+ * being the same question as "the options are gone" the moment a screen kept
+ * one mounted — M4's amount editor (FR-25.24) is one. Every wait for a select
+ * to close asks for *this*, which is also still true mid-dismissal: the inner
+ * `ion-select-popover` hides a frame before Ionic tears the host and its
+ * backdrop down, and until it does the page behind them is not clickable.
+ */
+export const PRESENTED_POPOVER = 'ion-popover:not(.overlay-hidden)'
+
 export function visiblePage(page: Page) {
   return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
 }

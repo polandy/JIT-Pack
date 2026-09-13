@@ -1,4 +1,4 @@
-import { test, expect, visiblePage } from './fixtures'
+import { test, expect, visiblePage, PRESENTED_POPOVER } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 
@@ -42,7 +42,7 @@ async function chooseLanguage(page: Page, label: string) {
   // `ion-select-popover` hides a frame before Ionic tears the host and its
   // backdrop down, and until it does the page behind them is not clickable.
   // Waiting on the *host's* absence is the state the app reaches by itself.
-  await expect(page.locator('ion-popover')).toHaveCount(0)
+  await expect(page.locator(PRESENTED_POPOVER)).toHaveCount(0)
 }
 
 test.describe('Language choice @local @nfr412', () => {

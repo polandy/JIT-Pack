@@ -9,6 +9,7 @@ import {
   openQuickAdd,
   visiblePage as visible,
   tripAction,
+  PRESENTED_POPOVER,
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { startTrip } from './helpers/m4'
@@ -197,7 +198,7 @@ async function targetOptions(page: Page, item: string, current: string): Promise
   await expect(options.first()).toBeVisible()
   const names = await options.allInnerTexts()
   await options.filter({ hasText: current }).first().click()
-  await expect(page.locator('ion-popover')).toHaveCount(0)
+  await expect(page.locator(PRESENTED_POPOVER)).toHaveCount(0)
   return names.map((n) => n.trim())
 }
 

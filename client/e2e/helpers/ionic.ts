@@ -6,6 +6,8 @@
 import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 
+import { PRESENTED_POPOVER } from './page'
+
 /**
  * Type into an `ion-input`.
  *
@@ -150,5 +152,5 @@ export async function chooseInSelect(page: Page, testid: string, label: string) 
   const popover = page.locator('ion-popover ion-select-popover')
   await expect(popover).toBeVisible()
   await popover.locator('ion-item', { hasText: label }).click()
-  await expect(page.locator('ion-popover')).toHaveCount(0)
+  await expect(page.locator(PRESENTED_POPOVER)).toHaveCount(0)
 }
