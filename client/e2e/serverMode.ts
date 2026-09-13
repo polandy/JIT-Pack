@@ -14,6 +14,7 @@
 import { expect, type BrowserContext, type Page } from '@playwright/test'
 
 import { seed, visiblePage } from './fixtures'
+import { writesLanded } from './helpers/page'
 
 /** Suffix that keeps one test's master data out of another's. */
 export function uniq(): string {
@@ -38,15 +39,39 @@ export async function quickAddItem(page: Page, name: string): Promise<void> {
   await input.locator('input').fill(name)
   await page.getByTestId('quick-add-confirm').click()
   await expect(visiblePage(page).getByTestId(`m4-row-${name}`)).toBeVisible()
+  await writesLanded(page)
 }
 
-/** Pack a row via its checkbox (G-6: the control acts, it never navigates). */
+/**
+ * Pack a row via its checkbox (G-6: the control acts, it never navigates),
+ * and return once the write is on its way out rather than merely painted.
+ *
+ * The paint is all this helper used to wait for — and not even that: it
+ * returned on the click. A caller that closed its context straight
+ * afterwards (E2E-M2-10 does, since its whole point is to read the trip on a
+ * device that never opened it) could take the push down with the context,
+ * and the next device then read the honest `0/2 packed` off a server nobody
+ * had told. That is what went red on the 0.10.0 release run and green on the
+ * re-run; slowing the push by 700 ms reproduces it every time.
+ *
+ * The barrier is two waits in this order, and each is load-bearing. The
+ * **header figure changing** is the proof that the click reached the app —
+ * the row itself is not that proof, because a packed row leaves the list
+ * (FR-25.2) and a refused one stays put, so its own state is not a signal
+ * every caller shares. `writesLanded` alone is not the proof either: it
+ * would be satisfied by the settled state the app was in *before* this
+ * write, which is the false green this helper exists to avoid.
+ */
 export async function packItem(page: Page, name: string): Promise<void> {
+  const progress = visiblePage(page).getByTestId('m4-progress')
+  const before = await progress.textContent()
   await visiblePage(page)
     .getByTestId(`m4-row-${name}`)
     .getByTestId('row-check')
     .locator('ion-checkbox')
     .click()
+  await expect(progress).not.toHaveText(before ?? '')
+  await writesLanded(page)
 }
 
 /**
