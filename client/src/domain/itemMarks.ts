@@ -15,6 +15,8 @@
  * `scripts/mark-font-gate.mjs` fails the build for exactly that).
  */
 
+import { foldSearch as fold, searchWords as words } from './search'
+
 /** The coarse facets the picker's chip row offers, in the order it shows them. */
 export const MARK_FACETS = [
   'clothing',
@@ -194,19 +196,6 @@ const SEARCH_QUERY_MIN = 2
 
 /** The suggestion band is a band, not a second grid (FR-28.3). */
 export const MARK_SUGGESTION_LIMIT = 4
-
-/**
- * The app's one matching fold — case- and diacritics-insensitive, the same
- * rule as the FR-27.13 group search and the M4 quick-add.
- */
-function fold(text: string): string {
-  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
-}
-
-/** Word boundaries for the short-keyword rule: anything that is not a letter or digit. */
-function words(folded: string): string[] {
-  return folded.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
-}
 
 /**
  * Whether `keyword` is present in the already-folded `haystack`. A long keyword

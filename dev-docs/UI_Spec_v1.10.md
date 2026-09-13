@@ -393,6 +393,13 @@ These patterns apply to every screen and are specified once.
     packing.
   * **Order and meaning:** 🔍 **search**, collapsed — the field appears below only when the icon is tapped, and its ✕
     *closes* it rather than merely emptying it, since an empty open field gives back the row the icon just reclaimed.
+  * **One screen is exempt: M9 (2026-09-13, FR-24.6).** The inventory's field is part of the screen, permanently, and
+    the magnifier is not in its cluster at all. The collapse is paid for by the row it reclaims, and that trade only
+    holds where searching is occasional; on a 184-row database the lookup *is* the screen's purpose, and every one of
+    them paid a tap first. The exception is deliberately narrow — it is a property of the screen's job, not a licence
+    for the next list — and the persistent row behaves differently in kind: it takes no focus on arrival (a keyboard
+    nobody asked for covers the list), and its ✕ appears only with something to clear. E2E-G12-02, which used M9 as
+    the second screen proving the pattern travels, moved to M7 for it.
     Then the **filter** icon, carrying its active-value count as a badge (Addendum FR-25.11a/k).
   * **~~Two clusters, split by what they act on (refined 2026-08-07)~~ — superseded 2026-09-06 (ADR-050).** The rule
     was: the bar carries actions on *this list* (search, filter) while navigation to **other views of the same entity**
@@ -1530,8 +1537,13 @@ These patterns apply to every screen and are specified once.
 
 * **Purpose:** Central item database (FR-1.1) — the master-data screen for every item that can be packed.
 * **Rebuilt 2026-08-16** on the tag set (FR-24.1, ADR-014), together with M10.
-* **Elements:** Search (the G-12 magnifier, revealing the shared search row) and a **tag chip axis** as an
-  `ion-segment`: *Alle* plus one chip per tag. Beside the magnifier in the app-bar cluster sits the **eye icon →
+* **Elements (rebuilt 2026-09-13, FR-24.6):** a **tool bar that stays while the list scrolls** — the shared search
+  row, **always present rather than behind the G-12 magnifier** (the one exception to that pattern, see G-12), a
+  **sort** chip opening an action sheet with *Nach Tag gruppiert* / *Alle alphabetisch*, and a chip for the tag
+  currently narrowing the list, whose ✕ drops it. The **group headings stick directly under that bar**, at a height
+  the bar reports rather than a constant, because the bar grows a row when a filter is active. The page head's meta
+  line carries the collection's size and, while anything narrows it, what is left of it. Then a **tag chip axis** as
+  an `ion-segment`: *Alle* plus one chip per tag. Beside the magnifier in the app-bar cluster sits the **eye icon →
   "Angezeigte Eigenschaften" sheet** (FR-24.4), carrying the count of shown properties as a badge — the same
   `HeaderAction` badge the M4 filter uses. The list is grouped by each item's **primary tag** so a row appears exactly
   once (FR-24.2); groups order by the tag's `sort_order`, items by name, and items carrying no tag collect in a trailing
@@ -1548,6 +1560,12 @@ These patterns apply to every screen and are specified once.
 * **The axis filters wider than it groups:** an item matches a chip when that tag is anywhere in its set, while the
   grouping stays on the primary tag. Filtering by *Sommer* therefore surfaces the swimsuit filed under *Kleidung* — the
   reach a single category could not give (FR-24.2).
+* **Searching (2026-09-13, FR-24.7):** the field matches **name, tags and mark keywords**, folding both spellings of
+  an umlaut, and while a query is running the list leaves its tag groups: the results are grouped by **why** they
+  matched, and a row that matched through something else says *über <tag>*. A **dead end names its cause** — with a
+  tag chip active the empty state reads *„Kein Treffer in ‚Hygiene'"*, counts the hits outside the filter and offers
+  *„In allen Artikeln suchen"*, which drops the filter and keeps the query. The rule itself is
+  `client/src/domain/itemSearch.ts`; what M9 owns is the grouping and the sentence.
 * **Actions:** Tap → M10; FAB → new item. **Deleting lives in M10 (built 2026-08-25, FR-24.3).** **Merging duplicates
   via multi-select is specified here and was never built** (found 2026-08-30, backlog item 6): there is no multi-select
   on this screen and no merge anywhere in the client. FR-16.3 is *Deduplication on Import* and is discharged by M15 and

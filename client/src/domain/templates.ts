@@ -19,6 +19,7 @@ import type {
   Trip,
   TripItem,
 } from '@/types/domain'
+import { foldSearch } from './search'
 import { followsGroups } from './trips'
 
 /** Everything resolution needs, as plain arrays — the store shapes them. */
@@ -350,14 +351,11 @@ export interface GroupSearchHit {
 }
 
 /**
- * The app's one matching rule (FR-27.13, same stance as the M4 quick-add and
- * G-12): case- and diacritics-insensitive substring, no fuzzy matching — a
- * wrong-but-confident hit costs more than a missed one when accepting it
- * writes a composition.
+ * The FR-27.13 matching rule: the app's shared fold (`domain/search.ts`) and a
+ * plain substring, no fuzzy matching — a wrong-but-confident hit costs more
+ * than a missed one when accepting it writes a composition.
  */
-function foldForSearch(text: string): string {
-  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
-}
+const foldForSearch = foldSearch
 
 /**
  * searchGroups answers the picker's search (FR-27.13). Ordering is derived,

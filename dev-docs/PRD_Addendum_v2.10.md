@@ -1490,6 +1490,38 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   of sections creation mode hides is therefore the photo, „Hängt ab von", the delete card, and the two rear-view
   sections.)* "Artikel anlegen ✓" commits (a missing name is caught with a hint, not a disabled button the user must
   diagnose); afterwards the full editor appears for optional follow-ups (photo, dependencies).
+* **FR-24.6 (The Inventory's Tools Stay On The Screen — added 2026-09-13, implemented the same day):** M9 carries a
+  **tool bar that does not scroll away**: the search field, the sort control and a chip for whatever tag is narrowing
+  the list, with the group headings sticking directly beneath it. The head states the size of the collection („184
+  Artikel · 23 Tags") and what a filter leaves of it („12 von 184 Artikeln"). *Why it is a requirement and not a
+  layout preference:* measured against the family instance the list is **10 391 px against a 671 px viewport** —
+  fifteen screens — and both controls lived in the scrolling content, so two swipes in there was no heading, no axis
+  and no field on screen, and filtering meant scrolling back to the top. **The search field leaves the G-12 magnifier
+  on this screen, and only on this screen** (owner decision 2026-09-13, with the rebuild plan): G-12 collapses a
+  screen's search behind an icon because a permanently open box costs a row of a list that is read at arm's length —
+  true where searching is occasional, false where the screen *is* a lookup surface over a few hundred rows. Every
+  lookup paid a tap to reveal the field. The exception is written into G-12 itself rather than left as an
+  inconsistency, and E2E-G12-02 moved to M7 because a screen without the action cannot carry the case for it.
+  **The sort has two values and no more** (`Nach Tag gruppiert` / `Alle alphabetisch`): the second is the flat A–Z run
+  that 23 groups make impossible, and ordering by recency or by usage is deliberately *not* offered, because neither
+  number is on the client — `items` carries no client-visible clock and usage is the trip partitions this device may
+  not hold. An option whose ordering the device cannot compute is worse than its absence.
+* **FR-24.7 (Inventory Search That Reaches The Data — added 2026-09-13, implemented the same day):** M9's search
+  matches an item's **name, its tags and its mark's keywords**, under a fold that accepts **both keyboard spellings of
+  an umlaut** — „gurtel" and „guertel" both reach „Gürtel". Each hit carries **why** it matched, and the results are
+  grouped by that reason (*Treffer im Namen* before *Treffer im Tag* before *Treffer in der Marke*), with a row that
+  matched through something other than its name saying what — a row arriving under a query it does not visibly contain
+  reads as a bug, which is the finding FR-27.13's picker already paid for with its `via` field. An item is reported
+  **once**, under the strongest reason it has, so FR-24.2's „each row appears exactly once" holds while searching too.
+  *Why:* the old rule was `name.toLowerCase().includes(term)`, and against the real inventory „guertel" and „gurtel"
+  each returned **0 of 184** while the belt sat in the list; dozens of names carry ä/ö/ü/ss, and the tag every row
+  already displays could not be typed at all. **A dead end explains itself:** when a tag filter is what emptied the
+  result, the no-match state names that tag, counts the hits outside it and offers to drop it — keeping the query,
+  because the user asked for socks and not for the unfiltered inventory. The rule is a pure module
+  (`client/src/domain/itemSearch.ts`) rather than a computed property, for invariant 4's reason and because the
+  ranking two devices must agree on is arithmetic worth unit-testing. The app's fold now lives once, in
+  `domain/search.ts`; it had been copied privately into the marks index and the group picker, and this would have been
+  the third.
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —

@@ -176,10 +176,11 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     const list = visiblePage(page)
     await expect(list.getByTestId('m9-row')).toHaveCount(2)
 
-    await page.getByTestId('search').click()
-    // A plain <input>, not an ion-input, so fill() is enough — the shared
-    // search row owns the element itself (the fillIonic note above is about
-    // Ionic's re-emitted event, which does not apply here).
+    // No magnifier: on M9 the field is part of the screen (FR-24.6, the one
+    // G-12 exception). A plain <input>, not an ion-input, so fill() is enough
+    // — the shared search row owns the element itself (the fillIonic note
+    // above is about Ionic's re-emitted event, which does not apply here).
+    await expect(list.getByTestId('items-search-input')).toBeVisible()
     await list.getByTestId('items-search-input').fill('bade')
     await expect(list.getByTestId('m9-row')).toHaveCount(1)
     await expect(list.getByTestId('m9-row')).toContainText('Badehose')
@@ -195,6 +196,118 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(list.getByTestId('m9-row')).toHaveCount(0)
     await expect(list.getByTestId('m9-no-match')).toBeVisible()
     await expect(list.getByTestId('m9-empty')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M9-11 (FR-24.7): what the old rule could not be typed into. Both
+   * halves were measured against the family instance before they were
+   * written — „gurtel" and „guertel" each returned 0 of 184 rows, and a tag
+   * every row carries could not be searched at all.
+   */
+  test('E2E-M9-11: the search reaches an umlaut name and a tag, and says which', async ({
+    page,
+  }) => {
+    await createItem(page, 'Gürtel', { tags: ['Diverses'] })
+    await backToInventory(page)
+    await createItem(page, 'Finken', { tags: ['Schuhe'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    const field = list.getByTestId('items-search-input')
+
+    // Stripped diacritic and written-out umlaut both arrive at the same row.
+    await field.fill('gurtel')
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-row')).toContainText('Gürtel')
+    await field.fill('guertel')
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-row')).toContainText('Gürtel')
+
+    // A tag is searchable, and the row says what carried the match — the row
+    // itself does not contain the query, so without this it reads as a bug.
+    await field.fill('schuhe')
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-row')).toContainText('Finken')
+    await expect(list.getByTestId('m9-row-via')).toContainText('Schuhe')
+    expect(await groupHeadings(list)).toEqual(['matched a tag'])
+  })
+
+  /**
+   * E2E-M9-12 (FR-24.7): the dead end that cost the audit its clearest
+   * screenshot — „socken" under an unrelated tag chip, answered with a bare
+   * „Kein Artikel gefunden" while three socks sat in the list.
+   */
+  test('E2E-M9-12: a filtered dead end names the filter and offers the way out', async ({
+    page,
+  }) => {
+    await createItem(page, 'Normale Socken', { tags: ['Unterwäsche'] })
+    await backToInventory(page)
+    await createItem(page, 'Zahnbürste', { tags: ['Hygiene'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    await list.getByTestId('m9-tag-chip-Hygiene').click()
+    await list.getByTestId('items-search-input').fill('socken')
+
+    const empty = list.getByTestId('m9-no-match')
+    await expect(empty).toBeVisible()
+    // It names the tag that is narrowing the list, and counts what lies
+    // outside it — the two facts the bare sentence withheld. The count is
+    // written out at one, which is the singular arm of the catalogue entry.
+    await expect(empty).toContainText('Hygiene')
+    await expect(empty).toContainText('one match')
+
+    await list.getByTestId('m9-search-everywhere').click()
+    // The query survives the filter being dropped: the user asked for socks,
+    // not for the unfiltered inventory.
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-row')).toContainText('Normale Socken')
+    await expect(list.getByTestId('items-search-input')).toHaveValue('socken')
+  })
+
+  /**
+   * E2E-M9-13 (FR-24.6): the bar stays while the list moves. Measured on the
+   * family instance, the list is 10 391 px against a 671 px viewport — after
+   * two swipes the old screen had no heading, no axis and no field left, and
+   * filtering meant scrolling fifteen screens back.
+   */
+  test('E2E-M9-13: the tools stay put while the list scrolls', async ({ page }) => {
+    for (const name of ['Anorak', 'Buff', 'Campingstuhl', 'Daunenjacke', 'Eispickel']) {
+      await createItem(page, name, { tags: ['Ausrüstung'] })
+      await backToInventory(page)
+    }
+    await page.setViewportSize({ width: 390, height: 500 })
+
+    const list = visiblePage(page)
+    const tools = list.getByTestId('m9-tools')
+    const before = (await tools.boundingBox())!
+
+    await list.locator('ion-content').evaluate(async (el) => {
+      const content = el as unknown as { getScrollElement(): Promise<HTMLElement> }
+      const scroller = await content.getScrollElement()
+      scroller.scrollTop = scroller.scrollHeight
+    })
+
+    // Settled by the scroller's own offset rather than by a wait: the bar is
+    // where it was, with the list moved under it.
+    await expect
+      .poll(() =>
+        list.locator('ion-content').evaluate(async (el) => {
+          const content = el as unknown as { getScrollElement(): Promise<HTMLElement> }
+          return (await content.getScrollElement()).scrollTop
+        }),
+      )
+      .toBeGreaterThan(0)
+
+    const after = (await tools.boundingBox())!
+    expect(after.y).toBeCloseTo(before.y, 0)
+    await expect(list.getByTestId('items-search-input')).toBeVisible()
+
+    // ...and the heading under it stays a heading rather than sliding beneath
+    // the bar: the two sticky elements are stacked, not overlapping.
+    const head = list.getByTestId('m9-group-head').first()
+    const headBox = (await head.boundingBox())!
+    expect(headBox.y).toBeGreaterThanOrEqual(after.y + after.height - 1)
   })
 })
 

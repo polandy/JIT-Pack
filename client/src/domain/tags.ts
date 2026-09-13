@@ -85,6 +85,37 @@ function primaryTagNames(assignments: ItemTag[], tags: Tag[]): Map<string, strin
 }
 
 /**
+ * Every item's tag names, primary first, indexed by item id — for a caller
+ * that needs the whole inventory's tags at once (FR-24.7, the M9 search).
+ *
+ * One pass over the assignments, for the reason {@link primaryTagNames}
+ * gives: `tagsOfItem` per row turns a whole-inventory question into
+ * items × assignments, and this one is asked on every keystroke (NFR-4.3).
+ * An assignment whose tag is gone is skipped, exactly as `tagsOfItem` skips
+ * it — a pull can deliver two tombstones in either order.
+ */
+export function tagNamesByItem(assignments: ItemTag[], tags: Tag[]): Map<string, string[]> {
+  const byId = new Map(tags.map((t) => [t.id, t]))
+
+  const ofItem = new Map<string, ItemTag[]>()
+  for (const a of assignments) {
+    if (!byId.has(a.tag_id)) continue
+    const rows = ofItem.get(a.item_id)
+    if (rows) rows.push(a)
+    else ofItem.set(a.item_id, [a])
+  }
+
+  const names = new Map<string, string[]>()
+  for (const [itemID, rows] of ofItem) {
+    names.set(
+      itemID,
+      rows.sort(byPositionThenId).map((a) => byId.get(a.tag_id)!.name),
+    )
+  }
+  return names
+}
+
+/**
  * The items, each carrying the grouping key a trip row snapshots (FR-24.2).
  *
  * The category *is* the primary tag's name — there is no column behind it

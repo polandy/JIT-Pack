@@ -376,6 +376,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The screen was never told what the counts knew (2026-09-13)](#the-screen-was-never-told-what-the-counts-knew-2026-09-13) — M2's empty state asserted an absence it had not established; ten screens still do.
 - [Nine more screens stopped claiming an absence (2026-09-13)](#nine-more-screens-stopped-claiming-an-absence-2026-09-13) — the sweep; two premises of the entry above were wrong, and one e2e case replaced nine.
 - [A click was reported as a success, and the app had not moved (2026-09-13)](#a-click-was-reported-as-a-success-and-the-app-had-not-moved-2026-09-13) — the banner left the column; what muting the observer had hidden, and what only a rendered pixel said.
+- [The inventory's tools stopped leaving with the list (2026-09-13)](#the-inventorys-tools-stopped-leaving-with-the-list-2026-09-13) — FR-24.6/24.7; the G-12 exception, two sort options that were refused, and a focus test that could not fail.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15364,3 +15365,47 @@ different seat. The app bar's height was written out three times and the rail's 
 unknown, and is now unobservable — WebKit blocks workers in the suite, and the layout no longer converts the flip into
 a lost click. It is written down in the ledger rather than chased, so a device in the wild reporting a spurious *New
 version ready* has somewhere to start.
+
+
+## The inventory's tools stopped leaving with the list (2026-09-13)
+
+The screen was rendered against the family instance's own rows — 184 active items, 23 tags, 49 of them in *Diverses*,
+and **0 of 194 carrying a photo, a mark, a weight or a price**. That last number is what turned a reading of the code
+into a list of defects: every rung of G-15's ladder was empty, so all 49 rows of *Diverses* painted the same grey „D",
+and the „Angezeigte Eigenschaften" badge counted three properties while two of them had nothing to show. The list is
+**10 391 px against a 671 px viewport**. Both the search and the tag axis lived in the scrolling content, so two
+swipes in, the screen had no heading, no axis and no field on it. This entry covers the first two phases of the
+rebuild plan; the filter sheet, the selection mode and the tag manager are the phases after it.
+
+**The G-12 exception was a decision, not an oversight.** The magnifier collapses a screen's search because a
+permanently open box costs a row of a list read at arm's length. That trade is real where searching is occasional and
+inverted where the screen *is* a lookup surface: every one of 184 lookups paid a tap first. M9's field is now part of
+the screen, and the exception is written into G-12 rather than left as an inconsistency — including its cost, which
+fell on E2E-G12-02: the case used M9 as the second screen proving the pattern travels, and a screen without the action
+can no longer carry it. It moved to M7 and gained an assertion that M9 offers **no** search action at all, which is
+the only place the exception is observable from the rule's side.
+
+**Two sort options were refused rather than deferred.** *Zuletzt geändert* and *Am häufigsten benutzt* are the two a
+grown inventory obviously wants, and the client can compute neither: `items` carries no clock the client sees
+(`updated_hlc` never reaches the domain type), and usage lives in the trip partitions a device may not hold. An option
+whose ordering the device would have to guess at is worse than its absence — the second value is the flat A–Z run that
+23 group headings make impossible, which costs nothing and answers „I know the name, not the tag".
+
+**A test that could not fail, found by mutating it.** „The persistent field takes no focus" passed against a
+`SearchRow` that focused unconditionally: `document.activeElement` never moves for an element that is not in the
+document, and the spec mounted detached. Attaching it made the assertion real — and immediately produced a second
+finding, `i.scrollTo is not a function`, because an attached `ion-segment` runs its own scroll handling on every
+mutation and jsdom has no `Element.scrollTo`. Stubbing that globally would have hidden the next real one, so the
+attach is opt-in and only the focus case takes it.
+
+**The initial had been reading the heading, not the item.** With the results grouped by *why* they matched, the group
+key stopped being a tag name — and the avatar, which took the key's first letter, painted an „N" (for *name*) on every
+row of the first group. The rule was never „the heading's initial"; it had been indistinguishable from the right one
+for as long as every heading was a tag. Only the rendered screen said so, on the third screenshot. It reads the
+item's own primary tag now, out of the same map the search already builds.
+
+**The fold was about to exist three times.** `domain/itemMarks.ts` and `domain/templates.ts` each carried a private
+copy of the same `normalize('NFD')` line, one of them documented as „the app's one matching fold". It is
+`domain/search.ts` now, and it grew the half that made this worth doing: a stripped diacritic gets „gurtel" to
+„Gürtel" and never gets „guertel" there, so the rule runs both spellings. `nameCollision.foldName` deliberately stays
+a different rule — a hit there blocks a write, and „Frühling" and „Fruhling" are two names a user is entitled to.
