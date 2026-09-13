@@ -301,12 +301,12 @@ describe('per-person clusters (FR-25.1)', () => {
     expect(result.groups).toHaveLength(0)
   })
 
-  describe('the cluster folds, and is shut by default (FR-25.24)', () => {
+  describe('the cluster folds, and is shut by default (FR-25.23)', () => {
     it('is collapsed unless the caller names it expanded, unlike a group', () => {
       const result = view([shorts(andy), shorts(leo)])
       const [entry] = result.groups[0]?.entries ?? []
       if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
-      // The defect FR-25.24 answers: the head is an *extra* line over rows
+      // The defect FR-25.23 answers: the head is an *extra* line over rows
       // that are always open, so a cluster costs more lines than it saves.
       expect(entry.collapsed).toBe(true)
     })
