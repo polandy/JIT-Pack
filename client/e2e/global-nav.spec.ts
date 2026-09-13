@@ -5,6 +5,7 @@ import {
   expect,
   createTripViaWizard,
   expectTripOpen,
+  openTripFromList,
   openTripView,
   openQuickAdd,
   setDateField,
@@ -615,6 +616,38 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     await atPath(page, '/tabs/dashboard')
     await expect(onVisibleScreen(page, 'dashboard')).toBeVisible()
+  })
+
+  /*
+   * E2E-G1-07 (G-1, ADR-012): the gear leaves one page behind it, not two.
+   *
+   * E2E-G1-04 taps the same gear and could not see this, because it arrives
+   * on the trip straight out of the wizard: one page in the outlet, and one
+   * page is too shallow for Ionic to disagree with itself about which one is
+   * leaving. Reached the way a user reaches a trip — from the list — the
+   * outlet holds two, and the settings form came up over a still-live
+   * packing list that went on taking taps meant for it.
+   *
+   * `m4-fab` is read off the whole page and asserted *hidden*, not absent:
+   * scoping it to the visible screen would assert nothing, because a leaked
+   * page is visible, and asserting absence would fail on the fixed build
+   * too, because Ionic keeps the page it stacked away mounted. `oneLivePage`
+   * catches this after the fact and without naming the gear; this says which
+   * control owes it.
+   */
+  test('E2E-G1-07: the gear opened from a listed trip leaves one page in the outlet', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    await createTripViaWizard(page, TRIP)
+    await openTripFromList(page, TRIP.name)
+    await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
+
+    await page.getByTestId('header-settings').click()
+
+    await expect(onVisibleScreen(page, 'settings-language')).toBeVisible()
+    await expect(visiblePages(page)).toHaveCount(1)
+    await expect(page.getByTestId('m4-fab')).toBeHidden()
   })
 
   /*

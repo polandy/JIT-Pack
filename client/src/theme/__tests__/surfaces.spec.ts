@@ -167,13 +167,28 @@ describe('the controls Material would shape are told once (ADR-049)', () => {
     expect(rule(surfaces, 'ion-checkbox')).toContain('--border-radius: var(--jp-r-xs)')
   })
 
-  it('paints the page plane once, on ion-app, and lets the bar and the content sit on it', () => {
+  it("paints the wash on ion-app, behind the frame's own bar and head", () => {
     expect(rule(palette, 'ion-app')).toContain('var(--jp-wash), var(--jp-surface-page)')
     expect(value(palette, '--ion-toolbar-background')).toBe('transparent')
+    // A transparent bar must not cast Material's shadow onto the page.
+    expect(rule(surfaces, 'ion-header.header-md::after')).toContain('display: none')
+  })
+
+  /*
+   * ADR-049 amendment 1. The page used to be glass over `ion-app` as well,
+   * and the plane was painted once. It is painted twice on purpose now: a
+   * transparent page cannot occlude the one it is replacing, so the whole
+   * of the screen being left stayed legible through every transition.
+   * Opacity never occludes; a background does. The rule is asserted here
+   * because the visual baselines only ever catch it at rest — they record
+   * the wash's truncated tail, not the thing the opacity is for.
+   */
+  it("gives the outlet's page an opaque plane, keeping its content transparent", () => {
+    expect(rule(palette, 'ion-router-outlet > .ion-page')).toContain(
+      'background: var(--jp-surface-page)',
+    )
     expect(rule(palette, 'ion-router-outlet > .ion-page > ion-content')).toContain(
       '--background: transparent',
     )
-    // A transparent bar must not cast Material's shadow onto the page.
-    expect(rule(surfaces, 'ion-header.header-md::after')).toContain('display: none')
   })
 })

@@ -14,17 +14,32 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import AppHeader from '../AppHeader.vue'
 import { setActionsFor, clearActionsFor } from '@/composables/useHeaderActions'
+import { enteredFrom } from '@/router/backTarget'
+import { PATH } from '@/router/paths'
 
 const M4_PATH = '/trips/trip-1'
 const M6_PATH = '/trips/trip-1/shopping'
 
 const route = {
   path: M4_PATH,
+  fullPath: M4_PATH,
   meta: { parent: '/tabs/trips' } as Record<string, unknown>,
   params: { tripId: 'trip-1' } as Record<string, string>,
+  matched: [{}] as unknown[],
 }
 
-vi.mock('vue-router', () => ({ useRoute: () => route }))
+/**
+ * The gear resolves its own target, so the fake records what it was asked
+ * for. Serializing the query is vue-router's job and is not restated here;
+ * what this bar owes is *asking* with the origin in hand.
+ */
+const resolved: { path?: string; query?: Record<string, string> }[] = []
+const resolve = (to: { path: string; query: Record<string, string> }) => {
+  resolved.push(to)
+  return { fullPath: `${to.path}?from=${to.query.from}` }
+}
+
+vi.mock('vue-router', () => ({ useRoute: () => route, useRouter: () => ({ resolve }) }))
 
 vi.mock('@ionic/vue', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@ionic/vue')
@@ -39,7 +54,10 @@ function mountHeader(extra: { syncUpdateReady?: boolean } = {}) {
 
 beforeEach(() => {
   route.path = M4_PATH
+  route.fullPath = M4_PATH
   route.meta = { parent: '/tabs/trips' }
+  route.matched = [{}]
+  resolved.length = 0
 })
 
 describe('AppHeader — the left slot (G-9)', () => {
@@ -88,6 +106,51 @@ describe('AppHeader — the left slot (G-9)', () => {
  * decides *nothing* on its own — an unmarked action is always a glyph, and
  * the ⋮ exists only when something asked for it.
  */
+describe('AppHeader — the gear (G-1, ADR-012)', () => {
+  /*
+   * The gear carries the origin itself so the router's stamping guard finds
+   * nothing to rewrite. A guard that redirects aborts the navigation Ionic's
+   * `router-link` has already staged as a forward push and issues a second
+   * one; Ionic keeps the staged params, and from two pages deep the outlet
+   * then hides the wrong page — M17 over a still-live packing list.
+   */
+  it('points at settings with the screen it was pressed on already recorded', () => {
+    route.fullPath = `${M4_PATH}?item=item-1`
+
+    const wrapper = mountHeader()
+
+    expect(resolved).toContainEqual({
+      path: PATH.settings,
+      query: enteredFrom(`${M4_PATH}?item=item-1`),
+    })
+    expect(wrapper.find('[data-testid="header-settings"]').html()).toContain('from=')
+  })
+
+  /*
+   * The guard's own rule: a path that matched no route is not an origin,
+   * because `‹` would carry the user to a URL that renders nothing.
+   */
+  it('records no origin when the current path matched no route', () => {
+    route.path = '/typo'
+    route.fullPath = '/typo'
+    route.matched = []
+
+    const wrapper = mountHeader()
+
+    expect(resolved).toEqual([])
+    expect(wrapper.find('[data-testid="header-settings"]').html()).not.toContain('from=')
+  })
+
+  it('offers no gear on settings itself, so nothing resolves a self-link', () => {
+    route.path = PATH.settings
+    route.fullPath = PATH.settings
+
+    const wrapper = mountHeader()
+
+    expect(wrapper.find('[data-testid="header-settings"]').exists()).toBe(false)
+  })
+})
+
 describe('AppHeader — the G-12 overflow', () => {
   const action = (id: string, overflow?: boolean) => ({
     id,

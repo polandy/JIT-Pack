@@ -22,10 +22,10 @@ import {
 } from '@ionic/vue'
 import { chevronBackOutline, ellipsisVerticalOutline, settingsOutline } from 'ionicons/icons'
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import SyncIndicator from './SyncIndicator.vue'
-import { backTarget } from '@/router/backTarget'
+import { backTarget, enteredFrom } from '@/router/backTarget'
 import { actionsFor } from '@/composables/useHeaderActions'
 import { t } from '@/i18n'
 import type { SyncState } from '@/composables/useSyncStatus'
@@ -47,6 +47,7 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const ionRouter = useIonRouter()
 
 const back = computed(() => backTarget(route))
@@ -116,6 +117,29 @@ async function openOverflow() {
 // G-9: the gear is on every screen — except M17 itself, where it would
 // only reopen the screen it is on.
 const onSettings = computed(() => route.path === PATH.settings)
+
+/**
+ * Where the gear points — with the origin already in the href.
+ *
+ * The router would write the origin itself: `originStamp.ts` redirects any
+ * entry into an `acceptsFrom` route that carries none. Writing it here is
+ * not a second mechanism but the thing that keeps the tap a *single*
+ * navigation, which is what the outlet needs — a redirect aborts the push
+ * Ionic's `router-link` had already staged, Ionic keeps the staged params,
+ * and from two pages deep the outlet then hides the wrong one (ADR-049
+ * amendment 1 records the reading; the log entry of 2026-09-13 records the
+ * measurement). The guard stays for the entry points that navigate
+ * programmatically; this is the one `router-link` into a stamped route.
+ *
+ * An unmatched path is no origin, which is the guard's own rule: `‹` would
+ * carry the user to a URL that renders nothing, and the fallback parent has
+ * to answer instead.
+ */
+const settingsHref = computed(() =>
+  route.matched.length === 0
+    ? PATH.settings
+    : router.resolve({ path: PATH.settings, query: enteredFrom(route.fullPath) }).fullPath,
+)
 
 function goHome() {
   ionRouter.navigate(PATH.dashboard, 'back', 'replace')
@@ -212,7 +236,7 @@ function goBack() {
         />
         <IonButton
           v-if="!onSettings"
-          :router-link="PATH.settings"
+          :router-link="settingsHref"
           data-testid="header-settings"
           :aria-label="t('settings.title')"
           :title="t('settings.title')"

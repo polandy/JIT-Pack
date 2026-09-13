@@ -500,13 +500,26 @@ ion-progress-bar {
 /* ------------------------------------------------------------------ */
 
 /*
- * `ion-app` carries the page plane and the wash; the header bar and the
- * page's own content are transparent over it, so the wash runs under
- * both and the bar stops being a slab. A modal keeps its own background
- * — the selector reaches only the pages the router outlet mounts.
+ * `ion-app` carries the page plane and the wash, and the header bar is
+ * transparent over it, so the wash runs under the bar and the bar stops
+ * being a slab. A modal keeps its own background — the selectors below
+ * reach only the pages the router outlet mounts.
  */
 ion-app {
   background: var(--jp-wash), var(--jp-surface-page);
+}
+
+/*
+ * The page is opaque; only its `ion-content` is not.
+ *
+ * A background is what occludes — opacity alone never does — so a page that
+ * only glazes `ion-app` shows the page it is replacing for the length of
+ * every transition. ADR-049 amendment 1 weighs that against what the opaque
+ * plane costs: the wash now stops where the outlet starts, because the
+ * header and the page head render outside it and still sit on `ion-app`.
+ */
+ion-router-outlet > .ion-page {
+  background: var(--jp-surface-page);
 }
 
 ion-router-outlet > .ion-page > ion-content {
