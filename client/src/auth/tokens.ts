@@ -5,6 +5,8 @@
  */
 
 import type { SessionTokens } from '@/api/types'
+import { defaultNowMs, type NowMs } from '@/lib/clock'
+
 const KEY = 'jitpack_tokens'
 
 export interface StoredTokens {
@@ -14,11 +16,17 @@ export interface StoredTokens {
   expires_at: number
 }
 
-export function saveTokens(set: SessionTokens): void {
+/**
+ * `now` is the clock the deadline is measured from, injected so the refresher
+ * and its tests read one clock rather than two — a stored deadline taken from
+ * the machine while the caller reads an injected clock is an expiry that no
+ * test can state.
+ */
+export function saveTokens(set: SessionTokens, now: NowMs = defaultNowMs): void {
   const stored: StoredTokens = {
     access_token: set.access_token,
     refresh_token: set.refresh_token,
-    expires_at: Date.now() + set.expires_in * 1000,
+    expires_at: now() + set.expires_in * 1000,
   }
   localStorage.setItem(KEY, JSON.stringify(stored))
 }

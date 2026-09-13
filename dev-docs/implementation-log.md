@@ -370,6 +370,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 - [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
 - [Four reasons a device could not say what was wrong (2026-09-13)](#four-reasons-a-device-could-not-say-what-was-wrong-2026-09-13) — the iPad diagnosis: what made it undiagnosable, and why the hung boot was the one nobody could have seen.
+- [A refresh with no interval took the login screen down with it (2026-09-13)](#a-refresh-with-no-interval-took-the-login-screen-down-with-it-2026-09-13) — one client's retry drained a rate limit shared with the login exchange; the IdP lifespan behind it.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15154,3 +15155,34 @@ and the existing *„not saved on this device"* degradation was already waiting 
 a timer seam, because the deadline has to be *reached* rather than waited for. The assertion that a successful open
 **cancels** its deadline is the one that keeps the seam honest: without it the test would pass against a build that
 leaves a timer running behind every open.
+
+## A refresh with no interval took the login screen down with it (2026-09-13)
+
+The section above ends with the cause unidentified, and it stayed that way until the *login* broke too: „the server
+rejected the login", for everybody, on an instance whose own health checks were green. That symptom named the place
+the previous one could not. The evidence was in the IdP's log, which is not the one anybody had been reading —
+`Rate Limit Exceeded` on `POST /api/oidc/token`, continuously, from the broker's single source address, beside
+`Refresh Token expired at '2026-09-11 21:36:16 UTC'`.
+
+**A lifespan nobody had matched up.** Authelia's default `refresh_token` is 90 minutes; JIT-Pack's session chain is 90
+days and replays the IdP's token at every renewal. Any device closed for longer woke up holding a grant the IdP had
+already forgotten. The instance now gives the client its own lifespan (`lifespans.custom.jitpack`, 90 d), and the
+manual says why, because a self-hoster meets this on their first IdP — but the setting is not the finding.
+
+**The finding is that one client's retry is everyone's outage.** Withholding the expired token (item 3 above) stops
+the *token* from being wrong; it does not stop the *asking*. Every request the app makes still ran the refresh, and
+the refresh replays a grant at the IdP, whose rate limit is per source address — and behind a server-side broker every
+user is one address. Worse, the endpoint being drained also serves the authorization-code exchange, so the first
+visible casualty was not sync but the login screen. And the 429 the limit answers with is, correctly, classified as
+transient: without an interval, the rule that keeps a session alive through a rate limit is the same rule that keeps
+the rate limit exhausted.
+
+**So the fix is an interval, not another classification.** 5 s, 30 s, 2 min, 10 min per consecutive undeliverable
+attempt; inside the window nothing reaches the endpoint and the caller gets the answer a failed attempt would have
+given it. A landed refresh drops the ladder, so a recovered IdP is noticed at the next request.
+
+**Two things worth keeping.** A backoff is an interval, so the clock is injected — `saveTokens` too, since a deadline
+stored from the machine while the refresher reads an injected clock is an expiry no test can state. And the whole
+class was invisible to every gate we have: nothing in JIT-Pack logs a request, so the only record that a client is
+hammering a dependency lives in the dependency. When a symptom survives a healthy server and a correct payload, the
+next log to open is the one belonging to the thing being *called*.

@@ -98,6 +98,13 @@ its expiry.
 **Neutral**
 - The server side is unchanged: the broker already answers 401 for a rejected grant and 502 for an outage
   (Sync-API §2).
+- **What is *not* answered gets an interval, added the same day and orthogonal to this decision.** Option B was
+  rejected as a way to *end* a session; spacing the attempts is a different thing and ends nothing. Without it the
+  refresher still asks the IdP once per request the app makes, and since the endpoint replays a grant at the IdP —
+  whose rate limit is per source address, shared by every user behind the broker and by the login's own
+  authorization-code exchange — one wedged device is an outage for everyone. Note the loop this closes runs on the 429
+  the rate limit itself answers with, which the table above classifies as transient, and correctly so. The delays
+  (5 s, 30 s, 2 min, 10 min) are in `auth/refresh.ts` and Sync-API §2; the incident is in the log's 2026-09-13 entry.
 
 ## Revisit Trigger
 

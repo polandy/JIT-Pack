@@ -85,6 +85,26 @@ Only the issuer is configured. The authorization, token, UserInfo and JWKS endpo
 
 The `email` scope is not cosmetic: the verified address it yields is what the [instance-admin allowlist](#instance-admins) matches against.
 
+### Give the client a refresh-token lifetime that covers being away
+
+JIT-Pack's own session chain lasts 90 days, and it replays your IdP's refresh token at every renewal. If the IdP expires that token sooner, the chain is only as long as the IdP's setting — a device that has not been opened for longer comes back holding a session the IdP has already forgotten, and has to log in again.
+
+Authelia's default is 90 minutes, which is short enough to hit a phone that was in a pocket over lunch. Give the client its own lifespan instead:
+
+```yaml
+identity_providers:
+  oidc:
+    lifespans:
+      custom:
+        jitpack:
+          refresh_token: 90d
+    clients:
+      - client_id: "jitpack"
+        lifespan: "jitpack"
+```
+
+Access tokens are unaffected: JIT-Pack issues its own 15-minute one and never hands the IdP's to a device. The IdP is still consulted at every renewal, so revoking an account still ends its sessions within one access-token lifetime.
+
 ### Check the provider before you trust it
 
 Every point above is something your IdP either supports or quietly does not. A provider that supports less does not usually say so — it grants a smaller set and the trouble arrives later, as a session that stops renewing or an account provisioned with a blank name.

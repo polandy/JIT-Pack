@@ -12,6 +12,11 @@
  * module (ADR-059): keeping a token the server has stopped renewing turns
  * an expired session into a device that 401s for ever and can only say
  * *offline*.
+ *
+ * An undeliverable refresh also arms a backoff before the next one is
+ * attempted. That is the other half of the same rule: this endpoint replays
+ * a grant at the *IdP*, so a client that retries per request is a client
+ * that can take an IdP down.
  */
 
 import { API } from '@/api/routes'
@@ -22,6 +27,22 @@ import { clearTokens, loadTokens, type StoredTokens, saveTokens } from './tokens
 
 /** Refresh this long before expiry so in-flight requests don't race the deadline. */
 const EXPIRY_SKEW_MS = 30_000
+
+/**
+ * How long to wait after a refresh that could not be completed, by
+ * consecutive failure; the last entry is the ceiling.
+ *
+ * The interval is the point. This endpoint replays a grant at the IdP, whose
+ * rate limit is shared with the authorization-code exchange behind the login
+ * screen, so a client that retries once per request takes everybody's login
+ * down with its own dead session — including the 429 the rate limit itself
+ * answers with, which is transient and therefore retried (`api/status.ts`).
+ * The values are what a person waits at worst for a recovered IdP to be
+ * noticed again; a pull, a push or a resume meanwhile costs no request,
+ * because the answer is given here rather than fetched. See the log's
+ * 2026-09-13 entry.
+ */
+const REFRESH_BACKOFF_MS = [5_000, 30_000, 120_000, 600_000] as const
 
 /** Dispatched on window when the session is over and cannot be renewed. */
 export const AUTH_EXPIRED_EVENT = 'jitpack:auth-expired'
@@ -83,6 +104,10 @@ export interface AuthRefresher {
 export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs): AuthRefresher {
   const base = baseUrl.replace(/\/+$/, '')
   let inflight: Promise<string | null> | null = null
+  /** Consecutive refreshes that could not be completed; 0 once one lands. */
+  let failures = 0
+  /** Nothing is sent to the IdP before this instant (see REFRESH_BACKOFF_MS). */
+  let nextAttemptAt = 0
 
   /**
    * The stored access token, or null once it is past its own expiry.
@@ -97,6 +122,14 @@ export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs):
     return now() < tokens.expires_at ? tokens.access_token : null
   }
 
+  /** What an undeliverable attempt answers, after arming the next one. */
+  function backOff(tokens: StoredTokens): string | null {
+    failures += 1
+    nextAttemptAt =
+      now() + REFRESH_BACKOFF_MS[Math.min(failures - 1, REFRESH_BACKOFF_MS.length - 1)]!
+    return unexpired(tokens)
+  }
+
   async function freshToken(): Promise<string | null> {
     const tokens = loadTokens()
     if (!tokens) return null
@@ -105,6 +138,12 @@ export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs):
   }
 
   function refresh(): Promise<string | null> {
+    // Inside the window the IdP is not asked at all: the caller is given the
+    // answer a failed attempt would have given it, without making one.
+    if (now() < nextAttemptAt) {
+      const tokens = loadTokens()
+      return Promise.resolve(tokens ? unexpired(tokens) : null)
+    }
     inflight ??= doRefresh().finally(() => {
       inflight = null
     })
@@ -125,7 +164,7 @@ export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs):
     } catch {
       // The request never arrived: nothing has been said about this session,
       // so the token stays — unless it has already expired.
-      return unexpired(tokens)
+      return backOff(tokens)
     }
 
     // Answered and refused. 401 is the broker's word for a refresh token the
@@ -138,20 +177,25 @@ export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs):
     }
     // A 5xx, or one of the transient 4xx: the instance is failing, not the
     // session, and the next attempt can still succeed.
-    if (!resp.ok) return unexpired(tokens)
+    if (!resp.ok) return backOff(tokens)
 
     // Partial rather than SessionTokens: the server always sends all three,
     // but the guard below is about a body that is not one — an interposed
     // proxy, a truncated response — and a non-optional type would make it
     // read as dead code.
     const set = (await resp.json()) as Partial<SessionTokens>
-    if (!set.access_token) return unexpired(tokens)
-    saveTokens({
-      access_token: set.access_token,
-      // Some IdPs don't rotate refresh tokens on use — keep the old one then.
-      refresh_token: set.refresh_token || tokens.refresh_token,
-      expires_in: set.expires_in ?? 300,
-    })
+    if (!set.access_token) return backOff(tokens)
+    saveTokens(
+      {
+        access_token: set.access_token,
+        // Some IdPs don't rotate refresh tokens on use — keep the old one then.
+        refresh_token: set.refresh_token || tokens.refresh_token,
+        expires_in: set.expires_in ?? 300,
+      },
+      now,
+    )
+    failures = 0
+    nextAttemptAt = 0
     return set.access_token
   }
 

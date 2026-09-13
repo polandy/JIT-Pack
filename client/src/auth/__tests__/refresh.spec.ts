@@ -9,6 +9,15 @@ const KEY = 'jitpack_tokens'
 /** The instant every expiry case stands on — the injected clock's answer. */
 const NOW = 1_757_000_000_000
 
+/**
+ * A clock the backoff cases can move. An interval can only be asserted by a
+ * test that says where in it the next call happens; `vi.advanceTimersByTime`
+ * would move a timer this code does not use, and waiting out the real 5 s is
+ * the kind of assertion that only usually holds.
+ */
+let now = NOW
+const clock = () => now
+
 function storeTokens(
   overrides: Partial<{ access_token: string; refresh_token: string; expires_at: number }> = {},
 ) {
@@ -32,6 +41,7 @@ describe('createAuthRefresher', () => {
 
   beforeEach(() => {
     localStorage.clear()
+    now = NOW
     fetchSpy = installHarness().fetch
   })
 
@@ -167,6 +177,67 @@ describe('createAuthRefresher', () => {
     const refresher = createAuthRefresher('http://server', () => NOW)
 
     expect(await refresher.freshToken()).toBeNull()
+  })
+
+  /*
+   * The interval, which is the other half of ADR-059's rule. Withholding the
+   * expired token stops the *token* from being wrong; without a window, the
+   * refresher still asks the IdP once per request the app makes, and a fleet
+   * of devices whose grant has expired drains the rate limit in front of the
+   * token endpoint — which also serves the login exchange (2026-09-13).
+   */
+  it('asks the IdP once per backoff window, however often it is asked', async () => {
+    storeTokens({ expires_at: NOW - 1 })
+    fetchSpy.mockRejectedValue(new TypeError('network down'))
+    const refresher = createAuthRefresher('http://server', clock)
+
+    expect(await refresher.refresh()).toBeNull()
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    now = NOW + 4_999
+    expect(await refresher.refresh()).toBeNull()
+    expect(await refresher.freshToken()).toBeNull()
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('tries again once the window has passed, and waits longer after the second failure', async () => {
+    storeTokens({ expires_at: NOW - 1 })
+    fetchSpy.mockRejectedValue(new TypeError('network down'))
+    const refresher = createAuthRefresher('http://server', clock)
+
+    await refresher.refresh() // failure 1 → 5 s
+    now = NOW + 5_000
+    await refresher.refresh() // failure 2 → 30 s
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+
+    now = NOW + 5_000 + 29_999
+    await refresher.refresh()
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+
+    now = NOW + 5_000 + 30_000
+    await refresher.refresh()
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+  })
+
+  it('drops the backoff once a refresh lands, so a recovered IdP is not held off', async () => {
+    storeTokens({ expires_at: NOW - 1 })
+    fetchSpy.mockRejectedValueOnce(new TypeError('network down'))
+    const refresher = createAuthRefresher('http://server', clock)
+
+    await refresher.refresh() // failure 1 → 5 s
+    now = NOW + 5_000
+    fetchSpy.mockResolvedValueOnce(
+      tokenResponse({ access_token: 'new-access', refresh_token: 'r2', expires_in: 300 }),
+    )
+    expect(await refresher.refresh()).toBe('new-access')
+
+    // The next failure starts at the first rung again, not at the one the
+    // dead session had climbed to.
+    fetchSpy.mockRejectedValueOnce(new TypeError('network down'))
+    expect(await refresher.refresh()).toBe('new-access') // still valid: kept
+    now = NOW + 5_000 + 4_999
+    await refresher.refresh()
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
   })
 
   it('deduplicates concurrent refreshes into a single request', async () => {

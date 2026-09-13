@@ -128,6 +128,12 @@ to open.
   kept token is only handed out while it is **still inside its own expiry**: a token past `expires_at` is null, because
   sending it can produce nothing but the next 401 (`sessionAccessTTL` is 15 minutes, so a device with a broken refresh
   path reached that state a quarter of an hour after login and stayed in it across restarts).
+  A refresh that could not be delivered also **arms a backoff** — 5 s, 30 s, 2 min, then 10 min per consecutive
+  failure — during which no request reaches this endpoint at all and every caller is answered from the rule above
+  without one. This is the same requirement seen from the other side: the endpoint replays a grant at the *IdP*, whose
+  rate limit is shared by every client of that IdP **and by the authorization-code exchange behind the login screen**,
+  so an unbounded retry from one device is an outage for everyone — including the 429 that rate limit answers with,
+  which is transient and therefore retried. Observed 2026-09-13.
 * **Client discovery:** `GET /api/v1/auth/config` (unauthenticated) → `{ "authorize_url", "client_id" }` (from the
   discovery document) so the client needs only the server URL; servers without OIDC answer 501.
 * **Session claims:** `sub` **is** `users.id` — identity is established once, by the broker at login/refresh, never per
