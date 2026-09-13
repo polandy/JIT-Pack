@@ -367,6 +367,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A decision that reported itself as progress (2026-09-12)](#a-decision-that-reported-itself-as-progress-2026-09-12) — FR-25.22's skipped-row unit was reversed once 57 skipped items read as `57/284 gepackt`.
 - [The link a shell could write and a screen could not (2026-09-12)](#the-link-a-shell-could-write-and-a-screen-could-not-2026-09-12) — M22 gets the account picker; the select assertion that was green against a refused write.
 - [A clause priced the wrong half of „one screen away" (2026-09-12)](#a-clause-priced-the-wrong-half-of-one-screen-away-2026-09-12) — FR-25.13i reverses FR-25.13f for settled lines; reset rather than restore, and what that costs a skipped row.
+- [A facet that filters on doneness fights the switch that hides it (2026-09-12)](#a-facet-that-filters-on-doneness-fights-the-switch-that-hides-it-2026-09-12) — FR-25.11l's Status facet needed two of the panel's own rules overridden, not just a sixth axis.
 - [A separation that was reasoned from the write (2026-09-13)](#a-separation-that-was-reasoned-from-the-write-2026-09-13) — M22's add row takes the account too; what the old rule really was, and the CLI defect it had been hiding.
 ## Deviations
 
@@ -15030,6 +15031,44 @@ row, reflows the rows below it into the finger, and throws away the flip that is
 cases were green over it, because a Playwright locator re-queried by name cannot notice that the row it wants has
 moved — only a person tapping twice in the same place can. The filter now shows the set decided when it was switched
 on, exactly as FR-25.13e does, and the count beside it stays live so it still says how much of the pass is left.
+
+## A facet that filters on doneness fights the switch that hides it (2026-09-12)
+
+The owner asked for a third M4 filter axis: *gepackt* / *bewusst weggelassen* / *noch nicht gepackt* (FR-25.11l).
+Adding the axis itself — a sixth `FacetKey`, a bucket function over `ItemState`, a chip for each value — was the easy
+half; two of the panel's existing rules were written for facets that are blind to doneness, and Status is the one
+axis whose entire point is doneness, so both broke in a way no test caught until it was traced through by hand.
+
+**Rule 1, `buildFacetValues`: counts run over open rows only** ("offering to filter for finished work misleads",
+`packingView.ts`). Correct for Person/Kategorie/Gepäck/Merkmale — nobody wants a count of how many *done* rows are
+in a category — and exactly backwards for Status, whose values *are* done-states: counting only open rows means
+"Gepackt" and "Bewusst weggelassen" would always read `0`, no matter how many packed or skipped rows exist. Status
+is now the one facet counted over the whole set, not `open`.
+
+**Rule 2, the render loop: a done row is dropped unless Erledigte is on.** `passesFacets` runs before that drop, so
+selecting "Gepackt" narrows `matching` down to packed rows correctly — and then the very next pass throws every one
+of them away again as done, because Erledigte was never touched. The filter would report a nonzero match count and
+render an empty list, which is the exact contradiction FR-25.11e exists to forbid on every *other* path into an
+empty state. The fix: a Status selection overrides the done-drop for the bucket it names (`revealedByStatus`,
+`packingView.ts`) — picking a value is *asking* to see it, so it wins over a switch the user never touched. Applied
+in both places the done-drop happens: the visible list and the FR-25.20 "others" reveal count, or the second would
+undercount how many other-people rows a reveal would show while a Status filter is narrowing them.
+
+Both wrinkles were found by writing the failing case first (`describe('status facet (FR-25.11l)', …)` in
+`packingView.spec.ts`) rather than by reading the two functions cold — the second in particular reads as obviously
+correct until a concrete `showDone: false` + `status: ['packed']` case is run against it.
+
+**Checked against #452's own snapshot finding (same session, same day):** their FR-25.13i filter first read the
+*live* settled set and re-introduced FR-25.13e's reflow-under-the-finger defect on repeated resets. M4's Status
+facet does not carry the same risk despite also removing a row from view on the same tap that changes its state
+(packing a row while filtered to *„Noch nicht gepackt"* makes it vanish immediately) — because this is the same
+FR-25.2 done-row-drop M4 has shipped and tested since before this facet existed, not a new *sequential, by-position*
+worklist. Every M4 row action targets one specifically read, named row (`m4-row-<name>`, its own checkbox); nothing
+on this screen invites the rapid same-spot re-tap the browse-sheet's per-row buttons do. What actually accelerates
+the hazard there is a fixed right-edge action column, so successive taps land at the same x-position and the finger
+never travels to what it is aiming at — M4's checkbox sits on the row a person is reading, not a fixed column. **The
+question is worth re-asking, not settled for good**: the day M4 grows a fixed-column bulk verb per row while a
+Status filter is active is the day this reasoning stops holding. No snapshot was added.
 
 ## A separation that was reasoned from the write (2026-09-13)
 

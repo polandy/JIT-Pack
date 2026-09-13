@@ -1940,6 +1940,22 @@ locked.
     M4 (FR-25.3) — is both unreadable and untappable. Found by inspection 2026-08-07: **both** screens were affected, M4
     worse than M6 despite its FAB sitting lower, because full-screen packing had tightened the list padding to less than
     the FAB's height.
+  * **FR-25.11l (Status facet — new 2026-09-12, owner request):** M4's facet panel gains a sixth axis, **Status**,
+    offering exactly three values — *„Gepackt"*, *„Bewusst weggelassen"* (FR-5.5) and *„Noch nicht gepackt"* — rather
+    than the five raw {@link ItemState} values: `packing_now` and `partial` collapse into *„Noch nicht gepackt"*
+    because the owner asked for packed / skipped / not-yet-packed, and a fourth or fifth chip would answer a question
+    nobody asked. It follows FR-25.11c's ordinary OR/AND rule and composes with every other facet (e.g. "my items,
+    not yet packed"). **One rule needed amending for it to work at all:** picking a Status value overrides the
+    "Erledigte" reveal switch (FR-25.11i) for exactly the rows it names — without that, selecting *„Gepackt"* while
+    Erledigte is off would match every packed row in the facet pass and then hide every one of them again as done,
+    reporting a nonzero count that renders nothing. The panel's per-value counts (FR-25.11d) are the one exception to
+    "counted over open rows only": Status names a done-state on purpose, so its counts run over the *whole* set, or
+    "Gepackt"/"Bewusst weggelassen" would always read zero. This is the M4 half of the same "show me packed/skipped
+    rows" request the inventory browse-sheet made about its own screen; the two were not built together; the
+    browse-sheet's undo-across-openings gap is unrelated and still open. **Owner-ruled 2026-09-12: the wording stays
+    three-shaped here and stays a single "nur Entschiedenes" switch on the browse-sheet (FR-25.13i)** — the tasks
+    differ (this facet filters a list; that switch finds rows to reset), "entschieden" names the *union* the
+    three-value facet has no single word for, and the sheet's row has no space for a segmented control.
 * **FR-25.5 (Container Assignment Optional & De-emphasized — refines FR-10.2):** Assigning an item to a luggage
   container (FR-10.2) **defaults to none** and is de-emphasized in the packing flow (M4/M5) so that container management
   never becomes a step the user must clear in order to pack. It remains fully available for those who want it (M11), but

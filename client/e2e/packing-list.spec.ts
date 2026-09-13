@@ -15,7 +15,7 @@ import {
 import type { Locator, Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
-import { openCluster, packRow } from './helpers/m4'
+import { chooseInRowMenu, openCluster, openRowMenu, packRow } from './helpers/m4'
 import { backToInventory, createItem } from './helpers/m9'
 
 /**
@@ -1954,5 +1954,50 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await expect(visible(page).getByTestId('m4-group-none')).toContainText('0/1')
     await expect(visible(page).getByTestId('m4-row-Badehose')).toBeVisible()
     await expect(visible(page).getByTestId('m4-row-Schlüssel')).toBeVisible()
+  })
+
+  /*
+   * E2E-M4-85 (FR-25.11l): picking a Status value overrides the Erledigte
+   * switch for exactly the rows it names.
+   *
+   * The unit test proves the bucketing arithmetic; what only the rendered
+   * panel can prove is the override — that Erledigte can stay off while the
+   * one picked bucket still renders, which is the whole reason the FR exists:
+   * otherwise the panel would report a nonzero "Gepackt" count and show
+   * nothing for it, the exact contradiction FR-25.11e forbids elsewhere.
+   */
+  test('E2E-M4-85: the Status facet overrides Erledigte for the picked bucket', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Lampe', 'Kocher'])
+
+    await packRow(page, 'Zelt')
+    await openRowMenu(page, 'Lampe')
+    await chooseInRowMenu(page, /do not pack this/i)
+
+    // Both done rows are behind the reveal bar by default; Kocher is open.
+    await expect(page.getByTestId('m4-row-Kocher')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+    await expect(page.getByTestId('m4-row-Lampe')).toHaveCount(0)
+
+    await page.getByTestId('m4-filter').click()
+    await page.getByTestId('facet-status-packed').click()
+    await page.getByTestId('filter-close').click()
+
+    // Erledigte is still off, yet the packed row alone is shown.
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Lampe')).toHaveCount(0)
+    await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
+    await expect(page.getByTestId('m4-filter-bar')).toContainText(/Status/i)
+
+    await page.getByTestId('m4-filter').click()
+    await page.getByTestId('facet-status-packed').click()
+    await page.getByTestId('facet-status-skipped').click()
+    await page.getByTestId('filter-close').click()
+
+    await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+    await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
   })
 })

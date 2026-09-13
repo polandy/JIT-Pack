@@ -499,6 +499,48 @@ describe('facet filtering (FR-25.11c)', () => {
   })
 })
 
+describe('status facet (FR-25.11l)', () => {
+  it('buckets packing_now and partial together with open, under "not_packed"', () => {
+    const openRow = item({ name: 'Open', state: 'open' })
+    const packingNow = item({ name: 'PackingNow', state: 'packing_now' })
+    const partial = item({ name: 'Partial', quantity: 3, packed_count: 1, state: 'partial' })
+    const skipped = item({ name: 'Skipped', state: 'skipped' })
+    const done = packed({ name: 'Packed' })
+
+    // showDone: true so a selection's own done-ness never hides it here — this
+    // test is only about which bucket a row lands in.
+    const selecting = (value: string) =>
+      visibleNames([openRow, packingNow, partial, skipped, done], {
+        showDone: true,
+        facets: facets({ status: [value] }),
+      })
+
+    expect(selecting('not_packed')).toEqual(['Open', 'PackingNow', 'Partial'])
+    expect(selecting('packed')).toEqual(['Packed'])
+    expect(selecting('skipped')).toEqual(['Skipped'])
+  })
+
+  it('reveals exactly the selected done bucket even while Erledigte is off', () => {
+    const openRow = item({ name: 'Open' })
+    const skipped = item({ name: 'Skipped', state: 'skipped' })
+    const done = packed({ name: 'Packed' })
+    const items = [openRow, skipped, done]
+
+    // Selecting "gepackt" with the reveal switch off would otherwise match the
+    // row in passesFacets and then hide it again as done — a filter reporting
+    // a count of 1 that renders nothing.
+    expect(
+      visibleNames(items, { showDone: false, facets: facets({ status: ['packed'] }) }),
+    ).toEqual(['Packed'])
+    expect(
+      visibleNames(items, { showDone: false, facets: facets({ status: ['skipped'] }) }),
+    ).toEqual(['Skipped'])
+    expect(
+      visibleNames(items, { showDone: false, facets: facets({ status: ['not_packed'] }) }),
+    ).toEqual(['Open'])
+  })
+})
+
 describe('facet values and their counts (FR-25.11d)', () => {
   const rows = () => [
     item({ name: 'Socks', mode: 'pack', category_name: 'Clothing' }),
@@ -560,6 +602,29 @@ describe('facet values and their counts (FR-25.11d)', () => {
   it('offers the modes in packing order rather than alphabetically', () => {
     const result = view(rows())
     expect(result.facetValues.mode.map((v) => v.value)).toEqual(['pack', 'buy_before', 'buy_local'])
+  })
+
+  it('counts Status over every row, not just open ones — the opposite of every other facet', () => {
+    // Every other facet's count is deliberately blind to done rows (see the
+    // "counts over open rows only" case above); Status is the one axis whose
+    // whole purpose is naming a done-state, so it must count all of them.
+    const result = view([
+      item({ category_name: 'Clothing' }),
+      packed({ category_name: 'Clothing' }),
+      item({ category_name: 'Clothing', state: 'skipped' }),
+    ])
+    expect(countOf(result, 'status', 'not_packed')).toBe(1)
+    expect(countOf(result, 'status', 'packed')).toBe(1)
+    expect(countOf(result, 'status', 'skipped')).toBe(1)
+  })
+
+  it('offers Status in packed/skipped/not_packed order', () => {
+    const result = view([item({ state: 'skipped' }), packed(), item()])
+    expect(result.facetValues.status.map((v) => v.value)).toEqual([
+      'packed',
+      'skipped',
+      'not_packed',
+    ])
   })
 })
 

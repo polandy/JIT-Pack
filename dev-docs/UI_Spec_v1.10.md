@@ -926,11 +926,13 @@ These patterns apply to every screen and are specified once.
     made the identical choice; M6, which has no FAB, is where the pill is still the way in. *Rejected:* dropping the
     FAB instead, which would have put the app's one-tap add behind a scroll to the top on the longest list it has.
   * **Faceted filter panel** (FR-25.11) replaces the old grouping bar + mode pill strip: a bottom sheet holding
-    *Gruppieren nach*, an *Erledigte* switch, and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale. OR
-    within a facet, AND across facets; active values appear as removable chips under the header. **Revised 2026-08-14
-    (FR-25.11b-rev):** the panel has **no apply button** — every tap is in force behind it, and the head states the
-    outcome — its values are **chips rather than folded accordions**, each axis carries an icon, and it is visibly a
-    layer over the list rather than more page.
+    *Gruppieren nach*, an *Erledigte* switch, and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale /
+    Status. OR within a facet, AND across facets; active values appear as removable chips under the header. **Revised
+    2026-08-14 (FR-25.11b-rev):** the panel has **no apply button** — every tap is in force behind it, and the head
+    states the outcome — its values are **chips rather than folded accordions**, each axis carries an icon, and it is
+    visibly a layer over the list rather than more page. **Status added 2026-09-12 (FR-25.11l):** three values —
+    *Gepackt* / *Bewusst weggelassen* / *Noch nicht gepackt* — that override the Erledigte switch for whichever bucket
+    is picked, so "show me only the skipped rows" works whether or not done rows are otherwise revealed.
   * **The empty list says what actually hid the rows (corrected 2026-08-25).** With every row assigned to somebody else,
     M4 reported *„Keine Treffer — 1 offene Position ist hinter dem Filter"* over a *„Suche und Filter zurücksetzen"*
     button, with neither a search nor a facet set: FR-25.20's hiding is not a filter anybody chose. It now reads *„Alles

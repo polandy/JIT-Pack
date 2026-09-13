@@ -22,12 +22,18 @@ import {
   onlyOthersHidden,
   optionLabel,
 } from '@/lib/packingFilterPanel'
-import { FACET_KEYS, FLAG_VALUES, NO_VALUE, noFacets } from '@/domain/packingView'
+import {
+  FACET_KEYS,
+  FLAG_VALUES,
+  NO_VALUE,
+  PACK_STATUS_VALUES,
+  noFacets,
+} from '@/domain/packingView'
 import type { FacetValue, PackingView } from '@/domain/packingView'
 import { ITEM_MODES, type FacetKey, type Facets } from '@/types/domain'
 
 function emptyFacetValues(): Record<FacetKey, FacetValue[]> {
-  return { person: [], category: [], mode: [], container: [], flag: [] }
+  return { person: [], category: [], mode: [], container: [], flag: [], status: [] }
 }
 
 function view(overrides: Partial<PackingView> = {}): PackingView {
@@ -73,6 +79,12 @@ describe('the panel names every axis and every flag it can be given', () => {
     const label = optionLabel('flag', flag, null)
     expect(label).toBeTruthy()
     expect(label).not.toContain(flag)
+  })
+
+  it.each(PACK_STATUS_VALUES)('words the %s status bucket the view model can emit', (status) => {
+    const label = optionLabel('status', status, null)
+    expect(label).toBeTruthy()
+    expect(label).not.toContain(status)
   })
 })
 
