@@ -8,9 +8,10 @@ import { describe, it, expect } from 'vitest'
 
 import { rowMenuEntries, type RowMenuAction, type RowMenuContext } from '@/domain/rowMenu'
 
-const OPEN = { state: 'open', flag_unused: false } as const
-const SKIPPED = { state: 'skipped', flag_unused: false } as const
-const JUDGED = { state: 'open', flag_unused: true } as const
+const OPEN = { state: 'open', flag_unused: false, late_packer: false } as const
+const SKIPPED = { state: 'skipped', flag_unused: false, late_packer: false } as const
+const JUDGED = { state: 'open', flag_unused: true, late_packer: false } as const
+const LATE = { state: 'open', flag_unused: false, late_packer: true } as const
 
 function ctx(overrides: Partial<RowMenuContext> = {}): RowMenuContext {
   return {
@@ -25,7 +26,7 @@ function ctx(overrides: Partial<RowMenuContext> = {}): RowMenuContext {
 
 interface Case {
   name: string
-  item: { state: 'open' | 'skipped'; flag_unused: boolean }
+  item: { state: 'open' | 'skipped'; flag_unused: boolean; late_packer: boolean }
   ctx: Partial<RowMenuContext>
   want: RowMenuAction[]
 }
@@ -35,7 +36,19 @@ const cases: Case[] = [
     name: 'an ordinary open row offers its amount, packing it now and skipping it (FR-5.5)',
     item: OPEN,
     ctx: {},
-    want: ['quantity', 'packingNow', 'skip'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn'],
+  },
+  {
+    name: 'a row already flagged offers the way back off the departure day (FR-5.1, FR-25.25)',
+    item: LATE,
+    ctx: {},
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOff'],
+  },
+  {
+    name: 'a skipped row is offered no late-packer flag — nothing is being packed on it',
+    item: { ...SKIPPED, late_packer: true },
+    ctx: {},
+    want: ['unskip'],
   },
   {
     name: 'a skipped row offers only the way back (FR-5.5)',
@@ -89,13 +102,13 @@ const cases: Case[] = [
     name: 'a judgeable trip appends the unused mark after the row’s own actions (FR-9.3)',
     item: OPEN,
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'flagUnused'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'flagUnused'],
   },
   {
     name: 'a row already marked unused offers to take the mark off again',
     item: JUDGED,
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'unflagUnused'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'unflagUnused'],
   },
   {
     name: 'a skipped row is offered no amount — 1 there is an unskip without its companions (FR-25.24)',

@@ -749,4 +749,61 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
     await expect(head).toHaveAttribute('aria-expanded', 'false')
     await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toHaveCount(0)
   })
+
+  /*
+   * FR-25.26. The head is the only line that knows an item is one thing
+   * several people carry, so it is where „everybody packs this on the morning
+   * we leave" can be said once. What no unit can see is that the flag reached
+   * each *instance*: `clusterActions` is tested against a list of instances,
+   * and M4's own wiring is what turns a head into that list — a fan-out that
+   * wrote the head's first row twice would satisfy every unit in the change.
+   *
+   * The per-instance assertion is therefore made in M5, one child at a time,
+   * rather than on the head — the head paints its ⏰ when *any* instance
+   * carries the flag (FR-25.23), so it is green on a fan-out that reached one
+   * row of two.
+   */
+  test('E2E-M4-88: the cluster head sets the late-packer flag on every instance', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+
+    await openMembership(page, ITEM)
+    await page.getByTestId('membership-per-person').click()
+    await setMember(page, 'Andy', 1)
+    await setMember(page, 'Leonardo', 1)
+    await closeAll(page)
+
+    const list = visiblePage(page)
+    const head = list.getByTestId(`m4-cluster-${ITEM}`)
+    await expect(head.getByTestId('row-late')).toHaveCount(0)
+
+    await head.dispatchEvent('contextmenu')
+    const menu = page.locator('ion-action-sheet')
+    await expect(menu).toBeVisible()
+    // The scope is stated before the action: a shut head hides the rows it
+    // is about to write.
+    await expect(menu).toContainText('2 rows')
+    await menu.getByRole('button', { name: /late packer on for everyone/i }).click()
+    await expect(menu).toHaveCount(0)
+
+    await expect(head.getByTestId('row-late')).toBeVisible()
+
+    await openCluster(page, ITEM)
+    for (const traveler of ['Andy', 'Leonardo']) {
+      await list.getByTestId(`m4-child-${ITEM}-${traveler}`).getByRole('heading').click()
+      await expect(page.getByTestId('m5-sheet')).toBeVisible()
+      await expect(page.getByTestId('m5-sheet')).toContainText(/late packer/i)
+      await page.getByTestId('m5-close').click()
+      await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    }
+
+    // And back off again, which is the half a one-way fan-out would fail:
+    // with every instance flagged the head offers the way out, not the way in.
+    await head.dispatchEvent('contextmenu')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: /late packer off for everyone/i }).click()
+    await expect(menu).toHaveCount(0)
+    await expect(head.getByTestId('row-late')).toHaveCount(0)
+  })
 })

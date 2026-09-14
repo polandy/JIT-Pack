@@ -295,6 +295,36 @@ describe('per-person clusters (FR-25.1)', () => {
     expect(entry.totalCount).toBe(3)
   })
 
+  it('names every instance it counts, so the head can act on all of them (FR-25.26)', () => {
+    const result = view(
+      [
+        shorts(andy, { id: 'a' }),
+        // Hidden as done, but still one of the four the head answers for —
+        // a „für alle" that skipped it would act on a narrower set than the
+        // head's own count describes.
+        shorts(leo, { id: 'b', quantity: 1, packed_count: 1, state: 'packed' }),
+        shorts(mia, { id: 'c' }),
+      ],
+      { showDone: false },
+    )
+    const [entry] = result.groups[0]?.entries ?? []
+    if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+    expect(entry.children).toHaveLength(2)
+    expect(entry.instanceIds).toEqual(['a', 'b', 'c'])
+  })
+
+  it('leaves a filtered-out instance out of the set the head acts on (FR-25.26)', () => {
+    // The head counts what the filter lets through, so that is also what it
+    // may write: a facet the reader can see is narrowing the list must not be
+    // contradicted by an action that reaches past it.
+    const result = view([shorts(andy, { id: 'a' }), shorts(leo, { id: 'b', mode: 'buy_before' })], {
+      facets: { ...noFacets(), mode: ['pack'] },
+    })
+    const [entry] = result.groups[0]?.entries ?? []
+    if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+    expect(entry.instanceIds).toEqual(['a'])
+  })
+
   it('drops the whole cluster once every instance is done', () => {
     const done = { quantity: 2, packed_count: 2, state: 'packed' as const }
     const result = view([shorts(andy, done), shorts(leo, done)])

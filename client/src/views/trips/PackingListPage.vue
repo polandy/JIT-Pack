@@ -58,7 +58,10 @@ import {
   funnelOutline,
   layersOutline,
   lockOpenOutline,
+  peopleOutline,
+  personOutline,
   playOutline,
+  timeOutline,
 } from 'ionicons/icons'
 
 import { packedPercent, stateFor } from '@/domain/packState'
@@ -109,6 +112,12 @@ import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/sync/mutations'
 import { buildPackingView, type PackingCluster, rowEdgeAvatar } from '@/domain/packingView'
 import { rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
+import {
+  clusterFanOut,
+  clusterMenuEntries,
+  type ClusterInstance,
+  type ClusterMenuAction,
+} from '@/domain/clusterActions'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
@@ -257,6 +266,91 @@ const judgeable = computed(() => canJudgeUnused(trip.value))
  */
 const closingPass = ref(false)
 const allItems = computed(() => tripStore.getItems(props.tripId))
+
+/**
+ * FR-25.19: the people this trip's rows can be handed to — members of the
+ * trip, minus myself. The same rule M5's control uses, and for the same
+ * reason: assigning a row to myself says nothing, and in Single-User and
+ * Local Mode there is nobody else at all, so the control is absent rather
+ * than inert (G-8).
+ */
+const assignableMembers = computed(() => {
+  const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
+  return participants.value.filter(
+    (person) => members.has(person.user_id) && person.user_id !== myUserId.value,
+  )
+})
+
+/**
+ * FR-25.25: whether this row's edge avatar is a control. A row somebody else
+ * holds is read-only (G-3), the closing pass asks a different question
+ * (FR-9.3), and once the avatar names the *packing record* there is nothing
+ * to pick — who packed it is not a choice (FR-25.19).
+ */
+function assignableRow(item: TripItem): boolean {
+  return (
+    assignableMembers.value.length > 0 &&
+    !closingPass.value &&
+    !locked(item) &&
+    item.packed_by_user_id === null
+  )
+}
+
+/**
+ * The person picker, shared by the row's avatar and the cluster head's „für
+ * alle" (FR-25.25/25.26). Resolves to the chosen assignment — `null` is
+ * *nobody*, which is a choice like any other — or to `undefined` when the
+ * sheet was dismissed, because "assign to nobody" and "never mind" must not
+ * arrive here as the same value.
+ */
+async function pickAssignee(
+  header: string,
+  current: string | null,
+): Promise<string | null | undefined> {
+  let picked: string | null | undefined
+  const sheet = await actionSheetController.create({
+    header,
+    buttons: [
+      ...assignableMembers.value.map((person) => ({
+        text: person.display_name,
+        icon: personOutline,
+        role: person.user_id === current ? 'selected' : undefined,
+        handler: () => {
+          picked = person.user_id
+        },
+      })),
+      {
+        text: t('item.assignedToNobody'),
+        icon: removeCircleOutline,
+        role: current === null ? 'selected' : undefined,
+        handler: () => {
+          picked = null
+        },
+      },
+      { text: t('common.cancel'), role: 'cancel' },
+    ],
+  })
+  await sheet.present()
+  await sheet.onDidDismiss()
+  return picked
+}
+
+/**
+ * FR-25.25: the row's own avatar, tapped.
+ *
+ * The traveler is passed in rather than resolved here because only the view
+ * model knows whether this row is an instance of a per-person item: under a
+ * cluster the row is named by its *person*, so a sheet headed with the item
+ * alone would not name the row it was opened from. Same composition M4 uses
+ * for a lone per-person row's label.
+ */
+async function onAssignRow(item: TripItem, traveler?: string | null): Promise<void> {
+  if (!assignableRow(item)) return
+  const header = traveler ? `${item.name} · ${traveler}` : item.name
+  const picked = await pickAssignee(header, item.packer_user_id)
+  if (picked === undefined) return
+  orchestrator.setPacker(props.tripId, item, picked)
+}
 
 /**
  * FR-25.13c: what the trip already carries — skipped rows included — is
@@ -437,6 +531,8 @@ const ROW_MENU_BUTTONS: Record<RowMenuAction, { labelKey: MessageKey; icon: stri
   quantity: { labelKey: 'quantity.edit', icon: layersOutline },
   packingNow: { labelKey: 'mode.pack', icon: contrastOutline },
   skip: { labelKey: 'packing.skipAction', icon: closeCircleOutline },
+  latePackerOn: { labelKey: 'packing.latePackerOn', icon: timeOutline },
+  latePackerOff: { labelKey: 'packing.latePackerOff', icon: timeOutline },
   flagUnused: { labelKey: 'packing.flagUnusedAction', icon: removeCircleOutline },
   unflagUnused: { labelKey: 'packing.unflagUnusedAction', icon: removeCircleOutline },
 }
@@ -464,12 +560,133 @@ function runRowMenu(action: RowMenuAction, item: TripItem): void {
     case 'skip':
       onSkipItem(item)
       return
+    case 'latePackerOn':
+      orchestrator.setLatePacker(props.tripId, item, true)
+      return
+    case 'latePackerOff':
+      orchestrator.setLatePacker(props.tripId, item, false)
+      return
     case 'flagUnused':
       void onFlagUnused(item, true)
       return
     case 'unflagUnused':
       void onFlagUnused(item, false)
   }
+}
+
+// --- FR-25.26: the cluster head acts on every instance under it ----------
+//
+// The head is the only line that knows an item is one thing several people
+// carry, and `late_packer` and the FR-25.19 assignment are the two fields
+// that are usually a statement about the item rather than about a person —
+// everybody brushes their teeth on the morning the trip leaves. Said
+// instance by instance it cost one trip through M5 per traveler.
+
+/** The same press the rows use; the short tap stays the fold (FR-25.23). */
+const clusterHold = useLongPress<PackingCluster>(openClusterMenu)
+
+/**
+ * What the head may act on: the instances it *counts*, with the G-3 holder
+ * resolved for each. Rows the filter or FR-25.2 removed are not among them —
+ * the head's numbers describe the same set, and an action reaching past what
+ * the reader can see would be a second, invisible list.
+ */
+function clusterInstances(cluster: PackingCluster): ClusterInstance[] {
+  return cluster.instanceIds.flatMap((id) => {
+    const item = allItems.value.find((row) => row.id === id)
+    if (!item) return []
+    const holder = locked(item) ? orchestrator.lockHolder(props.tripId, item) : null
+    return [
+      {
+        id: item.id,
+        latePacker: item.late_packer,
+        lockedBy: holder ? nameOf(holder) : null,
+      },
+    ]
+  })
+}
+
+/** The rows behind a fan-out plan, in the order the plan names them. */
+function rowsOf(ids: string[]): TripItem[] {
+  return ids.flatMap((id) => allItems.value.filter((row) => row.id === id))
+}
+
+/**
+ * Say what a fan-out did — and, where a claim kept it off a row, say that
+ * too. A group action that quietly wrote three of four would be indis-
+ * tinguishable from one that wrote all four (G-3, advisory since 2026-08-30).
+ */
+function announceFanOut(written: number, total: number, blockedBy: string[]): void {
+  void presentToast({
+    message:
+      blockedBy.length === 0
+        ? t('packing.fanOutApplied', { n: written })
+        : t('packing.fanOutPartial', {
+            n: written,
+            total,
+            who: blockedBy.join(', '),
+          }),
+    positionAnchor: FAB_ANCHOR.m4,
+  })
+}
+
+async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster): Promise<void> {
+  const instances = clusterInstances(cluster)
+  const plan = clusterFanOut(instances)
+  const rows = rowsOf(plan.targetIds)
+
+  if (action === 'assignAll') {
+    // The head has no assignment of its own to show as picked: its instances
+    // may disagree, and presenting one of them as the cluster's answer would
+    // be a claim the model does not make.
+    const picked = await pickAssignee(cluster.name, null)
+    if (picked === undefined) return
+    orchestrator.setPackerForRows(props.tripId, rows, picked)
+  } else {
+    orchestrator.setLatePackerForRows(props.tripId, rows, action === 'latePackerOn')
+  }
+  announceFanOut(rows.length, instances.length, plan.blockedBy)
+}
+
+async function openClusterMenu(cluster: PackingCluster): Promise<void> {
+  clusterHold.cancel()
+  const entries = clusterMenuEntries(clusterInstances(cluster), {
+    closingPass: closingPass.value,
+    canAssign: assignableMembers.value.length > 0,
+  })
+  if (entries.length === 0) return
+
+  rowMenuActive = true
+  try {
+    const sheet = await actionSheetController.create({
+      header: cluster.name,
+      // The scope, before the actions rather than after them: the head writes
+      // several rows, and how many is the part a reader cannot see on a shut
+      // cluster.
+      subHeader: t('packing.clusterScope', { n: cluster.instanceIds.length }),
+      buttons: [
+        ...entries.map((action) => ({
+          text: t(CLUSTER_MENU_BUTTONS[action].labelKey),
+          icon: CLUSTER_MENU_BUTTONS[action].icon,
+          handler: () => {
+            void runClusterMenu(action, cluster)
+          },
+        })),
+        { text: t('common.cancel'), role: 'cancel' },
+      ],
+    })
+    await sheet.present()
+    await sheet.onDidDismiss()
+  } finally {
+    rowMenuActive = false
+  }
+}
+
+/** Label and glyph per cluster entry; the decision is the domain's. */
+const CLUSTER_MENU_BUTTONS: Record<ClusterMenuAction, { labelKey: MessageKey; icon: string }> = {
+  latePackerOn: { labelKey: 'packing.clusterLatePackerOn', icon: timeOutline },
+  latePackerOff: { labelKey: 'packing.clusterLatePackerOff', icon: timeOutline },
+  assignAll: { labelKey: 'packing.clusterAssignAll', icon: peopleOutline },
 }
 
 async function openRowMenu(item: TripItem) {
@@ -603,6 +820,10 @@ function toggleGroup(key: string) {
  * instance — does not close what the user just opened.
  */
 function toggleCluster(key: string) {
+  // The release of a hold lands on the overlay rather than on the head, but
+  // a dismissed sheet can still deliver the click — the same swallow the
+  // rows do, or opening the head's menu would also fold it.
+  if (rowMenuActive) return
   expandedClusters.value = expandedClusters.value.includes(key)
     ? expandedClusters.value.filter((k) => k !== key)
     : [...expandedClusters.value, key]
@@ -1454,6 +1675,10 @@ setHeaderTitle(
                   :faces="entry.faces"
                   :master="clusterMaster(entry)"
                   @toggle="toggleCluster(entry.key)"
+                  @menu="openClusterMenu(entry)"
+                  @press-start="(e: PointerEvent) => clusterHold.down(entry, e.clientX, e.clientY)"
+                  @press-move="(e: PointerEvent) => clusterHold.move(e.clientX, e.clientY)"
+                  @press-end="clusterHold.cancel()"
                 />
 
                 <div v-if="!entry.collapsed" class="cluster-children">
@@ -1470,6 +1695,8 @@ setHeaderTitle(
                     :notes="rowNotes(child.item)"
                     :traveler="child.traveler"
                     :edge-avatar="edgeAvatarFor(child.item)"
+                    :assignable="assignableRow(child.item)"
+                    @assign="onAssignRow(child.item, child.traveler?.name)"
                     @open="openItem(child.item.id)"
                     @menu="openRowMenu(child.item)"
                     @press-start="(e: PointerEvent) => onRowPress(child.item, e)"
@@ -1499,6 +1726,8 @@ setHeaderTitle(
                 :master="masterOf(entry.item)"
                 :prep-count="openTodoCount(entry.item.id)"
                 :edge-avatar="edgeAvatarFor(entry.item)"
+                :assignable="assignableRow(entry.item)"
+                @assign="onAssignRow(entry.item)"
                 @open="openItem(entry.item.id)"
                 @menu="openRowMenu(entry.item)"
                 @press-start="(e: PointerEvent) => onRowPress(entry.item, e)"

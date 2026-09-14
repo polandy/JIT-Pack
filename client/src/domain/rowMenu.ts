@@ -22,6 +22,9 @@ export type RowMenuAction =
   | 'quantity'
   | 'packingNow'
   | 'skip'
+  /** FR-25.25: the FR-5.1 flag, switched from the row instead of from M5. */
+  | 'latePackerOn'
+  | 'latePackerOff'
   | 'flagUnused'
   | 'unflagUnused'
 
@@ -44,7 +47,7 @@ export interface RowMenuContext {
 }
 
 /** The row fields the menu reads; a `TripItem` satisfies it. */
-export type RowMenuItem = Pick<TripItem, 'state' | 'flag_unused'>
+export type RowMenuItem = Pick<TripItem, 'state' | 'flag_unused' | 'late_packer'>
 
 /**
  * The entries the menu offers, in order. An empty list means **no menu at
@@ -76,7 +79,17 @@ export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuA
         // leaves the row's FR-20.2 companions behind — the one thing the
         // entry above does correctly.
         ['unskip']
-      : ['quantity', 'packingNow', 'skip']
+      : [
+          'quantity',
+          'packingNow',
+          'skip',
+          // FR-25.25: last of the row's own actions, because it is the one
+          // that says something about *when* rather than about now. A
+          // skipped row is offered none of it — nothing is being packed on
+          // it, so a departure-day flag would describe an act that is not
+          // going to happen.
+          item.late_packer ? 'latePackerOff' : 'latePackerOn',
+        ]
 
   // FR-9.3: the judgement leaves the fold. *Unused* used to cost three taps
   // into M5's *Details* block, which nothing ever asks for.
