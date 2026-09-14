@@ -164,7 +164,7 @@ With it set, the server asks GitHub for the newest release **at most once a day*
 Four things worth knowing:
 
 - **It is a line, not a notification.** Nobody is nagged, and nothing pops up — including for the people using the instance, who cannot pull a new image anyway.
-- **Your instance sends nothing about itself.** The request asks GitHub a public question about a public repository; it carries no data about your instance, your data or the people using it. What GitHub sees is that some address asked, once a day.
+- **What GitHub gets to see.** The request asks a public question about a public repository, and carries nothing about your data or the people using it. It does identify itself the way HTTP clients do — `User-Agent: jitpackd/<your version>` — so what is visible on the other side is that an address running this version asked, once a day.
 - **It only works on a released image.** The check compares the release tag the image was built from, so `ghcr.io/polandy/jit-pack:0.7.0` can answer and a server you built yourself from a working copy cannot — that one simply shows no line. The startup log names the build so you can see which case you are in.
 - **The version in the app is not this.** The banner that offers to apply a waiting update is about the app in your browser catching up with the server you already run. This line is about the server itself being behind.
 
