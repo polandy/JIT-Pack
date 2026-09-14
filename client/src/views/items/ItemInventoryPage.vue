@@ -46,6 +46,8 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
+  checkboxOutline,
+  checkmarkOutline,
   chevronDownOutline,
   chevronForwardOutline,
   closeOutline,
@@ -53,7 +55,10 @@ import {
   cubeOutline,
   eyeOutline,
   funnelOutline,
+  pricetagsOutline,
+  removeCircleOutline,
   swapVerticalOutline,
+  trashOutline,
 } from 'ionicons/icons'
 import {
   computed,
@@ -70,6 +75,7 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
+import BulkTagSheet, { type BulkTagMode } from '@/components/items/BulkTagSheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -81,11 +87,16 @@ import {
 import {
   UNTAGGED_KEY,
   filterByTags,
+  planTagGrant,
+  planTagRemoval,
+  primaryPosition,
   tagCounts,
   tagNamesByItem,
+  tagsOfItems,
   topTagsByCount,
   type TagFilterMode,
 } from '@/domain/tags'
+import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import { MARK_INDEX } from '@/domain/itemMarks'
 import {
   hitsByReason,
@@ -94,9 +105,12 @@ import {
   type ItemSearchCandidate,
   type MatchReason,
 } from '@/domain/itemSearch'
+import { confirmDestructive } from '@/lib/confirm'
+import { bulkRetireSentence } from '@/lib/deletionLabels'
+import { presentToast } from '@/lib/toast'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
-import type { MasterItem } from '@/types/domain'
+import type { ItemTag, MasterItem } from '@/types/domain'
 import { PATH, itemPath } from '@/router/paths'
 
 /** How the unsearched list is ordered (FR-24.6). */
@@ -128,6 +142,15 @@ const jumpOpen = ref(false)
 
 const searching = computed(() => isSearchQuery(search.value))
 
+/**
+ * FR-24.9: the selection, by item id. Empty *and* `selecting` is a real
+ * state — the mode is armed and nothing is picked yet — so the mode is its
+ * own flag rather than „the set is not empty".
+ */
+const selecting = ref(false)
+const selected = ref<Set<string>>(new Set())
+const bulkSheet = ref<BulkTagMode | null>(null)
+
 setHeaderActions(() => {
   const eye: HeaderAction = {
     id: 'm9-properties',
@@ -152,8 +175,51 @@ setHeaderActions(() => {
     active: sort.value !== 'grouped',
     onClick: chooseSort,
   }
-  return [eye, sortAction]
+  /*
+   * FR-24.9. Third and last glyph the bar renders before the ⋮ (ADR-050),
+   * and it earns the place: it is the entrance to the only way out of a
+   * 49-item „Diverses" that does not cost 49 round trips through M10.
+   */
+  const select: HeaderAction = {
+    id: 'm9-select',
+    icon: checkboxOutline,
+    label: t('items.select'),
+    active: selecting.value,
+    onClick: () => (selecting.value ? endSelecting() : (selecting.value = true)),
+  }
+  return [eye, sortAction, select]
 })
+
+function endSelecting() {
+  selecting.value = false
+  selected.value = new Set()
+}
+
+/** The rows the list is showing, in the order it shows them (FR-24.9). */
+const shownItems = computed<MasterItem[]>(() =>
+  (searching.value ? resultGroups.value : groups.value).flatMap(([, items]) => items),
+)
+
+const selectedItems = computed<MasterItem[]>(() =>
+  shownItems.value.filter((item) => selected.value.has(item.id)),
+)
+
+function toggleSelected(itemId: string) {
+  const next = new Set(selected.value)
+  if (next.has(itemId)) next.delete(itemId)
+  else next.add(itemId)
+  selected.value = next
+}
+
+/**
+ * „Alle N" takes what is *on screen*, filter and search included — which is
+ * what makes the mode worth having: narrow to „Diverses", take all 49, act
+ * once. Pressing it again clears, so the same control undoes itself.
+ */
+function toggleAll() {
+  const all = shownItems.value.length > 0 && selectedItems.value.length === shownItems.value.length
+  selected.value = all ? new Set() : new Set(shownItems.value.map((item) => item.id))
+}
 
 /** The mark's search keywords, by emoji — resolved once, not per keystroke. */
 const MARK_KEYWORDS = new Map(MARK_INDEX.map((entry) => [entry.emoji, entry.keywords]))
@@ -388,6 +454,136 @@ async function chooseSort() {
   sort.value = data as SortMode
 }
 
+/**
+ * The tags a bulk action may act with (FR-24.9): giving offers the whole
+ * vocabulary, taking offers only what the selection carries — an action that
+ * can change nothing is not offered.
+ */
+const bulkTags = computed(() =>
+  bulkSheet.value === 'take'
+    ? tagsOfItems(selectedItems.value, masterStore.itemTagList, masterStore.tagList)
+    : masterStore.tagList,
+)
+
+/** How many of the *selected* items already carry each tag. */
+const bulkCounts = computed(() => tagCounts(selectedItems.value, masterStore.itemTagList))
+
+/**
+ * What the last batch wrote, and how to write it back (FR-24.9).
+ *
+ * One batch at a time, live for as long as its snackbar: the assignments it
+ * created (to remove) and the ones it moved or removed (to put back where
+ * they were, position included). A retire is deliberately not in here — see
+ * `retireSelected`.
+ */
+interface BulkUndo {
+  created: string[]
+  moved: { assignmentId: string; position: number }[]
+  removed: ItemTag[]
+}
+
+let bulkUndo: BulkUndo | null = null
+
+function undoBulk() {
+  const undo = bulkUndo
+  bulkUndo = null
+  if (!undo) return
+  for (const assignmentId of undo.created) orchestrator.unassignTag(assignmentId)
+  for (const { assignmentId, position } of undo.moved) orchestrator.moveTag(assignmentId, position)
+  // Re-created rather than revived: the row was deleted, so it comes back as
+  // a new assignment at the position it held.
+  for (const row of undo.removed) orchestrator.assignTagAt(row.item_id, row.tag_id, row.position)
+}
+
+async function announceBulk(message: string) {
+  await presentToast({
+    message,
+    buttons: [{ text: t('items.bulkUndo'), handler: () => undoBulk() }],
+  })
+}
+
+/** Give the chosen tag to the selection, optionally filing them under it. */
+async function giveTag(tagId: string, primary: boolean) {
+  const items = selectedItems.value
+  const plan = planTagGrant(items, masterStore.itemTagList, tagId, primary)
+  const undo: BulkUndo = { created: [], moved: [], removed: [] }
+
+  for (const item of plan.missing) {
+    // Read per item, immediately before its own write: each insert changes
+    // what the next one has to land below.
+    const position = primary
+      ? primaryPosition(item.id, masterStore.itemTagList)
+      : masterStore.getItemTags(item.id).length
+    undo.created.push(orchestrator.assignTagAt(item.id, tagId, position))
+  }
+  for (const { item, assignment } of plan.demoted) {
+    undo.moved.push({ assignmentId: assignment.id, position: assignment.position })
+    orchestrator.setPrimaryTag(item.id, tagId)
+  }
+
+  bulkSheet.value = null
+  const touched = plan.missing.length + plan.demoted.length
+  if (touched === 0) {
+    await presentToast({ message: t('items.bulkNothingToDo') })
+    return
+  }
+  bulkUndo = undo
+  endSelecting()
+  await announceBulk(t('items.bulkGave', { n: touched, tag: tagName(tagId) }))
+}
+
+/** Take the chosen tag away from every selected item that carries it. */
+async function takeTag(tagId: string) {
+  const rows = planTagRemoval(selectedItems.value, masterStore.itemTagList, tagId)
+  const undo: BulkUndo = { created: [], moved: [], removed: rows.map((row) => ({ ...row })) }
+  for (const row of rows) orchestrator.unassignTag(row.id)
+
+  bulkSheet.value = null
+  if (rows.length === 0) {
+    await presentToast({ message: t('items.bulkNothingToDo') })
+    return
+  }
+  bulkUndo = undo
+  endSelecting()
+  await announceBulk(t('items.bulkTook', { n: rows.length, tag: tagName(tagId) }))
+}
+
+function tagName(tagId: string): string {
+  return masterStore.tagList.find((tag) => tag.id === tagId)?.name ?? tagId
+}
+
+/**
+ * Retire the selection (FR-24.9 over FR-24.3).
+ *
+ * The confirm states **both** numbers, because a delete is two different acts
+ * and a batch spanning them may not report one of them: a row something
+ * references is hidden and kept, one nothing has ever used is removed for
+ * good. There is deliberately **no undo** — the removed half cannot come back
+ * (nothing was tombstoned to restore), so the honest safety is the sentence
+ * before the act, which is also what M10's own delete card does. The hidden
+ * half is recoverable where it always was, on M23.
+ */
+async function retireSelected() {
+  const items = selectedItems.value
+  if (items.length === 0) return
+  const outlooks = items.map((item) => orchestrator.masterItemDeletionOutlook(item.id))
+  const hidden = outlooks.filter((o) => o.kind === DELETION_RETIRE).length
+  const removed = items.length - hidden
+
+  const ok = await confirmDestructive({
+    header: t('items.bulkRetireTitle', { n: items.length }),
+    message: bulkRetireSentence(hidden, removed),
+    confirmLabel: t('items.bulkRetireConfirm'),
+    testid: 'm9-bulk-retire-confirm',
+  })
+  if (!ok) return
+
+  for (const item of items) orchestrator.deleteMasterItem(item.id)
+  bulkUndo = null
+  endSelecting()
+  await presentToast({ message: t('items.bulkRetired', { n: items.length }) })
+}
+
 function newItem() {
   // FR-24.5: creation is the editor in its minimal mode, not a prompt —
   // a name typed into an alert cannot carry tags or a weight.
@@ -548,6 +744,25 @@ onBeforeUnmount(() => observer?.disconnect())
         <IonRefresherContent />
       </IonRefresher>
 
+      <!-- FR-24.9: while the mode is on, the bar says what it will act on. -->
+      <div v-if="selecting" class="selbar" data-testid="m9-selbar">
+        <button
+          type="button"
+          class="chip"
+          :aria-label="t('items.selectExit')"
+          data-testid="m9-select-exit"
+          @click="endSelecting"
+        >
+          <IonIcon :icon="closeOutline" />
+        </button>
+        <span class="selcount jp-num" data-testid="m9-select-count">
+          {{ t('items.selectedCount', { n: selected.size }) }}
+        </span>
+        <button type="button" class="chip" data-testid="m9-select-all" @click="toggleAll">
+          {{ t('items.selectAll', { n: shownItems.length }) }}
+        </button>
+      </div>
+
       <!-- FR-24.6: the tools stay while the list moves. -->
       <div
         v-if="!isEmpty"
@@ -703,9 +918,22 @@ onBeforeUnmount(() => observer?.disconnect())
               :key="item.id"
               button
               :detail="false"
-              :router-link="itemPath(item.id)"
+              :router-link="selecting ? undefined : itemPath(item.id)"
+              :data-selected="selecting && selected.has(item.id) ? 'true' : undefined"
               data-testid="m9-row"
+              @click="selecting && toggleSelected(item.id)"
             >
+              <!-- FR-24.9: the row stops navigating while the mode is on, so
+                   the same tap that opened an item now picks it. -->
+              <span
+                v-if="selecting"
+                slot="start"
+                class="rowbox"
+                :class="{ on: selected.has(item.id) }"
+                :data-testid="`m9-row-check-${item.name}`"
+              >
+                <IonIcon v-if="selected.has(item.id)" :icon="checkmarkOutline" />
+              </span>
               <!-- FR-28.4: photo → mark → the tag initial. The inventory is
                    where an item is identified, so this ladder never ends in
                    nothing and the column stays aligned. -->
@@ -741,13 +969,51 @@ onBeforeUnmount(() => observer?.disconnect())
               <div v-if="extrasFor(item).length > 0" slot="end" class="row-extras">
                 <span v-for="extra in extrasFor(item)" :key="extra">{{ extra }}</span>
               </div>
-              <IonIcon slot="end" :icon="chevronForwardOutline" class="row-chevron" />
+              <IonIcon
+                v-if="!selecting"
+                slot="end"
+                :icon="chevronForwardOutline"
+                class="row-chevron"
+              />
             </IonItem>
           </IonList>
         </section>
       </template>
 
-      <IonFab vertical="bottom" horizontal="end" slot="fixed">
+      <!-- FR-24.9: what the selection can be acted on with. -->
+      <div
+        v-if="selecting && selected.size > 0"
+        class="bulkbar"
+        slot="fixed"
+        data-testid="m9-bulkbar"
+      >
+        <button type="button" data-testid="m9-bulk-give" @click="bulkSheet = 'give'">
+          <IonIcon :icon="pricetagsOutline" />
+          {{ t('items.bulkGive') }}
+        </button>
+        <button type="button" data-testid="m9-bulk-take" @click="bulkSheet = 'take'">
+          <IonIcon :icon="removeCircleOutline" />
+          {{ t('items.bulkTake') }}
+        </button>
+        <button type="button" class="danger" data-testid="m9-bulk-retire" @click="retireSelected">
+          <IonIcon :icon="trashOutline" />
+          {{ t('items.bulkRetire') }}
+        </button>
+      </div>
+
+      <BulkTagSheet
+        :is-open="bulkSheet !== null"
+        :mode="bulkSheet ?? 'give'"
+        :tags="bulkTags"
+        :counts="bulkCounts"
+        :selected="selected.size"
+        @dismiss="bulkSheet = null"
+        @pick="
+          ({ tagId, primary }) => (bulkSheet === 'take' ? takeTag(tagId) : giveTag(tagId, primary))
+        "
+      />
+
+      <IonFab v-if="!selecting" vertical="bottom" horizontal="end" slot="fixed">
         <IonFabButton :aria-label="t('items.new')" data-testid="m9-fab" @click="newItem">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
@@ -805,6 +1071,80 @@ onBeforeUnmount(() => observer?.disconnect())
 </template>
 
 <style scoped>
+/* FR-24.9: the selection's own bar, above the tools rather than replacing
+   them — narrowing the list is what „Alle N" is worth having, so the search
+   and the tag chips have to stay reachable while the mode is on. */
+.selbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--jp-action) 16%, var(--jp-surface-page));
+  border-bottom: 1px solid var(--ct-surface0);
+}
+
+.selcount {
+  font-weight: var(--jp-weight-semibold);
+}
+
+.rowbox {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-inline-end: 12px;
+  border: 1.5px solid var(--ct-surface2);
+  border-radius: var(--jp-r-xs);
+  color: transparent;
+}
+
+.rowbox.on {
+  background: var(--jp-action);
+  border-color: var(--jp-action);
+  color: var(--ct-crust);
+}
+
+/* Above the tab bar, like the snackbars, and inset so the list's card edges
+   stay visible under it. */
+.bulkbar {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--jp-surface-card);
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r);
+  box-shadow: var(--jp-shadow);
+}
+
+.bulkbar button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-xs);
+  cursor: pointer;
+}
+
+.bulkbar button ion-icon {
+  font-size: var(--jp-icon-md);
+}
+
+.bulkbar button.danger {
+  color: var(--ion-color-danger);
+}
+
 /* FR-24.6: the bar the list scrolls under. `ion-content` scrolls its own
    inner element, so a sticky child sticks to that — no fixed positioning
    and no scroll listener. */

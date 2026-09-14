@@ -23,6 +23,7 @@ import {
   restoreVerdict,
   type RestoreVerdict,
 } from '@/domain/masterRestore'
+import { assignmentOf, primaryPosition } from '@/domain/tags'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
@@ -74,6 +75,48 @@ export function createMasterDataActions(ctx: SyncContext) {
       mutation,
       optimistic: optimisticDelete(mutation),
     })
+  }
+
+  /**
+   * Assign a tag at a position the caller chose (FR-24.9) — how an item is
+   * *refiled* rather than merely tagged: {@link primaryPosition} lands below
+   * every sibling, so the inventory groups the item under the new tag.
+   */
+  function assignTagAt(itemId: string, tagId: string, position: number): string {
+    const { mutation, id } = mutations.assignTag(itemId, tagId, position)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticInsert(mutation),
+    })
+    return id
+  }
+
+  /**
+   * Move one assignment to a position (FR-24.9). Exposed beside
+   * {@link setPrimaryTag} because an *undo* has to put a row back where it
+   * was, and „first" is not where it was.
+   */
+  function moveTag(assignmentId: string, position: number): void {
+    const assignment = masterStore.itemTagList.find((a) => a.id === assignmentId)
+    if (!assignment || assignment.position === position) return
+    const mutation = mutations.moveTag(assignmentId, position)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, { ...assignment }),
+    })
+  }
+
+  /**
+   * Make a tag the item already carries its primary one (FR-24.9) — the
+   * write M10's chip row and M9's bulk action share. A no-op where the item
+   * does not carry the tag at all: the caller's plan says which items those
+   * are, and writing a position for an assignment that does not exist would
+   * invent one.
+   */
+  function setPrimaryTag(itemId: string, tagId: string): void {
+    const assignment = assignmentOf(itemId, tagId, masterStore.itemTagList)
+    if (!assignment) return
+    moveTag(assignment.id, primaryPosition(itemId, masterStore.itemTagList))
   }
 
   function createMasterItem(
@@ -344,7 +387,10 @@ export function createMasterDataActions(ctx: SyncContext) {
   return {
     createTag,
     assignTag,
+    assignTagAt,
     unassignTag,
+    moveTag,
+    setPrimaryTag,
     createMasterItem,
     updateMasterItem,
     masterItemDeletionOutlook,

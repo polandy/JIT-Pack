@@ -1,0 +1,215 @@
+<script setup lang="ts">
+/**
+ * The tag a bulk action acts with (FR-24.9) — M9's selection mode asks this
+ * sheet which tag to give or to take away.
+ *
+ * Two modes, one component, because the difference is *which tags are worth
+ * offering* and nothing else: giving offers the whole vocabulary (and the
+ * chance to create none — a tag that does not exist is M10's business), while
+ * taking offers only the tags the selection actually carries. An action that
+ * cannot change anything is not offered rather than offered and refused.
+ *
+ * **Giving carries the switch that refiles.** Assigning a tag does not move an
+ * item in the grouped list — the primary tag decides that, and it is the one
+ * assigned first. „Als primären Tag setzen" is therefore not a second action
+ * but the difference between *labelling* 49 items and *emptying* a group, and
+ * it is the same write M10's chip menu makes for one item.
+ */
+import { IonIcon } from '@ionic/vue'
+import { searchOutline } from 'ionicons/icons'
+import { computed, ref, watch } from 'vue'
+
+import SheetModal from '@/components/global/SheetModal.vue'
+import SheetHead from '@/components/global/SheetHead.vue'
+import { searchMatches } from '@/domain/search'
+import { t } from '@/i18n'
+import type { Tag } from '@/types/domain'
+
+/** What the sheet is being opened for. */
+export type BulkTagMode = 'give' | 'take'
+
+const props = defineProps<{
+  isOpen: boolean
+  mode: BulkTagMode
+  /** The tags to offer — already narrowed by the caller for `take`. */
+  tags: Tag[]
+  /** How many of the *selected* items each tag holds, by tag id. */
+  counts: Map<string, number>
+  /** How many items the action would touch. */
+  selected: number
+}>()
+
+const emit = defineEmits<{
+  dismiss: []
+  pick: [value: { tagId: string; primary: boolean }]
+}>()
+
+const query = ref('')
+const primary = ref(true)
+
+// Both reset on closing: the next opening is a new question, and a sheet that
+// reopens pre-narrowed hides tags the user never excluded.
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open) return
+    query.value = ''
+    primary.value = true
+  },
+)
+
+const matches = computed(() => props.tags.filter((tag) => searchMatches(tag.name, query.value)))
+
+const title = computed(() =>
+  t(props.mode === 'give' ? 'items.bulkGiveTitle' : 'items.bulkTakeTitle'),
+)
+</script>
+
+<template>
+  <SheetModal :is-open="isOpen" testid="m9-bulk-tag-sheet" @dismiss="emit('dismiss')">
+    <section class="sheet-body">
+      <SheetHead
+        :title="title"
+        :meta="t('items.bulkSelected', { n: selected })"
+        title-testid="m9-bulk-tag-title"
+        close-testid="m9-bulk-tag-close"
+        @close="emit('dismiss')"
+      />
+
+      <div class="search">
+        <IonIcon :icon="searchOutline" />
+        <input
+          v-model="query"
+          :placeholder="t('items.filterSearch')"
+          data-testid="m9-bulk-tag-search"
+          autocomplete="off"
+        />
+      </div>
+
+      <!-- FR-24.9: the difference between labelling and refiling. -->
+      <label v-if="mode === 'give'" class="primary-switch">
+        <input v-model="primary" type="checkbox" data-testid="m9-bulk-primary" />
+        <span>
+          <strong>{{ t('items.bulkPrimary') }}</strong>
+          <em>{{ t('items.bulkPrimaryHint') }}</em>
+        </span>
+      </label>
+
+      <ul class="tags">
+        <li v-for="tag in matches" :key="tag.id">
+          <button
+            type="button"
+            :data-testid="`m9-bulk-tag-${tag.name}`"
+            @click="emit('pick', { tagId: tag.id, primary: mode === 'give' && primary })"
+          >
+            <span class="name">{{ tag.name }}</span>
+            <span v-if="counts.get(tag.id)" class="count jp-num">
+              {{ t('items.bulkAlreadyOn', { n: counts.get(tag.id) ?? 0 }) }}
+            </span>
+          </button>
+        </li>
+
+        <li v-if="matches.length === 0" class="none" data-testid="m9-bulk-tag-none">
+          {{ mode === 'give' ? t('items.filterNoTag') : t('items.bulkNoSharedTag') }}
+        </li>
+      </ul>
+    </section>
+  </SheetModal>
+</template>
+
+<style scoped>
+.sheet-body {
+  padding: 4px 18px 22px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--jp-surface-sunken);
+  border: 1px solid var(--ct-surface0);
+  border-radius: var(--jp-r-sm);
+  padding: 8px 11px;
+  margin: 4px 0 10px;
+  color: var(--ct-overlay2);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  color: var(--ct-text);
+  font-size: var(--jp-text-md);
+}
+
+.primary-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--jp-surface-sunken);
+  border-radius: var(--jp-r-md);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.primary-switch span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.primary-switch strong {
+  font-size: var(--jp-text-base);
+  font-weight: var(--jp-weight-semibold);
+  color: var(--ct-text);
+}
+
+.primary-switch em {
+  font-size: var(--jp-text-sm);
+  font-style: normal;
+  color: var(--ct-overlay2);
+}
+
+.tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.tags button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--ct-surface0);
+  padding: 10px 2px;
+  color: var(--ct-text);
+  font-size: var(--jp-text-md);
+  text-align: left;
+  cursor: pointer;
+}
+
+.name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.count {
+  margin-left: auto;
+  color: var(--ct-overlay1);
+  font-size: var(--jp-text-sm);
+  white-space: nowrap;
+}
+
+.none {
+  padding: 14px 2px;
+  color: var(--ct-overlay2);
+  font-size: var(--jp-text-sm);
+}
+</style>

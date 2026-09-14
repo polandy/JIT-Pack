@@ -1579,6 +1579,14 @@ These patterns apply to every screen and are specified once.
 * **The filter reaches wider than the grouping:** an item matches a chosen tag when that tag is anywhere in its set,
   while the grouping stays on the primary one. Choosing *Sommer* therefore surfaces the swimsuit filed under
   *Kleidung* — the reach a single category could not give (FR-24.2).
+* **The selection mode (2026-09-14, FR-24.9):** the app bar's third glyph arms it. The rows stop navigating, carry a
+  checkbox and lose their chevron; a bar above the tools says how many are picked and offers *„Alle N"* over the
+  **filtered** list; a bar above the tab bar carries *Tag geben*, *Tag nehmen* and *Stilllegen*. Giving and taking
+  open the same sheet — the whole vocabulary for giving, only the tags the selection carries for taking — and giving
+  offers *„Als primären Tag setzen"*, which is what moves the rows into that group rather than merely labelling them.
+  The two tag actions raise a snackbar with one **Rückgängig** for the batch; *Stilllegen* raises a confirm that names
+  both halves of FR-24.3's two acts and has **no** undo, because the removed half cannot come back. The mode ends with
+  the batch.
 * **The group heading is the jump (FR-24.8):** it opens the list of groups with their counts and **scrolls** to the
   one chosen, leaving the list whole — filtering takes rows away, jumping does not. It is offered only where it is a
   question: in the grouped order, outside a search, with more than one group. The scroll waits for the sheet to have
@@ -1635,6 +1643,10 @@ These patterns apply to every screen and are specified once.
   newest first, each with its trip and — where an account can be named — its author; read-only, because the thread lives
   on the trip row. **Both sections are absent rather than empty** when there is nothing to show, which is FR-24.5's
   stance and what makes their absence in creation mode meaningful.
+* **An assigned chip has two targets (2026-09-14, FR-24.9):** its **name** makes that tag the item's primary one —
+  where the inventory files it — and the **✕** takes the tag off. Until then the chip had one action and it was the
+  destructive one, so the filing was decided by the accident of which tag was assigned first. The primary chip wears
+  its marker and its name stops being a control, an act it has already performed being no offer.
 * **The mark sits beside the name (Addendum 3.28, G-15 — built 2026-08-22):** a tappable slot left of the name field
   opens the **mark picker** — a suggestion band scored from the name as it is typed (FR-28.3), a keyword search field,
   the facet row, and the grid (FR-28.2). The first suggestion is offered, never pre-filled; "Marke entfernen" is its own

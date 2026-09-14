@@ -55,6 +55,7 @@ function fakeTripReads(asked: string[] = []): TripReads {
 function fakeMasterReads(templates: Template[] = []): MasterReads {
   return {
     tagList: [],
+    itemTagList: [],
     itemList: [],
     categorisedItemList: [],
     activeItemList: [],

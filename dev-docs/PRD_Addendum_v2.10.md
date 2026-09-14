@@ -1544,6 +1544,31 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   wraps the sticky bar to three rows at 390 px; „Stillgelegt" is **not** offered as a filter, because FR-24.3 settled
   that a retired row leaves this list rather than becoming a mode of it (M23 owns them); and the untagged bucket is
   **exclusive** in the sheet, because „alle" plus a real tag is empty by construction.
+* **FR-24.9 (Acting on Several Items at Once — added 2026-09-14, implemented the same day):** M9 has a **selection
+  mode**, armed from the app bar: the rows stop navigating and carry a checkbox, *„Alle N"* takes **what is on
+  screen** — the filter and the search included, which is what makes it worth having — and three actions act on the
+  set: **Tag geben**, **Tag nehmen**, **Stilllegen**. *Why:* „Diverses" holds **49 of 184** items on the family
+  instance, and refiling them one at a time costs 49 round trips through M10 (open, search the tag, assign, remove the
+  old one, back). **Giving carries the switch that refiles**, and that is the point rather than a convenience:
+  assigning a tag does not move a row in the grouped list — the *primary* tag decides that, and it is the one assigned
+  first — so „Als primären Tag setzen" is the difference between labelling 49 items and emptying a group. The write is
+  a position below every sibling (`primaryPosition`), one row each, never a reindex of the others. **A batch reports
+  what it actually wrote:** an item already carrying the tag as asked is not rewritten, so pressing twice writes
+  nothing twice, and a selection that is already as asked is answered with a sentence rather than a silent no-op.
+  **Undo, and where it stops.** The two tag actions arm one undo for the whole batch — the assignments it created are
+  removed, the ones it moved go back to the position they held, the ones it deleted are written again where they were.
+  **Stilllegen has none, by decision:** FR-24.3 makes a delete two different acts, and the *removed* half cannot come
+  back (nothing was tombstoned to restore), so the honest safety is the sentence before the act — which is also what
+  M10's delete card does. That sentence names **both** halves („N werden versteckt …, M werden endgültig entfernt"),
+  in three forms so that a batch of one kind never reads „0 werden versteckt"; the hidden half stays recoverable where
+  it always was, on M23. **The same write reaches M10 (the audit's finding of 2026-09-13):** an assigned chip had one
+  action and it was the destructive one, so where an item was filed was decided by the accident of assignment order
+  and could only be changed by removing every tag. The chip now has two targets — the name files the item under that
+  tag, the ✕ still takes it off — and the primary one says so and stops offering an act it has performed.
+  *Considered and rejected:* a fourth bulk action „Primär setzen" beside „Tag geben" (it is the same write with the
+  switch on, and two controls for one write is how a second one drifts); **entering the mode by long-press**, which
+  M4's rows use — the inventory row is a router link, and a hold that must not also navigate is a gesture fight worth
+  having only once somebody misses the entrance in the app bar.
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —

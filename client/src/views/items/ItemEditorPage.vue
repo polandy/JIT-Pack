@@ -38,6 +38,7 @@ import {
   cameraOutline,
   checkmarkOutline,
   chevronDownOutline,
+  bookmarkOutline,
   closeOutline,
   happyOutline,
   trashOutline,
@@ -163,6 +164,22 @@ function unassign(tagId: string) {
     (a) => a.item_id === props.itemId && a.tag_id === tagId,
   )
   if (assignment) orchestrator.unassignTag(assignment.id)
+}
+
+/**
+ * Make an assigned tag the primary one (FR-24.9) — where the item is filed
+ * in the inventory, which until now was decided by the accident of which tag
+ * was assigned first and could only be changed by removing them all.
+ *
+ * While *creating*, the draft's order is the assignment order, so the same
+ * act is a move inside the list rather than a write.
+ */
+function makePrimary(tagId: string) {
+  if (isCreating.value) {
+    draftTagIds.value = [tagId, ...draftTagIds.value.filter((id) => id !== tagId)]
+    return
+  }
+  if (props.itemId) orchestrator.setPrimaryTag(props.itemId, tagId)
 }
 
 /** Filter-or-create: an unmatched name becomes a tag and is assigned. */
@@ -588,17 +605,36 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
         <div class="chips">
           <!-- Assigned first and always visible: the filter must never hide
                what the item already carries. -->
-          <button
-            v-for="tag in assignedTags"
+          <!-- Two targets, because the chip had one and it was the
+               destructive one (FR-24.9): the name files the item under this
+               tag, the ✕ takes it off. -->
+          <span
+            v-for="(tag, index) in assignedTags"
             :key="tag.id"
-            type="button"
             class="chip assigned"
-            :data-testid="`m10-tag-assigned-${tag.name}`"
-            @click="unassign(tag.id)"
+            :class="{ primary: index === 0 }"
           >
-            {{ tag.name }}
-            <IonIcon :icon="closeOutline" />
-          </button>
+            <button
+              type="button"
+              class="chip-name"
+              :disabled="index === 0"
+              :aria-label="t('items.editor.makePrimary', { tag: tag.name })"
+              :data-testid="`m10-tag-primary-${tag.name}`"
+              @click="makePrimary(tag.id)"
+            >
+              <IonIcon v-if="index === 0" :icon="bookmarkOutline" class="chip-flag" />
+              {{ tag.name }}
+            </button>
+            <button
+              type="button"
+              class="chip-drop"
+              :aria-label="t('items.editor.unassign', { tag: tag.name })"
+              :data-testid="`m10-tag-assigned-${tag.name}`"
+              @click="unassign(tag.id)"
+            >
+              <IonIcon :icon="closeOutline" />
+            </button>
+          </span>
 
           <button
             v-for="tag in tagMatches"
@@ -1136,6 +1172,38 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 }
 
 .chip.assigned {
+  padding: 0;
+  gap: 0;
+}
+
+.chip.assigned .chip-name,
+.chip.assigned .chip-drop {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 5px 4px 5px 10px;
+}
+
+.chip.assigned .chip-drop {
+  padding: 5px 9px 5px 4px;
+}
+
+/* The one that decides where the item is filed says so, and stops offering
+   an act it has already performed. */
+.chip.assigned .chip-name:disabled {
+  cursor: default;
+}
+
+.chip-flag {
+  font-size: var(--jp-icon-xs);
+}
+
+.chip.assigned.legacy {
   background: var(--jp-action);
   border-color: var(--jp-action);
   color: var(--ion-color-primary-contrast);

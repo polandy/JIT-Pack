@@ -250,6 +250,65 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(list.getByTestId('m9-tools')).toBeVisible()
   })
 
+  /**
+   * E2E-M9-16 (FR-24.9): the way out of a „Diverses" with 49 rows in it. The
+   * measurement behind the feature: without a bulk action, refiling those 49
+   * costs 49 round trips through M10 — open, search the tag, assign, remove
+   * the old one, back.
+   */
+  test('E2E-M9-16: several rows are refiled in one act, and the act can be taken back', async ({
+    page,
+  }) => {
+    test.slow()
+    for (const name of ['Sonnencreme', 'Sonnenbrille', 'Taschenmesser']) {
+      await createItem(page, name, { tags: ['Diverses'] })
+      await backToInventory(page)
+    }
+    // The tag to refile them under has to exist: the sheet offers the
+    // vocabulary and does not invent it — creating a tag stays M10's.
+    await createItem(page, 'Sonnenhut', { tags: ['Sonnenschutz'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    await expect(list.getByTestId('m9-row')).toHaveCount(4)
+
+    // Narrow to the junk drawer, then take what is on screen — which is the
+    // point of "Alle N": it means the filtered list, not the inventory.
+    await list.getByTestId('m9-tag-chip-Diverses').click()
+    await expect(list.getByTestId('m9-row')).toHaveCount(3)
+    await page.getByTestId('m9-select').click()
+    await list.getByTestId('m9-select-all').click()
+    await expect(list.getByTestId('m9-select-count')).toContainText('3')
+
+    await list.getByTestId('m9-bulk-give').click()
+    await expect(page.getByTestId('m9-bulk-tag-sheet')).toHaveAttribute('data-presented', 'true')
+    // The switch is what refiles rather than merely labels; it is on by
+    // default, and this is the case that says so.
+    await expect(page.getByTestId('m9-bulk-primary')).toBeChecked()
+    await page.getByTestId('m9-bulk-tag-search').fill('Sonnen')
+    await page.getByTestId('m9-bulk-tag-Sonnenschutz').click()
+
+    // Refiling keeps the old tag — the rows still answer the Diverses filter,
+    // which is the difference between *moving* an item and *retagging* it.
+    await expect(list.getByTestId('m9-row')).toHaveCount(3)
+    // ...and the mode ended with the batch.
+    await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+
+    // With the filter dropped, all four rows are under one heading: the three
+    // are filed under Sonnenschutz now, so „Diverses" heads nothing and is
+    // not rendered.
+    await list.getByTestId('m9-tag-chip-Diverses').click()
+    await expect(list.getByTestId('m9-row')).toHaveCount(4)
+    expect(await groupHeadings(list)).toEqual(['sonnenschutz'])
+
+    // The snackbar's undo puts all three back where they were.
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect
+      .poll(async () => (await groupHeadings(list)).sort())
+      .toEqual(['diverses', 'sonnenschutz'])
+    await expect(list.getByTestId('m9-row')).toHaveCount(4)
+  })
+
   /*
    * E2E-M9-08 measured the gap between the tag axis and the first group
    * heading (UX-4). The axis is gone with FR-24.8, and the geometry that
@@ -419,6 +478,45 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
  * exactly once before this case, as G9-13's *absence* assertion, where it
  * stands in for "not the inventory screen".
  */
+test.describe('M10 — where an item is filed (FR-24.9)', () => {
+  test.beforeEach(async ({ seedMode, page }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto(PATH.items)
+  })
+
+  /**
+   * E2E-M10-21 (FR-24.9): the chip row had one action and it was the
+   * destructive one — where an item was filed was decided by the accident of
+   * which tag was assigned first, and changing it meant removing them all.
+   */
+  test('E2E-M10-21: a chip files the item under its tag, and the ✕ still removes it', async ({
+    page,
+  }) => {
+    await createItem(page, 'Badehose', { tags: ['Kleidung', 'Sommer'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    expect(await groupHeadings(list)).toEqual(['kleidung'])
+
+    await list.getByTestId('m9-row').click()
+    const editor = visiblePage(page)
+    // Tapping the *name* is the new target; the ✕ beside it is the old one.
+    await editor.getByTestId('m10-tag-primary-Sommer').click()
+    await expect(editor.getByTestId('m10-tag-summary')).toContainText('Sommer')
+
+    await page.getByTestId('header-back').click()
+    // The row moved: the inventory files it under the tag that is now first.
+    expect(await groupHeadings(visiblePage(page))).toEqual(['sommer'])
+
+    // The primary chip stops offering the act it has already performed,
+    // and the ✕ is unchanged — E2E-M10-08's own target.
+    await visiblePage(page).getByTestId('m9-row').click()
+    await expect(visiblePage(page).getByTestId('m10-tag-primary-Sommer')).toBeDisabled()
+    await visiblePage(page).getByTestId('m10-tag-assigned-Sommer').click()
+    await expect(visiblePage(page).getByTestId('m10-tag-assigned-Sommer')).toHaveCount(0)
+  })
+})
+
 test.describe('M9 inventory — the empty state (G-7)', () => {
   test('E2E-M9-04: an empty inventory offers the spreadsheet import', async ({
     seedMode,

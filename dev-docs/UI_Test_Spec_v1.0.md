@@ -1413,6 +1413,15 @@ test body under it separates a wrong number from a missing test.**
   scroll host is locked, and a jump issued in the same breath is clamped (measured at 120 px of a 9 975 px jump on the
   family instance); `ItemInventoryPage.spec.ts` asserts that nothing scrolls until the sheet reports it has dismissed,
   and that a dismissal without a choice scrolls nothing at all.
+* **E2E-M9-16** `all` (FR-24.9) — **implemented 2026-09-14** (`e2e/inventory.spec.ts`): three rows of a tag group are
+  refiled in **one act** — narrow, „Alle 3", give the tag with „als primär", and the group they came from heads
+  nothing any more. Two clauses carry the semantics that are easy to get wrong: the old tag is **kept** (the rows
+  still answer its filter — refiling is not retagging), and the snackbar's **Rückgängig** puts all three back.
+  **Proven red** against a build whose switch appended instead of refiling.
+* **E2E-M10-21** `all` (FR-24.9) — **implemented 2026-09-14** (`e2e/inventory.spec.ts`): M10's assigned chip has two
+  targets. Tapping the **name** makes that tag primary, and the assertion crosses screens — the inventory files the
+  row under the new heading, which is the only place the change is observable. The **✕** still removes the tag
+  (E2E-M10-08's target, unchanged), and the primary chip's name is disabled, an act already performed being no offer.
 * **E2E-M9-09** `single` (FR-21.9) — **implemented 2026-08-30** (`e2e/single/instance-currency.spec.ts`): an item price
   is rendered with the currency the instance named. `single` rather than `all`, and that is the feature rather than a
   limitation of the case: the code comes from the server over `GET /api/v1/instance/config`, and Local Mode has none, so
