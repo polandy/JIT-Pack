@@ -143,6 +143,14 @@ const jumpOpen = ref(false)
 const searching = computed(() => isSearchQuery(search.value))
 
 /**
+ * Declared above `setHeaderActions` on purpose: the getter it registers reads
+ * this, and `setHeaderActions` evaluates it while the page is still setting
+ * up — a `const` further down is in its temporal dead zone at that moment,
+ * and the whole screen fails to render rather than misbehaving visibly.
+ */
+const isEmpty = computed(() => masterStore.activeItemList.length === 0)
+
+/**
  * FR-24.9: the selection, by item id. Empty *and* `selecting` is a real
  * state — the mode is armed and nothing is picked yet — so the mode is its
  * own flag rather than „the set is not empty".
@@ -360,7 +368,6 @@ const shownCount = computed(() =>
     : groups.value.reduce((sum, [, items]) => sum + items.length, 0),
 )
 
-const isEmpty = computed(() => masterStore.activeItemList.length === 0)
 const noResults = computed(() => !isEmpty.value && shownCount.value === 0)
 
 /**
