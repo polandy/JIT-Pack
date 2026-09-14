@@ -515,6 +515,34 @@ test.describe('M10 — where an item is filed (FR-24.9)', () => {
     await visiblePage(page).getByTestId('m10-tag-assigned-Sommer').click()
     await expect(visiblePage(page).getByTestId('m10-tag-assigned-Sommer')).toHaveCount(0)
   })
+
+  /**
+   * E2E-M10-22 (FR-24.9): the same control while *creating*, where there is
+   * no row to move yet — the draft's order is what gets written, so the act
+   * is a reordering of the draft and only the saved item says whether it
+   * worked.
+   */
+  test('E2E-M10-22: the chip files a brand-new item too, before it exists', async ({ page }) => {
+    const list = visiblePage(page)
+    await list.getByTestId('m9-fab').click()
+    await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+    await fillIonic(visiblePage(page).getByTestId('m10-name'), 'Sonnenhut')
+
+    for (const tag of ['Kleidung', 'Sommer']) {
+      await fillIonic(visiblePage(page).getByTestId('m10-tag-search'), tag)
+      await visiblePage(page).getByTestId('m10-tag-create').click()
+      await expect(visiblePage(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
+    }
+
+    // Kleidung was assigned first and would file it; the second chip's name
+    // moves it to the front of the draft.
+    await visiblePage(page).getByTestId('m10-tag-primary-Sommer').click()
+    await expect(visiblePage(page).getByTestId('m10-tag-summary')).toContainText('Sommer')
+
+    await commitNewItem(page, 'Sonnenhut')
+    await backToInventory(page)
+    expect(await groupHeadings(visiblePage(page))).toEqual(['sommer'])
+  })
 })
 
 test.describe('M9 inventory — the empty state (G-7)', () => {

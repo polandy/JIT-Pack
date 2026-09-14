@@ -1422,6 +1422,10 @@ test body under it separates a wrong number from a missing test.**
   targets. Tapping the **name** makes that tag primary, and the assertion crosses screens — the inventory files the
   row under the new heading, which is the only place the change is observable. The **✕** still removes the tag
   (E2E-M10-08's target, unchanged), and the primary chip's name is disabled, an act already performed being no offer.
+* **E2E-M10-22** `all` (FR-24.9) — **implemented 2026-09-14** (`e2e/inventory.spec.ts`): the same chip while
+  *creating*, where there is no assignment row to move — the draft's order is what gets written, so only the saved
+  item says whether the act worked, and the case reads it off M9's heading. **Proven red** against a creating branch
+  that ignores the tap.
 * **E2E-M9-09** `single` (FR-21.9) — **implemented 2026-08-30** (`e2e/single/instance-currency.spec.ts`): an item price
   is rendered with the currency the instance named. `single` rather than `all`, and that is the feature rather than a
   limitation of the case: the code comes from the server over `GET /api/v1/instance/config`, and Local Mode has none, so
