@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -260,3 +261,62 @@ func TestInstanceUpdate_CurrentWhenUpstreamNamesNoComparableTag(t *testing.T) {
 // spelled out rather than exported: the test asserts the behaviour the
 // operator was promised — one request a day — not a constant's identity.
 const updateCheckDay = 24 * time.Hour
+
+// A check belongs to the instance, not to the browser that happened to
+// trigger it: the answer is cached for every later caller. A device that
+// navigates away mid-flight would otherwise cancel the attempt, record a
+// failure, and leave the instance reporting `unreachable` for a day.
+func TestInstanceUpdate_SurvivesTheCallerThatTriggeredIt(t *testing.T) {
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	var calls atomic.Int64
+	feed := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		close(entered)
+		// Held until the test has cancelled the request that started it,
+		// so the cancellation lands while the upstream call is in flight —
+		// a moment, driven, rather than a race waited on.
+		<-release
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{
+			"tag_name": "v0.10.0",
+			"html_url": "https://github.com/polandy/JIT-Pack/releases/tag/v0.10.0",
+		}); err != nil {
+			t.Errorf("encode release: %v", err)
+		}
+	}))
+	t.Cleanup(feed.Close)
+
+	srv := updateServer(t, api.Options{
+		Version: thisBuild, UpdateCheck: true, UpdateFeedURL: feed.URL,
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+api.RouteInstanceUpdate, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		//nolint:bodyclose // the response never arrives: this call is cancelled on purpose.
+		if _, err := http.DefaultClient.Do(req); err == nil {
+			t.Error("the cancelled request answered — the case drives the wrong moment")
+		}
+	}()
+
+	<-entered
+	cancel()
+	<-done
+	close(release)
+
+	// The second caller is the positive signal: it sees the answer the
+	// first one paid for, and the feed was asked exactly once.
+	got := instanceUpdate(t, srv)
+	if got.State != api.UpdateStateAvailable {
+		t.Errorf("state = %q, want %q — the abandoned attempt still landed", got.State, api.UpdateStateAvailable)
+	}
+	if n := calls.Load(); n != 1 {
+		t.Errorf("upstream calls = %d, want 1", n)
+	}
+}

@@ -95,8 +95,7 @@ async function freeze(page: Page) {
     // renders exactly what the recorded baseline holds, so the line keeps
     // its own rendering in the image and loses only the machine.
     if (navigator.storage) {
-      navigator.storage.estimate = () =>
-        Promise.resolve({ usage: 104_858, quota: 6_442_555_802 })
+      navigator.storage.estimate = () => Promise.resolve({ usage: 104_858, quota: 6_442_555_802 })
     }
   })
 }

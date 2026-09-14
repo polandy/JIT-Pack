@@ -135,8 +135,14 @@ func (c *updateChecker) state(ctx context.Context) InstanceUpdateResponse {
 // fetch asks upstream once. Every failure is the same failure to the
 // caller — what the instance can say is that it did not get an answer,
 // and which kind it did not get changes nothing it renders.
+//
+// The request that triggered this one does not own it: the answer is
+// cached for every later caller, so a browser closing its tab mid-flight
+// would otherwise cancel the attempt, record a failure, and leave the
+// instance reporting `unreachable` until the interval elapses. Hence
+// WithoutCancel and this function's own deadline.
 func (c *updateChecker) fetch(ctx context.Context) (githubRelease, error) {
-	ctx, cancel := context.WithTimeout(ctx, updateCheckTimeout)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), updateCheckTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.feedURL, nil)
