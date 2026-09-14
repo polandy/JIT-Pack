@@ -162,6 +162,43 @@ describe('createPackingActions without an orchestrator', () => {
     expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({ packer_user_id: null })
   })
 
+  it('setLatePackerForRows writes the flag on every row it is handed (FR-25.26)', () => {
+    const rows = [seedTripItem('ti-1'), seedTripItem('ti-2'), seedTripItem('ti-3')]
+
+    createPackingActions(ctx).setLatePackerForRows(TRIP_ID, rows, true)
+
+    // One write per instance, not one write that a merge would have to
+    // spread: field-level LWW (NFR-4.2a) merges the three exactly as it
+    // merges three separate row-level edits, which is the point of the
+    // fan-out rather than a new shape.
+    expect(queued).toHaveLength(3)
+    expect(queued.map((write) => write.muts[0]!.mutation.id)).toEqual(['ti-1', 'ti-2', 'ti-3'])
+    for (const write of queued) {
+      expect(write.muts[0]!.mutation.fields).toMatchObject({ late_packer: 1 })
+    }
+  })
+
+  it('setPackerForRows hands every row to the same person, and takes them all back (FR-25.26)', () => {
+    const rows = [seedTripItem('ti-1'), seedTripItem('ti-2')]
+    const actions = createPackingActions(ctx)
+
+    actions.setPackerForRows(TRIP_ID, rows, 'user-2')
+    actions.setPackerForRows(TRIP_ID, rows, null)
+
+    expect(queued.map((write) => write.muts[0]!.mutation.fields)).toMatchObject([
+      { packer_user_id: 'user-2' },
+      { packer_user_id: 'user-2' },
+      { packer_user_id: null },
+      { packer_user_id: null },
+    ])
+  })
+
+  it('writes nothing at all when the fan-out was handed no rows', () => {
+    createPackingActions(ctx).setLatePackerForRows(TRIP_ID, [], true)
+
+    expect(queued).toHaveLength(0)
+  })
+
   it('setReviewFlag writes one flag and preserves the packing record it judges (FR-9.1)', () => {
     const item = seedTripItem('ti-1', { packed_count: 3, state: 'packed' })
 

@@ -116,6 +116,17 @@ export interface PackingCluster {
   faces: ClusterFace[]
   /** Visible instances only. */
   children: PackingRow[]
+  /**
+   * Every instance the head answers for, in the same roster order as
+   * {@link faces} — including the ones FR-25.2 has hidden as done, and
+   * excluding the ones a facet or the search has filtered out.
+   *
+   * It is the set FR-25.26's „für alle" writes, and it is deliberately the
+   * same set the head *counts*: a head that says „4 offen" and writes three,
+   * or writes a fifth instance the filter is hiding, is lying in one of the
+   * two directions.
+   */
+  instanceIds: string[]
   /** The mode glyph sits once on the cluster header, not on each child (FR-25.4a). */
   mode: ItemMode
   latePacker: boolean
@@ -481,6 +492,12 @@ export function buildPackingView(input: PackingViewInput): PackingView {
 
   const groups = new Map<string, PackingGroup>()
   const clusters = new Map<string, PackingCluster>()
+  /**
+   * The instances behind each cluster, kept beside it rather than on it while
+   * the view is being built: they are ordered by the same roster rule as the
+   * faces, and sorting them means holding the traveler the id came from.
+   */
+  const clusterInstances = new Map<PackingCluster, { id: string; traveler: Traveler | null }[]>()
 
   function rowFor(item: TripItem, standalone: boolean): PackingRow {
     const traveler = item.assigned_traveler_id
@@ -530,12 +547,14 @@ export function buildPackingView(input: PackingViewInput): PackingView {
         openCount: 0,
         collapsed: !opened.has(scopedKey),
         faces: [],
+        instanceIds: [],
         children: [],
         mode: item.mode,
         latePacker: false,
         sourceItemId: item.source_item_id ?? null,
       }
       clusters.set(scopedKey, cluster)
+      clusterInstances.set(cluster, [])
       group.entries.push(cluster)
     }
     cluster.children.push(rowFor(item, false))
@@ -557,18 +576,20 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     const units = unitsOf(item)
     cluster.totalCount += units.total
     cluster.doneCount += units.done
-    cluster.faces.push({
-      traveler: item.assigned_traveler_id
-        ? (travelerById.get(item.assigned_traveler_id) ?? null)
-        : null,
-      done: done(item),
-    })
+    const traveler = item.assigned_traveler_id
+      ? (travelerById.get(item.assigned_traveler_id) ?? null)
+      : null
+    cluster.faces.push({ traveler, done: done(item) })
+    clusterInstances.get(cluster)?.push({ id: item.id, traveler })
   }
 
   for (const cluster of clusters.values()) {
     cluster.openCount = cluster.totalCount - cluster.doneCount
     cluster.faces.sort(byTravelerOrder)
     cluster.children.sort(byTravelerOrder)
+    cluster.instanceIds = (clusterInstances.get(cluster) ?? [])
+      .sort(byTravelerOrder)
+      .map((instance) => instance.id)
   }
 
   /*

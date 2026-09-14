@@ -2554,6 +2554,60 @@ locked.
   unreadable. The follow-up that removes the tap again is the avatar-per-instance variant (B on the sheet), where a
   face on the shut head is itself the pack control; it is deliberately a second step, because it changes what a face
   *is* and should be decided against a built fold rather than against a drawing.
+* **FR-25.24 (A row's planned amount is changed where the row is — added 2026-09-12, written up 2026-09-14):** the
+  *planned* quantity of a packing row is editable **from M4**, on the row's own count, and from M5's detail block for
+  the other posture. Correcting an amount is something a person does to five rows in a row while looking at the list,
+  and a sheet per row cost the list five times over. The row menu carries it too (*„Menge ändern"*), because a row of
+  one renders a checkbox and has no number to tap. **A skipped row is offered none of it:** the editor's smallest
+  amount is 1, so setting one there would be an unskip that leaves the FR-20.2 companions behind — *„Doch einpacken"*
+  is the entry that does that correctly. *This bullet is a backfill:* the feature shipped with the client referring to
+  FR-25.24 throughout while the Addendum never carried the number.
+* **FR-25.25 (Assignment and late-packer are set from the row — added 2026-09-14, owner request):** the two decisions a
+  packing row carries about *who* and *when* — FR-25.19's assignment (`packer_user_id`) and FR-5.1's late-packer flag
+  — were reachable only through M5: open the row, expand *Details*, scroll, set, close. Both are decisions made while
+  reading the list, often on several rows in one pass, which is the same argument FR-25.24 settled for the amount.
+
+  **Where each one sits, and only there.** The assignment is the **row's edge avatar** (FR-25.19), which already names
+  the responsible person: tapping it opens a picker of the trip's other members plus *niemand*. A row nobody has shows
+  an **empty seat** in that same place rather than nothing at all — it is the row that most needs the control and the
+  one with nothing to tap. The late-packer flag is an entry in the **row's press-and-hold menu**, last of the row's
+  own actions, because it says something about *when* rather than about now. **One door each:** the flag gets no
+  second target on the row and the assignment no second entry in the menu — two ways to make one change are two things
+  that drift (FR-21.24). M5 keeps both controls: it is the surface that shows everything about one row.
+
+  **What the control is not offered on.** The seat is absent where there is nobody to assign to — Local and
+  Single-User Mode have no second account (G-8) — while somebody else holds the row (G-3), in FR-9.3's closing pass,
+  and once the avatar has become the **packing record**: who packed it is not a choice (FR-25.19), so the row that
+  shows it offers nothing to pick. The late-packer entry is absent on a skipped row, where nothing is being packed.
+
+  **A consequence worth naming:** assigning a row to somebody else makes FR-25.20 hide it from your own list. That is
+  the same thing M5's control has always done; from the row it is more visible, because the row you just touched
+  leaves. The FR-25.20 reveal bar names the person, which is what keeps it from reading as a row that vanished.
+* **FR-25.26 (A per-person cluster's head acts on every instance at once — added 2026-09-14, owner request):** the
+  driving case is the toothbrush: four travelers, four instances, and one true statement about all of them — everybody
+  packs it on the morning the trip leaves. Said per instance it cost four passes through M5 for one boolean. The
+  **cluster head** (FR-25.1) carries the same press-and-hold menu a row does — the short tap stays FR-25.23's fold —
+  and offers exactly two things, each **for every instance under it**: the late-packer flag and *„Alle zuweisen an …"*.
+
+  **No new structure.** A fan-out writes each instance's own field, exactly as the row-level control does, so
+  field-level LWW (NFR-4.2a) merges the result with no rule of its own and an instance set differently afterwards
+  **stays** different. The head is not a row and owns no state; nothing is added to the schema, the sync envelope or
+  the merge.
+
+  **The set it writes is the set it counts.** A shut head answers for the instances FR-25.2 has hidden as done and for
+  the ones the facets let through — so those, and only those, are what „für alle" reaches. A head that said *„4 offen"*
+  and wrote three, or that reached a fifth instance the filter is hiding, would be lying in one of the two directions.
+
+  **A held instance is skipped, not obeyed.** Where somebody else is packing one of the instances (G-3), the fan-out
+  writes the rest and **says so**: *„3 von 4 geändert · Sia packt gerade"*. Refusing the whole action would give the
+  lock teeth it deliberately does not have — it is advisory by owner decision (2026-08-30) — and writing the held row
+  anyway would change it under the hands of the person holding it. Only when **every** instance is held does the head
+  offer no menu at all, which is the answer a fully locked row already gives. The head offers no *takeover*: breaking
+  a claim is a decision about one row, named and confirmed (FR-5.7).
+
+  **The flag is read over every instance, the write only over the writable ones.** The head paints its ⏰ when any
+  instance carries the flag (FR-25.23), so the menu offers *„aus"* only when all of them do — including any a lock is
+  keeping it from writing. Otherwise the head would offer to switch on what it is already showing as on.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.

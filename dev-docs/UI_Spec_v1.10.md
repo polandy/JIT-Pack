@@ -1087,6 +1087,21 @@ These patterns apply to every screen and are specified once.
       renders as an item row with the person folded into its label (`Wanderstöcke · Andy`); it drew the face beside
       the mark slot and started its name 32 px right of every sibling. Reported off a render by the owner; both tests
       that claimed the rule had only ever been given rows without a traveler.
+    * **The edge avatar is a control (added 2026-09-14, FR-25.25).** Tapping it opens the assignment picker — the
+      trip's other members and *niemand* — instead of only naming the responsible person. A row nobody is responsible
+      for renders an **empty seat** in the same place, which is the row's only affordance for being handed over. It is
+      absent where nothing is assignable (G-8), under a G-3 lock, in the closing pass, and once the avatar names the
+      packing record rather than the assignment: that one is not a choice (FR-25.19).
+  * **Row press-and-hold menu (FR-5.5):** *Menge ändern*, *Packen*, *Nicht einpacken*, **Spätpacker ein/aus**
+    (FR-25.25, last of the row's own actions), and FR-9.3's unused mark where the trip can be judged. A row somebody
+    else holds has no menu but the takeover (G-3/FR-5.7); a row the viewer holds offers only the release; a skipped
+    row offers the way back and no late-packer flag, because nothing is being packed on it.
+  * **Cluster head menu (added 2026-09-14, FR-25.26):** the head of a per-person cluster (FR-25.1) takes the same
+    press-and-hold, while the short tap stays FR-25.23's fold. It offers **Spätpacker für alle ein/aus** and **Alle
+    zuweisen an …**, each acting on every instance the head counts, and it states the scope in its sub-header
+    (*„4 Zeilen"*) because a shut head hides the rows it is about to write. Instances somebody else holds are skipped
+    and reported in the toast (*„3 von 4 geändert · Sia packt gerade"*); a head whose every instance is held offers no
+    menu at all, and none of its entries is a takeover.
   * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline
     text input with autocomplete suggestions from the master item inventory (M9). Enter on free text creates a new
     ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is

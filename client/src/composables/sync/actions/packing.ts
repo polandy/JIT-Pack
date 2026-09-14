@@ -365,6 +365,26 @@ export function createPackingActions(ctx: SyncContext) {
     })
   }
 
+  /**
+   * FR-25.26: the same flag, set on every instance of one per-person item at
+   * once (M4's cluster head). One ordinary write per row, so nothing about
+   * the merge, the outbox or the optimistic paint is special-cased for it —
+   * the fan-out is a loop, and that is the whole point: an instance set
+   * differently afterwards stays different.
+   *
+   * Which rows arrive here is the caller's decision, taken in
+   * `domain/clusterActions.ts` — a row somebody else is holding is not among
+   * them (G-3).
+   */
+  function setLatePackerForRows(tripId: string, items: readonly TripItem[], latePacker: boolean) {
+    for (const item of items) setLatePacker(tripId, item, latePacker)
+  }
+
+  /** FR-25.26's other half: one person made responsible for every instance. */
+  function setPackerForRows(tripId: string, items: readonly TripItem[], userId: string | null) {
+    for (const item of items) setPacker(tripId, item, userId)
+  }
+
   function setReviewFlag(tripId: string, item: TripItem, flag: ReviewFlag, value: boolean) {
     const mut = mutations.setReviewFlag(item.id, flag, value)
     enqueueAndDrain('trip', tripId, {
@@ -715,7 +735,9 @@ export function createPackingActions(ctx: SyncContext) {
     assignTraveler,
     assignContainer,
     setLatePacker,
+    setLatePackerForRows,
     setPacker,
+    setPackerForRows,
     setReviewFlag,
     quickAddItem,
     addDecidedItem,
