@@ -1,9 +1,16 @@
 <script setup lang="ts">
 /**
- * The field behind the app bar's magnifier (G-12, FR-25.11k) — one row,
- * present only while the search is open, identical on every screen that
- * offers one. Paired with `useContextSearch`, which owns the state and
- * the header entry.
+ * The search field, one row, identical on every screen that offers one.
+ *
+ * Two lives, and the prop says which. **Behind the app bar's magnifier**
+ * (G-12, FR-25.11k) it is present only while the search is open, owns the
+ * focus — opening a field the user then has to tap costs the tap the icon
+ * saved — and its ✕ *closes* it. **Persistent** (M9, FR-24.6) it is part of
+ * the screen: it takes no focus on arrival, because a keyboard nobody asked
+ * for covers the list the screen exists to show, and its ✕ appears only with
+ * something to clear, because a control that does nothing is worse than no
+ * control. The event is `close` either way; what closing *means* belongs to
+ * the screen that renders the row.
  */
 import { IonIcon } from '@ionic/vue'
 import { closeOutline, searchOutline } from 'ionicons/icons'
@@ -11,13 +18,22 @@ import { onMounted, ref } from 'vue'
 
 import { t } from '@/i18n'
 
-defineProps<{ modelValue: string; placeholder: string; testid?: string }>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    placeholder: string
+    testid?: string
+    /** Part of the screen rather than revealed by the magnifier — see above. */
+    persistent?: boolean
+  }>(),
+  { testid: undefined, persistent: false },
+)
 const emit = defineEmits<{ 'update:modelValue': [value: string]; close: [] }>()
 
-// The row exists only while the search is open, so it can own the focus:
-// opening a field the user then has to tap costs the tap the icon saved.
 const input = ref<HTMLInputElement | null>(null)
-onMounted(() => input.value?.focus())
+onMounted(() => {
+  if (!props.persistent) input.value?.focus()
+})
 </script>
 
 <template>
@@ -31,7 +47,12 @@ onMounted(() => input.value?.focus())
       autocomplete="off"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
-    <button :aria-label="t('common.close')" @click="emit('close')">
+    <button
+      v-if="!persistent || modelValue !== ''"
+      :aria-label="persistent ? t('common.clear') : t('common.close')"
+      :data-testid="persistent ? 'search-clear' : undefined"
+      @click="emit('close')"
+    >
       <IonIcon :icon="closeOutline" />
     </button>
   </div>

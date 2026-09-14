@@ -272,16 +272,26 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
   // E2E-G12-02: the same mechanism on a second screen, so "current
   // context" is a property of the pattern rather than of one page.
-  test('E2E-G12-02: the magnifier travels to the item inventory and searches it there', async ({
+  //
+  // The second screen was M9 until FR-24.6 took the inventory's field out of
+  // the magnifier — the one exception to G-12, and a screen that no longer
+  // has the action cannot carry the case for it. M7 is the nearest
+  // equivalent: a master-data list with a header search, reached as a tab.
+  test('E2E-G12-02: the magnifier travels to the template list and searches it there', async ({
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
-    await page.goto(PATH.items)
+    await page.goto(PATH.templates)
 
     await page.getByTestId('search').click()
-    await expect(onVisibleScreen(page, 'items-search-input')).toBeVisible()
+    await expect(onVisibleScreen(page, 'templates-search-input')).toBeVisible()
     // The trip list's field belongs to the trip list, not to this screen.
     await expect(page.getByTestId('trips-search-input')).toHaveCount(0)
+
+    // And the inventory, which no longer registers the action at all, offers
+    // its field without one — the exception, asserted where the rule is.
+    await page.goto(PATH.items)
+    await expect(page.getByTestId('search')).toHaveCount(0)
   })
 
   // E2E-M4-32: a cold boot straight into M4. The teleported app-bar

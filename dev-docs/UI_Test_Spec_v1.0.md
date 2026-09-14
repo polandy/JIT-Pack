@@ -154,7 +154,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G9-10 | G-9 Back lands | all | `‹ back` from M4 renders the trip list, and none of M4's app-bar actions survive the move. Complements E2E-G9-05, which proves back is *reachable*; this one proves it *arrives*. |
 | E2E-G1-03 | G-1 Only M4 is full-screen | all | `/trips/new` keeps the tab bar. The wizard shares M4's path shape without being a drill-down, and the rule that hides the anchors on the packing list took them from the screen a first-time user starts on. |
 | E2E-G1-02 | G-1 Full-screen packing | all | The tab bar is hidden on M4 (§3.25) and present on every other screen — including immediately after leaving M4, so the trip screen can never be an exit-less one. |
-| E2E-G12-02 | G-12 Search follows the screen | all | The magnifier opens the *current* screen's field (trip list, item inventory), and no other screen's field is in the DOM. Guards the pattern rather than one page. |
+| E2E-G12-02 | G-12 Search follows the screen | all | The magnifier opens the *current* screen's field (trip list, **template list**), and no other screen's field is in the DOM. Guards the pattern rather than one page. **The second screen was M9 until 2026-09-13**, when FR-24.6 took the inventory's field out of the magnifier — a screen that no longer registers the action cannot carry the case for it, so M7 took its place and the case now also asserts that M9 offers **no** search action at all, which is where the exception is worth reading. |
 | E2E-G8-02 | G-8 No dev affordances shipped | all | The dev sample-trip seed is absent from a production build. It is a development convenience, not Demo Mode (retired in Addendum v2.10) coming back. |
 | E2E-G11-02 | G-11 The brand marks where you are | all | The anchor you are on is the brand colour and the others are not — asserted in **both** presentations, the mobile tab bar and the desktop rail, because they are one rule that has drifted apart before. Compared against the role token rather than a hex, so the case holds in Tag too. |
 | E2E-G11-03 | G-11 Brand, action and done stay apart | all | The FAB carries the brand gradient and contains no action colour; a packed checkbox is the done colour. Guards the drift this pattern exists to stop: Ionic paints its own primary on tabs, FABs and checkboxes unless told otherwise, one component at a time. |
@@ -1373,7 +1373,7 @@ test body under it separates a wrong number from a missing test.**
   the renumbering: **exactly those** — enabling the weight must leave the tags off the row, which is the whole reason
   FR-24.4 is three switches — and the **badge**, asserted from both sides, since „the badge reads 1" is equally
   satisfied by a badge that always reads 1.)*
-* **E2E-M9-06** `all` (FR-24.2) — **implemented**: the tag chip axis filters on **any** of an item's tags while the
+* **E2E-M9-06** `all` (FR-24.2) — **implemented**: the tag control filters on **any** of an item's tags while the
   grouping stays on the primary one — filtering by *Sommer* surfaces the swimsuit filed under *Kleidung*. Asserted on
   rendered rows, since the two rules differ only in what is painted. *(Ran under the id E2E-M9-02 until 2026-08-30.)*
 * **E2E-M9-07** `all` (FR-28.1/28.4/28.7) — **implemented 2026-08-22** (`item-mark.spec.ts`): a mark set in M10 appears
@@ -1382,9 +1382,37 @@ test body under it separates a wrong number from a missing test.**
   the empty slot. **Both composer paths are exercised on purpose**, because they differ where it matters: the suggestion
   carries `source_item_id` and therefore a mark, the free-text confirm does not. *The photo rung is the component
   unit's, for the reason given at E2E-M5-15.*
-* **E2E-M9-08** `all` (UX review 2026-08-25, UX-4) — **implemented** (`e2e/inventory.spec.ts`): the first group heading
-  clears the tag axis by a visible gap. Asserted as geometry (bounding boxes on settled elements, not pixels): at a 0px
-  gap the active chip's underline sits flush against the heading and reads as the heading sliding under the bar.
+* ~~**E2E-M9-08**~~ `all` (UX review 2026-08-25, UX-4) — **retired 2026-09-13**, not unimplemented: it measured the gap
+  between the tag axis and the first group heading, and FR-24.8 removed the axis. The promise it stood for — a heading
+  that does not read as sliding under the control above it — is **E2E-M9-13**'s, which asserts the heading stacked
+  below the sticky tool bar. The id is struck rather than renumbered, so a reader arriving from an older commit lands
+  on the sentence that says where its promise went.
+* **E2E-M9-11** `all` (FR-24.7) — **implemented 2026-09-13** (`e2e/inventory.spec.ts`): the search reaches an umlaut
+  name from **both** keyboard spellings („gurtel" and „guertel" → „Gürtel") and reaches an item through a **tag**,
+  with the row stating what carried the match and the heading reading *Treffer im Tag*. Both halves were measured
+  against the family instance before the case was written — each spelling returned 0 of 184 rows, and a tag every row
+  displays could not be typed. The ranking arithmetic itself is `domain/__tests__/itemSearch.spec.ts`, where the three
+  fold cases were proven red against the old `name.toLowerCase().includes` rule.
+* **E2E-M9-12** `all` (FR-24.7) — **implemented 2026-09-13** (`e2e/inventory.spec.ts`): a query under an unrelated tag
+  chip („socken" under *Hygiene*) is answered by an empty state that **names the tag**, **counts the hits outside it**
+  and offers the way out — and taking it **keeps the query**. The audit's clearest screenshot was this state saying
+  only „Kein Artikel gefunden" while three socks sat in the list.
+* **E2E-M9-13** `all` (FR-24.6) — **implemented 2026-09-13** (`e2e/inventory.spec.ts`): the tool bar is in the same
+  place after the list has been scrolled to its end, its field still visible, with the first group heading stacked
+  **below** it rather than sliding under it. Geometry on settled boxes, like E2E-M9-08, and the scroll offset is read
+  back as the positive signal that the list actually moved. **Proven red** on 2026-09-13 against a build with
+  `position: static` on the bar.
+* **E2E-M9-14** `all` (FR-24.8) — **implemented 2026-09-13** (`e2e/inventory.spec.ts`): the axis is **gone from the
+  DOM**, the three chips carry their counts, and two tags combine under *alle* — the question a single-select segment
+  could not ask. The sheet's own footer count is asserted against the list's, so the two cannot drift into separate
+  arithmetic. Its dismissal is read from `data-presented`, because a sheet declared with `:is-open` stays in the DOM.
+* **E2E-M9-15** `all` (FR-24.8) — **implemented 2026-09-13** (`e2e/inventory.spec.ts`): the group heading opens the
+  jump list and the chosen group lands directly under the tool bar, **with every row still in the list** — filtering
+  takes rows away, jumping does not. Twelve rows on a 360 px viewport, because the case is only meaningful on a list
+  taller than the screen. **The ordering rule it cannot falsify is a unit test**: while an overlay is presented the
+  scroll host is locked, and a jump issued in the same breath is clamped (measured at 120 px of a 9 975 px jump on the
+  family instance); `ItemInventoryPage.spec.ts` asserts that nothing scrolls until the sheet reports it has dismissed,
+  and that a dismissal without a choice scrolls nothing at all.
 * **E2E-M9-09** `single` (FR-21.9) — **implemented 2026-08-30** (`e2e/single/instance-currency.spec.ts`): an item price
   is rendered with the currency the instance named. `single` rather than `all`, and that is the feature rather than a
   limitation of the case: the code comes from the server over `GET /api/v1/instance/config`, and Local Mode has none, so
@@ -1395,8 +1423,10 @@ test body under it separates a wrong number from a missing test.**
   alone, which is exactly the pre-FR-21.9 rendering. **M5's context line joined the rule on 2026-09-10** — it was
   the last place printing a bare two-decimal amount; asserted in `ItemDetailSheet.spec.ts` rather than as a second
   `single` case, because what can go wrong there is the formatter that was bypassed, not the delivery of the code.
-* **E2E-M9-10** `all` (FR-1.1) — **new 2026-08-30** (`e2e/inventory.spec.ts`): the search **filters**. E2E-G12-02
-  asserts that the magnifier opens *this* screen's field and no other screen's; that typing into it narrows the list is
+* **E2E-M9-10** `all` (FR-1.1) — **new 2026-08-30** (`e2e/inventory.spec.ts`): the search **filters**. *(Its opening
+  step lost the magnifier on 2026-09-13 — FR-24.6 made the field permanent — and the case now asserts it is visible
+  without one.)* E2E-G12-02
+  asserted that the magnifier opens *this* screen's field and no other screen's; that typing into it narrows the list is
   a different promise, and it had no assertion anywhere — M9-01's sentence carried the word and nothing more. A term the
   inventory matches leaves one row and takes the *heading* of the group it emptied with it (the filter runs before the
   grouping, so a heading over nothing would be the visible defect); a term nothing matches raises **`m9-no-match`** and

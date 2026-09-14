@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest'
 import {
   groupByPrimaryTag,
   tagsOfItem,
+  tagNamesByItem,
+  tagCounts,
+  topTagsByCount,
+  filterByTags,
   primaryTagOf,
   withCategories,
   UNTAGGED_KEY,
@@ -186,5 +190,155 @@ describe('withCategories (FR-24.2)', () => {
     const one = { ...item('i-full', 'Full'), weight_grams: 120, icon: '🧦' }
 
     expect(withCategories([one], [], tags)[0]).toMatchObject({ ...one, category_name: null })
+  })
+})
+
+describe('tagNamesByItem (FR-24.7)', () => {
+  it('answers every item at once, each list primary first', () => {
+    const assignments = [
+      assign('i-badehose', 't-sommer', 1),
+      assign('i-badehose', 't-kleidung', 0),
+      assign('i-kabel', 't-technik', 0),
+    ]
+
+    const names = tagNamesByItem(assignments, tags)
+
+    // The same order tagsOfItem gives one item — the M9 row's initial is read
+    // from the first entry, so a different order here would refile the row.
+    expect(names.get('i-badehose')).toEqual(['Kleidung', 'Sommer'])
+    expect(names.get('i-kabel')).toEqual(['Technik'])
+  })
+
+  it('leaves an item with no assignment out rather than mapping it to an empty list', () => {
+    const names = tagNamesByItem([assign('i-kabel', 't-technik', 0)], tags)
+
+    expect(names.has('i-badehose')).toBe(false)
+    expect(names.get('i-badehose')).toBeUndefined()
+  })
+
+  it('skips an assignment whose tag is gone, like tagsOfItem does', () => {
+    // A pull can deliver the two tombstones in either order; half a row is
+    // not a name.
+    const assignments = [
+      assign('i-badehose', 't-kleidung', 0),
+      assign('i-badehose', 't-deleted', 1),
+    ]
+
+    expect(tagNamesByItem(assignments, tags).get('i-badehose')).toEqual(['Kleidung'])
+  })
+
+  it('breaks a shared position by the assignment id, as the grouping does', () => {
+    const assignments = [assign('i-badehose', 't-sommer', 0), assign('i-badehose', 't-kleidung', 0)]
+
+    // Two rows at one position is a legal intermediate state of a reorder
+    // (FR-24.2); `i-badehose-t-kleidung` sorts before `i-badehose-t-sommer`.
+    expect(tagNamesByItem(assignments, tags).get('i-badehose')).toEqual(['Kleidung', 'Sommer'])
+  })
+})
+
+describe('tagCounts (FR-24.8)', () => {
+  it('counts each tag over the items it was handed, not over the whole inventory', () => {
+    const items = [item('i-badehose', 'Badehose'), item('i-kabel', 'Kabel')]
+    const assignments = [
+      assign('i-badehose', 't-kleidung', 0),
+      assign('i-badehose', 't-sommer', 1),
+      assign('i-kabel', 't-technik', 0),
+      // A retired item M9 does not show: its assignment must not be counted.
+      assign('i-retired', 't-technik', 0),
+    ]
+
+    const counts = tagCounts(items, assignments)
+
+    expect(counts.get('t-kleidung')).toBe(1)
+    expect(counts.get('t-sommer')).toBe(1)
+    expect(counts.get('t-technik')).toBe(1)
+  })
+
+  it('leaves a tag nothing carries out of the map', () => {
+    expect(tagCounts([item('i-kabel', 'Kabel')], []).size).toBe(0)
+  })
+})
+
+describe('topTagsByCount (FR-24.8)', () => {
+  const counts = new Map([
+    ['t-kleidung', 4],
+    ['t-sommer', 9],
+    ['t-technik', 4],
+  ])
+
+  it('offers the biggest first — a shortcut to a tag holding one item saves nobody anything', () => {
+    expect(topTagsByCount(tags, counts, 3).map((t) => t.name)).toEqual([
+      'Sommer',
+      'Technik',
+      'Kleidung',
+    ])
+  })
+
+  it('breaks a tie by the axis order, so two devices offer the same three', () => {
+    // Kleidung and Technik both hold 4; Technik's sort_order is 0, Kleidung's 1.
+    const top = topTagsByCount(tags, counts, 3)
+    expect(top.map((t) => t.name).slice(1)).toEqual(['Technik', 'Kleidung'])
+  })
+
+  it('never offers a tag holding nothing', () => {
+    const sparse = new Map([['t-sommer', 2]])
+    expect(topTagsByCount(tags, sparse, 3).map((t) => t.name)).toEqual(['Sommer'])
+  })
+
+  it('honours the limit', () => {
+    expect(topTagsByCount(tags, counts, 1).map((t) => t.name)).toEqual(['Sommer'])
+  })
+})
+
+describe('filterByTags (FR-24.8)', () => {
+  const items = [
+    item('i-badehose', 'Badehose'),
+    item('i-kabel', 'Kabel'),
+    item('i-lose', 'Loses Teil'),
+  ]
+  const assignments = [
+    assign('i-badehose', 't-kleidung', 0),
+    assign('i-badehose', 't-sommer', 1),
+    assign('i-kabel', 't-technik', 0),
+  ]
+
+  it('narrows nothing when nothing is selected', () => {
+    expect(filterByTags(items, assignments, [], 'any')).toHaveLength(3)
+  })
+
+  it('matches the whole set, not the primary tag — the reach the grouping cannot give', () => {
+    // Sommer is the swimsuit's *second* tag (FR-24.2).
+    expect(filterByTags(items, assignments, ['t-sommer'], 'any').map((i) => i.id)).toEqual([
+      'i-badehose',
+    ])
+  })
+
+  it('widens under "any" and narrows under "all"', () => {
+    const selection = ['t-sommer', 't-technik']
+
+    expect(filterByTags(items, assignments, selection, 'any').map((i) => i.id)).toEqual([
+      'i-badehose',
+      'i-kabel',
+    ])
+    // Nothing carries both — which is the answer, not an empty result by accident.
+    expect(filterByTags(items, assignments, selection, 'all')).toEqual([])
+    expect(
+      filterByTags(items, assignments, ['t-kleidung', 't-sommer'], 'all').map((i) => i.id),
+    ).toEqual(['i-badehose'])
+  })
+
+  it('treats the untagged bucket as a member of the selection', () => {
+    expect(filterByTags(items, assignments, [UNTAGGED_KEY], 'any').map((i) => i.id)).toEqual([
+      'i-lose',
+    ])
+    expect(
+      filterByTags(items, assignments, [UNTAGGED_KEY, 't-technik'], 'any').map((i) => i.id),
+    ).toEqual(['i-kabel', 'i-lose'])
+  })
+
+  it('yields nothing when "all" asks for a tag and for no tag at once', () => {
+    // Faithful rather than special-cased: an item cannot be both. The sheet
+    // keeps the bucket exclusive so the control never offers this way in.
+    expect(filterByTags(items, assignments, [UNTAGGED_KEY, 't-technik'], 'all')).toEqual([])
   })
 })
