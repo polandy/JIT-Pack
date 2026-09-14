@@ -6,11 +6,18 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { rowMenuEntries, type RowMenuAction, type RowMenuContext } from '@/domain/rowMenu'
+import {
+  avatarAssignable,
+  rowMenuEntries,
+  type AssignContext,
+  type RowMenuAction,
+  type RowMenuContext,
+} from '@/domain/rowMenu'
 
-const OPEN = { state: 'open', flag_unused: false } as const
-const SKIPPED = { state: 'skipped', flag_unused: false } as const
-const JUDGED = { state: 'open', flag_unused: true } as const
+const OPEN = { state: 'open', flag_unused: false, late_packer: false } as const
+const SKIPPED = { state: 'skipped', flag_unused: false, late_packer: false } as const
+const JUDGED = { state: 'open', flag_unused: true, late_packer: false } as const
+const LATE = { state: 'open', flag_unused: false, late_packer: true } as const
 
 function ctx(overrides: Partial<RowMenuContext> = {}): RowMenuContext {
   return {
@@ -25,7 +32,7 @@ function ctx(overrides: Partial<RowMenuContext> = {}): RowMenuContext {
 
 interface Case {
   name: string
-  item: { state: 'open' | 'skipped'; flag_unused: boolean }
+  item: { state: 'open' | 'skipped'; flag_unused: boolean; late_packer: boolean }
   ctx: Partial<RowMenuContext>
   want: RowMenuAction[]
 }
@@ -35,7 +42,19 @@ const cases: Case[] = [
     name: 'an ordinary open row offers its amount, packing it now and skipping it (FR-5.5)',
     item: OPEN,
     ctx: {},
-    want: ['quantity', 'packingNow', 'skip'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn'],
+  },
+  {
+    name: 'a row already flagged offers the way back off the departure day (FR-5.1, FR-25.25)',
+    item: LATE,
+    ctx: {},
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOff'],
+  },
+  {
+    name: 'a skipped row is offered no late-packer flag — nothing is being packed on it',
+    item: { ...SKIPPED, late_packer: true },
+    ctx: {},
+    want: ['unskip'],
   },
   {
     name: 'a skipped row offers only the way back (FR-5.5)',
@@ -89,13 +108,13 @@ const cases: Case[] = [
     name: 'a judgeable trip appends the unused mark after the row’s own actions (FR-9.3)',
     item: OPEN,
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'flagUnused'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'flagUnused'],
   },
   {
     name: 'a row already marked unused offers to take the mark off again',
     item: JUDGED,
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'unflagUnused'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'unflagUnused'],
   },
   {
     name: 'a skipped row is offered no amount — 1 there is an unskip without its companions (FR-25.24)',
@@ -130,5 +149,41 @@ describe('rowMenuEntries (FR-5.5, FR-5.7, FR-9.3, G-3)', () => {
     )
     expect(everything.flat()).not.toContain('flagUnused')
     expect(everything.flat()).not.toContain('unflagUnused')
+  })
+})
+
+/**
+ * FR-25.25. Every answer here renders as the presence or absence of one small
+ * control, and three of the four are an *absence* — the state a screen shows
+ * by looking exactly like the state before it.
+ */
+describe('avatarAssignable (FR-25.25, FR-25.19, G-3, G-8)', () => {
+  const assignCtx = (over: Partial<AssignContext> = {}): AssignContext => ({
+    hasAssignees: true,
+    closingPass: false,
+    locked: false,
+    ...over,
+  })
+  const open = { packed_by_user_id: null }
+  const packed = { packed_by_user_id: 'user-2' }
+
+  it('an open row on a trip with other members offers the control', () => {
+    expect(avatarAssignable(open, assignCtx())).toBe(true)
+  })
+
+  it('offers nothing where there is nobody to assign to (G-8)', () => {
+    expect(avatarAssignable(open, assignCtx({ hasAssignees: false }))).toBe(false)
+  })
+
+  it('offers nothing while somebody else holds the row (G-3)', () => {
+    expect(avatarAssignable(open, assignCtx({ locked: true }))).toBe(false)
+  })
+
+  it('offers nothing in the closing pass (FR-9.3)', () => {
+    expect(avatarAssignable(open, assignCtx({ closingPass: true }))).toBe(false)
+  })
+
+  it('offers nothing once the avatar is the packing record — that is not a choice (FR-25.19)', () => {
+    expect(avatarAssignable(packed, assignCtx())).toBe(false)
   })
 })

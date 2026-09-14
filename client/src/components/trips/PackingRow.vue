@@ -18,7 +18,12 @@
  * branch chain is testable without a trip.
  */
 import { IonBadge, IonIcon, IonItem, IonLabel } from '@ionic/vue'
-import { buildOutline, lockClosedOutline, removeCircleOutline } from 'ionicons/icons'
+import {
+  buildOutline,
+  lockClosedOutline,
+  personAddOutline,
+  removeCircleOutline,
+} from 'ionicons/icons'
 
 import ItemMark from '@/components/items/ItemMark.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
@@ -73,8 +78,23 @@ const props = withDefaults(
     /** FR-27.7 open tasks; ignored by a child row. */
     prepCount?: number
     edgeAvatar?: RowEdgeAvatar | null
+    /**
+     * FR-25.25: the edge avatar is this row's assignment control rather than
+     * a label. False wherever there is nobody to assign to (G-8), while
+     * somebody else holds the row (G-3), in the closing pass, and once the
+     * avatar has become the packing *record* — who packed it is not a choice
+     * (FR-25.19), so the row that shows it offers nothing to pick.
+     */
+    assignable?: boolean
   }>(),
-  { variant: 'item', traveler: null, master: null, prepCount: 0, edgeAvatar: null },
+  {
+    variant: 'item',
+    traveler: null,
+    master: null,
+    prepCount: 0,
+    edgeAvatar: null,
+    assignable: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -84,6 +104,8 @@ const emit = defineEmits<{
   pressMove: [event: PointerEvent]
   pressEnd: []
   passToggle: []
+  /** FR-25.25: the row is to be handed to somebody, picked at this event. */
+  assign: [event: MouseEvent]
   /** FR-25.24: the row's planned amount is to be changed, at this event. */
   editQuantity: [event: MouseEvent]
   increment: []
@@ -168,8 +190,31 @@ const emit = defineEmits<{
         />
         <RowGlyphs :mode="item.mode" :late="item.late_packer" />
       </template>
+      <!-- FR-25.25: the same place either way — the avatar names who is
+           responsible, and tapping it is how that is decided. A row nobody
+           has is the one that most needs the control, and it is also the one
+           with nothing to tap, so it renders an empty seat rather than the
+           blank the row used to end with. `.stop.prevent` for the reason the
+           control column gives below: Ionic's anchor jump is a default
+           action, and stopping propagation alone never cancelled it. -->
+      <button
+        v-if="assignable"
+        class="assign"
+        :aria-label="edgeAvatar ? t('item.assignedTo') : t('item.assignTo')"
+        :data-testid="`m4-assign-${testKey}`"
+        @click.stop.prevent="(e: MouseEvent) => emit('assign', e)"
+        @pointerdown.stop
+      >
+        <UserAvatar
+          v-if="edgeAvatar"
+          :variant="edgeAvatar.variant"
+          :name="edgeAvatar.name"
+          :seed="edgeAvatar.id"
+        />
+        <IonIcon v-else :icon="personAddOutline" class="assign-empty" />
+      </button>
       <UserAvatar
-        v-if="edgeAvatar"
+        v-else-if="edgeAvatar"
         :variant="edgeAvatar.variant"
         :name="edgeAvatar.name"
         :seed="edgeAvatar.id"
@@ -253,6 +298,29 @@ const emit = defineEmits<{
   align-items: center;
   justify-content: flex-end;
   min-width: 44px;
+}
+
+/*
+ * The assignment control is the avatar's own box and nothing more: a
+ * background or a ring here would put a second frame around a circle that
+ * already has one, and the empty seat is the only state that needs to look
+ * like somewhere to tap at all.
+ */
+.assign {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.assign-empty {
+  font-size: var(--jp-icon-sm);
+  color: var(--ct-overlay0);
+  border: 1px dashed var(--ct-surface2);
+  border-radius: 50%;
+  padding: 4px;
 }
 
 .lock {

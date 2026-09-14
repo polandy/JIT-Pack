@@ -866,6 +866,52 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
     await expect(visible(page).getByTestId('m4-header')).not.toContainText(TRIP.name)
   })
+
+  /**
+   * E2E-M4-87 (FR-25.25): the late-packer flag, set from the row.
+   *
+   * It had lived in M5 alone — four taps and a scroll for one boolean that a
+   * person sets on half a dozen rows in one pass. The rendered ⏰ is the
+   * evidence the write landed; the menu's *next* offer is the evidence it
+   * read the row back rather than merely painting a glyph.
+   */
+  test('E2E-M4-87: a row is made a late packer from its own menu', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zahnbürste'])
+
+    const row = visible(page).getByTestId('m4-row-Zahnbürste')
+    await expect(row.getByTestId('row-late')).toHaveCount(0)
+
+    await openRowMenu(page, 'Zahnbürste')
+    await chooseInRowMenu(page, /late packer on/i)
+    await expect(row.getByTestId('row-late')).toBeVisible()
+
+    // The way back is offered in its place — the entry states the row's
+    // state, so a menu built from a stale row would still say "on".
+    await openRowMenu(page, 'Zahnbürste')
+    await expect(
+      page.locator('ion-action-sheet').getByRole('button', { name: /late packer on/i }),
+    ).toHaveCount(0)
+    await chooseInRowMenu(page, /late packer off/i)
+    await expect(row.getByTestId('row-late')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M4-89 (FR-25.25, G-8): the assignment control is absent in Local
+   * Mode, where there are no accounts to hand a row to.
+   *
+   * The positive half of this pair is E2E-SRV-11, which assigns from the row
+   * in Server Mode: an absence asserted alone would also pass against a build
+   * where the control was never wired up anywhere.
+   */
+  test('E2E-M4-89: Local Mode offers no assignment on the row (G-8)', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zahnbürste'])
+
+    const row = visible(page).getByTestId('m4-row-Zahnbürste')
+    await expect(row).toBeVisible()
+    await expect(row.getByTestId('m4-assign-Zahnbürste')).toHaveCount(0)
+  })
 })
 
 /*

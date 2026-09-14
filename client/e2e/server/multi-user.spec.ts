@@ -660,6 +660,74 @@ test.describe('Two accounts on one instance @server', () => {
     await ctxBob.close()
   })
   /**
+   * E2E-M4-90 (FR-25.25): the row's own avatar hands it over.
+   *
+   * The `server` project is the only one that can ask it: the picker offers
+   * the trip's *other* members, and Local and Single-User Mode have none, so
+   * there the control is absent rather than empty (G-8, asserted as
+   * E2E-M4-89). What needs two accounts is that the control writes the
+   * assignment — with one account there is nobody in the sheet to pick.
+   */
+  test('E2E-M4-90: a row is handed over from its own avatar, without opening M5', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Hardangervidda ${id}`
+    const item = `Schlafsack-${id}`
+
+    // Bob logs in first and is otherwise a bystander: the instance's directory
+    // knows an account only once it has authenticated, so the member picker
+    // Alice is about to use would be empty without this.
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, item)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+    await alice.goto(tripPath)
+
+    // An unassigned row carries the empty seat: the control is on the row
+    // that most needs it, which is the one with nobody on it.
+    const seat = visiblePage(alice).getByTestId(`m4-assign-${item}`)
+    await expect(seat).toBeVisible()
+    await expect(seat.getByTestId('user-avatar')).toHaveCount(0)
+
+    await seat.click()
+    const picker = alice.locator('ion-action-sheet')
+    await expect(picker).toBeVisible()
+    await picker.getByRole('button', { name: ACCOUNT_NAMES.bob }).click()
+    await expect(picker).toHaveCount(0)
+
+    // FR-25.20: the row is Bob's job now, so it leaves Alice's list — and the
+    // reveal bar names him rather than the row simply going. That departure
+    // is also the settled signal that the write landed, without a sheet to
+    // read it back from.
+    await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toHaveCount(0)
+    await expect(visiblePage(alice).getByTestId('m4-others-bar')).toContainText(ACCOUNT_NAMES.bob)
+
+    // Revealed, the row names Bob on the edge it was assigned from, and the
+    // seat is filled rather than merely gone.
+    await visiblePage(alice).getByTestId('m4-reset').click()
+    const filled = visiblePage(alice).getByTestId(`m4-assign-${item}`)
+    await expect(filled.getByTestId('user-avatar')).toHaveAttribute('aria-label', ACCOUNT_NAMES.bob)
+
+    // And the same control takes it back: an assignment nobody can undo from
+    // where they made it is a one-way door.
+    await filled.click()
+    await expect(picker).toBeVisible()
+    await picker.getByRole('button', { name: /nobody/i }).click()
+    await expect(picker).toHaveCount(0)
+    await expect(
+      visiblePage(alice).getByTestId(`m4-assign-${item}`).getByTestId('user-avatar'),
+    ).toHaveCount(0)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
    * E2E-M22-13 (FR-2.5, ADR-058): M22 records which account a traveller is,
    * and the server keeps it.
    *

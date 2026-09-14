@@ -53,7 +53,19 @@ defineProps<{
   master: MasterItem | null
 }>()
 
-defineEmits<{ toggle: [] }>()
+defineEmits<{
+  toggle: []
+  /**
+   * FR-25.26: the head's own menu, which acts on every instance under it.
+   * The same four events a row raises, so the page drives one long-press
+   * helper for both — the head is a line of the list (FR-21.20), and the
+   * gesture that opens a row's menu is what a reader will try on it.
+   */
+  menu: []
+  pressStart: [event: PointerEvent]
+  pressMove: [event: PointerEvent]
+  pressEnd: []
+}>()
 </script>
 
 <template>
@@ -63,6 +75,11 @@ defineEmits<{ toggle: [] }>()
     :data-testid="`m4-cluster-${name}`"
     :aria-expanded="!collapsed"
     @click="$emit('toggle')"
+    @contextmenu.prevent="$emit('menu')"
+    @pointerdown="(e: PointerEvent) => $emit('pressStart', e)"
+    @pointermove="(e: PointerEvent) => $emit('pressMove', e)"
+    @pointerup="$emit('pressEnd')"
+    @pointercancel="$emit('pressEnd')"
   >
     <!-- The same lead column a row has (FR-21.19), so the head starts its
          name on the item rows' x rather than on its children's. -->

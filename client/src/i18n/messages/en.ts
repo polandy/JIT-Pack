@@ -151,6 +151,19 @@ export const en = {
   'packing.flagUnusedToast': '“{item}” marked as unused',
   'packing.unflagUnusedToast': '“{item}” is no longer marked as unused',
   'packing.skipAction': 'Do not pack this',
+  // FR-25.25/25.26 — the two decisions M4 makes without opening M5: who a row
+  // is for, and whether it waits for the departure day. The cluster wordings
+  // say "for everyone" because the head stands over several rows at once.
+  'packing.latePackerOn': 'Late packer on',
+  'packing.latePackerOff': 'Late packer off',
+  'packing.clusterLatePackerOn': 'Late packer on for everyone',
+  'packing.clusterLatePackerOff': 'Late packer off for everyone',
+  'packing.clusterAssignAll': 'Assign all to …',
+  'packing.clusterScope': '{n} row | {n} rows',
+  'packing.fanOutApplied': '{n} row changed | {n} rows changed',
+  // Never silently partial (G-3): the count says how much landed, the names
+  // say whom to ask about the rest.
+  'packing.fanOutPartial': '{n} of {total} changed · {who} is packing right now',
   'packing.unskipAction': 'Pack it after all',
   'packing.skippedToast': '“{name}” stays at home',
   'packing.companionsAdded':
@@ -498,6 +511,7 @@ export const en = {
   'item.flagAsTask': 'Turn into a preparation task',
   'item.companions': 'Belongs with',
   'item.usedBy': 'Who needs this?',
+  'item.assignTo': 'Assign to somebody',
   'item.assignedTo': 'Assigned to',
   'item.assignedToNobody': 'nobody',
   'item.luggageOptional': 'Luggage · optional',

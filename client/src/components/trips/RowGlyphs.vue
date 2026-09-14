@@ -32,7 +32,15 @@ defineProps<{
     class="mode-icon"
     :title="modeLabel(mode)"
   />
-  <IonIcon v-if="late" :icon="timeOutline" class="late-icon" :title="t('mode.latePacker')" />
+  <!-- Addressable: since FR-25.25 the flag is set from the list, and the
+       glyph is the only rendered evidence that the write landed. -->
+  <IonIcon
+    v-if="late"
+    :icon="timeOutline"
+    class="late-icon"
+    data-testid="row-late"
+    :title="t('mode.latePacker')"
+  />
 </template>
 
 <style scoped>

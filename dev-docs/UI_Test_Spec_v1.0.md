@@ -645,6 +645,21 @@ in WebKit.
   row and hides everything else — proving the override, not just the bucketing (`packingView.spec.ts` already proves
   the arithmetic; this is the panel wiring). Then switching to **Status → Gepackt** shows the packed row instead. The
   chip row names the picked value the same way every other facet's chip does.
+* **E2E-M4-87** `all` (FR-25.25, added 2026-09-14) — **implemented** (`e2e/packing-list.spec.ts`): the late-packer
+  flag set from the row's own press-and-hold menu. The rendered ⏰ is the evidence the write landed; reopening the
+  menu and finding *„Spätpacker aus"* in place of *„ein"* is the evidence the entry states the row rather than a
+  constant. Then off again, so neither direction is assumed from the other.
+* **E2E-M4-88** `all` (FR-25.26, added 2026-09-14) — **implemented** (`e2e/membership.spec.ts`): the cluster head's
+  fan-out. The menu names its scope („2 rows") before the action, and the flag is asserted **per instance in M5**
+  rather than on the head — the head paints its ⏰ when *any* instance carries the flag (FR-25.23), so a head-only
+  assertion is green against a fan-out that reached one row of two. The way back off it closes the case.
+* **E2E-M4-89** `local` (FR-25.25, G-8, added 2026-09-14) — **implemented** (`e2e/packing-list.spec.ts`): Local Mode
+  renders no assignment seat on a row, because there is no second account to hand it to. Deliberately the negative
+  half of E2E-M4-90: asserted alone it would also pass against a build where the control was never wired at all.
+* **E2E-M4-90** `server` (FR-25.25, added 2026-09-14) — **implemented** (`e2e/server/multi-user.spec.ts`): the row's
+  own avatar hands the row to the other account, without M5. The row then **leaves** the list (FR-25.20) with the
+  reveal bar naming the assignee — which is both the rule and the settled signal that the write landed — and the same
+  control takes the assignment back.
 * **E2E-M4-86** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-13):
   the trip partition's half of E2E-M2-18. Opened straight onto M4 with every trip pull held, the screen shows
   „Packliste wird geladen …" and **no** `packing-empty`; when the pull lands the notice goes and the G-7 state appears

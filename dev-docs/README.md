@@ -92,3 +92,7 @@ generated — edit the builder, not the HTML:
   per-person item may cost in rendered lines (FR-25.1/25.21/25.22): today's always-open cluster
   against a foldable one, an avatar-button row, a me-first list and a cluster that only expands
   once its children differ; `node dev-docs/build-perperson-rows-variants.mjs`.
+- [`UI_Concept_QuickAssign_variants.html`](UI_Concept_QuickAssign_variants.html) — where
+  assignment and the late-packer flag are operated (FR-25.25/25.26): the row's edge avatar and
+  its menu, and a cluster head that sets both for every instance at once. Hand-written, no
+  generator — it is five states of one screen rather than a matrix of variants.

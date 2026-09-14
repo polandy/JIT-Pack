@@ -377,6 +377,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Nine more screens stopped claiming an absence (2026-09-13)](#nine-more-screens-stopped-claiming-an-absence-2026-09-13) — the sweep; two premises of the entry above were wrong, and one e2e case replaced nine.
 - [A click was reported as a success, and the app had not moved (2026-09-13)](#a-click-was-reported-as-a-success-and-the-app-had-not-moved-2026-09-13) — the banner left the column; what muting the observer had hidden, and what only a rendered pixel said.
 - [The settings form came up over a page that was still live (2026-09-13)](#the-settings-form-came-up-over-a-page-that-was-still-live-2026-09-13) — a guard that redirects aborts the navigation Ionic staged; and a transparent page cannot hide the one it replaces.
+- [The list learned to say who and when, once for four rows (2026-09-14)](#the-list-learned-to-say-who-and-when-once-for-four-rows-2026-09-14) — why „for everyone" writes N rows rather than one field, and what a held instance does to a group action.
 - [The inventory's tools stopped leaving with the list (2026-09-13)](#the-inventorys-tools-stopped-leaving-with-the-list-2026-09-13) — FR-24.6/24.7; the G-12 exception, two sort options that were refused, and a focus test that could not fail.
 - [The swipe axis was a filter nobody filtered with (2026-09-13)](#the-swipe-axis-was-a-filter-nobody-filtered-with-2026-09-13) — FR-24.8; why the replacement is navigation, the three options that lost, and a jump clamped by an overlay.
 ## Deviations
@@ -15402,6 +15403,48 @@ place by up to 100/255: `.ion-page` is its own containing block, so *fixed* reso
 viewport. The accepted cost is 17/255 at its worst — the tail of a gradient that had almost nothing left to give.
 ADR-049 amendment 1.
 
+## The list learned to say who and when, once for four rows (2026-09-14)
+
+The owner's request was one sentence long and named its own worst case: assigning a row and flagging it a late packer
+should be quicker per item, and a *group* item — the toothbrush everybody packs on the morning the trip leaves —
+should be settable once rather than four times.
+
+**The second half is the one that had a design question in it.** A per-person item is N ordinary `trip_items` rows
+(FR-25.21, ADR-036) with a cluster head over them that owns no state. „For everyone" therefore either invents a place
+for the item-level truth to live, or writes each instance. ADR-061 weighs the three: a field on the master item drags
+an override model into every reader of `late_packer` — M4's row, the head, the dashboard's departure-day list, M6,
+the portable format, analytics — and follows the item into next year's trip, because the master row is the inventory;
+a multi-row mutation is a new operation in a sync contract that describes one row per mutation. The fan-out was
+chosen, and its real cost is stated rather than hidden: N writes per gesture, no atomicity, and a head that cannot
+render a tri-state.
+
+**The rule that is invisible on a running screen is the locked instance.** G-3 is advisory by decision
+(2026-08-30) — refusing writes would wedge an offline outbox — so a head that met one claimed instance had three
+possible behaviours and no obvious one. Refusing the whole gesture gives the lock teeth it does not have; writing
+through changes a row under the hands of the person holding it. It skips the held instance, writes the rest, and
+**says so**: „3 von 4 geändert · Sia packt gerade". Only a cluster held through end to end offers no menu, which is
+the answer a fully locked row already gives. None of this is visible by rendering the screen — every outcome looks
+like a sheet closing — so it lives in `domain/clusterActions.ts` as two pure functions and is unit-tested there.
+
+**The set a head writes had to be pinned to the set it counts.** `buildPackingView` already had the rule for its
+numbers: headers count what the filter lets through, including rows FR-25.2 hides as done. An action that reached
+past the facets would have been a second, invisible list, and one that stopped at the visible children would have
+written three of a „4 offen". The cluster therefore carries `instanceIds`, built in the same pass as its faces and
+its tallies, so the two cannot drift apart without one test failing.
+
+**On the row, the interesting decision was where *not* to put the controls.** The assignment went to the edge avatar,
+which already names the responsible person, and the late-packer flag to the press-and-hold menu — one door each
+(FR-21.24). The alternative on the table was both in the menu, which is cheaper to build and leaves the row's most
+informative pixel inert. The empty seat is what makes the avatar a control rather than a label that sometimes exists:
+a row nobody has is the one that most needs handing over and the one with nothing to tap.
+
+**A consequence found while writing the e2e case, and kept:** assigning from the row makes FR-25.20 hide that row —
+the thing you just touched leaves the list. M5's control has always done this; from the row it is simply visible. The
+reveal bar names the person, which is the difference between a row that left and a row that vanished, and
+E2E-M4-90 asserts the departure *as* the settled signal that the write landed.
+
+Specs: FR-25.25, FR-25.26, ADR-061, UI-Spec M4. FR-25.24 was written up in the same pass — the amount-on-the-row
+feature had shipped with the client referring to the number throughout and the Addendum never carrying it.
 
 ## The inventory's tools stopped leaving with the list (2026-09-13)
 

@@ -154,6 +154,15 @@ export const de: Record<keyof typeof en, string> = {
   'packing.flagUnusedToast': '„{item}“ als ungenutzt markiert',
   'packing.unflagUnusedToast': '„{item}“ ist nicht mehr als ungenutzt markiert',
   'packing.skipAction': 'Nicht einpacken',
+  // FR-25.25/25.26 — siehe en.ts.
+  'packing.latePackerOn': 'Spätpacker ein',
+  'packing.latePackerOff': 'Spätpacker aus',
+  'packing.clusterLatePackerOn': 'Spätpacker für alle ein',
+  'packing.clusterLatePackerOff': 'Spätpacker für alle aus',
+  'packing.clusterAssignAll': 'Alle zuweisen an …',
+  'packing.clusterScope': '{n} Zeile | {n} Zeilen',
+  'packing.fanOutApplied': '{n} Zeile geändert | {n} Zeilen geändert',
+  'packing.fanOutPartial': '{n} von {total} geändert · {who} packt gerade',
   'packing.unskipAction': 'Doch einpacken',
   'packing.skippedToast': '„{name}“ bleibt zu Hause',
   'packing.companionsAdded':
@@ -509,6 +518,7 @@ export const de: Record<keyof typeof en, string> = {
   'item.flagAsTask': 'Als Vorbereitung markieren',
   'item.companions': 'Gehört dazu',
   'item.usedBy': 'Wer braucht das?',
+  'item.assignTo': 'Jemandem zuweisen',
   'item.assignedTo': 'Zugewiesen an',
   'item.assignedToNobody': 'niemand',
   'item.luggageOptional': 'Gepäck · optional',
