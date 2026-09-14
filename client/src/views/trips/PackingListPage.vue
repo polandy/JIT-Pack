@@ -111,7 +111,7 @@ import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/sync/mutations'
 import { buildPackingView, type PackingCluster, rowEdgeAvatar } from '@/domain/packingView'
-import { rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
+import { avatarAssignable, rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
 import {
   clusterFanOut,
   clusterMenuEntries,
@@ -281,19 +281,13 @@ const assignableMembers = computed(() => {
   )
 })
 
-/**
- * FR-25.25: whether this row's edge avatar is a control. A row somebody else
- * holds is read-only (G-3), the closing pass asks a different question
- * (FR-9.3), and once the avatar names the *packing record* there is nothing
- * to pick — who packed it is not a choice (FR-25.19).
- */
+/** FR-25.25, decided in the domain (`avatarAssignable`) — see there for why. */
 function assignableRow(item: TripItem): boolean {
-  return (
-    assignableMembers.value.length > 0 &&
-    !closingPass.value &&
-    !locked(item) &&
-    item.packed_by_user_id === null
-  )
+  return avatarAssignable(item, {
+    hasAssignees: assignableMembers.value.length > 0,
+    closingPass: closingPass.value,
+    locked: locked(item),
+  })
 }
 
 /**

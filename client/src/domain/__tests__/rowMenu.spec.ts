@@ -6,7 +6,13 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { rowMenuEntries, type RowMenuAction, type RowMenuContext } from '@/domain/rowMenu'
+import {
+  avatarAssignable,
+  rowMenuEntries,
+  type AssignContext,
+  type RowMenuAction,
+  type RowMenuContext,
+} from '@/domain/rowMenu'
 
 const OPEN = { state: 'open', flag_unused: false, late_packer: false } as const
 const SKIPPED = { state: 'skipped', flag_unused: false, late_packer: false } as const
@@ -143,5 +149,41 @@ describe('rowMenuEntries (FR-5.5, FR-5.7, FR-9.3, G-3)', () => {
     )
     expect(everything.flat()).not.toContain('flagUnused')
     expect(everything.flat()).not.toContain('unflagUnused')
+  })
+})
+
+/**
+ * FR-25.25. Every answer here renders as the presence or absence of one small
+ * control, and three of the four are an *absence* — the state a screen shows
+ * by looking exactly like the state before it.
+ */
+describe('avatarAssignable (FR-25.25, FR-25.19, G-3, G-8)', () => {
+  const assignCtx = (over: Partial<AssignContext> = {}): AssignContext => ({
+    hasAssignees: true,
+    closingPass: false,
+    locked: false,
+    ...over,
+  })
+  const open = { packed_by_user_id: null }
+  const packed = { packed_by_user_id: 'user-2' }
+
+  it('an open row on a trip with other members offers the control', () => {
+    expect(avatarAssignable(open, assignCtx())).toBe(true)
+  })
+
+  it('offers nothing where there is nobody to assign to (G-8)', () => {
+    expect(avatarAssignable(open, assignCtx({ hasAssignees: false }))).toBe(false)
+  })
+
+  it('offers nothing while somebody else holds the row (G-3)', () => {
+    expect(avatarAssignable(open, assignCtx({ locked: true }))).toBe(false)
+  })
+
+  it('offers nothing in the closing pass (FR-9.3)', () => {
+    expect(avatarAssignable(open, assignCtx({ closingPass: true }))).toBe(false)
+  })
+
+  it('offers nothing once the avatar is the packing record — that is not a choice (FR-25.19)', () => {
+    expect(avatarAssignable(packed, assignCtx())).toBe(false)
   })
 })

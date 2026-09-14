@@ -49,6 +49,34 @@ export interface RowMenuContext {
 /** The row fields the menu reads; a `TripItem` satisfies it. */
 export type RowMenuItem = Pick<TripItem, 'state' | 'flag_unused' | 'late_packer'>
 
+/** The row fields the avatar rule reads; a `TripItem` satisfies it. */
+export type AssignableRowItem = Pick<TripItem, 'packed_by_user_id'>
+
+/** Everything outside the row that decides whether it can be handed over. */
+export interface AssignContext {
+  /** FR-25.19 needs somebody to hand it to; Local and Single-User Mode have nobody (G-8). */
+  hasAssignees: boolean
+  /** FR-9.3: the review posture asks a different question. */
+  closingPass: boolean
+  /** G-3: somebody else holds this row, so it reads but does not write. */
+  locked: boolean
+}
+
+/**
+ * Whether the row's edge avatar is a **control** rather than a label
+ * (FR-25.25).
+ *
+ * The last clause is the one worth stating: once the avatar names the packing
+ * *record* it offers nothing to pick, because who packed a row is not a choice
+ * (FR-25.19, invariant 3 — the server stamps it). Three of these four answers
+ * render as *nothing on the screen*, which is why the rule is here and not in
+ * the view.
+ */
+export function avatarAssignable(item: AssignableRowItem, ctx: AssignContext): boolean {
+  if (!ctx.hasAssignees || ctx.closingPass || ctx.locked) return false
+  return item.packed_by_user_id === null
+}
+
 /**
  * The entries the menu offers, in order. An empty list means **no menu at
  * all** rather than an empty one: a sheet with nothing but *Cancel* in it
