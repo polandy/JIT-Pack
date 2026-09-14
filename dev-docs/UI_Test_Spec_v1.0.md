@@ -2128,6 +2128,14 @@ against a screen rather than against a stylesheet (G-14).
   ended from M17 and the device lands on the login — and is **still** there after a reload, which is what separates
   tokens dropped from the device from a page that merely navigated. `local` has no server and `single` has no session,
   so this is the only project that can carry it.
+* **E2E-M17-17** `single` (FR-23.8, ADR-062) — **implemented 2026-09-15**, in `e2e/single/instance-update.spec.ts`:
+  an instance nobody asked to check says nothing about releases. `single` rather than `local`, because the **default**
+  is what is under test and only a real backend holds it — this project's jitpackd runs without
+  `JITPACK_UPDATE_CHECK`, so the endpoint answers `off`. The version line is asserted visible first, as the positive
+  signal: without it the three absences below would also pass on a screen that never rendered. The other three states
+  need an upstream feed that answers on demand, which no project has; they are covered against the component in
+  `views/settings/__tests__/SettingsUpdateCheck.spec.ts` — including the Local Mode case, where the assertion is that
+  **no request is made**, read off the recorded fetch calls — and against the endpoint in `internal/api/update_test.go`.
 * **Not covered here, and deliberately:** that the block is **absent** in Single-User and Local Mode. Neither project
   can render it — `single` has no session and `local` no server — so the two absence cases live in
   `views/settings/__tests__/SettingsApiTokens.spec.ts`, mutation-proved against the removed gate, because a surface that

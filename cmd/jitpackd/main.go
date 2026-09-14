@@ -16,6 +16,12 @@ import (
 	"jitpack/internal/webui"
 )
 
+// version is the release tag this binary was built from, stamped by the
+// Docker build's -ldflags (see the Dockerfile). A build that names none
+// stays "dev", and the FR-23.8 release check stays off for it: there is
+// nothing a release could be compared against.
+var version = "dev"
+
 func main() {
 	cfg, err := LoadConfig()
 	if err != nil {
@@ -46,6 +52,14 @@ func main() {
 		Currency:    cfg.Currency,
 		PushContact: cfg.PushContact,
 		AdminEmails: cfg.AdminEmails,
+		Version:     version,
+		UpdateCheck: cfg.UpdateCheck,
+	}
+	if cfg.UpdateCheck {
+		// The build names itself in the line, because that is the half an
+		// operator cannot otherwise see: an image built without a release
+		// tag makes no check at all (FR-23.8).
+		log.Printf("release check on, this build is %q (an untagged build makes no check)", version)
 	}
 	if len(cfg.AdminEmails) > 0 {
 		log.Printf("instance admins: %d address(es) (FR-23.1)", len(cfg.AdminEmails))

@@ -342,6 +342,54 @@ type InstanceConfigResponse struct {
 	Currency string `json:"currency"`
 }
 
+// --- The release check (FR-23.8) ---
+
+// UpdateState is what M17's About block says about this build. It is a
+// closed vocabulary rather than a pair of booleans because the four cases
+// are mutually exclusive, and a client rendering them by name cannot invent
+// a fifth from a combination that never occurs.
+type UpdateState string
+
+const (
+	// UpdateStateOff means this instance does not check: the operator has
+	// not turned it on, or the build names no version to compare. The
+	// client renders nothing — an unasked question has no answer.
+	UpdateStateOff UpdateState = "off"
+	// UpdateStateCurrent means the newest release upstream is this build.
+	UpdateStateCurrent UpdateState = "current"
+	// UpdateStateAvailable means a newer release exists upstream. It
+	// outranks unreachable: a known newer release stays reported when a
+	// later attempt fails, because CheckedAt already says how old the
+	// knowledge is, and withdrawing it would be less true, not more.
+	UpdateStateAvailable UpdateState = "available"
+	// UpdateStateUnreachable means the last attempt did not answer and
+	// nothing newer is known. Not an error: an instance that cannot reach
+	// GitHub is the normal case for an offline-first deployment.
+	UpdateStateUnreachable UpdateState = "unreachable"
+)
+
+// InstanceUpdateResponse says whether the instance is behind its upstream
+// releases (FR-23.8). Like InstanceConfigResponse beside it, it is answered
+// without a session and identifies no caller.
+//
+// This is not NFR-4.13's waiting build: that one is client assets this
+// instance already serves, which a device applies itself (FR-19.7). This
+// one can only be acted on by whoever runs the instance.
+type InstanceUpdateResponse struct {
+	State UpdateState `json:"state"`
+	// Current is the version this server binary was built as.
+	Current string `json:"current"`
+	// Latest is the newest release tag upstream reported, as it is
+	// written there ("v0.10.0"). Empty until one answer has arrived.
+	Latest string `json:"latest"`
+	// ReleaseURL is that release's page — the answer to the question a
+	// newer version always raises, which is what changed.
+	ReleaseURL string `json:"release_url"`
+	// CheckedAt is when the answer this response is built from arrived,
+	// RFC 3339. Empty where none ever has.
+	CheckedAt string `json:"checked_at"`
+}
+
 // SessionTokens is the first-party session pair the login broker issues.
 // ExpiresIn is the access token's lifetime in seconds.
 type SessionTokens struct {
@@ -522,6 +570,12 @@ const (
 	// /auth/config, which answers 501 in Single-User Mode and would
 	// therefore hide the settings from a mode that has them.
 	RouteInstanceConfig = "/api/v1/instance/config"
+
+	// Whether this instance is behind its upstream releases (FR-23.8).
+	// Its own path rather than a field on the config beside it: that one
+	// answers from memory at every boot, and this one can reach the
+	// network.
+	RouteInstanceUpdate = "/api/v1/instance/update"
 
 	// Outside the versioned surface on purpose: the socket carries the
 	// versioned frame in its payload, and a health probe is not an API.

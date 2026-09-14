@@ -21,7 +21,12 @@ func fullOptions() Options {
 		PushContact: "mailto:ops@example.com",
 		WSIdle:      42 * time.Millisecond,
 		AdminEmails: []string{"Andy@Example.com"},
-		Now:         func() time.Time { return fixedNow },
+		Version:     "v0.7.0",
+		UpdateCheck: true,
+		// A URL that is never fetched here: the checker is built at
+		// construction and asks upstream only when a request arrives.
+		UpdateFeedURL: "https://feed.example/releases/latest",
+		Now:           func() time.Time { return fixedNow },
 		OIDC: &OIDCConfig{
 			Discovery: Discovery{
 				Issuer:       "https://idp.example",
@@ -45,6 +50,13 @@ var applied = map[string]func(*Server) bool{
 	// Lowercased on the way in, which is what the FR-23.1 match relies on.
 	"AdminEmails": func(s *Server) bool { return s.adminEmails["andy@example.com"] },
 	"Now":         func(s *Server) bool { return s.now().Equal(fixedNow) },
+	"Version":     func(s *Server) bool { return s.version == "v0.7.0" },
+	// The checker exists only where the operator asked for one, so its
+	// presence is what UpdateCheck reaching the Server looks like.
+	"UpdateCheck": func(s *Server) bool { return s.update != nil },
+	"UpdateFeedURL": func(s *Server) bool {
+		return s.update != nil && s.update.feedURL == "https://feed.example/releases/latest"
+	},
 	"OIDC": func(s *Server) bool {
 		return s.oidc != nil && s.oidc.issuer == "https://idp.example" &&
 			s.oidc.clientID == "jitpack" && s.oidc.clientSecret == "s3cret" &&
@@ -120,5 +132,10 @@ func TestOptions_ZeroValueKeepsTheDocumentedDefaults(t *testing.T) {
 	// server answers false rather than panicking.
 	if s.adminEmails == nil || s.adminEmails["andy@example.com"] {
 		t.Error("an empty allowlist must grant no admin role (FR-23.1)")
+	}
+	// FR-23.8 is opt-in: a zero Options makes no check, so nothing about
+	// this server can reach GitHub.
+	if s.update != nil {
+		t.Error("an unconfigured instance must make no release check (FR-23.8)")
 	}
 }

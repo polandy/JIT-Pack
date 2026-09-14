@@ -770,6 +770,13 @@ export const en = {
     'The app asks which instance to use when it starts again. No data on this device is deleted.',
   'settings.about': 'About',
   'settings.aboutVersion': 'Version {version} · {commit}',
+  // FR-23.8 — this instance against the releases on GitHub.
+  'settings.updateBadge': 'New',
+  'settings.updateAvailable': '{version} available',
+  'settings.updateReleaseNotes': 'Release notes',
+  'settings.updateCurrent': 'Up to date · checked {when}',
+  'settings.updateUnreachable': 'Update check unreachable',
+  'settings.updateUnreachableSince': 'Update check unreachable · last checked {when}',
   // M23 — Hidden master data (FR-24.3): what a delete only hid, and the way back.
   'retired.title': 'Hidden master data',
   'retired.hint':

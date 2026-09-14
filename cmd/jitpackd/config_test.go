@@ -235,3 +235,36 @@ func TestLoadConfig_Currency(t *testing.T) {
 		})
 	}
 }
+
+// FR-23.8: the release check is opt-in, and the opt-in is exactly "true".
+// Anything else leaves it off — a value the operator misspelled must not
+// start contacting GitHub, and neither must an unset variable.
+func TestLoadConfig_UpdateCheck(t *testing.T) {
+	cases := []struct {
+		name string
+		raw  string
+		want bool
+	}{
+		{name: "unset stays off", raw: "", want: false},
+		{name: "true turns it on", raw: "true", want: true},
+		{name: "yes is not true", raw: "yes", want: false},
+		{name: "TRUE is not true", raw: "TRUE", want: false},
+		{name: "false stays off", raw: "false", want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{
+				"JITPACK_SINGLE_USER":   "true",
+				"JITPACK_LOCAL_USER_ID": "local",
+				"JITPACK_UPDATE_CHECK":  tc.raw,
+			}
+			cfg, err := loadConfigFrom(func(key string) string { return env[key] })
+			if err != nil {
+				t.Fatalf("loadConfigFrom(%q): %v", tc.raw, err)
+			}
+			if cfg.UpdateCheck != tc.want {
+				t.Errorf("UpdateCheck = %v, want %v", cfg.UpdateCheck, tc.want)
+			}
+		})
+	}
+}

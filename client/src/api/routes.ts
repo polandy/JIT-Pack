@@ -77,6 +77,12 @@ export const API = {
   // therefore hide the settings from a mode that has them.
   instanceConfig: '/api/v1/instance/config',
 
+  // Whether this instance is behind its upstream releases (FR-23.8).
+  // Its own path rather than a field on the config beside it: that one
+  // answers from memory at every boot, and this one can reach the
+  // network.
+  instanceUpdate: '/api/v1/instance/update',
+
   // Outside the versioned surface on purpose: the socket carries the
   // versioned frame in its payload, and a health probe is not an API.
   ws: '/ws',

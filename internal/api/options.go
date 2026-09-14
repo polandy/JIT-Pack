@@ -35,6 +35,19 @@ type Options struct {
 	// which is what production passes — the field exists so a test can
 	// assert an exact timestamp instead of asserting one is non-empty.
 	Now func() time.Time
+	// Version is what this build calls itself — the release tag the
+	// image was built from, e.g. "v0.10.0". Empty, or anything that is
+	// not a release tag, leaves the FR-23.8 check off: a build with no
+	// version has nothing to compare against.
+	Version string
+	// UpdateCheck turns on the FR-23.8 release check. Off by default,
+	// and the default is the decision: a self-hosted, offline-first
+	// instance does not contact GitHub unless its operator says so.
+	UpdateCheck bool
+	// UpdateFeedURL overrides where that check reads its answer, so a
+	// test can drive every one of its states without a network. Empty
+	// means defaultUpdateFeedURL, which is what production passes.
+	UpdateFeedURL string
 	// OIDC turns on the /auth/token, /auth/refresh and /auth/config
 	// endpoints, brokering logins against the discovered IdP as a
 	// confidential client (client_secret_basic, ADR-007). Nil leaves

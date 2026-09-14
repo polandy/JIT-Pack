@@ -26,8 +26,8 @@
  * connection altogether and be asked again.
  */
 import { API } from '@/api/routes'
-import { API_TOKEN_EXPIRY } from '@/api/types'
-import type { APITokenExpiry } from '@/api/types'
+import { API_TOKEN_EXPIRY, UPDATE_STATE } from '@/api/types'
+import type { APITokenExpiry, InstanceUpdateResponse } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -73,7 +73,15 @@ import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { currentTheme, setTheme } from '@/theme/theme'
-import { type Locale, type MessageKey, currentLocale, formatNumber, setLocale, t } from '@/i18n'
+import {
+  type Locale,
+  type MessageKey,
+  currentLocale,
+  formatDate,
+  formatNumber,
+  setLocale,
+  t,
+} from '@/i18n'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import ApiTokenSheet from '@/components/settings/ApiTokenSheet.vue'
@@ -113,6 +121,7 @@ const avatarVersion = ref(0)
 
 onMounted(async () => {
   await loadIdentity()
+  await loadInstanceUpdate()
   nameDraft.value = me.value?.display_name ?? ''
   if (collaborative) {
     prefs.value = await orchestrator.fetchNotificationPrefs()
@@ -335,6 +344,44 @@ const modeText = computed(() =>
 // since this names the build itself rather than anything server-side.
 const appVersionText = computed(() =>
   t('settings.aboutVersion', { version: __APP_VERSION__, commit: __APP_COMMIT__ }),
+)
+
+/*
+ * FR-23.8 — whether the instance is behind its upstream releases.
+ *
+ * Read once per app start rather than on every entry: the server answers
+ * from a day-old cache anyway, and this line is read when somebody comes
+ * looking. Server Mode only — Local Mode has no server to ask, and the
+ * line is then absent rather than broken (invariant 5, G-8). A failure
+ * leaves it absent too: an instance that cannot answer says nothing, which
+ * is what the `off` state already looks like.
+ *
+ * Deliberately not NFR-4.13's waiting build (FR-19.7): that one every
+ * device applies for itself, so it is a banner. This one only whoever runs
+ * the instance can act on, so it is a line where they already look.
+ */
+const instanceUpdate = ref<InstanceUpdateResponse | null>(null)
+
+async function loadInstanceUpdate() {
+  if (mode !== 'server') return
+  try {
+    const resp = await fetch(`${serverBaseUrl()}${API.instanceUpdate}`)
+    if (resp.ok) instanceUpdate.value = await resp.json()
+  } catch {
+    // Server unreachable — the line stays away rather than guessing.
+  }
+}
+
+/** The moment the answer on screen came from, in the app's locale (UX-5). */
+const updateCheckedAt = computed(() => {
+  const at = instanceUpdate.value?.checked_at
+  return at ? formatDate(new Date(at), { dateStyle: 'short', timeStyle: 'short' }) : ''
+})
+
+const updateUnreachableText = computed(() =>
+  updateCheckedAt.value
+    ? t('settings.updateUnreachableSince', { when: updateCheckedAt.value })
+    : t('settings.updateUnreachable'),
 )
 /**
  * Re-read the stamp whenever the screen is entered. The backup that clears
@@ -897,6 +944,36 @@ async function exportTripCSV() {
             <h3>JIT-Pack</h3>
             <p>{{ modeText }}</p>
             <p data-testid="settings-app-version">{{ appVersionText }}</p>
+            <!-- FR-23.8: nothing at all where the instance makes no check. -->
+            <p
+              v-if="instanceUpdate?.state === UPDATE_STATE.available"
+              class="update-available"
+              data-testid="settings-update-available"
+            >
+              <span class="jp-eyebrow update-badge">{{ t('settings.updateBadge') }}</span>
+              <span>{{ t('settings.updateAvailable', { version: instanceUpdate.latest }) }}</span>
+              <a
+                :href="instanceUpdate.release_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="settings-update-link"
+                >{{ t('settings.updateReleaseNotes') }}</a
+              >
+            </p>
+            <p
+              v-else-if="instanceUpdate?.state === UPDATE_STATE.current"
+              class="update-current"
+              data-testid="settings-update-current"
+            >
+              {{ t('settings.updateCurrent', { when: updateCheckedAt }) }}
+            </p>
+            <p
+              v-else-if="instanceUpdate?.state === UPDATE_STATE.unreachable"
+              class="update-unreachable"
+              data-testid="settings-update-unreachable"
+            >
+              {{ updateUnreachableText }}
+            </p>
           </IonLabel>
         </IonItem>
       </IonList>
@@ -922,6 +999,48 @@ async function exportTripCSV() {
 .diagnostic {
   /* A URL is read out or copied from this line, never wrapped by hand. */
   overflow-wrap: anywhere;
+}
+
+/*
+ * FR-23.8's line. Larch (the brand) rather than a warning colour: a release
+ * is not a fault, and the one thing the reader does here is decide whether
+ * to look at what changed.
+ */
+.update-available {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/*
+ * The type is the G-13 eyebrow role, so this block decides nothing about
+ * it. The one thing it overrides is the role's recessive colour: here the
+ * label *is* the signal, and the role's own note is why that override is
+ * spelled out rather than left to look like an accident.
+ */
+.update-badge {
+  color: var(--jp-brand);
+  border: 1px solid var(--jp-brand);
+  border-radius: var(--jp-r-xs);
+  padding: 1px 6px;
+}
+
+.update-available a {
+  color: var(--jp-action);
+}
+
+.update-current {
+  color: var(--jp-done);
+}
+
+/*
+ * An instance that cannot reach GitHub is the normal case for an
+ * offline-first deployment, so this is the recessive ink and not a danger
+ * colour.
+ */
+.update-unreachable {
+  color: var(--ct-overlay1);
 }
 
 .section-hint {

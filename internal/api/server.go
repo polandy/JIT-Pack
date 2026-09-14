@@ -51,6 +51,13 @@ type Server struct {
 	vapidMu     sync.Mutex
 	vapidPub    string
 	vapidPriv   string
+	// version is the release tag this binary was built as (Options.Version);
+	// empty in a build that names none.
+	version string
+	// update answers the FR-23.8 release check, nil where the instance
+	// does not make one — which is the default and every build whose
+	// version cannot be compared.
+	update *updateChecker
 	// adminEmails (FR-23.1): the lowercased Options.AdminEmails
 	// allowlist, matched against the token's email claim.
 	adminEmails map[string]bool
@@ -110,6 +117,7 @@ func newServer(st *store.Store, opts Options) *Server {
 		wsIdleOverride: opts.WSIdle,
 		adminEmails:    emailSet(opts.AdminEmails),
 		now:            opts.Now,
+		version:        opts.Version,
 	}
 	// The gate reads s.identity, which both constructors fill in after
 	// this one returns — a method value is what makes that legal.
@@ -117,6 +125,10 @@ func newServer(st *store.Store, opts Options) *Server {
 	if s.now == nil {
 		s.now = time.Now
 	}
+	// After the clock is settled, and reading it through a closure rather
+	// than by value: the checker's idea of "a day ago" must be the
+	// server's own clock, including the one a test injects (G-4).
+	s.update = newUpdateChecker(opts, func() time.Time { return s.now() })
 	if opts.OIDC != nil {
 		s.oidc = newOIDCBroker(*opts.OIDC)
 	}
@@ -231,6 +243,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodPost, RouteAuthRefresh), s.handleAuthRefresh)
 	mux.HandleFunc(pattern(http.MethodGet, RouteAuthConfig), s.handleAuthConfig)
 	mux.HandleFunc(pattern(http.MethodGet, RouteInstanceConfig), s.handleInstanceConfig)
+	mux.HandleFunc(pattern(http.MethodGet, RouteInstanceUpdate), s.handleInstanceUpdate)
 	mux.HandleFunc(pattern(http.MethodGet, RouteWS), s.wsAuth(s.handleWS))
 	mux.HandleFunc(pattern(http.MethodGet, RouteHealth), func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
