@@ -573,6 +573,21 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     })
   })
 
+  it('offers no selection at all while there is nothing to select', async () => {
+    const page = mountPage()
+    await flushPromises()
+
+    // The empty inventory renders G-7, and an action over a selection that
+    // cannot exist is the same offer the sheets refuse to make.
+    expect(page.find('[data-testid="m9-empty"]').exists()).toBe(true)
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    expect(build().map((action) => action.id)).not.toContain('m9-select')
+
+    seedItem('Sonnencreme', 'i1')
+    await flushPromises()
+    expect(build().map((action) => action.id)).toContain('m9-select')
+  })
+
   it('arms from the app bar, stops the rows navigating, and takes what is on screen', async () => {
     seedThree()
 

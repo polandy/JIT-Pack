@@ -179,7 +179,14 @@ setHeaderActions(() => {
    * FR-24.9. Third and last glyph the bar renders before the ⋮ (ADR-050),
    * and it earns the place: it is the entrance to the only way out of a
    * 49-item „Diverses" that does not cost 49 round trips through M10.
+   *
+   * Absent while the inventory is empty — an action over a selection that
+   * cannot exist is the same offer the sheets refuse to make, and it is what
+   * kept `tab-items`' visual baseline from changing for a screen whose
+   * content did not.
    */
+  if (isEmpty.value) return [eye, sortAction]
+
   const select: HeaderAction = {
     id: 'm9-select',
     icon: checkboxOutline,
