@@ -1381,6 +1381,44 @@ instance-admin role — accordingly stays declarative and out of the UI entirely
   answering *what exists*. The `jti` ships anyway, so a denylist stays addable later without invalidating tokens already
   issued.
 
+* **FR-23.8 (Knowing the Instance Is Behind Upstream — new and implemented 2026-09-15):** An instance can tell its
+  operator that a **newer release exists on GitHub**. It is **off unless `JITPACK_UPDATE_CHECK=true`**, and the
+  default is the decision, not an omission: a self-hosted, offline-first application contacts a third party because
+  its operator asked it to, never because it was installed (ADR-062).
+
+  **This is not NFR-4.13's waiting build, and the difference decides the shape.** FR-19.7's banner is about client
+  assets *this instance already serves*, which the device seeing it applies itself. A new release can be applied by
+  exactly one person — whoever pulls the image — so a banner on every family member's phone would promise an action
+  nobody but them can take. It is therefore **one line in M17's About block**, where the operator already looks, and
+  it is never a banner, a toast or a badge.
+
+  **The server asks, once a day.** The binary carries its own release tag, stamped at build time, and asks GitHub's
+  `releases/latest` at most every 24 hours, lazily — an instance whose settings screen nobody opens makes no request
+  at all. The endpoint is `GET /api/v1/instance/update`, unauthenticated like `/instance/config` beside it: it names
+  no caller, Single-User Mode has no session to present (invariant 5), and the version it reports is the one the app
+  bar already shows to anybody who loads the client. Asking from the browser instead was rejected in ADR-062 — a
+  household behind one NAT would spend the unauthenticated rate limit device by device, and every device would tell
+  GitHub that this household runs JIT-Pack.
+
+  **Four states, and a fifth that renders nothing.** `available` names the new release and links to its notes —
+  because the question a newer version always raises is what changed; `current` says so with the moment the answer
+  was obtained, since *"up to date"* with no age is a claim nobody can judge; `unreachable` reports that the check
+  did not get an answer, in recessive ink and not as an error, because an instance that cannot reach GitHub is the
+  normal case for an offline-first deployment; `off` renders nothing at all, which is also what a build that names
+  no release tag produces — every locally built binary — since there is nothing to compare it against.
+
+  **The link is checked before it is passed on.** It arrives from off the network and is rendered as an `href`, so a
+  release whose URL is not an absolute `https` one loses its link and keeps its version — the useful half stands on
+  its own, and a scheme a browser would execute never reaches a screen.
+
+  **Two rules inside the answer:** a release already known **outranks** a later failed check (the release did not
+  stop existing, and the reported check time says how old the knowledge is), and a tag that cannot be parsed is
+  never reported as an update — *"cannot compare"* reaching a person as *"you are behind"* is the one failure here
+  that costs something.
+
+  **Mode behaviour (invariant 5, G-8):** Server and Single-User Mode both have a server to ask, so both can carry
+  the line. **Local Mode has none**, and asks nothing at all — the line is absent rather than broken.
+
 **Architecture notes for implementation:**
 * **Data model:** one migration — `users` gains `is_instance_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_instance_admin
   IN (0,1))` and `deactivated_at TEXT` (NULL = active; the timestamp doubles as audit information for the overview).

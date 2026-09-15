@@ -21,6 +21,7 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_ADMIN_EMAILS` | no | — | Comma-separated e-mail addresses that hold the instance-admin role, matched case-insensitively against the **verified** address the IdP reports. See [Instance admins](#instance-admins). |
 | `JITPACK_PUSH_CONTACT` | no | — | Operator contact for Web Push, used as the VAPID `sub` claim shown to push services, e.g. `mailto:ops@example.com`. The VAPID keypair itself is generated and persisted on first use — there is nothing else to configure. |
 | `JITPACK_WEB_ROOT` | no | — | Directory holding the built client, served on the same origin as the API. The published image sets it to `/srv/web`, so a container needs nothing here. Unset, the server answers the API alone — the shape for a deployment whose own web server or CDN serves the static files. A path with no `index.html` in it is a **startup error**, not a white page. |
+| `JITPACK_UPDATE_CHECK` | no | `false` | The literal string `true` lets the server ask GitHub once a day whether a newer release exists, and Settings then says so. Anything else — unset included — means the instance contacts nothing. See [Release check](#release-check). |
 | `JITPACK_CURRENCY` | no | — | The currency your item values are in, as a three-letter ISO 4217 code such as `CHF` or `EUR`. Amounts are shown with it everywhere they appear. Leave it unset and amounts stay bare numbers. See [Currency](#currency). |
 
 Trailing slashes on `JITPACK_OIDC_ISSUER` are stripped before use, so `https://auth.example.com/` and `https://auth.example.com` are equivalent.
@@ -145,6 +146,27 @@ Three things worth knowing before you set it:
 - **A typo stops the server.** `JITPACK_CURRENCY=EURO` or `JITPACK_CURRENCY=€` refuses to start, and says so. That is deliberate: the alternative is a server that starts fine and quietly shows no currency at all, leaving you to guess why.
 
 Leaving it unset is a normal choice. Amounts then appear as bare numbers, exactly as they did before this setting existed.
+
+## Release check
+
+JIT-Pack never tells you that a new version exists unless you ask it to:
+
+```bash
+JITPACK_UPDATE_CHECK=true
+```
+
+With it set, the server asks GitHub for the newest release **at most once a day**, and only when somebody actually opens **Settings → About** — an instance nobody looks at makes no request at all. The answer appears as one line under the version:
+
+- **`v0.10.0 available`**, with a link to that release's notes. Pulling it is [an upgrade](upgrades.md), with everything that page says about doing it deliberately.
+- **`Up to date`**, with the time the answer was obtained — so you can tell a fresh confirmation from a stale one.
+- **`Update check unreachable`**, if the request did not get through. That is not an error on your side: an instance without outbound internet access can only ever report this, which is a good reason to leave the setting off there.
+
+Four things worth knowing:
+
+- **It is a line, not a notification.** Nobody is nagged, and nothing pops up — including for the people using the instance, who cannot pull a new image anyway.
+- **What GitHub gets to see.** The request asks a public question about a public repository, and carries nothing about your data or the people using it. It does identify itself the way HTTP clients do — `User-Agent: jitpackd/<your version>` — so what is visible on the other side is that an address running this version asked, once a day.
+- **It only works on a released image.** The check compares the release tag the image was built from, so `ghcr.io/polandy/jit-pack:0.7.0` can answer and a server you built yourself from a working copy cannot — that one simply shows no line. The startup log names the build so you can see which case you are in.
+- **The version in the app is not this.** The banner that offers to apply a waiting update is about the app in your browser catching up with the server you already run. This line is about the server itself being behind.
 
 ## Instance admins
 

@@ -85,6 +85,18 @@ async function freeze(page: Page) {
     // Date.now() untouched (freezing it breaks the Local Mode write path
     // — see the header), so the seam is exactly as wide as the defect.
     Date.prototype.getHours = () => 9
+    // The G-2 sheet prints the browser's storage estimate, and a Chromium
+    // derives its quota from the *runner's* free disk: 6,144 MB on one
+    // machine and 3,072 MB on the next, for the same bundle. Both numbers
+    // then land in a baseline that only one machine can reproduce, and the
+    // remainder of the budget is what decided whether a run went red —
+    // g2-sheet.png failed by 11 pixels on 2026-09-15 for this and nothing
+    // else. Removed rather than masked, like the ids above: the pair below
+    // renders exactly what the recorded baseline holds, so the line keeps
+    // its own rendering in the image and loses only the machine.
+    if (navigator.storage) {
+      navigator.storage.estimate = () => Promise.resolve({ usage: 104_858, quota: 6_442_555_802 })
+    }
   })
 }
 

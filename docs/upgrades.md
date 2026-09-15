@@ -13,6 +13,12 @@ The refused file is left byte-for-byte as it was, so nothing is lost at that mom
 
 This is planned to change at 1.0, when upgrades will carry the database forward. Until then, treat every image bump as potentially breaking and follow the steps below.
 
+## Knowing a new version is out
+
+Nothing tells you by default. If you want the instance to say so, set [`JITPACK_UPDATE_CHECK=true`](configuration.md#release-check): **Settings → About** then carries a line naming the newest release, with a link to its notes. It asks GitHub at most once a day, only when somebody opens that screen, and only on an instance running a released image.
+
+It is deliberately quiet — a line, never a notification — because pulling a new image is your decision, and the rest of this page is why it should stay one.
+
 ## Export before you pull
 
 Whether a given release actually changed the schema is not something you can tell from the version number, so the safe routine assumes it did. **Do the exports while the old version is still running** — afterwards, the data is only reachable by rolling the image back.

@@ -33,12 +33,18 @@ RUN npm run build
 # (ADR-001).
 FROM golang:1.27-alpine@sha256:4c9fe60190a2a3350ddc51de80d0224b8a6698d12bdfc999fee45ea9d6c46dbc AS build
 
+# The server names its own build too (FR-23.8): the release check compares
+# this tag against the newest release upstream, and a build that carries no
+# tag makes no check. Same arg as the client stage above, declared again
+# because ARG scope ends with the stage.
+ARG APP_VERSION=dev
+
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /jitpackd ./cmd/jitpackd
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${APP_VERSION}" -o /jitpackd ./cmd/jitpackd
 
 # Runtime stage
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b

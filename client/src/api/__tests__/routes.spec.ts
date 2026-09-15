@@ -90,6 +90,7 @@ describe('API routes', () => {
       authRefresh: '/api/v1/auth/refresh',
       authConfig: '/api/v1/auth/config',
       instanceConfig: '/api/v1/instance/config',
+      instanceUpdate: '/api/v1/instance/update',
       ws: '/ws',
       health: '/health',
     })

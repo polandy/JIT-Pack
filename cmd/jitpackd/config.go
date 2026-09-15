@@ -51,6 +51,12 @@ type Config struct {
 	// SPA with its own web server still wants.
 	WebRoot string // JITPACK_WEB_ROOT
 
+	// UpdateCheck turns on the FR-23.8 release check: once a day, the
+	// server asks GitHub whether a newer release exists and M17 says so.
+	// Off unless the value is exactly "true" — a self-hosted, offline-first
+	// instance contacts nothing its operator did not ask it to.
+	UpdateCheck bool // JITPACK_UPDATE_CHECK, "true" enables
+
 	// Instance admins (FR-23.1): comma-separated e-mail addresses,
 	// matched case-insensitively against the verified email the UserInfo
 	// endpoint reports at login. Empty ⇒ the feature is dormant.
@@ -80,6 +86,8 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		PushContact: getenv("JITPACK_PUSH_CONTACT"),
 
 		WebRoot: getenv("JITPACK_WEB_ROOT"),
+
+		UpdateCheck: getenv("JITPACK_UPDATE_CHECK") == "true",
 
 		AdminEmails: splitList(getenv("JITPACK_ADMIN_EMAILS")),
 	}

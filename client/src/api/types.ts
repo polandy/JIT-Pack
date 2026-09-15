@@ -372,6 +372,45 @@ export interface InstanceConfigResponse {
 }
 
 /**
+ * UpdateState is what M17's About block says about this build. It is a
+ * closed vocabulary rather than a pair of booleans because the four cases
+ * are mutually exclusive, and a client rendering them by name cannot invent
+ * a fifth from a combination that never occurs.
+ */
+export type UpdateState = 'off' | 'current' | 'available' | 'unreachable'
+
+export const UPDATE_STATE = {
+  off: 'off',
+  current: 'current',
+  available: 'available',
+  unreachable: 'unreachable',
+} as const
+
+/**
+ * InstanceUpdateResponse says whether the instance is behind its upstream
+ * releases (FR-23.8). Like InstanceConfigResponse beside it, it is answered
+ * without a session and identifies no caller.
+ *
+ * This is not NFR-4.13's waiting build: that one is client assets this
+ * instance already serves, which a device applies itself (FR-19.7). This
+ * one can only be acted on by whoever runs the instance.
+ */
+export interface InstanceUpdateResponse {
+  state: UpdateState
+  // Current is the version this server binary was built as.
+  current: string
+  // Latest is the newest release tag upstream reported, as it is
+  // written there ("v0.10.0"). Empty until one answer has arrived.
+  latest: string
+  // ReleaseURL is that release's page — the answer to the question a
+  // newer version always raises, which is what changed.
+  release_url: string
+  // CheckedAt is when the answer this response is built from arrived,
+  // RFC 3339. Empty where none ever has.
+  checked_at: string
+}
+
+/**
  * SessionTokens is the first-party session pair the login broker issues.
  * ExpiresIn is the access token's lifetime in seconds.
  */

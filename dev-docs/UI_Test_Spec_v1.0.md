@@ -2141,6 +2141,14 @@ against a screen rather than against a stylesheet (G-14).
   ended from M17 and the device lands on the login — and is **still** there after a reload, which is what separates
   tokens dropped from the device from a page that merely navigated. `local` has no server and `single` has no session,
   so this is the only project that can carry it.
+* **E2E-M17-17** `single` (FR-23.8, ADR-062) — **implemented 2026-09-15**, in `e2e/single/instance-update.spec.ts`:
+  an instance nobody asked to check says nothing about releases. `single` rather than `local`, because the **default**
+  is what is under test and only a real backend holds it — this project's jitpackd runs without
+  `JITPACK_UPDATE_CHECK`, so the endpoint answers `off`. The version line is asserted visible first, as the positive
+  signal: without it the three absences below would also pass on a screen that never rendered. The other three states
+  need an upstream feed that answers on demand, which no project has; they are covered against the component in
+  `views/settings/__tests__/SettingsUpdateCheck.spec.ts` — including the Local Mode case, where the assertion is that
+  **no request is made**, read off the recorded fetch calls — and against the endpoint in `internal/api/update_test.go`.
 * **Not covered here, and deliberately:** that the block is **absent** in Single-User and Local Mode. Neither project
   can render it — `single` has no session and `local` no server — so the two absence cases live in
   `views/settings/__tests__/SettingsApiTokens.spec.ts`, mutation-proved against the removed gate, because a surface that
@@ -3078,6 +3086,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-23.4 | E2E | M20-03 (name), M20-03b (avatar) |
 | FR-23.5 | E2E | M20-04 |
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02, and that a re-login does not undo it by M20-06 |
+| FR-23.8 | E2E+UNIT | M17-17 (`single`: an instance that was not asked to check says nothing, with the version line as the positive signal). The other three states need a release feed that answers on demand, which no project has: `views/settings/__tests__/SettingsUpdateCheck.spec.ts` renders all four plus Local Mode, where the assertion is that **no request is made**, and `internal/api/update_test.go` drives the endpoint — the day-long interval and the failed-check rules on an injected clock, the link hardening, and the check outliving the request that triggered it |
 | FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
 | FR-24.3 | E2E+UNIT | M10-14 (a referenced item is hidden and still resolves in its group), M10-15 (an unreferenced one is really gone, and its name is free again), M7-11 (the Vorlage confirm states which deletion it is), **M23-01/02/03/04** (the restore, the collision and its rename, that a retired row can still be removed for good, and the Vorlage half — retired by a trip, listed on its own segment, restored); `domain/masterDeletion` + `domain/masterRestore` and `composables/lifecycleDelete` + `composables/lifecycleRestore` (both rules, both branches, and that resolution/export keep seeing retired rows); store-side both branches **and the restore** in Go, including a colliding restore rejected as `constraint_violated` with the row left retired |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |

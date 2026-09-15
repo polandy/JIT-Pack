@@ -21,6 +21,8 @@ replaced and why. This index only says where to look.
   (ADR-049). **G-11**: the palette is *Bergluft* (ADR-048).
 * 2026-09-10 — **G-18** added: a create that leaves the screen happens once. **M5**: the context line's amount is an
   amount like every other (FR-21.9), and the FR-20.4 chip writes the position the resolution describes.
+* 2026-09-15 — **M17**: the About block gains the FR-23.8 release line (ADR-062), absent wherever the instance makes
+  no check.
 * 2026-09-13 — **G-2**: the detail names the last failed request (FR-19.6). **M17** gains the Connection block —
   log out, reset connection (FR-19.9).
 * 2026-09-13 — **G-19** added: a banner that can arrive while a screen is in use renders over the content, never in
@@ -1878,6 +1880,20 @@ already carries the tag's own `v` from both sources (`git describe --tags`, and 
 `APP_VERSION=${{ github.ref_name }}`), so no surface prepends another — the bar did until 2026-09-13 and every
 build, the shipped image included, read `vv0.10.0-…` (E2E-G9-21). A Docker-built image gets it from the build
 args the release workflow passes in, since that build stage has no `.git` to read.
+
+**The release line (FR-23.8, ADR-062) — added 2026-09-15.** One line under the version, in the About block, saying
+whether a **newer release exists upstream**. Present only where the instance makes that check: it is off unless the
+operator set `JITPACK_UPDATE_CHECK`, and Local Mode has no server to ask, so in both cases nothing is rendered — not
+a disabled row, not a placeholder (G-8). Where it does render it takes one of three shapes. **A newer release:** a
+small *Neu* chip in the brand hue (`--jp-brand`, G-11 — a release is not a fault, so it is never the warning
+colour), the tag as upstream writes it (*„v0.10.0 verfügbar"* — the string carries its own `v`, see the version line
+above), and a link to that release's notes, because *what changed* is the question a new version always raises.
+**Up to date:** the done hue, with the moment the answer was obtained — *„Aktuell · geprüft 14.09.26, 04:12"* —
+since a claim of currency with no age cannot be judged. **No answer:** recessive ink, never the danger hue, because
+an instance that cannot reach GitHub is the ordinary case for an offline-first deployment; it names the last
+successful check where there was one. **It is a line and never a bar**, which is what separates it from FR-19.7's
+update banner two blocks up: that one is applied by the device that sees it, and this one only by whoever pulls the
+image.
 
 **Leaving Local Mode (FR-19.8, ADR-045) — added 2026-09-02.** A card *„Auf einen Server umziehen"* at the end of the
 **Local Mode** data section, absent in every other mode (G-8). It carries three numbered steps and states, above them,

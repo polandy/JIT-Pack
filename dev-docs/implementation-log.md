@@ -381,6 +381,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The inventory's tools stopped leaving with the list (2026-09-13)](#the-inventorys-tools-stopped-leaving-with-the-list-2026-09-13) — FR-24.6/24.7; the G-12 exception, two sort options that were refused, and a focus test that could not fail.
 - [The swipe axis was a filter nobody filtered with (2026-09-13)](#the-swipe-axis-was-a-filter-nobody-filtered-with-2026-09-13) — FR-24.8; why the replacement is navigation, the three options that lost, and a jump clamped by an overlay.
 - [Forty-nine items, one act (2026-09-14)](#forty-nine-items-one-act-2026-09-14) — FR-24.9; why assigning a tag moved nothing, and the undo that stops at the delete.
+- [The instance learned to say it was behind (2026-09-15)](#the-instance-learned-to-say-it-was-behind-2026-09-15) — FR-23.8; why the check is the server's, not the browser's, and a build arg whose scope ended with its stage.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15522,7 +15523,6 @@ The fix keeps the chosen key until the sheet reports it is gone. What is worth w
 cannot catch this**: on any list an e2e builds through the UI the whole distance is inside the clamp, so the case
 passes against the defect. It was found by rendering the real instance, and the rule is now a unit test that asserts
 nothing scrolls before the dismissal — the e2e keeps the outcome, the unit keeps the ordering.
-
 ## Forty-nine items, one act (2026-09-14)
 
 The selection mode exists for one number: **49 of 184** items sit in „Diverses" on the family instance, and refiling
@@ -15552,3 +15552,47 @@ noticed.
 **A `MutationOp` that does not exist.** `moveTag` was written as `make('update', …)` and the type refused it: the
 protocol has `upsert`, `insert` and `delete` and nothing else. That is worth writing down because the mistake is
 invisible in review — every *action* in the client is called an update, and only the wire vocabulary says otherwise.
+
+## The instance learned to say it was behind (2026-09-15)
+
+FR-23.8, ADR-062. M17's About block can now say that a newer release exists on GitHub. The diff shows the endpoint,
+the line and the opt-in; what it cannot show is why the check runs where it does and what the answer refuses to say.
+
+**The browser was the obvious place, and the wrong one.** The client already knows its own build — a `fetch` from
+the settings screen would have been the whole feature, with no endpoint, no environment variable and no version
+stamped into the binary. It loses on two counts that only show up at a household's scale. GitHub's unauthenticated
+API allows **60 requests an hour per IP**, and five phones behind one NAT are one IP spending them on a question
+whose answer changes monthly; worse, every device would tell GitHub that this household runs JIT-Pack, and no
+operator setting could stop it centrally. The server asks once a day for everyone, or — by default — never.
+
+**Off by default is the decision, not an omission.** An instance that contacts a third party because it was
+installed would cost the first thing every other claim in the manual depends on. The price is real and was paid
+knowingly: an operator who does not read the manual never learns the check exists, which is exactly the operator
+running a year-old image.
+
+**Two rules inside the answer, both about not lying.** A release already known **outranks** a later failed check:
+when yesterday's answer was `v0.10.0` and today's attempt times out, the state stays `available`, because the
+release did not stop existing and the reported check time already says how old the knowledge is — withdrawing it
+would be less true, not more. And a tag that cannot be parsed is never an update. `newerVersion` returns false for
+an unreadable version on *either* side, so `dev`, `nightly` and a truncated tag all fall silent; *"cannot compare"*
+reaching a person as *"you are behind"* is the one failure here that costs anything.
+
+**Why a line and not a bar.** The app already has an update banner — FR-19.7, for a client build this instance
+already serves, which the device seeing it applies itself. A new release can be applied by exactly one person, so
+the same shape would have promised every family member an action only the operator can take. It is one line, in the
+one block that person already opens.
+
+**The trap the Dockerfile has to keep avoiding: an `ARG` dies with its stage.** `APP_VERSION` was already passed
+into the client stage, so stamping the server looks like a one-line `-ldflags` change — and it is not: a build arg
+is scoped to the stage that declares it, so a Go stage that does not redeclare it compiles a binary whose version
+is the empty string. The failure that follows is silent by design. An unparsable version turns the check *off*
+rather than breaking it, so the feature would do nothing on exactly the artefact it exists for, and no test would
+be red. The stage therefore declares its own `ARG APP_VERSION=dev`, and the startup log names the build when the
+check is on, so the one case that cannot announce itself is visible in the place an operator already reads.
+
+**What no Playwright project can cover.** Three of the four states need an upstream feed that answers on demand,
+and none of the projects can serve one. The default — an instance nobody asked to check saying nothing — is
+E2E-M17-17 against a real backend in `single`; the states are covered against the endpoint in Go with a fake feed
+and an injected clock, and against the component in Vitest. The Local Mode case is asserted as **no request having
+been made**, read off the recorded fetch calls, because the absence of a line there would also pass on a screen
+that never rendered.

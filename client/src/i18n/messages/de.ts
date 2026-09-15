@@ -802,6 +802,13 @@ export const de: Record<keyof typeof en, string> = {
     'Beim nächsten Start fragt die App erneut, welche Instanz verwendet werden soll. Auf dem Gerät wird nichts gelöscht.',
   'settings.about': 'Über',
   'settings.aboutVersion': 'Version {version} · {commit}',
+  // FR-23.8 — die Instanz gegenüber den Releases auf GitHub.
+  'settings.updateBadge': 'Neu',
+  'settings.updateAvailable': '{version} verfügbar',
+  'settings.updateReleaseNotes': 'Release Notes',
+  'settings.updateCurrent': 'Aktuell · geprüft {when}',
+  'settings.updateUnreachable': 'Update-Prüfung nicht erreichbar',
+  'settings.updateUnreachableSince': 'Update-Prüfung nicht erreichbar · zuletzt geprüft {when}',
   // M23 — Ausgeblendete Stammdaten (FR-24.3).
   'retired.title': 'Ausgeblendete Stammdaten',
   'retired.hint':
