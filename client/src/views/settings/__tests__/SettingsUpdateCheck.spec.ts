@@ -113,6 +113,18 @@ describe('M17 release check (FR-23.8)', () => {
     )
   })
 
+  it('still names the release when the server passed on no link', async () => {
+    // The server drops a release URL that is not an absolute https one, so
+    // this state is reachable — and the version is the half worth keeping.
+    serveUpdate(answer({ state: 'available', latest: 'v0.10.0', release_url: '' }))
+    const wrapper = await mountSettings()
+
+    expect(wrapper.find('[data-testid="settings-update-available"]').text()).toContain(
+      'v0.10.0 available',
+    )
+    expect(wrapper.find('[data-testid="settings-update-link"]').exists()).toBe(false)
+  })
+
   it('says when the confirmation that nothing is newer was obtained', async () => {
     serveUpdate(answer({ state: 'current', latest: 'v0.7.0', checked_at: '2026-09-14T04:12:00Z' }))
     const wrapper = await mountSettings()
