@@ -23,7 +23,15 @@ import {
   restoreVerdict,
   type RestoreVerdict,
 } from '@/domain/masterRestore'
-import { assignmentOf, primaryPosition } from '@/domain/tags'
+import {
+  assignmentOf,
+  planTagMerge,
+  planTagReorder,
+  primaryPosition,
+  tagDeletion,
+  TAG_DELETE_REFUSED,
+} from '@/domain/tags'
+import { findNameCollision } from '@/domain/nameCollision'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
@@ -43,6 +51,20 @@ export interface DeletionOutlook {
   references: number
   certain: boolean
 }
+
+/**
+ * What a rename answered (FR-24.10). The refusal carries the *name* of the
+ * tag already holding it rather than its id: the screen says it out loud,
+ * and an id would make the caller look it up again to do so.
+ */
+export type TagRenameResult = { ok: true } | { ok: false; collision: string }
+
+/**
+ * What a delete answered (FR-24.10, ADR-063). A refusal carries how many
+ * items carry the tag, because „still in use" without a number tells the
+ * user nothing about how big the merge they now have to do is.
+ */
+export type TagDeleteResult = { ok: true } | { ok: false; references: number }
 
 /** createMasterDataActions binds the master-data group to one sync context. */
 export function createMasterDataActions(ctx: SyncContext) {
@@ -117,6 +139,99 @@ export function createMasterDataActions(ctx: SyncContext) {
     const assignment = assignmentOf(itemId, tagId, masterStore.itemTagList)
     if (!assignment) return
     moveTag(assignment.id, primaryPosition(itemId, masterStore.itemTagList))
+  }
+
+  // --- Managing the tags themselves (FR-24.10) ---
+
+  /**
+   * Rename a tag, unless another tag already holds the name (FR-24.10).
+   *
+   * `tags.name` is the third `UNIQUE (name)` space beside Vorlagen (FR-1.6)
+   * and series (FR-13.1), and the device holds the whole master partition —
+   * so the collision is found here, where the name was typed, rather than
+   * arriving later as a refused push. The result names the *existing* tag,
+   * because „Technik gibt es schon" is the sentence the screen has to say.
+   */
+  function renameTag(tagId: string, name: string): TagRenameResult {
+    const collision = findNameCollision(name, masterStore.tagList, tagId)
+    if (collision) return { ok: false, collision: collision.name }
+
+    const mutation = mutations.renameTag(tagId, name.trim())
+    const tag = masterStore.tagList.find((t) => t.id === tagId)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, tag ? { ...tag } : {}),
+    })
+    return { ok: true }
+  }
+
+  /**
+   * Delete a tag, unless items still carry it (FR-24.10, ADR-063).
+   *
+   * Unlike FR-24.3's outlook this count is *exact in every mode*: tags and
+   * their assignments are both master-partition tables, and the device holds
+   * that partition in full. So there is no `certain` flag to carry here —
+   * the client and the server are looking at the same rows.
+   */
+  function deleteTag(tagId: string): TagDeleteResult {
+    const { kind, references } = tagDeletion(tagId, masterStore.itemTagList)
+    if (kind === TAG_DELETE_REFUSED) return { ok: false, references }
+
+    const mutation = mutations.deleteTag(tagId)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticDelete(mutation),
+    })
+    return { ok: true }
+  }
+
+  /**
+   * Merge one tag into another and remove it (FR-24.10) — the way out of a
+   * tag that {@link deleteTag} refuses, and of a duplicate typed twice.
+   *
+   * Returns how many items ended up under the target, which is the number
+   * the confirmation reports. The source is deleted **last**, after the
+   * writes that empty it: the two orders differ only if a device stops
+   * between them, and this one leaves a tag whose assignments are gone
+   * rather than assignments whose tag is gone — the first is a tag to delete
+   * again, the second is rows the inventory has to skip (`tagsOfItem`).
+   */
+  function mergeTags(sourceId: string, targetId: string): number {
+    const plan = planTagMerge(sourceId, targetId, masterStore.itemTagList)
+
+    for (const { assignment, position } of plan.repoint) {
+      const mutation = mutations.retagAssignment(assignment.id, targetId, position)
+      enqueueAndDrain('master', null, {
+        mutation,
+        optimistic: optimisticUpdate(mutation, { ...assignment }),
+      })
+    }
+    for (const { assignment, position } of plan.promote) {
+      moveTag(assignment.id, position)
+    }
+    for (const assignment of plan.drop) {
+      unassignTag(assignment.id)
+    }
+
+    const moved = plan.repoint.length + plan.drop.length
+    if (moved > 0) deleteTag(sourceId)
+    return moved
+  }
+
+  /**
+   * Move a tag on the inventory's axis (FR-24.10). The indices are into
+   * `tagList`, which is the order the user is dragging in; the plan
+   * renumbers from there and returns only the rows that change.
+   */
+  function reorderTags(from: number, to: number): void {
+    for (const { tagId, sortOrder } of planTagReorder(masterStore.tagList, from, to)) {
+      const mutation = mutations.reorderTag(tagId, sortOrder)
+      const tag = masterStore.tagList.find((t) => t.id === tagId)
+      enqueueAndDrain('master', null, {
+        mutation,
+        optimistic: optimisticUpdate(mutation, tag ? { ...tag } : {}),
+      })
+    }
   }
 
   function createMasterItem(
@@ -386,6 +501,10 @@ export function createMasterDataActions(ctx: SyncContext) {
 
   return {
     createTag,
+    renameTag,
+    deleteTag,
+    mergeTags,
+    reorderTags,
     assignTag,
     assignTagAt,
     unassignTag,
