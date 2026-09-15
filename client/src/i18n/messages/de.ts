@@ -427,6 +427,8 @@ export const de: Record<keyof typeof en, string> = {
   'items.property.weight': 'Gewicht',
   'items.property.price': 'Preis',
   'items.tagFilterAll': 'Alle',
+  'items.retiredHint':
+    'Ein Artikel ist stillgelegt — ansehen | {n} Artikel sind stillgelegt — ansehen',
   'items.metaAll': '{items} Artikel · {tags} Tags',
   'items.metaFiltered': '{shown} von {total} Artikeln',
   'items.sort': 'Sortierung',

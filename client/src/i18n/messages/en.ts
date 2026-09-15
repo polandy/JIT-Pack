@@ -420,6 +420,7 @@ export const en = {
   'items.property.weight': 'Weight',
   'items.property.price': 'Price',
   'items.tagFilterAll': 'All',
+  'items.retiredHint': 'One item is hidden — show it | {n} items are hidden — show them',
   'items.metaAll': '{items} items · {tags} tags',
   'items.metaFiltered': '{shown} of {total} items',
   'items.sort': 'Sort order',

@@ -744,6 +744,9 @@ function newItem() {
   router.push(PATH.newItem)
 }
 
+/** How many items FR-24.3 has hidden from this list (ADR-032). */
+const retiredCount = computed(() => masterStore.retiredItemList.length)
+
 /** The groups as the jump sheet lists them (FR-24.8). */
 const jumpGroups = computed(() =>
   groups.value.map(([key, items]) => ({ key, label: groupLabel(key), count: items.length })),
@@ -1126,6 +1129,24 @@ onBeforeUnmount(() => observer?.disconnect())
         </section>
       </template>
 
+      <!--
+        FR-24.3's other half, said out loud. A retired item is hidden from
+        this list by design (ADR-032), but until now nothing here admitted
+        the hidden ones exist — so „25 Artikel" read as the whole
+        collection, and the way back to them (M23) was reachable only by
+        someone who already knew it was there. Behind `itemsKnown` for
+        ADR-033's reason: a partition that has not arrived carries no
+        retired rows either, and „nothing is hidden" is a claim.
+      -->
+      <div v-if="itemsKnown && !selecting && retiredCount > 0" class="retired-note">
+        <button
+          type="button"
+          data-testid="m9-retired-note"
+          @click="router.push(PATH.masterRetired)"
+        >
+          {{ t('items.retiredHint', { n: retiredCount }) }}
+        </button>
+      </div>
 
       <!-- FR-24.9: what the selection can be acted on with. -->
       <div
@@ -1298,6 +1319,28 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .bulkbar button ion-icon {
   font-size: var(--jp-icon-md);
+}
+
+/* A note, not a row: it reports on what the list does *not* contain, so it
+   must not read as one more item in it.
+
+   The wrapper is what spans the width; the button is only as wide as its
+   own text. A full-width tap target here runs under the FAB, and the
+   rendered screen is the only thing that says so — every tap on the right
+   third would have opened the item editor instead of M23. The bottom
+   padding clears the FAB for the same reason, so the note can be read as
+   well as hit. */
+.retired-note {
+  display: flex;
+  justify-content: center;
+  padding: 18px 4px 96px;
+}
+
+.retired-note button {
+  background: none;
+  border: 0;
+  padding: 10px 14px;
+  color: var(--ct-overlay2);
 }
 
 .bulkbar button.danger {

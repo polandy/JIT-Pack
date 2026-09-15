@@ -893,3 +893,59 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     })
   })
 })
+
+describe('M9 — the items it is not showing (FR-24.3, ADR-032)', () => {
+  /** A retired item: hidden from the list by design, and counted by the note. */
+  function seedRetired(name: string, id: string) {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.items,
+      id,
+      deleted: false,
+      row: { name, unit: 'pcs', retired_at: '2026-09-01T00:00:00.000Z' },
+    })
+  }
+
+  it('says how many items are hidden, and the note is a way to them', async () => {
+    seedItem('Sonnencreme')
+    seedRetired('Alte Jacke', 'r1')
+    seedRetired('Kaputtes Zelt', 'r2')
+
+    const page = mountPage()
+    await flushPromises()
+
+    // The list itself is unchanged — retired rows stay out of it (ADR-032).
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+    const note = page.get('[data-testid="m9-retired-note"]')
+    expect(note.text()).toBe(t('items.retiredHint', { n: 2 }))
+  })
+
+  it('stays silent when nothing is hidden', async () => {
+    seedItem('Sonnencreme')
+
+    const page = mountPage()
+    await flushPromises()
+
+    // The positive signal the absence is read against: the row is there, so
+    // the screen has rendered and simply has nothing to report.
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+    expect(page.find('[data-testid="m9-retired-note"]').exists()).toBe(false)
+  })
+
+  it('claims nothing before the master partition has arrived (ADR-033)', async () => {
+    seedItem('Sonnencreme')
+    seedRetired('Alte Jacke', 'r1')
+    master.masterLoaded.value = false
+
+    const page = mountPage()
+    await flushPromises()
+
+    // A partition that has not arrived carries no retired rows either, so a
+    // count read from it is a guess — and „nothing is hidden" is a claim.
+    expect(page.find('[data-testid="m9-retired-note"]').exists()).toBe(false)
+
+    master.masterLoaded.value = true
+    await flushPromises()
+    expect(page.find('[data-testid="m9-retired-note"]').exists()).toBe(true)
+  })
+})
