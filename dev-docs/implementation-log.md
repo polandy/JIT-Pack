@@ -383,6 +383,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Forty-nine items, one act (2026-09-14)](#forty-nine-items-one-act-2026-09-14) — FR-24.9; why assigning a tag moved nothing, and the undo that stops at the delete.
 - [The instance learned to say it was behind (2026-09-15)](#the-instance-learned-to-say-it-was-behind-2026-09-15) — FR-23.8; why the check is the server's, not the browser's, and a build arg whose scope ended with its stage.
 - [A tag could be made and given away, never fixed (2026-09-15)](#a-tag-could-be-made-and-given-away-never-fixed-2026-09-15) — FR-24.10/ADR-063; why a tag delete is refused rather than cascaded, and the guard a merge must not re-ask.
+- [Three things the screen said that were not true (2026-09-15)](#three-things-the-screen-said-that-were-not-true-2026-09-15) — the Phase-6 audit; two dead refreshers where the audit named one, and why a placeholder is a claim.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15647,3 +15648,52 @@ with a thumb at 390 px. The row is 54 px now, so each arrow is 27, and the glyph
 ends are **dimmed rather than removed**, so the column does not reflow as a tag reaches the top or the bottom, and
 they withdraw entirely while a search narrows the list, because „hoch" between two rows eleven apart on the axis is
 an ordering nobody can predict.
+
+## Three things the screen said that were not true (2026-09-15)
+
+Phase 6 of the M9 rebuild plan was a list of four „small dishonesties" from the inventory audit. Reading them against
+the code first was worth the ten minutes: **one was already fixed** (the missing total — FR-24.6 brought it with
+#468), **one was a feature request wearing the wrong label** (sort by usage, which is FR-27.8 territory and parked),
+and one of the remaining two turned out to be twice the size the audit thought.
+
+**The pull-to-refresh: the audit named M9, and it was M9 *and* M7.** Both handlers were one line —
+`refresher.complete()`. The spinner appeared, span its animation and resolved, having asked nobody for anything. That
+is worse than an absent gesture: an absent control sends you to look for the real one, and this one tells you the
+list is up to date. Four of the six refreshers in the app do fetch (Dashboard, M2, M4, the conflict log), which is
+exactly why the shape was easy to assume uniform — and why **reading every site rather than the one the report named**
+is the rule that keeps costing and keeps paying. Both are removed rather than implemented: Local Mode has nothing to
+fetch and Server Mode pulls on its own, so a gesture duplicating it would have needed a G-8 branch and an honest
+completion signal to earn its place.
+
+**No test in the repository had ever touched a refresher**, which is the whole reason two dead ones survived review
+after review — neither is visible in a diff that does not already know to look. `scripts/refresher-gate.mjs` holds
+the rule now: every `<IonRefresher>`'s handler must `await` something. Fetching is asynchronous in all three modes, so
+a handler with no `await` cannot have fetched, whatever it is named — a shape a parser can check without
+understanding the code. It deliberately does not judge *what* is awaited; a handler awaiting the wrong thing is a bug
+for a test, not for a gate.
+
+**A placeholder is a claim, not decoration.** M10's optional weight and price rendered `placeholder="0"` and
+`placeholder="0.00"`. Grey or not, those read as values — an item that weighs nothing and is worth nothing — and both
+columns feed FR-8's weight totals and FR-14's suggestions, so the reading a person takes from the empty field is the
+one the analytics would have used had it been real. They were also the last two untranslated strings on the screen,
+being literals in the template. The placeholder now names the state. **The case asserts the placeholder is *not* a
+number** rather than that it is one particular sentence: the wording belongs to the catalogue, and a case pinned to
+it would go green the moment somebody translates it.
+
+**The fourth was real but quiet, and it is the one with a user behind it.** A retired item stays out of the inventory
+by design (ADR-032) — but nothing on the screen admitted the hidden ones existed. So „25 Artikel" read as the whole
+collection, and M23, the one way back, was reachable only by somebody who already knew it was there. On the family
+instance that is ten items nobody could see or account for. M9 now says how many are hidden, at the end of the list
+where „was that everything?" is the question being asked, and the sentence is the way there rather than a statement
+about it.
+
+**Two things only the render said, again.** The note was a full-width tap target and the FAB sits over its right
+end, so every tap on the right third would have opened the item editor instead of M23 — the button is now only as
+wide as its text, inside a wrapper that spans the row. And it needed bottom padding to clear the FAB at all,
+measured rather than guessed: the text ends at x=314 and the FAB starts at 324.
+
+**A measurement that corrected me before it reached anybody.** The first desktop render showed „2 Artikel" where the
+seed writes 24, and it looked like a hydration defect worth a report. It was not: the dev seed's button detaches when
+the *trip* arrives, while the master rows are still being written, so the screenshot caught the list mid-write.
+Counting the rows in IndexedDB — 170, no error — is what said so. The rule the visual ledger already carries for
+baselines applies to diagnosis too: **a screen sampled while it is still filling is not evidence about the screen.**

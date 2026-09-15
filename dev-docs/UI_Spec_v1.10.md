@@ -1589,6 +1589,16 @@ These patterns apply to every screen and are specified once.
   The two tag actions raise a snackbar with one **Rückgängig** for the batch; *Stilllegen* raises a confirm that names
   both halves of FR-24.3's two acts and has **no** undo, because the removed half cannot come back. The mode ends with
   the batch.
+* **The hidden items are named (2026-09-15, FR-24.3):** below the last row, M9 says how many items are **retired**
+  and the sentence is the way to M23. A retired item stays out of the list by design (ADR-032), but until now nothing
+  on the screen admitted the hidden ones existed, so the head's „N Artikel" read as the whole collection and M23 was
+  reachable only by somebody who already knew it was there. It is absent while nothing is hidden, while the master
+  partition has not arrived (ADR-033 — „nothing is hidden" is a claim), and in selection mode. **The tap target is
+  the sentence, not the row it sits in:** a full-width button there runs under the FAB.
+* **No pull-to-refresh (2026-09-15):** M9 and M7 had one that fetched nothing — it spun, resolved and reported the
+  list up to date. Both are removed rather than implemented; the sync pulls on its own in Server Mode and there is
+  nothing to fetch in Local Mode. `scripts/refresher-gate.mjs` holds the rule for the four that remain (M1, M2, M4,
+  the conflict log): the handler of every `<IonRefresher>` must `await` something.
 * **The tag manager (2026-09-15, FR-24.10, ADR-063):** a **word in the app bar's ⋮**, not a fourth glyph — the bar
   spends its three on the eye, the sort and the selection, and this is the rarest of the four. It is absent while the
   inventory has no tag. The sheet lists every tag with its **assignment count**, searchable under FR-24.7's fold, and
@@ -1635,6 +1645,10 @@ These patterns apply to every screen and are specified once.
 * **Purpose:** Edit one master item.
 * **Rebuilt 2026-08-16** with M9. Two modes on one screen, chosen by the route: `/items/new` creates, `/items/:id`
   edits.
+* **An optional field names its state, never a number (2026-09-15, FR-24.5):** weight and price render a placeholder
+  that says the value is *not recorded*, from the catalogue. They used to read „0" and „0.00", which is a value — an
+  item that weighs nothing and is worth nothing — and both columns feed FR-8's totals and FR-14's suggestions, so the
+  reading a person took from the field was the one the analytics would have used had it been real.
 * **Elements:** Name, **multi-tag selector** — a search field filters the tag chips, **assigned tags stay pinned above
   the matches** so the filter can never hide what the item already carries; ＋/Enter creates an unmatched name as a new
   tag and assigns it (FR-24.1, filter-or-create; supersedes the single category picker). **With an empty query the
