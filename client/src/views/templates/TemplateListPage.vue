@@ -24,8 +24,6 @@ import {
   IonIcon,
   IonFab,
   IonFabButton,
-  IonRefresher,
-  IonRefresherContent,
   IonSegment,
   IonSegmentButton,
   IonButton,
@@ -347,11 +345,6 @@ function exportTemplate(tpl: Template) {
   )
   saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
 }
-
-async function handleRefresh(event: CustomEvent) {
-  const refresher = event.target as HTMLIonRefresherElement
-  refresher.complete()
-}
 </script>
 
 <template>
@@ -364,10 +357,6 @@ async function handleRefresh(event: CustomEvent) {
         :placeholder="t('templates.searchPlaceholder')"
         @close="toggleSearch"
       />
-
-      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
-        <IonRefresherContent />
-      </IonRefresher>
 
       <IonSegment
         v-if="hasTemplates"

@@ -38,8 +38,6 @@ import {
   IonFab,
   IonFabButton,
   IonModal,
-  IonRefresher,
-  IonRefresherContent,
   IonToggle,
   IonButton,
   actionSheetController,
@@ -746,10 +744,6 @@ function newItem() {
   router.push(PATH.newItem)
 }
 
-function handleRefresh(event: CustomEvent) {
-  ;(event.target as HTMLIonRefresherElement).complete()
-}
-
 /** The groups as the jump sheet lists them (FR-24.8). */
 const jumpGroups = computed(() =>
   groups.value.map(([key, items]) => ({ key, label: groupLabel(key), count: items.length })),
@@ -896,10 +890,6 @@ onBeforeUnmount(() => observer?.disconnect())
 <template>
   <IonPage>
     <IonContent ref="content">
-      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
-        <IonRefresherContent />
-      </IonRefresher>
-
       <!-- FR-24.9: while the mode is on, the bar says what it will act on. -->
       <div v-if="selecting" class="selbar" data-testid="m9-selbar">
         <button
@@ -1135,6 +1125,7 @@ onBeforeUnmount(() => observer?.disconnect())
           </IonList>
         </section>
       </template>
+
 
       <!-- FR-24.9: what the selection can be acted on with. -->
       <div

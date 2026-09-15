@@ -113,6 +113,11 @@ jobs:
       # composable — even type-only — costs every module reaching it the
       # property the package exists for, and nothing red says so.
       - run: node ../scripts/domain-purity-gate.mjs
+      # And one more of the family: a pull-to-refresh whose handler awaits
+      # nothing spins, resolves and tells the user the list is up to date
+      # without having asked anybody. Two of six were like that, and no test
+      # in the repository had ever touched a refresher.
+      - run: node ../scripts/refresher-gate.mjs
       # And last of the same family: a test that waits on the wall clock
       # passes for a reason nothing states, and keeps passing once the
       # behaviour under it is gone. No job can see that — every one of

@@ -174,7 +174,7 @@ tidy-check:
 ## --- client job -----------------------------------------------------------
 # CI lints without --fix; the package scripts fix in place. Check, don't fix,
 # so the local run fails on the same things CI does.
-client: client-lint client-fmt client-tokens client-marks client-purity client-build client-cli client-devcode client-test
+client: client-lint client-fmt client-tokens client-marks client-purity client-refresh client-build client-cli client-devcode client-test
 
 # `npm ci` is CI's first client step. Locally it only needs to rerun when the
 # lockfile moved, so hang it off the stamp npm itself writes — otherwise every
@@ -209,6 +209,11 @@ client-marks:
 # above.
 client-purity:
 	$(RUN) node scripts/domain-purity-gate.mjs
+
+# A pull-to-refresh that reports success without fetching is worse than an
+# absent one. Node built-ins only, like the three gates above.
+client-refresh:
+	$(RUN) node scripts/refresher-gate.mjs
 
 client-build: $(CLIENT_DEPS)
 	cd client && $(RUN) npm run build
