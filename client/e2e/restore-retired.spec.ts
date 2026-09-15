@@ -83,6 +83,34 @@ async function openRetired(page: Page) {
 test.describe('FR-24.3 — a retired row can come back', () => {
   test.slow()
 
+  test('E2E-M9-20: the inventory says how many items it is hiding, and that is the way to them', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    // The sibling below arrives on M9 through `retireItemViaGroup`; this one
+    // creates first, so it has to open the screen itself.
+    await page.goto(PATH.items)
+    // A second item that stays active: without it "the note appeared" could
+    // be satisfied by an inventory that had simply emptied itself.
+    await createItemOnDevice(page, 'Stativ')
+    await retireItemViaGroup(page, 'Fotografie', 'Kamera')
+
+    const list = visiblePage(page)
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    // The head still counts only what is shown — the note is what accounts
+    // for the difference, and before it there was nothing on this screen
+    // that admitted the hidden row existed.
+    await expect(page.getByTestId('header-meta')).toContainText('1 item')
+    const note = list.getByTestId('m9-retired-note')
+    await expect(note).toContainText('One item is hidden')
+
+    // It is the way to M23, not a statement about it.
+    await note.click()
+    await expect(visiblePage(page).getByTestId('m23-segment')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m23-row-name')).toHaveText('Kamera')
+  })
+
   test('E2E-M23-01: a hidden item is listed, restored, and back in the inventory', async ({
     seedMode,
     page,

@@ -1418,6 +1418,10 @@ test body under it separates a wrong number from a missing test.**
   nothing any more. Two clauses carry the semantics that are easy to get wrong: the old tag is **kept** (the rows
   still answer its filter — refiling is not retagging), and the snackbar's **Rückgängig** puts all three back.
   **Proven red** against a build whose switch appended instead of refiling.
+* **E2E-M9-20** `all` (FR-24.3) — **implemented 2026-09-15** (`e2e/restore-retired.spec.ts`): M9 names the items it is
+  **not** showing and the note is the way to M23. It lives in the M23 unit rather than M9's, because retiring an item
+  is the setup and that unit already owns the dance. A second, untouched item stays active throughout — otherwise
+  „the note appeared" would be satisfied by an inventory that had emptied itself.
 * **E2E-M9-17** `all` (FR-24.10) — **implemented 2026-09-15** (`e2e/inventory.spec.ts`): a tag is renamed from the
   manager, and the **inventory's group heading** carries the new name — the only place the write is observable, since
   the sheet would show a renamed row whether or not anything was written. The second clause is the refusal: a name a
@@ -1510,7 +1514,10 @@ decision, not a test gap.
   E2E-M10-02 until 2026-08-30.)* The sentence used to name **three** sections whose absence proves the mode — *„keine
   Enthalten-in/Kommentare/Löschen-Abschnitte"* — and only the third of them exists: the delete card's absence is now
   asserted with the photo's and the dependency section's, and the other two names are gone, because an absence assertion
-  over a section that renders in *neither* mode reads as coverage and is a tautology (see E2E-M10-05).
+  over a section that renders in *neither* mode reads as coverage and is a tautology (see E2E-M10-05). **Since
+  2026-09-15 it also asserts that the optional fields' placeholders are not numbers** (FR-24.5): they read „0" and
+  „0.00", which is a value rather than an absence. The clause tests the *shape* — not a number, and not empty —
+  because the wording is the catalogue's and a case pinned to it would go green the moment somebody translates it.
 * **E2E-M10-11** `all` (FR-28.2/28.3/28.11) — **implemented 2026-08-22** (`item-mark.spec.ts`); removal moved to its own
   case, **E2E-M10-12**, because it is a separate promise and the picker case was already long. The picker and its three
   cases, which is the whole point of building it: typing **„Zahnbürste“** puts 🪥 first in the suggestion band and one

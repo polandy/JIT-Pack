@@ -427,6 +427,8 @@ export const de: Record<keyof typeof en, string> = {
   'items.property.weight': 'Gewicht',
   'items.property.price': 'Preis',
   'items.tagFilterAll': 'Alle',
+  'items.retiredHint':
+    'Ein Artikel ist stillgelegt — ansehen | {n} Artikel sind stillgelegt — ansehen',
   'items.metaAll': '{items} Artikel · {tags} Tags',
   'items.metaFiltered': '{shown} von {total} Artikeln',
   'items.sort': 'Sortierung',
@@ -526,6 +528,7 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.tagNone': 'Noch kein Tag — das Inventar führt ihn unter „Ohne Tag“.',
   'items.editor.tagFiledUnder': 'Im Inventar unter: {tags} · primär {primary}',
   'items.editor.more': 'Mehr — Gewicht & Preis',
+  'items.editor.optional': 'nicht erfasst',
   'items.editor.weight': 'Gewicht (g)',
   'items.editor.price': 'Preis',
   'items.editor.create': 'Artikel anlegen',

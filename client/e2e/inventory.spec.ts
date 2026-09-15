@@ -743,6 +743,18 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
 
     await form.getByTestId('m10-more').click()
     await expect(form.getByTestId('m10-weight')).toBeVisible()
+
+    // And an unset optional field must not render a *number* as its
+    // placeholder. „0" and „0.00" read as values — an item that weighs
+    // nothing and is worth nothing — and both columns feed FR-8/FR-14, so
+    // the lie would travel. The assertion is that the placeholder is not a
+    // number rather than that it is one particular sentence: the wording is
+    // the catalogue's, and this suite must not go green on a translation.
+    for (const field of ['m10-weight', 'm10-price']) {
+      const placeholder = await form.getByTestId(field).locator('input').getAttribute('placeholder')
+      expect(placeholder, `${field} placeholder`).not.toMatch(/^[\d.,]+$/)
+      expect(placeholder ?? '').not.toBe('')
+    }
   })
 
   test('E2E-M10-07: a missing name is answered with a hint, not a dead button', async ({
