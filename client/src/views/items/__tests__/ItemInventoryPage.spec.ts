@@ -21,9 +21,14 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import ItemInventoryPage from '../ItemInventoryPage.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
+import BulkTagSheet from '@/components/items/BulkTagSheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { presentToast } from '@/lib/toast'
+import { confirmDestructive } from '@/lib/confirm'
+import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
@@ -33,6 +38,8 @@ import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
+vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/lib/confirm', () => ({ confirmDestructive: vi.fn().mockResolvedValue(true) }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useRoute: () => ({ query: {}, params: {} }),
@@ -481,5 +488,264 @@ describe('M9 inventory — the jump waits for the sheet to be gone (FR-24.8)', (
 
     // Closing the sheet is not a jump — the key is consumed, never kept.
     expect(scrollTo).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * FR-24.9 — acting on several rows at once. The orchestrator is the fake from
+ * `masterDataStub` plus recorders for the four writes this screen makes, so
+ * what is asserted is *which rows the screen decided to write*, which is the
+ * whole of its job: the writes themselves are `masterActions.spec.ts`'s.
+ */
+describe('M9 inventory — the selection mode (FR-24.9)', () => {
+  interface Writes {
+    assigned: { itemId: string; tagId: string; position: number }[]
+    unassigned: string[]
+    moved: { assignmentId: string; position: number }[]
+    deleted: string[]
+  }
+
+  let writes: Writes
+
+  /** Press the app bar's own entry, which is where the mode is armed. */
+  function headerAction(id: string): HeaderAction {
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    return build().find((action) => action.id === id)!
+  }
+
+  function seedThree() {
+    seedTag('Diverses', 't-div', 0)
+    seedTag('Sonnenschutz', 't-sonne', 1)
+    seedItem('Sonnencreme', 'i1')
+    seedItem('Sonnenbrille', 'i2')
+    seedItem('Taschenmesser', 'i3')
+    assignTag('i1', 't-div')
+    assignTag('i2', 't-div')
+    assignTag('i3', 't-div')
+    // One of them already carries the target tag, behind Diverses.
+    assignTag('i2', 't-sonne', 1)
+  }
+
+  async function enterSelection() {
+    headerAction('m9-select').onClick()
+    await flushPromises()
+  }
+
+  beforeEach(() => {
+    writes = { assigned: [], unassigned: [], moved: [], deleted: [] }
+    Object.assign(orchestratorFake, {
+      assignTagAt: (itemId: string, tagId: string, position: number) => {
+        const id = `new-${itemId}-${tagId}`
+        writes.assigned.push({ itemId, tagId, position })
+        useMasterStore().applyChange({
+          seq: 0,
+          table: TABLE.itemTags,
+          id,
+          deleted: false,
+          row: { item_id: itemId, tag_id: tagId, position },
+        })
+        return id
+      },
+      unassignTag: (assignmentId: string) => {
+        writes.unassigned.push(assignmentId)
+        useMasterStore().applyChange({
+          seq: 0,
+          table: TABLE.itemTags,
+          id: assignmentId,
+          deleted: true,
+          row: null,
+        })
+      },
+      moveTag: (assignmentId: string, position: number) => {
+        writes.moved.push({ assignmentId, position })
+      },
+      setPrimaryTag: (itemId: string, tagId: string) => {
+        writes.moved.push({ assignmentId: `${itemId}-${tagId}`, position: -1 })
+      },
+      masterItemDeletionOutlook: (itemId: string) => ({
+        // Only the first item is referenced anywhere: the batch spans both
+        // acts, which is the case the confirm has to report honestly.
+        kind: itemId === 'i1' ? 'retire' : 'remove',
+        references: itemId === 'i1' ? 2 : 0,
+        certain: true,
+      }),
+      deleteMasterItem: (itemId: string) => writes.deleted.push(itemId),
+    })
+  })
+
+  it('offers no selection at all while there is nothing to select', async () => {
+    const page = mountPage()
+    await flushPromises()
+
+    // The empty inventory renders G-7, and an action over a selection that
+    // cannot exist is the same offer the sheets refuse to make.
+    expect(page.find('[data-testid="m9-empty"]').exists()).toBe(true)
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    expect(build().map((action) => action.id)).not.toContain('m9-select')
+
+    seedItem('Sonnencreme', 'i1')
+    await flushPromises()
+    expect(build().map((action) => action.id)).toContain('m9-select')
+  })
+
+  it('arms from the app bar, stops the rows navigating, and takes what is on screen', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+
+    // Off: the rows are links into M10, and there is no box to tick.
+    const rowLink = () =>
+      page
+        .findAllComponents({ name: 'IonItem' })
+        .find((row) => row.attributes('data-testid') === 'm9-row')!
+        .props('routerLink') as unknown
+    // Which row sorts first does not matter; that it *is* a link does.
+    // Ionic fills an unset prop with a Symbol sentinel rather than undefined,
+    // so the question is asked as "is it a path".
+    expect(typeof rowLink()).toBe('string')
+    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(false)
+    expect(page.find('[data-testid="m9-row-check-Sonnencreme"]').exists()).toBe(false)
+
+    await enterSelection()
+
+    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
+    // On: the same tap picks instead of leaving the screen.
+    expect(typeof rowLink()).not.toBe('string')
+    expect(page.find('[data-testid="m9-row-check-Sonnencreme"]').exists()).toBe(true)
+
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    expect(page.find('[data-testid="m9-select-count"]').text()).toContain('3')
+
+    // The same control clears, so it undoes itself.
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(
+      t('items.selectedCount', { n: 0 }),
+    )
+  })
+
+  it('“Alle N” means what the filter and the search left, not the inventory', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await typeSearch(page, 'sonnen')
+    await enterSelection()
+
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+
+    // Two of three rows match — the batch is the screen, not the database.
+    expect(page.find('[data-testid="m9-select-count"]').text()).toContain('2')
+  })
+
+  it('gives the tag only to the items missing it, and refiles them when asked', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    page.findComponent(BulkTagSheet).vm.$emit('pick', { tagId: 't-sonne', primary: true })
+    await flushPromises()
+
+    // i2 already carries it, so it is moved rather than assigned twice.
+    expect(writes.assigned.map((w) => w.itemId).sort()).toEqual(['i1', 'i3'])
+    expect(writes.moved.map((w) => w.assignmentId)).toEqual(['i2-t-sonne'])
+    // Primary means *below every sibling*, which is what refiles the row.
+    expect(writes.assigned.every((w) => w.position < 0)).toBe(true)
+    // The mode ends with the batch; leaving it armed invites a second press.
+    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(false)
+  })
+
+  it('writes nothing, and says so, when the selection is already as asked', async () => {
+    seedTag('Diverses', 't-div', 0)
+    seedItem('Sonnencreme', 'i1')
+    assignTag('i1', 't-div')
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    page.findComponent(BulkTagSheet).vm.$emit('pick', { tagId: 't-div', primary: true })
+    await flushPromises()
+
+    expect(writes.assigned).toEqual([])
+    expect(writes.moved).toEqual([])
+    expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(t('items.bulkNothingToDo'))
+  })
+
+  it('takes a tag off only the selected items that carry it', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-row-check-Sonnenbrille"]').trigger('click')
+    await page.find('[data-testid="m9-bulk-take"]').trigger('click')
+    page.findComponent(BulkTagSheet).vm.$emit('pick', { tagId: 't-sonne', primary: false })
+    await flushPromises()
+
+    expect(writes.unassigned).toEqual(['i2-t-sonne'])
+  })
+
+  it('puts a batch back where it was — created rows removed, removed rows re-made', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    page.findComponent(BulkTagSheet).vm.$emit('pick', { tagId: 't-sonne', primary: false })
+    await flushPromises()
+
+    const created = writes.assigned.map((w) => `new-${w.itemId}-${w.tagId}`)
+    expect(created).toHaveLength(2)
+
+    // The snackbar's own button is the undo — pressed here through the toast
+    // options, which is where the screen put it.
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    await flushPromises()
+
+    expect(writes.unassigned.sort()).toEqual(created.sort())
+  })
+
+  it('states both halves of a retire and offers no undo for it', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await page.find('[data-testid="m9-bulk-retire"]').trigger('click')
+    await flushPromises()
+
+    // One referenced row is hidden, two unreferenced ones are removed — the
+    // sentence must carry both, because the batch spans two different acts.
+    const confirm = vi.mocked(confirmDestructive).mock.calls.at(-1)![0]
+    expect(confirm.message).toBe(bulkRetireSentence(1, 2))
+    expect(confirm.message).toContain('1')
+    expect(confirm.message).toContain('2')
+    expect(writes.deleted.sort()).toEqual(['i1', 'i2', 'i3'])
+
+    // No undo: the removed half cannot come back, so the confirm is the safety.
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.buttons).toBeUndefined()
+  })
+
+  it('writes nothing when the confirm is declined', async () => {
+    seedThree()
+    vi.mocked(confirmDestructive).mockResolvedValueOnce(false)
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    await page.find('[data-testid="m9-bulk-retire"]').trigger('click')
+    await flushPromises()
+
+    expect(writes.deleted).toEqual([])
+    // Still armed with the selection intact, so the user can act again.
+    expect(page.find('[data-testid="m9-select-count"]').text()).toContain('3')
   })
 })

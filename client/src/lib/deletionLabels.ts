@@ -69,3 +69,21 @@ export function deletionOutlookKey(
 export function deletionSentence(subject: DeletionSubject, outlook: DeletionOutlookFacts): string {
   return t(deletionOutlookKey(subject, outlook))
 }
+
+/**
+ * The sentence a *batch* retire says (FR-24.9), which is not the singular one
+ * repeated N times: a selection can span both acts, and a sentence naming
+ * only one of them is the half that will surprise somebody.
+ *
+ * Three forms rather than one with zeroes in it — „0 werden versteckt, 4
+ * werden entfernt" is a sentence that reads as a bug, and the two pure cases
+ * are the common ones. The `certain` distinction the singular sentence draws
+ * is deliberately dropped: over a batch it would need a fourth and a fifth
+ * form to say „some of these may turn out to be referenced", and the honest
+ * short version is that the server decides and M23 holds whatever it hid.
+ */
+export function bulkRetireSentence(hidden: number, removed: number): string {
+  if (removed === 0) return t('items.bulkRetireAllHidden', { n: hidden })
+  if (hidden === 0) return t('items.bulkRetireAllRemoved', { n: removed })
+  return t('items.bulkRetireMixed', { hidden, removed })
+}

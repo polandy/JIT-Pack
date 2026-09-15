@@ -17,6 +17,20 @@ function mockHLC(): HLCGenerator {
 }
 
 describe('createMutations', () => {
+  // FR-24.9: refiling an item moves its assignment rather than tearing it
+  // down and building it again — a delete plus an insert would put a
+  // tombstone in the feed for a change that removed nothing (ADR-052).
+  it('moveTag upserts the position of the assignment that exists', () => {
+    const m = createMutations(mockHLC())
+    const mut = m.moveTag('a-sport', -1)
+
+    expect(mut.op).toBe('upsert')
+    expect(mut.table).toBe('item_tags')
+    expect(mut.id).toBe('a-sport')
+    // Only the position: the pairing is what the row already says.
+    expect(mut.fields).toEqual({ position: -1 })
+  })
+
   it('incrementPacked creates upsert with correct count and state', () => {
     const m = createMutations(mockHLC())
     const mut = m.incrementPacked('i1', 2, 5)

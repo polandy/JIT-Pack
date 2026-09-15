@@ -272,3 +272,93 @@ export function filterByTags(
       : tagsMatch || (untaggedWanted && untagged)
   })
 }
+
+// --- FR-24.9: acting on several items at once -------------------------------
+
+/**
+ * The position that makes an assignment the item's primary tag (FR-24.2).
+ *
+ * One less than the lowest it currently holds, rather than `0` with the
+ * others shifted: positions are not reindexed anywhere, N tags are N separate
+ * mutations, and ties fall to the lower assignment id — so the cheapest
+ * correct move is a single write that lands below every sibling. Negative
+ * positions are legal for the same reason: nothing reads a position except
+ * this ordering.
+ */
+export function primaryPosition(itemId: string, assignments: ItemTag[]): number {
+  const positions = assignments.filter((a) => a.item_id === itemId).map((a) => a.position)
+  return positions.length === 0 ? 0 : Math.min(...positions) - 1
+}
+
+/** One item's assignment of one tag, or `undefined` when it carries none. */
+export function assignmentOf(
+  itemId: string,
+  tagId: string,
+  assignments: ItemTag[],
+): ItemTag | undefined {
+  return assignments.find((a) => a.item_id === itemId && a.tag_id === tagId)
+}
+
+/**
+ * What giving `tagId` to these items actually writes (FR-24.9).
+ *
+ * Three groups, because a bulk action over a mixed selection has three cases
+ * and reporting them as one number is how a batch lies: the items that do not
+ * carry the tag (an insert each), the ones that carry it but not first (a
+ * position each, only when the caller asked for primary), and the ones
+ * already as the caller wants them — which are *not* rewritten, so a second
+ * press of the same button is a no-op rather than a second row.
+ */
+export interface TagGrant {
+  /** Items with no assignment of this tag yet. */
+  missing: MasterItem[]
+  /** Items carrying it behind another tag — only interesting for `primary`. */
+  demoted: { item: MasterItem; assignment: ItemTag }[]
+  /** Items already carrying it, and already first where that was asked. */
+  settled: MasterItem[]
+}
+
+export function planTagGrant(
+  items: MasterItem[],
+  assignments: ItemTag[],
+  tagId: string,
+  primary: boolean,
+): TagGrant {
+  const grant: TagGrant = { missing: [], demoted: [], settled: [] }
+  for (const item of items) {
+    const own = assignments.filter((a) => a.item_id === item.id).sort(byPositionThenId)
+    const mine = own.find((a) => a.tag_id === tagId)
+    if (!mine) grant.missing.push(item)
+    else if (primary && own[0]!.id !== mine.id) grant.demoted.push({ item, assignment: mine })
+    else grant.settled.push(item)
+  }
+  return grant
+}
+
+/**
+ * The assignments taking `tagId` away from these items writes off (FR-24.9).
+ *
+ * An item that does not carry the tag contributes nothing, so „take Sommer
+ * away" over a mixed selection is not an error — it is a smaller batch.
+ */
+export function planTagRemoval(
+  items: MasterItem[],
+  assignments: ItemTag[],
+  tagId: string,
+): ItemTag[] {
+  const wanted = new Set(items.map((item) => item.id))
+  return assignments.filter((a) => a.tag_id === tagId && wanted.has(a.item_id))
+}
+
+/**
+ * The tags these items carry between them — what „take a tag away" may offer.
+ *
+ * The caller's order is kept rather than re-derived: M9 passes the store's
+ * `tagList`, which is the axis order, and sorting again here would be a
+ * second opinion about an order that already has one.
+ */
+export function tagsOfItems(items: MasterItem[], assignments: ItemTag[], tags: Tag[]): Tag[] {
+  const wanted = new Set(items.map((item) => item.id))
+  const carried = new Set(assignments.filter((a) => wanted.has(a.item_id)).map((a) => a.tag_id))
+  return tags.filter((tag) => carried.has(tag.id))
+}

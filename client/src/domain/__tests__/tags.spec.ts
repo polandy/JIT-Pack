@@ -6,6 +6,10 @@ import {
   tagCounts,
   topTagsByCount,
   filterByTags,
+  primaryPosition,
+  planTagGrant,
+  planTagRemoval,
+  tagsOfItems,
   primaryTagOf,
   withCategories,
   UNTAGGED_KEY,
@@ -340,5 +344,113 @@ describe('filterByTags (FR-24.8)', () => {
     // Faithful rather than special-cased: an item cannot be both. The sheet
     // keeps the bucket exclusive so the control never offers this way in.
     expect(filterByTags(items, assignments, [UNTAGGED_KEY, 't-technik'], 'all')).toEqual([])
+  })
+})
+
+describe('primaryPosition (FR-24.9)', () => {
+  it('lands below every sibling rather than reindexing them', () => {
+    const assignments = [assign('i-badehose', 't-kleidung', 0), assign('i-badehose', 't-sommer', 1)]
+
+    // One write, not N: positions are never reindexed, and the ordering is
+    // all anything reads them for.
+    expect(primaryPosition('i-badehose', assignments)).toBe(-1)
+  })
+
+  it('goes negative without complaint, twice over', () => {
+    const assignments = [
+      assign('i-badehose', 't-kleidung', -1),
+      assign('i-badehose', 't-sommer', 0),
+    ]
+    expect(primaryPosition('i-badehose', assignments)).toBe(-2)
+  })
+
+  it('starts at zero for an item carrying nothing yet', () => {
+    expect(primaryPosition('i-lose', [])).toBe(0)
+  })
+})
+
+describe('planTagGrant (FR-24.9)', () => {
+  const items = [
+    item('i-badehose', 'Badehose'),
+    item('i-kabel', 'Kabel'),
+    item('i-lose', 'Loses Teil'),
+  ]
+  const assignments = [
+    assign('i-badehose', 't-kleidung', 0),
+    assign('i-badehose', 't-sommer', 1),
+    assign('i-kabel', 't-sommer', 0),
+  ]
+
+  it('separates the three cases a mixed selection has', () => {
+    const plan = planTagGrant(items, assignments, 't-sommer', false)
+
+    expect(plan.missing.map((i) => i.id)).toEqual(['i-lose'])
+    // Already carried: not rewritten, so pressing twice writes nothing twice.
+    expect(plan.settled.map((i) => i.id)).toEqual(['i-badehose', 'i-kabel'])
+    expect(plan.demoted).toEqual([])
+  })
+
+  it('counts an item carrying the tag behind another as demoted, but only for primary', () => {
+    const plain = planTagGrant(items, assignments, 't-sommer', false)
+    expect(plain.demoted).toEqual([])
+
+    const primary = planTagGrant(items, assignments, 't-sommer', true)
+    // The swimsuit carries Sommer second; the cable carries it first.
+    expect(primary.demoted.map((d) => d.item.id)).toEqual(['i-badehose'])
+    expect(primary.demoted[0]!.assignment.tag_id).toBe('t-sommer')
+    expect(primary.settled.map((i) => i.id)).toEqual(['i-kabel'])
+  })
+
+  it('reads the first assignment by the same rule the grouping does', () => {
+    // Shared position: the lower id is primary, so asking for the *other* one
+    // to be primary is a demotion rather than a no-op.
+    const tied = [assign('i-badehose', 't-sommer', 0), assign('i-badehose', 't-kleidung', 0)]
+    const plan = planTagGrant([items[0]!], tied, 't-sommer', true)
+
+    expect(plan.demoted.map((d) => d.item.id)).toEqual(['i-badehose'])
+  })
+})
+
+describe('planTagRemoval (FR-24.9)', () => {
+  const items = [item('i-badehose', 'Badehose'), item('i-kabel', 'Kabel')]
+  const assignments = [
+    assign('i-badehose', 't-sommer', 0),
+    assign('i-kabel', 't-technik', 0),
+    assign('i-other', 't-sommer', 0),
+  ]
+
+  it('names only the assignments of the chosen items', () => {
+    const rows = planTagRemoval(items, assignments, 't-sommer')
+
+    expect(rows.map((a) => a.item_id)).toEqual(['i-badehose'])
+  })
+
+  it('answers a selection that does not carry the tag with an empty batch', () => {
+    expect(planTagRemoval(items, assignments, 't-kleidung')).toEqual([])
+  })
+})
+
+describe('tagsOfItems (FR-24.9)', () => {
+  it('offers the tags the selection carries between them, in the caller’s order', () => {
+    const items = [item('i-badehose', 'Badehose'), item('i-kabel', 'Kabel')]
+    const assignments = [
+      assign('i-badehose', 't-kleidung', 0),
+      assign('i-kabel', 't-technik', 0),
+      assign('i-other', 't-sommer', 0),
+    ]
+
+    // Sommer belongs to an item outside the selection: offering it would be
+    // an action that does nothing.
+    expect(tagsOfItems(items, assignments, tags).map((t) => t.name)).toEqual([
+      'Kleidung',
+      'Technik',
+    ])
+
+    // And the order is the one it was handed — M9 hands it the axis order.
+    const axisOrder = [...tags].sort((a, b) => a.sort_order - b.sort_order)
+    expect(tagsOfItems(items, assignments, axisOrder).map((t) => t.name)).toEqual([
+      'Technik',
+      'Kleidung',
+    ])
   })
 })

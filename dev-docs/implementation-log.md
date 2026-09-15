@@ -380,6 +380,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The list learned to say who and when, once for four rows (2026-09-14)](#the-list-learned-to-say-who-and-when-once-for-four-rows-2026-09-14) — why „for everyone" writes N rows rather than one field, and what a held instance does to a group action.
 - [The inventory's tools stopped leaving with the list (2026-09-13)](#the-inventorys-tools-stopped-leaving-with-the-list-2026-09-13) — FR-24.6/24.7; the G-12 exception, two sort options that were refused, and a focus test that could not fail.
 - [The swipe axis was a filter nobody filtered with (2026-09-13)](#the-swipe-axis-was-a-filter-nobody-filtered-with-2026-09-13) — FR-24.8; why the replacement is navigation, the three options that lost, and a jump clamped by an overlay.
+- [Forty-nine items, one act (2026-09-14)](#forty-nine-items-one-act-2026-09-14) — FR-24.9; why assigning a tag moved nothing, and the undo that stops at the delete.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15522,3 +15523,32 @@ cannot catch this**: on any list an e2e builds through the UI the whole distance
 passes against the defect. It was found by rendering the real instance, and the rule is now a unit test that asserts
 nothing scrolls before the dismissal — the e2e keeps the outcome, the unit keeps the ordering.
 
+## Forty-nine items, one act (2026-09-14)
+
+The selection mode exists for one number: **49 of 184** items sit in „Diverses" on the family instance, and refiling
+them one at a time is 49 round trips through M10 — open, search the tag, assign, remove the old one, back.
+
+**The part that is not obvious: giving a tag moves nothing.** The grouped list files a row under its *primary* tag,
+which is the one assigned first, so a bulk „Tag geben" over those 49 would have labelled them and left the group
+exactly as full as it was. The switch *„Als primären Tag setzen"* is therefore the feature rather than an option on
+it, and it is on by default. The write is one row per item at a position below every sibling (`primaryPosition`) —
+positions are never reindexed, so refiling N items is N inserts or N position updates and no rewrite of anything
+else.
+
+**Why there is no fourth action.** „Primär setzen" was in the plan as its own button; it is the same write as giving
+with the switch on, and two controls for one write is how the second one drifts from the first. What the plan did
+*not* have, and this does, is the same write reaching M10: an assigned chip had one action and it was the
+destructive one, so where an item was filed had been decided by the accident of assignment order and could only be
+changed by removing every tag and re-adding them in a new order.
+
+**The undo stops where honesty does.** The two tag actions arm one undo for the whole batch — created rows removed,
+moved rows put back at the position they held, deleted rows written again where they were. **Stilllegen has none**,
+and that is a decision rather than an omission: FR-24.3 makes a delete two different acts, the *removed* half leaves
+nothing to restore, and an undo that silently brings back only half a batch is worse than no undo. What it has
+instead is the sentence M10's delete card already uses, extended to a batch: both halves named, in three forms,
+because „0 werden versteckt, 4 werden endgültig entfernt" reads as a bug — the rendered confirm is where that was
+noticed.
+
+**A `MutationOp` that does not exist.** `moveTag` was written as `make('update', …)` and the type refused it: the
+protocol has `upsert`, `insert` and `delete` and nothing else. That is worth writing down because the mistake is
+invisible in review — every *action* in the client is called an update, and only the wire vocabulary says otherwise.
