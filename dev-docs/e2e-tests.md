@@ -4548,6 +4548,16 @@ first — and both times the fix was to stop asking twice rather than to wait lo
 with no web component around it, so `fillIonic` waits for a `hydrated` class that never arrives. These are the first
 cases to drive one of those prompts; `fillPrompt` in `inventory.spec.ts` is the two lines it actually needs.
 
+**And a second one, which cost a red CI shard (2026-09-15).** E2E-M9-19 passed locally every time and failed on
+shard 2 with the item still under „Sommer" — the exact symptom of the defect above, but a different cause, in the
+case rather than the code. Clicking an alert's button only **dismisses** the alert: the handler runs after
+`onDidDismiss` resolves, so there is a gap in which the action has not started. `writesLanded` asserts the sync
+indicator is *settled*, and it still is in that gap — so on its own it can return before the first write of the
+action exists, and the assertion after it reads the world from before the act. **After an alert, wait on the
+production code's own completion signal first** — here the toast both acts already raise — and only then on
+`writesLanded`. The rule generalises past alerts: `writesLanded` says „nothing is in flight", which is also true
+before anything was ever enqueued, so it settles *that* writes have landed only once you know a write was made.
+
 ## E2E-G9-18 — the deep link that only Local Mode survived (2026-09-05)
 
 Written first and red, which is what U-10 asked for: the worklist called the

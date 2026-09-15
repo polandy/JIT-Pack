@@ -354,6 +354,13 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.getByTestId('m9-tag-rename-Kleidun').click()
     await fillPrompt(page, 'Kleidung')
     await page.getByRole('button', { name: 'Rename' }).click()
+    // The toast, before `writesLanded`, and it is not decoration: clicking an
+    // alert button only *dismisses* the alert — the handler runs after
+    // `onDidDismiss` resolves. `writesLanded` asserts the indicator is
+    // settled, which it still is in that gap, so on its own it can pass
+    // before the first write of the action exists. The toast is the
+    // production code's own signal that the action has run.
+    await expect(page.locator('ion-toast')).toContainText('is now called')
     await writesLanded(page)
 
     // The heading, not the sheet row: this is the write being observable.
@@ -426,6 +433,9 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.getByTestId('m9-tag-in-use').getByRole('button', { name: 'Merge' }).click()
     await page.getByTestId('m9-tag-merge-into-Kleidung').click()
     await page.getByTestId('m9-tag-merge-confirm').getByRole('button', { name: 'Merge' }).click()
+    // See E2E-M9-17 on why the toast comes first — this case is the one that
+    // paid for it, on a CI shard, with the item still under „Sommer".
+    await expect(page.locator('ion-toast')).toContainText('is now filed under')
     await writesLanded(page)
 
     await page.getByTestId('m9-tags-close').click()
