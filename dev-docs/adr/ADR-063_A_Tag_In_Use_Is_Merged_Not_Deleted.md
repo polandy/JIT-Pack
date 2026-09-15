@@ -96,7 +96,7 @@ Scores 1–5, higher is better.
 | The act the user wants must exist | 4 | 5 — the merge *is* the act, reached in one tap | 2 — leaves 49 items to retag by hand | 2 — hides the name, fixes nothing |
 | No schema change | 4 | 5 — none | 5 — none | 1 — a column, so every dev DB is reseeded |
 | One rule, client and server | 3 | 5 — exact count in both modes, same rows | 4 — trivially the same, being the FK | 3 — needs the marker honoured in both |
-| **Total** | | **80** | 47 | 42 |
+| **Total** | | **80** | 45 | 41 |
 
 ---
 
