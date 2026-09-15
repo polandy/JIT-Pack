@@ -70,7 +70,7 @@ export type TagDeleteResult = { ok: true } | { ok: false; references: number }
 export function createMasterDataActions(ctx: SyncContext) {
   const { mutations, enqueueAndDrain, masterStore, tripStore, knownTripItems, names, local } = ctx
 
-  /** Create a tag by typing its name (FR-24.1) — there is no tag admin. */
+  /** Create a tag by typing its name (FR-24.1); FR-24.10 is where one is fixed. */
   function createTag(name: string): string {
     const { mutation, id } = mutations.createTag(name, masterStore.tagList.length)
     enqueueAndDrain('master', null, {

@@ -1607,6 +1607,40 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   switch on, and two controls for one write is how a second one drifts); **entering the mode by long-press**, which
   M4's rows use — the inventory row is a router link, and a hold that must not also navigate is a gesture fight worth
   having only once somebody misses the entrance in the app bar.
+* **FR-24.10 (Managing the Tags Themselves — added 2026-09-15, implemented the same day; the delete's options and
+  their costs are **ADR-063**):** M9 carries a **tag manager**, reached as a word in the app bar's ⋮ (ADR-050 spends
+  its three glyphs on FR-24.4's eye, the sort and FR-24.9's selection, and this is the rarest of the four). It lists
+  every tag with the number of **assignments** it has, searchable under FR-24.7's fold, and each row offers four acts:
+  **umbenennen** (tapping the name), **hoch/runter** on the grouping axis, **zusammenführen** and **löschen**.
+  *Why it exists:* `createTag` and `moveTag` were the only two tag mutations in the product — a tag could be made and
+  given away and nothing else, so a name typed wrong stayed wrong, a tag typed twice stayed twice, and the axis order
+  was the order the tags happened to be created in. Against this instance's own data (23 tags, **49 of 184 items under
+  „Diverses"**) that is the gap between tagging and *filing*.
+
+  **A rename is refused when another tag holds the name.** `tags.name` is the third `UNIQUE (name)` space beside
+  Vorlagen (FR-1.6) and series (FR-13.1), and every device holds the whole master partition, so the collision is found
+  where the name was typed rather than arriving later as a refused push. The alert **stays open with the typed text**,
+  the idiom the other two prompts use, because dismissing it throws away an edit that was one character from right.
+
+  **A delete is refused while items carry the tag, and the refusal hands back the merge (ADR-063).** `item_tags.tag_id`
+  is `ON DELETE CASCADE`, so deleting a carried tag would strip it from every item and drop each one whose *primary*
+  tag it was into the leftover bucket — a change to where rows are filed, made silently, on rows the user was not
+  looking at. So the refusal states the count and offers **„Zusammenführen …"** in the same breath: „geht nicht"
+  without a way forward is what sends somebody back to retagging by hand. **Merging re-points the source's
+  assignments at the target**, drops the ones that would collide with `UNIQUE (item_id, tag_id)`, and — the clause
+  that carries the feature — **promotes the surviving assignment into the source's position where the source was the
+  item's primary tag**, so the item stays filed under the merged tag instead of moving to a heading neither tag had.
+  The source is deleted last, once nothing carries it. *Considered and rejected:* the cascade with a well-written
+  warning (the one act in the inventory with no undo), and FR-24.3's retire (a schema change, and its premise is
+  absent — nothing resolves against a tag row, because FR-24.2 snapshots the tag's *name* onto the trip row).
+
+  **The counter beside each tag is the one the refusal uses**, read through the same rule: a manager showing „1" beside
+  a tag whose delete is then refused over 2 is the screen contradicting itself. It therefore counts assignments and not
+  visible rows, so a **retired** item counts — it still carries its tags, and a cascade would still have stripped them.
+  **Reordering renumbers from the order on screen** and writes only the rows that change: `sort_order` is an integer
+  with no room between neighbours, and the axis routinely arrives flat, because `createTag` has always taken
+  `tagList.length` while a restore and the dev seed produce all-zero orders. The order controls **withdraw while a
+  search is narrowing the list** — „hoch" between two rows eleven apart on the axis is an ordering nobody can predict.
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —

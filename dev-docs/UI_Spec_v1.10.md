@@ -1589,6 +1589,16 @@ These patterns apply to every screen and are specified once.
   The two tag actions raise a snackbar with one **Rückgängig** for the batch; *Stilllegen* raises a confirm that names
   both halves of FR-24.3's two acts and has **no** undo, because the removed half cannot come back. The mode ends with
   the batch.
+* **The tag manager (2026-09-15, FR-24.10, ADR-063):** a **word in the app bar's ⋮**, not a fourth glyph — the bar
+  spends its three on the eye, the sort and the selection, and this is the rarest of the four. It is absent while the
+  inventory has no tag. The sheet lists every tag with its **assignment count**, searchable under FR-24.7's fold, and
+  each row carries: **hoch/runter** on the grouping axis, the **name as the rename control**, the count, **merge** and
+  **delete**. A rename refused because another tag holds the name keeps the alert open **with the typed text** and
+  says which tag has it. A delete is **refused while items carry the tag** and the refusal offers *„Zusammenführen …"*
+  in the same alert; merging asks for the target, confirms with the number of items moving, and deletes the source
+  once it is empty. **The arrows at the ends are dimmed, not removed**, so the column does not reflow as a tag reaches
+  the top or the bottom, and they **withdraw entirely while a search is narrowing the list** — the arrows move a tag
+  on the axis, and offering them beside two rows eleven apart on it is an ordering nobody can predict.
 * **The group heading is the jump (FR-24.8):** it opens the list of groups with their counts and **scrolls** to the
   one chosen, leaving the list whole — filtering takes rows away, jumping does not. It is offered only where it is a
   question: in the grouped order, outside a search, with more than one group. The scroll waits for the sheet to have

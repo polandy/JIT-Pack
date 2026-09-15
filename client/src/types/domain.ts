@@ -256,8 +256,9 @@ export interface ItemTodo {
 
 /**
  * FR-24.1: a label an item can carry. Tags serve as categories *and* as
- * free-form labels — there is no separate taxonomy and no tag-management
- * screen; typing an unmatched name in M10 creates one (ADR-014).
+ * free-form labels — there is no separate taxonomy; typing an unmatched name
+ * in M10 creates one (ADR-014). Fixing one afterwards — rename, merge,
+ * reorder, delete — is M9's tag manager (FR-24.10).
  */
 export interface Tag {
   id: string
