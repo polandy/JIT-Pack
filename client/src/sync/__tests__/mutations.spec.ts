@@ -31,6 +31,54 @@ describe('createMutations', () => {
     expect(mut.fields).toEqual({ position: -1 })
   })
 
+  // FR-24.10: the write a merge is made of. Same argument as moveTag — the
+  // pairing is all the row is, so nothing is removed and a delete plus an
+  // insert would both tombstone a change that removed nothing (ADR-052) and
+  // lose the position the item was filed at.
+  it('retagAssignment upserts the tag and the position together', () => {
+    const m = createMutations(mockHLC())
+    const mut = m.retagAssignment('a-sport', 't-kleidung', 3)
+
+    expect(mut.op).toBe('upsert')
+    expect(mut.table).toBe('item_tags')
+    expect(mut.id).toBe('a-sport')
+    // Both, and nothing else. The position has to travel with the tag: a
+    // merge that re-points without it files the item under a heading neither
+    // tag had.
+    expect(mut.fields).toEqual({ tag_id: 't-kleidung', position: 3 })
+  })
+
+  // `toEqual` and not `toMatchObject` throughout these three, deliberately:
+  // under ADR-022's field-level LWW a partial upsert that writes an extra
+  // field overwrites a concurrent edit to it, and a subset assertion is
+  // exactly the one that cannot see that.
+  it('renameTag writes the name alone', () => {
+    const m = createMutations(mockHLC())
+    const mut = m.renameTag('t-kleidung', 'Bekleidung')
+
+    expect(mut.op).toBe('upsert')
+    expect(mut.table).toBe('tags')
+    expect(mut.fields).toEqual({ name: 'Bekleidung' })
+  })
+
+  it('reorderTag writes the axis number alone', () => {
+    const m = createMutations(mockHLC())
+    const mut = m.reorderTag('t-kleidung', 2)
+
+    // `sort_order`, not `position`: `tags` and `item_tags` spell the same
+    // idea differently, and only the latter says position.
+    expect(mut.fields).toEqual({ sort_order: 2 })
+  })
+
+  it('deleteTag is a delete, carrying no fields', () => {
+    const m = createMutations(mockHLC())
+    const mut = m.deleteTag('t-kleidung')
+
+    expect(mut.op).toBe('delete')
+    expect(mut.table).toBe('tags')
+    expect(mut.id).toBe('t-kleidung')
+  })
+
   it('incrementPacked creates upsert with correct count and state', () => {
     const m = createMutations(mockHLC())
     const mut = m.incrementPacked('i1', 2, 5)

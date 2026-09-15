@@ -1478,7 +1478,10 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   Rationale: an item legitimately belongs to several axes at the same time — a swimsuit is Clothing *and* Summer *and*
   Beach — and a single mandatory category throws away filter reach the user expects. Tags are **shared master data**,
   governed exactly like the item itself (the FR-22.6 model): any authenticated user creates a tag simply by typing it in
-  the item editor; there is no separate tag-management screen and no fixed taxonomy. **Capture refinement (owner
+  the item editor, and there is no fixed taxonomy. **Amended 2026-09-15 (FR-24.10):** there *is* now a
+  tag-management surface — M9's manager, where a tag is renamed, merged, reordered and deleted. It changes
+  nothing about how a tag is *created*, which stays this sentence's filter-or-create idiom; what it adds is
+  the ability to fix one afterwards. **Capture refinement (owner
   2026-08-08, realised in the concept):** the tag input in M10 is a **search field** — typing filters the tag chips live
   (assigned tags stay pinned above the matches); tapping a match assigns it, and when the typed name matches no existing
   tag, **＋ (or Enter) creates and assigns it** in one step — the same filter-or-create idiom as the quick-add (FR-25.13
