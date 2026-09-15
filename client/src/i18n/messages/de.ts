@@ -526,6 +526,7 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.tagNone': 'Noch kein Tag — das Inventar führt ihn unter „Ohne Tag“.',
   'items.editor.tagFiledUnder': 'Im Inventar unter: {tags} · primär {primary}',
   'items.editor.more': 'Mehr — Gewicht & Preis',
+  'items.editor.optional': 'nicht erfasst',
   'items.editor.weight': 'Gewicht (g)',
   'items.editor.price': 'Preis',
   'items.editor.create': 'Artikel anlegen',

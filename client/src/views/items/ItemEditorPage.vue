@@ -701,7 +701,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               type="number"
               :value="draftWeight"
               data-testid="m10-weight"
-              placeholder="0"
+              :placeholder="t('items.editor.optional')"
               @ionInput="(e: CustomEvent) => (draftWeight = (e.detail.value as string) ?? '')"
             />
             <IonInput
@@ -709,7 +709,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               type="number"
               :value="item!.weight_grams ?? ''"
               data-testid="m10-weight"
-              placeholder="0"
+              :placeholder="t('items.editor.optional')"
               @ionBlur="onWeightChange"
             />
           </IonItem>
@@ -722,7 +722,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               step="0.01"
               :value="draftPrice"
               data-testid="m10-price"
-              placeholder="0.00"
+              :placeholder="t('items.editor.optional')"
               @ionInput="(e: CustomEvent) => (draftPrice = (e.detail.value as string) ?? '')"
             />
             <IonInput
@@ -731,7 +731,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               step="0.01"
               :value="item!.value_cents ? (item!.value_cents / 100).toFixed(2) : ''"
               data-testid="m10-price"
-              placeholder="0.00"
+              :placeholder="t('items.editor.optional')"
               @ionBlur="onValueChange"
             />
           </IonItem>

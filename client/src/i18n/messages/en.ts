@@ -518,6 +518,7 @@ export const en = {
   'items.editor.tagNone': 'No tag yet — the inventory files it under “Untagged”.',
   'items.editor.tagFiledUnder': 'Filed under: {tags} · primary {primary}',
   'items.editor.more': 'More — weight & price',
+  'items.editor.optional': 'not recorded',
   'items.editor.weight': 'Weight (g)',
   'items.editor.price': 'Price',
   'items.editor.create': 'Create item',
