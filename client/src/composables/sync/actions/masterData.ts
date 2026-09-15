@@ -214,7 +214,20 @@ export function createMasterDataActions(ctx: SyncContext) {
     }
 
     const moved = plan.repoint.length + plan.drop.length
-    if (moved > 0) deleteTag(sourceId)
+    if (moved > 0) {
+      // `mutations.deleteTag` and not the guarded {@link deleteTag}: the plan
+      // was computed from the store this loop has just been writing to, so
+      // asking the guard again is a read of state mid-change — and where the
+      // optimistic writes have not landed yet it sees the assignments the
+      // merge just took away, refuses, and leaves a tag behind that nothing
+      // carries. The plan already knows the tag is empty; that is what makes
+      // it a merge rather than a delete.
+      const mutation = mutations.deleteTag(sourceId)
+      enqueueAndDrain('master', null, {
+        mutation,
+        optimistic: optimisticDelete(mutation),
+      })
+    }
     return moved
   }
 

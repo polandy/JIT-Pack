@@ -756,13 +756,18 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 })
 
 describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
+  // Named spies rather than reads back off `orchestratorFake`: it is typed
+  // as the master-data stub, and `Object.assign` does not widen that type.
+  const renameTag = vi.fn()
+  const deleteTag = vi.fn()
+  const mergeTags = vi.fn()
+  const reorderTags = vi.fn()
+
   beforeEach(() => {
-    Object.assign(orchestratorFake, {
-      renameTag: vi.fn().mockReturnValue({ ok: true }),
-      deleteTag: vi.fn().mockReturnValue({ ok: true }),
-      mergeTags: vi.fn().mockReturnValue(0),
-      reorderTags: vi.fn(),
-    })
+    renameTag.mockReturnValue({ ok: true })
+    deleteTag.mockReturnValue({ ok: true })
+    mergeTags.mockReturnValue(0)
+    Object.assign(orchestratorFake, { renameTag, deleteTag, mergeTags, reorderTags })
   })
 
   it('offers "Tags verwalten" only once there is a tag to manage', async () => {
@@ -814,7 +819,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     page.getComponent(TagManagerSheet).vm.$emit('move', 1, 0)
     await flushPromises()
 
-    expect(orchestratorFake.reorderTags).toHaveBeenCalledWith(1, 0)
+    expect(reorderTags).toHaveBeenCalledWith(1, 0)
   })
 
   it('refuses a delete while items carry the tag, and offers the merge instead (ADR-063)', async () => {
@@ -827,7 +832,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     page.getComponent(TagManagerSheet).vm.$emit('remove', { id: 't-hyg', name: 'Hygiene' })
     await flushPromises()
 
-    expect(orchestratorFake.deleteTag).not.toHaveBeenCalled()
+    expect(deleteTag).not.toHaveBeenCalled()
     expect(vi.mocked(confirmDestructive)).not.toHaveBeenCalled()
     // The positive signal the absences are read against: the refusal is the
     // one thing that *did* happen, and it names the count.
@@ -846,7 +851,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     await flushPromises()
 
     expect(vi.mocked(confirmDestructive)).toHaveBeenCalled()
-    expect(orchestratorFake.deleteTag).toHaveBeenCalledWith('t-leer')
+    expect(deleteTag).toHaveBeenCalledWith('t-leer')
     expect(vi.mocked(presentToast)).toHaveBeenCalledWith({
       message: t('items.tagDeleted', { tag: 'Leer' }),
     })
@@ -861,7 +866,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     page.getComponent(TagManagerSheet).vm.$emit('merge', { id: 't-hyg', name: 'Hygiene' })
     await flushPromises()
 
-    expect(orchestratorFake.mergeTags).not.toHaveBeenCalled()
+    expect(mergeTags).not.toHaveBeenCalled()
     expect(vi.mocked(presentToast)).toHaveBeenCalledWith({
       message: t('items.tagMergeNoTarget', { tag: 'Hygiene' }),
     })
@@ -871,8 +876,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     seedItem('Sonnencreme')
     seedTag('Hygiene', 't-hyg')
     seedTag('Technik', 't-tec', 1)
-    orchestratorFake.renameTag = vi.fn().mockReturnValue({ ok: false, collision: 'Technik' })
-
+    renameTag.mockReturnValue({ ok: false, collision: 'Technik' })
 
     const page = mountPage()
     await flushPromises()

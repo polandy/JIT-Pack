@@ -340,6 +340,22 @@ describe('the tag admin actions (FR-24.10)', () => {
     expect(muts.some((m) => m.id === 'it-1' && m.op === 'upsert')).toBe(false)
   })
 
+  it('removes the source even when every one of its assignments was dropped', () => {
+    // The plan, not the store, is what says the tag is empty. Re-asking the
+    // guarded delete here reads state the merge is halfway through changing:
+    // where the optimistic writes have not landed, it sees the assignments
+    // that were just taken away and refuses, leaving a tag nothing carries.
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'Kleidung', 1)
+    seedAssignment('it-1', 'item-1', 'tag-1', 3)
+    seedAssignment('it-2', 'item-1', 'tag-2', 1)
+
+    createMasterDataActions(ctx).mergeTags('tag-1', 'tag-2')
+
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.at(-1)).toMatchObject({ op: 'delete', id: 'tag-1' })
+  })
+
   it('mergeTags carries the source’s position over when it was the item’s primary tag', () => {
     seedTag('tag-1', 'Sommer', 0)
     seedTag('tag-2', 'Kleidung', 1)

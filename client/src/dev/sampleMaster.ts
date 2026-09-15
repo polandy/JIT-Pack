@@ -59,6 +59,15 @@ interface ItemSeed {
    * nothing stand beside each other.
    */
   icon?: string
+  /**
+   * A **second** tag, assigned after {@link ItemSeed.tag} and therefore not
+   * the primary one (FR-24.2). Two rows carry one so FR-24.10's merge has
+   * its hard case on a fresh device: merging „Elektronik" into „Technik"
+   * has to re-point the row that carries only the source *and* drop the one
+   * that carries both — carrying the source's position over, or the item
+   * lands under a heading neither tag had.
+   */
+  alsoTag?: string
 }
 
 /** The inventory, with the tag that groups it in M9 (ADR-014 primary tag). */
@@ -83,6 +92,11 @@ const INVENTORY: ItemSeed[] = [
   { name: 'Wanderstöcke', tag: 'Camping', weightGrams: 480 },
   { name: 'Blasenpflaster', tag: 'Bad', weightGrams: 20 },
   { name: 'Powerbank', tag: 'Technik', weightGrams: 350, icon: '🔋' },
+  // „Elektronik" is „Technik" typed a second time — the duplicate every real
+  // inventory grows, and the one act FR-24.10 exists for. Kopfhörer carries
+  // both, so the merge's promotion clause is reachable without typing.
+  { name: 'Kopfhörer', tag: 'Elektronik', alsoTag: 'Technik', weightGrams: 210, icon: '🎧' },
+  { name: 'Ladekabel', tag: 'Elektronik', weightGrams: 60, icon: '🔌' },
   { name: 'Ladegerät', tag: 'Technik', weightGrams: 180 },
   // Deliberately in no group and in no trip: FR-24.3's *physical* branch
   // needs an item nothing has ever referenced, and on a fresh device every
@@ -284,7 +298,7 @@ function seedRetiredRows(
  */
 export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
   const tagIds = new Map<string, string>()
-  for (const tag of new Set(INVENTORY.map((i) => i.tag))) {
+  for (const tag of new Set(INVENTORY.flatMap((i) => (i.alsoTag ? [i.tag, i.alsoTag] : [i.tag])))) {
     tagIds.set(tag, orchestrator.createTag(tag))
   }
 
@@ -297,6 +311,9 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
     itemIds.set(item.name, id)
     const tagId = tagIds.get(item.tag)
     if (tagId) orchestrator.assignTag(id, tagId)
+    // Second, so it lands behind the first — `assignTag` appends.
+    const alsoId = item.alsoTag ? tagIds.get(item.alsoTag) : undefined
+    if (alsoId) orchestrator.assignTag(id, alsoId)
   }
 
   for (const dep of DEPENDENCIES) {

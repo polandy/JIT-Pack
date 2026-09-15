@@ -382,6 +382,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The swipe axis was a filter nobody filtered with (2026-09-13)](#the-swipe-axis-was-a-filter-nobody-filtered-with-2026-09-13) — FR-24.8; why the replacement is navigation, the three options that lost, and a jump clamped by an overlay.
 - [Forty-nine items, one act (2026-09-14)](#forty-nine-items-one-act-2026-09-14) — FR-24.9; why assigning a tag moved nothing, and the undo that stops at the delete.
 - [The instance learned to say it was behind (2026-09-15)](#the-instance-learned-to-say-it-was-behind-2026-09-15) — FR-23.8; why the check is the server's, not the browser's, and a build arg whose scope ended with its stage.
+- [A tag could be made and given away, never fixed (2026-09-15)](#a-tag-could-be-made-and-given-away-never-fixed-2026-09-15) — FR-24.10/ADR-063; why a tag delete is refused rather than cascaded, and the guard a merge must not re-ask.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15596,3 +15597,53 @@ E2E-M17-17 against a real backend in `single`; the states are covered against th
 and an injected clock, and against the component in Vitest. The Local Mode case is asserted as **no request having
 been made**, read off the recorded fetch calls, because the absence of a line there would also pass on a screen
 that never rendered.
+
+## A tag could be made and given away, never fixed (2026-09-15)
+
+`createTag` and `moveTag` were the only two tag mutations in the product. A tag could be created by typing a name into
+M10 (ADR-014) and given to items in bulk (FR-24.9), and that was the whole surface: a name typed wrong stayed wrong,
+a tag typed twice stayed twice, and the grouping axis was whatever order the tags happened to be created in. FR-24.10
+is the other half — rename, merge, reorder, delete — as a sheet behind M9's ⋮.
+
+**What the delete cost, and why it is refused.** The obvious implementation is the one the database already performs:
+`item_tags.tag_id` is `ON DELETE CASCADE`, so deleting a tag takes its assignments with it. That is also the one act
+in the inventory with no undo and a silent effect on rows the user is not looking at — every item that carried the
+tag as its *primary* one drops into the leftover bucket, and nothing records which items those were. FR-24.3's
+retire, the obvious consistency answer, was weighed and lost for a reason worth keeping: **its premise is absent
+here.** An item is retired because archived trips, analytics and attributions still resolve against it; nothing
+resolves against a tag row, because FR-24.2 snapshots the primary tag's *name* onto the trip row at generation. There
+is nothing for a tombstone to break — and adding `retired_at` to `tags` would have been a schema change, so every
+development database deleted and `:3000` reseeded (invariant 2), for an act that needed none of it. So the delete is
+**refused while items carry the tag**, and the refusal hands back the merge. That is ADR-063.
+
+**The clause that is the feature.** A merge re-points the source's assignments at the target and drops the ones that
+would collide with `UNIQUE (item_id, tag_id)` — and then has to **carry the source's position over** where the source
+was the item's primary tag. Without that clause the merge is worse than useless: the surviving assignment keeps its
+own position, and the item is filed under whatever sorts first next, which is a *third* heading, neither of the two
+tags the user was merging. A merge that moves rows somewhere nobody asked for is the exact failure the feature exists
+to fix. It is why E2E-M9-19 gives its item **both** tags with the source first — the only arrangement that can tell
+the clause from its absence.
+
+**A read of state mid-change, found by the case and not by the tests.** `mergeTags` ended by calling the *guarded*
+`deleteTag`, which re-counts the assignments. Those are the assignments the same loop had just written away, so where
+the optimistic writes had not landed the guard saw them, refused, and left behind a tag nothing carried. Every unit
+test passed: the seam context applies optimistic writes synchronously, so the guard there always read a store that
+already agreed with the plan, and only the built app has the gap. **The rule: a plan computed from the store is the
+authority for the rest of that act** — re-asking halfway through answers about a world that no longer exists. The
+merge now deletes the source directly, because the plan already knows the tag is empty, and that is what makes it a
+merge rather than a delete.
+
+**Two smaller things the work settled.** The manager's per-tag counter is read through `tagDeletion` rather than the
+chips' arithmetic, because the number beside a tag and the number in its refusal have to be one number — a manager
+showing „1" beside a tag whose delete is then refused over 2 is the screen contradicting itself. It follows that a
+**retired** item counts, which is right: it still carries its tags, and a cascade would still have stripped them.
+And `planTagReorder` renumbers the whole axis from the order on screen and writes only the rows that change, rather
+than slotting the moved tag between its neighbours: `sort_order` is an integer with no room between adjacent values,
+and the axis routinely arrives flat, because `createTag` has always taken `tagList.length` while a restore and the
+dev seed produce all-zero orders. Against a flat axis a gap-insertion move is a write that changes nothing visible.
+
+**What only the render said.** The order arrows were 14 px tall — correct-looking in the stylesheet, not reachable
+with a thumb at 390 px. The row is 54 px now, so each arrow is 27, and the glyph went up a step. The arrows at the
+ends are **dimmed rather than removed**, so the column does not reflow as a tag reaches the top or the bottom, and
+they withdraw entirely while a search narrows the list, because „hoch" between two rows eleven apart on the axis is
+an ordering nobody can predict.
