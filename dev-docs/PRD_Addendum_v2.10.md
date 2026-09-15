@@ -1407,6 +1407,10 @@ instance-admin role — accordingly stays declarative and out of the UI entirely
   normal case for an offline-first deployment; `off` renders nothing at all, which is also what a build that names
   no release tag produces — every locally built binary — since there is nothing to compare it against.
 
+  **The link is checked before it is passed on.** It arrives from off the network and is rendered as an `href`, so a
+  release whose URL is not an absolute `https` one loses its link and keeps its version — the useful half stands on
+  its own, and a scheme a browser would execute never reaches a screen.
+
   **Two rules inside the answer:** a release already known **outranks** a later failed check (the release did not
   stop existing, and the reported check time says how old the knowledge is), and a tag that cannot be parsed is
   never reported as an update — *"cannot compare"* reaching a person as *"you are behind"* is the one failure here

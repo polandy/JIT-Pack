@@ -28,6 +28,9 @@ type fakeFeed struct {
 	calls  atomic.Int64
 	status atomic.Int64
 	tag    atomic.Value // string
+	// link overrides the release's own URL; empty means the ordinary
+	// GitHub one built from the tag.
+	link atomic.Value // string
 }
 
 func newFakeFeed(t *testing.T, tag string) *fakeFeed {
@@ -42,10 +45,14 @@ func newFakeFeed(t *testing.T, tag string) *fakeFeed {
 			return
 		}
 		release := f.tag.Load().(string)
+		link, _ := f.link.Load().(string)
+		if link == "" {
+			link = "https://github.com/polandy/JIT-Pack/releases/tag/" + release
+		}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(map[string]string{
 			"tag_name": release,
-			"html_url": "https://github.com/polandy/JIT-Pack/releases/tag/" + release,
+			"html_url": link,
 		}); err != nil {
 			t.Errorf("encode release: %v", err)
 		}
@@ -241,6 +248,44 @@ func TestInstanceUpdate_AsksUpstreamOnceADay(t *testing.T) {
 	instanceUpdate(t, srv)
 	if n := feed.calls.Load(); n != 2 {
 		t.Errorf("upstream calls after a day = %d, want 2 — the answer ages out", n)
+	}
+}
+
+// The link is rendered as an href, and it comes from off the network. A
+// scheme a browser would execute must never reach the screen — and the
+// version, which is the useful half, survives losing it.
+func TestInstanceUpdate_DropsAReleaseLinkThatIsNotAWebURL(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		link string
+		want string
+	}{
+		{name: "a javascript url", link: "javascript:alert(1)", want: ""},
+		{name: "plain http", link: "http://example.test/r/v0.10.0", want: ""},
+		{name: "a relative path", link: "/polandy/JIT-Pack/releases", want: ""},
+		{
+			name: "the ordinary release page",
+			link: "https://github.com/polandy/JIT-Pack/releases/tag/v0.10.0",
+			want: "https://github.com/polandy/JIT-Pack/releases/tag/v0.10.0",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			feed := newFakeFeed(t, "v0.10.0")
+			feed.link.Store(tc.link)
+			srv := updateServer(t, api.Options{
+				Version: thisBuild, UpdateCheck: true, UpdateFeedURL: feed.srv.URL,
+			})
+
+			got := instanceUpdate(t, srv)
+			if got.ReleaseURL != tc.want {
+				t.Errorf("release_url = %q, want %q", got.ReleaseURL, tc.want)
+			}
+			// The release itself is still reported: dropping the link must
+			// not drop the answer.
+			if got.State != api.UpdateStateAvailable || got.Latest != "v0.10.0" {
+				t.Errorf("state = %q, latest = %q — the version survives a bad link", got.State, got.Latest)
+			}
+		})
 	}
 }
 

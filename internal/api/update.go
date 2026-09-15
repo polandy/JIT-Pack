@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -169,7 +170,22 @@ func (c *updateChecker) fetch(ctx context.Context) (githubRelease, error) {
 	if rel.TagName == "" {
 		return githubRelease{}, errors.New("update feed named no release")
 	}
+	// The link is rendered as an href on a settings screen, and it arrives
+	// from off the network. Anything but a web URL is dropped rather than
+	// refused: the version is the useful half and stands on its own, while
+	// a `javascript:` href is the one thing this must never hand a browser.
+	if !isWebURL(rel.HTMLURL) {
+		rel.HTMLURL = ""
+	}
 	return rel, nil
+}
+
+// isWebURL reports whether raw is an absolute https URL naming a host.
+// Plain http is refused too: the feed is fetched over TLS, so a release
+// that links away from it is not one this instance will pass on.
+func isWebURL(raw string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && u.Scheme == "https" && u.Host != ""
 }
 
 // newerVersion reports whether latest names a release after current. Both

@@ -121,7 +121,10 @@ const avatarVersion = ref(0)
 
 onMounted(async () => {
   await loadIdentity()
-  await loadInstanceUpdate()
+  // Not awaited: the release line is the least urgent thing on this screen,
+  // and on an instance that does not answer, awaiting it would hold the
+  // notification section behind a request that is allowed to time out.
+  void loadInstanceUpdate()
   nameDraft.value = me.value?.display_name ?? ''
   if (collaborative) {
     prefs.value = await orchestrator.fetchNotificationPrefs()
@@ -953,6 +956,7 @@ async function exportTripCSV() {
               <span class="jp-eyebrow update-badge">{{ t('settings.updateBadge') }}</span>
               <span>{{ t('settings.updateAvailable', { version: instanceUpdate.latest }) }}</span>
               <a
+                v-if="instanceUpdate.release_url"
                 :href="instanceUpdate.release_url"
                 target="_blank"
                 rel="noopener noreferrer"
