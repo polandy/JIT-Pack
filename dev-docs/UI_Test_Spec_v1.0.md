@@ -1418,6 +1418,18 @@ test body under it separates a wrong number from a missing test.**
   nothing any more. Two clauses carry the semantics that are easy to get wrong: the old tag is **kept** (the rows
   still answer its filter — refiling is not retagging), and the snackbar's **Rückgängig** puts all three back.
   **Proven red** against a build whose switch appended instead of refiling.
+* **E2E-M9-17** `all` (FR-24.10) — **implemented 2026-09-15** (`e2e/inventory.spec.ts`): a tag is renamed from the
+  manager, and the **inventory's group heading** carries the new name — the only place the write is observable, since
+  the sheet would show a renamed row whether or not anything was written. The second clause is the refusal: a name a
+  second tag already holds leaves the alert **open**, and the tag keeps its old name on the heading behind it.
+* **E2E-M9-18** `all` (FR-24.10, ADR-063) — **implemented 2026-09-15** (`e2e/inventory.spec.ts`): deleting a tag items
+  carry is **refused**, and the alert offers the merge. The absence needs a positive signal, so the case reads the
+  refusal's own sentence *and* the heading that is still there afterwards — a delete that had gone through would take
+  the heading with it.
+* **E2E-M9-19** `all` (FR-24.10, ADR-063) — **implemented 2026-09-15** (`e2e/inventory.spec.ts`): the merge itself,
+  through the refusal. The item that carried the source ends up under the **target's** heading and the source's
+  heading is gone — which is the whole promise, because a merge that re-pointed the assignment without carrying the
+  position over would leave the row under a third heading entirely.
 * **E2E-M10-21** `all` (FR-24.9) — **implemented 2026-09-14** (`e2e/inventory.spec.ts`): M10's assigned chip has two
   targets. Tapping the **name** makes that tag primary, and the assertion crosses screens — the inventory files the
   row under the new heading, which is the only place the change is observable. The **✕** still removes the tag

@@ -4,6 +4,12 @@ Your instance accumulates items, tags and templates that nobody needs any more. 
 delete them one at a time in the app — but if you have a long list, or you want to work
 from a spreadsheet, JIT-Pack gives you a delete endpoint per row.
 
+!!! tip "For tags, try the app first"
+    **Inventory → ⋮ → Manage tags** renames, merges, reorders and deletes tags, and it is
+    the only place that can *merge* two tags into one. Merging is usually what you want
+    when a tag was typed twice — it keeps every item filed, which deleting does not. See
+    [what the endpoint does differently](#deleting-a-tag-is-not-what-the-app-does) below.
+
 !!! warning "Back up first"
     Deletion through the API asks no confirmation question. Copy your database file before
     you start — see [Backup & Export](backup.md). It is one file, and restoring it undoes
@@ -65,6 +71,17 @@ history still depends on:
 A hidden row is not stuck. Once whatever kept it alive is deleted too, deleting it again
 removes it for good. You can also see and undo these: **Settings → Hidden master data →
 Restore hidden items and templates** lists them, restores them, or deletes them permanently.
+
+### Deleting a tag is not what the app does
+
+Tags have no hidden state, so `retired` is always `false` for them — and the endpoint
+**deletes a tag even while items carry it**. Every one of those items loses the tag, and
+any item that was filed under it as its main tag drops into *„Ohne Tag"* in the inventory.
+Nothing warns you, and nothing records which items had it.
+
+The app refuses that same delete and offers to merge the tag into another one instead, so
+the items keep where they are filed. If you are clearing out a duplicate tag rather than a
+tag nobody uses, merge it in the app and let the merge delete it for you.
 
 The other answers you may get:
 

@@ -241,3 +241,166 @@ describe('createMasterDataActions without an orchestrator', () => {
     expect(actions.masterItemRestoreVerdict('item-missing')).toBeNull()
   })
 })
+
+// --- FR-24.10: managing the tags themselves ---------------------------------
+
+describe('the tag admin actions (FR-24.10)', () => {
+  /** Two tags and the assignments a case needs, seeded through a pull. */
+  function seedTag(id: string, name: string, sortOrder: number): void {
+    pullIn(ctx.masterStore, TABLE.tags, id, { name, sort_order: sortOrder })
+  }
+
+  function seedAssignment(id: string, itemId: string, tagId: string, position: number): void {
+    pullIn(ctx.masterStore, TABLE.itemTags, id, { item_id: itemId, tag_id: tagId, position })
+  }
+
+  it('renameTag writes the new name', () => {
+    seedTag('tag-1', 'Kleidung', 0)
+
+    const result = createMasterDataActions(ctx).renameTag('tag-1', 'Bekleidung')
+
+    expect(result.ok).toBe(true)
+    expect(queued[0]!.muts[0]!.mutation.op).toBe('upsert')
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ name: 'Bekleidung' })
+  })
+
+  it('renameTag refuses a name another tag already holds, and writes nothing', () => {
+    seedTag('tag-1', 'Kleidung', 0)
+    seedTag('tag-2', 'Technik', 1)
+
+    // Case-insensitive, like the other two UNIQUE (name) spaces: the database
+    // would hold both and no screen could tell them apart.
+    const result = createMasterDataActions(ctx).renameTag('tag-1', 'technik')
+
+    expect(result).toEqual({ ok: false, collision: 'Technik' })
+    expect(queued).toEqual([])
+  })
+
+  it('renameTag accepts a different capitalisation of the tag’s own name', () => {
+    seedTag('tag-1', 'kleidung', 0)
+
+    expect(createMasterDataActions(ctx).renameTag('tag-1', 'Kleidung').ok).toBe(true)
+    expect(queued).toHaveLength(1)
+  })
+
+  it('deleteTag removes a tag nothing carries', () => {
+    seedTag('tag-1', 'Kleidung', 0)
+
+    const result = createMasterDataActions(ctx).deleteTag('tag-1')
+
+    expect(result).toEqual({ ok: true })
+    expect(queued[0]!.muts[0]!.mutation.op).toBe('delete')
+    expect(queued[0]!.muts[0]!.mutation.id).toBe('tag-1')
+  })
+
+  it('deleteTag refuses while items carry it, and says how many (ADR-063)', () => {
+    seedTag('tag-1', 'Kleidung', 0)
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+    seedAssignment('it-2', 'item-2', 'tag-1', 0)
+
+    const result = createMasterDataActions(ctx).deleteTag('tag-1')
+
+    expect(result).toEqual({ ok: false, references: 2 })
+    // The refusal is the whole point: a cascade would strip the tag from both
+    // items and drop them into the leftover bucket.
+    expect(queued).toEqual([])
+  })
+
+  it('mergeTags re-points the source’s assignments and then removes the source', () => {
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'Kleidung', 1)
+    seedAssignment('it-1', 'item-1', 'tag-1', 2)
+
+    const moved = createMasterDataActions(ctx).mergeTags('tag-1', 'tag-2')
+
+    expect(moved).toBe(1)
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts[0]).toMatchObject({
+      op: 'upsert',
+      id: 'it-1',
+      fields: { tag_id: 'tag-2', position: 2 },
+    })
+    // The source tag is gone only *after* nothing carries it any more — the
+    // same order `deleteTag` would insist on.
+    expect(muts[muts.length - 1]).toMatchObject({ op: 'delete', id: 'tag-1' })
+  })
+
+  it('mergeTags drops a source assignment the item would collide on', () => {
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'Kleidung', 1)
+    seedAssignment('it-1', 'item-1', 'tag-1', 3)
+    seedAssignment('it-2', 'item-1', 'tag-2', 1)
+
+    createMasterDataActions(ctx).mergeTags('tag-1', 'tag-2')
+
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    // UNIQUE (item_id, tag_id) — re-pointing it onto the target's own row is
+    // the write the database would refuse.
+    expect(muts.some((m) => m.op === 'delete' && m.id === 'it-1')).toBe(true)
+    expect(muts.some((m) => m.id === 'it-1' && m.op === 'upsert')).toBe(false)
+  })
+
+  it('removes the source even when every one of its assignments was dropped', () => {
+    // The plan, not the store, is what says the tag is empty. Re-asking the
+    // guarded delete here reads state the merge is halfway through changing:
+    // where the optimistic writes have not landed, it sees the assignments
+    // that were just taken away and refuses, leaving a tag nothing carries.
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'Kleidung', 1)
+    seedAssignment('it-1', 'item-1', 'tag-1', 3)
+    seedAssignment('it-2', 'item-1', 'tag-2', 1)
+
+    createMasterDataActions(ctx).mergeTags('tag-1', 'tag-2')
+
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.at(-1)).toMatchObject({ op: 'delete', id: 'tag-1' })
+  })
+
+  it('mergeTags carries the source’s position over when it was the item’s primary tag', () => {
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'Kleidung', 1)
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+    seedAssignment('it-2', 'item-1', 'tag-2', 1)
+
+    createMasterDataActions(ctx).mergeTags('tag-1', 'tag-2')
+
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    // Without this the item is filed under whatever sorts first next — the
+    // very drift the merge was asked to fix.
+    expect(muts).toContainEqual(
+      expect.objectContaining({ op: 'upsert', id: 'it-2', fields: { position: 0 } }),
+    )
+  })
+
+  it('mergeTags into the tag itself writes nothing at all', () => {
+    seedTag('tag-1', 'Sommer', 0)
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+
+    expect(createMasterDataActions(ctx).mergeTags('tag-1', 'tag-1')).toBe(0)
+    expect(queued).toEqual([])
+  })
+
+  it('reorderTags writes only the tags whose number changes', () => {
+    seedTag('tag-1', 'A', 0)
+    seedTag('tag-2', 'B', 1)
+    seedTag('tag-3', 'C', 2)
+
+    createMasterDataActions(ctx).reorderTags(2, 0)
+
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.map((m) => [m.id, m.fields])).toEqual([
+      ['tag-3', { sort_order: 0 }],
+      ['tag-1', { sort_order: 1 }],
+      ['tag-2', { sort_order: 2 }],
+    ])
+  })
+
+  it('reorderTags writes nothing when the drag ended where it started', () => {
+    seedTag('tag-1', 'A', 0)
+    seedTag('tag-2', 'B', 1)
+
+    createMasterDataActions(ctx).reorderTags(1, 1)
+
+    expect(queued).toEqual([])
+  })
+})

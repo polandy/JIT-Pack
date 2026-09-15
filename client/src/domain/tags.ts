@@ -362,3 +362,137 @@ export function tagsOfItems(items: MasterItem[], assignments: ItemTag[], tags: T
   const carried = new Set(assignments.filter((a) => wanted.has(a.item_id)).map((a) => a.tag_id))
   return tags.filter((tag) => carried.has(tag.id))
 }
+
+// --- FR-24.10: managing the tags themselves ---------------------------------
+//
+// Until now a tag could only be created (M10, ADR-014) and given away
+// (FR-24.9). The four acts below are the other half: rename, merge, reorder
+// and delete. A **rename** is not here because it already has a rule —
+// `tags.name` is the third `UNIQUE (name)` space beside Vorlagen and series,
+// so `nameCollision.findNameCollision` is what answers it, and writing a
+// second fold for it is the drift that file exists to prevent.
+
+/** The tag is removed outright — nothing carries it. */
+export const TAG_DELETE_ALLOWED = 'allowed'
+/** The tag stays — items carry it, and merging is the way out (ADR-063). */
+export const TAG_DELETE_REFUSED = 'refused'
+
+/** Which answer a tag delete gets (FR-24.10). */
+export type TagDeletionKind = typeof TAG_DELETE_ALLOWED | typeof TAG_DELETE_REFUSED
+
+/** The answer, and the count the confirm needs to explain it. */
+export interface TagDeletion {
+  kind: TagDeletionKind
+  /** How many items carry the tag — 0 exactly when the delete is allowed. */
+  references: number
+}
+
+/**
+ * Whether this tag can be deleted, and what carries it (FR-24.10, ADR-063).
+ *
+ * Deliberately **not** FR-24.3's retire/remove pair. A retired *item* has to
+ * keep resolving for archived trips, so the row survives; a tag resolves for
+ * nothing — no trip row, no template position and no analytic reads `tags`,
+ * because FR-24.2 snapshots the primary tag's *name* onto the trip row at
+ * generation. So there is nothing for a tombstone to break and nothing for a
+ * retired row to keep alive. What a cascade *would* break is the living
+ * inventory: `item_tags.tag_id` is `ON DELETE CASCADE`, so deleting a used
+ * tag silently strips it from every item, and each item whose primary tag it
+ * was falls into the leftover bucket. Refusing while it is in use is what
+ * makes {@link planTagMerge} the way out, and a merge is what „49 items in
+ * Diverses" actually needs.
+ */
+export function tagDeletion(tagId: string, assignments: ItemTag[]): TagDeletion {
+  const references = assignments.filter((a) => a.tag_id === tagId).length
+  return { kind: references > 0 ? TAG_DELETE_REFUSED : TAG_DELETE_ALLOWED, references }
+}
+
+/** An assignment and the position it is to be written at. */
+export interface PositionedAssignment {
+  assignment: ItemTag
+  position: number
+}
+
+/**
+ * What merging one tag into another writes (FR-24.10).
+ *
+ * Three groups, like {@link planTagGrant}, because the same item can be in
+ * any of them and one number would hide it:
+ *
+ * - `repoint` — the item carries the source and not the target, so the
+ *   existing assignment simply changes which tag it names. One write, not a
+ *   delete and an insert: the pairing is all the row is, so tearing it down
+ *   would put a tombstone in the feed for something that was never removed
+ *   (ADR-052), and re-inserting would lose the position the item was filed at.
+ * - `drop` — the item carries **both**, and `UNIQUE (item_id, tag_id)` means
+ *   the source cannot be re-pointed onto a row that already exists.
+ * - `promote` — the half of `drop` that would otherwise change what the item
+ *   is filed under. FR-24.2 groups by the *lowest* position, so an item whose
+ *   primary tag was the source must have the surviving target inherit that
+ *   position; without it the merge would move items into a different heading
+ *   than either tag, which is the exact failure the feature exists to fix.
+ */
+export interface TagMerge {
+  repoint: PositionedAssignment[]
+  drop: ItemTag[]
+  promote: PositionedAssignment[]
+}
+
+export function planTagMerge(sourceId: string, targetId: string, assignments: ItemTag[]): TagMerge {
+  const plan: TagMerge = { repoint: [], drop: [], promote: [] }
+  if (sourceId === targetId) return plan
+
+  const targetOf = new Map<string, ItemTag>()
+  for (const a of assignments) if (a.tag_id === targetId) targetOf.set(a.item_id, a)
+
+  for (const source of assignments) {
+    if (source.tag_id !== sourceId) continue
+    const target = targetOf.get(source.item_id)
+    if (!target) {
+      plan.repoint.push({ assignment: source, position: source.position })
+      continue
+    }
+    plan.drop.push(source)
+    if (source.position < target.position) {
+      plan.promote.push({ assignment: target, position: source.position })
+    }
+  }
+  return plan
+}
+
+/** A tag and the axis number it is to be written at (FR-24.10). */
+export interface TagOrdering {
+  tagId: string
+  sortOrder: number
+}
+
+/**
+ * The writes that move the tag at `from` to `to` on the axis (FR-24.10).
+ *
+ * The whole axis is renumbered `0…N-1` from the order the user is *looking
+ * at*, and only the tags whose number actually changes are returned. Two
+ * reasons for renumbering rather than slotting the moved tag between its new
+ * neighbours: `sort_order` is an integer with no room between adjacent
+ * values, and the axis routinely arrives flat — `createTag` has always taken
+ * `tagList.length`, but a restore and the dev seed both produce all-zero
+ * orders, and against those a gap-insertion move is a write that changes
+ * nothing visible. Diffing afterwards is what keeps the cost at the few rows
+ * that moved instead of all N.
+ *
+ * An index outside the axis writes nothing: a drag that ended nowhere is not
+ * an ordering, and clamping it would silently move a tag the user did not
+ * point at.
+ */
+export function planTagReorder(tags: Tag[], from: number, to: number): TagOrdering[] {
+  if (from < 0 || to < 0 || from >= tags.length || to >= tags.length) return []
+
+  const ordered = [...tags]
+  const [moved] = ordered.splice(from, 1)
+  ordered.splice(to, 0, moved!)
+
+  const writes: TagOrdering[] = []
+  ordered.forEach((tag, index) => {
+    if (tag.sort_order !== index) writes.push({ tagId: tag.id, sortOrder: index })
+  })
+  return writes
+}

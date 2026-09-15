@@ -13,6 +13,11 @@ import {
   primaryTagOf,
   withCategories,
   UNTAGGED_KEY,
+  tagDeletion,
+  planTagMerge,
+  planTagReorder,
+  TAG_DELETE_ALLOWED,
+  TAG_DELETE_REFUSED,
 } from '@/domain/tags'
 import type { ItemTag, MasterItem, Tag } from '@/types/domain'
 
@@ -452,5 +457,122 @@ describe('tagsOfItems (FR-24.9)', () => {
       'Technik',
       'Kleidung',
     ])
+  })
+})
+
+// --- FR-24.10: managing the tags themselves ---------------------------------
+
+describe('tagDeletion (FR-24.10)', () => {
+  it('refuses a tag something still carries, and counts what carries it', () => {
+    const assignments = [assign('i-badehose', 't-sommer', 0), assign('i-kabel', 't-sommer', 1)]
+
+    const decision = tagDeletion('t-sommer', assignments)
+
+    expect(decision.kind).toBe(TAG_DELETE_REFUSED)
+    expect(decision.references).toBe(2)
+  })
+
+  it('allows a tag nothing carries', () => {
+    const decision = tagDeletion('t-sommer', [assign('i-kabel', 't-technik', 0)])
+
+    expect(decision.kind).toBe(TAG_DELETE_ALLOWED)
+    expect(decision.references).toBe(0)
+  })
+})
+
+describe('planTagMerge (FR-24.10)', () => {
+  it('re-points the source’s assignments on items that do not carry the target', () => {
+    const assignments = [assign('i-badehose', 't-sommer', 3)]
+
+    const plan = planTagMerge('t-sommer', 't-kleidung', assignments)
+
+    expect(plan.repoint).toEqual([{ assignment: assignments[0], position: 3 }])
+    expect(plan.drop).toEqual([])
+  })
+
+  it('drops the source where the item already carries the target', () => {
+    const source = assign('i-badehose', 't-sommer', 2)
+    const target = assign('i-badehose', 't-kleidung', 1)
+
+    const plan = planTagMerge('t-sommer', 't-kleidung', [source, target])
+
+    expect(plan.drop).toEqual([source])
+    expect(plan.repoint).toEqual([])
+  })
+
+  it('lets the surviving assignment inherit the lower position, so the item keeps its heading', () => {
+    // Sommer was primary (0) and Kleidung second (1). Dropping Sommer without
+    // moving Kleidung up would file the item under whatever sorts first next —
+    // FR-24.2 groups by the lowest position, so the merge has to carry it over.
+    const source = assign('i-badehose', 't-sommer', 0)
+    const target = assign('i-badehose', 't-kleidung', 1)
+
+    const plan = planTagMerge('t-sommer', 't-kleidung', [source, target])
+
+    expect(plan.drop).toEqual([source])
+    expect(plan.promote).toEqual([{ assignment: target, position: 0 }])
+  })
+
+  it('leaves the target alone when it already sits above the source', () => {
+    const source = assign('i-badehose', 't-sommer', 4)
+    const target = assign('i-badehose', 't-kleidung', 1)
+
+    expect(planTagMerge('t-sommer', 't-kleidung', [source, target]).promote).toEqual([])
+  })
+
+  it('touches nothing when the source and the target are the same tag', () => {
+    const assignments = [assign('i-badehose', 't-sommer', 0)]
+
+    expect(planTagMerge('t-sommer', 't-sommer', assignments)).toEqual({
+      repoint: [],
+      drop: [],
+      promote: [],
+    })
+  })
+
+  it('ignores assignments of other tags entirely', () => {
+    const assignments = [assign('i-kabel', 't-technik', 0)]
+
+    expect(planTagMerge('t-sommer', 't-kleidung', assignments).repoint).toEqual([])
+  })
+})
+
+describe('planTagReorder (FR-24.10)', () => {
+  const axis: Tag[] = [
+    { id: 't-a', name: 'A', sort_order: 0 },
+    { id: 't-b', name: 'B', sort_order: 1 },
+    { id: 't-c', name: 'C', sort_order: 2 },
+  ]
+
+  it('writes only the tags whose number actually changes', () => {
+    // C to the front: A and B each shift down one, C takes 0.
+    expect(planTagReorder(axis, 2, 0)).toEqual([
+      { tagId: 't-c', sortOrder: 0 },
+      { tagId: 't-a', sortOrder: 1 },
+      { tagId: 't-b', sortOrder: 2 },
+    ])
+  })
+
+  it('writes nothing when the tag does not move', () => {
+    expect(planTagReorder(axis, 1, 1)).toEqual([])
+  })
+
+  it('moves a tag on an axis whose numbers were never set', () => {
+    // A restore and the dev seed both produce all-zero orders, and against a
+    // flat axis a gap-insertion move would write a number that changes
+    // nothing. Renumbering from the rendered order is what makes the first
+    // drag stick — and the diff still keeps it to the one row that moved,
+    // because B is already at 0 and staying there.
+    const flat: Tag[] = [
+      { id: 't-a', name: 'A', sort_order: 0 },
+      { id: 't-b', name: 'B', sort_order: 0 },
+    ]
+
+    expect(planTagReorder(flat, 0, 1)).toEqual([{ tagId: 't-a', sortOrder: 1 }])
+  })
+
+  it('answers an index outside the axis with no writes at all', () => {
+    expect(planTagReorder(axis, 5, 0)).toEqual([])
+    expect(planTagReorder(axis, 0, 9)).toEqual([])
   })
 })

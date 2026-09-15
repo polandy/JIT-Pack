@@ -309,6 +309,142 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(list.getByTestId('m9-row')).toHaveCount(4)
   })
 
+  /**
+   * FR-24.10's three cases share one entrance, so it is written once.
+   *
+   * Everything the manager does is asserted on **M9's group headings** and
+   * not inside the sheet: the sheet would render a renamed row, or a row
+   * gone, whether or not a mutation was ever written. The heading is where
+   * the tag actually files something.
+   */
+  /**
+   * Type into a `promptText` alert's field.
+   *
+   * Not `fillIonic`: an `ion-alert` input is a plain `<input>` the overlay
+   * renders itself, with no web component around it to go `hydrated` — the
+   * helper waits for a class that never arrives.
+   */
+  async function fillPrompt(page: Page, value: string): Promise<void> {
+    const field = page.locator('ion-alert input[aria-label="name"]')
+    await expect(field).toBeVisible()
+    await field.fill(value)
+  }
+
+  async function openTagManager(page: Page): Promise<void> {
+    await page.getByTestId('header-overflow').click()
+    await page.getByText('Manage tags', { exact: true }).click()
+    await expect(page.getByTestId('m9-tags-sheet')).toHaveAttribute('data-presented', 'true')
+  }
+
+  /**
+   * E2E-M9-17 (FR-24.10): a tag could be created and given away and never
+   * fixed — `createTag` and `moveTag` were the only two tag mutations in the
+   * product, so a name typed wrong stayed wrong.
+   */
+  test('E2E-M9-17: a tag is renamed, and a name another tag holds is refused', async ({ page }) => {
+    await createItem(page, 'Badehose', { tags: ['Kleidun'] })
+    await backToInventory(page)
+    await createItem(page, 'Kamera', { tags: ['Technik'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    expect(await groupHeadings(list)).toEqual(['kleidun', 'technik'])
+
+    await openTagManager(page)
+    await page.getByTestId('m9-tag-rename-Kleidun').click()
+    await fillPrompt(page, 'Kleidung')
+    await page.getByRole('button', { name: 'Rename' }).click()
+    // The toast, before `writesLanded`, and it is not decoration: clicking an
+    // alert button only *dismisses* the alert — the handler runs after
+    // `onDidDismiss` resolves. `writesLanded` asserts the indicator is
+    // settled, which it still is in that gap, so on its own it can pass
+    // before the first write of the action exists. The toast is the
+    // production code's own signal that the action has run.
+    await expect(page.locator('ion-toast')).toContainText('is now called')
+    await writesLanded(page)
+
+    // The heading, not the sheet row: this is the write being observable.
+    await page.getByTestId('m9-tags-close').click()
+    expect(await groupHeadings(list)).toEqual(['kleidung', 'technik'])
+
+    // And the refusal. „Technik" is taken, so the alert stays up with the
+    // typed text — dismissing it would throw away an edit one character from
+    // right — and nothing on the list behind it moves.
+    await openTagManager(page)
+    await page.getByTestId('m9-tag-rename-Kleidung').click()
+    await fillPrompt(page, 'Technik')
+    await page.getByRole('button', { name: 'Rename' }).click()
+    await expect(page.getByTestId('m9-tag-rename-prompt')).toBeVisible()
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await page.getByTestId('m9-tags-close').click()
+    expect(await groupHeadings(list)).toEqual(['kleidung', 'technik'])
+  })
+
+  /**
+   * E2E-M9-18 (FR-24.10, ADR-063): `item_tags.tag_id` is ON DELETE CASCADE,
+   * so the delete the database would happily perform strips the tag from
+   * every item and drops each one it filed into the leftover bucket. The app
+   * refuses it and hands back the merge instead.
+   */
+  test('E2E-M9-18: a tag items carry is not deleted, and the refusal offers the merge', async ({
+    page,
+  }) => {
+    await createItem(page, 'Badehose', { tags: ['Kleidung'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    await openTagManager(page)
+    await page.getByTestId('m9-tag-delete-Kleidung').click()
+
+    // The positive signal the absence is read against: the refusal says the
+    // count out loud, and its confirming button is the merge rather than a
+    // delete.
+    const refusal = page.getByTestId('m9-tag-in-use')
+    await expect(refusal).toBeVisible()
+    await expect(refusal).toContainText('One item carries the tag')
+    await expect(refusal.getByRole('button', { name: 'Merge' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await page.getByTestId('m9-tags-close').click()
+    // A delete that had gone through would have taken the heading with it.
+    expect(await groupHeadings(list)).toEqual(['kleidung'])
+  })
+
+  /**
+   * E2E-M9-19 (FR-24.10, ADR-063): the merge, reached through the refusal.
+   *
+   * The item carries **both** tags, with the source first — the case that
+   * makes the promotion clause observable. Re-pointing the assignment and
+   * dropping the collision is not enough: without carrying the source's
+   * position over, the surviving assignment keeps its own, and the row is
+   * filed under whatever sorts first next.
+   */
+  test('E2E-M9-19: merging a tag away files its items under the target', async ({ page }) => {
+    test.slow()
+    // „Sommer" is assigned first, so it is the primary tag and the heading.
+    await createItem(page, 'Badehose', { tags: ['Sommer', 'Kleidung'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    expect(await groupHeadings(list)).toEqual(['sommer'])
+
+    await openTagManager(page)
+    await page.getByTestId('m9-tag-delete-Sommer').click()
+    await page.getByTestId('m9-tag-in-use').getByRole('button', { name: 'Merge' }).click()
+    await page.getByTestId('m9-tag-merge-into-Kleidung').click()
+    await page.getByTestId('m9-tag-merge-confirm').getByRole('button', { name: 'Merge' }).click()
+    // See E2E-M9-17 on why the toast comes first — this case is the one that
+    // paid for it, on a CI shard, with the item still under „Sommer".
+    await expect(page.locator('ion-toast')).toContainText('is now filed under')
+    await writesLanded(page)
+
+    await page.getByTestId('m9-tags-close').click()
+    // One row, under the target — and „Sommer" heads nothing, because the
+    // merge deleted it once nothing carried it.
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    expect(await groupHeadings(list)).toEqual(['kleidung'])
+  })
+
   /*
    * E2E-M9-08 measured the gap between the tag axis and the first group
    * heading (UX-4). The axis is gone with FR-24.8, and the geometry that

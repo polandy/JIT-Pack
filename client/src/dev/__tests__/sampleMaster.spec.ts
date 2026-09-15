@@ -181,8 +181,36 @@ describe('seedSampleData (dev)', () => {
     // Two trips since FR-27.4: the sample trip is imported and therefore
     // follows nothing, so a generated one is what makes the refresh visible.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 22 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
+      'Beispieldaten: 24 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
+  })
+
+  it('seeds a tag that is plainly a duplicate, so FR-24.10’s merge has a case', () => {
+    const { master } = seed()
+
+    // „Elektronik" is „Technik" typed a second time — the duplicate every
+    // real inventory grows, and the standing rule is that a new master-data
+    // feature extends this seed rather than leaving a fresh device twenty
+    // minutes of typing away from its own feature.
+    const elektronik = master.tagList.find((t) => t.name === 'Elektronik')
+    const technik = master.tagList.find((t) => t.name === 'Technik')
+    expect(elektronik).toBeDefined()
+    expect(technik).toBeDefined()
+
+    const carried = master.itemTagList.filter((a) => a.tag_id === elektronik!.id)
+    expect(carried).toHaveLength(2)
+
+    // One of the two carries *both*, behind the source — the merge's hard
+    // case: dropping that assignment has to carry the source's position over,
+    // or the item lands under a heading neither tag had.
+    const both = carried.filter((a) =>
+      master.itemTagList.some((o) => o.item_id === a.item_id && o.tag_id === technik!.id),
+    )
+    expect(both).toHaveLength(1)
+    const second = master.itemTagList.find(
+      (o) => o.item_id === both[0]!.item_id && o.tag_id === technik!.id,
+    )!
+    expect(both[0]!.position).toBeLessThan(second.position)
   })
 
   it('seeds a *planned* trip that follows the sample Vorlage (FR-27.4)', async () => {

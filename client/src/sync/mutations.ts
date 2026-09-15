@@ -1107,6 +1107,37 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('upsert', TABLE.itemTags, assignmentId, { position })
   }
 
+  // --- Managing the tags themselves (FR-24.10) ---
+
+  /**
+   * Rename a tag. `tags.name` is `UNIQUE`, so whether the name is free is
+   * `nameCollision.findNameCollision`'s answer and is asked before this.
+   */
+  function renameTag(tagId: string, name: string): Mutation {
+    return make('upsert', TABLE.tags, tagId, { name })
+  }
+
+  /** Move a tag on the inventory's axis (FR-24.10) — its grouping order. */
+  function reorderTag(tagId: string, sortOrder: number): Mutation {
+    return make('upsert', TABLE.tags, tagId, { sort_order: sortOrder })
+  }
+
+  /**
+   * Point an existing assignment at another tag — the write a merge is made
+   * of (FR-24.10). One upsert rather than a delete and an insert, for
+   * {@link moveTag}'s reason: nothing about the pairing is removed, so a
+   * tombstone would describe something that never happened (ADR-052), and a
+   * re-insert would lose the position the item was filed at.
+   */
+  function retagAssignment(assignmentId: string, tagId: string, position: number): Mutation {
+    return make('upsert', TABLE.itemTags, assignmentId, { tag_id: tagId, position })
+  }
+
+  /** Remove a tag. Only ever called once nothing carries it (ADR-063). */
+  function deleteTag(tagId: string): Mutation {
+    return make('delete', TABLE.tags, tagId)
+  }
+
   return {
     updateGeneratedTripItem,
     registerTripSource,
@@ -1197,6 +1228,10 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     removeTripMember,
     // Categories
     createTag,
+    renameTag,
+    reorderTag,
+    retagAssignment,
+    deleteTag,
     assignTag,
     unassignTag,
     moveTag,
