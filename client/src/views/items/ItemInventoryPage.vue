@@ -77,6 +77,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet, { type BulkTagMode } from '@/components/items/BulkTagSheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
+import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
@@ -92,8 +93,10 @@ import {
   primaryPosition,
   tagCounts,
   tagNamesByItem,
+  tagDeletion,
   tagsOfItems,
   topTagsByCount,
+  TAG_DELETE_REFUSED,
   type TagFilterMode,
 } from '@/domain/tags'
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
@@ -105,12 +108,12 @@ import {
   type ItemSearchCandidate,
   type MatchReason,
 } from '@/domain/itemSearch'
-import { confirmDestructive } from '@/lib/confirm'
+import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { presentToast } from '@/lib/toast'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
-import type { ItemTag, MasterItem } from '@/types/domain'
+import type { ItemTag, MasterItem, Tag } from '@/types/domain'
 import { PATH, itemPath } from '@/router/paths'
 
 /** How the unsearched list is ordered (FR-24.6). */
@@ -139,6 +142,7 @@ const selection = ref<string[]>([])
 const filterMode = ref<TagFilterMode>('any')
 const filterOpen = ref(false)
 const jumpOpen = ref(false)
+const tagsOpen = ref(false)
 
 const searching = computed(() => isSearchQuery(search.value))
 
@@ -193,6 +197,21 @@ setHeaderActions(() => {
    * kept `tab-items`' visual baseline from changing for a screen whose
    * content did not.
    */
+  /*
+   * FR-24.10. Deliberately *fourth*: ADR-050 renders three glyphs and turns
+   * the rest into words in the ⋮, and managing tags is the rarest of the
+   * four — a thing done when a name is wrong, not on every visit. Being a
+   * word is also what lets it say „Tags verwalten" rather than leaving a
+   * glyph to be guessed at.
+   */
+  const manageTags: HeaderAction = {
+    id: 'm9-manage-tags',
+    icon: pricetagsOutline,
+    label: t('items.manageTags'),
+    onClick: () => (tagsOpen.value = true),
+  }
+  // An inventory with no tags has nothing to manage, exactly as it has
+  // nothing to select.
   if (isEmpty.value) return [eye, sortAction]
 
   const select: HeaderAction = {
@@ -202,7 +221,9 @@ setHeaderActions(() => {
     active: selecting.value,
     onClick: () => (selecting.value ? endSelecting() : (selecting.value = true)),
   }
-  return [eye, sortAction, select]
+  return masterStore.tagList.length > 0
+    ? [eye, sortAction, select, manageTags]
+    : [eye, sortAction, select]
 })
 
 function endSelecting() {
@@ -451,6 +472,127 @@ function sortLabel(mode: SortMode): string {
  * already one, and two stacked segments is the restlessness G-12 removed from
  * M4. Both options are named as words, with the current one marked.
  */
+// --- FR-24.10: managing the tags themselves --------------------------------
+
+/**
+ * How many assignments each tag has — the manager's count.
+ *
+ * Read through `tagDeletion` rather than counted again here, because this
+ * number and the one a refused delete reports have to be the same number:
+ * a manager saying „0" beside a tag whose delete is then refused is the
+ * screen contradicting itself. It also means retired items count, which is
+ * right — they still carry their tags, and a cascade would still strip them.
+ */
+const tagUsage = computed(
+  () =>
+    new Map(
+      masterStore.tagList.map((tag) => [
+        tag.id,
+        tagDeletion(tag.id, masterStore.itemTagList).references,
+      ]),
+    ),
+)
+
+/** FR-24.10: rename, refusing a name another tag already holds. */
+async function renameTag(tag: Tag) {
+  await promptText({
+    header: t('items.tagRenameTitle'),
+    value: tag.name,
+    confirmLabel: t('items.tagRenameConfirm'),
+    testid: 'm9-tag-rename-prompt',
+    onConfirm: async (name) => {
+      if (name === '' || name === tag.name) return
+      const result = orchestrator.renameTag(tag.id, name)
+      if (!result.ok) {
+        await presentToast({ message: t('items.tagNameTaken', { name: result.collision }) })
+        // `false` keeps the alert open *with the typed text*, so a near-miss
+        // is corrected rather than retyped.
+        return false
+      }
+      await presentToast({ message: t('items.tagRenamed', { name }) })
+    },
+  })
+}
+
+/**
+ * FR-24.10: merge this tag into another and delete it.
+ *
+ * The target is picked from an action sheet rather than a second modal: an
+ * overlay opened from inside an overlay is the scroll clamp FR-24.8 already
+ * paid for, and the list is the same tags the sheet behind it is showing.
+ */
+async function mergeTag(tag: Tag) {
+  const targets = masterStore.tagList.filter((other) => other.id !== tag.id)
+  if (targets.length === 0) {
+    await presentToast({ message: t('items.tagMergeNoTarget', { tag: tag.name }) })
+    return
+  }
+
+  const picker = await actionSheetController.create({
+    header: t('items.tagMergeTitle', { tag: tag.name }),
+    buttons: [
+      ...targets.map((other) => ({
+        text: other.name,
+        data: other.id,
+        htmlAttributes: { 'data-testid': `m9-tag-merge-into-${other.name}` },
+      })),
+      { text: t('common.cancel'), role: 'cancel' },
+    ],
+  })
+  await picker.present()
+  const { data: targetId, role } = await picker.onDidDismiss<string>()
+  if (role === 'cancel' || !targetId) return
+
+  const target = masterStore.tagList.find((other) => other.id === targetId)
+  if (!target) return
+
+  const ok = await confirmDestructive({
+    header: t('items.tagMergeTitle', { tag: tag.name }),
+    message: t('items.tagMergeConfirmBody', {
+      n: tagUsage.value.get(tag.id) ?? 0,
+      source: tag.name,
+      target: target.name,
+    }),
+    confirmLabel: t('items.tagMergeConfirm'),
+    testid: 'm9-tag-merge-confirm',
+  })
+  if (!ok) return
+
+  const moved = orchestrator.mergeTags(tag.id, target.id)
+  await presentToast({ message: t('items.tagMerged', { n: moved, tag: target.name }) })
+}
+
+/**
+ * FR-24.10 / ADR-063: a tag items still carry is not deleted — and the
+ * refusal is not a dead end. It states the count and offers the merge,
+ * because „geht nicht" without a way forward is what sends a person back to
+ * retagging 49 items by hand.
+ */
+async function removeTag(tag: Tag) {
+  const { kind, references } = tagDeletion(tag.id, masterStore.itemTagList)
+  if (kind === TAG_DELETE_REFUSED) {
+    const merge = await confirmAction({
+      header: t('items.tagInUseTitle', { tag: tag.name }),
+      message: t('items.tagInUseBody', { n: references }),
+      confirmLabel: t('items.tagInUseConfirm'),
+      testid: 'm9-tag-in-use',
+    })
+    if (merge) await mergeTag(tag)
+    return
+  }
+
+  const ok = await confirmDestructive({
+    header: t('items.tagDeleteTitle', { tag: tag.name }),
+    message: t('items.tagDeleteBody'),
+    confirmLabel: t('items.tagDeleteConfirm'),
+    testid: 'm9-tag-delete-confirm',
+  })
+  if (!ok) return
+
+  const result = orchestrator.deleteTag(tag.id)
+  if (result.ok) await presentToast({ message: t('items.tagDeleted', { tag: tag.name }) })
+}
+
 async function chooseSort() {
   const sheet = await actionSheetController.create({
     header: t('items.sort'),
@@ -1045,6 +1187,18 @@ onBeforeUnmount(() => observer?.disconnect())
         @dismiss="filterOpen = false"
         @update:selection="selection = $event"
         @update:mode="filterMode = $event"
+      />
+
+      <!-- FR-24.10: where a tag itself is renamed, merged, reordered, deleted. -->
+      <TagManagerSheet
+        :is-open="tagsOpen"
+        :tags="masterStore.tagList"
+        :counts="tagUsage"
+        @dismiss="tagsOpen = false"
+        @rename="renameTag"
+        @merge="mergeTag"
+        @remove="removeTag"
+        @move="orchestrator.reorderTags"
       />
 
       <GroupJumpSheet

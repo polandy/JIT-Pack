@@ -23,11 +23,12 @@ import ItemInventoryPage from '../ItemInventoryPage.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet from '@/components/items/BulkTagSheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
+import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { presentToast } from '@/lib/toast'
-import { confirmDestructive } from '@/lib/confirm'
+import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/types/tables'
@@ -39,7 +40,11 @@ import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('@/lib/toast', () => ({ presentToast: vi.fn().mockResolvedValue(undefined) }))
-vi.mock('@/lib/confirm', () => ({ confirmDestructive: vi.fn().mockResolvedValue(true) }))
+vi.mock('@/lib/confirm', () => ({
+  confirmDestructive: vi.fn().mockResolvedValue(true),
+  confirmAction: vi.fn().mockResolvedValue(false),
+  promptText: vi.fn().mockResolvedValue(undefined),
+}))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useRoute: () => ({ query: {}, params: {} }),
@@ -747,5 +752,140 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     expect(writes.deleted).toEqual([])
     // Still armed with the selection intact, so the user can act again.
     expect(page.find('[data-testid="m9-select-count"]').text()).toContain('3')
+  })
+})
+
+describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
+  beforeEach(() => {
+    Object.assign(orchestratorFake, {
+      renameTag: vi.fn().mockReturnValue({ ok: true }),
+      deleteTag: vi.fn().mockReturnValue({ ok: true }),
+      mergeTags: vi.fn().mockReturnValue(0),
+      reorderTags: vi.fn(),
+    })
+  })
+
+  it('offers "Tags verwalten" only once there is a tag to manage', async () => {
+    seedItem('Sonnencreme')
+    mountPage()
+    await flushPromises()
+
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    expect(build().map((a) => a.id)).not.toContain('m9-manage-tags')
+
+    seedTag('Hygiene', 't-hyg')
+    await flushPromises()
+
+    const action = build().find((a) => a.id === 'm9-manage-tags')
+    expect(action?.label).toBe(t('items.manageTags'))
+  })
+
+  it('counts assignments the way a refused delete counts them, retired items included', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedItem('Zahnbürste', 'i2')
+    seedTag('Hygiene', 't-hyg')
+    assignTag('i1', 't-hyg')
+    assignTag('i2', 't-hyg')
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.items,
+      id: 'i2',
+      deleted: false,
+      row: { name: 'Zahnbürste', unit: 'pcs', retired_at: '2026-09-01T00:00:00.000Z' },
+    })
+
+    const page = mountPage()
+    await flushPromises()
+
+    // The chips count what is on screen and would say 1 here. This number has
+    // to agree with the refusal instead — a manager saying „1" beside a tag
+    // whose delete is then refused over 2 is the screen contradicting itself.
+    const counts = page.getComponent(TagManagerSheet).props('counts') as Map<string, number>
+    expect(counts.get('t-hyg')).toBe(2)
+  })
+
+  it('hands a move straight to the orchestrator, by axis index', async () => {
+    seedItem('Sonnencreme')
+    seedTag('A', 't-a', 0)
+    seedTag('B', 't-b', 1)
+
+    const page = mountPage()
+    await flushPromises()
+    page.getComponent(TagManagerSheet).vm.$emit('move', 1, 0)
+    await flushPromises()
+
+    expect(orchestratorFake.reorderTags).toHaveBeenCalledWith(1, 0)
+  })
+
+  it('refuses a delete while items carry the tag, and offers the merge instead (ADR-063)', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedTag('Hygiene', 't-hyg')
+    assignTag('i1', 't-hyg')
+
+    const page = mountPage()
+    await flushPromises()
+    page.getComponent(TagManagerSheet).vm.$emit('remove', { id: 't-hyg', name: 'Hygiene' })
+    await flushPromises()
+
+    expect(orchestratorFake.deleteTag).not.toHaveBeenCalled()
+    expect(vi.mocked(confirmDestructive)).not.toHaveBeenCalled()
+    // The positive signal the absences are read against: the refusal is the
+    // one thing that *did* happen, and it names the count.
+    expect(vi.mocked(confirmAction)).toHaveBeenCalledWith(
+      expect.objectContaining({ message: t('items.tagInUseBody', { n: 1 }) }),
+    )
+  })
+
+  it('deletes a tag nothing carries, after asking', async () => {
+    seedItem('Sonnencreme')
+    seedTag('Leer', 't-leer')
+
+    const page = mountPage()
+    await flushPromises()
+    page.getComponent(TagManagerSheet).vm.$emit('remove', { id: 't-leer', name: 'Leer' })
+    await flushPromises()
+
+    expect(vi.mocked(confirmDestructive)).toHaveBeenCalled()
+    expect(orchestratorFake.deleteTag).toHaveBeenCalledWith('t-leer')
+    expect(vi.mocked(presentToast)).toHaveBeenCalledWith({
+      message: t('items.tagDeleted', { tag: 'Leer' }),
+    })
+  })
+
+  it('says so rather than opening an empty picker when there is nothing to merge into', async () => {
+    seedItem('Sonnencreme')
+    seedTag('Hygiene', 't-hyg')
+
+    const page = mountPage()
+    await flushPromises()
+    page.getComponent(TagManagerSheet).vm.$emit('merge', { id: 't-hyg', name: 'Hygiene' })
+    await flushPromises()
+
+    expect(orchestratorFake.mergeTags).not.toHaveBeenCalled()
+    expect(vi.mocked(presentToast)).toHaveBeenCalledWith({
+      message: t('items.tagMergeNoTarget', { tag: 'Hygiene' }),
+    })
+  })
+
+  it('renames through the prompt, and keeps the alert open on a name already taken', async () => {
+    seedItem('Sonnencreme')
+    seedTag('Hygiene', 't-hyg')
+    seedTag('Technik', 't-tec', 1)
+    orchestratorFake.renameTag = vi.fn().mockReturnValue({ ok: false, collision: 'Technik' })
+
+
+    const page = mountPage()
+    await flushPromises()
+    page.getComponent(TagManagerSheet).vm.$emit('rename', { id: 't-hyg', name: 'Hygiene' })
+    await flushPromises()
+
+    const options = vi.mocked(promptText).mock.calls.at(-1)![0]
+    expect(options.value).toBe('Hygiene')
+    // `false` is what keeps the typed text in the field instead of throwing
+    // the edit away — the idiom the other two prompts use.
+    await expect(options.onConfirm('Technik')).resolves.toBe(false)
+    expect(vi.mocked(presentToast)).toHaveBeenCalledWith({
+      message: t('items.tagNameTaken', { name: 'Technik' }),
+    })
   })
 })
