@@ -1096,6 +1096,17 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('delete', TABLE.itemTags, assignmentId)
   }
 
+  /**
+   * Move an existing assignment (FR-24.9) — one write, not a delete and a
+   * re-insert. The row carries nothing but the pairing and its order, so
+   * rewriting the position is the whole move; tearing it down and building it
+   * again would put a tombstone in the feed for a change that never removed
+   * anything (ADR-052).
+   */
+  function moveTag(assignmentId: string, position: number): Mutation {
+    return make('upsert', TABLE.itemTags, assignmentId, { position })
+  }
+
   return {
     updateGeneratedTripItem,
     registerTripSource,
@@ -1188,5 +1199,6 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     createTag,
     assignTag,
     unassignTag,
+    moveTag,
   }
 }

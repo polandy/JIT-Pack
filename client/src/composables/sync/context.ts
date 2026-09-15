@@ -20,6 +20,7 @@ import type {
   ItemDependency,
   ItemTodo,
   CategorisedMasterItem,
+  ItemTag,
   MasterItem,
   Tag,
   Template,
@@ -68,6 +69,8 @@ export interface TripReads {
 /** What the action groups read off the master store — and nothing else. */
 export interface MasterReads {
   readonly tagList: Tag[]
+  /** Every tag assignment — the rows FR-24.9's bulk plans are computed over. */
+  readonly itemTagList: ItemTag[]
   readonly itemList: MasterItem[]
   /** The same rows carrying their FR-24.2 grouping key — what anything that
    * generates trip items reads (`CategorisedMasterItem`). */

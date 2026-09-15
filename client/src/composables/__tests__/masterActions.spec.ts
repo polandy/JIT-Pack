@@ -149,6 +149,101 @@ describe('master data actions', () => {
   })
 })
 
+describe('FR-24.9 — refiling an item without tearing its assignment down', () => {
+  function seedTagged() {
+    const master = useMasterStore()
+    master.applyChange({
+      seq: 0,
+      table: 'items',
+      id: 'i1',
+      deleted: false,
+      row: { name: 'Socken' },
+    })
+    master.applyChange({
+      seq: 0,
+      table: 'tags',
+      id: 't-div',
+      deleted: false,
+      row: { name: 'Diverses', sort_order: 0 },
+    })
+    master.applyChange({
+      seq: 0,
+      table: 'tags',
+      id: 't-sport',
+      deleted: false,
+      row: { name: 'Sport', sort_order: 1 },
+    })
+    master.applyChange({
+      seq: 0,
+      table: 'item_tags',
+      id: 'a-div',
+      deleted: false,
+      row: { item_id: 'i1', tag_id: 't-div', position: 0 },
+    })
+    master.applyChange({
+      seq: 0,
+      table: 'item_tags',
+      id: 'a-sport',
+      deleted: false,
+      row: { item_id: 'i1', tag_id: 't-sport', position: 1 },
+    })
+    return master
+  }
+
+  it('setPrimaryTag moves the existing row instead of deleting and re-adding it', async () => {
+    const orch = newOrch()
+    const master = seedTagged()
+    mockDrain()
+
+    orch.setPrimaryTag('i1', 't-sport')
+
+    // The same assignment row, at a position below its sibling: the item is
+    // filed under Sport now, and nothing was tombstoned to get there.
+    expect(master.getItemTags('i1').map((t) => t.name)).toEqual(['Sport', 'Diverses'])
+    expect(master.itemTagList.map((a) => a.id).sort()).toEqual(['a-div', 'a-sport'])
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+  })
+
+  it('setPrimaryTag writes nothing for a tag the item does not carry', () => {
+    const orch = newOrch()
+    const master = seedTagged()
+
+    orch.setPrimaryTag('i1', 't-missing')
+
+    expect(master.getItemTags('i1').map((t) => t.name)).toEqual(['Diverses', 'Sport'])
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('setPrimaryTag writes nothing when the tag is already first', () => {
+    const orch = newOrch()
+    seedTagged()
+
+    orch.setPrimaryTag('i1', 't-div')
+
+    // Idempotent on purpose: a bulk action over a mixed selection presses this
+    // for every item, and the ones already filed there must cost no row.
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('assignTagAt files a new tag first when the caller asks for it', async () => {
+    const orch = newOrch()
+    const master = seedTagged()
+    master.applyChange({
+      seq: 0,
+      table: 'tags',
+      id: 't-neu',
+      deleted: false,
+      row: { name: 'Neu', sort_order: 2 },
+    })
+    mockDrain()
+
+    orch.assignTagAt('i1', 't-neu', -1)
+
+    expect(master.getItemTags('i1').map((t) => t.name)).toEqual(['Neu', 'Diverses', 'Sport'])
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+  })
+})
+
 describe('M5 assignment actions on the trip partition', () => {
   it('assignTraveler persists instead of only patching the store', async () => {
     const orch = newOrch()

@@ -5,13 +5,14 @@
  * none of them — only the `kind` behind it (`masterDeletion.spec.ts`) had a
  * test, and `kind` is the half that does *not* consult `certain`.
  */
-import { describe, expect, it, afterAll } from 'vitest'
+import { describe, expect, it, afterAll, beforeEach } from 'vitest'
 
-import { setLocale } from '@/i18n'
+import { setLocale, t } from '@/i18n'
 import { DELETION_REMOVE, DELETION_RETIRE } from '@/domain/masterDeletion'
 import {
   DELETION_SUBJECT_ITEM,
   DELETION_SUBJECT_TEMPLATE,
+  bulkRetireSentence,
   deletionOutlookKey,
   deletionSentence,
 } from '../deletionLabels'
@@ -67,5 +68,38 @@ describe('deletionSentence', () => {
     expect(deletionSentence(DELETION_SUBJECT_TEMPLATE, outlook)).not.toBe(
       deletionSentence(DELETION_SUBJECT_ITEM, outlook),
     )
+  })
+})
+
+describe('bulkRetireSentence (FR-24.9)', () => {
+  // Pinned rather than inherited: the cases above switch the locale, and the
+  // wording assertion below reads English.
+  beforeEach(() => setLocale('en'))
+
+  it('names only the act that applies when the batch is all of one kind', () => {
+    // „0 werden versteckt, 4 werden entfernt" is a sentence that reads as a
+    // bug, and the two pure cases are the common ones.
+    expect(bulkRetireSentence(3, 0)).toBe(t('items.bulkRetireAllHidden', { n: 3 }))
+    expect(bulkRetireSentence(0, 4)).toBe(t('items.bulkRetireAllRemoved', { n: 4 }))
+  })
+
+  it('names both where the selection spans both acts', () => {
+    const mixed = bulkRetireSentence(1, 2)
+
+    expect(mixed).toBe(t('items.bulkRetireMixed', { hidden: 1, removed: 2 }))
+    // Both numbers are in it: a batch that reports one of them is the half
+    // that surprises somebody.
+    expect(mixed).toContain('1')
+    expect(mixed).toContain('2')
+  })
+
+  it('says which half can be taken back, in every form', () => {
+    for (const sentence of [
+      bulkRetireSentence(3, 0),
+      bulkRetireSentence(0, 4),
+      bulkRetireSentence(1, 2),
+    ]) {
+      expect(sentence.toLowerCase()).toContain('undone')
+    }
   })
 })
