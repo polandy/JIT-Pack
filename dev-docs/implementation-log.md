@@ -387,6 +387,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A wait that was true at both ends (2026-09-16)](#a-wait-that-was-true-at-both-ends-2026-09-16) — FR-9.4; why an animation poll is not a settled signal, and the one site deliberately left on it.
 - [The claim moved one element up (2026-09-16)](#the-claim-moved-one-element-up-2026-09-16) — ADR-033; the sweep gated nine sentences and not the numbers over them, and two measurements that lied.
 - [A layer fixed to the window took the window's geometry (2026-09-16)](#a-layer-fixed-to-the-window-took-the-windows-geometry-2026-09-16) — ADR-060 amendment 1; why one viewport agreed with two geometries.
+- [The idle socket was reaped by a stopwatch (2026-09-16)](#the-idle-socket-was-reaped-by-a-stopwatch-2026-09-16) — Sync-API §9; the seam is per connection because a fake clock would have reaped the observer too.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15820,3 +15821,41 @@ box is identical with and without, which is the only reason the redundancy is kn
 body, and Playwright calls that **hidden**, not zero-height. A clause that waits for `toBeVisible()` on
 the head after a scroll waits forever, while its bounding box is readable the whole time and is still
 the right anchor.
+
+
+## The idle socket was reaped by a stopwatch (2026-09-16)
+
+`TestWS_IdleConnectionIsClosedAndLeavesPresence` shrank the §9 idle timeout to 100 ms, kept a second
+socket alive with a 20 ms ping loop, and gave the whole thing 5 s to happen. It failed on this machine
+at load average 11.9 and passed alone on the next run — the textbook shape the project's own rule
+forbids, and it had been sitting in `internal/api` since the keepalive was built.
+
+**What the test was actually waiting for is an event, not a duration.** A connection is reaped when the
+context its read waits on ends. So `readWithIdleTimeout` now takes that context from an injected
+`idleWatchFunc` rather than building it inline: production returns `context.WithTimeout`, the test
+returns one it cancels on command. The idle timeout stays the production constant — the test no longer
+sets it at all, because it is not what the case is about.
+
+**A package-wide fake clock was the obvious seam and is the wrong one.** `Advance(d)` expires every
+pending timer, and this case needs exactly one of two connections reaped while the other survives —
+that survival is half of what it asserts. So the seam is per connection: the watch is handed the
+`*conn` whose read it is arming, which is also what lets the test name a specific socket without any
+exported test-only API. The override is set on the unexported field from inside the package, as the
+`wsIdleOverride` beside it already was.
+
+**The ping clause got a positive signal it never had.** The old test kept the observer alive by pinging
+it and inferred that pings count as activity from the observer *not* being reaped — an absence, and
+one that would have stayed green if the deadline had never been renewed but the reaper had also been
+broken. The watcher counts the reads it arms, so the renewal is now asserted directly: after the ping
+is answered, the observer's third watched read exists.
+
+**Both new clauses were proven red separately, because one run only ever proves the first.** Mutation
+one — the read ignores the watched context — failed at the reaping assertion. Mutation two — the
+deadline is armed once per connection instead of once per read — failed at `connection began 1
+read(s), want 3`, which is the renewal clause and nothing else.
+
+**One wall-clock number survives on purpose**: a 30 s context wrapping the whole case. It is a backstop,
+not a constraint — a correct build never waits measurably, and every step is an event the test causes.
+Without it a broken build hangs on a `sync.Cond` until the package timeout; with it, the assertion that
+noticed is the one that reports. `context.AfterFunc` wakes the condition when it expires, which is what
+makes a missing read fail by name instead of hanging.
