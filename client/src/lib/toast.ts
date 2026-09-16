@@ -16,6 +16,8 @@
 import { toastController } from '@ionic/vue'
 import type { ToastOptions } from '@ionic/core'
 
+import { PRESENTED_ATTRIBUTE } from './presented'
+
 /**
  * The id `TabBar.vue` puts on its `<nav>`, so a toast can be positioned above
  * it. Named once rather than written at both ends (CODING_PRINCIPLES §4a).
@@ -46,15 +48,6 @@ function laidOutTabBar(): HTMLElement | undefined {
 }
 
 /**
- * The attribute a presented toast carries, so a test can wait on the toast
- * having arrived rather than on a clock. Named once, read at both ends.
- *
- * `SheetModal` carries the same flag for the same reason; the name is shared
- * deliberately, because the two describe one state.
- */
-export const PRESENTED_ATTRIBUTE = 'data-presented'
-
-/**
  * presentToast creates a toast and presents it, clear of the tab bar.
  *
  * `position` defaults to `'bottom'`, which is what every in-page confirmation
@@ -67,8 +60,10 @@ export const PRESENTED_ATTRIBUTE = 'data-presented'
  * reader sees. Nothing clears the flag: a controller-created overlay is removed
  * from the document when it dismisses, so the flag leaves with the element, and
  * a clear that no reader could ever observe would be a claim rather than a
- * signal. A toast created outside this helper carries no flag (see the guard in
- * `toast.spec.ts` for which those are, and why).
+ * signal. Five toasts are created straight off `toastController` rather than
+ * through here — App.vue's three, the device backup's and M4's snackbar, each
+ * for a reason of its own — and those carry no flag; a case that needs to
+ * settle one has to route it through this helper first.
  */
 export async function presentToast(options: ToastOptions): Promise<HTMLIonToastElement> {
   const position = options.position ?? 'bottom'

@@ -234,7 +234,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // `document.getAnimations()` for nothing running, which is also true
     // *before* the enter animation exists — so it could return with the
     // wrapper still translating, and the geometry read a position the toast
-    // was only passing through. It flaked on `main` at about one run in three.
+    // was only passing through. Measured on `main` at `8c8052d9`: 2 pass /
+    // 1 fail over three repeats, against 6 / 6 for the clause below.
     await expect(toast).toHaveAttribute('data-presented', 'true')
 
     const boxes = await page.evaluate(() => {
