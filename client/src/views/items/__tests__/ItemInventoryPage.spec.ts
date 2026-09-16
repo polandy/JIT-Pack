@@ -152,6 +152,11 @@ describe('M9 inventory — an absence it has not read yet (ADR-033, G-7)', () =>
     await flushPromises()
 
     expect(page.find('[data-testid="m9-tools"]').exists()).toBe(true)
+    // The bar reads the same fact, and it is a second site: the tools row is a
+    // template `v-if` and this is a function, so one says nothing about the
+    // other.
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    expect(build().map((action) => action.id)).toContain('m9-select')
 
     // Once the inventory is known to be empty the tools go, which is FR-24.6's
     // own intent — this half is what keeps the fix from simply always showing
@@ -160,6 +165,7 @@ describe('M9 inventory — an absence it has not read yet (ADR-033, G-7)', () =>
     await flushPromises()
 
     expect(page.find('[data-testid="m9-tools"]').exists()).toBe(false)
+    expect(build().map((action) => action.id)).not.toContain('m9-select')
   })
 
   it('leaves the no-match state alone — it can only be reached with an item here', async () => {

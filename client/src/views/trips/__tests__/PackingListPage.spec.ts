@@ -150,4 +150,24 @@ describe('M4 packing list — an absence it has not read yet (ADR-033, G-7)', ()
       t('trips.itemSummary', { packed: 0, total: 0 }),
     )
   })
+
+  /*
+   * The band the figure sits in is a second decision: with the figure waiting
+   * it holds nothing, and a padded, bordered strip above the notice is a
+   * container asserting itself. It reuses the state that already yields the
+   * space rather than a second one — so what is asserted is that class.
+   */
+  it('yields the header band while it has no figure to hold', async () => {
+    seedTrip()
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-header"]').classes()).toContain('collapsed')
+
+    tripScreen.loadedTrips.add('t1')
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-header"]').classes()).not.toContain('collapsed')
+  })
 })
