@@ -2001,10 +2001,18 @@ setHeaderTitle(
   font-weight: var(--jp-weight-semibold);
 }
 
-/* M5 as a sheet (phone) or a panel (desktop, G-9). The panel is fixed to
-   the right edge rather than squeezing the list: the list keeps its
-   measurements, so opening a detail never re-flows the rows underneath
-   the finger that opened it. */
+/* M5 as a sheet (phone) or a panel (desktop, G-9). The panel overlays the
+   list rather than squeezing it: the list keeps its measurements, so
+   opening a detail never re-flows the rows underneath the finger that
+   opened it.
+
+   Which edge it is fixed to is not the window's. `.ion-page` carries
+   `contain: size layout style`, and a contained element is a containing
+   block for its fixed descendants, so `right: 0` is the content column's
+   right edge and `top` counts from the page box. Measured at 1280×900:
+   the panel is x 580-980 over a column of x 380-980, and its top sits
+   --jp-app-bar-h *below the page head*, which is a gap rather than the
+   app bar being cleared — the page box already starts under both. */
 .item-panel {
   position: fixed;
   top: var(--jp-app-bar-h);

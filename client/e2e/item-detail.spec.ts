@@ -158,9 +158,10 @@ test.describe('M5 item detail @local @m5', () => {
 
     // G-9: the panel is offset by the app-bar height, which is
     // `--jp-app-bar-h` since 2026-09-13. Read as the *resolved* style and
-    // not as a box: the panel is fixed inside a transformed Ionic page, so
-    // its containing block is the page rather than the viewport, and a box
-    // comparison against the bar would be asserting the transform. A token
+    // not as a box: `.ion-page` carries `contain: size layout style`, which
+    // makes it the containing block for its fixed descendants, so the panel
+    // is offset from the page box and not from the window — a box compared
+    // against the bar would be asserting that containment. A token
     // that stopped resolving computes to `auto` here, which moves the panel
     // over the list while every assertion above stays green.
     const offset = await page.evaluate(
