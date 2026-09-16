@@ -139,6 +139,29 @@ describe('M9 inventory — an absence it has not read yet (ADR-033, G-7)', () =>
     expect(page.find('[data-testid="m9-empty"]').exists()).toBe(true)
   })
 
+  /*
+   * The chrome was deciding on the bare `isEmpty` too: with the rows still on
+   * their way the search row was gone and the bar was down to two glyphs,
+   * which states „there is nothing here" as plainly as the sentence the notice
+   * declines to write — and then jumps when the rows land.
+   */
+  it('keeps the tools it will have while the rows are still on their way', async () => {
+    master.masterLoaded.value = false
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m9-tools"]').exists()).toBe(true)
+
+    // Once the inventory is known to be empty the tools go, which is FR-24.6's
+    // own intent — this half is what keeps the fix from simply always showing
+    // them.
+    master.masterLoaded.value = true
+    await flushPromises()
+
+    expect(page.find('[data-testid="m9-tools"]').exists()).toBe(false)
+  })
+
   it('leaves the no-match state alone — it can only be reached with an item here', async () => {
     seedItem('Sonnencreme')
     master.masterLoaded.value = false

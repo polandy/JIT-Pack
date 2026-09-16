@@ -222,6 +222,10 @@ These patterns apply to every screen and are specified once.
   each has a plain catalogue key beside its `…Count` one, the pair `packing.shopping`/`packing.shoppingCount` already
   used. What is *not* gated is chrome that states nothing about the rows: M4's grouping caption names the user's own
   setting, and presence is about who is here rather than what is on the list.
+  **Chrome that appears only for a populated list is the same claim in a fourth form** (M9, 2026-09-16): removing the
+  FR-24.6 tools row and shrinking the bar to two glyphs states „there is nothing here" as plainly as a sentence would,
+  and then jumps when the rows land. So a screen keeps the controls it is going to have until the rows say otherwise —
+  `knownEmpty` there is `isEmpty && itemsKnown`, and it is what the chrome decides on rather than `isEmpty` alone.
 * **G-1 icons (2026-08-14):** the four anchors are Dashboard · **Trips (a train)** · Templates · Items. The plane it
   shipped with said something untrue about the household: these are ground journeys, and the anchor icon is the first
   statement the app makes about itself. The same list feeds the desktop rail and the mobile bar (`router/anchors.ts`),

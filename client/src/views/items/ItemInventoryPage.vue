@@ -153,6 +153,25 @@ const searching = computed(() => isSearchQuery(search.value))
 const isEmpty = computed(() => masterStore.activeItemList.length === 0)
 
 /**
+ * ADR-033: whether the inventory is on the device at all. `isEmpty` reads a
+ * store that starts empty in Server Mode, so without this the first paint of
+ * a cold start offers the spreadsheet importer to somebody who already owns
+ * two hundred items. `noResults` needs no guard — it sits behind `!isEmpty`,
+ * which means at least one item is already here.
+ */
+const itemsKnown = computed(() => orchestrator.masterDataLoaded())
+
+/**
+ * The same rule for the *chrome*, which is where it was still missing until
+ * 2026-09-16: removing the search row and shrinking the bar are themselves the
+ * statement „there is nothing here", made off the bare `isEmpty` the notice
+ * below refuses to decide on. So the screen keeps the tools it is going to
+ * have until the rows say otherwise — which also spares it the jump of a
+ * search field arriving from nowhere when they land.
+ */
+const knownEmpty = computed(() => isEmpty.value && itemsKnown.value)
+
+/**
  * FR-24.9: the selection, by item id. Empty *and* `selecting` is a real
  * state — the mode is armed and nothing is picked yet — so the mode is its
  * own flag rather than „the set is not empty".
@@ -209,8 +228,8 @@ setHeaderActions(() => {
     onClick: () => (tagsOpen.value = true),
   }
   // An inventory with no tags has nothing to manage, exactly as it has
-  // nothing to select.
-  if (isEmpty.value) return [eye, sortAction]
+  // nothing to select — once it is known to hold none (ADR-033).
+  if (knownEmpty.value) return [eye, sortAction]
 
   const select: HeaderAction = {
     id: 'm9-select',
@@ -411,15 +430,6 @@ setHeaderTitle(
       : t('items.metaAll', { items: total, tags: masterStore.tagList.length })
   },
 )
-
-/**
- * ADR-033: whether the inventory is on the device at all. `isEmpty` reads a
- * store that starts empty in Server Mode, so without this the first paint of
- * a cold start offers the spreadsheet importer to somebody who already owns
- * two hundred items. `noResults` needs no guard — it sits behind `!isEmpty`,
- * which means at least one item is already here.
- */
-const itemsKnown = computed(() => orchestrator.masterDataLoaded())
 
 /** The heading a group renders — neither bucket key is a tag name. */
 function groupLabel(key: string): string {
@@ -914,7 +924,7 @@ onBeforeUnmount(() => observer?.disconnect())
 
       <!-- FR-24.6: the tools stay while the list moves. -->
       <div
-        v-if="!isEmpty"
+        v-if="!knownEmpty"
         ref="tools"
         class="tools"
         :style="{ '--m9-tools-height': `${toolsHeight}px` }"
