@@ -2006,13 +2006,12 @@ setHeaderTitle(
    opening a detail never re-flows the rows underneath the finger that
    opened it.
 
-   Which edge it is fixed to is not the window's. `.ion-page` carries
-   `contain: size layout style`, and a contained element is a containing
-   block for its fixed descendants, so `right: 0` is the content column's
-   right edge and `top` counts from the page box. Measured at 1280×900:
-   the panel is x 580-980 over a column of x 380-980, and its top sits
-   --jp-app-bar-h *below the page head*, which is a gap rather than the
-   app bar being cleared — the page box already starts under both. */
+   The edge it is fixed to is not the window's: `.ion-page` carries
+   `contain: size layout style`, and a contained element is the containing
+   block for its fixed descendants. So `right: 0` is the content column's
+   right edge, and `top` counts from the page box — which already starts
+   below both the app bar and the page head, making --jp-app-bar-h a gap
+   under the head here rather than the bar being cleared. */
 .item-panel {
   position: fixed;
   top: var(--jp-app-bar-h);
