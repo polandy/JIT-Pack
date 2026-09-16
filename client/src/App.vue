@@ -336,24 +336,6 @@ async function saveBackup() {
         :sync-update-ready="swUpdateReady"
         @sync-tap="onSyncTap"
       />
-      <!--
-        FR-19.7: the one-press offer. Under the bar rather than inside the
-        G-2 sheet, because the sheet's offer costs knowing what the dot means.
-
-        Over the content rather than above it (ADR-060): this is the app's
-        one banner that arrives *while somebody is using the screen*, and a
-        bar inserted into the column shifts every target below it out from
-        under the finger already reaching for one. Same decision M5's
-        desktop panel made for the same reason.
-      -->
-      <div class="app-banner-layer">
-        <UpdateBanner
-          v-if="swUpdateReady && !swUpdateDismissed"
-          :applying="swUpdateApplying"
-          @apply="applyUpdate()"
-          @later="swUpdateDismissed = true"
-        />
-      </div>
       <!-- FR-19.8: step three of the move, until the restore commits or is
            declined. In the column, not over it: `switchToServer` reloads, and
            the flag is read at boot, so this bar is either there from the first
@@ -378,6 +360,29 @@ async function saveBackup() {
           >
             <TripViewNav v-if="tripView && tripViewId" :trip-id="tripViewId" :current="tripView" />
           </PageHead>
+          <!--
+            FR-19.7: the one-press offer. Under the bar rather than inside the
+            G-2 sheet, because the sheet's offer costs knowing what the dot
+            means.
+
+            Over the content rather than above it (ADR-060): this is the app's
+            one banner that arrives *while somebody is using the screen*, and a
+            bar inserted into the column shifts every target below it out from
+            under the finger already reaching for one. Same decision M5's
+            desktop panel made for the same reason.
+
+            In the column but out of its flow (ADR-060 amendment 1): below the
+            head, whose name and switcher it used to cover, and the width of
+            the column, which as a frame-wide layer it was not.
+          -->
+          <div class="app-banner-layer">
+            <UpdateBanner
+              v-if="swUpdateReady && !swUpdateDismissed"
+              :applying="swUpdateApplying"
+              @apply="applyUpdate()"
+              @later="swUpdateDismissed = true"
+            />
+          </div>
           <div class="app-outlet">
             <IonRouterOutlet />
           </div>
@@ -423,27 +428,29 @@ async function saveBackup() {
   height: calc(100% - var(--jp-app-bar-h)); /* below the header toolbar */
 }
 
-/* ADR-060: the FR-19.7 banner's own layer, out of the column so that its
-   arrival moves nothing. Fixed to the same line the body column starts at,
-   so it reads exactly where it read when it was a sibling of it. Above M5's
-   desktop panel (z-index 20), because it is the frame talking about the
-   whole app rather than about a row; Ionic's own overlays sit far above
-   both and still cover it, which is right — a modal has the screen. */
-.app-banner-layer {
-  position: fixed;
-  z-index: 30;
-  top: var(--jp-app-bar-h);
-  right: 0;
-  left: 0;
-}
+/* ADR-060: the FR-19.7 banner's own layer, out of the column's *flow* so
+   that its arrival moves nothing. Above M5's desktop panel (z-index 20),
+   because it is the frame talking about the whole app rather than about a
+   row; Ionic's own overlays sit far above both and still cover it, which is
+   right — a modal has the screen.
 
-/* Past G-9's breakpoint the rail is there, and the layer starts where it
-   ends: at `left: 0` the banner painted over the rail's first anchor and
-   took its taps with it. */
-@media (min-width: 900px) {
-  .app-banner-layer {
-    left: var(--jp-nav-rail-w);
-  }
+   **Zero-height rather than fixed** (amendment 1, 2026-09-16). As a layer
+   fixed to the viewport it took its geometry from the window instead of
+   from the page: it started at the app bar, which is the *head's* line and
+   not the content's, so it hid the screen's name and left half of M4's
+   view switcher showing as a control it would then swallow; and it spanned
+   the frame, 1176 px of banner over a 600 px column at 1280. Here it is a
+   child of the column, after the head, contributing no height — so the
+   measure and the rail offset are the column's own and cannot drift from
+   them, which is the half of this that a second copy of `--jp-measure`
+   would not have fixed. `min-height: 0` because a flex item's automatic
+   minimum is its content, which is exactly the height being declined. */
+.app-banner-layer {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  height: 0;
+  min-height: 0;
 }
 
 .app-content {

@@ -374,6 +374,15 @@ test.describe('app shell offline (NFR-4.13)', () => {
    * The measurement is the content box before and after, read in the same
    * layout both times: the banner's own visibility is the settled state, so
    * nothing here waits on a clock.
+   *
+   * **Three measurements, because "moves nothing" was only the first of
+   * them** (2026-09-16, the eyeball #466 owed). Rendered over a list that
+   * had rows, the layer turned out to cover the frame's own head rather
+   * than the top of the outlet — the screen's name gone, and M4's view
+   * switcher (ADR-051) sliced in half, leaving a sliver that still read as
+   * a control and took the press. And out of the column it was no longer
+   * the width of it: 1176 px of banner over a 600 px column at 1280. Both
+   * are geometry the case can hold, so it holds them.
    */
   test('E2E-PWA-06: the banner appears without moving the content under it', async ({ page }) => {
     await page.goto(PATH.dashboard)
@@ -382,6 +391,9 @@ test.describe('app shell offline (NFR-4.13)', () => {
     const content = visiblePage(page)
     await expect(content).toBeVisible()
     const before = await content.boundingBox()
+    const head = page.getByTestId('page-head')
+    await expect(head).toBeVisible()
+    const headBefore = await head.boundingBox()
 
     await page.evaluate(async () => {
       const reg = await navigator.serviceWorker.register('/sw.js?e2e-update=6')
@@ -397,10 +409,30 @@ test.describe('app shell offline (NFR-4.13)', () => {
 
     // The provocation worked — without this the box comparison below would be
     // green against a banner that never rendered.
-    await expect(page.getByTestId('update-banner')).toBeVisible()
+    const banner = page.getByTestId('update-banner')
+    await expect(banner).toBeVisible()
 
     const after = await content.boundingBox()
     expect(after).toEqual(before)
+
+    const bannerBox = await banner.boundingBox()
+    const headAfter = await head.boundingBox()
+    if (!bannerBox || !before || !headBefore || !headAfter) throw new Error('no box to measure')
+
+    // The head keeps its whole band: the name and whatever the screen hangs
+    // beside it are what the frame says about *this* screen, and a banner
+    // about the whole app has no business over them. Read as "the banner
+    // starts at or below the head's last pixel" rather than as an overlap
+    // ratio, because a half-covered switcher was the defect.
+    expect(headAfter).toEqual(headBefore)
+    expect(bannerBox.y).toBeGreaterThanOrEqual(headAfter.y + headAfter.height)
+
+    // And it is the width of the column it covers. `visiblePage` is the
+    // outlet's page, whose horizontal extent *is* the column's — so this
+    // fails by 576 px at the default 1280 viewport against a layer spanning
+    // the frame, and needs no second way of naming the measure.
+    expect(bannerBox.x).toBeGreaterThanOrEqual(before.x)
+    expect(bannerBox.x + bannerBox.width).toBeLessThanOrEqual(before.x + before.width)
   })
 
   test('E2E-PWA-05b: "Later" hides the bar and keeps the offer everywhere else', async ({

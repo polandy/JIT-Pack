@@ -93,10 +93,29 @@ stopped seeing the banner.
 
 ## Decision
 
-The FR-19.7 banner renders in `.app-banner-layer`, a fixed layer over the content that starts at the app
-bar's lower edge and, past G-9's breakpoint, at the rail's right edge. Its arrival and its dismissal
-change no other element's geometry, which `E2E-PWA-06` asserts as an equality of the content box before
-and after.
+The FR-19.7 banner renders in `.app-banner-layer`, a layer over the content that contributes no height
+to the column. Its arrival and its dismissal change no other element's geometry, which `E2E-PWA-06`
+asserts as an equality of the content box before and after.
+
+**Amendment 1 (2026-09-16) — the layer belongs to the column, not to the window.** As accepted, the
+layer was `position: fixed` and took its geometry from the viewport: `top: var(--jp-app-bar-h)`, and
+`left`/`right` at the frame's edges (past G-9's breakpoint, inset by `--jp-nav-rail-w`). It is now a
+zero-height `position: sticky` child of `.app-content`, placed **after** `PageHead`. Nothing about the
+decision changes — the banner still overlays, still moves nothing — but two things stop being true that
+the original geometry made true only at one viewport:
+
+- **It started at the head's line rather than the content's.** `--jp-app-bar-h` is where the *head*
+  begins, not the outlet, so the layer covered the page's own name and the first half of whatever the
+  screen hangs beside it. The Consequences below measured that at 390 px and left the judgement open;
+  made against the rendered picture 2026-09-16, the judgement is that a screen keeps its name and its
+  switcher. Placed after the head, the layer starts at the head's last pixel, and when a screen
+  collapses its head (M4, scrolled) it rises with it to the app bar — which is the case the accepted
+  cost was always describing.
+- **It was not the width of the column it covered.** `.app-content` is capped at `--jp-measure`; the
+  fixed layer was not, so at 1280 px the banner was 1176 px over a 600 px column, and the code comment
+  claiming it "reads exactly where it read when it was a sibling of it" was out by 576 px. As a child
+  of the column it takes the measure and the rail inset from the column itself — not from a second copy
+  of the two tokens, which is the form of this fix that would have drifted again.
 
 FR-19.8's migration bar deliberately stays **in** the column: `switchToServer` reloads, and the flag is
 read at boot, so that bar is either present from the first paint or never — it cannot appear under a
@@ -128,6 +147,13 @@ the frame beside the two of them (G-19).
   Whether hiding the page's name for the life of the announcement is acceptable is a judgement to make
   against the rendered picture rather than against the phrase; it is recorded here so the next reader
   inherits the pixels instead of re-measuring them.
+  **Judged 2026-09-16, and the answer was no** — see Amendment 1. Rendered over six rows at 390, 820
+  and 1280 rather than measured at one width, the half-covered switcher is the part that decides it: a
+  control cut in half still reads as a control, so the sliver invites the press the banner then takes,
+  and "visible under the pointer when it is hit" is a weaker defence for half a chip than for a row.
+  The same three renders added what one viewport could not show — the layer was 1176 px wide over a
+  600 px column at 1280 — which is the half of this nobody had measured. What the banner covers now is
+  what this bullet always claimed: the top band of the *content*, the M4 progress figure first.
 - A future banner added to that slot has to decide which of the two it is. The template comment beside
   both says so, and G-19 is the written rule; neither is a type.
 
@@ -138,8 +164,7 @@ the frame beside the two of them (G-19).
 ## Revisit Trigger
 
 A **second** surface that arrives unbidden over a screen in use — a global error bar, a presence toast
-from another device — or a phone viewport where the banner's band overlaps a control that has no other
-way to be reached. The 2026-09-16 measurement above is the nearest miss on that last clause: the view
-switcher *is* overlapped, by half its height, and stays reachable only because its lower half and its
-tap target both survive. Either makes this a layout with two occupants and the placement worth re-deciding as
-one.
+from another device — or a viewport where the banner's band overlaps a control that has no other way to
+be reached. That last clause fired once already: the view switcher was overlapped by half its height,
+which Amendment 1 answered by moving the layer below the head rather than by re-deciding the placement.
+A second occupant still makes this a layout with two of them, and the placement worth re-deciding as one.

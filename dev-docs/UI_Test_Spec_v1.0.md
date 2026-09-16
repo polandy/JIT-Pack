@@ -521,6 +521,9 @@ of any kind**, on any of the three ids.
   are equal — the bar's own visibility is the settled state, so nothing waits on a clock. It is the case the ledger's
   *„a WebKit case lost its click to the FR-19.7 banner"* asked for, written as a property of the layout rather than as a
   hunt for the intermittent: before the fix the content moved 64.8 px down and lost the same height.
+  **Two more measurements since 2026-09-16** (ADR-060 amendment 1), both read off the same settled state: the banner
+  starts at or below the page head's last pixel, and its box lies inside the content column's. Against the layer as it
+  was first built the first fails by 80 px and the second by 288 px on either side at the default 1280 viewport.
 
 *Chromium only:* Playwright hosts service workers only there; the worker under test is engine-independent and identical
 in WebKit.
