@@ -384,6 +384,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The instance learned to say it was behind (2026-09-15)](#the-instance-learned-to-say-it-was-behind-2026-09-15) — FR-23.8; why the check is the server's, not the browser's, and a build arg whose scope ended with its stage.
 - [A tag could be made and given away, never fixed (2026-09-15)](#a-tag-could-be-made-and-given-away-never-fixed-2026-09-15) — FR-24.10/ADR-063; why a tag delete is refused rather than cascaded, and the guard a merge must not re-ask.
 - [Three things the screen said that were not true (2026-09-15)](#three-things-the-screen-said-that-were-not-true-2026-09-15) — the Phase-6 audit; two dead refreshers where the audit named one, and why a placeholder is a claim.
+- [A wait that was true at both ends (2026-09-16)](#a-wait-that-was-true-at-both-ends-2026-09-16) — FR-9.4; why an animation poll is not a settled signal, and the one site deliberately left on it.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15697,3 +15698,40 @@ seed writes 24, and it looked like a hydration defect worth a report. It was not
 the *trip* arrives, while the master rows are still being written, so the screenshot caught the list mid-write.
 Counting the rows in IndexedDB — 170, no error — is what said so. The rule the visual ledger already carries for
 baselines applies to diagnosis too: **a screen sampled while it is still filling is not evidence about the screen.**
+
+## A wait that was true at both ends (2026-09-16)
+
+E2E-M22-09 asks whether the confirmation toast lands on the tab bar. It is geometry rather than
+pixels, because a screenshot cannot tell a covered toast from a translucent one — so the case reads
+two boxes and compares them, and everything depends on catching the toast where it comes to rest.
+
+It waited for `document.getAnimations().every(a => a.playState !== 'running')`. **That condition is
+true before the enter animation is created as well as after the dismiss finishes**, which is the
+whole finding: a poll over a global collection cannot distinguish *not yet* from *done*, so the case
+could return with the wrapper still translating and measure a position the toast was only passing
+through. It had been read as a flake for weeks. What settled it was arithmetic rather than argument —
+PR #424 changed no file under `client/` at all, and three repeats of the case on `main` at
+`8c8052d9` went 2 pass / 1 fail, so the failure belonged to the case and not to any branch. The
+suite runs with `retries: 0` (#365), so this was a red pipeline roughly every third run.
+
+**The seam already existed under another name.** `SheetModal` carries `data-presented`, set on
+Ionic's `did-present`, and five cases wait on it. A toast is created imperatively rather than
+rendered, so the flag goes on in `presentToast` after `present()` resolves — which Ionic does once
+the enter animation has played. Same name, same state, one funnel.
+
+**Nothing clears it, and that is a decision.** A controller-created overlay is removed from the
+document when it dismisses, so the flag leaves with the element. A clear on `did-dismiss` would be
+code no reader could ever observe — a claim wearing a signal's clothes, which is the same fault as
+the poll it replaces.
+
+**The unit spec's two clauses were proved by mutation**, because both could otherwise be green
+without meaning anything: stamping the flag *before* `present()` turns the ordering clause red. The
+fake it asserts against had to become a real element — M21's toast fake returned an object literal,
+which is a toast no browser could have produced, and it threw the moment production code touched an
+attribute.
+
+**One site is deliberately left on the old shape.** `item-detail.spec.ts` waits out the document's
+animations before a `goBack`, with a carve-out so a spinner's endless rotation cannot hold the wait
+open. It is not the same bug — it settles the *whole page* before a navigation rather than one
+overlay before a measurement, and there is no single element whose arrival would stand for it. It is
+recorded here so the next reader does not have to decide twice whether it was missed.

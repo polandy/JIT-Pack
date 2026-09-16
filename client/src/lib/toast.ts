@@ -16,6 +16,8 @@
 import { toastController } from '@ionic/vue'
 import type { ToastOptions } from '@ionic/core'
 
+import { PRESENTED_ATTRIBUTE } from './presented'
+
 /**
  * The id `TabBar.vue` puts on its `<nav>`, so a toast can be positioned above
  * it. Named once rather than written at both ends (CODING_PRINCIPLES §4a).
@@ -52,6 +54,16 @@ function laidOutTabBar(): HTMLElement | undefined {
  * uses; a caller that names its own `positionAnchor` keeps it, because a FAB
  * sits higher than the bar and some screens deliberately clear that instead.
  * `duration` defaults the same way, to `TOAST_DURATION_MS`.
+ *
+ * The toast marks itself presented once `present()` resolves, which Ionic does
+ * after the enter animation has played — the first moment its box is the box a
+ * reader sees. Nothing clears the flag: a controller-created overlay is removed
+ * from the document when it dismisses, so the flag leaves with the element, and
+ * a clear that no reader could ever observe would be a claim rather than a
+ * signal. Five toasts are created straight off `toastController` rather than
+ * through here — App.vue's three, the device backup's and M4's snackbar, each
+ * for a reason of its own — and those carry no flag; a case that needs to
+ * settle one has to route it through this helper first.
  */
 export async function presentToast(options: ToastOptions): Promise<HTMLIonToastElement> {
   const position = options.position ?? 'bottom'
@@ -65,5 +77,6 @@ export async function presentToast(options: ToastOptions): Promise<HTMLIonToastE
     positionAnchor,
   })
   await toast.present()
+  toast.setAttribute(PRESENTED_ATTRIBUTE, 'true')
   return toast
 }

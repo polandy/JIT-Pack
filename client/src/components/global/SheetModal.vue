@@ -24,6 +24,8 @@
 import { ref } from 'vue'
 import { IonModal } from '@ionic/vue'
 
+import { PRESENTED_ATTRIBUTE } from '@/lib/presented'
+
 withDefaults(
   defineProps<{
     isOpen: boolean
@@ -64,7 +66,7 @@ function onDismiss() {
     class="sheet-modal"
     :style="{ '--height': height }"
     :data-testid="testid"
-    :data-presented="presented || undefined"
+    :[PRESENTED_ATTRIBUTE]="presented || undefined"
     @did-dismiss="onDismiss"
     @did-present="onPresent"
   >

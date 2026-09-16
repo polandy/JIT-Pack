@@ -4742,6 +4742,11 @@ toast's enter animation starts and **after** its dismiss finishes, so the case c
 measure a toast that is not there and read a zero-height box. It is owed a settled
 signal of the toast's own; it is not owed a retry.
 
+**Closed 2026-09-16.** `presentToast` marks the toast `data-presented` once Ionic's
+`present()` has played the enter animation, and the case waits on that — the flag
+`SheetModal` already carried, under the same name. See *„A wait that was true at both
+ends"* in the implementation log for the rule it leaves behind.
+
 **What is owed.** `m8-hit-included` — the template editor's already-included search
 result — occurs in no test, which is the dependable sign that nothing has ever
 operated it. FR-21.22 changed its dashed edge to a muted solid one, so the rule is

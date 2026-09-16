@@ -15,10 +15,25 @@ import { resolve } from 'node:path'
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const create = vi.fn(async (options: Record<string, unknown>) => ({
-  present: vi.fn(async () => {}),
-  options,
-}))
+/**
+ * A stand-in that is a real element, because the settled flag below is an
+ * attribute: an object literal would let `dataset` be asserted against
+ * something no browser would have produced. `present` records what the
+ * attribute was *while it ran*, which is the only way to pin that the flag
+ * goes on afterwards rather than before.
+ */
+let presentedDuringPresent: string | null = null
+
+const create = vi.fn(async (options: Record<string, unknown>) => {
+  const el = document.createElement('ion-toast')
+  Object.assign(el, {
+    options,
+    present: vi.fn(async () => {
+      presentedDuringPresent = el.getAttribute('data-presented')
+    }),
+  })
+  return el
+})
 
 vi.mock('@ionic/vue', () => ({ toastController: { create: (o: never) => create(o) } }))
 
@@ -35,6 +50,7 @@ function mountTabBar(height: number): HTMLElement {
 
 beforeEach(() => {
   create.mockClear()
+  presentedDuringPresent = null
   document.body.innerHTML = ''
 })
 
@@ -90,6 +106,33 @@ describe('presentToast', () => {
   it('presents the toast it created', async () => {
     const el = await presentToast({ message: 'gespeichert' })
     expect(el.present).toHaveBeenCalled()
+  })
+})
+
+/**
+ * The settled signal E2E-M22-09 measures against.
+ *
+ * Ionic's `present()` resolves once the enter animation has played, so the
+ * moment after it is the first moment the toast's box is the box a reader
+ * sees. Before that the wrapper is still translating and measures somewhere
+ * it will not stay. The suite had been waiting on
+ * `document.getAnimations().every(a => a.playState !== 'running')` instead,
+ * which is true *before* the enter animation is created as well as after it
+ * finishes — an assertion that cannot fail is not a wait, and it flaked on
+ * `main` at roughly one run in three.
+ *
+ * `SheetModal` already carried `data-presented` for exactly this reason; this
+ * is the same flag on the one toast funnel.
+ */
+describe('the toast says when it has finished arriving', () => {
+  it('carries no settled flag while the enter animation is still playing', async () => {
+    await presentToast({ message: 'gespeichert' })
+    expect(presentedDuringPresent).toBeNull()
+  })
+
+  it('marks itself presented once the enter animation has played', async () => {
+    const el = await presentToast({ message: 'gespeichert' })
+    expect(el.getAttribute('data-presented')).toBe('true')
   })
 })
 
