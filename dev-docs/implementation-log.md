@@ -385,6 +385,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A tag could be made and given away, never fixed (2026-09-15)](#a-tag-could-be-made-and-given-away-never-fixed-2026-09-15) — FR-24.10/ADR-063; why a tag delete is refused rather than cascaded, and the guard a merge must not re-ask.
 - [Three things the screen said that were not true (2026-09-15)](#three-things-the-screen-said-that-were-not-true-2026-09-15) — the Phase-6 audit; two dead refreshers where the audit named one, and why a placeholder is a claim.
 - [A wait that was true at both ends (2026-09-16)](#a-wait-that-was-true-at-both-ends-2026-09-16) — FR-9.4; why an animation poll is not a settled signal, and the one site deliberately left on it.
+- [The claim moved one element up (2026-09-16)](#the-claim-moved-one-element-up-2026-09-16) — ADR-033; the sweep gated nine sentences and not the numbers over them, and two measurements that lied.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15735,3 +15736,43 @@ animations before a `goBack`, with a carve-out so a spinner's endless rotation c
 open. It is not the same bug — it settles the *whole page* before a navigation rather than one
 overlay before a measurement, and there is no single element whose arrival would stand for it. It is
 recorded here so the next reader does not have to decide twice whether it was missed.
+
+## The claim moved one element up (2026-09-16)
+
+The eyeball owed since #465 had been released over four times (#465, #466, #472, #473), so it was
+paid before anything else was started: the nine ADR-033 loading notices, rendered at 390 px and at
+1280 px through the suite's own held-pull seams. **Every sentence was correct.** What the sweep had
+missed was that three screens state the same absence one element higher up, in the form a reader
+trusts *more* than a sentence — M4's header figure reading „0/0 packed" under a full track, M23's
+segments reading „Items (0)", M6's tabs reading „Before departure (0)", each directly above a body
+saying the rows were still coming. The guard was already on all three pages and read only by the
+notice.
+
+**What this says about a sweep.** #465 swept a *component*: everywhere `EmptyState` was used, it
+gained a gate. The rule is about a *claim*, and a claim is not confined to a component — which is
+why nine files could be changed correctly and the same defect survive on three of them. The
+generalisation is now in G-7 and in ADR-033's consequences, and it is the reason the count is
+deferred rather than dropped: a real zero is worth stating, so „(0)" returns the moment the rows
+make it a measurement.
+
+**The zero is a substring, and that decided how the cases are written.** „Before departure" is a
+substring of „Before departure (0)", so a `toContainText` clause would have passed against the
+unfixed build. Both count cases assert exact text, and all three guards were mutated away with the
+bundle rebuilt to watch each case name its own false zero.
+
+**A spec whose cases shared one store hid the M4 defect from every unit test.**
+`PackingListPage.spec.ts` mounts M4 in each case and unmounted it in none, so a live component from
+the previous case kept its watchers on the next case's freshly created pinia — `seedTrip()` came
+back holding a row it had never been given. `enableAutoUnmount(afterEach)` closes it. The part worth
+keeping: **only an assertion on the header's own number could have noticed.** Every existing case in
+the file asserts element presence, and the leaked row did not change which elements existed. A
+shared-state leak is invisible for exactly as long as nothing reads the state.
+
+**Two measurements lied, and the same flaw was under both.** The render harness logged which notice
+it had seen and screenshotted afterwards, so a screen that had legitimately moved on between the two
+read as a contradiction. It cost a phantom fourth defect — the conflict log's „no conflicts" verdict
+looked ungated but is earned, because that page fetches its own endpoint, which the harness never
+held — and two opposite readings of what the FR-19.7 banner covers. **A statement about pixels is
+only worth making from a run that screenshots and measures in the same breath**, which is where the
+figures on ADR-060 now come from: nothing moves, and the layer hides the page title outright and
+13.1 px of the switcher's 25.
