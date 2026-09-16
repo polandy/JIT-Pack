@@ -228,9 +228,14 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     const toast = page.locator('ion-toast')
     await expect(toast).toContainText('1')
-    await page.waitForFunction(() =>
-      document.getAnimations().every((a) => a.playState !== 'running'),
-    )
+    // Settled, not waited out. `presentToast` stamps this once Ionic's
+    // `present()` has played the enter animation, so the box measured below is
+    // the box the toast keeps. The clause before this one polled
+    // `document.getAnimations()` for nothing running, which is also true
+    // *before* the enter animation exists — so it could return with the
+    // wrapper still translating, and the geometry read a position the toast
+    // was only passing through. It flaked on `main` at about one run in three.
+    await expect(toast).toHaveAttribute('data-presented', 'true')
 
     const boxes = await page.evaluate(() => {
       const wrapper = document

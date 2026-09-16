@@ -28,8 +28,17 @@ vi.mock('@ionic/vue', async () => {
   return {
     ...actual,
     // Present resolves on a later tick, which is exactly the window the
-    // second tap lands in.
-    toastController: { create: () => Promise.resolve({ present: () => Promise.resolve() }) },
+    // second tap lands in. The stand-in is a real element because
+    // `presentToast` marks the presented toast with an attribute, and an
+    // object literal would be a toast no browser could have produced.
+    toastController: {
+      create: () =>
+        Promise.resolve(
+          Object.assign(document.createElement('ion-toast'), {
+            present: () => Promise.resolve(),
+          }),
+        ),
+    },
   }
 })
 
