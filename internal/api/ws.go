@@ -73,7 +73,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
-		data, err := readWithIdleTimeout(r.Context(), ws, s.wsIdle())
+		data, err := s.readWithIdleTimeout(r.Context(), ws, c)
 		if err != nil {
 			return
 		}
@@ -105,14 +105,26 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// readWithIdleTimeout reads one frame, giving the peer at most idle to say
-// anything at all. The deadline is per read, so any frame — a subscription,
-// a cursor report, the keepalive ping — resets it.
-func readWithIdleTimeout(ctx context.Context, ws *websocket.Conn, idle time.Duration) ([]byte, error) {
-	readCtx, cancel := context.WithTimeout(ctx, idle)
+// readWithIdleTimeout reads one frame, giving the peer at most the idle
+// timeout to say anything at all. The deadline is per read, so any frame — a
+// subscription, a cursor report, the keepalive ping — resets it.
+func (s *Server) readWithIdleTimeout(ctx context.Context, ws *websocket.Conn, c *conn) ([]byte, error) {
+	readCtx, cancel := s.wsIdleWatch(ctx, c, s.wsIdle())
 	defer cancel()
 	_, data, err := ws.Read(readCtx)
 	return data, err
+}
+
+// idleWatchFunc hands back the context one read waits on. It is a seam, not a
+// setting: the idle timeout is a duration, and a test that asserts the reaping
+// by waiting one out is asserting the machine's load. Production derives a
+// deadline from it; a test supplies a context it ends on command, so falling
+// idle becomes an event the test causes rather than a race it usually wins.
+type idleWatchFunc func(ctx context.Context, c *conn, idle time.Duration) (context.Context, context.CancelFunc)
+
+// idleDeadline is the production idleWatchFunc.
+func idleDeadline(ctx context.Context, _ *conn, idle time.Duration) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, idle)
 }
 
 // wsIdle is the connection idle timeout, overridable so a test does not

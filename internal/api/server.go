@@ -45,6 +45,9 @@ type Server struct {
 	// wsIdleOverride shrinks the §9 WebSocket idle timeout
 	// (Options.WSIdle); zero means the wsIdleTimeout constant.
 	wsIdleOverride time.Duration
+	// wsIdleWatch decides the context a single WebSocket read waits on.
+	// Never nil, see newServer; replaced only by a test.
+	wsIdleWatch idleWatchFunc
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
 	pushContact string
@@ -115,6 +118,7 @@ func newServer(st *store.Store, opts Options) *Server {
 		currency:       opts.Currency,
 		pushContact:    opts.PushContact,
 		wsIdleOverride: opts.WSIdle,
+		wsIdleWatch:    idleDeadline,
 		adminEmails:    emailSet(opts.AdminEmails),
 		now:            opts.Now,
 		version:        opts.Version,
