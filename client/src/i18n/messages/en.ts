@@ -844,7 +844,9 @@ export const en = {
   'retired.hint':
     'Deleting something that is still in use hides it instead of removing it, so finished trips and the analytics keep reading it. Bring it back here.',
   'retired.segmentItems': 'Items',
+  'retired.segmentItemsCount': 'Items ({n})',
   'retired.segmentTemplates': 'Templates',
+  'retired.segmentTemplatesCount': 'Templates ({n})',
   'retired.listUnknown': 'Loading the archive …',
   'retired.emptyItems': 'Nothing is hidden — every item in the inventory is visible.',
   'retired.emptyTemplates': 'Nothing is hidden — every template and group is visible.',
@@ -1347,8 +1349,10 @@ export const en = {
 
   // M6 shopping views (FR-3.2/3.3).
   'shopping.title': 'Shopping',
-  'shopping.beforeDeparture': 'Before departure ({n})',
-  'shopping.atDestination': 'At destination ({n})',
+  'shopping.beforeDeparture': 'Before departure',
+  'shopping.beforeDepartureCount': 'Before departure ({n})',
+  'shopping.atDestination': 'At destination',
+  'shopping.atDestinationCount': 'At destination ({n})',
   'shopping.uncategorized': 'Uncategorized',
   'shopping.forWhom': 'for {names}',
   'shopping.bought': 'Bought: {name}',

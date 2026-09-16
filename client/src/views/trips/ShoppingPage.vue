@@ -103,6 +103,23 @@ function tabCount(items: TripItem[]): number {
   return buyRowCount(items, travelers.value)
 }
 
+/*
+ * ADR-033 for the labels above the note: until the trip partition is here,
+ * „Vor der Abreise (0)" states the same absence the body declines to state,
+ * and in the form a reader trusts more. The count returns the moment it is a
+ * measurement — a genuinely empty tab is worth naming.
+ */
+const beforeTabLabel = computed(() =>
+  rowsLoaded.value
+    ? t('shopping.beforeDepartureCount', { n: tabCount(lists.value.buyBefore) })
+    : t('shopping.beforeDeparture'),
+)
+const localTabLabel = computed(() =>
+  rowsLoaded.value
+    ? t('shopping.atDestinationCount', { n: tabCount(lists.value.buyLocal) })
+    : t('shopping.atDestination'),
+)
+
 /**
  * What was bought, aggregated by the same rule — otherwise a per-person item
  * that reads as one row while it is open would come back as N rows under the
@@ -187,10 +204,10 @@ setHeaderTitle(
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
         <IonSegmentButton :value="ITEM_MODE_BUY_BEFORE" data-testid="m6-tab-before">
-          <IonLabel>{{ t('shopping.beforeDeparture', { n: tabCount(lists.buyBefore) }) }}</IonLabel>
+          <IonLabel>{{ beforeTabLabel }}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton :value="ITEM_MODE_BUY_LOCAL" data-testid="m6-tab-local">
-          <IonLabel>{{ t('shopping.atDestination', { n: tabCount(lists.buyLocal) }) }}</IonLabel>
+          <IonLabel>{{ localTabLabel }}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
 

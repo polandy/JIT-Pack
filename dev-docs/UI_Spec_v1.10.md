@@ -212,6 +212,16 @@ These patterns apply to every screen and are specified once.
   on it: the G-2 indicator carries the reason and pull-to-refresh is the retry, and a screen must never borrow G-2's job
   by guessing an absence. The states that are *not* gated say why in the same breath: M9's *„no item found"* and M4's
   *„no matches"* sit behind a non-empty list, so reaching either already proves the rows are here.
+  **And the gate covers every figure the screen derives from those rows, not only the sentence** (2026-09-16, found by
+  rendering the nine notices the sweep had written). A count beside a segment label and a progress figure above a list
+  are the same claim in the form a reader trusts *more* than a sentence — „Artikel (0)" over „Loading the archive …"
+  states both answers at once, and the number is the one acted on. So a derived figure waits on the same fact its
+  notice does, and returns the moment the rows make it a measurement: a genuinely empty tab is worth naming, which is
+  why the count is deferred rather than dropped. Three carry it today — M4's header figure (hidden, and its band
+  collapsed with it, so no empty container is left asserting itself), M23's two segment counts and M6's two tab counts;
+  each has a plain catalogue key beside its `…Count` one, the pair `packing.shopping`/`packing.shoppingCount` already
+  used. What is *not* gated is chrome that states nothing about the rows: M4's grouping caption names the user's own
+  setting, and presence is about who is here rather than what is on the list.
 * **G-1 icons (2026-08-14):** the four anchors are Dashboard · **Trips (a train)** · Templates · Items. The plane it
   shipped with said something untrue about the household: these are ground journeys, and the anchor icon is the first
   statement the app makes about itself. The same list feeds the desktop rail and the mobile bar (`router/anchors.ts`),

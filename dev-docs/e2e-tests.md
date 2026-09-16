@@ -128,6 +128,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [The cluster learns to fold, and the suite learns to open it (2026-09-11)](#the-cluster-learns-to-fold-and-the-suite-learns-to-open-it-2026-09-11) — E2E-M4-82: eleven cases that reached for a child row, and the layer where nothing went red.
 - [Two assertions that could not fail — the 2026-08-22 review's minors 2 and 3 (2026-09-11)](#two-assertions-that-could-not-fail--the-2026-08-22-reviews-minors-2-and-3-2026-09-11) — `toBeEnabled()` on an ion-button host, and a URL-only check after `m5-close`.
 - [A decision that could only be taken back from the other screen (2026-09-12)](#a-decision-that-could-only-be-taken-back-from-the-other-screen-2026-09-12) — E2E-M4-83/84: the case had to cross a sheet reopen, and the picture that was of the mutant.
+- [The notices were gated and the numbers above them were not (2026-09-16)](#the-notices-were-gated-and-the-numbers-above-them-were-not-2026-09-16) — E2E-M6-24/M23-05: a spec whose cases shared one store, and a log line that was not the screenshot's moment.
 
 ## The rule that comes before the units
 
@@ -276,7 +277,8 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | G-5 optimistic write, refused | E2E-G5-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | M2 opening segment, settled guard | E2E-M2-14 | `single` | [`single/opening-segment.spec.ts`](../client/e2e/single/opening-segment.spec.ts) |
 | M2 empty state waits for the list (ADR-033, G-7) | E2E-M2-18 | `single` | [`single/opening-segment.spec.ts`](../client/e2e/single/opening-segment.spec.ts) |
-| Every G-7 state waits for its rows (ADR-033, swept 2026-09-13) | E2E-M4-86 (the trip partition, held pull); the master-partition and fetch-backed screens are unit-proved one spec each — `DashboardPage.spec.ts`, `TemplateListPage.spec.ts`, `ItemInventoryPage.spec.ts`, `RetiredMasterPage.spec.ts`, `TripMembersPage.spec.ts`, `ContainerPage.spec.ts`, `ShoppingPage.spec.ts`, `ConflictLogPage.spec.ts` | `single` | [`single/empty-state-hydration.spec.ts`](../client/e2e/single/empty-state-hydration.spec.ts) |
+| A derived figure waits for its rows too (ADR-033, G-7) | E2E-M6-24 (M6's tab counts, trip partition), E2E-M23-05 (M23's segment counts, master partition); M4's header figure is E2E-M4-86's new clause plus `PackingListPage.spec.ts` | `single` | [`single/empty-state-hydration.spec.ts`](../client/e2e/single/empty-state-hydration.spec.ts), [`single/opening-segment.spec.ts`](../client/e2e/single/opening-segment.spec.ts) |
+| Every G-7 state waits for its rows (ADR-033, swept 2026-09-13) | E2E-M4-86 (the trip partition, held pull; since 2026-09-16 it also pins the header figure's absence and its return); the master-partition and fetch-backed screens are unit-proved one spec each — `DashboardPage.spec.ts`, `TemplateListPage.spec.ts`, `ItemInventoryPage.spec.ts`, `RetiredMasterPage.spec.ts`, `TripMembersPage.spec.ts`, `ContainerPage.spec.ts`, `ShoppingPage.spec.ts`, `ConflictLogPage.spec.ts` | `single` | [`single/empty-state-hydration.spec.ts`](../client/e2e/single/empty-state-hydration.spec.ts) |
 | Single-User is discovered, not configured (invariant 5) | E2E-M19-02 **/ E2E-NFR-02** (the `single` destination; the `server` one is `loginAs`) | `single` | [`single/mode-discovery.spec.ts`](../client/e2e/single/mode-discovery.spec.ts) |
 | Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | Avatar pan/zoom crop and upload (FR-17.13) | E2E-M17-12 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
@@ -5077,3 +5079,38 @@ measure of how much of this path anything else covers.
 red proof and showed the reset doing nothing — the mutation was still in `client/dist`, because
 reverting the source does not rebuild the bundle `vite preview` serves. Anything rendered between a
 mutation proof and the next `make client-build` is a picture of the mutant.
+
+## The notices were gated and the numbers above them were not (2026-09-16)
+
+Four merges in a row — #465, #466, #472, #473 — went in over the same noted blocker: nobody had
+looked at the nine ADR-033 loading notices #465 wrote. Rendering all nine found every sentence
+correct and three screens contradicting them one element higher up: M4's header figure reading
+`0` / „0/0 packed" over a full track, M23's segments reading „Items (0)" and „Templates (0)", M6's
+tabs reading „Before departure (0)". Each sat directly above a body saying the rows were still
+coming, and the number is the half a reader acts on.
+
+**The new clause belongs on the case that was already there.** E2E-M4-86 held the trip pull and
+asserted the notice was up and `packing-empty` absent — it had simply never looked above the
+notice. Two lines make it complete: `m4-progress` absent while the pull is held, and *visible*
+once it lands. The second is not decoration — without it the fix could be satisfied by a header
+that never comes back. E2E-M6-24 and E2E-M23-05 are new because their screens are, and they reuse
+the two held-pull seams rather than inventing a third.
+
+**Both count clauses assert exact text, not `toContainText`.** „Before departure" is a substring of
+„Before departure (0)", so the containment form would have passed against the unfixed build — the
+one thing a case added for a defect must not do. Proved the other way round too: with the three
+guards mutated away and the bundle rebuilt, all three cases fail, each naming the false zero.
+
+**A spec whose cases shared a store hid the M4 defect from unit tests.** `PackingListPage.spec.ts`
+mounts M4 in every case and unmounted it in none, so a live component from the previous case kept
+its watchers on the next case's freshly created pinia: `seedTrip()` reported one row it had never
+been given, and the new assertion read `0/1` where the seed said `0/0`. `enableAutoUnmount(afterEach)`
+fixes the file. Worth stating because of *what noticed*: only an assertion on the header's own
+number could — every existing case looked at element presence, which the leak did not disturb.
+
+**A log line is not the screenshot's moment.** The render harness printed which notice it had seen
+and screenshotted afterwards, so a screen that had legitimately moved on in between read as a
+contradiction. It cost two wrong readings: the conflict log looked like a fourth defect (it is not
+— it fetches its own endpoint, which the harness never held, so its verdict was earned), and the
+FR-19.7 banner measured as both overlapping the view switcher and clearing it. **A figure about
+pixels is only worth stating from a run that screenshots and measures in the same breath.**

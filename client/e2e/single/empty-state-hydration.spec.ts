@@ -47,6 +47,10 @@ test.describe('M4 before its rows have arrived @single @m4', () => {
     // above: none of M4's three empty states is asserted yet, least of all the
     // one that congratulates the user.
     await expect(visiblePage(page).getByTestId('packing-empty')).toHaveCount(0)
+    // Nor the figure above them, which said „0/0 packed" over a full track —
+    // the same verdict in the form a reader trusts over a sentence. This
+    // clause was added 2026-09-16, after a render found it standing.
+    await expect(visiblePage(page).getByTestId('m4-progress')).toHaveCount(0)
 
     holding = false
     release()
@@ -56,6 +60,60 @@ test.describe('M4 before its rows have arrived @single @m4', () => {
     await expect(visiblePage(page).getByTestId('m4-list-loading')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('packing-empty')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
+    // 0/0 is a measurement now, so the figure is owed: without this the fix
+    // above would be satisfied by a header that never comes back.
+    await expect(visiblePage(page).getByTestId('m4-progress')).toBeVisible()
+
+    await context.close()
+  })
+})
+
+/**
+ * E2E-M6-24 (ADR-033, G-7) — the labels above the note, not the note.
+ *
+ * M6 printed „Vor der Abreise (0)" over a body that was still saying the list
+ * was loading. Both statements were on one screen and they disagreed; the
+ * number is the one a reader believes, because a count looks settled in a way
+ * a sentence does not. The count itself is worth keeping — a genuinely empty
+ * tab is worth naming — so it waits rather than going away.
+ *
+ * The same held pull as the case above, which is why it lives beside it.
+ */
+test.describe('M6 before its rows have arrived @single @m6', () => {
+  test('E2E-M6-24: names its tabs without a count until the list has arrived', async ({
+    browser,
+  }) => {
+    const context = await browser.newContext()
+    const setup = await bootPage(context)
+    const tripPath = await createTripViaWizard(setup, { name: `Hydrating M6 ${uniq()}` })
+    await expect(setup.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    await setup.close()
+
+    const page = await context.newPage()
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    let holding = true
+    await page.route(TRIP_PULL, async (route) => {
+      if (holding) await gate
+      await route.fulfill({ response: await route.fetch() })
+    })
+    await page.goto(`${tripPath}/shopping`)
+
+    // The positive half: the screen states the one thing it knows.
+    await expect(visiblePage(page).getByTestId('m6-list-loading')).toBeVisible()
+    // The half the case exists for: no count while there is nothing to count
+    // from. Asserted as exact text, because „contains" would pass on „(0)".
+    await expect(visiblePage(page).getByTestId('m6-tab-before')).toHaveText('Before departure')
+    await expect(visiblePage(page).getByTestId('m6-tab-local')).toHaveText('At destination')
+
+    holding = false
+    release()
+
+    // The partition lands and the trip really holds nothing to buy, so now the
+    // zero is a measurement and is owed — the other end of the same rule.
+    await expect(visiblePage(page).getByTestId('m6-list-loading')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m6-tab-before')).toHaveText('Before departure (0)')
+    await expect(visiblePage(page).getByTestId('m6-tab-local')).toHaveText('At destination (0)')
 
     await context.close()
   })

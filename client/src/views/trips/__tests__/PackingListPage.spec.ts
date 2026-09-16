@@ -7,8 +7,8 @@
  * `view.groups`, `view.narrowed` and `allItems` are all empty, so the chain
  * fell through to „everything is packed" over a list nobody had read.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import PackingListPage from '../PackingListPage.vue'
@@ -26,6 +26,15 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useRoute: () => ({ query: {}, params: {} }),
 }))
+
+/*
+ * Every case here mounts M4 and none of them used to take it down again, so a
+ * live component from the previous case kept its watchers on the *next* case's
+ * store: `seedTrip()` reported a row it had never been given, and a case that
+ * asserted a figure read the leftovers. Only an assertion on the header's own
+ * number was ever going to notice.
+ */
+enableAutoUnmount(afterEach)
 
 const tripScreen = tripScreenStub()
 const orchestratorFake = {
@@ -115,5 +124,30 @@ describe('M4 packing list — an absence it has not read yet (ADR-033, G-7)', ()
 
     expect(page.find('[data-testid="m4-list-loading"]').exists()).toBe(false)
     expect(page.find('[data-testid="packing-empty"]').exists()).toBe(false)
+  })
+
+  /*
+   * The note was gated and the figure above it was not, which is the half of
+   * ADR-033 the 2026-09-13 sweep missed: „0/0 packed" under a full ring track
+   * is the same verdict as „everything is packed", stated in the one place on
+   * M4 that a reader trusts over a sentence. Rendering found it; no assertion
+   * did, because every case here looked below the header.
+   */
+  it('states no figure until the rows it would count are on the device', async () => {
+    seedTrip()
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-progress"]').exists()).toBe(false)
+
+    // Once the partition is here, 0/0 is a measurement rather than a guess —
+    // and this half is what stops the fix from simply deleting the header.
+    tripScreen.loadedTrips.add('t1')
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-progress"]').text()).toBe(
+      t('trips.itemSummary', { packed: 0, total: 0 }),
+    )
   })
 })

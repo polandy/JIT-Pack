@@ -663,7 +663,10 @@ in WebKit.
 * **E2E-M4-86** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-13):
   the trip partition's half of E2E-M2-18. Opened straight onto M4 with every trip pull held, the screen shows
   „Packliste wird geladen …" and **no** `packing-empty`; when the pull lands the notice goes and the G-7 state appears
-  with the FAB beside it. `single` because Local Mode hydrates the whole database before the first paint, so the mode
+  with the FAB beside it. **Since 2026-09-16 it also pins the header figure**: `m4-progress` absent while the pull is
+  held — the screen said „0/0 packed" over a full track, which is the same verdict the notice declines to give — and
+  *visible* once the rows land, because without that half the guard could be satisfied by a header that never returns.
+  `single` because Local Mode hydrates the whole database before the first paint, so the mode
   that cannot have the defect is also the cheapest to test — this is the one that can. The other eight screens in the
   same sweep are unit-proved rather than driven here (one spec each, the guard flipped after the assertion): a held
   pull per screen would buy nine minutes of pipeline for one rule, and the rule is the same one nine times.
@@ -1056,6 +1059,13 @@ rather than registered.
   states where it went ("auf der Packliste"). Default is hidden, and the bar is **absent** while nothing has been
   bought. *(The dimmed-and-still-interactive row of the original wording described the filter-sheet design; the built
   affordance reveals the row in a section of its own.)*
+* **E2E-M6-24** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-16):
+  the tab labels, not the notice. With every trip pull held, M6 said „Vor der Abreise (0)" above a body saying the list
+  was loading — two answers on one screen, and the number is the one a reader acts on. The case asserts both labels as
+  **exact text** while the pull is held (a containment clause would pass on „(0)", which is the one thing a case added
+  for this defect must not do), then asserts the counts are stated once the partition lands: the zero is deferred, not
+  dropped, because a genuinely empty tab is worth naming. `single` for E2E-M4-86's reason — only a backend-backed run
+  has the moment.
 * **E2E-M6-22** `all` (FR-3.3/25.11j) — **new 2026-08-25**: the destination tab's half. A BUY_LOCAL row never changes
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its
@@ -1606,6 +1616,12 @@ E2E-M23-04.
   first exactly, which is the case a `clamp()`-based first attempt at this fix could not have passed: `vw` only rises
   with the viewport, so a factor steep enough to widen the column on an iPad mini also left it pinned at its ceiling
   for every wider desktop window, mutation-proving against exactly that build.
+* **E2E-M23-05** `single` (ADR-033, G-7) — **implemented** (`e2e/single/opening-segment.spec.ts`, 2026-09-16):
+  E2E-M6-24's twin one partition up, on the held master pull E2E-M2-18 already uses. „Artikel (0)" and „Vorlagen (0)"
+  stood above „Archiv wird geladen …", and this is the screen a user reaches *because* they are looking for something
+  they retired, so the count is the claim that matters. Exact text while held; after the pull only that a count is
+  **stated** — the run shares one database and other cases retire rows, so the figure itself is not this case's
+  business.
 * **E2E-M23-04** `all` (FR-24.3, ADR-032) — **new 2026-08-30**: the other thing FR-24.3 retires. A group a trip was
   generated from is deleted from M7, and the confirm carries the sentence E2E-M7-11's twin does not — *hidden, not
   removed* — before the tap; the row leaves M7, appears on **M23's Vorlagen segment** (with the items segment asserted
