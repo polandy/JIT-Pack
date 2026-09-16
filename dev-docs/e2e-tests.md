@@ -129,6 +129,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Two assertions that could not fail — the 2026-08-22 review's minors 2 and 3 (2026-09-11)](#two-assertions-that-could-not-fail--the-2026-08-22-reviews-minors-2-and-3-2026-09-11) — `toBeEnabled()` on an ion-button host, and a URL-only check after `m5-close`.
 - [A decision that could only be taken back from the other screen (2026-09-12)](#a-decision-that-could-only-be-taken-back-from-the-other-screen-2026-09-12) — E2E-M4-83/84: the case had to cross a sheet reopen, and the picture that was of the mutant.
 - [The notices were gated and the numbers above them were not (2026-09-16)](#the-notices-were-gated-and-the-numbers-above-them-were-not-2026-09-16) — E2E-M6-24/M23-05: a spec whose cases shared one store, and a log line that was not the screenshot's moment.
+- [A layer fixed to the window took the window's geometry (2026-09-16)](#a-layer-fixed-to-the-window-took-the-windows-geometry-2026-09-16) — E2E-PWA-06 gains two measurements, and why one viewport could not have shown either of them.
 
 ## The rule that comes before the units
 
@@ -5114,3 +5115,35 @@ contradiction. It cost two wrong readings: the conflict log looked like a fourth
 — it fetches its own endpoint, which the harness never held, so its verdict was earned), and the
 FR-19.7 banner measured as both overlapping the view switcher and clearing it. **A figure about
 pixels is only worth stating from a run that screenshots and measures in the same breath.**
+
+## A layer fixed to the window took the window's geometry (2026-09-16)
+
+**E2E-PWA-06 grows two clauses**, and both of them are geometry the case could have held from the
+start. The banner must begin at or below the page head's last pixel, and its box must lie inside the
+content column's.
+
+**Why they were not there.** The case was written to state one thing — the content box does not move —
+and it states it well: against the unfixed build it reported the defect's exact size. But the layer it
+was written alongside is `position: fixed`, and a fixed layer takes its geometry from the *viewport*
+while everything it covers takes its geometry from the column. The two agree at exactly one width. The
+case ran at the project's 1280, where the banner was 1176 px wide over a 600 px column — and said
+nothing, because nothing it asserted was about width.
+
+**What closed it was a render, not a reading.** ADR-060 already carried a measurement of the vertical
+overlap, taken at 390 px, which left the judgement open in writing: *„whether hiding the page's name
+for the life of the announcement is acceptable is a judgement to make against the rendered picture
+rather than against the phrase."* Rendered over six rows at 390, 820 and 1280, the picture decides it in
+a way the numbers had not: the view switcher is cut in half, and half a control still reads as a
+control. The same three renders produced the width finding, which no single-viewport measurement could
+have produced. **A measurement at one width is not a measurement of a layout.**
+
+**The column is read off the page the case already has.** `visiblePage(page)` is the outlet's page, and
+its horizontal extent *is* the column's — so the new clause needs no second selector and, more to the
+point, no second copy of `--jp-measure` to drift from the first. The fix is the same shape: the layer
+became a zero-height child of `.app-content` rather than a fixed layer that repeats the measure and the
+rail inset, so the two cannot disagree again.
+
+**A trap for the next case near the head:** a collapsed `PageHead` is `grid-template-rows: 0fr` with an
+`overflow: hidden` body, and Playwright reports it *hidden*, not zero-height. A clause that waits for
+`toBeVisible()` on the head after a scroll waits forever; its box is still readable and still the right
+anchor.

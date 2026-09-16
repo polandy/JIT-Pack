@@ -336,24 +336,6 @@ async function saveBackup() {
         :sync-update-ready="swUpdateReady"
         @sync-tap="onSyncTap"
       />
-      <!--
-        FR-19.7: the one-press offer. Under the bar rather than inside the
-        G-2 sheet, because the sheet's offer costs knowing what the dot means.
-
-        Over the content rather than above it (ADR-060): this is the app's
-        one banner that arrives *while somebody is using the screen*, and a
-        bar inserted into the column shifts every target below it out from
-        under the finger already reaching for one. Same decision M5's
-        desktop panel made for the same reason.
-      -->
-      <div class="app-banner-layer">
-        <UpdateBanner
-          v-if="swUpdateReady && !swUpdateDismissed"
-          :applying="swUpdateApplying"
-          @apply="applyUpdate()"
-          @later="swUpdateDismissed = true"
-        />
-      </div>
       <!-- FR-19.8: step three of the move, until the restore commits or is
            declined. In the column, not over it: `switchToServer` reloads, and
            the flag is read at boot, so this bar is either there from the first
@@ -378,6 +360,22 @@ async function saveBackup() {
           >
             <TripViewNav v-if="tripView && tripViewId" :trip-id="tripViewId" :current="tripView" />
           </PageHead>
+          <!--
+            FR-19.7: the one-press offer, under the bar rather than inside the
+            G-2 sheet, because the sheet's offer costs knowing what the dot
+            means. It is the app's one banner that can arrive while somebody is
+            using the screen, so it overlays rather than reflows, and it sits
+            after the head so it never covers the screen's own name (ADR-060
+            and its amendment 1, G-19).
+          -->
+          <div class="app-banner-layer">
+            <UpdateBanner
+              v-if="swUpdateReady && !swUpdateDismissed"
+              :applying="swUpdateApplying"
+              @apply="applyUpdate()"
+              @later="swUpdateDismissed = true"
+            />
+          </div>
           <div class="app-outlet">
             <IonRouterOutlet />
           </div>
@@ -423,27 +421,19 @@ async function saveBackup() {
   height: calc(100% - var(--jp-app-bar-h)); /* below the header toolbar */
 }
 
-/* ADR-060: the FR-19.7 banner's own layer, out of the column so that its
-   arrival moves nothing. Fixed to the same line the body column starts at,
-   so it reads exactly where it read when it was a sibling of it. Above M5's
-   desktop panel (z-index 20), because it is the frame talking about the
-   whole app rather than about a row; Ionic's own overlays sit far above
-   both and still cover it, which is right — a modal has the screen. */
-.app-banner-layer {
-  position: fixed;
-  z-index: 30;
-  top: var(--jp-app-bar-h);
-  right: 0;
-  left: 0;
-}
+/* The FR-19.7 banner's layer — see ADR-060 and its amendment 1.
 
-/* Past G-9's breakpoint the rail is there, and the layer starts where it
-   ends: at `left: 0` the banner painted over the rail's first anchor and
-   took its taps with it. */
-@media (min-width: 900px) {
-  .app-banner-layer {
-    left: var(--jp-nav-rail-w);
-  }
+   `height: 0` is the whole mechanism: the banner overflows a box that
+   contributes no height, so its arrival reflows nothing. Being a child of
+   the column rather than fixed to the window is what gives it the measure
+   and the rail inset without a second copy of either token, and what puts
+   it below the head. z-index 30 clears M5's desktop panel (20); Ionic's
+   overlays sit far above and still cover it, which is right. */
+.app-banner-layer {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  height: 0;
 }
 
 .app-content {

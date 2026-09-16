@@ -21,6 +21,8 @@ replaced and why. This index only says where to look.
   (ADR-049). **G-11**: the palette is *Bergluft* (ADR-048).
 * 2026-09-10 — **G-18** added: a create that leaves the screen happens once. **M5**: the context line's amount is an
   amount like every other (FR-21.9), and the FR-20.4 chip writes the position the resolution describes.
+* 2026-09-16 — **G-19**: the banner's layer belongs to the content column — below the page head, the width of the
+  column (ADR-060 amendment 1).
 * 2026-09-15 — **M17**: the About block gains the FR-23.8 release line (ADR-062), absent wherever the instance makes
   no check.
 * 2026-09-13 — **G-2**: the detail names the last failed request (FR-19.6). **M17** gains the Connection block —
@@ -691,9 +693,14 @@ These patterns apply to every screen and are specified once.
   in use** — FR-19.7's update offer, flipped by a worker that finished installing — renders in the frame's own layer
   **over** the content (`.app-banner-layer`), never in the column: a bar inserted into the column shifts every target
   below it out from under the finger already reaching for one, and the press then lands beside the control while the
-  app reports nothing at all. What it costs is stated rather than avoided — the layer covers the top band of the
-  content while it is up, and a press aimed at that band during its arrival hits the banner, which is visible under the
-  pointer when it is hit. A banner that can only ever be present **from the first paint** — FR-19.8's migration bar,
+  app reports nothing at all. **The layer is the column's, not the window's (amended 2026-09-16):** it begins at the
+  page head's last pixel and is the width of the content column, because it is a child of that column contributing no
+  height to it. What it costs is stated rather than avoided — the layer covers the top band of the content while it is
+  up, and a press aimed at that band during its arrival hits the banner, which is visible under the pointer when it is
+  hit. What it must **not** cover is the frame's own head: the screen's name (G-9) and whatever the screen hangs beside
+  it, M4's view switcher above all, because half a control still reads as a control and takes the press that the banner
+  then swallows. On a screen that collapses its head the layer rises with it, and the band it covers is the content's.
+  A banner that can only ever be present **from the first paint** — FR-19.8's migration bar,
   whose flag is read at boot after a reload — stays in the column, where it costs nothing and reflows nothing that was
   already on screen. The same rule is why M5's desktop panel is fixed beside the list rather than squeezing it.
 * **Purpose:** Single entry point answering "what do I have to do right now?" across all active trips (FR-6.1).

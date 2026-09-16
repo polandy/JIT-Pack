@@ -545,9 +545,11 @@ removes the server entirely. Everything inherently multi-user or multi-device is
   did not schedule) is ADR-044. **The bar is over the content, not in it (added 2026-09-13, ADR-060, G-19):** it is the
   one surface in the app that can appear while somebody is already using a screen, and a bar inserted into the column
   moves every control below it out from under the finger — the press then lands beside the control and nothing happens
-  anywhere. It therefore renders in the frame's own layer, starting at the app bar's lower edge and, on a desktop width,
-  at the nav rail's right edge; its arrival and its dismissal change no other element's geometry. The accepted cost is
-  that it covers the top band of the content while it is up.
+  anywhere. It therefore renders in its own layer, which contributes no height to the column it sits in; its arrival and
+  its dismissal change no other element's geometry. **Below the screen's name and as wide as the column (amended
+  2026-09-16, ADR-060 amendment 1):** the layer is a child of the content column, so it starts where the page head ends
+  and takes the column's width rather than the window's. The accepted cost is that it covers the top band of the
+  content while it is up — never the head, whose name and view switcher stay whole.
 * **FR-19.8 (Leaving Local Mode — accepted 2026-09-02):** A Local Mode device can move to a server **from M17, on the
   same device**, in three numbered steps on one card (*„Auf einen Server umziehen"*, Local Mode only, G-8). **(1) Back
   up:** the same whole-device export as the G-2 sheet's (FR-19.6 / NFR-4.11), one function called from both surfaces.

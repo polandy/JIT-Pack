@@ -386,6 +386,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Three things the screen said that were not true (2026-09-15)](#three-things-the-screen-said-that-were-not-true-2026-09-15) — the Phase-6 audit; two dead refreshers where the audit named one, and why a placeholder is a claim.
 - [A wait that was true at both ends (2026-09-16)](#a-wait-that-was-true-at-both-ends-2026-09-16) — FR-9.4; why an animation poll is not a settled signal, and the one site deliberately left on it.
 - [The claim moved one element up (2026-09-16)](#the-claim-moved-one-element-up-2026-09-16) — ADR-033; the sweep gated nine sentences and not the numbers over them, and two measurements that lied.
+- [A layer fixed to the window took the window's geometry (2026-09-16)](#a-layer-fixed-to-the-window-took-the-windows-geometry-2026-09-16) — ADR-060 amendment 1; why one viewport agreed with two geometries.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15776,3 +15777,46 @@ held — and two opposite readings of what the FR-19.7 banner covers. **A statem
 only worth making from a run that screenshots and measures in the same breath**, which is where the
 figures on ADR-060 now come from: nothing moves, and the layer hides the page title outright and
 13.1 px of the switcher's 25.
+
+## A layer fixed to the window took the window's geometry (2026-09-16)
+
+FR-19.7's update banner left the app column on 2026-09-13 (ADR-060) so that its arrival stops moving
+every target below it. It became `position: fixed`, pinned to `--jp-app-bar-h` and inset past
+`--jp-nav-rail-w`. Both tokens are correct; both describe the *window*. Everything the banner covers
+describes the **column** — `.app-content`, capped at `--jp-measure` and centred. Two geometries that
+agree at exactly one viewport, and the comment beside the CSS asserted they agreed at all of them:
+*„so it reads exactly where it read when it was a sibling of it."*
+
+**What the second geometry cost, measured at 1280 px: a 1176 px banner over a 600 px column.** Nothing
+had said so, because nothing had looked above 390. The section above this one records the vertical
+half being measured that morning — the page title hidden outright, 13.1 px of the view switcher's 25 —
+and it recorded the judgement as deliberately unmade: *„whether hiding the page's name for the life of
+the announcement is acceptable is a judgement to make against the rendered picture rather than against
+the phrase."* The picture was rendered this afternoon, over six rows at 390, 820 and 1280.
+
+**The picture decided the half-covered control, and produced the width finding that no single width
+could have.** A switcher cut in half still reads as a switcher, so the surviving sliver invites the
+press the banner then takes; „visible under the pointer when it is hit" is a fair defence for a row and
+a weak one for half a chip. **A measurement at one width is not a measurement of a layout** — the
+morning's numbers were right and complete about the viewport they came from.
+
+**The fix declines the geometry rather than repeating it.** The obvious repair is
+`max-width: var(--jp-measure); margin-inline: auto` on the layer, which is correct today and is a
+second copy of the column's two decisions — the exact shape that let this drift in the first place.
+Instead the layer is a **zero-height `position: sticky` child of the column**, after `PageHead`: it
+inherits the measure and the rail inset because it is *in* the thing that has them, contributes no
+height so nothing reflows, and starts below the head because that is where it sits in the flow. When a
+screen collapses its head — M4, scrolled — it rises with it to the app bar, which is the case ADR-060's
+accepted cost was always describing.
+
+**`min-height: 0` went in beside it and turned out to be redundant** — worth the note, because the
+reasoning for it is the reasoning most people would apply. A flex item's automatic minimum size is
+content-based, so a zero-height item in a column flex container looks like it needs the override. It
+does not: the content-based minimum is the *smaller* of the content size suggestion and the specified
+size suggestion, and `height: 0` makes the second one zero. Removed after measuring it — the content
+box is identical with and without, which is the only reason the redundancy is knowable at all.
+
+**A trap left behind:** a collapsed `PageHead` is `grid-template-rows: 0fr` over an `overflow: hidden`
+body, and Playwright calls that **hidden**, not zero-height. A clause that waits for `toBeVisible()` on
+the head after a scroll waits forever, while its bounding box is readable the whole time and is still
+the right anchor.
