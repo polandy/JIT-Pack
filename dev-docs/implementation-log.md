@@ -15807,8 +15807,14 @@ Instead the layer is a **zero-height `position: sticky` child of the column**, a
 inherits the measure and the rail inset because it is *in* the thing that has them, contributes no
 height so nothing reflows, and starts below the head because that is where it sits in the flow. When a
 screen collapses its head — M4, scrolled — it rises with it to the app bar, which is the case ADR-060's
-accepted cost was always describing. `min-height: 0` is load-bearing: a flex item's automatic minimum
-is its content, which is exactly the height being declined.
+accepted cost was always describing.
+
+**`min-height: 0` went in beside it and turned out to be redundant** — worth the note, because the
+reasoning for it is the reasoning most people would apply. A flex item's automatic minimum size is
+content-based, so a zero-height item in a column flex container looks like it needs the override. It
+does not: the content-based minimum is the *smaller* of the content size suggestion and the specified
+size suggestion, and `height: 0` makes the second one zero. Removed after measuring it — the content
+box is identical with and without, which is the only reason the redundancy is knowable at all.
 
 **A trap left behind:** a collapsed `PageHead` is `grid-template-rows: 0fr` over an `overflow: hidden`
 body, and Playwright calls that **hidden**, not zero-height. A clause that waits for `toBeVisible()` on

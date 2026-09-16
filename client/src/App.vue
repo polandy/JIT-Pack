@@ -361,19 +361,12 @@ async function saveBackup() {
             <TripViewNav v-if="tripView && tripViewId" :trip-id="tripViewId" :current="tripView" />
           </PageHead>
           <!--
-            FR-19.7: the one-press offer. Under the bar rather than inside the
+            FR-19.7: the one-press offer, under the bar rather than inside the
             G-2 sheet, because the sheet's offer costs knowing what the dot
-            means.
-
-            Over the content rather than above it (ADR-060): this is the app's
-            one banner that arrives *while somebody is using the screen*, and a
-            bar inserted into the column shifts every target below it out from
-            under the finger already reaching for one. Same decision M5's
-            desktop panel made for the same reason.
-
-            In the column but out of its flow (ADR-060 amendment 1): below the
-            head, whose name and switcher it used to cover, and the width of
-            the column, which as a frame-wide layer it was not.
+            means. It is the app's one banner that can arrive while somebody is
+            using the screen, so it overlays rather than reflows, and it sits
+            after the head so it never covers the screen's own name (ADR-060
+            and its amendment 1, G-19).
           -->
           <div class="app-banner-layer">
             <UpdateBanner
@@ -428,29 +421,19 @@ async function saveBackup() {
   height: calc(100% - var(--jp-app-bar-h)); /* below the header toolbar */
 }
 
-/* ADR-060: the FR-19.7 banner's own layer, out of the column's *flow* so
-   that its arrival moves nothing. Above M5's desktop panel (z-index 20),
-   because it is the frame talking about the whole app rather than about a
-   row; Ionic's own overlays sit far above both and still cover it, which is
-   right — a modal has the screen.
+/* The FR-19.7 banner's layer — see ADR-060 and its amendment 1.
 
-   **Zero-height rather than fixed** (amendment 1, 2026-09-16). As a layer
-   fixed to the viewport it took its geometry from the window instead of
-   from the page: it started at the app bar, which is the *head's* line and
-   not the content's, so it hid the screen's name and left half of M4's
-   view switcher showing as a control it would then swallow; and it spanned
-   the frame, 1176 px of banner over a 600 px column at 1280. Here it is a
-   child of the column, after the head, contributing no height — so the
-   measure and the rail offset are the column's own and cannot drift from
-   them, which is the half of this that a second copy of `--jp-measure`
-   would not have fixed. `min-height: 0` because a flex item's automatic
-   minimum is its content, which is exactly the height being declined. */
+   `height: 0` is the whole mechanism: the banner overflows a box that
+   contributes no height, so its arrival reflows nothing. Being a child of
+   the column rather than fixed to the window is what gives it the measure
+   and the rail inset without a second copy of either token, and what puts
+   it below the head. z-index 30 clears M5's desktop panel (20); Ionic's
+   overlays sit far above and still cover it, which is right. */
 .app-banner-layer {
   position: sticky;
   z-index: 30;
   top: 0;
   height: 0;
-  min-height: 0;
 }
 
 .app-content {
