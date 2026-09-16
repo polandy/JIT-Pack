@@ -63,7 +63,10 @@ func dialKeepalive(t *testing.T, srv *httptest.Server) *websocket.Conn {
 	if err != nil {
 		t.Fatalf("sign token: %v", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// A backstop on the dial, for the same reason as the one in the idle
+	// case below: a loaded machine is not the thing under test, and 5 s of
+	// it was what turned a busy run into a red one.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 	ws, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http")+"/ws?token="+signed, nil)
 	if err != nil {
@@ -77,7 +80,9 @@ func TestWS_PingIsAnsweredWithPong(t *testing.T) {
 	_, srv := newKeepaliveServer(t, 0, nil) // 0 = the real §9 default
 	ws := dialKeepalive(t, srv)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// A backstop, as above: the pong is an answer to a frame just sent, so a
+	// correct build never waits for it.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 	if err := ws.Write(ctx, websocket.MessageText, []byte(`{"ping":true}`)); err != nil {
 		t.Fatalf("write ping: %v", err)
