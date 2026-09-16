@@ -115,6 +115,19 @@ the frame beside the two of them (G-19).
 - The banner covers the top band of the content while it is up, and a press aimed there during its
   arrival hits it. Bounded by what it can do: *Update* reloads onto the waiting build with unsent
   changes kept (they live in the outbox), and *Später* dismisses.
+- **What „the top band" is, measured** (2026-09-16, M4 with six rows at 390 × 844; the PR's own
+  screenshots were all empty states and forms, so the band it covers was never in one). The banner
+  occupies y 64 → 120.78. It therefore hides **the page title outright** (`header-title`, y 62 →
+  97.69) and **13.1 px of the view switcher's 25** (`trip-views`, y 107.69 → 132.69) — just over half
+  of a live control row. The progress figure at y 155.81 is clear, and so is every row.
+  Two things the same run settles: **nothing moves** — head, switcher, figure and scroll geometry are
+  identical to the hundredth of a pixel before and after, which is what this ADR bought and what
+  E2E-PWA-06 pins one box lower — and **the layer swallows no taps**: `elementFromPoint` at the
+  switcher's own top edge returns the chip's `BUTTON.view` both before and after, so the failure mode
+  the desktop rail had at `left: 0` does not repeat on the chips.
+  Whether hiding the page's name for the life of the announcement is acceptable is a judgement to make
+  against the rendered picture rather than against the phrase; it is recorded here so the next reader
+  inherits the pixels instead of re-measuring them.
 - A future banner added to that slot has to decide which of the two it is. The template comment beside
   both says so, and G-19 is the written rule; neither is a type.
 
@@ -126,5 +139,7 @@ the frame beside the two of them (G-19).
 
 A **second** surface that arrives unbidden over a screen in use — a global error bar, a presence toast
 from another device — or a phone viewport where the banner's band overlaps a control that has no other
-way to be reached. Either makes this a layout with two occupants and the placement worth re-deciding as
+way to be reached. The 2026-09-16 measurement above is the nearest miss on that last clause: the view
+switcher *is* overlapped, by half its height, and stays reachable only because its lower half and its
+tap target both survive. Either makes this a layout with two occupants and the placement worth re-deciding as
 one.

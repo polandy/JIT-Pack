@@ -118,3 +118,55 @@ test.describe('M2 empty state, backend-backed @single @m2', () => {
     await context.close()
   })
 })
+
+/**
+ * E2E-M23-05 (ADR-033, G-7) — the archive's segments, not its note.
+ *
+ * M23 said „Artikel (0)" and „Vorlagen (0)" over a body that was still saying
+ * the archive was loading, and the two claims disagreed inside ninety vertical
+ * pixels. The counts are the half a reader acts on — they came here to find
+ * something they retired — so they wait for the partition. The zero returns
+ * once it is real: an empty tab is worth naming.
+ *
+ * The held master pull is E2E-M2-18's, which is why it lives beside it.
+ */
+test.describe('M23 before the archive has arrived @single @m23', () => {
+  test('E2E-M23-05: names its segments without a count until the archive has arrived', async ({
+    browser,
+  }) => {
+    const context = await browser.newContext()
+    const setup = await bootPage(context)
+    await expect(setup.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    await setup.close()
+
+    const page = await context.newPage()
+    let release!: () => void
+    const held = new Promise<void>((resolve) => (release = resolve))
+    let firstPull = true
+    await page.route(MASTER_PULL, async (route) => {
+      if (firstPull) {
+        firstPull = false
+        await held
+      }
+      await route.fulfill({ response: await route.fetch() })
+    })
+    await page.goto(PATH.masterRetired)
+
+    // The positive half, and the proof the moment was actually caught.
+    await expect(visiblePage(page).getByTestId('m23-list-loading')).toBeVisible()
+    // Exact text, because a „contains" clause would be satisfied by „(0)".
+    await expect(visiblePage(page).getByTestId('m23-segment-items')).toHaveText('Items')
+    await expect(visiblePage(page).getByTestId('m23-segment-templates')).toHaveText('Templates')
+
+    release()
+
+    // The partition is here, so a count is a count. The run shares a database
+    // and other cases retire rows, so the figure itself is not this case's
+    // business — that it is *stated* is.
+    await expect(visiblePage(page).getByTestId('m23-list-loading')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m23-segment-items')).toContainText('(')
+    await expect(visiblePage(page).getByTestId('m23-segment-templates')).toContainText('(')
+
+    await context.close()
+  })
+})

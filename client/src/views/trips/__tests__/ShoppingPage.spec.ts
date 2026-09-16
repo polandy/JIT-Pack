@@ -193,10 +193,13 @@ describe('M6 shopping — a per-person item is one buy row (FR-25.6)', () => {
 
   it('the tab counts things to buy, not rows', () => {
     seedPerPerson('buy_before')
+    // The count is what this case is about, and since ADR-033 it is stated
+    // only once the partition is here.
+    tripScreen.loadedTrips.add('t1')
     const page = mountPage()
 
     expect(page.find('[data-testid="m6-tab-before"]').text()).toBe(
-      t('shopping.beforeDeparture', { n: 1 }),
+      t('shopping.beforeDepartureCount', { n: 1 }),
     )
   })
 
@@ -278,5 +281,30 @@ describe('M6 shopping — an absence it has not read yet (ADR-033, G-7)', () => 
     expect(page.find('[data-testid="m6-list-loading"]').exists()).toBe(false)
     expect(page.find('[data-testid="m6-empty"]').exists()).toBe(true)
     expect(page.text()).toContain(t('shopping.emptyBefore'))
+  })
+
+  /*
+   * M23's defect, one partition down: „Before departure (0)" over a body that
+   * says the list is still loading. Same rule, separate fix, because the two
+   * screens read different guards — M6's is the trip partition's.
+   */
+  it('names its segments without a count until the list is on the device', async () => {
+    seedTrip([])
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m6-tab-before"]').text()).toBe(t('shopping.beforeDeparture'))
+    expect(page.find('[data-testid="m6-tab-local"]').text()).toBe(t('shopping.atDestination'))
+
+    tripScreen.loadedTrips.add('t1')
+    await flushPromises()
+
+    expect(page.find('[data-testid="m6-tab-before"]').text()).toBe(
+      t('shopping.beforeDepartureCount', { n: 0 }),
+    )
+    expect(page.find('[data-testid="m6-tab-local"]').text()).toBe(
+      t('shopping.atDestinationCount', { n: 0 }),
+    )
   })
 })

@@ -59,6 +59,34 @@ describe('M23 archive — an absence it has not read yet (ADR-033, G-7)', () => 
     expect(page.find('[data-testid="m23-empty"]').exists()).toBe(true)
   })
 
+  /*
+   * The note said „loading" while the two segments above it said „(0)", and a
+   * reader believes the number: it looks settled in a way a sentence does not.
+   * The count is the useful half once it is real — an empty tab is worth
+   * naming — so this pins both ends rather than deleting it.
+   */
+  it('names its segments without a count until the archive is on the device', async () => {
+    master.masterLoaded.value = false
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m23-segment-items"]').text()).toBe(t('retired.segmentItems'))
+    expect(page.find('[data-testid="m23-segment-templates"]').text()).toBe(
+      t('retired.segmentTemplates'),
+    )
+
+    master.masterLoaded.value = true
+    await flushPromises()
+
+    expect(page.find('[data-testid="m23-segment-items"]').text()).toBe(
+      t('retired.segmentItemsCount', { n: 0 }),
+    )
+    expect(page.find('[data-testid="m23-segment-templates"]').text()).toBe(
+      t('retired.segmentTemplatesCount', { n: 0 }),
+    )
+  })
+
   it('shows neither state once a retired row is on the device', async () => {
     useMasterStore().applyChange({
       seq: 0,

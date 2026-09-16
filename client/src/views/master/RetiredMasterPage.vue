@@ -145,6 +145,23 @@ const emptyKey = computed<MessageKey>(() =>
 const rowsKnown = computed(() => orchestrator.masterDataLoaded())
 
 /**
+ * ADR-033 again, for the labels rather than the body: „Artikel (0)" is the
+ * same verdict as the sentence below it, and a number is the half a reader
+ * trusts. The count is worth keeping once it is real — an empty tab is worth
+ * naming — so it waits for `rowsKnown` instead of being dropped.
+ */
+const itemsSegmentLabel = computed(() =>
+  rowsKnown.value
+    ? t('retired.segmentItemsCount', { n: itemRows.value.length })
+    : t('retired.segmentItems'),
+)
+const templatesSegmentLabel = computed(() =>
+  rowsKnown.value
+    ? t('retired.segmentTemplatesCount', { n: templateRows.value.length })
+    : t('retired.segmentTemplates'),
+)
+
+/**
  * The sentence naming who holds the name. Asked through the orchestrator's
  * own rule rather than re-derived, so what the alert says and what refused
  * the restore can never disagree.
@@ -243,10 +260,10 @@ function hiddenOn(row: RetiredRow): string {
         @ionChange="(e: CustomEvent) => (segment = e.detail.value as Segment)"
       >
         <IonSegmentButton :value="SEGMENT_ITEMS" data-testid="m23-segment-items">
-          <IonLabel>{{ t('retired.segmentItems') }} ({{ itemRows.length }})</IonLabel>
+          <IonLabel>{{ itemsSegmentLabel }}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton :value="SEGMENT_TEMPLATES" data-testid="m23-segment-templates">
-          <IonLabel>{{ t('retired.segmentTemplates') }} ({{ templateRows.length }})</IonLabel>
+          <IonLabel>{{ templatesSegmentLabel }}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
 

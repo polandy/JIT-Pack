@@ -1519,12 +1519,25 @@ setHeaderTitle(
            unfiltered — see FR-25.20. The trip's *other views* used to sit
            here as three glyphs; they are words in the bar's menu now
            (ADR-050), and the name is the page's own head. -->
-      <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m4-header">
+      <!-- Collapsed for a second reason since ADR-033: with the figure below
+           waiting for the partition the line holds nothing, and an empty band
+           above the note is a container asserting itself. The state that
+           yields the space already exists, so it is reused rather than
+           doubled. -->
+      <div
+        class="trip-line"
+        :class="{ collapsed: headCollapsed || !rowsLoaded }"
+        data-testid="m4-header"
+      >
         <!-- Where the trip stands, and who else is here. Tabular throughout:
              the weight under the share changes on the same tap as the share
              itself, and proportional digits shift both as it does. -->
         <div class="trip-stats">
+          <!-- ADR-033: „0/0 packed" under an empty track is the verdict the
+               note below declines to give, in the form a reader trusts most.
+               It waits for the partition; 0/0 is honest once measured. -->
           <ProgressFigure
+            v-if="rowsLoaded"
             class="figure jp-num"
             :percent="packedPercent(kpis)"
             :headline="t('trips.itemSummary', { packed: kpis.packedItems, total: kpis.totalItems })"

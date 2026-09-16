@@ -126,6 +126,12 @@ loading" for ever.
   for M2's empty state, and a sweep the day after found nine more screens asserting an absence off rows they had not
   read. All ten are now gated, on `masterDataLoaded()`, on `useTripScreen`'s `loaded`, or — for the conflict log — on
   its own request having come back. The rule as a UI pattern is written in UI-Spec G-7; this is where it was decided.
+- **The sweep had gated the sentences and not the numbers** (2026-09-16). Rendering the nine notices it wrote — the
+  eyeball four merges had been released over — found three screens stating a confident zero in their own chrome
+  directly above a body saying the rows were still coming: M4's header figure, M23's two segment counts, M6's two tab
+  counts. Nothing was false about the notices; the claim had simply moved one element up, into the form a reader trusts
+  more than a sentence. On all three the guard was already on the page and read only by the notice. G-7 now names
+  derived figures explicitly, and the deferral is of the *count*, not of the zero: a real zero is worth stating.
 
 **Negative / accepted costs**
 

@@ -849,7 +849,9 @@ export const de: Record<keyof typeof en, string> = {
   'retired.hint':
     'Wer etwas löscht, das noch verwendet wird, blendet es aus statt es zu entfernen — abgeschlossene Reisen und die Auswertung lesen es weiter. Hier kommt es zurück.',
   'retired.segmentItems': 'Artikel',
+  'retired.segmentItemsCount': 'Artikel ({n})',
   'retired.segmentTemplates': 'Vorlagen',
+  'retired.segmentTemplatesCount': 'Vorlagen ({n})',
   'retired.listUnknown': 'Archiv wird geladen …',
   'retired.emptyItems': 'Nichts ausgeblendet — jeder Artikel im Inventar ist sichtbar.',
   'retired.emptyTemplates': 'Nichts ausgeblendet — jede Vorlage und jede Gruppe ist sichtbar.',
@@ -1360,8 +1362,10 @@ export const de: Record<keyof typeof en, string> = {
 
   // M6 Einkaufslisten (FR-3.2/3.3).
   'shopping.title': 'Einkaufen',
-  'shopping.beforeDeparture': 'Vor der Abreise ({n})',
-  'shopping.atDestination': 'Vor Ort ({n})',
+  'shopping.beforeDeparture': 'Vor der Abreise',
+  'shopping.beforeDepartureCount': 'Vor der Abreise ({n})',
+  'shopping.atDestination': 'Vor Ort',
+  'shopping.atDestinationCount': 'Vor Ort ({n})',
   'shopping.uncategorized': 'Ohne Kategorie',
   'shopping.forWhom': 'für {names}',
   'shopping.bought': 'Gekauft: {name}',
