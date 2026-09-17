@@ -21,6 +21,9 @@ import {
  */
 const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31' }
 
+/** `--jp-app-bar-h` (surfaces.css): the frame's bar, which the panel starts below. */
+const APP_BAR_H = 56
+
 /**
  * `path` is a URL fragment interpolated into a `RegExp`; unescaped, a future
  * path containing `?`, `.` or another metacharacter silently changes what
@@ -140,7 +143,10 @@ test.describe('M5 item detail @local @m5', () => {
     const listBefore = await visible(page).elementHandle()
     await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
 
-    await expect(visible(page).getByTestId('m5-panel')).toBeVisible()
+    // Not scoped to the page: since 2026-09-17 the panel is the frame's
+    // second pane, teleported out of the screen so it can reach the
+    // window's edge. A page-scoped locator would never find it.
+    await expect(page.getByTestId('m5-panel')).toBeVisible()
     await expect(visible(page).getByTestId('m4-header')).toBeVisible()
     // The page showing the panel is the very element that showed the list:
     // with the item as a path parameter, Ionic mounted a second M4 on every
@@ -156,18 +162,22 @@ test.describe('M5 item detail @local @m5', () => {
     // so a scoped count would be 0 whether one opened or not.
     await expect(page.getByTestId('m5-modal')).toHaveCount(0)
 
-    // G-9: the panel is offset by the app-bar height, which is
-    // `--jp-app-bar-h` since 2026-09-13. Read as the *resolved* style and
-    // not as a box: `.ion-page` carries `contain: size layout style`, which
-    // makes it the containing block for its fixed descendants, so the panel
-    // is offset from the page box and not from the window — a box compared
-    // against the bar would be asserting that containment. A token
-    // that stopped resolving computes to `auto` here, which moves the panel
-    // over the list while every assertion above stays green.
-    const offset = await page.evaluate(
-      () => getComputedStyle(document.querySelector('[data-testid="m5-panel"]')!).top,
-    )
-    expect(offset).toBe('56px')
+    // G-9: the two panes do not overlap, and the panel is at the window's
+    // edge. Read as boxes, because that is the promise — the previous
+    // version of this case read the resolved `top` instead, and a panel
+    // covering two thirds of the list satisfied it for four weeks.
+    const panelBox = await page.getByTestId('m5-panel').boundingBox()
+    const listBox = await visible(page).getByTestId('m4-header').boundingBox()
+    const viewport = page.viewportSize()
+    if (!panelBox || !listBox || !viewport) throw new Error('no box to measure')
+    // Flush with the window, not with the content column: the panel is a
+    // sibling of the column in the frame, so it is bounded by the window.
+    expect(Math.round(panelBox.x + panelBox.width)).toBe(viewport.width)
+    // And the list is beside it rather than under it — the whole point.
+    expect(listBox.x + listBox.width).toBeLessThanOrEqual(panelBox.x)
+    // It starts below the app bar and spans the rest of the window.
+    expect(panelBox.y).toBe(APP_BAR_H)
+    expect(Math.round(panelBox.y + panelBox.height)).toBe(viewport.height)
   })
 
   // E2E-M5-13 (ADR-011 §overlay): the *browser's* back with the sheet open

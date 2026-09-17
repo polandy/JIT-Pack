@@ -380,6 +380,15 @@ async function saveBackup() {
             <IonRouterOutlet />
           </div>
         </main>
+        <!--
+          G-9's second pane. A screen that has a detail pane teleports it in
+          here (M5 is the only one today); empty, it takes no width. It is a
+          sibling of the column rather than a layer over it because that is
+          the only place from which it can reach the window's edge: Ionic
+          gives `.ion-page` `contain: layout`, so anything positioned inside
+          a screen is bounded by the content column.
+        -->
+        <div id="app-panel-host" class="app-panel-layer"></div>
       </div>
       <TabBar />
 
@@ -453,6 +462,19 @@ async function saveBackup() {
      two of FR-21.18, because the trip's four views are peers a tap apart
      (ADR-051) and a column that changed width between them moved the page
      under the reader — see FR-21.26. */
+}
+
+/* Empty it must cost nothing: `:empty` keeps the frame a two-column row on
+   every screen that has no second pane, rather than a three-column one with
+   a zero-width member that still takes part in sizing. */
+.app-panel-layer {
+  display: flex;
+  flex: none;
+  height: 100%;
+}
+
+.app-panel-layer:empty {
+  display: none;
 }
 
 .app-outlet {

@@ -388,6 +388,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The claim moved one element up (2026-09-16)](#the-claim-moved-one-element-up-2026-09-16) — ADR-033; the sweep gated nine sentences and not the numbers over them, and two measurements that lied.
 - [A layer fixed to the window took the window's geometry (2026-09-16)](#a-layer-fixed-to-the-window-took-the-windows-geometry-2026-09-16) — ADR-060 amendment 1; why one viewport agreed with two geometries.
 - [The idle socket was reaped by a stopwatch (2026-09-16)](#the-idle-socket-was-reaped-by-a-stopwatch-2026-09-16) — Sync-API §9; the seam is per connection because a fake clock would have reaped the observer too.
+- [The option that was recommended did not work (2026-09-17)](#the-option-that-was-recommended-did-not-work-2026-09-17) — ADR-064; “anchor it to the window” was arithmetic, and it still covered 100 px.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15859,3 +15860,32 @@ not a constraint — a correct build never waits measurably, and every step is a
 Without it a broken build hangs on a `sync.Cond` until the package timeout; with it, the assertion that
 noticed is the one that reports. `context.AfterFunc` wakes the condition when it expires, which is what
 makes a missing read fail by name instead of hanging.
+
+
+## The option that was recommended did not work (2026-09-17)
+
+The three ways out of M5's covering panel were put to the owner as a rendered comparison, and the option
+chosen — anchor the pane to the window's right edge instead of the column's — **does not on its own do what
+the page said it would.** The page said "the list then stays fully readable at 1280+". At 1280 the column
+ends at 980 and a window-anchored 400 px pane starts at 880: a hundred pixels still covered. At the 900 px
+breakpoint it is nearer three hundred.
+
+**That sentence was arithmetic, written in the same document that exists because arithmetic had replaced a
+measurement the day before.** The three options were rendered nowhere; only the *problem* was. A page that
+measures the defect carefully and then estimates the fixes has moved the guess rather than removed it —
+and it is more persuasive in its new position, because everything around it was measured.
+
+What actually removes the overlap is the frame dividing the window, which is ADR-064: the pane is a flex
+column of `.app-body`, so it reaches the window's edge because the row ends there, and `.app-content`
+shrinks beside it. Anchoring a *layer* to the window would have needed the content inset by the pane's
+width from somewhere else — the same decision, made twice, in two files.
+
+**The obstacle named in the old test was the defect.** E2E-M5-12's comment explained that a box comparison
+would only be asserting Ionic's containment of `.ion-page`, and chose a resolved style instead. True, and
+the containment was the thing to fix: a pane that has to reach the window cannot live inside a screen. The
+comment reasoned correctly from a premise nobody had questioned.
+
+**Accepted on purpose:** the column re-centres when the pane opens — 200 px left at 1280. At that width,
+keeping the column still *and* not overlapping is not available: rail plus column plus pane is 1080 of
+1280, so the column has to move at least 100 px. Centring moves it 200 and is symmetric; the alternative
+(left-aligning the column in the remaining space) is in ADR-064's revisit trigger.

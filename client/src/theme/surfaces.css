@@ -82,8 +82,10 @@
 
   /* --- The app bar ----------------------------------------------------
    * The height of the frame's top bar, and therefore the line every layer
-   * the frame puts *under* it starts at: the body column, M5's desktop
-   * panel, and the FR-19.7 banner's overlay. Three files read it, which is
+   * the frame puts *under* it starts at: the body column and the FR-19.7
+   * banner's overlay. (M5's desktop panel read it until 2026-09-17, when it
+   * became the frame's second pane and took its top from the row.) Three
+   * files read it, which is
    * why it is a token and no longer three copies of `56px` (§4a).
    */
   --jp-app-bar-h: 56px;
@@ -94,6 +96,15 @@
    * viewport edge covered the rail's first anchor (rendered 2026-09-13).
    */
   --jp-nav-rail-w: 80px;
+
+  /* --- The second pane ------------------------------------------------
+   * G-9's detail pane (M5 today). A frame measurement rather than the
+   * screen's own: the column is `flex: 1` beside it, so this width is what
+   * decides how much of the window the list keeps. It is not derived from
+   * --jp-measure on purpose — the pane holds one item's fields, whose
+   * comfortable width has nothing to do with the reading measure of a list.
+   */
+  --jp-panel-w: 400px;
 
   /* --- Elevation ----------------------------------------------------
    * Three casts, because the app raises surfaces in three directions and

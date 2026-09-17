@@ -130,6 +130,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [A decision that could only be taken back from the other screen (2026-09-12)](#a-decision-that-could-only-be-taken-back-from-the-other-screen-2026-09-12) — E2E-M4-83/84: the case had to cross a sheet reopen, and the picture that was of the mutant.
 - [The notices were gated and the numbers above them were not (2026-09-16)](#the-notices-were-gated-and-the-numbers-above-them-were-not-2026-09-16) — E2E-M6-24/M23-05: a spec whose cases shared one store, and a log line that was not the screenshot's moment.
 - [A layer fixed to the window took the window's geometry (2026-09-16)](#a-layer-fixed-to-the-window-took-the-windows-geometry-2026-09-16) — E2E-PWA-06 gains two measurements, and why one viewport could not have shown either of them.
+- [A resolved style stood in for a layout (2026-09-17)](#a-resolved-style-stood-in-for-a-layout-2026-09-17) — E2E-M5-12 read one `top`, so a pane over two thirds of the list passed; and what a teleport does to a scoped locator.
 
 ## The rule that comes before the units
 
@@ -5147,3 +5148,34 @@ rail inset, so the two cannot disagree again.
 `overflow: hidden` body, and Playwright reports it *hidden*, not zero-height. A clause that waits for
 `toBeVisible()` on the head after a scroll waits forever; its box is still readable and still the right
 anchor.
+
+
+## A resolved style stood in for a layout (2026-09-17)
+
+E2E-M5-12 is the case for G-9's two-pane desktop layout. What it asserted was
+`getComputedStyle(panel).top === '56px'`, with a comment explaining, correctly, that a box comparison
+against the app bar would only be asserting Ionic's containment. That reasoning is sound and the
+conclusion was still wrong: **it read the one number the layout could get right while getting everything
+else wrong.** The pane covered the right 400 px of a 600 px column at every desktop width, and the case
+was green for four weeks.
+
+**The rule it cost:** when a case exists for a *layout*, the assertion is boxes. If a box cannot be
+compared because the frame of reference is wrong, that is a finding about the production code, not a
+reason to assert a style instead. Here it was exactly that — the containment the old comment described as
+an obstacle to testing was the defect (ADR-064).
+
+The case now reads four boxes: the pane's right edge is the window's, its top is the app bar, its bottom is
+the window's, and the list's right edge is at or left of the pane's. Both new clauses were proven red
+separately, because a failing run stops at the first:
+
+- against the unfixed build — `Expected: 1280, Received: 980`, the pane ending at the column's edge;
+- against a mutant where the pane is at the window's edge but out of flow — `Expected: <= 880, Received:
+  980`, which is the non-overlap clause and nothing else.
+
+**A teleport takes an element out of the page scope.** The pane now lives in the frame, so
+`visiblePage(page).getByTestId('m5-panel')` — which scopes to
+`ion-router-outlet > .ion-page:not(.ion-page-hidden)` — stops matching, and the failure reads as
+`toBeVisible()` timing out on an element that is plainly on screen. The file already had the same note for
+`m5-modal`, because an `IonModal` is teleported too; the pane now carries it as well. **If a locator that
+was right yesterday reports "not visible" for something a screenshot shows, ask what moved in the DOM
+before asking what broke in the layout.**
