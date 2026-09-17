@@ -312,8 +312,9 @@ jobs:
   # Merges patch/minor Dependabot PRs once every check above is green.
   # `main` is protected and names go, go-lint, client, format and
   # docker-build as required, but `e2e` and `visual` deliberately are not
-  # (an eight-leg matrix would need eight listed names, and a skipped
-  # required check reports worse than the failure under it — see CLAUDE.md).
+  # (a sharded matrix would need every leg listed by name against a count
+  # that is re-measured as the suite grows, and a skipped required check
+  # reports worse than the failure under it — see CLAUDE.md).
   # This job's `needs` is what makes a Dependabot merge wait for those too.
   # Major updates stay open for manual review.
   dependabot-merge:

@@ -25,9 +25,8 @@ import { E2E_API_PORT, E2E_IDP_PORT, E2E_SERVER_API_PORT } from './e2e/backendPo
  * client in its `server` mode against it. It exists only when
  * `E2E_BACKEND=1`, because it needs the Go binary prebuilt at the repo root
  * (`go build -o jitpackd-e2e ./cmd/jitpackd`) — a prerequisite the default
- * run and the CI shard legs do not have. How many legs those are is a
- * measurement kept in `ci.yml`, and naming it here would be a copy that goes
- * stale without a signal.
+ * run and the CI shard legs do not have. How many legs those are is `ci.yml`'s
+ * measurement to keep; a copy here would go stale with no signal.
  *
  * Multi-identity coverage (spec §2.3, mode `server`) is the `server` project:
  * a second jitpackd, in OIDC mode against the mock IdP in `e2e/server/`, with
