@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 # A second push to the same PR makes the first run's verdict worthless, but it
-# goes on holding runners — and with the e2e matrix a run is 16 jobs against
+# goes on holding runners — and with the e2e matrix a run is 18 jobs against
 # the 20 a public repo may have in flight, so an abandoned run does not merely
 # waste minutes, it queues the run that replaced it.
 #
@@ -163,14 +163,16 @@ jobs:
   # backend-backed modes have had their own jobs since #192 (`e2e-single`,
   # `e2e-server`, both below).
   #
-  # The shard count is a *measurement*, not a constant: eight, sized
-  # 2026-08-30 against ~1920 test-seconds. Why eight and not four or twelve —
+  # The shard count is a *measurement*, not a constant: ten, sized
+  # 2026-09-18 against ~2940 test-seconds. Why ten and not eight or twelve —
   # the per-browser split that was worse, the fixed ~60 s per leg, the 20-job
-  # concurrency ceiling — is in dev-docs/implementation-log.md, "Why the e2e
-  # matrix is eight legs". **Re-read the number when the suite grows**: a
-  # green pipeline never says the count has gone stale, because the only
-  # symptom is that every run is slower than it needs to be. The cheap check
-  # is the per-leg times of any recent run.
+  # concurrency ceiling that eight non-shard jobs eat into — is in
+  # dev-docs/implementation-log.md, "The e2e matrix is ten legs" and the
+  # eight-leg section it supersedes. **Re-read the number when the suite
+  # grows**: a green pipeline never says the count has gone stale, because
+  # the only symptom is that every run is slower than it needs to be, and it
+  # has now gone stale twice. The cheap check is the per-leg times of any
+  # recent run.
   #
   # Deliberately *not* gated on `client`, and it runs inside the digest-pinned
   # Playwright image rather than installing browsers — both measured, both in
@@ -182,7 +184,7 @@ jobs:
       # others being cancelled.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Installed and built on the *runner*, not in the container: the image
