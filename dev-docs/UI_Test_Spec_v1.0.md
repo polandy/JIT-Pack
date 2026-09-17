@@ -839,6 +839,17 @@ rather than registered.
   control is **absent** until *Details* is opened. **Extended 2026-08-27 (UX-10):** the packing block carries its
   eyebrow label („Einpacken" / "Packing"), the same pattern as the prep and notes sections.
 * **E2E-M5-12** `all` (G-9): at desktop width the same content is a side panel beside the list, not a sheet over it.
+  Since 2026-09-17 (ADR-064) *beside* is asserted as boxes rather than as a resolved `top`: the pane's right edge is
+  the window's, its top is the app bar and its bottom the window's, and the list's right edge is at or left of the
+  pane's. The previous form read one computed style and a pane covering two thirds of the list satisfied it.
+* **E2E-M5-27** `all` (G-9, ADR-064): leaving M4 with the pane open takes the pane with it. The pane is the frame's
+  now, so `.ion-page-hidden` — which is all Ionic does to a screen it navigates away from — cannot hide it; without
+  its own unmount it would stand over the next screen. Asserted with the shopping view rendered as the positive
+  signal that the navigation happened at all.
+* **E2E-M5-28** `all` (G-4, ADR-064): a cold boot straight onto an item at desktop width opens the pane and no sheet,
+  and the pane reaches the window's edge. E2E-M5-10 covers the same route at phone width; this is the pane's own
+  path, and the one that needs the teleport's `defer` — the screen and its pane mount on the same tick, before the
+  frame's host exists.
   **Revised 2026-09-05 (ADR-046):** and the page showing the panel is the same element that showed the list — asserted
   by identity, because the path-parameter build mounted a second M4 on every open, which stood unhidden beside the first
   for as long as its children took to become ready: three red WebKit runs in a day, never reproducible on an idle

@@ -250,6 +250,14 @@ These patterns apply to every screen and are specified once.
   out of a drill-down is the back-target contract rather than the logo (ADR-011). **The bar is part of the page, not a
   slab over it (2026-09-06, ADR-049):** it is painted transparent and casts no shadow, so the page's own ground — and
   the G-11 wash at its top-left — runs under the bar, the head and the content alike.
+* **The body is up to three columns, and the third is the detail pane (added 2026-09-17, ADR-064).** Left to right:
+  the desktop rail (≥ 900 px), the content column, and — when a screen has one open — a **detail pane** at
+  `--jp-panel-w`. The pane belongs to the frame rather than to the screen: a screen teleports its pane into the
+  frame's host, which takes no width while empty. Two consequences worth stating, because both were defects first.
+  A pane laid out *by the frame* cannot overlap the content column and needs no positioning to reach the window's
+  edge — anything `fixed` inside a screen is bounded by the content column instead, since Ionic gives `.ion-page`
+  `contain: layout`. And the content column **re-centres in what is left** when a pane opens, which is the accepted
+  cost recorded in ADR-064. M5 is the only screen with one today.
 * **The bar does not name the page (added 2026-09-06, ADR-050).** The screen's name is the **page head**: an `h1` in
   the display role (`.jp-page-title`, G-13) with an optional second line under it — `.jp-meta` — naming what the
   screen belongs to, the trip for a trip sub-screen or the step for a wizard. It renders **once, in the frame**
@@ -1255,6 +1263,10 @@ These patterns apply to every screen and are specified once.
   layout** — M4's list occupies the left/main pane while M5 opens as a **persistent side panel** on the right rather
   than a bottom sheet; selecting a different row swaps the panel's content in place. Below the breakpoint, M5 remains
   the mobile overlay sheet described above.
+  **The pane is the frame's, not the screen's (ADR-064, 2026-09-17)** — it is a flex column of the app body beside the
+  content column, so the two never overlap and the pane ends at the window's edge. Until then it was a layer inside the
+  screen and covered the right 400 px of a 600 px column at every desktop width; the sentence above described a layout
+  that had never shipped. The column re-centres in what is left when the pane opens, which is the accepted cost.
 * **Revised 2026-08-13 (built), 2026-08-27 (UX-9).** Three points were corrected against the running screen — a spec
   that disagrees with the code is worse than none. Was: (1) a collapsed *"Consciously skipped"* section — superseded by
   FR-25.2, a skipped row *is* a done row under the same *Erledigte* switch, and two mechanisms for one class of rows
@@ -1276,7 +1288,8 @@ These patterns apply to every screen and are specified once.
   **glance row** for everything the sheet can also change, then **Preparation** and **Notes** with their composers, and
   finally *Details ▾* holding membership, procurement, luggage, the Late-Packer flag, the FR-9.1 flags and the
   FR-25.17/25.19 stamp.
-* **It is a sheet over M4, and a side panel beside it above the G-9 breakpoint** — one content component either way. The
+* **It is a sheet over M4, and a side panel beside it above the G-9 breakpoint** — one content component either way,
+  and since ADR-064 *beside* is literal: the pane is a column of the frame, not a layer over the screen. The
   route carries it (`/trips/:tripId?item=:itemId`), which is what makes a notification deep link (G-4) land on the item
   with the list behind it. **The item is a query on the list's own route, not a path** (ADR-046, revised 2026-09-05;
   was: an alias `/trips/:tripId/items/:itemId` of the trip route — to Ionic a parameterised path is a page of its own,

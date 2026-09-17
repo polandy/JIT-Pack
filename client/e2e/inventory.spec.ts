@@ -8,6 +8,7 @@ import {
   createTripViaWizard,
   openQuickAdd,
   visiblePage,
+  itemDetail,
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import type { Locator, Page } from '@playwright/test'
@@ -1206,12 +1207,9 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
     await expect(page.getByTestId('m4-row-Wanderstöcke')).toBeVisible()
 
     await page.getByTestId('m4-row-Wanderstöcke').click()
-    await visiblePage(page)
-      .getByTestId('m5-note-input')
-      .locator('input')
-      .fill('Spitzen sind stumpf')
-    await visiblePage(page).getByTestId('m5-note-add').click()
-    await expect(visiblePage(page).getByTestId('m5-note-Spitzen sind stumpf')).toBeVisible()
+    await itemDetail(page).getByTestId('m5-note-input').locator('input').fill('Spitzen sind stumpf')
+    await itemDetail(page).getByTestId('m5-note-add').click()
+    await expect(itemDetail(page).getByTestId('m5-note-Spitzen sind stumpf')).toBeVisible()
 
     await page.goto(PATH.items)
     await visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Wanderstöcke' }).click()

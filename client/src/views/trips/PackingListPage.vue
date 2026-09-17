@@ -65,6 +65,7 @@ import {
 } from 'ionicons/icons'
 
 import { packedPercent, stateFor } from '@/domain/packState'
+import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -1931,15 +1932,23 @@ setHeaderTitle(
           @close="closeItem"
         />
       </SheetModal>
-      <aside v-else-if="openItemId" class="item-panel" data-testid="m5-panel">
-        <ItemDetailSheet
-          :trip-id="tripId"
-          :item-id="openItemId"
-          :participants="participants"
-          :current-user-id="myUserId"
-          @close="closeItem"
-        />
-      </aside>
+      <!-- Into the frame's second pane (G-9), not into this screen: a
+           detail pane has to reach the window's edge, and `.ion-page`
+           carries `contain: layout`, which bounds anything positioned
+           inside a screen to the content column. `defer` because a deep
+           link opens the item on the same tick the screen mounts, before
+           the host exists. -->
+      <Teleport v-if="isDesktop && openItemId" defer :to="PANEL_HOST_SELECTOR">
+        <aside class="item-panel" data-testid="m5-panel">
+          <ItemDetailSheet
+            :trip-id="tripId"
+            :item-id="openItemId"
+            :participants="participants"
+            :current-user-id="myUserId"
+            @close="closeItem"
+          />
+        </aside>
+      </Teleport>
 
       <FilterSheet
         :open="filterOpen"
@@ -2001,28 +2010,17 @@ setHeaderTitle(
   font-weight: var(--jp-weight-semibold);
 }
 
-/* M5 as a sheet (phone) or a panel (desktop, G-9). The panel overlays the
-   list rather than squeezing it: the list keeps its measurements, so
-   opening a detail never re-flows the rows underneath the finger that
-   opened it.
-
-   The edge it is fixed to is not the window's: `.ion-page` carries
-   `contain: size layout style`, and a contained element is the containing
-   block for its fixed descendants. So `right: 0` is the content column's
-   right edge, and `top` counts from the page box — which already starts
-   below both the app bar and the page head, making --jp-app-bar-h a gap
-   under the head here rather than the bar being cleared. */
+/* M5 as a sheet (phone) or a panel (desktop, G-9). The panel is the frame's
+   second pane, teleported into it, so it is laid out beside the list rather
+   than over it and the column re-centres in what is left. Nothing here
+   positions it: being a flex sibling of the column is what puts it at the
+   window's edge, and the frame's own row is what gives it the height. */
 .item-panel {
-  position: fixed;
-  top: var(--jp-app-bar-h);
-  right: 0;
-  bottom: 0;
-  width: 400px;
+  width: var(--jp-panel-w);
   overflow-y: auto;
   background: var(--ct-mantle);
   border-left: 1px solid var(--ct-surface1);
   box-shadow: var(--jp-shadow-panel);
-  z-index: 20;
 }
 
 /* The header line collapses by giving up its own height in the scrolled
