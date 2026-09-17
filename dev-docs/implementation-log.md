@@ -15942,10 +15942,19 @@ legs are still above them, so there is real room left; but sharding the matrix
 down past ~262 s would buy nothing, because `e2e-single` would become the
 critical path. That is the number to read next time, not the leg times alone.
 
-**The count was written in four places and only one of them decided it.** The
-`concurrency` block's comment does arithmetic with it (16 jobs → 18) and had to
-change; `playwright.config.ts` named "the eight CI shard legs" twice in
-comments about a Go binary, where the number was never load-bearing and now
-names nothing — the same shape as the toolchain pin that was written in a
-fourth place. `CLAUDE.md` keeps its pointer line, because that one exists to
-send the reader here.
+**The count was written in five places and only one of them decided it — and
+the first pass found three.** The `concurrency` block's comment does arithmetic
+with it (16 jobs → 18) and had to change; `playwright.config.ts` named "the
+eight CI shard legs" twice in comments about a Go binary, where the number was
+never load-bearing and now names nothing. `CLAUDE.md` keeps its pointer line,
+because that one exists to send the reader here.
+
+The other two were found by reviewing this change's own diff, and one of them
+sat **one line below** the line the first pass had already corrected:
+`CLAUDE.md`'s CI/CD layout bullet said `e2e ×8`, and its branch-protection
+rationale — repeated verbatim in `ci.yml` over `dependabot-merge` — said "an
+eight-leg matrix would need eight listed names". Neither decides the count, so
+neither names it now; the protection argument never depended on the number
+anyway, only on there being one leg name per leg. **Fixing a number in the
+place that owns it is not the same as finding its copies**, and a sweep that
+starts from the owning file will miss a copy in the file it just edited.
