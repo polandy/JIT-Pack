@@ -54,6 +54,14 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-name')).toHaveText('Zelt')
     // The list is still there behind it — that is the point of a sheet.
     await expect(page.getByTestId('m4-header')).toBeVisible()
+    // ADR-064: the desktop pane is not built at this width — not built
+    // rather than not shown. The sheet and the pane render the same
+    // component, so both at once is two of every control in the detail;
+    // a `v-else-if` used to make that impossible structurally and the
+    // teleport's own `v-if` now has to say it. Asserted here rather than
+    // left to the strict-mode violation it happens to cause, which names
+    // a locator rather than the rule.
+    await expect(page.getByTestId('m5-panel')).toHaveCount(0)
 
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
@@ -178,6 +186,62 @@ test.describe('M5 item detail @local @m5', () => {
     // It starts below the app bar and spans the rest of the window.
     expect(panelBox.y).toBe(APP_BAR_H)
     expect(Math.round(panelBox.y + panelBox.height)).toBe(viewport.height)
+  })
+
+  // E2E-M5-27 (ADR-064): the pane lives in the frame now, so the thing that
+  // hides a screen cannot hide it. Ionic keeps a page mounted and merely
+  // marks it `.ion-page-hidden`, and the pane is no longer inside that
+  // element — if it did not unmount itself, it would stand over the next
+  // screen. Provoked with the trip's own view switcher, which is the
+  // shortest way off M4 that keeps the trip.
+  test('E2E-M5-27: leaving M4 with the pane open takes the pane with it', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
+    await page.getByTestId('quick-add-confirm').click()
+    await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
+    await expect(page.getByTestId('m5-panel')).toBeVisible()
+
+    // Not page-scoped either: the switcher is rendered by the frame's
+    // PageHead (G-9, ADR-050), so it is outside `.ion-page` too.
+    await page.getByTestId('trip-view-shopping').click()
+
+    // The positive signal that we actually left: the shopping view is the
+    // rendered page. Without it an assertion that the pane is gone would
+    // also pass if the navigation had simply not happened.
+    await expect(visible(page).getByTestId('m6-page')).toBeVisible()
+    // `toHaveCount(0)` and not `not.toBeVisible()`: the failure this guards
+    // is an element that is still in the DOM and still painted.
+    await expect(page.getByTestId('m5-panel')).toHaveCount(0)
+  })
+
+  // E2E-M5-28 (G-4, ADR-064): a cold boot straight onto an item at desktop
+  // width. E2E-M5-10 covers the same route at phone width, where the sheet
+  // is teleported by Ionic; this is the pane's own path, and it is the one
+  // that needs `<Teleport defer>` — the screen and its pane mount on the
+  // same tick, and without `defer` the host does not exist yet.
+  test('E2E-M5-28: a deep link at desktop width opens the pane, not a sheet', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
+    await page.getByTestId('quick-add-confirm').click()
+    await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
+    const itemUrl = page.url()
+
+    await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
+    await page.goto(itemUrl)
+
+    await expect(page.getByTestId('m5-panel')).toBeVisible()
+    await expect(page.getByTestId('m5-name')).toHaveText('Zelt')
+    // The pane reached the frame, not just the DOM: teleported into the
+    // screen's own subtree it would render at the column's edge instead.
+    const panelBox = await page.getByTestId('m5-panel').boundingBox()
+    const viewport = page.viewportSize()
+    if (!panelBox || !viewport) throw new Error('no box to measure')
+    expect(Math.round(panelBox.x + panelBox.width)).toBe(viewport.width)
+    await expect(page.getByTestId('m5-modal')).toHaveCount(0)
   })
 
   // E2E-M5-13 (ADR-011 §overlay): the *browser's* back with the sheet open

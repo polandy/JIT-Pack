@@ -5179,3 +5179,28 @@ separately, because a failing run stops at the first:
 `m5-modal`, because an `IonModal` is teleported too; the pane now carries it as well. **If a locator that
 was right yesterday reports "not visible" for something a screenshot shows, ask what moved in the DOM
 before asking what broke in the layout.**
+
+**And the reach is wider than the specs about the layout.** Eight call sites across
+`server/multi-user.spec.ts` and `inventory.spec.ts` scoped an `m5-…` testid to the visible page while
+testing notifications, mentions and inventory notes — nothing to do with where a pane sits. They broke
+because the **`server` project's device is Desktop Chrome**, so every one of its cases is above the G-9
+breakpoint and gets the pane rather than the sheet. `helpers/page.ts` now exports **`itemDetail(page)`**,
+which names both homes (`… .ion-page:not(.ion-page-hidden), #app-panel-host`) so a case can ask for the
+detail without knowing the width it runs at. The scope is kept rather than dropped: an unscoped
+`getByTestId` would also match a detail belonging to a screen Ionic has merely hidden, which is the defect
+`visiblePage` exists for.
+
+**The regression the shards caught, and the local subset did not.** The old markup was
+`<SheetModal v-if="!isDesktop">` followed by `<aside v-else-if="openItemId">`; the `v-else-if` is what made
+the sheet and the pane mutually exclusive. Rewriting the aside as `<Teleport v-if="openItemId">` dropped
+that silently, so at phone width **both** rendered — two of every control in the detail, and eight cases
+died on `strict mode violation: getByTestId('m5-sheet') resolved to 2 elements`. E2E-M5-09 now asserts
+`m5-panel` has count 0 at phone width, as a rule rather than as a strict-mode accident. Two things worth
+keeping:
+
+- **A `v-else-if` carries a condition that a `v-if` has to repeat.** Splitting a chain is never a pure
+  move; the branch that leaves takes none of the guard with it.
+- **A strict-mode violation is an accidental guard.** It fires at whichever locator happens to be first,
+  names a selector rather than a rule, and would stop firing the moment the duplicate testids diverged. The
+  explicit count clause was mutation-proven on its own, against a build where only the pane rendered at
+  phone width, so that the sheet stayed unique and nothing but the new clause could notice.

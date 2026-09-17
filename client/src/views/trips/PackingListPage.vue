@@ -65,6 +65,7 @@ import {
 } from 'ionicons/icons'
 
 import { packedPercent, stateFor } from '@/domain/packState'
+import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -1937,7 +1938,7 @@ setHeaderTitle(
            inside a screen to the content column. `defer` because a deep
            link opens the item on the same tick the screen mounts, before
            the host exists. -->
-      <Teleport v-if="openItemId" defer to="#app-panel-host">
+      <Teleport v-if="isDesktop && openItemId" defer :to="PANEL_HOST_SELECTOR">
         <aside class="item-panel" data-testid="m5-panel">
           <ItemDetailSheet
             :trip-id="tripId"

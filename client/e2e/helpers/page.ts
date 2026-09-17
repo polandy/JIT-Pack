@@ -9,6 +9,7 @@
  * keeps it from happening again.
  */
 import { expect } from '@playwright/test'
+import { PANEL_HOST_SELECTOR } from '../frameSlots'
 import type { Page } from '@playwright/test'
 
 /**
@@ -31,6 +32,24 @@ export const PRESENTED_POPOVER = 'ion-popover:not(.overlay-hidden)'
 
 export function visiblePage(page: Page) {
   return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
+}
+
+/**
+ * M5's detail, wherever the width put it.
+ *
+ * Below the G-9 breakpoint it is a sheet inside the screen; above it, it is
+ * the frame's second pane and lives outside `ion-router-outlet` entirely
+ * (ADR-064). So `visiblePage(page).getByTestId('m5-…')` is right at phone
+ * width and silently matches nothing at desktop width — which is how the
+ * `server` project, whose device is Desktop Chrome, went red on cases that
+ * had nothing to do with layout.
+ *
+ * Both halves are named here rather than dropping the scope altogether: an
+ * unscoped `getByTestId` would also match a detail belonging to a screen
+ * Ionic has merely hidden, which is the defect `visiblePage` exists for.
+ */
+export function itemDetail(page: Page) {
+  return page.locator(`ion-router-outlet > .ion-page:not(.ion-page-hidden), ${PANEL_HOST_SELECTOR}`)
 }
 
 /**

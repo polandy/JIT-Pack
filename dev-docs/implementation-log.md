@@ -15885,6 +15885,13 @@ would only be asserting Ionic's containment of `.ion-page`, and chose a resolved
 the containment was the thing to fix: a pane that has to reach the window cannot live inside a screen. The
 comment reasoned correctly from a premise nobody had questioned.
 
+**What the shard fan-out caught and a local subset did not.** The aside had been
+`<aside v-else-if="openItemId">`, chained to the sheet's `v-if="!isDesktop"`; that `v-else-if` was the only
+thing making the two mutually exclusive. Rewritten as `<Teleport v-if="openItemId">` it lost the width
+condition without a word, and at phone width both rendered — two of every control in the detail. Eight
+cases died on a strict-mode violation. **A branch leaving a `v-else-if` chain takes none of the guard with
+it**, and the guard is now written out and asserted rather than implied by markup order.
+
 **Accepted on purpose:** the column re-centres when the pane opens — 200 px left at 1280. At that width,
 keeping the column still *and* not overlapping is not available: rail plus column plus pane is 1080 of
 1280, so the column has to move at least 100 px. Centring moves it 200 and is symmetric; the alternative

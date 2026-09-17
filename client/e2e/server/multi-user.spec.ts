@@ -5,6 +5,7 @@ import {
   openTripSwipe,
   tripSwipeActions,
   visiblePage,
+  itemDetail,
   tripAction,
 } from '../fixtures'
 import { openCluster } from '../helpers/m4'
@@ -303,12 +304,12 @@ test.describe('Two accounts on one instance @server', () => {
     // connection. Its toast is the settled signal that the delegation had
     // every chance to land — and that the switch is per kind, not a mute.
     await visiblePage(alice).getByTestId(`m4-row-${mentioned}`).click()
-    await expect(visiblePage(alice).getByTestId('m5-sheet')).toBeVisible()
-    await visiblePage(alice)
+    await expect(itemDetail(alice).getByTestId('m5-sheet')).toBeVisible()
+    await itemDetail(alice)
       .getByTestId('m5-note-input')
       .locator('input')
       .fill(`@${ACCOUNT_NAMES.carol} ${mentioned}`)
-    await visiblePage(alice).getByTestId('m5-note-add').click()
+    await itemDetail(alice).getByTestId('m5-note-add').click()
 
     await expect(carol.locator('ion-toast').filter({ hasText: mentioned })).toBeVisible()
     await expect(carol.locator('ion-toast').filter({ hasText: silenced })).toHaveCount(0)
@@ -559,7 +560,7 @@ test.describe('Two accounts on one instance @server', () => {
 
     // And it is the way to the row.
     await section.getByTestId(`dashboard-delegated-${item}`).click()
-    await expect(visiblePage(bob).getByTestId('m5-sheet')).toContainText(item)
+    await expect(itemDetail(bob).getByTestId('m5-sheet')).toContainText(item)
 
     // Coming back, the same row is no longer news: leaving the screen is what
     // marks it read, so the highlight is spent and the row stays listed.
@@ -613,8 +614,8 @@ test.describe('Two accounts on one instance @server', () => {
     // FR-6.3/G-4: the notice leads to the item context, asserted on the
     // rendered sheet rather than on the URL.
     await notice.getByRole('button', { name: /open/i }).click()
-    await expect(visiblePage(bob).getByTestId('m5-sheet')).toBeVisible()
-    await expect(visiblePage(bob).getByTestId('m5-sheet')).toContainText(item)
+    await expect(itemDetail(bob).getByTestId('m5-sheet')).toBeVisible()
+    await expect(itemDetail(bob).getByTestId('m5-sheet')).toContainText(item)
 
     // FR-25.20, reachable for the first time: the row is Bob's job now, so
     // Alice's list hides it — and says so rather than hiding it silently.

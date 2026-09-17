@@ -20,6 +20,7 @@ import NavRail from '@/components/global/NavRail.vue'
 import TabBar from '@/components/global/TabBar.vue'
 import MigrationBanner from '@/components/global/MigrationBanner.vue'
 import UpdateBanner from '@/components/global/UpdateBanner.vue'
+import { PANEL_HOST_ID } from '@/lib/frameSlots'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { createAuthRefresher } from '@/auth/refresh'
 import { clearOnSessionEnd } from '@/auth/sessionEnd'
@@ -388,7 +389,7 @@ async function saveBackup() {
           gives `.ion-page` `contain: layout`, so anything positioned inside
           a screen is bounded by the content column.
         -->
-        <div id="app-panel-host" class="app-panel-layer"></div>
+        <div :id="PANEL_HOST_ID" class="app-panel-layer"></div>
       </div>
       <TabBar />
 
@@ -464,13 +465,15 @@ async function saveBackup() {
      under the reader — see FR-21.26. */
 }
 
-/* Empty it must cost nothing: `:empty` keeps the frame a two-column row on
-   every screen that has no second pane, rather than a three-column one with
-   a zero-width member that still takes part in sizing. */
+/* The frame's third column (ADR-064). `display: flex` is what stretches the
+   pane to the row's height, and `:empty` is what keeps the frame a two-column
+   row on every screen that has no pane open rather than a three-column one
+   with a zero-width member. No `height` here: this is a flex item of
+   `.app-body`, so it is already stretched to the row — measured, because the
+   declaration looked necessary and was not. */
 .app-panel-layer {
   display: flex;
   flex: none;
-  height: 100%;
 }
 
 .app-panel-layer:empty {

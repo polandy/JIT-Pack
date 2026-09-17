@@ -250,6 +250,14 @@ These patterns apply to every screen and are specified once.
   out of a drill-down is the back-target contract rather than the logo (ADR-011). **The bar is part of the page, not a
   slab over it (2026-09-06, ADR-049):** it is painted transparent and casts no shadow, so the page's own ground — and
   the G-11 wash at its top-left — runs under the bar, the head and the content alike.
+* **The body is up to three columns, and the third is the detail pane (added 2026-09-17, ADR-064).** Left to right:
+  the desktop rail (≥ 900 px), the content column, and — when a screen has one open — a **detail pane** at
+  `--jp-panel-w`. The pane belongs to the frame rather than to the screen: a screen teleports its pane into the
+  frame's host, which takes no width while empty. Two consequences worth stating, because both were defects first.
+  A pane laid out *by the frame* cannot overlap the content column and needs no positioning to reach the window's
+  edge — anything `fixed` inside a screen is bounded by the content column instead, since Ionic gives `.ion-page`
+  `contain: layout`. And the content column **re-centres in what is left** when a pane opens, which is the accepted
+  cost recorded in ADR-064. M5 is the only screen with one today.
 * **The bar does not name the page (added 2026-09-06, ADR-050).** The screen's name is the **page head**: an `h1` in
   the display role (`.jp-page-title`, G-13) with an optional second line under it — `.jp-meta` — naming what the
   screen belongs to, the trip for a trip sub-screen or the step for a wizard. It renders **once, in the frame**

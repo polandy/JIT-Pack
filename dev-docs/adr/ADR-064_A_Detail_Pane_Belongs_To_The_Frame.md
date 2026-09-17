@@ -42,7 +42,8 @@ the row ends, and `.app-content` — `flex: 1` — shrinks and re-centres its co
 - **The column moves when the pane opens.** At 1280 the list shifts 200 px left as it re-centres in the
   narrower space. This is a real cost and is accepted below.
 - A teleport is indirection: the pane's markup is in `PackingListPage.vue` and its DOM is in the frame, so
-  a page-scoped Playwright locator no longer finds it. One existing assertion had to be unscoped.
+  a page-scoped Playwright locator no longer finds it. Eight call sites across two spec files moved to the
+  new `itemDetail(page)` helper, most of them in cases about notifications rather than layout.
 - The host is a frame-level id that a screen names by string.
 
 ### Option B — keep the pane a layer, anchored to the window instead of the column
@@ -111,8 +112,13 @@ Nothing about the pane is positioned — it reaches the window's edge because th
   deliberate click on desktop, not the unbidden arrival that FR-21.26 and ADR-060 protect against, and the
   alternative at 1280 is covering 100 px of the rows the user is reading. Keeping the column still *and*
   not overlapping is not available at that width.
-- **A page-scoped locator no longer sees the pane.** Same trap as an `IonModal`, and now the same remedy —
-  E2E-M5-12 asserts against `page`, with the reason written beside it.
+- **A page-scoped locator no longer sees the pane**, and not only in the cases about layout: the `server`
+  project's device is Desktop Chrome, so seven call sites testing notifications, mentions and inventory
+  notes broke too. `helpers/page.ts` gains `itemDetail(page)`, which names both homes so a case need not
+  know its own width.
+- **The sheet and the pane are now mutually exclusive by a written condition rather than by a `v-else-if`.**
+  Splitting that chain dropped the guard on the first attempt and rendered both at phone width; E2E-M5-09
+  holds the rule explicitly.
 - At the 900 px breakpoint the column is 420 px, below `--jp-measure`. The trip view switcher scrolls there,
   which is the behaviour it was built for at 390 px, so this is inside its design range rather than a new
   narrow case.
