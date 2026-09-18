@@ -1279,15 +1279,16 @@ These patterns apply to every screen and are specified once.
     avatar. Visible to all trip members; resolving a todo is restricted to the item's assignee or trip owner. Tap item
     name → M5.
   * **"Aufgaben für die Reise" (FR-7.4 — built 2026-09-18)** — the trip's own todos, the chores that prepare no row
-    (*„Pflanzen giessen"*). A collapsible card **above the list, directly under the header line** (moved 2026-09-18:
-    at the list's foot, closed, it went unseen), **always present** outside the FR-9.3 closing pass, because it is
-    where the first todo is typed. It is **unfolded while any todo is open** and folded to its head once none is — or
-    while the trip has none; a fold the user makes holds for the visit. Its head names the section and, once the trip
-    has a todo, the check: *„1 von 2 erledigt"*, or *„✓ Alle Aufgaben erledigt"* with the head in `--jp-done`.
-    Unfolded: open todos with a checkbox and a ✕, the resolved ones folded under *„{n} erledigt"* where unticking
-    reopens one, and a composer (*„Aufgabe hinzufügen…"*, Enter or *Hinzufügen*). Nothing here counts toward the
-    packing ring, the header's prep KPI or any row's doneness. Every trip member may tick; there is no G-3 claim,
-    because there is no row. (E2E-M4-96, E2E-M4-97)
+    (*„Pflanzen giessen"*). A collapsible card **above the list, directly under the header line** (moved 2026-09-18: at
+    the list's foot, closed, it went unseen), **always present** outside the FR-9.3 closing pass, because it is where
+    the first todo is typed — once the trip's partition is on the device (ADR-033): before it, the section would read
+    folded and then spring open under a tap meant to open it. It is **unfolded while any todo is open** and folded to
+    its head once none is — or while the trip has none; a fold the user makes holds for the visit. Its head names the
+    section and, once the trip has a todo, the check: *„1 von 2 erledigt"*, or *„✓ Alle Aufgaben erledigt"* with the
+    head in `--jp-done`. Unfolded: open todos with a checkbox and a ✕, the resolved ones folded under *„{n} erledigt"*
+    where unticking reopens one, and a composer (*„Aufgabe hinzufügen…"*, Enter or *Hinzufügen*). Nothing here counts
+    toward the packing ring, the header's prep KPI or any row's doneness. Every trip member may tick; there is no G-3
+    claim, because there is no row. (E2E-M4-96, E2E-M4-97)
   * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items
     with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal
     incomplete readiness.

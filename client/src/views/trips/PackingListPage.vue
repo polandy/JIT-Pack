@@ -1729,9 +1729,11 @@ setHeaderTitle(
            here, in the trip; M1 only reports them. Above the list, because at
            its foot they went unseen; unfolded while any is open, one line once
            none is. Always present, because the section is where the first one
-           is typed. -->
+           is typed — but only once the partition is here (ADR-033): before
+           that it would read „folded" and then spring open under a tap that
+           was meant to open it, which closes it again. -->
       <div
-        v-if="!closingPass"
+        v-if="rowsLoaded && !closingPass"
         ref="tripTodosSection"
         class="prep-section trip-todos-section jp-card"
         :class="{ done: tripTodoState === 'allDone' }"
