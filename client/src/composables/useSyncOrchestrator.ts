@@ -37,6 +37,7 @@ import { createSeriesActions } from './sync/actions/series'
 import { createMasterDataActions } from './sync/actions/masterData'
 import { createPackingActions } from './sync/actions/packing'
 import { createGroupRefreshActions } from './sync/actions/groupRefresh'
+import { createInventoryNameActions } from './sync/actions/inventoryNames'
 import { createTripLifecycleActions } from './sync/actions/tripLifecycle'
 import { createPostTripActions } from './sync/actions/postTrip'
 import { createTripCreationActions } from './sync/actions/tripCreation'
@@ -532,6 +533,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const masterDataActions = createMasterDataActions(ctx)
   const packingActions = createPackingActions(ctx)
   const groupRefreshActions = createGroupRefreshActions(ctx, { comments: commentActions })
+  const inventoryNameActions = createInventoryNameActions(ctx, {
+    groupRefresh: groupRefreshActions,
+  })
   const postTripActions = createPostTripActions(ctx, { masterData: masterDataActions })
   const tripCreationActions = createTripCreationActions(ctx)
   const tripLifecycleActions = createTripLifecycleActions(ctx, {
@@ -857,6 +861,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     declineTripRefresh: groupRefreshActions.declineTripRefresh,
     proposeRefreshForLoadedTrips: groupRefreshActions.proposeRefreshForLoadedTrips,
     refreshProposals: groupRefreshActions.refreshProposals,
+    // FR-27.16: names taken over from the inventory on request.
+    ...inventoryNameActions,
     cloneTrip: tripCreationActions.cloneTrip,
     commitImport: tripCreationActions.commitImport,
     commitPortableImport,

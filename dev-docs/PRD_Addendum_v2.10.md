@@ -3547,6 +3547,40 @@ items**; turning a finished (and mutated) trip back **into a template for next y
     recomputation. The same falls out for the guards: the folded group becomes an include, and an include is already
     excluded.
 
+* **FR-27.16 (Taking Names over from the Inventory — new and built 2026-09-18, owner request):** A trip row copies its
+  master item's name when it is written (`trip_items.name`) and keeps it. Renaming the item in the inventory (M10)
+  reaches a trip only through FR-27.4, and FR-27.4 is deliberately narrow: it asks about rows a followed group
+  generated, never about a packed, skipped or hand-edited row, and never on a past trip. Every other row kept its old
+  name with no way to catch up short of retyping it. **M4 offers the inventory's current name on request:**
+
+  * **Which rows:** every row with a master item whose current name differs from the row's — packed, skipped and
+    single-item (FR-27.3) rows included, because a name counts nothing and decides nothing. A row without a master item
+    has nothing to take over. A rename the FR-27.4 card is *already asking about* is left to that card, so one question
+    is not asked twice with two answers that can disagree. Per-person rows of one item under one name are **one**
+    choice: they are one cluster on M4, and renaming only some of them would split it.
+  * **Past and archived trips too** (owner, 2026-09-18). FR-27.4 never touches them because it *proposes*; this only
+    ever acts on a tap, so renaming history is the user's call rather than a prompt.
+  * **Where:** the ⋮ carries „Namen aus dem Inventar (N)" — only while N > 0 — and opens a sheet listing each choice
+    as the old name struck through above the new one, with a tick each, a leading **„Alle"** tick (tri-state) and one
+    button („N Namen übernehmen", „Alle N übernehmen" when all are ticked). M5 carries the one-row form: „Im Inventar
+    heisst es jetzt „X"." with **Übernehmen**, under the row's name. Either path reports in M4's snackbar with
+    **Rückgängig**, which puts the old names back.
+  * **Pre-selection:** everything is ticked except a row the trip **named on purpose** — a generated row whose name
+    differs from what its ledger says generation produced, which is a hand edit or a refused FR-27.4 rename. Only a
+    generated row can say so; a single item has no ledger entry and is always ticked. „Alle" takes the deliberate ones
+    along.
+  * **Adopting moves the ledger with the row.** A generated row whose name no longer matched its ledger snapshot would
+    read to FR-27.4 as hand-edited from then on and quietly stop following its group. The entry is rewritten to the new
+    name in the same breath, and the undo restores it with the row.
+  * **Nothing is stored.** The list is recomputed from the two names each time, so there is no "declined" flag to sync
+    and nothing in the schema. *Considered and rejected:* a card above the list announcing the renames (the mockup's
+    variant B). It is easier to discover, but it sits beside the FR-27.4 card asking a near-identical question, and a
+    card must remember a dismissal or it returns on every open — a new synced field per row for a notice. The ⋮ entry
+    with its count costs neither. **Revisit trigger:** users asking why a renamed item never reached a trip they were
+    packing.
+  * **Names only** (owner, 2026-09-18) — weight, value and tag can drift the same way and are not offered. Client-side
+    throughout (invariant 4): `domain/inventoryNames.ts`, identical in all three modes.
+
 **Concept-testing notes (2026-08-08):** realised in the prototype end-to-end — M7 composition display, M8 groups section
 with cycle-blocked picker + resolution footer + blast-radius note, M3 real resolution with named merges and single-item
 picker, M2 applied-changes chip, and the full template-from-trip screen (recognition, deviation choice, new-group
