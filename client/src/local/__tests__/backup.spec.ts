@@ -69,7 +69,13 @@ function source(over: Partial<BackupSource> = {}): BackupSource {
     masterItem: () => undefined,
     tagsOf: () => [],
     template: () => undefined,
-    composition: { includes: [], templates: [], itemsOf: () => [], tasksOf: () => [] },
+    composition: {
+      includes: [],
+      templates: [],
+      itemsOf: () => [],
+      tasksOf: () => [],
+      tripTasksOf: () => [],
+    },
     ...over,
   }
 }
@@ -168,6 +174,8 @@ describe('a backup carries the composition, not a shell (FR-27.1/27.7)', () => {
           templates: [macro, vorlage],
           itemsOf: (id) => (id === 'g1' ? [camera] : []),
           tasksOf: (id) => (id === 'p-cam' ? ['Akkus laden'] : []),
+          tripTasksOf: (id) =>
+            id === 'v1' ? ['Pflanzen giessen'] : id === 'g1' ? ['Speicherkarten leeren'] : [],
         },
       }),
     )
@@ -182,6 +190,12 @@ describe('a backup carries the composition, not a shell (FR-27.1/27.7)', () => {
     const group = docs.find((d) => d.doc?.name === 'Makro Fotografie')?.doc
     expect(group?.scope).toBe('group')
     expect(group?.items[0]!.tasks).toEqual(['Akkus laden'])
+
+    // FR-7.4: the trip tasks travel on every level they were written on —
+    // the Vorlage's own, the included group's, and the group's own document.
+    expect(composed?.trip_tasks).toEqual(['Pflanzen giessen'])
+    expect(composed?.includes[0]!.trip_tasks).toEqual(['Speicherkarten leeren'])
+    expect(group?.trip_tasks).toEqual(['Speicherkarten leeren'])
   })
 })
 

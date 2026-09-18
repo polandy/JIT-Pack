@@ -21,6 +21,7 @@ import {
   IonFab,
   IonFabButton,
   IonInput,
+  IonButton,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -352,6 +353,18 @@ async function onQuickAdd(entry: { name: string; sourceItemId: string | null }) 
 
 function removePosition(templateItemId: string) {
   orchestrator.deleteTemplateItem(templateItemId)
+}
+
+// --- Trip tasks (FR-7.4) ---
+
+const tripTasks = computed(() => masterStore.getTemplateTasks(props.templateId))
+const tripTaskDraft = ref('')
+
+function addTripTask() {
+  const task = tripTaskDraft.value.trim()
+  if (!task) return
+  orchestrator.addTemplateTask(props.templateId, task)
+  tripTaskDraft.value = ''
 }
 
 /** The collapsed row's summary chips; "Standard" when nothing deviates. */
@@ -787,6 +800,49 @@ const mergeLines = computed(() =>
           @add="onQuickAdd"
         />
 
+        <!-- FR-7.4: tasks for the trip itself — every generated trip starts
+             with them as open trip todos, on no row, so they hold up no
+             packing list. Below the positions, which they are not. -->
+        <h2 class="section-head" data-testid="m8-trip-tasks-head">
+          {{ t('templates.tripTasks') }}
+          <span class="section-count">{{ tripTasks.length }}</span>
+        </h2>
+        <div class="section-card jp-card trip-tasks" data-testid="m8-trip-tasks">
+          <p class="trip-tasks-hint">{{ t('templates.tripTasksHint') }}</p>
+          <div
+            v-for="task in tripTasks"
+            :key="task.id"
+            class="trip-task"
+            :data-testid="`m8-trip-task-${task.task}`"
+          >
+            <span class="trip-task-body">{{ task.task }}</span>
+            <button
+              class="rm"
+              :aria-label="t('templates.removeTask')"
+              :data-testid="`m8-trip-task-remove-${task.task}`"
+              @click="orchestrator.deleteTemplateTask(task.id)"
+            >
+              <IonIcon :icon="closeOutline" />
+            </button>
+          </div>
+          <div class="trip-task-composer">
+            <IonInput
+              v-model="tripTaskDraft"
+              :placeholder="t('templates.addTripTask')"
+              data-testid="m8-trip-task-input"
+              @keydown.enter="addTripTask"
+            />
+            <IonButton
+              size="small"
+              :disabled="!tripTaskDraft.trim()"
+              data-testid="m8-trip-task-add"
+              @click="addTripTask"
+            >
+              {{ t('common.add') }}
+            </IonButton>
+          </div>
+        </div>
+
         <!-- FR-27.2: the footer names every merge — the merge is the
              user-visible point of the whole feature. -->
         <!-- FR-27.14: the line that states the count is the way into the list.
@@ -931,6 +987,43 @@ const mergeLines = computed(() =>
 
 .section-card {
   margin: 0 8px 8px;
+}
+
+/* --- FR-7.4 trip tasks: the position sheet's task list, on the page --- */
+.trip-tasks {
+  padding: 10px 14px 12px;
+}
+
+.trip-tasks-hint {
+  margin: 0 0 4px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.trip-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.trip-task-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-task-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.trip-task-composer ion-input {
+  --background: var(--ct-surface0);
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-radius: var(--jp-r-md);
 }
 
 .group-icon {

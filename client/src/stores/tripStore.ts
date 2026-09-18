@@ -20,6 +20,7 @@ import type {
   Container,
   ItemComment,
   ItemTodo,
+  TripTodo,
   TripMember,
   TripTemplateSource,
 } from '@/types/domain'
@@ -31,6 +32,7 @@ import {
   codecFor,
   TABLE_CODECS,
   todoCodec,
+  tripTodoCodec,
   type RowSinks,
   type SyncRow,
 } from '@/sync/tableRegistry'
@@ -42,6 +44,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const containers = ref<Map<string, Container[]>>(new Map())
   const todos = ref<Map<string, ItemTodo[]>>(new Map())
   const comments = ref<Map<string, ItemComment[]>>(new Map())
+  // FR-7.4: a separate bucket rather than a filter over `todos`, so that
+  // every packing figure reading `todos` cannot count a trip task by mistake.
+  const tripTodos = ref<Map<string, TripTodo[]>>(new Map())
   const members = ref<Map<string, TripMember[]>>(new Map())
   // FR-27.4. Flat maps keyed by row id rather than per trip: all three are
   // read for one trip at a time, and a per-trip bucket would have to be
@@ -50,13 +55,14 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const generatedPositions = ref<Map<string, GeneratedPosition>>(new Map())
   const appliedChanges = ref<Map<string, AppliedChange>>(new Map())
 
-  // The six per-trip buckets, all one shape (see bucketedRows).
+  // The seven per-trip buckets, all one shape (see bucketedRows).
   const itemRows = bucketedRows(tripItems, (r) => r.trip_id)
   const travelerRows = bucketedRows(travelers, (r) => r.trip_id)
   const containerRows = bucketedRows(containers, (r) => r.trip_id)
   const memberRows = bucketedRows(members, (r) => r.trip_id)
   const commentRows = bucketedRows(comments, (r) => r.trip_id)
   const todoRows = bucketedRows(todos, (r) => r.trip_id)
+  const tripTodoRows = bucketedRows(tripTodos, (r) => r.trip_id)
 
   // --- Getters ---
 
@@ -153,6 +159,19 @@ export const useTripStore = defineStore(TABLE.trips, () => {
 
   function getOpenTodos(tripId: string): ItemTodo[] {
     return getTodos(tripId).filter((t) => t.task_state === 'open')
+  }
+
+  /**
+   * The trip's own todos (FR-7.4), open first, each half by text — an order
+   * that survives a reload, which the store's insertion order does not.
+   */
+  function getTripTodos(tripId: string): TripTodo[] {
+    return [...(tripTodos.value.get(tripId) ?? [])].sort(
+      (a, b) =>
+        Number(a.task_state === 'resolved') - Number(b.task_state === 'resolved') ||
+        a.body.localeCompare(b.body) ||
+        a.id.localeCompare(b.id),
+    )
   }
 
   /** Every comment of a trip, row-anchored and trip-level alike (FR-7.1). */
@@ -294,6 +313,10 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       getTodos(tripId).map((t) => t.id),
     )
     push(
+      TABLE.comments,
+      getTripTodos(tripId).map((t) => t.id),
+    )
+    push(
       TABLE.tripGeneratedPositions,
       getGeneratedPositions(tripId).map((g) => g.id),
     )
@@ -338,12 +361,13 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       sinks[child.table]?.remove(child.id)
     }
     trips.value.delete(id)
-    // The six per-trip buckets are keyed by trip id; the loop above emptied
+    // The seven per-trip buckets are keyed by trip id; the loop above emptied
     // them, this drops the empty keys with the trip.
     tripItems.value.delete(id)
     travelers.value.delete(id)
     containers.value.delete(id)
     todos.value.delete(id)
+    tripTodos.value.delete(id)
     comments.value.delete(id)
     members.value.delete(id)
   }
@@ -359,14 +383,15 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     [TABLE.tripTemplateSources]: keyedSink(templateSources),
     [TABLE.tripGeneratedPositions]: keyedSink(generatedPositions),
     [TABLE.tripAppliedChanges]: keyedSink(appliedChanges),
-    // FR-7.2: one table feeds two lists, told apart by `is_task`. A delete
-    // has to clear both, because the row's id is in whichever list its last
-    // state put it in.
+    // FR-7.2/7.4: one table feeds three lists, told apart by `is_task` and
+    // the anchor. A delete has to clear all of them, because the row's id is
+    // in whichever list its last state put it in.
     [TABLE.comments]: {
       set: (c: ItemComment) => commentRows.upsert(c),
       remove: (id) => {
         commentRows.remove(id)
         todoRows.remove(id)
+        tripTodoRows.remove(id)
       },
     },
   }
@@ -399,16 +424,18 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     }
     if (!change.row) return
     const row = change.row as SyncRow
-    // FR-7.2 again, on the read side: which of the two types a comment row
-    // becomes is decided by the column, and flagging moves a row between
-    // the lists — so the other side is always cleared.
+    // FR-7.2/7.4 again, on the read side: which of the three types a comment
+    // row becomes is decided by `is_task` and the anchor, and flagging moves a
+    // row between the lists — so every list drops it before one takes it.
     if (table === TABLE.comments) {
-      if (row['is_task']) {
-        todoRows.upsert(todoCodec.parse(change.id, row))
-        commentRows.remove(change.id)
-      } else {
+      sinks[TABLE.comments]?.remove(change.id)
+      if (!row['is_task']) {
         commentRows.upsert(TABLE_CODECS[TABLE.comments].parse(change.id, row))
-        todoRows.remove(change.id)
+      } else if (row['trip_item_id'] == null) {
+        // FR-7.4: a task with no row is the trip's own.
+        tripTodoRows.upsert(tripTodoCodec.parse(change.id, row))
+      } else {
+        todoRows.upsert(todoCodec.parse(change.id, row))
       }
       return
     }
@@ -436,6 +463,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     getTodos,
     getItemTodos,
     getOpenTodos,
+    getTripTodos,
     getComments,
     getItemComments,
     getTripComments,

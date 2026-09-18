@@ -346,6 +346,7 @@ const generation = computed(() => {
     singleItemIds: singleItemIds.value,
     includes: masterStore.includeList,
     templateItemTasks: masterStore.templateItemTaskList,
+    templateTasks: masterStore.templateTaskList,
     templateItems: templates.flatMap((t) => masterStore.getTemplateItems(t.id)),
     masterItems: masterStore.categorisedItemList,
     trip: {
@@ -599,6 +600,7 @@ function createTrip() {
       // *because* the Vorlage includes it, and re-resolving that link each
       // time is what lets a group added to the Vorlage later reach the trip.
       sourceTemplateIds: [...selectedTemplateIds.value],
+      tripTasks: generation.value.tripTasks,
       seriesId: seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null,
       newSeriesName: seriesChoice.value === 'new' ? newSeriesName.value.trim() : null,
       checklistItems: includeChecklist.value
@@ -1044,6 +1046,14 @@ setHeaderTitle(
           <!-- FR-27.7: the preparation todos the trip inherits from its positions -->
           <IonChip v-if="taskCount > 0" outline data-testid="wizard-task-count">
             📋 {{ t('wizard.taskCount', { n: taskCount }) }}
+          </IonChip>
+          <!-- FR-7.4: the trip todos, on their own line — they prepare no row -->
+          <IonChip
+            v-if="generation.tripTasks.length > 0"
+            outline
+            data-testid="wizard-trip-task-count"
+          >
+            ✅ {{ t('wizard.tripTaskCount', { n: generation.tripTasks.length }) }}
           </IonChip>
           <!-- FR-27.3: a picked item a template already brought is *reported*
                rather than added twice — silence here would read as a lost tap. -->

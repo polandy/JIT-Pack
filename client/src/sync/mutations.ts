@@ -532,9 +532,13 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   //
   // See CLIENT_ACTOR_PLACEHOLDER for what callers pass as the author.
 
+  /**
+   * addTodo creates an open task: on a row (FR-7.3) when `tripItemId` names
+   * one, on the trip itself (FR-7.4) when it is null.
+   */
   function addTodo(
     tripId: string,
-    tripItemId: string,
+    tripItemId: string | null,
     authorId: string,
     body: string,
   ): { mutation: Mutation; id: string } {
@@ -931,6 +935,17 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('delete', TABLE.templateItemTasks, taskId)
   }
 
+  /** addTemplateTask attaches one FR-7.4 trip task to a template. */
+  function addTemplateTask(templateId: string, task: string): { mutation: Mutation; id: string } {
+    const id = newId()
+    const mutation = make('insert', TABLE.templateTasks, id, { template_id: templateId, task })
+    return { mutation, id }
+  }
+
+  function deleteTemplateTask(taskId: string): Mutation {
+    return make('delete', TABLE.templateTasks, taskId)
+  }
+
   // --- The planning-trip refresh (FR-27.4) ---
 
   /**
@@ -1215,6 +1230,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     removeTemplateInclude,
     addTemplateItemTask,
     deleteTemplateItemTask,
+    addTemplateTask,
+    deleteTemplateTask,
     deleteTemplate,
     addTemplateItem,
     updateTemplateItem,

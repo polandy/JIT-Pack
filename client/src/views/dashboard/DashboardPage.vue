@@ -44,6 +44,8 @@ import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
+import TripTodosCard from '@/components/trips/TripTodosCard.vue'
+import { tripTodoProgress } from '@/domain/tripTodos'
 
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
@@ -192,6 +194,19 @@ function toggleDashboardTodo(tripId: string, todo: ItemTodo) {
   } else {
     orchestrator.reopenPrepTodo(tripId, todo)
   }
+}
+
+/**
+ * FR-7.4: a trip card's second check, beside its packing progress and never
+ * inside it. Null when the trip has no trip todo, so the line is absent
+ * rather than claiming „all done" about nothing.
+ */
+function taskLine(trip: Trip): string | null {
+  const progress = tripTodoProgress(tripStore.getTripTodos(trip.id))
+  if (progress.total === 0) return null
+  return progress.open === 0
+    ? t('dashboard.taskLineDone')
+    : t('dashboard.taskLineOpen', { n: progress.open })
 }
 
 // --- The two cross-trip sections (FR-6.1/6.3, FR-5.1) ---
@@ -409,6 +424,9 @@ async function handleRefresh(event: CustomEvent) {
         </div>
       </template>
 
+      <!-- FR-7.4: the trip's own todos, for every active trip. -->
+      <TripTodosCard :trips="activeTrips" />
+
       <!--
         The trip that is next, as a card rather than as a row (FR-21.13).
         The rest keep the list card: a screen has one thing you are on, and
@@ -434,6 +452,13 @@ async function handleRefresh(event: CustomEvent) {
         :to="tripPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
       >
+        <p
+          v-if="taskLine(heroTrip)"
+          class="task-line"
+          :data-testid="`dashboard-tasks-${heroTrip.name}`"
+        >
+          {{ taskLine(heroTrip) }}
+        </p>
         <IonItem
           v-for="item in previewItems(heroTrip.id)"
           :key="item.id"
@@ -497,6 +522,9 @@ async function handleRefresh(event: CustomEvent) {
             :ring-size="44"
             :headline-testid="`dashboard-summary-${trip.name}`"
           />
+          <p v-if="taskLine(trip)" class="task-line" :data-testid="`dashboard-tasks-${trip.name}`">
+            {{ taskLine(trip) }}
+          </p>
 
           <IonItem
             v-for="item in previewItems(trip.id)"
@@ -613,6 +641,13 @@ async function handleRefresh(event: CustomEvent) {
 
 .dashboard-item {
   --min-height: 36px;
+}
+
+/* FR-7.4: a statement under the packing figure, not a part of it. */
+.task-line {
+  margin: 10px 0 4px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
 }
 
 .qty-badge {
