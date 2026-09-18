@@ -25,4 +25,6 @@ export const FAB_ANCHOR = {
   m7: 'm7-fab-anchor',
   /** M8 — the template editor. */
   m8: 'm8-fab-anchor',
+  /** M9 — the inventory (FR-24.11's „created" toast carries an action). */
+  m9: 'm9-fab-anchor',
 } as const

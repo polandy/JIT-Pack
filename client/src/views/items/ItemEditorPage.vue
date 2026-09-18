@@ -38,8 +38,6 @@ import {
   cameraOutline,
   checkmarkOutline,
   chevronDownOutline,
-  bookmarkOutline,
-  closeOutline,
   happyOutline,
   trashOutline,
   warningOutline,
@@ -48,6 +46,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { dependencyCycleError, type DependencyCycleError } from '@/domain/dependencies'
 import { containingTemplates, commentsOnItem } from '@/domain/itemHistory'
+import { findNameCollision } from '@/domain/nameCollision'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useIdentity } from '@/composables/useTripIdentity'
@@ -60,13 +59,14 @@ import type { MasterItemEdit } from '@/sync/mutations'
 import type { DependencyMode, Tag } from '@/types/domain'
 import { itemPath, templatePath } from '@/router/paths'
 import { confirmDestructive } from '@/lib/confirm'
-import { dependencyOffer, tagOffer } from '@/lib/itemEditorOffers'
+import { dependencyOffer } from '@/lib/itemEditorOffers'
 import {
   DELETION_SUBJECT_ITEM,
   deletionSentence as deletionSentenceFor,
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
+import TagChooser from '@/components/items/TagChooser.vue'
 
 const props = defineProps<{ itemId?: string }>()
 
@@ -112,9 +112,6 @@ onMounted(async () => {
 
 // --- Tags (FR-24.1) ---
 
-const tagQuery = ref('')
-
-/** Assigned tags, primary first — staged while creating, live once saved. */
 const assignedTags = computed<Tag[]>(() => {
   if (isCreating.value) {
     const byId = new Map(masterStore.tagList.map((tag) => [tag.id, tag]))
@@ -123,36 +120,12 @@ const assignedTags = computed<Tag[]>(() => {
   return props.itemId ? masterStore.getItemTags(props.itemId) : []
 })
 
-const assignedIds = computed(() => new Set(assignedTags.value.map((tag) => tag.id)))
-
-/** The shelf, its tail and the ＋ offer — UX-14's cap included. */
-const offer = computed(() => tagOffer(masterStore.tagList, assignedIds.value, tagQuery.value))
-
-const tagMatches = computed(() => offer.value.matches)
-
-/** What the shelf holds back — zero while a query is filtering. */
-const hiddenOfferCount = computed(() => offer.value.hiddenCount)
-
-const tagSearch = ref<{ $el: HTMLElement } | null>(null)
-
-/** The shelf's tail hands over to the search — the way past the cap. */
-async function focusTagSearch() {
-  const native = await (
-    tagSearch.value?.$el as HTMLIonSearchbarElement | undefined
-  )?.getInputElement?.()
-  native?.focus()
-}
-
-/** True when the typed name is not an existing tag — the ＋ offer. */
-const canCreateTag = computed(() => offer.value.canCreate)
-
 function assign(tagId: string) {
   if (isCreating.value) {
     if (!draftTagIds.value.includes(tagId)) draftTagIds.value = [...draftTagIds.value, tagId]
   } else if (props.itemId) {
     orchestrator.assignTag(props.itemId, tagId)
   }
-  tagQuery.value = ''
 }
 
 function unassign(tagId: string) {
@@ -182,14 +155,6 @@ function makePrimary(tagId: string) {
   if (props.itemId) orchestrator.setPrimaryTag(props.itemId, tagId)
 }
 
-/** Filter-or-create: an unmatched name becomes a tag and is assigned. */
-function commitTagQuery() {
-  const name = tagQuery.value.trim()
-  if (!name) return
-  const existing = masterStore.tagList.find((tag) => tag.name.toLowerCase() === name.toLowerCase())
-  assign(existing ? existing.id : orchestrator.createTag(name))
-}
-
 // --- Creating ---
 
 async function createItem() {
@@ -202,7 +167,7 @@ async function createItem() {
   }
   // The name identifies the item since FR-24.1 dropped the category from
   // its UNIQUE — report the clash here rather than let the push reject.
-  if (masterStore.activeItemList.some((i) => i.name.toLowerCase() === name.toLowerCase())) {
+  if (findNameCollision(name, masterStore.activeItemList)) {
     nameError.value = t('items.editor.nameTaken', { name })
     return
   }
@@ -592,94 +557,14 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
         <!-- Tags: a search field, not a chip cloud (FR-24.1). -->
         <SectionHead :title="t('items.editor.tags')" />
 
-        <IonSearchbar
-          ref="tagSearch"
-          :value="tagQuery"
-          data-testid="m10-tag-search"
-          :placeholder="t('items.editor.tagSearchPlaceholder')"
-          :debounce="0"
-          @ionInput="(e: CustomEvent) => (tagQuery = (e.detail.value as string) ?? '')"
-          @keyup.enter="commitTagQuery"
+        <TagChooser
+          :tags="masterStore.tagList"
+          :assigned="assignedTags"
+          @assign="assign"
+          @unassign="unassign"
+          @primary="makePrimary"
+          @create="(name: string) => assign(orchestrator.createTag(name))"
         />
-
-        <div class="chips">
-          <!-- Assigned first and always visible: the filter must never hide
-               what the item already carries. -->
-          <!-- Two targets, because the chip had one and it was the
-               destructive one (FR-24.9): the name files the item under this
-               tag, the ✕ takes it off. -->
-          <span
-            v-for="(tag, index) in assignedTags"
-            :key="tag.id"
-            class="chip assigned"
-            :class="{ primary: index === 0 }"
-          >
-            <button
-              type="button"
-              class="chip-name"
-              :disabled="index === 0"
-              :aria-label="t('items.editor.makePrimary', { tag: tag.name })"
-              :data-testid="`m10-tag-primary-${tag.name}`"
-              @click="makePrimary(tag.id)"
-            >
-              <IonIcon v-if="index === 0" :icon="bookmarkOutline" class="chip-flag" />
-              {{ tag.name }}
-            </button>
-            <button
-              type="button"
-              class="chip-drop"
-              :aria-label="t('items.editor.unassign', { tag: tag.name })"
-              :data-testid="`m10-tag-assigned-${tag.name}`"
-              @click="unassign(tag.id)"
-            >
-              <IonIcon :icon="closeOutline" />
-            </button>
-          </span>
-
-          <button
-            v-for="tag in tagMatches"
-            :key="tag.id"
-            type="button"
-            class="chip"
-            :data-testid="`m10-tag-offer-${tag.name}`"
-            @click="assign(tag.id)"
-          >
-            {{ tag.name }}
-          </button>
-
-          <button
-            v-if="hiddenOfferCount > 0"
-            type="button"
-            class="chip more"
-            data-testid="m10-tag-more"
-            @click="focusTagSearch"
-          >
-            {{ t('items.editor.tagMoreOffers', { n: hiddenOfferCount }) }}
-          </button>
-
-          <button
-            v-if="canCreateTag"
-            type="button"
-            class="chip create"
-            data-testid="m10-tag-create"
-            @click="commitTagQuery"
-          >
-            <IonIcon :icon="addOutline" />
-            {{ t('items.editor.tagCreate', { name: tagQuery.trim() }) }}
-          </button>
-        </div>
-
-        <p class="tag-summary" data-testid="m10-tag-summary">
-          <template v-if="assignedTags.length > 0">
-            {{
-              t('items.editor.tagFiledUnder', {
-                tags: assignedTags.map((tag) => tag.name).join(', '),
-                primary: assignedTags[0]!.name,
-              })
-            }}
-          </template>
-          <template v-else>{{ t('items.editor.tagNone') }}</template>
-        </p>
 
         <!-- FR-24.5: weight and price are folded away while creating. -->
         <IonButton
@@ -1150,80 +1035,6 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   gap: 4px;
   font-size: var(--jp-text-sm);
   margin: 8px 0;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 8px 0;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 11px;
-  border: 1px solid var(--ion-color-step-150);
-  border-radius: var(--jp-r-pill);
-  background: var(--jp-surface-card);
-  color: var(--ion-color-medium);
-  font-size: var(--jp-text-sm);
-}
-
-.chip.assigned {
-  padding: 0;
-  gap: 0;
-}
-
-.chip.assigned .chip-name,
-.chip.assigned .chip-drop {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: none;
-  border: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  padding: 5px 4px 5px 10px;
-}
-
-.chip.assigned .chip-drop {
-  padding: 5px 9px 5px 4px;
-}
-
-/* The one that decides where the item is filed says so, and stops offering
-   an act it has already performed. */
-.chip.assigned .chip-name:disabled {
-  cursor: default;
-}
-
-.chip-flag {
-  font-size: var(--jp-icon-xs);
-}
-
-.chip.assigned.legacy {
-  background: var(--jp-action);
-  border-color: var(--jp-action);
-  color: var(--ion-color-primary-contrast);
-}
-
-.chip.create {
-  border-style: dashed;
-  color: var(--jp-brand);
-}
-
-/* The tail is a hand-over, not a tag: quieter than the offers around it. */
-.chip.more {
-  border-style: dashed;
-  background: transparent;
-}
-
-.tag-summary {
-  font-size: var(--jp-text-xs);
-  color: var(--ion-color-medium);
-  margin: 4px 0 12px;
 }
 
 .create-button {

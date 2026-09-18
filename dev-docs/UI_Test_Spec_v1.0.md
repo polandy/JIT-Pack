@@ -707,6 +707,16 @@ in WebKit.
   ticking the last folds it to *„✓ Alle Aufgaben erledigt"* with the list gone and the figure at *„2/2 Aufgaben"* — the
   status line is the positive signal for the fold. After another reload it is still folded, and tapping the header
   figure unfolds it.
+* **E2E-M4-103** `local` (FR-27.16, added 2026-09-18) — **implemented** (`e2e/inventory-names.spec.ts`): two
+  inventory items quick-added onto a trip, the ⋮ read without the entry, then both items renamed in M10. The trip still
+  shows the old names; the ⋮ offers „Names from the inventory (2)", the sheet counts „2 of 2 selected", one untick and
+  „All" put it back and the button reads „Take all 2 over". Applying renames both rows and the snackbar's *Undo* puts
+  them back; applied again, both names survive a reload and the ⋮ — read as a populated list — no longer offers the
+  entry.
+* **E2E-M4-104** `local` (FR-27.16, added 2026-09-18) — **implemented** (`e2e/inventory-names.spec.ts`): the owner's
+  „archived trips too". A trip with one inventory row is started and archived through the closing pass, the item is
+  renamed in M10, and the archived trip's ⋮ still offers „Names from the inventory (1)"; applying it renames the row,
+  which survives a reload, and the entry is gone from a populated menu.
 * **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
   as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
   an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A
@@ -909,6 +919,10 @@ rather than registered.
   by identity, because the path-parameter build mounted a second M4 on every open, which stood unhidden beside the first
   for as long as its children took to become ready: three red WebKit runs in a day, never reproducible on an idle
   machine. Mutation-proved — a page keyed on the open item, i.e. a remount on open, reddens it on WebKit.
+* **E2E-M5-30** `local` (FR-27.16, added 2026-09-18) — **implemented** (`e2e/inventory-names.spec.ts`): M5 on an
+  inventory row shows no rename line while the names agree; after the item is renamed in M10 it reads „The inventory
+  calls it …", and *Take over* renames the row under the sheet's own title, drops the line and reports in M4's
+  snackbar.
 * **E2E-M5-13** `all` (Navigation Concept §7 case 4) — **implemented** (`e2e/item-detail.spec.ts`, red-proved against
   the unguarded build): the **browser's** back with the sheet open closes the sheet and stays on the packing list — the
   replace-based overlay history must not let a pop skip M4 and land on the trip list. The write-side rule is
@@ -1506,6 +1520,20 @@ test body under it separates a wrong number from a missing test.**
   **not** showing and the note is the way to M23. It lives in the M23 unit rather than M9's, because retiring an item
   is the setup and that unit already owns the dance. A second, untouched item stays active throughout — otherwise
   „the note appeared" would be satisfied by an inventory that had emptied itself.
+* **E2E-M9-21** `all` (FR-24.11) — **implemented 2026-09-18** (`e2e/inventory.spec.ts`): „Zelt" finds *Zeltheringe*
+  and the tent is **still offered** above that hit — the missing-name rule rather than the empty-result one. The sheet
+  opens on the query as the name with the pegs' tag first among the offers; *„Anlegen"* leaves the list **on the same
+  query**, with two hits, the new one marked, and the offer gone — the name now existing is the same event reaching
+  both places. The toast is asserted **above the FAB** on its settled box (the first render had it covering the
+  button), and the item is read back under its tag.
+* **E2E-M9-22** `all` (FR-24.11) — **implemented 2026-09-18** (`e2e/inventory.spec.ts`): with *Technik* chosen and
+  nothing matching, the no-match sentence stands and the offer sits above it; the sheet opens with **Technik already
+  assigned**, and *„Anlegen und öffnen"* lands in M10 on the saved item. Back on M9 the query and the chip are still
+  set and the new row answers both — the survival of the search is what the feature is for.
+* **E2E-M9-23** `all` (FR-24.11) — **implemented 2026-09-18** (`e2e/restore-retired.spec.ts`): searching a
+  **retired** item's name offers it back; a tap restores it without opening a sheet, the row returns marked, and M23
+  is left with nothing to restore. A second item stays active, because an inventory whose only row is retired is an
+  empty one and has no search field — which the first run of this case found.
 * **E2E-M9-17** `all` (FR-24.10) — **implemented 2026-09-15** (`e2e/inventory.spec.ts`): a tag is renamed from the
   manager, and the **inventory's group heading** carries the new name — the only place the write is observable, since
   the sheet would show a renamed row whether or not anything was written. The second clause is the refusal: a name a
@@ -3200,6 +3228,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-23.8 | E2E+UNIT | M17-17 (`single`: an instance that was not asked to check says nothing, with the version line as the positive signal). The other three states need a release feed that answers on demand, which no project has: `views/settings/__tests__/SettingsUpdateCheck.spec.ts` renders all four plus Local Mode, where the assertion is that **no request is made**, and `internal/api/update_test.go` drives the endpoint — the day-long interval and the failed-check rules on an injected clock, the link hardening, and the check outliving the request that triggered it |
 | FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
 | FR-24.3 | E2E+UNIT | M10-14 (a referenced item is hidden and still resolves in its group), M10-15 (an unreferenced one is really gone, and its name is free again), M7-11 (the Vorlage confirm states which deletion it is), **M23-01/02/03/04** (the restore, the collision and its rename, that a retired row can still be removed for good, and the Vorlage half — retired by a trip, listed on its own segment, restored); `domain/masterDeletion` + `domain/masterRestore` and `composables/lifecycleDelete` + `composables/lifecycleRestore` (both rules, both branches, and that resolution/export keep seeing retired rows); store-side both branches **and the restore** in Go, including a colliding restore rejected as `constraint_violated` with the row left retired |
+| FR-24.11 | E2E+UNIT | M9-21 (missing name beside partial hits, list survives), M9-22 (filter tag assigned, create-and-open returns to the search), M9-23 (a retired name is restored, not re-created); `domain/itemSearch` `searchOffer` + `domain/search` `searchEquals`, `CreateItemSheet.spec.ts` (the write), `ItemInventoryPage.spec.ts` (when the offer appears) |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
 | FR-24.5 | E2E | M10-07 (minimal creation; photo, dependency and delete sections absent), M11-05 (placeholder-name container) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
@@ -3245,6 +3274,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-27.9 | E2E | M10-18 (a trip's remark read at the item), M10-19 (absent when there is none); `domain/__tests__/itemHistory.spec.ts` (the foreign-key join, the trip-level comment that belongs to no item, the ad-hoc row that reaches none, an undated comment sorting last) — **built 2026-08-31** |
 | FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
 | FR-27.11 | E2E+UNIT | M14-04 (group targets, blast radius), M14-05 (list not card stack, marked rows, per-pair dismissal), FLOW-04 (the shape the write gives the position); review.ts, ReviewPage.spec.ts — the applied-change log is owed with the §3.27 refresh package |
+| FR-27.16 | E2E+UNIT | M4-103 (the ⋮ entry, „Alle", apply, undo, gone after a reload), M4-104 (an archived trip is offered it too), M5-30 (the one-row line); `domain/__tests__/inventoryNames.spec.ts` (which rows, per-person as one choice, deliberate, ledger follows, undo), `composables/sync/__tests__/inventoryNames.seam.spec.ts` (the row keeps following its group, the FR-27.4 card keeps its own renames), `components/trips/__tests__/InventoryNamesSheet.spec.ts` (pre-selection, „Alle") |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, nothing auto-opening on top of it, Mehr-Optionen disclosure) |
 | FR-28.1 | E2E+UNIT | M9-07, G15-01 (mark set, mark absent — absence is a normal row, not an empty state); Go: the column is nullable and capped, and nothing else |
 | FR-28.2 | E2E+UNIT | M10-11 (keyword search, facets), M10-12 (explicit removal, and its absence on an unmarked item), M8-18 (the *same* picker on a template); `MarkPicker.spec.ts` |

@@ -314,4 +314,34 @@ test.describe('FR-24.3 — a retired row can come back', () => {
       1,
     )
   })
+
+  test('E2E-M9-23: searching a retired name offers it back instead of a second one (FR-24.11)', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto(PATH.items)
+    // A second, active item: an inventory whose every row is retired is an
+    // empty one, and the empty state carries no search field to type into.
+    await createItemOnDevice(page, 'Badetuch')
+    await createItemOnDevice(page, 'Reisewecker')
+    await retireItemViaGroup(page, 'Hotel', 'Reisewecker')
+
+    const list = visiblePage(page)
+    await list.getByTestId('items-search-input').fill('reisewecker')
+    await expect(list.getByTestId('m9-no-match')).toBeVisible()
+    await expect(list.getByTestId('m9-offer-title')).toContainText('Reisewecker')
+
+    await list.getByTestId('m9-offer').click()
+    // A restore, not a creation: no sheet, and the row itself comes back.
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-row-new')).toBeVisible()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(list.getByTestId('m9-offer')).toHaveCount(0)
+    await localWriteSettled(page)
+
+    // Restored, not duplicated: M23 has nothing left to offer back.
+    await openRetired(page)
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
+  })
 })
