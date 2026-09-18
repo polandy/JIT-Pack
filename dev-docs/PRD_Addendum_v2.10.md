@@ -2783,6 +2783,11 @@ locked.
   a screen that did it by itself would be leaving the house without the keys. It is session state per trip like the
   rest of the filter (FR-25.18), and the *Zurücksetzen* that clears the filter turns it back on.
 
+  **The bars run in the order the rows do (owner, 2026-09-18).** Above the list the flagged rows sit over the packed
+  ones; under it their reveal bars do the same, because the ordering rule is *does this row still ask for something*
+  and a late-packer row does. The foot of the list therefore reads: late-packers, then FR-25.20's rows in somebody
+  else's hands, then — last, asking nothing of anyone — the done ones.
+
   **Never silently, and never twice.** A trip with flagged rows carries a reveal bar for them, and while they are
   hidden the view reports itself as *narrowed* — otherwise a trip whose remainder is all late-packers renders *„alles
   gepackt"* over rows nobody has touched (FR-25.11e). Bar and switch carry **one number**, the flagged rows the filter

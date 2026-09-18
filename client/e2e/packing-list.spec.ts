@@ -2116,6 +2116,14 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await packRow(page, 'Zelt')
     await expect(visible(page).getByTestId('m4-reset')).toBeVisible()
 
+    // And the bars run in the order their rows do (owner, 2026-09-18): rows
+    // that still ask for something stand above rows that ask for nothing.
+    expect(
+      await visible(page)
+        .locator('[data-testid="m4-late-bar"], [data-testid="m4-done-bar"]')
+        .evaluateAll((bars) => bars.map((el) => (el as HTMLElement).dataset['testid'])),
+    ).toEqual(['m4-late-bar', 'm4-done-bar'])
+
     await bar.click()
     await expect(page.getByTestId('m4-row-Schlüssel')).toBeVisible()
   })

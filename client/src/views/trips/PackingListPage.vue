@@ -1802,18 +1802,22 @@ setHeaderTitle(
         testid="packing-empty"
       />
 
-      <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
-           state the count, name the people, one tap to reveal. -->
+      <!-- The bars run in the order the rows do (owner, 2026-09-18): the two
+           whose rows still ask for something first — packed on departure day
+           (FR-25.27), then in somebody else's hands (FR-25.20) — and last the
+           one whose rows ask for nothing. Hidden only on request, and never
+           silently: this bar is what keeps „alles gepackt" from covering rows
+           nobody has touched. -->
       <RevealBar
-        v-if="view.doneCount > 0 && !closingPass"
-        :open="showDone"
+        v-if="view.lateCount > 0"
+        :open="showLate"
         :label="
-          showDone
-            ? t('packing.hidePacked', { n: view.doneCount })
-            : t('packing.showPacked', { n: view.doneCount })
+          showLate
+            ? t('packing.lateShown', { n: view.lateCount })
+            : t('packing.lateHidden', { n: view.lateCount })
         "
-        testid="m4-done-bar"
-        @toggle="showDone = !showDone"
+        testid="m4-late-bar"
+        @toggle="showLate = !showLate"
       />
       <RevealBar
         v-if="view.hiddenOtherCount > 0 || showOthers"
@@ -1832,18 +1836,17 @@ setHeaderTitle(
         testid="m4-others-bar"
         @toggle="showOthers = !showOthers"
       />
-      <!-- FR-25.27: hidden only on request, and never silently — the bar is
-           what keeps „alles gepackt" from covering rows nobody has touched. -->
+      <!-- FR-25.2: state the count, one tap to reveal. -->
       <RevealBar
-        v-if="view.lateCount > 0"
-        :open="showLate"
+        v-if="view.doneCount > 0 && !closingPass"
+        :open="showDone"
         :label="
-          showLate
-            ? t('packing.lateShown', { n: view.lateCount })
-            : t('packing.lateHidden', { n: view.lateCount })
+          showDone
+            ? t('packing.hidePacked', { n: view.doneCount })
+            : t('packing.showPacked', { n: view.doneCount })
         "
-        testid="m4-late-bar"
-        @toggle="showLate = !showLate"
+        testid="m4-done-bar"
+        @toggle="showDone = !showDone"
       />
 
       <!-- Preparation (FR-7.3): the open todos of the whole trip, resolvable

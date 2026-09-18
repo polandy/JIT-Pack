@@ -1036,6 +1036,8 @@ These patterns apply to every screen and are specified once.
     (FR-25.23). The filter panel's **third switch**, *Spätpacker*, hides them outright; it is the only one of the three
     that starts **on**, because those rows are not finished with, merely not due yet. Hidden, they get the same reveal
     bar the other two classes get and the list still counts as narrowed, so *„alles gepackt"* cannot appear over them.
+    **The three bars sit in the same order as the rows** (owner, 2026-09-18): Spätpacker, then *Anderen zugewiesen*,
+    then *Erledigte* last — the two whose rows still ask for something stand above the one whose rows do not.
     Picking ⏰ in *Merkmale* overrides the switch, as a *Status* value overrides *Erledigte* (FR-25.11l). The closing
     pass (FR-9.3) is exempt from both halves.
   * **Groups fold** (FR-25.16): tapping a header collapses the group to that line, which then carries its open count;

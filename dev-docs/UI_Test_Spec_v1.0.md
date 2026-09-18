@@ -672,7 +672,8 @@ in WebKit.
   switch. Read as checked before it is touched — the one switch of the three that starts on — then off, and the row
   goes while the reveal bar counts it. Everything else is then packed, and the assertion that the emptied list still
   offers the reset is what proves it did not fall through to *„alles gepackt"* over a row nobody has touched. The bar
-  brings it back.
+  brings it back. Since the same day it also pins the **order of the bars** — late-packers above packed — which is
+  the rule the rows already follow read once more at the foot of the list.
 * **E2E-M4-86** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-13):
   the trip partition's half of E2E-M2-18. Opened straight onto M4 with every trip pull held, the screen shows
   „Packliste wird geladen …" and **no** `packing-empty`; when the pull lands the notice goes and the G-7 state appears
