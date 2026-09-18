@@ -976,6 +976,9 @@ test.describe('Two accounts on one instance @server', () => {
       .locator('ion-popover ion-select-popover ion-item')
       .filter({ hasText: ACCOUNT_NAMES.bob })
       .click()
+    // The share popover must be gone, or the account popover opens beside it and
+    // the option below matches twice.
+    await expect(alice.locator('ion-popover')).toHaveCount(0)
     await visiblePage(alice).getByTestId('wizard-traveler-account').click()
     await alice
       .locator('ion-popover ion-select-popover ion-item')
@@ -984,7 +987,7 @@ test.describe('Two accounts on one instance @server', () => {
     await alice.getByTestId('wizard-next').click()
 
     await expect(alice.getByTestId('wizard-step-3')).toBeVisible()
-    await fillIonic(alice.getByTestId('wizard-item-search'), item)
+    await alice.getByTestId('wizard-item-search').locator('input').fill(item)
     await alice
       .getByTestId(/^wizard-item-suggestion-/)
       .first()
