@@ -186,7 +186,15 @@ export interface CoSkippable {
 /**
  * coSkipTargets names the trip rows that follow a skipped item out of the
  * list (FR-20.2) — the rows whose master item transitively depends on it,
- * minus those already skipped.
+ * minus those already skipped, and minus those something else on the list
+ * still needs.
+ *
+ * FR-20.2 keeps a companion on the list while its main item is on it and not
+ * skipped, and "its main item" is not always the row in hand: a per-person
+ * item (FR-25.1) has one row per traveler, and one companion can serve two
+ * mains. So every other live row the cascade does not itself take is an
+ * *anchor*, and whatever an anchor depends on stays. Skipping one traveler's
+ * camera leaves the battery coming for the other.
  *
  * Pure and separate from the mutation that writes them because the caller
  * needs the *list*, not only the effect: FR-5.5's snackbar tells the user
@@ -201,11 +209,24 @@ export function coSkipTargets<T extends CoSkippable>(
 ): T[] {
   if (!main.source_item_id) return []
   const dependents = dependentsOf(main.source_item_id, dependencies)
+  const stillNeeded = new Set<string>()
+  for (const anchor of rows) {
+    if (
+      anchor.id === main.id ||
+      anchor.source_item_id === null ||
+      anchor.state === 'skipped' ||
+      dependents.has(anchor.source_item_id)
+    ) {
+      continue
+    }
+    for (const id of dependentsOf(anchor.source_item_id, dependencies)) stillNeeded.add(id)
+  }
   return rows.filter(
     (row) =>
       row.id !== main.id &&
       row.source_item_id !== null &&
       dependents.has(row.source_item_id) &&
+      !stillNeeded.has(row.source_item_id) &&
       row.state !== 'skipped',
   )
 }
