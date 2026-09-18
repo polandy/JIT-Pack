@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.12.0](https://github.com/polandy/JIT-Pack/compare/v0.11.0...v0.12.0) (2026-09-18)
+
+
+### Features
+
+* **client:** what is packed on departure day gets out of the way (FR-25.27) ([ff309a7](https://github.com/polandy/JIT-Pack/commit/ff309a7cf4092cc6e7eb2126097bf5533d121f81))
+* **m4:** take a row off the packing list (FR-5.8) ([#491](https://github.com/polandy/JIT-Pack/issues/491)) ([f735804](https://github.com/polandy/JIT-Pack/commit/f7358043e8008fa118d2d7b6984fc55bc272a1a1))
+* trip todos written in the trip, reported on the dashboard (FR-7.4) ([#490](https://github.com/polandy/JIT-Pack/issues/490)) ([e690999](https://github.com/polandy/JIT-Pack/commit/e6909995ada58c4fd4d0dd83031851a2f4a36a2b))
+
+
+### Bug Fixes
+
+* **m4:** a companion stays while anything on the list still needs it (FR-20.2) ([#493](https://github.com/polandy/JIT-Pack/issues/493)) ([d53418a](https://github.com/polandy/JIT-Pack/commit/d53418a7805fb9f101f25f38b12395b94e46439b))
+
 ## [0.11.0](https://github.com/polandy/JIT-Pack/compare/v0.10.0...v0.11.0) (2026-09-18)
 
 
