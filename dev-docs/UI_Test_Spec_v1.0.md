@@ -126,7 +126,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G3-01 | G-3 Presence lock | server | Alice triggers *Packing Now*; on Bob's client the row shows "In progress by Alice", avatar + chip, and is non-interactive. *(The identity half runs since 2026-08-24 on the mock-IdP `server` project: the row's holder line and M5's banner both name Alice, and Alice's own row says the claim is hers. The avatar and chip are not asserted yet.)* |
 | E2E-G3-02 | G-3 Taking a row over | single (partial) / server | **What runs today (`single`):** where there is no second account the claimed row offers *no* action at all — the takeover surface is absent per G-8, not shown and then refused. **What the `server` project runs since 2026-08-24:** a claimed row offers exactly one action, *Übernehmen*, which confirms first naming the holder and the row; confirming leaves the row claimed by the *taker* (never free in between) and the previous holder gets an FR-6.2 notification. *(The `lock_events` record is asserted by Go tests, not yet by this case.)* Building it found the defect it existed to find: the loser's device went on rendering the row as its own claim — `myLocks` is a device flag and nothing revoked it — so the notification arrived while the row said "You are packing this". That half cannot run in `single` for a structural reason rather than a missing fixture: both contexts are the same identity, so a takeover there is a takeover of one's own claim, which the server refuses by design — the same wall E2E-G3-01's identity half meets. *(Rewritten 2026-08-24: this case used to advance the clock past `JITPACK_LOCK_TIMEOUT` and assert that the row stopped being locked. FR-5.7 removed the window, and the clock-advancing went with it.)* |
 | E2E-G3-03 | G-3 Lock depth | single/server | A row another device is packing is read-only **in M5 too**, not only in M4's list: the sheet carries a banner naming the holder; its skip, note and prep controls are gone, while the packing stepper and the *Details* controls are **disabled rather than removed** — the stepper is where "3/5" is read, and removing it would take the state with it. The row's identity, quantity and state stay readable — G-3's "except viewing". The holder's own sheet is untouched. *(Added 2026-08-22. In the `single` project both contexts are the same identity, so what it proves is the mechanism — B never claimed the row, so B treats the claim as foreign — not whose name is rendered; the identity half stays with E2E-G3-01 on the future mock-IdP `server` project.)* |
-| E2E-G3-04 | G-3 Lock depth reaches membership | server | The membership row (FR-25.21) is **read-only while another account holds a claim on any instance** of the item, and names the holder — a conversion rewrites rows that person is packing right now. The claim is taken on **one** child row and the membership row is asserted read-only in a **different** instance's M5 sheet — an unclaimed row, so the case proves the lock reaches past the row it was taken on, which is the whole point: a conversion rewrites the claimed row too. The positive signal is the same sheet with the claim released, where the row is operable. Needs two identities (ADR-029). **The rule itself was only written on 2026-08-29** — until then the lock was computed from the row the editor was opened from, so this case would have failed for the reason it exists; `components/trips/__tests__/MembershipSheet.spec.ts` carries it against a stubbed claim. **The two-identity half runs since 2026-08-30**, and building it added what nothing had built: the editor **says whose** claim froze it. Every other G-3 surface names the holder and this one could not inherit it — M5’s banner is absent on the unclaimed row the sheet is opened from, and the editor is a modal above M5 in any case, so a frozen sheet stated no reason at all. Alice gives the row back rather than packing it, because the point is that the editor recovers without being reopened; the write that follows — Leonardo’s amount stepping to 2 — is the positive signal, since a frozen editor and a broken one look identical from outside. |
+| E2E-G3-04 | G-3 Lock depth reaches membership | server | The for-whom strip (FR-25.28; the membership editor until 2026-09-18) is **read-only while another account holds a claim on any instance** of the item, and names the holder — a conversion rewrites rows that person is packing right now. The claim is taken on **one** child row and the membership row is asserted read-only in a **different** instance's M5 sheet — an unclaimed row, so the case proves the lock reaches past the row it was taken on, which is the whole point: a conversion rewrites the claimed row too. The positive signal is the same sheet with the claim released, where the row is operable. Needs two identities (ADR-029). **The rule itself was only written on 2026-08-29** — until then the lock was computed from the row the editor was opened from, so this case would have failed for the reason it exists; `components/trips/__tests__/ForWhomStrip.spec.ts` carries it against a stubbed claim. **The two-identity half runs since 2026-08-30**, and building it added what nothing had built: the editor **says whose** claim froze it. Every other G-3 surface names the holder and this one could not inherit it — M5’s banner is absent on the unclaimed row the sheet is opened from, and the editor is a modal above M5 in any case, so a frozen sheet stated no reason at all. Alice gives the row back rather than packing it, because the point is that the editor recovers without being reopened; the write that follows — Leonardo’s amount stepping to 2 — is the positive signal, since a frozen editor and a broken one look identical from outside. |
 | E2E-G4-01 | G-4 Deep link | ~~server~~ all | **Implemented 2026-08-31** (backlog item 6, the cross-cutting pass). Opening `/trips/{id}?item={itemId}&comment={c}` (the shape since ADR-046) lands on the item with its thread, scrolls to the referenced message and flashes it. The scope is corrected against the screen: the *landing* reads the query and nothing else, so it is driven in `local`; only the notification that produces the link is server-only, and its delivery is E2E-FLOW-02's. `notifications/format.ts` had built that URL since FR-6.3 and a unit asserted the string — **no test had ever opened one.** The flash is a 2.4 s animation, so the sheet reports the outcome instead (`data-flashed-comment`), which is the deterministic seam the assertion needs. ~~expands its comments~~ — the thread is on M5's first level and is never folded (E2E-M5-11). |
 | E2E-G5-01 | G-5 Optimistic UI | single | **Implemented 2026-08-31.** A mutation renders without server confirmation; a forced failure surfaces only via the sync glyph, never a blocking dialog. "Without confirmation" is established without racing anything: the push carrying the row is **refused every time it is attempted** (counted, so the case cannot pass in a world where nothing was sent), and a row on screen regardless cannot have been waiting for an answer. The refusal is asserted *positively* — the indicator moves to `offline` and counts the pending write — so "no blocking dialog" is read on a screen known to have noticed. Two harness traps paid for while writing it, both recorded in `e2e-tests.md`: an **unresolved route handler wedges the whole run** (no test timeout, no report), and the plain `page` fixture in this project is **unseeded**, so it lands on M19 rather than the app. |
 | E2E-G6-02 | G-6 Controls do not navigate | all | On a row that is also a link, the stepper and the checkbox **act** — they never open the item sheet. Ionic wraps such a row in an anchor whose jump is a *default action*, so stopping propagation on the control is not enough; only the row's body opens M5. |
@@ -605,14 +605,15 @@ in WebKit.
   to be bought**, since a zero is worse than no number at all. Since ADR-050 the entry is a **word in the bar's ⋮**
   and the count rides in the word, because an action sheet renders no badge; the case reads the menu's entries. The
   archive half of the original sentence is E2E-M4-54's (*Fertig* archives and lands on M14).
-* **E2E-M4-12** `all` (FR-25.8/25.1) — **implemented** (`e2e/membership.spec.ts`, one case): asserted in the same case
-  as E2E-M4-58, whose *two of three at different amounts* is this entry's world with the numbers pulled apart; every
-  clause below is a clause of that case, and running both would run one rendered outcome twice. As written: quick-add in
-  *per person* mode for two travelers produces **one named cluster** "Jacke" with a `0/2` sub-header and exactly two
-  indented child rows, each showing its traveler and its own check control. Asserts there is **no** second top-level row
-  repeating the name — the regression found on 2026-08-07 was N separate items, where every individual row looked right
-  and only the grouping was wrong, so the assertion must be on the cluster structure and the absence of duplicate
-  top-level rows, not merely on "two rows named Jacke exist".
+* **E2E-M4-12** `all` (FR-25.8/25.1, reworded for FR-25.28 on 2026-09-18) — **implemented** (`e2e/membership.spec.ts`,
+  one case): asserted in the same case as E2E-M4-58, whose *two of three at different amounts* is this entry's world
+  with the numbers pulled apart; every clause below is a clause of that case, and running both would run one rendered
+  outcome twice. As written: a quick-add with two travelers lit in the composer's for-whom strip produces **one named
+  cluster** with exactly two indented child rows, each showing its traveler and its own working control — and **no
+  editor opens**: no modal is presented and M5 is absent, while the strip still holds the choice for the next add.
+  Asserts there is **no** second top-level row repeating the name — the regression found on 2026-08-07 was N separate
+  items, where every individual row looked right and only the grouping was wrong, so the assertion must be on the
+  cluster structure and the absence of duplicate top-level rows, not merely on "two rows of that name exist".
 * **E2E-M4-13** `all` (FR-25.1 flat fallback) — **implemented** (`e2e/membership.spec.ts`, inside E2E-M5-19): a
   per-person item with exactly **one** member renders as an ordinary flat row labelled with that person („Kurze Hosen ·
   Andy“), **not** a one-child cluster — both halves asserted, since a cluster of one would also name Andy in its child.
@@ -718,6 +719,23 @@ in WebKit.
   offers the reset is what proves it did not fall through to *„alles gepackt"* over a row nobody has touched. The bar
   brings it back. Since the same day it also pins the **order of the bars** — late-packers above packed — which is
   the rule the rows already follow read once more at the foot of the list.
+* **E2E-M4-100** `local` (FR-25.28, added 2026-09-18) — **implemented** (`e2e/membership.spec.ts`): the for-whom seat on
+  a shared row unfolds the strip **under the row**, *Gemeinsam* lit and the summary saying so. Lighting one traveler
+  renames the row *„… · Andy"* and lighting a second turns it into a cluster — a different element under a different
+  list key — and the strip is **still open** after each, without a second tap: it is held by the item, not by the row.
+  The seat then reads **2**, M5 and `ion-alert` were never presented, another row's seat **moves** the strip rather than
+  opening a second one, and the seat that opened it folds it. **Red before the build was right:** the first cut animated
+  the old row out beside its replacement, so for the length of the collapse the control existed twice and this case
+  failed on a strict-mode violation — the defect, not a test artefact. **Added 2026-09-18 after the owner's eyeball:**
+  read at once as the strip opens, while the rows under it are still sliding down, **nothing paints over the strip's
+  foot** — they had been drawn across it for 0.3 s, which looked like a background too transparent to hide them;
+  mutation-proved by removing the strip's stacking. And at TRIP's three travelers **every name under a face is whole**,
+  not ellipsized — the line is laid out for three.
+* **E2E-M4-101** `local` (FR-25.28, added 2026-09-18) — **implemented** (`e2e/membership.spec.ts`): the last traveler
+  leaving makes the item *gemeinsam* **without a question** — FR-25.28's narrowing of FR-25.21 (iii). The row is given
+  progress first (`1/3`), because that is what a silent path could lose: afterwards *Gemeinsam* is lit, no question
+  stands in the strip, the row still reads `1/3` and no longer names Leonardo. The lit *Gemeinsam* toggle is the
+  positive signal the absent question is read against.
 * **E2E-M4-86** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-13):
   the trip partition's half of E2E-M2-18. Opened straight onto M4 with every trip pull held, the screen shows
   „Packliste wird geladen …" and **no** `packing-empty`; when the pull lands the notice goes and the G-7 state appears
@@ -909,6 +927,10 @@ rather than registered.
   by identity, because the path-parameter build mounted a second M4 on every open, which stood unhidden beside the first
   for as long as its children took to become ready: three red WebKit runs in a day, never reproducible on an idle
   machine. Mutation-proved — a page keyed on the open item, i.e. a remount on open, reddens it on WebKit.
+* **E2E-M5-29** `local` (FR-25.28, added 2026-09-18) — **implemented** (`e2e/membership.spec.ts`): M5 is open on *one*
+  instance and its strip acts on all of them, so it can delete the row it stands on. Unlighting a **sibling** leaves the
+  sheet open with one avatar fewer lit — the positive signal — and unlighting the traveler the sheet was opened from
+  **closes it**, with no *not found* notice ever shown, and M4 carries the item as *„… · Andy"*.
 * **E2E-M5-30** `local` (FR-27.16, added 2026-09-18) — **implemented** (`e2e/inventory-names.spec.ts`): M5 on an
   inventory row shows no rename line while the names agree; after the item is renamed in M10 it reads „The inventory
   calls it …", and *Take over* renames the row under the sheet's own title, drops the line and reports in M4's
@@ -954,19 +976,20 @@ rather than registered.
 * ~~**E2E-M5-03** `all` (FR-9.1): Unused/Missing flags visible only on active trips.~~ — **retired 2026-08-30 as a
   duplicate**: E2E-M5-17 is the same sentence, implemented, and carries the positive signal beside the absence that this
   one does not ask for. Same disposal as `M4-07 → M4-40`.
-* **E2E-M5-18** `all` (FR-25.21, added 2026-08-29): on a shared item, open *Wer braucht das?*, switch to *Pro Person*,
-  check Andy/Leonardo/Mia and set 2/3/1. Asserted **in M4 on the rendered cluster**: the item is named **once**, three
-  child rows carry three *different* amounts, and the head reads `0/6` — the **sum** of the three, since FR-25.22 made
-  every fraction on M4 count units (it read `0/3`, a count of people, until 2026-09-07). Deliberately not a row-count
-  assertion —
-  FR-25.8's own history records an implementation that created N unrelated items sharing a name and satisfied every
-  count.
-* **E2E-M5-19** `all` (FR-25.21): from a roster of three, remove the traveler whose row has packed progress. The confirm
-  names the count; *Abbrechen* leaves all three standing; confirming leaves exactly two and the head reads `0/3` —
-  Andy's two and Mia's one (FR-25.22). Then
-  remove a third whose row carries nothing: that one is written **without** a question. The cancel half is the positive
-  signal that a removal is a decision rather than a side effect of tapping a checkbox, and the silent half is the
-  positive signal that the question is raised by what it would cost and not by the control.
+* **E2E-M5-18** `all` (FR-25.21, added 2026-08-29; through M5's for-whom strip since FR-25.28): on a shared item, open
+  M5, light Andy/Leonardo/Mia in the strip and step them to 2/3/1 on the amount lines under it; the strip's summary
+  reads 6. Asserted **in M4 on the rendered cluster**: the item is named **once**, three child rows carry three
+  *different* amounts, and the head reads `0/6` — the **sum** of the three, since FR-25.22 made every fraction on M4
+  count units (it read `0/3`, a count of people, until 2026-09-07). Deliberately not a row-count assertion — FR-25.8's
+  own history records an implementation that created N unrelated items sharing a name and satisfied every count.
+* **E2E-M5-19** `all` (FR-25.21, FR-25.28): from a roster of three, unlight — **in M4's own strip, under the cluster
+  head** — the traveler whose row has packed progress. The question is asked **in the strip**, in place of its summary
+  line, naming the person and the count, and **no `ion-alert` is presented**; *Abbrechen* leaves the avatar lit and the
+  child row at `1/2`; the confirming button removes the row and the head reads `0/3` — Andy's two and Mia's one
+  (FR-25.22). Then unlight a third whose row carries nothing: that one is written **without** a question, with the strip
+  still open over an item that has just gone from a cluster to a lone row. The cancel half is the positive signal that a
+  removal is a decision rather than a side effect of tapping an avatar, and the silent half is the positive signal that
+  the question is raised by what it would cost and not by the control.
 * **E2E-M5-24** `all` (FR-21.16, new 2026-09-07) — **implemented** (`e2e/membership.spec.ts`): with a cluster and a
   plain row both on M4, read the *rendered* type of three names — the cluster head, one of its child rows, and the
   plain row. The head is larger and heavier than its child, and exactly the size of the plain row. Asserted on computed
@@ -980,27 +1003,27 @@ rather than registered.
   off a wait, because Ionic's enter animation is a duration nobody controls — and measured on the **modal**, not on the
   scroll box inside it: the box was only ever as tall as its content, so the first draft of this case stayed green
   against the very build it is about. Proved by mutation before it was believed.
-* **E2E-M5-26** `all` (FR-25.21c, new 2026-09-09) — **implemented** (`e2e/membership.spec.ts`): the *„Alle
-  Reisenden"* head row, tapped out of a **partial** membership that already carries a chosen amount (Leonardo 3). The
-  two missing travelers arrive at 1, Leonardo stays at 3, and the footer reads 5 — a shortcut that reset the amounts
-  would pass every count-based clause and fail this one. The head's own state is read before and after (`aria-checked`
-  *mixed*, then *true*), because a select-all that writes without reporting is half the control: the mixed state is
-  what answers *„sind alle dabei?"* on opening, and the full state is asserted as an *ordinary* checked box — a second
-  tap on it leaves the amounts and the footer where they are and the box checked, which is the positive signal that the
-  no-op is a no-op rather than an unnoticed toggle. The case also holds the **row layout**: both checkboxes are read off
-  their rendered geometry as sitting right of the stepper and past the sheet's midline, where M4's pack control sits —
-  a DOM order would be satisfied by markup a `flex-direction` could still reverse.
-* **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam*. One row remains at quantity **5** — the sum, not the
-  largest — and the preparation todo written on the surviving row before the conversion is still on it afterwards. That
-  last clause is the one worth having: ADR-036 chose keep-and-repoint over delete-and-recreate precisely so a structural
-  edit cannot destroy the content hanging off a row, and this is the only place that claim is asserted where it would
-  actually be lost.
-* **E2E-M5-21** `all` (FR-25.21/FR-5.5, added 2026-08-30) — **implemented** (`e2e/membership.spec.ts`): an item added
-  with FR-25.13f's ✕ (*„zu Hause gelassen"*, quantity 0 and state *skipped*) and then split per person, whose smallest
-  membership is 1. The conversion **asks first**, naming the item, and cancelling is the positive signal that the
-  question is a gate — the amount does not appear. After confirming, the assertion that carries the case is that the row
-  is **on the list**, labelled *„Kurze Hosen · Andy"*: `isDone` reads *skipped* as done, so before this rule the row was
-  created and hidden in the same breath, and only a visible row disproves that.
+* **E2E-M5-26** `all` (FR-25.21c, new 2026-09-09; the strip's *Alle* since FR-25.28) — **implemented**
+  (`e2e/membership.spec.ts`): the *Alle* toggle, tapped out of a **partial** membership that already carries a chosen
+  amount (Leonardo 3). The two missing travelers arrive at 1, Leonardo stays at 3, and the summary reads 5 — a shortcut
+  that reset the amounts would pass every count-based clause and fail this one. The toggle's own state is read before
+  and after (`aria-pressed` *false*, then *true*), because a select-all that writes without reporting is half the
+  control, and the full state is asserted as an *ordinary enabled* toggle — a second tap on it leaves the amounts and
+  the summary where they are, which is the positive signal that the no-op is a no-op rather than an unnoticed toggle.
+  ~~The case also holds the row layout — both checkboxes right of the stepper and past the sheet's midline~~: retired
+  with the sheet it measured; the strip has no checkbox column to place.
+* **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam* from M4's strip. The question names **5** — the sum, not
+  the largest — before anything is written; after *Zusammenlegen* one row remains at quantity 5, and the preparation
+  todo written on the surviving row before the conversion is still on it afterwards. That last clause is the one worth
+  having: ADR-036 chose keep-and-repoint over delete-and-recreate precisely so a structural edit cannot destroy the
+  content hanging off a row, and this is the only place that claim is asserted where it would actually be lost.
+* **E2E-M5-21** `all` (FR-25.21/FR-5.5, added 2026-08-30; on M4's strip since FR-25.28) — **implemented**
+  (`e2e/membership.spec.ts`): an item added with FR-25.13f's ✕ (*„zu Hause gelassen"*, quantity 0 and state *skipped*),
+  revealed among the done rows, and then given to a traveler from its own seat — whose smallest membership is 1. The
+  strip **asks first**, naming the item, and cancelling is the positive signal that the question is a gate: the avatar
+  stays unlit. The confirming button reads *„Doch einpacken"* — the verb, never *OK*. After it, the assertion that
+  carries the case is that the row is **on the list**, labelled *„Kurze Hosen · Andy"*: `isDone` reads *skipped* as
+  done, so before this rule the row was created and hidden in the same breath, and only a visible row disproves that.
 * **E2E-M5-22** `all` (FR-10.2, new 2026-08-30) — **implemented** (`e2e/containers.spec.ts`): moving an item from one
   container to another through M5's picker. E2E-M11-06 covers only the *first* assignment, out of the unassigned bucket;
   changing an existing one has only ever been possible here, and E2E-M11-03 said so in writing without the case ever
@@ -2699,19 +2722,26 @@ landed, that no test has ever rendered.
   changes the height of the scrolled content, so with it animating the screen spends a few hundred ms in a layout
   nothing can measure, and the app honours the preference itself. Mutation-proved — a remount on open reddens it on
   WebKit (was: removing the restore while keeping the signal).
-* **E2E-M4-58** `all` (FR-25.8, added 2026-08-29) — **implemented** (`e2e/membership.spec.ts`, with E2E-M4-12):
-  quick-add in *Pro Person* mode with two of three travelers checked at different amounts produces **one** cluster with
-  two children, not two items sharing a name. The ad-hoc rows have no `source_item_id`, so this is the case that proves
-  the folded-name cluster key.
-* **E2E-M4-64** `all` (FR-25.8/G-8, added 2026-08-29) — **implemented** (`e2e/membership.spec.ts`): on a trip with a
-  single traveler the quick-add's *Pro Person* control is **absent**, not disabled — there is no membership to
-  distribute, and a control that can only say one thing is worse than no control. The composer itself is asserted
-  present in the same breath, so „absent“ cannot be satisfied by a composer that failed to open.
-* **E2E-M4-65** `all` (FR-25.8/FR-25.13d, added 2026-08-29) — **implemented** (`e2e/membership.spec.ts`): a *Pro Person*
-  add made from the **browse-sheet** closes the sheet before the membership editor opens. The editor is a modal, and one
-  presented while the sheet is still up renders *behind* it — greyed and unreachable — so the assertion is that the
-  checkbox can be **operated**, not that the editor is visible: a visibility-only check passes against the broken build.
-  Found by rendering the interaction, not by reading it.
+* **E2E-M4-58** `all` (FR-25.8, added 2026-08-29) — **implemented** (`e2e/membership.spec.ts`, with E2E-M4-12): a
+  quick-add for two of three travelers, then stepped to different amounts on M5's amount lines, produces **one** cluster
+  with two children at `0/2` and `0/3`, not two items sharing a name. The ad-hoc rows have no `source_item_id`, so this
+  is the case that proves the folded-name cluster key — for the add and for M5's strip, which finds its siblings by the
+  same key.
+* **E2E-M4-64** `all` (FR-25.28/G-8, added 2026-08-29) — **implemented** (`e2e/membership.spec.ts`): on a trip with a
+  single traveler the quick-add's for-whom strip is **absent**, not disabled — there is no membership to distribute, and
+  a control that can only say one thing is worse than no control. The composer itself is asserted present in the same
+  breath, so „absent“ cannot be satisfied by a composer that failed to open. Since FR-25.28 the same case holds the
+  list's half: a row added on that solo trip carries **no for-whom seat**.
+* ~~**E2E-M4-65** `all` (FR-25.8/FR-25.13d, added 2026-08-29): a *Pro Person* add made from the browse-sheet closes the
+  sheet before the membership editor opens.~~ **Retired 2026-09-18 with the promise it held** (FR-25.28): no editor
+  follows an add any more, so there is nothing for the sheet to make way for. What stands in its place is the opposite
+  rule, **E2E-M4-102**.
+* **E2E-M4-102** `local` (FR-25.28, added 2026-09-18, in place of the retired E2E-M4-65) — **implemented**
+  (`e2e/membership.spec.ts`): a browse-sheet add is **deaf to the composer's strip** and the sheet **stays up**. With a
+  traveler lit in the strip, a plain add from the sheet writes a **shared** row: the sheet's lines answer *for whom*
+  themselves (FR-25.13g/h), and a tap there that obeyed a control the sheet is covering would be a decision nobody can
+  see being made. The visible shared row is the positive signal; the absent *„· Andy"* and the absent cluster are read
+  against it.
 * **E2E-M4-46** `all` (FR-25.13c, added 2026-08-21) — **implemented** (`e2e/packing-list.spec.ts`): what the trip
   already carries is not suggested again. The chip/suggestion rule itself is E2E-M8-21's; this case pins only M4's
   **wiring** — the trip passing its contents into `excludeItemIds`, which no shared-component test can see dropped. The
@@ -3224,10 +3254,11 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
 | FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
 | FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is superseded by FR-25.11 |
-| FR-25.8 | E2E | M4-12/M4-58 (per-person quick-add is one cluster, not N items), M4-13 (the lone member is a flat row), M4-64 (absent where there is nobody to distribute over), M4-65 (the browse-sheet path) |
+| FR-25.8 | E2E | M4-12/M4-58 (per-person quick-add is one cluster, not N items), M4-13 (the lone member is a flat row), M4-64 (absent where there is nobody to distribute over); ~~M4-65~~ retired with the editor it made way for |
 | FR-25.6 | E2E | M6-05 (aggregated row), M6-06 (settles all instances), M6-07 (notes) |
 | FR-25.10 | E2E | M6-08 (no free-form "for whom"); M5 membership control — closed by FR-25.21 |
 | FR-25.21 | E2E | M5-18, M5-19, M5-20, M5-21 (the state follows the numbers), G3-04 (M6-05/06 carry the FR-25.6 half) |
+| FR-25.28 | E2E | M4-100 (the seat, and a strip that follows its item from row to cluster), M4-101 (the last traveler leaves silently), M4-102 (a browse-sheet add is deaf to the strip), M5-29 (the sheet closes with the row it stood on); M5-18/-19/-20/-21/-26 and M4-12/-58/-64 run through the strip; G3-04 is its lock |
 | FR-25.12 | E2E | M6-09 (buyer, kept distinct from recipients), M6-10 (description) |
 | FR-25.13 | E2E | M6-11; M4-04; M8-13 (same quick-add on all three screens, and the two-character autocomplete gate); M8-14 (same edit sheet) |
 | FR-25.13a | E2E | M6-12 (all three at add time, no wipe on chip tap), M6-13 (assignee carries over), M6-16/M4-21 (visible confirm, no keyboard) |

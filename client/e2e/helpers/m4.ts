@@ -69,12 +69,13 @@ export async function chooseInRowMenu(page: Page, label: RegExp): Promise<void> 
 
 /**
  * Turn one row into a per-person row for the named traveler, through M5's
- * membership sheet.
+ * for-whom strip (FR-25.28).
  *
  * The row is passed as a locator rather than a name because callers reach it
- * differently — scoped to the visible page, or from a filtered list. The
- * roster itself is a view: only the checkbox converts the row (FR-25.21), and
- * the amount it then shows is the settled signal that the write landed.
+ * differently — scoped to the visible page, or from a filtered list. It goes
+ * through M5 rather than the row's own seat for the same reason: M5's strip
+ * has one name whatever the item is called. The lit toggle is the settled
+ * signal that the write landed.
  */
 export async function assignTraveler(
   page: Page,
@@ -83,14 +84,7 @@ export async function assignTraveler(
 ): Promise<void> {
   await row.click()
   await expect(page.getByTestId('m5-sheet')).toBeVisible()
-  await page.getByTestId('m5-details').click()
-  await page.getByTestId('m5-membership').click()
-  await expect(page.getByTestId('membership-sheet')).toBeVisible()
-  await page.getByTestId('membership-per-person').click()
-  await page.getByTestId(`membership-check-${travelerName}`).click()
-  await expect(page.getByTestId(`membership-qty-${travelerName}`)).toHaveText('1')
-  await page.getByTestId('membership-close').click()
-  await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+  await lightTraveler(page, FOR_WHOM_M5, travelerName)
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
   await writesLanded(page)
@@ -115,6 +109,46 @@ export async function openCluster(page: Page, name: string): Promise<void> {
   await expect(head).toBeVisible()
   if ((await head.getAttribute('aria-expanded')) === 'false') await head.click()
   await expect(head).toHaveAttribute('aria-expanded', 'true')
+}
+
+/** The `testKey` M5's for-whom strip carries; M4's carries the item's name. */
+export const FOR_WHOM_M5 = 'm5'
+
+/**
+ * FR-25.28: unfold the for-whom strip under an item's row or cluster head.
+ * Strict on purpose — a seat that is already open would fold on this tap, so a
+ * caller that does not know says so by failing here rather than by toggling.
+ */
+export async function openForWhom(page: Page, itemName: string): Promise<Locator> {
+  const list = visiblePage(page)
+  const strip = list.getByTestId(`for-whom-strip-${itemName}`)
+  await expect(strip).toHaveCount(0)
+  await list.getByTestId(`for-whom-seat-${itemName}`).click()
+  await expect(strip).toBeVisible()
+  return strip
+}
+
+/** Light one traveler on an open strip; `key` is the item's name on M4, {@link FOR_WHOM_M5} in M5. */
+export async function lightTraveler(page: Page, key: string, travelerName: string): Promise<void> {
+  const toggle = page.getByTestId(`for-whom-${key}-${travelerName}`)
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+}
+
+/**
+ * Light a traveler in M5's strip and step their amount to `quantity`, settling
+ * on each write. M5 is where a strip carries steppers; on M4 the amount is the
+ * child row's own (FR-25.24).
+ */
+export async function setMemberInM5(page: Page, name: string, quantity: number): Promise<void> {
+  await lightTraveler(page, FOR_WHOM_M5, name)
+  const amount = page.getByTestId(`for-whom-qty-${FOR_WHOM_M5}-${name}`)
+  await expect(amount).toHaveText('1')
+  for (let n = 1; n < quantity; n += 1) {
+    await page.getByTestId(`for-whom-plus-${FOR_WHOM_M5}-${name}`).click()
+    await expect(amount).toHaveText(String(n + 1))
+  }
 }
 
 /**

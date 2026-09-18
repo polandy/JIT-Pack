@@ -34,13 +34,14 @@
  * takes no new control — the composer the user already types into filters
  * groups beside items, under their own heading and visibly not an item.
  *
- * M4 also offers the **per-person mode** here (FR-25.8, `travelerCount`):
- * *Gesamt* stays the default for the common case and *Pro Person* is one tap
- * away. The composer only carries the choice on the `add` event — it knows
- * nothing about rows, and who gets how many is decided in the membership
- * editor the caller opens. The same number puts FR-25.13g's „für alle" on the
- * browse-sheet's rows, which is the other posture of the same question: there
- * the tap distributes at once and no editor opens at all.
+ * M4 also answers **for whom** here (FR-25.28, `travelerCount`): the
+ * for-whom strip sits over the field, *Gemeinsam* stays the default for the
+ * common case and a traveler is one tap away. The composer only carries the
+ * chosen set on the `add` event — it knows nothing about rows — and no editor
+ * follows the add: amounts are set on the child rows it produces. The strip
+ * speaks for what the *composer* adds. The browse-sheet answers the same
+ * question per line with its own 👥 and avatars (FR-25.13g/h), and one door
+ * per surface is the rule, so a sheet add never reads the strip.
  *
  * **Deliberately no collapse-on-blur**, which FR-25.13a's wording allows
  * for an empty form. Collapsing removes a block from the flow *above* the
@@ -59,6 +60,7 @@ import {
 import { ref, computed, nextTick } from 'vue'
 
 import { t } from '@/i18n'
+import ForWhomToggles from '@/components/global/ForWhomToggles.vue'
 import InventoryBrowseSheet from '@/components/global/InventoryBrowseSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
@@ -145,17 +147,16 @@ const emit = defineEmits<{
    * has always meant.
    */
   add: [
-    /** FR-25.8's mode rides along; every other field is {@link BrowseAddition}. */
-    item: BrowseAddition & { perPerson: boolean },
+    /** FR-25.28's chosen travelers ride along — none means *gemeinsam*. */
+    item: BrowseAddition & { travelerIds: string[] },
     decided?: AddedItemDecision,
   ]
   /** FR-27.10: expand this group onto the trip — the caller reports the result. */
   addGroup: [templateId: string]
   /**
-   * FR-25.13g: add this master item with a row for every traveler. It is its
-   * own emit rather than the `add` above with `perPerson: true`, because that
-   * mode ends in the membership editor and this verb deliberately does not —
-   * the run stays in the sheet.
+   * FR-25.13g: add this master item with a row for every traveler. Its own
+   * emit rather than the `add` above, because the sheet's lines carry their
+   * own undo and the composer's adds do not.
    */
   addForAll: [item: BrowseAddition]
   /** FR-25.13g: give every traveler still without a row for it one. */
@@ -181,14 +182,35 @@ const expanded = ref(false)
 const query = ref('')
 
 /**
- * FR-25.8's mode. It survives an add, because a run of per-person rows is
- * entered the same way a run of shared ones is, and it dies with the composer:
- * *Gesamt* is the default the FR keeps, so the next opening starts there.
+ * FR-25.28: who the next add is for. It survives an add, because a run of
+ * per-person rows is entered the same way a run of shared ones is, and it dies
+ * with the composer: *gemeinsam* is the default, so the next opening starts
+ * there. Insertion order is irrelevant — the planner sorts by roster.
  */
-const perPerson = ref(false)
+const chosenTravelers = ref<ReadonlySet<string>>(new Set())
 
-/** FR-25.8: the mode is offered only where there is a membership to make. */
-const offerPerPerson = computed(() => props.travelerCount >= MIN_TRAVELERS_FOR_PER_PERSON)
+/** FR-25.28: the strip is offered only where there is a membership to make (G-8). */
+const offerForWhom = computed(() => props.travelers.length >= MIN_TRAVELERS_FOR_PER_PERSON)
+
+/** Every composer add starts at one each; the amounts are the child rows' to change. */
+const chosenAmounts = computed(() => new Map([...chosenTravelers.value].map((id) => [id, 1])))
+
+/** The set as the `add` event carries it, in roster order. */
+function chosenTravelerIds(): string[] {
+  if (!offerForWhom.value) return []
+  return props.travelers.filter((tr) => chosenTravelers.value.has(tr.id)).map((tr) => tr.id)
+}
+
+function toggleChosen(travelerId: string) {
+  const next = new Set(chosenTravelers.value)
+  if (!next.delete(travelerId)) next.add(travelerId)
+  chosenTravelers.value = next
+}
+
+/** *Alle* only ever enlarges, as it does on a row (FR-25.21c). */
+function chooseEveryone() {
+  chosenTravelers.value = new Set(props.travelers.map((tr) => tr.id))
+}
 const inputRef = ref<InstanceType<typeof IonInput> | null>(null)
 
 const suggestions = computed(() => {
@@ -265,9 +287,8 @@ function open() {
 function close() {
   expanded.value = false
   query.value = ''
-  perPerson.value = false
+  chosenTravelers.value = new Set()
   browseOpen.value = false
-  browsePerPersonPending.value = null
 }
 
 function toggle() {
@@ -308,8 +329,19 @@ function afterAdd(item: MasterItem) {
   query.value = ''
 }
 
-function emitMasterItem(item: MasterItem, decided?: AddedItemDecision) {
-  emit('add', { ...additionOf(item), perPerson: perPerson.value }, decided)
+/** A composer add: a chip or a suggestion, for whoever the strip names. */
+function emitMasterItem(item: MasterItem) {
+  emit('add', { ...additionOf(item), travelerIds: chosenTravelerIds() })
+  afterAdd(item)
+}
+
+/**
+ * A browse-sheet add. It never reads the strip: the sheet's lines answer *for
+ * whom* themselves (FR-25.13g/h), and a tap there that also obeyed a control
+ * the sheet is covering would be a decision nobody can see being made.
+ */
+function emitSheetItem(item: MasterItem, decided?: AddedItemDecision) {
+  emit('add', { ...additionOf(item), travelerIds: [] }, decided)
   afterAdd(item)
 }
 
@@ -362,33 +394,9 @@ const showBrowseEntry = computed(
   () => query.value.trim().length === 0 && masterStore.activeItemList.length > 0,
 )
 
-/**
- * A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open.
- *
- * **Except in *Pro Person* mode**, where the sheet has to close first. The add
- * ends in the membership editor, which is a modal of the caller's — and a modal
- * presented while this sheet is still up renders *behind* it, greyed and
- * unreachable. The emit therefore waits for the sheet's own dismissed signal,
- * the same reason the free-text line waits for it below. Found by rendering it.
- */
-const browsePerPersonPending = ref<{ item: MasterItem; decided?: AddedItemDecision } | null>(null)
-
-/**
- * Holds the add back until the sheet is gone. Every browse verb goes through
- * here in *Pro Person* mode, FR-25.13f's two included — the editor that
- * follows is the caller's modal either way.
- */
-function deferPerPerson(item: MasterItem, decided?: AddedItemDecision) {
-  browsePerPersonPending.value = { item, decided }
-  browseOpen.value = false
-}
-
+/** A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open. */
 function onBrowseAdd(item: MasterItem) {
-  if (perPerson.value) {
-    deferPerPerson(item)
-    return
-  }
-  emitMasterItem(item)
+  emitSheetItem(item)
 }
 
 /**
@@ -397,19 +405,11 @@ function onBrowseAdd(item: MasterItem) {
  * defaults, the same recents entry and the same primary tag as any other.
  */
 function onBrowseAddPacked(item: MasterItem) {
-  if (perPerson.value) {
-    deferPerPerson(item, 'packed')
-    return
-  }
-  emitMasterItem(item, 'packed')
+  emitSheetItem(item, 'packed')
 }
 
 function onBrowseAddSkipped(item: MasterItem) {
-  if (perPerson.value) {
-    deferPerPerson(item, 'skipped')
-    return
-  }
-  emitMasterItem(item, 'skipped')
+  emitSheetItem(item, 'skipped')
 }
 
 /**
@@ -426,12 +426,6 @@ function onBrowseFreeText() {
 
 function onBrowseDismiss() {
   browseOpen.value = false
-  const pending = browsePerPersonPending.value
-  if (pending) {
-    browsePerPersonPending.value = null
-    emitMasterItem(pending.item, pending.decided)
-    return
-  }
   if (browseFreeTextPending.value) {
     browseFreeTextPending.value = false
     void focusInput()
@@ -448,7 +442,7 @@ function submitFreeText() {
     weightGrams: null,
     valueCents: null,
     categoryName: null,
-    perPerson: perPerson.value,
+    travelerIds: chosenTravelerIds(),
   })
   query.value = ''
   void focusInput()
@@ -478,27 +472,24 @@ function onKeydown(event: KeyboardEvent) {
     </button>
 
     <div v-if="expanded" class="quick-add-form">
-      <!-- FR-25.8: the same two words the membership editor uses, because it
-           is the editor this mode opens. -->
-      <div v-if="offerPerPerson" class="seg" role="tablist">
-        <button
-          role="tab"
-          :aria-selected="!perPerson"
-          :class="{ on: !perPerson }"
-          data-testid="quick-add-mode-shared"
-          @click="perPerson = false"
-        >
-          {{ t('membership.shared') }}
-        </button>
-        <button
-          role="tab"
-          :aria-selected="perPerson"
-          :class="{ on: perPerson }"
-          data-testid="quick-add-mode-per-person"
-          @click="perPerson = true"
-        >
-          {{ t('membership.perPerson') }}
-        </button>
+      <!-- FR-25.28: who the next add is for. The same line a row unfolds,
+           holding a choice instead of rewriting rows. -->
+      <div v-if="offerForWhom" class="for-whom" data-testid="quick-add-for-whom">
+        <ForWhomToggles
+          :travelers="travelers"
+          :amounts="chosenAmounts"
+          test-key="quick-add"
+          @shared="chosenTravelers = new Set()"
+          @all="chooseEveryone"
+          @toggle="toggleChosen"
+        />
+        <p class="for-whom-summary" data-testid="quick-add-for-whom-summary">
+          {{
+            chosenTravelers.size > 0
+              ? t('forWhom.addFor', { n: chosenTravelers.size })
+              : t('forWhom.addShared')
+          }}
+        </p>
       </div>
 
       <div class="input-row">
@@ -668,27 +659,17 @@ function onKeydown(event: KeyboardEvent) {
   padding: 8px;
 }
 
-.seg {
-  display: flex;
-  gap: 3px;
-  padding: 3px;
+.for-whom {
   margin-bottom: 8px;
-  background: var(--jp-surface-sunken);
   border-radius: var(--jp-r-md);
+  background: var(--jp-surface-sunken);
 }
 
-.seg button {
-  flex: 1;
-  padding: 7px 4px;
-  border: 0;
-  border-radius: var(--jp-r-sm);
-  background: none;
+.for-whom-summary {
+  margin: 0;
+  padding: 0 8px 6px;
   color: var(--ct-subtext0);
-}
-
-.seg button.on {
-  background: var(--jp-action);
-  color: var(--ct-on-accent);
+  font-size: var(--jp-text-xs);
 }
 
 .input-row {

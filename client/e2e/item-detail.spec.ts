@@ -9,6 +9,7 @@ import {
   expectTripActionOffered,
   visiblePage as visible,
 } from './fixtures'
+import { FOR_WHOM_M5 } from './helpers/m4'
 
 /**
  * M5 — item detail (UI-Test-Spec §4), rebuilt 2026-08-14 as a sheet over
@@ -133,10 +134,12 @@ test.describe('M5 item detail @local @m5', () => {
     await page.getByTestId('m5-details').click()
     await expect(page.getByTestId('m5-mode')).toBeVisible()
     await expect(page.getByTestId('m5-container')).toBeVisible()
-    // G-8, FR-25.21: with nobody to split the item between, *Wer braucht das?*
-    // is absent rather than an editor that can only say one thing. The two
-    // visible rows above are the positive signal that Details opened at all.
-    await expect(page.getByTestId('m5-membership')).toHaveCount(0)
+    // G-8, FR-25.28: with nobody to split the item between, the for-whom strip
+    // is absent rather than a control that can only say one thing, and the
+    // glance chip is what is left to say it. The chip is the positive signal
+    // the absence is read against.
+    await expect(page.getByTestId('m5-glance')).toContainText(/Gemeinsam|Shared/)
+    await expect(page.getByTestId(`for-whom-strip-${FOR_WHOM_M5}`)).toHaveCount(0)
   })
 
   // E2E-M5-12 (G-9, ADR-046): above the breakpoint the same content is a
@@ -481,7 +484,7 @@ test.describe('M5 item detail @local @m5', () => {
     // The section is open and populated — the positive signal the absence
     // below is read against.
     await expect(page.getByTestId('m5-mode')).toBeVisible()
-    await expect(page.getByTestId('m5-membership')).toBeVisible()
+    await expect(page.getByTestId(`for-whom-strip-${FOR_WHOM_M5}`)).toBeVisible()
 
     await expect(page.getByTestId('m5-assignee')).toHaveCount(0)
   })
