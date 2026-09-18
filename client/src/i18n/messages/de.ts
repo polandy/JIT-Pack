@@ -576,6 +576,8 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.companions': 'Begleitartikel',
   'items.editor.companionsHint': 'Diese Artikel hängen von {name} ab:',
   'items.editor.companionAdd': 'Begleitartikel hinzufügen',
+  'items.editor.dependencyOfferCreateHint': 'Neuer Artikel — {name} hängt danach von ihm ab',
+  'items.editor.dependencyOfferRestoreHint': 'Wiederherstellen und als Hauptartikel eintragen',
   'items.editor.companionOfferCreateHint': 'Neuer Artikel — hängt danach von {name} ab',
   'items.editor.companionOfferRestoreHint': 'Wiederherstellen und als Begleitartikel eintragen',
   'items.editor.companionRemove': 'Begleitartikel entfernen',

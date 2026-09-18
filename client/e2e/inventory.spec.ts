@@ -1062,6 +1062,39 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     )
   })
 
+  test('E2E-M10-26: a main item the inventory lacks is created from the dependency picker and depended on', async ({
+    page,
+  }) => {
+    await createItem(page, 'Ersatzakku', { tags: ['Technik'] })
+    await writesLanded(page)
+
+    const editor = visiblePage(page)
+    await editor.getByTestId('m10-add-dependency').click()
+    await editor.getByTestId('m10-dependency-search').locator('input').fill('Kamera')
+    await expect(editor.getByTestId('m10-dependency-offer-title')).toContainText('Kamera')
+    await editor.getByTestId('m10-dependency-offer').click()
+
+    // M9 stays mounted under the editor with a sheet of its own.
+    const sheet = page.getByTestId('create-item-sheet').and(page.locator('.show-modal'))
+    await expect(sheet).toHaveAttribute('data-presented', 'true')
+    await expect(sheet.getByTestId('create-item-name').locator('input')).toHaveValue('Kamera')
+    await expect(sheet.locator('[data-testid^="create-item-tag-offer-"]').first()).toHaveText(
+      'Technik',
+    )
+    await sheet.getByTestId('create-item-confirm').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // The direction is the picker's: this item depends on the new one.
+    await expect(page.getByTestId('header-title')).toHaveText('Ersatzakku')
+    await expect(editor.getByTestId('m10-dependency-mode-Kamera')).toContainText('Required')
+    await expect(editor.getByTestId('m10-add-dependency')).toBeVisible()
+
+    await writesLanded(page)
+    await backToInventory(page)
+    await openItem(page, 'Kamera')
+    await expect(visiblePage(page).getByTestId('m10-companion-Ersatzakku')).toBeVisible()
+  })
+
   test('E2E-M10-04: a photo is added, replaced, and removed on the item', async ({ page }) => {
     await createItem(page, 'Fernglas')
 

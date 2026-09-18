@@ -361,20 +361,24 @@ function closeMainPicker() {
 }
 
 function onAddDependency(mainItemId: string) {
-  if (!props.itemId) return
-  // A cycle cannot be persisted (save-time validation like FR-1.5).
-  const error = dependencyCycleError(
+  if (!props.itemId || mainRefused(mainItemId)) return
+  closeMainPicker()
+  orchestrator.addItemDependency(props.itemId, mainItemId)
+}
+
+/**
+ * Reports whether depending on this main item would close a cycle, and says so
+ * on screen if it would — a cycle cannot be persisted (save-time validation
+ * like FR-1.5).
+ */
+function mainRefused(mainItemId: string): boolean {
+  if (!props.itemId) return true
+  dependencyError.value = dependencyCycleError(
     masterStore.dependencyList,
     { item_id: props.itemId, depends_on_item_id: mainItemId },
     itemName,
   )
-  if (error) {
-    dependencyError.value = error
-    return
-  }
-  dependencyError.value = null
-  closeMainPicker()
-  orchestrator.addItemDependency(props.itemId, mainItemId)
+  return dependencyError.value !== null
 }
 
 function onDependencyModeChange(dependencyId: string, mode: DependencyMode) {
@@ -423,45 +427,74 @@ function onRemoveCompanion(dependencyId: string) {
   orchestrator.deleteItemDependency(dependencyId)
 }
 
-// --- FR-20.1 + FR-24.11: a companion the inventory does not hold yet ---
+// --- FR-20.1 + FR-24.11: a related item the inventory does not hold yet ---
 
 /**
- * The picker's query offered as a new item, or as a retired one back — the
+ * Which of the two pickers the creation sheet is serving: the new item becomes
+ * this one's main item, or its companion. One sheet for both, because it sits
+ * outside either picker (see the template) and only one can be open.
+ */
+const CREATE_FOR_MAIN = 'main'
+const CREATE_FOR_COMPANION = 'companion'
+type CreateFor = typeof CREATE_FOR_MAIN | typeof CREATE_FOR_COMPANION
+
+/**
+ * A picker's query offered as a new item, or as a retired one back — the
  * inventory search's rule, so „Ersatzbatterien" is created here exactly when
  * M9 would offer to create it. Not before the partition has arrived (ADR-033).
  */
-const companionOffer = computed(() =>
-  showCompanionPicker.value && orchestrator.masterDataLoaded()
-    ? searchOffer(companionSearch.value, masterStore.activeItemList, masterStore.retiredItemList)
-    : null,
-)
-
-const companionCreateOpen = ref(false)
-
-/** This item's tags, offered first: the batteries live where the headlamp does. */
-const companionPreferredTagIds = computed(() => assignedTags.value.map((tag) => tag.id))
-
-function takeCompanionOffer() {
-  const current = companionOffer.value
-  if (!current) return
-  if (current.kind === OFFER_CREATE) {
-    companionCreateOpen.value = true
-    return
-  }
-  // A retired item keeps its dependency rows, so the edge is checked before
-  // the restore: a refused companion must not leave the item un-retired.
-  if (companionRefused(current.id)) return
-  if (!orchestrator.restoreMasterItem(current.id)) return
-  onAddCompanion(current.id)
+function pickerOffer(open: boolean, query: string) {
+  return open && orchestrator.masterDataLoaded()
+    ? searchOffer(query, masterStore.activeItemList, masterStore.retiredItemList)
+    : null
 }
 
-async function onCompanionCreated({ id, open }: { id: string; open: boolean }) {
-  companionCreateOpen.value = false
-  if (!props.itemId) return
-  // A new item has no edges yet, so this one cannot close a cycle.
-  companionError.value = null
-  closeCompanionPicker()
-  orchestrator.addItemDependency(id, props.itemId)
+const mainOffer = computed(() => pickerOffer(showMainPicker.value, mainSearch.value))
+const companionOffer = computed(() => pickerOffer(showCompanionPicker.value, companionSearch.value))
+
+const createFor = ref<CreateFor | null>(null)
+const createName = computed(
+  () => (createFor.value === CREATE_FOR_MAIN ? mainOffer : companionOffer).value?.name ?? '',
+)
+
+/** This item's tags, offered first: the batteries live where the headlamp does. */
+const relatedPreferredTagIds = computed(() => assignedTags.value.map((tag) => tag.id))
+
+/**
+ * Takes a picker's offer. A retired item keeps its dependency rows, so the
+ * edge is checked before the restore: a refused declaration must not leave
+ * the item un-retired as a side effect.
+ */
+function takeOffer(target: CreateFor) {
+  const current = (target === CREATE_FOR_MAIN ? mainOffer : companionOffer).value
+  if (!current) return
+  if (current.kind === OFFER_CREATE) {
+    createFor.value = target
+    return
+  }
+  if (target === CREATE_FOR_MAIN) {
+    if (mainRefused(current.id) || !orchestrator.restoreMasterItem(current.id)) return
+    onAddDependency(current.id)
+  } else {
+    if (companionRefused(current.id) || !orchestrator.restoreMasterItem(current.id)) return
+    onAddCompanion(current.id)
+  }
+}
+
+async function onRelatedCreated({ id, open }: { id: string; open: boolean }) {
+  const target = createFor.value
+  createFor.value = null
+  if (!props.itemId || !target) return
+  // A new item has no edges yet, so the one written here cannot close a cycle.
+  if (target === CREATE_FOR_MAIN) {
+    dependencyError.value = null
+    closeMainPicker()
+    orchestrator.addItemDependency(props.itemId, id)
+  } else {
+    companionError.value = null
+    closeCompanionPicker()
+    orchestrator.addItemDependency(id, props.itemId)
+  }
   if (open) await router.push(itemPath(id))
 }
 
@@ -782,11 +815,22 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           <div v-else class="main-picker">
             <IonSearchbar
               :value="mainSearch"
+              data-testid="m10-dependency-search"
               :placeholder="t('items.editor.dependencySearchPlaceholder')"
               :debounce="200"
               @ionInput="(e: CustomEvent) => (mainSearch = e.detail.value ?? '')"
             />
-            <IonList>
+            <!-- FR-24.11: above the hits, where the keyboard leaves it reachable. -->
+            <SearchOfferButton
+              v-if="mainOffer"
+              :offer="mainOffer"
+              testid="m10-dependency-offer"
+              :create-hint="t('items.editor.dependencyOfferCreateHint', { name: item.name })"
+              :restore-hint="t('items.editor.dependencyOfferRestoreHint')"
+              @take="takeOffer(CREATE_FOR_MAIN)"
+            />
+            <!-- The offer answers a query with no hits on its own; an empty list under it is a stray bar. -->
+            <IonList v-if="pickableMains.length > 0 || !mainOffer">
               <IonItem
                 v-for="main in pickableMains"
                 :key="main.id"
@@ -885,7 +929,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               testid="m10-companion-offer"
               :create-hint="t('items.editor.companionOfferCreateHint', { name: item.name })"
               :restore-hint="t('items.editor.companionOfferRestoreHint')"
-              @take="takeCompanionOffer"
+              @take="takeOffer(CREATE_FOR_COMPANION)"
             />
             <!-- The offer answers a query with no hits on its own; an empty list under it is a stray bar. -->
             <IonList v-if="pickableCompanions.length > 0 || !companionOffer">
@@ -1043,12 +1087,12 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
       -->
       <CreateItemSheet
         v-if="item"
-        :is-open="companionCreateOpen"
-        :name="companionOffer?.name ?? ''"
+        :is-open="createFor !== null"
+        :name="createName"
         :tag-ids="[]"
-        :preferred-tag-ids="companionPreferredTagIds"
-        @dismiss="companionCreateOpen = false"
-        @created="onCompanionCreated"
+        :preferred-tag-ids="relatedPreferredTagIds"
+        @dismiss="createFor = null"
+        @created="onRelatedCreated"
       />
     </IonContent>
   </IonPage>

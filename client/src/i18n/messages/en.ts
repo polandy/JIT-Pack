@@ -568,6 +568,8 @@ export const en = {
   'items.editor.companions': 'Companions',
   'items.editor.companionsHint': 'These items depend on {name}:',
   'items.editor.companionAdd': 'Add companion',
+  'items.editor.dependencyOfferCreateHint': 'New item — {name} will depend on it',
+  'items.editor.dependencyOfferRestoreHint': 'Restore it and depend on it',
   'items.editor.companionOfferCreateHint': 'New item — it will depend on {name}',
   'items.editor.companionOfferRestoreHint': 'Restore it and add it as a companion',
   'items.editor.companionRemove': 'Remove companion',

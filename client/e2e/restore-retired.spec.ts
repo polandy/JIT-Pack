@@ -402,4 +402,60 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     await openRetired(page)
     await expect(visiblePage(page).getByTestId('m23-row-name')).toHaveText('Reisewecker')
   })
+
+  test('E2E-M10-27: the dependency picker offers a retired name back and depends on it (FR-20.1, FR-24.11)', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto(PATH.items)
+    await retireItemViaGroup(page, 'Hotel', 'Reisewecker')
+    await createItem(page, 'Batterien')
+    await localWriteSettled(page)
+
+    const editor = visiblePage(page)
+    await editor.getByTestId('m10-add-dependency').click()
+    await editor.getByTestId('m10-dependency-search').locator('input').fill('reisewecker')
+    await expect(editor.getByTestId('m10-dependency-offer-title')).toContainText('Reisewecker')
+    await editor.getByTestId('m10-dependency-offer').click()
+
+    await expect(editor.getByTestId('m10-dependency-mode-Reisewecker')).toContainText('Required')
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await openRetired(page)
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
+  })
+
+  test('E2E-M10-28: a retired main item that would close a circle stays retired', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto(PATH.items)
+    await createItemOnDevice(page, 'Koffer')
+    // The alarm clock already depends on the suitcase …
+    await createItem(page, 'Reisewecker')
+    await visiblePage(page).getByTestId('m10-add-dependency').click()
+    await visiblePage(page).getByTestId('m10-dependency-main-Koffer').click()
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Koffer')).toBeVisible()
+    await backToInventory(page)
+    await localWriteSettled(page)
+    await retireItemViaGroup(page, 'Hotel', 'Reisewecker')
+
+    // … so the suitcase cannot come to depend on the alarm clock.
+    await visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Koffer' }).click()
+    await expect(page.getByTestId('header-title')).toHaveText('Koffer')
+    const editor = visiblePage(page)
+    await editor.getByTestId('m10-add-dependency').click()
+    await editor.getByTestId('m10-dependency-search').locator('input').fill('reisewecker')
+    await editor.getByTestId('m10-dependency-offer').click()
+    await expect(editor.getByTestId('m10-dependency-error')).toContainText(
+      'Koffer → Reisewecker → Koffer',
+    )
+
+    // Refused before anything was written: M23 still listing the row is the
+    // positive signal a restore that ran anyway would remove.
+    await expect(editor.getByTestId('m10-dependency-mode-Reisewecker')).toHaveCount(0)
+    await openRetired(page)
+    await expect(visiblePage(page).getByTestId('m23-row-name')).toHaveText('Reisewecker')
+  })
 })

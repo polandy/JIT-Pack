@@ -1833,6 +1833,8 @@ These patterns apply to every screen and are specified once.
   Artikel — hängt danach von {Name} ab"* — and opens M9's creation sheet (name + tags, this item's tags offered
   first). *„Anlegen"* writes the item and the companion row together and leaves the user here, picker closed; a
   retired name is offered back (*„Wiederherstellen und als Begleitartikel eintragen"*) and declared without a sheet.
+  *„Hängt ab von"*'s picker makes the same offer the other way round (hint *„Neuer Artikel — {Name} hängt danach von
+  ihm ab"*, restore *„Wiederherstellen und als Hauptartikel eintragen"*): the new item becomes this one's main item.
   **Localized 2026-08-22 (NFR-4.12)**,
   which settled two words this section had left open: the modes are *nötig* / *empfohlen* as written here, and the
   reverse list is *Begleitartikel* — the word M3 already uses for the same relation. This section's earlier *„Wird

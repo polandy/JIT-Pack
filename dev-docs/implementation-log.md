@@ -392,7 +392,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The e2e matrix is ten legs (2026-09-18)](#the-e2e-matrix-is-ten-legs-2026-09-18) — the shard count went stale a second time, and what bounds it from below is now the two backend jobs.
 - [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
 - [The search offers what it did not find (2026-09-18)](#the-search-offers-what-it-did-not-find-2026-09-18) — FR-24.11; the proposal's reason for the restore offer was wrong, and three things only the rendered screen said.
-- [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's companion picker; an inline modal beside a v-if/v-else broke the section it sat in.
+- [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's dependency pickers; an inline modal beside a v-if/v-else broke the section it sat in.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -16069,5 +16069,6 @@ mode cannot toggle while the sheet is up.
 **The restore offer checks the cycle first.** A retired row keeps its dependency
 rows, so restoring and then being refused would un-retire an item as a side
 effect of a declaration that never happened. E2E-M10-25 pins it and was
-mutation-proved. Only the companion picker makes the offer; *„Hängt ab von"*
-was not asked for and keeps its plain list.
+mutation-proved. *„Hängt ab von"* got the same offer the same day at the
+owner's request (E2E-M10-26..28); both pickers share one sheet, keyed by which
+end of the relation the new item takes.
