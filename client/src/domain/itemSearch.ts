@@ -17,7 +17,8 @@
  *   under a query it does not visibly contain reads as a bug — the same
  *   finding the FR-27.13 group search paid for with its `via` field.
  */
-import { foldSearch, searchMatches } from './search'
+import { foldSearch, searchEquals, searchMatches } from './search'
+import type { NamedRow } from './nameCollision'
 
 /** Why a row is in the result. Ordered: this is also the ranking. */
 export const MATCH_REASONS = ['name', 'tag', 'mark'] as const
@@ -130,4 +131,45 @@ export function hitsByReason(hits: readonly ItemSearchHit[]): [MatchReason, Item
     (reason) =>
       [reason, hits.filter((hit) => hit.reason === reason)] as [MatchReason, ItemSearchHit[]],
   ).filter(([, group]) => group.length > 0)
+}
+
+/** FR-24.11: the query names no item — offer to create it. */
+export const OFFER_CREATE = 'create'
+/** FR-24.11: the query names a retired item — offer it back instead. */
+export const OFFER_RESTORE = 'restore'
+
+/**
+ * What M9 offers above its results for a query (FR-24.11), or `null` when the
+ * query already names an item on screen.
+ */
+export type SearchOffer =
+  | { kind: typeof OFFER_CREATE; name: string }
+  | { kind: typeof OFFER_RESTORE; id: string; name: string }
+  | null
+
+/**
+ * searchOffer decides whether the inventory search offers to create what it
+ * did not find (FR-24.11).
+ *
+ * The test is **no active item of exactly this name**, not „no hits": „Zelt"
+ * finds *Zeltheringe* and *Zeltunterlage* and the tent is still missing, which
+ * is the common case an offer made only in the empty state would never reach.
+ * „Exactly" is {@link searchEquals}, the search's own fold, so neither keyboard
+ * spelling of an umlaut invites a second „Gürtel" beside the one listed.
+ *
+ * A **retired** item of that name is offered back rather than a new one made:
+ * retiring frees the name (ADR-034), so a new row would be allowed — but it
+ * would start without the tags, weight and history the hidden one still has.
+ */
+export function searchOffer(
+  query: string,
+  active: readonly NamedRow[],
+  retired: readonly NamedRow[],
+): SearchOffer {
+  const name = query.trim()
+  if (!name) return null
+  if (active.some((row) => searchEquals(row.name, name))) return null
+  const hidden = retired.find((row) => searchEquals(row.name, name))
+  if (hidden) return { kind: OFFER_RESTORE, id: hidden.id, name: hidden.name }
+  return { kind: OFFER_CREATE, name }
 }

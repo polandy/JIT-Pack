@@ -72,7 +72,8 @@ A hidden row is not stuck. Once whatever kept it alive is deleted too, deleting 
 removes it for good. You can also see and undo these: **Settings → Hidden master data →
 Restore hidden items and templates** lists them, restores them, or deletes them permanently.
 The inventory points there too — when items are hidden, a line at the end of the list says how
-many and takes you straight to them.
+many and takes you straight to them. And if you search the inventory for a hidden item by its
+exact name, the top of the results offers to restore it rather than to create a second one.
 
 ### Deleting a tag is not what the app does
 

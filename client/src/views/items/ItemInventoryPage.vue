@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * M9 — Item Inventory (§3.24, FR-24.2/24.4/24.6/24.7)
+ * M9 — Item Inventory (§3.24, FR-24.2/24.4/24.6/24.7/24.11)
  *
  * The master item database, and deliberately a **lookup surface rather
  * than a spreadsheet**: every row is the primary-tag avatar and the name,
@@ -54,6 +54,7 @@ import {
   eyeOutline,
   funnelOutline,
   pricetagsOutline,
+  refreshOutline,
   removeCircleOutline,
   swapVerticalOutline,
   trashOutline,
@@ -76,6 +77,7 @@ import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet, { type BulkTagMode } from '@/components/items/BulkTagSheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
+import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
@@ -103,12 +105,16 @@ import {
   hitsByReason,
   isSearchQuery,
   searchItems,
+  searchOffer,
+  OFFER_CREATE,
+  OFFER_RESTORE,
   type ItemSearchCandidate,
   type MatchReason,
 } from '@/domain/itemSearch'
 import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { presentToast } from '@/lib/toast'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
 import type { ItemTag, MasterItem, Tag } from '@/types/domain'
@@ -748,6 +754,87 @@ async function retireSelected() {
   await presentToast({ message: t('items.bulkRetired', { n: items.length }) })
 }
 
+// --- FR-24.11: what the search did not find, it offers to create ---------
+
+/**
+ * The offer above the results. Not while the partition is still arriving
+ * (ADR-033 — „no such item" is a claim about a list the device may not hold
+ * yet) and not in the selection mode, where rows do not navigate and a
+ * creation would drop the selection the user is building.
+ */
+const offer = computed(() =>
+  searching.value && itemsKnown.value && !selecting.value
+    ? searchOffer(search.value, masterStore.activeItemList, masterStore.retiredItemList)
+    : null,
+)
+
+const createOpen = ref(false)
+
+/**
+ * The item this screen just created or restored, marked in the results until
+ * the query changes: the row is the confirmation, and the list may hold a
+ * dozen partial hits it has to be told apart from.
+ */
+const freshId = ref<string | null>(null)
+watch(search, () => (freshId.value = null))
+
+/**
+ * The tags the list is filtered by are the new item's from the start: without
+ * them it would vanish from the filtered list the moment it exists, which
+ * reads as a failed write. The untagged bucket is not a tag, so it assigns
+ * nothing — and an untagged item is exactly what lands in it.
+ */
+const createTagIds = computed(() => selection.value.filter((id) => id !== UNTAGGED_KEY))
+
+/**
+ * The tags of the items the query found *by name*, in hit order: „Zelt" finds
+ * the pegs and the groundsheet, so the tent is most likely „Camping" too.
+ */
+const preferredTagIds = computed(() => {
+  const ids: string[] = []
+  for (const hit of hits.value) {
+    if (hit.reason !== 'name') continue
+    for (const tag of masterStore.getItemTags(hit.id)) if (!ids.includes(tag.id)) ids.push(tag.id)
+  }
+  return ids
+})
+
+async function takeOffer() {
+  const current = offer.value
+  if (!current) return
+  if (current.kind === OFFER_CREATE) {
+    createOpen.value = true
+    return
+  }
+  if (!orchestrator.restoreMasterItem(current.id)) return
+  freshId.value = current.id
+  await presentToast({
+    message: t('retired.restored', { name: current.name }),
+    positionAnchor: FAB_ANCHOR.m9,
+  })
+}
+
+/** Enter opens the sheet and never writes: a typo must not become an item. */
+function onSearchSubmit() {
+  if (offer.value?.kind === OFFER_CREATE) createOpen.value = true
+}
+
+async function onCreated({ id, name, open }: { id: string; name: string; open: boolean }) {
+  createOpen.value = false
+  freshId.value = id
+  if (open) {
+    await router.push(itemPath(id))
+    return
+  }
+  // Above the ＋, not over it: the tab bar is what the helper would clear, and
+  // the FAB sits higher — measured on the rendered screen at 390 px.
+  await presentToast({
+    message: t('items.created', { name }),
+    positionAnchor: FAB_ANCHOR.m9,
+    buttons: [{ text: t('items.createdOpen'), handler: () => void router.push(itemPath(id)) }],
+  })
+}
+
 function newItem() {
   // FR-24.5: creation is the editor in its minimal mode, not a prompt —
   // a name typed into an alert cannot carry tags or a weight.
@@ -936,6 +1023,7 @@ onBeforeUnmount(() => observer?.disconnect())
           testid="items-search-input"
           :placeholder="t('items.searchPlaceholder')"
           @close="search = ''"
+          @submit="onSearchSubmit"
         />
 
         <!-- FR-24.8: the three biggest tags, then the door to the rest. The
@@ -987,6 +1075,29 @@ onBeforeUnmount(() => observer?.disconnect())
             <IonIcon :icon="closeOutline" />
           </button>
         </div>
+      </div>
+
+      <!-- FR-24.11: the name the search did not find, offered at the top —
+           with the keyboard up, the end of a list of partial hits is out of
+           reach. The same place whether or not anything matched. -->
+      <div v-if="offer" class="offer" :class="offer.kind">
+        <button type="button" data-testid="m9-offer" @click="takeOffer">
+          <span class="offer-glyph">
+            <IonIcon :icon="offer.kind === OFFER_RESTORE ? refreshOutline : addOutline" />
+          </span>
+          <span class="offer-text">
+            <strong data-testid="m9-offer-title">{{
+              offer.kind === OFFER_RESTORE
+                ? t('items.offerRestore', { name: offer.name })
+                : t('items.offerCreate', { name: offer.name })
+            }}</strong>
+            <span class="offer-hint">{{
+              offer.kind === OFFER_RESTORE
+                ? t('items.offerRestoreHint')
+                : t('items.offerCreateHint')
+            }}</span>
+          </span>
+        </button>
       </div>
 
       <!-- ADR-033: an inventory that has not arrived is not an empty one. -->
@@ -1107,7 +1218,12 @@ onBeforeUnmount(() => observer?.disconnect())
               />
 
               <IonLabel>
-                <h2>{{ item.name }}</h2>
+                <h2>
+                  {{ item.name }}
+                  <span v-if="item.id === freshId" class="row-new" data-testid="m9-row-new">{{
+                    t('items.rowNew')
+                  }}</span>
+                </h2>
                 <!-- FR-24.7: a row that matched through something other than
                      its name says what, or it reads as a bug. -->
                 <p v-if="searching && viaOf.get(item.id)" class="row-via" data-testid="m9-row-via">
@@ -1191,11 +1307,20 @@ onBeforeUnmount(() => observer?.disconnect())
         "
       />
 
-      <IonFab v-if="!selecting" vertical="bottom" horizontal="end" slot="fixed">
+      <IonFab v-if="!selecting" :id="FAB_ANCHOR.m9" vertical="bottom" horizontal="end" slot="fixed">
         <IonFabButton :aria-label="t('items.new')" data-testid="m9-fab" @click="newItem">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>
+
+      <CreateItemSheet
+        :is-open="createOpen"
+        :name="offer?.name ?? ''"
+        :tag-ids="createTagIds"
+        :preferred-tag-ids="preferredTagIds"
+        @dismiss="createOpen = false"
+        @created="onCreated"
+      />
 
       <!-- FR-24.8: everything the three chips do not offer. -->
       <TagFilterSheet
@@ -1355,6 +1480,69 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .bulkbar button.danger {
   color: var(--ion-color-danger);
+}
+
+/* FR-24.11: an offer, not a row — dashed, so it cannot be read as an item
+   the inventory already holds. */
+.offer {
+  padding: 10px 8px 4px;
+}
+
+.offer button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px dashed var(--jp-action);
+  border-radius: var(--jp-r);
+  background: color-mix(in srgb, var(--jp-action) 8%, var(--jp-surface-card));
+  color: var(--ct-text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.offer.restore button {
+  border-color: var(--ion-color-warning);
+  background: color-mix(in srgb, var(--ion-color-warning) 9%, var(--jp-surface-card));
+}
+
+.offer-glyph {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--jp-r-sm);
+  background: var(--jp-action);
+  color: var(--ct-crust);
+  font-size: var(--jp-icon-sm);
+}
+
+.offer.restore .offer-glyph {
+  background: var(--ion-color-warning);
+}
+
+.offer-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.offer-hint {
+  color: var(--ion-color-medium);
+  font-size: var(--jp-text-xs);
+}
+
+.row-new {
+  margin-inline-start: 6px;
+  padding: 0 7px;
+  border: 1px solid var(--jp-done);
+  border-radius: var(--jp-r-pill);
+  color: var(--jp-done);
+  font-size: var(--jp-text-xs);
+  vertical-align: middle;
 }
 
 /* FR-24.6: the bar the list scrolls under. `ion-content` scrolls its own

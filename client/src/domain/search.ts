@@ -68,6 +68,23 @@ export function searchMatches(haystack: string, needle: string): boolean {
 }
 
 /**
+ * searchEquals answers whether two names are the *same* name under the search
+ * rule — {@link searchMatches} with equality in place of containment.
+ *
+ * It exists for FR-24.11, which offers to create what a search did not find:
+ * „gurtel" typed while „Gürtel" is in the list is the belt, not a new item, and
+ * the naming rule (`nameCollision.foldName`) would call it a different name.
+ * Offering a near-duplicate is the one answer that cannot be right, so the
+ * wider fold decides here — and only here, because this blocks an *offer*,
+ * never a write.
+ */
+export function searchEquals(a: string, b: string): boolean {
+  const left = a.trim()
+  const right = b.trim()
+  return foldSearch(left) === foldSearch(right) || spellOutUmlauts(left) === spellOutUmlauts(right)
+}
+
+/**
  * The already-folded text split into words — anything that is not a letter or
  * a digit is a boundary.
  *

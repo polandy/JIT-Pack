@@ -1701,6 +1701,18 @@ These patterns apply to every screen and are specified once.
   tag chip active the empty state reads *„Kein Treffer in ‚Hygiene'"*, counts the hits outside the filter and offers
   *„In allen Artikeln suchen"*, which drops the filter and keeps the query. The rule itself is
   `client/src/domain/itemSearch.ts`; what M9 owns is the grouping and the sentence.
+* **What the search did not find, it offers (2026-09-18, FR-24.11):** while the query names **no active item
+  exactly** (under the search's fold), a dashed row sits **above** the results — and above the no-match sentence when
+  there are none: *„‚{Name}' anlegen"* with the line *„Neuer Artikel — Name und Tags genügen"*. It opens a sheet
+  (`SheetHead` *„Neuer Artikel"*): the name, prefilled from the query; the tag control M10 uses, with **every tag
+  narrowing the list already assigned** and the tags of the name hits offered first, marked in the done hue; a line
+  saying weight, price, mark and photo follow in the item view; then *„Anlegen und öffnen"* and *„Anlegen"*. After
+  *„Anlegen"* the screen **stays**: the query and the filter are untouched, the new row wears *„Neu"* until the query
+  changes, the offer is gone, and a toast *„‚{Name}' angelegt."* with *„Öffnen"* sits above the FAB (anchored to it,
+  like M4/M7/M8). A name that only a **retired** item carries is offered back instead — *„‚{Name}' ist stillgelegt"*
+  / *„Wiederherstellen statt neu anlegen"*, in the caution hue — and a tap restores it in place, without a sheet.
+  Enter in the field opens the sheet and never writes. Absent before the partition has arrived (ADR-033) and in the
+  selection mode.
 * **Actions:** Tap → M10; FAB → new item. **Deleting lives in M10 (built 2026-08-25, FR-24.3).** **Merging duplicates
   via multi-select is specified here and was never built** (found 2026-08-30, backlog item 6): there is no multi-select
   on this screen and no merge anywhere in the client. FR-16.3 is *Deduplication on Import* and is discharged by M15 and
@@ -1731,7 +1743,8 @@ These patterns apply to every screen and are specified once.
   that says the value is *not recorded*, from the catalogue. They used to read „0" and „0.00", which is a value — an
   item that weighs nothing and is worth nothing — and both columns feed FR-8's totals and FR-14's suggestions, so the
   reading a person took from the field was the one the analytics would have used had it been real.
-* **Elements:** Name, **multi-tag selector** — a search field filters the tag chips, **assigned tags stay pinned above
+* **Elements:** Name, **multi-tag selector** (`TagChooser` since 2026-09-18 — the same control M9's FR-24.11 sheet
+  uses) — a search field filters the tag chips, **assigned tags stay pinned above
   the matches** so the filter can never hide what the item already carries; ＋/Enter creates an unmatched name as a new
   tag and assigns it (FR-24.1, filter-or-create; supersedes the single category picker). **With an empty query the
   offers are a shelf, not the vocabulary (2026-08-27, UX-14):** the first eight unassigned tags, then a dashed *„N
