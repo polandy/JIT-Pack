@@ -2841,8 +2841,9 @@ locked.
     **inline under the row**, above the child rows; tapping it again, or another row's seat, folds it. **At most one
     strip is open**, so working down a list costs one tap per row to move on, not a close and an open. The M4 strip
     carries **no steppers**: a lit traveler *is* a child row from the same tap, and a child row's count is already
-    where its amount is changed (FR-25.24). That is what lets five travelers fit a 360 px line. Left says *for
-    whom*, right says *who packs* (FR-25.25) — two seats, two questions, never the same glyph: the left one draws
+    where its amount is changed (FR-25.24). Without steppers a toggle is one avatar wide, which is what a long
+    roster on a narrow phone needs. Left says *for whom*, right says *who packs* (FR-25.25) — two seats, two
+    questions, never the same glyph: the left one draws
     travelers, the right one accounts. A child row gets no seat; its avatar is its answer, and the head above it
     owns the question.
   * **M5 — in place of the glance chip.** The read-only membership chip (*„Gemeinsam"* / a name) becomes the strip,
@@ -2887,7 +2888,10 @@ locked.
 
   **Owed by the build, not settled here:** the seat's exact place beside the §3.28 mark. The 2026-09-18 mockup drew
   rows without marks, so *before the mark* is this FR's reading and a rendered M4 at 360 px is what confirms it —
-  names must still line up across item rows, heads and child rows (FR-28.4). UI-Spec M4/M5 and the UI-Test-Spec
+  names must still line up across item rows, heads and child rows (FR-28.4). **How many travelers one line holds is
+  owed the same way:** the mockup drew four and was never measured, so the build renders the longest real roster at
+  360 px and, if it does not fit, the strip scrolls sideways rather than wrapping or shrinking a toggle under the
+  touch-target floor FR-25.13h's live check established. UI-Spec M4/M5 and the UI-Test-Spec
   cases arrive with the build PR, as do the retirements of the `membership-*` cases the sheet's removal strands.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
