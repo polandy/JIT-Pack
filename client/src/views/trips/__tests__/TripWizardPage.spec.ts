@@ -20,6 +20,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 /** Step 2's sharing block exists only for an OIDC session (G-8), so it is a switch. */
@@ -1002,5 +1003,47 @@ describe('M3 step 2 — sharing (FR-4.5, G-8)', () => {
     expect(fetchUsers).not.toHaveBeenCalled()
     expect(fetchMe).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="wizard-share-add"]').exists()).toBe(false)
+  })
+})
+
+describe('M3 step 2 — default travellers that are accounts (FR-2.5a)', () => {
+  beforeEach(() => defaultTravelers().set([]))
+
+  /** Ionic does not reflect `value` onto the element, so it is read off the component's prop. */
+  function travelerName(wrapper: Awaited<ReturnType<typeof mountAtStepTwo>>) {
+    return wrapper
+      .findAllComponents({ name: 'IonInput' })
+      .find((c) => c.attributes('data-testid') === 'wizard-traveler-name')
+      ?.props('value')
+  }
+
+  async function mountAtStepTwo() {
+    const wrapper = mount(TripWizardPage, {
+      global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
+    })
+    await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
+      detail: { value: 'Fototour' },
+    })
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    expect(wrapper.find('[data-testid="wizard-step-2"]').exists()).toBe(true)
+    return wrapper
+  }
+
+  it('starts as a member of the trip, like an account picked in the step', async () => {
+    defaultTravelers().add('Bob', 'u-bob')
+
+    const wrapper = await mountAtStepTwo()
+
+    expect(travelerName(wrapper)).toBe('Bob')
+    expect(wrapper.find('[data-testid="wizard-traveler-role"]').exists()).toBe(true)
+  })
+
+  it('starts a plain name as a plain traveller, with no role to set', async () => {
+    defaultTravelers().add('Sia')
+
+    const wrapper = await mountAtStepTwo()
+
+    expect(travelerName(wrapper)).toBe('Sia')
+    expect(wrapper.find('[data-testid="wizard-traveler-role"]').exists()).toBe(false)
   })
 })

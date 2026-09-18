@@ -29,6 +29,7 @@ replaced and why. This index only says where to look.
   amount like every other (FR-21.9), and the FR-20.4 chip writes the position the resolution describes.
 * 2026-09-16 — **G-19**: the banner's layer belongs to the content column — below the page head, the width of the
   column (ADR-060 amendment 1).
+* 2026-09-18 — **M17/M3**: a default traveller can be an existing account (FR-2.5a).
 * 2026-09-15 — **M17**: the About block gains the FR-23.8 release line (ADR-062), absent wherever the instance makes
   no check.
 * 2026-09-13 — **G-2**: the detail names the last failed request (FR-19.6). **M17** gains the Connection block —
@@ -917,6 +918,8 @@ These patterns apply to every screen and are specified once.
   through `formatDay`), a step-4 quantity fires *Reise erstellen*. The single-item search on step 3 is G-16-exempt (its
   Enter is reserved for the field's own result list), so step 3 is left by the button alone.
 * **Step 2 opens with the default travellers (FR-2.5a, 2026-08-14)** from M17, editable there like any other traveller.
+  A default picked from the accounts (2026-09-18) opens as the account picker adds one: linked, a collaborator, with
+  the role selector.
 * **Step 1 folds its optional fields (FR-2.1c, 2026-08-14):** name and year stand alone; dates, series and attributes
   live behind one *Mehr Optionen ▾* row that states what is set behind it.
 * **Step 1 requires a name and a year (FR-2.1b, 2026-08-14).** The year is a picker that opens on the current one, so
@@ -2122,6 +2125,8 @@ token would prove nothing there is anything to prove.
 
 * **Default travellers (FR-2.5a, 2026-08-14):** a named list, added and removed inline, shown in every mode and stored
   on the device. Its hint says both things that matter: this device only, and changeable per trip.
+  In a session an *Add an existing user* select beside the free-text field offers the accounts not yet listed
+  (2026-09-18); a picked one is named like the account and marked *Linked account*. Absent without a session (G-8).
 
 * **Purpose:** Personal preferences within the declarative-infrastructure constraint (Section 2: no administrative
   *infrastructure* changes via the UI; application-level user administration lives in M20, proposed per Addendum 3.23).

@@ -94,7 +94,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const orchestrator = useOrchestrator()
-const { me, load: loadIdentity } = useIdentity(orchestrator)
+const { me, directory, load: loadIdentity } = useIdentity(orchestrator)
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
 
@@ -142,6 +142,16 @@ onMounted(async () => {
 const travelers = defaultTravelers()
 const travelerNames = travelers.names
 const newTraveler = ref('')
+
+/** Accounts not yet among the defaults; the list is empty (and the picker absent) outside a session. */
+const pickableUsers = computed(() =>
+  directory.value.filter((u) => !travelers.entries.value.some((e) => e.userId === u.user_id)),
+)
+
+function addAccountTraveler(userId: string) {
+  const user = directory.value.find((u) => u.user_id === userId)
+  if (user) travelers.add(user.display_name, user.user_id)
+}
 
 function addTraveler() {
   travelers.add(newTraveler.value)
@@ -631,6 +641,9 @@ async function exportTripCSV() {
         <IonItem v-for="(traveler, index) in travelerNames" :key="`${traveler}-${index}`">
           <IonIcon slot="start" :icon="personOutline" />
           <IonLabel>{{ traveler }}</IonLabel>
+          <IonNote v-if="travelers.entries.value[index]?.userId" slot="end">{{
+            t('settings.travelerLinked')
+          }}</IonNote>
           <IonButton
             slot="end"
             fill="clear"
@@ -665,6 +678,21 @@ async function exportTripCSV() {
             <IonIcon slot="start" :icon="addOutline" />
             {{ t('common.add') }}
           </IonButton>
+        </IonItem>
+        <!-- G-8: only a session has accounts to pick from. -->
+        <IonItem v-if="collaborative && pickableUsers.length > 0" lines="none">
+          <IonSelect
+            data-testid="default-traveler-user"
+            interface="popover"
+            :aria-label="t('settings.addTravelerAccount')"
+            :placeholder="t('settings.addTravelerAccount')"
+            :value="null"
+            @ionChange="(e: CustomEvent) => addAccountTraveler(String(e.detail.value))"
+          >
+            <IonSelectOption v-for="u in pickableUsers" :key="u.user_id" :value="u.user_id">
+              {{ u.display_name }}
+            </IonSelectOption>
+          </IonSelect>
         </IonItem>
       </IonList>
 

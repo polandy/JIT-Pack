@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 /**
  * The people who come along by default (FR-2.5a).
@@ -17,25 +17,52 @@ import { ref } from 'vue'
  */
 const STORAGE_KEY = 'jitpack_default_travelers'
 
-/** Names are trimmed, non-empty and unique, in the order given. */
-export function normalizeNames(raw: string[]): string[] {
-  const seen = new Set<string>()
-  const names: string[] = []
-  for (const entry of raw) {
-    const name = entry.trim()
-    if (name === '' || seen.has(name.toLowerCase())) continue
-    seen.add(name.toLowerCase())
-    names.push(name)
-  }
-  return names
+/** One default traveller; `userId` links an instance account (FR-2.5a, FR-1.9), `null` is a plain name. */
+export interface DefaultTraveler {
+  name: string
+  userId: string | null
 }
 
-function read(): string[] {
+/** Names are trimmed, non-empty and unique, in the order given. */
+export function normalizeNames(raw: string[]): string[] {
+  return normalizeEntries(raw.map((name) => ({ name, userId: null }))).map((e) => e.name)
+}
+
+/**
+ * Same rules as names, plus: one account is one person, so a repeated
+ * `userId` is dropped like a repeated name.
+ */
+export function normalizeEntries(raw: DefaultTraveler[]): DefaultTraveler[] {
+  const seenNames = new Set<string>()
+  const seenUsers = new Set<string>()
+  const entries: DefaultTraveler[] = []
+  for (const entry of raw) {
+    const name = entry.name.trim()
+    if (name === '' || seenNames.has(name.toLowerCase())) continue
+    if (entry.userId !== null && seenUsers.has(entry.userId)) continue
+    seenNames.add(name.toLowerCase())
+    if (entry.userId !== null) seenUsers.add(entry.userId)
+    entries.push({ name, userId: entry.userId })
+  }
+  return entries
+}
+
+/** Reads the current shape and the earlier plain-string one, so stored lists survive. */
+function read(): DefaultTraveler[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? normalizeNames(parsed.map(String)) : []
+    if (!Array.isArray(parsed)) return []
+    return normalizeEntries(
+      parsed.map((item): DefaultTraveler => {
+        if (item !== null && typeof item === 'object') {
+          const { name, userId } = item as { name?: unknown; userId?: unknown }
+          return { name: String(name ?? ''), userId: typeof userId === 'string' ? userId : null }
+        }
+        return { name: String(item), userId: null }
+      }),
+    )
   } catch {
     // Unreadable or refused storage: no defaults is a working state.
     return []
@@ -43,25 +70,30 @@ function read(): string[] {
 }
 
 /** Shared across every caller, so M17 and M3 cannot disagree. */
-const names = ref<string[]>(read())
+const entries = ref<DefaultTraveler[]>(read())
+const names = computed(() => entries.value.map((e) => e.name))
 
 export function defaultTravelers() {
-  function set(next: string[]): void {
-    names.value = normalizeNames(next)
+  function setEntries(next: DefaultTraveler[]): void {
+    entries.value = normalizeEntries(next)
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(names.value))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.value))
     } catch {
       // Not persistable — still applies for this session.
     }
   }
 
-  function add(name: string): void {
-    set([...names.value, name])
+  function set(next: string[]): void {
+    setEntries(next.map((name) => ({ name, userId: null })))
+  }
+
+  function add(name: string, userId: string | null = null): void {
+    setEntries([...entries.value, { name, userId }])
   }
 
   function remove(index: number): void {
-    set(names.value.filter((_, i) => i !== index))
+    setEntries(entries.value.filter((_, i) => i !== index))
   }
 
-  return { names, set, add, remove }
+  return { names, entries, set, add, remove }
 }

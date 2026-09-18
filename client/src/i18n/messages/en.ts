@@ -779,6 +779,8 @@ export const en = {
   'settings.defaultTravelersHint':
     'A new trip starts with these people. This device only; you can change them per trip.',
   'settings.addTraveler': 'Add a traveller',
+  'settings.addTravelerAccount': 'Add an existing user',
+  'settings.travelerLinked': 'Linked account',
   // M17's remaining sections (NFR-4.12, 2026-08-22): the screen was
   // half-translated since before the migration, and a half-translated screen
   // is worse than an untranslated one — a section is the unit.
