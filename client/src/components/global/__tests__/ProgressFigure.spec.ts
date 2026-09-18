@@ -57,23 +57,24 @@ describe('ProgressFigure — ring, sentence and track say one thing (FR-21.23)',
     expect(wrapper.find('.detail').exists()).toBe(false)
   })
 
+  it('stands as one of a pair only when asked, so a lone figure keeps its centred words (FR-7.4)', () => {
+    expect(
+      mount(ProgressFigure, { props: { percent: 0, headline: 'x' } })
+        .get('.figure')
+        .classes(),
+    ).not.toContain('paired')
+    expect(
+      mount(ProgressFigure, { props: { percent: 0, headline: 'x', paired: true } })
+        .get('.figure')
+        .classes(),
+    ).toContain('paired')
+  })
+
   it('takes the ring down to the size a header line can keep when asked', () => {
     expect(
       mount(ProgressFigure, { props: { percent: 0, headline: 'x', ringSize: 42 } })
         .get('.ring')
         .attributes('style'),
     ).toContain('--ring-size: 42px')
-  })
-
-  it('drops the track when it stands beside another figure, keeping ring and words', () => {
-    // FR-7.4: the trip-todo figure sits beside the packing one; two tracks
-    // side by side would read as one chart.
-    const wrapper = mount(ProgressFigure, {
-      props: { percent: 25, headline: '1/4', detail: 'Tasks', track: false },
-    })
-
-    expect(wrapper.get('[data-testid="progress-ring"]').attributes('aria-label')).toBe('25%')
-    expect(wrapper.get('.headline').text()).toBe('1/4')
-    expect(wrapper.find('.track').exists()).toBe(false)
   })
 })

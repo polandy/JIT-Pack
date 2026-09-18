@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /**
- * A trip's own todos as a figure (FR-7.4): the ring and „1/4 · Aufgaben",
- * set beside the packing share on M4's header line and on M1's hero.
+ * A trip's own todos as a figure (FR-7.4): ring, „1/4 Aufgaben", „3 offen"
+ * and a track, set beside the packing share on M4's header line and on M1's
+ * hero. The same four parts as the share beside it, in the same order, so
+ * the two stand as a pair: same ring, same lines, tracks on one level.
  *
  * Two figures side by side because they are two answers — fully packed and
  * every chore done are checked separately, and a count that mixed them would
@@ -38,10 +40,10 @@ const shown = computed(() => tripTodoStatus(progress.value) !== 'none')
     v-if="shown"
     class="trip-todo-figure"
     :percent="tripTodoPercent(progress)"
-    :headline="t('tripTodos.fraction', { done: progress.done, total: progress.total })"
-    :detail="t('tripTodos.figureLabel')"
+    :headline="t('tripTodos.figure', { done: progress.done, total: progress.total })"
+    :detail="progress.open > 0 ? t('tripTodos.open', { n: progress.open }) : null"
     :ring-size="ringSize"
-    :track="false"
+    paired
     :headline-testid="testid"
   />
 </template>

@@ -190,12 +190,6 @@ const prepTodos = computed(() => {
 const totalOpenTodos = computed(() => prepTodos.value.reduce((sum, g) => sum + g.todos.length, 0))
 
 /**
- * FR-7.4: the ring of the hero's second figure, one step under the share's —
- * it stands beside it and must not outweigh it.
- */
-const RING_SIZE_BESIDE = 42
-
-/**
  * FR-7.4: a trip card's second check, beside its packing progress and never
  * inside it. Null when the trip has no trip todo, so the line is absent
  * rather than claiming „all done" about nothing.
@@ -451,10 +445,10 @@ async function handleRefresh(event: CustomEvent) {
       >
         <!-- FR-7.4: the trip's todos as a second figure beside the share,
              read-only like the rest of the card; they are ticked in M4. -->
-        <template v-if="taskLine(heroTrip)" #beside>
+        <template v-if="taskLine(heroTrip)" #beside="{ ringSize }">
           <TripTodoFigure
             :trip-id="heroTrip.id"
-            :ring-size="RING_SIZE_BESIDE"
+            :ring-size="ringSize"
             :testid="`dashboard-tasks-${heroTrip.name}`"
           />
         </template>

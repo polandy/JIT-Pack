@@ -24,7 +24,7 @@ import {
   packRow,
   tripWithRows,
 } from './helpers/m4'
-import { writesLanded } from './helpers/page'
+import { expectFiguresPaired, writesLanded } from './helpers/page'
 import { backToInventory, createItem } from './helpers/m9'
 
 /**
@@ -2228,18 +2228,21 @@ test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
     await page.reload()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await expect(fraction).toHaveText('0/2')
+    await expect(fraction).toHaveText('0/2 tasks')
+    // A pair: the packing share has no detail line and the todos do („2
+    // open"), which is exactly the case that put the tracks on two levels.
+    await expectFiguresPaired(visible(page).getByTestId('m4-header'))
     const sectionTop = (await section.boundingBox())!.y
     const rowTop = (await visible(page).getByTestId('m4-row-Zelt').boundingBox())!.y
     expect(sectionTop).toBeLessThan(rowTop)
 
     // Ticking the last one folds the section to its line.
     await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(fraction).toHaveText('1/2')
+    await expect(fraction).toHaveText('1/2 tasks')
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await section.getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
     await expect(section.getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
-    await expect(fraction).toHaveText('2/2')
+    await expect(fraction).toHaveText('2/2 tasks')
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await expect(section.getByTestId('trip-todo-list')).toHaveCount(0)
     await writesLanded(page)

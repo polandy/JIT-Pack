@@ -13,6 +13,13 @@
  */
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 
+/**
+ * The ring of either figure once a second stands beside the share: two
+ * columns of a phone-wide card cannot each carry the lone figure's ring and
+ * still keep their sentence on one line.
+ */
+const RING_SIZE_PAIRED = 46
+
 withDefaults(
   defineProps<{
     /** The trip's name. */
@@ -50,11 +57,15 @@ withDefaults(
         :percent="percent"
         :headline="progress"
         :detail="detail"
+        :ring-size="$slots.beside ? RING_SIZE_PAIRED : undefined"
+        :paired="!!$slots.beside"
         headline-testid="hero-progress"
         detail-testid="hero-detail"
       />
+      <!-- The slot is handed the ring size, so the pair is one size by
+           construction rather than by two constants kept in step. -->
       <div v-if="$slots.beside" class="beside">
-        <slot name="beside" />
+        <slot name="beside" :ring-size="RING_SIZE_PAIRED" />
       </div>
     </div>
 
@@ -92,18 +103,20 @@ withDefaults(
 
 .figures {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px 16px;
   margin-top: 16px;
 }
 
-.hero-figure {
-  flex: 1;
-  min-width: 0;
-}
-
+/* Two columns where both sentences fit, one above the other where they do
+   not: the basis is the paired ring, its gap and the longest sentence
+   measured (*„118/118 gepackt"*, 115 px), so a phone stacks the pair rather
+   than ellipsizing it, and neither needs a breakpoint of its own (FR-7.4). */
+.hero-figure,
 .beside {
-  flex: none;
+  flex: 1 1 11rem;
+  min-width: 0;
 }
 
 /*

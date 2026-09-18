@@ -41,7 +41,7 @@ describe('TripTodoFigure — the second check, beside the share (FR-7.4)', () =>
     setActivePinia(createPinia())
   })
 
-  it('states the trip’s todos as done over total, with its ring at the same share', () => {
+  it('states the trip’s todos like the share beside it: fraction, open count, ring and track', () => {
     useTripStore().applyChanges([
       tripTodo('a', 'resolved'),
       tripTodo('b', 'open'),
@@ -50,9 +50,19 @@ describe('TripTodoFigure — the second check, beside the share (FR-7.4)', () =>
     ])
     const wrapper = mount(TripTodoFigure, { props })
 
-    expect(wrapper.get('[data-testid="todo-fraction"]').text()).toBe('1/4')
+    expect(wrapper.get('[data-testid="todo-fraction"]').text()).toBe('1/4 tasks')
+    expect(wrapper.get('.detail').text()).toBe('3 open')
     expect(wrapper.get('[data-testid="progress-ring"]').attributes('aria-label')).toBe('25%')
-    expect(wrapper.find('.track').exists()).toBe(false)
+    expect(wrapper.get('.track i').attributes('style')).toContain('width: 25%')
+    expect(wrapper.get('.figure').classes()).toContain('paired')
+  })
+
+  it('drops the open count once every todo is done, like the share drops its own', () => {
+    useTripStore().applyChanges([tripTodo('a', 'resolved'), tripTodo('b', 'resolved')])
+    const wrapper = mount(TripTodoFigure, { props })
+
+    expect(wrapper.get('[data-testid="todo-fraction"]').text()).toBe('2/2 tasks')
+    expect(wrapper.find('.detail').exists()).toBe(false)
   })
 
   it('renders nothing for a trip with no todo, rather than 0/0', () => {

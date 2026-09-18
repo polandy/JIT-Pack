@@ -30,30 +30,29 @@ withDefaults(
     /** Put on the detail line. */
     detailTestid?: string
     /**
-     * Whether the track runs under the words. A figure standing beside
-     * another one drops it: two bars side by side read as one chart.
+     * One of two figures side by side (FR-7.4): the words take the full
+     * height of the pair and the track sits at its foot, so both headlines
+     * share a line and both tracks another, whether or not each has a detail.
      */
-    track?: boolean
+    paired?: boolean
   }>(),
   {
     detail: null,
     ringSize: 58,
     headlineTestid: undefined,
     detailTestid: undefined,
-    track: true,
+    paired: false,
   },
 )
 </script>
 
 <template>
-  <div class="figure">
+  <div class="figure" :class="{ paired }">
     <ProgressRing :percent="percent" :size="ringSize" />
     <div class="progress">
       <b class="headline" :data-testid="headlineTestid">{{ headline }}</b>
       <span v-if="detail" class="detail" :data-testid="detailTestid">{{ detail }}</span>
-      <div v-if="track" class="track">
-        <i :style="{ width: `${Math.max(0, Math.min(100, percent))}%` }" />
-      </div>
+      <div class="track"><i :style="{ width: `${Math.max(0, Math.min(100, percent))}%` }" /></div>
     </div>
   </div>
 </template>
@@ -86,6 +85,23 @@ withDefaults(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.figure.paired {
+  align-items: stretch;
+}
+
+.figure.paired .ring {
+  align-self: center;
+}
+
+.figure.paired .progress {
+  display: flex;
+  flex-direction: column;
+}
+
+.figure.paired .track {
+  margin-top: auto;
 }
 
 .track {

@@ -4210,9 +4210,12 @@ the tail is where a symbol system is actually decided. Results:
     trip todo somebody needs to see on M1 before the trip is started.
   * **Visibility (owner request, 2026-09-18, after using the first cut).** The section began closed at the foot of
     M4, under every group and reveal bar, where it went unseen. Of four mocked variants the owner chose two, together:
-    **(A) a second figure** — M4's header line and M1's hero carry the todos as a ring with *„1/4 · Aufgaben"* beside
-    the packing share, in the same `--jp-done` as the share because progress has one colour (G-11); on M4 a tap on it
-    unfolds the section and brings it into view. It is absent on a trip with no todo, rather than reading *0/0*. **(B)
+    **(A) a second figure** — M4's header line and M1's hero carry the todos as the packing share's pair: the same
+    ring, *„1/4 Aufgaben"*, *„3 offen"* while any is, and a track, in the same `--jp-done` because progress has one
+    colour (G-11). The two read as one: side by side with both headlines on a line and both tracks on another, or —
+    where two columns would cut a sentence short (measured: *„118/118 gepackt"* needs 115 px, a 360 px phone's hero
+    column has 77) — one above the other. On M4 a tap on it unfolds the section and brings it into view. It is absent
+    on a trip with no todo, rather than reading *0/0*. **(B)
     Tasks first** — the section sits above the list, directly under the header line, **unfolded while any todo is open
     and folded to its one line once none is**, so a finished section gives the rows their room back; a fold the user
     makes holds for the visit. The two rejected variants, kept for their triggers: a separate *Aufgaben* view beside

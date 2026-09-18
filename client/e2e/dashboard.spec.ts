@@ -10,7 +10,7 @@ import {
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { addTripTodo, openTripTodos, packRow } from './helpers/m4'
-import { writesLanded } from './helpers/page'
+import { expectFiguresPaired, writesLanded } from './helpers/page'
 
 /**
  * M1 — Dashboard (UI-Test-Spec §4, unit "M1 dashboard").
@@ -28,6 +28,9 @@ import { writesLanded } from './helpers/page'
  */
 
 const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31', travelers: ['Andy'] }
+
+/** A small phone, where M1's hero is too narrow for two figures side by side (FR-7.4). */
+const PHONE = { width: 360, height: 780 }
 
 /** Four rows: the smallest list on which "three and a remainder" is visible. */
 const ITEMS = ['Zelt', 'Schlafsack', 'Kocher', 'Stirnlampe']
@@ -400,8 +403,16 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expectTripOpen(page, TRIP.name)
     await addTripTodo(page, 'Water the plants')
     await page.goto(PATH.dashboard)
-    await expect(tasks).toHaveText('0/1')
+    await expect(tasks).toHaveText('0/1 tasks')
     await expect(share).toHaveText('1/1 packed')
+    // Fully packed carries no detail, one open todo does: the pair still aligns.
+    await expectFiguresPaired(hero)
+    // And on a phone, where the two columns do not fit, it stacks rather than
+    // cutting a sentence short.
+    const viewport = page.viewportSize()!
+    await page.setViewportSize(PHONE)
+    await expectFiguresPaired(hero)
+    await page.setViewportSize(viewport)
 
     // Resolving it changes the task check and nothing else.
     await hero.click()
@@ -411,7 +422,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
     await writesLanded(page)
     await page.goto(PATH.dashboard)
-    await expect(tasks).toHaveText('1/1')
+    await expect(tasks).toHaveText('1/1 tasks')
     await expect(share).toHaveText('1/1 packed')
 
     // The reverse: unpacking moves the share, the task check stays done.
@@ -426,6 +437,6 @@ test.describe('M1 — the three promises @local @m1', () => {
     await writesLanded(page)
     await page.goto(PATH.dashboard)
     await expect(share).toHaveText('0/1 packed')
-    await expect(tasks).toHaveText('1/1')
+    await expect(tasks).toHaveText('1/1 tasks')
   })
 })

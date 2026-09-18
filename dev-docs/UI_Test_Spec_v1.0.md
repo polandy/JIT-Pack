@@ -284,11 +284,12 @@ stable references for the traceability matrix.
   something only because the first trip is on it. The trip's block leads into the trip, where M4's section is visible.
 * **E2E-M1-11** `all` (FR-7.4) — **new and implemented 2026-09-18** (`dashboard.spec.ts`). Packing and tasks are two
   answers, asserted both ways on one trip whose only row is packed. With no trip todo the hero has no second figure;
-  with one open (added in M4), the hero's share still reads complete **and** its todo figure reads *„0/1"*; resolving
-  it in M4 turns the figure to *„1/1"* while the share reads the value it read before — the before/after pair on one
-  locator is the signal, since „unchanged" alone is green on a card that never rendered the share. The reverse half
-  unpacks the row: the share drops, the todo figure stays at *1/1*. (Revised 2026-09-18: the hero's one-line check
-  became a figure; E2E-M1-10 keeps the line, on a list card.)
+  with one open (added in M4), the hero's share still reads complete **and** its todo figure reads *„0/1 Aufgaben"* as
+  the share's pair — asserted at desktop width (side by side) and at 360 px (stacked); resolving it in M4 turns the
+  figure to *„1/1 Aufgaben"* while the share reads the value it read before — the before/after pair on one locator is
+  the signal, since „unchanged" alone is green on a card that never rendered the share. The reverse half unpacks the
+  row: the share drops, the todo figure stays at *„1/1 Aufgaben"*. (Revised 2026-09-18: the hero's one-line check became
+  a figure; E2E-M1-10 keeps the line, on a list card.)
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
@@ -698,12 +699,14 @@ in WebKit.
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing
   are each read back after a reload — a list that only repaints proves the component and not the write — and the head's
   check (*„0 von 2"* → *„1 von 2"* → *„0 von 1 erledigt"*) follows every step.
-* **E2E-M4-97** `local` (FR-7.4 visibility, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): with no
-  todo the section is closed and the header has no todo figure. With two todos, after a reload that no helper has
-  touched, the section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2"*.
-  Ticking one keeps it open at *„1/2"*; ticking the last folds it to *„✓ Alle Aufgaben erledigt"* with the list gone and
-  the figure at *„2/2"* — the status line is the positive signal for the fold. After another reload it is still folded,
-  and tapping the header figure unfolds it.
+* **E2E-M4-97** `local` (FR-7.4 visibility, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): with no todo
+  the section is closed and the header has no todo figure. With two todos, after a reload that no helper has touched,
+  the section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2 Aufgaben"* and
+  stands as the share's pair (`expectFiguresPaired`: same ring, headlines and tracks level, no sentence clipped —
+  mutation-checked: without the paired layout the tracks sat 6 px apart). Ticking one keeps it open at *„1/2 Aufgaben"*;
+  ticking the last folds it to *„✓ Alle Aufgaben erledigt"* with the list gone and the figure at *„2/2 Aufgaben"* — the
+  status line is the positive signal for the fold. After another reload it is still folded, and tapping the header
+  figure unfolds it.
 * **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
   as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
   an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A

@@ -1624,13 +1624,13 @@ setHeaderTitle(
            doubled. -->
       <div
         class="trip-line"
-        :class="{ collapsed: headCollapsed || !rowsLoaded }"
+        :class="{ collapsed: headCollapsed || !rowsLoaded, paired: tripTodoState !== 'none' }"
         data-testid="m4-header"
       >
         <!-- Where the trip stands, and who else is here. Tabular throughout:
              the weight under the share changes on the same tap as the share
              itself, and proportional digits shift both as it does. -->
-        <div class="trip-stats">
+        <div class="trip-stats" :class="{ paired: tripTodoState !== 'none' }">
           <!-- ADR-033: „0/0 packed" under an empty track is the verdict the
                note below declines to give, in the form a reader trusts most.
                It waits for the partition; 0/0 is honest once measured. -->
@@ -1641,6 +1641,7 @@ setHeaderTitle(
             :headline="t('trips.itemSummary', { packed: kpis.packedItems, total: kpis.totalItems })"
             :detail="statsDetail"
             :ring-size="RING_SIZE_HEADER"
+            :paired="tripTodoState !== 'none'"
             headline-testid="m4-progress"
             detail-testid="m4-stats-detail"
           />
@@ -2253,8 +2254,36 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 
 .trip-stats {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
+}
+
+/* A lone share keeps its own width; a pair takes the line and wraps to two
+   rows where two columns would ellipsize a sentence — the basis is the
+   header ring, its gap and the longest sentence measured (*„118/118
+   gepackt"*), as on M1's hero (FR-7.4). */
+.trip-stats.paired {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.trip-stats.paired > .figure,
+.trip-stats.paired > .todo-figure-button {
+  flex: 1 1 10.5rem;
+}
+
+/* Two stacked figures are taller than the one the line was sized for;
+   `:not(.collapsed)` so scrolling down still takes the whole line. */
+.trip-line.paired:not(.collapsed) {
+  max-height: 136px;
+}
+
+/* Stretched so a paired figure's two tracks share a level (FR-7.4); the
+   facepile keeps to the middle of the line. */
+.trip-stats > .wrap {
+  align-self: center;
 }
 
 /* The ring is punched in the colour it sits on, and the header line is the
@@ -2491,9 +2520,11 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   color: var(--jp-done);
 }
 
-/* The figure is the control; the button only makes it one. */
+/* The figure is the control; the button only makes it one. It takes the
+   same share of the line as the packing figure, so the two tracks run on
+   one level and one length. */
 .todo-figure-button {
-  flex: none;
+  min-width: 0;
   padding: 0;
   background: none;
   border: none;

@@ -10,7 +10,7 @@
  */
 import { expect } from '@playwright/test'
 import { PANEL_HOST_SELECTOR } from '../frameSlots'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 /**
  * The page that is actually painted. A route change alone proves nothing —
@@ -113,4 +113,44 @@ export async function pageSettled(page: Page) {
 
 export function useReducedMotion(test: { use: (options: Record<string, unknown>) => void }): void {
   test.use({ reducedMotion: 'reduce' })
+}
+
+/** How far two paired figures' lines may sit apart and still read as one level: sub-pixel rounding. */
+const PAIR_TOLERANCE_PX = 1
+
+/**
+ * FR-7.4: two `ProgressFigure`s shown as a pair read as one — the same ring,
+ * and either side by side (both headlines on one line, both tracks on
+ * another, equally long) or, where two columns would not fit, one above the
+ * other (rings and tracks on one edge, equally long). Neither sentence is
+ * cut short in either arrangement. `pair` holds exactly the two figures
+ * (M4's header line, M1's hero).
+ */
+export async function expectFiguresPaired(pair: Locator): Promise<void> {
+  const figures = pair.locator('.figure')
+  await expect(figures).toHaveCount(2)
+  const box = async (figure: Locator, part: string) => (await figure.locator(part).boundingBox())!
+  const near = (x: number, y: number) =>
+    expect(Math.abs(x - y)).toBeLessThanOrEqual(PAIR_TOLERANCE_PX)
+  const [a, b] = [figures.nth(0), figures.nth(1)]
+  const [ringA, ringB] = [await box(a, '.ring'), await box(b, '.ring')]
+  const [trackA, trackB] = [await box(a, '.track'), await box(b, '.track')]
+  expect(ringA.width).toBe(ringB.width)
+  near(trackA.width, trackB.width)
+  if (ringB.y >= ringA.y + ringA.height) {
+    near(ringA.x, ringB.x)
+    near(trackA.x, trackB.x)
+  } else {
+    near(ringA.y, ringB.y)
+    near((await box(a, '.headline')).y, (await box(b, '.headline')).y)
+    near(trackA.y, trackB.y)
+  }
+  // A pair squeezed into too little width ellipsizes its sentences while
+  // every line above still agrees.
+  for (const figure of [a, b]) {
+    const clipped = await figure
+      .locator('.headline')
+      .evaluate((el) => el.scrollWidth > el.clientWidth)
+    expect(clipped).toBe(false)
+  }
 }

@@ -773,9 +773,12 @@ These patterns apply to every screen and are specified once.
   erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open todos as plain text. A
   trip without any trip todo is left out, and the card is absent when none has one — the first cut put an editor with an
   empty composer here for every active trip, which stood above the hero on every dashboard. **The trip cards carry the
-  check too:** the hero as a **second figure beside its packing share** — a smaller ring and *„1/4 · Aufgaben"*, no
-  track, the ring in `--jp-done` like the share's (G-11) — and each list card below it as one line, *„Aufgaben: 2
-  offen"* or *„Aufgaben: alle erledigt"*. Both are present only when the trip has at least one trip todo, and neither
+  check too:** the hero as the **packing share's pair** — the same ring (both step down to 46 px while paired),
+  *„1/4 Aufgaben"*, *„3 offen"* while any is open, and a track, in `--jp-done` like the share's (G-11). Side by side
+  where both sentences fit, headlines on one line and tracks on another; stacked where they do not, which is a
+  phone — each column's basis is the ring, its gap and the longest sentence measured, so no breakpoint is involved
+  and no sentence is ellipsized. Each list card below the hero keeps one line, *„Aufgaben: 2 offen"* or *„Aufgaben:
+  alle erledigt"*. Both are present only when the trip has at least one trip todo, and neither
   is folded into the ring, the track or the share. The todos are written in M4 (*Aufgaben für die Reise*). All three
   modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11)
 * **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at
@@ -987,8 +990,9 @@ These patterns apply to every screen and are specified once.
   scratch to give the actual packing far more room. The full reasoning per decision lives in the addendum; what M4 *is*
   now:
   * **The header line** — packed/total · weight · open-prep with the presence facepile, and — once the trip has a
-    trip todo — **the todos' own figure** beside the share (FR-7.4): a ring and *„1/4 · Aufgaben"*, which unfolds
-    *Aufgaben für die Reise* and scrolls it into view when tapped. Nothing else. It stays
+    trip todo — **the todos' own figure** as the share's pair (FR-7.4): same ring, *„1/4 Aufgaben"*, *„3 offen"*, a
+    track; side by side, or on two rows where the line is too narrow for both sentences (the line's height allows
+    for it). A tap unfolds *Aufgaben für die Reise* and scrolls it into view. Nothing else. It stays
     **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line
     hides and any upward scroll brings it back.
   * **~~Where the trip's name lives: the width decides (owner, 2026-08-19; re-decided 2026-08-30)~~ — superseded
