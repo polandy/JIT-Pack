@@ -1242,3 +1242,97 @@ test.describe("M10 — the item's rear-view @local @m10", () => {
     await expect(visiblePage(page).getByTestId('m10-section-comments')).toHaveCount(0)
   })
 })
+
+test.describe('M9 — the search creates what it did not find (FR-24.11)', () => {
+  test.beforeEach(async ({ seedMode, page }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto(PATH.items)
+  })
+
+  /** The creation sheet, once Ionic has actually presented it. */
+  async function openOffer(page: Page): Promise<Locator> {
+    await visiblePage(page).getByTestId('m9-offer').click()
+    const sheet = page.getByTestId('m9-create-sheet')
+    await expect(sheet).toHaveAttribute('data-presented', 'true')
+    return sheet
+  }
+
+  test('E2E-M9-21: a partial hit still offers the missing name, and the list survives creating it', async ({
+    page,
+  }) => {
+    await createItem(page, 'Zeltheringe', { tags: ['Camping'] })
+    await backToInventory(page)
+    await createItem(page, 'Kabel', { tags: ['Technik'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    await list.getByTestId('items-search-input').fill('Zelt')
+    // The partial hit is on screen, and the tent is still offered above it.
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-offer-title')).toContainText('Zelt')
+
+    const sheet = await openOffer(page)
+    await expect(sheet.getByTestId('m9-create-name').locator('input')).toHaveValue('Zelt')
+    // The pegs' tag leads the offers — the tent is most likely camping gear too.
+    await expect(sheet.locator('[data-testid^="m9-create-tag-offer-"]').first()).toHaveText(
+      'Camping',
+    )
+    await sheet.getByTestId('m9-create-tag-offer-Camping').click()
+    await expect(sheet.getByTestId('m9-create-tag-primary-Camping')).toBeVisible()
+    await sheet.getByTestId('m9-create-confirm').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await writesLanded(page)
+
+    // Still on M9, still searching: the new row is a hit and says it is new,
+    // and the offer is gone because the name now exists — the same event
+    // reaching both places.
+    await expect(list.getByTestId('items-search-input')).toHaveValue('Zelt')
+    await expect(list.getByTestId('m9-row')).toHaveCount(2)
+    await expect(
+      list.getByTestId('m9-row').filter({ has: page.getByTestId('m9-row-new') }),
+    ).toContainText('Zelt')
+    await expect(list.getByTestId('m9-offer')).toHaveCount(0)
+
+    // The toast offering „Open" sits above the ＋ rather than over it — the
+    // first render of this screen had it covering the button.
+    const toast = page.locator('ion-toast[data-presented="true"]').filter({ hasText: 'Zelt' })
+    await expect(toast).toHaveCount(1)
+    const toastBox = await toast.locator('.toast-wrapper').boundingBox()
+    const fabBox = await list.getByTestId('m9-fab').boundingBox()
+    expect(toastBox!.y + toastBox!.height).toBeLessThanOrEqual(fabBox!.y)
+
+    // Filed where the sheet said: under Camping, beside the pegs.
+    await list.getByTestId('search-clear').click()
+    await list.getByTestId('m9-tag-chip-Camping').click()
+    await expect(list.getByTestId('m9-row')).toHaveCount(2)
+  })
+
+  test('E2E-M9-22: the active filter tag comes along, and „create and open" returns to the same search', async ({
+    page,
+  }) => {
+    await createItem(page, 'Kabel', { tags: ['Technik'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    await list.getByTestId('m9-tag-chip-Technik').click()
+    await list.getByTestId('items-search-input').fill('Ladegerät')
+    // The dead end still names itself; the offer sits above it.
+    await expect(list.getByTestId('m9-no-match')).toBeVisible()
+
+    const sheet = await openOffer(page)
+    // Without the filter's tag the new item would vanish from this list.
+    await expect(sheet.getByTestId('m9-create-tag-primary-Technik')).toBeVisible()
+    await sheet.getByTestId('m9-create-open').click()
+
+    await expect(page.getByTestId('header-title')).toHaveText('Ladegerät')
+    await expect(visiblePage(page).getByTestId('save-indicator')).toBeVisible()
+    await writesLanded(page)
+
+    await backToInventory(page)
+    await expect(list.getByTestId('items-search-input')).toHaveValue('Ladegerät')
+    await expect(list.getByTestId('m9-tag-chip-Technik')).toHaveAttribute('aria-pressed', 'true')
+    await expect(list.getByTestId('m9-row')).toHaveCount(1)
+    await expect(list.getByTestId('m9-row')).toContainText('Ladegerät')
+    await expect(list.getByTestId('m9-offer')).toHaveCount(0)
+  })
+})

@@ -1510,6 +1510,20 @@ test body under it separates a wrong number from a missing test.**
   **not** showing and the note is the way to M23. It lives in the M23 unit rather than M9's, because retiring an item
   is the setup and that unit already owns the dance. A second, untouched item stays active throughout — otherwise
   „the note appeared" would be satisfied by an inventory that had emptied itself.
+* **E2E-M9-21** `all` (FR-24.11) — **implemented 2026-09-18** (`e2e/inventory.spec.ts`): „Zelt" finds *Zeltheringe*
+  and the tent is **still offered** above that hit — the missing-name rule rather than the empty-result one. The sheet
+  opens on the query as the name with the pegs' tag first among the offers; *„Anlegen"* leaves the list **on the same
+  query**, with two hits, the new one marked, and the offer gone — the name now existing is the same event reaching
+  both places. The toast is asserted **above the FAB** on its settled box (the first render had it covering the
+  button), and the item is read back under its tag.
+* **E2E-M9-22** `all` (FR-24.11) — **implemented 2026-09-18** (`e2e/inventory.spec.ts`): with *Technik* chosen and
+  nothing matching, the no-match sentence stands and the offer sits above it; the sheet opens with **Technik already
+  assigned**, and *„Anlegen und öffnen"* lands in M10 on the saved item. Back on M9 the query and the chip are still
+  set and the new row answers both — the survival of the search is what the feature is for.
+* **E2E-M9-23** `all` (FR-24.11) — **implemented 2026-09-18** (`e2e/restore-retired.spec.ts`): searching a
+  **retired** item's name offers it back; a tap restores it without opening a sheet, the row returns marked, and M23
+  is left with nothing to restore. A second item stays active, because an inventory whose only row is retired is an
+  empty one and has no search field — which the first run of this case found.
 * **E2E-M9-17** `all` (FR-24.10) — **implemented 2026-09-15** (`e2e/inventory.spec.ts`): a tag is renamed from the
   manager, and the **inventory's group heading** carries the new name — the only place the write is observable, since
   the sheet would show a renamed row whether or not anything was written. The second clause is the refusal: a name a
@@ -3204,6 +3218,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-23.8 | E2E+UNIT | M17-17 (`single`: an instance that was not asked to check says nothing, with the version line as the positive signal). The other three states need a release feed that answers on demand, which no project has: `views/settings/__tests__/SettingsUpdateCheck.spec.ts` renders all four plus Local Mode, where the assertion is that **no request is made**, and `internal/api/update_test.go` drives the endpoint — the day-long interval and the failed-check rules on an injected clock, the link hardening, and the check outliving the request that triggered it |
 | FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
 | FR-24.3 | E2E+UNIT | M10-14 (a referenced item is hidden and still resolves in its group), M10-15 (an unreferenced one is really gone, and its name is free again), M7-11 (the Vorlage confirm states which deletion it is), **M23-01/02/03/04** (the restore, the collision and its rename, that a retired row can still be removed for good, and the Vorlage half — retired by a trip, listed on its own segment, restored); `domain/masterDeletion` + `domain/masterRestore` and `composables/lifecycleDelete` + `composables/lifecycleRestore` (both rules, both branches, and that resolution/export keep seeing retired rows); store-side both branches **and the restore** in Go, including a colliding restore rejected as `constraint_violated` with the row left retired |
+| FR-24.11 | E2E+UNIT | M9-21 (missing name beside partial hits, list survives), M9-22 (filter tag assigned, create-and-open returns to the search), M9-23 (a retired name is restored, not re-created); `domain/itemSearch` `searchOffer` + `domain/search` `searchEquals`, `CreateItemSheet.spec.ts` (the write), `ItemInventoryPage.spec.ts` (when the offer appears) |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
 | FR-24.5 | E2E | M10-07 (minimal creation; photo, dependency and delete sections absent), M11-05 (placeholder-name container) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |

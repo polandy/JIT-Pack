@@ -24,6 +24,7 @@ import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet from '@/components/items/BulkTagSheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
+import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
@@ -976,5 +977,205 @@ describe('M9 — the items it is not showing (FR-24.3, ADR-032)', () => {
     master.masterLoaded.value = true
     await flushPromises()
     expect(page.find('[data-testid="m9-retired-note"]').exists()).toBe(true)
+  })
+})
+
+describe('M9 — what the search did not find, it offers to create (FR-24.11)', () => {
+  interface Writes {
+    created: { id: string; name: string }[]
+    assigned: { itemId: string; tagId: string }[]
+    restored: string[]
+  }
+  let writes: Writes
+
+  function seedRetired(name: string, id: string) {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.items,
+      id,
+      deleted: false,
+      row: { name, unit: 'pcs', retired_at: '2026-09-01T00:00:00.000Z' },
+    })
+  }
+
+  function seedCamping() {
+    seedTag('Camping', 't-camp', 0)
+    seedTag('Hygiene', 't-hyg', 1)
+    seedItem('Zeltheringe', 'i-hering')
+    seedItem('Zeltunterlage', 'i-unterlage')
+    seedItem('Zahnbürste', 'i-zb')
+    assignTag('i-hering', 't-camp')
+    assignTag('i-unterlage', 't-camp')
+    assignTag('i-zb', 't-hyg')
+  }
+
+  beforeEach(() => {
+    writes = { created: [], assigned: [], restored: [] }
+    Object.assign(orchestratorFake, {
+      createMasterItem: (name: string) => {
+        const id = `new-${writes.created.length}`
+        writes.created.push({ id, name })
+        seedItem(name, id)
+        return id
+      },
+      assignTag: (itemId: string, tagId: string) => {
+        writes.assigned.push({ itemId, tagId })
+        assignTag(itemId, tagId, 0)
+        return `${itemId}-${tagId}`
+      },
+      createTag: (name: string) => {
+        seedTag(name, `t-${name}`)
+        return `t-${name}`
+      },
+      restoreMasterItem: (itemId: string) => {
+        writes.restored.push(itemId)
+        return true
+      },
+    })
+  })
+
+  it('offers the missing name above partial hits — „Zelt" finds two rows and no tent', async () => {
+    seedCamping()
+    const page = mountPage()
+    await typeSearch(page, 'Zelt')
+
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(2)
+    expect(page.get('[data-testid="m9-offer-title"]').text()).toBe(
+      t('items.offerCreate', { name: 'Zelt' }),
+    )
+  })
+
+  it('offers nothing once the name is on screen — the hit row is the positive signal', async () => {
+    seedCamping()
+    const page = mountPage()
+    await typeSearch(page, 'zeltheringe')
+
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+    expect(page.find('[data-testid="m9-offer"]').exists()).toBe(false)
+  })
+
+  it('offers it in the dead end too, beside the sentence that names the dead end', async () => {
+    seedCamping()
+    const page = mountPage()
+    await typeSearch(page, 'Stirnlampe')
+
+    expect(page.find('[data-testid="m9-no-match"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m9-offer"]').exists()).toBe(true)
+  })
+
+  it('claims nothing is missing before the master partition has arrived (ADR-033)', async () => {
+    seedCamping()
+    master.masterLoaded.value = false
+    const page = mountPage()
+    await typeSearch(page, 'Zelt')
+
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(2)
+    expect(page.find('[data-testid="m9-offer"]').exists()).toBe(false)
+
+    master.masterLoaded.value = true
+    await flushPromises()
+    expect(page.find('[data-testid="m9-offer"]').exists()).toBe(true)
+  })
+
+  it('offers nothing in the selection mode, where rows do not navigate', async () => {
+    seedCamping()
+    const page = mountPage()
+    await typeSearch(page, 'Zelt')
+    expect(page.find('[data-testid="m9-offer"]').exists()).toBe(true)
+
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    build()
+      .find((action) => action.id === 'm9-select')!
+      .onClick()
+    await flushPromises()
+
+    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
+    expect(page.find('[data-testid="m9-offer"]').exists()).toBe(false)
+  })
+
+  it('opens the sheet with the query as the name, the filter tag assigned and the hits’ tags first', async () => {
+    seedCamping()
+    const page = mountPage()
+    page.findComponent(TagFilterSheet).vm.$emit('update:selection', ['t-camp'])
+    await typeSearch(page, 'Zelt')
+
+    await page.get('[data-testid="m9-offer"]').trigger('click')
+    await flushPromises()
+
+    const sheet = page.findComponent(CreateItemSheet)
+    expect(sheet.props('isOpen')).toBe(true)
+    expect(sheet.props('name')).toBe('Zelt')
+    expect(sheet.props('tagIds')).toEqual(['t-camp'])
+    expect(sheet.props('preferredTagIds')).toEqual(['t-camp'])
+  })
+
+  it('never assigns the untagged bucket — it is not a tag', async () => {
+    seedCamping()
+    const page = mountPage()
+    page.findComponent(TagFilterSheet).vm.$emit('update:selection', [UNTAGGED_KEY])
+    await typeSearch(page, 'Stirnlampe')
+    await page.get('[data-testid="m9-offer"]').trigger('click')
+    await flushPromises()
+
+    expect(page.findComponent(CreateItemSheet).props('tagIds')).toEqual([])
+  })
+
+  it('opens the sheet on Enter and writes nothing — a typo must not become an item', async () => {
+    seedCamping()
+    const page = mountPage()
+    await typeSearch(page, 'Stirnlampe')
+
+    await page.get('[data-testid="items-search-input"]').trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+
+    expect(page.findComponent(CreateItemSheet).props('isOpen')).toBe(true)
+    expect(writes.created).toEqual([])
+  })
+
+  it('stays on the list after creating: the offer goes, the new row is marked, the toast opens it', async () => {
+    seedCamping()
+    const page = mountPage()
+    await typeSearch(page, 'Stirnlampe')
+    await page.get('[data-testid="m9-offer"]').trigger('click')
+    await flushPromises()
+
+    // What the sheet reports once its own write has landed.
+    seedItem('Stirnlampe', 'new-0')
+    page.findComponent(CreateItemSheet).vm.$emit('created', {
+      id: 'new-0',
+      name: 'Stirnlampe',
+      open: false,
+    })
+    await flushPromises()
+
+    expect(page.findComponent(CreateItemSheet).props('isOpen')).toBe(false)
+    expect(page.find('[data-testid="m9-offer"]').exists()).toBe(false)
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+    expect(page.find('[data-testid="m9-row-new"]').exists()).toBe(true)
+    expect(presentToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: t('items.created', { name: 'Stirnlampe' }) }),
+    )
+
+    // A new query ends the mark: it confirmed one write, not a state.
+    await typeSearch(page, 'Stirnlamp')
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+    expect(page.find('[data-testid="m9-row-new"]').exists()).toBe(false)
+  })
+
+  it('offers a retired item back instead of creating a second one, and restores it', async () => {
+    seedCamping()
+    seedRetired('Regenponcho', 'r-poncho')
+    const page = mountPage()
+    await typeSearch(page, 'regenponcho')
+
+    expect(page.get('[data-testid="m9-offer-title"]').text()).toBe(
+      t('items.offerRestore', { name: 'Regenponcho' }),
+    )
+    await page.get('[data-testid="m9-offer"]').trigger('click')
+    await flushPromises()
+
+    expect(writes.restored).toEqual(['r-poncho'])
+    expect(writes.created).toEqual([])
+    expect(page.findComponent(CreateItemSheet).props('isOpen')).toBe(false)
   })
 })

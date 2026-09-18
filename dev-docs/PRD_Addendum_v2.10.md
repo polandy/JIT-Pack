@@ -1650,6 +1650,37 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   with no room between neighbours, and the axis routinely arrives flat, because `createTag` has always taken
   `tagList.length` while a restore and the dev seed produce all-zero orders. The order controls **withdraw while a
   search is narrowing the list** — „hoch" between two rows eleven apart on the axis is an ordering nobody can predict.
+* **FR-24.11 (The Search Creates What It Did Not Find — added 2026-09-18, implemented the same day):** while M9's
+  search holds a query that **no active item carries as its exact name**, the top of the results offers
+  *„‚{Name}' anlegen"*. A tap opens a sheet with the **name** (the query, trimmed) and the **tags** — nothing else;
+  weight, price, the mark and a photo stay M10's, reached from the toast's *„Öffnen"* or from the sheet's second
+  button *„Anlegen und öffnen"*. *„Anlegen"* writes the item exactly as M10's creation does (FR-24.5: a blank name is
+  answered with a hint, a name another active item holds is refused before the push) and **leaves the user on M9**:
+  the query and the filter survive, the new row appears among the hits marked *„Neu"*, and the offer goes, because the
+  name now exists. *Why:* the inventory is a lookup surface (FR-24.6), and the moment a lookup fails is the moment the
+  user knows what is missing — the FAB made them retype it on a second screen and lose the search on the way back.
+  Five rules decide the details (owner decision 2026-09-18, taking every recommendation of the proposal's mockup):
+  * **The offer answers a missing name, not an empty result.** „Zelt" finds *Zeltheringe* and *Zeltunterlage* and
+    the tent is still missing; an offer made only in the no-match state would never reach that, the commonest case.
+    „Exact" is the **search's** fold (`domain/search.ts`, both umlaut spellings), deliberately wider than the naming
+    rule's: „gurtel" typed while „Gürtel" is listed is the belt, and offering a near-duplicate is the one answer that
+    cannot be right. It blocks an *offer*, never a write, so the wider fold costs nothing.
+  * **At the top, the same place with or without hits** — with the keyboard up the end of a list of partial hits is
+    out of reach. Enter in the field **opens the sheet and never writes**: a typo must not become an item.
+  * **The filter's tags come along.** Every tag narrowing the list is assigned from the start, because without it the
+    new item would vanish from the filtered list the moment it exists, which reads as a failed write. *„Ohne Tag"* is
+    a bucket, not a tag, and assigns nothing. The tags of the items the query found **by name** are offered first.
+  * **A retired name is offered back, not re-created.** Retiring frees the name (ADR-034), so a second row would be
+    allowed — but it would start without the tags, weight and history the hidden one kept. The row reads
+    *„‚{Name}' ist stillgelegt — Wiederherstellen"* and is M23's restore, in place.
+  * **No offer while the master partition has not arrived** (ADR-033 — „no such item" is a claim about a list the
+    device may not hold) **and none in FR-24.9's selection mode**, where rows do not navigate.
+  *Considered and rejected:* the form **inline** in the list (no overlay, but it pushes the hits off screen and leaves
+  no room for tags under a raised keyboard), and handing the name to M10 as `?name=` (no new UI, but the search and
+  the filter are gone — the round trip this exists to remove). The tag control is **one component shared with M10**
+  (`TagChooser`), so filter-or-create stays one rule. An empty inventory has no search field (G-7's empty state stands
+  in for it), so the offer cannot appear there — the FAB and the spreadsheet import are that state's two ways in.
+
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —
