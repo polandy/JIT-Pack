@@ -1650,6 +1650,37 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   with no room between neighbours, and the axis routinely arrives flat, because `createTag` has always taken
   `tagList.length` while a restore and the dev seed produce all-zero orders. The order controls **withdraw while a
   search is narrowing the list** — „hoch" between two rows eleven apart on the axis is an ordering nobody can predict.
+* **FR-24.11 (The Search Creates What It Did Not Find — added 2026-09-18, implemented the same day):** while M9's
+  search holds a query that **no active item carries as its exact name**, the top of the results offers
+  *„‚{Name}' anlegen"*. A tap opens a sheet with the **name** (the query, trimmed) and the **tags** — nothing else;
+  weight, price, the mark and a photo stay M10's, reached from the toast's *„Öffnen"* or from the sheet's second
+  button *„Anlegen und öffnen"*. *„Anlegen"* writes the item exactly as M10's creation does (FR-24.5: a blank name is
+  answered with a hint, a name another active item holds is refused before the push) and **leaves the user on M9**:
+  the query and the filter survive, the new row appears among the hits marked *„Neu"*, and the offer goes, because the
+  name now exists. *Why:* the inventory is a lookup surface (FR-24.6), and the moment a lookup fails is the moment the
+  user knows what is missing — the FAB made them retype it on a second screen and lose the search on the way back.
+  Five rules decide the details (owner decision 2026-09-18, taking every recommendation of the proposal's mockup):
+  * **The offer answers a missing name, not an empty result.** „Zelt" finds *Zeltheringe* and *Zeltunterlage* and
+    the tent is still missing; an offer made only in the no-match state would never reach that, the commonest case.
+    „Exact" is the **search's** fold (`domain/search.ts`, both umlaut spellings), deliberately wider than the naming
+    rule's: „gurtel" typed while „Gürtel" is listed is the belt, and offering a near-duplicate is the one answer that
+    cannot be right. It blocks an *offer*, never a write, so the wider fold costs nothing.
+  * **At the top, the same place with or without hits** — with the keyboard up the end of a list of partial hits is
+    out of reach. Enter in the field **opens the sheet and never writes**: a typo must not become an item.
+  * **The filter's tags come along.** Every tag narrowing the list is assigned from the start, because without it the
+    new item would vanish from the filtered list the moment it exists, which reads as a failed write. *„Ohne Tag"* is
+    a bucket, not a tag, and assigns nothing. The tags of the items the query found **by name** are offered first.
+  * **A retired name is offered back, not re-created.** Retiring frees the name (ADR-034), so a second row would be
+    allowed — but it would start without the tags, weight and history the hidden one kept. The row reads
+    *„‚{Name}' ist stillgelegt — Wiederherstellen"* and is M23's restore, in place.
+  * **No offer while the master partition has not arrived** (ADR-033 — „no such item" is a claim about a list the
+    device may not hold) **and none in FR-24.9's selection mode**, where rows do not navigate.
+  *Considered and rejected:* the form **inline** in the list (no overlay, but it pushes the hits off screen and leaves
+  no room for tags under a raised keyboard), and handing the name to M10 as `?name=` (no new UI, but the search and
+  the filter are gone — the round trip this exists to remove). The tag control is **one component shared with M10**
+  (`TagChooser`), so filter-or-create stays one rule. An empty inventory has no search field (G-7's empty state stands
+  in for it), so the offer cannot appear there — the FAB and the spreadsheet import are that state's two ways in.
+
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —
@@ -3635,6 +3666,40 @@ items**; turning a finished (and mutated) trip back **into a template for next y
     disappears rather than converting twice; the detector runs over the live positions, so removing them is the
     recomputation. The same falls out for the guards: the folded group becomes an include, and an include is already
     excluded.
+
+* **FR-27.16 (Taking Names over from the Inventory — new and built 2026-09-18, owner request):** A trip row copies its
+  master item's name when it is written (`trip_items.name`) and keeps it. Renaming the item in the inventory (M10)
+  reaches a trip only through FR-27.4, and FR-27.4 is deliberately narrow: it asks about rows a followed group
+  generated, never about a packed, skipped or hand-edited row, and never on a past trip. Every other row kept its old
+  name with no way to catch up short of retyping it. **M4 offers the inventory's current name on request:**
+
+  * **Which rows:** every row with a master item whose current name differs from the row's — packed, skipped and
+    single-item (FR-27.3) rows included, because a name counts nothing and decides nothing. A row without a master item
+    has nothing to take over. A rename the FR-27.4 card is *already asking about* is left to that card, so one question
+    is not asked twice with two answers that can disagree. Per-person rows of one item under one name are **one**
+    choice: they are one cluster on M4, and renaming only some of them would split it.
+  * **Past and archived trips too** (owner, 2026-09-18). FR-27.4 never touches them because it *proposes*; this only
+    ever acts on a tap, so renaming history is the user's call rather than a prompt.
+  * **Where:** the ⋮ carries „Namen aus dem Inventar (N)" — only while N > 0 — and opens a sheet listing each choice
+    as the old name struck through above the new one, with a tick each, a leading **„Alle"** tick (tri-state) and one
+    button („N Namen übernehmen", „Alle N übernehmen" when all are ticked). M5 carries the one-row form: „Im Inventar
+    heisst es jetzt „X"." with **Übernehmen**, under the row's name. Either path reports in M4's snackbar with
+    **Rückgängig**, which puts the old names back.
+  * **Pre-selection:** everything is ticked except a row the trip **named on purpose** — a generated row whose name
+    differs from what its ledger says generation produced, which is a hand edit or a refused FR-27.4 rename. Only a
+    generated row can say so; a single item has no ledger entry and is always ticked. „Alle" takes the deliberate ones
+    along.
+  * **Adopting moves the ledger with the row.** A generated row whose name no longer matched its ledger snapshot would
+    read to FR-27.4 as hand-edited from then on and quietly stop following its group. The entry is rewritten to the new
+    name in the same breath, and the undo restores it with the row.
+  * **Nothing is stored.** The list is recomputed from the two names each time, so there is no "declined" flag to sync
+    and nothing in the schema. *Considered and rejected:* a card above the list announcing the renames (the mockup's
+    variant B). It is easier to discover, but it sits beside the FR-27.4 card asking a near-identical question, and a
+    card must remember a dismissal or it returns on every open — a new synced field per row for a notice. The ⋮ entry
+    with its count costs neither. **Revisit trigger:** users asking why a renamed item never reached a trip they were
+    packing.
+  * **Names only** (owner, 2026-09-18) — weight, value and tag can drift the same way and are not offered. Client-side
+    throughout (invariant 4): `domain/inventoryNames.ts`, identical in all three modes.
 
 **Concept-testing notes (2026-08-08):** realised in the prototype end-to-end — M7 composition display, M8 groups section
 with cycle-blocked picker + resolution footer + blast-radius note, M3 real resolution with named merges and single-item

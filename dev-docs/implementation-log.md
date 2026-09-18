@@ -391,6 +391,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The option that was recommended did not work (2026-09-17)](#the-option-that-was-recommended-did-not-work-2026-09-17) — ADR-064; “anchor it to the window” was arithmetic, and it still covered 100 px.
 - [The e2e matrix is ten legs (2026-09-18)](#the-e2e-matrix-is-ten-legs-2026-09-18) — the shard count went stale a second time, and what bounds it from below is now the two backend jobs.
 - [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
+- [The search offers what it did not find (2026-09-18)](#the-search-offers-what-it-did-not-find-2026-09-18) — FR-24.11; the proposal's reason for the restore offer was wrong, and three things only the rendered screen said.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -16007,3 +16008,41 @@ appended to. A blind rename then rewrote the existing ones as well, and what
 caught it was `case-id-gate.mjs`, not the test run: the renamed cases stayed
 green under their new names. Take the next id from the gate's own count, and
 read the diff for ids you did not intend to touch.
+
+## The search offers what it did not find (2026-09-18)
+
+FR-24.11. The owner asked for M9 to create an item straight from a search that
+found nothing, with name and tags as the only fields; a clickable mockup with
+two variants (sheet, inline) went first, and every recommendation in it was
+taken. What the code does not show:
+
+**The proposal gave the wrong reason for its restore offer.** It said
+`UNIQUE (name)` would refuse a second „Regenponcho" while a retired one exists.
+It would not: the index is partial over active rows, and retiring frees the
+name on purpose (ADR-034). The offer survived the correction on a different
+ground — a restored row keeps its tags, weight and history, a new one starts
+bare — so the rule stands and its reason in FR-24.11 is the true one. A fresh
+row of a retired name is still reachable through the FAB.
+
+**Two folds, chosen on purpose.** Whether to *offer* uses the search's fold
+(both umlaut spellings), whether the sheet may *write* uses the naming rule
+(`foldName`, case only). The wider one blocks only an offer, so „gurtel" never
+invites a second „Gürtel", while „Fruhling" and „Frühling" stay two names a
+user is entitled to — the distinction `domain/search.ts` already draws.
+
+**Three findings from rendering, none from the specs.** The first screenshot
+put the *„angelegt · Öffnen"* toast over the FAB — M9 had no FAB anchor, since
+its other toasts were never followed by a reach for the ＋; it has one now
+(`FAB_ANCHOR.m9`). The first run of the retired-name case timed out because an
+inventory whose only row is retired is *empty*, and the empty state carries no
+search field; the case keeps a second active item, and FR-24.11 says the offer
+cannot appear there. And under a load average of 35 (parallel sessions) WebKit
+twice failed to report the sheet presented within the 5 s budget, the same
+slow `didPresent` `helpers/ionic.ts` documents for the date sheet; nine of nine
+repeats passed at a load of 16, so the cases keep the suite's default wait.
+
+**A cost carried over from M10.** A tag created inside the sheet is written at
+once, as M10's creation mode does; cancelling the sheet leaves the tag behind,
+unassigned. Staging it until „Anlegen" would make the sheet's tag rule differ
+from M10's, which is exactly what sharing `TagChooser` exists to prevent, and
+FR-24.10's manager deletes an unused tag without a refusal.

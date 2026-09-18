@@ -69,6 +69,7 @@ import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import SheetHead from '@/components/global/SheetHead.vue'
+import type { InventoryRename } from '@/domain/inventoryNames'
 
 const props = defineProps<{
   tripId: string
@@ -77,9 +78,15 @@ const props = defineProps<{
   participants: TripParticipant[]
   /** Who I am, so a row is never offered to me (FR-25.19). Null off-server. */
   currentUserId?: string | null
+  /**
+   * FR-27.16: the inventory's newer name for this row, when it has one. The
+   * host derives it, because the same list feeds its ⋮ entry — and taking it
+   * over is the host's too, which owns the snackbar that undoes it.
+   */
+  inventoryRename?: InventoryRename | null
 }>()
 
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; 'adopt-name': [rename: InventoryRename] }>()
 
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
@@ -411,6 +418,20 @@ const packedStamp = computed(() => {
         <SaveIndicator :pending="orchestrator.capturePending.value" />
       </template>
     </SheetHead>
+
+    <!-- FR-27.16: the one-row way to take the inventory's name over, right
+         under the name it would replace. -->
+    <p v-if="inventoryRename" class="inventory-name" data-testid="m5-inventory-name">
+      <span>{{ t('inventoryNames.detail', { name: inventoryRename.to }) }}</span>
+      <IonButton
+        size="small"
+        fill="clear"
+        data-testid="m5-inventory-name-adopt"
+        @click="emit('adopt-name', inventoryRename)"
+      >
+        {{ t('inventoryNames.adoptOne') }}
+      </IonButton>
+    </p>
 
     <!-- G-3: who has it, before anything the sheet can no longer do. -->
     <p v-if="isLocked" class="lock-notice" data-testid="m5-lock" role="status">
@@ -766,6 +787,23 @@ const packedStamp = computed(() => {
 
 /* G-3: the lock is stated, not implied by dimmed controls — the sheet
    still shows everything, so nothing else would say why it is quiet. */
+/* The action colour's wash, not the lock's grey: this is an offer, and the
+   lock notice below it is a refusal. */
+.inventory-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 4px 4px 4px 12px;
+  border-radius: var(--jp-r-md);
+  background: color-mix(in srgb, var(--jp-action) 12%, transparent);
+  font-size: var(--jp-text-sm);
+}
+
+.inventory-name span {
+  flex: 1;
+}
+
 .lock-notice {
   display: flex;
   align-items: flex-start;

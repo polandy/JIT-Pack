@@ -28,7 +28,12 @@ const props = withDefaults(
   }>(),
   { testid: undefined, persistent: false },
 )
-const emit = defineEmits<{ 'update:modelValue': [value: string]; close: [] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  close: []
+  /** Enter in the field — what it means is the screen's (FR-24.11 on M9). */
+  submit: []
+}>()
 
 const input = ref<HTMLInputElement | null>(null)
 onMounted(() => {
@@ -46,6 +51,7 @@ onMounted(() => {
       :placeholder="placeholder"
       autocomplete="off"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      @keydown.enter="emit('submit')"
     />
     <button
       v-if="!persistent || modelValue !== ''"

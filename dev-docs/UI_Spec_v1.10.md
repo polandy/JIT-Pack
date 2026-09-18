@@ -7,6 +7,8 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-18 — **M4**'s ⋮ offers „Namen aus dem Inventar", a sheet that takes renamed items' names over, and **M5**
+  offers it for its own row (FR-27.16).
 * 2026-09-18 — **M1** reports trip todos and a second check on the trip cards, and takes no actions — the prep
   card's checkbox is gone; **M4** gains *Aufgaben für die Reise*, where they are written; **M3** step 3 reports trip
   tasks; **M8** gains *Aufgaben für die Reise* (FR-7.4).
@@ -1104,6 +1106,15 @@ These patterns apply to every screen and are specified once.
     — the refused positions stop following the group in this trip — because it is the one thing about the card a user
     cannot work out from the list above it. Both answers are final and neither offers an undo, so both report through a
     plain toast rather than a snackbar.
+  * **Names the inventory moved on from are taken over on request, from the ⋮ (added 2026-09-18, FR-27.16).** While
+    at least one row's master item is now called something else, the ⋮ carries „Namen aus dem Inventar (N)" — on a
+    past or archived trip too — and opens a sheet: „Alle" (tri-state, with „N von M ausgewählt") on the sunken
+    surface, then one row per choice with its tick, the old name struck through above the new one and small facts
+    that make it recognisable (*für Andy, Mia*, *gepackt 1/1*, *nicht dabei*); a row the trip named on purpose carries
+    *bewusst so benannt* and a sentence saying why it is not ticked. The footer's button counts what it will do
+    („N Namen übernehmen", „Alle N übernehmen"). Deliberately **not** a card above the list: that place belongs to the
+    FR-27.4 question, and a notice would have to remember its dismissal (the rejected variant is in the FR). The
+    result reports through M4's snackbar with *Rückgängig*, because one tap on „Alle" renames many rows.
   * **An archived trip leads with a closing card** (the one real remnant of the dropped *Danach* phase): "Reise
     abgeschlossen" — plain, since 2026-08-19: the 🧩 the prototype put there came from §3.27 being *about composition*
     and said nothing about a finished trip, and nothing replaced it, because every other heading in the app is plain
@@ -1348,6 +1359,9 @@ These patterns apply to every screen and are specified once.
   **glance row** for everything the sheet can also change, then **Preparation** and **Notes** with their composers, and
   finally *Details ▾* holding membership, procurement, luggage, the Late-Packer flag, the FR-9.1 flags and the
   FR-25.17/25.19 stamp.
+* **A row whose inventory item was renamed says so under its name** (added 2026-09-18, FR-27.16): „Im Inventar heisst
+  es jetzt „X"." on the action colour's wash, with *Übernehmen* — the one-row form of M4's ⋮ sheet, reporting through
+  M4's snackbar with *Rückgängig*. Absent when the names agree or when the FR-27.4 card is already asking.
 * **It is a sheet over M4, and a side panel beside it above the G-9 breakpoint** — one content component either way,
   and since ADR-064 *beside* is literal: the pane is a column of the frame, not a layer over the screen. The
   route carries it (`/trips/:tripId?item=:itemId`), which is what makes a notification deep link (G-4) land on the item
@@ -1717,6 +1731,18 @@ These patterns apply to every screen and are specified once.
   tag chip active the empty state reads *„Kein Treffer in ‚Hygiene'"*, counts the hits outside the filter and offers
   *„In allen Artikeln suchen"*, which drops the filter and keeps the query. The rule itself is
   `client/src/domain/itemSearch.ts`; what M9 owns is the grouping and the sentence.
+* **What the search did not find, it offers (2026-09-18, FR-24.11):** while the query names **no active item
+  exactly** (under the search's fold), a dashed row sits **above** the results — and above the no-match sentence when
+  there are none: *„‚{Name}' anlegen"* with the line *„Neuer Artikel — Name und Tags genügen"*. It opens a sheet
+  (`SheetHead` *„Neuer Artikel"*): the name, prefilled from the query; the tag control M10 uses, with **every tag
+  narrowing the list already assigned** and the tags of the name hits offered first, marked in the done hue; a line
+  saying weight, price, mark and photo follow in the item view; then *„Anlegen und öffnen"* and *„Anlegen"*. After
+  *„Anlegen"* the screen **stays**: the query and the filter are untouched, the new row wears *„Neu"* until the query
+  changes, the offer is gone, and a toast *„‚{Name}' angelegt."* with *„Öffnen"* sits above the FAB (anchored to it,
+  like M4/M7/M8). A name that only a **retired** item carries is offered back instead — *„‚{Name}' ist stillgelegt"*
+  / *„Wiederherstellen statt neu anlegen"*, in the caution hue — and a tap restores it in place, without a sheet.
+  Enter in the field opens the sheet and never writes. Absent before the partition has arrived (ADR-033) and in the
+  selection mode.
 * **Actions:** Tap → M10; FAB → new item. **Deleting lives in M10 (built 2026-08-25, FR-24.3).** **Merging duplicates
   via multi-select is specified here and was never built** (found 2026-08-30, backlog item 6): there is no multi-select
   on this screen and no merge anywhere in the client. FR-16.3 is *Deduplication on Import* and is discharged by M15 and
@@ -1747,7 +1773,8 @@ These patterns apply to every screen and are specified once.
   that says the value is *not recorded*, from the catalogue. They used to read „0" and „0.00", which is a value — an
   item that weighs nothing and is worth nothing — and both columns feed FR-8's totals and FR-14's suggestions, so the
   reading a person took from the field was the one the analytics would have used had it been real.
-* **Elements:** Name, **multi-tag selector** — a search field filters the tag chips, **assigned tags stay pinned above
+* **Elements:** Name, **multi-tag selector** (`TagChooser` since 2026-09-18 — the same control M9's FR-24.11 sheet
+  uses) — a search field filters the tag chips, **assigned tags stay pinned above
   the matches** so the filter can never hide what the item already carries; ＋/Enter creates an unmatched name as a new
   tag and assigns it (FR-24.1, filter-or-create; supersedes the single category picker). **With an empty query the
   offers are a shelf, not the vocabulary (2026-08-27, UX-14):** the first eight unassigned tags, then a dashed *„N

@@ -990,7 +990,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    * overwrite. A field map rather than one setter per field: the diff
    * decides which of them moved, and the caller has no business restating
    * that list. `late_packer` is normalised here because the wire carries
-   * 0/1 where the domain carries a boolean.
+   * 0/1 where the domain carries a boolean. FR-27.16 writes `name` through
+   * it too — the same inventory-owned field, taken over on request.
    */
   function updateGeneratedTripItem(itemId: string, fields: GeneratedTripItemEdit): Mutation {
     return make('upsert', TABLE.tripItems, itemId, rowFrom(fields, { late_packer: dbBool }))

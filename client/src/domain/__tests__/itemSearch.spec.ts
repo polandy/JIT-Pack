@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { searchItems, hitsByReason, isSearchQuery } from '@/domain/itemSearch'
+import {
+  searchItems,
+  hitsByReason,
+  isSearchQuery,
+  searchOffer,
+  OFFER_CREATE,
+  OFFER_RESTORE,
+} from '@/domain/itemSearch'
 import type { ItemSearchCandidate } from '@/domain/itemSearch'
 
 /**
@@ -122,5 +129,52 @@ describe('hitsByReason (FR-24.7)', () => {
 
   it('returns nothing at all for a query nothing matched', () => {
     expect(hitsByReason(searchItems(inventory, 'zzz'))).toEqual([])
+  })
+})
+
+describe('searchOffer (FR-24.11)', () => {
+  const active = [
+    { id: 'i-guertel', name: 'Gürtel' },
+    { id: 'i-hering', name: 'Zeltheringe' },
+    { id: 'i-unterlage', name: 'Zeltunterlage' },
+  ]
+  const retired = [{ id: 'i-poncho', name: 'Regenponcho' }]
+
+  it('offers to create a name no item carries, trimmed as typed', () => {
+    expect(searchOffer('  Stirnlampe ', active, retired)).toEqual({
+      kind: OFFER_CREATE,
+      name: 'Stirnlampe',
+    })
+  })
+
+  it('offers it beside partial hits — „Zelt" finds two rows and still no tent', () => {
+    expect(searchOffer('Zelt', active, retired)).toEqual({ kind: OFFER_CREATE, name: 'Zelt' })
+  })
+
+  it('offers nothing once an active item carries the name, in any case', () => {
+    expect(searchOffer('zeltheringe', active, retired)).toBeNull()
+  })
+
+  it('offers nothing for either keyboard spelling of an existing umlaut name', () => {
+    // A near-duplicate is the one row this must never invite: „gurtel" and
+    // „guertel" are the belt the result list is already showing.
+    expect(searchOffer('gurtel', active, retired)).toBeNull()
+    expect(searchOffer('guertel', active, retired)).toBeNull()
+  })
+
+  it('offers the retired item back instead of a second one of its name', () => {
+    expect(searchOffer('regenponcho', active, retired)).toEqual({
+      kind: OFFER_RESTORE,
+      id: 'i-poncho',
+      name: 'Regenponcho',
+    })
+  })
+
+  it('prefers the active row when a retired one shares its name', () => {
+    expect(searchOffer('Gürtel', active, [{ id: 'i-old-guertel', name: 'Gürtel' }])).toBeNull()
+  })
+
+  it('offers nothing for a blank query', () => {
+    expect(searchOffer('   ', active, retired)).toBeNull()
   })
 })
