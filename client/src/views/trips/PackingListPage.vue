@@ -117,6 +117,7 @@ import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/sync/mutations'
 import {
   buildPackingView,
+  isReshaped,
   type PackingCluster,
   type PackingEntry,
   rowEdgeAvatar,
@@ -438,6 +439,23 @@ const forWhomAnchor = computed<PackingEntry | null>(() => {
   }
   return null
 })
+
+/** What the list shows right now, as `isReshaped` wants it: which items, and which rows. */
+const shownForWhom = computed(() => {
+  const keys = new Set<string>()
+  const rowIds = new Set<string>()
+  for (const group of view.value.groups) {
+    for (const entry of group.entries) {
+      const key = forWhomKeyOf(entry)
+      if (key !== null) keys.add(key)
+      if (entry.kind === 'item') rowIds.add(entry.item.id)
+      else for (const id of entry.instanceIds) rowIds.add(id)
+    }
+  }
+  return { keys, rowIds }
+})
+
+const existingRowIds = computed(() => new Set(allItems.value.map((i) => i.id)))
 
 function forWhomOpenOn(entry: PackingEntry): boolean {
   return forWhomAnchor.value === entry
@@ -1291,17 +1309,15 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 /**
  * Collapse a leaving row to zero height — the rules are in `collapseRow`.
  *
- * **Except where the row is not leaving at all** (FR-25.28): lighting a second
- * traveler turns a row into a cluster under a new key, so the list sees one
- * entry go and another arrive. Animated, the old row and its strip stood beside
- * their own replacement for the length of the collapse — the item named twice
- * and the control drawn twice. The item whose strip is open is still on the
- * list, so its old shape goes at once; a row that is packed away while its
- * strip is open has no anchor left and collapses like any other.
+ * **Except where the item is only changing shape** (FR-25.28, `isReshaped`):
+ * its old shape goes at once rather than standing beside its replacement.
  */
 function onRowLeave(el: Element, done: () => void) {
-  const key = (el as HTMLElement).dataset.forWhomKey
-  if (key !== undefined && key === forWhomKey.value && forWhomAnchor.value !== null) {
+  const { forWhomKey: key, rowId } = (el as HTMLElement).dataset
+  if (
+    key !== undefined &&
+    isReshaped({ key, rowId: rowId ?? null }, shownForWhom.value, existingRowIds.value)
+  ) {
     done()
     return
   }
@@ -1906,6 +1922,7 @@ setHeaderTitle(
                 :assignable="assignableRow(entry.item)"
                 :seat="seatFor(entry)"
                 :data-for-whom-key="forWhomKeyOf(entry)"
+                :data-row-id="entry.item.id"
                 @for-whom="toggleForWhom(entry)"
                 @assign="onAssignRow(entry.item)"
                 @open="openItem(entry.item.id)"

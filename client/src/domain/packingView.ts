@@ -315,6 +315,42 @@ export function rowEdgeAvatar(
   return null
 }
 
+/** What M4 knows about an element the list is about to drop (FR-25.28). */
+export interface LeavingEntry {
+  /** The item it stood for — `membershipKey`, the name that survives a reshape. */
+  key: string
+  /** The one row it drew; `null` for a cluster or a strip, which draw an item. */
+  rowId: string | null
+}
+
+/**
+ * isReshaped says whether a leaving element is an item **changing shape**
+ * rather than an item going away — and therefore leaves at once instead of
+ * collapsing (FR-25.2's pack-out).
+ *
+ * Lighting a second traveler turns a row into a cluster under a new list key,
+ * and unlighting one turns it back: to the list, one entry departs and another
+ * arrives. Animated, the old shape stood beside its own replacement for the
+ * length of the collapse — the item named twice, and its strip drawn twice.
+ * It does not matter where the change was made: M5's strip reshapes the list
+ * under the sheet exactly as M4's own does.
+ *
+ * An item is reshaped when it is **still shown** under another entry and this
+ * element's row did not merely go out of sight. A row that still exists and is
+ * no longer shown was hidden — packed, filtered, somebody else's — and keeps
+ * its collapse even while a sibling instance of the same item stays on screen,
+ * which is what grouping by traveler produces.
+ */
+export function isReshaped(
+  leaving: LeavingEntry,
+  shown: { keys: ReadonlySet<string>; rowIds: ReadonlySet<string> },
+  existingRowIds: ReadonlySet<string>,
+): boolean {
+  if (!shown.keys.has(leaving.key)) return false
+  if (leaving.rowId === null) return true
+  return !existingRowIds.has(leaving.rowId) || shown.rowIds.has(leaving.rowId)
+}
+
 /**
  * The key every instance of one per-person item shares, or `null` for a row
  * that is nobody's in particular.

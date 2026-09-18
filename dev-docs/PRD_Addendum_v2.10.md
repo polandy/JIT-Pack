@@ -2908,8 +2908,11 @@ locked.
   * **A converting row leaves at once.** The list animates a departing row shut (FR-25.2's pack-out), and a row turning
     into a cluster is, to the list, one entry departing and another arriving. Animated, the old row and its strip stood
     beside their own replacement for the length of the collapse — the item named twice and the control drawn twice,
-    which is what E2E-M4-100 first failed on. The item whose strip is open is still on the list, so its old shape goes
-    without the animation; a row packed away while its strip is open has no anchor left and collapses like any other.
+    which is what E2E-M4-100 first failed on. The rule is `isReshaped` in the domain: an element leaves at once when its
+    item is **still shown** under another entry and its row did not merely go out of sight — so a row that is packed,
+    filtered away or taken off the list keeps its collapse, even with a sibling instance still on screen. The first cut
+    tied the exception to M4's own strip being open; WebKit then caught the same doubled row when the change was made
+    from **M5's** strip, which reshapes the list under the sheet exactly as M4's does (E2E-M5-29).
   * **The who-column costs 32 px of every row**, less than the 44 px the ruling accepted, and only on a trip with two
     travelers or more and outside FR-9.3's closing pass — a solo trip's list is unchanged.
   * **The plan decides what is asked, in the domain.** `membershipQuestion` answers *collapse*, *remove*, *unskip* or

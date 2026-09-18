@@ -16,7 +16,7 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { buildPackingView, isDone, noFacets, rowEdgeAvatar } from '../packingView'
+import { buildPackingView, isDone, noFacets, rowEdgeAvatar, isReshaped } from '../packingView'
 import type { Container, Facets, TripItem, TripParticipant, Traveler } from '@/types/domain'
 
 let seq = 0
@@ -1071,5 +1071,48 @@ describe('late-packer rows sink, and can be hidden (FR-25.27)', () => {
     // "everything is packed" over rows nobody has touched.
     expect(view([keys()], { showLate: false }).narrowed).toBe(true)
     expect(view([keys()], { showLate: true }).narrowed).toBe(false)
+  })
+})
+
+describe('FR-25.28: isReshaped — an item changing shape leaves at once', () => {
+  const KEY = 'name:kurze hosen'
+  const shown = (keys: string[], rowIds: string[]) => ({
+    keys: new Set(keys),
+    rowIds: new Set(rowIds),
+  })
+
+  it('a row whose item is now a cluster is reshaped: the row lives on as a child', () => {
+    // Re-pointed (ADR-036): the same row id, now drawn under the cluster.
+    expect(
+      isReshaped({ key: KEY, rowId: 'r1' }, shown([KEY], ['r1', 'r2']), new Set(['r1', 'r2'])),
+    ).toBe(true)
+  })
+
+  it('a row deleted by a membership change is reshaped while a sibling still shows the item', () => {
+    // M5's strip unlit this traveler: the row is gone, the item is not.
+    expect(
+      isReshaped({ key: KEY, rowId: 'r-leo' }, shown([KEY], ['r-andy']), new Set(['r-andy'])),
+    ).toBe(true)
+  })
+
+  it('a cluster or a strip is reshaped exactly when its item is still shown', () => {
+    expect(isReshaped({ key: KEY, rowId: null }, shown([KEY], ['r1']), new Set(['r1']))).toBe(true)
+    expect(isReshaped({ key: KEY, rowId: null }, shown([], []), new Set(['r1']))).toBe(false)
+  })
+
+  it('a packed row keeps its collapse, even with a sibling instance still on screen', () => {
+    // Grouped by traveler: Andy packed his, Leonardo's is still open. The row
+    // exists and is simply no longer shown — hidden, not reshaped.
+    expect(
+      isReshaped(
+        { key: KEY, rowId: 'r-andy' },
+        shown([KEY], ['r-leo']),
+        new Set(['r-andy', 'r-leo']),
+      ),
+    ).toBe(false)
+  })
+
+  it('a row taken off the list altogether keeps its collapse (FR-5.8)', () => {
+    expect(isReshaped({ key: KEY, rowId: 'r1' }, shown([], []), new Set())).toBe(false)
   })
 })
