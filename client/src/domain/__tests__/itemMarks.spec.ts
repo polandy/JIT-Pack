@@ -17,9 +17,9 @@ import {
 } from '../itemMarks'
 
 describe('the curated index (FR-28.2)', () => {
-  it('carries around a hundred entries, not the Unicode table', () => {
-    expect(MARK_INDEX.length).toBeGreaterThan(80)
-    expect(MARK_INDEX.length).toBeLessThan(140)
+  it('carries a few hundred entries, not the Unicode table', () => {
+    expect(MARK_INDEX.length).toBeGreaterThan(300)
+    expect(MARK_INDEX.length).toBeLessThan(420)
   })
 
   it('never offers the same emoji twice — a duplicate is two rows meaning one thing', () => {

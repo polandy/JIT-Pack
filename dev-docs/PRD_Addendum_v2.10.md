@@ -3777,7 +3777,8 @@ the tail is where a symbol system is actually decided. Results:
   checked.
 * **FR-28.2 (Searchable Mark Picker):** The mark is chosen from a picker with a **search field over keywords, not over
   Unicode names** — typing „regen“ must find 🧥 and ☂️, neither of which is called *Regen* in any catalogue. The picker
-  offers a **curated index** (order of 100 packing-relevant entries, not the full ~3,700-emoji table), each entry
+  offers a **curated index** (order of 350 packing-relevant entries — widened from ~100 on owner request 2026-09-18,
+  the first index was too small to browse a real inventory — not the full ~3,700-emoji table), each entry
   carrying **German and English keywords** and one coarse facet (*Kleidung · Reise · Dokumente · Hygiene · Gesundheit ·
   Technik · Camping · Sport · Essen · Sonstiges*) so the grid is browsable without typing. Curation is part of the
   requirement, not a shortcut: the full CLDR table answers „Bau“ with 🏛️ and „Reise“ with a cruise ship, which is how a
@@ -3829,11 +3830,11 @@ the tail is where a symbol system is actually decided. Results:
   availability: a packing list is **shared** (FR-4.x), and on platform emoji the same row shows a different picture on
   an iPhone, an Android and a Linux desktop — the sender and the reader would be looking at different lists.
   Consequences to plan for: the subset's weight is measured and justified against NFR-4.3 **before** it is committed
-  (the index is around a hundred glyphs, not the full table), the subsetting command is documented in the same place the
-  text faces document theirs, and adding the face **rewrites every visual baseline** (ADR-013) — one deliberate `make
-  visual-update`, in the implementing PR, not a surprise in a later one. *(Measured 2026-08-22: it rewrote **four of
-  twenty-two**, all M4, and none of them because of the face — the visual fixture's rows are ad-hoc and carry no marks,
-  so no emoji is painted in the suite at all. What moved was the held empty slot. See ADR-021.)*
+  (the index is a few hundred glyphs, ~280 KB, not the full table), the subsetting command is documented in the same
+  place the text faces document theirs, and adding the face **rewrites every visual baseline** (ADR-013) — one
+  deliberate `make visual-update`, in the implementing PR, not a surprise in a later one. *(Measured 2026-08-22: it
+  rewrote **four of twenty-two**, all M4, and none of them because of the face — the visual fixture's rows are ad-hoc
+  and carry no marks, so no emoji is painted in the suite at all. What moved was the held empty slot. See ADR-021.)*
 * **FR-28.7 (Trip Rows Inherit the Mark, They Never Copy It):** `trip_items` gains **no** column. A generated packing
   row renders the mark of the master item it came from (`source_item_id`); an **ad-hoc row has no mark** until it
   becomes a master item, and shows none rather than a placeholder. Rationale: the mark is a property of the *thing*, not

@@ -28,7 +28,7 @@ no water bottle).
 
 ### Option A — One optional emoji per item and per template *(recommended, accepted)*
 
-`items.icon` / `templates.icon`, chosen from a curated ~100-entry index with German and English keywords, suggested from
+`items.icon` / `templates.icon`, chosen from a curated ~350-entry index with German and English keywords, suggested from
 the item's name, rendered from a self-hosted subsetted face.
 
 **Pros**
