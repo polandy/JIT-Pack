@@ -484,6 +484,13 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     // control that can only say one thing is worse than no control.
     await expect(page.getByTestId('quick-add-for-whom')).toHaveCount(0)
     await expect(page.getByTestId('quick-add-input')).toBeVisible()
+
+    // The same G-8 on the list: a solo trip has no *who* column at all, so its
+    // rows are exactly as wide as they were. The row is the positive signal.
+    await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toBeVisible()
+    await expect(visiblePage(page).getByTestId(`for-whom-seat-${ITEM}`)).toHaveCount(0)
   })
 
   /**

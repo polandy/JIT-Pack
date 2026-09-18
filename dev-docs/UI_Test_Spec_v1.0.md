@@ -2671,7 +2671,8 @@ landed, that no test has ever rendered.
 * **E2E-M4-64** `all` (FR-25.28/G-8, added 2026-08-29) — **implemented** (`e2e/membership.spec.ts`): on a trip with a
   single traveler the quick-add's for-whom strip is **absent**, not disabled — there is no membership to distribute, and
   a control that can only say one thing is worse than no control. The composer itself is asserted present in the same
-  breath, so „absent“ cannot be satisfied by a composer that failed to open.
+  breath, so „absent“ cannot be satisfied by a composer that failed to open. Since FR-25.28 the same case holds the
+  list's half: a row added on that solo trip carries **no for-whom seat**.
 * ~~**E2E-M4-65** `all` (FR-25.8/FR-25.13d, added 2026-08-29): a *Pro Person* add made from the browse-sheet closes the
   sheet before the membership editor opens.~~ **Retired 2026-09-18 with the promise it held** (FR-25.28): no editor
   follows an add any more, so there is nothing for the sheet to make way for. What stands in its place is the opposite
