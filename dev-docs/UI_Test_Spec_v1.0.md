@@ -703,6 +703,10 @@ in WebKit.
   „All" put it back and the button reads „Take all 2 over". Applying renames both rows and the snackbar's *Undo* puts
   them back; applied again, both names survive a reload and the ⋮ — read as a populated list — no longer offers the
   entry.
+* **E2E-M4-104** `local` (FR-27.16, added 2026-09-18) — **implemented** (`e2e/inventory-names.spec.ts`): the owner's
+  „archived trips too". A trip with one inventory row is started and archived through the closing pass, the item is
+  renamed in M10, and the archived trip's ⋮ still offers „Names from the inventory (1)"; applying it renames the row,
+  which survives a reload, and the entry is gone from a populated menu.
 * **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
   as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
   an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A
@@ -3245,7 +3249,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-27.9 | E2E | M10-18 (a trip's remark read at the item), M10-19 (absent when there is none); `domain/__tests__/itemHistory.spec.ts` (the foreign-key join, the trip-level comment that belongs to no item, the ad-hoc row that reaches none, an undated comment sorting last) — **built 2026-08-31** |
 | FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
 | FR-27.11 | E2E+UNIT | M14-04 (group targets, blast radius), M14-05 (list not card stack, marked rows, per-pair dismissal), FLOW-04 (the shape the write gives the position); review.ts, ReviewPage.spec.ts — the applied-change log is owed with the §3.27 refresh package |
-| FR-27.16 | E2E+UNIT | M4-103 (the ⋮ entry, „Alle", apply, undo, gone after a reload), M5-30 (the one-row line); `domain/__tests__/inventoryNames.spec.ts` (which rows, per-person as one choice, deliberate, ledger follows, undo), `composables/sync/__tests__/inventoryNames.seam.spec.ts` (the row keeps following its group, the FR-27.4 card keeps its own renames), `components/trips/__tests__/InventoryNamesSheet.spec.ts` (pre-selection, „Alle") |
+| FR-27.16 | E2E+UNIT | M4-103 (the ⋮ entry, „Alle", apply, undo, gone after a reload), M4-104 (an archived trip is offered it too), M5-30 (the one-row line); `domain/__tests__/inventoryNames.spec.ts` (which rows, per-person as one choice, deliberate, ledger follows, undo), `composables/sync/__tests__/inventoryNames.seam.spec.ts` (the row keeps following its group, the FR-27.4 card keeps its own renames), `components/trips/__tests__/InventoryNamesSheet.spec.ts` (pre-selection, „Alle") |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, nothing auto-opening on top of it, Mehr-Optionen disclosure) |
 | FR-28.1 | E2E+UNIT | M9-07, G15-01 (mark set, mark absent — absence is a normal row, not an empty state); Go: the column is nullable and capped, and nothing else |
 | FR-28.2 | E2E+UNIT | M10-11 (keyword search, facets), M10-12 (explicit removal, and its absence on an unmarked item), M8-18 (the *same* picker on a template); `MarkPicker.spec.ts` |

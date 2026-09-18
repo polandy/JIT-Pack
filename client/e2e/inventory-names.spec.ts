@@ -3,6 +3,8 @@ import {
   test,
   expect,
   createTripViaWizard,
+  expectTripActionOffered,
+  tripAction,
   fillIonic,
   openQuickAdd,
   tripActions,
@@ -114,7 +116,41 @@ test.describe('FR-27.16 — names are taken over from the inventory on request',
     await expect(visible(page).getByTestId('m4-row-Kamera (Vollformat)')).toBeVisible()
     await writesLanded(page)
     await page.reload()
+    await expect(visible(page).getByTestId('m4-row-Kamera (Vollformat)')).toBeVisible()
     await expect(visible(page).getByTestId('m4-row-USB-C-Ladegerät')).toBeVisible()
+    const after = await tripActions(page)
+    expect(after.length).toBeGreaterThan(0)
+    expect(after.some((l) => MENU_LABEL.test(l))).toBe(false)
+  })
+
+  test('E2E-M4-104: an archived trip is offered the names too — renaming history is a choice, not a prompt', async ({
+    page,
+  }) => {
+    const { trip, editors } = await tripWithInventoryRows(page, ['Kamera'])
+    // Planning → active → archived, the only path the app offers (E2E-M4-43).
+    await tripAction(page, 'start')
+    await expectTripActionOffered(page, 'archive')
+    await tripAction(page, 'archive')
+    await page.getByTestId('m4-pass-finish').click()
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await writesLanded(page)
+
+    await renameInInventory(page, editors['Kamera']!, 'Kamera (Vollformat)')
+    await page.goto(trip)
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+
+    await page.getByTestId('header-overflow').click()
+    await page
+      .locator('ion-action-sheet')
+      .getByText('Names from the inventory (1)', { exact: true })
+      .click()
+    await page.getByTestId('inventory-names-apply').click()
+    await expect(page.getByTestId('inventory-names-sheet')).toHaveCount(0)
+    await writesLanded(page)
+    await page.reload()
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-row-Kamera (Vollformat)')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-row-Kamera')).toHaveCount(0)
     const after = await tripActions(page)
     expect(after.length).toBeGreaterThan(0)
     expect(after.some((l) => MENU_LABEL.test(l))).toBe(false)

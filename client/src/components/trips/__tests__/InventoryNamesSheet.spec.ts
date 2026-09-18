@@ -110,4 +110,41 @@ describe('InventoryNamesSheet (FR-27.16)', () => {
       'named on purpose',
     )
   })
+
+  it('names the people of a per-person choice, and a skipped row as not coming', () => {
+    const hosen: InventoryRename = {
+      key: 'hosen',
+      sourceItemId: 'item-hosen',
+      from: 'Kurze Hosen',
+      to: 'Kurze Hose',
+      rows: [
+        row('a', { assigned_traveler_id: 'tr-a' }),
+        row('m', { assigned_traveler_id: 'tr-m' }),
+      ],
+      deliberate: false,
+    }
+    const lampe: InventoryRename = {
+      key: 'lampe',
+      sourceItemId: 'item-lampe',
+      from: 'Stirnlampe',
+      to: 'Stirnlampe (Petzl)',
+      rows: [row('s', { quantity: 0, state: 'skipped' })],
+      deliberate: false,
+    }
+    const wrapper = mount(InventoryNamesSheet, {
+      props: {
+        renames: [hosen, lampe],
+        travelers: [
+          { id: 'tr-a', trip_id: 't1', name: 'Andy', linked_user_id: null },
+          { id: 'tr-m', trip_id: 't1', name: 'Mia', linked_user_id: null },
+        ],
+      },
+    })
+    expect(wrapper.get('[data-testid="inventory-names-row-Kurze Hose"]').text()).toContain(
+      'for Andy, Mia',
+    )
+    expect(wrapper.get('[data-testid="inventory-names-row-Stirnlampe (Petzl)"]').text()).toContain(
+      'not coming',
+    )
+  })
 })
