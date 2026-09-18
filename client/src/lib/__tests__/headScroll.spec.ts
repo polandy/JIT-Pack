@@ -71,4 +71,25 @@ describe('nextHeadState — the head yields to the list (FR-21.17)', () => {
 
     expect(nextHeadState(yielded, reading(390)).collapsed).toBe(false)
   })
+
+  /**
+   * A list only a little longer than its screen: yielding the head hands
+   * the scroller enough room that nothing is left to scroll, and the clamp
+   * lands at the very top. Held there, the head could never come back —
+   * no gesture is possible on a list that fits — and M4's view switcher
+   * was gone for good (E2E-M4-28, found by FR-7.4's taller list).
+   */
+  it('comes back when the clamp lands where it would never have yielded', () => {
+    const yielded: HeadScrollState = { top: 60, collapsed: true }
+    const fits = reading(0, { clientHeight: 900, scrollHeight: 900 })
+
+    expect(nextHeadState(yielded, fits).collapsed).toBe(false)
+  })
+
+  it('stays yielded when the clamp lands clear of the top', () => {
+    const yielded: HeadScrollState = { top: 444, collapsed: true }
+    const clamped = reading(49, { clientHeight: 844, scrollHeight: 893 })
+
+    expect(nextHeadState(yielded, clamped).collapsed).toBe(true)
+  })
 })

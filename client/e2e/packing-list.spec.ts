@@ -1256,6 +1256,12 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     // is the evidence the pack landed before anything is revealed.
     await packRow(page, 'Schlafsack')
 
+    // The undo snackbar sits over the reveal bar once the list reaches the
+    // bottom of a 720 px window, and Playwright's way around an overlay is to
+    // scroll — which yields the heads, moving the bar out from under the
+    // click. Dismissed rather than waited out, as in visual.spec.
+    await page.locator('ion-toast.pack-toast').evaluate((el: HTMLIonToastElement) => el.dismiss())
+    await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
     await page.getByTestId('m4-done-bar').click()
     const names = visible(page).locator('.group-card h3')
     await expect(names).toHaveText([/Zelt/, /Stirnlampe/, /Schlafsack/])

@@ -996,7 +996,8 @@ These patterns apply to every screen and are specified once.
     track; side by side, or on two rows where the line is too narrow for both sentences (the line's height allows
     for it). A tap unfolds *Aufgaben für die Reise* and scrolls it into view. Nothing else. It stays
     **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line
-    hides and any upward scroll brings it back.
+    hides and any upward scroll brings it back — and so does a list the hiding itself made fit its screen (fixed
+    2026-09-18): with nothing left to scroll, no upward gesture could, and the view switcher above stayed gone.
   * **~~Where the trip's name lives: the width decides (owner, 2026-08-19; re-decided 2026-08-30)~~ — superseded
     2026-09-06 by ADR-050, and this bullet folded 2026-09-08.** The ruling was: below the G-9 breakpoint the name leads
     the header line in display type and **M4 registers no app-bar title**, the one screen in the app without one; at and

@@ -52,11 +52,17 @@ function atBottom({ top, viewport }: ScrollReading): boolean {
  * nextHeadState folds one reading into the head's state: it yields on the
  * way down and returns on any upward scroll, ignoring both the jitter at
  * the top and the clamp at the bottom.
+ *
+ * Except a clamp that lands within the head's own threshold: there the
+ * list is barely longer than its screen, the yield itself made it fit, and
+ * a head held back would stay back — a list that fits cannot be scrolled
+ * up to recall it. It returns, at the price of one more yield on the next
+ * downward swipe.
  */
 export function nextHeadState(prev: HeadScrollState, reading: ScrollReading): HeadScrollState {
   const { top } = reading
   if (Math.abs(top - prev.top) < NOISE_PX) return prev
   const up = top < prev.top
-  if (up && atBottom(reading)) return { ...prev, top }
+  if (up && atBottom(reading) && top > YIELD_AFTER_PX) return { ...prev, top }
   return { top, collapsed: !up && top > YIELD_AFTER_PX }
 }
