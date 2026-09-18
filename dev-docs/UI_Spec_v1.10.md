@@ -673,7 +673,7 @@ These patterns apply to every screen and are specified once.
 | M7 | Template List | MVP | 1.2, 1.6 |
 | M8 | Template Editor | MVP | 1.3–1.5, 15.2 |
 | M9 | Item Inventory | MVP | 1.1 |
-| M10 | Item Editor | MVP | 1.1, 1.7, 1.8 |
+| M10 | Item Editor | MVP | 1.1, 1.7, 1.8, 1.9 |
 | M11 | Container Management | P2 | 10.1–10.3 |
 | M12 | Analytics | P2 | 8.1, 8.2, 14.3 |
 | ~~M13~~ | ~~Repack Mode~~ — removed (§3.11) | — | — |
@@ -937,6 +937,10 @@ These patterns apply to every screen and are specified once.
   immutable), Admin (can manage travelers and roles), Editor (default — can edit items but not manage travelers)
   (FR-4.5/4.7). In Single-User Mode (Addendum FR-17.3), the sharing and role-assignment part of this step is hidden
   entirely — only traveler add/edit remains, and the sole user is silently the trip's Owner.
+  **Each traveler row carries an optional account select (FR-1.9, 2026-09-18)**, offering the creator and the accounts
+  the trip is shared with, and shown only once the trip is shared with somebody (G-8) — a link outside the trip's
+  members would be refused. It is what lets an item's default assignee land on a traveler: step 4's review reads the
+  links it will be created with, so a row handed over that way names the traveler and is *not* marked „per person".
 * **Step 3 — Templates:** Checkbox lists of all templates (shared instance-wide, FR-1.6 MVP simplification 2026-08-08),
   **split by scope per FR-27.6 (implemented 2026-08-16): *Ferien-Vorlagen* first, *Zusätzliche Gruppen* below** — the
   Vorlage is what a trip starts from, groups are what you add to it. Every row counts what picking it would *resolve* to
@@ -1788,6 +1792,10 @@ These patterns apply to every screen and are specified once.
   that says the value is *not recorded*, from the catalogue. They used to read „0" and „0.00", which is a value — an
   item that weighs nothing and is worth nothing — and both columns feed FR-8's totals and FR-14's suggestions, so the
   reading a person took from the field was the one the analytics would have used had it been real.
+* **Default assignee (FR-1.9, 2026-09-18):** *„Üblicherweise zugewiesen an"*, an optional select of accounts under the
+  tags, in the create form and on a saved item, with a one-line hint. It is not folded behind „Mehr", because the point
+  is to decide it once here. Shown only where the directory holds more than one account (G-8) — absent in Local and
+  Single-User Mode. Editing commits immediately like every other field (G-5).
 * **Elements:** Name, **multi-tag selector** (`TagChooser` since 2026-09-18 — the same control M9's FR-24.11 sheet
   uses) — a search field filters the tag chips, **assigned tags stay pinned above
   the matches** so the filter can never hide what the item already carries; ＋/Enter creates an unmatched name as a new

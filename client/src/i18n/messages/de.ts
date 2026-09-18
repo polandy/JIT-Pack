@@ -553,6 +553,10 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.optional': 'nicht erfasst',
   'items.editor.weight': 'Gewicht (g)',
   'items.editor.price': 'Preis',
+  'items.editor.assignee': 'Üblicherweise zugewiesen an',
+  'items.editor.assigneeNone': 'Niemand',
+  'items.editor.assigneeHint':
+    'Optional. Eine neue Reise weist diesen Artikel dieser Person zu, sofern sie mitreist.',
   'items.editor.create': 'Artikel anlegen',
   'items.editor.notFound': 'Artikel nicht gefunden',
   'items.editor.photo': 'Foto',
@@ -1234,6 +1238,8 @@ export const de: Record<keyof typeof en, string> = {
   'wizard.sectionTravelers': 'Reisende',
   'wizard.travelerNamePlaceholder': 'Name',
   'wizard.travelerRemove': 'Reisende:n entfernen',
+  'wizard.travelerAccountOf': 'Konto von {name}',
+  'wizard.travelerNoAccount': 'Kein Konto',
   'wizard.travelerFallback': 'Person {n}',
   'wizard.travelersEmpty':
     'Noch niemand dabei — Artikel pro Person brauchen mindestens eine Person.',

@@ -154,17 +154,39 @@ const attributes = computed<Record<string, unknown> | null>(() => {
 })
 
 // --- Step 2: travelers (FR-2.5) ---
+/**
+ * The select's value for *nobody*: not `null`, which `IonSelect` reads as "no
+ * value chosen" and answers with its placeholder (same as M22's picker).
+ */
+const NO_ACCOUNT = ''
+
 // FR-2.5a: the household's default travellers are the starting point of
 // every trip; step 2 adds, renames and removes them exactly as before.
-// A traveler may be an existing account (`userId`): that account is then a
-// collaborator of the trip from its first moment, with `role`.
+// A traveler may be an existing account (`linkedUserId`, FR-1.9). One added
+// through the account picker is also a collaborator of the trip from its
+// first moment (`member`), with `role`; a plain traveler may only be linked
+// to the creator or to someone the trip is shared with anyway.
 type TravelerRole = 'admin' | 'editor'
-const travelers = ref<{ name: string; userId: string | null; role: TravelerRole }[]>(
-  defaultTravelers().names.value.map((name) => ({ name, userId: null, role: 'editor' })),
+type WizardTraveler = {
+  name: string
+  linkedUserId: string
+  member: boolean
+  role: TravelerRole
+}
+const travelers = ref<WizardTraveler[]>(
+  defaultTravelers().names.value.map((name) => ({
+    name,
+    linkedUserId: NO_ACCOUNT,
+    member: false,
+    role: 'editor',
+  })),
 )
 
 function addTraveler() {
-  travelers.value = [...travelers.value, { name: '', userId: null, role: 'editor' }]
+  travelers.value = [
+    ...travelers.value,
+    { name: '', linkedUserId: NO_ACCOUNT, member: false, role: 'editor' },
+  ]
 }
 
 function removeTraveler(index: number) {
@@ -174,8 +196,11 @@ function removeTraveler(index: number) {
 /** Adds the account as a traveler named like it; the name stays editable. */
 function addAccountTraveler(userId: string) {
   const account = directory.value.find((u) => u.user_id === userId)
-  if (!account || travelers.value.some((t) => t.userId === userId)) return
-  travelers.value = [...travelers.value, { name: account.display_name, userId, role: 'editor' }]
+  if (!account || travelers.value.some((t) => t.linkedUserId === userId)) return
+  travelers.value = [
+    ...travelers.value,
+    { name: account.display_name, linkedUserId: userId, member: true, role: 'editor' },
+  ]
 }
 
 function setTravelerRole(index: number, role: TravelerRole) {
@@ -183,8 +208,8 @@ function setTravelerRole(index: number, role: TravelerRole) {
 }
 
 /** Whether the row is the creator: Owner already, so it has no role to pick. */
-function isMe(userId: string | null): boolean {
-  return userId !== null && userId === myUserId.value
+function isMe(userId: string): boolean {
+  return userId !== NO_ACCOUNT && userId === myUserId.value
 }
 
 // --- Step 2: sharing & roles (FR-4.5/4.7) ---
@@ -206,7 +231,7 @@ const shareCandidates = computed(() =>
     (u) =>
       u.user_id !== myUserId.value &&
       !shares.value.some((s) => s.userId === u.user_id) &&
-      !travelers.value.some((t) => t.userId === u.user_id),
+      !travelers.value.some((t) => t.linkedUserId === u.user_id),
   ),
 )
 
@@ -214,7 +239,7 @@ const shareCandidates = computed(() =>
 const travelerAccountCandidates = computed(() =>
   directory.value.filter(
     (u) =>
-      !travelers.value.some((t) => t.userId === u.user_id) &&
+      !travelers.value.some((t) => t.linkedUserId === u.user_id) &&
       !shares.value.some((s) => s.userId === u.user_id),
   ),
 )
@@ -223,8 +248,8 @@ const travelerAccountCandidates = computed(() =>
 const allMembers = computed(() => [
   ...shares.value,
   ...travelers.value
-    .filter((t) => t.userId !== null && !isMe(t.userId))
-    .map((t) => ({ userId: t.userId as string, role: t.role })),
+    .filter((t) => t.member && t.linkedUserId !== NO_ACCOUNT && !isMe(t.linkedUserId))
+    .map((t) => ({ userId: t.linkedUserId, role: t.role })),
 ])
 
 function addShare(userId: string) {
@@ -242,6 +267,37 @@ function removeShare(index: number) {
 
 function shareName(userId: string): string {
   return directory.value.find((u) => u.user_id === userId)?.display_name ?? userId
+}
+
+/**
+ * Who a traveler may be recorded as while creating (FR-2.5, FR-1.9): the
+ * creator and the accounts the trip is shared with — the trip's future
+ * members, which is all the server accepts as a link (ADR-058). Myself is on
+ * the list because the account being recorded is most often my own.
+ */
+const linkableAccounts = computed(() => {
+  const me = myUserId.value
+  if (!collaborative || !me) return []
+  const ids = [me, ...shares.value.map((s) => s.userId)]
+  return ids.map((id) => ({ userId: id, name: shareName(id) }))
+})
+
+/** G-8: absent where it can mean nothing — nobody to be but oneself. */
+const canLinkTravelers = computed(() => linkableAccounts.value.length > 1)
+
+/** What row `index` may be linked to: not an account another traveler already is. */
+function linkableFor(index: number) {
+  if (!canLinkTravelers.value) return []
+  return linkableAccounts.value.filter(
+    (a) => !travelers.value.some((t, i) => i !== index && t.linkedUserId === a.userId),
+  )
+}
+
+/** A link whose account was un-shared after picking is dropped, not sent; a picked member is always kept. */
+function linkedAccountOf(traveler: WizardTraveler): string | null {
+  if (traveler.member) return traveler.linkedUserId || null
+  const stillLinkable = linkableAccounts.value.some((a) => a.userId === traveler.linkedUserId)
+  return stillLinkable && traveler.linkedUserId !== NO_ACCOUNT ? traveler.linkedUserId : null
 }
 
 // --- Step 3: template selection + live preview (FR-2.2/2.3a/15.2) ---
@@ -394,7 +450,12 @@ const generation = computed(() => {
     trip: {
       duration_days: duration.value,
       attributes: attributes.value,
-      travelers: travelers.value,
+      // The preview generates with the links the trip will be created with,
+      // so what M3 shows is what FR-1.9 will assign.
+      travelers: travelers.value.map((t) => ({
+        name: t.name,
+        linked_user_id: linkedAccountOf(t),
+      })),
     },
   })
 })
@@ -635,7 +696,10 @@ function createTrip() {
       startDate: startDate.value || null,
       endDate: endDate.value || null,
       attributes: attributes.value,
-      travelers: travelers.value.map((t) => ({ name: t.name.trim(), linkedUserId: t.userId })),
+      travelers: travelers.value.map((t) => ({
+        name: t.name.trim(),
+        linkedUserId: linkedAccountOf(t),
+      })),
       items: draftItems.value,
       // FR-27.4: what the trip follows from here on. The picks, not the
       // resolved composition — a group reached through a Vorlage is followed
@@ -831,7 +895,7 @@ setHeaderTitle(
         <SectionHead :title="t('wizard.sectionTravelers')" />
         <IonList v-if="travelers.length > 0">
           <IonItem v-for="(traveler, index) in travelers" :key="index">
-            <IonIcon slot="start" :icon="traveler.userId ? peopleOutline : personOutline" />
+            <IonIcon slot="start" :icon="traveler.member ? peopleOutline : personOutline" />
             <IonInput
               data-testid="wizard-traveler-name"
               :placeholder="t('wizard.travelerNamePlaceholder')"
@@ -840,7 +904,7 @@ setHeaderTitle(
               @ionInput="(e: CustomEvent) => (traveler.name = e.detail.value ?? '')"
             />
             <IonSelect
-              v-if="traveler.userId && !isMe(traveler.userId)"
+              v-if="traveler.member && !isMe(traveler.linkedUserId)"
               slot="end"
               data-testid="wizard-traveler-role"
               interface="popover"
@@ -850,6 +914,23 @@ setHeaderTitle(
             >
               <IonSelectOption value="editor">{{ t('role.editor') }}</IonSelectOption>
               <IonSelectOption value="admin">{{ t('role.admin') }}</IonSelectOption>
+            </IonSelect>
+            <IonSelect
+              v-else-if="!traveler.member && linkableFor(index).length > 0"
+              slot="end"
+              class="link"
+              interface="popover"
+              :aria-label="t('wizard.travelerAccountOf', { name: traveler.name })"
+              :value="traveler.linkedUserId"
+              data-testid="wizard-traveler-account"
+              @ionChange="(e: CustomEvent) => (traveler.linkedUserId = String(e.detail.value))"
+            >
+              <IonSelectOption :value="NO_ACCOUNT">{{
+                t('wizard.travelerNoAccount')
+              }}</IonSelectOption>
+              <IonSelectOption v-for="a in linkableFor(index)" :key="a.userId" :value="a.userId">
+                {{ a.name }}
+              </IonSelectOption>
             </IonSelect>
             <IonButton
               slot="end"
@@ -1195,7 +1276,7 @@ setHeaderTitle(
                 <!-- FR-2.6: marks explain what the row already is. Labels, not
                      controls — procurement and assignment have one editor (M5),
                      and a second one here is what this FR argues against. -->
-                <span v-if="item.traveler_index !== null" class="mark">
+                <span v-if="item.per_person" class="mark">
                   {{ t('wizard.perPerson') }}
                 </span>
                 <span v-if="isShoppingMode(item.mode)" class="mark">
@@ -1353,6 +1434,11 @@ setHeaderTitle(
 </template>
 
 <style scoped>
+/* Bounded, so a long display name cannot squeeze the name field out. */
+.link {
+  max-width: 40%;
+}
+
 /* FR-27.3: the picker and its chip list. The chips are the state — what is
    picked has to be visible without scrolling back into the search results. */
 .single-items {

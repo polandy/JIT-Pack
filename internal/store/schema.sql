@@ -76,6 +76,13 @@ CREATE TABLE items (                            -- FR-1.1
     -- constraint that can refuse a single-field mutation loses the user's
     -- decision, because a rejected mutation is one the outbox drops.
     retired_at    TEXT,
+    -- FR-1.9: the account this item is usually somebody's job for. Optional,
+    -- and only ever a starting point — generation assigns the trip row to the
+    -- traveler linked to this account (FR-2.5), and the row's own assignment
+    -- (trip_items.packer_user_id / assigned_traveler_id) stays the truth.
+    -- Nullable and unconstrained beyond the FK, for the same LWW reason as
+    -- retired_at above.
+    default_assignee_id TEXT REFERENCES users(id),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc   TEXT NOT NULL DEFAULT ''
     -- FR-16.3's uniqueness is over what the user can see: a retired row

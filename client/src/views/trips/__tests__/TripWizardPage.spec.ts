@@ -967,6 +967,33 @@ describe('M3 step 2 — sharing (FR-4.5, G-8)', () => {
     expect(draft.members).toEqual([{ userId: 'user-b', role: 'editor' }])
   })
 
+  it('gives a plain traveler the per-row link and a picked account the role, never both (FR-1.9, FR-2.5)', async () => {
+    collaborative = true
+    const wrapper = await mountAtStepTwo()
+    await wrapper
+      .get('[data-testid="wizard-share-add"]')
+      .trigger('ionChange', { detail: { value: 'user-b' } })
+    await wrapper.get('[data-testid="wizard-add-traveler"]').trigger('click')
+    await wrapper
+      .get('[data-testid="wizard-add-account-traveler"]')
+      .trigger('ionChange', { detail: { value: 'me' } })
+
+    const rows = wrapper
+      .findAll('ion-item')
+      .filter((r) => r.find('[data-testid="wizard-traveler-name"]').exists())
+    const plain = rows.at(-2)!
+    const picked = rows.at(-1)!
+    // The creator is linked by the picked row, so the plain row is offered only Sarah.
+    expect(
+      plain
+        .get('[data-testid="wizard-traveler-account"]')
+        .findAll('ion-select-option')
+        .map((o) => o.text()),
+    ).toEqual(['No account', 'Sarah'])
+    expect(picked.find('[data-testid="wizard-traveler-account"]').exists()).toBe(false)
+    expect(plain.find('[data-testid="wizard-traveler-role"]').exists()).toBe(false)
+  })
+
   it('asks the server nothing without a session, and offers no sharing at all', async () => {
     // G-8: hidden rather than offered-and-broken. The two calls are the
     // positive signal — an absent section could equally mean a failed render.
