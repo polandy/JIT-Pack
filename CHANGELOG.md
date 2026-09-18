@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.11.0](https://github.com/polandy/JIT-Pack/compare/v0.10.0...v0.11.0) (2026-09-18)
+
+
+### Features
+
+* **client:** a packing row's amount can be changed where the row is (FR-25.24) ([8bd0615](https://github.com/polandy/JIT-Pack/commit/8bd061595e8a61184aeccd6928142a2cb247e0ea))
+* **client:** assignment and the late-packer flag are set from the row (FR-25.25, FR-25.26) ([395e887](https://github.com/polandy/JIT-Pack/commit/395e8870a025c4253775f93f95bc9ba5f5505c93))
+* **client:** the inventory can act on several items at once (FR-24.9) ([57f3e9e](https://github.com/polandy/JIT-Pack/commit/57f3e9e420e06a4fb98ad96cf8bec42eae279b92))
+* **client:** the inventory can fix its own tags (FR-24.10) ([b262dfd](https://github.com/polandy/JIT-Pack/commit/b262dfd811ab5861e0785179121736e2e9995278))
+* **client:** the inventory gets tools that stay, a search that reaches its data, and tags without a swipe axis ([#468](https://github.com/polandy/JIT-Pack/issues/468)) ([101c70a](https://github.com/polandy/JIT-Pack/commit/101c70a16504eb02d58201de65217fc8e8446cea))
+* the instance can say a newer release exists (FR-23.8) ([62ab3f2](https://github.com/polandy/JIT-Pack/commit/62ab3f2d293595afe23cd7329ee3ff67316fc956))
+
+
+### Bug Fixes
+
+* **client:** a toast says when it has finished arriving (FR-9.4) ([b481610](https://github.com/polandy/JIT-Pack/commit/b48161042a241d92380b563fd9cdb1de14a58256))
+* **client:** M2 says the list is loading instead of claiming it is empty ([#462](https://github.com/polandy/JIT-Pack/issues/462)) ([612439d](https://github.com/polandy/JIT-Pack/commit/612439da42104118410278f120f761c55eff221b))
+* **client:** M5's detail pane is a column of the frame, not a layer on the screen ([37c8c1a](https://github.com/polandy/JIT-Pack/commit/37c8c1a7a3e6e436d282ea424cd5e8b1a15079e5))
+* **client:** nine more empty states wait for their rows ([#465](https://github.com/polandy/JIT-Pack/issues/465)) ([49d12eb](https://github.com/polandy/JIT-Pack/commit/49d12ebcb46ec04ad20b7828ce648c6a1a2e8719))
+* **client:** settings stops rendering over the screen it was opened from ([#467](https://github.com/polandy/JIT-Pack/issues/467)) ([e952a5e](https://github.com/polandy/JIT-Pack/commit/e952a5e3749b855f81915e35aba74e4ea9aba1da))
+* **client:** the app bar names the build once, not twice ([c3be782](https://github.com/polandy/JIT-Pack/commit/c3be78279c953b4ecb1c768b90ee3a6ef850e1ec))
+* **client:** the numbers above a loading notice wait for their rows too (ADR-033) ([5099ea6](https://github.com/polandy/JIT-Pack/commit/5099ea613f7f4d7bca29fdd586214f3a3600d00b))
+* **client:** the update banner covers the content, not the screen's name (FR-19.7) ([56f97d8](https://github.com/polandy/JIT-Pack/commit/56f97d8b51e182f5ba5f69b282b14a17876a0a5e))
+* **client:** the update banner stops moving the page under a finger ([#466](https://github.com/polandy/JIT-Pack/issues/466)) ([0af127a](https://github.com/polandy/JIT-Pack/commit/0af127a4ffb6cc5963d5ac35a1a7e8cb825694ee))
+* **client:** three things the inventory said that were not true ([053c13c](https://github.com/polandy/JIT-Pack/commit/053c13c0d9d38ea87d0866616b116e8ad239a184))
+* **e2e:** packItem returns when the write left, not when the row painted ([500b5e5](https://github.com/polandy/JIT-Pack/commit/500b5e5482b53457db63e865a6c5ca66d2beb93a))
+
 ## [0.10.0](https://github.com/polandy/JIT-Pack/compare/v0.9.0...v0.10.0) (2026-09-13)
 
 
