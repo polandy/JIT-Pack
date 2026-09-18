@@ -3118,7 +3118,8 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   * **Dropping a row means FR-5.5, not deletion.** A row removed here is *considered and skipped* — quantity 0, visible
     and struck through, reversible — because that is what the same act means everywhere else in the product, and because
     a trip that silently lacks a template row teaches the next trip nothing. It is also the first place FR-5.5’s missing
-    control (backlog item 11) would gain a home.
+    control (backlog item 11) would gain a home. (*Clarified 2026-09-18:* since FR-5.8, M4 does also delete a row, as
+    its own named act beside the skip; the wizard's *drop* stays a skip.)
   * **Whatever step 4 gains, M4 keeps.** No decision may become wizard-only; the wizard may only bring a decision
     *forward*.
 
@@ -4042,6 +4043,39 @@ the tail is where a symbol system is actually decided. Results:
     expiry* — lost on a cost nobody had priced: announcing an expiry needs the **server** to notice one, and expiry is
     the one event no request causes, so it would need periodic work in a process whose only goroutine is the listener.
     Once the notification is paid for, the clock buys nothing but the ability to decide on the holder's behalf.
+
+* **FR-5.8 (A row can be taken off the list — owner request and decision 2026-09-18, *built 2026-09-18*):** Until now
+  nothing in M4 deleted a row. FR-5.5's *Nicht einpacken* was the only way to take something out, and it keeps the row
+  as a decision — which is right for "deliberately left behind" and wrong for the typo, the duplicate and the thing that
+  was never going to be on this trip, which stayed on the list forever as a skipped row. The two are now separate acts:
+  * **Where.** A last entry in M4's press-and-hold row menu, *Von der Liste entfernen* — the owner asked for "a long
+    press on the icon", and the icon is inside the row, so holding it already opens this menu; a second, icon-only
+    gesture would have competed with the row's own. It sits **below every row action**, marked destructive (red on
+    iOS). It is absent where the menu offers nothing else of the row's: under somebody else's claim (G-3), in the
+    closing pass (FR-9.3), and on a row the viewer holds, which offers only the release. A skipped row offers it beside
+    *Doch einpacken* — cleaning up a decision made in error is one of the cases it exists for.
+  * **What it is.** A delete of the `trip_items` row, cascading its comments and FR-7.3 todos (the server's cascade,
+    mirrored client-side for Local Mode, C-3a). The FR-27.4 ledger already keeps a hand-deleted position deleted: a
+    group refresh does not bring the row back.
+  * **When it asks (owner decision 2026-09-18: "ask only when the row carries something").** A row with **nothing on
+    it** — no packed units, no notes, no companions to take along — goes at once, and the FR-25.2 snackbar offers the
+    undo. A row carrying **any** of the three is confirmed first, the FR-24.3 idiom: the dialog says what the row is
+    about to lose (*„Bereits 2 gepackt."*, *„3 Notizen werden mitgelöscht."*, *„Ebenfalls nicht eingepackt:
+    Akku."*) and always points at *Nicht einpacken* for the other intent. A confirmed removal has no undo — what it
+    announced is exactly what an undo could not bring back. The rule is `removalNeedsConfirm` in
+    `client/src/domain/rowRemoval.ts`; the other two options (always ask, never ask and only undo) were declined.
+  * **The undo re-inserts the row under its own id** with every field the user chose, and none of the server's stamps
+    (invariant 3). The same id is what makes the FR-27.4 ledger find its row again; a fresh id would read as a
+    hand-deleted position plus a new row. ADR-052 lets it through because the insert is newer than the tombstone.
+  * **Companions (FR-20.2).** Removing a main item co-skips its dependents, exactly as skipping it does — they stay on
+    the list as done rows rather than vanishing. **One guard the skip does not make:** a per-person item (FR-25.1) is
+    still on the trip while another traveler's row of it is not skipped, so removing one instance takes no companion
+    along. Once the main row is gone, a co-skipped companion reads as plainly skipped: `skippedVia` names the
+    *skipped* row it followed, and there is none left to name.
+  * **Not here, deliberately.** M5 has no *Entfernen* control (FR-5.5's findable path stays the skip), and the
+    FR-25.26 cluster head offers no removal for all instances. Each is one more entry point for the same act; neither
+    was asked for. **Revisit trigger:** somebody looks for removal in M5, or removes a per-person item row by row.
+  * **Modes.** Identical in all three: a trip-partition delete and, for the undo, an insert — nothing server-only.
 
 ### 3.6 Notifications & Delegation
 

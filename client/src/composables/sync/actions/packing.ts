@@ -15,6 +15,7 @@ import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
 import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
+import { planRemoval, type RowRemoval } from '@/domain/rowRemoval'
 import {
   everyoneMembers,
   membersOfRows,
@@ -490,6 +491,61 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   /**
+   * What removing `item` would take with it (FR-5.8): its packing, the notes
+   * that cascade with it, and the FR-20.2 companions it would skip. Asked
+   * before the removal, because the answer decides whether M4 confirms first.
+   */
+  function planRowRemoval(tripId: string, item: TripItem): RowRemoval<TripItem> {
+    return planRemoval(
+      item,
+      tripStore.getItems(tripId),
+      masterStore.dependencyList,
+      tripStore.itemChildRows(item.id).length,
+    )
+  }
+
+  /**
+   * Take a row off the packing list altogether (FR-5.8) — a delete, where
+   * FR-5.5's skip keeps the row as a decision.
+   *
+   * `companions` is {@link planRowRemoval}'s answer, passed back rather than
+   * recomputed: it is what the confirmation named, and the write must skip
+   * exactly those. Removal and co-skip go as one queued write, so no device
+   * ever sees the companions orphaned without their skip.
+   */
+  function removeItem(tripId: string, item: TripItem, companions: readonly TripItem[]) {
+    const removal = mutations.deleteTripItem(item.id)
+    enqueueAndDrain(
+      'trip',
+      tripId,
+      {
+        mutation: removal,
+        optimistic: [
+          ...cascadeChanges(TABLE.tripItems, item.id, { tripStore, masterStore }),
+          optimisticDelete(removal),
+        ],
+      },
+      ...companions.map((target) => {
+        const skip = mutations.skipItem(target.id)
+        return { mutation: skip, optimistic: optimisticUpdate(skip, itemRow(target)) }
+      }),
+    )
+  }
+
+  /**
+   * FR-5.8's undo: put a removed row back as it was.
+   *
+   * Looked up first, for the reverse of {@link removeAddedItem}'s reason: a row
+   * that is on the list again — a sync brought it back, or it was never gone —
+   * is not inserted a second time.
+   */
+  function restoreRemovedItem(tripId: string, row: TripItem) {
+    if (tripStore.getItems(tripId).some((current) => current.id === row.id)) return
+    const mutation = mutations.restoreTripItem(row)
+    enqueueAndDrain('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
+  }
+
+  /**
    * FR-25.13g: give every traveler of the trip a row for this item, in one tap.
    *
    * The membership is `everyoneMembers`' — an amount somebody already chose is
@@ -742,6 +798,9 @@ export function createPackingActions(ctx: SyncContext) {
     quickAddItem,
     addDecidedItem,
     removeAddedItem,
+    planRowRemoval,
+    removeItem,
+    restoreRemovedItem,
     addRequiredCompanions,
   }
 }

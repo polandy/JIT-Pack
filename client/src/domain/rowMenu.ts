@@ -1,5 +1,5 @@
 /**
- * What M4's press-and-hold offers on a row (FR-5.5, FR-5.7, FR-9.3, G-3).
+ * What M4's press-and-hold offers on a row (FR-5.5, FR-5.7, FR-5.8, FR-9.3, G-3).
  *
  * The menu was a nested ternary inside `actionSheetController.create`, so
  * the rule could only be read by rendering M4 and holding a row down — and
@@ -27,6 +27,8 @@ export type RowMenuAction =
   | 'latePackerOff'
   | 'flagUnused'
   | 'unflagUnused'
+  /** FR-5.8: off the list altogether — a delete, not FR-5.5's decision. */
+  | 'remove'
 
 /** Everything outside the row that decides what the row may offer. */
 export interface RowMenuContext {
@@ -122,5 +124,9 @@ export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuA
   // FR-9.3: the judgement leaves the fold. *Unused* used to cost three taps
   // into M5's *Details* block, which nothing ever asks for.
   if (ctx.judgeable) entries.push(item.flag_unused ? 'unflagUnused' : 'flagUnused')
+  // FR-5.8: last, where a destructive entry belongs, and never on a row I am
+  // holding — that one offers the release and nothing else, and removing a
+  // row out from under my own claim is not a thing anyone means either.
+  if (!ctx.mine) entries.push('remove')
   return entries
 }
