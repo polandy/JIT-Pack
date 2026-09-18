@@ -67,6 +67,9 @@ import {
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 import TagChooser from '@/components/items/TagChooser.vue'
+import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
+import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
+import { OFFER_CREATE, searchOffer } from '@/domain/itemSearch'
 
 const props = defineProps<{ itemId?: string }>()
 
@@ -395,19 +398,20 @@ function closeCompanionPicker() {
  * user happened to declare it from.
  */
 function onAddCompanion(companionItemId: string) {
-  if (!props.itemId) return
-  const error = dependencyCycleError(
+  if (!props.itemId || companionRefused(companionItemId)) return
+  closeCompanionPicker()
+  orchestrator.addItemDependency(companionItemId, props.itemId)
+}
+
+/** Reports whether the edge would close a cycle, and says so on screen if it would. */
+function companionRefused(companionItemId: string): boolean {
+  if (!props.itemId) return true
+  companionError.value = dependencyCycleError(
     masterStore.dependencyList,
     { item_id: companionItemId, depends_on_item_id: props.itemId },
     itemName,
   )
-  if (error) {
-    companionError.value = error
-    return
-  }
-  companionError.value = null
-  closeCompanionPicker()
-  orchestrator.addItemDependency(companionItemId, props.itemId)
+  return companionError.value !== null
 }
 
 function onCompanionModeChange(dependencyId: string, mode: DependencyMode) {
@@ -417,6 +421,48 @@ function onCompanionModeChange(dependencyId: string, mode: DependencyMode) {
 
 function onRemoveCompanion(dependencyId: string) {
   orchestrator.deleteItemDependency(dependencyId)
+}
+
+// --- FR-20.1 + FR-24.11: a companion the inventory does not hold yet ---
+
+/**
+ * The picker's query offered as a new item, or as a retired one back — the
+ * inventory search's rule, so „Ersatzbatterien" is created here exactly when
+ * M9 would offer to create it. Not before the partition has arrived (ADR-033).
+ */
+const companionOffer = computed(() =>
+  showCompanionPicker.value && orchestrator.masterDataLoaded()
+    ? searchOffer(companionSearch.value, masterStore.activeItemList, masterStore.retiredItemList)
+    : null,
+)
+
+const companionCreateOpen = ref(false)
+
+/** This item's tags, offered first: the batteries live where the headlamp does. */
+const companionPreferredTagIds = computed(() => assignedTags.value.map((tag) => tag.id))
+
+function takeCompanionOffer() {
+  const current = companionOffer.value
+  if (!current) return
+  if (current.kind === OFFER_CREATE) {
+    companionCreateOpen.value = true
+    return
+  }
+  // A retired item keeps its dependency rows, so the edge is checked before
+  // the restore: a refused companion must not leave the item un-retired.
+  if (companionRefused(current.id)) return
+  if (!orchestrator.restoreMasterItem(current.id)) return
+  onAddCompanion(current.id)
+}
+
+async function onCompanionCreated({ id, open }: { id: string; open: boolean }) {
+  companionCreateOpen.value = false
+  if (!props.itemId) return
+  // A new item has no edges yet, so this one cannot close a cycle.
+  companionError.value = null
+  closeCompanionPicker()
+  orchestrator.addItemDependency(id, props.itemId)
+  if (open) await router.push(itemPath(id))
 }
 
 // --- FR-27.8 / FR-27.9: the item's rear-view ---
@@ -827,11 +873,22 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           <div v-else class="main-picker">
             <IonSearchbar
               :value="companionSearch"
+              data-testid="m10-companion-search"
               :placeholder="t('items.editor.dependencySearchPlaceholder')"
               :debounce="200"
               @ionInput="(e: CustomEvent) => (companionSearch = e.detail.value ?? '')"
             />
-            <IonList>
+            <!-- FR-24.11: above the hits, where the keyboard leaves it reachable. -->
+            <SearchOfferButton
+              v-if="companionOffer"
+              :offer="companionOffer"
+              testid="m10-companion-offer"
+              :create-hint="t('items.editor.companionOfferCreateHint', { name: item.name })"
+              :restore-hint="t('items.editor.companionOfferRestoreHint')"
+              @take="takeCompanionOffer"
+            />
+            <!-- The offer answers a query with no hits on its own; an empty list under it is a stray bar. -->
+            <IonList v-if="pickableCompanions.length > 0 || !companionOffer">
               <IonItem
                 v-for="companion in pickableCompanions"
                 :key="companion.id"
@@ -977,6 +1034,22 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           </section>
         </template>
       </template>
+
+      <!--
+        The last child on purpose: a presented inline modal is moved out of
+        its parent by Ionic, and a sheet placed beside the picker's v-if/v-else
+        became Vue's insertion anchor for it — the swap back to „Add companion"
+        then threw and left the section half-rendered.
+      -->
+      <CreateItemSheet
+        v-if="item"
+        :is-open="companionCreateOpen"
+        :name="companionOffer?.name ?? ''"
+        :tag-ids="[]"
+        :preferred-tag-ids="companionPreferredTagIds"
+        @dismiss="companionCreateOpen = false"
+        @created="onCompanionCreated"
+      />
     </IonContent>
   </IonPage>
 </template>

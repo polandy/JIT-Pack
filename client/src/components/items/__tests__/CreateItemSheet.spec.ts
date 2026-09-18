@@ -80,12 +80,12 @@ function mountSheet(props: Partial<InstanceType<typeof CreateItemSheet>['$props'
 }
 
 async function typeName(sheet: ReturnType<typeof mountSheet>, value: string) {
-  await sheet.get('[data-testid="m9-create-name"]').trigger('ionInput', { detail: { value } })
+  await sheet.get('[data-testid="create-item-name"]').trigger('ionInput', { detail: { value } })
 }
 
 /** The field's value — a property on the custom element, not an attribute. */
 function nameValue(sheet: ReturnType<typeof mountSheet>): unknown {
-  return (sheet.get('[data-testid="m9-create-name"]').element as HTMLIonInputElement).value
+  return (sheet.get('[data-testid="create-item-name"]').element as HTMLIonInputElement).value
 }
 
 beforeEach(() => {
@@ -99,21 +99,23 @@ describe('CreateItemSheet (FR-24.11)', () => {
     const sheet = mountSheet({ tagIds: ['t-camp'] })
 
     expect(nameValue(sheet)).toBe('Stirnlampe')
-    expect(sheet.find('[data-testid="m9-create-tag-primary-Camping"]').exists()).toBe(true)
-    expect(sheet.get('[data-testid="m9-create-tag-summary"]').text()).toContain('Camping')
+    expect(sheet.find('[data-testid="create-item-tag-primary-Camping"]').exists()).toBe(true)
+    expect(sheet.get('[data-testid="create-item-tag-summary"]').text()).toContain('Camping')
   })
 
   it('offers the tags the similar items carry ahead of the vocabulary’s own order', () => {
     const sheet = mountSheet({ preferredTagIds: ['t-tech'] })
-    const offers = sheet.findAll('[data-testid^="m9-create-tag-offer-"]').map((chip) => chip.text())
+    const offers = sheet
+      .findAll('[data-testid^="create-item-tag-offer-"]')
+      .map((chip) => chip.text())
 
     expect(offers).toEqual(['Technik', 'Hygiene', 'Camping'])
   })
 
   it('writes the item and then its tags, primary first — the same write M10 makes', async () => {
     const sheet = mountSheet({ tagIds: ['t-camp'] })
-    await sheet.get('[data-testid="m9-create-tag-offer-Technik"]').trigger('click')
-    await sheet.get('[data-testid="m9-create-confirm"]').trigger('click')
+    await sheet.get('[data-testid="create-item-tag-offer-Technik"]').trigger('click')
+    await sheet.get('[data-testid="create-item-confirm"]').trigger('click')
 
     expect(writes.created).toEqual(['Stirnlampe'])
     expect(writes.assigned).toEqual([
@@ -127,7 +129,7 @@ describe('CreateItemSheet (FR-24.11)', () => {
 
   it('asks M9 to continue in M10 from „Anlegen und öffnen"', async () => {
     const sheet = mountSheet()
-    await sheet.get('[data-testid="m9-create-open"]').trigger('click')
+    await sheet.get('[data-testid="create-item-open"]').trigger('click')
 
     expect(sheet.emitted('created')).toEqual([
       [{ id: 'new-Stirnlampe', name: 'Stirnlampe', open: true }],
@@ -137,9 +139,11 @@ describe('CreateItemSheet (FR-24.11)', () => {
   it('answers a blank name with a hint and writes nothing (FR-24.5)', async () => {
     const sheet = mountSheet()
     await typeName(sheet, '   ')
-    await sheet.get('[data-testid="m9-create-confirm"]').trigger('click')
+    await sheet.get('[data-testid="create-item-confirm"]').trigger('click')
 
-    expect(sheet.get('[data-testid="m9-create-error"]').text()).toBe(t('items.editor.nameMissing'))
+    expect(sheet.get('[data-testid="create-item-error"]').text()).toBe(
+      t('items.editor.nameMissing'),
+    )
     expect(writes.created).toEqual([])
     expect(sheet.emitted('created')).toBeUndefined()
   })
@@ -147,9 +151,9 @@ describe('CreateItemSheet (FR-24.11)', () => {
   it('refuses a name an item already carries, in any case, before the push could', async () => {
     const sheet = mountSheet()
     await typeName(sheet, 'zahnbürste')
-    await sheet.get('[data-testid="m9-create-confirm"]').trigger('click')
+    await sheet.get('[data-testid="create-item-confirm"]').trigger('click')
 
-    expect(sheet.get('[data-testid="m9-create-error"]').text()).toBe(
+    expect(sheet.get('[data-testid="create-item-error"]').text()).toBe(
       t('items.editor.nameTaken', { name: 'zahnbürste' }),
     )
     expect(writes.created).toEqual([])
@@ -157,24 +161,24 @@ describe('CreateItemSheet (FR-24.11)', () => {
 
   it('creates a typed tag nobody has and assigns it', async () => {
     const sheet = mountSheet()
-    const search = sheet.get('[data-testid="m9-create-tag-search"]')
+    const search = sheet.get('[data-testid="create-item-tag-search"]')
     await search.trigger('ionInput', { detail: { value: 'Nachtwanderung' } })
-    await sheet.get('[data-testid="m9-create-tag-create"]').trigger('click')
+    await sheet.get('[data-testid="create-item-tag-create"]').trigger('click')
     await flushPromises()
 
     expect(writes.tags).toEqual(['Nachtwanderung'])
-    expect(sheet.find('[data-testid="m9-create-tag-primary-Nachtwanderung"]').exists()).toBe(true)
+    expect(sheet.find('[data-testid="create-item-tag-primary-Nachtwanderung"]').exists()).toBe(true)
   })
 
   it('starts every opening from the props, not from the last draft', async () => {
     const sheet = mountSheet({ tagIds: ['t-camp'] })
-    await sheet.get('[data-testid="m9-create-tag-assigned-Camping"]').trigger('click')
+    await sheet.get('[data-testid="create-item-tag-assigned-Camping"]').trigger('click')
     await typeName(sheet, 'Anders')
 
     await sheet.setProps({ isOpen: false })
     await sheet.setProps({ isOpen: true, name: 'Zelt' })
 
     expect(nameValue(sheet)).toBe('Zelt')
-    expect(sheet.find('[data-testid="m9-create-tag-primary-Camping"]').exists()).toBe(true)
+    expect(sheet.find('[data-testid="create-item-tag-primary-Camping"]').exists()).toBe(true)
   })
 })

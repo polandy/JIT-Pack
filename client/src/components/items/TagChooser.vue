@@ -33,8 +33,8 @@ const props = withDefaults(
      */
     preferredIds?: string[]
     /**
-     * Rendered inside M9's FR-24.11 sheet rather than on M10 — only the test
-     * ids differ, spelled out as literals so `scripts/testid-gate.mjs` can
+     * Rendered inside the FR-24.11 creation sheet rather than on M10's own
+     * form — only the test ids differ, spelled out as literals so `scripts/testid-gate.mjs` can
      * check a spec against either.
      */
     inSheet?: boolean
@@ -97,7 +97,7 @@ function commitQuery() {
     <IonSearchbar
       ref="searchbar"
       :value="query"
-      :data-testid="`${inSheet ? 'm9-create' : 'm10'}-tag-search`"
+      :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-search`"
       :placeholder="t('items.editor.tagSearchPlaceholder')"
       :debounce="0"
       @ionInput="(e: CustomEvent) => (query = (e.detail.value as string) ?? '')"
@@ -120,7 +120,7 @@ function commitQuery() {
           class="chip-name"
           :disabled="index === 0"
           :aria-label="t('items.editor.makePrimary', { tag: tag.name })"
-          :data-testid="`${inSheet ? 'm9-create' : 'm10'}-tag-primary-${tag.name}`"
+          :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-primary-${tag.name}`"
           @click="emit('primary', tag.id)"
         >
           <IonIcon v-if="index === 0" :icon="bookmarkOutline" class="chip-flag" />
@@ -130,7 +130,7 @@ function commitQuery() {
           type="button"
           class="chip-drop"
           :aria-label="t('items.editor.unassign', { tag: tag.name })"
-          :data-testid="`${inSheet ? 'm9-create' : 'm10'}-tag-assigned-${tag.name}`"
+          :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-assigned-${tag.name}`"
           @click="emit('unassign', tag.id)"
         >
           <IonIcon :icon="closeOutline" />
@@ -143,7 +143,7 @@ function commitQuery() {
         type="button"
         class="chip"
         :class="{ preferred: preferredSet.has(tag.id) }"
-        :data-testid="`${inSheet ? 'm9-create' : 'm10'}-tag-offer-${tag.name}`"
+        :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-offer-${tag.name}`"
         @click="assign(tag.id)"
       >
         {{ tag.name }}
@@ -153,7 +153,7 @@ function commitQuery() {
         v-if="offer.hiddenCount > 0"
         type="button"
         class="chip more"
-        :data-testid="`${inSheet ? 'm9-create' : 'm10'}-tag-more`"
+        :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-more`"
         @click="focusSearch"
       >
         {{ t('items.editor.tagMoreOffers', { n: offer.hiddenCount }) }}
@@ -163,7 +163,7 @@ function commitQuery() {
         v-if="offer.canCreate"
         type="button"
         class="chip create"
-        :data-testid="`${inSheet ? 'm9-create' : 'm10'}-tag-create`"
+        :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-create`"
         @click="commitQuery"
       >
         <IonIcon :icon="addOutline" />
@@ -171,7 +171,7 @@ function commitQuery() {
       </button>
     </div>
 
-    <p class="tag-summary" :data-testid="`${inSheet ? 'm9-create' : 'm10'}-tag-summary`">
+    <p class="tag-summary" :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-summary`">
       <template v-if="assigned.length > 0">
         {{
           t('items.editor.tagFiledUnder', {

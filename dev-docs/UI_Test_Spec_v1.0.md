@@ -1810,6 +1810,16 @@ E2E-M23-04.
   those three is asserted on the other item's editor** — the edge is read where it was not declared, which is what
   separates a stored relation from a drawn one. The cycle refusal is asserted from this direction as well, against the
   dependent side still listing exactly one relation: the same edge, so the same answer, whichever end posed it.
+* **E2E-M10-23** `all` (FR-20.1/24.11) — **new 2026-09-18** (`inventory.spec.ts`): a companion the inventory lacks
+  is created from the *Begleitartikel* picker. The sheet opens on the query with this item's tag offered first; after
+  *„Anlegen"* the editor is still this item's, the picker is closed and the pair is listed — and it is read again from
+  the **new item's** editor, with its tag, which is what says both writes were stored rather than drawn.
+* **E2E-M10-24** `all` (FR-20.1/24.11) — **new 2026-09-18** (`restore-retired.spec.ts`): a retired name in the picker
+  is offered back; one tap restores it and declares it, no sheet opens, and M23 is left with nothing to restore.
+* **E2E-M10-25** `all` (FR-20.1/24.11) — **new 2026-09-18** (`restore-retired.spec.ts`): the failure path. The item
+  in hand already depends on the retired one, so declaring it a companion would close a circle: the refusal names
+  the path, and the item **stays retired** — asserted as M23 still listing it, the positive signal a restore that
+  ran anyway would remove. Mutation-proved: without the check before the restore, this case goes red.
 * **E2E-M10-04** `all` (FR-22.1/22.5) — **new 2026-08-30** (`inventory.spec.ts`): the reference photo is added, replaced
   and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Like the
   dependency section above it, this had no `data-testid` anywhere — the signature of a screen no test has rendered. Two

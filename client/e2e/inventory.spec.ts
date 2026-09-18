@@ -1002,6 +1002,54 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     await expect(visiblePage(page).getByTestId('m10-dependency-mode-Teleobjektiv')).toHaveCount(0)
   })
 
+  /*
+   * FR-24.11 inside FR-20.1's picker: a companion the inventory does not hold
+   * yet used to mean leaving the item in hand, creating the other one in M9,
+   * finding the first again and only then declaring the pair.
+   */
+  test('E2E-M10-23: a companion the inventory lacks is created from the picker and declared at once', async ({
+    page,
+  }) => {
+    await createItem(page, 'Stirnlampe', { tags: ['Technik'] })
+    await writesLanded(page)
+
+    const editor = visiblePage(page)
+    await editor.getByTestId('m10-add-companion').click()
+    await editor.getByTestId('m10-companion-search').locator('input').fill('Ersatzbatterien')
+    await expect(editor.getByTestId('m10-companion-offer-title')).toContainText('Ersatzbatterien')
+
+    await editor.getByTestId('m10-companion-offer').click()
+    // M9 stays mounted under the editor with a sheet of its own; the one
+    // this page presents is the one on show.
+    const sheet = page.getByTestId('create-item-sheet').and(page.locator('.show-modal'))
+    await expect(sheet).toHaveAttribute('data-presented', 'true')
+    await expect(sheet.getByTestId('create-item-name').locator('input')).toHaveValue(
+      'Ersatzbatterien',
+    )
+    // The item in hand's tag leads the offers: the batteries live where the lamp does.
+    await expect(sheet.locator('[data-testid^="create-item-tag-offer-"]').first()).toHaveText(
+      'Technik',
+    )
+    await sheet.getByTestId('create-item-tag-offer-Technik').click()
+    await sheet.getByTestId('create-item-confirm').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // Still in the lamp's editor, the pair declared and the picker closed.
+    await expect(page.getByTestId('header-title')).toHaveText('Stirnlampe')
+    await expect(editor.getByTestId('m10-companion-mode-Ersatzbatterien')).toContainText('Required')
+    await expect(editor.getByTestId('m10-add-companion')).toBeVisible()
+
+    // Stored, not only drawn: the new item exists with its tag and names the
+    // lamp from its own end of the relation.
+    await writesLanded(page)
+    await backToInventory(page)
+    await openItem(page, 'Ersatzbatterien')
+    await expect(visiblePage(page).getByTestId('m10-tag-primary-Technik')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Stirnlampe')).toContainText(
+      'Required',
+    )
+  })
+
   test('E2E-M10-04: a photo is added, replaced, and removed on the item', async ({ page }) => {
     await createItem(page, 'Fernglas')
 
@@ -1252,7 +1300,7 @@ test.describe('M9 — the search creates what it did not find (FR-24.11)', () =>
   /** The creation sheet, once Ionic has actually presented it. */
   async function openOffer(page: Page): Promise<Locator> {
     await visiblePage(page).getByTestId('m9-offer').click()
-    const sheet = page.getByTestId('m9-create-sheet')
+    const sheet = page.getByTestId('create-item-sheet')
     await expect(sheet).toHaveAttribute('data-presented', 'true')
     return sheet
   }
@@ -1272,14 +1320,14 @@ test.describe('M9 — the search creates what it did not find (FR-24.11)', () =>
     await expect(list.getByTestId('m9-offer-title')).toContainText('Zelt')
 
     const sheet = await openOffer(page)
-    await expect(sheet.getByTestId('m9-create-name').locator('input')).toHaveValue('Zelt')
+    await expect(sheet.getByTestId('create-item-name').locator('input')).toHaveValue('Zelt')
     // The pegs' tag leads the offers — the tent is most likely camping gear too.
-    await expect(sheet.locator('[data-testid^="m9-create-tag-offer-"]').first()).toHaveText(
+    await expect(sheet.locator('[data-testid^="create-item-tag-offer-"]').first()).toHaveText(
       'Camping',
     )
-    await sheet.getByTestId('m9-create-tag-offer-Camping').click()
-    await expect(sheet.getByTestId('m9-create-tag-primary-Camping')).toBeVisible()
-    await sheet.getByTestId('m9-create-confirm').click()
+    await sheet.getByTestId('create-item-tag-offer-Camping').click()
+    await expect(sheet.getByTestId('create-item-tag-primary-Camping')).toBeVisible()
+    await sheet.getByTestId('create-item-confirm').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await writesLanded(page)
 
@@ -1321,8 +1369,8 @@ test.describe('M9 — the search creates what it did not find (FR-24.11)', () =>
 
     const sheet = await openOffer(page)
     // Without the filter's tag the new item would vanish from this list.
-    await expect(sheet.getByTestId('m9-create-tag-primary-Technik')).toBeVisible()
-    await sheet.getByTestId('m9-create-open').click()
+    await expect(sheet.getByTestId('create-item-tag-primary-Technik')).toBeVisible()
+    await sheet.getByTestId('create-item-open').click()
 
     await expect(page.getByTestId('header-title')).toHaveText('Ladegerät')
     await expect(visiblePage(page).getByTestId('save-indicator')).toBeVisible()
