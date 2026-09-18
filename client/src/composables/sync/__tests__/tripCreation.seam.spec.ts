@@ -98,6 +98,41 @@ describe('createTripFromWizard on the seam (FR-2.x)', () => {
     expect(drains).toEqual([[tripId]])
   })
 
+  it('links a traveler to its account after the generated rows, never on the insert (FR-2.5)', () => {
+    const actions = createTripCreationActions(ctx)
+
+    actions.createTripFromWizard({
+      name: 'Engadin',
+      year: 2026,
+      startDate: null,
+      endDate: null,
+      attributes: null,
+      members: [{ userId: 'u2', role: 'editor' }],
+      travelers: [{ name: 'Andy' }, { name: 'Ronja', linkedUserId: 'u2' }],
+      items: [generated({ traveler_index: 1 })],
+    })
+
+    // Membership is master and drains first; the link is a trip write that
+    // follows the row assigned to the traveler, so planRosterAssignment
+    // finds no account to notify while the rows arrive.
+    expect(tablesOf('master')).toContain(TABLE.tripMembers)
+    expect(tablesOf('trip')).toEqual([
+      TABLE.travelers,
+      TABLE.travelers,
+      TABLE.tripItems,
+      TABLE.travelers,
+    ])
+    const tripWrites = queued.filter((q) => q.type === 'trip').flatMap((q) => q.muts)
+    const inserts = tripWrites.filter((m) => m.mutation.table === TABLE.travelers)
+    expect(inserts[0]!.mutation.fields).toMatchObject({ linked_user_id: null })
+    expect(inserts[1]!.mutation.fields).toMatchObject({ linked_user_id: null })
+    expect(tripWrites[3]!.mutation).toMatchObject({
+      table: TABLE.travelers,
+      id: inserts[1]!.mutation.id,
+      fields: { linked_user_id: 'u2' },
+    })
+  })
+
   it('writes the trip tasks on the trip itself, after the rows (FR-7.4)', () => {
     const actions = createTripCreationActions(ctx)
 

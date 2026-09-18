@@ -31,6 +31,12 @@ export interface TripWizardDraft {
   startDate: string | null
   endDate: string | null
   attributes: Record<string, unknown> | null
+  /**
+   * `linkedUserId` is the account the person is (FR-2.5). The link is written
+   * after the generated rows, never on the insert — see the ordering note in
+   * `createTripFromWizard`. The account must also be in `members` (or be the
+   * creator), or the server refuses the link with `not_a_trip_member`.
+   */
   travelers: { name: string; linkedUserId?: string | null }[]
   /** Generated rows — template items, or companions without a template (FR-20.2). */
   items: (Omit<GeneratedItem, 'source_template_id'> & { source_template_id: string | null })[]
@@ -101,11 +107,19 @@ export function createTripCreationActions(ctx: SyncContext) {
       enqueue('master', null, { mutation, optimistic: optimisticInsert(mutation) })
     }
 
-    const travelerIds = draft.travelers.map((tr) => {
-      const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.linkedUserId ?? null)
-      enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
-      return id
+    // Inserted unlinked: planRosterAssignment notifies a linked account for
+    // every push that assigns a row to their traveler, so a traveler that
+    // arrived linked would earn one delegation notification per generated
+    // per-person row. The links follow the items (FR-2.5).
+    const travelerInserts = draft.travelers.map((tr) => {
+      const inserted = mutations.addTraveler(tripId, tr.name, null)
+      enqueue('trip', tripId, {
+        mutation: inserted.mutation,
+        optimistic: optimisticInsert(inserted.mutation),
+      })
+      return inserted
     })
+    const travelerIds = travelerInserts.map((t) => t.id)
 
     for (const item of draft.items) {
       const assignedTravelerId =
@@ -128,6 +142,16 @@ export function createTripCreationActions(ctx: SyncContext) {
         enqueue('trip', tripId, { mutation: todoMut, optimistic: optimisticInsert(todoMut) })
       }
     }
+
+    travelerInserts.forEach((inserted, index) => {
+      const linkedUserId = draft.travelers[index]?.linkedUserId
+      if (!linkedUserId) return
+      const mutation = mutations.linkTraveler(inserted.id, linkedUserId)
+      enqueue('trip', tripId, {
+        mutation,
+        optimistic: optimisticUpdate(mutation, inserted.mutation.fields ?? {}),
+      })
+    })
 
     // FR-7.4: the templates' trip tasks, on the trip itself rather than on a
     // row, so they hold back nothing the packing list counts.

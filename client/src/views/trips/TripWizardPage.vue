@@ -33,6 +33,7 @@ import {
   chevronForwardOutline,
   closeCircleOutline,
   closeOutline,
+  peopleOutline,
   personOutline,
   refreshOutline,
 } from 'ionicons/icons'
@@ -161,16 +162,54 @@ const NO_ACCOUNT = ''
 
 // FR-2.5a: the household's default travellers are the starting point of
 // every trip; step 2 adds, renames and removes them exactly as before.
-const travelers = ref<{ name: string; linkedUserId: string }[]>(
-  defaultTravelers().names.value.map((name) => ({ name, linkedUserId: NO_ACCOUNT })),
+// A traveler may be an existing account (`linkedUserId`, FR-1.9). One added
+// through the account picker is also a collaborator of the trip from its
+// first moment (`member`), with `role`; a plain traveler may only be linked
+// to the creator or to someone the trip is shared with anyway.
+type TravelerRole = 'admin' | 'editor'
+type WizardTraveler = {
+  name: string
+  linkedUserId: string
+  member: boolean
+  role: TravelerRole
+}
+const travelers = ref<WizardTraveler[]>(
+  defaultTravelers().names.value.map((name) => ({
+    name,
+    linkedUserId: NO_ACCOUNT,
+    member: false,
+    role: 'editor',
+  })),
 )
 
 function addTraveler() {
-  travelers.value = [...travelers.value, { name: '', linkedUserId: NO_ACCOUNT }]
+  travelers.value = [
+    ...travelers.value,
+    { name: '', linkedUserId: NO_ACCOUNT, member: false, role: 'editor' },
+  ]
 }
 
 function removeTraveler(index: number) {
   travelers.value = travelers.value.filter((_, i) => i !== index)
+}
+
+/** Adds the account as a traveler named like it; the name stays editable. */
+function addAccountTraveler(userId: string) {
+  const account = directory.value.find((u) => u.user_id === userId)
+  if (!account || travelers.value.some((t) => t.linkedUserId === userId)) return
+  travelers.value = [
+    ...travelers.value,
+    { name: account.display_name, linkedUserId: userId, member: true, role: 'editor' },
+  ]
+}
+
+function setTravelerRole(index: number, role: TravelerRole) {
+  travelers.value = travelers.value.map((t, i) => (i === index ? { ...t, role } : t))
+}
+
+/** Whether the row is the creator: Owner already, so it has no role to pick. */
+function isMe(userId: string): boolean {
+  return userId !== NO_ACCOUNT && userId === myUserId.value
 }
 
 // --- Step 2: sharing & roles (FR-4.5/4.7) ---
@@ -186,12 +225,32 @@ onMounted(async () => {
   await loadIdentity()
 })
 
-/** Accounts still shareable: not me (Owner anyway), not already added. */
+/** Accounts still shareable: not me (Owner anyway), not already added, not already a linked traveler. */
 const shareCandidates = computed(() =>
   directory.value.filter(
-    (u) => u.user_id !== myUserId.value && !shares.value.some((s) => s.userId === u.user_id),
+    (u) =>
+      u.user_id !== myUserId.value &&
+      !shares.value.some((s) => s.userId === u.user_id) &&
+      !travelers.value.some((t) => t.linkedUserId === u.user_id),
   ),
 )
+
+/** Accounts a traveler can still be: anyone not yet linked, the creator included. */
+const travelerAccountCandidates = computed(() =>
+  directory.value.filter(
+    (u) =>
+      !travelers.value.some((t) => t.linkedUserId === u.user_id) &&
+      !shares.value.some((s) => s.userId === u.user_id),
+  ),
+)
+
+/** Everyone the trip is shared with: the plain shares plus the linked travelers (never the creator). */
+const allMembers = computed(() => [
+  ...shares.value,
+  ...travelers.value
+    .filter((t) => t.member && t.linkedUserId !== NO_ACCOUNT && !isMe(t.linkedUserId))
+    .map((t) => ({ userId: t.linkedUserId, role: t.role })),
+])
 
 function addShare(userId: string) {
   if (!userId || shares.value.some((s) => s.userId === userId)) return
@@ -226,8 +285,17 @@ const linkableAccounts = computed(() => {
 /** G-8: absent where it can mean nothing — nobody to be but oneself. */
 const canLinkTravelers = computed(() => linkableAccounts.value.length > 1)
 
-/** A link whose account was un-shared after picking is dropped, not sent. */
-function linkedAccountOf(traveler: { linkedUserId: string }): string | null {
+/** What row `index` may be linked to: not an account another traveler already is. */
+function linkableFor(index: number) {
+  if (!canLinkTravelers.value) return []
+  return linkableAccounts.value.filter(
+    (a) => !travelers.value.some((t, i) => i !== index && t.linkedUserId === a.userId),
+  )
+}
+
+/** A link whose account was un-shared after picking is dropped, not sent; a picked member is always kept. */
+function linkedAccountOf(traveler: WizardTraveler): string | null {
+  if (traveler.member) return traveler.linkedUserId || null
   const stillLinkable = linkableAccounts.value.some((a) => a.userId === traveler.linkedUserId)
   return stillLinkable && traveler.linkedUserId !== NO_ACCOUNT ? traveler.linkedUserId : null
 }
@@ -644,7 +712,7 @@ function createTrip() {
       checklistItems: includeChecklist.value
         ? offeredChecklist.value.map((c) => ({ label: c.label, mode: c.mode }))
         : [],
-      members: shares.value,
+      members: allMembers.value,
     })
     router.replace(tripPath(tripId))
   })
@@ -827,7 +895,7 @@ setHeaderTitle(
         <SectionHead :title="t('wizard.sectionTravelers')" />
         <IonList v-if="travelers.length > 0">
           <IonItem v-for="(traveler, index) in travelers" :key="index">
-            <IonIcon slot="start" :icon="personOutline" />
+            <IonIcon slot="start" :icon="traveler.member ? peopleOutline : personOutline" />
             <IonInput
               data-testid="wizard-traveler-name"
               :placeholder="t('wizard.travelerNamePlaceholder')"
@@ -836,7 +904,19 @@ setHeaderTitle(
               @ionInput="(e: CustomEvent) => (traveler.name = e.detail.value ?? '')"
             />
             <IonSelect
-              v-if="canLinkTravelers"
+              v-if="traveler.member && !isMe(traveler.linkedUserId)"
+              slot="end"
+              data-testid="wizard-traveler-role"
+              interface="popover"
+              :aria-label="t('role.label')"
+              :value="traveler.role"
+              @ionChange="(e: CustomEvent) => setTravelerRole(index, e.detail.value)"
+            >
+              <IonSelectOption value="editor">{{ t('role.editor') }}</IonSelectOption>
+              <IonSelectOption value="admin">{{ t('role.admin') }}</IonSelectOption>
+            </IonSelect>
+            <IonSelect
+              v-else-if="!traveler.member && linkableFor(index).length > 0"
               slot="end"
               class="link"
               interface="popover"
@@ -848,7 +928,7 @@ setHeaderTitle(
               <IonSelectOption :value="NO_ACCOUNT">{{
                 t('wizard.travelerNoAccount')
               }}</IonSelectOption>
-              <IonSelectOption v-for="a in linkableAccounts" :key="a.userId" :value="a.userId">
+              <IonSelectOption v-for="a in linkableFor(index)" :key="a.userId" :value="a.userId">
                 {{ a.name }}
               </IonSelectOption>
             </IonSelect>
@@ -874,6 +954,25 @@ setHeaderTitle(
           <IonIcon slot="start" :icon="addOutline" />
           {{ t('wizard.addTraveler') }}
         </IonButton>
+        <!-- An existing account as traveler — sessions with accounts only (G-8) -->
+        <IonItem v-if="collaborative && travelerAccountCandidates.length > 0" lines="none">
+          <IonSelect
+            data-testid="wizard-add-account-traveler"
+            interface="popover"
+            :placeholder="t('wizard.addAccountTraveler')"
+            :aria-label="t('wizard.addAccountTravelerLabel')"
+            :value="null"
+            @ionChange="(e: CustomEvent) => addAccountTraveler(e.detail.value)"
+          >
+            <IonSelectOption
+              v-for="u in travelerAccountCandidates"
+              :key="u.user_id"
+              :value="u.user_id"
+            >
+              {{ u.display_name }}
+            </IonSelectOption>
+          </IonSelect>
+        </IonItem>
 
         <!-- Sharing & roles (FR-4.5/4.7) — OIDC sessions only (G-8) -->
         <template v-if="collaborative">

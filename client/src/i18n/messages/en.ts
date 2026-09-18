@@ -1236,6 +1236,8 @@ export const en = {
   'wizard.travelerFallback': 'Traveler {n}',
   'wizard.travelersEmpty': 'No travelers yet — per-person items need at least one.',
   'wizard.addTraveler': 'Add traveler',
+  'wizard.addAccountTraveler': 'Add account…',
+  'wizard.addAccountTravelerLabel': 'Add account as traveler',
   'wizard.sectionShare': 'Share with',
   'wizard.shareRemove': 'Remove share',
   'wizard.shareAdd': 'Add user…',

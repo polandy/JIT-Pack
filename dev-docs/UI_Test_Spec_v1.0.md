@@ -462,6 +462,11 @@ stable references for the traceability matrix.
   exactly those two open todos on M1. The duplicate is the case: a count of three is what a concatenation without the
   dedup would show. M4's header reading exactly one open preparation is the positive signal that the trip tasks did not
   land on a row.
+* **E2E-M3-24** `server` (FR-2.5, FR-4.5) — **new and implemented 2026-09-18** (`server/multi-user.spec.ts`). Alice, in
+  step 2, picks Bob from the *account* picker: the row appears named *Bob* with a role control, and after *Create trip*
+  the roster lists Bob and Bob's own session opens the trip. The last part is the case — a trip is readable to a
+  non-member never, so a wizard that recorded the traveller but skipped the grant fails here and nowhere else.
+  Such a row carries no FR-1.9 per-row account picker — its link is the account it was added as.
 * **E2E-M3-19** `all` (G-16): Enter in a step's plain field is the step's *Weiter* — nothing happens while the gate
   holds (empty name), the same keypress on the same field advances once it opens, and a step-2 traveller name fires the
   same way; step 3's single-item search is G-16-exempt, so Enter there does not advance — proven live by the button

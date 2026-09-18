@@ -1244,6 +1244,8 @@ export const de: Record<keyof typeof en, string> = {
   'wizard.travelersEmpty':
     'Noch niemand dabei — Artikel pro Person brauchen mindestens eine Person.',
   'wizard.addTraveler': 'Reisende:n hinzufügen',
+  'wizard.addAccountTraveler': 'Konto hinzufügen …',
+  'wizard.addAccountTravelerLabel': 'Konto als Reisende:n hinzufügen',
   'wizard.sectionShare': 'Teilen mit',
   'wizard.shareRemove': 'Freigabe entfernen',
   'wizard.shareAdd': 'Konto hinzufügen…',
