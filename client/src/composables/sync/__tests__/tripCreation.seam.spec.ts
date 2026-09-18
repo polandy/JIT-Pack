@@ -42,6 +42,7 @@ function generated(overrides: Partial<GeneratedItem> = {}): GeneratedItem {
     mode: 'pack',
     late_packer: false,
     traveler_index: null,
+    per_person: false,
     tasks: [],
     ...overrides,
   }

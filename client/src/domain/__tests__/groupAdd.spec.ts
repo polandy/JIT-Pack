@@ -135,6 +135,39 @@ describe('planGroupAddition (FR-27.10)', () => {
     expect(plan.alreadyPresent).toEqual(['Ringblitz', 'Stativ'])
   })
 
+  it('hands a trip-global row to the traveler linked to the item default assignee (FR-1.9)', () => {
+    const plan = planGroupAddition(
+      input({
+        masterItems: [
+          { ...masterItem('item-ring', 'Ringblitz'), default_assignee_id: 'user-bea' },
+          masterItem('item-tripod', 'Stativ'),
+        ],
+        travelers: [
+          traveler('trv-1', 'Andy'),
+          { ...traveler('trv-2', 'Bea'), linked_user_id: 'user-bea' },
+        ],
+      }),
+    )
+
+    expect(plan.add.map((a) => [a.generated.name, a.traveler_id])).toEqual([
+      ['Ringblitz', 'trv-2'],
+      ['Stativ', null],
+    ])
+  })
+
+  it('leaves the row unassigned when nobody on the trip is linked to that account (FR-1.9)', () => {
+    const plan = planGroupAddition(
+      input({
+        masterItems: [
+          { ...masterItem('item-ring', 'Ringblitz'), default_assignee_id: 'user-gone' },
+          masterItem('item-tripod', 'Stativ'),
+        ],
+      }),
+    )
+
+    expect(plan.add.map((a) => a.traveler_id)).toEqual([null, null])
+  })
+
   it('fans a per-person position out over the trip travelers (FR-25.8)', () => {
     const plan = planGroupAddition(
       input({

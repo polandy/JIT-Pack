@@ -1829,6 +1829,11 @@ E2E-M23-04.
 * **E2E-M10-28** `all` (FR-20.1/24.11) — **new 2026-09-18** (`restore-retired.spec.ts`): the failure path from this
   end — the retired item already depends on the one in hand, the refusal names the path, and the item stays retired
   (M23 still lists it). Mutation-proved like E2E-M10-25.
+* **E2E-M10-29** `server` (FR-1.9) — **new 2026-09-18** (`server/multi-user.spec.ts`): Bob is chosen as an item's
+  default assignee in M10, Alice records her traveler as Bob's account in M3 step 2, and the review row names Bob and
+  is not marked „per person". The choice surviving the create is asserted on the saved item.
+* **E2E-M10-30** `local` (FR-1.9, G-8) — **new 2026-09-18** (`inventory.spec.ts`): Local Mode has no accounts, so the
+  editor renders no assignee control; the name field and the „Mehr" row beside it are the positive signal.
 * **E2E-M10-04** `all` (FR-22.1/22.5) — **new 2026-08-30** (`inventory.spec.ts`): the reference photo is added, replaced
   and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Like the
   dependency section above it, this had no `data-testid` anywhere — the signature of a screen no test has rendered. Two
@@ -3175,6 +3180,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-1.6 | E2E+UNIT | M14-02 (direct write), M18-01 (an imported template is shared instance-wide like every other — the word „private" in this row's earlier wording was never a property of any template) — MVP shared model; M7-10 + M8-24 + M21-05 (the name is the instance-wide key: create, rename, M8's picker adopting the group that holds it, and M21's two writers — including the rule that exists nowhere else, that the Vorlage and the bundle group it writes in one pass must differ from each other); `domain/nameCollision.ts` (the matching rule), `composables/__tests__/nameCollision.spec.ts` (the orchestrator refuses the write, Local Mode included); publish/fork cases parked with the FR-1.6 stub |
 | FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
 | FR-1.8 | DOC/N-A | retired 2026-08-08 — no units, everything counts in pieces |
+| FR-1.9 | E2E+UNIT+GO | M10-29 (server: set in M10, lands on the linked traveler in M3), M10-30 (Local Mode offers no control); `domain/__tests__/instantiate.spec.ts` (the rule and its failure paths), `TestMasterPush_ItemDefaultAssignee_…` (round trip, unknown account refused) |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 (all four parts — the traveller faces were built 2026-08-31) |
 | FR-2.2 | E2E+UNIT | M3-06, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch), FLOW-04 (a group edited between two runs generates differently); instantiate.ts |
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |

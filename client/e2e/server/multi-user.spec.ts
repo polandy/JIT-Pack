@@ -9,6 +9,7 @@ import {
   tripAction,
 } from '../fixtures'
 import { FOR_WHOM_M5, lightTraveler, openCluster } from '../helpers/m4'
+import { fillIonic } from '../helpers/ionic'
 import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
@@ -925,6 +926,78 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(lock).toHaveCount(0)
     await more.click()
     await expect(bob.getByTestId(`for-whom-qty-${FOR_WHOM_M5}-Leonardo`)).toHaveText('2')
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M10-29 (FR-1.9): an item's default assignee, set in M10, reaches M3.
+   *
+   * Bob is chosen on the item, and on step 2 Alice records her traveler "Bob"
+   * as Bob's account — then the review row for that item names Bob and is
+   * *not* labelled per person (it is a trip-global row that was handed over,
+   * not a fan-out). The unlinked half is a unit case (`instantiate.spec.ts`).
+   */
+  test('E2E-M10-29: an item assigned to Bob in M10 arrives on his linked traveler in the wizard', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const item = `Drohne ${id}`
+
+    // Bob has to have logged in once to be in the directory Alice picks from.
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    await alice.goto(PATH.newItem)
+    await fillIonic(visiblePage(alice).getByTestId('m10-name'), item)
+    await visiblePage(alice).getByTestId('m10-assignee').click()
+    await alice
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: ACCOUNT_NAMES.bob })
+      .click()
+    await visiblePage(alice).getByTestId('m10-create').click()
+    await expect(alice.getByTestId('header-title')).toHaveText(item)
+    // Settled on the saved item: the choice survived the create, which a
+    // draft that was dropped on the way would not have.
+    await expect(visiblePage(alice).getByTestId('m10-assignee')).toContainText(ACCOUNT_NAMES.bob)
+    await writesLanded(alice)
+
+    await alice.goto(PATH.newTrip)
+    await fillIonic(visiblePage(alice).getByTestId('wizard-name'), `Reise ${id}`)
+    await alice.getByTestId('wizard-next').click()
+    await expect(alice.getByTestId('wizard-step-2')).toBeVisible()
+    await alice.getByTestId('wizard-add-traveler').click()
+    await fillIonic(alice.getByTestId('wizard-traveler-name').last(), ACCOUNT_NAMES.bob)
+    await visiblePage(alice).getByTestId('wizard-share-add').click()
+    await alice
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: ACCOUNT_NAMES.bob })
+      .click()
+    // The share popover must be gone, or the account popover opens beside it and
+    // the option below matches twice.
+    await expect(alice.locator('ion-popover')).toHaveCount(0)
+    await visiblePage(alice).getByTestId('wizard-traveler-account').click()
+    await alice
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: ACCOUNT_NAMES.bob })
+      .click()
+    await alice.getByTestId('wizard-next').click()
+
+    await expect(alice.getByTestId('wizard-step-3')).toBeVisible()
+    await alice.getByTestId('wizard-item-search').locator('input').fill(item)
+    await alice
+      .getByTestId(/^wizard-item-suggestion-/)
+      .first()
+      .click()
+    await alice.getByTestId('wizard-next').click()
+
+    await expect(alice.getByTestId('wizard-step-4')).toBeVisible()
+    const row = visiblePage(alice).getByTestId('wizard-review-row').filter({ hasText: item })
+    await expect(row).toContainText(ACCOUNT_NAMES.bob)
+    await expect(row).not.toContainText(/per person/i)
 
     await ctxAlice.close()
     await ctxBob.close()

@@ -980,6 +980,7 @@ describe('the rows a wizard draft is made of', () => {
       mode: ITEM_MODE_PACK,
       late_packer: false,
       traveler_index: null,
+      per_person: false,
       tasks: ['Akku laden'],
       ...over,
     }
@@ -1034,6 +1035,7 @@ describe('the rows a wizard draft is made of', () => {
         mode: ITEM_MODE_PACK,
         late_packer: false,
         traveler_index: null,
+        per_person: false,
         tasks: [],
       })
     })
@@ -1207,5 +1209,103 @@ describe('generateTripItems — trip tasks (FR-7.4)', () => {
   it('is empty when the caller passes no trip tasks at all', () => {
     const res = generateTripItems(input({ templates: [template('t1', 'Ferien')] }))
     expect(res.tripTasks).toEqual([])
+  })
+})
+
+describe('generateTripItems — FR-1.9 default assignee', () => {
+  const linked = [
+    { name: 'Andy', linked_user_id: 'user-andy' },
+    { name: 'Sarah', linked_user_id: 'user-sarah' },
+  ]
+  const withTravelers = (travelers: GenerationInput['trip']['travelers']) => ({
+    duration_days: 10,
+    attributes: null,
+    travelers,
+  })
+
+  it('hands a trip-global row to the traveler linked to the default assignee', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Kamera', { default_assignee_id: 'user-sarah' })],
+        templateItems: [templateItem('ti1', 't1', 'i1')],
+        trip: withTravelers(linked),
+      }),
+    )
+
+    expect(res.items).toHaveLength(1)
+    expect(res.items[0]).toMatchObject({ traveler_index: 1, per_person: false })
+  })
+
+  it('leaves the row unassigned when no traveler is linked to that account', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Kamera', { default_assignee_id: 'user-nobody' })],
+        templateItems: [templateItem('ti1', 't1', 'i1')],
+        trip: withTravelers(linked),
+      }),
+    )
+
+    expect(res.items[0]).toMatchObject({ traveler_index: null, per_person: false })
+  })
+
+  it('leaves the row unassigned when the caller passes no links at all (Local Mode, refresh)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Kamera', { default_assignee_id: 'user-sarah' })],
+        templateItems: [templateItem('ti1', 't1', 'i1')],
+      }),
+    )
+
+    expect(res.items[0]?.traveler_index).toBeNull()
+  })
+
+  it('never narrows a per-person position: every traveler still gets a row', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Zahnbürste', { default_assignee_id: 'user-sarah' })],
+        templateItems: [templateItem('ti1', 't1', 'i1', { assignment: 'per_person' })],
+        trip: withTravelers(linked),
+      }),
+    )
+
+    expect(res.items.map((i) => [i.traveler_index, i.per_person])).toEqual([
+      [0, true],
+      [1, true],
+    ])
+  })
+
+  it('still merges two groups bringing the same assigned item into one row', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'A'), group('g2', 'B')],
+        selectedTemplateIds: ['g1', 'g2'],
+        masterItems: [masterItem('i1', 'Kamera', { default_assignee_id: 'user-andy' })],
+        templateItems: [
+          templateItem('ti1', 'g1', 'i1', { quantity: 1 }),
+          templateItem('ti2', 'g2', 'i1', { quantity: 2 }),
+        ],
+        trip: withTravelers(linked),
+      }),
+    )
+
+    expect(res.items).toHaveLength(1)
+    expect(res.items[0]).toMatchObject({ traveler_index: 0, quantity: 2 })
+    expect(res.merged).toHaveLength(1)
+  })
+
+  it('assigns a hand-picked single item too (FR-27.3)', () => {
+    const res = generateTripItems(
+      input({
+        singleItemIds: ['i1'],
+        masterItems: [masterItem('i1', 'Drohne', { default_assignee_id: 'user-andy' })],
+        trip: withTravelers(linked),
+      }),
+    )
+
+    expect(res.items[0]).toMatchObject({ source_template_id: null, traveler_index: 0 })
   })
 })
