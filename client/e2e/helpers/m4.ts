@@ -111,7 +111,6 @@ export async function openCluster(page: Page, name: string): Promise<void> {
   await expect(head).toHaveAttribute('aria-expanded', 'true')
 }
 
-<<<<<<< HEAD
 /** The `testKey` M5's for-whom strip carries; M4's carries the item's name. */
 export const FOR_WHOM_M5 = 'm5'
 
@@ -150,7 +149,8 @@ export async function setMemberInM5(page: Page, name: string, quantity: number):
     await page.getByTestId(`for-whom-plus-${FOR_WHOM_M5}-${name}`).click()
     await expect(amount).toHaveText(String(n + 1))
   }
-=======
+}
+
 /**
  * FR-7.4: unfold M4's *Aufgaben für die Reise* section if it is closed, and
  * return it. It mounts closed, so every visit to a trip starts here.
@@ -175,5 +175,4 @@ export async function addTripTodo(page: Page, body: string): Promise<void> {
   await field.locator('input').press('Enter')
   await expect(section.getByTestId(`trip-todo-${body}`)).toBeVisible()
   await writesLanded(page)
->>>>>>> origin/main
 }

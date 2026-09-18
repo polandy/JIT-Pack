@@ -15,12 +15,10 @@ import {
 import type { Locator, Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
-<<<<<<< HEAD
-import { chooseInRowMenu, lightTraveler, openCluster, openRowMenu, packRow } from './helpers/m4'
-=======
 import {
   addTripTodo,
   chooseInRowMenu,
+  lightTraveler,
   openTripTodos,
   openCluster,
   openRowMenu,
@@ -28,7 +26,6 @@ import {
   tripWithRows,
 } from './helpers/m4'
 import { writesLanded } from './helpers/page'
->>>>>>> origin/main
 import { backToInventory, createItem } from './helpers/m9'
 
 /**
