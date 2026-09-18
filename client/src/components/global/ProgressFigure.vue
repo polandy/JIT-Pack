@@ -29,8 +29,19 @@ withDefaults(
     headlineTestid?: string
     /** Put on the detail line. */
     detailTestid?: string
+    /**
+     * Whether the track runs under the words. A figure standing beside
+     * another one drops it: two bars side by side read as one chart.
+     */
+    track?: boolean
   }>(),
-  { detail: null, ringSize: 58, headlineTestid: undefined, detailTestid: undefined },
+  {
+    detail: null,
+    ringSize: 58,
+    headlineTestid: undefined,
+    detailTestid: undefined,
+    track: true,
+  },
 )
 </script>
 
@@ -40,7 +51,9 @@ withDefaults(
     <div class="progress">
       <b class="headline" :data-testid="headlineTestid">{{ headline }}</b>
       <span v-if="detail" class="detail" :data-testid="detailTestid">{{ detail }}</span>
-      <div class="track"><i :style="{ width: `${Math.max(0, Math.min(100, percent))}%` }" /></div>
+      <div v-if="track" class="track">
+        <i :style="{ width: `${Math.max(0, Math.min(100, percent))}%` }" />
+      </div>
     </div>
   </div>
 </template>

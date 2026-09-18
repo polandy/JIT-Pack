@@ -84,4 +84,23 @@ describe('TripHero — one trip, answered before it is tapped (FR-21.13)', () =>
 
     expect(wrapper.get('[data-testid="dashboard-more-x"]').text()).toBe('+1 more')
   })
+
+  it('sets a second figure beside the share, not under it (FR-7.4)', () => {
+    const wrapper = mount(TripHero, {
+      props: base,
+      slots: { beside: '<b data-testid="hero-tasks">1/4</b>' },
+      global,
+    })
+
+    const row = wrapper.get('.figures')
+    expect(row.get('[data-testid="hero-progress"]').text()).toBe('31/50 packed')
+    expect(row.get('[data-testid="hero-tasks"]').text()).toBe('1/4')
+  })
+
+  it('keeps the share alone on its row when nothing stands beside it', () => {
+    const wrapper = mount(TripHero, { props: base, global })
+
+    expect(wrapper.get('.figures [data-testid="hero-progress"]').text()).toBe('31/50 packed')
+    expect(wrapper.find('.figures .beside').exists()).toBe(false)
+  })
 })

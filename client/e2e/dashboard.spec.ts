@@ -360,6 +360,8 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(group.getByTestId('dashboard-trip-todo-Water the plants')).toBeVisible()
     await expect(group.getByTestId('dashboard-trip-todo-Empty the fridge')).toHaveCount(0)
     await expect(card.getByTestId('trip-todos-Elba 2026')).toHaveCount(0)
+    // Elba is the hero here, so this trip is a following card, which keeps
+    // its line; the hero's figure is E2E-M1-11.
     await expect(visible(page).getByTestId(`dashboard-tasks-${TRIP.name}`)).toHaveText(
       'Tasks: 1 open',
     )
@@ -387,18 +389,18 @@ test.describe('M1 — the three promises @local @m1', () => {
 
     const hero = visible(page).getByTestId(`dashboard-trip-${TRIP.name}`)
     const share = hero.getByTestId('hero-progress')
-    const cardLine = visible(page).getByTestId(`dashboard-tasks-${TRIP.name}`)
+    const tasks = hero.getByTestId(`dashboard-tasks-${TRIP.name}`)
 
-    // Fully packed, and no trip todo: no task line at all.
+    // Fully packed, and no trip todo: no second figure at all.
     await expect(share).toHaveText('1/1 packed')
-    await expect(cardLine).toHaveCount(0)
+    await expect(tasks).toHaveCount(0)
 
     // An open todo leaves the trip fully packed.
     await hero.click()
     await expectTripOpen(page, TRIP.name)
     await addTripTodo(page, 'Water the plants')
     await page.goto(PATH.dashboard)
-    await expect(cardLine).toHaveText('Tasks: 1 open')
+    await expect(tasks).toHaveText('0/1')
     await expect(share).toHaveText('1/1 packed')
 
     // Resolving it changes the task check and nothing else.
@@ -409,7 +411,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
     await writesLanded(page)
     await page.goto(PATH.dashboard)
-    await expect(cardLine).toHaveText('Tasks: all done')
+    await expect(tasks).toHaveText('1/1')
     await expect(share).toHaveText('1/1 packed')
 
     // The reverse: unpacking moves the share, the task check stays done.
@@ -424,6 +426,6 @@ test.describe('M1 — the three promises @local @m1', () => {
     await writesLanded(page)
     await page.goto(PATH.dashboard)
     await expect(share).toHaveText('0/1 packed')
-    await expect(cardLine).toHaveText('Tasks: all done')
+    await expect(tasks).toHaveText('1/1')
   })
 })

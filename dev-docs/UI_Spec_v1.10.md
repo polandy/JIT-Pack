@@ -9,7 +9,8 @@ Single-User/Local only. No other changes from v1.9.
 replaced and why. This index only says where to look.
 * 2026-09-18 — **M1** reports trip todos and a second check on the trip cards, and takes no actions — the prep
   card's checkbox is gone; **M4** gains *Aufgaben für die Reise*, where they are written; **M3** step 3 reports trip
-  tasks; **M8** gains *Aufgaben für die Reise* (FR-7.4).
+  tasks; **M8** gains *Aufgaben für die Reise* (FR-7.4). Later the same day: the hero and M4's header line carry the
+  todos as a second figure, and M4's section moves above the list, open while anything is owed (FR-7.4 visibility).
 * 2026-09-08 — **M4**: the header line is a ring, a sentence and a track (FR-21.23), and the quick-add has one
   door per screen — M8's too (FR-21.24). **M5**: the sheet takes its content's height and its weight goes to the
   control it was opened for (FR-21.25).
@@ -772,10 +773,11 @@ These patterns apply to every screen and are specified once.
   erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open todos as plain text. A
   trip without any trip todo is left out, and the card is absent when none has one — the first cut put an editor with an
   empty composer here for every active trip, which stood above the hero on every dashboard. **The trip cards carry the
-  check too:** under the hero's progress sentence and on each list card, one line — *„Aufgaben: 2 offen"* or *„Aufgaben:
-  alle erledigt"* — present only when the trip has at least one trip todo, and never folded into the ring, the track or
-  the share. The todos are written in M4 (*Aufgaben für die Reise*). All three modes; nothing here is server-only (G-8).
-  (E2E-M1-10, E2E-M1-11)
+  check too:** the hero as a **second figure beside its packing share** — a smaller ring and *„1/4 · Aufgaben"*, no
+  track, the ring in `--jp-done` like the share's (G-11) — and each list card below it as one line, *„Aufgaben: 2
+  offen"* or *„Aufgaben: alle erledigt"*. Both are present only when the trip has at least one trip todo, and neither
+  is folded into the ring, the track or the share. The todos are written in M4 (*Aufgaben für die Reise*). All three
+  modes; nothing here is server-only (G-8). (E2E-M1-10, E2E-M1-11)
 * **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
   links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's
@@ -984,7 +986,9 @@ These patterns apply to every screen and are specified once.
 * **Redesign complete (Addendum §3.25) — mocked and settled 2026-07-17 … 2026-08-08.** The screen was re-mocked from
   scratch to give the actual packing far more room. The full reasoning per decision lives in the addendum; what M4 *is*
   now:
-  * **The header line** — packed/total · weight · open-prep with the presence facepile, and nothing else. It stays
+  * **The header line** — packed/total · weight · open-prep with the presence facepile, and — once the trip has a
+    trip todo — **the todos' own figure** beside the share (FR-7.4): a ring and *„1/4 · Aufgaben"*, which unfolds
+    *Aufgaben für die Reise* and scrolls it into view when tapped. Nothing else. It stays
     **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line
     hides and any upward scroll brings it back.
   * **~~Where the trip's name lives: the width decides (owner, 2026-08-19; re-decided 2026-08-30)~~ — superseded
@@ -1260,12 +1264,15 @@ These patterns apply to every screen and are specified once.
     avatar. Visible to all trip members; resolving a todo is restricted to the item's assignee or trip owner. Tap item
     name → M5.
   * **"Aufgaben für die Reise" (FR-7.4 — built 2026-09-18)** — the trip's own todos, the chores that prepare no row
-    (*„Pflanzen giessen"*). A collapsible section under *Preparation*, closed by default and **always present** outside
-    the FR-9.3 closing pass, because it is where the first todo is typed. Its head names the section and, once the trip
-    has a todo, the check: *„1 von 2 erledigt"* or *„✓ Alle Aufgaben erledigt"*. Unfolded: open todos with a checkbox
-    and a ✕, the resolved ones folded under *„{n} erledigt"* where unticking reopens one, and a composer (*„Aufgabe
-    hinzufügen…"*, Enter or *Hinzufügen*). Nothing here counts toward the ring, the header's prep KPI or any row's
-    doneness. Every trip member may tick; there is no G-3 claim, because there is no row. (E2E-M4-96)
+    (*„Pflanzen giessen"*). A collapsible card **above the list, directly under the header line** (moved 2026-09-18:
+    at the list's foot, closed, it went unseen), **always present** outside the FR-9.3 closing pass, because it is
+    where the first todo is typed. It is **unfolded while any todo is open** and folded to its head once none is — or
+    while the trip has none; a fold the user makes holds for the visit. Its head names the section and, once the trip
+    has a todo, the check: *„1 von 2 erledigt"*, or *„✓ Alle Aufgaben erledigt"* with the head in `--jp-done`.
+    Unfolded: open todos with a checkbox and a ✕, the resolved ones folded under *„{n} erledigt"* where unticking
+    reopens one, and a composer (*„Aufgabe hinzufügen…"*, Enter or *Hinzufügen*). Nothing here counts toward the
+    packing ring, the header's prep KPI or any row's doneness. Every trip member may tick; there is no G-3 claim,
+    because there is no row. (E2E-M4-96, E2E-M4-97)
   * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items
     with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal
     incomplete readiness.

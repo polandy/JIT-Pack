@@ -64,4 +64,16 @@ describe('ProgressFigure — ring, sentence and track say one thing (FR-21.23)',
         .attributes('style'),
     ).toContain('--ring-size: 42px')
   })
+
+  it('drops the track when it stands beside another figure, keeping ring and words', () => {
+    // FR-7.4: the trip-todo figure sits beside the packing one; two tracks
+    // side by side would read as one chart.
+    const wrapper = mount(ProgressFigure, {
+      props: { percent: 25, headline: '1/4', detail: 'Tasks', track: false },
+    })
+
+    expect(wrapper.get('[data-testid="progress-ring"]').attributes('aria-label')).toBe('25%')
+    expect(wrapper.get('.headline').text()).toBe('1/4')
+    expect(wrapper.find('.track').exists()).toBe(false)
+  })
 })

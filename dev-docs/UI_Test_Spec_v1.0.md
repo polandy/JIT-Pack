@@ -283,11 +283,12 @@ stable references for the traceability matrix.
   checkbox, field or button). A second active trip without todos is absent from the card — an absence that means
   something only because the first trip is on it. The trip's block leads into the trip, where M4's section is visible.
 * **E2E-M1-11** `all` (FR-7.4) — **new and implemented 2026-09-18** (`dashboard.spec.ts`). Packing and tasks are two
-  answers, asserted both ways on one trip whose only row is packed. With no trip todo there is no task line at all; with
-  one open (added in M4), the hero's share still reads complete **and** the task line reads *„Aufgaben: 1 offen"*;
-  resolving it in M4 turns that line to *„Aufgaben: alle erledigt"* while the share reads the value it read before — the
-  before/after pair on one locator is the signal, since „unchanged" alone is green on a card that never rendered the
-  share. The reverse half unpacks the row: the share drops, the task line stays done.
+  answers, asserted both ways on one trip whose only row is packed. With no trip todo the hero has no second figure;
+  with one open (added in M4), the hero's share still reads complete **and** its todo figure reads *„0/1"*; resolving
+  it in M4 turns the figure to *„1/1"* while the share reads the value it read before — the before/after pair on one
+  locator is the signal, since „unchanged" alone is green on a card that never rendered the share. The reverse half
+  unpacks the row: the share drops, the todo figure stays at *1/1*. (Revised 2026-09-18: the hero's one-line check
+  became a figure; E2E-M1-10 keeps the line, on a list card.)
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
@@ -697,6 +698,12 @@ in WebKit.
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing
   are each read back after a reload — a list that only repaints proves the component and not the write — and the head's
   check (*„0 von 2"* → *„1 von 2"* → *„0 von 1 erledigt"*) follows every step.
+* **E2E-M4-97** `local` (FR-7.4 visibility, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): with no
+  todo the section is closed and the header has no todo figure. With two todos, after a reload that no helper has
+  touched, the section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2"*.
+  Ticking one keeps it open at *„1/2"*; ticking the last folds it to *„✓ Alle Aufgaben erledigt"* with the list gone and
+  the figure at *„2/2"* — the status line is the positive signal for the fold. After another reload it is still folded,
+  and tapping the header figure unfolds it.
 * **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
   as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
   an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A
@@ -3119,7 +3126,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-7.1 | E2E | M5-05 |
 | FR-7.2 | E2E | M5-05 (M4-09 retired — FR-7.3 overrides its refusal) |
 | FR-7.3 | E2E | M1-02 (listing only since 2026-09-18), M4-08, M4-25 (M5-06's shadowed half; the resolution restriction is struck) |
-| FR-7.4 | E2E+UNIT | M4-96 (add, tick, reopen, remove), M1-10 (reported read-only), M1-11 (independent of packing), M3-23 (template tasks, dedup, no prep), M8-26 (the template editor, both scopes); `tripTodos.spec.ts` (the store's own bucket), `instantiate.spec.ts` (dedup), `portable.spec.ts` (`trip_tasks`) |
+| FR-7.4 | E2E+UNIT | M4-96 (add, tick, reopen, remove), M4-97 (above the list, open while owed, header figure), M1-10 (reported read-only), M1-11 (independent of packing), M3-23 (template tasks, dedup, no prep), M8-26 (the template editor, both scopes); `tripTodos.spec.ts` (the store's own bucket), `instantiate.spec.ts` (dedup), `portable.spec.ts` (`trip_tasks`) |
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers since 2026-08-30), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |

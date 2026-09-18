@@ -2195,4 +2195,61 @@ test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
     await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
     await expect(status).toHaveText('0 of 1 done')
   })
+
+  /**
+   * E2E-M4-97 (FR-7.4): the todos are where the trip is read, not at its foot.
+   *
+   * The section sits above the list and opens by itself while anything is
+   * owed — asserted after a reload, where no helper has touched the toggle —
+   * and folds to its one line once nothing is. The header carries the second
+   * figure beside the packing share, and tapping it is the way back in. The
+   * fold's absence is asserted against its own status line, which is the
+   * positive signal that the section rendered.
+   */
+  test('E2E-M4-97: trip todos head the list, open while owed, with a figure in the header', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    const section = visible(page).getByTestId('m4-trip-todos')
+    const toggle = section.getByTestId('m4-trip-todos-toggle')
+    const figure = visible(page).getByTestId('m4-trip-todos-figure')
+    const fraction = figure.getByTestId('m4-trip-todos-progress')
+
+    // No todo yet: the section is only the way to the first one, and the
+    // header has no second figure beside the share.
+    await expect(visible(page).getByTestId('m4-progress')).toHaveText('0/1 packed')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(figure).toHaveCount(0)
+
+    await addTripTodo(page, 'Water the plants')
+    await addTripTodo(page, 'Empty the fridge')
+
+    // Above the list, and open on arrival while anything is owed.
+    await page.reload()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    await expect(fraction).toHaveText('0/2')
+    const sectionTop = (await section.boundingBox())!.y
+    const rowTop = (await visible(page).getByTestId('m4-row-Zelt').boundingBox())!.y
+    expect(sectionTop).toBeLessThan(rowTop)
+
+    // Ticking the last one folds the section to its line.
+    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(fraction).toHaveText('1/2')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await section.getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
+    await expect(section.getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
+    await expect(fraction).toHaveText('2/2')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(section.getByTestId('trip-todo-list')).toHaveCount(0)
+    await writesLanded(page)
+
+    // Still folded on the next visit; the header figure opens it.
+    await page.reload()
+    await expect(section.getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await figure.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(section.getByTestId('trip-todos-resolved')).toBeVisible()
+  })
 })

@@ -1265,6 +1265,8 @@ export const en = {
   'tripTodos.section': 'Tasks for the trip',
   'tripTodos.progress': '{done} of {total} done',
   'tripTodos.allDone': '✓ All tasks done',
+  'tripTodos.fraction': '{done}/{total}',
+  'tripTodos.figureLabel': 'Tasks',
   'tripTodos.resolved': '{n} done',
   'tripTodos.add': 'Add a task…',
   'tripTodos.remove': 'Remove task',

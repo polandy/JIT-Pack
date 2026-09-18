@@ -42,14 +42,21 @@ withDefaults(
     <h2 class="name jp-hero-title" data-testid="hero-name">{{ name }}</h2>
     <p v-if="meta" class="meta jp-meta" data-testid="hero-meta">{{ meta }}</p>
 
-    <ProgressFigure
-      class="hero-figure"
-      :percent="percent"
-      :headline="progress"
-      :detail="detail"
-      headline-testid="hero-progress"
-      detail-testid="hero-detail"
-    />
+    <!-- FR-7.4: a second answer may stand beside the share — M1 puts the
+         trip's own todos there, which no packing figure counts. -->
+    <div class="figures">
+      <ProgressFigure
+        class="hero-figure"
+        :percent="percent"
+        :headline="progress"
+        :detail="detail"
+        headline-testid="hero-progress"
+        detail-testid="hero-detail"
+      />
+      <div v-if="$slots.beside" class="beside">
+        <slot name="beside" />
+      </div>
+    </div>
 
     <div v-if="$slots.foot" class="actions">
       <slot name="foot" />
@@ -83,8 +90,20 @@ withDefaults(
   overflow-wrap: anywhere;
 }
 
-.hero-figure {
+.figures {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   margin-top: 16px;
+}
+
+.hero-figure {
+  flex: 1;
+  min-width: 0;
+}
+
+.beside {
+  flex: none;
 }
 
 /*

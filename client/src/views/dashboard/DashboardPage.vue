@@ -44,6 +44,7 @@ import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
+import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 
@@ -187,6 +188,12 @@ const prepTodos = computed(() => {
 })
 
 const totalOpenTodos = computed(() => prepTodos.value.reduce((sum, g) => sum + g.todos.length, 0))
+
+/**
+ * FR-7.4: the ring of the hero's second figure, one step under the share's —
+ * it stands beside it and must not outweigh it.
+ */
+const RING_SIZE_BESIDE = 42
 
 /**
  * FR-7.4: a trip card's second check, beside its packing progress and never
@@ -442,13 +449,15 @@ async function handleRefresh(event: CustomEvent) {
         :to="tripPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
       >
-        <p
-          v-if="taskLine(heroTrip)"
-          class="task-line"
-          :data-testid="`dashboard-tasks-${heroTrip.name}`"
-        >
-          {{ taskLine(heroTrip) }}
-        </p>
+        <!-- FR-7.4: the trip's todos as a second figure beside the share,
+             read-only like the rest of the card; they are ticked in M4. -->
+        <template v-if="taskLine(heroTrip)" #beside>
+          <TripTodoFigure
+            :trip-id="heroTrip.id"
+            :ring-size="RING_SIZE_BESIDE"
+            :testid="`dashboard-tasks-${heroTrip.name}`"
+          />
+        </template>
         <IonItem
           v-for="item in previewItems(heroTrip.id)"
           :key="item.id"
