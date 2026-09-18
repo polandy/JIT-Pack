@@ -18,6 +18,7 @@ import { identityStub } from '@/composables/__tests__/identityStub'
 import SettingsPage from '../SettingsPage.vue'
 import { LOCALE_STORAGE_KEY, setLocale } from '@/i18n'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -185,5 +186,63 @@ describe('M17 leaving Local Mode (FR-19.8)', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="settings-move-card"]').exists()).toBe(false)
+  })
+})
+
+describe('M17 default travellers from the accounts (FR-2.5a)', () => {
+  const ME = { user_id: 'u1', display_name: 'Andy' }
+  const BOB = { user_id: 'u2', display_name: 'Bob' }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.setItem('jitpack_mode', 'server')
+    defaultTravelers().set([])
+    orchestratorFake.fetchUsers = vi.fn(async () => [ME, BOB])
+  })
+
+  afterEach(() => {
+    localStorage.removeItem('jitpack_mode')
+    orchestratorFake.fetchUsers = vi.fn(async () => [])
+  })
+
+  it('adds the picked account as a default, stored with its id', async () => {
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    await wrapper.get('[data-testid="default-traveler-user"]').trigger('ionChange', {
+      detail: { value: 'u2' },
+    })
+
+    expect(defaultTravelers().entries.value).toEqual([{ name: 'Bob', userId: 'u2' }])
+    expect(wrapper.text()).toContain('Linked account')
+  })
+
+  it('stops offering an account once it is a default', async () => {
+    defaultTravelers().add('Bob', 'u2')
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    const offered = wrapper
+      .get('[data-testid="default-traveler-user"]')
+      .findAll('ion-select-option')
+      .map((o) => o.text())
+    expect(offered).toEqual(['Andy'])
+  })
+
+  it('offers no picker when nobody is left to pick', async () => {
+    orchestratorFake.fetchUsers = vi.fn(async () => [ME])
+    defaultTravelers().add('Andy', 'u1')
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="default-traveler-user"]').exists()).toBe(false)
+  })
+
+  it('offers no picker without a session, where there are no accounts (G-8)', async () => {
+    localStorage.removeItem('jitpack_mode')
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="default-traveler-user"]').exists()).toBe(false)
   })
 })
