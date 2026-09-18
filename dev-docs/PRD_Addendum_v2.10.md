@@ -3064,8 +3064,9 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   each task becomes an **FR-7.3 preparation todo attached to the generated trip item**, so the existing rule does the
   rest without any new mechanism: an item with an open preparation todo **does not count as done** on the packing list
   (FR-7.3 / FR-25.2 — the todo, not a new flag, is the blocker), it surfaces in the M4 prep section, the M5 item sheet,
-  and the M1 dashboard exactly like a hand-added todo. Task edits on a template travel like any other position change —
-  a trip that is not past is offered the gained/lost todo per FR-27.4, past trips never are. The M3 step-3 preview
+  and the M1 dashboard exactly like a hand-added todo. Tasks that belong to the trip rather than to one of its items
+  are FR-7.4's. Task edits on a template travel like any other position change — a trip that is not past is offered
+  the gained/lost todo per FR-27.4, past trips never are. The M3 step-3 preview
   reports the count it will carry over ("📋 N Vorbereitungs-Aufgaben übernommen"); the M8 position form offers the task
   list under progressive disclosure (FR-25.7) with a count chip on the collapsed row. Tasks are part of the portable
   YAML shape (FR-18.2). **Deliberate non-feature:** todos added *on a trip* do **not** flow back into the group in
@@ -4152,22 +4153,22 @@ the tail is where a symbol system is actually decided. Results:
   tasks are Resolved"*** (recorded 2026-08-30, when a test-spec entry was still asserting the refusal): packing such a
   row is *allowed* and produces this state, because refusing the tap would leave a packed rucksack the app insists is
   empty. Doneness, not the tap, is what the open todo withholds (FR-25.2). Todos can be added and resolved directly from
-  M5 (Item Detail) or from the Dashboard. Resolving the last open todo on a packed item transitions its visual state to
-  fully complete. **Visibility:** All open preparation todos of a trip are visible to every trip member — not just the
-  item's assignee — via a dedicated collapsible section in M4 and a KPI counter in the trip header. The M1 Dashboard
-  (FR-6.1) aggregates open preparation todos across all active trips, grouped by item. ~~filtered to the current user's
-  assigned items, answering "what do *I* need to prepare?"~~ **Struck 2026-08-30 (audit of backlog item 6, E2E-M1-02):
-  the filter has never existed**, on this card or on the trip cards beside it — M1 shows every open row and every open
-  todo of every active trip. Until 2026-08-25 it could not have existed, because nothing wrote `packer_user_id`
-  (FR-25.19); and whether it *should* is an open owner decision rather than a defect with an obvious fix, because Local
-  and Single-User Mode have no account to be assigned anything, so a personal filter empties the one screen the app
-  opens on. The same clause stands in FR-6.1 and in UI-Spec M1, both marked there. Nothing may claim it as covered until
-  it is decided. ~~Resolution is restricted to the item's assignee or the trip owner.~~ **Struck 2026-08-30 (owner),
-  audit of backlog item 6:** nothing ever enforced it — `toggleTodo` guards only on the G-3 claim, and the server has no
-  per-field rule — and it argued against this FR's own sentence two lines above, that the todos are visible to **every**
-  trip member, not just the assignee. A household packing list where anyone may read a preparation task but only two
-  people may tick it is friction with no threat behind it; the trip is already membership-gated. Resolving a prep todo
-  is open to every member of the trip.
+  M5 (Item Detail) ~~or from the Dashboard~~ (struck 2026-09-18, owner: M1 takes no actions — it lists them). Resolving
+  the last open todo on a packed item transitions its visual state to fully complete. **Visibility:** All open
+  preparation todos of a trip are visible to every trip member — not just the item's assignee — via a dedicated
+  collapsible section in M4 and a KPI counter in the trip header. The M1 Dashboard (FR-6.1) aggregates open preparation
+  todos across all active trips, grouped by item. ~~filtered to the current user's assigned items, answering "what do
+  *I* need to prepare?"~~ **Struck 2026-08-30 (audit of backlog item 6, E2E-M1-02): the filter has never existed**, on
+  this card or on the trip cards beside it — M1 shows every open row and every open todo of every active trip. Until
+  2026-08-25 it could not have existed, because nothing wrote `packer_user_id` (FR-25.19); and whether it *should* is an
+  open owner decision rather than a defect with an obvious fix, because Local and Single-User Mode have no account to be
+  assigned anything, so a personal filter empties the one screen the app opens on. The same clause stands in FR-6.1 and
+  in UI-Spec M1, both marked there. Nothing may claim it as covered until it is decided. ~~Resolution is restricted to
+  the item's assignee or the trip owner.~~ **Struck 2026-08-30 (owner), audit of backlog item 6:** nothing ever enforced
+  it — `toggleTodo` guards only on the G-3 claim, and the server has no per-field rule — and it argued against this FR's
+  own sentence two lines above, that the todos are visible to **every** trip member, not just the assignee. A household
+  packing list where anyone may read a preparation task but only two people may tick it is friction with no threat
+  behind it; the trip is already membership-gated. Resolving a prep todo is open to every member of the trip.
   * **Open-prep is derived, never stored (clarified 2026-08-08 after a concept-testing defect).** "Has open preparation"
     must be computed from the todos themselves at read time. The prototype had kept a **count on the item** alongside
     the todos' own `done` flags, and the two drifted the moment a todo was resolved: the count stayed at 1, so a fully
@@ -4175,6 +4176,54 @@ the tail is where a symbol system is actually decided. Results:
     could not be reached. The same duplication failed in the opposite direction too: an item with a todo but no stored
     count showed no prep badge at all. Wherever doneness, the amber "packed with open prep" state, the badge, or the
     *Merkmale* facet ask about preparation, they must ask the todo list.
+
+* **FR-7.4 (Trip Todos — Tasks That Belong to the Trip, Not to an Item) — specified and built 2026-09-18, owner
+  request.** Some of what has to happen before a holiday has nothing to do with the luggage: *„Elektronische Geräte
+  abschalten"*, *„Pflanzen giessen"*, *„Kühlschrank leeren"*. Until now every task the app could hold hung off a packing
+  row (FR-7.3, FR-27.7), so the only way to keep one was a placeholder item — a *„Wohnung"* row on the packing list that
+  had to be ticked as if it were packed, and whose open task held back doneness on the packing list for something nobody
+  packs. A **trip todo** is a task anchored to the trip itself.
+  * **Data model — none new on the trip side.** A trip todo is a `comments` row with `trip_item_id` null and
+    `is_task=1`: the shape FR-7.1's trip-level comment and FR-7.2's task flag have always allowed together, and that no
+    screen ever wrote. It therefore travels the trip partition, merges field by field (ADR-022), is in the server's JSON
+    export with the rest of `comments`, and has its author stamped by the server (invariant 3) — exactly like an FR-7.3
+    todo. The client files it in a list of its own rather than filtering the row todos, so that no packing figure can
+    count it by accident. **Not in the portable file, and so not in Local Mode's backup** — neither kind of todo is, a
+    gap FR-7.3's todos already had and this FR inherits rather than closes. *Revisit trigger:* a Local Mode restore that
+    loses todos somebody missed.
+  * **It does not block packing, and „all done" is its own answer.** Trip todos count toward **nothing** the packing
+    list measures — not a row's doneness (FR-25.2), not the progress ring, not M2's share, not M4's open-prep KPI, not
+    FR-7.3's amber state. A trip whose every row is packed is fully packed while *„Pflanzen giessen"* is still open, and
+    the reverse holds too. What the user gets instead is a **second, independent check**: *n von m erledigt*, and *„Alle
+    Aufgaben erledigt"* once none is open. Folding the two into one figure was rejected: it would let a houseplant hold
+    a finished rucksack at 97 %, which is the false signal FR-7.3 was written to prevent, pointed the other way.
+  * **Surface: written in the trip, reported on the dashboard (owner decision, revised the same day).** M4 carries an
+    *Aufgaben für die Reise* section, closed by default under the preparation section, whose head states the second
+    check and which unfolds to the editable list: open ones ticked off in place, resolved ones reachable again to
+    untick, a composer, and a ✕ per row. **M1 takes no actions** — it reports: an *Aufgaben* card lists the open trip
+    todos of every active trip that has any, each trip's block leading into the trip, and each active trip card states
+    the check on one line of its own, beside — never inside — its packing progress. The first cut put the whole editor
+    on M1; the owner ruled it out once it was built, because an empty composer stood above the hero on every dashboard
+    and because the dashboard is for reading. The same ruling took the checkbox off FR-7.3's prep card. M5 does not show
+    trip todos, and M4's prep section keeps meaning item preparation. Planned trips are not on M1 — its *Geplant* card
+    is display-only and fetches no trip partition — but their M4 section works like any other. **Revisit trigger:** a
+    trip todo somebody needs to see on M1 before the trip is started.
+  * **Who may resolve:** every member of the trip, as FR-7.3 was settled on 2026-08-30. There is no row, so there is no
+    G-3 claim to respect. No due date — the owner declined one, because the trip's departure already is the deadline.
+  * **From a template.** A template — either scope, in practice the Ferien-Vorlage — can carry **trip tasks** beside its
+    positions, stored in a new master table `template_tasks` (`template_id`, `task`, field HLCs) so that two devices
+    editing two tasks do not overwrite each other, the reason FR-27.7 chose a table over a JSON column. At trip
+    generation the template's own tasks and those of every included group (FR-27.1) become open trip todos,
+    **deduplicated by exact trimmed text** — two groups both saying *„Pflanzen giessen"* give one todo. M3's step 3
+    reports the count on its own line, apart from FR-27.7's preparation tasks. They are part of the portable template
+    shape (FR-18.2) as a `trip_tasks` list on the template and on each group it carries — a key of its own, because
+    `tasks` already means a position's preparation. The dev seed's Ferien-Vorlage carries two of them, per the standing
+    rule that master-data features extend it.
+  * **Deliberate non-features, each with its trigger.** A task edited on a template is **not offered** to trips
+    generated from it (FR-27.4 offers position changes only); it reaches the next generated trip. *Trigger:* a Vorlage
+    task added and expected on a running trip. Trip todos do **not** flow back into a template, neither by FR-27.5 nor
+    by M21, for FR-27.7's reason — a trip's own todos are often about this trip only. *Trigger:* the same trip todo
+    typed by hand on a second trip. Cloning a trip (§3.12) does not carry them, like it carries no FR-7.3 todo.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

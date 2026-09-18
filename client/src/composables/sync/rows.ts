@@ -16,6 +16,7 @@ import type {
   ItemComment,
   ItemDependency,
   ItemTodo,
+  TripTodo,
   MasterItem,
   Template,
   TemplateItem,
@@ -93,6 +94,18 @@ export function todoRow(todo: ItemTodo): Record<string, unknown> {
   return {
     trip_id: todo.trip_id,
     trip_item_id: todo.trip_item_id,
+    author_id: todo.author_id,
+    body: todo.body,
+    is_task: dbBool(true),
+    task_state: todo.task_state,
+  }
+}
+
+/** tripTodoRow is `todoRow` without an anchor: FR-7.4's null `trip_item_id`. */
+export function tripTodoRow(todo: TripTodo): Record<string, unknown> {
+  return {
+    trip_id: todo.trip_id,
+    trip_item_id: null,
     author_id: todo.author_id,
     body: todo.body,
     is_task: dbBool(true),

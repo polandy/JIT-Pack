@@ -18,6 +18,7 @@ import type {
   TemplateDedup,
   TemplateInclude,
   TemplateItem,
+  TemplateTask,
   TemplateItemTask,
 } from '@/types/domain'
 import { ITEM_MODE_PACK } from '@/types/domain'
@@ -45,6 +46,12 @@ export interface GenerationInput {
   includes: TemplateInclude[]
   /** FR-27.7: the preparation tasks hanging off template positions. */
   templateItemTasks: TemplateItemTask[]
+  /**
+   * FR-7.4: the trip tasks hanging off templates. Optional because every
+   * caller but the wizard generates rows only — a group added to a running
+   * trip (FR-27.10, FR-27.4) brings no trip tasks, by FR-7.4's non-feature.
+   */
+  templateTasks?: TemplateTask[]
   templateItems: TemplateItem[]
   masterItems: CategorisedMasterItem[]
   trip: GenerationTrip
@@ -273,6 +280,11 @@ export interface GenerationResult {
    * problems.
    */
   unassignable: UnassignableItem[]
+  /**
+   * FR-7.4: the trip todos the trip starts with — every source's trip tasks
+   * in source order, the same text once however many groups say it.
+   */
+  tripTasks: string[]
 }
 
 /** Inclusive day count matching the trips.duration_days DB definition (FR-2.1a: null without start date). */
@@ -464,7 +476,32 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
       (u, i) =>
         !placed.has(u.item_id) && unassignable.findIndex((o) => o.item_id === u.item_id) === i,
     ),
+    tripTasks: tripTasksOf(sources, input.templateTasks ?? []),
   }
+}
+
+/**
+ * tripTasksOf collects the FR-7.4 trip tasks of the resolved sources, in
+ * source order and each source's own in insertion order. The dedup is by
+ * trimmed text, exactly: two groups both saying „Pflanzen giessen" mean one
+ * chore, while a near-miss is kept rather than guessed at — FR-27.5's
+ * reasoning about fuzzy matches without a confirmation step.
+ */
+export function tripTasksOf(
+  sources: readonly Template[],
+  templateTasks: readonly TemplateTask[],
+): string[] {
+  const seen = new Set<string>()
+  const tasks: string[] = []
+  for (const source of sources) {
+    for (const t of templateTasks) {
+      const text = t.task.trim()
+      if (t.template_id !== source.id || text === '' || seen.has(text)) continue
+      seen.add(text)
+      tasks.push(text)
+    }
+  }
+  return tasks
 }
 
 /**

@@ -1,12 +1,12 @@
 /**
- * Comment and todo actions (FR-7.1/7.2/7.3) — one group, because they are one
+ * Comment and todo actions (FR-7.1/7.2/7.3/7.4) — one group, because they are one
  * table: a todo is a comment with `is_task = 1`, and `flagCommentAsTask`
  * carries a row across the line. Moved out of the orchestrator closure under
  * R-4; moves only, so `useSyncOrchestrator`'s return shape is untouched.
  */
-import { commentRow, todoRow } from '../rows'
+import { commentRow, todoRow, tripTodoRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
-import type { ItemComment, ItemTodo } from '@/types/domain'
+import type { ItemComment, ItemTodo, TripTodo } from '@/types/domain'
 import type { SyncContext } from '../context'
 
 /** createCommentActions binds the comment/todo group to one sync context. */
@@ -68,6 +68,41 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
+  // --- Trip todos (FR-7.4): the same row with no anchor ---
+
+  function addTripTodo(tripId: string, authorId: string, body: string): string {
+    const { mutation, id } = mutations.addTodo(tripId, null, authorId, body)
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: optimisticInsert(mutation),
+    })
+    return id
+  }
+
+  function resolveTripTodo(todo: TripTodo) {
+    const mut = mutations.resolveTodo(todo.id)
+    enqueueAndDrain('trip', todo.trip_id, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, tripTodoRow(todo)),
+    })
+  }
+
+  function reopenTripTodo(todo: TripTodo) {
+    const mut = mutations.reopenTodo(todo.id)
+    enqueueAndDrain('trip', todo.trip_id, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, tripTodoRow(todo)),
+    })
+  }
+
+  function deleteTripTodo(todo: TripTodo) {
+    const mutation = mutations.deleteTodo(todo.id)
+    enqueueAndDrain('trip', todo.trip_id, {
+      mutation,
+      optimistic: optimisticDelete(mutation),
+    })
+  }
+
   return {
     addComment,
     flagCommentAsTask,
@@ -75,5 +110,9 @@ export function createCommentActions(ctx: SyncContext) {
     addPrepTodo,
     resolvePrepTodo,
     reopenPrepTodo,
+    addTripTodo,
+    resolveTripTodo,
+    reopenTripTodo,
+    deleteTripTodo,
   }
 }

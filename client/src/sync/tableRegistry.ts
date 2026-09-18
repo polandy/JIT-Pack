@@ -28,12 +28,14 @@ import type {
   ItemDependency,
   ItemTag,
   ItemTodo,
+  TripTodo,
   MasterItem,
   Tag,
   Template,
   TemplateInclude,
   TemplateItem,
   TemplateItemTask,
+  TemplateTask,
   TemplateKind,
   Traveler,
   Trip,
@@ -58,6 +60,7 @@ import {
   templateItemRow,
   templateRow,
   todoRow,
+  tripTodoRow,
   travelerRow,
   tripRow,
   itemRow,
@@ -131,6 +134,14 @@ function rowToTask(id: string, row: Record<string, unknown>): TemplateItemTask {
   return {
     id,
     template_item_id: row['template_item_id'] as string,
+    task: row['task'] as string,
+  }
+}
+
+function rowToTemplateTask(id: string, row: Record<string, unknown>): TemplateTask {
+  return {
+    id,
+    template_id: row['template_id'] as string,
     task: row['task'] as string,
   }
 }
@@ -346,6 +357,7 @@ export const TABLE_CODECS = {
   [TABLE.templateItems]: { parse: rowToTemplateItem, encode: templateItemRow },
   [TABLE.templateIncludes]: { parse: rowToInclude },
   [TABLE.templateItemTasks]: { parse: rowToTask },
+  [TABLE.templateTasks]: { parse: rowToTemplateTask },
   [TABLE.tripSeries]: { parse: rowToSeries, encode: seriesRow },
   [TABLE.destinationProfiles]: { parse: rowToProfile, encode: profileRow },
   [TABLE.destinationChecklistItems]: { parse: rowToChecklistItem, encode: checklistItemRow },
@@ -369,6 +381,22 @@ export const TABLE_CODECS = {
  * type; `tripStore` picks between them on `is_task`.
  */
 export const todoCodec: TableCodec<ItemTodo> = { parse: rowToTodo, encode: todoRow }
+
+function rowToTripTodo(id: string, row: Record<string, unknown>): TripTodo {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    author_id: row['author_id'] as string,
+    body: row['body'] as string,
+    task_state: (row['task_state'] as TripTodo['task_state']) ?? 'open',
+  }
+}
+
+/**
+ * The FR-7.4 trip todo's codec — the third reading of a `comments` row,
+ * chosen by `tripStore` when `is_task` is set and no row anchors it.
+ */
+export const tripTodoCodec: TableCodec<TripTodo> = { parse: rowToTripTodo, encode: tripTodoRow }
 
 /**
  * Where a store puts one table's rows. Two shapes cover every table: a

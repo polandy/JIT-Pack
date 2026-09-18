@@ -17,6 +17,8 @@ export const TABLE = {
   templateItems: 'template_items',
   templateIncludes: 'template_includes',
   templateItemTasks: 'template_item_tasks',
+  /** FR-7.4: a template's trip tasks, which land on no row. */
+  templateTasks: 'template_tasks',
   trips: 'trips',
   tripMembers: 'trip_members',
   tripSeries: 'trip_series',

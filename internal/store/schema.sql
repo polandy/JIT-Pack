@@ -182,6 +182,18 @@ CREATE TABLE template_item_tasks (
     updated_hlc      TEXT NOT NULL DEFAULT ''
 );
 
+-- FR-7.4 trip tasks on a template: they materialise as trip-level todos
+-- (comments with no trip_item_id), not on any generated row. A table rather
+-- than a JSON column for the reason template_item_tasks is one: two devices
+-- editing two tasks must not overwrite each other.
+CREATE TABLE template_tasks (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    template_id TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+    task        TEXT NOT NULL,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
 -- FR-27.2. Include order is derived at read time (`includedTemplatesOf`),
 -- deliberately not stored: see the FR text for the rejected sort_order column.
 CREATE TABLE template_includes (

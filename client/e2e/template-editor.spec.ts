@@ -12,6 +12,7 @@ import {
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
 import { backToInventory, createItem } from './helpers/m9'
+import { writesLanded } from './helpers/page'
 
 /**
  * A tagged master item through M10's own path (E2E-M8-21 needs primary
@@ -527,6 +528,50 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
       .click()
     await expect(page.getByTestId('m8-task-row')).toHaveCount(1)
   })
+})
+
+test.describe('M8 trip tasks (FR-7.4) @local @m8', () => {
+  test.beforeEach(async ({ seedMode, page }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto(PATH.templates)
+  })
+
+  /**
+   * E2E-M8-26 (FR-7.4): *Aufgaben für die Reise* in both scopes — a task
+   * added survives a reload with its count on the head, and ✕ removes it.
+   * Whether a generated trip carries it, and carries it as no preparation, is
+   * E2E-M3-23's.
+   */
+  for (const scope of ['group', 'template'] as const) {
+    test(`E2E-M8-26: a ${scope} keeps its trip tasks across a reload and drops one per ✕`, async ({
+      page,
+    }) => {
+      await createTemplate(page, scope, 'Ferien')
+      const section = visiblePage(page).getByTestId('m8-trip-tasks')
+      const head = visiblePage(page).getByTestId('m8-trip-tasks-head')
+      await expect(head).toHaveText(/0$/)
+
+      const composer = section.getByTestId('m8-trip-task-input')
+      for (const task of ['Water the plants', 'Empty the fridge']) {
+        await fillIonic(composer, task)
+        await composer.locator('input').press('Enter')
+        await expect(section.getByTestId(`m8-trip-task-${task}`)).toBeVisible()
+      }
+      await expect(head).toHaveText(/2$/)
+
+      await writesLanded(page)
+      await page.reload()
+      await expect(section.getByTestId('m8-trip-task-Water the plants')).toBeVisible()
+      await expect(section.getByTestId('m8-trip-task-Empty the fridge')).toBeVisible()
+      await expect(head).toHaveText(/2$/)
+
+      // The sibling that stays is the signal the ✕ removed one, not all.
+      await section.getByTestId('m8-trip-task-remove-Empty the fridge').click()
+      await expect(section.getByTestId('m8-trip-task-Empty the fridge')).toHaveCount(0)
+      await expect(section.getByTestId('m8-trip-task-Water the plants')).toBeVisible()
+      await expect(head).toHaveText(/1$/)
+    })
+  }
 })
 
 test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27.4)', () => {

@@ -491,6 +491,42 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
     expect(parsePortable(yaml).doc?.items[0]!.tasks).toEqual(['Akkus laden'])
   })
 
+  it('carries the trip tasks of the Vorlage and of each group (FR-7.4)', () => {
+    const yaml = serializeTemplate(
+      vorlage,
+      [],
+      byId,
+      {
+        tripTasks: ['Pflanzen giessen'],
+        includes: [{ template: macro, items: [], tripTasks: ['Speicherkarten leeren'] }],
+      },
+      noTags,
+    )
+
+    const doc = parsePortable(yaml).doc
+    expect(doc?.trip_tasks).toEqual(['Pflanzen giessen'])
+    expect(doc?.includes[0]!.trip_tasks).toEqual(['Speicherkarten leeren'])
+  })
+
+  it('reads trip tasks as trimmed strings only, and none on a trip (FR-7.4, FR-18.5)', () => {
+    const template = parsePortable(
+      'kind: template\nname: Sommer\ntrip_tasks: [" Pflanzen giessen ", 3, "", "Post"]\nitems: []\n',
+    ).doc
+    expect(template?.trip_tasks).toEqual(['Pflanzen giessen', 'Post'])
+
+    // A trip's own todos are not in the format; a key on one is ignored
+    // rather than read as something the restore would have to place.
+    const trip = parsePortable(
+      'kind: trip\nname: Samedan\nyear: 2026\ntrip_tasks: [Post]\nitems: []\n',
+    ).doc
+    expect(trip?.trip_tasks).toEqual([])
+  })
+
+  it('reads a file written before trip tasks existed as a template with none (FR-7.4)', () => {
+    const { doc } = parsePortable('kind: template\nschema_version: 1\nname: Sommer\nitems: []\n')
+    expect(doc?.trip_tasks).toEqual([])
+  })
+
   // FR-28.10: without this the round trip §3.27's fold-back depends on would
   // quietly strip the marks off a whole Vorlage — on all three levels, since
   // a Vorlage, its groups and their items each carry one.

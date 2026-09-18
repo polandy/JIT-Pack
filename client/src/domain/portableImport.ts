@@ -155,6 +155,14 @@ function importPositions(
   }
 }
 
+/** importTripTasks writes a template's FR-7.4 trip tasks from a portable document. */
+function importTripTasks(env: PortableImportEnv, templateId: string, tasks: string[]): void {
+  for (const task of tasks) {
+    const t = env.mutations.addTemplateTask(templateId, task)
+    env.emit('master', null, t.mutation)
+  }
+}
+
 /**
  * ensureGroup returns the id of the group of that name, creating it with
  * the file's positions only when this device has never heard of it.
@@ -173,6 +181,7 @@ function ensureGroup(
   items: PortableItem[],
   resolveItem: (item: PortableItem) => string | null,
   icon: string | null = null,
+  tripTasks: string[] = [],
 ): string {
   const existing = env.master.templateList.find((t) => t.kind === 'group' && sameName(t.name, name))
   if (existing) return existing.id
@@ -180,6 +189,7 @@ function ensureGroup(
   const created = env.mutations.createTemplate(name, '', 'group', icon)
   env.emit('master', null, created.mutation)
   importPositions(env, created.id, items, resolveItem)
+  importTripTasks(env, created.id, tripTasks)
   return created.id
 }
 
@@ -352,7 +362,7 @@ export function importPortableDocument(
   if (doc.kind === 'template' && doc.scope === 'group') {
     // A group document is the same group the Vorlagen carry nested, so it
     // obeys the same identity rule rather than arriving as a copy.
-    const groupId = ensureGroup(env, doc.name, doc.items, resolveItem, doc.icon)
+    const groupId = ensureGroup(env, doc.name, doc.items, resolveItem, doc.icon, doc.trip_tasks)
     return { kind: 'template', id: groupId, outcome: 'created' }
   }
 
@@ -366,11 +376,19 @@ export function importPortableDocument(
     env.emit('master', null, mutation)
 
     importPositions(env, templateId, doc.items, resolveItem)
+    importTripTasks(env, templateId, doc.trip_tasks)
 
     // FR-27.1/ADR-017: the file brought its groups whole, and each is
     // linked or created by name — never rewritten.
     for (const group of doc.includes) {
-      const groupId = ensureGroup(env, group.name, group.items, resolveItem, group.icon)
+      const groupId = ensureGroup(
+        env,
+        group.name,
+        group.items,
+        resolveItem,
+        group.icon,
+        group.trip_tasks,
+      )
 
       const inc = env.mutations.addTemplateInclude(templateId, groupId)
       env.emit('master', null, inc.mutation)

@@ -122,9 +122,10 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		}
 		return validKindSwitch(ctx, tx, current, m)
 
-	case TableTemplateItems, TableTemplateItemTasks:
-		// Positions and their preparation tasks (FR-27.7) follow their
-		// template's governance (FR-1.6 MVP): shared. An invalid parent id
+	case TableTemplateItems, TableTemplateItemTasks, TableTemplateTasks:
+		// Positions, their preparation tasks (FR-27.7) and the template's
+		// trip tasks (FR-7.4) follow their template's governance (FR-1.6
+		// MVP): shared. An invalid parent id
 		// fails the FK and rejects.
 		return ReasonNone, nil
 

@@ -136,6 +136,8 @@ export interface PortableGroup {
   /** FR-28.8/28.10: carried whole with the group, like its positions. */
   icon: string | null
   items: PortableItem[]
+  /** FR-7.4: the group's trip tasks, carried whole like its positions. */
+  trip_tasks: string[]
 }
 
 /**
@@ -209,6 +211,12 @@ export interface PortableDocument {
   /** FR-27.1: the groups a Ferien-Vorlage composes. Empty on everything else. */
   includes: PortableGroup[]
   items: PortableItem[]
+  /**
+   * FR-7.4: the template's trip tasks. Empty on trips — a trip's own todos
+   * are not in the portable shape, like its FR-7.3 todos — and on every file
+   * written before the field existed.
+   */
+  trip_tasks: string[]
   /**
    * FR-27.4: the templates this trip follows (`trip_template_sources`).
    * Empty on templates, and on every trip file written before this existed —
@@ -314,7 +322,12 @@ function fromRaw(raw: unknown): ParseResult {
       }
       groupItems.push(item)
     }
-    includes.push({ name: groupName, icon: str(g['icon']), items: groupItems })
+    includes.push({
+      name: groupName,
+      icon: str(g['icon']),
+      items: groupItems,
+      trip_tasks: toTaskList(g['trip_tasks']),
+    })
   }
 
   const rawScope = obj['scope']
@@ -350,6 +363,7 @@ function fromRaw(raw: unknown): ParseResult {
       containers: toContainers(obj['containers']),
       includes,
       items,
+      trip_tasks: kind === 'template' ? toTaskList(obj['trip_tasks']) : [],
       status: toTripStatus(obj['status']),
       follows: toFollows(obj['follows']),
       generated: toGeneratedPositions(obj['generated']),
@@ -399,11 +413,14 @@ export function matchPortableItems(doc: PortableDocument, existing: MasterItem[]
 export interface TemplateComposition {
   /** FR-27.7: the tasks of a position, by position id. Defaults to none. */
   tasks?: (templateItemId: string) => string[]
+  /** FR-7.4: the template's own trip tasks. Defaults to none. */
+  tripTasks?: string[]
   /** FR-27.1: the included groups, each with its own positions and tasks. */
   includes?: {
     template: Template
     items: TemplateItem[]
     tasks?: (templateItemId: string) => string[]
+    tripTasks?: string[]
   }[]
 }
 
@@ -423,6 +440,8 @@ export function compositionFrom(
     templates: Template[]
     itemsOf: (templateId: string) => TemplateItem[]
     tasksOf: (templateItemId: string) => string[]
+    /** FR-7.4: a template's trip tasks, by template id. */
+    tripTasksOf: (templateId: string) => string[]
   },
 ): TemplateComposition {
   const groups =
@@ -431,10 +450,12 @@ export function compositionFrom(
       : includedTemplatesOf(template.id, source.templates, source.includes)
   return {
     tasks: source.tasksOf,
+    tripTasks: source.tripTasksOf(template.id),
     includes: groups.map((group) => ({
       template: group,
       items: source.itemsOf(group.id),
       tasks: source.tasksOf,
+      tripTasks: source.tripTasksOf(group.id),
     })),
   }
 }
@@ -482,6 +503,7 @@ export function serializeTemplate(
       name: group.template.name,
       ...(group.template.icon ? { icon: group.template.icon } : {}),
       items: positions(group.items, group.tasks),
+      ...(group.tripTasks?.length ? { trip_tasks: group.tripTasks } : {}),
     }))
     .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -495,6 +517,7 @@ export function serializeTemplate(
     // in every group's file would invite the reader to wonder what it means.
     ...(includes.length > 0 ? { includes } : {}),
     items: positions(templateItems, composition.tasks),
+    ...(composition.tripTasks?.length ? { trip_tasks: composition.tripTasks } : {}),
   })
 }
 
@@ -723,6 +746,18 @@ function toItem(entry: unknown): PortableItem | null {
       : [],
     from_inventory: o['from_inventory'] === true,
   }
+}
+
+/**
+ * FR-7.4: a trip-task list, strings only and trimmed, blanks dropped — a
+ * number here would read back as a task called "1" nobody wrote.
+ */
+function toTaskList(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return v
+    .filter((t): t is string => typeof t === 'string')
+    .map((t) => t.trim())
+    .filter((t) => t !== '')
 }
 
 function toTravelers(v: unknown): PortableTraveler[] {

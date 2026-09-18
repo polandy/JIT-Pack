@@ -19,6 +19,7 @@ import type {
   TemplateInclude,
   TemplateItem,
   TemplateItemTask,
+  TemplateTask,
   TripSeries,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
@@ -44,6 +45,7 @@ export const useMasterStore = defineStore('master', () => {
   const templateItemRows = bucketedRows(templateItems, (r) => r.template_id)
   const templateIncludes = ref<Map<string, TemplateInclude>>(new Map())
   const templateItemTasks = ref<Map<string, TemplateItemTask>>(new Map())
+  const templateTasks = ref<Map<string, TemplateTask>>(new Map())
   const series = ref<Map<string, TripSeries>>(new Map())
   const profiles = ref<Map<string, DestinationProfile>>(new Map())
   const checklistItems = ref<Map<string, DestinationChecklistItem>>(new Map())
@@ -143,6 +145,14 @@ export const useMasterStore = defineStore('master', () => {
   /** Every preparation task on the device (FR-27.7) — generation resolves by position. */
   const templateItemTaskList = computed(() => [...templateItemTasks.value.values()])
 
+  /** Every template trip task on the device (FR-7.4) — generation resolves by template. */
+  const templateTaskList = computed(() => [...templateTasks.value.values()])
+
+  /** The trip tasks of one template (FR-7.4), in insertion order. */
+  function getTemplateTasks(templateId: string): TemplateTask[] {
+    return templateTaskList.value.filter((t) => t.template_id === templateId)
+  }
+
   /** The preparation tasks of one position (FR-27.7), in insertion order. */
   function getTemplateItemTasks(templateItemId: string): TemplateItemTask[] {
     return templateItemTaskList.value.filter((t) => t.template_item_id === templateItemId)
@@ -184,6 +194,7 @@ export const useMasterStore = defineStore('master', () => {
       templates: templateList.value,
       itemsOf: (id: string) => getTemplateItems(id),
       tasksOf: (id: string) => getTemplateItemTasks(id).map((t) => t.task),
+      tripTasksOf: (id: string) => getTemplateTasks(id).map((t) => t.task),
     }
   }
 
@@ -316,6 +327,9 @@ export const useMasterStore = defineStore('master', () => {
           tasksOfPosition(position.id)
           rows.push({ table: TABLE.templateItems, id: position.id })
         }
+        for (const [taskId, task] of templateTasks.value) {
+          if (task.template_id === id) rows.push({ table: TABLE.templateTasks, id: taskId })
+        }
         // FR-27.1: the include vanishes from both sides of the relation.
         for (const [includeId, inc] of templateIncludes.value) {
           if (inc.template_id === id || inc.included_template_id === id) {
@@ -365,6 +379,7 @@ export const useMasterStore = defineStore('master', () => {
     [TABLE.templateItems]: bucketSink(templateItemRows),
     [TABLE.templateIncludes]: keyedSink(templateIncludes),
     [TABLE.templateItemTasks]: keyedSink(templateItemTasks),
+    [TABLE.templateTasks]: keyedSink(templateTasks),
     [TABLE.tripSeries]: keyedSink(series),
     [TABLE.destinationProfiles]: keyedSink(profiles),
     [TABLE.destinationChecklistItems]: keyedSink(checklistItems),
@@ -430,6 +445,8 @@ export const useMasterStore = defineStore('master', () => {
     getIncludedBy,
     templateItemTaskList,
     getTemplateItemTasks,
+    templateTaskList,
+    getTemplateTasks,
     compositionSource,
     portableResolvers,
     resolve,

@@ -30,6 +30,8 @@ import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_PACK } from '@/types/domain'
  *   resolved count differs from both the group count and the own count;
  * - an FR-27.7 preparation task on a shared position, so a generated trip
  *   starts with a real prep todo;
+ * - two FR-7.4 trip tasks on the Vorlage, so a generated trip starts with
+ *   house chores on M1 that hold up none of its packing;
  * - a third, unincluded group, so M8's picker and M3's *Zusätzliche Gruppen*
  *   both have something to offer;
  * - per-person and buy-before positions, so a generated trip fans out and the
@@ -217,6 +219,8 @@ const VACATION = {
     { item: 'Regenjacke', perPerson: true },
     { item: 'Sonnencreme', buyBefore: true },
   ] satisfies PositionSeed[],
+  /** FR-7.4: chores for the trip itself, not for anything packed. */
+  tripTasks: ['Pflanzen giessen', 'Elektronische Geräte abschalten'],
 }
 
 function addPositions(
@@ -352,6 +356,7 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
       if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
     }
     addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
+    for (const task of VACATION.tripTasks) orchestrator.addTemplateTask(vacationTemplateId, task)
   }
 
   // Only on a run that actually created templates: a second run finds every

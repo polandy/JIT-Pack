@@ -391,6 +391,10 @@ export const de: Record<keyof typeof en, string> = {
   'templates.prepBlockingRule': 'Offene Aufgaben blockieren „erledigt“ auf der Packliste',
   'templates.addTask': 'Aufgabe hinzufügen — z. B. „Akkus laden“…',
   'templates.removeTask': 'Aufgabe entfernen',
+  'templates.tripTasks': 'Aufgaben für die Reise',
+  'templates.tripTasksHint':
+    'Jede neue Reise aus dieser Vorlage bekommt sie als Aufgabe — sie halten keine Packliste auf.',
+  'templates.addTripTask': 'z. B. „Pflanzen giessen“',
   'templates.detailsHint': 'Pro Person · Kaufen · Dedup · Bedingungen · Später-Packer',
   'templates.whoNeeds': 'Wer braucht das?',
   'templates.tripGlobal': 'Reise-global',
@@ -998,6 +1002,8 @@ export const de: Record<keyof typeof en, string> = {
   'wizard.companions': '+ {n} Begleitartikel ({names}) | + {n} Begleitartikel ({names})',
   'wizard.taskCount':
     '{n} Vorbereitungs-Aufgabe übernommen | {n} Vorbereitungs-Aufgaben übernommen',
+  'wizard.tripTaskCount':
+    '{n} Aufgabe für die Reise übernommen | {n} Aufgaben für die Reise übernommen',
   'wizard.mergesTitle': 'Nur einmal dabei',
   'wizard.excludedSummary': '{n} durch Bedingungen ausgeschlossen',
   'wizard.excludedLine': '{item} — übersprungen: {reason}',
@@ -1266,6 +1272,15 @@ export const de: Record<keyof typeof en, string> = {
   'dashboard.latePackers': '{n} letzte Sache | {n} letzte Sachen',
   'dashboard.planned': 'Geplant',
   'dashboard.prepTodo': 'Vorzubereiten',
+  'dashboard.tripTodos': 'Aufgaben',
+  'tripTodos.section': 'Aufgaben für die Reise',
+  'tripTodos.progress': '{done} von {total} erledigt',
+  'tripTodos.allDone': '✓ Alle Aufgaben erledigt',
+  'tripTodos.resolved': '{n} erledigt',
+  'tripTodos.add': 'Aufgabe hinzufügen…',
+  'tripTodos.remove': 'Aufgabe entfernen',
+  'dashboard.taskLineOpen': 'Aufgaben: {n} offen',
+  'dashboard.taskLineDone': 'Aufgaben: alle erledigt',
   'dashboard.openCount': '{n} offen',
   'dashboard.moreItems': '+{n} weitere',
 
