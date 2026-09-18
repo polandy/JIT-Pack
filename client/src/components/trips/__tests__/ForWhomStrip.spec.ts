@@ -142,6 +142,19 @@ describe('ForWhomStrip — a tap is a write (FR-25.28, G-5)', () => {
     expect(lastTarget()).toEqual({ kind: 'shared' })
   })
 
+  it('reports the rows a write deleted, so a sheet open on one of them can close', async () => {
+    row('ti-a', { assigned_traveler_id: 'tr-a' })
+    row('ti-b', { assigned_traveler_id: 'tr-b' })
+    const wrapper = mountStrip('ti-a')
+
+    await tap(wrapper, `for-whom-${KEY}-Leonardo`)
+    expect(wrapper.emitted('rowsRemoved')).toEqual([[['ti-b']]])
+
+    // Lighting somebody deletes nothing, and says nothing.
+    await tap(wrapper, `for-whom-${KEY}-Mia`)
+    expect(wrapper.emitted('rowsRemoved')).toHaveLength(1)
+  })
+
   it('offers no stepper on M4 and one per lit traveler in M5', async () => {
     row('ti-1', { assigned_traveler_id: 'tr-a', quantity: 2 })
     expect(mountStrip('ti-1').find(`[data-testid="for-whom-plus-${KEY}-Andy"]`).exists()).toBe(

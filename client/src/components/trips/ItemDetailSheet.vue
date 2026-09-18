@@ -261,6 +261,16 @@ function addCompanion(companion: SuggestedCompanion) {
 function onModeChange(mode: ItemMode) {
   if (item.value && !isLocked.value) orchestrator.setMode(props.tripId, item.value, mode)
 }
+/**
+ * FR-25.28: the strip acts on every instance, and this sheet is open on one of
+ * them. Unlighting that traveler — or a collapse that keeps a sibling — deletes
+ * the row under the sheet, which then has nothing left to show but *not found*.
+ * It closes instead, as it does when the row is removed from M4's menu (FR-5.8).
+ */
+function onRowsRemoved(rowIds: string[]) {
+  if (rowIds.includes(props.itemId)) emit('close')
+}
+
 function onContainerChange(id: string | null) {
   if (item.value && !isLocked.value) orchestrator.assignContainer(props.tripId, item.value, id)
 }
@@ -477,6 +487,7 @@ const packedStamp = computed(() => {
       :locked="isLocked"
       steppers
       test-key="m5"
+      @rows-removed="onRowsRemoved"
     />
 
     <div class="glance" data-testid="m5-glance">

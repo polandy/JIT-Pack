@@ -48,6 +48,15 @@ const props = withDefaults(
   { locked: false, steppers: false },
 )
 
+const emit = defineEmits<{
+  /**
+   * The rows a write took away. M5 is opened on *one* instance, and a change
+   * made from inside it can delete exactly that one — the host has to hear it,
+   * or it is left reporting the row it was just asked to remove as not found.
+   */
+  rowsRemoved: [rowIds: string[]]
+}>()
+
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
@@ -116,14 +125,18 @@ function apply(target: MembershipTarget) {
     pending.value = { target, plan, question }
     return
   }
+  write(target, plan)
+}
+
+function write(target: MembershipTarget, plan: MembershipPlan) {
   orchestrator.setMembership(props.tripId, rows.value, target, rowsWithContent.value)
+  if (plan.delete.length > 0) emit('rowsRemoved', plan.delete)
 }
 
 function answer(yes: boolean) {
   const p = pending.value
   pending.value = null
-  if (yes && p)
-    orchestrator.setMembership(props.tripId, rows.value, p.target, rowsWithContent.value)
+  if (yes && p) write(p.target, p.plan)
 }
 
 function toggle(travelerId: string) {

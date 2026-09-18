@@ -265,6 +265,39 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await visiblePage(page).getByTestId(`m4-row-${ITEM}`).click()
     await expect(page.getByTestId('m5-sheet')).toContainText(TODO)
   })
+  /*
+   * FR-25.28. M5 is open on *one* instance and its strip acts on all of them,
+   * so it can delete the row it is standing on. Left open it reported *not
+   * found* about a row the user had just asked it to remove.
+   */
+  test('E2E-M5-29: unlighting the traveler the sheet is open on closes the sheet', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 1)
+    await closeItem(page)
+
+    await openCluster(page, ITEM)
+    await visiblePage(page).getByTestId(`m4-child-${ITEM}-Leonardo`).click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+
+    // Andy's is a sibling: the sheet stays, and says so by still being here
+    // with one traveler fewer lit — the positive signal the close is read against.
+    await page.getByTestId(`for-whom-${FOR_WHOM_M5}-Andy`).click()
+    await expect(page.getByTestId(`for-whom-${FOR_WHOM_M5}-Andy`)).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+
+    await lightTraveler(page, FOR_WHOM_M5, 'Andy')
+    await page.getByTestId(`for-whom-${FOR_WHOM_M5}-Leonardo`).click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    await expect(page.getByTestId('m5-missing')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toContainText(`${ITEM} · Andy`)
+  })
 })
 
 /**
