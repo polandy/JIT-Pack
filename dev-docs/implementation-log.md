@@ -15910,10 +15910,13 @@ produces a green pipeline that is merely slower than it needs to be. Read on
 ran 201–395 s against ~1920 test-seconds. On run 35259264760 they ran 308–526 s
 against ~2940, so the pipeline's wall clock had drifted from 6.6 min back to
 8.8 — 530 s, bounded by one e2e leg while `client`, `go` and `visual` all
-finished inside 2.5 min. Twice now the number went stale the same way: four
-became eight after the backlog-item-6 audits doubled the suite, and eight
-became ten after the M9 rebuild, the pane and banner work and their cases did
-it again.
+finished inside 2.5 min. Counted rather than attributed: the suite went from
+274 `test(` calls in 43 spec files at the sizing-era commit (`da3570c8`) to 454
+in 58 at this one. That is +66 % in cases against +53 % in test-seconds, so the
+cases added since are slightly cheaper than the average of the ones that were
+there — which is why reading the case count alone would have overstated the
+drift. Twice now the number has gone stale the same way, four to eight and
+eight to ten.
 
 **Ten and not twelve is the concurrency ceiling, as it was last time.** A run
 carries eight non-shard jobs, so ten shards make 18 of the 20 concurrent jobs a
@@ -15924,9 +15927,9 @@ against ten's 7.0; one minute is not worth spending the headroom.
 
 **Measured after the change** (run 35288189602, same tree): legs 256–418 s, the
 worst down from 526 s, and the run's wall clock 422 s — 7.0 min. The estimate
-written into the PR before it ran was ~430 s for the worst leg, which is the
-first time in this sequence that a predicted number was checked against a
-measured one rather than shipped as the finding. It held.
+written into the PR before it ran was ~430 s for the worst leg; it held, and it
+was written down beforehand precisely so that it could fail visibly rather than
+be adjusted afterwards to match whatever the run produced.
 
 **The test-second total is the soft figure in all of this, and it is worth
 saying which part is soft.** It is the summed leg times less an assumed ~60 s

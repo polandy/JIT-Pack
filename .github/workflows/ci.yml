@@ -165,8 +165,10 @@ jobs:
   #
   # The shard count is a *measurement*, not a constant: ten, sized
   # 2026-09-18 against ~2940 test-seconds. Why ten and not eight or twelve —
-  # the per-browser split that was worse, the fixed ~60 s per leg, the 20-job
-  # concurrency ceiling that eight non-shard jobs eat into — is in
+  # the per-browser split that was worse, the 20-job concurrency ceiling that
+  # eight non-shard jobs eat into, and what bounds it from below now that the
+  # legs are short (no longer the fixed ~60 s per leg, but `e2e-single` and
+  # `e2e-server` at ~260 s, which do not shard) — is in
   # dev-docs/implementation-log.md, "The e2e matrix is ten legs" and the
   # eight-leg section it supersedes. **Re-read the number when the suite
   # grows**: a green pipeline never says the count has gone stale, because
