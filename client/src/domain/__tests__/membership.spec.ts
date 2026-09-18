@@ -13,6 +13,7 @@ import {
   type MembershipTarget,
 } from '../membership'
 import {
+  forWhomColumn,
   membersOfRows,
   membershipQuestion,
   membershipWith,
@@ -617,5 +618,16 @@ describe('FR-25.28: membershipQuestion — the plan decides what is asked', () =
     expect(
       ask([andy, leo], { kind: 'perPerson', members: membersOfRows([andy, leo], TRAVELERS) }),
     ).toBeNull()
+  })
+})
+
+describe('FR-25.28: forWhomColumn — where M4 carries the who column', () => {
+  it.each([
+    ['a trip of three, while packing', 3, false, true],
+    ['a trip of two, the smallest membership there is', 2, false, true],
+    ['a solo trip — nobody to distribute over (G-8)', 1, false, false],
+    ["a trip of three in FR-9.3's closing pass", 3, true, false],
+  ])('%s', (_name, travelers, closingPass, expected) => {
+    expect(forWhomColumn(travelers, closingPass)).toBe(expected)
   })
 })

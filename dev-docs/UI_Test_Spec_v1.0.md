@@ -726,7 +726,11 @@ in WebKit.
   The seat then reads **2**, M5 and `ion-alert` were never presented, another row's seat **moves** the strip rather than
   opening a second one, and the seat that opened it folds it. **Red before the build was right:** the first cut animated
   the old row out beside its replacement, so for the length of the collapse the control existed twice and this case
-  failed on a strict-mode violation — the defect, not a test artefact.
+  failed on a strict-mode violation — the defect, not a test artefact. **Added 2026-09-18 after the owner's eyeball:**
+  read at once as the strip opens, while the rows under it are still sliding down, **nothing paints over the strip's
+  foot** — they had been drawn across it for 0.3 s, which looked like a background too transparent to hide them;
+  mutation-proved by removing the strip's stacking. And at TRIP's three travelers **every name under a face is whole**,
+  not ellipsized — the line is laid out for three.
 * **E2E-M4-101** `local` (FR-25.28, added 2026-09-18) — **implemented** (`e2e/membership.spec.ts`): the last traveler
   leaving makes the item *gemeinsam* **without a question** — FR-25.28's narrowing of FR-25.21 (iii). The row is given
   progress first (`1/3`), because that is what a silent path could lose: afterwards *Gemeinsam* is lit, no question

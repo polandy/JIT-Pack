@@ -16,6 +16,7 @@ import { addOutline, peopleOutline, removeOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import { MIN_MEMBER_QUANTITY } from '@/domain/membership'
 import { t } from '@/i18n'
 import type { Traveler } from '@/types/domain'
 
@@ -55,8 +56,6 @@ const emit = defineEmits<{
 const ROOMY_ROSTER_MAX = 3
 const AVATAR_ROOMY = 40
 const AVATAR_COMPACT = 32
-/** A stepper floors at one: membership is the toggle, never a quantity of 0 (FR-25.21). */
-const MIN_AMOUNT = 1
 
 /** The lit travelers, in roster order — the rows M5's amounts are listed for. */
 const members = computed(() => props.travelers.filter((tr) => props.amounts.has(tr.id)))
@@ -136,7 +135,7 @@ const everybody = computed(
       <span class="stepper">
         <button
           type="button"
-          :disabled="disabled || (amounts.get(tr.id) ?? MIN_AMOUNT) <= MIN_AMOUNT"
+          :disabled="disabled || (amounts.get(tr.id) ?? MIN_MEMBER_QUANTITY) <= MIN_MEMBER_QUANTITY"
           :aria-label="t('membership.less', { name: tr.name })"
           :data-testid="`for-whom-minus-${testKey}-${tr.name}`"
           @click="emit('step', tr.id, -1)"

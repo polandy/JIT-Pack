@@ -152,11 +152,7 @@ import { removalNeedsConfirm } from '@/domain/rowRemoval'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { SPREAD } from '@/composables/sync/actions/packing'
-import {
-  MIN_TRAVELERS_FOR_PER_PERSON,
-  membershipKey,
-  rowsCarryingContent,
-} from '@/domain/membership'
+import { forWhomColumn, membershipKey, rowsCarryingContent } from '@/domain/membership'
 import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
@@ -435,14 +431,8 @@ function masterOf(item: TripItem): MasterItem | null {
 
 // --- FR-25.28: who an item is for, answered on the row -------------------
 
-/**
- * The list carries the *who* column where there is a membership to distribute
- * (G-8) and not in FR-9.3's closing pass, which reviews what was taken along
- * and offers no assignment either.
- */
-const seatColumn = computed(
-  () => travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON && !closingPass.value,
-)
+/** FR-25.28's *who* column — the rule is `forWhomColumn`'s. */
+const seatColumn = computed(() => forWhomColumn(travelers.value.length, closingPass.value))
 
 /**
  * Which item's strip is open — at most one, so working down a list costs one

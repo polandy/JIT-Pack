@@ -28,8 +28,11 @@ import { foldName } from './nameCollision'
 import { propagatedItemId } from './refresh'
 import type { Traveler, TripItem } from '@/types/domain'
 
-/** The smallest amount a member can carry — 0 is FR-5.5's *skipped*, not absence. */
-const MIN_QUANTITY = 1
+/**
+ * The smallest amount a member can carry — 0 is FR-5.5's *skipped*, not absence.
+ * Exported because M5's for-whom steppers floor at it (FR-25.28).
+ */
+export const MIN_MEMBER_QUANTITY = 1
 
 /**
  * How many travelers a trip needs before per-person membership is offered at
@@ -251,7 +254,7 @@ export function planMembership(input: MembershipInput): MembershipPlan {
   // than write it. Trip order, not picker order, so the ladder below is stable.
   const members = target.members
     .filter((m) => order.has(m.traveler_id))
-    .map((m) => ({ ...m, quantity: Math.max(MIN_QUANTITY, Math.trunc(m.quantity)) }))
+    .map((m) => ({ ...m, quantity: Math.max(MIN_MEMBER_QUANTITY, Math.trunc(m.quantity)) }))
     .sort((a, b) => (order.get(a.traveler_id) ?? 0) - (order.get(b.traveler_id) ?? 0))
 
   if (members.length === 0) return empty
@@ -398,7 +401,9 @@ export function everyoneMembers(
   members: MembershipMember[],
 ): MembershipMember[] {
   const byTraveler = new Map(members.map((m) => [m.traveler_id, m]))
-  return travelers.map((t) => byTraveler.get(t.id) ?? { traveler_id: t.id, quantity: MIN_QUANTITY })
+  return travelers.map(
+    (t) => byTraveler.get(t.id) ?? { traveler_id: t.id, quantity: MIN_MEMBER_QUANTITY },
+  )
 }
 
 /**
@@ -420,8 +425,18 @@ export function membersOfRows(rows: TripItem[], travelers: Traveler[]): Membersh
     .map((traveler) => ({
       traveler_id: traveler.id,
       // Non-null by the filter above; the map is keyed by the same ids.
-      quantity: byTraveler.get(traveler.id)?.quantity ?? MIN_QUANTITY,
+      quantity: byTraveler.get(traveler.id)?.quantity ?? MIN_MEMBER_QUANTITY,
     }))
+}
+
+/**
+ * forWhomColumn says whether M4 carries FR-25.28's leading *who* column: where
+ * there is a membership to distribute (G-8), and not in FR-9.3's closing pass,
+ * which reviews what was taken along and offers no assignment either. When it
+ * is absent the list is exactly as wide as before the column existed.
+ */
+export function forWhomColumn(travelerCount: number, closingPass: boolean): boolean {
+  return travelerCount >= MIN_TRAVELERS_FOR_PER_PERSON && !closingPass
 }
 
 /**
@@ -444,7 +459,7 @@ export function membershipWithout(
 export function membershipWith(members: MembershipMember[], travelerId: string): MembershipTarget {
   return {
     kind: 'perPerson',
-    members: [...members, { traveler_id: travelerId, quantity: MIN_QUANTITY }],
+    members: [...members, { traveler_id: travelerId, quantity: MIN_MEMBER_QUANTITY }],
   }
 }
 
