@@ -615,7 +615,11 @@ companions, M5 suggestion hint.
   not do is report the item it started at, and it did. A `per_person` position expands to one row per traveller, all of
   them carrying the same master item, and the selection excludes the skipped row by row id — so on cyclic data the
   traveller's siblings followed it off the list. `skippedVia` asked the same question and would have named one of those
-  rows as the reason for another.
+  rows as the reason for another. **"Its main item" is not always the row in hand (corrected 2026-09-18, owner
+  request):** the cascade used to take every dependent of the skipped row's master item, so skipping one traveller's
+  per-person tent (FR-25.1) skipped the pegs while the other traveller's tent was still coming, and skipping the camera
+  skipped the battery the drone also needs. Every other live row the cascade does not itself take is now an *anchor*,
+  and whatever an anchor depends on stays. Skip and FR-5.8's removal share the rule — it is `coSkipTargets`.
 * **FR-20.3 (Deduplication Against Explicit Items):** A dependent item may also already be on the list in its own right
   — added directly, or pulled in by a different template. Resolution deduplicates by `source_item_id`: if the item is
   already explicit on the list, the dependency does not create a second instance; quantities merge under the existing
@@ -2766,6 +2770,42 @@ locked.
   **The flag is read over every instance, the write only over the writable ones.** The head paints its ⏰ when any
   instance carries the flag (FR-25.23), so the menu offers *„aus"* only when all of them do — including any a lock is
   keeping it from writing. Otherwise the head would offer to switch on what it is already showing as on.
+* **FR-25.27 (What is packed on departure day gets out of the way — added 2026-09-18, owner request):** the
+  late-packer flag (FR-5.1) said *when* a row is due and changed nothing about where it sat. On a list being worked
+  through now, a row that cannot be dealt with now is an interruption: it is read, skipped over, and read again on the
+  next pass. The flag was already set from the row (FR-25.25) and from a cluster head (FR-25.26); this is what it then
+  does.
+
+  **Two halves, and the first needs no control.** (a) A flagged entry **sinks to the end of its group**, below the rows
+  that can be packed now and above the ones that are done — three tiers in the order the day runs, extending FR-25.2's
+  partition rather than adding a second rule beside it. A cluster sinks as soon as one visible instance is flagged, the
+  same rule its ⏰ follows: a warning that holds for only some children is one the reader misses. (b) A **third reveal
+  switch** in the filter sheet (FR-25.11i), beside *Erledigte* and FR-25.20's, puts them away entirely.
+
+  **The switch is the one that starts *on*.** The other two hide rows that ask nothing of the reader — done, or
+  somebody else's. A late-packer row asks for something, just not yet, so hiding it is something the reader chooses;
+  a screen that did it by itself would be leaving the house without the keys. It is session state per trip like the
+  rest of the filter (FR-25.18), and the *Zurücksetzen* that clears the filter turns it back on.
+
+  **The bars run in the order the rows do (owner, 2026-09-18).** Above the list the flagged rows sit over the packed
+  ones; under it their reveal bars do the same, because the ordering rule is *does this row still ask for something*
+  and a late-packer row does. The foot of the list therefore reads: late-packers, then FR-25.20's rows in somebody
+  else's hands, then — last, asking nothing of anyone — the done ones.
+
+  **Never silently, and never twice.** A trip with flagged rows carries a reveal bar for them, and while they are
+  hidden the view reports itself as *narrowed* — otherwise a trip whose remainder is all late-packers renders *„alles
+  gepackt"* over rows nobody has touched (FR-25.11e). Bar and switch carry **one number**, the flagged rows the filter
+  lets through, whichever way the switch stands: a count that dropped to zero on reveal would be labelling two
+  different sets with one word (FR-25.22, the defect E2E-M4-69 was written for). The two hiding rules exclude each
+  other's rows from their counts: a row that is both somebody else's and flagged stays hidden whichever bar is tapped,
+  so neither bar may promise it. Picking ⏰ in *Merkmale* **overrides** the switch for exactly those rows, which is
+  FR-25.11l's rule on a second axis — a panel that reports a count and then shows nothing for it is the contradiction
+  both forbid.
+
+  **Why a switch and not a filter value.** *Merkmale* is an including facet: picking ⏰ asks to see those rows and
+  nothing else. Hiding is the opposite ask, and expressing it as a negation would give one axis two meanings and every
+  other facet a question it does not answer. FR-9.3's closing pass is exempt from both halves: it reviews what was
+  taken along, and a late-packer row was taken along like any other.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.
@@ -3119,7 +3159,8 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   * **Dropping a row means FR-5.5, not deletion.** A row removed here is *considered and skipped* — quantity 0, visible
     and struck through, reversible — because that is what the same act means everywhere else in the product, and because
     a trip that silently lacks a template row teaches the next trip nothing. It is also the first place FR-5.5’s missing
-    control (backlog item 11) would gain a home.
+    control (backlog item 11) would gain a home. (*Clarified 2026-09-18:* since FR-5.8, M4 does also delete a row, as
+    its own named act beside the skip; the wizard's *drop* stays a skip.)
   * **Whatever step 4 gains, M4 keeps.** No decision may become wizard-only; the wizard may only bring a decision
     *forward*.
 
@@ -4043,6 +4084,39 @@ the tail is where a symbol system is actually decided. Results:
     expiry* — lost on a cost nobody had priced: announcing an expiry needs the **server** to notice one, and expiry is
     the one event no request causes, so it would need periodic work in a process whose only goroutine is the listener.
     Once the notification is paid for, the clock buys nothing but the ability to decide on the holder's behalf.
+
+* **FR-5.8 (A row can be taken off the list — owner request and decision 2026-09-18, *built 2026-09-18*):** Until now
+  nothing in M4 deleted a row. FR-5.5's *Nicht einpacken* was the only way to take something out, and it keeps the row
+  as a decision — which is right for "deliberately left behind" and wrong for the typo, the duplicate and the thing that
+  was never going to be on this trip, which stayed on the list forever as a skipped row. The two are now separate acts:
+  * **Where.** A last entry in M4's press-and-hold row menu, *Von der Liste entfernen* — the owner asked for "a long
+    press on the icon", and the icon is inside the row, so holding it already opens this menu; a second, icon-only
+    gesture would have competed with the row's own. It sits **below every row action**, marked destructive (red on
+    iOS). It is absent where the menu offers nothing else of the row's: under somebody else's claim (G-3), in the
+    closing pass (FR-9.3), and on a row the viewer holds, which offers only the release. A skipped row offers it beside
+    *Doch einpacken* — cleaning up a decision made in error is one of the cases it exists for.
+  * **What it is.** A delete of the `trip_items` row, cascading its comments and FR-7.3 todos (the server's cascade,
+    mirrored client-side for Local Mode, C-3a). The FR-27.4 ledger already keeps a hand-deleted position deleted: a
+    group refresh does not bring the row back.
+  * **When it asks (owner decision 2026-09-18: "ask only when the row carries something").** A row with **nothing on
+    it** — no packed units, no notes, no companions to take along — goes at once, and the FR-25.2 snackbar offers the
+    undo. A row carrying **any** of the three is confirmed first, the FR-24.3 idiom: the dialog says what the row is
+    about to lose (*„Bereits 2 gepackt."*, *„3 Notizen werden mitgelöscht."*, *„Ebenfalls nicht eingepackt:
+    Akku."*) and always points at *Nicht einpacken* for the other intent. A confirmed removal has no undo — what it
+    announced is exactly what an undo could not bring back. The rule is `removalNeedsConfirm` in
+    `client/src/domain/rowRemoval.ts`; the other two options (always ask, never ask and only undo) were declined.
+  * **The undo re-inserts the row under its own id** with every field the user chose, and none of the server's stamps
+    (invariant 3). The same id is what makes the FR-27.4 ledger find its row again; a fresh id would read as a
+    hand-deleted position plus a new row. ADR-052 lets it through because the insert is newer than the tombstone.
+  * **Companions (FR-20.2).** Removing a main item co-skips its dependents, exactly as skipping it does — they stay on
+    the list as done rows rather than vanishing — and, as there, only those nothing else on the list still needs: a
+    per-person item (FR-25.1) is still on the trip while another traveler's row of it is not skipped (FR-20.2, since
+    2026-09-18 for the skip too). Once the main row is gone, a co-skipped companion reads as plainly skipped:
+    `skippedVia` names the *skipped* row it followed, and there is none left to name.
+  * **Not here, deliberately.** M5 has no *Entfernen* control (FR-5.5's findable path stays the skip), and the
+    FR-25.26 cluster head offers no removal for all instances. Each is one more entry point for the same act; neither
+    was asked for. **Revisit trigger:** somebody looks for removal in M5, or removes a per-person item row by row.
+  * **Modes.** Identical in all three: a trip-partition delete and, for the undo, an insert — nothing server-only.
 
 ### 3.6 Notifications & Delegation
 

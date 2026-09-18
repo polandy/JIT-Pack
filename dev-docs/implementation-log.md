@@ -390,6 +390,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The idle socket was reaped by a stopwatch (2026-09-16)](#the-idle-socket-was-reaped-by-a-stopwatch-2026-09-16) — Sync-API §9; the seam is per connection because a fake clock would have reaped the observer too.
 - [The option that was recommended did not work (2026-09-17)](#the-option-that-was-recommended-did-not-work-2026-09-17) — ADR-064; “anchor it to the window” was arithmetic, and it still covered 100 px.
 - [The e2e matrix is ten legs (2026-09-18)](#the-e2e-matrix-is-ten-legs-2026-09-18) — the shard count went stale a second time, and what bounds it from below is now the two backend jobs.
+- [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15961,3 +15962,48 @@ neither names it now; the protection argument never depended on the number
 anyway, only on there being one leg name per leg. **Fixing a number in the
 place that owns it is not the same as finding its copies**, and a sweep that
 starts from the owning file will miss a copy in the file it just edited.
+
+## The third reveal switch is the one that starts on (2026-09-18)
+
+Owner, reading M4 on the family instance: can the things packed on departure
+day be moved to the bottom, or hidden? Neither existed. The ⏰ flag (FR-5.1)
+said *when* a row was due and changed nothing about where it sat, so a row that
+could not be dealt with now was read, skipped over, and read again on the next
+pass. FR-25.27 is both halves: the row sinks, and a switch puts it away.
+
+**Rejected: expressing the hiding as a facet value.** *Merkmale* already offers
+⏰, so "just add a negation" looks free. It is not: the facet axis means
+*include these*, and the same chip would then mean include-or-exclude depending
+on a mode the panel would have to render for every axis that never needs it.
+The cost of the switch is a third control in the sheet; the cost of the
+negation would have been a second meaning for every facet in the app.
+
+**The switch starts on, which no other one does.** *Erledigte* and FR-25.20's
+switch hide rows that ask nothing of the reader — done, or somebody else's. A
+late-packer row asks for something, just not yet. Defaulted off it would be the
+screen deciding to leave the house without the keys, so the reader turns it on,
+and *Zurücksetzen* turns it back off. The asymmetry is worth the irregularity;
+the alternative is a default that loses rows silently, which is the failure
+FR-25.18 keeps a session-scoped filter to avoid.
+
+**Two hiding rules owe each other a rule.** Each reveal bar promises what one
+tap would show, so a row hidden by *both* — somebody else's *and* flagged — may
+be counted by neither: revealing one leaves it hidden by the other, and a bar
+that counted it would promise a row that does not appear. The counts therefore
+exclude each other's rows, which is a property no single-rule version of either
+bar needed. The same reasoning made the ⏰ facet override the switch, exactly as
+FR-25.11l's Status values override *Erledigte*: a panel that reports a count
+and then shows nothing for it is the contradiction both forbid.
+
+**The sink is a third tier, not a second sort.** FR-25.2 already partitioned
+each group into open and settled; this inserts one pass between them. A
+comparator would have been shorter and would have made the order a property of
+the engine's stability rather than of the rule — the same argument the 2026-09-06
+entry made for the first partition.
+
+**A trap for the next case id.** The new e2e cases were written as M4-89/90 off
+a spec read; both numbers were already defined — in the very file the cases were
+appended to. A blind rename then rewrote the existing ones as well, and what
+caught it was `case-id-gate.mjs`, not the test run: the renamed cases stayed
+green under their new names. Take the next id from the gate's own count, and
+read the diff for ids you did not intend to touch.

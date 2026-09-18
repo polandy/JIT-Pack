@@ -13,6 +13,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { createPackingActions } from '../actions/packing'
 import {
+  changesOf,
   makeSeamContext,
   pullIn as seedRow,
   type Recorded,
@@ -114,6 +115,28 @@ describe('createPackingActions without an orchestrator', () => {
     expect(affected.map((row) => row.id)).toEqual(['ti-main', 'ti-comp'])
     expect(queued).toHaveLength(1)
     expect(queued[0]!.muts.map((m) => m.mutation.id)).toEqual(['ti-main', 'ti-comp'])
+  })
+
+  it('skipItem on one traveler’s row leaves the companion for the other (FR-20.2, FR-25.1)', () => {
+    const mine = seedTripItem('ti-tent-a', {
+      source_item_id: 'item-tent',
+      assigned_traveler_id: 'trav-a',
+    })
+    seedTripItem('ti-tent-b', { source_item_id: 'item-tent', assigned_traveler_id: 'trav-b' })
+    seedTripItem('ti-comp', { source_item_id: 'item-pegs' })
+    seedRow(ctx.masterStore, TABLE.itemDependencies, 'dep-1', {
+      item_id: 'item-pegs',
+      depends_on_item_id: 'item-tent',
+      mode: 'required',
+      quantity: 1,
+    })
+
+    const affected = createPackingActions(ctx).skipItem(TRIP_ID, mine)
+
+    // The skip itself lands — the queue is the positive signal — and it is
+    // the only row written: the other traveler's tent still needs the pegs.
+    expect(affected.map((row) => row.id)).toEqual(['ti-tent-a'])
+    expect(queued[0]!.muts.map((m) => m.mutation.id)).toEqual(['ti-tent-a'])
   })
 
   it('restoreSkip puts back the rows it still finds and skips the ones that are gone', () => {
@@ -325,6 +348,100 @@ describe('createPackingActions without an orchestrator', () => {
     // A row another device deleted meanwhile is left deleted rather than
     // chased with a second delete.
     expect(queued).toHaveLength(1)
+  })
+
+  it('planRowRemoval counts the notes that cascade and names the companions (FR-5.8)', () => {
+    const main = seedTripItem('ti-main', { source_item_id: 'item-tent', packed_count: 0 })
+    seedTripItem('ti-comp', { source_item_id: 'item-pegs' })
+    seedRow(ctx.masterStore, TABLE.itemDependencies, 'dep-1', {
+      item_id: 'item-pegs',
+      depends_on_item_id: 'item-tent',
+      mode: 'required',
+      quantity: 1,
+    })
+    pullIn(TABLE.comments, 'cm-1', { trip_item_id: 'ti-main', author_id: 'u', body: 'Wo?' })
+    pullIn(TABLE.comments, 'td-1', {
+      trip_item_id: 'ti-main',
+      author_id: 'u',
+      body: 'Imprägnieren',
+      is_task: 1,
+      task_state: 'open',
+    })
+    // A trip-level comment hangs off no row, so the removal does not take it.
+    pullIn(TABLE.comments, 'cm-trip', { trip_item_id: null, author_id: 'u', body: 'Los!' })
+
+    const plan = createPackingActions(ctx).planRowRemoval(TRIP_ID, main)
+
+    expect(plan.notes).toBe(2)
+    expect(plan.packed).toBe(0)
+    expect(plan.companions.map((row) => row.id)).toEqual(['ti-comp'])
+  })
+
+  it('removeItem deletes the row with its notes and co-skips its companions in one write (FR-5.8)', () => {
+    const main = seedTripItem('ti-main', { source_item_id: 'item-tent' })
+    const comp = seedTripItem('ti-comp', { source_item_id: 'item-pegs' })
+    pullIn(TABLE.comments, 'cm-1', { trip_item_id: 'ti-main', author_id: 'u', body: 'Wo?' })
+
+    createPackingActions(ctx).removeItem(TRIP_ID, main, [comp])
+
+    expect(queued).toHaveLength(1)
+    const [removal, skip] = queued[0]!.muts
+    expect(removal!.mutation).toMatchObject({ op: 'delete', id: 'ti-main' })
+    // The comment goes from the device in the same paint — Local Mode has no
+    // server to cascade it (C-3a).
+    expect(changesOf(removal!).map((c) => [c.id, c.deleted])).toEqual([
+      ['cm-1', true],
+      ['ti-main', true],
+    ])
+    expect(skip!.mutation).toMatchObject({ id: 'ti-comp', fields: { state: 'skipped' } })
+  })
+
+  it('restoreRemovedItem re-inserts the row under its own id, with its decisions (FR-5.8)', () => {
+    const row = seedTripItem('ti-1', {
+      source_item_id: 'item-tent',
+      source_template_id: 'tpl-1',
+      packed_count: 0,
+      late_packer: 1,
+      assigned_traveler_id: 'trav-1',
+      packer_user_id: 'user-2',
+      container_id: 'box-1',
+    })
+    const actions = createPackingActions(ctx)
+    actions.removeItem(TRIP_ID, row, [])
+
+    actions.restoreRemovedItem(TRIP_ID, row)
+
+    const restore = queued[1]!.muts[0]!
+    // The same id, so the FR-27.4 ledger entry pointing at it finds its row
+    // again and a group refresh does not add a second one.
+    expect(restore.mutation).toMatchObject({ op: 'insert', id: 'ti-1' })
+    expect(restore.mutation.fields).toMatchObject({
+      trip_id: TRIP_ID,
+      name: 'row ti-1',
+      source_item_id: 'item-tent',
+      source_template_id: 'tpl-1',
+      quantity: 3,
+      state: 'open',
+      late_packer: 1,
+      assigned_traveler_id: 'trav-1',
+      packer_user_id: 'user-2',
+      container_id: 'box-1',
+    })
+    // Never the server's stamps: invariant 3 strips them anyway, and a client
+    // that sends them is claiming an identity.
+    expect(restore.mutation.fields).not.toHaveProperty('packed_by_user_id')
+    expect(restore.mutation.fields).not.toHaveProperty('packing_now_by')
+  })
+
+  it('restoreRemovedItem leaves alone a row that is back already', () => {
+    const row = seedTripItem('ti-1')
+    const actions = createPackingActions(ctx)
+
+    actions.restoreRemovedItem(TRIP_ID, row)
+
+    // The positive signal: the queue is the record, and nothing reached it —
+    // the row was never removed, so there is nothing to put back.
+    expect(queued).toEqual([])
   })
 
   it('addRequiredCompanions never adds a companion the list already carries (FR-20.3)', () => {

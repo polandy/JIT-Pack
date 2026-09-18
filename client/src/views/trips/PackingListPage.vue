@@ -62,6 +62,7 @@ import {
   personOutline,
   playOutline,
   timeOutline,
+  trashOutline,
 } from 'ionicons/icons'
 
 import { packedPercent, stateFor } from '@/domain/packState'
@@ -92,6 +93,7 @@ import {
   emptyReason as emptyReasonFor,
   filterFacets as facetsFor,
   filterSwitches as switchesFor,
+  SWITCH_KEYS,
   groupingAxis,
   onlyOthersHidden as isOnlyOthersHidden,
 } from '@/lib/packingFilterPanel'
@@ -133,7 +135,9 @@ import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import type { FacetKey, GroupBy, ItemTodo, MasterItem, TripItem } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
-import { confirmAction } from '@/lib/confirm'
+import { confirmAction, confirmDestructive } from '@/lib/confirm'
+import { removalSentence } from '@/lib/removalLabels'
+import { removalNeedsConfirm } from '@/domain/rowRemoval'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { SPREAD } from '@/composables/sync/actions/packing'
@@ -180,9 +184,8 @@ onMounted(async () => {
 // composable because they outlive this component (FR-25.18): the filter
 // for the session, the grouping durably. The search term deliberately
 // does not — see there.
-const { facets, showDone, showOthers, groupBy, reset, toggleValue, clearFacet } = usePackingFilter(
-  props.tripId,
-)
+const { facets, showDone, showOthers, showLate, groupBy, reset, toggleValue, clearFacet } =
+  usePackingFilter(props.tripId)
 
 const {
   term: search,
@@ -405,6 +408,9 @@ const view = computed(() =>
     search: search.value,
     currentUserId: myUserId.value,
     showOthers: showOthers.value,
+    // FR-9.3's closing pass reviews what was taken along, and a late-packer
+    // row was taken along like any other.
+    showLate: showLate.value || closingPass.value,
     collapsedGroups: collapsedGroups.value,
     expandedClusters: expandedClusters.value,
     itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
@@ -519,7 +525,10 @@ let rowMenuActive = false
  * Label and glyph for each entry `rowMenuEntries` can return — the wording
  * and the icons are the screen's, the decision is the domain's.
  */
-const ROW_MENU_BUTTONS: Record<RowMenuAction, { labelKey: MessageKey; icon: string }> = {
+const ROW_MENU_BUTTONS: Record<
+  RowMenuAction,
+  { labelKey: MessageKey; icon: string; role?: 'destructive' }
+> = {
   takeover: { labelKey: 'packing.takeoverAction', icon: lockOpenOutline },
   release: { labelKey: 'packing.releaseAction', icon: lockOpenOutline },
   unskip: { labelKey: 'packing.unskipAction', icon: refreshOutline },
@@ -530,6 +539,9 @@ const ROW_MENU_BUTTONS: Record<RowMenuAction, { labelKey: MessageKey; icon: stri
   latePackerOff: { labelKey: 'packing.latePackerOff', icon: timeOutline },
   flagUnused: { labelKey: 'packing.flagUnusedAction', icon: removeCircleOutline },
   unflagUnused: { labelKey: 'packing.unflagUnusedAction', icon: removeCircleOutline },
+  // FR-5.8: the one entry that deletes — iOS paints it red, the way
+  // `confirmDestructive` marks its button.
+  remove: { labelKey: 'packing.removeAction', icon: trashOutline, role: 'destructive' },
 }
 
 function runRowMenu(action: RowMenuAction, item: TripItem): void {
@@ -566,6 +578,9 @@ function runRowMenu(action: RowMenuAction, item: TripItem): void {
       return
     case 'unflagUnused':
       void onFlagUnused(item, false)
+      return
+    case 'remove':
+      void onRemoveItem(item)
   }
 }
 
@@ -703,6 +718,7 @@ async function openRowMenu(item: TripItem) {
         ...entries.map((action) => ({
           text: t(ROW_MENU_BUTTONS[action].labelKey),
           icon: ROW_MENU_BUTTONS[action].icon,
+          role: ROW_MENU_BUTTONS[action].role,
           handler: () => runRowMenu(action, item),
         })),
         { text: t('common.cancel'), role: 'cancel' },
@@ -981,8 +997,8 @@ const emptyReason = computed(() => emptyReasonFor(view.value, search.value, hidd
 
 /**
  * FR-25.11e: a reset that leaves part of the narrowing behind re-renders
- * the same empty screen, so this clears all of it — search, facets and
- * both reveal switches.
+ * the same empty screen, so this clears all of it — search, facets and all
+ * three reveal switches.
  */
 function resetNarrowing() {
   search.value = ''
@@ -1001,13 +1017,16 @@ const filterSwitches = computed(() =>
   switchesFor({
     showDone: showDone.value,
     showOthers: showOthers.value,
+    showLate: showLate.value,
     packedCount: view.value.doneCount,
     hiddenOtherCount: view.value.hiddenOtherCount,
+    lateCount: view.value.lateCount,
   }),
 )
 
 function onToggleSwitch(key: string) {
-  if (key === 'done') showDone.value = !showDone.value
+  if (key === SWITCH_KEYS.done) showDone.value = !showDone.value
+  else if (key === SWITCH_KEYS.late) showLate.value = !showLate.value
   else showOthers.value = !showOthers.value
 }
 
@@ -1091,6 +1110,47 @@ function onSkipItem(item: TripItem) {
 }
 
 /**
+ * The write, and the detail it leaves open: a removed row's M5 would otherwise
+ * stand beside the list saying the item cannot be found — true, and about the
+ * one thing the reader just did on purpose.
+ */
+function removeRow(item: TripItem, companions: readonly TripItem[]): void {
+  orchestrator.removeItem(props.tripId, item, companions)
+  if (openItemId.value === item.id) closeItem()
+}
+
+/**
+ * FR-5.8: off the list altogether. An untouched row goes at once and the
+ * snackbar can bring it back; a row carrying packing, notes or companions says
+ * what it takes along first, because the undo could not return those — so it
+ * is asked instead of offered.
+ */
+async function onRemoveItem(item: TripItem) {
+  const removal = orchestrator.planRowRemoval(props.tripId, item)
+  if (!removalNeedsConfirm(removal)) {
+    // A copy, not the store's row: the undo re-inserts from it after the row
+    // has left the store.
+    const snapshot = { ...item }
+    rowUndo.armUndo([snapshot], () => orchestrator.restoreRemovedItem(props.tripId, snapshot))
+    removeRow(item, [])
+    void announceRemoved(item.name)
+    return
+  }
+  const confirmed = await confirmDestructive({
+    header: t('packing.removeConfirmTitle', { name: item.name }),
+    message: removalSentence(removal),
+    confirmLabel: t('common.remove'),
+    testid: 'm4-remove-confirm',
+  })
+  if (!confirmed) return
+  removeRow(item, removal.companions)
+  void presentToast({
+    message: t('packing.removedToast', { name: item.name }),
+    positionAnchor: FAB_ANCHOR.m4,
+  })
+}
+
+/**
  * FR-9.3: the flag is a judgement, not a stamp — the same menu entry sets
  * it and takes it back, which is the undo, so the confirmation names what
  * happened rather than offering a second path to reverse it.
@@ -1158,7 +1218,8 @@ function onRowLeave(el: Element, done: () => void) {
   collapseRow(el as HTMLElement, done, reducedMotion.matches)
 }
 
-const { rowUndo, packAnnouncements, announcePacked, announceSkipped } = usePackAnnouncer()
+const { rowUndo, packAnnouncements, announcePacked, announceSkipped, announceRemoved } =
+  usePackAnnouncer()
 
 /** Put back what a pack changed, and only that (FR-25.2). */
 function restorePacked(records: RowUndoRecord[]) {
@@ -1796,18 +1857,22 @@ setHeaderTitle(
         testid="packing-empty"
       />
 
-      <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
-           state the count, name the people, one tap to reveal. -->
+      <!-- The bars run in the order the rows do (owner, 2026-09-18): the two
+           whose rows still ask for something first — packed on departure day
+           (FR-25.27), then in somebody else's hands (FR-25.20) — and last the
+           one whose rows ask for nothing. Hidden only on request, and never
+           silently: this bar is what keeps „alles gepackt" from covering rows
+           nobody has touched. -->
       <RevealBar
-        v-if="view.doneCount > 0 && !closingPass"
-        :open="showDone"
+        v-if="view.lateCount > 0"
+        :open="showLate"
         :label="
-          showDone
-            ? t('packing.hidePacked', { n: view.doneCount })
-            : t('packing.showPacked', { n: view.doneCount })
+          showLate
+            ? t('packing.lateShown', { n: view.lateCount })
+            : t('packing.lateHidden', { n: view.lateCount })
         "
-        testid="m4-done-bar"
-        @toggle="showDone = !showDone"
+        testid="m4-late-bar"
+        @toggle="showLate = !showLate"
       />
       <RevealBar
         v-if="view.hiddenOtherCount > 0 || showOthers"
@@ -1825,6 +1890,18 @@ setHeaderTitle(
         "
         testid="m4-others-bar"
         @toggle="showOthers = !showOthers"
+      />
+      <!-- FR-25.2: state the count, one tap to reveal. -->
+      <RevealBar
+        v-if="view.doneCount > 0 && !closingPass"
+        :open="showDone"
+        :label="
+          showDone
+            ? t('packing.hidePacked', { n: view.doneCount })
+            : t('packing.showPacked', { n: view.doneCount })
+        "
+        testid="m4-done-bar"
+        @toggle="showDone = !showDone"
       />
 
       <!-- Preparation (FR-7.3): the open todos of the whole trip, resolvable

@@ -157,6 +157,54 @@ func TestApplyMasterMutation_AnInsertNewerThanTheTombstone_RecreatesTheRow(t *te
 	}
 }
 
+// The same falsifier on the trip partition, which is where FR-5.8's undo
+// lives: M4 removes a packing-list row and the snackbar's undo re-inserts it
+// under its own id, so the FR-27.4 ledger entry pointing at that id finds its
+// row again. Both partitions share the tombstone lookup, but only the master
+// one had a case proving a newer insert gets through it.
+func TestApplyMutation_AnInsertNewerThanTheTombstone_RecreatesTheTripItem_FR5_8(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	for _, m := range []sync.Mutation{
+		{
+			MutationID: "rr-1", Op: sync.OpInsert, Table: TableTripItems, ID: "ti-zelt",
+			Fields: map[string]any{"trip_id": testTrip, "name": "Zelt", "quantity": 1},
+			HLC:    hlcAt(hlcCreated),
+		},
+		{
+			MutationID: "rr-2", Op: sync.OpDelete, Table: TableTripItems, ID: "ti-zelt",
+			HLC: hlcAt(hlcDeleted),
+		},
+	} {
+		if _, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, sync.Mutation{
+		MutationID: "rr-3", Op: sync.OpInsert, Table: TableTripItems, ID: "ti-zelt",
+		Fields: map[string]any{"trip_id": testTrip, "name": "Zelt", "quantity": 1},
+		HLC:    hlcAt(hlcAfter),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.Outcome != sync.OutcomeApplied {
+		t.Fatalf("outcome = %q (%s), want applied — M4's undo can no longer restore a removed row",
+			res.Outcome, res.Reason)
+	}
+	var name string
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT name FROM trip_items WHERE id = 'ti-zelt'`).Scan(&name); err != nil {
+		t.Fatalf("the row was not re-created: %v", err)
+	}
+	if name != "Zelt" {
+		t.Errorf("name = %q, want %q", name, "Zelt")
+	}
+}
+
 // A refusal repairs the row it refused (ADR-031), and this one has no server
 // row to re-deliver: the device that pushed the stale write is holding a
 // phantom, and only a tombstone in its own feed drops it.

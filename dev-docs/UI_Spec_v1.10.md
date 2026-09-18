@@ -1027,8 +1027,9 @@ These patterns apply to every screen and are specified once.
     made the identical choice; M6, which has no FAB, is where the pill is still the way in. *Rejected:* dropping the
     FAB instead, which would have put the app's one-tap add behind a scroll to the top on the longest list it has.
   * **Faceted filter panel** (FR-25.11) replaces the old grouping bar + mode pill strip: a bottom sheet holding
-    *Gruppieren nach*, an *Erledigte* switch, and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale /
-    Status. OR within a facet, AND across facets; active values appear as removable chips under the header. **Revised
+    *Gruppieren nach*, three reveal switches (*Erledigte*, *Anderen zugewiesen*, and since 2026-09-18 *Spätpacker*,
+    FR-25.27), and the facets Person / Kategorie / Beschaffung / Gepäck / Merkmale / Status. OR within a facet, AND
+    across facets; active values appear as removable chips under the header. **Revised
     2026-08-14 (FR-25.11b-rev):** the panel has **no apply button** — every tap is in force behind it, and the head
     states the outcome — its values are **chips rather than folded accordions**, each axis carries an icon, and it is
     visibly a layer over the list rather than more page. **Status added 2026-09-12 (FR-25.11l):** three values —
@@ -1047,6 +1048,16 @@ These patterns apply to every screen and are specified once.
   * **Done rows drop out** (FR-25.2) — fully packed *or* consciously skipped, but never a row with open preparation
     (FR-7.3). Revealed via the *Erledigte* switch, dimmed but interactive, each showing **who packed it and when**
     (FR-25.17). A fully-done group disappears header-and-all.
+  * **Late-packer rows sink, and can be put away (added 2026-09-18, FR-25.27).** A row carrying the ⏰ flag (FR-5.1)
+    sits at the end of its group, below what can be packed now and above what is done — three tiers, one partition. A
+    cluster sinks as soon as one visible instance carries the flag, matching the ⏰ its head already paints
+    (FR-25.23). The filter panel's **third switch**, *Spätpacker*, hides them outright; it is the only one of the three
+    that starts **on**, because those rows are not finished with, merely not due yet. Hidden, they get the same reveal
+    bar the other two classes get and the list still counts as narrowed, so *„alles gepackt"* cannot appear over them.
+    **The three bars sit in the same order as the rows** (owner, 2026-09-18): Spätpacker, then *Anderen zugewiesen*,
+    then *Erledigte* last — the two whose rows still ask for something stand above the one whose rows do not.
+    Picking ⏰ in *Merkmale* overrides the switch, as a *Status* value overrides *Erledigte* (FR-25.11l). The closing
+    pass (FR-9.3) is exempt from both halves.
   * **Groups fold** (FR-25.16): tapping a header collapses the group to that line, which then carries its open count;
     fold-all turns the list into a table of contents.
   * **Per-person items render as a named cluster** (FR-25.1) — item name once with `done/total`, one indented child row
@@ -1149,9 +1160,15 @@ These patterns apply to every screen and are specified once.
       absent where nothing is assignable (G-8), under a G-3 lock, in the closing pass, and once the avatar names the
       packing record rather than the assignment: that one is not a choice (FR-25.19).
   * **Row press-and-hold menu (FR-5.5):** *Menge ändern*, *Packen*, *Nicht einpacken*, **Spätpacker ein/aus**
-    (FR-25.25, last of the row's own actions), and FR-9.3's unused mark where the trip can be judged. A row somebody
-    else holds has no menu but the takeover (G-3/FR-5.7); a row the viewer holds offers only the release; a skipped
-    row offers the way back and no late-packer flag, because nothing is being packed on it.
+    (FR-25.25, last of the row's own actions), FR-9.3's unused mark where the trip can be judged, and **_Von der Liste
+    entfernen_ last of all** (FR-5.8, added 2026-09-18, destructive role). A row somebody else holds has no menu but
+    the takeover (G-3/FR-5.7); a row the viewer holds offers only the release; a skipped row offers the way back and
+    the removal, and no late-packer flag, because nothing is being packed on it.
+    * **Removal (FR-5.8).** A row with nothing on it goes at once, with the pack snackbar's *Rückgängig*
+      (*„„Zelt" von der Liste entfernt"*). A row carrying packed units, notes or FR-20.2 companions opens a destructive
+      alert first — title *„„Drohne" entfernen?"*, a body naming each loss and pointing at *Nicht einpacken*, buttons
+      *Abbrechen* / *Entfernen* — and a confirmed removal shows a plain toast without an undo. A row whose M5 is open
+      closes it: the sheet would otherwise report the item it was just asked to remove as not found.
   * **Cluster head menu (added 2026-09-14, FR-25.26):** the head of a per-person cluster (FR-25.1) takes the same
     press-and-hold, while the short tap stays FR-25.23's fold. It offers **Spätpacker für alle ein/aus** and **Alle
     zuweisen an …**, each acting on every instance the head counts, and it states the scope in its sub-header

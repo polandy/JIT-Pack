@@ -172,6 +172,15 @@ export const en = {
     'Not distributed: doing so would delete a row. Decide that in the “Who needs this?” sheet.',
   'packing.skippedToastWith': '“{name}” stays at home — along with {companions}',
   'packing.packedToast': '“{name}” packed ✓',
+  // FR-5.8 — a row off the list altogether, as against FR-5.5's decision to leave it home.
+  'packing.removeAction': 'Remove from the list',
+  'packing.removedToast': '“{name}” removed from the list',
+  'packing.removeConfirmTitle': 'Remove “{name}”?',
+  'packing.removeConfirmLead':
+    'The row disappears from the packing list. To leave it at home on purpose, choose “Do not pack this”.',
+  'packing.removeConfirmPacked': '{n} already packed.',
+  'packing.removeConfirmNotes': '{n} note is deleted with it. | {n} notes are deleted with it.',
+  'packing.removeConfirmCompanions': 'Not packed either: {names}.',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
   // FR-25.21 — "Who needs this?": membership and per-person amounts.
   'membership.title': 'Who needs this?',
@@ -231,6 +240,10 @@ export const en = {
   // FR-25.20 — rows somebody else is responsible for.
   'packing.othersHidden': '{n} item is with {who} · show | {n} items are with {who} · show',
   'packing.othersShown': 'Hide {n} from {who}',
+
+  // FR-25.27 — what is packed on departure day.
+  'packing.lateHidden': 'Show {n} late packer | Show {n} late packers',
+  'packing.lateShown': 'Hide {n} late packer | Hide {n} late packers',
 
   // FR-25.17 — who packed a row, and when.
   'packing.packedBy': 'packed by {who} · {when}',
@@ -664,6 +677,8 @@ export const en = {
   'filter.doneHint': 'Show packed items',
   'filter.othersLabel': 'Assigned to others',
   'filter.othersHint': 'Show other people’s items',
+  'filter.lateLabel': 'Late packers',
+  'filter.lateHint': 'Show what is packed on departure day',
 
   'facet.person': 'Person',
   'facet.category': 'Category',

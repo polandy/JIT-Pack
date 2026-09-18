@@ -8,8 +8,8 @@
  *
  * Two lifetimes, deliberately different:
  *
- *  - **The filter, the Erledigte switch and the FR-25.20 switch: the
- *    session.** A filter *hides rows*, and on a packing list a hidden row
+ *  - **The filter and the three reveal switches — Erledigte, FR-25.20's
+ *    and FR-25.27's late-packer one: the session.** A filter *hides rows*, and on a packing list a hidden row
  *    reads as "nothing left to do". Carrying a forgotten filter into next
  *    week's packing is that failure with no visible cause, so a fresh
  *    session always starts from the default.
@@ -36,6 +36,7 @@ interface StoredFilter {
   facets?: Partial<Facets>
   showDone?: boolean
   showOthers?: boolean
+  showLate?: boolean
 }
 
 function readStored(storage: Storage | undefined, key: string): string | null {
@@ -120,6 +121,10 @@ export function usePackingFilter(tripId: string) {
   const facets = ref<Facets>(noFacets())
   const showDone = ref(false)
   const showOthers = ref(false)
+  // FR-25.27: the default is *shown*, the opposite of the other two. A
+  // late-packer row still has to be packed, so a screen that hid it by
+  // itself would be leaving the house without the keys.
+  const showLate = ref(true)
   const groupBy = ref<GroupBy>('category')
 
   const filterKey = FILTER_PREFIX + tripId
@@ -132,6 +137,7 @@ export function usePackingFilter(tripId: string) {
       facets.value = { ...noFacets(), ...stored.facets }
       showDone.value = stored.showDone === true
       showOthers.value = stored.showOthers === true
+      showLate.value = stored.showLate !== false
     } catch {
       // Corrupt entry (a half-written value, a format from another
       // version): start unfiltered rather than refusing to render.
@@ -146,7 +152,7 @@ export function usePackingFilter(tripId: string) {
   // One watcher over the whole filter: with a save call per mutation site,
   // the site added next is the one that forgets.
   watch(
-    [facets, showDone, showOthers],
+    [facets, showDone, showOthers, showLate],
     () => {
       writeStored(
         session,
@@ -155,6 +161,7 @@ export function usePackingFilter(tripId: string) {
           facets: facets.value,
           showDone: showDone.value,
           showOthers: showOthers.value,
+          showLate: showLate.value,
         } satisfies StoredFilter),
       )
     },
@@ -168,6 +175,7 @@ export function usePackingFilter(tripId: string) {
     facets.value = noFacets()
     showOthers.value = false
     showDone.value = false
+    showLate.value = true
   }
 
   /** Toggles one value of one facet; the sheet has no other kind of edit. */
@@ -184,5 +192,5 @@ export function usePackingFilter(tripId: string) {
     facets.value = { ...facets.value, [key]: [] }
   }
 
-  return { facets, showDone, showOthers, groupBy, reset, toggleValue, clearFacet }
+  return { facets, showDone, showOthers, showLate, groupBy, reset, toggleValue, clearFacet }
 }

@@ -171,6 +171,15 @@ export const de: Record<keyof typeof en, string> = {
     'Nicht verteilt: Dafür müsste eine Zeile gelöscht werden. Das entscheidest du im Blatt „Wer braucht das?“.',
   'packing.skippedToastWith': '„{name}“ bleibt zu Hause — mit {companions}',
   'packing.packedToast': '„{name}“ gepackt ✓',
+  // FR-5.8 — siehe en.ts.
+  'packing.removeAction': 'Von der Liste entfernen',
+  'packing.removedToast': '„{name}“ von der Liste entfernt',
+  'packing.removeConfirmTitle': '„{name}“ entfernen?',
+  'packing.removeConfirmLead':
+    'Die Zeile verschwindet von der Packliste. Wenn du es bewusst zu Hause lässt, wähle „Nicht einpacken“.',
+  'packing.removeConfirmPacked': 'Bereits {n} gepackt.',
+  'packing.removeConfirmNotes': '{n} Notiz wird mitgelöscht. | {n} Notizen werden mitgelöscht.',
+  'packing.removeConfirmCompanions': 'Ebenfalls nicht eingepackt: {names}.',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
   // FR-25.21 — „Wer braucht das?": Mitgliedschaft und Mengen pro Person.
   'membership.title': 'Wer braucht das?',
@@ -232,6 +241,10 @@ export const de: Record<keyof typeof en, string> = {
   'packing.othersHidden':
     '{n} Packelement liegt bei {who} · anzeigen | {n} Packelemente liegen bei {who} · anzeigen',
   'packing.othersShown': '{n} von {who} ausblenden',
+
+  // FR-25.27 — was erst am Abreisetag gepackt wird.
+  'packing.lateHidden': '{n} Spätpacker anzeigen | {n} Spätpacker anzeigen',
+  'packing.lateShown': '{n} Spätpacker ausblenden | {n} Spätpacker ausblenden',
 
   // FR-25.17 — wer eine Zeile gepackt hat, und wann.
   'packing.packedBy': 'gepackt von {who} · {when}',
@@ -674,6 +687,8 @@ export const de: Record<keyof typeof en, string> = {
   'filter.doneHint': 'Gepackte anzeigen',
   'filter.othersLabel': 'Anderen zugewiesen',
   'filter.othersHint': 'Packelemente anderer anzeigen',
+  'filter.lateLabel': 'Spätpacker',
+  'filter.lateHint': 'Am Abreisetag zu Packendes anzeigen',
 
   'facet.person': 'Person',
   'facet.category': 'Kategorie',

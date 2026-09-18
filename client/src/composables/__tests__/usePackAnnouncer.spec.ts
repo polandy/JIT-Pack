@@ -189,6 +189,20 @@ describe('usePackAnnouncer — the skip (FR-5.5, FR-20.2)', () => {
   })
 })
 
+describe('usePackAnnouncer — the removal (FR-5.8)', () => {
+  it('names the removed row, behind the same undo button', async () => {
+    const { api } = mountAnnouncer()
+
+    const done = api.announceRemoved('Zelt')
+    settleCreates()
+    await done
+
+    const options = create.mock.calls[0]![0]!
+    expect(options.message).toBe(t('packing.removedToast', { name: 'Zelt' }))
+    expect(options.buttons).toEqual([expect.objectContaining({ text: t('packing.undo') })])
+  })
+})
+
 describe('usePackAnnouncer — leaving the screen', () => {
   it('never presents a snackbar whose screen was left while it was being created', async () => {
     const { api, unmount } = mountAnnouncer()

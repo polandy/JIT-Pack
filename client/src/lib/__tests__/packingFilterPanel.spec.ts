@@ -41,6 +41,7 @@ function view(overrides: Partial<PackingView> = {}): PackingView {
     groups: [],
     doneCount: 0,
     hiddenOtherCount: 0,
+    lateCount: 0,
     hiddenOtherNames: [],
     facetValues: emptyFacetValues(),
     activeFacetCount: 0,
@@ -195,17 +196,20 @@ describe('filterFacets (FR-25.11d)', () => {
   })
 })
 
-describe('filterSwitches (FR-25.11i, FR-25.20)', () => {
-  it('reports both switches with their own counts', () => {
+describe('filterSwitches (FR-25.11i, FR-25.20, FR-25.27)', () => {
+  it('reports all three switches with their own counts', () => {
     const switches = filterSwitches({
       showDone: true,
       showOthers: false,
+      showLate: true,
       packedCount: 7,
       hiddenOtherCount: 3,
+      lateCount: 2,
     })
     expect(switches.map((s) => [s.key, s.on, s.count])).toEqual([
       ['done', true, 7],
       ['others', false, 3],
+      ['late', true, 2],
     ])
     expect(switches.every((s) => s.label !== '' && s.hint !== '')).toBe(true)
   })

@@ -403,6 +403,43 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('delete', TABLE.tripItems, itemId)
   }
 
+  /**
+   * restoreTripItem puts a removed row back under its own id (FR-5.8's undo).
+   *
+   * The same id rather than a fresh one: the FR-27.4 ledger points at it, and
+   * a row back under another id is a hand-deleted position *plus* a new row —
+   * the next group refresh would read the first as a decision to keep it gone.
+   * An insert newer than the tombstone is how ADR-052 lets a deliberate
+   * re-creation through.
+   *
+   * Every field the user chose comes back; the server's stamps do not
+   * (`packed_by_user_id`, `packed_at`, the G-3 claim — invariant 3). FR-5.8
+   * only arms this undo for a row nothing was packed on, so there is no
+   * packing record to lose.
+   */
+  function restoreTripItem(row: TripItem): Mutation {
+    return make('insert', TABLE.tripItems, row.id, {
+      trip_id: row.trip_id,
+      name: row.name,
+      source_item_id: row.source_item_id,
+      source_template_id: row.source_template_id,
+      category_name: row.category_name,
+      weight_grams: row.weight_grams,
+      value_cents: row.value_cents,
+      quantity: row.quantity,
+      packed_count: row.packed_count,
+      state: row.state,
+      mode: row.mode,
+      late_packer: dbBool(row.late_packer),
+      assigned_traveler_id: row.assigned_traveler_id,
+      packer_user_id: row.packer_user_id,
+      container_id: row.container_id,
+      flag_unused: dbBool(row.flag_unused),
+      flag_missing: dbBool(row.flag_missing),
+      bought_from: row.bought_from,
+    })
+  }
+
   function addTraveler(
     tripId: string,
     name: string,
@@ -1186,6 +1223,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     setPacker,
     addTripItem,
     deleteTripItem,
+    restoreTripItem,
     addTraveler,
     addGeneratedTripItem,
     addClonedTripItem,
