@@ -392,6 +392,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The e2e matrix is ten legs (2026-09-18)](#the-e2e-matrix-is-ten-legs-2026-09-18) — the shard count went stale a second time, and what bounds it from below is now the two backend jobs.
 - [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
 - [The search offers what it did not find (2026-09-18)](#the-search-offers-what-it-did-not-find-2026-09-18) — FR-24.11; the proposal's reason for the restore offer was wrong, and three things only the rendered screen said.
+- [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's dependency pickers; an inline modal beside a v-if/v-else broke the section it sat in.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -16046,3 +16047,28 @@ once, as M10's creation mode does; cancelling the sheet leaves the tag behind,
 unassigned. Staging it until „Anlegen" would make the sheet's tag rule differ
 from M10's, which is exactly what sharing `TagChooser` exists to prevent, and
 FR-24.10's manager deletes an unused tag without a refusal.
+
+## A presented sheet is no anchor (2026-09-18)
+
+FR-24.11's offer and sheet reached M10's *Begleitartikel* picker (the owner asked
+for it by name: adding a companion should be able to create one). The component
+and the sheet are M9's, extracted as `SearchOfferButton`; the sheet's test ids
+lost their `m9-` prefix (`create-item-*`) because they now render on two screens.
+
+**The first placement broke the section it sat in.** The sheet was written
+directly after the picker's `v-if` button / `v-else` panel. Ionic moves an inline
+`ion-modal` out of its parent while it is presented, and Vue had taken that node
+as the insertion anchor for the swap back from panel to button: the create
+succeeded, and closing the picker threw `insertBefore … not a child of this node`,
+leaving the companion list and the add button unrendered — the row was written
+and never shown. It is now the last child of `IonContent`, beside nothing that
+toggles. Only the running e2e case showed it; the build and the type check were
+green. M9's sheet sits beside a `v-if` FAB, which is safe only because selection
+mode cannot toggle while the sheet is up.
+
+**The restore offer checks the cycle first.** A retired row keeps its dependency
+rows, so restoring and then being refused would un-retire an item as a side
+effect of a declaration that never happened. E2E-M10-25 pins it and was
+mutation-proved. *„Hängt ab von"* got the same offer the same day at the
+owner's request (E2E-M10-26..28); both pickers share one sheet, keyed by which
+end of the relation the new item takes.

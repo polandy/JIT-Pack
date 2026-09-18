@@ -1680,6 +1680,18 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   the filter are gone — the round trip this exists to remove). The tag control is **one component shared with M10**
   (`TagChooser`), so filter-or-create stays one rule. An empty inventory has no search field (G-7's empty state stands
   in for it), so the offer cannot appear there — the FAB and the spreadsheet import are that state's two ways in.
+  * **M10's two dependency pickers make the same offer (added and implemented 2026-09-18).** Declaring a
+    *Begleitartikel* (FR-20.1) the inventory does not hold yet meant leaving the item in hand, creating the other one in
+    M9, finding the first again and only then declaring the pair. The picker's query now carries the same offer through
+    the same control and the same sheet, and taking it **declares the pair in the same act**: the new item depends on
+    the one being edited, in the default mode, and the user stays in that editor with the picker closed and the new row
+    in the list. This item's tags are offered first in the sheet (the batteries are filed where the headlamp is); none
+    is pre-assigned, because there is no filter to vanish from. A **retired** name is offered back and declared in one
+    tap too — but the cycle check runs **before** the restore, because a retired row keeps its dependency rows: a
+    refused companion must not leave the item un-retired as a side effect. A new item has no edges, so its declaration
+    cannot close a cycle. *„Hängt ab von"* makes the same offer from the other end, asked for by the owner the same day:
+    there the new or restored item becomes the **main item** this one depends on, and its cycle check is that edge's.
+    Both pickers share one sheet.
 
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:

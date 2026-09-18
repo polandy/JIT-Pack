@@ -54,7 +54,6 @@ import {
   eyeOutline,
   funnelOutline,
   pricetagsOutline,
-  refreshOutline,
   removeCircleOutline,
   swapVerticalOutline,
   trashOutline,
@@ -78,6 +77,7 @@ import BulkTagSheet, { type BulkTagMode } from '@/components/items/BulkTagSheet.
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
+import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
@@ -107,7 +107,6 @@ import {
   searchItems,
   searchOffer,
   OFFER_CREATE,
-  OFFER_RESTORE,
   type ItemSearchCandidate,
   type MatchReason,
 } from '@/domain/itemSearch'
@@ -1080,25 +1079,7 @@ onBeforeUnmount(() => observer?.disconnect())
       <!-- FR-24.11: the name the search did not find, offered at the top —
            with the keyboard up, the end of a list of partial hits is out of
            reach. The same place whether or not anything matched. -->
-      <div v-if="offer" class="offer" :class="offer.kind">
-        <button type="button" data-testid="m9-offer" @click="takeOffer">
-          <span class="offer-glyph">
-            <IonIcon :icon="offer.kind === OFFER_RESTORE ? refreshOutline : addOutline" />
-          </span>
-          <span class="offer-text">
-            <strong data-testid="m9-offer-title">{{
-              offer.kind === OFFER_RESTORE
-                ? t('items.offerRestore', { name: offer.name })
-                : t('items.offerCreate', { name: offer.name })
-            }}</strong>
-            <span class="offer-hint">{{
-              offer.kind === OFFER_RESTORE
-                ? t('items.offerRestoreHint')
-                : t('items.offerCreateHint')
-            }}</span>
-          </span>
-        </button>
-      </div>
+      <SearchOfferButton v-if="offer" :offer="offer" testid="m9-offer" @take="takeOffer" />
 
       <!-- ADR-033: an inventory that has not arrived is not an empty one. -->
       <EmptyState
@@ -1480,59 +1461,6 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .bulkbar button.danger {
   color: var(--ion-color-danger);
-}
-
-/* FR-24.11: an offer, not a row — dashed, so it cannot be read as an item
-   the inventory already holds. */
-.offer {
-  padding: 10px 8px 4px;
-}
-
-.offer button {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1.5px dashed var(--jp-action);
-  border-radius: var(--jp-r);
-  background: color-mix(in srgb, var(--jp-action) 8%, var(--jp-surface-card));
-  color: var(--ct-text);
-  text-align: start;
-  cursor: pointer;
-}
-
-.offer.restore button {
-  border-color: var(--ion-color-warning);
-  background: color-mix(in srgb, var(--ion-color-warning) 9%, var(--jp-surface-card));
-}
-
-.offer-glyph {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border-radius: var(--jp-r-sm);
-  background: var(--jp-action);
-  color: var(--ct-crust);
-  font-size: var(--jp-icon-sm);
-}
-
-.offer.restore .offer-glyph {
-  background: var(--ion-color-warning);
-}
-
-.offer-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.offer-hint {
-  color: var(--ion-color-medium);
-  font-size: var(--jp-text-xs);
 }
 
 .row-new {
