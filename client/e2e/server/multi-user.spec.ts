@@ -986,14 +986,17 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
-   * E2E-M17-10 (FR-2.5a): a default traveller picked from the accounts in M17
+   * E2E-M17-18 (FR-2.5a): a default traveller picked from the accounts in M17
    * comes back in M3's step 2 as that account — linked and a member, like a
    * traveller picked there. The pick is device-local, so it is made in the same
    * context that then opens the wizard.
    */
-  test('E2E-M17-10: an account picked as a default traveller starts the wizard as that account', async ({
+  test('E2E-M17-18: an account picked as a default traveller starts the wizard as that account', async ({
     browser,
   }) => {
+    // Bob signs in first: the directory lists only accounts that have.
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
 
@@ -1015,6 +1018,7 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(alice.getByTestId('wizard-traveler-role')).toBeVisible()
 
     await ctxAlice.close()
+    await ctxBob.close()
   })
 
   /**

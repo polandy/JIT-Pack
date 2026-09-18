@@ -2338,6 +2338,11 @@ against a screen rather than against a stylesheet (G-14).
   need an upstream feed that answers on demand, which no project has; they are covered against the component in
   `views/settings/__tests__/SettingsUpdateCheck.spec.ts` — including the Local Mode case, where the assertion is that
   **no request is made**, read off the recorded fetch calls — and against the endpoint in `internal/api/update_test.go`.
+* **E2E-M17-18** `server` (FR-2.5a) — **implemented 2026-09-18**, in `e2e/server/multi-user.spec.ts`: an account picked
+  from the instance's users as a default traveller comes back in M3's step 2 as that account — the row carries the
+  account's name and the role selector a member has. The pick and the wizard share one browser context, because the
+  setting is device-local. Bob signs in first: the directory lists only accounts that have, so without him the picker
+  would offer nobody and the case would fail on its setup, not on the feature.
 * **Not covered here, and deliberately:** that the block is **absent** in Single-User and Local Mode. Neither project
   can render it — `single` has no session and `local` no server — so the two absence cases live in
   `views/settings/__tests__/SettingsApiTokens.spec.ts`, mutation-proved against the removed gate, because a surface that
