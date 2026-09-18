@@ -1,5 +1,5 @@
 import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
-import { quickAddItem, uniq, watchSubscribed } from '../serverMode'
+import { quickAddItem, trackSocket, uniq, watchSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
 
@@ -154,6 +154,10 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     await quickAddItem(alice, first)
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
+    // Armed before the navigation, because a tracker follows no socket that
+    // opened before it existed. The last clause of this case needs a frame on
+    // Alice's connection long after it is open.
+    const aliceSocket = trackSocket(alice)
     const subscribedAlice = watchSubscribed(alice)
     await alice.goto(tripPath)
     await expect(visiblePage(alice).getByTestId(`m4-row-${first}`)).toBeVisible()
@@ -204,14 +208,27 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     // Lifting the block settles it again: the next trip.changed reaches Bob,
     // his pull returns, he reports the head, and the badge flips back. That
     // the state recovers is what makes it a state rather than a latch.
+    //
+    // Armed before the block is lifted, so it cannot be satisfied by the
+    // all-in-sync frame from before Bob fell behind.
+    const aliceToldBobCaughtUp = aliceSocket.caughtUp()
     await bob.unroute('**/api/v1/trips/*/sync**')
     await quickAddItem(alice, third)
-    // Waited on the row Alice just added, not on the one Bob missed: ✓✓ says
-    // every device is at the *head*, and the head is `third`. Waiting for
-    // `second` asked for less than the next line asserts, and left the rest
-    // to the retry — which held on an idle machine and failed on a loaded
-    // CI runner (run 34163387665).
+    // Bob rendering the row proves Bob's *pull* landed — and that is all it
+    // proves. The next line is about Alice's screen, which needs three more
+    // hops nothing here waits on: Bob reports his cursor, the server
+    // recomputes in_sync, and the broadcast reaches Alice. Waiting on Bob's
+    // render is asking for strictly less than the assertion below, which is
+    // the same mistake this case was corrected for once already after run
+    // 34163387665 — moved one hop along rather than removed. It failed again
+    // on run 35289725004, because the missing hops are the slow ones: Bob's
+    // cursor report waits for his socket, and a socket that has been sitting
+    // behind a blocked route may be in reconnect backoff.
+    //
+    // So the frame Alice must have received is waited for directly, and the
+    // DOM is then asserted with nothing left to race.
     await expect(visiblePage(bob).getByTestId(`m4-row-${third}`)).toBeVisible()
+    await aliceToldBobCaughtUp
     await expect(visiblePage(alice).getByTestId('presence-in-sync')).toBeVisible()
     await expect(visiblePage(alice).getByTestId('presence-behind')).toHaveCount(0)
 
