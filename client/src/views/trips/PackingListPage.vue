@@ -62,6 +62,7 @@ import {
   peopleOutline,
   personOutline,
   playOutline,
+  textOutline,
   timeOutline,
   trashOutline,
 } from 'ionicons/icons'
@@ -135,6 +136,8 @@ import { buildReviewProposals } from '@/domain/review'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
+import InventoryNamesSheet from '@/components/trips/InventoryNamesSheet.vue'
+import type { InventoryRename } from '@/domain/inventoryNames'
 import type { FacetKey, GroupBy, ItemTodo, MasterItem, TripItem } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
@@ -218,6 +221,36 @@ function openQuickAdd() {
  * buttons is pressed.
  */
 const groupProposal = computed(() => orchestrator.refreshProposals.value[props.tripId] ?? null)
+
+/**
+ * FR-27.16: the names on this trip the inventory has moved on from. Derived,
+ * like the proposal above, and never stored — the ⋮ entry and M5's line both
+ * read it, and it empties itself once the names match.
+ */
+const inventoryRenames = computed(() => orchestrator.inventoryRenamesOf(props.tripId))
+const inventoryNamesOpen = ref(false)
+
+/** The choice the open row belongs to, for M5's own „Übernehmen". */
+const openItemRename = computed(
+  () =>
+    inventoryRenames.value.find((r) => r.rows.some((row) => row.id === openItemId.value)) ?? null,
+)
+
+/**
+ * Takes the chosen names over, from the sheet or from M5's one-row line.
+ * Armed with the snackbar's undo like a pack: taking every name over is one
+ * tap on „Alle", and a tap that renames a dozen rows needs a way back.
+ */
+function adoptInventoryNames(chosen: InventoryRename[]) {
+  inventoryNamesOpen.value = false
+  if (chosen.length === 0) return
+  const undo = orchestrator.adoptInventoryNames(props.tripId, chosen)
+  rowUndo.armUndo(
+    undo.adoption.rows.map((r) => r.item),
+    () => orchestrator.restoreInventoryNames(props.tripId, undo),
+  )
+  void announceRenamed(chosen.length)
+}
 
 async function applyGroupChanges() {
   const applied = orchestrator.acceptTripRefresh(props.tripId)
@@ -897,6 +930,17 @@ setHeaderActions(() => {
     overflow: true,
     onClick: () => router.push(tripSubPath(props.tripId, 'edit')),
   })
+  // FR-27.16: offered only while there is something to take over, and on a
+  // past trip too — renaming history is the user's call, not a prompt.
+  if (inventoryRenames.value.length > 0) {
+    items.push({
+      id: 'm4-inventory-names',
+      icon: textOutline,
+      label: t('inventoryNames.menu', { n: inventoryRenames.value.length }),
+      overflow: true,
+      onClick: () => (inventoryNamesOpen.value = true),
+    })
+  }
   // The two lifecycle steps, each offered only where it is the next one.
   // Without the first, *active* was unreachable in the whole app — and with
   // it the archive action below, FR-9.1's Missing flagging and everything
@@ -1232,8 +1276,14 @@ function onRowLeave(el: Element, done: () => void) {
   collapseRow(el as HTMLElement, done, reducedMotion.matches)
 }
 
-const { rowUndo, packAnnouncements, announcePacked, announceSkipped, announceRemoved } =
-  usePackAnnouncer()
+const {
+  rowUndo,
+  packAnnouncements,
+  announcePacked,
+  announceSkipped,
+  announceRemoved,
+  announceRenamed,
+} = usePackAnnouncer()
 
 /** Put back what a pack changed, and only that (FR-25.2). */
 function restorePacked(records: RowUndoRecord[]) {
@@ -2042,7 +2092,9 @@ setHeaderTitle(
           :item-id="openItemId"
           :participants="participants"
           :current-user-id="myUserId"
+          :inventory-rename="openItemRename"
           @close="closeItem"
+          @adopt-name="(rename) => adoptInventoryNames([rename])"
         />
       </SheetModal>
       <!-- Into the frame's second pane (G-9), not into this screen: a
@@ -2058,10 +2110,26 @@ setHeaderTitle(
             :item-id="openItemId"
             :participants="participants"
             :current-user-id="myUserId"
+            :inventory-rename="openItemRename"
             @close="closeItem"
+            @adopt-name="(rename) => adoptInventoryNames([rename])"
           />
         </aside>
       </Teleport>
+
+      <SheetModal
+        :is-open="inventoryNamesOpen"
+        testid="inventory-names-modal"
+        @dismiss="inventoryNamesOpen = false"
+      >
+        <InventoryNamesSheet
+          v-if="inventoryNamesOpen"
+          :renames="inventoryRenames"
+          :travelers="travelers"
+          @close="inventoryNamesOpen = false"
+          @adopt="adoptInventoryNames"
+        />
+      </SheetModal>
 
       <FilterSheet
         :open="filterOpen"

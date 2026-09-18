@@ -1041,6 +1041,26 @@ export const de: Record<keyof typeof en, string> = {
   'trips.proposedTasks': '„{group}“: {item} — Vorbereitung ändert sich',
   'trips.proposedChanged': '„{group}“: {item} ändert sich',
 
+  // FR-27.16 — Namen aus dem Inventar übernehmen.
+  'inventoryNames.menu': 'Namen aus dem Inventar ({n})',
+  'inventoryNames.title': 'Namen aus dem Inventar',
+  'inventoryNames.lead':
+    'Diese Sachen heissen im Inventar inzwischen anders. Menge, Packstand und Zuweisung bleiben, wie sie sind.',
+  'inventoryNames.all': 'Alle',
+  'inventoryNames.selected': '{n} von {total} ausgewählt',
+  'inventoryNames.for': 'für {names}',
+  'inventoryNames.packed': 'gepackt {packed}/{quantity}',
+  'inventoryNames.skipped': 'nicht dabei',
+  'inventoryNames.deliberate': 'bewusst so benannt',
+  'inventoryNames.deliberateNote':
+    'Diese Reise hat den Namen bewusst behalten, deshalb ist er nicht vorausgewählt.',
+  'inventoryNames.apply': 'Namen übernehmen | {n} Namen übernehmen',
+  'inventoryNames.applyAll': 'Namen übernehmen | Alle {n} übernehmen',
+  'inventoryNames.none': 'Nichts ausgewählt',
+  'inventoryNames.adopted': 'Name übernommen | {n} Namen übernommen',
+  'inventoryNames.detail': 'Im Inventar heisst es jetzt „{name}“.',
+  'inventoryNames.adoptOne': 'Übernehmen',
+
   // FR-27.4 — und was sie übernommen hat.
   'trips.appliedChip':
     '⟳ {n} Änderung aus Gruppen übernommen | ⟳ {n} Änderungen aus Gruppen übernommen',
