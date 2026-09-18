@@ -74,7 +74,7 @@ rather than with packing features. Log: *„Concept phase"*.
 
 **How to read this list.** It is a backlog, not a history: **a closed item is one line and a
 pointer**, and only what is still open carries enough detail to act on. Every item below is
-closed. The reasoning behind any of them — options rejected, premises that turned out wrong,
+closed except item 24. The reasoning behind any of them — options rejected, premises that turned out wrong,
 costs accepted — is in `dev-docs/implementation-log.md`; **its index names every section, so
 scan that and open only what it names.** Item numbers stay stable as items close, because the
 log and the specs refer back to them.
@@ -142,6 +142,10 @@ log and the specs refer back to them.
    2026-08-25 (ADR-032 retire, ADR-034 restore via M23); §3.24 is closed. Log: *„A delete that
    could only be refused"*, *„The restore was free, the name was not"*. (Numbered 23 since
    2026-09-02: it had been a second item 19, and the specs' „item 19" means NFR-4.12.)
+24. **FR-7.4 — trip todos** — specified 2026-09-18 (PR #490), **open, not built**: tasks anchored to the trip
+   rather than a row, on M1 only, independent of every packing figure; templates carry them in a new
+   `template_tasks` table. Cases owed: E2E-M1-10/11, E2E-M3-23, E2E-M8-26. The Sync-API spec's master-table list
+   gains `template_tasks` with the build.
 
 **Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history (its *commented* slice is

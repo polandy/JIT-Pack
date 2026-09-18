@@ -286,10 +286,11 @@ stable references for the traceability matrix.
   the same trip stays listed, so an empty group reads as one row gone rather than as a section that stopped rendering.
 * **E2E-M1-11** `all` (FR-7.4) — **new 2026-09-18, owed: not built.** Packing and tasks are two answers, asserted both
   ways on one trip with every row packed. With a trip todo open, the card's packing share still reads complete **and**
-  its task line reads *„1 offen"*; resolving it turns the task line to *„✓ Alle Aufgaben erledigt"* while the share is
-  the same value as before — the before/after pair on one locator is the signal, since „unchanged" alone is green on a
-  card that never rendered the share. The reverse half unpacks one row with the todo resolved: the share drops, the task
-  line stays done. And a trip with **no** trip todo carries no task line at all.
+  its task line reads *„Aufgaben: 1 offen"*; resolving it turns that line to *„Aufgaben: alle erledigt"* — and the
+  trip's head in the *Aufgaben* section to *„✓ Alle Aufgaben erledigt"* — while the share is the same value as before —
+  the before/after pair on one locator is the signal, since „unchanged" alone is green on a card that never rendered the
+  share. The reverse half unpacks one row with the todo resolved: the share drops, the task line stays done. And a trip
+  with **no** trip todo carries no task line at all.
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
