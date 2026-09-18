@@ -174,10 +174,12 @@ type WizardTraveler = {
   role: TravelerRole
 }
 const travelers = ref<WizardTraveler[]>(
-  defaultTravelers().names.value.map((name) => ({
-    name,
-    linkedUserId: NO_ACCOUNT,
-    member: false,
+  // A default picked from the accounts (FR-2.5a) comes back as the picker
+  // would add it: linked, and a collaborator from the trip's first moment.
+  defaultTravelers().entries.value.map((e) => ({
+    name: e.name,
+    linkedUserId: e.userId ?? NO_ACCOUNT,
+    member: e.userId !== null,
     role: 'editor',
   })),
 )

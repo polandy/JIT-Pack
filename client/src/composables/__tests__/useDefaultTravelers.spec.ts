@@ -38,9 +38,9 @@ describe('defaultTravelers (FR-2.5a)', () => {
     defaultTravelers().set(['Andy', 'Sia', 'Leonardo'])
 
     expect(JSON.parse(localStorage.getItem('jitpack_default_travelers') ?? '[]')).toEqual([
-      'Andy',
-      'Sia',
-      'Leonardo',
+      { name: 'Andy', userId: null },
+      { name: 'Sia', userId: null },
+      { name: 'Leonardo', userId: null },
     ])
   })
 
@@ -69,5 +69,29 @@ describe('defaultTravelers (FR-2.5a)', () => {
 
     expect(store.names.value).toEqual(['Andy'])
     refuse.mockRestore()
+  })
+})
+
+describe('linked accounts (FR-2.5a, FR-1.9)', () => {
+  it('keeps the account a default traveller was picked from', () => {
+    defaultTravelers().add('Sia', 'u-sia')
+
+    expect(defaultTravelers().entries.value).toEqual([{ name: 'Sia', userId: 'u-sia' }])
+  })
+
+  it('drops a second entry for one account, because one account is one person', () => {
+    defaultTravelers().add('Sia', 'u-sia')
+    defaultTravelers().add('Sia Two', 'u-sia')
+
+    expect(defaultTravelers().names.value).toEqual(['Sia'])
+  })
+
+  it('still reads a list stored as plain names before accounts existed', () => {
+    localStorage.setItem('jitpack_default_travelers', JSON.stringify(['Andy']))
+    vi.resetModules()
+
+    return import('../useDefaultTravelers').then((m) => {
+      expect(m.defaultTravelers().entries.value).toEqual([{ name: 'Andy', userId: null }])
+    })
   })
 })
