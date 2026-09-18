@@ -8,6 +8,11 @@
  *
  * It is a `role="button"` span rather than the native element because one of
  * its two hosts, the cluster head, *is* one, and interactive content may not nest.
+ *
+ * It is `ion-activatable` for the same reason in reverse: Ionic's tap feedback
+ * listens in the capture phase and lights the first activatable on the event's
+ * path, so without the class a tap on the seat rippled the whole row — which
+ * says *this opens the item*, the one thing the seat does not do.
  */
 import { IonIcon } from '@ionic/vue'
 import { peopleOutline } from 'ionicons/icons'
@@ -35,7 +40,7 @@ const emit = defineEmits<{ toggle: [] }>()
        control column gives: the host's own tap and press-and-hold must not
        fire under a control that has its own meaning. -->
   <span
-    class="seat"
+    class="seat ion-activatable"
     :class="{ open }"
     role="button"
     tabindex="0"
@@ -65,7 +70,8 @@ const emit = defineEmits<{ toggle: [] }>()
   cursor: pointer;
 }
 
-.seat.open {
+.seat.open,
+.seat.ion-activated {
   background: color-mix(in srgb, var(--jp-action) 16%, transparent);
 }
 

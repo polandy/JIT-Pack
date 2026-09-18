@@ -45,13 +45,24 @@ const emit = defineEmits<{
   step: [travelerId: string, by: number]
 }>()
 
-/** The toggle's own size; the child row's avatar is smaller because it is not a control. */
-const AVATAR_SIZE = 32
+/**
+ * The line is laid out for **three travelers** (owner, 2026-09-18): the common
+ * trip, where *Gemeinsam*, *Alle* and three faces share a phone's width with
+ * room to spare. Up to that size a toggle is a full 40 px face with its name
+ * spelled out under it; a longer roster steps down to the compact 32 px face,
+ * which fits five on 360 px, and past that the line scrolls.
+ */
+const ROOMY_ROSTER_MAX = 3
+const AVATAR_ROOMY = 40
+const AVATAR_COMPACT = 32
 /** A stepper floors at one: membership is the toggle, never a quantity of 0 (FR-25.21). */
 const MIN_AMOUNT = 1
 
 /** The lit travelers, in roster order — the rows M5's amounts are listed for. */
 const members = computed(() => props.travelers.filter((tr) => props.amounts.has(tr.id)))
+
+const roomy = computed(() => props.travelers.length <= ROOMY_ROSTER_MAX)
+const avatarSize = computed(() => (roomy.value ? AVATAR_ROOMY : AVATAR_COMPACT))
 
 const nobody = computed(() => props.travelers.every((tr) => !props.amounts.has(tr.id)))
 const everybody = computed(
@@ -60,7 +71,13 @@ const everybody = computed(
 </script>
 
 <template>
-  <div class="toggles" role="group" :aria-label="t('forWhom.title')">
+  <div
+    class="toggles"
+    :class="{ roomy }"
+    role="group"
+    :aria-label="t('forWhom.title')"
+    :data-roomy="roomy"
+  >
     <button
       type="button"
       class="who"
@@ -104,7 +121,7 @@ const everybody = computed(
       @click="emit('toggle', tr.id)"
     >
       <span class="disc" :class="{ off: !amounts.has(tr.id) }">
-        <UserAvatar :name="tr.name" :seed="tr.id" :size="AVATAR_SIZE" />
+        <UserAvatar :name="tr.name" :seed="tr.id" :size="avatarSize" />
       </span>
       <span class="name">{{ tr.name }}</span>
     </button>
@@ -194,10 +211,25 @@ const everybody = computed(
   border-radius: 50%;
 }
 
+/* Three travelers or fewer: the full face, and its name at a readable size. */
+.roomy .disc {
+  width: 40px;
+  height: 40px;
+}
+
+.roomy .who {
+  gap: 6px;
+  font-size: var(--jp-text-xs);
+}
+
+.roomy .glyph ion-icon {
+  font-size: var(--jp-icon-md);
+}
+
 /* An unlit traveler keeps the face — who they are is the label — and loses
    the weight, so the lit ones read as the set at a glance. */
 .disc.off {
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 .glyph {

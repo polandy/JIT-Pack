@@ -2902,9 +2902,16 @@ locked.
      when the row is untouched, asked when it carries something — because that row really is deleted.
 
   **What building it settled (2026-09-18), each found by rendering it rather than by reading it:**
-  * **Five travelers fit a 360 px line, and a sixth scrolls.** A toggle's floor is 40 px: *Gemeinsam*, *Alle* and five
-    avatars measure inside the card at that width with names truncated under them. Past that the line scrolls sideways;
-    it never wraps and never shrinks a toggle further. The mockup drew four and had never been measured.
+  * **Laid out for three travelers (owner, 2026-09-18).** Three is the common trip, so up to three the toggles are full
+    40 px faces with the name spelled out under them; from the fourth they step down to a compact 32 px face with a 40
+    px column, which fits five on a 360 px phone, and past that the line scrolls sideways — it never wraps and never
+    shrinks further. The first build sized every roster for five, and at three it looked cramped for no reason.
+  * **The strip is opaque, sunken and raised above the rows below it.** It appears at once while those rows slide down
+    to make room (FR-25.2's move transition), and a later sibling paints over an earlier one: for 0.3 s the rows were
+    drawn across the strip, which read as a background too transparent to hide them (owner's eyeball, 2026-09-18).
+    Raised, they slide out from underneath. The seat is also its own tap target (`ion-activatable`): Ionic's tap
+    feedback lights the first activatable on the event's path in the capture phase, so a tap on the seat had rippled the
+    whole row, as if it were opening the item.
   * **A converting row leaves at once.** The list animates a departing row shut (FR-25.2's pack-out), and a row turning
     into a cluster is, to the list, one entry departing and another arriving. Animated, the old row and its strip stood
     beside their own replacement for the length of the collapse — the item named twice and the control drawn twice,

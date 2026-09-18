@@ -230,19 +230,31 @@ const QUESTION_VERB: Record<MembershipQuestion, MessageKey> = {
               people: members.length,
               quantity: totalQuantity,
             })
-          : t('membership.summaryShared', { quantity: totalQuantity })
+          : t('membership.summaryShared', { n: totalQuantity, quantity: totalQuantity })
       }}
     </p>
   </div>
 </template>
 
 <style scoped>
+/*
+ * Sunken, so it reads as a drawer the row opened rather than as another row.
+ *
+ * Raised above its neighbours, because it appears at once while the rows under
+ * it slide down to make room (FR-25.2's `pack-out-move`) — and a later sibling
+ * paints over an earlier one. For those 0.3 s the rows below were drawn across
+ * the strip, which looked like a strip too transparent to hide them (owner,
+ * 2026-09-18). Above them, they slide out from underneath instead.
+ */
 .strip {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 6px 10px 8px;
-  background: color-mix(in srgb, var(--jp-action) 7%, var(--jp-surface-card));
+  padding: 8px 10px;
+  background: var(--jp-surface-sunken);
+  border-block: 1px solid var(--jp-surface-border);
 }
 
 .lock,

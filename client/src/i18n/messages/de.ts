@@ -191,7 +191,7 @@ export const de: Record<keyof typeof en, string> = {
   'forWhom.addFor': 'Wird für {n} Person angelegt, je 1. | Wird für {n} Personen angelegt, je 1.',
   'membership.shared': 'Gemeinsam',
   'membership.summary': '{people} Person · {quantity} Stück | {people} Personen · {quantity} Stück',
-  'membership.summaryShared': 'Gemeinsam · {quantity} Stück',
+  'membership.summaryShared': 'Gemeinsam · {quantity} Stück | Gemeinsam · {quantity} Stück',
   'membership.lockedBy': '{who} packt gerade eine dieser Zeilen.',
   'membership.lockedByUnknown': 'Jemand packt gerade eine dieser Zeilen.',
   'membership.less': 'Weniger für {name}',

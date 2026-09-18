@@ -324,6 +324,22 @@ test.describe('FR-25.28 the for-whom strip on the row @local @m4', () => {
 
     const list = visiblePage(page)
     const strip = await openForWhom(page, ITEM)
+    // Read at once, while the rows under it are still sliding down to make
+    // room: nothing may paint over the strip. They used to, for 0.3 s, and it
+    // looked like a strip too transparent to hide them (owner, 2026-09-18).
+    // Green does not depend on catching the slide — a covered strip is the
+    // failure whenever it is sampled.
+    const covered = await strip.evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.bottom - 6)
+      return hit !== null && !el.contains(hit)
+    })
+    expect(covered).toBe(false)
+    // Sized for three (TRIP's roster): every name is spelled out, none cut.
+    for (const name of TRIP.travelers) {
+      const label = strip.getByTestId(`for-whom-${ITEM}-${name}`).locator('.name')
+      expect(await label.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+    }
     await expect(strip.getByTestId(`for-whom-shared-${ITEM}`)).toHaveAttribute(
       'aria-pressed',
       'true',

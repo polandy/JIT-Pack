@@ -155,6 +155,13 @@ describe('ForWhomStrip — a tap is a write (FR-25.28, G-5)', () => {
     expect(wrapper.emitted('rowsRemoved')).toHaveLength(1)
   })
 
+  it('says one item in the singular — the count drives the plural, not the people', () => {
+    row('ti-1', { quantity: 1 })
+    expect(mountStrip('ti-1').get(`[data-testid="for-whom-summary-${KEY}"]`).text()).toMatch(
+      /Gemeinsam · 1 Stück|Shared · 1 item$/,
+    )
+  })
+
   it('offers no stepper on M4 and one per lit traveler in M5', async () => {
     row('ti-1', { assigned_traveler_id: 'tr-a', quantity: 2 })
     expect(mountStrip('ti-1').find(`[data-testid="for-whom-plus-${KEY}-Andy"]`).exists()).toBe(

@@ -192,7 +192,7 @@ export const en = {
   'forWhom.addFor': 'Will be added for {n} person, 1 each. | Will be added for {n} people, 1 each.',
   'membership.shared': 'Shared',
   'membership.summary': '{people} person · {quantity} items | {people} people · {quantity} items',
-  'membership.summaryShared': 'Shared · {quantity} items',
+  'membership.summaryShared': 'Shared · {quantity} item | Shared · {quantity} items',
   'membership.lockedBy': '{who} is packing one of these rows right now.',
   'membership.lockedByUnknown': 'Somebody is packing one of these rows right now.',
   'membership.less': 'Fewer for {name}',

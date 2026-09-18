@@ -1181,15 +1181,18 @@ These patterns apply to every screen and are specified once.
     leaves the mark slot empty beside it, so every name keeps one x (FR-21.19/FR-28.4). Tapping a seat unfolds the strip
     **as a line of the card under that row** — *Gemeinsam* ⎮ *Alle*, one avatar toggle per traveler in roster order, and
     a summary line (*„3 Personen · 3 Stück"*); tapping it again or another seat folds it, so **at most one** is open.
-    Every tap commits (G-5). Unlit travelers keep their face at reduced weight; a lit one wears the action ring. A
-    toggle is at least 40 px wide: five travelers fit a 360 px phone and a longer roster scrolls the line sideways. **No
-    steppers here** — a lit traveler is a child row at once, and its count is where the amount is changed (FR-25.24). A
-    question the plan owes — a row with progress or notes going, two or more rows collapsing, a *weggelassen* item taken
-    along again — **replaces the summary line inside the strip**: the outcome stated first, then *Abbrechen* and the
-    verb (*Entfernen* / *Zusammenlegen* / *Doch einpacken*); the toggles are inert while it stands. It is the one place
-    a destructive confirm is not an alert. **G-3:** with any instance held by somebody else the strip still opens,
-    reads, names the holder and writes nothing. The strip stays open while its item turns from a row into a cluster and
-    back, and that change is not animated (E2E-M4-100).
+    Every tap commits (G-5). Unlit travelers keep their face at half weight; a lit one wears the action ring. **Laid out
+    for three travelers** (owner, 2026-09-18): up to three the faces are 40 px with the name spelled out; from the
+    fourth they are 32 px in a 40 px column, five fit a 360 px phone, and a longer roster scrolls the line sideways. The
+    strip is an **opaque, sunken** band raised above the rows below it, which slide out from underneath as it opens
+    rather than across it; the seat is its own tap target, so tapping it does not ripple the row. **No steppers here** —
+    a lit traveler is a child row at once, and its count is where the amount is changed (FR-25.24). A question the plan
+    owes — a row with progress or notes going, two or more rows collapsing, a *weggelassen* item taken along again —
+    **replaces the summary line inside the strip**: the outcome stated first, then *Abbrechen* and the verb (*Entfernen*
+    / *Zusammenlegen* / *Doch einpacken*); the toggles are inert while it stands. It is the one place a destructive
+    confirm is not an alert. **G-3:** with any instance held by somebody else the strip still opens, reads, names the
+    holder and writes nothing. The strip stays open while its item turns from a row into a cluster and back, and that
+    change is not animated (E2E-M4-100).
   * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline
     text input with autocomplete suggestions from the master item inventory (M9). Enter on free text creates a new
     ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is
