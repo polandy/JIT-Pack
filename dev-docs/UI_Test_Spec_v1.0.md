@@ -278,6 +278,18 @@ stable references for the traceability matrix.
   absence** — the same trip changes sides, which is what says the section is keyed on the status rather than listing a
   leftover. **Extended 2026-09-09 (FR-21.28)** the same way as E2E-M1-07: head, count, and the card class on
   the block.
+* **E2E-M1-10** `all` (FR-7.4) — **new 2026-09-18, owed: not built.** A trip todo is added from M1's *Aufgaben* section,
+  ticked, unticked from the *erledigt* disclosure, and removed with its ✕. Each step is read back after a **reload**,
+  because a list that only repaints proves the component and not the write, and the tick is additionally followed into
+  the trip card's own line (*„Aufgaben: 1 offen"* → *„alle erledigt"*) — a second surface reading the same row, which is
+  what says the toggle wrote something rather than hid a row. The removal needs its positive signal: a second todo on
+  the same trip stays listed, so an empty group reads as one row gone rather than as a section that stopped rendering.
+* **E2E-M1-11** `all` (FR-7.4) — **new 2026-09-18, owed: not built.** Packing and tasks are two answers, asserted both
+  ways on one trip with every row packed. With a trip todo open, the card's packing share still reads complete **and**
+  its task line reads *„1 offen"*; resolving it turns the task line to *„✓ Alle Aufgaben erledigt"* while the share is
+  the same value as before — the before/after pair on one locator is the signal, since „unchanged" alone is green on a
+  card that never rendered the share. The reverse half unpacks one row with the todo resolved: the share drops, the task
+  line stays done. And a trip with **no** trip todo carries no task line at all.
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
@@ -443,6 +455,11 @@ stable references for the traceability matrix.
   make it, and the trip list afterwards holds one trip. The create writes the whole trip synchronously and then leaves
   the screen, so between the write and the repaint the button is still under the finger; the second press used to write
   a second trip with the same name, the same dates and the same positions, and neither screen said so.
+* **E2E-M3-23** `local` (FR-7.4) — **new 2026-09-18, owed: not built.** A Vorlage carries the trip task *„Pflanzen
+  giessen"* and includes a group carrying the same text and *„Kühlschrank leeren"*. Step 3's footer reports **two** trip
+  tasks on their own line — not three, and not folded into the FR-27.7 preparation count — and the created trip, once
+  started, lists exactly those two open todos on M1. The duplicate is the case: a count of three is what a concatenation
+  without the dedup would show.
 * **E2E-M3-19** `all` (G-16): Enter in a step's plain field is the step's *Weiter* — nothing happens while the gate
   holds (empty name), the same keypress on the same field advances once it opens, and a step-2 traveller name fires the
   same way; step 3's single-item search is G-16-exempt, so Enter there does not advance — proven live by the button
@@ -1352,6 +1369,11 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
 * **E2E-M8-25** `local` (FR-21.24, new 2026-09-08) — **implemented** (`e2e/template-editor.spec.ts`): the editor
   offers the composer once, through its own FAB. A second site of the same rule needs its own case: the rule is a prop
   each caller passes, so M4 keeping it says nothing about M8 — and M8 is where the pair was found while fixing M4.
+
+* **E2E-M8-26** `local` (FR-7.4) — **new 2026-09-18, owed: not built.** *Aufgaben für die Reise* takes a task in both
+  scopes, keeps it across a reload with the count on the head, and removes it with ✕. A trip generated from the template
+  afterwards carries the task as a trip todo **and no row gained a preparation todo** — the positive signal for that
+  absence is M4's prep KPI reading the same count as a trip generated before the task was added.
 
 ### M9 — Item Inventory
 
@@ -3068,6 +3090,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-7.1 | E2E | M5-05 |
 | FR-7.2 | E2E | M5-05 (M4-09 retired — FR-7.3 overrides its refusal) |
 | FR-7.3 | E2E | M1-02, M4-08, M4-25 (M5-06's shadowed half; the resolution restriction is struck) |
+| FR-7.4 | E2E | M1-10 (add, tick, reopen, remove), M1-11 (independent of packing), M3-23 (template tasks, dedup), M8-26 (the template editor) — all owed, not built |
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers since 2026-08-30), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |

@@ -3024,8 +3024,9 @@ items**; turning a finished (and mutated) trip back **into a template for next y
   each task becomes an **FR-7.3 preparation todo attached to the generated trip item**, so the existing rule does the
   rest without any new mechanism: an item with an open preparation todo **does not count as done** on the packing list
   (FR-7.3 / FR-25.2 — the todo, not a new flag, is the blocker), it surfaces in the M4 prep section, the M5 item sheet,
-  and the M1 dashboard exactly like a hand-added todo. Task edits on a template travel like any other position change —
-  a trip that is not past is offered the gained/lost todo per FR-27.4, past trips never are. The M3 step-3 preview
+  and the M1 dashboard exactly like a hand-added todo. Tasks that belong to the trip rather than to one of its items
+  are FR-7.4's. Task edits on a template travel like any other position change — a trip that is not past is offered
+  the gained/lost todo per FR-27.4, past trips never are. The M3 step-3 preview
   reports the count it will carry over ("📋 N Vorbereitungs-Aufgaben übernommen"); the M8 position form offers the task
   list under progressive disclosure (FR-25.7) with a count chip on the collapsed row. Tasks are part of the portable
   YAML shape (FR-18.2). **Deliberate non-feature:** todos added *on a trip* do **not** flow back into the group in
@@ -4101,6 +4102,46 @@ the tail is where a symbol system is actually decided. Results:
     could not be reached. The same duplication failed in the opposite direction too: an item with a todo but no stored
     count showed no prep badge at all. Wherever doneness, the amber "packed with open prep" state, the badge, or the
     *Merkmale* facet ask about preparation, they must ask the todo list.
+
+* **FR-7.4 (Trip Todos — Tasks That Belong to the Trip, Not to an Item) — specified 2026-09-18, owner request, not
+  built.** Some of what has to happen before a holiday has nothing to do with the luggage: *„Elektronische Geräte
+  abschalten"*, *„Pflanzen giessen"*, *„Kühlschrank leeren"*. Until now every task the app could hold hung off a packing
+  row (FR-7.3, FR-27.7), so the only way to keep one was a placeholder item — a *„Wohnung"* row on the packing list that
+  had to be ticked as if it were packed, and whose open task held back doneness on the packing list for something nobody
+  packs. A **trip todo** is a task anchored to the trip itself.
+  * **Data model — none new on the trip side.** A trip todo is a `comments` row with `trip_item_id` null and
+    `is_task = 1`: the shape FR-7.1's trip-level comment and FR-7.2's task flag have always allowed together, and that
+    no screen ever wrote. It therefore travels the trip partition, merges field by field (ADR-022), is in the device
+    backup wherever `comments` is, and has its author stamped by the server (invariant 3) — exactly like an FR-7.3 todo.
+  * **It does not block packing, and „all done" is its own answer.** Trip todos count toward **nothing** the packing
+    list measures — not a row's doneness (FR-25.2), not the progress ring, not M2's share, not M4's open-prep KPI, not
+    FR-7.3's amber state. A trip whose every row is packed is fully packed while *„Pflanzen giessen"* is still open, and
+    the reverse holds too. What the user gets instead is a **second, independent check**: *n von m erledigt*, and *„Alle
+    Aufgaben erledigt"* once none is open. Folding the two into one figure was rejected: it would let a houseplant hold
+    a finished rucksack at 97 %, which is the false signal FR-7.3 was written to prevent, pointed the other way.
+  * **Surface: M1 only (owner decision).** The dashboard carries an *Aufgaben* section listing every active trip with
+    its trip todos: open ones ticked off in place, resolved ones reachable again to untick, a composer per trip to add
+    one, and a way to remove one. Each active trip card also states the second check on one line of its own, beside —
+    never inside — its packing progress. M4 and M5 do not show trip todos, and M4's prep section keeps meaning item
+    preparation. **Revisit trigger:** a user looking for trip todos on the packing list, or ticking a house task while
+    standing in M4. Planned trips are not included — M1's *Geplant* card is display-only and fetches no trip partition,
+    so their todos appear when the trip is started. **Revisit trigger:** a trip todo that must be ticked before the trip
+    is started.
+  * **Who may resolve:** every member of the trip, as FR-7.3 was settled on 2026-08-30. There is no row, so there is no
+    G-3 claim to respect. No due date — the owner declined one, because the trip's departure already is the deadline.
+  * **From a template.** A template — either scope, in practice the Ferien-Vorlage — can carry **trip tasks** beside its
+    positions, stored in a new master table `template_tasks` (`template_id`, `task`, field HLCs) so that two devices
+    editing two tasks do not overwrite each other, the reason FR-27.7 chose a table over a JSON column. At trip
+    generation the template's own tasks and those of every included group (FR-27.1) become open trip todos,
+    **deduplicated by exact trimmed text** — two groups both saying *„Pflanzen giessen"* give one todo. M3's step 3
+    reports the count on its own line, apart from FR-27.7's preparation tasks. They are part of the portable template
+    shape (FR-18.2) as a template-level `tasks` list. The dev seed's Ferien-Vorlage carries two of them, per the
+    standing rule that master-data features extend it.
+  * **Deliberate non-features, each with its trigger.** A task edited on a template is **not offered** to trips
+    generated from it (FR-27.4 offers position changes only); it reaches the next generated trip. *Trigger:* a Vorlage
+    task added and expected on a running trip. Trip todos do **not** flow back into a template, neither by FR-27.5 nor
+    by M21, for FR-27.7's reason — a trip's own todos are often about this trip only. *Trigger:* the same trip todo
+    typed by hand on a second trip. Cloning a trip (§3.12) does not carry them, like it carries no FR-7.3 todo.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 
