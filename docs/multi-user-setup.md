@@ -47,6 +47,12 @@ If your own row does not show the admin role, log out and back in (the stamp hap
 
 Master data — items, tags, templates — is **instance-wide**: everyone sees and extends the same inventory, so whoever curates the packing templates does it once for everyone. Because there is only one set, **a template, group or trip-series name can exist only once on the instance** — capitalisation aside. If someone tries to create a second "Sommer", the app says which one already has the name and offers to open it instead of quietly making a duplicate nobody could tell apart. Trips, by contrast, are **membership-scoped**: a trip is visible only to its members, and the creator adds the others on the trip's **Members** screen. Once everyone is a member, packing is live for all of them — a checkmark on one phone lands on the others as it happens.
 
+### Who usually packs what
+
+An inventory item can name the person it is usually somebody's job for — open the item and choose **Usually assigned to**. It is optional; most items have nobody.
+
+It takes effect when a trip is created: on the trip's second step, give each traveler the account they are (the choice appears once the trip is shared with somebody). An item that is on the list once for the whole trip — not one per person — then starts out assigned to the traveler with that account. A traveler without an account, or an item nobody is set for, changes nothing, and per-person items still get a row for everyone. It is only a starting point: you can hand any row to somebody else on the trip afterwards, and changing the item later does not touch trips that already exist.
+
 ## 6. Two people, one row
 
 When somebody starts packing a row, everyone else's device shows it as theirs — with their name — and will not let it be changed. Two people cannot pack the same thing twice, and nobody overwrites anybody's count.

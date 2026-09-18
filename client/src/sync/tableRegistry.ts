@@ -105,6 +105,7 @@ function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
     value_cents: (row['value_cents'] as number) ?? null,
     image_hash: (row['image_hash'] as string) ?? null,
     icon: (row['icon'] as string) ?? null,
+    default_assignee_id: (row['default_assignee_id'] as string) ?? null,
     retired_at: (row['retired_at'] as string) ?? null,
   }
 }

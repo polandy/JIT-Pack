@@ -65,6 +65,11 @@ const (
 	TableTripAppliedChanges     = "trip_applied_changes"
 )
 
+// DefaultAssigneeColumn is the optional account an inventory item is
+// normally assigned to (FR-1.9). Named once: the sync whitelist and the
+// tests compare against it.
+const DefaultAssigneeColumn = "default_assignee_id"
+
 // The item mark (§3.28), named once because three layers compare against
 // it: the schema's CHECK, the handler's cap, and the sync whitelist.
 const (

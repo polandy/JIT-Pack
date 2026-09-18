@@ -4002,6 +4002,25 @@ the tail is where a symbol system is actually decided. Results:
   `unit` field (legacy files still import — unknown fields are ignored per FR-18.5), M9/M10 unit UI removed, and
   quantity displays are bare numbers ("6×"). The G-6 "unit label" clause is void. Number kept stable per the
   removal-stub convention.
+* **FR-1.9 (Default assignee — new 2026-09-18, owner request):** an inventory item can name the account it is usually
+  somebody's job for. It is **optional** — most items have none, and none is a first-class state, not a gap to fill.
+  * **Storage:** `items.default_assignee_id`, a nullable reference to `users`, synced like any other item field
+    (field-level LWW, no CHECK — a constraint that could refuse a single-field mutation would lose the user's choice).
+    An id that names no account is refused per mutation, and the rows beside it still land.
+  * **Where it is set:** M10, *Usually assigned to*, in the create form and on a saved item. Offered only where there
+    is more than one account to choose between (G-8): absent in Local Mode, Single-User Mode and a one-person instance.
+  * **Where it acts:** at generation, for a **trip-global** row (a position with assignment `trip_global`) and for a
+    hand-picked single item (FR-27.3). The row is assigned to the traveler **linked to that account** (FR-2.5); if no
+    traveler is linked, the row stays unassigned — never an error. A per-person position is unaffected: it already
+    belongs to every traveler. Two groups bringing the same assigned item still merge into one row (FR-2.3a). It is a
+    starting point only: the row's own assignment (FR-25.19) is edited in M5 and is never rewritten from the item.
+  * **M3 step 2** therefore gets an optional account picker per traveler (Server Mode with a shared trip only, G-8),
+    offering the creator and the accounts the trip is shared with — the trip's future members, which is all the server
+    accepts as a link (ADR-058). The review step reads the links it will be created with. A group added to a running
+    trip (FR-27.10) applies the rule against the travelers' existing links; the FR-27.4 refresh does **not**, because
+    it keys rows by (item, traveler) and an assignment appearing there would read as a new position.
+  * **Not carried:** the portable format (FR-18) and the backup's inventory view name no account, because account ids
+    mean nothing on another instance.
 * **FR-1.1 refinement (see §3.24):** the "default category" of FR-1.1 is superseded by **multiple tags** per item
   (FR-24.1), and master-item deletion is lifecycle-aware — logical tombstone if ever used, physical delete if never
   referenced (FR-24.3). Both are *implemented* (2026-08-16 and 2026-08-25).

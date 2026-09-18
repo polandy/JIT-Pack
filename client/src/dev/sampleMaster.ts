@@ -73,6 +73,9 @@ interface ItemSeed {
 }
 
 /** The inventory, with the tag that groups it in M9 (ADR-014 primary tag). */
+/** The one inventory item the seed gives a default assignee (FR-1.9). */
+const ASSIGNED_TO_ME = 'Zelt'
+
 const INVENTORY: ItemSeed[] = [
   { name: 'Kamera', tag: 'Technik', weightGrams: 780, icon: '📷' },
   { name: 'Makro-Objektiv', tag: 'Technik', weightGrams: 420 },
@@ -300,7 +303,15 @@ function seedRetiredRows(
  * rows, because a dev seed run twice is a dev's problem and a duplicate check
  * here would be logic nobody tests.
  */
-export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
+export function seedSampleMaster(
+  orchestrator: Orchestrator,
+  /**
+   * FR-1.9: the signed-in account, who becomes the default assignee of the
+   * item named in `ASSIGNED_TO_ME`. Null in Local and Single-User Mode, which
+   * have no accounts — the item is then simply unassigned, as it would be.
+   */
+  myUserId: string | null = null,
+): SampleMaster {
   const tagIds = new Map<string, string>()
   for (const tag of new Set(INVENTORY.flatMap((i) => (i.alsoTag ? [i.tag, i.alsoTag] : [i.tag])))) {
     tagIds.set(tag, orchestrator.createTag(tag))
@@ -311,6 +322,7 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
     const id = orchestrator.createMasterItem(item.name, {
       weightGrams: item.weightGrams ?? null,
       icon: item.icon ?? null,
+      defaultAssigneeId: item.name === ASSIGNED_TO_ME ? myUserId : null,
     })
     itemIds.set(item.name, id)
     const tagId = tagIds.get(item.tag)

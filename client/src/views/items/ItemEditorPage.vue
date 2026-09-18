@@ -91,6 +91,8 @@ const draftName = ref('')
 const draftTagIds = ref<string[]>([])
 // FR-28.1: staged while creating, live once saved — like the tags above it.
 const draftIcon = ref<string | null>(null)
+// FR-1.9: the optional default assignee, staged like the mark.
+const draftAssignee = ref<string | null>(null)
 const draftWeight = ref('')
 const draftPrice = ref('')
 const showMore = ref(false)
@@ -182,6 +184,7 @@ async function createItem() {
     weightGrams: isNaN(weight) ? null : weight,
     valueCents: isNaN(price) ? null : Math.round(price * 100),
     icon: draftIcon.value,
+    defaultAssigneeId: draftAssignee.value,
   })
   for (const tagId of draftTagIds.value) orchestrator.assignTag(id, tagId)
 
@@ -202,6 +205,34 @@ async function createItem() {
 function updateField<K extends keyof MasterItemEdit>(field: K, value: MasterItemEdit[K]) {
   if (!item.value) return
   orchestrator.updateMasterItem(item.value, { [field]: value })
+}
+
+// --- The default assignee (FR-1.9) ---
+
+/**
+ * The select's value for *nobody*. Not `null`, which `IonSelect` reads as "no
+ * value chosen" and answers with its placeholder.
+ */
+const NO_ASSIGNEE = ''
+
+/**
+ * G-8: offered only where there is somebody to choose between. Local Mode has
+ * no accounts and Single-User names none, so the directory is empty there —
+ * and a directory of one is only the viewer, whose "default" is no decision.
+ */
+const canAssign = computed(() => directory.value.length > 1)
+
+const assignee = computed(() =>
+  isCreating.value ? draftAssignee.value : (item.value?.default_assignee_id ?? null),
+)
+
+function setAssignee(value: string) {
+  const next = value === NO_ASSIGNEE ? null : value
+  if (isCreating.value) {
+    draftAssignee.value = next
+    return
+  }
+  updateField('default_assignee_id', next)
 }
 
 // --- The mark (FR-28.1/28.2) ---
@@ -644,6 +675,29 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           @primary="makePrimary"
           @create="(name: string) => assign(orchestrator.createTag(name))"
         />
+
+        <!-- FR-1.9: optional, and not folded away — it is the point of the
+             field that it is decided here rather than on every trip. -->
+        <IonList v-if="canAssign">
+          <IonItem>
+            <IonSelect
+              interface="popover"
+              :label="t('items.editor.assignee')"
+              label-placement="stacked"
+              :value="assignee ?? NO_ASSIGNEE"
+              data-testid="m10-assignee"
+              @ionChange="(e: CustomEvent) => setAssignee(String(e.detail.value))"
+            >
+              <IonSelectOption :value="NO_ASSIGNEE">{{
+                t('items.editor.assigneeNone')
+              }}</IonSelectOption>
+              <IonSelectOption v-for="u in directory" :key="u.user_id" :value="u.user_id">
+                {{ u.display_name }}
+              </IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonNote class="hint">{{ t('items.editor.assigneeHint') }}</IonNote>
+        </IonList>
 
         <!-- FR-24.5: weight and price are folded away while creating. -->
         <IonButton

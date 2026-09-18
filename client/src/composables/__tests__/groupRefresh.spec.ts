@@ -201,6 +201,7 @@ describe('a freshly generated trip has nothing to be asked about (FR-27.4)', () 
           mode: 'pack',
           late_packer: false,
           traveler_index: null,
+          per_person: false,
           tasks: [],
         },
       ],

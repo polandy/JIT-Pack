@@ -358,6 +358,7 @@ describe('Local Mode', () => {
           mode: 'pack',
           late_packer: false,
           traveler_index: 0,
+          per_person: true,
           // FR-27.7 in Local Mode (invariant 5): the todo is generated on the
           // device, so it has to persist without a server having seen it.
           tasks: ['Waschen nicht vergessen'],

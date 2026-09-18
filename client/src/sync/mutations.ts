@@ -93,7 +93,10 @@ export type ChecklistItemEdit = Partial<Pick<DestinationChecklistItem, 'label' |
  * `restoreMasterItem` write, and no screen sets by hand. `image_hash` is not
  * here: the bytes travel their own endpoints (ADR-002) and the hash with them. */
 export type MasterItemEdit = Partial<
-  Pick<MasterItem, 'name' | 'weight_grams' | 'value_cents' | 'icon' | 'retired_at'>
+  Pick<
+    MasterItem,
+    'name' | 'weight_grams' | 'value_cents' | 'icon' | 'default_assignee_id' | 'retired_at'
+  >
 >
 
 /** M8's Vorlage header, plus FR-24.3's marker on the same terms. */
@@ -852,6 +855,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       valueCents?: number | null
       /** FR-28.1: the optional mark, absent as often as not. */
       icon?: string | null
+      /** FR-1.9: the account the item is normally assigned to. */
+      defaultAssigneeId?: string | null
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
@@ -860,6 +865,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
       icon: opts.icon ?? null,
+      default_assignee_id: opts.defaultAssigneeId ?? null,
     })
     return { mutation, id }
   }

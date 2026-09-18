@@ -1429,3 +1429,25 @@ test.describe('M9 — the search creates what it did not find (FR-24.11)', () =>
     await expect(list.getByTestId('m9-offer')).toHaveCount(0)
   })
 })
+
+/**
+ * FR-1.9, the Local Mode half (G-8): a default assignee names an account, and
+ * Local Mode has none, so the control is absent rather than present and inert.
+ * The server half is E2E-M10-29 in `server/multi-user.spec.ts`.
+ */
+test.describe('M10 — no default assignee where there are no accounts (FR-1.9)', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M10-30: the editor offers no assignee in Local Mode, and still offers everything else', async ({
+    page,
+  }) => {
+    await page.goto(PATH.newItem)
+    // The positive signal: the form has rendered and is usable, so a missing
+    // assignee cannot be a page that never got that far.
+    await expect(visiblePage(page).getByTestId('m10-name')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-more')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-assignee')).toHaveCount(0)
+  })
+})

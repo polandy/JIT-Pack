@@ -153,12 +153,20 @@ const attributes = computed<Record<string, unknown> | null>(() => {
 })
 
 // --- Step 2: travelers (FR-2.5) ---
+/**
+ * The select's value for *nobody*: not `null`, which `IonSelect` reads as "no
+ * value chosen" and answers with its placeholder (same as M22's picker).
+ */
+const NO_ACCOUNT = ''
+
 // FR-2.5a: the household's default travellers are the starting point of
 // every trip; step 2 adds, renames and removes them exactly as before.
-const travelers = ref<{ name: string }[]>(defaultTravelers().names.value.map((name) => ({ name })))
+const travelers = ref<{ name: string; linkedUserId: string }[]>(
+  defaultTravelers().names.value.map((name) => ({ name, linkedUserId: NO_ACCOUNT })),
+)
 
 function addTraveler() {
-  travelers.value = [...travelers.value, { name: '' }]
+  travelers.value = [...travelers.value, { name: '', linkedUserId: NO_ACCOUNT }]
 }
 
 function removeTraveler(index: number) {
@@ -200,6 +208,28 @@ function removeShare(index: number) {
 
 function shareName(userId: string): string {
   return directory.value.find((u) => u.user_id === userId)?.display_name ?? userId
+}
+
+/**
+ * Who a traveler may be recorded as while creating (FR-2.5, FR-1.9): the
+ * creator and the accounts the trip is shared with — the trip's future
+ * members, which is all the server accepts as a link (ADR-058). Myself is on
+ * the list because the account being recorded is most often my own.
+ */
+const linkableAccounts = computed(() => {
+  const me = myUserId.value
+  if (!collaborative || !me) return []
+  const ids = [me, ...shares.value.map((s) => s.userId)]
+  return ids.map((id) => ({ userId: id, name: shareName(id) }))
+})
+
+/** G-8: absent where it can mean nothing — nobody to be but oneself. */
+const canLinkTravelers = computed(() => linkableAccounts.value.length > 1)
+
+/** A link whose account was un-shared after picking is dropped, not sent. */
+function linkedAccountOf(traveler: { linkedUserId: string }): string | null {
+  const stillLinkable = linkableAccounts.value.some((a) => a.userId === traveler.linkedUserId)
+  return stillLinkable && traveler.linkedUserId !== NO_ACCOUNT ? traveler.linkedUserId : null
 }
 
 // --- Step 3: template selection + live preview (FR-2.2/2.3a/15.2) ---
@@ -352,7 +382,12 @@ const generation = computed(() => {
     trip: {
       duration_days: duration.value,
       attributes: attributes.value,
-      travelers: travelers.value,
+      // The preview generates with the links the trip will be created with,
+      // so what M3 shows is what FR-1.9 will assign.
+      travelers: travelers.value.map((t) => ({
+        name: t.name,
+        linked_user_id: linkedAccountOf(t),
+      })),
     },
   })
 })
@@ -593,7 +628,10 @@ function createTrip() {
       startDate: startDate.value || null,
       endDate: endDate.value || null,
       attributes: attributes.value,
-      travelers: travelers.value.map((t) => ({ name: t.name.trim() })),
+      travelers: travelers.value.map((t) => ({
+        name: t.name.trim(),
+        linkedUserId: linkedAccountOf(t),
+      })),
       items: draftItems.value,
       // FR-27.4: what the trip follows from here on. The picks, not the
       // resolved composition — a group reached through a Vorlage is followed
@@ -797,6 +835,23 @@ setHeaderTitle(
               @keydown.enter="stepDefaultAction"
               @ionInput="(e: CustomEvent) => (traveler.name = e.detail.value ?? '')"
             />
+            <IonSelect
+              v-if="canLinkTravelers"
+              slot="end"
+              class="link"
+              interface="popover"
+              :aria-label="t('wizard.travelerAccountOf', { name: traveler.name })"
+              :value="traveler.linkedUserId"
+              data-testid="wizard-traveler-account"
+              @ionChange="(e: CustomEvent) => (traveler.linkedUserId = String(e.detail.value))"
+            >
+              <IonSelectOption :value="NO_ACCOUNT">{{
+                t('wizard.travelerNoAccount')
+              }}</IonSelectOption>
+              <IonSelectOption v-for="a in linkableAccounts" :key="a.userId" :value="a.userId">
+                {{ a.name }}
+              </IonSelectOption>
+            </IonSelect>
             <IonButton
               slot="end"
               fill="clear"
@@ -1122,7 +1177,7 @@ setHeaderTitle(
                 <!-- FR-2.6: marks explain what the row already is. Labels, not
                      controls — procurement and assignment have one editor (M5),
                      and a second one here is what this FR argues against. -->
-                <span v-if="item.traveler_index !== null" class="mark">
+                <span v-if="item.per_person" class="mark">
                   {{ t('wizard.perPerson') }}
                 </span>
                 <span v-if="isShoppingMode(item.mode)" class="mark">
@@ -1280,6 +1335,11 @@ setHeaderTitle(
 </template>
 
 <style scoped>
+/* Bounded, so a long display name cannot squeeze the name field out. */
+.link {
+  max-width: 40%;
+}
+
 /* FR-27.3: the picker and its chip list. The chips are the state — what is
    picked has to be visible without scrolling back into the search results. */
 .single-items {
