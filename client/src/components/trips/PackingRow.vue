@@ -25,6 +25,7 @@ import {
   removeCircleOutline,
 } from 'ionicons/icons'
 
+import ForWhomSeat from '@/components/trips/ForWhomSeat.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import RowGlyphs from '@/components/trips/RowGlyphs.vue'
@@ -79,6 +80,14 @@ const props = withDefaults(
     prepCount?: number
     edgeAvatar?: RowEdgeAvatar | null
     /**
+     * FR-25.28: the list carries the *who* column — two travelers or more,
+     * and not FR-9.3's closing pass. It moves a child row's avatar into that
+     * column; an item row gets its seat from {@link seat}.
+     */
+    seatColumn?: boolean
+    /** FR-25.28: the item row's for-whom seat; absent on a child row, whose head owns it. */
+    seat?: { open: boolean } | null
+    /**
      * FR-25.25: the edge avatar is this row's assignment control rather than
      * a label. False wherever there is nobody to assign to (G-8), while
      * somebody else holds the row (G-3), in the closing pass, and once the
@@ -94,11 +103,15 @@ const props = withDefaults(
     prepCount: 0,
     edgeAvatar: null,
     assignable: false,
+    seatColumn: false,
+    seat: null,
   },
 )
 
 const emit = defineEmits<{
   open: []
+  /** FR-25.28: the seat was tapped — fold the strip open or shut. */
+  forWhom: []
   menu: []
   pressStart: [event: PointerEvent]
   pressMove: [event: PointerEvent]
@@ -133,8 +146,25 @@ const emit = defineEmits<{
          mark to hold it open; an item row's mark slot holds its own width
          (FR-28.4), so the names line up across both kinds. -->
     <div slot="start" class="row-lead">
+      <!-- FR-25.28: the *who* column. An item row's seat is the door to the
+           strip; a child row's avatar sits in the same column, under its
+           head's seat, and leaves the mark slot empty so every name keeps
+           one x (FR-21.19). -->
+      <ForWhomSeat
+        v-if="seat && props.variant === 'item'"
+        :item-name="item.name"
+        :member-count="traveler ? 1 : 0"
+        :traveler="traveler"
+        :open="seat.open"
+        :test-key="testKey"
+        @toggle="emit('forWhom')"
+      />
+      <span v-if="seatColumn && props.variant === 'child'" class="seat-slot">
+        <UserAvatar :name="traveler?.name" :seed="traveler?.id" />
+      </span>
+      <span v-if="seatColumn && props.variant === 'child'" class="mark-slot" />
       <UserAvatar
-        v-if="props.variant === 'child'"
+        v-if="!seatColumn && props.variant === 'child'"
         class="row-avatar"
         :name="traveler?.name"
         :seed="traveler?.id"
@@ -393,6 +423,22 @@ const emit = defineEmits<{
 .row-avatar {
   flex: none;
   margin-inline-end: 8px;
+}
+
+/* FR-25.28: the child row's avatar in the *who* column — the seat's own box
+   (28px + 4px), so it stands under its head's seat — and the mark slot held
+   open beside it (22px + 10px), so the name starts where an item row's does. */
+.seat-slot {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  margin-inline-end: 4px;
+}
+
+.mark-slot {
+  flex: none;
+  width: 32px;
 }
 
 /*

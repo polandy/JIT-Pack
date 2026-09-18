@@ -26,7 +26,6 @@ import {
   IonItem,
   IonLabel,
   IonList,
-  IonModal,
   IonNote,
   IonSelect,
   IonSelectOption,
@@ -53,9 +52,9 @@ import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
-import MembershipSheet from '@/components/trips/MembershipSheet.vue'
+import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
-import { membershipRows } from '@/domain/membership'
+import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { quantityChoices } from '@/domain/quantityChoices'
 import { durationDays } from '@/domain/instantiate'
 import { canJudgeUnused, isActive } from '@/domain/trips'
@@ -96,6 +95,8 @@ const orchestrator = useOrchestrator()
 const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id === props.itemId))
 const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
+/** FR-25.28: the strip is absent where there is no membership to distribute (G-8). */
+const offersForWhom = computed(() => travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON)
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const active = computed(() => isActive(trip.value))
 /**
@@ -268,25 +269,14 @@ function onModeChange(mode: ItemMode) {
   if (item.value && !isLocked.value) orchestrator.setMode(props.tripId, item.value, mode)
 }
 /**
- * FR-25.21: what the membership row says without being opened. Named amounts
- * where they differ per person, because "3 Personen" hides exactly the thing
- * this feature exists to show.
+ * FR-25.28: the strip acts on every instance, and this sheet is open on one of
+ * them. Unlighting that traveler — or a collapse that keeps a sibling — deletes
+ * the row under the sheet, which then has nothing left to show but *not found*.
+ * It closes instead, as it does when the row is removed from M4's menu (FR-5.8).
  */
-const membershipOpen = ref(false)
-const membershipRowsForItem = computed(() =>
-  item.value ? membershipRows(tripStore.getItems(props.tripId), item.value) : [],
-)
-const membershipSummary = computed(() => {
-  const named = membershipRowsForItem.value
-    .filter((r) => r.assigned_traveler_id !== null)
-    .map((r) => ({
-      name: travelers.value.find((tr) => tr.id === r.assigned_traveler_id)?.name ?? '',
-      quantity: r.quantity,
-    }))
-    .filter((m) => m.name !== '')
-  if (named.length === 0) return t('membership.rowShared')
-  return named.map((m) => `${m.name} ${m.quantity}`).join(' · ')
-})
+function onRowsRemoved(rowIds: string[]) {
+  if (rowIds.includes(props.itemId)) emit('close')
+}
 
 function onContainerChange(id: string | null) {
   if (item.value && !isLocked.value) orchestrator.assignContainer(props.tripId, item.value, id)
@@ -504,8 +494,27 @@ const packedStamp = computed(() => {
     </button>
 
     <!-- Read-only summary of everything Details can change (FR-25.14). -->
+    <!-- FR-25.28: who the item is for is answered here, above the fold — the
+         one control of the collapsed set that turned out to be reached often.
+         It acts on every instance of the item, not only on the row this sheet
+         was opened from, and carries a stepper per person because M5 has the
+         room M4's row does not. -->
+    <ForWhomStrip
+      v-if="offersForWhom"
+      class="for-whom"
+      :trip-id="tripId"
+      :item-id="item.id"
+      :participants="participants"
+      :locked="isLocked"
+      steppers
+      test-key="m5"
+      @rows-removed="onRowsRemoved"
+    />
+
     <div class="glance" data-testid="m5-glance">
-      <span class="chip">
+      <!-- Below two travelers there is no membership to distribute (G-8), and
+           the chip is all that is left to say. -->
+      <span v-if="!offersForWhom" class="chip">
         <UserAvatar
           v-if="travelerName"
           :name="travelerName"
@@ -646,18 +655,6 @@ const packedStamp = computed(() => {
     </button>
 
     <IonList v-if="detailsOpen" class="details-body">
-      <!-- FR-25.21: a summary row, not a picker — a stepper per traveler does
-           not fit in a popover. Absent below two travelers (G-8): there is no
-           membership to distribute. -->
-      <IonItem
-        v-if="travelers.length > 1"
-        button
-        :disabled="isLocked"
-        @click="membershipOpen = true"
-      >
-        <IonLabel>{{ t('item.usedBy') }}</IonLabel>
-        <IonNote slot="end" data-testid="m5-membership">{{ membershipSummary }}</IonNote>
-      </IonItem>
       <IonItem>
         <IonLabel>{{ t('facet.mode') }}</IonLabel>
         <IonSelect
@@ -770,19 +767,6 @@ const packedStamp = computed(() => {
   <section v-else class="missing" data-testid="m5-missing">
     <p>{{ t('item.notFound') }}</p>
   </section>
-
-  <IonModal :is-open="membershipOpen" @did-dismiss="membershipOpen = false">
-    <div class="membership-wrap">
-      <MembershipSheet
-        v-if="item"
-        :trip-id="tripId"
-        :item-id="item.id"
-        :locked="isLocked"
-        :participants="participants"
-        @close="membershipOpen = false"
-      />
-    </div>
-  </IonModal>
 </template>
 
 <style scoped>
@@ -901,6 +885,11 @@ const packedStamp = computed(() => {
 .skip-toggle.on {
   border-color: var(--ct-pine);
   color: var(--ct-pine);
+}
+
+/* FR-25.28: in the sheet the strip is a block of its own, not a line of a card. */
+.for-whom {
+  border-radius: var(--jp-r-md);
 }
 
 /* --- glance --- */
@@ -1086,12 +1075,5 @@ const packedStamp = computed(() => {
   padding: 32px 16px;
   text-align: center;
   color: var(--ct-subtext0);
-}
-</style>
-
-<style scoped>
-.membership-wrap {
-  padding: 16px;
-  overflow-y: auto;
 }
 </style>

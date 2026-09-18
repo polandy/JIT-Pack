@@ -10,6 +10,7 @@ import {
 } from './fixtures'
 import { PATH } from './routes'
 import { createItem } from './helpers/m9'
+import { setMemberInM5 } from './helpers/m4'
 
 /**
  * M6 — shopping views (UI-Test-Spec §6).
@@ -230,22 +231,13 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     await page.getByTestId('m5-details').click()
     await chooseInSelect(page, 'm5-mode', 'Buy before')
 
-    await page.getByTestId('m5-membership').click()
-    await expect(page.getByTestId('membership-sheet')).toBeVisible()
-    await page.getByTestId('membership-per-person').click()
     for (const [name, quantity] of [
       ['Andy', 2],
       ['Leonardo', 3],
       ['Mia', 1],
     ] as const) {
-      await page.getByTestId(`membership-check-${name}`).click()
-      await expect(page.getByTestId(`membership-qty-${name}`)).toHaveText('1')
-      for (let n = 1; n < quantity; n += 1) {
-        await page.getByTestId(`membership-plus-${name}`).click()
-        await expect(page.getByTestId(`membership-qty-${name}`)).toHaveText(String(n + 1))
-      }
+      await setMemberInM5(page, name, quantity)
     }
-    await page.getByTestId('membership-close').click()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 

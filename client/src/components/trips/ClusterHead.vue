@@ -17,6 +17,7 @@
 import { IonIcon } from '@ionic/vue'
 import { chevronDownOutline } from 'ionicons/icons'
 
+import ForWhomSeat from '@/components/trips/ForWhomSeat.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import RowGlyphs from '@/components/trips/RowGlyphs.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -51,10 +52,14 @@ defineProps<{
   faces: ClusterFace[]
   /** The master row behind the cluster, for its mark or photo; `null` when unknown. */
   master: MasterItem | null
+  /** FR-25.28: the for-whom seat; absent where the list has no *who* column. */
+  seat?: { open: boolean } | null
 }>()
 
 defineEmits<{
   toggle: []
+  /** FR-25.28: the seat was tapped — fold the strip open or shut. */
+  forWhom: []
   /**
    * FR-25.26: the head's own menu, which acts on every instance under it.
    * The same four events a row raises, so the page drives one long-press
@@ -84,6 +89,16 @@ defineEmits<{
     <!-- The same lead column a row has (FR-21.19), so the head starts its
          name on the item rows' x rather than on its children's. -->
     <div class="head-lead">
+      <!-- FR-25.28: the same *who* column an item row has; the count stands
+           for the faces, which are the child rows under it. -->
+      <ForWhomSeat
+        v-if="seat"
+        :item-name="name"
+        :member-count="faces.length"
+        :open="seat.open"
+        :test-key="name"
+        @toggle="$emit('forWhom')"
+      />
       <ItemMark
         :mark="master?.icon ?? null"
         surface="packing"

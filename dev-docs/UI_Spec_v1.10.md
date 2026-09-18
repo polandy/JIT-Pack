@@ -1193,6 +1193,25 @@ These patterns apply to every screen and are specified once.
     (*„4 Zeilen"*) because a shut head hides the rows it is about to write. Instances somebody else holds are skipped
     and reported in the toast (*„3 von 4 geändert · Sia packt gerade"*); a head whose every instance is held offers no
     menu at all, and none of its entries is a takeover.
+  * **The for-whom strip (added 2026-09-18, FR-25.28):** the list carries a leading ***who* column**, one avatar wide,
+    before the mark — wherever the trip has two travelers or more and outside FR-9.3's closing pass (G-8). On an item
+    row and on a cluster head it holds the **for-whom seat**: an empty seat with the people glyph on a shared row, the
+    traveler on a lone per-person row, a **count** on a cluster head. A child row's avatar sits in the same column and
+    leaves the mark slot empty beside it, so every name keeps one x (FR-21.19/FR-28.4). Tapping a seat unfolds the strip
+    **as a line of the card under that row** — *Gemeinsam* ⎮ *Alle*, one avatar toggle per traveler in roster order, and
+    a summary line (*„3 Personen · 3 Stück"*); tapping it again or another seat folds it, so **at most one** is open.
+    Every tap commits (G-5). Unlit travelers keep their face at half weight; a lit one wears the action ring. **Laid out
+    for three travelers** (owner, 2026-09-18): up to three the faces are 40 px with the name spelled out; from the
+    fourth they are 32 px in a 40 px column, five fit a 360 px phone, and a longer roster scrolls the line sideways. The
+    strip is an **opaque, sunken** band raised above the rows below it, which slide out from underneath as it opens
+    rather than across it; the seat is its own tap target, so tapping it does not ripple the row. **No steppers here** —
+    a lit traveler is a child row at once, and its count is where the amount is changed (FR-25.24). A question the plan
+    owes — a row with progress or notes going, two or more rows collapsing, a *weggelassen* item taken along again —
+    **replaces the summary line inside the strip**: the outcome stated first, then *Abbrechen* and the verb (*Entfernen*
+    / *Zusammenlegen* / *Doch einpacken*); the toggles are inert while it stands. It is the one place a destructive
+    confirm is not an alert. **G-3:** with any instance held by somebody else the strip still opens, reads, names the
+    holder and writes nothing. The strip stays open while its item turns from a row into a cluster and back, and that
+    change is not animated (E2E-M4-100).
   * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline
     text input with autocomplete suggestions from the master item inventory (M9). Enter on free text creates a new
     ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is
@@ -1263,17 +1282,17 @@ These patterns apply to every screen and are specified once.
     it takes precedence over that switch, which steps aside entirely while it is on, and it is absent where nothing
     has been decided. A tag it finds nothing decided under states *„Hier ist noch nichts gepackt oder zu Hause
     gelassen."* with *„Alle anzeigen"* beside it — a third kind of empty next to the two FR-25.13e already has.
-    **Since FR-25.8 (2026-08-29) the composer carries
-    a mode:** a two-button segment above the field, *Gemeinsam* / *Pro Person*,
-    wearing the same two words as the membership editor because it is that editor the mode opens. An add made in *Pro
-    Person* writes the row and opens the editor on it, already on the roster — the mode is the answer to which tab
-    that is — and checking the travelers is what fans the row out into the FR-25.1 cluster (ADR-036's
-    keep-and-repoint, so the row typed a moment ago *is* the first traveler's row). The mode survives an add, because
-    rows are entered in runs, and is forgotten when the composer closes. It is **absent** — not disabled — wherever
-    there is nobody to distribute over: on M8, whose Vorlage has no people, and on a trip with fewer than two
-    travelers (G-8). **The mode governs FR-25.13f's two verbs as well:** an *already packed* or *stays home* tap made
-    in *Pro Person* writes the row with its decision and opens the editor on it, so the decision is distributed rather
-    than dropped — and, like the plain add, it waits for the sheet to be gone before the editor is presented.
+    **Since FR-25.28 (2026-09-18) the composer says who the next add is for:** the **for-whom strip** sits over the
+    field — *Gemeinsam*, *Alle*, one avatar toggle per traveler, the same line a row unfolds on M4 — with a sentence
+    under it stating the outcome (*„Wird gemeinsam angelegt."* / *„Wird für 2 Personen angelegt, je 1."*). An add writes
+    one row per lit traveler at one each, as the FR-25.1 cluster, and **opens nothing**: amounts are changed on the
+    child rows it produced. It replaces FR-25.8's two-button *Gemeinsam* / *Pro Person* mode and the membership editor
+    that mode opened. The choice survives an add, because rows are entered in runs, and is forgotten when the composer
+    closes. It is **absent** — not disabled — wherever there is nobody to distribute over: on M8, whose Vorlage has no
+    people, and on a trip with fewer than two travelers (G-8). **The strip speaks for what the composer adds and for
+    nothing else:** the browse-sheet answers *for whom* per line with its own 👥 and avatars (FR-25.13g/h), so a sheet
+    add — FR-25.13f's two verbs included — never reads the strip, and no add waits for the sheet to close any more
+    (E2E-M4-102).
   * Collapsed sections: "Consciously skipped" items (FR-5.5), "Late Packers" (pinned to bottom until departure day, then
     pinned to top), and **"Preparation" (FR-7.3)** — all open prep todos for the trip, grouped by item with traveler
     avatar. Visible to all trip members; resolving a todo is restricted to the item's assignee or trip owner. Tap item
@@ -1403,6 +1422,10 @@ These patterns apply to every screen and are specified once.
   **per-person rows** rather than a shared-row label; the shopping *Used by* idea (FR-25.6) is revisited under this
   model. **This shipped as a single-select and was completed only by FR-25.21 (2026-08-29)**, which is where the
   multi-select, the per-traveler amounts and the write path live.
+  **Revised 2026-09-18 (FR-25.28):** the control is no longer M5's alone and no longer a sheet — see *The for-whom
+  strip* under M4. One consequence above is reversed on purpose: a shared row **does** carry something in its leading
+  column again, an **empty seat**, because it is the door to the strip. It is a control and not the attribution that was
+  removed — it names nobody.
 * **On a per-person instance the sheet says which one it is** (added 2026-08-29, FR-25.21): the M5 header names the
   traveler and that instance's amount (*„für Leonardo · 3 Stück"*) and the glance chips carry the traveler beside a `3
   Personen` chip, so it is never ambiguous whether an edit here is the person's or the item's. Membership is the one
@@ -1411,22 +1434,15 @@ These patterns apply to every screen and are specified once.
   **glance-chip row** summarising the advanced blocks (membership · mode · luggage · ⏰ late · packer) with a **"Details
   ▾"** toggle; **Preparation Todos (FR-7.3)** (checkbox per todo + inline "Add prep todo…"); **comment/task thread
   (FR-7.1/7.2) with a visible composer** and per-comment "flag as task"; packed items with open todos show an amber
-  state. *Level 2 (behind Details ▾):* **"Wer braucht das?"** — a **summary row that opens its own sheet** (FR-25.21),
-  never a popover: a stepper per traveler does not fit in one. The row reads the current state (`Gemeinsam`, or `Andy 2
-  · Leonardo 3 · Mia 1`, truncated with a count past what fits); the sheet carries a `Gemeinsam` / `Pro Person` segment
-  and, under it, one line per traveler with a **checkbox and a quantity stepper**, and a footer summing *„3 Personen · 6
-  Stück"*. **The checkbox sits at the end of the row**, where M4's G-6 pack control sits (owner, 2026-09-09): a person
-  reaching this sheet has just come off that list, and a row's decision belongs on the same side of the screen in both
-  places. The roster opens with a **head row *„Alle Reisenden"*** (FR-25.21c): the same checkbox grammar as the lines
-  under it, tri-state — mixed while only some are members — so it reports the membership as well as changing it. It only
-  ever adds, at one each, and keeps every amount somebody chose; once everybody is a member it is an ordinary checked
-  box whose tap changes nothing — not a disabled one, which is the G-3 lock's appearance — because the way back is the
-  *Gemeinsam* tab, which sums the amounts and asks first (FR-25.21b).
-  **No save button** — every control commits immediately (G-5, FR-25.15), and the `Pro Person` tab only reveals
-  the roster: checking a person is the write. Absent under two travelers (G-8), read-only under a foreign claim on any
-  instance (G-3); *Packed by* delegation picker **with a "niemand" clear** (FR-4.2/6.2); mode selector (🧳/🛒/📍, FR-3.1);
-  **optional** container picker default none (FR-10.2); Late Packer ⏰ flag; *Unused/Missing* flags (FR-9.1, active trips
-  only); history sparkline (FR-14.1).
+  state. **The for-whom strip (FR-25.28)** stands at level 1, under the packing block: the toggle line, and under it one
+  line per lit traveler with a **quantity stepper** — a list rather than a stepper hung under each avatar, because a
+  stepper is wider than a toggle and reached into its neighbours' columns at five travelers on a phone. It closes with
+  the summary *„3 Personen · 6 Stück"*, which a standing question replaces. It acts on **every instance** of the item,
+  not only on the row the sheet was opened from. **No save button** — every control commits immediately (G-5, FR-25.15).
+  Absent under two travelers (G-8), where the membership glance chip is what is left to say *Gemeinsam*; read-only under
+  a foreign claim on any instance (G-3). *Level 2 (behind Details ▾):* *Packed by* delegation picker **with a "niemand"
+  clear** (FR-4.2/6.2); mode selector (🧳/🛒/📍, FR-3.1); **optional** container picker default none (FR-10.2); Late Packer
+  ⏰ flag; *Unused/Missing* flags (FR-9.1, active trips only); history sparkline (FR-14.1).
 * **The FR-9.1 flags are controls, not a readout (corrected 2026-08-20).** *Details ▾* listed them as one line printing
   „Missing / none set", which meant **no surface in the whole app could mark an item *unused*** — and *unused* is the
   flag M14's assistant is mostly about (FR-9.2 is written around overpacking). They are now two toggles with a one-line
@@ -1463,11 +1479,11 @@ These patterns apply to every screen and are specified once.
   todos (FR-7.3); "Buy now" on *Vorher kaufen* items → mode flips to *Packen* with undo snackbar (FR-3.3). In
   Single-User Mode (Addendum FR-17.3), *Delegate* is hidden — the sole user is already every item's *Packed by*.
 * **States:** Locked by another user → read-only with lock banner; unsaved edits impossible (every control commits
-  immediately, G-5). **The membership editor carries its own lock banner** (added 2026-08-30, FR-25.21/G-3): it is
-  frozen by a claim on **any** instance of the item — a conversion rewrites every row of the cluster — so the claim may
-  sit on a row the sheet was not opened from, where M5’s own banner is absent; and the editor is a modal *above* M5
-  either way, which covers that banner even when it is there. The line names the holder (*„Alice packt gerade eine
-  dieser Zeilen."*) and falls back to *„Jemand …"* for a holder the directory does not carry (E2E-G3-04).
+  immediately, G-5). **The for-whom strip carries its own lock line** (added 2026-08-30 for the membership editor,
+  FR-25.21/G-3; the strip's since FR-25.28): it is frozen by a claim on **any** instance of the item — a conversion
+  rewrites every row of the cluster — so the claim may sit on a row the sheet was not opened from, where M5’s own banner
+  is absent. The line names the holder (*„Alice packt gerade eine dieser Zeilen."*) and falls back to *„Jemand …"* for a
+  holder the directory does not carry (E2E-G3-04).
 * **Navigation:** Opens over M4/M6; swipe down to dismiss.
 * **Revised 2026-08-27 (UX-10).** The packing block carries the same eyebrow label as *Vorbereitung* and *Notizen*
   („Einpacken"). Was: on a quantity-1 row an unlabelled box holding only a checkbox and the state chip.

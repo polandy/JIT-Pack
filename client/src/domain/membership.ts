@@ -28,8 +28,11 @@ import { foldName } from './nameCollision'
 import { propagatedItemId } from './refresh'
 import type { Traveler, TripItem } from '@/types/domain'
 
-/** The smallest amount a member can carry — 0 is FR-5.5's *skipped*, not absence. */
-const MIN_QUANTITY = 1
+/**
+ * The smallest amount a member can carry — 0 is FR-5.5's *skipped*, not absence.
+ * Exported because M5's for-whom steppers floor at it (FR-25.28).
+ */
+export const MIN_MEMBER_QUANTITY = 1
 
 /**
  * How many travelers a trip needs before per-person membership is offered at
@@ -114,8 +117,12 @@ export interface MembershipPlan {
  * item, so membership and FR-27.4 land on the same id for the same traveler; an
  * FR-5.6 ad-hoc row has no master item and is keyed by its folded name instead,
  * the same fallback `perPersonKey` uses to hold such rows in one cluster.
+ *
+ * Exported for FR-25.28: M4 remembers which item's strip is open by this key,
+ * because it is the one name for an item that survives the row turning into a
+ * cluster and back.
  */
-function identityKey(row: TripItem): string {
+export function membershipKey(row: TripItem): string {
   return row.source_item_id ?? `name:${foldName(row.name)}`
 }
 
@@ -126,8 +133,8 @@ function identityKey(row: TripItem): string {
  * list draws as one item can never disagree.
  */
 export function membershipRows(all: TripItem[], item: TripItem): TripItem[] {
-  const key = identityKey(item)
-  return all.filter((r) => identityKey(r) === key)
+  const key = membershipKey(item)
+  return all.filter((r) => membershipKey(r) === key)
 }
 
 /** Trip order, by traveler id — the tie-break both ladders end on. */
@@ -247,7 +254,7 @@ export function planMembership(input: MembershipInput): MembershipPlan {
   // than write it. Trip order, not picker order, so the ladder below is stable.
   const members = target.members
     .filter((m) => order.has(m.traveler_id))
-    .map((m) => ({ ...m, quantity: Math.max(MIN_QUANTITY, Math.trunc(m.quantity)) }))
+    .map((m) => ({ ...m, quantity: Math.max(MIN_MEMBER_QUANTITY, Math.trunc(m.quantity)) }))
     .sort((a, b) => (order.get(a.traveler_id) ?? 0) - (order.get(b.traveler_id) ?? 0))
 
   if (members.length === 0) return empty
@@ -338,7 +345,7 @@ function planPerPerson(
       continue
     }
     insert.push({
-      id: propagatedItemId(template.trip_id, identityKey(template), m.traveler_id),
+      id: propagatedItemId(template.trip_id, membershipKey(template), m.traveler_id),
       traveler_id: m.traveler_id,
       quantity: m.quantity,
       from: template,
@@ -394,7 +401,9 @@ export function everyoneMembers(
   members: MembershipMember[],
 ): MembershipMember[] {
   const byTraveler = new Map(members.map((m) => [m.traveler_id, m]))
-  return travelers.map((t) => byTraveler.get(t.id) ?? { traveler_id: t.id, quantity: MIN_QUANTITY })
+  return travelers.map(
+    (t) => byTraveler.get(t.id) ?? { traveler_id: t.id, quantity: MIN_MEMBER_QUANTITY },
+  )
 }
 
 /**
@@ -416,8 +425,67 @@ export function membersOfRows(rows: TripItem[], travelers: Traveler[]): Membersh
     .map((traveler) => ({
       traveler_id: traveler.id,
       // Non-null by the filter above; the map is keyed by the same ids.
-      quantity: byTraveler.get(traveler.id)?.quantity ?? MIN_QUANTITY,
+      quantity: byTraveler.get(traveler.id)?.quantity ?? MIN_MEMBER_QUANTITY,
     }))
+}
+
+/**
+ * forWhomColumn says whether M4 carries FR-25.28's leading *who* column: where
+ * there is a membership to distribute (G-8), and not in FR-9.3's closing pass,
+ * which reviews what was taken along and offers no assignment either. When it
+ * is absent the list is exactly as wide as before the column existed.
+ */
+export function forWhomColumn(travelerCount: number, closingPass: boolean): boolean {
+  return travelerCount >= MIN_TRAVELERS_FOR_PER_PERSON && !closingPass
+}
+
+/**
+ * The membership with one traveler taken out — FR-25.28's tap on a lit avatar.
+ *
+ * Taking out the **last** one is a target of its own: nobody per-person means
+ * *gemeinsam* (FR-25.21c), and {@link planMembership} reads an empty
+ * `perPerson` set as nothing to plan. The shared target re-points that
+ * traveler's row instead of deleting it, so its amount and progress survive.
+ */
+export function membershipWithout(
+  members: MembershipMember[],
+  travelerId: string,
+): MembershipTarget {
+  const rest = members.filter((m) => m.traveler_id !== travelerId)
+  return rest.length === 0 ? { kind: 'shared' } : { kind: 'perPerson', members: rest }
+}
+
+/** The membership with one traveler added at the floor of one. */
+export function membershipWith(members: MembershipMember[], travelerId: string): MembershipTarget {
+  return {
+    kind: 'perPerson',
+    members: [...members, { traveler_id: travelerId, quantity: MIN_MEMBER_QUANTITY }],
+  }
+}
+
+/** What a membership change has to ask before it is written, or `null` for nothing. */
+export type MembershipQuestion = 'unskip' | 'collapse' | 'remove'
+
+/**
+ * membershipQuestion says which question a plan owes — the plan decides, never
+ * the control that produced it, so no control can forget to ask.
+ *
+ * - **collapse**: two or more rows become one. The sum is worth reading before
+ *   it is written, and the rows leave several personal lists (FR-25.21b). One
+ *   row going shared sums nothing and deletes nothing, so it asks nothing —
+ *   FR-25.28's narrowing of FR-25.21 (iii).
+ * - **remove**: a deleted row carries progress or content.
+ * - **unskip**: the rewrite takes a *weggelassen* row along again (FR-5.5).
+ */
+export function membershipQuestion(
+  target: MembershipTarget,
+  plan: MembershipPlan,
+): MembershipQuestion | null {
+  if (plan.empty) return null
+  if (plan.unskipped !== null && target.kind === 'perPerson') return 'unskip'
+  if (target.kind === 'shared' && plan.delete.length > 0) return 'collapse'
+  if (plan.destructive.length > 0) return 'remove'
+  return plan.unskipped !== null ? 'unskip' : null
 }
 
 /**

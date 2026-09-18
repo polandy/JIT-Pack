@@ -2071,6 +2071,9 @@ locked.
     reading first; a single traveler leaving asks only when their row carries something. Both destructive conversions —
     removing a traveler whose row has progress or notes, and collapsing N rows into one — are confirmed with the outcome
     stated *before* it happens, the FR-24.3/ADR-032 idiom; a traveler whose row is untouched is removed silently.
+    **Superseded in its surface by FR-25.28 (2026-09-18):** the sheet gives way to a for-whom strip on the
+    row, in M5 and in the quick-add. The model, the planner and every rule above stand; what changes is where the
+    control lives, that its questions are asked inline, and (iii), which narrows to a collapse of two or more.
     **FR-25.21c (the roster has a head row — added 2026-09-09):** checking five people one at a time is five taps for
     the answer *„alle"*, which is the common one on a family trip — a sunscreen, a toothbrush, a rain jacket. The
     roster therefore opens with **„Alle Reisenden"**, a row wearing the same checkbox grammar as the lines under it
@@ -2552,7 +2555,9 @@ locked.
   auto-opens. Editing happens in the M5-pattern sheet (see the FR-25.13 M8 extension): **Menge** and **Vorbereitung**
   first (FR-27.7 — the two things actually touched routinely); per-person, procurement, dedup, conditions and
   Late-Packer behind the **"Details ▾"** toggle.
-* **FR-25.8 (Per-Traveler Quantities at Add-Time):** When quick-adding an item **during packing** (M4, FR-5.6), the user
+* **FR-25.8 (Per-Traveler Quantities at Add-Time — its surface is superseded by FR-25.28, 2026-09-18: the
+  strip picks the travelers before the add, no editor opens after it, and amounts are set on the child rows):**
+  When quick-adding an item **during packing** (M4, FR-5.6), the user
   can give it a **different quantity per traveler in one step** — e.g. "kurze Hosen: Andy 2, Leo 3, Mia 0". The
   quick-add offers a **"pro Person" mode** that opens the FR-25.21 membership editor — a checkbox and an amount per
   traveler, and an unticked traveler is simply not given the item (revised 2026-08-29; was: a compact stepper per
@@ -2837,6 +2842,120 @@ locked.
   nothing else. Hiding is the opposite ask, and expressing it as a negation would give one axis two meanings and every
   other facet a question it does not answer. FR-9.3's closing pass is exempt from both halves: it reviews what was
   taken along, and a late-packer row was taken along like any other.
+* **FR-25.28 (Who an item is for is answered on the row — added 2026-09-18, owner request; built the same day):**
+  FR-25.21's question — *gemeinsam*, or which travelers — was reachable only at the bottom of a stack: tap the row,
+  M5 opens, expand *Details ▾*, tap *„Wer braucht das?"*, a **second sheet** opens over the first, switch to the
+  *Pro Person* tab, tick, close twice. Six taps and two stacked sheets for a decision that is made while reading the
+  list and usually for several rows in one pass — the argument FR-25.24 settled for the amount and FR-25.25 for the
+  assignment, and the last of the row's decisions still behind the fold.
+
+  **The for-whom strip.** One control replaces the membership sheet: a single line of toggles — *Gemeinsam*, then
+  *Alle*, then one avatar per traveler in roster order — with a one-line summary beneath it (*„3 Personen · 6 Stück"*,
+  or *„Gemeinsam · 1 Stück"*). **Every tap commits** (G-5, FR-25.15); there is no *Übernehmen*. It is the grammar
+  FR-25.13h's avatar buttons already taught in the browse-sheet, grown by the two ends that line had no room for.
+  * **No avatar lit means *gemeinsam*.** An empty membership is not a state the model has (FR-25.21c), so the strip
+    does not invent one: *Gemeinsam* is lit exactly when no traveler is.
+  * **The first traveler takes the row over**, amount and progress included — ADR-036's keep-and-repoint, unchanged.
+    Every further traveler arrives at the floor of 1.
+  * ***Alle* only ever enlarges**, FR-25.21c's rule verbatim: travelers without a row arrive at 1, every amount
+    somebody chose is left standing. Once everybody is lit it is a lit toggle whose tap changes nothing, and it is
+    not disabled, for the reason FR-25.21c gives.
+  * **Tapping a lit avatar removes that traveler.** Removing the **last** one turns their row into the shared row
+    with its amount and progress — **silently**, see *What this supersedes*.
+  * **Tapping *Gemeinsam* over two or more travelers collapses them**, summing the amounts (FR-25.21 (b)), and asks
+    first.
+
+  **Three surfaces, one component** (invariant 4's second half, as FR-25.21 already ruled for the sheet):
+  * **M4 — the seat.** The list gains a leading ***who* column**, one avatar wide, before the mark. On an item row and
+    on a cluster head it holds the **for-whom seat**: a shared row shows an **empty seat** with the people glyph —
+    FR-25.25's idiom, mirrored — a lone per-person row shows its traveler, and a cluster head shows **how many**
+    travelers it is for. Not an avatar stack, as first specified: the faces are the child rows directly under the head,
+    and a stack would have made the column as wide as its longest roster and pushed every name on the list off its x
+    (FR-21.19). A **child row's avatar moves into the same column**, under its head's seat, and leaves the mark slot
+    empty beside it, so item rows, heads and child rows still start their names in one line (FR-28.4). Tapping the seat
+    unfolds the strip **inline under the row**, above the child rows; tapping it again, or another row's seat, folds it.
+    **At most one strip is open**, so working down a list costs one tap per row to move on, not a close and an open —
+    and it is **held by the item, not by the row**: the first traveler turns a row into a lone per-person row and the
+    second turns that into a cluster under a different list key, and the strip stays open across both. The M4 strip
+    carries **no steppers**: a lit traveler *is* a child row from the same tap, and a child row's count is already where
+    its amount is changed (FR-25.24). Left says *for whom*, right says *who packs* (FR-25.25) — two seats, two
+    questions, never the same glyph: the left one draws travelers, the right one accounts. A child row gets no seat; its
+    avatar is its answer, and the head above it owns the question.
+  * **M5 — above the fold, in place of the membership chip.** The read-only chip (*„Gemeinsam"* / a name) gives way to
+    the strip under the packing block; the *„Wer braucht das?"* row leaves *Details ▾* and the second sheet is gone. M5
+    has the room for amounts, and carries them as **one line per lit traveler under the toggles** — name and stepper —
+    not as a stepper under each avatar, which is what was first built: a stepper is wider than a toggle, and at five
+    travelers on a 360 px phone each one reached into its neighbours' columns and took their taps. FR-25.14 holds: the
+    aggregate stays a read-only figure in the summary line, and every stepper belongs to one named person. **The sheet
+    closes when the strip deletes the row it is open on** — M5 stands on one instance and the strip acts on all of them,
+    so unlighting that traveler would otherwise leave the sheet reporting *not found* about a row it was just asked to
+    remove (the rule FR-5.8 already follows). A sibling leaving changes nothing about the sheet.
+  * **Quick-add — in place of the *pro Person* switch.** The strip sits over the composer's field and a sentence under
+    it states the outcome (*„Wird für 2 Personen angelegt, je 1."*); the choice **survives an add**, as the switch did,
+    because per-person rows come in runs, and dies with the composer. The add writes one row per lit traveler at 1 and
+    **opens nothing** — amounts are corrected on the child rows that have just appeared. With nothing lit the add is a
+    shared row, as today. **The strip speaks for what the composer adds — typed names, chips, suggestions — and for
+    nothing else.** The browse-sheet answers *for whom* per line with its own 👥 and avatars (FR-25.13g/h), and one door
+    per surface is the rule (FR-21.24): a sheet add never reads a strip the sheet is covering, FR-25.13f's two decided
+    verbs included, and with no editor to make way for, nothing waits for the sheet to close any more.
+
+  **Questions are asked in the strip, not over it.** The two confirmations FR-25.21 keeps — a traveler whose row
+  carries progress or notes (`rowsCarryingContent`), and a collapse of two or more — and FR-5.5's *weggelassen*
+  question replace the summary line with the outcome stated before it happens and two buttons, *Abbrechen* and the
+  verb itself (*Entfernen*, *Zusammenlegen*, *Doch einpacken*). An `IonAlert` would take the screen away from a
+  control whose point is that the list stays put, and would sit a viewport away from the finger that asked. **This
+  is confined to the strip**: every other destructive confirm keeps the FR-24.3/ADR-032 alert, and the strip's
+  question is that idiom's sentence in a different container, not a second idiom. While a question stands the
+  toggles are inert; folding the strip answers *Abbrechen*.
+
+  **What is unchanged, because the model is.** No schema, no wire, no merge rule, no ADR: the strip calls the
+  planner in `domain/membership.ts` that the sheet and FR-25.13h's `assignToTravelers` already call, and each
+  traveler remains an ordinary `trip_items` row. Membership is a toggle and never a quantity of 0; a child row's
+  count floors at 1. A rewritten row's state follows its numbers (FR-25.21, 2026-08-30). **G-3:** while somebody
+  else holds any instance the strip reads and does not write, and says who is packing — the seat still opens it,
+  because *who is this for* stays a fair question to a locked row. **G-8:** below `MIN_TRAVELERS_FOR_PER_PERSON`
+  there is no seat and no strip on any surface. FR-9.3's closing pass offers no seat, as it offers no assignment.
+  Identical in Server, Single-User and Local Mode — travelers are trip records, not accounts.
+
+  **What this supersedes — four owner rulings, 2026-09-18, each taken as recommended:**
+  1. **The membership sheet is removed, not kept beside the strip.** One door per decision (FR-21.24); a sheet kept
+     „for the overview" is a second writer of the same rows and the two drift. `MembershipSheet.vue` goes with its
+     two mounts; FR-25.21's points (i)–(iii) about *the editor* now describe the strip where they still apply.
+  2. **A visible seat, not a press-and-hold entry.** The seat costs about 44 px of every shared row's width. The
+     menu entry would have cost nothing and been exactly as findable as the path this FR replaces — being unable to
+     see where the question lives *is* the complaint.
+  3. **The inline question**, above.
+  4. **FR-25.21 (iii) narrows: a collapse asks only from two travelers up.** With one traveler left nothing is summed
+     and no amount changes; the row moves from one person's list to the shared one and the toggle that did it is still
+     under the finger to undo it. It also destroys nothing, which is why it needs no rule of its own: the last
+     traveler's row is **re-pointed** to *gemeinsam*, not deleted, so its amount, its progress and whatever hangs off it
+     survive (`membershipWithout`, E2E-M4-101). *A traveler leaving while others stay* keeps FR-25.21's rule — silent
+     when the row is untouched, asked when it carries something — because that row really is deleted.
+
+  **What building it settled (2026-09-18), each found by rendering it rather than by reading it:**
+  * **Laid out for three travelers (owner, 2026-09-18).** Three is the common trip, so up to three the toggles are full
+    40 px faces with the name spelled out under them; from the fourth they step down to a compact 32 px face with a 40
+    px column, which fits five on a 360 px phone, and past that the line scrolls sideways — it never wraps and never
+    shrinks further. The first build sized every roster for five, and at three it looked cramped for no reason.
+  * **The strip is opaque, sunken and raised above the rows below it.** It appears at once while those rows slide down
+    to make room (FR-25.2's move transition), and a later sibling paints over an earlier one: for 0.3 s the rows were
+    drawn across the strip, which read as a background too transparent to hide them (owner's eyeball, 2026-09-18).
+    Raised, they slide out from underneath. The seat is also its own tap target (`ion-activatable`): Ionic's tap
+    feedback lights the first activatable on the event's path in the capture phase, so a tap on the seat had rippled the
+    whole row, as if it were opening the item.
+  * **A converting row leaves at once.** The list animates a departing row shut (FR-25.2's pack-out), and a row turning
+    into a cluster is, to the list, one entry departing and another arriving. Animated, the old row and its strip stood
+    beside their own replacement for the length of the collapse — the item named twice and the control drawn twice,
+    which is what E2E-M4-100 first failed on. The rule is `isReshaped` in the domain: an element leaves at once when its
+    item is **still shown** under another entry and its row did not merely go out of sight — so a row that is packed,
+    filtered away or taken off the list keeps its collapse, even with a sibling instance still on screen. The first cut
+    tied the exception to M4's own strip being open; WebKit then caught the same doubled row when the change was made
+    from **M5's** strip, which reshapes the list under the sheet exactly as M4's does (E2E-M5-29).
+  * **The who-column costs 32 px of every row**, less than the 44 px the ruling accepted, and only on a trip with two
+    travelers or more and outside FR-9.3's closing pass — a solo trip's list is unchanged.
+  * **The plan decides what is asked, in the domain.** `membershipQuestion` answers *collapse*, *remove*, *unskip* or
+    nothing from the plan alone; the sheet had kept that decision inside a Vue component, where invariant 4 says a rule
+    must never be reachable only.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.
@@ -2845,7 +2964,8 @@ locked.
   **Comments** thread; everything else (membership editor, *Packed by*, mode, luggage, late-packer, flags, history)
   collapses behind a **"Details ▾"** toggle. This applies the M8 progressive-disclosure principle (FR-25.7) to M5 — the
   common reasons to open an item (check prep, read/add comments) are one glance away; the rarely-touched controls are
-  one tap away.
+  one tap away. **FR-25.28 (2026-09-18) lifts the membership control back above the fold**, as the strip that
+  replaces the glance row's membership chip — the one control of the collapsed set that turned out to be reached often.
 * **M5 delegation is reversible — realised (2026-07-18):** *Packed by* has an explicit **"niemand"** option that clears
   the delegation.
 * **M5 comment entry — realised (2026-07-18):** the comment/task thread (FR-7.1) has a **visible composer** input on the
