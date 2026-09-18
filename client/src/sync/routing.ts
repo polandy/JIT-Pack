@@ -37,6 +37,7 @@ export const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.templateItems,
   TABLE.templateIncludes,
   TABLE.templateItemTasks,
+  TABLE.templateTasks,
   TABLE.tripSeries,
   TABLE.destinationProfiles,
   TABLE.destinationChecklistItems,

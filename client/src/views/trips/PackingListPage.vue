@@ -50,6 +50,7 @@ import {
   removeCircleOutline,
   refreshOutline,
   buildOutline,
+  checkmarkDoneOutline,
   chevronDownOutline,
   contractOutline,
   createOutline,
@@ -75,6 +76,8 @@ import FilterSheet from '@/components/global/FilterSheet.vue'
 import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
+import TripTodoList from '@/components/trips/TripTodoList.vue'
+import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import PackingRow, {
   type PackingRowNotes,
@@ -205,6 +208,8 @@ const collapsedGroups = ref<string[]>([])
 /** FR-25.24: per-person clusters the user opened; shut is the default. */
 const expandedClusters = ref<string[]>([])
 const showPrep = ref(false)
+/** FR-7.4: whether the trip's own todos are unfolded. Closed by default, like prep. */
+const showTripTodos = ref(false)
 const filterOpen = ref(false)
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 
@@ -830,6 +835,15 @@ const presenceNames = computed<Record<string, string>>(() =>
   Object.fromEntries(participants.value.map((p) => [p.user_id, p.display_name])),
 )
 const openPrepCount = computed(() => tripStore.getOpenTodos(props.tripId).length)
+
+/** FR-7.4: the section head's own check, apart from every packing figure. */
+const tripTodoLine = computed(() => {
+  const progress = tripTodoProgress(tripStore.getTripTodos(props.tripId))
+  const status = tripTodoStatus(progress)
+  if (status === 'none') return null
+  if (status === 'allDone') return t('tripTodos.allDone')
+  return t('tripTodos.progress', { done: progress.done, total: progress.total })
+})
 
 /**
  * The ring in the header line, which is not the hero's: the line yields to
@@ -2033,6 +2047,28 @@ setHeaderTitle(
             </IonItem>
           </template>
         </IonList>
+      </div>
+
+      <!-- FR-7.4: the trip's own todos — chores that prepare no row. Written
+           here, in the trip; M1 only reports them. Always present, because the
+           section is where the first one is typed. -->
+      <div v-if="!closingPass" class="prep-section" data-testid="m4-trip-todos">
+        <button
+          class="prep-header"
+          data-testid="m4-trip-todos-toggle"
+          :aria-expanded="showTripTodos ? 'true' : 'false'"
+          @click="showTripTodos = !showTripTodos"
+        >
+          <IonIcon :icon="checkmarkDoneOutline" />
+          <span>
+            {{ t('tripTodos.section') }}
+            <template v-if="tripTodoLine">
+              · <span data-testid="m4-trip-todos-status">{{ tripTodoLine }}</span>
+            </template>
+          </span>
+          <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: showTripTodos }" />
+        </button>
+        <TripTodoList v-if="showTripTodos" :trip-id="tripId" />
       </div>
       <!-- FR-25.13a: the ＋ opens *and focuses* the quick-add. Expanding it
            without focus costs a second tap on the only path that has to be

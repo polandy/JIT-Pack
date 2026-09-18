@@ -49,6 +49,8 @@ export interface TripWizardDraft {
    * correct rather than a gap.
    */
   sourceTemplateIds?: string[]
+  /** FR-7.4: the trip todos the trip starts with, already deduplicated. */
+  tripTasks?: string[]
 }
 
 /** cloneTrip input (FR-12.2): fresh name/dates plus the carry-over options. */
@@ -125,6 +127,13 @@ export function createTripCreationActions(ctx: SyncContext) {
         )
         enqueue('trip', tripId, { mutation: todoMut, optimistic: optimisticInsert(todoMut) })
       }
+    }
+
+    // FR-7.4: the templates' trip tasks, on the trip itself rather than on a
+    // row, so they hold back nothing the packing list counts.
+    for (const taskBody of draft.tripTasks ?? []) {
+      const { mutation } = mutations.addTodo(tripId, null, CLIENT_ACTOR_PLACEHOLDER, taskBody)
+      enqueue('trip', tripId, { mutation, optimistic: optimisticInsert(mutation) })
     }
 
     // FR-27.4: what the trip follows from here on. Registered after the

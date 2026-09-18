@@ -1,4 +1,4 @@
-import { test, expect, expectTripOpen } from './fixtures'
+import { test, expect, expectTripOpen, tripAction } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -7,6 +7,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { fillIonic } from './helpers/ionic'
 import { PATH } from './routes'
 
 /**
@@ -74,6 +75,19 @@ async function addTaskToPosition(page: Page, group: string, item: string, task: 
   await composer.press('Enter')
   await expect(page.getByTestId('m8-task-row')).toContainText(task)
   await page.getByTestId('m8-position-close').click()
+}
+
+/** Add an FR-7.4 trip task to a template through M8's own section. */
+async function addTripTask(page: Page, scope: 'template' | 'group', name: string, task: string) {
+  await page.goto(PATH.templates)
+  await visible(page).getByTestId(`m7-scope-${scope}`).click()
+  await visible(page).locator('ion-item').filter({ hasText: name }).first().click()
+  await expect(page.getByTestId('header-title')).toHaveText(name)
+
+  const composer = visible(page).getByTestId('m8-trip-task-input')
+  await fillIonic(composer, task)
+  await composer.locator('input').press('Enter')
+  await expect(visible(page).getByTestId(`m8-trip-task-${task}`)).toBeVisible()
 }
 
 /**
@@ -345,5 +359,50 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // Only the position that carries the task gets one — the other row of the
     // composition stays clean.
     await expect(prep.locator('ion-item')).toHaveCount(1)
+  })
+
+  /**
+   * E2E-M3-23 (FR-7.4): a Vorlage's trip tasks and its group's reach the trip
+   * as its own todos, the same chore once.
+   *
+   * The duplicate is the case: a count of three is what a concatenation
+   * without the dedup shows. The position task beside them is the positive
+   * signal for the other absence — M4's header counts exactly the one
+   * preparation it owes, so the two trip tasks did not become preparation.
+   */
+  test('E2E-M3-23: trip tasks are previewed on their own line and land on M1, deduplicated', async ({
+    page,
+  }) => {
+    await seedOneGroup(page)
+    await addTaskToPosition(page, 'Makro', 'Kamera', 'Akkus laden')
+    await addTripTask(page, 'template', 'Fototage', 'Water the plants')
+    await addTripTask(page, 'group', 'Makro', 'Water the plants')
+    await addTripTask(page, 'group', 'Makro', 'Empty the fridge')
+
+    await wizardToStepThree(page, 'Fototour 2026')
+    await expect(visible(page).getByTestId('wizard-trip-task-count')).toHaveCount(0)
+    await visible(page)
+      .getByTestId('wizard-section-templates')
+      .locator('ion-checkbox')
+      .first()
+      .click()
+    await expect(visible(page).getByTestId('wizard-trip-task-count')).toContainText(
+      '2 tasks for the trip carried over',
+    )
+    await expect(visible(page).getByTestId('wizard-task-count')).toContainText('1 preparation task')
+
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Fototour 2026')
+    await expect(visible(page).getByTestId('m4-header')).toContainText('1 preparation open')
+    await tripAction(page, 'start')
+
+    await page.goto(PATH.dashboard)
+    const group = visible(page).getByTestId('trip-todos-Fototour 2026')
+    await expect(group.locator('[data-testid^="dashboard-trip-todo-"]')).toHaveCount(2)
+    await expect(group.getByTestId('dashboard-trip-todo-Water the plants')).toBeVisible()
+    await expect(group.getByTestId('dashboard-trip-todo-Empty the fridge')).toBeVisible()
+    await expect(group.getByTestId('trip-todos-status-Fototour 2026')).toHaveText('0 of 2 done')
   })
 })

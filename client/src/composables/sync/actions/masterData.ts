@@ -512,6 +512,24 @@ export function createMasterDataActions(ctx: SyncContext) {
     })
   }
 
+  /** addTemplateTask attaches one FR-7.4 trip task to a template. */
+  function addTemplateTask(templateId: string, task: string): string {
+    const { mutation, id } = mutations.addTemplateTask(templateId, task)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticInsert(mutation),
+    })
+    return id
+  }
+
+  function deleteTemplateTask(taskId: string) {
+    const mutation = mutations.deleteTemplateTask(taskId)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticDelete(mutation),
+    })
+  }
+
   return {
     createTag,
     renameTag,
@@ -542,5 +560,7 @@ export function createMasterDataActions(ctx: SyncContext) {
     removeTemplateInclude,
     addTemplateItemTask,
     deleteTemplateItemTask,
+    addTemplateTask,
+    deleteTemplateTask,
   }
 }

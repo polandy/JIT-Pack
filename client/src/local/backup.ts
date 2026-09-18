@@ -64,15 +64,16 @@ export interface BackupSource {
   /** Resolves a template by id — the FR-27.4 sections reference groups by name. */
   template: (id: string) => Template | undefined
   /**
-   * FR-27.1/27.7: what a Ferien-Vorlage is composed of, and the tasks its
-   * positions carry. A backup that dropped the composition would restore
-   * every Vorlage as an empty shell.
+   * FR-27.1/27.7/7.4: what a Ferien-Vorlage is composed of, the tasks its
+   * positions carry and its trip tasks. A backup that dropped the composition
+   * would restore every Vorlage as an empty shell.
    */
   composition: {
     includes: TemplateInclude[]
     templates: Template[]
     itemsOf: (templateId: string) => TemplateItem[]
     tasksOf: (templateItemId: string) => string[]
+    tripTasksOf: (templateId: string) => string[]
   }
 }
 

@@ -7,6 +7,9 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-18 — **M1** reports trip todos and a second check on the trip cards, and takes no actions — the prep
+  card's checkbox is gone; **M4** gains *Aufgaben für die Reise*, where they are written; **M3** step 3 reports trip
+  tasks; **M8** gains *Aufgaben für die Reise* (FR-7.4).
 * 2026-09-08 — **M4**: the header line is a ring, a sentence and a track (FR-21.23), and the quick-add has one
   door per screen — M8's too (FR-21.24). **M5**: the sheet takes its content's height and its weight goes to the
   control it was opened for (FR-21.25).
@@ -757,10 +760,22 @@ These patterns apply to every screen and are specified once.
   **display-only**: unlike the active trips above it, no planned trip's partition is fetched or subscribed, because
   nothing on the row is read out of it and one request per planned trip would buy numbers this section does not show
   (E2E-M1-08). **Preparation Todos section (FR-7.3):** a dedicated "Prep to do" card listing open preparation todos
-  across all active trips, grouped by item (e.g., "Camera: charge battery, format SD card"). Tapping a todo toggles it
-  resolved (E2E-M1-02), and **tapping the item name opens that row's M5 sheet** (built 2026-08-31; it is a `<button>`
-  rather than a `<p>` with a handler, because a tap target has to be one for the keyboard and for assistive technology
-  too).
+  across all active trips, grouped by item (e.g., "Camera: charge battery, format SD card"). ~~Tapping a todo toggles it
+  resolved~~ — **struck 2026-09-18 (owner): M1 takes no actions**, so the card lists the todos as text and they are
+  resolved in M5 (E2E-M1-02); and **tapping the item name opens that row's M5 sheet** (built 2026-08-31; it is a
+  `<button>` rather than a `<p>` with a handler, because a tap target has to be one for the keyboard and for assistive
+  technology too).
+* **Trip todos section (FR-7.4 — built 2026-09-18, reworked the same day).** An *Aufgaben* card under its section head
+  (G-13, the open count beside the name) sits directly below the *Vorzubereiten* card and **reports, never operates**:
+  M1 takes no actions (owner, 2026-09-18). It lists every active trip that has at least one trip todo, soonest departure
+  first — the hero's order — each as a block that leads into the trip: the trip's name, its own check (*„1 von 2
+  erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open todos as plain text. A
+  trip without any trip todo is left out, and the card is absent when none has one — the first cut put an editor with an
+  empty composer here for every active trip, which stood above the hero on every dashboard. **The trip cards carry the
+  check too:** under the hero's progress sentence and on each list card, one line — *„Aufgaben: 2 offen"* or *„Aufgaben:
+  alle erledigt"* — present only when the trip has at least one trip todo, and never folded into the ring, the track or
+  the share. The todos are written in M4 (*Aufgaben für die Reise*). All three modes; nothing here is server-only (G-8).
+  (E2E-M1-10, E2E-M1-11)
 * **Actions:** Tap card → M4 (E2E-M1-01); pull-to-refresh forces a sync of every active trip. ~~deep link into M4 *at
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
   links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's
@@ -923,7 +938,9 @@ These patterns apply to every screen and are specified once.
   two rather than three because three German item names wrap at 390 px, which turns a scannable row into a four-line
   block, and a chevron opens the read-only peek sheet with the resolved list. The footer **names every merge and its
   contributing groups** („Kamera nur 1× — in Makro & Wildlife", FR-27.2) instead of an anonymous count, and states the
-  preparation tasks the trip inherits („📋 2 Vorbereitungs-Aufgaben übernommen", FR-27.7). Live preview footer also:
+  preparation tasks the trip inherits („📋 2 Vorbereitungs-Aufgaben übernommen", FR-27.7). The trip tasks it inherits are
+  a line of their own („✅ 3 Aufgaben für die Reise übernommen", FR-7.4) — deduplicated by text across the Vorlage and
+  its groups — because they are not preparation of anything on the list (E2E-M3-23). Live preview footer also:
   resulting item count, deduplicated overlaps listed with the applied merge strategy (FR-2.3); items excluded by
   conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter"). **And, since 2026-09-09
   (FR-2.5b/ADR-053), the per-person positions the trip's roster cannot place** — named in an *open* block
@@ -1258,6 +1275,13 @@ These patterns apply to every screen and are specified once.
     pinned to top), and **"Preparation" (FR-7.3)** — all open prep todos for the trip, grouped by item with traveler
     avatar. Visible to all trip members; resolving a todo is restricted to the item's assignee or trip owner. Tap item
     name → M5.
+  * **"Aufgaben für die Reise" (FR-7.4 — built 2026-09-18)** — the trip's own todos, the chores that prepare no row
+    (*„Pflanzen giessen"*). A collapsible section under *Preparation*, closed by default and **always present** outside
+    the FR-9.3 closing pass, because it is where the first todo is typed. Its head names the section and, once the trip
+    has a todo, the check: *„1 von 2 erledigt"* or *„✓ Alle Aufgaben erledigt"*. Unfolded: open todos with a checkbox
+    and a ✕, the resolved ones folded under *„{n} erledigt"* where unticking reopens one, and a composer (*„Aufgabe
+    hinzufügen…"*, Enter or *Hinzufügen*). Nothing here counts toward the ring, the header's prep KPI or any row's
+    doneness. Every trip member may tick; there is no G-3 claim, because there is no row. (E2E-M4-96)
   * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items
     with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal
     incomplete readiness.
@@ -1567,6 +1591,13 @@ These patterns apply to every screen and are specified once.
   * **Preparation tasks on a position** (FR-27.7): a free-text list under progressive disclosure with a count chip on
     the collapsed row. Each task instantiates as an FR-7.3 todo on the generated trip item, and an open prep todo keeps
     that item from counting as done (FR-25.2).
+  * **Trip tasks** (FR-7.4 — built 2026-09-18): a section *„Aufgaben für die Reise"* below the positions, in both scopes
+    — a group can carry them as well as a Vorlage. A free-text list with the position task list's add and ✕ idiom under
+    a one-line hint that says what the tasks do (*„Jede neue Reise aus dieser Vorlage bekommt sie als Aufgabe — sie
+    halten keine Packliste auf."*), placeholder *„z. B. „Pflanzen giessen““* — a longer one was cut off at 390 px — and
+    a count on the section head. Each task becomes an open trip todo on every trip generated from this template, not on
+    any row, so it holds back no item from counting as done. Editing the list changes the next generated trip only;
+    running trips are not offered the change (FR-7.4 names the trigger). (E2E-M8-26)
 * **The template's own mark (Addendum FR-28.8, G-15 — built 2026-08-22):** the same picker as M10's, on the slot left of
   the editable name, suggested from the template's name. It is the field the prototype has been faking since §3.27 —
   every 📷/⛺ on a group row in M3, M7, M8 and the FR-27.12 peek sheet is hardcoded in the mock, and those rows read the

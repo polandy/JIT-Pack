@@ -376,6 +376,9 @@ func TestApplyMasterMutation_TemplateDeleteTombstonesComposition(t *testing.T) {
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "template_item_tasks", "task-1", "cp-5",
 		map[string]any{"template_item_id": "pos-1", "task": "Akkus laden"},
 		"0000000001004-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTemplateTasks, "trip-task-1", "cp-5b",
+		map[string]any{"template_id": "gruppe", "task": "Pflanzen giessen"},
+		"0000000001005-0000-aaaaaaaa"))
 
 	if res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, "templates", "gruppe", "cp-6",
 		nil, "0000000002000-0000-aaaaaaaa")); res.Outcome != "applied" {
@@ -385,6 +388,7 @@ func TestApplyMasterMutation_TemplateDeleteTombstonesComposition(t *testing.T) {
 	for _, want := range []struct{ table, id string }{
 		{"template_item_tasks", "task-1"},
 		{"template_items", "pos-1"},
+		{TableTemplateTasks, "trip-task-1"}, // FR-7.4
 		{"template_includes", "inc-1"},
 	} {
 		var n int
@@ -503,6 +507,45 @@ func TestApplyMasterMutation_TemplateItemDeleteTombstonesTasks(t *testing.T) {
 	}
 	if !taskTombstone {
 		t.Error("deleting the position must tombstone its task for clients")
+	}
+}
+
+// FR-7.4: a template's trip tasks travel the master partition like its
+// positions do — shared, and served back to every account.
+func TestApplyMasterMutation_TemplateTask_SyncsToEveryone(t *testing.T) {
+	s := openTestStore(t)
+	mustExec(t, s, `INSERT INTO templates (id, owner_id, name) VALUES ('tpl-tt', ?, 'Sommer')`, testUser)
+
+	res := applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTemplateTasks, "tt-1", "mm-tt",
+		map[string]any{"template_id": "tpl-tt", "task": "Kühlschrank leeren"}, "0000000003000-0000-aaaaaaaa"))
+	if res.Outcome != "applied" {
+		t.Fatalf("outcome = %q, want applied", res.Outcome)
+	}
+
+	page, err := s.PullMaster(context.Background(), testUser, 0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range page.Changes {
+		if c.Table == TableTemplateTasks && c.ID == "tt-1" {
+			if c.Row["task"] != "Kühlschrank leeren" {
+				t.Errorf("task = %v, want 'Kühlschrank leeren'", c.Row["task"])
+			}
+			return
+		}
+	}
+	t.Fatal("template task not in the master pull")
+}
+
+// FR-7.4: a task naming a template that does not exist fails its foreign
+// key and is rejected, not stored as an orphan.
+func TestApplyMasterMutation_TemplateTask_UnknownTemplateRejected(t *testing.T) {
+	s := openTestStore(t)
+	res := applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTemplateTasks, "tt-x", "mm-tt-x",
+		map[string]any{"template_id": "no-such-template", "task": "Pflanzen giessen"},
+		"0000000003000-0000-aaaaaaaa"))
+	if res.Outcome == "applied" {
+		t.Fatalf("outcome = %q, want a rejection", res.Outcome)
 	}
 }
 

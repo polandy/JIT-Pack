@@ -252,6 +252,19 @@ export interface ItemTodo {
   task_state: TodoState
 }
 
+/**
+ * FR-7.4: a task on the trip itself — a task comment with no `trip_item_id`.
+ * Kept apart from `ItemTodo` because nothing the packing list measures may
+ * count it: a row's doneness, the ring and the prep KPI read `ItemTodo` only.
+ */
+export interface TripTodo {
+  id: string
+  trip_id: string
+  author_id: string
+  body: string
+  task_state: TodoState
+}
+
 // --- Master data ---
 
 /**
@@ -348,6 +361,17 @@ export interface TemplateInclude {
 export interface TemplateItemTask {
   id: string
   template_item_id: string
+  task: string
+}
+
+/**
+ * FR-7.4: one free-text trip task on a template. At trip generation it
+ * becomes a trip todo — a task on the trip itself, not on any generated row —
+ * so it holds back no item from counting as done.
+ */
+export interface TemplateTask {
+  id: string
+  template_id: string
   task: string
 }
 

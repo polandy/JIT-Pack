@@ -49,6 +49,7 @@ const (
 	TableTemplateItems             = "template_items"
 	TableTemplateIncludes          = "template_includes"
 	TableTemplateItemTasks         = "template_item_tasks"
+	TableTemplateTasks             = "template_tasks"
 	TableTrips                     = "trips"
 	TableTripMembers               = "trip_members"
 	TableTripSeries                = "trip_series"

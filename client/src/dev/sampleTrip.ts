@@ -78,6 +78,7 @@ function sampleDocument(): PortableDocument {
     schema_version: PORTABLE_SCHEMA_VERSION,
     // FR-28.8 is a template field; a trip has no mark of its own.
     icon: null,
+    trip_tasks: [],
     // Null rather than a value: the seed's trip becomes active through
     // `activateTrip` below, exactly as it did before the field existed.
     status: null,
@@ -142,7 +143,23 @@ export function seedSampleTrip(
   orchestrator.activateTrip(id)
   buyOneShoppingRow(id, orchestrator)
   seedItemComment(id, orchestrator)
+  seedTripTodos(id, orchestrator)
   return id
+}
+
+/**
+ * FR-7.4: two chores on the trip itself, one already done, so M1's *Aufgaben*
+ * section shows both its open rows and its folded *erledigt* line on a fresh
+ * device. Through the orchestrator's own actions, like the comment below.
+ */
+const SEED_TRIP_TODOS = ['Briefkasten leeren lassen', 'Kühlschrank leeren'] as const
+
+function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
+  for (const body of SEED_TRIP_TODOS) orchestrator.addTripTodo(tripId, SEED_AUTHOR_ID, body)
+  const done = useTripStore()
+    .getTripTodos(tripId)
+    .find((todo) => todo.body === SEED_TRIP_TODOS[1])
+  if (done) orchestrator.resolveTripTodo(done)
 }
 
 /**

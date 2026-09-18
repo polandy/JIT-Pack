@@ -97,6 +97,37 @@ describe('createTripFromWizard on the seam (FR-2.x)', () => {
     expect(drains).toEqual([[tripId]])
   })
 
+  it('writes the trip tasks on the trip itself, after the rows (FR-7.4)', () => {
+    const actions = createTripCreationActions(ctx)
+
+    const tripId = actions.createTripFromWizard({
+      name: 'Engadin',
+      year: 2026,
+      startDate: null,
+      endDate: null,
+      attributes: null,
+      travelers: [],
+      items: [generated()],
+      tripTasks: ['Pflanzen giessen', 'Kühlschrank leeren'],
+    })
+
+    expect(tablesOf('trip')).toEqual([TABLE.tripItems, TABLE.comments, TABLE.comments])
+    const todos = queued
+      .filter((q) => q.type === 'trip')
+      .flatMap((q) => q.muts)
+      .slice(1)
+      .map((m) => m.mutation.fields)
+    for (const fields of todos) {
+      expect(fields).toMatchObject({ trip_item_id: null, is_task: 1, task_state: 'open' })
+    }
+    expect(ctx.tripStore.getTripTodos(tripId).map((t) => t.body)).toEqual([
+      'Kühlschrank leeren',
+      'Pflanzen giessen',
+    ])
+    // No row gained a preparation todo on the way.
+    expect(ctx.tripStore.getTodos(tripId)).toEqual([])
+  })
+
   it('assigns the generated item to the traveler its index names', () => {
     const actions = createTripCreationActions(ctx)
 

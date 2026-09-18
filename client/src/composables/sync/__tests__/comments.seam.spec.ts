@@ -14,7 +14,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createCommentActions } from '../actions/comments'
 import { makeSeamContext, pullIn, type Recorded, paintedRow, type SeamContext } from './seamContext'
 import { TABLE } from '@/types/tables'
-import type { ItemComment, ItemTodo } from '@/types/domain'
+import type { ItemComment, ItemTodo, TripTodo } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'
 const AUTHOR = 'user-a'
@@ -101,5 +101,61 @@ describe('createCommentActions without an orchestrator', () => {
       is_task: 1,
       body: 'Akku laden',
     })
+  })
+
+  // --- FR-7.4: the same row with no anchor ---
+
+  it('addTripTodo writes a task on the trip itself and files it as the trip’s', () => {
+    const id = createCommentActions(ctx).addTripTodo(TRIP_ID, AUTHOR, 'Pflanzen giessen')
+
+    expect(queued[0]!.type).toBe('trip')
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      is_task: 1,
+      task_state: 'open',
+    })
+    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.id)).toEqual([id])
+    expect(ctx.tripStore.getTodos(TRIP_ID)).toEqual([])
+  })
+
+  it('resolveTripTodo keeps the anchor null, so the row stays the trip’s', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Pflanzen giessen',
+      is_task: 1,
+      task_state: 'open',
+    })
+    const todo = ctx.tripStore.getTripTodos(TRIP_ID)[0] as TripTodo
+
+    createCommentActions(ctx).resolveTripTodo(todo)
+
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
+      trip_item_id: null,
+      is_task: 1,
+      task_state: 'resolved',
+    })
+    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_state)).toEqual(['resolved'])
+
+    createCommentActions(ctx).reopenTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!)
+    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_state)).toEqual(['open'])
+  })
+
+  it('deleteTripTodo queues a tombstone and the todo leaves the list', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Pflanzen giessen',
+      is_task: 1,
+      task_state: 'open',
+    })
+
+    createCommentActions(ctx).deleteTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!)
+
+    expect(queued[0]!.muts[0]!.mutation).toMatchObject({ op: 'delete', id: 'tt-1' })
+    expect(ctx.tripStore.getTripTodos(TRIP_ID)).toEqual([])
   })
 })

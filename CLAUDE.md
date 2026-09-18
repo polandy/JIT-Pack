@@ -142,6 +142,10 @@ log and the specs refer back to them.
    2026-08-25 (ADR-032 retire, ADR-034 restore via M23); §3.24 is closed. Log: *„A delete that
    could only be refused"*, *„The restore was free, the name was not"*. (Numbered 23 since
    2026-09-02: it had been a second item 19, and the specs' „item 19" means NFR-4.12.)
+24. ~~**FR-7.4 — trip todos**~~ — done 2026-09-18 (PR #490): tasks on the trip itself, written in M4,
+   reported read-only on M1 (which takes no actions — owner ruling, also for FR-7.3's prep card) and
+   outside every packing figure; templates carry them as `template_tasks`. Not in the portable backup,
+   like FR-7.3's todos — the FR records it.
 
 **Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history (its *commented* slice is

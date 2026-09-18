@@ -325,6 +325,47 @@ func TestApplyMutation_CommentsTable_InsertAndPull(t *testing.T) {
 	}
 }
 
+// FR-7.4: a trip todo is a task comment with no row. The schema always
+// allowed it; this pins that the trip partition accepts and serves it with
+// the anchor still null, since a null anchor is what tells it from FR-7.3.
+func TestApplyMutation_TripTodo_WithoutItemRoundTrips(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	m := sync.Mutation{
+		MutationID: "m1", Op: sync.OpInsert, Table: TableComments, ID: "trip-todo-1",
+		Fields: map[string]any{
+			"trip_id": testTrip, "trip_item_id": nil, "author_id": testUser,
+			"body": "Pflanzen giessen", "is_task": 1, "task_state": "open",
+		},
+		HLC: sync.HLC("0000000001000-0000-aaaaaaaa"),
+	}
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, m)
+	if err != nil {
+		t.Fatalf("ApplyMutation: %v", err)
+	}
+	if res.Outcome != "applied" {
+		t.Fatalf("outcome = %q, want applied", res.Outcome)
+	}
+
+	page, err := s.Pull(ctx, testTrip, 0, 100)
+	if err != nil {
+		t.Fatalf("Pull: %v", err)
+	}
+	for _, c := range page.Changes {
+		if c.Table != TableComments || c.ID != "trip-todo-1" {
+			continue
+		}
+		if c.Row["trip_item_id"] != nil {
+			t.Errorf("trip_item_id = %v, want nil", c.Row["trip_item_id"])
+		}
+		if c.Row["body"] != "Pflanzen giessen" {
+			t.Errorf("body = %v, want 'Pflanzen giessen'", c.Row["body"])
+		}
+		return
+	}
+	t.Fatal("trip todo not found in pull response")
+}
+
 func TestApplyMutation_TravelersTable(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()

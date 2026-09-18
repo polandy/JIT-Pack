@@ -190,6 +190,7 @@ var tableSpecs = map[string]tableSpec{
 			{TableTemplateItemTasks, `SELECT t.id FROM template_item_tasks t
 			 JOIN template_items ti ON ti.id = t.template_item_id WHERE ti.template_id = ?`},
 			{TableTemplateItems, `SELECT id FROM template_items WHERE template_id = ?`},
+			{TableTemplateTasks, `SELECT id FROM template_tasks WHERE template_id = ?`},
 			{TableTemplateIncludes,
 				`SELECT id FROM template_includes WHERE template_id = ?1 OR included_template_id = ?1`},
 			// FR-27.4: a deleted template stops being a trip's source.
@@ -225,6 +226,13 @@ var tableSpecs = map[string]tableSpec{
 		columns:   toSet("template_item_id", "task"),
 		visible:   visibilityRule{everyone: true},
 		export:    exportQuery{query: `SELECT * FROM template_item_tasks`},
+	},
+
+	TableTemplateTasks: {
+		partition: partitionMaster,
+		columns:   toSet("template_id", "task"),
+		visible:   visibilityRule{everyone: true},
+		export:    exportQuery{query: `SELECT * FROM template_tasks`},
 	},
 
 	TableTripSeries: {

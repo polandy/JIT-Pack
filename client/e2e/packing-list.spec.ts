@@ -15,7 +15,20 @@ import {
 import type { Locator, Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
+<<<<<<< HEAD
 import { chooseInRowMenu, lightTraveler, openCluster, openRowMenu, packRow } from './helpers/m4'
+=======
+import {
+  addTripTodo,
+  chooseInRowMenu,
+  openTripTodos,
+  openCluster,
+  openRowMenu,
+  packRow,
+  tripWithRows,
+} from './helpers/m4'
+import { writesLanded } from './helpers/page'
+>>>>>>> origin/main
 import { backToInventory, createItem } from './helpers/m9'
 
 /**
@@ -2114,5 +2127,64 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
 
     await bar.click()
     await expect(page.getByTestId('m4-row-Schlüssel')).toBeVisible()
+  })
+})
+
+test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M4-96 (FR-7.4): *Aufgaben für die Reise* is where a trip todo is
+   * written — added, ticked, reopened from the fold and removed, each state
+   * read back after a reload, because a list that only repaints proves the
+   * component and not the write. The removal keeps a sibling as its positive
+   * signal. The section is there on a trip with no todo, closed and silent
+   * about being done, because it is where the first one is typed.
+   */
+  test('E2E-M4-96: trip todos are added, ticked, reopened and removed in the trip', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    const section = visible(page).getByTestId('m4-trip-todos')
+    const status = section.getByTestId('m4-trip-todos-status')
+    await expect(section).toBeVisible()
+    await expect(section.getByTestId('trip-todo-list')).toHaveCount(0)
+    await expect(status).toHaveCount(0)
+
+    await addTripTodo(page, 'Water the plants')
+    await addTripTodo(page, 'Empty the fridge')
+    await expect(status).toHaveText('0 of 2 done')
+
+    const reopenSection = async () => {
+      await page.reload()
+      await openTripTodos(page)
+    }
+    await reopenSection()
+    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
+
+    // Tick: the row leaves the open list and the head counts it.
+    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(status).toHaveText('1 of 2 done')
+    await writesLanded(page)
+    await reopenSection()
+    await expect(status).toHaveText('1 of 2 done')
+    await expect(section.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
+
+    // Reopen from the fold: a mis-tap's only undo.
+    await section.getByTestId('trip-todos-resolved').click()
+    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(status).toHaveText('0 of 2 done')
+    await expect(section.getByTestId('trip-todos-resolved')).toHaveCount(0)
+
+    // Remove one; its sibling stays.
+    await section.getByTestId('trip-todo-remove-Empty the fridge').click()
+    await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
+    await writesLanded(page)
+    await reopenSection()
+    await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
+    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    await expect(status).toHaveText('0 of 1 done')
   })
 })

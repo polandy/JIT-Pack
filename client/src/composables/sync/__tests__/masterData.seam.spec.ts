@@ -404,3 +404,34 @@ describe('the tag admin actions (FR-24.10)', () => {
     expect(queued).toEqual([])
   })
 })
+
+describe('a template’s trip tasks on the seam (FR-7.4)', () => {
+  it('addTemplateTask queues one master insert and the template lists it', () => {
+    const id = createMasterDataActions(ctx).addTemplateTask(TEMPLATE_ID, 'Pflanzen giessen')
+
+    expect(queued[0]!.type).toBe('master')
+    expect(queued[0]!.muts[0]!.mutation).toMatchObject({
+      op: 'insert',
+      table: TABLE.templateTasks,
+      id,
+      fields: { template_id: TEMPLATE_ID, task: 'Pflanzen giessen' },
+    })
+    expect(ctx.masterStore.getTemplateTasks(TEMPLATE_ID).map((t) => t.task)).toEqual([
+      'Pflanzen giessen',
+    ])
+  })
+
+  it('deleteTemplateTask queues a tombstone and the task leaves the template', () => {
+    const actions = createMasterDataActions(ctx)
+    const id = actions.addTemplateTask(TEMPLATE_ID, 'Pflanzen giessen')
+
+    actions.deleteTemplateTask(id)
+
+    expect(queued[1]!.muts[0]!.mutation).toMatchObject({
+      op: 'delete',
+      table: TABLE.templateTasks,
+      id,
+    })
+    expect(ctx.masterStore.getTemplateTasks(TEMPLATE_ID)).toEqual([])
+  })
+})
