@@ -119,3 +119,28 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   await expect(visiblePage(page).getByTestId('m4-row-Akku')).toContainText(/deliberately skipped/i)
   await expect(visiblePage(page).getByTestId('m4-row-Drohne')).toHaveCount(0)
 })
+
+// E2E-M4-93 (FR-5.8, G-9): removing the row whose detail is open closes the
+// detail. On a desktop width the panel stands beside the list, so the row can
+// be held while its panel is showing — and without the close, the panel stays
+// behind reporting the item it was just asked to remove as not found.
+test('E2E-M4-93: removing the open row closes its detail panel @local @m4', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await tripWithRows(page, ['Zelt', 'Schlafsack'], 'Entfernpanel')
+
+  await visiblePage(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
+  // Not page-scoped: the panel is teleported into the frame's second pane.
+  const panel = page.getByTestId('m5-panel')
+  await expect(panel).toBeVisible()
+
+  await openRowMenu(page, 'Zelt')
+  await chooseInRowMenu(page, /remove from the list/i)
+
+  await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toHaveCount(0)
+  await expect(panel).toHaveCount(0)
+  await expect(page.getByTestId('m5-missing')).toHaveCount(0)
+})
