@@ -250,6 +250,50 @@ describe('coSkipTargets (FR-20.2)', () => {
     const main = row('r1', null)
     expect(coSkipTargets(main, [main, row('r2', 'battery')], deps)).toEqual([])
   })
+
+  it('keeps the companions while another traveler still packs the same item (FR-20.2, FR-25.1)', () => {
+    // Per-person rows: two cameras, one per traveler. Skipping one leaves the
+    // camera on the trip, so the battery it needs is still coming. The first
+    // case above is the same list without the twin, and there they go.
+    const mine = row('r1', 'camera')
+    const theirs = row('r1b', 'camera')
+    const rows = [mine, theirs, row('r2', 'battery'), row('r3', 'charger')]
+
+    expect(coSkipTargets(mine, rows, deps)).toEqual([])
+  })
+
+  it('a skipped twin keeps nothing — the item is off the trip for everyone', () => {
+    const mine = row('r1', 'camera')
+    const rows = [mine, row('r1b', 'camera', 'skipped'), row('r2', 'battery'), row('r3', 'charger')]
+
+    expect(coSkipTargets(mine, rows, deps).map((r) => r.id)).toEqual(['r2', 'r3'])
+  })
+
+  it('keeps a companion another main item still needs, and takes only its own (FR-20.2)', () => {
+    // The battery serves the camera and the drone; the strap only the camera.
+    // Skipping the camera with the drone still coming skips the strap alone —
+    // and the charger stays, because it hangs off the battery that stays.
+    const shared = [
+      dep('d1', 'battery', 'camera'),
+      dep('d2', 'charger', 'battery'),
+      dep('d3', 'battery', 'drone'),
+      dep('d4', 'strap', 'camera'),
+    ]
+    const camera = row('r1', 'camera')
+    const rows = [
+      camera,
+      row('r2', 'battery'),
+      row('r3', 'charger'),
+      row('r4', 'drone'),
+      row('r5', 'strap'),
+    ]
+
+    expect(coSkipTargets(camera, rows, shared).map((r) => r.id)).toEqual(['r5'])
+    // The positive control: with the drone skipped, the battery and the
+    // charger do follow the camera out.
+    const droneSkipped = rows.map((r) => (r.id === 'r4' ? { ...r, state: 'skipped' } : r))
+    expect(coSkipTargets(camera, droneSkipped, shared).map((r) => r.id)).toEqual(['r2', 'r3', 'r5'])
+  })
 })
 
 describe('skippedVia (FR-20.2)', () => {

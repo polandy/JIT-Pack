@@ -28,12 +28,8 @@ export interface RowRemoval<T> {
 }
 
 /**
- * planRemoval names what removing `target` from `rows` takes along.
- *
- * The companions are FR-20.2's co-skip, with one guard `coSkipTargets` does not
- * make for itself: a dependent follows its main item only once the item is off
- * the trip, and a per-person item (FR-25.1) is still on it while another
- * traveler's row of it is not skipped.
+ * planRemoval names what removing `target` from `rows` takes along. The
+ * companions are FR-20.2's co-skip, the same `coSkipTargets` a skip uses.
  *
  * `notes` is passed in rather than read: the comments live in a store this
  * package does not import.
@@ -44,17 +40,10 @@ export function planRemoval<T extends RemovableRow>(
   dependencies: ItemDependency[],
   notes: number,
 ): RowRemoval<T> {
-  const stillOnTrip = rows.some(
-    (row) =>
-      row.id !== target.id &&
-      row.source_item_id !== null &&
-      row.source_item_id === target.source_item_id &&
-      row.state !== 'skipped',
-  )
   return {
     packed: target.packed_count,
     notes,
-    companions: stillOnTrip ? [] : coSkipTargets(target, rows, dependencies),
+    companions: coSkipTargets(target, rows, dependencies),
   }
 }
 

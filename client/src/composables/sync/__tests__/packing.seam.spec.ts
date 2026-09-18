@@ -117,6 +117,28 @@ describe('createPackingActions without an orchestrator', () => {
     expect(queued[0]!.muts.map((m) => m.mutation.id)).toEqual(['ti-main', 'ti-comp'])
   })
 
+  it('skipItem on one traveler’s row leaves the companion for the other (FR-20.2, FR-25.1)', () => {
+    const mine = seedTripItem('ti-tent-a', {
+      source_item_id: 'item-tent',
+      assigned_traveler_id: 'trav-a',
+    })
+    seedTripItem('ti-tent-b', { source_item_id: 'item-tent', assigned_traveler_id: 'trav-b' })
+    seedTripItem('ti-comp', { source_item_id: 'item-pegs' })
+    seedRow(ctx.masterStore, TABLE.itemDependencies, 'dep-1', {
+      item_id: 'item-pegs',
+      depends_on_item_id: 'item-tent',
+      mode: 'required',
+      quantity: 1,
+    })
+
+    const affected = createPackingActions(ctx).skipItem(TRIP_ID, mine)
+
+    // The skip itself lands — the queue is the positive signal — and it is
+    // the only row written: the other traveler's tent still needs the pegs.
+    expect(affected.map((row) => row.id)).toEqual(['ti-tent-a'])
+    expect(queued[0]!.muts.map((m) => m.mutation.id)).toEqual(['ti-tent-a'])
+  })
+
   it('restoreSkip puts back the rows it still finds and skips the ones that are gone', () => {
     seedTripItem('ti-1', { state: 'skipped', quantity: 0 })
 

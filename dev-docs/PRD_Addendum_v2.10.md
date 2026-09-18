@@ -615,7 +615,11 @@ companions, M5 suggestion hint.
   not do is report the item it started at, and it did. A `per_person` position expands to one row per traveller, all of
   them carrying the same master item, and the selection excludes the skipped row by row id — so on cyclic data the
   traveller's siblings followed it off the list. `skippedVia` asked the same question and would have named one of those
-  rows as the reason for another.
+  rows as the reason for another. **"Its main item" is not always the row in hand (corrected 2026-09-18, owner
+  request):** the cascade used to take every dependent of the skipped row's master item, so skipping one traveller's
+  per-person tent (FR-25.1) skipped the pegs while the other traveller's tent was still coming, and skipping the camera
+  skipped the battery the drone also needs. Every other live row the cascade does not itself take is now an *anchor*,
+  and whatever an anchor depends on stays. Skip and FR-5.8's removal share the rule — it is `coSkipTargets`.
 * **FR-20.3 (Deduplication Against Explicit Items):** A dependent item may also already be on the list in its own right
   — added directly, or pulled in by a different template. Resolution deduplicates by `source_item_id`: if the item is
   already explicit on the list, the dependency does not create a second instance; quantities merge under the existing
@@ -4104,10 +4108,10 @@ the tail is where a symbol system is actually decided. Results:
     (invariant 3). The same id is what makes the FR-27.4 ledger find its row again; a fresh id would read as a
     hand-deleted position plus a new row. ADR-052 lets it through because the insert is newer than the tombstone.
   * **Companions (FR-20.2).** Removing a main item co-skips its dependents, exactly as skipping it does — they stay on
-    the list as done rows rather than vanishing. **One guard the skip does not make:** a per-person item (FR-25.1) is
-    still on the trip while another traveler's row of it is not skipped, so removing one instance takes no companion
-    along. Once the main row is gone, a co-skipped companion reads as plainly skipped: `skippedVia` names the
-    *skipped* row it followed, and there is none left to name.
+    the list as done rows rather than vanishing — and, as there, only those nothing else on the list still needs: a
+    per-person item (FR-25.1) is still on the trip while another traveler's row of it is not skipped (FR-20.2, since
+    2026-09-18 for the skip too). Once the main row is gone, a co-skipped companion reads as plainly skipped:
+    `skippedVia` names the *skipped* row it followed, and there is none left to name.
   * **Not here, deliberately.** M5 has no *Entfernen* control (FR-5.5's findable path stays the skip), and the
     FR-25.26 cluster head offers no removal for all instances. Each is one more entry point for the same act; neither
     was asked for. **Revisit trigger:** somebody looks for removal in M5, or removes a per-person item row by row.
