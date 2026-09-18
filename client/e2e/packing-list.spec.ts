@@ -2082,7 +2082,14 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
 
     // And it stays above what needs nothing at all: three tiers, not two.
     await packRow(page, 'Zelt')
+    // The undo snackbar sits over the reveal bar, and a click that lands on
+    // it while it leaves never opens the section — E2E-M4-68's trap, dismissed
+    // the same way rather than waited out.
+    await page.locator('ion-toast.pack-toast').evaluate((el: HTMLIonToastElement) => el.dismiss())
+    await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
     await page.getByTestId('m4-done-bar').click()
+    // The packed row on screen is the settled state the one-shot read needs.
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
     expect(await order()).toEqual(['m4-row-Lampe', 'm4-row-Schlüssel', 'm4-row-Zelt'])
   })
 
