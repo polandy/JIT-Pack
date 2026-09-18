@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.0](https://github.com/polandy/JIT-Pack/compare/v0.12.0...v0.13.0) (2026-09-18)
+
+
+### Features
+
+* **client:** a trip takes renamed items' names over on request (FR-27.16) ([acc3489](https://github.com/polandy/JIT-Pack/commit/acc348994f5a869fd332d9923bb515f05143b3b4))
+* **client:** the inventory search creates what it did not find (FR-24.11) ([57be673](https://github.com/polandy/JIT-Pack/commit/57be67303d08f5969557e171b849b37df7d15a3b))
+* **client:** trip todos head the packing list and stand beside the share (FR-7.4) ([ca22b47](https://github.com/polandy/JIT-Pack/commit/ca22b47bb2d4ffceed8154826a6b81f3ee7c1b40))
+* **client:** who an item is for is answered on the row (FR-25.28) ([52400e0](https://github.com/polandy/JIT-Pack/commit/52400e0c9a192dde4a8ed6f4ebe82a99cf756932))
+
 ## [0.12.0](https://github.com/polandy/JIT-Pack/compare/v0.11.0...v0.12.0) (2026-09-18)
 
 
