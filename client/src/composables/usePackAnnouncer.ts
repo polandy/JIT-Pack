@@ -42,6 +42,12 @@ export interface PackAnnouncer {
    * the row is gone from under the finger that removed it.
    */
   announceRemoved: (name: string) => Promise<void>
+  /**
+   * FR-27.16: names taken over from the inventory. The same snackbar, because
+   * several rows changing name at once is exactly what a mistap on „Alle"
+   * would do, and the undo is how it is taken back.
+   */
+  announceRenamed: (count: number) => Promise<void>
 }
 
 /**
@@ -82,6 +88,10 @@ export function usePackAnnouncer(): PackAnnouncer {
 
   async function announceRemoved(name: string): Promise<void> {
     await announce(t('packing.removedToast', { name }))
+  }
+
+  async function announceRenamed(count: number): Promise<void> {
+    await announce(t('inventoryNames.adopted', { n: count }))
   }
 
   async function announce(message: string): Promise<void> {
@@ -134,5 +144,12 @@ export function usePackAnnouncer(): PackAnnouncer {
     void packToast?.dismiss()
   })
 
-  return { rowUndo, packAnnouncements, announcePacked, announceSkipped, announceRemoved }
+  return {
+    rowUndo,
+    packAnnouncements,
+    announcePacked,
+    announceSkipped,
+    announceRemoved,
+    announceRenamed,
+  }
 }

@@ -1035,6 +1035,27 @@ export const en = {
   'trips.proposedTasks': '“{group}”: {item} — preparation changes',
   'trips.proposedChanged': '“{group}”: {item} changes',
 
+  // FR-27.16 — taking names over from the inventory. A trip row copies its
+  // item's name when it is written, and outside FR-27.4 nothing carried a
+  // rename across afterwards.
+  'inventoryNames.menu': 'Names from the inventory ({n})',
+  'inventoryNames.title': 'Names from the inventory',
+  'inventoryNames.lead':
+    'These things are called something else in the inventory now. Amounts, packing and assignments stay as they are.',
+  'inventoryNames.all': 'All',
+  'inventoryNames.selected': '{n} of {total} selected',
+  'inventoryNames.for': 'for {names}',
+  'inventoryNames.packed': 'packed {packed}/{quantity}',
+  'inventoryNames.skipped': 'not coming',
+  'inventoryNames.deliberate': 'named on purpose',
+  'inventoryNames.deliberateNote': 'This trip kept the name on purpose, so it is not preselected.',
+  'inventoryNames.apply': 'Take the name over | Take {n} names over',
+  'inventoryNames.applyAll': 'Take the name over | Take all {n} over',
+  'inventoryNames.none': 'Nothing selected',
+  'inventoryNames.adopted': 'Name taken over | {n} names taken over',
+  'inventoryNames.detail': 'The inventory calls it “{name}” now.',
+  'inventoryNames.adoptOne': 'Take over',
+
   // FR-27.4 — and what it took over.
   'trips.appliedChip': '⟳ {n} change taken from groups | ⟳ {n} changes taken from groups',
   'trips.appliedFrozen': 'Past trips are never changed.',
