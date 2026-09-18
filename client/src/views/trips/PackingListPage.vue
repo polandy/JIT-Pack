@@ -93,6 +93,7 @@ import {
   emptyReason as emptyReasonFor,
   filterFacets as facetsFor,
   filterSwitches as switchesFor,
+  SWITCH_KEYS,
   groupingAxis,
   onlyOthersHidden as isOnlyOthersHidden,
 } from '@/lib/packingFilterPanel'
@@ -183,9 +184,8 @@ onMounted(async () => {
 // composable because they outlive this component (FR-25.18): the filter
 // for the session, the grouping durably. The search term deliberately
 // does not — see there.
-const { facets, showDone, showOthers, groupBy, reset, toggleValue, clearFacet } = usePackingFilter(
-  props.tripId,
-)
+const { facets, showDone, showOthers, showLate, groupBy, reset, toggleValue, clearFacet } =
+  usePackingFilter(props.tripId)
 
 const {
   term: search,
@@ -408,6 +408,9 @@ const view = computed(() =>
     search: search.value,
     currentUserId: myUserId.value,
     showOthers: showOthers.value,
+    // FR-9.3's closing pass reviews what was taken along, and a late-packer
+    // row was taken along like any other.
+    showLate: showLate.value || closingPass.value,
     collapsedGroups: collapsedGroups.value,
     expandedClusters: expandedClusters.value,
     itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
@@ -994,8 +997,8 @@ const emptyReason = computed(() => emptyReasonFor(view.value, search.value, hidd
 
 /**
  * FR-25.11e: a reset that leaves part of the narrowing behind re-renders
- * the same empty screen, so this clears all of it — search, facets and
- * both reveal switches.
+ * the same empty screen, so this clears all of it — search, facets and all
+ * three reveal switches.
  */
 function resetNarrowing() {
   search.value = ''
@@ -1014,13 +1017,16 @@ const filterSwitches = computed(() =>
   switchesFor({
     showDone: showDone.value,
     showOthers: showOthers.value,
+    showLate: showLate.value,
     packedCount: view.value.doneCount,
     hiddenOtherCount: view.value.hiddenOtherCount,
+    lateCount: view.value.lateCount,
   }),
 )
 
 function onToggleSwitch(key: string) {
-  if (key === 'done') showDone.value = !showDone.value
+  if (key === SWITCH_KEYS.done) showDone.value = !showDone.value
+  else if (key === SWITCH_KEYS.late) showLate.value = !showLate.value
   else showOthers.value = !showOthers.value
 }
 
@@ -1851,18 +1857,22 @@ setHeaderTitle(
         testid="packing-empty"
       />
 
-      <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
-           state the count, name the people, one tap to reveal. -->
+      <!-- The bars run in the order the rows do (owner, 2026-09-18): the two
+           whose rows still ask for something first — packed on departure day
+           (FR-25.27), then in somebody else's hands (FR-25.20) — and last the
+           one whose rows ask for nothing. Hidden only on request, and never
+           silently: this bar is what keeps „alles gepackt" from covering rows
+           nobody has touched. -->
       <RevealBar
-        v-if="view.doneCount > 0 && !closingPass"
-        :open="showDone"
+        v-if="view.lateCount > 0"
+        :open="showLate"
         :label="
-          showDone
-            ? t('packing.hidePacked', { n: view.doneCount })
-            : t('packing.showPacked', { n: view.doneCount })
+          showLate
+            ? t('packing.lateShown', { n: view.lateCount })
+            : t('packing.lateHidden', { n: view.lateCount })
         "
-        testid="m4-done-bar"
-        @toggle="showDone = !showDone"
+        testid="m4-late-bar"
+        @toggle="showLate = !showLate"
       />
       <RevealBar
         v-if="view.hiddenOtherCount > 0 || showOthers"
@@ -1880,6 +1890,18 @@ setHeaderTitle(
         "
         testid="m4-others-bar"
         @toggle="showOthers = !showOthers"
+      />
+      <!-- FR-25.2: state the count, one tap to reveal. -->
+      <RevealBar
+        v-if="view.doneCount > 0 && !closingPass"
+        :open="showDone"
+        :label="
+          showDone
+            ? t('packing.hidePacked', { n: view.doneCount })
+            : t('packing.showPacked', { n: view.doneCount })
+        "
+        testid="m4-done-bar"
+        @toggle="showDone = !showDone"
       />
 
       <!-- Preparation (FR-7.3): the open todos of the whole trip, resolvable

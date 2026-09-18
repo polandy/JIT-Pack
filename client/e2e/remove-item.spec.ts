@@ -120,11 +120,11 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   await expect(visiblePage(page).getByTestId('m4-row-Drohne')).toHaveCount(0)
 })
 
-// E2E-M4-93 (FR-5.8, G-9): removing the row whose detail is open closes the
+// E2E-M4-95 (FR-5.8, G-9): removing the row whose detail is open closes the
 // detail. On a desktop width the panel stands beside the list, so the row can
 // be held while its panel is showing — and without the close, the panel stays
 // behind reporting the item it was just asked to remove as not found.
-test('E2E-M4-93: removing the open row closes its detail panel @local @m4', async ({
+test('E2E-M4-95: removing the open row closes its detail panel @local @m4', async ({
   page,
   seedMode,
 }) => {

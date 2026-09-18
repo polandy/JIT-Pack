@@ -672,9 +672,20 @@ in WebKit.
   rows on the list (the positive signal that it was a question). Confirmed, the main item is gone from the done rows
   too while the companion is among them, skipped. Mutation-checked: with `removalNeedsConfirm` forced to `false` the
   case fails at the alert.
-* **E2E-M4-93** `local` (FR-5.8, G-9, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`): at a desktop
+* **E2E-M4-95** `local` (FR-5.8, G-9, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`): at a desktop
   width, removing the row whose M5 panel is open closes the panel rather than leaving it to report the item as not
   found. Mutation-checked: without the close the panel is still counted.
+* **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
+  as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
+  an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A
+  packed row is then revealed, which is what separates the three tiers from two: the flagged row sits above it, not
+  with it.
+* **E2E-M4-94** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): the *Spätpacker*
+  switch. Read as checked before it is touched — the one switch of the three that starts on — then off, and the row
+  goes while the reveal bar counts it. Everything else is then packed, and the assertion that the emptied list still
+  offers the reset is what proves it did not fall through to *„alles gepackt"* over a row nobody has touched. The bar
+  brings it back. Since the same day it also pins the **order of the bars** — late-packers above packed — which is
+  the rule the rows already follow read once more at the foot of the list.
 * **E2E-M4-86** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-13):
   the trip partition's half of E2E-M2-18. Opened straight onto M4 with every trip pull held, the screen shows
   „Packliste wird geladen …" and **no** `packing-empty`; when the pull lands the notice goes and the G-7 state appears
@@ -3074,7 +3085,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-5.5 | E2E | M4-06 |
 | FR-5.6 | E2E | M4-04, M6-03 |
 | FR-5.7 | E2E | G3-02 (mode gate), M4-49/50 |
-| FR-5.8 | E2E | M4-91 (untouched: at once, undo, reload), M4-92 (asks, names the companion, co-skips it), M4-93 (the open panel closes); `domain/__tests__/rowRemoval.spec.ts` (when it asks) |
+| FR-5.8 | E2E | M4-91 (untouched: at once, undo, reload), M4-92 (asks, names the companion, co-skips it), M4-95 (the open panel closes); `domain/__tests__/rowRemoval.spec.ts` (when it asks) |
 | FR-6.1 | E2E | M1-01 (the aggregation, deliberately unfiltered), M1-03 (the delegation *section* beside it, built 2026-08-31), M1-03b (absent where there is no account), M1-08 (the planned-trips section, built 2026-09-02); `domain/__tests__/dashboardSections.spec.ts`, `local/__tests__/delegationSeen.spec.ts` |
 | FR-6.2 | E2E | FLOW-02, NOTIFY-01, M17-01 |
 | FR-6.3 | E2E | G4-01, FLOW-02 (M1-04's *at the item* is retired — M1 has no per-item link, 2026-08-30) |

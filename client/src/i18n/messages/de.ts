@@ -242,6 +242,10 @@ export const de: Record<keyof typeof en, string> = {
     '{n} Packelement liegt bei {who} · anzeigen | {n} Packelemente liegen bei {who} · anzeigen',
   'packing.othersShown': '{n} von {who} ausblenden',
 
+  // FR-25.27 — was erst am Abreisetag gepackt wird.
+  'packing.lateHidden': '{n} Spätpacker anzeigen | {n} Spätpacker anzeigen',
+  'packing.lateShown': '{n} Spätpacker ausblenden | {n} Spätpacker ausblenden',
+
   // FR-25.17 — wer eine Zeile gepackt hat, und wann.
   'packing.packedBy': 'gepackt von {who} · {when}',
   'packing.packedByUnknown': 'gepackt · {when}',
@@ -679,6 +683,8 @@ export const de: Record<keyof typeof en, string> = {
   'filter.doneHint': 'Gepackte anzeigen',
   'filter.othersLabel': 'Anderen zugewiesen',
   'filter.othersHint': 'Packelemente anderer anzeigen',
+  'filter.lateLabel': 'Spätpacker',
+  'filter.lateHint': 'Am Abreisetag zu Packendes anzeigen',
 
   'facet.person': 'Person',
   'facet.category': 'Kategorie',

@@ -162,8 +162,8 @@ const emit = defineEmits<{
         </div>
       </section>
 
-      <!-- Both switches hide a class of rows, so they render from one shape
-           and sit together at the foot: the rarely-touched pair. -->
+      <!-- Every switch hides a class of rows, so they render from one shape
+           and sit together at the foot: the rarely-touched group. -->
       <section v-if="switches.length > 0" class="sec">
         <label v-for="control in switches" :key="control.key" class="switch">
           <IonCheckbox
