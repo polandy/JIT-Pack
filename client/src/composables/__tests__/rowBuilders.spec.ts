@@ -115,6 +115,7 @@ const CASES: BuilderCase[] = [
         value_cents: 39900,
         image_hash: 'abcdef0123456789',
         icon: '⛺',
+        default_assignee_id: 'user-a',
         retired_at: '2026-08-20T10:00:00Z',
       }),
     read: () => useMasterStore().getItem('it-1') as unknown as Record<string, unknown>,
@@ -123,6 +124,11 @@ const CASES: BuilderCase[] = [
         act: (i) => newOrch().updateMasterItem(i, { weight_grams: 2500 }),
         changed: 'weight_grams',
         becomes: 2500,
+      },
+      {
+        act: (i) => newOrch().updateMasterItem(i, { default_assignee_id: 'user-b' }),
+        changed: 'default_assignee_id',
+        becomes: 'user-b',
       },
       {
         act: (i) => newOrch().updateMasterItem(i, { name: 'Tarp' }),
@@ -137,6 +143,7 @@ const CASES: BuilderCase[] = [
       value_cents: 39900,
       image_hash: 'abcdef0123456789',
       icon: '⛺',
+      default_assignee_id: 'user-a',
       retired_at: '2026-08-20T10:00:00Z',
     } satisfies Record<keyof MasterItem, unknown>,
   },

@@ -25,6 +25,12 @@ import { ITEM_MODE_PACK } from '@/types/domain'
 
 export interface GenerationTraveler {
   name: string
+  /**
+   * FR-2.5: the account this traveler is. Optional, and what FR-1.9's
+   * default assignee is matched against — a caller that has no accounts to
+   * offer (Local Mode, the FR-27.4 refresh) simply leaves it out.
+   */
+  linked_user_id?: string | null
 }
 
 export interface GenerationTrip {
@@ -78,6 +84,13 @@ export interface GeneratedItem {
   mode: ItemMode
   late_packer: boolean
   traveler_index: number | null
+  /**
+   * Whether the row is one of a per-person position's fan-out (FR-1.4), as
+   * opposed to a trip-global row that FR-1.9's default assignee happened to
+   * hand to a traveler. Both have a `traveler_index`; only this one says why,
+   * and M3's review labels a row "per person" from it.
+   */
+  per_person: boolean
   /**
    * FR-27.7: the preparation tasks of the contributing position(s), which the
    * caller writes as ordinary FR-7.3 todos on the created row. Empty rather
@@ -177,6 +190,7 @@ export function withCompanions(
     ...companionAsGenerated(companion),
     source_item_id: companion.item_id,
     traveler_index: null,
+    per_person: false,
     // A companion comes from a dependency, not from a template position, so
     // there is no FR-27.7 task to carry (FR-20.2).
     tasks: [],
@@ -301,6 +315,22 @@ export function durationDays(startDate: string | null, endDate: string | null): 
   return Math.round(ms / 86_400_000) + 1
 }
 
+/**
+ * defaultAssigneeIndex is FR-1.9's rule: an item's default assignee becomes
+ * the row's traveler when a traveler is linked to that account, and nobody
+ * otherwise. Absent on both sides is the ordinary case, so a missing link is
+ * never an error — the row is simply unassigned, as it was before the field.
+ */
+function defaultAssigneeIndex(
+  master: { default_assignee_id?: string | null },
+  travelers: GenerationTraveler[],
+): number | null {
+  const account = master.default_assignee_id
+  if (!account) return null
+  const index = travelers.findIndex((t) => t.linked_user_id === account)
+  return index === -1 ? null : index
+}
+
 export function generateTripItems(input: GenerationInput): GenerationResult {
   const sources = resolveSources(input)
   const itemsByID = new Map(input.masterItems.map((i) => [i.id, i]))
@@ -361,6 +391,11 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
       const tasks = tasksByPosition.get(ti.id) ?? []
       const targets: (number | null)[] =
         ti.assignment === 'per_person' ? input.trip.travelers.map((_, idx) => idx) : [null]
+      // FR-1.9: only a trip-global row is somebody's job by default — a
+      // per-person position already belongs to every traveler by definition.
+      // The merge key below stays "global", so two groups bringing the same
+      // item still merge into the one row.
+      const globalAssignee = defaultAssigneeIndex(master, input.trip.travelers)
 
       for (const travelerIndex of targets) {
         const key = `${ti.item_id}|${travelerIndex ?? 'global'}`
@@ -389,7 +424,8 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
             quantity,
             mode: ti.default_mode,
             late_packer: ti.late_packer,
-            traveler_index: travelerIndex,
+            traveler_index: travelerIndex ?? globalAssignee,
+            per_person: travelerIndex !== null,
             // A fresh array per traveler row: the fan-out below would
             // otherwise have every row share one list and one merge would
             // append a task to all of them.
@@ -457,7 +493,8 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
       quantity: 1,
       mode: ITEM_MODE_PACK,
       late_packer: false,
-      traveler_index: null,
+      traveler_index: defaultAssigneeIndex(master, input.trip.travelers),
+      per_person: false,
       tasks: [],
     })
   }

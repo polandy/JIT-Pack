@@ -96,7 +96,7 @@ export function planGroupAddition(input: GroupAdditionInput): GroupAdditionPlan 
     trip: {
       duration_days: input.duration_days,
       attributes: input.attributes,
-      travelers: input.travelers.map((t) => ({ name: t.name })),
+      travelers: input.travelers.map((t) => ({ name: t.name, linked_user_id: t.linked_user_id })),
     },
   })
 

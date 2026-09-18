@@ -144,6 +144,7 @@ var tableSpecs = map[string]tableSpec{
 			"image_hash",
 			MarkColumn,
 			RetiredColumn,
+			DefaultAssigneeColumn,
 		),
 		retirable: true,
 		blockedBy: []blockingReference{

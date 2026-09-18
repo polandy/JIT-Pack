@@ -158,6 +158,7 @@ export function masterItemRow(item: MasterItem): Record<string, unknown> {
     value_cents: item.value_cents,
     image_hash: item.image_hash ?? null,
     icon: item.icon ?? null,
+    default_assignee_id: item.default_assignee_id ?? null,
     retired_at: item.retired_at ?? null,
   }
 }

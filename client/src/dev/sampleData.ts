@@ -1,3 +1,4 @@
+import { useIdentityStore } from '@/stores/identityStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { ITEM_MODE_PACK } from '@/types/domain'
 
@@ -23,7 +24,7 @@ export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOu
     import('./sampleMaster'),
     import('./sampleTrip'),
   ])
-  const master = seedSampleMaster(orchestrator)
+  const master = seedSampleMaster(orchestrator, useIdentityStore().myUserId)
   const tripId = seedSampleTrip(orchestrator, master.items)
   // FR-27.4 needs a trip that follows something; the one above is imported
   // (and active on purpose, for the FR-9.1 flags), so it follows nothing.

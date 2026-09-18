@@ -317,6 +317,10 @@ export interface MasterItem {
   /** FR-28.1: the optional item mark — one emoji, or absent, which is a
    * first-class state and not a gap to be filled. */
   icon?: string | null
+  /** FR-1.9: the account this item is normally assigned to; absent/null is
+   * the ordinary case. Generation turns it into the row's assignee only where
+   * a traveler is linked to that account (FR-2.5). */
+  default_assignee_id?: string | null
   /** FR-24.3: null while the row is active, an RFC3339 stamp once a delete
    * retired it. Display surfaces hide a retired row; resolution, export and
    * backup keep reading it, which is the whole point of keeping it. */
