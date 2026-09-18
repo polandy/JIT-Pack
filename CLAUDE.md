@@ -52,7 +52,7 @@ Which tier a document belongs to is decided by **who reads it**, never by what i
 - **A `dev-docs/` document wraps at 120 characters** (`scripts/spec-width-gate.mjs`). Exempt: table rows, ATX headings, fenced code, and the two append-only ledgers.
 - Never link to `dev-docs/` from `docs/` with a relative path — link to GitHub or restate.
 
-## Backlog
+## Not built yet
 
 The packing concept is closed and every numbered backlog item below is done; the reasoning behind each is in the log (scan its index). **Numbers stay stable** because the log and specs refer to them (e.g. „item 19" means NFR-4.12). Real sources of open work, in order: what the owner just asked for; an open `*REVIEW*.md` worklist in the repo root (untracked by convention); `dev-docs/mvp-plan.md` Track H (owner-driven dogfood deployment); a fired revisit trigger in a parked stub or ADR.
 
