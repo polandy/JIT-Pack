@@ -663,6 +663,18 @@ in WebKit.
   own avatar hands the row to the other account, without M5. The row then **leaves** the list (FR-25.20) with the
   reveal bar naming the assignee — which is both the rule and the settled signal that the write landed — and the same
   control takes the assignment back.
+* **E2E-M4-91** `local` (FR-5.8, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`): an untouched row is
+  removed from the row menu at once. The entry is the last before *Cancel*; the pack snackbar is the positive signal
+  that the no-dialog path ran; the row is gone **and no reveal bar appears**, which is what tells a removal from a skip.
+  The undo brings the row back, and a second removal survives a reload — the delete reached IndexedDB.
+* **E2E-M4-92** `local` (FR-5.8 with FR-20.2, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`):
+  removing a main item with a required companion asks first and the alert names the companion; *Cancel* leaves both
+  rows on the list (the positive signal that it was a question). Confirmed, the main item is gone from the done rows
+  too while the companion is among them, skipped. Mutation-checked: with `removalNeedsConfirm` forced to `false` the
+  case fails at the alert.
+* **E2E-M4-95** `local` (FR-5.8, G-9, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`): at a desktop
+  width, removing the row whose M5 panel is open closes the panel rather than leaving it to report the item as not
+  found. Mutation-checked: without the close the panel is still counted.
 * **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
   as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
   an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A
@@ -3073,6 +3085,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-5.5 | E2E | M4-06 |
 | FR-5.6 | E2E | M4-04, M6-03 |
 | FR-5.7 | E2E | G3-02 (mode gate), M4-49/50 |
+| FR-5.8 | E2E | M4-91 (untouched: at once, undo, reload), M4-92 (asks, names the companion, co-skips it), M4-95 (the open panel closes); `domain/__tests__/rowRemoval.spec.ts` (when it asks) |
 | FR-6.1 | E2E | M1-01 (the aggregation, deliberately unfiltered), M1-03 (the delegation *section* beside it, built 2026-08-31), M1-03b (absent where there is no account), M1-08 (the planned-trips section, built 2026-09-02); `domain/__tests__/dashboardSections.spec.ts`, `local/__tests__/delegationSeen.spec.ts` |
 | FR-6.2 | E2E | FLOW-02, NOTIFY-01, M17-01 |
 | FR-6.3 | E2E | G4-01, FLOW-02 (M1-04's *at the item* is retired — M1 has no per-item link, 2026-08-30) |

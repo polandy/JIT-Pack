@@ -42,25 +42,25 @@ const cases: Case[] = [
     name: 'an ordinary open row offers its amount, packing it now and skipping it (FR-5.5)',
     item: OPEN,
     ctx: {},
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOn'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'remove'],
   },
   {
     name: 'a row already flagged offers the way back off the departure day (FR-5.1, FR-25.25)',
     item: LATE,
     ctx: {},
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOff'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOff', 'remove'],
   },
   {
     name: 'a skipped row is offered no late-packer flag — nothing is being packed on it',
     item: { ...SKIPPED, late_packer: true },
     ctx: {},
-    want: ['unskip'],
+    want: ['unskip', 'remove'],
   },
   {
-    name: 'a skipped row offers only the way back (FR-5.5)',
+    name: 'a skipped row offers the way back, and the way off the list (FR-5.5, FR-5.8)',
     item: SKIPPED,
     ctx: {},
-    want: ['unskip'],
+    want: ['unskip', 'remove'],
   },
   {
     name: 'a row I hold offers only the release — packing it is the checkbox’s job',
@@ -108,25 +108,25 @@ const cases: Case[] = [
     name: 'a judgeable trip appends the unused mark after the row’s own actions (FR-9.3)',
     item: OPEN,
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'flagUnused'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'flagUnused', 'remove'],
   },
   {
     name: 'a row already marked unused offers to take the mark off again',
     item: JUDGED,
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'unflagUnused'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'unflagUnused', 'remove'],
   },
   {
     name: 'a skipped row is offered no amount — 1 there is an unskip without its companions (FR-25.24)',
     item: SKIPPED,
     ctx: {},
-    want: ['unskip'],
+    want: ['unskip', 'remove'],
   },
   {
     name: 'the judgement is offered on a skipped row too',
     item: SKIPPED,
     ctx: { judgeable: true },
-    want: ['unskip', 'flagUnused'],
+    want: ['unskip', 'flagUnused', 'remove'],
   },
   {
     name: 'and on a row I am holding',
@@ -139,6 +139,25 @@ const cases: Case[] = [
 describe('rowMenuEntries (FR-5.5, FR-5.7, FR-9.3, G-3)', () => {
   it.each(cases)('$name', ({ item, ctx: overrides, want }) => {
     expect(rowMenuEntries(item, ctx(overrides))).toEqual(want)
+  })
+
+  it('never offers removal on a row somebody holds — mine or theirs (FR-5.8, G-3)', () => {
+    const held = [OPEN, SKIPPED].flatMap((item) =>
+      [{ mine: true }, { locked: true, canTakeOver: true }, { locked: true }].map((over) =>
+        rowMenuEntries(item, ctx(over)),
+      ),
+    )
+    // The positive half first: the same rows, free, do offer it — so the
+    // absence below is the lock's doing and not a menu that never has it.
+    expect(rowMenuEntries(OPEN, ctx())).toContain('remove')
+    expect(held.flat()).not.toContain('remove')
+  })
+
+  it('offers removal last, after every row action (FR-5.8)', () => {
+    for (const item of [OPEN, SKIPPED, JUDGED, LATE]) {
+      const entries = rowMenuEntries(item, ctx({ judgeable: true }))
+      expect(entries.at(-1)).toBe('remove')
+    }
   })
 
   it('never offers the judgement on a trip that cannot be judged', () => {

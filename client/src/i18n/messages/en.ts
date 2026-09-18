@@ -172,6 +172,15 @@ export const en = {
     'Not distributed: doing so would delete a row. Decide that in the “Who needs this?” sheet.',
   'packing.skippedToastWith': '“{name}” stays at home — along with {companions}',
   'packing.packedToast': '“{name}” packed ✓',
+  // FR-5.8 — a row off the list altogether, as against FR-5.5's decision to leave it home.
+  'packing.removeAction': 'Remove from the list',
+  'packing.removedToast': '“{name}” removed from the list',
+  'packing.removeConfirmTitle': 'Remove “{name}”?',
+  'packing.removeConfirmLead':
+    'The row disappears from the packing list. To leave it at home on purpose, choose “Do not pack this”.',
+  'packing.removeConfirmPacked': '{n} already packed.',
+  'packing.removeConfirmNotes': '{n} note is deleted with it. | {n} notes are deleted with it.',
+  'packing.removeConfirmCompanions': 'Not packed either: {names}.',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
   // FR-25.21 — "Who needs this?": membership and per-person amounts.
   'membership.title': 'Who needs this?',

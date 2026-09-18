@@ -171,6 +171,15 @@ export const de: Record<keyof typeof en, string> = {
     'Nicht verteilt: Dafür müsste eine Zeile gelöscht werden. Das entscheidest du im Blatt „Wer braucht das?“.',
   'packing.skippedToastWith': '„{name}“ bleibt zu Hause — mit {companions}',
   'packing.packedToast': '„{name}“ gepackt ✓',
+  // FR-5.8 — siehe en.ts.
+  'packing.removeAction': 'Von der Liste entfernen',
+  'packing.removedToast': '„{name}“ von der Liste entfernt',
+  'packing.removeConfirmTitle': '„{name}“ entfernen?',
+  'packing.removeConfirmLead':
+    'Die Zeile verschwindet von der Packliste. Wenn du es bewusst zu Hause lässt, wähle „Nicht einpacken“.',
+  'packing.removeConfirmPacked': 'Bereits {n} gepackt.',
+  'packing.removeConfirmNotes': '{n} Notiz wird mitgelöscht. | {n} Notizen werden mitgelöscht.',
+  'packing.removeConfirmCompanions': 'Ebenfalls nicht eingepackt: {names}.',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
   // FR-25.21 — „Wer braucht das?": Mitgliedschaft und Mengen pro Person.
   'membership.title': 'Wer braucht das?',

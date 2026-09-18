@@ -36,6 +36,12 @@ export interface PackAnnouncer {
    * list that shortened itself by three rows on one tap owes an explanation.
    */
   announceSkipped: (name: string, companions: string[]) => Promise<void>
+  /**
+   * FR-5.8: an untouched row went off the list. The same snackbar and the
+   * same undo as a pack, because it is the same kind of mistap to recover —
+   * the row is gone from under the finger that removed it.
+   */
+  announceRemoved: (name: string) => Promise<void>
 }
 
 /**
@@ -72,6 +78,10 @@ export function usePackAnnouncer(): PackAnnouncer {
         ? t('packing.skippedToastWith', { name, companions: companions.join(', ') })
         : t('packing.skippedToast', { name }),
     )
+  }
+
+  async function announceRemoved(name: string): Promise<void> {
+    await announce(t('packing.removedToast', { name }))
   }
 
   async function announce(message: string): Promise<void> {
@@ -124,5 +134,5 @@ export function usePackAnnouncer(): PackAnnouncer {
     void packToast?.dismiss()
   })
 
-  return { rowUndo, packAnnouncements, announcePacked, announceSkipped }
+  return { rowUndo, packAnnouncements, announcePacked, announceSkipped, announceRemoved }
 }
