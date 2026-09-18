@@ -92,6 +92,7 @@ import {
   emptyReason as emptyReasonFor,
   filterFacets as facetsFor,
   filterSwitches as switchesFor,
+  SWITCH_KEYS,
   groupingAxis,
   onlyOthersHidden as isOnlyOthersHidden,
 } from '@/lib/packingFilterPanel'
@@ -1011,8 +1012,8 @@ const filterSwitches = computed(() =>
 )
 
 function onToggleSwitch(key: string) {
-  if (key === 'done') showDone.value = !showDone.value
-  else if (key === 'late') showLate.value = !showLate.value
+  if (key === SWITCH_KEYS.done) showDone.value = !showDone.value
+  else if (key === SWITCH_KEYS.late) showLate.value = !showLate.value
   else showOthers.value = !showOthers.value
 }
 

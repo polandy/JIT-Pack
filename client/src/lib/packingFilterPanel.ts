@@ -128,25 +128,36 @@ export interface SwitchState {
   lateCount: number
 }
 
+/**
+ * The three reveal switches, named once: `filterSwitches` produces the keys,
+ * M4 reads them back in its toggle handler, and the sheet spells each one
+ * into a `data-testid` (CODING_PRINCIPLES §4a).
+ */
+export const SWITCH_KEYS = {
+  done: 'done',
+  others: 'others',
+  late: 'late',
+} as const
+
 /** All three switches hide a class of rows, so they render from one shape. */
 export function filterSwitches(state: SwitchState): FilterSwitch[] {
   return [
     {
-      key: 'done',
+      key: SWITCH_KEYS.done,
       label: t('filter.doneLabel'),
       hint: t('filter.doneHint'),
       on: state.showDone,
       count: state.packedCount,
     },
     {
-      key: 'others',
+      key: SWITCH_KEYS.others,
       label: t('filter.othersLabel'),
       hint: t('filter.othersHint'),
       on: state.showOthers,
       count: state.hiddenOtherCount,
     },
     {
-      key: 'late',
+      key: SWITCH_KEYS.late,
       label: t('filter.lateLabel'),
       hint: t('filter.lateHint'),
       on: state.showLate,
