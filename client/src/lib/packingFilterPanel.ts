@@ -119,24 +119,49 @@ export interface SwitchState {
   packedCount: number
   /** FR-25.20's count: rows hidden because they are somebody else's. */
   hiddenOtherCount: number
+  /**
+   * FR-25.27: the one switch that starts *on*, because its rows are not
+   * finished with — they are due on departure day.
+   */
+  showLate: boolean
+  /** FR-25.27's count: the flagged rows, shown or hidden — one number for bar and switch. */
+  lateCount: number
 }
 
-/** Both switches hide a class of rows, so they render from one shape. */
+/**
+ * The three reveal switches, named once: `filterSwitches` produces the keys,
+ * M4 reads them back in its toggle handler, and the sheet spells each one
+ * into a `data-testid` (CODING_PRINCIPLES §4a).
+ */
+export const SWITCH_KEYS = {
+  done: 'done',
+  others: 'others',
+  late: 'late',
+} as const
+
+/** All three switches hide a class of rows, so they render from one shape. */
 export function filterSwitches(state: SwitchState): FilterSwitch[] {
   return [
     {
-      key: 'done',
+      key: SWITCH_KEYS.done,
       label: t('filter.doneLabel'),
       hint: t('filter.doneHint'),
       on: state.showDone,
       count: state.packedCount,
     },
     {
-      key: 'others',
+      key: SWITCH_KEYS.others,
       label: t('filter.othersLabel'),
       hint: t('filter.othersHint'),
       on: state.showOthers,
       count: state.hiddenOtherCount,
+    },
+    {
+      key: SWITCH_KEYS.late,
+      label: t('filter.lateLabel'),
+      hint: t('filter.lateHint'),
+      on: state.showLate,
+      count: state.lateCount,
     },
   ]
 }

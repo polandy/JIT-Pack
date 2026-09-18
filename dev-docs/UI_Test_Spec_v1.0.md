@@ -663,6 +663,17 @@ in WebKit.
   own avatar hands the row to the other account, without M5. The row then **leaves** the list (FR-25.20) with the
   reveal bar naming the assignee — which is both the rule and the settled signal that the write landed — and the same
   control takes the assignment back.
+* **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
+  as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
+  an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A
+  packed row is then revealed, which is what separates the three tiers from two: the flagged row sits above it, not
+  with it.
+* **E2E-M4-94** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): the *Spätpacker*
+  switch. Read as checked before it is touched — the one switch of the three that starts on — then off, and the row
+  goes while the reveal bar counts it. Everything else is then packed, and the assertion that the emptied list still
+  offers the reset is what proves it did not fall through to *„alles gepackt"* over a row nobody has touched. The bar
+  brings it back. Since the same day it also pins the **order of the bars** — late-packers above packed — which is
+  the rule the rows already follow read once more at the foot of the list.
 * **E2E-M4-86** `single` (ADR-033, G-7) — **implemented** (`e2e/single/empty-state-hydration.spec.ts`, 2026-09-13):
   the trip partition's half of E2E-M2-18. Opened straight onto M4 with every trip pull held, the screen shows
   „Packliste wird geladen …" and **no** `packing-empty`; when the pull lands the notice goes and the G-7 state appears

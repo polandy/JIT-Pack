@@ -2046,4 +2046,85 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
     await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
   })
+
+  /*
+   * E2E-M4-93 (FR-25.27): a row that is packed on departure day sinks below
+   * the rows that can be dealt with now.
+   *
+   * The order is read before the flag as well as after it, because an
+   * assertion on a list that was already in that order says nothing: the
+   * flag has to be what moved the row.
+   */
+  test('E2E-M4-93: flagging a row as late-packer drops it to the end of its group', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Schlüssel', 'Zelt', 'Lampe'])
+
+    const order = () =>
+      visible(page)
+        .locator('[data-testid^="m4-row-"]')
+        .evaluateAll((rows) => rows.map((el) => (el as HTMLElement).dataset['testid']))
+
+    expect(await order()).toEqual(['m4-row-Schlüssel', 'm4-row-Zelt', 'm4-row-Lampe'])
+
+    await openRowMenu(page, 'Schlüssel')
+    await chooseInRowMenu(page, /late packer on/i)
+    await expect(
+      visible(page).getByTestId('m4-row-Schlüssel').getByTestId('row-late'),
+    ).toBeVisible()
+
+    expect(await order()).toEqual(['m4-row-Zelt', 'm4-row-Lampe', 'm4-row-Schlüssel'])
+
+    // And it stays above what needs nothing at all: three tiers, not two.
+    await packRow(page, 'Zelt')
+    await page.getByTestId('m4-done-bar').click()
+    expect(await order()).toEqual(['m4-row-Lampe', 'm4-row-Schlüssel', 'm4-row-Zelt'])
+  })
+
+  /*
+   * E2E-M4-94 (FR-25.27): the late-packer rows can be put away, and never
+   * silently — the bar is what keeps an emptied list from reading as done.
+   */
+  test('E2E-M4-94: the late-packer switch hides those rows and says so', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Schlüssel', 'Zelt'])
+
+    await openRowMenu(page, 'Schlüssel')
+    await chooseInRowMenu(page, /late packer on/i)
+    await expect(
+      visible(page).getByTestId('m4-row-Schlüssel').getByTestId('row-late'),
+    ).toBeVisible()
+
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
+    // The switch starts on: this is the one class of rows the screen does
+    // not put away by itself.
+    const lateSwitch = page.getByTestId('filter-switch-late')
+    expect(await lateSwitch.evaluate((el) => (el as HTMLInputElement).checked)).toBe(true)
+    await lateSwitch.click()
+    await page.getByTestId('filter-close').click()
+
+    await expect(page.getByTestId('m4-row-Schlüssel')).toHaveCount(0)
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+    const bar = visible(page).getByTestId('m4-late-bar')
+    await expect(bar).toContainText('1')
+
+    // Packing everything else must not turn the remainder into "alles
+    // gepackt": the reset offer is the signal that the screen knows it is
+    // still hiding something.
+    await packRow(page, 'Zelt')
+    await expect(visible(page).getByTestId('m4-reset')).toBeVisible()
+
+    // And the bars run in the order their rows do (owner, 2026-09-18): rows
+    // that still ask for something stand above rows that ask for nothing.
+    expect(
+      await visible(page)
+        .locator('[data-testid="m4-late-bar"], [data-testid="m4-done-bar"]')
+        .evaluateAll((bars) => bars.map((el) => (el as HTMLElement).dataset['testid'])),
+    ).toEqual(['m4-late-bar', 'm4-done-bar'])
+
+    await bar.click()
+    await expect(page.getByTestId('m4-row-Schlüssel')).toBeVisible()
+  })
 })

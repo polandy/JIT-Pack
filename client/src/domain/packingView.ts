@@ -180,6 +180,17 @@ export interface PackingView {
   doneCount: number
   /** Feeds the FR-25.20 reveal bar; zero once other people's rows are revealed. */
   hiddenOtherCount: number
+  /**
+   * FR-25.27's reveal bar and its switch, which label the same set and so
+   * carry one number (FR-25.22): flagged rows among the ones the filter lets
+   * through, whether they are currently hidden or shown — it does not drop
+   * to zero on reveal, because a number that changed with the direction of
+   * the toggle would describe two different sets.
+   *
+   * Rows another rule is already hiding are left out: revealing these would
+   * not produce them, so this must not promise them.
+   */
+  lateCount: number
   /** Who those rows belong to, so the bar can name them rather than just count. */
   hiddenOtherNames: string[]
   facetValues: Record<FacetKey, FacetValue[]>
@@ -221,6 +232,13 @@ export interface PackingViewInput {
   currentUserId: string | null
   /** FR-25.20 reveal toggle. */
   showOthers: boolean
+  /**
+   * FR-25.27 reveal toggle, and the one that defaults to *shown*: a
+   * late-packer row is not finished with, it is merely not due yet, so
+   * hiding it is something the reader asks for rather than something the
+   * screen does on its own.
+   */
+  showLate: boolean
   /** Group keys folded shut (FR-25.16) — by key, so a re-render keeps the fold. */
   collapsedGroups: string[]
   /**
@@ -264,6 +282,18 @@ export function isDone(item: TripItem, hasOpenPrep: boolean): boolean {
 function entrySettled(entry: PackingEntry): boolean {
   if (entry.kind === 'item') return entry.done
   return entry.children.length > 0 && entry.children.every((child) => child.done)
+}
+
+/**
+ * An entry that is packed on departure day, and so sinks below the rows that
+ * can be dealt with now (FR-25.27).
+ *
+ * A cluster counts as late as soon as one visible instance is flagged — the
+ * same rule its ⏰ follows, because a warning that holds for only some
+ * children is one the reader misses.
+ */
+function entryLate(entry: PackingEntry): boolean {
+  return entry.kind === 'item' ? entry.item.late_packer : entry.latePacker
 }
 
 /**
@@ -371,6 +401,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     search,
     currentUserId,
     showOthers,
+    showLate,
     collapsedGroups,
     expandedClusters = [],
     itemsWithOpenPrep,
@@ -426,17 +457,41 @@ export function buildPackingView(input: PackingViewInput): PackingView {
    */
   const revealedByStatus = (item: TripItem) => facets.status.includes(packStatusOf(item))
 
+  /**
+   * FR-25.27: hidden because it is not due yet. Picking ⏰ in *Merkmale* is
+   * the same ask as picking a Status value — show me exactly those rows —
+   * so it overrides the switch, or the panel reports a count it then shows
+   * nothing for (the FR-25.11l trap on a second axis).
+   */
+  const hiddenAsLate = (item: TripItem) =>
+    !showLate && item.late_packer && !facets.flag.includes('late')
+
+  /** FR-25.20's half of the same question, so the two reveal bars can ask it of each other. */
+  const hiddenAsOthers = (item: TripItem) => !showOthers && othersJob(item)
+
   const matching = items.filter(
     (item) => (!packedOnly || wasPacked(item)) && passesFacets(item) && matchesSearch(item),
   )
 
   // Offered for reveal only what revealing would actually show: rows already
   // excluded by a facet, the search or the done rule stay out of the count, or
-  // the bar promises rows that one tap does not produce.
+  // the bar promises rows that one tap does not produce. The two bars exclude
+  // each other's rows for that same reason — a row both rules hide stays hidden
+  // whichever one is tapped, so neither may claim it.
+  const revealable = (item: TripItem) => showDone || !done(item) || revealedByStatus(item)
   const others = matching.filter(
-    (item) => othersJob(item) && (showDone || !done(item) || revealedByStatus(item)),
+    (item) => othersJob(item) && !hiddenAsLate(item) && revealable(item),
   )
   const hiddenOtherCount = showOthers ? 0 : others.length
+  // Independent of the switch, unlike `hiddenOtherCount`: this one labels a
+  // set rather than reporting a state, so it is the same number either way.
+  const lateCount = matching.filter(
+    (item) =>
+      item.late_packer &&
+      !facets.flag.includes('late') &&
+      !hiddenAsOthers(item) &&
+      revealable(item),
+  ).length
   const hiddenOtherNames = showOthers
     ? []
     : [
@@ -449,7 +504,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
         ),
       ].sort((a, b) => a.localeCompare(b))
 
-  const shown = showOthers ? matching : matching.filter((item) => !othersJob(item))
+  const shown = matching.filter((item) => !hiddenAsOthers(item) && !hiddenAsLate(item))
 
   let doneCount = 0
   const visible: TripItem[] = []
@@ -600,11 +655,15 @@ export function buildPackingView(input: PackingViewInput): PackingView {
    */
   if (!packedOnly) {
     for (const group of groups.values()) {
-      // Partitioned rather than sorted: two passes are obviously stable,
+      // Partitioned rather than sorted: three passes are obviously stable,
       // where a comparator's stability is a property of the engine rather
-      // than of the rule being stated.
+      // than of the rule being stated. Three tiers, in the order the day
+      // runs: what is still to do, what is packed on the way out the door
+      // (FR-25.27), and what asks nothing of anyone.
+      const open = group.entries.filter((entry) => !entrySettled(entry))
       group.entries = [
-        ...group.entries.filter((entry) => !entrySettled(entry)),
+        ...open.filter((entry) => !entryLate(entry)),
+        ...open.filter(entryLate),
         ...group.entries.filter(entrySettled),
       ]
     }
@@ -616,6 +675,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     groups: [...groups.values()].sort(byGroupName),
     doneCount,
     hiddenOtherCount,
+    lateCount,
     hiddenOtherNames,
     facetValues: buildFacetValues({
       items,
@@ -629,7 +689,8 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     activeFacetCount,
     matchCount: items.filter((item) => passesFacets(item) && !done(item)).length,
     openRowCount: items.filter((item) => !done(item)).length,
-    narrowed: activeFacetCount > 0 || term !== '' || hiddenOtherCount > 0,
+    narrowed:
+      activeFacetCount > 0 || term !== '' || hiddenOtherCount > 0 || (!showLate && lateCount > 0),
   }
 }
 
