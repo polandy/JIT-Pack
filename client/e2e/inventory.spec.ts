@@ -1039,6 +1039,18 @@ test.describe('M10 item editor — the sections a saved item owns (FR-20.1/22.1)
     await expect(editor.getByTestId('m10-companion-mode-Ersatzbatterien')).toContainText('Required')
     await expect(editor.getByTestId('m10-add-companion')).toBeVisible()
 
+    // „Create and open" declares the pair first and then continues in the new
+    // item's editor, which reads the relation from its own end.
+    await editor.getByTestId('m10-add-companion').click()
+    await editor.getByTestId('m10-companion-search').locator('input').fill('Ladekabel')
+    await editor.getByTestId('m10-companion-offer').click()
+    await expect(sheet).toHaveAttribute('data-presented', 'true')
+    await sheet.getByTestId('create-item-open').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Ladekabel')
+    await expect(visiblePage(page).getByTestId('m10-dependency-mode-Stirnlampe')).toContainText(
+      'Required',
+    )
+
     // Stored, not only drawn: the new item exists with its tag and names the
     // lamp from its own end of the relation.
     await writesLanded(page)

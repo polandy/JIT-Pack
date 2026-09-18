@@ -1813,7 +1813,8 @@ E2E-M23-04.
 * **E2E-M10-23** `all` (FR-20.1/24.11) — **new 2026-09-18** (`inventory.spec.ts`): a companion the inventory lacks
   is created from the *Begleitartikel* picker. The sheet opens on the query with this item's tag offered first; after
   *„Anlegen"* the editor is still this item's, the picker is closed and the pair is listed — and it is read again from
-  the **new item's** editor, with its tag, which is what says both writes were stored rather than drawn.
+  the **new item's** editor, with its tag, which is what says both writes were stored rather than drawn. A second
+  companion taken with *„Anlegen und öffnen"* lands in its own editor, already naming this item as its main item.
 * **E2E-M10-24** `all` (FR-20.1/24.11) — **new 2026-09-18** (`restore-retired.spec.ts`): a retired name in the picker
   is offered back; one tap restores it and declares it, no sheet opens, and M23 is left with nothing to restore.
 * **E2E-M10-25** `all` (FR-20.1/24.11) — **new 2026-09-18** (`restore-retired.spec.ts`): the failure path. The item
