@@ -182,29 +182,24 @@ export const de: Record<keyof typeof en, string> = {
   'packing.removeConfirmCompanions': 'Ebenfalls nicht eingepackt: {names}.',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
   // FR-25.21 — „Wer braucht das?": Mitgliedschaft und Mengen pro Person.
-  'membership.title': 'Wer braucht das?',
-  'membership.all': 'Alle Reisenden',
+  // FR-25.28 — the for-whom strip: on M4's row, in M5 and over the quick-add.
+  'forWhom.title': 'Für wen?',
+  'forWhom.seat': 'Für wen: {item}',
+  'forWhom.all': 'Alle',
+  'forWhom.verbCollapse': 'Zusammenlegen',
+  'forWhom.addShared': 'Wird gemeinsam angelegt.',
+  'forWhom.addFor': 'Wird für {n} Person angelegt, je 1. | Wird für {n} Personen angelegt, je 1.',
   'membership.shared': 'Gemeinsam',
-  'membership.perPerson': 'Pro Person',
-  'membership.hintShared': 'Eine Zeile für die ganze Reise.',
-  'membership.hintPerPerson':
-    'Jede angehakte Person bekommt eine eigene Zeile auf ihrer Packliste.',
   'membership.summary': '{people} Person · {quantity} Stück | {people} Personen · {quantity} Stück',
   'membership.summaryShared': 'Gemeinsam · {quantity} Stück',
-  'membership.rowShared': 'Gemeinsam',
-  'membership.rowNobody': 'niemand',
   'membership.lockedBy': '{who} packt gerade eine dieser Zeilen.',
   'membership.lockedByUnknown': 'Jemand packt gerade eine dieser Zeilen.',
-  'membership.lockedHint': 'Die Mengen bleiben, bis sie fertig sind.',
   'membership.less': 'Weniger für {name}',
   'membership.more': 'Mehr für {name}',
-  'membership.confirmRemoveTitle': 'Zeile entfernen?',
   'membership.confirmRemove':
     '{name} hat davon schon {packed} von {quantity} gepackt. Die Zeile verschwindet aus der Packliste, der Packfortschritt geht verloren.',
-  'membership.confirmUnskipTitle': 'Wieder mitnehmen?',
   'membership.confirmUnskip':
     '„{item}“ ist als weggelassen markiert. Sobald {name} eine Menge bekommt, ist es wieder dabei — die Entscheidung wird aufgehoben.',
-  'membership.confirmCollapseTitle': 'Wieder gemeinsam?',
   'membership.confirmCollapse':
     'Aus {rows} Zeilen wird eine mit {quantity} Stück, davon {packed} gepackt. Notizen und Vorbereitungs-Todos von {name}s Zeile bleiben; die übrigen Zeilen werden gelöscht.',
   // FR-25.24 — die geplante Menge einer Zeile, änderbar auf M4 und M5.
@@ -588,13 +583,12 @@ export const de: Record<keyof typeof en, string> = {
 
   // M5 Artikel-Detail.
   'item.details': 'Details',
-  'item.detailsHint': 'Wer · Beschaffung · Gepäck · Flags',
+  'item.detailsHint': 'Beschaffung · Gepäck · Flags',
   'item.notes': 'Notizen',
   'item.addNote': 'Notiz schreiben…',
   'item.addPrep': 'Vorbereitung hinzufügen…',
   'item.flagAsTask': 'Als Vorbereitung markieren',
   'item.companions': 'Gehört dazu',
-  'item.usedBy': 'Wer braucht das?',
   'item.assignTo': 'Jemandem zuweisen',
   'item.assignedTo': 'Zugewiesen an',
   'item.assignedToNobody': 'niemand',

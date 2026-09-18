@@ -12,7 +12,13 @@ import {
   type MembershipInput,
   type MembershipTarget,
 } from '../membership'
-import { membersOfRows, rowsCarryingContent } from '../membership'
+import {
+  membersOfRows,
+  membershipQuestion,
+  membershipWith,
+  membershipWithout,
+  rowsCarryingContent,
+} from '../membership'
 import { propagatedItemId } from '../refresh'
 import type { Traveler, TripItem } from '@/types/domain'
 
@@ -531,5 +537,85 @@ describe('rowsCarryingContent (what a delete would cost beyond the row)', () => 
     expect(rowsCarryingContent(rows, { hasComments: () => false, hasTodo: () => false })).toEqual(
       [],
     )
+  })
+})
+
+describe('FR-25.28: a tap on an avatar is a whole membership target', () => {
+  const two = [
+    { traveler_id: ANDY.id, quantity: 2 },
+    { traveler_id: LEO.id, quantity: 3 },
+  ]
+
+  it('adds a traveler at the floor of one and leaves every chosen amount standing', () => {
+    expect(membershipWith(two, MIA.id)).toEqual({
+      kind: 'perPerson',
+      members: [...two, { traveler_id: MIA.id, quantity: 1 }],
+    })
+  })
+
+  it('takes one traveler out and keeps the rest per-person', () => {
+    expect(membershipWithout(two, ANDY.id)).toEqual({
+      kind: 'perPerson',
+      members: [{ traveler_id: LEO.id, quantity: 3 }],
+    })
+  })
+
+  it('reads the last traveler leaving as gemeinsam, never as an empty set the planner ignores', () => {
+    const target = membershipWithout([{ traveler_id: LEO.id, quantity: 3 }], LEO.id)
+    expect(target).toEqual({ kind: 'shared' })
+    // The row is re-pointed, not deleted: amount and progress survive.
+    const lone = row('r-leo', { assigned_traveler_id: LEO.id, quantity: 3, packed_count: 1 })
+    const plan = planMembership(input([lone], target))
+    expect(plan.delete).toEqual([])
+    expect(plan.update).toEqual([{ id: 'r-leo', fields: { assigned_traveler_id: null } }])
+  })
+})
+
+describe('FR-25.28: membershipQuestion — the plan decides what is asked', () => {
+  const andy = row('r-andy', { assigned_traveler_id: ANDY.id, quantity: 2 })
+  const leo = row('r-leo', { assigned_traveler_id: LEO.id, quantity: 3 })
+
+  function ask(rows: TripItem[], target: MembershipTarget, extra: Partial<MembershipInput> = {}) {
+    return membershipQuestion(target, planMembership(input(rows, target, extra)))
+  }
+
+  it('asks before two rows collapse into one, even with no progress to lose', () => {
+    expect(ask([andy, leo], { kind: 'shared' })).toBe('collapse')
+  })
+
+  it('asks nothing when the last traveler leaves — nothing is summed and nothing deleted', () => {
+    expect(ask([leo], { kind: 'shared' })).toBeNull()
+  })
+
+  it('asks nothing when an untouched traveler leaves', () => {
+    expect(
+      ask([andy, leo], membershipWithout(membersOfRows([andy, leo], TRAVELERS), LEO.id)),
+    ).toBeNull()
+  })
+
+  it('asks before a row with packing progress is deleted', () => {
+    const packedLeo = { ...leo, packed_count: 1 }
+    const rows = [andy, packedLeo]
+    expect(ask(rows, membershipWithout(membersOfRows(rows, TRAVELERS), LEO.id))).toBe('remove')
+  })
+
+  it('asks before a row with a comment thread is deleted', () => {
+    const rows = [andy, leo]
+    expect(
+      ask(rows, membershipWithout(membersOfRows(rows, TRAVELERS), LEO.id), {
+        rowsWithContent: ['r-leo'],
+      }),
+    ).toBe('remove')
+  })
+
+  it('asks before the first traveler takes a weggelassen row along again (FR-5.5)', () => {
+    const skipped = row('r-shared', { quantity: 0, state: 'skipped' })
+    expect(ask([skipped], membershipWith([], ANDY.id))).toBe('unskip')
+  })
+
+  it('asks nothing of a plan that writes nothing', () => {
+    expect(
+      ask([andy, leo], { kind: 'perPerson', members: membersOfRows([andy, leo], TRAVELERS) }),
+    ).toBeNull()
   })
 })

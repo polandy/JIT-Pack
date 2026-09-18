@@ -16,7 +16,7 @@ import {
   visiblePage,
   tripAction,
 } from '../fixtures'
-import { assignTraveler, row } from '../helpers/m4'
+import { FOR_WHOM_M5, assignTraveler, row } from '../helpers/m4'
 import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 import { PATH } from '../routes'
 
@@ -412,8 +412,10 @@ test.describe('Single-User backend sync @single', () => {
     const pageCheck = await bootPage(ctxCheck, tripPath)
     await visiblePage(pageCheck).getByTestId(`m4-row-${item}`).click()
     await expect(pageCheck.getByTestId('m5-sheet')).toBeVisible()
-    await pageCheck.getByTestId('m5-details').click()
-    await expect(pageCheck.getByTestId('m5-membership')).toContainText('Andy')
+    await expect(pageCheck.getByTestId(`for-whom-${FOR_WHOM_M5}-Andy`)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
     await ctxCheck.close()
 
     // B reconnects and drains through the trip re-open; its rendered state
@@ -441,8 +443,10 @@ test.describe('Single-User backend sync @single', () => {
 
     await visiblePage(pageB).getByTestId(`m4-row-${item}`).click()
     await expect(pageB.getByTestId('m5-sheet')).toBeVisible()
-    await pageB.getByTestId('m5-details').click()
-    await expect(pageB.getByTestId('m5-membership')).toContainText('Andy')
+    await expect(pageB.getByTestId(`for-whom-${FOR_WHOM_M5}-Andy`)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
     await pageB.getByTestId('m5-close').click()
     await expect(pageB.getByTestId('m5-sheet')).toHaveCount(0)
 

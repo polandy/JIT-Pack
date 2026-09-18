@@ -8,7 +8,7 @@
  * and its children carry *different* amounts.
  */
 import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
-import { openCluster } from './helpers/m4'
+import { FOR_WHOM_M5, lightTraveler, openCluster, openForWhom, setMemberInM5 } from './helpers/m4'
 import { createMasterItem } from './helpers/templates'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -26,41 +26,23 @@ async function seedTrip(page: Page) {
 }
 
 /**
- * Open M5 and reach the membership sheet behind Details.
- *
- * `from` names a traveler once the item is per-person: there is then no
- * `m4-row-<name>` any more — the item is a cluster head with child rows, which
- * is the very shape these cases assert.
+ * Open M5 on the item, where the for-whom strip carries a stepper per person
+ * (FR-25.28).
  */
-async function openMembership(page: Page, itemName: string, from?: string) {
-  // FR-25.23: reaching a traveler's own row means opening the cluster first.
-  if (from) await openCluster(page, itemName)
-  const target = from
-    ? visiblePage(page).getByTestId(`m4-child-${itemName}-${from}`)
-    : visiblePage(page).getByTestId(`m4-row-${itemName}`)
-  await target.click()
+async function openItem(page: Page, itemName: string) {
+  await visiblePage(page).getByTestId(`m4-row-${itemName}`).click()
   await expect(page.getByTestId('m5-sheet')).toBeVisible()
-  await page.getByTestId('m5-details').click()
-  await page.getByTestId('m5-membership').click()
-  await expect(page.getByTestId('membership-sheet')).toBeVisible()
+  await expect(page.getByTestId(`for-whom-strip-${FOR_WHOM_M5}`)).toBeVisible()
 }
 
-async function closeAll(page: Page) {
-  await page.getByTestId('membership-close').click()
-  await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+async function closeItem(page: Page) {
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 }
 
-/** Check a traveler and step their amount to `quantity`, settling on each write. */
-async function setMember(page: Page, name: string, quantity: number) {
-  await page.getByTestId(`membership-check-${name}`).click()
-  await expect(page.getByTestId(`membership-qty-${name}`)).toHaveText('1')
-  for (let n = 1; n < quantity; n += 1) {
-    await page.getByTestId(`membership-plus-${name}`).click()
-    await expect(page.getByTestId(`membership-qty-${name}`)).toHaveText(String(n + 1))
-  }
-}
+const m5Amount = (page: Page, name: string) =>
+  page.getByTestId(`for-whom-qty-${FOR_WHOM_M5}-${name}`)
+const m5Summary = (page: Page) => page.getByTestId(`for-whom-summary-${FOR_WHOM_M5}`)
 
 test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -70,13 +52,12 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
   test('E2E-M5-18: three travelers, three different amounts, one cluster', async ({ page }) => {
     await seedTrip(page)
 
-    await openMembership(page, ITEM)
-    await page.getByTestId('membership-per-person').click()
-    await setMember(page, 'Andy', 2)
-    await setMember(page, 'Leonardo', 3)
-    await setMember(page, 'Mia', 1)
-    await expect(page.getByTestId('membership-summary')).toContainText('6')
-    await closeAll(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 2)
+    await setMemberInM5(page, 'Leonardo', 3)
+    await setMemberInM5(page, 'Mia', 1)
+    await expect(m5Summary(page)).toContainText('6')
+    await closeItem(page)
 
     // The item is named once — the cluster head — with one child per traveler.
     const list = visiblePage(page)
@@ -111,11 +92,10 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     const PLAIN = 'Zahnbürste'
     await seedTrip(page)
 
-    await openMembership(page, ITEM)
-    await page.getByTestId('membership-per-person').click()
-    await setMember(page, 'Andy', 1)
-    await setMember(page, 'Leonardo', 1)
-    await closeAll(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 1)
+    await closeItem(page)
 
     // A plain row, to pin the head to the app's row size rather than only to
     // "bigger than its child" — which a head three steps too large also passes.
@@ -146,8 +126,8 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
   /*
    * FR-25.21c. The tap is made from a *partial* membership carrying a chosen
    * amount, because that is the half a select-all can get wrong: the missing
-   * travelers arrive at one and Leonardo's three stay three. The head's own
-   * state is read before and after — mixed, then checked — so the case cannot
+   * travelers arrive at one and Leonardo's three stay three. The toggle's own
+   * state is read before and after — unlit, then lit — so the case cannot
    * pass against a control that only writes and never reports.
    */
   test('E2E-M5-26: one tap adds the missing travelers and leaves a chosen amount alone', async ({
@@ -155,49 +135,31 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
   }) => {
     await seedTrip(page)
 
-    await openMembership(page, ITEM)
-    await page.getByTestId('membership-per-person').click()
-    await setMember(page, 'Leonardo', 3)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Leonardo', 3)
 
-    const all = page.getByTestId('membership-check-all')
-    await expect(all).toHaveAttribute('aria-checked', 'mixed')
-    await expect(page.getByTestId('membership-qty-Andy')).toHaveCount(0)
+    const all = page.getByTestId(`for-whom-all-${FOR_WHOM_M5}`)
+    await expect(all).toHaveAttribute('aria-pressed', 'false')
+    await expect(m5Amount(page, 'Andy')).toHaveCount(0)
 
     await all.click()
 
-    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
-    await expect(page.getByTestId('membership-qty-Mia')).toHaveText('1')
-    await expect(page.getByTestId('membership-qty-Leonardo')).toHaveText('3')
-    await expect(page.getByTestId('membership-summary')).toContainText('5')
-    // Nothing left to add, and the head says so as an ordinary checked box —
+    await expect(m5Amount(page, 'Andy')).toHaveText('1')
+    await expect(m5Amount(page, 'Mia')).toHaveText('1')
+    await expect(m5Amount(page, 'Leonardo')).toHaveText('3')
+    await expect(m5Summary(page)).toContainText('5')
+    // Nothing left to add, and the toggle says so as an ordinary lit one —
     // not a faded one, which is the G-3 lock's sentence about a claimed row.
-    await expect(all).toHaveAttribute('aria-checked', 'true')
-    await expect(all).not.toHaveClass(/checkbox-disabled/)
+    await expect(all).toHaveAttribute('aria-pressed', 'true')
+    await expect(all).toBeEnabled()
 
-    // Tapping it again therefore has to be answerable: it changes nothing, and
-    // the box comes back checked rather than following its own toggle.
+    // Tapping it again therefore has to be answerable: it changes nothing.
     await all.click()
-    await expect(all).toHaveAttribute('aria-checked', 'true')
-    await expect(page.getByTestId('membership-qty-Leonardo')).toHaveText('3')
-    await expect(page.getByTestId('membership-summary')).toContainText('5')
+    await expect(all).toHaveAttribute('aria-pressed', 'true')
+    await expect(m5Amount(page, 'Leonardo')).toHaveText('3')
+    await expect(m5Summary(page)).toContainText('5')
 
-    // The decision sits where M4's pack control sits — read off the rendered
-    // geometry, because the row's order is the whole rule and a DOM order is
-    // not it: `flex-direction` alone would satisfy the markup and fail the eye.
-    const box = async (testId: string) => {
-      const rect = await page.getByTestId(testId).boundingBox()
-      if (!rect) throw new Error(`${testId} has no box`)
-      return rect
-    }
-    const check = await box('membership-check-Andy')
-    const stepper = await box('membership-qty-Andy')
-    const row = await box('membership-sheet')
-    expect(check.x).toBeGreaterThan(stepper.x + stepper.width)
-    expect(check.x).toBeGreaterThan(row.x + row.width / 2)
-    const headCheck = await box('membership-check-all')
-    expect(headCheck.x).toBeGreaterThan(row.x + row.width / 2)
-
-    await closeAll(page)
+    await closeItem(page)
 
     const list = visiblePage(page)
     await openCluster(page, ITEM)
@@ -211,12 +173,11 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
   }) => {
     await seedTrip(page)
 
-    await openMembership(page, ITEM)
-    await page.getByTestId('membership-per-person').click()
-    await setMember(page, 'Andy', 2)
-    await setMember(page, 'Leonardo', 2)
-    await setMember(page, 'Mia', 1)
-    await closeAll(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 2)
+    await setMemberInM5(page, 'Leonardo', 2)
+    await setMemberInM5(page, 'Mia', 1)
+    await closeItem(page)
 
     // Pack one of Leonardo's, so removing him would cost something.
     await openCluster(page, ITEM)
@@ -224,38 +185,41 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await child.getByTestId('row-plus').click()
     await expect(child).toContainText('1/2')
 
-    await openMembership(page, ITEM, 'Andy')
-    await page.getByTestId('membership-check-Leonardo').click()
-    const alert = page.locator('ion-alert')
-    await expect(alert).toBeVisible()
-    await expect(alert).toContainText('1')
+    // From here on the question is M4's own strip: asked under the row, in
+    // place of the summary line, with the list still on the screen (FR-25.28).
+    const strip = await openForWhom(page, ITEM)
+    const ask = strip.getByTestId(`for-whom-ask-${ITEM}`)
+    const leonardo = strip.getByTestId(`for-whom-${ITEM}-Leonardo`)
+    await leonardo.click()
+    await expect(ask).toContainText('Leonardo')
+    await expect(ask).toContainText('1')
+    await expect(page.locator('ion-alert')).toHaveCount(0)
+    await expect(strip.getByTestId(`for-whom-summary-${ITEM}`)).toHaveCount(0)
 
     // Cancelling is the positive signal: the removal is a decision, not a side
-    // effect of tapping the checkbox.
-    await alert.getByRole('button', { name: /Abbrechen|Cancel/ }).click()
-    await expect(alert).toBeHidden()
-    await expect(page.getByTestId('membership-qty-Leonardo')).toHaveText('2')
+    // effect of tapping the avatar.
+    await strip.getByTestId(`for-whom-no-${ITEM}`).click()
+    await expect(ask).toHaveCount(0)
+    await expect(leonardo).toHaveAttribute('aria-pressed', 'true')
+    await expect(child).toContainText('1/2')
 
-    await page.getByTestId('membership-check-Leonardo').click()
-    await page
-      .locator('ion-alert')
-      .getByRole('button', { name: /Bestätigen|Confirm/ })
-      .click()
-    await expect(page.getByTestId('membership-qty-Leonardo')).toHaveCount(0)
-    await closeAll(page)
+    await leonardo.click()
+    await strip.getByTestId(`for-whom-yes-${ITEM}`).click()
+    await expect(leonardo).toHaveAttribute('aria-pressed', 'false')
+    await expect(child).toHaveCount(0)
 
     // Two left — Andy's 2 and Mia's 1, which is what the head reports (FR-25.22).
     await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/3')
 
     // Mia's row carries nothing — no progress, no thread, no todo — so it is
-    // written without a question. The disappearing amount is the positive
-    // signal; the absent alert is what proves the question is raised by cost
-    // and not by the control.
-    await openMembership(page, ITEM, 'Andy')
-    await page.getByTestId('membership-check-Mia').click()
-    await expect(page.getByTestId('membership-qty-Mia')).toHaveCount(0)
-    await expect(page.locator('ion-alert')).toBeHidden()
-    await closeAll(page)
+    // written without a question. The unlit toggle is the positive signal; the
+    // absent question is what proves it is raised by cost and not by the
+    // control. The strip is still open: the item went from a cluster to a lone
+    // row under it and the strip followed (FR-25.28).
+    const mia = visiblePage(page).getByTestId(`for-whom-${ITEM}-Mia`)
+    await mia.click()
+    await expect(mia).toHaveAttribute('aria-pressed', 'false')
+    await expect(visiblePage(page).getByTestId(`for-whom-ask-${ITEM}`)).toHaveCount(0)
 
     // One member left: FR-25.1's flat fallback (E2E-M4-13) — an ordinary row
     // carrying the person's name, not a one-child cluster. Both halves are the
@@ -269,11 +233,10 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
   }) => {
     await seedTrip(page)
 
-    await openMembership(page, ITEM)
-    await page.getByTestId('membership-per-person').click()
-    await setMember(page, 'Andy', 2)
-    await setMember(page, 'Leonardo', 3)
-    await closeAll(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 2)
+    await setMemberInM5(page, 'Leonardo', 3)
+    await closeItem(page)
 
     // A preparation todo on Leonardo's row (FR-7.3). It makes his the survivor
     // — content leads the ladder — and it is the thing ADR-036's keep-and-repoint
@@ -289,16 +252,11 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    await openMembership(page, ITEM, 'Leonardo')
-    await page.getByTestId('membership-shared').click()
-    const alert = page.locator('ion-alert')
-    await expect(alert).toBeVisible()
+    const strip = await openForWhom(page, ITEM)
+    await strip.getByTestId(`for-whom-shared-${ITEM}`).click()
     // The sum, stated before it is written — not the largest.
-    await expect(alert).toContainText('5')
-    await alert.getByRole('button', { name: /Bestätigen|Confirm/ }).click()
-
-    await expect(page.getByTestId('membership-summary')).toContainText('5')
-    await closeAll(page)
+    await expect(strip.getByTestId(`for-whom-ask-${ITEM}`)).toContainText('5')
+    await visiblePage(page).getByTestId(`for-whom-yes-${ITEM}`).click()
 
     await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toHaveCount(0)
     await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toContainText('0/5')
@@ -310,14 +268,110 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
 })
 
 /**
- * FR-25.8 — the quick-add's own per-person path (E2E-M4-12 + E2E-M4-58).
+ * FR-25.28 — who an item is for, answered on the row.
+ *
+ * What these two cases hold is the part no unit can see: that the strip is a
+ * line of the *list*, that it survives the row under it turning into a cluster
+ * and back, and that the whole decision is made without a sheet ever opening.
+ */
+test.describe('FR-25.28 the for-whom strip on the row @local @m4', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M4-100: the seat unfolds a strip that follows its item from row to cluster', async ({
+    page,
+  }) => {
+    const OTHER = 'Sonnencreme'
+    await seedTrip(page)
+    await page.getByTestId('quick-add-input').locator('input').fill(OTHER)
+    await page.getByTestId('quick-add-confirm').click()
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('quick-add-input')).toBeHidden()
+
+    const list = visiblePage(page)
+    const strip = await openForWhom(page, ITEM)
+    await expect(strip.getByTestId(`for-whom-shared-${ITEM}`)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(strip.getByTestId(`for-whom-summary-${ITEM}`)).toContainText(/Gemeinsam|Shared/)
+
+    // One traveler: FR-25.1's flat fallback, named for its person — and the
+    // strip is still there, under a row that is no longer the same row kind.
+    await lightTraveler(page, ITEM, 'Andy')
+    await expect(list.getByTestId(`m4-row-${ITEM}`)).toContainText(`${ITEM} · Andy`)
+    await expect(strip).toBeVisible()
+
+    // Two: the row is a cluster now, a different element under a different
+    // key — and the strip is open under its head, without a second tap.
+    await lightTraveler(page, ITEM, 'Mia')
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toBeVisible()
+    await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
+    await expect(strip).toBeVisible()
+    await expect(strip.getByTestId(`for-whom-shared-${ITEM}`)).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    // The seat counts who it is for; the faces are the child rows.
+    await expect(list.getByTestId(`for-whom-seat-${ITEM}`)).toHaveText('2')
+    // No sheet was involved in any of it.
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    await expect(page.locator('ion-alert')).toHaveCount(0)
+
+    // At most one strip: another row's seat moves it rather than adding one.
+    await list.getByTestId(`for-whom-seat-${OTHER}`).click()
+    await expect(list.getByTestId(`for-whom-strip-${OTHER}`)).toBeVisible()
+    await expect(strip).toHaveCount(0)
+
+    // And the seat that opened it folds it.
+    await list.getByTestId(`for-whom-seat-${OTHER}`).click()
+    await expect(list.getByTestId(`for-whom-strip-${OTHER}`)).toHaveCount(0)
+  })
+
+  /*
+   * FR-25.28's narrowing of FR-25.21 (iii). Progress is put on the row first,
+   * because that is what a silent path could lose: the row is re-pointed, not
+   * deleted, so the count has to come back on the shared row.
+   */
+  test('E2E-M4-101: the last traveler leaving makes it gemeinsam, silently, progress kept', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('quick-add-input')).toBeHidden()
+
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Leonardo', 3)
+    await closeItem(page)
+    const list = visiblePage(page)
+    const lone = list.getByTestId(`m4-row-${ITEM}`)
+    await lone.getByTestId('row-plus').click()
+    await expect(lone).toContainText('1/3')
+
+    const strip = await openForWhom(page, ITEM)
+    await strip.getByTestId(`for-whom-${ITEM}-Leonardo`).click()
+
+    await expect(strip.getByTestId(`for-whom-shared-${ITEM}`)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(strip.getByTestId(`for-whom-ask-${ITEM}`)).toHaveCount(0)
+    await expect(lone).toContainText('1/3')
+    await expect(lone).not.toContainText('Leonardo')
+  })
+})
+
+/**
+ * FR-25.8 / FR-25.28 — the quick-add's own per-person path (E2E-M4-12 +
+ * E2E-M4-58).
  *
  * The two spec entries name one rendered outcome and this case asserts every
- * clause of both: the `0/2` head M4-12 asks for, the absence of a second
- * top-level row wearing the name — the 2026-08-07 regression, where each row
- * was individually right and only the grouping was wrong — and M4-58's
- * differing amounts on rows that have no `source_item_id`, which is what makes
- * this the case that proves the folded-name cluster key.
+ * clause of both: the head M4-12 asks for, the absence of a second top-level
+ * row wearing the name — the 2026-08-07 regression, where each row was
+ * individually right and only the grouping was wrong — and M4-58's differing
+ * amounts on rows that have no `source_item_id`, which is what makes this the
+ * case that proves the folded-name cluster key.
  */
 test.describe('FR-25.8 per-person quick-add @local @m4', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -330,23 +384,48 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
 
-    await page.getByTestId('quick-add-mode-per-person').click()
+    // FR-25.28: who the add is for is said over the field, before it.
+    const forWhom = page.getByTestId('quick-add-for-whom-summary')
+    await expect(page.getByTestId('for-whom-shared-quick-add')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await lightTraveler(page, 'quick-add', 'Andy')
+    await lightTraveler(page, 'quick-add', 'Leonardo')
+    await expect(forWhom).toContainText('2')
     await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
     await page.getByTestId('quick-add-confirm').click()
 
-    // The mode is the answer to which tab this is: the editor opens on the
-    // roster, and the first check is what fans the row out.
-    await expect(page.getByTestId('membership-sheet')).toBeVisible()
-    await expect(page.getByTestId('membership-check-Andy')).toBeVisible()
-    await setMember(page, 'Andy', 2)
-    await setMember(page, 'Leonardo', 3)
-    await page.getByTestId('membership-close').click()
-    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+    // No editor follows the add: the cluster is simply there, and the composer
+    // still holds the choice for the next row of the run.
+    await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toBeVisible()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    await expect(page.getByTestId('for-whom-quick-add-Andy')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('quick-add-input')).toBeHidden()
+
+    // Both arrive at one; the differing amounts are set where M5 carries a
+    // stepper per person — on rows that have no master item behind them.
+    await openCluster(page, ITEM)
+    await visiblePage(page).getByTestId(`m4-child-${ITEM}-Andy`).click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    for (const [name, clicks] of [
+      ['Andy', 1],
+      ['Leonardo', 2],
+    ] as const) {
+      for (let n = 0; n < clicks; n += 1) {
+        await page.getByTestId(`for-whom-plus-${FOR_WHOM_M5}-${name}`).click()
+        await expect(m5Amount(page, name)).toHaveText(String(n + 2))
+      }
+    }
+    await closeItem(page)
 
     const list = visiblePage(page)
-    // FR-25.23: shut, the head answers in open units; the done/total the rest
-    // of this case is about is what it says once it is open.
-    await openCluster(page, ITEM)
+    // The cluster was opened above; open, its head says done/total.
     await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/5')
     await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toContainText('0/2')
     await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
@@ -357,20 +436,20 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(
       list.getByTestId(`m4-child-${ITEM}-Leonardo`).getByTestId('row-plus'),
     ).toBeVisible()
-    // Mia was never checked, so she has no row at all — a quantity of 0 would
+    // Mia was never lit, so she has no row at all — a quantity of 0 would
     // be FR-5.5's *skipped*, which is a different statement (FR-25.21).
     await expect(list.getByTestId(`m4-child-${ITEM}-Mia`)).toHaveCount(0)
     // The name is not repeated as a top-level row beside the cluster.
     await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
   })
 
-  test('E2E-M4-64: with nobody to distribute over, the mode is absent (G-8)', async ({ page }) => {
+  test('E2E-M4-64: with nobody to distribute over, the strip is absent (G-8)', async ({ page }) => {
     await createTripViaWizard(page, { name: 'Solo', travelers: ['Andy'] })
     await openQuickAdd(page)
 
     // Not disabled — absent. There is no membership to distribute, and a
     // control that can only say one thing is worse than no control.
-    await expect(page.getByTestId('quick-add-mode-per-person')).toHaveCount(0)
+    await expect(page.getByTestId('quick-add-for-whom')).toHaveCount(0)
     await expect(page.getByTestId('quick-add-input')).toBeVisible()
   })
 
@@ -408,7 +487,6 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(row.getByTestId('browse-assign-Leonardo')).toHaveClass(/selected/)
     await expect(row.getByTestId('browse-assign-Mia')).toHaveClass(/selected/)
     await expect(sheet).toBeVisible()
-    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
 
     await sheet.getByTestId('browse-close').click()
     await expect(sheet).toHaveCount(0)
@@ -461,7 +539,15 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(list.getByTestId('m4-row-Sonnenhut')).toHaveCount(0)
   })
 
-  test('E2E-M4-65: a per-person add from the browse-sheet closes it first', async ({ page }) => {
+  /*
+   * E2E-M4-65 is retired with the promise it held: a per-person add from the
+   * browse-sheet had to close the sheet first, because the membership editor
+   * that followed was a modal that rendered behind it. No editor follows any
+   * more (FR-25.28). What replaces it is the opposite rule, below.
+   */
+  test('E2E-M4-102: a browse-sheet add is deaf to the strip and the sheet stays up', async ({
+    page,
+  }) => {
     await page.goto(PATH.items)
     await page.getByTestId('m9-fab').click()
     await page.getByTestId('m10-name').locator('input').fill('Sonnenhut')
@@ -470,20 +556,23 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
 
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-mode-per-person').click()
+    await lightTraveler(page, 'quick-add', 'Andy')
     await visiblePage(page).getByTestId('quick-add-browse-open').click()
     const sheet = page.getByTestId('inventory-browse-sheet')
     await expect(sheet).toBeVisible()
     await sheet.getByTestId('browse-row').filter({ hasText: 'Sonnenhut' }).click()
 
-    // The sheet is gone rather than merely covered, and the editor is
-    // *operable*: a modal presented under it renders behind it, greyed, and
-    // the click below is what tells the two apart — a visible-only assertion
-    // passes against the broken build.
+    // One door per surface: the sheet's lines answer *for whom* themselves
+    // (FR-25.13g/h), so a tap there must not obey a control the sheet is
+    // covering. The shared row is the positive signal that the add landed —
+    // the absent `· Andy` is read against it.
+    await expect(sheet).toBeVisible()
+    await sheet.getByTestId('browse-close').click()
     await expect(sheet).toHaveCount(0)
-    await expect(page.getByTestId('membership-sheet')).toBeVisible()
-    await page.getByTestId('membership-check-Andy').click()
-    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
+    const added = visiblePage(page).getByTestId('m4-row-Sonnenhut')
+    await expect(added).toBeVisible()
+    await expect(added).not.toContainText('Andy')
+    await expect(visiblePage(page).getByTestId('m4-cluster-Sonnenhut')).toHaveCount(0)
   })
 
   /**
@@ -617,7 +706,6 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
 
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-mode-per-person').click()
     await visiblePage(page).getByTestId('quick-add-browse-open').click()
     const sheet = page.getByTestId('inventory-browse-sheet')
     await sheet
@@ -625,30 +713,37 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
       .filter({ hasText: ITEM })
       .getByTestId('browse-skip')
       .click()
+    await sheet.getByTestId('browse-close').click()
+    await expect(sheet).toHaveCount(0)
+    // Not Escape: the sheet's teardown leaves focus outside the composer.
+    await page.getByTestId('quick-add-close').click()
+    await expect(page.getByTestId('quick-add-input')).toBeHidden()
 
-    await expect(page.getByTestId('membership-sheet')).toBeVisible()
-    await page.getByTestId('membership-check-Andy').click()
+    // A skipped row is a done row (FR-25.2), so it is revealed first.
+    await page.getByTestId('m4-done-bar').click()
+    const strip = await openForWhom(page, ITEM)
+    const andy = strip.getByTestId(`for-whom-${ITEM}-Andy`)
+    await andy.click()
 
-    // The decision is undone as a side effect of a checkbox, so it is asked —
-    // and cancelling is the positive signal that the question is a gate: the
-    // amount does not appear.
-    const alert = page.locator('ion-alert')
-    await expect(alert).toBeVisible()
-    await expect(alert).toContainText(ITEM)
-    await alert.getByRole('button', { name: /Abbrechen|Cancel/ }).click()
-    await expect(page.getByTestId('membership-qty-Andy')).toHaveCount(0)
-    // The dismissed alert has to be *closed*, not merely answered — the
-    // element stays in the DOM either way. A second one opening while the
-    // first tears down ends up under the modal, and its buttons take no clicks.
-    await expect(alert).toBeHidden()
+    // The decision is undone as a side effect of a toggle, so it is asked —
+    // in the strip — and cancelling is the positive signal that the question
+    // is a gate: the avatar stays unlit.
+    const ask = strip.getByTestId(`for-whom-ask-${ITEM}`)
+    await expect(ask).toContainText(ITEM)
+    await strip.getByTestId(`for-whom-no-${ITEM}`).click()
+    await expect(ask).toHaveCount(0)
+    await expect(andy).toHaveAttribute('aria-pressed', 'false')
 
-    await page.getByTestId('membership-check-Andy').click()
-    await page
-      .locator('ion-alert')
-      .getByRole('button', { name: /Bestätigen|Confirm/ })
-      .click()
-    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
-    await page.getByTestId('membership-close').click()
+    await andy.click()
+    // The button names what it does (FR-25.28), never *OK*.
+    await expect(strip.getByTestId(`for-whom-yes-${ITEM}`)).toHaveText(
+      /Doch einpacken|Pack it after all/,
+    )
+    await strip.getByTestId(`for-whom-yes-${ITEM}`).click()
+    await expect(visiblePage(page).getByTestId(`for-whom-${ITEM}-Andy`)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
 
     // On the list, not hidden as a done row.
     await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toContainText(`${ITEM} · Andy`)
@@ -670,11 +765,10 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
   }) => {
     await seedTrip(page)
 
-    await openMembership(page, ITEM)
-    await page.getByTestId('membership-per-person').click()
-    await setMember(page, 'Andy', 1)
-    await setMember(page, 'Leonardo', 1)
-    await closeAll(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 1)
+    await closeItem(page)
 
     const list = visiblePage(page)
     await openCluster(page, ITEM)
@@ -713,11 +807,10 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
   }) => {
     await seedTrip(page)
 
-    await openMembership(page, ITEM)
-    await page.getByTestId('membership-per-person').click()
-    await setMember(page, 'Andy', 2)
-    await setMember(page, 'Leonardo', 3)
-    await closeAll(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 2)
+    await setMemberInM5(page, 'Leonardo', 3)
+    await closeItem(page)
 
     const list = visiblePage(page)
     const head = list.getByTestId(`m4-cluster-${ITEM}`)
@@ -768,11 +861,10 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
   }) => {
     await seedTrip(page)
 
-    await openMembership(page, ITEM)
-    await page.getByTestId('membership-per-person').click()
-    await setMember(page, 'Andy', 1)
-    await setMember(page, 'Leonardo', 1)
-    await closeAll(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 1)
+    await closeItem(page)
 
     const list = visiblePage(page)
     const head = list.getByTestId(`m4-cluster-${ITEM}`)

@@ -15,7 +15,7 @@ import {
 import type { Locator, Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
-import { chooseInRowMenu, openCluster, openRowMenu, packRow } from './helpers/m4'
+import { chooseInRowMenu, lightTraveler, openCluster, openRowMenu, packRow } from './helpers/m4'
 import { backToInventory, createItem } from './helpers/m9'
 
 /**
@@ -1798,17 +1798,12 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await createTripViaWizard(page, TRIP)
     await quickAdd(page, ['Velohelme'])
 
-    // The per-person path, with exactly one person checked — which is what
+    // The per-person path, with exactly one person lit — which is what
     // produces a flat row rather than a cluster.
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-mode-per-person').click()
+    await lightTraveler(page, 'quick-add', 'Andy')
     await page.getByTestId('quick-add-input').locator('input').fill('Wanderstöcke')
     await page.getByTestId('quick-add-confirm').click()
-    await expect(page.getByTestId('membership-sheet')).toBeVisible()
-    await page.getByTestId('membership-check-Andy').click()
-    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
-    await page.getByTestId('membership-close').click()
-    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
 
     const list = visible(page)
     const perPerson = list.getByTestId('m4-row-Wanderstöcke')
@@ -1850,16 +1845,9 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await quickAdd(page, ['Velohelme'])
 
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-mode-per-person').click()
+    for (const who of ['Andy', 'Sia']) await lightTraveler(page, 'quick-add', who)
     await page.getByTestId('quick-add-input').locator('input').fill('Regenjacke')
     await page.getByTestId('quick-add-confirm').click()
-    await expect(page.getByTestId('membership-sheet')).toBeVisible()
-    for (const who of ['Andy', 'Sia']) {
-      await page.getByTestId(`membership-check-${who}`).click()
-      await expect(page.getByTestId(`membership-qty-${who}`)).toHaveText('1')
-    }
-    await page.getByTestId('membership-close').click()
-    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
 
     const list = visible(page)
     const nameX = async (locator: Locator, selector: string) =>

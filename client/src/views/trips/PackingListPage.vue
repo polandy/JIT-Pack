@@ -38,7 +38,6 @@ import {
   IonRefresherContent,
   IonFab,
   IonFabButton,
-  IonModal,
   IonPopover,
   actionSheetController,
 } from '@ionic/vue'
@@ -81,7 +80,7 @@ import PackingRow, {
   type PackingRowNotes,
   type RowEdgeAvatar,
 } from '@/components/trips/PackingRow.vue'
-import MembershipSheet from '@/components/trips/MembershipSheet.vue'
+import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
@@ -113,7 +112,12 @@ import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
 import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
 import type { AddedItemDecision } from '@/sync/mutations'
-import { buildPackingView, type PackingCluster, rowEdgeAvatar } from '@/domain/packingView'
+import {
+  buildPackingView,
+  type PackingCluster,
+  type PackingEntry,
+  rowEdgeAvatar,
+} from '@/domain/packingView'
 import { avatarAssignable, rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
 import {
   clusterFanOut,
@@ -141,7 +145,11 @@ import { removalNeedsConfirm } from '@/domain/rowRemoval'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { SPREAD } from '@/composables/sync/actions/packing'
-import { rowsCarryingContent } from '@/domain/membership'
+import {
+  MIN_TRAVELERS_FOR_PER_PERSON,
+  membershipKey,
+  rowsCarryingContent,
+} from '@/domain/membership'
 import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
@@ -384,6 +392,59 @@ const openPrepItems = computed(() => tripStore.itemsWithOpenPrep(props.tripId))
  */
 function masterOf(item: TripItem): MasterItem | null {
   return (item.source_item_id ? masterStore.getItem(item.source_item_id) : undefined) ?? null
+}
+
+// --- FR-25.28: who an item is for, answered on the row -------------------
+
+/**
+ * The list carries the *who* column where there is a membership to distribute
+ * (G-8) and not in FR-9.3's closing pass, which reviews what was taken along
+ * and offers no assignment either.
+ */
+const seatColumn = computed(
+  () => travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON && !closingPass.value,
+)
+
+/**
+ * Which item's strip is open — at most one, so working down a list costs one
+ * tap per row to move on. Held by {@link membershipKey} rather than by a row
+ * id: the first traveler turns a row into a cluster and the last one turns it
+ * back, and the strip has to stay open across both.
+ */
+const forWhomKey = ref<string | null>(null)
+
+function forWhomKeyOf(entry: PackingEntry): string | null {
+  if (entry.kind === 'item') return membershipKey(entry.item)
+  const instance = allItems.value.find((i) => i.id === entry.instanceIds[0])
+  return instance ? membershipKey(instance) : null
+}
+
+/**
+ * The entry the open strip hangs under: the first one of that item in list
+ * order. Grouped by traveler, one item is several rows in several groups, and
+ * a strip under each would be one control drawn N times.
+ */
+const forWhomAnchor = computed<PackingEntry | null>(() => {
+  if (forWhomKey.value === null || !seatColumn.value) return null
+  for (const group of view.value.groups) {
+    for (const entry of group.entries) {
+      if (forWhomKeyOf(entry) === forWhomKey.value) return entry
+    }
+  }
+  return null
+})
+
+function forWhomOpenOn(entry: PackingEntry): boolean {
+  return forWhomAnchor.value === entry
+}
+
+function seatFor(entry: PackingEntry): { open: boolean } | null {
+  return seatColumn.value ? { open: forWhomOpenOn(entry) } : null
+}
+
+function toggleForWhom(entry: PackingEntry) {
+  const key = forWhomKeyOf(entry)
+  forWhomKey.value = forWhomKey.value === key ? null : key
 }
 
 /**
@@ -1213,8 +1274,23 @@ function onZero(item: TripItem) {
  *  the setting can change while the screen is open. */
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
-/** Collapse a leaving row to zero height — the rules are in `collapseRow`. */
+/**
+ * Collapse a leaving row to zero height — the rules are in `collapseRow`.
+ *
+ * **Except where the row is not leaving at all** (FR-25.28): lighting a second
+ * traveler turns a row into a cluster under a new key, so the list sees one
+ * entry go and another arrive. Animated, the old row and its strip stood beside
+ * their own replacement for the length of the collapse — the item named twice
+ * and the control drawn twice. The item whose strip is open is still on the
+ * list, so its old shape goes at once; a row that is packed away while its
+ * strip is open has no anchor left and collapses like any other.
+ */
 function onRowLeave(el: Element, done: () => void) {
+  const key = (el as HTMLElement).dataset.forWhomKey
+  if (key !== undefined && key === forWhomKey.value && forWhomAnchor.value !== null) {
+    done()
+    return
+  }
   collapseRow(el as HTMLElement, done, reducedMotion.matches)
 }
 
@@ -1251,17 +1327,6 @@ function togglePrepTodo(todo: ItemTodo) {
 }
 
 /**
- * FR-25.8: an item quick-added *pro Person* opens the membership editor on the
- * row that was just written, and checking the travelers is what fans it out.
- * The row exists first on purpose — the editor edits rows, and an editor that
- * had to work on a draft would be a second implementation of the rules
- * `domain/membership.ts` already owns (invariant 4). The accepted cost is that
- * an abandoned flow leaves an ordinary shared row behind, which is what the
- * user asked for in the first place.
- */
-const membershipItemId = ref<string | null>(null)
-
-/**
  * FR-25.13f: how to take back what the browse-sheet last did, keyed by the
  * master item its line stands for.
  *
@@ -1283,17 +1348,31 @@ function quickAddOptions(item: BrowseAddition) {
   }
 }
 
-function onQuickAdd(item: BrowseAddition & { perPerson: boolean }, decided?: AddedItemDecision) {
+/**
+ * FR-25.28: a composer add is for whoever the strip over the field names — no
+ * traveler is a shared row, as it always was. It goes through the same action
+ * FR-25.13h's avatar buttons use, called with no existing rows, so an add for
+ * two people and a browse-sheet pick of the same two write identical rows. A
+ * decided add (FR-25.13f) only ever comes from the browse-sheet, which answers
+ * *for whom* per line and sends no travelers here.
+ */
+function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }, decided?: AddedItemDecision) {
   const opts = quickAddOptions(item)
   const { id: addedId, companions } = decided
     ? orchestrator.addDecidedItem(props.tripId, item.name, opts, active.value, decided)
-    : orchestrator.quickAddItem(props.tripId, item.name, opts, active.value)
+    : orchestrator.setTravelerAssignment(
+        props.tripId,
+        item.name,
+        opts,
+        active.value,
+        [],
+        item.travelerIds,
+      )
   // Only a row that came from the inventory has a line to offer the undo on;
   // a typed name is not in the sheet at all.
   if (item.sourceItemId) {
     browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
   }
-  if (item.perPerson) membershipItemId.value = addedId
   announceCompanions(companions)
 }
 
@@ -1732,7 +1811,11 @@ setHeaderTitle(
             >
               <!-- FR-25.1: a per-person item is named once, with one child
                    row per traveler under it. -->
-              <div v-if="entry.kind === 'cluster'" class="cluster">
+              <div
+                v-if="entry.kind === 'cluster'"
+                class="cluster"
+                :data-for-whom-key="forWhomKeyOf(entry)"
+              >
                 <ClusterHead
                   :name="entry.name"
                   :mode="entry.mode"
@@ -1743,11 +1826,21 @@ setHeaderTitle(
                   :collapsed="entry.collapsed"
                   :faces="entry.faces"
                   :master="clusterMaster(entry)"
+                  :seat="seatFor(entry)"
+                  @for-whom="toggleForWhom(entry)"
                   @toggle="toggleCluster(entry.key)"
                   @menu="openClusterMenu(entry)"
                   @press-start="(e: PointerEvent) => clusterHold.down(entry, e.clientX, e.clientY)"
                   @press-move="(e: PointerEvent) => clusterHold.move(e.clientX, e.clientY)"
                   @press-end="clusterHold.cancel()"
+                />
+
+                <ForWhomStrip
+                  v-if="forWhomOpenOn(entry)"
+                  :trip-id="tripId"
+                  :item-id="entry.instanceIds[0] ?? ''"
+                  :participants="participants"
+                  :test-key="entry.name"
                 />
 
                 <div v-if="!entry.collapsed" class="cluster-children">
@@ -1765,6 +1858,7 @@ setHeaderTitle(
                     :traveler="child.traveler"
                     :edge-avatar="edgeAvatarFor(child.item)"
                     :assignable="assignableRow(child.item)"
+                    :seat-column="seatColumn"
                     @assign="onAssignRow(child.item, child.traveler?.name)"
                     @open="openItem(child.item.id)"
                     @menu="openRowMenu(child.item)"
@@ -1796,6 +1890,9 @@ setHeaderTitle(
                 :prep-count="openTodoCount(entry.item.id)"
                 :edge-avatar="edgeAvatarFor(entry.item)"
                 :assignable="assignableRow(entry.item)"
+                :seat="seatFor(entry)"
+                :data-for-whom-key="forWhomKeyOf(entry)"
+                @for-whom="toggleForWhom(entry)"
                 @assign="onAssignRow(entry.item)"
                 @open="openItem(entry.item.id)"
                 @menu="openRowMenu(entry.item)"
@@ -1809,6 +1906,18 @@ setHeaderTitle(
                 @complete="onComplete(entry.item)"
                 @zero="onZero(entry.item)"
                 @toggle="onToggle(entry.item)"
+              />
+              <!-- FR-25.28: the strip unfolds under the row it belongs to, as a
+                   line of the same card. Keyed, because a TransitionGroup
+                   child has to be. -->
+              <ForWhomStrip
+                v-if="entry.kind === 'item' && forWhomOpenOn(entry)"
+                key="for-whom"
+                :data-for-whom-key="forWhomKeyOf(entry)"
+                :trip-id="tripId"
+                :item-id="entry.item.id"
+                :participants="participants"
+                :test-key="entry.item.name"
               />
             </template>
           </TransitionGroup>
@@ -1942,9 +2051,6 @@ setHeaderTitle(
         </IonFabButton>
       </IonFab>
 
-      <!-- FR-25.8: the membership editor over a freshly quick-added row.
-           `locked` is false because the id was minted a moment ago and nobody
-           else can be holding a claim on it yet (G-3). -->
       <!-- FR-25.24: the amount, over the list rather than instead of it —
            the rows around the one being corrected are what makes the number
            decidable. -->
@@ -1968,26 +2074,6 @@ setHeaderTitle(
           />
         </div>
       </IonPopover>
-
-      <IonModal
-        :is-open="membershipItemId !== null"
-        data-testid="m4-membership-modal"
-        @did-dismiss="membershipItemId = null"
-      >
-        <IonContent>
-          <div class="membership-wrap">
-            <MembershipSheet
-              v-if="membershipItemId"
-              :trip-id="tripId"
-              :item-id="membershipItemId"
-              :locked="false"
-              :participants="participants"
-              :start-per-person="true"
-              @close="membershipItemId = null"
-            />
-          </div>
-        </IonContent>
-      </IonModal>
 
       <!-- M5 (UI-Spec M5 + G-9): a sheet on a phone, a side panel on a
            desktop — one content component either way. The sheet is the app's
@@ -2402,11 +2488,5 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   padding: 8px 14px 2px;
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
-}
-
-/* FR-25.8's membership editor, given the same room M5 gives it. */
-.membership-wrap {
-  padding: 16px;
-  overflow-y: auto;
 }
 </style>

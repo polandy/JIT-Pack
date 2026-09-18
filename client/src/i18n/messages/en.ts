@@ -183,28 +183,24 @@ export const en = {
   'packing.removeConfirmCompanions': 'Not packed either: {names}.',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
   // FR-25.21 — "Who needs this?": membership and per-person amounts.
-  'membership.title': 'Who needs this?',
-  'membership.all': 'Everyone on the trip',
+  // FR-25.28 — the for-whom strip: on M4's row, in M5 and over the quick-add.
+  'forWhom.title': 'Who is it for?',
+  'forWhom.seat': 'Who is it for: {item}',
+  'forWhom.all': 'All',
+  'forWhom.verbCollapse': 'Merge',
+  'forWhom.addShared': 'Will be added as a shared row.',
+  'forWhom.addFor': 'Will be added for {n} person, 1 each. | Will be added for {n} people, 1 each.',
   'membership.shared': 'Shared',
-  'membership.perPerson': 'Per person',
-  'membership.hintShared': 'One row for the whole trip.',
-  'membership.hintPerPerson': 'Every checked person gets their own row on their packing list.',
   'membership.summary': '{people} person · {quantity} items | {people} people · {quantity} items',
   'membership.summaryShared': 'Shared · {quantity} items',
-  'membership.rowShared': 'Shared',
-  'membership.rowNobody': 'nobody',
   'membership.lockedBy': '{who} is packing one of these rows right now.',
   'membership.lockedByUnknown': 'Somebody is packing one of these rows right now.',
-  'membership.lockedHint': 'The amounts stay as they are until they are done.',
   'membership.less': 'Fewer for {name}',
   'membership.more': 'More for {name}',
-  'membership.confirmRemoveTitle': 'Remove this row?',
   'membership.confirmRemove':
     '{name} has already packed {packed} of {quantity}. The row leaves the packing list and that progress is lost.',
-  'membership.confirmUnskipTitle': 'Take it along again?',
   'membership.confirmUnskip':
     '“{item}” is marked as left at home. Once {name} gets an amount it is coming along again, and that decision is undone.',
-  'membership.confirmCollapseTitle': 'Share it again?',
   'membership.confirmCollapse':
     '{rows} rows become one with {quantity} items, {packed} of them packed. Notes and preparation todos on {name}\u2019s row stay; the other rows are deleted.',
   // FR-25.24 — the planned amount of a row, editable on M4 and M5.
@@ -579,13 +575,12 @@ export const en = {
 
   // M5 item detail.
   'item.details': 'Details',
-  'item.detailsHint': 'Who · procurement · luggage · flags',
+  'item.detailsHint': 'Procurement · luggage · flags',
   'item.notes': 'Notes',
   'item.addNote': 'Write a note…',
   'item.addPrep': 'Add preparation…',
   'item.flagAsTask': 'Turn into a preparation task',
   'item.companions': 'Belongs with',
-  'item.usedBy': 'Who needs this?',
   'item.assignTo': 'Assign to somebody',
   'item.assignedTo': 'Assigned to',
   'item.assignedToNobody': 'nobody',

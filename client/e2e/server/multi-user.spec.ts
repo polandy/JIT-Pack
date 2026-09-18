@@ -8,7 +8,7 @@ import {
   itemDetail,
   tripAction,
 } from '../fixtures'
-import { openCluster } from '../helpers/m4'
+import { FOR_WHOM_M5, lightTraveler, openCluster } from '../helpers/m4'
 import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
@@ -855,7 +855,7 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
-   * E2E-G3-04 (FR-25.21, G-3): the membership editor is frozen by a claim on
+   * E2E-G3-04 (FR-25.21, G-3): the for-whom strip is frozen by a claim on
    * **any** instance of the item, and says whose.
    *
    * The claim is taken on one child row and the editor is opened from a
@@ -868,7 +868,7 @@ test.describe('Two accounts on one instance @server', () => {
    * The positive signal is the same sheet after Alice gives the row back —
    * a frozen editor and a broken one look identical from outside.
    */
-  test('E2E-G3-04: a claim on one instance freezes the membership editor on another', async ({
+  test('E2E-G3-04: a claim on one instance freezes the for-whom strip on another', async ({
     browser,
   }) => {
     const id = uniq()
@@ -900,30 +900,31 @@ test.describe('Two accounts on one instance @server', () => {
     await openCluster(alice, item)
     await claimRow(alice, `m4-child-${item}-Andy`)
 
-    // Bob opens the editor from Leonardo's row: unclaimed, so M5 itself is
+    // Bob opens M5 from Leonardo's row: unclaimed, so M5 itself is
     // not locked — asserted, because a locked M5 would make the rest of this
     // case prove the old, row-scoped rule instead of the new one.
     const leonardo = visiblePage(bob).getByTestId(`m4-child-${item}-Leonardo`)
     await leonardo.click()
     await expect(bob.getByTestId('m5-sheet')).toBeVisible()
     await expect(bob.getByTestId('m5-lock')).toHaveCount(0)
-    await bob.getByTestId('m5-details').click()
-    await bob.getByTestId('m5-membership').click()
-    await expect(bob.getByTestId('membership-sheet')).toBeVisible()
+    const strip = bob.getByTestId(`for-whom-strip-${FOR_WHOM_M5}`)
+    await expect(strip).toBeVisible()
 
     // G-3, one surface deeper than it used to reach: the reason is on the
     // screen and it carries Alice's name.
-    await expect(bob.getByTestId('membership-lock')).toContainText(ACCOUNT_NAMES.alice)
-    await expect(bob.getByTestId('membership-shared')).toHaveAttribute('disabled', '')
-    await expect(bob.getByTestId('membership-plus-Leonardo')).toHaveAttribute('disabled', '')
+    const lock = bob.getByTestId(`for-whom-lock-${FOR_WHOM_M5}`)
+    const more = bob.getByTestId(`for-whom-plus-${FOR_WHOM_M5}-Leonardo`)
+    await expect(lock).toContainText(ACCOUNT_NAMES.alice)
+    await expect(bob.getByTestId(`for-whom-shared-${FOR_WHOM_M5}`)).toBeDisabled()
+    await expect(more).toBeDisabled()
 
     // FR-5.7: a claim ends by decision. Alice gives the row back, and Bob's
-    // open sheet becomes operable without being reopened.
+    // open strip becomes operable without being reopened.
     await releaseRow(alice, `m4-child-${item}-Andy`)
 
-    await expect(bob.getByTestId('membership-lock')).toHaveCount(0)
-    await bob.getByTestId('membership-plus-Leonardo').click()
-    await expect(bob.getByTestId('membership-qty-Leonardo')).toHaveText('2')
+    await expect(lock).toHaveCount(0)
+    await more.click()
+    await expect(bob.getByTestId(`for-whom-qty-${FOR_WHOM_M5}-Leonardo`)).toHaveText('2')
 
     await ctxAlice.close()
     await ctxBob.close()
@@ -961,8 +962,8 @@ async function claimRow(page: import('@playwright/test').Page, testId: string) {
 }
 
 /**
- * Turn a shared row into an FR-25.1 cluster through the membership editor —
- * the only writer of that shape (FR-25.21).
+ * Turn a shared row into an FR-25.1 cluster through M5's for-whom strip
+ * (FR-25.28).
  */
 async function makePerPerson(
   page: import('@playwright/test').Page,
@@ -971,14 +972,7 @@ async function makePerPerson(
 ) {
   await visiblePage(page).getByTestId(`m4-row-${item}`).click()
   await expect(page.getByTestId('m5-sheet')).toBeVisible()
-  await page.getByTestId('m5-details').click()
-  await page.getByTestId('m5-membership').click()
-  await page.getByTestId('membership-per-person').click()
-  for (const name of travelers) {
-    await page.getByTestId(`membership-check-${name}`).click()
-    await expect(page.getByTestId(`membership-qty-${name}`)).toHaveText('1')
-  }
-  await page.getByTestId('membership-close').click()
+  for (const name of travelers) await lightTraveler(page, FOR_WHOM_M5, name)
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
   await openCluster(page, item)
