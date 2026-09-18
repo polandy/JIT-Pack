@@ -2135,6 +2135,11 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
         .evaluateAll((bars) => bars.map((el) => (el as HTMLElement).dataset['testid'])),
     ).toEqual(['m4-late-bar', 'm4-done-bar'])
 
+    // The undo snackbar from packing Zelt sits over the bars, and a click
+    // that lands while it leaves never toggles the section — the trap of
+    // E2E-M4-93 and E2E-M4-68, dismissed the same way rather than waited out.
+    await page.locator('ion-toast.pack-toast').evaluate((el: HTMLIonToastElement) => el.dismiss())
+    await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
     await bar.click()
     await expect(page.getByTestId('m4-row-Schlüssel')).toBeVisible()
   })
