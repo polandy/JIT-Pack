@@ -9,9 +9,8 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
-import { packRow } from './helpers/m4'
+import { addTripTodo, openTripTodos, packRow } from './helpers/m4'
 import { writesLanded } from './helpers/page'
-import { fillIonic } from './helpers/ionic'
 
 /**
  * M1 — Dashboard (UI-Test-Spec §4, unit "M1 dashboard").
@@ -145,17 +144,13 @@ test.describe('M1 dashboard @local @m1', () => {
   })
 
   /**
-   * E2E-M1-02 (FR-7.3): the prep card, and that ticking a todo on it is a
-   * real resolution rather than a row leaving the screen.
-   *
-   * The card disappearing proves only that this view stopped listing the
-   * todo, which is also what a purely local toggle would look like. So the
-   * case follows the card into the trip it came from and reads M4's prep
-   * badge, which counts *open* preparation off the todos themselves
-   * (FR-7.3's "derived, never stored") — the row still on the list is the
-   * positive signal beside that absence.
+   * E2E-M1-02 (FR-7.3): the prep card lists open todos grouped by item, and
+   * reports them without offering to resolve them — M1 takes no actions
+   * (owner, 2026-09-18). The name is the way in, and resolving there is what
+   * clears the card, which is the positive signal that the card reads the
+   * todos rather than a copy of them.
    */
-  test('E2E-M1-02: the prep card lists open todos by item, and ticking one resolves it', async ({
+  test('E2E-M1-02: the prep card lists open todos by item, and offers nothing to tick', async ({
     page,
   }) => {
     const TODO = 'Akku laden'
@@ -182,17 +177,19 @@ test.describe('M1 dashboard @local @m1', () => {
     // Grouped by item (the FR's own word), not a flat list of task bodies.
     await expect(prep.getByTestId('dashboard-prep-item-Kamera')).toBeVisible()
     await expect(prep.getByTestId(`dashboard-todo-${TODO}`)).toBeVisible()
+    // Reported, not operated: nothing on the card can be ticked.
+    await expect(prep.locator('ion-checkbox')).toHaveCount(0)
 
-    await prep.getByTestId(`dashboard-todo-${TODO}`).locator('ion-checkbox').click()
-
-    // The trip's only open todo is resolved, so the card has nothing left.
+    // Resolved where it lives, the card has nothing left to report.
+    await prep.getByTestId('dashboard-prep-item-Kamera').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await page.getByTestId(`m5-todo-${TODO}`).click()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    await writesLanded(page)
+    await page.goto(PATH.dashboard)
+    await expect(visible(page).getByTestId(`dashboard-trip-${TRIP.name}`)).toBeVisible()
     await expect(visible(page).getByTestId('dashboard-prep')).toHaveCount(0)
-
-    // And it resolved it *on the trip*: M4's badge counts open preparation.
-    await visible(page).getByTestId(`dashboard-trip-${TRIP.name}`).click()
-    await expectTripOpen(page, TRIP.name)
-    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
   })
 
   /**
@@ -333,73 +330,46 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(visible(page).getByTestId('dashboard-delegated')).toHaveCount(0)
   })
 
-  // --- FR-7.4: the trip's own todos ---
-
-  /** Adds a trip todo through the section's own composer. */
-  async function addTripTodo(page: Page, body: string) {
-    const field = visible(page).getByTestId(`trip-todo-input-${TRIP.name}`)
-    await fillIonic(field, body)
-    await field.locator('input').press('Enter')
-    await expect(visible(page).getByTestId(`trip-todo-${body}`)).toBeVisible()
-  }
-
-  /** Reload once every write has landed, so what is read back is the device's. */
-  async function reloadDashboard(page: Page) {
-    await writesLanded(page)
-    await page.reload()
-    await expect(visible(page).getByTestId('dashboard-trip-todos')).toBeVisible()
-  }
+  // --- FR-7.4: the trip's own todos, written in M4 and reported here ---
 
   /**
-   * E2E-M1-10 (FR-7.4): add, tick, reopen and remove a trip todo on M1, each
-   * step read back after a reload.
+   * E2E-M1-10 (FR-7.4): M1 reports every active trip's open trip todos,
+   * read-only, and leads into the trip where they are written.
    *
-   * The tick is followed into a second surface — the trip card's own task
-   * line — because a row leaving the open list is also what a toggle that
-   * wrote nothing would look like. The removal keeps a sibling on the list as
-   * its positive signal, so an empty group cannot pass for a section that
-   * stopped rendering.
+   * Two trips, one with todos and one without: the second's absence from the
+   * card is only an assertion because the first is on it. A resolved todo
+   * leaves the list while the trip's own check counts it, which says the list
+   * filters by state rather than having missed the row.
    */
-  test('E2E-M1-10: a trip todo is added, ticked, reopened and removed on M1', async ({ page }) => {
+  test('E2E-M1-10: M1 lists open trip todos read-only and leads into the trip', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { ...TRIP, name: 'Elba 2026', startDate: '2026-11-02' })
+    await tripAction(page, 'start')
     await activeTripWith(page, ['Zelt'])
-    await page.goto(PATH.dashboard)
-
-    const section = visible(page).getByTestId('dashboard-trip-todos')
-    const status = section.getByTestId(`trip-todos-status-${TRIP.name}`)
-    const cardLine = visible(page).getByTestId(`dashboard-tasks-${TRIP.name}`)
-    // A trip with no todo yet still has its group, because that is where the
-    // first one is typed — and says nothing about being done.
-    await expect(section.getByTestId(`trip-todos-${TRIP.name}`)).toBeVisible()
-    await expect(status).toHaveCount(0)
-    await expect(cardLine).toHaveCount(0)
-
     await addTripTodo(page, 'Water the plants')
     await addTripTodo(page, 'Empty the fridge')
-    await reloadDashboard(page)
-    await expect(status).toHaveText('0 of 2 done')
-    await expect(cardLine).toHaveText('Tasks: 2 open')
+    await visible(page).getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
+    await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveText('1 of 2 done')
+    await writesLanded(page)
 
-    // Tick: the row leaves the open list, and the card's line agrees.
-    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(status).toHaveText('1 of 2 done')
-    await expect(cardLine).toHaveText('Tasks: 1 open')
-    await reloadDashboard(page)
-    await expect(status).toHaveText('1 of 2 done')
+    await page.goto(PATH.dashboard)
+    const card = visible(page).getByTestId('dashboard-trip-todos')
+    const group = card.getByTestId(`trip-todos-${TRIP.name}`)
+    await expect(group.getByTestId(`trip-todos-status-${TRIP.name}`)).toHaveText('1 of 2 done')
+    await expect(group.getByTestId('dashboard-trip-todo-Water the plants')).toBeVisible()
+    await expect(group.getByTestId('dashboard-trip-todo-Empty the fridge')).toHaveCount(0)
+    await expect(card.getByTestId('trip-todos-Elba 2026')).toHaveCount(0)
+    await expect(visible(page).getByTestId(`dashboard-tasks-${TRIP.name}`)).toHaveText(
+      'Tasks: 1 open',
+    )
 
-    // Reopen from the fold: a mis-tap's only undo.
-    await expect(section.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
-    await section.getByTestId(`trip-todos-resolved-${TRIP.name}`).click()
-    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(status).toHaveText('0 of 2 done')
-    await expect(section.getByTestId(`trip-todos-resolved-${TRIP.name}`)).toHaveCount(0)
+    // Reported, not operated: no control on the card.
+    await expect(card.locator('ion-checkbox, ion-input, input, button')).toHaveCount(0)
 
-    // Remove one; its sibling stays.
-    await section.getByTestId('trip-todo-remove-Empty the fridge').click()
-    await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
-    await reloadDashboard(page)
-    await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
-    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await expect(status).toHaveText('0 of 1 done')
+    await group.click()
+    await expectTripOpen(page, TRIP.name)
+    await expect(visible(page).getByTestId('m4-trip-todos')).toBeVisible()
   })
 
   /**
@@ -418,21 +388,28 @@ test.describe('M1 — the three promises @local @m1', () => {
     const hero = visible(page).getByTestId(`dashboard-trip-${TRIP.name}`)
     const share = hero.getByTestId('hero-progress')
     const cardLine = visible(page).getByTestId(`dashboard-tasks-${TRIP.name}`)
-    const status = visible(page).getByTestId(`trip-todos-status-${TRIP.name}`)
 
     // Fully packed, and no trip todo: no task line at all.
     await expect(share).toHaveText('1/1 packed')
     await expect(cardLine).toHaveCount(0)
 
     // An open todo leaves the trip fully packed.
+    await hero.click()
+    await expectTripOpen(page, TRIP.name)
     await addTripTodo(page, 'Water the plants')
+    await page.goto(PATH.dashboard)
     await expect(cardLine).toHaveText('Tasks: 1 open')
     await expect(share).toHaveText('1/1 packed')
 
     // Resolving it changes the task check and nothing else.
+    await hero.click()
+    await expectTripOpen(page, TRIP.name)
+    await openTripTodos(page)
     await visible(page).getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
+    await writesLanded(page)
+    await page.goto(PATH.dashboard)
     await expect(cardLine).toHaveText('Tasks: all done')
-    await expect(status).toHaveText('✓ All tasks done')
     await expect(share).toHaveText('1/1 packed')
 
     // The reverse: unpacking moves the share, the task check stays done.

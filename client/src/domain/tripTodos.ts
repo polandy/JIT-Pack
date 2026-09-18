@@ -23,3 +23,16 @@ export function tripTodoProgress(todos: readonly Pick<TripTodo, 'task_state'>[])
   const done = todos.filter((todo) => todo.task_state === 'resolved').length
   return { open: todos.length - done, done, total: todos.length }
 }
+
+/** The two readings a trip's todos have in words, or none when it has none. */
+export type TripTodoStatus = 'none' | 'open' | 'allDone'
+
+/**
+ * tripTodoStatus names which sentence a trip's todos call for. Three screens
+ * say it — M4's section head, M1's overview and each M1 trip card — so the
+ * rule that "no todos" is silence rather than „all done" lives once.
+ */
+export function tripTodoStatus(progress: TripTodoProgress): TripTodoStatus {
+  if (progress.total === 0) return 'none'
+  return progress.open === 0 ? 'allDone' : 'open'
+}

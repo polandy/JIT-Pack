@@ -400,9 +400,9 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
 
     await page.goto(PATH.dashboard)
     const group = visible(page).getByTestId('trip-todos-Fototour 2026')
-    await expect(group.locator('[data-testid^="trip-todo-remove-"]')).toHaveCount(2)
-    await expect(group.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await expect(group.getByTestId('trip-todo-Empty the fridge')).toBeVisible()
+    await expect(group.locator('[data-testid^="dashboard-trip-todo-"]')).toHaveCount(2)
+    await expect(group.getByTestId('dashboard-trip-todo-Water the plants')).toBeVisible()
+    await expect(group.getByTestId('dashboard-trip-todo-Empty the fridge')).toBeVisible()
     await expect(group.getByTestId('trip-todos-status-Fototour 2026')).toHaveText('0 of 2 done')
   })
 })

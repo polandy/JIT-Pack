@@ -44,8 +44,8 @@ import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
-import TripTodosCard from '@/components/trips/TripTodosCard.vue'
-import { tripTodoProgress } from '@/domain/tripTodos'
+import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
+import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
@@ -188,14 +188,6 @@ const prepTodos = computed(() => {
 
 const totalOpenTodos = computed(() => prepTodos.value.reduce((sum, g) => sum + g.todos.length, 0))
 
-function toggleDashboardTodo(tripId: string, todo: ItemTodo) {
-  if (todo.task_state === 'open') {
-    orchestrator.resolvePrepTodo(tripId, todo)
-  } else {
-    orchestrator.reopenPrepTodo(tripId, todo)
-  }
-}
-
 /**
  * FR-7.4: a trip card's second check, beside its packing progress and never
  * inside it. Null when the trip has no trip todo, so the line is absent
@@ -203,10 +195,10 @@ function toggleDashboardTodo(tripId: string, todo: ItemTodo) {
  */
 function taskLine(trip: Trip): string | null {
   const progress = tripTodoProgress(tripStore.getTripTodos(trip.id))
-  if (progress.total === 0) return null
-  return progress.open === 0
-    ? t('dashboard.taskLineDone')
-    : t('dashboard.taskLineOpen', { n: progress.open })
+  const status = tripTodoStatus(progress)
+  if (status === 'none') return null
+  if (status === 'allDone') return t('dashboard.taskLineDone')
+  return t('dashboard.taskLineOpen', { n: progress.open })
 }
 
 // --- The two cross-trip sections (FR-6.1/6.3, FR-5.1) ---
@@ -405,27 +397,25 @@ async function handleRefresh(event: CustomEvent) {
                 {{ group.itemName }}
                 <span class="prep-trip-label">{{ group.tripName }}</span>
               </button>
-              <IonItem
-                v-for="todo in group.todos"
-                :key="todo.id"
-                lines="none"
-                class="dashboard-item"
-                :data-testid="`dashboard-todo-${todo.body}`"
-              >
-                <IonCheckbox
-                  slot="start"
-                  :checked="false"
-                  @ionChange="toggleDashboardTodo(group.tripId, todo)"
-                />
-                <IonLabel>{{ todo.body }}</IonLabel>
-              </IonItem>
+              <!-- Reported, not operated: M1 takes no actions (owner,
+                   2026-09-18). The name above leads to the row, where the
+                   todo is ticked. -->
+              <ul class="prep-todos">
+                <li
+                  v-for="todo in group.todos"
+                  :key="todo.id"
+                  :data-testid="`dashboard-todo-${todo.body}`"
+                >
+                  {{ todo.body }}
+                </li>
+              </ul>
             </div>
           </div>
         </div>
       </template>
 
-      <!-- FR-7.4: the trip's own todos, for every active trip. -->
-      <TripTodosCard :trips="activeTrips" />
+      <!-- FR-7.4: the trip's own todos, reported; they are written in the trip. -->
+      <TripTodosOverview :trips="activeTrips" />
 
       <!--
         The trip that is next, as a card rather than as a row (FR-21.13).
@@ -692,6 +682,12 @@ async function handleRefresh(event: CustomEvent) {
    role (G-11), because it is the one thing here that is *news*. */
 .dashboard-item.is-new {
   border-inline-start: 3px solid var(--jp-action);
+}
+
+.prep-todos {
+  margin: 0 0 4px;
+  padding-inline-start: 20px;
+  color: var(--ct-subtext1);
 }
 
 .prep-trip-label {
