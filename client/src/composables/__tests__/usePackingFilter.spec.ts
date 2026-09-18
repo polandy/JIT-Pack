@@ -106,12 +106,13 @@ describe('usePackingFilter (FR-25.18)', () => {
     expect(filter.facets.value.mode).toEqual([])
   })
 
-  it('reset clears every facet and both reveal switches', () => {
+  it('reset clears every facet and all three reveal switches', () => {
     const filter = usePackingFilter('trip-1')
     filter.toggleValue('mode', 'pack')
     filter.toggleValue('person', 'tr-sia')
     filter.showDone.value = true
     filter.showOthers.value = true
+    filter.showLate.value = false
 
     filter.reset()
 
@@ -119,6 +120,20 @@ describe('usePackingFilter (FR-25.18)', () => {
     expect(filter.facets.value.person).toEqual([])
     expect(filter.showDone.value).toBe(false)
     expect(filter.showOthers.value).toBe(false)
+    // The one switch whose default is *shown* (FR-25.27): a late-packer row
+    // is not finished with, it is merely not due yet.
+    expect(filter.showLate.value).toBe(true)
+  })
+
+  it('remembers a hidden late-packer set within the session, and forgets it with it', async () => {
+    const first = usePackingFilter('trip-1')
+    first.showLate.value = false
+    await settle()
+
+    expect(usePackingFilter('trip-1').showLate.value).toBe(false)
+
+    sessionStorage.clear()
+    expect(usePackingFilter('trip-1').showLate.value).toBe(true)
   })
 
   it('clears one facet without touching the others', () => {

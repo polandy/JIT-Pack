@@ -119,9 +119,16 @@ export interface SwitchState {
   packedCount: number
   /** FR-25.20's count: rows hidden because they are somebody else's. */
   hiddenOtherCount: number
+  /**
+   * FR-25.27: the one switch that starts *on*, because its rows are not
+   * finished with — they are due on departure day.
+   */
+  showLate: boolean
+  /** FR-25.27's count: the flagged rows, shown or hidden — one number for bar and switch. */
+  lateCount: number
 }
 
-/** Both switches hide a class of rows, so they render from one shape. */
+/** All three switches hide a class of rows, so they render from one shape. */
 export function filterSwitches(state: SwitchState): FilterSwitch[] {
   return [
     {
@@ -137,6 +144,13 @@ export function filterSwitches(state: SwitchState): FilterSwitch[] {
       hint: t('filter.othersHint'),
       on: state.showOthers,
       count: state.hiddenOtherCount,
+    },
+    {
+      key: 'late',
+      label: t('filter.lateLabel'),
+      hint: t('filter.lateHint'),
+      on: state.showLate,
+      count: state.lateCount,
     },
   ]
 }

@@ -232,6 +232,10 @@ export const en = {
   'packing.othersHidden': '{n} item is with {who} · show | {n} items are with {who} · show',
   'packing.othersShown': 'Hide {n} from {who}',
 
+  // FR-25.27 — what is packed on departure day.
+  'packing.lateHidden': 'Show {n} late packer | Show {n} late packers',
+  'packing.lateShown': 'Hide {n} late packer | Hide {n} late packers',
+
   // FR-25.17 — who packed a row, and when.
   'packing.packedBy': 'packed by {who} · {when}',
   'packing.packedByUnknown': 'packed · {when}',
@@ -660,6 +664,8 @@ export const en = {
   'filter.doneHint': 'Show packed items',
   'filter.othersLabel': 'Assigned to others',
   'filter.othersHint': 'Show other people’s items',
+  'filter.lateLabel': 'Late packers',
+  'filter.lateHint': 'Show what is packed on departure day',
 
   'facet.person': 'Person',
   'facet.category': 'Category',

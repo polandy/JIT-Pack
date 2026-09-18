@@ -2766,6 +2766,37 @@ locked.
   **The flag is read over every instance, the write only over the writable ones.** The head paints its ⏰ when any
   instance carries the flag (FR-25.23), so the menu offers *„aus"* only when all of them do — including any a lock is
   keeping it from writing. Otherwise the head would offer to switch on what it is already showing as on.
+* **FR-25.27 (What is packed on departure day gets out of the way — added 2026-09-18, owner request):** the
+  late-packer flag (FR-5.1) said *when* a row is due and changed nothing about where it sat. On a list being worked
+  through now, a row that cannot be dealt with now is an interruption: it is read, skipped over, and read again on the
+  next pass. The flag was already set from the row (FR-25.25) and from a cluster head (FR-25.26); this is what it then
+  does.
+
+  **Two halves, and the first needs no control.** (a) A flagged entry **sinks to the end of its group**, below the rows
+  that can be packed now and above the ones that are done — three tiers in the order the day runs, extending FR-25.2's
+  partition rather than adding a second rule beside it. A cluster sinks as soon as one visible instance is flagged, the
+  same rule its ⏰ follows: a warning that holds for only some children is one the reader misses. (b) A **third reveal
+  switch** in the filter sheet (FR-25.11i), beside *Erledigte* and FR-25.20's, puts them away entirely.
+
+  **The switch is the one that starts *on*.** The other two hide rows that ask nothing of the reader — done, or
+  somebody else's. A late-packer row asks for something, just not yet, so hiding it is something the reader chooses;
+  a screen that did it by itself would be leaving the house without the keys. It is session state per trip like the
+  rest of the filter (FR-25.18), and the *Zurücksetzen* that clears the filter turns it back on.
+
+  **Never silently, and never twice.** A trip with flagged rows carries a reveal bar for them, and while they are
+  hidden the view reports itself as *narrowed* — otherwise a trip whose remainder is all late-packers renders *„alles
+  gepackt"* over rows nobody has touched (FR-25.11e). Bar and switch carry **one number**, the flagged rows the filter
+  lets through, whichever way the switch stands: a count that dropped to zero on reveal would be labelling two
+  different sets with one word (FR-25.22, the defect E2E-M4-69 was written for). The two hiding rules exclude each
+  other's rows from their counts: a row that is both somebody else's and flagged stays hidden whichever bar is tapped,
+  so neither bar may promise it. Picking ⏰ in *Merkmale* **overrides** the switch for exactly those rows, which is
+  FR-25.11l's rule on a second axis — a panel that reports a count and then shows nothing for it is the contradiction
+  both forbid.
+
+  **Why a switch and not a filter value.** *Merkmale* is an including facet: picking ⏰ asks to see those rows and
+  nothing else. Hiding is the opposite ask, and expressing it as a negation would give one axis two meanings and every
+  other facet a question it does not answer. FR-9.3's closing pass is exempt from both halves: it reviews what was
+  taken along, and a late-packer row was taken along like any other.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.

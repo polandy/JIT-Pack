@@ -180,9 +180,8 @@ onMounted(async () => {
 // composable because they outlive this component (FR-25.18): the filter
 // for the session, the grouping durably. The search term deliberately
 // does not — see there.
-const { facets, showDone, showOthers, groupBy, reset, toggleValue, clearFacet } = usePackingFilter(
-  props.tripId,
-)
+const { facets, showDone, showOthers, showLate, groupBy, reset, toggleValue, clearFacet } =
+  usePackingFilter(props.tripId)
 
 const {
   term: search,
@@ -405,6 +404,9 @@ const view = computed(() =>
     search: search.value,
     currentUserId: myUserId.value,
     showOthers: showOthers.value,
+    // FR-9.3's closing pass reviews what was taken along, and a late-packer
+    // row was taken along like any other.
+    showLate: showLate.value || closingPass.value,
     collapsedGroups: collapsedGroups.value,
     expandedClusters: expandedClusters.value,
     itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
@@ -981,8 +983,8 @@ const emptyReason = computed(() => emptyReasonFor(view.value, search.value, hidd
 
 /**
  * FR-25.11e: a reset that leaves part of the narrowing behind re-renders
- * the same empty screen, so this clears all of it — search, facets and
- * both reveal switches.
+ * the same empty screen, so this clears all of it — search, facets and all
+ * three reveal switches.
  */
 function resetNarrowing() {
   search.value = ''
@@ -1001,13 +1003,16 @@ const filterSwitches = computed(() =>
   switchesFor({
     showDone: showDone.value,
     showOthers: showOthers.value,
+    showLate: showLate.value,
     packedCount: view.value.doneCount,
     hiddenOtherCount: view.value.hiddenOtherCount,
+    lateCount: view.value.lateCount,
   }),
 )
 
 function onToggleSwitch(key: string) {
   if (key === 'done') showDone.value = !showDone.value
+  else if (key === 'late') showLate.value = !showLate.value
   else showOthers.value = !showOthers.value
 }
 
@@ -1825,6 +1830,19 @@ setHeaderTitle(
         "
         testid="m4-others-bar"
         @toggle="showOthers = !showOthers"
+      />
+      <!-- FR-25.27: hidden only on request, and never silently — the bar is
+           what keeps „alles gepackt" from covering rows nobody has touched. -->
+      <RevealBar
+        v-if="view.lateCount > 0"
+        :open="showLate"
+        :label="
+          showLate
+            ? t('packing.lateShown', { n: view.lateCount })
+            : t('packing.lateHidden', { n: view.lateCount })
+        "
+        testid="m4-late-bar"
+        @toggle="showLate = !showLate"
       />
 
       <!-- Preparation (FR-7.3): the open todos of the whole trip, resolvable

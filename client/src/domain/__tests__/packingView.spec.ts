@@ -102,6 +102,7 @@ function view(items: TripItem[], over: ViewOptions = {}) {
     search: '',
     currentUserId: ME,
     showOthers: false,
+    showLate: true,
     collapsedGroups: [],
     itemsWithOpenPrep: [],
     ...over,
@@ -513,12 +514,14 @@ describe('facet filtering (FR-25.11c)', () => {
       item({ name: 'Missing', flag_missing: true }),
       prepped,
     ]
+    // Sorted: this case is about which rows the OR lets through, and the
+    // flagged one sinks past the others since FR-25.27.
     expect(
       visibleNames(items, {
         itemsWithOpenPrep: [prepped.id],
         facets: facets({ flag: ['late', 'prep'] }),
-      }),
-    ).toEqual(['Late', 'Camera'])
+      }).sort(),
+    ).toEqual(['Camera', 'Late'])
   })
 
   it('counts an active filter for the badge and reports it as a narrowing (FR-25.11a/e)', () => {
@@ -975,5 +978,98 @@ describe('done entries sink to the end of their group (FR-25.2, 2026-09-06)', ()
     if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
     expect(entry.children.map((c) => c.traveler?.name)).toEqual(['Andy', 'Leo'])
     expect(entry.children.map((c) => c.done)).toEqual([true, false])
+  })
+})
+
+describe('late-packer rows sink, and can be hidden (FR-25.27)', () => {
+  const late = (over: Partial<TripItem> = {}) => item({ late_packer: true, ...over })
+
+  const keys = (over: Partial<TripItem> = {}) => late({ name: 'Schlüssel', ...over })
+
+  const toothbrush = (traveler: Traveler, over: Partial<TripItem> = {}) =>
+    item({
+      name: 'Zahnbürste',
+      source_item_id: 'src-brush',
+      assigned_traveler_id: traveler.id,
+      ...over,
+    })
+
+  it('sinks a late-packer row below the open rows but above the done ones', () => {
+    const rows = [
+      keys(),
+      item({ name: 'Zelt' }),
+      packed({ name: 'Schlafsack' }),
+      item({ name: 'Isomatte' }),
+    ]
+
+    // Three tiers in one order: what is still to do, what is done last,
+    // what needs nothing at all.
+    expect(visibleNames(rows, { showDone: true })).toEqual([
+      'Zelt',
+      'Isomatte',
+      'Schlüssel',
+      'Schlafsack',
+    ])
+  })
+
+  it('leaves a list with nothing flagged exactly as it arrived', () => {
+    // The positive signal that the second partition is not reordering on its
+    // own: the same rows without the flag come back in input order.
+    const rows = [item({ name: 'Zelt' }), item({ name: 'Isomatte' }), item({ name: 'Stirnlampe' })]
+    expect(visibleNames(rows)).toEqual(['Zelt', 'Isomatte', 'Stirnlampe'])
+  })
+
+  it('sinks a cluster as soon as one visible instance is flagged', () => {
+    // Same rule the ⏰ on the head follows: a warning that only holds for
+    // some children is one the reader misses.
+    const rows = [toothbrush(andy, { late_packer: true }), toothbrush(leo), item({ name: 'Zelt' })]
+    expect(visibleNames(rows)).toEqual(['Zelt', 'Zahnbürste', 'Zahnbürste'])
+  })
+
+  it('hides the flagged rows when the switch is off, and says how many', () => {
+    const rows = [keys(), item({ name: 'Zelt' }), late({ name: 'Zahnbürste' })]
+
+    expect(visibleNames(rows, { showLate: false })).toEqual(['Zelt'])
+    expect(view(rows, { showLate: false }).lateCount).toBe(2)
+
+    // The count labels the same set in both directions, like the Erledigte
+    // bar and its switch (FR-25.22): it says what the switch is about, not
+    // which way the switch currently stands.
+    expect(view(rows, { showLate: true }).lateCount).toBe(2)
+    expect(visibleNames(rows, { showLate: true })).toEqual(['Zelt', 'Schlüssel', 'Zahnbürste'])
+  })
+
+  it('does not promise rows another rule is already hiding', () => {
+    // Both hiding rules bite the same row: whichever bar is tapped, the row
+    // stays away, so neither may count it (FR-25.20's rule, mirrored).
+    const both = item({ name: 'Sias Schlüssel', late_packer: true, packer_user_id: 'u-sia' })
+    const result = view([both, item({ name: 'Zelt' })], { showLate: false })
+    expect(result.lateCount).toBe(0)
+    expect(result.hiddenOtherCount).toBe(0)
+  })
+
+  it('a done late-packer row is not offered for revealing either', () => {
+    const rows = [packed({ name: 'Schlüssel', late_packer: true }), item({ name: 'Zelt' })]
+    expect(view(rows, { showLate: false }).lateCount).toBe(0)
+  })
+
+  it('picking ⏰ in the Merkmale facet overrides the switch', () => {
+    // Asking to see exactly those rows and being shown none of them is the
+    // FR-25.11l trap on a second axis.
+    const rows = [keys(), item({ name: 'Zelt' })]
+    const result = view(rows, { showLate: false, facets: facets({ flag: ['late'] }) })
+    expect(
+      result.groups
+        .flatMap((g) => g.entries)
+        .map((e) => (e.kind === 'item' ? e.item.name : e.name)),
+    ).toEqual(['Schlüssel'])
+    expect(result.lateCount).toBe(0)
+  })
+
+  it('reports the list as narrowed while flagged rows are hidden', () => {
+    // Otherwise a list whose remainder is all late-packers renders
+    // "everything is packed" over rows nobody has touched.
+    expect(view([keys()], { showLate: false }).narrowed).toBe(true)
+    expect(view([keys()], { showLate: true }).narrowed).toBe(false)
   })
 })
