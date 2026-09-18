@@ -23,6 +23,7 @@ import type {
   TemplateInclude,
   TemplateItem,
   TemplateItemTask,
+  TemplateTask,
   TripItem,
 } from '@/types/domain'
 import { ITEM_MODE_PACK } from '@/types/domain'
@@ -1145,5 +1146,66 @@ describe('the rows a wizard draft is made of', () => {
 
       expect(items[0]!.quantity).toBe(1)
     })
+  })
+})
+
+/**
+ * FR-7.4: a template's trip tasks become the trip's own todos. They travel
+ * the composition like positions do, and the same chore said twice is one.
+ */
+describe('generateTripItems — trip tasks (FR-7.4)', () => {
+  function tripTask(id: string, templateId: string, text: string): TemplateTask {
+    return { id, template_id: templateId, task: text }
+  }
+
+  it('carries the Vorlage’s and its groups’ tasks, the same text once', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Camping'), group('g2', 'Garten')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1'), include('t1', 'g2')],
+        templateTasks: [
+          tripTask('a', 't1', 'Pflanzen giessen'),
+          tripTask('b', 'g1', 'Gasflasche füllen'),
+          tripTask('c', 'g2', 'Pflanzen giessen'),
+        ],
+      }),
+    )
+
+    // Three written, two chores: a concatenation without the dedup says three.
+    expect(res.tripTasks).toEqual(['Pflanzen giessen', 'Gasflasche füllen'])
+  })
+
+  it('dedups on trimmed text and drops a blank, but keeps a near-miss', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), template('t2', 'Stadt')],
+        templateTasks: [
+          tripTask('a', 't1', 'Pflanzen giessen'),
+          tripTask('b', 't2', '  Pflanzen giessen '),
+          tripTask('c', 't2', '   '),
+          tripTask('d', 't2', 'Pflanzen gießen'),
+        ],
+      }),
+    )
+
+    expect(res.tripTasks).toEqual(['Pflanzen giessen', 'Pflanzen gießen'])
+  })
+
+  it('carries nothing from a template that was not picked or included', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Camping')],
+        selectedTemplateIds: ['t1'],
+        templateTasks: [tripTask('a', 'g1', 'Gasflasche füllen')],
+      }),
+    )
+
+    expect(res.tripTasks).toEqual([])
+  })
+
+  it('is empty when the caller passes no trip tasks at all', () => {
+    const res = generateTripItems(input({ templates: [template('t1', 'Ferien')] }))
+    expect(res.tripTasks).toEqual([])
   })
 })

@@ -125,6 +125,51 @@ items:
     ])
   })
 
+  it('writes the trip tasks of the Vorlage and of a group it brought (FR-7.4)', () => {
+    const { env, recorded } = fakeEnv()
+    const doc = parse(`kind: template
+name: Ferien
+trip_tasks:
+  - Pflanzen giessen
+includes:
+  - name: Camping
+    items: []
+    trip_tasks:
+      - Gasflasche füllen
+items: []
+`)
+
+    importPortableDocument(doc, new Map(), env)
+
+    const templateIds = new Map(
+      recorded
+        .filter((r) => r.table === TABLE.templates)
+        .map((r) => [(r.mutation.fields as Record<string, unknown>)['name'], r.id]),
+    )
+    expect(rowsFor(recorded, TABLE.templateTasks)).toEqual([
+      { template_id: templateIds.get('Ferien'), task: 'Pflanzen giessen' },
+      { template_id: templateIds.get('Camping'), task: 'Gasflasche füllen' },
+    ])
+  })
+
+  it('writes no trip task onto a group that was already here (ADR-017)', () => {
+    const { env, recorded } = fakeEnv({
+      templates: [{ id: 'grp-existing', name: 'Camping', kind: 'group' } as Template],
+    })
+    const doc = parse(`kind: template
+scope: group
+name: Camping
+trip_tasks:
+  - Gasflasche füllen
+items: []
+`)
+
+    const result = importPortableDocument(doc, new Map(), env)
+
+    expect(result.id).toBe('grp-existing')
+    expect(rowsFor(recorded, TABLE.templateTasks)).toEqual([])
+  })
+
   it('links a group of that name instead of leaving a second copy (ADR-017)', () => {
     const { env, recorded } = fakeEnv({
       templates: [{ id: 'grp-existing', name: 'Schuhe', kind: 'group' } as Template],

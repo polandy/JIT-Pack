@@ -4103,16 +4103,20 @@ the tail is where a symbol system is actually decided. Results:
     count showed no prep badge at all. Wherever doneness, the amber "packed with open prep" state, the badge, or the
     *Merkmale* facet ask about preparation, they must ask the todo list.
 
-* **FR-7.4 (Trip Todos — Tasks That Belong to the Trip, Not to an Item) — specified 2026-09-18, owner request, not
-  built.** Some of what has to happen before a holiday has nothing to do with the luggage: *„Elektronische Geräte
+* **FR-7.4 (Trip Todos — Tasks That Belong to the Trip, Not to an Item) — specified and built 2026-09-18, owner
+  request.** Some of what has to happen before a holiday has nothing to do with the luggage: *„Elektronische Geräte
   abschalten"*, *„Pflanzen giessen"*, *„Kühlschrank leeren"*. Until now every task the app could hold hung off a packing
   row (FR-7.3, FR-27.7), so the only way to keep one was a placeholder item — a *„Wohnung"* row on the packing list that
   had to be ticked as if it were packed, and whose open task held back doneness on the packing list for something nobody
   packs. A **trip todo** is a task anchored to the trip itself.
   * **Data model — none new on the trip side.** A trip todo is a `comments` row with `trip_item_id` null and
-    `is_task = 1`: the shape FR-7.1's trip-level comment and FR-7.2's task flag have always allowed together, and that
-    no screen ever wrote. It therefore travels the trip partition, merges field by field (ADR-022), is in the device
-    backup wherever `comments` is, and has its author stamped by the server (invariant 3) — exactly like an FR-7.3 todo.
+    `is_task=1`: the shape FR-7.1's trip-level comment and FR-7.2's task flag have always allowed together, and that no
+    screen ever wrote. It therefore travels the trip partition, merges field by field (ADR-022), is in the server's JSON
+    export with the rest of `comments`, and has its author stamped by the server (invariant 3) — exactly like an FR-7.3
+    todo. The client files it in a list of its own rather than filtering the row todos, so that no packing figure can
+    count it by accident. **Not in the portable file, and so not in Local Mode's backup** — neither kind of todo is, a
+    gap FR-7.3's todos already had and this FR inherits rather than closes. *Revisit trigger:* a Local Mode restore that
+    loses todos somebody missed.
   * **It does not block packing, and „all done" is its own answer.** Trip todos count toward **nothing** the packing
     list measures — not a row's doneness (FR-25.2), not the progress ring, not M2's share, not M4's open-prep KPI, not
     FR-7.3's amber state. A trip whose every row is packed is fully packed while *„Pflanzen giessen"* is still open, and
@@ -4135,8 +4139,9 @@ the tail is where a symbol system is actually decided. Results:
     generation the template's own tasks and those of every included group (FR-27.1) become open trip todos,
     **deduplicated by exact trimmed text** — two groups both saying *„Pflanzen giessen"* give one todo. M3's step 3
     reports the count on its own line, apart from FR-27.7's preparation tasks. They are part of the portable template
-    shape (FR-18.2) as a template-level `tasks` list. The dev seed's Ferien-Vorlage carries two of them, per the
-    standing rule that master-data features extend it.
+    shape (FR-18.2) as a `trip_tasks` list on the template and on each group it carries — a key of its own, because
+    `tasks` already means a position's preparation. The dev seed's Ferien-Vorlage carries two of them, per the standing
+    rule that master-data features extend it.
   * **Deliberate non-features, each with its trigger.** A task edited on a template is **not offered** to trips
     generated from it (FR-27.4 offers position changes only); it reaches the next generated trip. *Trigger:* a Vorlage
     task added and expected on a running trip. Trip todos do **not** flow back into a template, neither by FR-27.5 nor

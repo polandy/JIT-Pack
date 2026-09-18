@@ -31,7 +31,9 @@ Back it up from inside the app:
 3. Tap **Back up now**. You get one YAML file — `jitpack-backup-YYYY-MM-DD.yaml` —
    containing every trip and every template on the device, packing progress included —
    what is packed, and which shopping list a bought item came from, so the shopping
-   screen's *bought* reveal still finds it after a restore.
+   screen's *bought* reveal still finds it after a restore. **Todos are not in it** —
+   neither a trip's own tasks nor an item's preparation todos; a restored trip comes back
+   without them. A template's *tasks for the trip* are, because they belong to the template.
 
 Restore it through the **document icon** in the app bar on the Trips screen (portable import): pick the
 backup file, and the app lists the documents it holds and imports them together. Items are
@@ -345,12 +347,16 @@ includes:
 items:
   - name: First-aid kit
     quantity: 1
+trip_tasks: ["Water the plants"]
 ```
 
 A `scope:` line says which kind of template it is: a `group` (a reusable set of items) or a
 `template` (a holiday template composed of groups). A holiday template carries the groups it
 is made of **whole**, under `includes:`, together with each position's preparation tasks — so
-the file still means something on an instance that has never seen those groups. `icon:` is
+the file still means something on an instance that has never seen those groups.
+`trip_tasks:` lists the template's *tasks for the trip* — chores such as watering the plants
+that every trip generated from it starts with — on the template and on each included group;
+it is left out where there are none. `icon:` is
 the optional mark, on the template, on each group and on each item; it is left out where
 there is none, and a file written before the field existed imports without one.
 

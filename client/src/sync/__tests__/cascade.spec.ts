@@ -61,7 +61,7 @@ describe('cascadeOf', () => {
     expect(names(TABLE.tags, 'g1').sort()).toEqual(['item_tags/a1', 'item_tags/a2'])
   })
 
-  it("takes a template's positions, their tasks, its includes on both sides and its trip sources", () => {
+  it("takes a template's positions, their tasks, its trip tasks, its includes on both sides and its trip sources", () => {
     stores.masterStore.applyChanges([
       row(TABLE.templates, 'tpl1', { name: 'Ferien', kind: 'holiday', owner_id: 'u1' }),
       row(TABLE.templates, 'grp1', { name: 'Makro', kind: 'group', owner_id: 'u1' }),
@@ -75,6 +75,8 @@ describe('cascadeOf', () => {
         late_packer: 0,
       }),
       row(TABLE.templateItemTasks, 'task1', { template_item_id: 'pos1', task: 'Akku laden' }),
+      row(TABLE.templateTasks, 'trip-task1', { template_id: 'tpl1', task: 'Pflanzen giessen' }),
+      row(TABLE.templateTasks, 'trip-task2', { template_id: 'grp1', task: 'Gas prüfen' }),
       row(TABLE.templateIncludes, 'inc1', { template_id: 'tpl1', included_template_id: 'grp1' }),
     ])
     stores.tripStore.applyChanges([
@@ -85,11 +87,13 @@ describe('cascadeOf', () => {
     expect(names(TABLE.templates, 'tpl1')).toEqual([
       'template_item_tasks/task1',
       'template_items/pos1',
+      'template_tasks/trip-task1', // FR-7.4
       'template_includes/inc1',
       'trip_template_sources/src1',
     ])
     // The include vanishes from the *other* side too.
     expect(names(TABLE.templates, 'grp1')).toEqual([
+      'template_tasks/trip-task2',
       'template_includes/inc1',
       'trip_template_sources/src2',
     ])

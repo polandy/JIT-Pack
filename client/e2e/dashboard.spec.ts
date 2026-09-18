@@ -9,6 +9,9 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
+import { packRow } from './helpers/m4'
+import { writesLanded } from './helpers/page'
+import { fillIonic } from './helpers/ionic'
 
 /**
  * M1 — Dashboard (UI-Test-Spec §4, unit "M1 dashboard").
@@ -328,5 +331,122 @@ test.describe('M1 — the three promises @local @m1', () => {
     // the whole reason FR-6.1's personal *filter* was struck.
     await expect(visible(page).getByTestId('dashboard-preview-Zelt')).toBeVisible()
     await expect(visible(page).getByTestId('dashboard-delegated')).toHaveCount(0)
+  })
+
+  // --- FR-7.4: the trip's own todos ---
+
+  /** Adds a trip todo through the section's own composer. */
+  async function addTripTodo(page: Page, body: string) {
+    const field = visible(page).getByTestId(`trip-todo-input-${TRIP.name}`)
+    await fillIonic(field, body)
+    await field.locator('input').press('Enter')
+    await expect(visible(page).getByTestId(`trip-todo-${body}`)).toBeVisible()
+  }
+
+  /** Reload once every write has landed, so what is read back is the device's. */
+  async function reloadDashboard(page: Page) {
+    await writesLanded(page)
+    await page.reload()
+    await expect(visible(page).getByTestId('dashboard-trip-todos')).toBeVisible()
+  }
+
+  /**
+   * E2E-M1-10 (FR-7.4): add, tick, reopen and remove a trip todo on M1, each
+   * step read back after a reload.
+   *
+   * The tick is followed into a second surface — the trip card's own task
+   * line — because a row leaving the open list is also what a toggle that
+   * wrote nothing would look like. The removal keeps a sibling on the list as
+   * its positive signal, so an empty group cannot pass for a section that
+   * stopped rendering.
+   */
+  test('E2E-M1-10: a trip todo is added, ticked, reopened and removed on M1', async ({ page }) => {
+    await activeTripWith(page, ['Zelt'])
+    await page.goto(PATH.dashboard)
+
+    const section = visible(page).getByTestId('dashboard-trip-todos')
+    const status = section.getByTestId(`trip-todos-status-${TRIP.name}`)
+    const cardLine = visible(page).getByTestId(`dashboard-tasks-${TRIP.name}`)
+    // A trip with no todo yet still has its group, because that is where the
+    // first one is typed — and says nothing about being done.
+    await expect(section.getByTestId(`trip-todos-${TRIP.name}`)).toBeVisible()
+    await expect(status).toHaveCount(0)
+    await expect(cardLine).toHaveCount(0)
+
+    await addTripTodo(page, 'Water the plants')
+    await addTripTodo(page, 'Empty the fridge')
+    await reloadDashboard(page)
+    await expect(status).toHaveText('0 of 2 done')
+    await expect(cardLine).toHaveText('Tasks: 2 open')
+
+    // Tick: the row leaves the open list, and the card's line agrees.
+    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(status).toHaveText('1 of 2 done')
+    await expect(cardLine).toHaveText('Tasks: 1 open')
+    await reloadDashboard(page)
+    await expect(status).toHaveText('1 of 2 done')
+
+    // Reopen from the fold: a mis-tap's only undo.
+    await expect(section.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
+    await section.getByTestId(`trip-todos-resolved-${TRIP.name}`).click()
+    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(status).toHaveText('0 of 2 done')
+    await expect(section.getByTestId(`trip-todos-resolved-${TRIP.name}`)).toHaveCount(0)
+
+    // Remove one; its sibling stays.
+    await section.getByTestId('trip-todo-remove-Empty the fridge').click()
+    await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
+    await reloadDashboard(page)
+    await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
+    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    await expect(status).toHaveText('0 of 1 done')
+  })
+
+  /**
+   * E2E-M1-11 (FR-7.4): packing and tasks are two answers, asserted both ways
+   * on one trip.
+   *
+   * „The share did not change" is green on a card that never rendered one, so
+   * every packing assertion here is a before/after pair on the same locator,
+   * and each direction moves exactly one of the two figures.
+   */
+  test('E2E-M1-11: the task check and the packing share move independently', async ({ page }) => {
+    await activeTripWith(page, ['Zelt'])
+    await packRow(page, 'Zelt')
+    await page.goto(PATH.dashboard)
+
+    const hero = visible(page).getByTestId(`dashboard-trip-${TRIP.name}`)
+    const share = hero.getByTestId('hero-progress')
+    const cardLine = visible(page).getByTestId(`dashboard-tasks-${TRIP.name}`)
+    const status = visible(page).getByTestId(`trip-todos-status-${TRIP.name}`)
+
+    // Fully packed, and no trip todo: no task line at all.
+    await expect(share).toHaveText('1/1 packed')
+    await expect(cardLine).toHaveCount(0)
+
+    // An open todo leaves the trip fully packed.
+    await addTripTodo(page, 'Water the plants')
+    await expect(cardLine).toHaveText('Tasks: 1 open')
+    await expect(share).toHaveText('1/1 packed')
+
+    // Resolving it changes the task check and nothing else.
+    await visible(page).getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(cardLine).toHaveText('Tasks: all done')
+    await expect(status).toHaveText('✓ All tasks done')
+    await expect(share).toHaveText('1/1 packed')
+
+    // The reverse: unpacking moves the share, the task check stays done.
+    await hero.click()
+    await expectTripOpen(page, TRIP.name)
+    await visible(page).getByTestId('m4-done-bar').click()
+    await visible(page)
+      .getByTestId('m4-row-Zelt')
+      .getByTestId('row-check')
+      .locator('ion-checkbox')
+      .click()
+    await writesLanded(page)
+    await page.goto(PATH.dashboard)
+    await expect(share).toHaveText('0/1 packed')
+    await expect(cardLine).toHaveText('Tasks: all done')
   })
 })
