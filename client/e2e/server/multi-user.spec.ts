@@ -2,6 +2,7 @@ import {
   test,
   expect,
   createTripViaWizard,
+  expectTripOpen,
   openTripSwipe,
   tripSwipeActions,
   visiblePage,
@@ -925,6 +926,59 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(lock).toHaveCount(0)
     await more.click()
     await expect(bob.getByTestId(`for-whom-qty-${FOR_WHOM_M5}-Leonardo`)).toHaveText('2')
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M3-24 (FR-2.5, FR-4.5): a traveler picked from the accounts in M3 is
+   * a collaborator of the trip at once — no separate share step. The proof is
+   * on Bob's screen: he opens a trip Alice never shared through the roster.
+   */
+  test('E2E-M3-24: an account added as a traveler in the wizard is a member of the new trip', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Wallis ${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    await alice.goto(PATH.newTrip)
+    await alice.getByTestId('wizard-name').locator('input').fill(trip)
+    await alice.getByTestId('wizard-next').click()
+    await expect(alice.getByTestId('wizard-step-2')).toBeVisible()
+
+    await alice.getByTestId('wizard-add-account-traveler').click()
+    await alice
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: ACCOUNT_NAMES.bob })
+      .click()
+    // The row carries the account's name and the role a share would.
+    await expect(alice.getByTestId('wizard-traveler-name').last().locator('input')).toHaveValue(
+      ACCOUNT_NAMES.bob,
+    )
+    await expect(alice.getByTestId('wizard-traveler-role')).toBeVisible()
+
+    await alice.getByTestId('wizard-next').click()
+    await expect(alice.getByTestId('wizard-step-3')).toBeVisible()
+    await alice.getByTestId('wizard-next').click()
+    await expect(alice.getByTestId('wizard-step-4')).toBeVisible()
+    await alice.getByTestId('wizard-create').click()
+    await expectTripOpen(alice, trip)
+    await writesLanded(alice)
+    const tripPath = new URL(alice.url()).pathname
+
+    await alice.goto(`${tripPath}/members`)
+    await expect(visiblePage(alice).getByTestId(`member-row-${ACCOUNT_NAMES.bob}`)).toBeVisible()
+
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    await expectTripOpen(bob, trip)
+    await subscribedBob
 
     await ctxAlice.close()
     await ctxBob.close()

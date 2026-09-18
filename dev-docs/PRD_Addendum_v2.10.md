@@ -4158,6 +4158,18 @@ the tail is where a symbol system is actually decided. Results:
 
 ### 3.4 Multi-User & Collaboration
 
+  * **M3 takes accounts as travellers, 2026-09-18 (owner).** Step 2 of the wizard has an *account* picker beside
+    *Add traveller*: a picked account becomes a traveller named like it (the name stays editable) **and a member of
+    the trip from its first moment**, with the role a share would carry (Editor by default). Sharing is therefore one
+    act for someone who travels, where before it was a second list to fill in; the plain *Share with* list remains
+    for a collaborator who does not travel, and the two never offer the same account twice. Points that settle it:
+    * **The creator is offered too.** They are Owner already, so the row has no role and no membership grant — only
+      the link, for the reason M22 gives.
+    * **The link is written after the generated rows**, as its own mutation, exactly as `addTravelerToTrip` does:
+      inserted already linked, every per-person row FR-27.4 generates would notify the new member of a delegation
+      at the moment the trip is created. The membership grant drains first (master partition), so the server's
+      `not_a_trip_member` check finds the row.
+    * **Absent without accounts** (G-8): Local and Single-User Mode show no picker, as they show no share list.
 * **FR-4.5 (Roles & Permissions):** Trip sharing (FR-4.1) supports three roles: *Owner* (immutable for the trip creator
   — full control: edit trip metadata, add/remove participants, manage roles, delete items, archive the trip, confirm
   Review Assistant write-backs), *Admin* (can add/remove travelers, change roles of non-creator members, edit trip

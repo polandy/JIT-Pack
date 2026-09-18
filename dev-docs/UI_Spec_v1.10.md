@@ -931,7 +931,9 @@ These patterns apply to every screen and are specified once.
   disabled. The step deliberately does **not** attach the trip to that series by itself — the picker right above the
   field already offers it, and quietly choosing whose series a trip joins is not the wizard's decision to make.
 * **Step 2 — Travelers:** Add travelers (name only — the Adult/Child type was removed 2026-08-08 with FR-25.9, FR-2.5),
-  optionally link to a registered user account; share the trip with user accounts and assign roles: Owner (creator,
+  optionally link to a registered user account — **an *account* picker beside *Add traveller* adds an existing account
+  as a traveller and, in the same act, as a member of the trip with a role picker (2026-09-18, FR-2.5)**; share the
+  trip with user accounts that do not travel and assign roles: Owner (creator,
   immutable), Admin (can manage travelers and roles), Editor (default — can edit items but not manage travelers)
   (FR-4.5/4.7). In Single-User Mode (Addendum FR-17.3), the sharing and role-assignment part of this step is hidden
   entirely — only traveler add/edit remains, and the sole user is silently the trip's Owner.

@@ -919,6 +919,54 @@ describe('M3 step 2 — sharing (FR-4.5, G-8)', () => {
     expect(wrapper.find('[data-testid="wizard-share-add"]').exists()).toBe(false)
   })
 
+  it('offers the creator too as a traveler, and makes a picked account a linked traveler', async () => {
+    collaborative = true
+    const wrapper = await mountAtStepTwo()
+
+    const offered = wrapper
+      .get('[data-testid="wizard-add-account-traveler"]')
+      .findAll('ion-select-option')
+      .map((option) => option.text())
+    expect(offered).toEqual(['Andy', 'Sarah'])
+
+    await wrapper
+      .get('[data-testid="wizard-add-account-traveler"]')
+      .trigger('ionChange', { detail: { value: 'user-b' } })
+
+    const names = wrapper.findAll('[data-testid="wizard-traveler-name"]')
+    expect((names.at(-1)!.element as HTMLInputElement).value).toBe('Sarah')
+    // One account is one membership: as a traveler Sarah is no longer offered
+    // by the plain share picker, and she carries the role a share would.
+    expect(wrapper.find('[data-testid="wizard-share-add"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="wizard-traveler-role"]').exists()).toBe(true)
+  })
+
+  it('creates the trip with the linked traveler as a member, the creator only as a link (FR-2.5)', async () => {
+    collaborative = true
+    orchestratorFake.createTripFromWizard.mockClear()
+    const wrapper = await mountAtStepTwo()
+    const picker = wrapper.get('[data-testid="wizard-add-account-traveler"]')
+    await picker.trigger('ionChange', { detail: { value: 'user-b' } })
+    await wrapper
+      .get('[data-testid="wizard-add-account-traveler"]')
+      .trigger('ionChange', { detail: { value: 'me' } })
+
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    expect(orchestratorFake.createTripFromWizard).toHaveBeenCalledTimes(1)
+    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as unknown as {
+      travelers: { name: string; linkedUserId: string | null }[]
+      members: { userId: string; role: string }[]
+    }
+    expect(draft.travelers.filter((t) => t.linkedUserId)).toEqual([
+      { name: 'Sarah', linkedUserId: 'user-b' },
+      { name: 'Andy', linkedUserId: 'me' },
+    ])
+    expect(draft.members).toEqual([{ userId: 'user-b', role: 'editor' }])
+  })
+
   it('asks the server nothing without a session, and offers no sharing at all', async () => {
     // G-8: hidden rather than offered-and-broken. The two calls are the
     // positive signal — an absent section could equally mean a failed render.
