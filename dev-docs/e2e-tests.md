@@ -131,6 +131,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [The notices were gated and the numbers above them were not (2026-09-16)](#the-notices-were-gated-and-the-numbers-above-them-were-not-2026-09-16) — E2E-M6-24/M23-05: a spec whose cases shared one store, and a log line that was not the screenshot's moment.
 - [A layer fixed to the window took the window's geometry (2026-09-16)](#a-layer-fixed-to-the-window-took-the-windows-geometry-2026-09-16) — E2E-PWA-06 gains two measurements, and why one viewport could not have shown either of them.
 - [A resolved style stood in for a layout (2026-09-17)](#a-resolved-style-stood-in-for-a-layout-2026-09-17) — E2E-M5-12 read one `top`, so a pane over two thirds of the list passed; and what a teleport does to a scoped locator.
+- [Waiting on the far screen proved only the near one (2026-09-18)](#waiting-on-the-far-screen-proved-only-the-near-one-2026-09-18) — E2E-G10-02's second correction of the same mistake, and the two rules a socket watch has to obey.
 
 ## The rule that comes before the units
 
@@ -5204,3 +5205,58 @@ keeping:
   names a selector rather than a rule, and would stop firing the moment the duplicate testids diverged. The
   explicit count clause was mutation-proven on its own, against a build where only the pane rendered at
   phone width, so that the sheet stayed unique and nothing but the new clause could notice.
+
+
+## Waiting on the far screen proved only the near one (2026-09-18)
+
+**E2E-G10-02 failed on CI run 35289725004**, on a commit that changed nothing but
+workflow configuration and comments. Its last clause asserts that Alice's badge
+flips back to *everyone in sync* once Bob catches up, and it got there by waiting
+for **Bob** to render the row Alice had just added.
+
+**That wait proves Bob's pull landed, and nothing else.** The assertion after it
+is about Alice's screen, which needs three further hops: Bob reports his cursor
+over his socket, the server recomputes `in_sync`, and the broadcast reaches
+Alice. None of them was waited on, so the clause was leaning on
+`toBeVisible()`'s auto-retry budget to cover a chain of unobserved work.
+
+**It is the same mistake the case had already been corrected for**, after run
+34163387665 — the comment recording that fix is directly above the line that
+failed. The first correction moved the wait from the row Bob had *missed* to the
+row at the head; both are still Bob's screen. **A correction that moves a wait
+one hop closer has not made it sufficient**, and the comment explaining it reads
+as though it had.
+
+**Why the missing hops are the slow ones.** `sendCursor` holds the report until
+the socket is open (it has to — an HTTP pull regularly beats the handshake, which
+is what `useWebSocket`'s own note records). This case spends its middle blocking
+Bob's sync route, so at the moment the block lifts Bob's connection may be in
+reconnect backoff, and the cursor sits buffered. The production code is correct;
+what it does not offer is a *duration* anyone may assume.
+
+**The fix waits for the frame instead of the outcome of the frame.**
+`trackSocket(page)` in `serverMode.ts` follows a page's WebSocket so a later step
+can wait on a connection that is already open, and `caughtUp()` resolves on the
+next presence frame in which every device reports the head. Two rules it carries,
+both load-bearing and both written into its doc comment:
+
+- **Arm the tracker before the page navigates.** Playwright delivers no socket
+  that opened before the listener existed, so a tracker created after `goto`
+  follows nothing. This is the same trap `watchSubscribed` was rewritten for in
+  2026-08-30 — it is a property of the API, not of either helper.
+- **Arm `caughtUp()` before the thing that should cause it.** Both accounts are
+  in sync at the start of the case, so a wait that accepted an already-delivered
+  frame would be satisfied by exactly the state the test is about to disturb.
+
+**The frame is parsed, not grepped.** `"in_sync":false` and `"in_sync": false`
+are one fact and two strings, and a frame that merely mentions presence says
+nothing about who is behind.
+
+**Mutation-proved, which is the only reason to believe the new await does
+anything.** With the predicate inverted so that it can never match, the case dies
+at `serverMode.ts:169` — the new await — reached from `presence.spec.ts:214`,
+rather than passing. Restored and diffed byte-for-byte against the pre-mutation
+copy, not reverted with `git checkout`.
+
+**Run rather than reasoned about**: the whole `server` project 28/28 locally, and
+the two G-10 cases four times each, 8/8.

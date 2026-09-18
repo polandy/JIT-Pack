@@ -25,7 +25,8 @@ import { E2E_API_PORT, E2E_IDP_PORT, E2E_SERVER_API_PORT } from './e2e/backendPo
  * client in its `server` mode against it. It exists only when
  * `E2E_BACKEND=1`, because it needs the Go binary prebuilt at the repo root
  * (`go build -o jitpackd-e2e ./cmd/jitpackd`) — a prerequisite the default
- * run and the eight CI shard legs do not have.
+ * run and the CI shard legs do not have. How many legs those are is `ci.yml`'s
+ * measurement to keep; a copy here would go stale with no signal.
  *
  * Multi-identity coverage (spec §2.3, mode `server`) is the `server` project:
  * a second jitpackd, in OIDC mode against the mock IdP in `e2e/server/`, with
@@ -48,9 +49,9 @@ const BASE_URL = `http://localhost:${PORT}`
 /**
  * The backend-backed project (`single`). Gated on E2E_BACKEND because both
  * halves — the extra webServer entry and the project itself — need the
- * prebuilt Go binary; without the gate every bare `playwright test` (the
- * eight CI shard legs included) would fail on a missing prerequisite instead
- * of simply not running these tests.
+ * prebuilt Go binary; without the gate every bare `playwright test` (the CI
+ * shard legs included) would fail on a missing prerequisite instead of simply
+ * not running these tests.
  */
 const BACKEND = !!process.env.E2E_BACKEND
 

@@ -389,6 +389,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A layer fixed to the window took the window's geometry (2026-09-16)](#a-layer-fixed-to-the-window-took-the-windows-geometry-2026-09-16) — ADR-060 amendment 1; why one viewport agreed with two geometries.
 - [The idle socket was reaped by a stopwatch (2026-09-16)](#the-idle-socket-was-reaped-by-a-stopwatch-2026-09-16) — Sync-API §9; the seam is per connection because a fake clock would have reaped the observer too.
 - [The option that was recommended did not work (2026-09-17)](#the-option-that-was-recommended-did-not-work-2026-09-17) — ADR-064; “anchor it to the window” was arithmetic, and it still covered 100 px.
+- [The e2e matrix is ten legs (2026-09-18)](#the-e2e-matrix-is-ten-legs-2026-09-18) — the shard count went stale a second time, and what bounds it from below is now the two backend jobs.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -15896,3 +15897,67 @@ it**, and the guard is now written out and asserted rather than implied by marku
 keeping the column still *and* not overlapping is not available: rail plus column plus pane is 1080 of
 1280, so the column has to move at least 100 px. Centring moves it 200 and is symmetric; the alternative
 (left-aligning the column in the remaining space) is in ADR-064's revisit trigger.
+
+
+## The e2e matrix is ten legs (2026-09-18)
+
+`ci.yml` keeps one sentence about its own shard count — **re-read the number
+when the suite grows** — because the count has no red signal: a stale matrix
+produces a green pipeline that is merely slower than it needs to be. Read on
+2026-09-18, it was stale for the second time.
+
+**The suite grew by half and nothing said so.** Sized 2026-08-30 the eight legs
+ran 201–395 s against ~1920 test-seconds. On run 35259264760 they ran 308–526 s
+against ~2940, so the pipeline's wall clock had drifted from 6.6 min back to
+8.8 — 530 s, bounded by one e2e leg while `client`, `go` and `visual` all
+finished inside 2.5 min. Counted rather than attributed: the suite went from
+274 `test(` calls in 43 spec files at the sizing-era commit (`da3570c8`) to 454
+in 58 at this one. That is +66 % in cases against +53 % in test-seconds, so the
+cases added since are slightly cheaper than the average of the ones that were
+there — which is why reading the case count alone would have overstated the
+drift. Twice now the number has gone stale the same way, four to eight and
+eight to ten.
+
+**Ten and not twelve is the concurrency ceiling, as it was last time.** A run
+carries eight non-shard jobs, so ten shards make 18 of the 20 concurrent jobs a
+public repo gets, and twelve would make 20 exactly — a single run at the
+ceiling, where two overlapping runs queue against each other for more
+wall-clock than the extra split returns. The arithmetic for twelve is ~6.0 min
+against ten's 7.0; one minute is not worth spending the headroom.
+
+**Measured after the change** (run 35288189602, same tree): legs 256–418 s, the
+worst down from 526 s, and the run's wall clock 422 s — 7.0 min. The estimate
+written into the PR before it ran was ~430 s for the worst leg; it held, and it
+was written down beforehand precisely so that it could fail visibly rather than
+be adjusted afterwards to match whatever the run produced.
+
+**The test-second total is the soft figure in all of this, and it is worth
+saying which part is soft.** It is the summed leg times less an assumed ~60 s
+fixed cost each, so the same suite reads as ~2940 s over eight legs and ~2820
+over ten — the difference is the fixed-cost assumption, not the suite. The leg
+times and the wall clock are measured; the total is derived, and only ever used
+to divide.
+
+**What now bounds this from below has changed, and it is no longer the fixed
+~60 s per leg.** The two backend-backed jobs are 249 s (`e2e-server`) and 262 s
+(`e2e-single`), and they do not shard — each boots one `jitpackd`. The shard
+legs are still above them, so there is real room left; but sharding the matrix
+down past ~262 s would buy nothing, because `e2e-single` would become the
+critical path. That is the number to read next time, not the leg times alone.
+
+**The count was written in five places and only one of them decided it — and
+the first pass found three.** The `concurrency` block's comment does arithmetic
+with it (16 jobs → 18) and had to change; `playwright.config.ts` named "the
+eight CI shard legs" twice in comments about a Go binary, where the number was
+never load-bearing and now names nothing. `CLAUDE.md` keeps its pointer line,
+because that one exists to send the reader here.
+
+The other two were found by reviewing this change's own diff, and one of them
+sat **one line below** the line the first pass had already corrected:
+`CLAUDE.md`'s CI/CD layout bullet said `e2e ×8`, and its branch-protection
+rationale — repeated verbatim in `ci.yml` over `dependabot-merge` — said "an
+eight-leg matrix would need eight listed names". Neither decides the count, so
+neither names it now; the protection argument never depended on the number
+anyway, only on there being one leg name per leg. **Fixing a number in the
+place that owns it is not the same as finding its copies**, and a sweep that
+starts from the owning file will miss a copy in the file it just edited.

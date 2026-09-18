@@ -11,7 +11,7 @@
  * reinvented: its whole point is that it does not wait for a duration.
  */
 
-import { expect, type BrowserContext, type Page } from '@playwright/test'
+import { expect, type BrowserContext, type Page, type WebSocket } from '@playwright/test'
 
 import { seed, visiblePage } from './fixtures'
 import { writesLanded } from './helpers/page'
@@ -102,4 +102,73 @@ export function watchSubscribed(page: Page): Promise<void> {
       }),
     )
     .then(() => undefined)
+}
+
+/**
+ * A presence frame in which every connected device reports the head.
+ *
+ * Parsed rather than matched as a substring: `"in_sync":false` and
+ * `"in_sync": false` are the same fact and a different string, and a frame
+ * that merely *mentions* presence proves nothing about who is behind.
+ */
+function everyoneInSync(payload: string): boolean {
+  try {
+    const frame = JSON.parse(payload) as {
+      type?: string
+      payload?: { users?: { in_sync?: boolean }[] }
+    }
+    if (frame.type !== 'presence') return false
+    const users = frame.payload?.users
+    return Array.isArray(users) && users.length > 0 && users.every((u) => u.in_sync === true)
+  } catch {
+    return false
+  }
+}
+
+/** What {@link trackSocket} hands back: a wait armed at a point in time. */
+export interface SocketWatch {
+  /** Resolves on the next presence frame reporting every device at the head. */
+  caughtUp(): Promise<void>
+}
+
+/**
+ * Follows a page's WebSocket so a later step can wait for a frame on a
+ * connection that is **already open**.
+ *
+ * `watchSubscribed` above covers the other case — a socket that does not
+ * exist yet — and cannot serve this one: `page.waitForEvent('websocket')`
+ * waits for the *next* socket, so calling it against a page that connected
+ * minutes ago waits for a reconnect that a healthy run never performs.
+ *
+ * **Call this before the page navigates.** Playwright delivers no socket
+ * that opened before the listener existed, so a tracker armed after `goto`
+ * follows nothing.
+ *
+ * **And call `caughtUp()` before the thing that should cause it.** It
+ * resolves on the next matching frame, not on one already delivered, which
+ * is the whole point: both accounts are in sync at the start of a presence
+ * test, so a wait that accepted an earlier frame would be satisfied by the
+ * state the test is about to disturb.
+ */
+export function trackSocket(page: Page): SocketWatch {
+  let current: WebSocket | null = null
+  let resolveFirst: (ws: WebSocket) => void
+  const first = new Promise<WebSocket>((r) => {
+    resolveFirst = r
+  })
+  // Every socket, not only the first: a reconnect replaces the object, and a
+  // watch held against the dead one would wait for ever.
+  page.on('websocket', (ws) => {
+    current = ws
+    resolveFirst(ws)
+  })
+
+  return {
+    async caughtUp() {
+      const ws = current ?? (await first)
+      await ws.waitForEvent('framereceived', {
+        predicate: (frame) => everyoneInSync(String(frame.payload)),
+      })
+    },
+  }
 }
