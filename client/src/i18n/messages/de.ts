@@ -1300,6 +1300,8 @@ export const de: Record<keyof typeof en, string> = {
   'tripTodos.section': 'Aufgaben für die Reise',
   'tripTodos.progress': '{done} von {total} erledigt',
   'tripTodos.allDone': '✓ Alle Aufgaben erledigt',
+  'tripTodos.figure': '{done}/{total} Aufgaben',
+  'tripTodos.open': '{n} offen',
   'tripTodos.resolved': '{n} erledigt',
   'tripTodos.add': 'Aufgabe hinzufügen…',
   'tripTodos.remove': 'Aufgabe entfernen',

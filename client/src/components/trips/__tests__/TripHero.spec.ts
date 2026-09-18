@@ -84,4 +84,31 @@ describe('TripHero — one trip, answered before it is tapped (FR-21.13)', () =>
 
     expect(wrapper.get('[data-testid="dashboard-more-x"]').text()).toBe('+1 more')
   })
+
+  it('sets a second figure beside the share, as its pair (FR-7.4)', () => {
+    const wrapper = mount(TripHero, {
+      props: base,
+      slots: { beside: '<b data-testid="hero-tasks">ring {{ params.ringSize }}</b>' },
+      global,
+    })
+
+    const row = wrapper.get('.figures')
+    expect(row.get('[data-testid="hero-progress"]').text()).toBe('31/50 packed')
+    // One ring size for both, handed down rather than kept in step.
+    const shareRing = row.get('[data-testid="progress-ring"]').attributes('style')!
+    const size = /--ring-size: (\d+)px/.exec(shareRing)![1]
+    expect(row.get('[data-testid="hero-tasks"]').text()).toBe(`ring ${size}`)
+    expect(row.get('.hero-figure').classes()).toContain('paired')
+  })
+
+  it('keeps the share alone on its row when nothing stands beside it', () => {
+    const wrapper = mount(TripHero, { props: base, global })
+
+    expect(wrapper.get('.figures [data-testid="hero-progress"]').text()).toBe('31/50 packed')
+    expect(wrapper.find('.figures .beside').exists()).toBe(false)
+    expect(wrapper.get('.hero-figure').classes()).not.toContain('paired')
+    expect(wrapper.get('[data-testid="progress-ring"]').attributes('style')).toContain(
+      '--ring-size: 58px',
+    )
+  })
 })

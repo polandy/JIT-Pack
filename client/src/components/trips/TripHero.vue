@@ -13,6 +13,13 @@
  */
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 
+/**
+ * The ring of either figure once a second stands beside the share: two
+ * columns of a phone-wide card cannot each carry the lone figure's ring and
+ * still keep their sentence on one line.
+ */
+const RING_SIZE_PAIRED = 46
+
 withDefaults(
   defineProps<{
     /** The trip's name. */
@@ -42,14 +49,25 @@ withDefaults(
     <h2 class="name jp-hero-title" data-testid="hero-name">{{ name }}</h2>
     <p v-if="meta" class="meta jp-meta" data-testid="hero-meta">{{ meta }}</p>
 
-    <ProgressFigure
-      class="hero-figure"
-      :percent="percent"
-      :headline="progress"
-      :detail="detail"
-      headline-testid="hero-progress"
-      detail-testid="hero-detail"
-    />
+    <!-- FR-7.4: a second answer may stand beside the share — M1 puts the
+         trip's own todos there, which no packing figure counts. -->
+    <div class="figures">
+      <ProgressFigure
+        class="hero-figure"
+        :percent="percent"
+        :headline="progress"
+        :detail="detail"
+        :ring-size="$slots.beside ? RING_SIZE_PAIRED : undefined"
+        :paired="!!$slots.beside"
+        headline-testid="hero-progress"
+        detail-testid="hero-detail"
+      />
+      <!-- The slot is handed the ring size, so the pair is one size by
+           construction rather than by two constants kept in step. -->
+      <div v-if="$slots.beside" class="beside">
+        <slot name="beside" :ring-size="RING_SIZE_PAIRED" />
+      </div>
+    </div>
 
     <div v-if="$slots.foot" class="actions">
       <slot name="foot" />
@@ -83,8 +101,22 @@ withDefaults(
   overflow-wrap: anywhere;
 }
 
-.hero-figure {
+.figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px 16px;
   margin-top: 16px;
+}
+
+/* Two columns where both sentences fit, one above the other where they do
+   not: the basis is the paired ring, its gap and the longest sentence
+   measured (*„118/118 gepackt"*, 115 px), so a phone stacks the pair rather
+   than ellipsizing it, and neither needs a breakpoint of its own (FR-7.4). */
+.hero-figure,
+.beside {
+  flex: 1 1 11rem;
+  min-width: 0;
 }
 
 /*

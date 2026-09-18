@@ -77,8 +77,9 @@ import FilterSheet from '@/components/global/FilterSheet.vue'
 import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
+import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
-import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
+import { tripTodoProgress, tripTodoStatus, tripTodosUnfolded } from '@/domain/tripTodos'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import PackingRow, {
   type PackingRowNotes,
@@ -208,8 +209,13 @@ const collapsedGroups = ref<string[]>([])
 /** FR-25.24: per-person clusters the user opened; shut is the default. */
 const expandedClusters = ref<string[]>([])
 const showPrep = ref(false)
-/** FR-7.4: whether the trip's own todos are unfolded. Closed by default, like prep. */
-const showTripTodos = ref(false)
+/**
+ * FR-7.4: the user's own fold of *Aufgaben für die Reise* this visit; null
+ * while untouched, and then the todos decide (`tripTodosUnfolded`).
+ */
+const tripTodosFold = ref<boolean | null>(null)
+/** FR-7.4: the section itself, which the header figure scrolls to. */
+const tripTodosSection = ref<HTMLElement | null>(null)
 const filterOpen = ref(false)
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 
@@ -877,14 +883,30 @@ const presenceNames = computed<Record<string, string>>(() =>
 )
 const openPrepCount = computed(() => tripStore.getOpenTodos(props.tripId).length)
 
+const tripTodoCount = computed(() => tripTodoProgress(tripStore.getTripTodos(props.tripId)))
+const tripTodoState = computed(() => tripTodoStatus(tripTodoCount.value))
+
 /** FR-7.4: the section head's own check, apart from every packing figure. */
 const tripTodoLine = computed(() => {
-  const progress = tripTodoProgress(tripStore.getTripTodos(props.tripId))
-  const status = tripTodoStatus(progress)
-  if (status === 'none') return null
-  if (status === 'allDone') return t('tripTodos.allDone')
-  return t('tripTodos.progress', { done: progress.done, total: progress.total })
+  if (tripTodoState.value === 'none') return null
+  if (tripTodoState.value === 'allDone') return t('tripTodos.allDone')
+  return t('tripTodos.progress', {
+    done: tripTodoCount.value.done,
+    total: tripTodoCount.value.total,
+  })
 })
+
+/** FR-7.4: open while anything is owed, one line once nothing is. */
+const tripTodosOpen = computed(() => tripTodosUnfolded(tripTodoState.value, tripTodosFold.value))
+
+/**
+ * FR-7.4: the header figure leads to the todos — unfolded, and in view,
+ * because the header line stays while the section may be scrolled past.
+ */
+function revealTripTodos() {
+  tripTodosFold.value = true
+  tripTodosSection.value?.scrollIntoView({ block: 'nearest' })
+}
 
 /**
  * The ring in the header line, which is not the hero's: the line yields to
@@ -1737,13 +1759,13 @@ setHeaderTitle(
            doubled. -->
       <div
         class="trip-line"
-        :class="{ collapsed: headCollapsed || !rowsLoaded }"
+        :class="{ collapsed: headCollapsed || !rowsLoaded, paired: tripTodoState !== 'none' }"
         data-testid="m4-header"
       >
         <!-- Where the trip stands, and who else is here. Tabular throughout:
              the weight under the share changes on the same tap as the share
              itself, and proportional digits shift both as it does. -->
-        <div class="trip-stats">
+        <div class="trip-stats" :class="{ paired: tripTodoState !== 'none' }">
           <!-- ADR-033: „0/0 packed" under an empty track is the verdict the
                note below declines to give, in the form a reader trusts most.
                It waits for the partition; 0/0 is honest once measured. -->
@@ -1754,9 +1776,25 @@ setHeaderTitle(
             :headline="t('trips.itemSummary', { packed: kpis.packedItems, total: kpis.totalItems })"
             :detail="statsDetail"
             :ring-size="RING_SIZE_HEADER"
+            :paired="tripTodoState !== 'none'"
             headline-testid="m4-progress"
             detail-testid="m4-stats-detail"
           />
+          <!-- FR-7.4: the second check, beside the share and never inside
+               it; a tap leads to the section that ticks it. -->
+          <button
+            v-if="rowsLoaded && tripTodoState !== 'none'"
+            class="todo-figure-button"
+            data-testid="m4-trip-todos-figure"
+            :aria-label="tripTodoLine ?? undefined"
+            @click="revealTripTodos"
+          >
+            <TripTodoFigure
+              :trip-id="tripId"
+              :ring-size="RING_SIZE_HEADER"
+              testid="m4-trip-todos-progress"
+            />
+          </button>
           <PresenceFacepile
             v-if="presenceUsers.length > 1"
             :users="presenceUsers"
@@ -1772,6 +1810,37 @@ setHeaderTitle(
         @cancel="onCancelClosingPass"
       />
 
+      <!-- FR-7.4: the trip's own todos — chores that prepare no row. Written
+           here, in the trip; M1 only reports them. Above the list, because at
+           its foot they went unseen; unfolded while any is open, one line once
+           none is. Always present, because the section is where the first one
+           is typed — but only once the partition is here (ADR-033): before
+           that it would read „folded" and then spring open under a tap that
+           was meant to open it, which closes it again. -->
+      <div
+        v-if="rowsLoaded && !closingPass"
+        ref="tripTodosSection"
+        class="prep-section trip-todos-section jp-card"
+        :class="{ done: tripTodoState === 'allDone' }"
+        data-testid="m4-trip-todos"
+      >
+        <button
+          class="prep-header"
+          data-testid="m4-trip-todos-toggle"
+          :aria-expanded="tripTodosOpen ? 'true' : 'false'"
+          @click="tripTodosFold = !tripTodosOpen"
+        >
+          <IonIcon :icon="checkmarkDoneOutline" />
+          <span>
+            {{ t('tripTodos.section') }}
+            <template v-if="tripTodoLine">
+              · <span data-testid="m4-trip-todos-status">{{ tripTodoLine }}</span>
+            </template>
+          </span>
+          <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: tripTodosOpen }" />
+        </button>
+        <TripTodoList v-if="tripTodosOpen" :trip-id="tripId" />
+      </div>
       <!-- FR-25.11k: the field exists only while it is being used. -->
       <SearchRow
         v-if="searchOpen || search"
@@ -2106,27 +2175,6 @@ setHeaderTitle(
         </IonList>
       </div>
 
-      <!-- FR-7.4: the trip's own todos — chores that prepare no row. Written
-           here, in the trip; M1 only reports them. Always present, because the
-           section is where the first one is typed. -->
-      <div v-if="!closingPass" class="prep-section" data-testid="m4-trip-todos">
-        <button
-          class="prep-header"
-          data-testid="m4-trip-todos-toggle"
-          :aria-expanded="showTripTodos ? 'true' : 'false'"
-          @click="showTripTodos = !showTripTodos"
-        >
-          <IonIcon :icon="checkmarkDoneOutline" />
-          <span>
-            {{ t('tripTodos.section') }}
-            <template v-if="tripTodoLine">
-              · <span data-testid="m4-trip-todos-status">{{ tripTodoLine }}</span>
-            </template>
-          </span>
-          <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: showTripTodos }" />
-        </button>
-        <TripTodoList v-if="showTripTodos" :trip-id="tripId" />
-      </div>
       <!-- FR-25.13a: the ＋ opens *and focuses* the quick-add. Expanding it
            without focus costs a second tap on the only path that has to be
            one-handed. -->
@@ -2369,8 +2417,36 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 
 .trip-stats {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
+}
+
+/* A lone share keeps its own width; a pair takes the line and wraps to two
+   rows where two columns would ellipsize a sentence — the basis is the
+   header ring, its gap and the longest sentence measured (*„118/118
+   gepackt"*), as on M1's hero (FR-7.4). */
+.trip-stats.paired {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.trip-stats.paired > .figure,
+.trip-stats.paired > .todo-figure-button {
+  flex: 1 1 10.5rem;
+}
+
+/* Two stacked figures are taller than the one the line was sized for;
+   `:not(.collapsed)` so scrolling down still takes the whole line. */
+.trip-line.paired:not(.collapsed) {
+  max-height: 136px;
+}
+
+/* Stretched so a paired figure's two tracks share a level (FR-7.4); the
+   facepile keeps to the middle of the line. */
+.trip-stats > .wrap {
+  align-self: center;
 }
 
 /* The ring is punched in the colour it sits on, and the header line is the
@@ -2593,6 +2669,32 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   color: var(--ct-straw);
   font-size: var(--jp-text-base);
   cursor: pointer;
+}
+
+/* FR-7.4: above the list the section is a card of its own, not the strip
+   that closed the page — and it turns to the done role once nothing is owed. */
+.trip-todos-section {
+  margin: 8px 12px 4px;
+  border-top: none;
+  overflow: hidden;
+}
+
+.trip-todos-section.done .prep-header {
+  color: var(--jp-done);
+}
+
+/* The figure is the control; the button only makes it one. It takes the
+   same share of the line as the packing figure, so the two tracks run on
+   one level and one length. */
+.todo-figure-button {
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  --ring-hole: var(--ct-base);
 }
 
 .prep-item {

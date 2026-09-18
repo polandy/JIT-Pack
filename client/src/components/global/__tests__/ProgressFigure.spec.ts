@@ -57,6 +57,19 @@ describe('ProgressFigure — ring, sentence and track say one thing (FR-21.23)',
     expect(wrapper.find('.detail').exists()).toBe(false)
   })
 
+  it('stands as one of a pair only when asked, so a lone figure keeps its centred words (FR-7.4)', () => {
+    expect(
+      mount(ProgressFigure, { props: { percent: 0, headline: 'x' } })
+        .get('.figure')
+        .classes(),
+    ).not.toContain('paired')
+    expect(
+      mount(ProgressFigure, { props: { percent: 0, headline: 'x', paired: true } })
+        .get('.figure')
+        .classes(),
+    ).toContain('paired')
+  })
+
   it('takes the ring down to the size a header line can keep when asked', () => {
     expect(
       mount(ProgressFigure, { props: { percent: 0, headline: 'x', ringSize: 42 } })

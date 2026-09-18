@@ -44,6 +44,7 @@ import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import TripHero from '@/components/trips/TripHero.vue'
+import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 
@@ -442,13 +443,15 @@ async function handleRefresh(event: CustomEvent) {
         :to="tripPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
       >
-        <p
-          v-if="taskLine(heroTrip)"
-          class="task-line"
-          :data-testid="`dashboard-tasks-${heroTrip.name}`"
-        >
-          {{ taskLine(heroTrip) }}
-        </p>
+        <!-- FR-7.4: the trip's todos as a second figure beside the share,
+             read-only like the rest of the card; they are ticked in M4. -->
+        <template v-if="taskLine(heroTrip)" #beside="{ ringSize }">
+          <TripTodoFigure
+            :trip-id="heroTrip.id"
+            :ring-size="ringSize"
+            :testid="`dashboard-tasks-${heroTrip.name}`"
+          />
+        </template>
         <IonItem
           v-for="item in previewItems(heroTrip.id)"
           :key="item.id"

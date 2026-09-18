@@ -29,13 +29,25 @@ withDefaults(
     headlineTestid?: string
     /** Put on the detail line. */
     detailTestid?: string
+    /**
+     * One of two figures side by side (FR-7.4): the words take the full
+     * height of the pair and the track sits at its foot, so both headlines
+     * share a line and both tracks another, whether or not each has a detail.
+     */
+    paired?: boolean
   }>(),
-  { detail: null, ringSize: 58, headlineTestid: undefined, detailTestid: undefined },
+  {
+    detail: null,
+    ringSize: 58,
+    headlineTestid: undefined,
+    detailTestid: undefined,
+    paired: false,
+  },
 )
 </script>
 
 <template>
-  <div class="figure">
+  <div class="figure" :class="{ paired }">
     <ProgressRing :percent="percent" :size="ringSize" />
     <div class="progress">
       <b class="headline" :data-testid="headlineTestid">{{ headline }}</b>
@@ -73,6 +85,23 @@ withDefaults(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.figure.paired {
+  align-items: stretch;
+}
+
+.figure.paired .ring {
+  align-self: center;
+}
+
+.figure.paired .progress {
+  display: flex;
+  flex-direction: column;
+}
+
+.figure.paired .track {
+  margin-top: auto;
 }
 
 .track {
