@@ -19,9 +19,9 @@ const CSS = 'client/src/theme/typography.css'
 const FONT = 'client/src/assets/fonts/noto-emoji-marks.woff2'
 
 /** Above this the subset has stopped being a subset (NFR-4.3). The measured
- *  size at 102 entries is ~82 KB; the ceiling leaves room to grow the index
+ *  size at 352 entries is ~280 KB (~0.8 KB a glyph); the ceiling leaves room to grow the index
  *  without leaving room to accidentally ship the whole emoji table. */
-const MAX_FONT_BYTES = 160 * 1024
+const MAX_FONT_BYTES = 320 * 1024
 
 function fail(message) {
   console.error(`mark-font-gate: ${message}`)
