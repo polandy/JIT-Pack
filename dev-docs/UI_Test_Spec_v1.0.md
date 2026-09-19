@@ -745,8 +745,9 @@ in WebKit.
   the *Erledigte* switch turns it on and it stays on — the tick used to come and go, the label forwarding the tap to
   a checkbox that had already toggled itself. Closing the sheet shows the packed row.
 * **E2E-M4-128** `local` (FR-25.32, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): with a packed row
-  and *Erledigte* off, typing its name shows it; clearing the term puts it away again. The unit rows (`domain`) cover
-  the other two switches and the facet exemption.
+  and *Erledigte* off, typing its name shows it and the *Gepackte anzeigen* bar is gone; clearing the term puts the
+  row away again and brings the bar back. The unit rows (`domain`) cover the other two switches and the facet
+  exemption.
 * **E2E-M4-126** `local` (FR-25.31 with FR-25.26, added 2026-09-19) — **implemented** (`membership.spec.ts`): the
   cluster head's *late packer on for everyone* raises *„2 rows changed"*, and its undo clears the head's ⏰ — which the
   head paints while any instance carries the flag, so its absence is every instance.
@@ -2846,10 +2847,11 @@ landed, that no test has ever rendered.
   Mutation-proved: disabling the partition in `packingView` reddens it with the un-sunk order.
 * **E2E-M4-69** `all` (FR-25.22, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): the reveal bar and
   the filter sheet's *Erledigte* switch label the same set, so they must read the same number. Two rows packed, the
-  bar reads 2; a search for one of them takes the bar to 1, and the switch must follow. They had carried two numbers
-  — the bar counted done rows passing the filter, the switch the trip's packed **units** — and `filter-switch-done`
-  occurred in no test at all, which is what let it stand. The search is the separator, since only one of the two
-  narrows; the bar dropping to 1 first is the positive signal that the narrowing landed before either is read.
+  bar reads 2 and so does the switch; with a search for one of them the switch reads 1, not the trip's 2. They had
+  carried two numbers — the bar counted done rows passing the filter, the switch the trip's packed **units** — and
+  `filter-switch-done` occurred in no test at all, which is what let it stand. Since FR-25.32 the bar is absent
+  while a term is typed, so the search no longer separates the two through the bar; the searched row appearing is the
+  positive signal that the narrowing landed before the switch is read.
 * **E2E-M4-70** `all` (FR-21.17, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): the G-9 page head
   yields to the list on a downward scroll, together with M4's own header line, and both come back on an upward one.
   Read as rendered height, not as a class alone: the standing head is measured first, so "gone" is a change rather
