@@ -45,7 +45,8 @@ export interface TripLifecycleDeps {
 
 /** createTripLifecycleActions binds the trip's own life to one sync context. */
 export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycleDeps) {
-  const { mutations, enqueueAndDrain, tripStore, masterStore, today, tripDataLoaded } = ctx
+  const { mutations, enqueueAndDrain, tripStore, masterStore, features, today, tripDataLoaded } =
+    ctx
   const {
     comments: commentActions,
     packing: packingActions,
@@ -374,7 +375,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     enqueueAndDrain('master', null, {
       mutation,
       optimistic: [
-        ...cascadeChanges(TABLE.trips, tripId, { tripStore, masterStore }),
+        ...cascadeChanges(TABLE.trips, tripId, { tripStore, masterStore, features }),
         optimisticDelete(mutation),
       ],
     })

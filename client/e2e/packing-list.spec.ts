@@ -436,6 +436,7 @@ test.describe('M4 packing list @local @m4', () => {
     // click aimed at its own `ion-label`.
     await page.getByTestId('analytics-dim-person').click()
     await page.getByTestId('analytics-slice-none').click()
+    await page.getByTestId('analytics-open-list').click()
 
     // The tap set the facet (M12-04's half); clearing it reveals the
     // grouping that must still be in force on the mounted M4 (ADR-012).
@@ -1331,8 +1332,9 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
    * number. They carried two: the bar counted done rows among the ones the
    * filter lets through, the switch counted the whole trip's packed *units*.
    * `filter-switch-done` occurred in no test at all, which is what let it
-   * stand — the search is what separates the two, since only one of them
-   * narrows.
+   * stand. Since FR-25.32 the bar is gone while a term is typed, so the
+   * pairing is read without one; the search is then what shows the switch
+   * counting the *matches* (1) rather than the trip (2).
    */
   test('E2E-M4-69: the reveal bar and the Erledigte switch carry one number', async ({ page }) => {
     await createTripViaWizard(page, TRIP)
@@ -1343,17 +1345,138 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     const bar = visible(page).getByTestId('m4-done-bar')
     await expect(bar).toContainText('2')
 
-    await page.getByTestId('m4-search').click()
-    await page.getByTestId('m4-search-input').fill('Zelt')
-    // The bar follows the search, which is the positive signal that the
-    // narrowing landed before either number is read.
-    await expect(bar).toContainText('1')
-
     await page.getByTestId('m4-filter').click()
     await expect(page.getByTestId('filter-sheet')).toBeVisible()
     const doneSwitch = page.getByTestId('filter-switch-done').locator('..')
+    await expect(doneSwitch).toContainText('2')
+    await page.getByTestId('filter-close').click()
+
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Zelt')
+    // The searched row is on screen: the positive signal that the narrowing
+    // landed before the switch is read.
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
     await expect(doneSwitch).toContainText('1')
     await expect(doneSwitch).not.toContainText('2')
+  })
+
+  /*
+   * E2E-M4-127: the Erledigte switch stays on when it is tapped. The tick
+   * appeared and went again at once, so a packed row could only be brought
+   * back through the reveal bar. Every earlier case read the switch's count
+   * and none ever operated it.
+   */
+  test('E2E-M4-127: the Erledigte switch keeps its tick and reveals the packed rows', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Schlafsack'])
+    await packRow(page, 'Zelt')
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
+    const doneSwitch = page.getByTestId('filter-switch-done')
+    // The words, not the box: that is where a thumb lands.
+    await doneSwitch.locator('..').getByText('Packed', { exact: false }).first().click()
+    await expect(doneSwitch).toHaveJSProperty('checked', true)
+
+    await page.getByTestId('filter-close').click()
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+  })
+
+  /*
+   * E2E-M4-128 (FR-25.32): a search finds a packed row without the Erledigte
+   * switch being turned first, and the row goes away again with the term —
+   * the search lifts the switch, it does not flip it.
+   */
+  test('E2E-M4-128: searching finds a packed row while Erledigte is off', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Schlafsack'])
+    await packRow(page, 'Zelt')
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Zelt')
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Schlafsack')).toHaveCount(0)
+    // The packed row is on screen, so there is nothing left to offer.
+    await expect(visible(page).getByTestId('m4-done-bar')).toHaveCount(0)
+
+    await page.getByTestId('m4-search-input').fill('')
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-done-bar')).toBeVisible()
+  })
+
+  /*
+   * E2E-M4-129 (FR-21.17): a list that overflows its screen by less than the
+   * header line frees when it yields — a search's few hits — keeps the line.
+   * It used to yield anyway; the shorter range clamped the offset, the line
+   * came back and the list jumped up, on every swipe down. The viewport is
+   * sized from the measured overflow so the case sits in that band on any
+   * engine, and the positive signal is the offset reaching the end.
+   */
+  test('E2E-M4-129: a short list does not jump when it is scrolled to its end', async ({
+    page,
+  }) => {
+    // A phone: there the page head yields with the line, which is what makes
+    // the yield release more than the line alone.
+    await page.setViewportSize({ width: 390, height: 800 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Socke 1', 'Socke 2', 'Socke 3', 'Socke 4', 'Socke 5', 'Socke 6'])
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Socke')
+    await expect(visible(page).getByTestId('m4-row-Socke 6')).toBeVisible()
+
+    const content = visible(page).locator('ion-content.pack-content')
+    const scroller = () =>
+      content.evaluate(async (host: HTMLIonContentElement) => {
+        const el = await host.getScrollElement()
+        return { slack: el.scrollHeight - el.clientHeight, client: el.clientHeight }
+      })
+
+    // 150 px of overflow: past the yield threshold, short of what it frees.
+    const before = await scroller()
+    const height = page.viewportSize()!.height + before.slack - 150
+    await page.setViewportSize({ width: page.viewportSize()!.width, height })
+    await expect.poll(async () => (await scroller()).slack).toBe(150)
+
+    const end = await content.evaluate(async (host: HTMLIonContentElement) => {
+      const el = await host.getScrollElement()
+      const line = host.querySelector('.trip-line') as HTMLElement
+      let flips = 0
+      new MutationObserver(() => flips++).observe(line, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
+      // The page hears the scroll through ion-content's own event, one frame
+      // late, so that event is the positive signal that it has been read.
+      const heard = new Promise((resolve) =>
+        host.addEventListener('ionScroll', resolve, { once: true }),
+      )
+      el.scrollTo({ top: el.scrollHeight })
+      await heard
+      // A yield is a transition on the line and the browser's clamp arrives
+      // while it runs, starting the reverse one: settled is the line having
+      // no animation left, after frames for the class change to render.
+      const frames = () =>
+        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      for (let round = 0; round < 4; round++) {
+        await frames()
+        const running = line.getAnimations()
+        if (running.length === 0) break
+        await Promise.all(running.map((a) => a.finished))
+      }
+      return { top: el.scrollTop, slack: el.scrollHeight - el.clientHeight, flips }
+    })
+
+    // The line never moved and the offset stayed at the end.
+    expect(end.flips).toBe(0)
+    expect(end.top).toBe(end.slack)
   })
 
   /*
@@ -2367,6 +2490,16 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     await expect(page.getByTestId('m4-row-Schlüssel')).toHaveCount(0)
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
     const bar = visible(page).getByTestId('m4-late-bar')
+    await expect(bar).toContainText('1')
+
+    // FR-25.32: a search finds the hidden row and the bar has nothing left
+    // to offer; clearing the term puts both back.
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Schlüssel')
+    await expect(visible(page).getByTestId('m4-row-Schlüssel')).toBeVisible()
+    await expect(bar).toHaveCount(0)
+    await page.getByTestId('m4-search-input').fill('')
+    await expect(page.getByTestId('m4-row-Schlüssel')).toHaveCount(0)
     await expect(bar).toContainText('1')
 
     // Packing everything else must not turn the remainder into "alles

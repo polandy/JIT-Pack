@@ -28,7 +28,9 @@ import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox, type ConflictReport, type RejectionReport } from './useSyncOutbox'
 import { changesOf, optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { TABLE } from '@/types/tables'
 import { MASTER_STORE_TABLES, TRIP_STORE_TABLES } from '@/sync/routing'
+import type { FeatureStore, ModuleHost } from '@/sync/featureModule'
 import { itemRow, memberRow } from './sync/rows'
 import { createContainerActions } from './sync/actions/containers'
 import { createCommentActions } from './sync/actions/comments'
@@ -65,6 +67,7 @@ import type {
   LockEventListResponse,
   MasterPruneResponse,
   PresenceMember,
+  RosterMember,
   PullChange,
   TakeoverResponse,
   WSEvent,
@@ -161,6 +164,12 @@ export interface SyncOrchestratorConfig {
    * instead of reaching into storage.
    */
   deviceId?: string
+  /**
+   * The feature modules' stores (FR-30.3, ADR-066), handed in by the
+   * composition root so this file never imports a module. Their tables are
+   * routed to them on pull, and a deleted trip takes their rows along.
+   */
+  features?: readonly FeatureStore[]
 }
 
 /**
@@ -175,6 +184,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const masterStore = useMasterStore()
   const syncStatus = useSyncStatus(() => now())
   const local = config.local ?? null
+  const features = config.features ?? []
   // Deliberately not `config.getToken`: that provider may refresh and is
   // therefore async, and a lock decision is made while rendering a row.
   // The stored session answers the same question synchronously — memoised
@@ -200,6 +210,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   function getPresence(tripId: string): PresenceUser[] {
     return presence.value.get(tripId) ?? []
+  }
+
+  // FR-4.9: who else has a shared trip open in the packing list, fed by the
+  // WS roster event. Empty in Local Mode and Single-User Mode, and after a
+  // socket dies — the hub sends the whole roster afresh on the next one.
+  const roster = ref<RosterMember[]>([])
+
+  function getRoster(): RosterMember[] {
+    return roster.value
   }
 
   // G-3 locking, and the takeover rule an `item.locked` frame carries
@@ -242,7 +261,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     baseUrl: config.baseUrl,
     getToken: config.getToken,
     onEvent: onWSEvent,
-    onLive: (live) => syncStatus.setLive(live),
+    onLive: (live) => {
+      if (!live) roster.value = []
+      syncStatus.setLive(live)
+    },
     onOpen: ({ reconnect }) => {
       // The first open is covered by the boot pull App.vue runs; every later
       // one follows a gap the hub cannot replay (P-1), so the gap is pulled.
@@ -303,17 +325,30 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function onPullChanges(changes: PullChange[]) {
     const tripChanges: PullChange[] = []
     const masterChanges: PullChange[] = []
+    const featureChanges = features.map(() => [] as PullChange[])
 
     for (const c of changes) {
       if (TRIP_STORE_TABLES.has(c.table)) {
         tripChanges.push(c)
       } else if (MASTER_STORE_TABLES.has(c.table)) {
         masterChanges.push(c)
+      } else {
+        const owner = features.findIndex((f) => f.tables.has(c.table))
+        if (owner >= 0) featureChanges[owner]!.push(c)
       }
     }
 
     if (tripChanges.length > 0) tripStore.applyChanges(tripChanges)
     if (masterChanges.length > 0) masterStore.applyChanges(masterChanges)
+    features.forEach((feature, i) => {
+      if (featureChanges[i]!.length > 0) feature.applyChanges(featureChanges[i]!)
+    })
+    // A trip's tombstone is the only news of its delete another device gets:
+    // the trip partition's feed dies with the trip, so no module row of it is
+    // ever announced (FR-30.3, the same gap `tripStore.removeTrip` closes).
+    for (const c of changes) {
+      if (c.table === TABLE.trips && c.deleted) features.forEach((f) => f.forgetTrip(c.id))
+    }
 
     // FR-19.2: in Local Mode every applied change is durable — this is
     // the single funnel all mutations and startup loads pass through.
@@ -365,6 +400,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         }
         break
       }
+      case 'roster':
+        roster.value = (event.payload?.['users'] as RosterMember[] | undefined) ?? []
+        break
       case 'item.locked': {
         const tripId = event.payload?.['trip_id'] as string | undefined
         const itemId = event.payload?.['item_id'] as string | undefined
@@ -523,6 +561,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const ctx: SyncContext = {
     tripStore,
     masterStore,
+    features,
     mutations,
     enqueueAndDrain,
     names,
@@ -843,6 +882,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     void notificationActions.surfaceUnread()
   }
 
+  /** FR-4.9: the trip whose packing list is open on this device, `null` once it is not. */
+  function setViewing(tripId: string | null) {
+    if (local) return
+    ws.setViewing(tripId)
+  }
+
   function subscribeTrip(tripId: string) {
     if (local) return
     subscribedTrips.add(tripId)
@@ -866,11 +911,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     ws.disconnect()
   }
 
+  /**
+   * A feature module's write path (FR-30.3): its own rows into a trip's
+   * partition, through the same outbox and clock as every other write.
+   */
+  const moduleHost: ModuleHost = {
+    mutation: mutations.make,
+    nowIso,
+    writeTrip: (tripId, ...muts) => enqueueAndDrain('trip', tripId, ...muts),
+  }
+
   return {
+    moduleHost,
     syncStatus,
     capturePending,
     outbox,
     getPresence,
+    getRoster,
+    setViewing,
     ...conflictActions,
     isLockedByOther: locks.isLockedByOther,
     holdsClaim: locks.holdsClaim,

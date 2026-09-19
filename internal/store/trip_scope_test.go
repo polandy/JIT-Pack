@@ -46,6 +46,12 @@ func foreignRows() []foreignRow {
 			before: "Fremde Zeile",
 		},
 		{
+			table:  TableShoppingEntries,
+			seed:   `INSERT INTO shopping_entries (id, trip_id, name) VALUES (?, ?, 'Fremde Zeile')`,
+			field:  "name",
+			before: "Fremde Zeile",
+		},
+		{
 			table:  TableComments,
 			seed:   `INSERT INTO comments (id, trip_id, author_id, body) VALUES (?, ?, '` + testUser + `', 'Fremde Zeile')`,
 			field:  "body",

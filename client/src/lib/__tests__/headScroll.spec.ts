@@ -13,10 +13,11 @@ import type { HeadScrollState, ScrollReading } from '@/lib/headScroll'
  */
 describe('nextHeadState — the head yields to the list (FR-21.17)', () => {
   const standing: HeadScrollState = { top: 0, collapsed: false }
-  const reading = (top: number, viewport: ScrollReading['viewport'] = null): ScrollReading => ({
-    top,
-    viewport,
-  })
+  /** A long list unless told otherwise: one that stays scrollable after the head has yielded. */
+  const reading = (
+    top: number,
+    viewport: ScrollReading['viewport'] = { clientHeight: 700, scrollHeight: 2000 },
+  ): ScrollReading => ({ top, viewport })
 
   it('yields once the list has scrolled past the head', () => {
     expect(nextHeadState(standing, reading(200)).collapsed).toBe(true)
@@ -69,7 +70,7 @@ describe('nextHeadState — the head yields to the list (FR-21.17)', () => {
   it('treats a scroller it has not resolved yet as not at the bottom', () => {
     const yielded: HeadScrollState = { top: 444, collapsed: true }
 
-    expect(nextHeadState(yielded, reading(390)).collapsed).toBe(false)
+    expect(nextHeadState(yielded, reading(390, null)).collapsed).toBe(false)
   })
 
   /**
@@ -84,6 +85,33 @@ describe('nextHeadState — the head yields to the list (FR-21.17)', () => {
     const fits = reading(0, { clientHeight: 900, scrollHeight: 900 })
 
     expect(nextHeadState(yielded, fits).collapsed).toBe(false)
+  })
+
+  /**
+   * A short list, such as a search's few hits: it overflows its screen by
+   * less than the head's own height, so yielding would shorten the range
+   * below what the reader has scrolled, the browser would clamp, the head
+   * would return and the list would jump back up — on every downward
+   * swipe. Measured on M4 at 390×800: 148 px of overflow ended the flick
+   * at offset 44, 248 px ended it cleanly collapsed.
+   */
+  it('does not yield on a list that would not survive its own yield', () => {
+    const shortList = reading(148, { clientHeight: 800, scrollHeight: 948 })
+
+    expect(nextHeadState(standing, shortList).collapsed).toBe(false)
+  })
+
+  it('yields on a list that is still scrollable after the head has gone', () => {
+    const longList = reading(248, { clientHeight: 700, scrollHeight: 948 })
+
+    expect(nextHeadState(standing, longList).collapsed).toBe(true)
+  })
+
+  it('keeps a yielded head yielded while the list keeps scrolling down', () => {
+    const yielded: HeadScrollState = { top: 300, collapsed: true }
+    const onwards = reading(360, { clientHeight: 700, scrollHeight: 948 })
+
+    expect(nextHeadState(yielded, onwards).collapsed).toBe(true)
   })
 
   it('stays yielded when the clamp lands clear of the top', () => {

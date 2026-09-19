@@ -113,6 +113,9 @@ jobs:
       # composable — even type-only — costs every module reaching it the
       # property the package exists for, and nothing red says so.
       - run: node ../scripts/domain-purity-gate.mjs
+      # The same idea one level up (FR-30.3, ADR-066): a feature module and
+      # the packing code meet only through kernel contracts App.vue binds.
+      - run: node ../scripts/module-boundary-gate.mjs
       # And one more of the family: a pull-to-refresh whose handler awaits
       # nothing spins, resolves and tells the user the list is up to date
       # without having asked anybody. Two of six were like that, and no test

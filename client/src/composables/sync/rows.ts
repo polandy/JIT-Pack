@@ -16,6 +16,7 @@ import type {
   ItemComment,
   ItemDependency,
   ItemTodo,
+  ShoppingEntry,
   TripTodo,
   MasterItem,
   Template,
@@ -138,6 +139,18 @@ export function containerRow(container: Container): Record<string, unknown> {
   }
 }
 
+/** FR-30.1: a shopping entry as its row. */
+export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> {
+  return {
+    trip_id: entry.trip_id,
+    name: entry.name,
+    list: entry.list,
+    bought: dbBool(entry.bought),
+    bought_at: entry.bought_at,
+    bought_by_user_id: entry.bought_by_user_id,
+  }
+}
+
 /** hashBlob mirrors the server's image_hash: the hex of the first 8 bytes
  * of the SHA-256 digest. Used in Local Mode, where there is no server to
  * stamp the change signal (FR-22 sync hint). */
@@ -225,6 +238,8 @@ export function itemRow(item: TripItem): Record<string, unknown> {
     packing_now_by: item.packing_now_by,
     packing_now_at: item.packing_now_at,
     bought_from: item.bought_from,
+    bought_at: item.bought_at,
+    bought_by_user_id: item.bought_by_user_id,
     flag_unused: dbBool(item.flag_unused),
     flag_missing: dbBool(item.flag_missing),
     updated_hlc: item.updated_hlc,

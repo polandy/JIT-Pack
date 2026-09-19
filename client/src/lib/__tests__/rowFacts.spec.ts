@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { setLocale } from '@/i18n'
 import {
+  boughtStampText,
   lockNoteText,
   nameFrom,
   packedStampText,
@@ -175,5 +176,24 @@ describe('skippedNote (FR-5.5/20.2)', () => {
 
   it('says nothing about a row that is not skipped', () => {
     expect(skippedNote(row({ state: 'packed' }), [], dependencies)).toBeNull()
+  })
+})
+
+describe('boughtStampText (FR-30.4)', () => {
+  const at = '2026-03-01T14:32:00'
+  const time = () => relativeStamp(at, NOW, 'en')!.time
+
+  it('names who bought it and when', () => {
+    expect(boughtStampText(at, 'u-nina', nameOf, NOW)).toBe(`bought by Nina · today ${time()}`)
+  })
+
+  it('states the purchase without a who where the buyer cannot be named', () => {
+    expect(boughtStampText(at, null, nameOf, NOW)).toBe(`bought · today ${time()}`)
+    expect(boughtStampText(at, 'u-gone', nameOf, NOW)).toBe(`bought · today ${time()}`)
+  })
+
+  it('says nothing where the purchase knows neither who nor when', () => {
+    expect(boughtStampText(null, null, nameOf, NOW)).toBeNull()
+    expect(boughtStampText(undefined, undefined, nameOf, NOW)).toBeNull()
   })
 })

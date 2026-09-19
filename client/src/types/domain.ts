@@ -147,6 +147,10 @@ export interface TripItem {
    * lets M6 find the row again and put it back.
    */
   bought_from: ShoppingMode | null
+  /** FR-30.4: when the row was bought from its list, or null. */
+  bought_at: string | null
+  /** FR-30.4: who bought it — server-stamped like `packed_by_user_id`. */
+  bought_by_user_id: string | null
   updated_hlc: string
 }
 
@@ -263,6 +267,24 @@ export interface TripTodo {
   author_id: string
   body: string
   task_state: TodoState
+}
+
+/**
+ * FR-30.1: something a trip's people mean to buy that nobody packs — the
+ * groceries of a holiday flat. Its own row rather than a trip item in a buy
+ * mode, so no packing figure can count it (ADR-066). `list` is one of FR-3.2's
+ * two lists; `pack` is not a shopping list.
+ */
+export interface ShoppingEntry {
+  id: string
+  trip_id: string
+  name: string
+  list: ShoppingMode
+  bought: boolean
+  /** FR-30.4: when it was bought — the tap's time; null while it is not. */
+  bought_at: string | null
+  /** FR-30.4: who bought it, stamped by the server (invariant 3); null in Local Mode. */
+  bought_by_user_id: string | null
 }
 
 // --- Master data ---

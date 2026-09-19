@@ -25,6 +25,7 @@ import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { createAuthRefresher } from '@/auth/refresh'
 import { clearOnSessionEnd } from '@/auth/sessionEnd'
 import { useIdentityStore } from '@/stores/identityStore'
+import { onlineRows } from '@/lib/onlineRows'
 import { loadTokens } from '@/auth/tokens'
 import {
   describeNotification,
@@ -55,9 +56,15 @@ import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
 import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { PATH, tripSubPath } from '@/router/paths'
+import { PATH, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction } from '@/lib/confirm'
 import { resolveHead } from '@/composables/useHeaderTitle'
+import { createPackingShoppingSource } from '@/composables/packingShoppingSource'
+import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
+import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
+import { TRIP_CARDS } from '@/lib/tripCards'
+import { useTripStore } from '@/stores/tripStore'
+import { ShoppingDashboardCard, shoppingCount, shoppingFeatureStore } from '@/shopping'
 
 const mode = ref(readMode())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
@@ -101,6 +108,9 @@ const orchestrator = mode.value
       onNotification: showNotificationToast,
       onConflicts: showConflictToast,
       onRejections: showRejectionToast,
+      // FR-30.3 (ADR-066): the modules' stores, so the orchestrator routes
+      // their rows without importing a module.
+      features: [shoppingFeatureStore()],
     })
   : null
 
@@ -175,6 +185,20 @@ async function showNotificationToast(n: ServerNotification) {
 }
 
 provide(ORCHESTRATOR, orchestrator)
+
+/*
+ * FR-30.2/30.3 (ADR-066): the composition root is the one place that knows
+ * both the packing list and the shopping module. It binds the packing list's
+ * buy-mode rows into the shopping list as a source, and hands the switcher
+ * the module's count — so neither side imports the other.
+ */
+const shoppingSources = orchestrator
+  ? [createPackingShoppingSource(useTripStore(), orchestrator)]
+  : []
+provide(SHOPPING_SOURCES, shoppingSources)
+provide(TRIP_VIEW_COUNTS, { shopping: shoppingCount(shoppingSources) })
+// FR-30.7: the shopping list, workable on the dashboard under each trip.
+provide(TRIP_CARDS, orchestrator ? [ShoppingDashboardCard] : [])
 
 const syncStatus = orchestrator?.syncStatus ?? null
 
@@ -278,6 +302,19 @@ const stopSessionEnd = clearOnSessionEnd({
   toLogin: () => router.replace('/login'),
 })
 
+const tripStore = useTripStore()
+
+/**
+ * FR-4.9: who else is packing, for the G-2 sheet. `null` where the session has
+ * no accounts to name — Local Mode, and Single-User Mode, whose one implicit
+ * user has nobody to share a trip with (G-8).
+ */
+const online = computed(() =>
+  mode.value === 'server' && identity.myUserId !== null && orchestrator
+    ? onlineRows(orchestrator.getRoster(), identity.directory, tripStore.getTrip)
+    : null,
+)
+
 const syncDetailOpen = ref(false)
 const storage = ref<StorageStatus | null>(null)
 const lastExport = ref<number | null>(null)
@@ -297,6 +334,9 @@ async function onSyncTap() {
   // content past the box Ionic had already sized — the last line rendered
   // under the tab bar. Found on a rendered pixel, invisible in the markup.
   detailNow.value = Date.now()
+  // The names in the roster come from the directory; a device that has not
+  // opened a screen needing it yet has none.
+  if (orchestrator && mode.value === 'server') void identity.load(orchestrator)
   lastExport.value = lastExportAt()
   storage.value = mode.value === 'local' ? await readStorageStatus() : null
   syncDetailOpen.value = true
@@ -306,6 +346,11 @@ function openConflicts() {
   const id = tripId.value
   syncDetailOpen.value = false
   if (id) router.push(tripSubPath(id, 'conflicts'))
+}
+
+function openOnlineTrip(id: string) {
+  syncDetailOpen.value = false
+  router.push(tripPath(id))
 }
 
 function openMasterConflicts() {
@@ -405,6 +450,7 @@ async function saveBackup() {
           :live="syncStatus.live.value"
           :last-failure="syncStatus.lastFailure.value"
           :last-synced-at="syncStatus.lastSyncedAt.value"
+          :online="online"
           :mode="mode"
           :can-open-conflicts="mode === 'server' && tripId !== null"
           :storage="storage"
@@ -418,6 +464,7 @@ async function saveBackup() {
           @master-conflicts="openMasterConflicts"
           @backup="saveBackup"
           @apply-update="applyUpdate()"
+          @open-trip="openOnlineTrip"
         />
       </SheetModal>
     </template>

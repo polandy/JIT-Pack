@@ -1125,7 +1125,7 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
    * is therefore read in its own M5, whose chip names it; the mode picker
    * that would name every mode stays folded under *Details*.
    */
-  test('E2E-M4-127: the cluster head switches every instance to buy there, behind one undo', async ({
+  test('E2E-M4-132: the cluster head switches every instance to buy there, behind one undo', async ({
     page,
   }) => {
     await seedTrip(page)

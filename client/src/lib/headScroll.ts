@@ -11,6 +11,13 @@
 /** Below this the head is never in the way, so a gesture is ignored. */
 const YIELD_AFTER_PX = 48
 
+/**
+ * What yielding hands back to the scroller: the header line (96 px, 136 px
+ * with two figures) and the page head above it, measured on M4 as 147 px in
+ * the single-figure case. Rounded up past the taller line.
+ */
+const RELEASED_PX = 192
+
 /** Smaller than a deliberate swipe: the rubber-band's own jitter. */
 const NOISE_PX = 8
 
@@ -49,6 +56,21 @@ function atBottom({ top, viewport }: ScrollReading): boolean {
 }
 
 /**
+ * survivesYield answers whether the list is still scrollable once the head
+ * has gone. A list that overflows by less than what the yield releases
+ * cannot: the range shortens below the reader's offset, the browser clamps,
+ * the head returns and the list jumps back — on every downward swipe. Such a
+ * list, a search's few hits for one, simply keeps its head. An unresolved
+ * scroller counts as surviving: the caller resolves it at mount, so `null`
+ * is a page that has not settled yet, and a head that has never collapsed
+ * cannot be the thing clamping anything.
+ */
+function survivesYield({ viewport }: ScrollReading): boolean {
+  if (viewport === null) return true
+  return viewport.scrollHeight - viewport.clientHeight > YIELD_AFTER_PX + RELEASED_PX
+}
+
+/**
  * nextHeadState folds one reading into the head's state: it yields on the
  * way down and returns on any upward scroll, ignoring both the jitter at
  * the top and the clamp at the bottom.
@@ -64,5 +86,6 @@ export function nextHeadState(prev: HeadScrollState, reading: ScrollReading): He
   if (Math.abs(top - prev.top) < NOISE_PX) return prev
   const up = top < prev.top
   if (up && atBottom(reading) && top > YIELD_AFTER_PX) return { ...prev, top }
+  if (!prev.collapsed && !survivesYield(reading)) return { top, collapsed: false }
   return { top, collapsed: !up && top > YIELD_AFTER_PX }
 }

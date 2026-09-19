@@ -72,6 +72,24 @@ export function packedStampText(
 }
 
 /**
+ * FR-30.4: "gekauft von Andy · heute 14:32" — FR-25.17's stamp for a
+ * purchase, on both kinds of shopping line. `null` when the line says
+ * neither who nor when; the reveal has already said it was bought.
+ */
+export function boughtStampText(
+  at: string | null | undefined,
+  by: string | null | undefined,
+  nameOf: NameOf,
+  now: Date = new Date(),
+): string | null {
+  if (!at && !by) return null
+  const when = stampText(at ? relativeStamp(at, now, currentLocale()) : null)
+  const who = nameOf(by ?? null)
+  if (who) return t('shopping.boughtBy', { who, when })
+  return when ? t('shopping.boughtByUnknown', { when }) : null
+}
+
+/**
  * FR-25.19: who the row was handed to, named only where that is somebody
  * other than whoever packed it — otherwise it repeats the line above.
  */

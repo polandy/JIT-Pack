@@ -16,6 +16,7 @@ import {
   expectTripOpen,
   visiblePage,
   tripAction,
+  writesLanded,
 } from '../fixtures'
 import { FOR_WHOM_M5, assignTraveler, row } from '../helpers/m4'
 import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
@@ -1824,12 +1825,15 @@ test.describe('A trip sub-screen opened cold @single', () => {
     const pageA = await bootPage(ctxA)
     const tripPath = await createTripViaWizard(pageA, { name: trip })
 
-    // The row is made on M6 itself, so it lands in a buy mode and the
+    // The row is made on M6 itself — an entry of the list's own since FR-30.1,
+    // which travels the same trip partition as a packing row — so the
     // deep-linked screen is the one that owns it.
     await pageA.goto(`${tripPath}/shopping`)
-    await visiblePage(pageA).getByTestId('quick-add-open').click()
-    await addInComposer(pageA, item)
-    await expect(visiblePage(pageA).getByTestId('m6-row').filter({ hasText: item })).toBeVisible()
+    const m6A = visiblePage(pageA).getByTestId('m6-page')
+    await m6A.getByTestId('m6-add-input').locator('input').fill(item)
+    await m6A.getByTestId('m6-add-submit').click()
+    await expect(m6A.getByTestId('m6-row').filter({ hasText: item })).toBeVisible()
+    await writesLanded(pageA)
 
     // A device that has never opened this trip, landing straight on M6.
     const ctxB = await browser.newContext()

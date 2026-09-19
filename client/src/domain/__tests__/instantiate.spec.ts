@@ -894,6 +894,8 @@ describe('generatedFrom / companionAsGenerated', () => {
       flag_unused: false,
       flag_missing: false,
       bought_from: null,
+      bought_at: null,
+      bought_by_user_id: null,
       updated_hlc: '1',
       ...overrides,
     }

@@ -217,6 +217,25 @@ describe('a row says what it is about in words', () => {
     expect(wrapper.find('[data-testid="conflict-subject"]').text()).toBe('Item')
   })
 
+  // FR-30.1: the shopping list's own entries travel the trip partition, so a
+  // merge can drop one of their fields too; the log names the kind and the column.
+  it('names a shopping entry and its two own columns', async () => {
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ id: 'cf-a', entity_table: 'shopping_entries', entity_id: 'e1', field: 'bought' }),
+      entry({ id: 'cf-b', entity_table: 'shopping_entries', entity_id: 'e1', field: 'list' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.findAll('[data-testid="conflict-subject"]').map((s) => s.text())).toEqual([
+      'Shopping entry',
+      'Shopping entry',
+    ])
+    const fields = wrapper.findAll('[data-testid="conflict-field"]').map((f) => f.text())
+    expect(fields[0]).toContain('Bought')
+    expect(fields[1]).toContain('Shopping list')
+  })
+
   it('keeps a column it has no word for rather than inventing one', async () => {
     orchestrator.fetchConflicts.mockResolvedValue([entry({ field: 'image_hash' })])
 

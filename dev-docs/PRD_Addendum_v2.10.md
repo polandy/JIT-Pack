@@ -6,9 +6,9 @@ deployment is planned; Single-User Mode is unaffected, and NFR-4.9 is rewritten 
 numbering is kept stable with removal stubs; no other changes)
 **Scope:** New functional sections 3.10–3.23 (accepted) plus **3.24 (proposed, item tags & master-item lifecycle)**,
 **3.25 (proposed, packing-screen M2/M4/M5/M6/M8 refinements)** and **3.26 (proposed, calendar-reminder iCalendar
-subscription — Variant B)**, **3.27 (accepted, template composition)** and **3.28 (proposed, one emoji mark per item)**,
-clarifications to existing FRs, and refined/added NFRs (incl. **NFR-4.12 i18n, accepted**). Numbering continues the base
-PRD.
+subscription — Variant B)**, **3.27 (accepted, template composition)**, **3.28 (proposed, one emoji mark per item)**
+and **3.30 (accepted, the shopping list as a module of its own)**, clarifications to existing FRs, and refined/added
+NFRs (incl. **NFR-4.12 i18n, accepted**). Numbering continues the base PRD.
 **Forward direction (non-binding):** A north-star expansion of the product beyond packing — into a full family vacation
 companion (idea board, scheduling, live during-trip collaboration) — is captured in `Vision_NorthStar_v1.0.md`. It adds
 no FRs/NFRs here and does not change any scope below; clusters graduate into numbered sections only when picked up, and
@@ -1007,6 +1007,17 @@ taken straight from a phone camera never reaches the server unprocessed.
   that is where the rule stops reading direction: an upward reading taken at the bottom is not a gesture. The
   rule is a pure step (`lib/headScroll.ts`) rather than a scroll listener, because that is the only shape in
   which the clamp case can be reached by a test at all.
+
+  **A list that would not survive the yield keeps its head (2026-09-19, found on a search's few hits).** The clamp
+  guard above only holds at the bottom of a list that was long enough to begin with. A list that overflows its
+  screen by less than the yield releases — 147 px measured on a phone: the 96 px line plus the page head — has its
+  range shortened below the reader's offset, is clamped, and the head returns: the list jumped back up on every
+  swipe down (measured at 390×800: 148 px of overflow ended the flick at offset 44; 248 px ended it cleanly
+  collapsed). A search narrows a long list to a short one, which is how the owner met it. **The head now yields only
+  where the scroller overflows by more than the threshold plus 192 px** (the release, rounded up past the paired
+  two-figure line), and a shorter list simply keeps its head. Read from the scroller's own geometry, which the page
+  now resolves at mount rather than from the first scroll event — that event is the one the jump starts on.
+  E2E-M4-129.
 * **~~FR-21.18 (A List of Controls Takes a Narrower Column Than a Page of Prose — added 2026-09-07)~~ — superseded
   2026-09-08 by FR-21.26: the second caller its revisit trigger named never arrived, because the census found no
   screen for the *first* measure. Kept for the measurements in it.** UX-17's content
@@ -2351,57 +2362,62 @@ locked.
     doubles as the FR-25.6 procurement note — one field, since "50+, ohne Duft" and "war im Migros, gab es dort nicht"
     are the same affordance used at different moments; it renders inline on the row so it is visible without opening the
     sheet.
-  * **FR-25.13 (One way to add, everywhere — added 2026-08-07):** every list screen adds items the same way: the item
-    list stays free of a permanent "add" row, and the **＋ FAB expands and focuses an inline quick-add** above the list
-    (§3.25's M4 directive, now binding for M6 as well). M6 previously had a permanent "Zur Liste hinzufügen" card that
-    opened a native prompt — a second interaction model on a screen one tap away from M4. Adding must not depend on
-    which screen you are standing on. **Extended to M8 (owner directive 2026-08-08, "identisch wie in der Packliste"):**
-    adding a position to a template or group uses the **identical quick-add** — collapsed card, ＋ FAB expands and
-    focuses it, master-item autocomplete (FR-5.6), a visible scope-labelled confirm ("Zur Gruppe/Vorlage hinzufügen"),
-    Enter as the desktop shortcut, the field stays open for the next position, and it collapses on blur only when empty
-    (FR-25.13a rules). This **replaces** M8's former picker card. A picked suggestion is the FR-25.7 one-tap add with
-    defaults; a free-text name creates the master item first (FR-1.1) — since 2026-09-19 through FR-24.11's offer
-    and sheet, as on M4, rather than silently from the bare name; a name already in the template is reported
-    ("schon drin — nicht doppelt") and never duplicated, the FR-20.3 stance applied at authoring time. **Editing follows
-    the same directive:** tapping a position opens the **M5-pattern bottom sheet** — name header, read-only glance-chip
-    row, the FR-25.15 auto-save chip, the routinely-touched sections first (Menge, Vorbereitung), and
+  * **FR-25.13 (One way to add, everywhere — added 2026-08-07):** **M6 left this FR on 2026-09-19 (FR-30.2):** the
+    shopping list no longer adds packing rows, so it no longer carries the composer — M6 adds entries of its own
+    (FR-30.1), and an inventory item to buy goes onto the packing list on M4. Every mention of M6 as a composer caller
+    below, here and in FR-25.13a–j, is history. every list screen adds items the same way: the item list stays free of a
+    permanent "add" row, and the **＋ FAB expands and focuses an inline quick-add** above the list (§3.25's M4 directive,
+    now binding for M6 as well). M6 previously had a permanent "Zur Liste hinzufügen" card that opened a native prompt —
+    a second interaction model on a screen one tap away from M4. Adding must not depend on which screen you are standing
+    on. **Extended to M8 (owner directive 2026-08-08, "identisch wie in der Packliste"):** adding a position to a
+    template or group uses the **identical quick-add** — collapsed card, ＋ FAB expands and focuses it, master-item
+    autocomplete (FR-5.6), a visible scope-labelled confirm ("Zur Gruppe/Vorlage hinzufügen"), Enter as the desktop
+    shortcut, the field stays open for the next position, and it collapses on blur only when empty (FR-25.13a rules).
+    This **replaces** M8's former picker card. A picked suggestion is the FR-25.7 one-tap add with defaults; a free-text
+    name creates the master item first (FR-1.1) — since 2026-09-19 through FR-24.11's offer and sheet, as on M4, rather
+    than silently from the bare name; a name already in the template is reported ("schon drin — nicht doppelt") and
+    never duplicated, the FR-20.3 stance applied at authoring time. **Editing follows the same directive:** tapping a
+    position opens the **M5-pattern bottom sheet** — name header, read-only glance-chip row, the FR-25.15 auto-save
+    chip, the routinely-touched sections first (Menge, Vorbereitung), and
     per-person/procurement/dedup/conditions/Später-Packer behind **"Details ▾"**, M5's own progressive-disclosure toggle
     (incl. M5's "Wer braucht das?" wording, FR-25.10). The former inline expanding row form is gone; template positions
     and packing rows are now handled through one visual grammar.
   * **FR-25.13a (Description *and* assignee at add time — added 2026-08-07):** **The two fields are RETIRED (owner
     decision 2026-08-30); everything else in this FR stands.** The **description field** and the **assignee chip row**
     were never built, and M6's composer has been the *shared* one since FR-25.13 — an M6-only field would be a second
-    template for one rule, the shape invariant 4 exists to prevent, applied to a screen. The assignee half is not lost:
-    FR-25.12's row sheet is being built, and that is where a buyer is named. **What this FR still owns and what
-    E2E-M6-16/M4-21 cite it for** is the rule under those fields — *a visible confirm button is the primary commit,
-    Enter is the desktop shortcut* — plus its 2026-08-13 revision removing the blur-collapse. Retiring the fields
-    retires neither. *What was specified:* M6's quick-add carries, besides the name, a **visibly optional description
-    field** and an **inline "Zugewiesen an" chip row**, so both can be recorded in the same breath as the name rather
-    than only afterwards on the row. Rules that make it usable one-handed in a shop: **a visible confirm button is the
-    primary commit** — on a phone there is no Enter key in reach, and leaving the action to the soft keyboard's return
-    key makes it invisible; **Enter remains the desktop shortcut from any field** (this corrects the original wording,
-    which said a button was unnecessary — that was desktop thinking, caught on 2026-08-07). The same applies to **M4's
-    quick-add**, whose default "Gesamt" mode had likewise relied on Enter alone while only its per-person mode had a
-    button. **selecting an assignee must not re-render the form**, or the already-typed description is wiped; and the
-    form **does not collapse on blur** — it closes on ✕, Escape or the FAB (revised 2026-08-13 on building M4; was:
-    collapses when **all** fields are empty. Collapsing removes a block from the flow above the list, so the rows move
-    between pointer-down and pointer-up and the browser dispatches no click — the first tap after adding an item was
-    swallowed every time). **FR-25.13b (Category at add time, mostly answered for you — 2026-08-07):** the quick-add
-    carries a **category selector**, but it is the fallback rather than the main path: M6 gained the **master-item
-    autocomplete M4 already had** (FR-5.6), and picking a known item **adopts its category** (its primary tag) — asking
-    would be asking for something the system knows. The selector offers the household's own vocabulary (categories the
-    trip uses, plus every master item's primary tag, plus *Sonstiges* as the guaranteed default), and a category adopted
-    from a suggestion is added to the list even when this trip has not used it yet. Without this, everything added
-    during a trip piles into *Sonstiges*, which makes both the category grouping and the FR-25.11g category facet
-    useless. **The assignee deliberately carries over to the next add** — shopping lists are entered in runs
-    ("everything Sia picks up"), so resetting it each time would cost a tap per row; the description does not carry
-    over, since it is specific to the item. **Consistency note:** this makes M6's quick-add richer than M4's, a
-    deliberate, narrow divergence from FR-25.13 — the *interaction* (FAB → inline form → Enter) is identical, only the
-    field set differs. If M4's quick-add later gains note or delegation fields, both should converge on this shape
-    rather than diverging further. **The ＋ appears only where it can add something (revised 2026-08-17, owner):** while
-    the quick-add composer is open, the button that opens it has nothing left to do, so it steps aside and gives the
-    composer the room. Its *container* stays, deliberately — M4 and M8 anchor their toasts to it, and removing it would
-    drop those behind the tab bar (the defect of 2026-08-15).
+    template for one rule, the shape invariant 4 exists to prevent, applied to a screen. *(That premise ended with
+    FR-30: M6 has a field of its own since 2026-09-19 — not a second template of the composer's rule, because what it
+    adds is no longer an inventory item. It carries the name only, so neither retired field returns with it.)* The
+    assignee half is not lost: FR-25.12's row sheet is being built, and that is where a buyer is named. **What this FR
+    still owns and what E2E-M6-16/M4-21 cite it for** is the rule under those fields — *a visible confirm button is the
+    primary commit, Enter is the desktop shortcut* — plus its 2026-08-13 revision removing the blur-collapse. Retiring
+    the fields retires neither. *What was specified:* M6's quick-add carries, besides the name, a **visibly optional
+    description field** and an **inline "Zugewiesen an" chip row**, so both can be recorded in the same breath as the
+    name rather than only afterwards on the row. Rules that make it usable one-handed in a shop: **a visible confirm
+    button is the primary commit** — on a phone there is no Enter key in reach, and leaving the action to the soft
+    keyboard's return key makes it invisible; **Enter remains the desktop shortcut from any field** (this corrects the
+    original wording, which said a button was unnecessary — that was desktop thinking, caught on 2026-08-07). The same
+    applies to **M4's quick-add**, whose default "Gesamt" mode had likewise relied on Enter alone while only its
+    per-person mode had a button. **selecting an assignee must not re-render the form**, or the already-typed
+    description is wiped; and the form **does not collapse on blur** — it closes on ✕, Escape or the FAB (revised
+    2026-08-13 on building M4; was: collapses when **all** fields are empty. Collapsing removes a block from the flow
+    above the list, so the rows move between pointer-down and pointer-up and the browser dispatches no click — the first
+    tap after adding an item was swallowed every time). **FR-25.13b (Category at add time, mostly answered for you —
+    2026-08-07):** the quick-add carries a **category selector**, but it is the fallback rather than the main path: M6
+    gained the **master-item autocomplete M4 already had** (FR-5.6), and picking a known item **adopts its category**
+    (its primary tag) — asking would be asking for something the system knows. The selector offers the household's own
+    vocabulary (categories the trip uses, plus every master item's primary tag, plus *Sonstiges* as the guaranteed
+    default), and a category adopted from a suggestion is added to the list even when this trip has not used it yet.
+    Without this, everything added during a trip piles into *Sonstiges*, which makes both the category grouping and the
+    FR-25.11g category facet useless. **The assignee deliberately carries over to the next add** — shopping lists are
+    entered in runs ("everything Sia picks up"), so resetting it each time would cost a tap per row; the description
+    does not carry over, since it is specific to the item. **Consistency note:** this makes M6's quick-add richer than
+    M4's, a deliberate, narrow divergence from FR-25.13 — the *interaction* (FAB → inline form → Enter) is identical,
+    only the field set differs. If M4's quick-add later gains note or delegation fields, both should converge on this
+    shape rather than diverging further. **The ＋ appears only where it can add something (revised 2026-08-17, owner):**
+    while the quick-add composer is open, the button that opens it has nothing left to do, so it steps aside and gives
+    the composer the room. Its *container* stays, deliberately — M4 and M8 anchor their toasts to it, and removing it
+    would drop those behind the tab bar (the defect of 2026-08-15).
   * **FR-25.13c (Chips before the keyboard — owner decision 2026-08-21):** on a phone, composing a template out of the
     *existing* inventory was all typing — two characters, a suggestion under the soft keyboard, twenty times over.
     Decided on a rendered three-way round (chips in the composer · inventory browse-sheet · two-step tag tiles): the
@@ -2694,7 +2710,7 @@ locked.
     * The footer line *„Stattdessen neuen Namen eintippen…"* stays: it is the way back to the composer's
       *Erfassen* posture (FR-25.28's for-whom strip, the chips), which the offer does not replace.
     * **No wire, no schema, no ADR** — three existing components composed on a fourth surface. Identical in Server,
-      Single-User and Local Mode; M6 and M8 get it with the shared composer.
+      Single-User and Local Mode; M8 gets it with the shared composer (M6 carries no composer since FR-30.2).
 * **FR-25.7 (Template-Item Entry — Sensible Defaults & Progressive Disclosure):** The template editor's per-item form
   (M8) currently exposes **all** parameters at once (quantity, per-person vs. trip-global, procurement mode, dedup
   strategy, conditions, Late Packer), which makes adding a single item to a template cumbersome — yet templates
@@ -3143,9 +3159,11 @@ locked.
     whose traveler is not on the roster counts as shared rather than disappearing from the sum.
   * **The whole trip, whatever the filter** — like the trip line (FR-25.20). A share that shrank with the list would
     stop being a share of the trip.
-  * **A tap narrows the person facet to that traveler alone; a second tap on the same one clears it.** The strip owns no
-    filter: the chip row names it like any other facet value, and the sheet's multi-select stays the way to pick
-    several. *Gemeinsam* selects the facet's no-value.
+  * **A tap toggles that traveler in the person facet; a second tap takes them back out.** The rings are quick filters:
+    several can be picked at once, OR'd like the sheet's chips, so *mine and the shared ones* is two taps. The strip
+    owns no filter: the chip row names each pick like any other facet value. *Gemeinsam* selects the facet's no-value.
+    **Revised 2026-09-19 (owner request):** as first built a tap narrowed the facet to that traveler *alone*, and the
+    sheet was the only way to pick several — which put the combination a packer wants most behind a trip to the sheet.
   * **Drawn for three travelers** (owner, 2026-09-19): three columns, no scrolling. Larger parties wrap in threes;
     beyond six, five faces stay and the rest fold behind *„+N weitere"* with how many of them still have something open,
     and a traveler the list is filtered to is never folded away. The order is the roster's, never the progress's, so a
@@ -3212,6 +3230,24 @@ locked.
     controls are out of scope for now (owner, 2026-09-19): their result stays on the open sheet.
   * **No wire, no schema:** the undo is `useRowUndo`'s `armAction`, the same one-slot record the pack uses; identical
     in all three modes.
+* **FR-25.32 (A search finds what the reveal switches put away — added 2026-09-19, owner request; built the same
+  day):** M4 hides three classes of rows by default or on request — packed (FR-25.2), somebody else's (FR-25.20) and
+  late packers (FR-25.27) — and a search only narrowed what was left, so a packed row could not be found by typing its
+  name; the reader had to leave the field and turn *Erledigte* on first. **A non-blank search term now lifts all three
+  switches for the rows it matches.**
+  * **A lift, not a flip:** the switch states are not written. Clearing the term returns the list to exactly what the
+    switches say, so nothing is left switched on behind the reader (the reason FR-25.18 keeps them per session).
+  * **Facets are not lifted.** A Person or Status value was chosen; a switch is a default. Same rule as FR-25.11l, in
+    the other direction: a picked value reveals its own bucket, a typed term reveals its own matches.
+  * **The closing pass** (FR-9.3) already shows everything it lists and is unchanged.
+  * **The Erledigte and Spätpacker bars go while a term is typed (owner, 2026-09-19).** The Erledigte bar's offer —
+    *„Gepackte anzeigen"* — would stand beside a packed row that is already on screen, and its tap would change
+    nothing the reader can see. The sheet's switch still counts the *matches*, so FR-25.22's pairing of bar and switch
+    is read without a search (E2E-M4-69). The *Spätpacker* bar follows the same rule, asked for separately the same
+    day (E2E-M4-94), and the *Anderen zugewiesen* bar reports 0 hidden and is gone with them — while a term stands,
+    no reveal bar is shown.
+  * **No wire, no schema; identical in all three modes.** Ships with a fix to the same sheet: a tap on a switch's
+    *words* toggled it twice (E2E-M4-127), so the tick came and went.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.
@@ -4167,6 +4203,78 @@ the tail is where a symbol system is actually decided. Results:
   row whose name the inventory already knows, and deliberately leaves the rest ad-hoc: that mixture is what the empty
   slot is for.
 
+### 3.30 The Shopping List as a Module of Its Own
+
+**Status: accepted** (owner, 2026-09-19) — **implemented** (ADR-066). Asked for by the owner: a trip's shopping list —
+the groceries of a holiday flat above all — is to be kept **independently of the packing list**, and whatever the
+packing list marks *vor Ort kaufen* is still to land on it. Until this section M6 was a filter over `trip_items`
+(FR-3.2): a free-text add on M6 wrote a packing row in a buy mode, so „Milch" counted in the packing progress, the
+weight, the analytics, FR-9's feedback and M21's *Vorlage aus Reise*, and buying it at the destination marked it
+*packed*. Two decisions were taken up front (owner, 2026-09-19): **one shopping list per trip** (not several named
+lists, not lists outside trips), and **both tabs stay** — *Vor der Abreise* and *Vor Ort* — for the list's own entries
+as for the packing rows.
+
+* **FR-30.1 (The List's Own Entries):** A trip carries any number of **shopping entries**: a name, the list it is on
+  (`buy_before` or `buy_local`, `mode`'s vocabulary without `pack`) and whether it is bought. They live in their own
+  table, `shopping_entries`, in the **trip partition**, and sync like every other trip row (field-level LWW,
+  tombstones; they go with their trip). An entry is **on the shopping list alone**: it is no packing row and no packing
+  figure counts it. M6's field adds one to the open tab; checking it off marks it bought and moves it under FR-25.11j's
+  reveal, unchecking puts it back, and a row control removes it. An entry carries no amount, category, recipient or
+  inventory link — „500 g Hackfleisch" is written in the name — because a shopping list rarely runs to twenty rows and
+  every field would be asked on every add (the reasoning of FR-25.11g/k's retirement).
+* **FR-30.2 (The Packing List Feeds the List by Projection):** A packing row whose mode is BUY_BEFORE or BUY_LOCAL
+  (FR-3.1) appears on the matching tab **while its mode says so** — it is read from the packing row on every render,
+  never copied into `shopping_entries`. Everything FR-3.3, FR-25.6 and FR-25.11j say about such a row holds unchanged:
+  one line per thing to buy (per-person instances aggregated), check-off writes the mode transition and `bought_from` on
+  the packing row, the reveal says where it went. A packing row leaves the list by being bought or by changing mode on
+  M4/M5 — M6 offers no remove for it. **M6 no longer adds packing rows**: the shared composer (FR-25.13) is gone from
+  M6, and an inventory item to buy is put on the packing list in M4 with its mode chosen there — in M5, or for *vor Ort
+  kaufen* straight from the row's menu (FR-5.9). The list shows its own entries first under their own heading, then the
+  packing rows under their categories; an entry and a packing row of the same name are **not merged** — they are two
+  decisions, and the list does not guess that they are one.
+* **FR-30.3 (Module Boundary):** The shopping list's client code is a feature module under `client/src/shopping/`
+  (store, actions, screen, specs), its Playwright cases under `client/e2e/shopping/` — the layout FR-29.9 names for the
+  planner, used here first. Packing code never imports the module and the module never imports packing views, stores,
+  domain rules or composables; the two meet only through kernel contracts — `lib/shoppingSources.ts` (what a source of
+  lines is), `sync/featureModule.ts` (how the orchestrator routes a module's rows, cascades a trip delete into them and
+  lets the module write) and `lib/tripViews.ts` (the switcher's count) — which the composition root, `App.vue`, binds.
+  `scripts/module-boundary-gate.mjs` holds both directions in `make client` and the CI client job.
+
+* **FR-30.4 (Who Bought It, and When — owner request 2026-09-19):** every bought line — an entry or a packing row —
+  shows **„gekauft von Andy · heute 14:32"** under FR-25.11j's reveal, with the buyer's avatar: FR-25.17's stamp for a
+  purchase, from the same helpers (`domain/stamp.ts`, `lib/rowFacts.ts`), because a finished purchase raises the same
+  question as a packed row — *who* dealt with it and *how long ago*. The record is two columns, `bought_at` and
+  `bought_by_user_id`, on `shopping_entries` **and on `trip_items`**: a BUY_BEFORE purchase flips the row to *pack*
+  (FR-3.3), and without its own record the row keeps no trace of who bought it. The buyer is **stamped by the server
+  from the pusher** (invariant 3; Sync-API §5), the time is the tap's (offline purchases keep their moment), and
+  taking the purchase back clears both. **Per mode:** Server Mode names the buyer; Single-User names its one account;
+  Local Mode states the time alone, because there is no account to name (G-8). A purchase with neither shows no stamp.
+
+* **FR-30.5 (From the Dashboard Onto the List — owner request 2026-09-19):** M1 leads straight onto a trip's shopping
+  list. First built as the trip switcher's pill under each trip card; **superseded the same day by FR-30.7**, whose card
+  carries the way onto M6 itself (*„Zur Einkaufsliste →"*, or *„Alle 7 anzeigen →"* past five lines), so two ways to
+  one destination under one card became one.
+* **FR-30.6 (The ＋ Bottom Right — owner request 2026-09-19):** M6 carries M4's FAB. It leads to the field — scrolled
+  to the top, focused — rather than opening a second one, and the list scrolls clear of it (FR-25.11h).
+
+* **FR-30.7 (The Shopping List on the Dashboard, Workable — owner request and decision 2026-09-19):** under each trip
+  on M1 sits its shopping card: at most **five** open lines of the list that is *now* — *Vor Ort* for a running trip,
+  *Vor der Abreise* for a planned one — with a chip per list to switch, a field that adds an entry to the shown list,
+  a check-off per line (a packing line through FR-3.3, as on M6) with the card's own *Rückgängig*, and the way onto
+  M6. Packing lines carry a *Packliste* tag. Removing, the bought reveal and FR-30.4's stamps stay on M6. A running
+  trip always has its card; a planned trip only while something is left to buy. **This is the one exception to M1's
+  „reports, takes no actions" ruling (FR-7.4, 2026-09-18)**, taken on purpose: the list is opened in the shop, where
+  a detour through the trip is what nobody wants. The cost that ruling named — an empty composer on every dashboard —
+  is accepted for this card and not extended to trip todos, which stay read-only. Chosen over a single *Einkaufen*
+  section gathering every trip (variant B of the 2026-09-19 mockup), which cut the list off from its trip and repeated
+  the field per trip. M1 does not import the module: the card reaches it through `lib/tripCards.ts` (FR-30.3).
+
+**Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like
+every other. **Not carried:** the portable backup (NFR-4.11) does not carry entries, like FR-7.3/7.4's todos; trip
+cloning (§3.12) copies none; the destination-bound lists of FR-13.3 are still unbuilt and would now pre-fill entries
+rather than packing rows. **Revisit trigger** for the missing fields: an owner asking for an amount, a category or a
+buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it would then apply to both kinds of line.
+
 ## Part B — Clarifications & Extensions to Existing Sections
 
 ### 3.1 Template & Master Data Management
@@ -4472,6 +4580,19 @@ the tail is where a symbol system is actually decided. Results:
 
 ### 3.5 Packing Workflow
 
+* **FR-4.9 (Who Is Packing Right Now — new 2026-09-19):** The sync sheet behind the status glyph (G-2b) names the
+  other people who currently have the packing list of a trip open, and which trip, so a family knows before opening
+  anything that somebody else is already on it.
+  **Only trips the viewer is a member of, and only people who are members of them too** (owner, 2026-09-19): the
+  hub authorises both ends of every listing, so a trip a person may not know exists is never named to them. **What
+  counts as "working on it" is the packing list being open (M4), not a subscription** — the dashboard follows every
+  active trip and never unsubscribes, so a roster read from subscriptions would go on naming somebody after they
+  had left; the client says it explicitly (`viewing` frame, Sync-API §7) and the hub forgets it with the connection.
+  Consequently a person who is online but on no trip, or only on a screen other than the packing list, is not
+  listed: "online" here means *at work on a shared trip*, and a bare "is connected" list would have to name people
+  with whom the viewer shares nothing. Advisory and best-effort like FR-4.6 (a device that is offline is not
+  listed), absent in Single-User and Local Mode (G-8), and it gates nothing. FR-4.6's per-trip facepile stays as it
+  is; this is the account-wide answer to a different question.
 * **FR-5.4 (Partial Quantities):** Items with a quantity greater than 1 track a `packed_count` (e.g., 3 of 5 socks). The
   item state is derived: *Open* (0 packed), *Partially Packed* (0 < packed < quantity), *Packed* (packed = quantity).
   The quick actions of FR-5.2 increment the count; a long-press completes the item in one step. *Packing Now* and
@@ -4720,7 +4841,7 @@ the tail is where a symbol system is actually decided. Results:
     packing list, so a mistap is taken back the same way; M4's FR-7.3 prep section does the same. **M1 takes no
     actions** — it reports: an *Aufgaben* card lists the open trip todos of every active trip that has any, each trip's
     block leading into the trip, and each active trip card states the check beside — never inside — its packing
-    progress. The first cut put the whole editor
+    progress (**one exception since 2026-09-19: the shopping list, FR-30.7**). The first cut put the whole editor
     on M1; the owner ruled it out once it was built, because an empty composer stood above the hero on every dashboard
     and because the dashboard is for reading. The same ruling took the checkbox off FR-7.3's prep card. M5 does not show
     trip todos, and M4's prep section keeps meaning item preparation. Planned trips are not on M1 — its *Geplant* card

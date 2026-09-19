@@ -56,6 +56,8 @@ function row(id: string, extra: Partial<TripItem> = {}): TripItem {
     flag_unused: false,
     flag_missing: false,
     bought_from: null,
+    bought_at: null,
+    bought_by_user_id: null,
     updated_hlc: '',
     ...extra,
   }

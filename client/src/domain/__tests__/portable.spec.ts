@@ -315,6 +315,8 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
         // FR-25.11j: bought on the shopping side, hence `pack` now — the
         // record is what lets the shopping side find the row again.
         bought_from: 'buy_before',
+        bought_at: null,
+        bought_by_user_id: null,
         flag_unused: false,
         flag_missing: false,
         updated_hlc: '',
@@ -624,6 +626,8 @@ describe('serializeTrip — status, marks and tags (FR-18.4 amendment)', () => {
       packing_now_by: null,
       packing_now_at: null,
       bought_from: null,
+      bought_at: null,
+      bought_by_user_id: null,
       flag_unused: false,
       flag_missing: false,
       updated_hlc: '',
@@ -650,6 +654,8 @@ describe('serializeTrip — status, marks and tags (FR-18.4 amendment)', () => {
       packing_now_by: null,
       packing_now_at: null,
       bought_from: null,
+      bought_at: null,
+      bought_by_user_id: null,
       flag_unused: false,
       flag_missing: false,
       updated_hlc: '',
