@@ -172,7 +172,7 @@ export type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const tripStore = useTripStore()
   const masterStore = useMasterStore()
-  const syncStatus = useSyncStatus()
+  const syncStatus = useSyncStatus(() => now())
   const local = config.local ?? null
   // Deliberately not `config.getToken`: that provider may refresh and is
   // therefore async, and a lock decision is made while rendering a row.

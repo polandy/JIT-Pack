@@ -404,6 +404,7 @@ async function saveBackup() {
           :conflict-count="syncStatus.conflictCount.value"
           :live="syncStatus.live.value"
           :last-failure="syncStatus.lastFailure.value"
+          :last-synced-at="syncStatus.lastSyncedAt.value"
           :mode="mode"
           :can-open-conflicts="mode === 'server' && tripId !== null"
           :storage="storage"

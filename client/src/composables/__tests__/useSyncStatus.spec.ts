@@ -23,6 +23,19 @@ describe('useSyncStatus', () => {
     expect(status.state.value).toBe('synced')
   })
 
+  it('records when a sync cycle completed, from the injected clock (FR-19.6)', () => {
+    let clock = 1_000
+    const status = useSyncStatus(() => clock)
+    expect(status.lastSyncedAt.value).toBeNull()
+
+    status.setSynced()
+    expect(status.lastSyncedAt.value).toBe(1_000)
+
+    clock = 5_000
+    status.setOffline()
+    expect(status.lastSyncedAt.value).toBe(1_000)
+  })
+
   it('transitions to offline', () => {
     const status = useSyncStatus()
     status.setOffline()

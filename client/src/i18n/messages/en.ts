@@ -52,6 +52,7 @@ export const en = {
     'The server cannot be reached. Your changes are kept on this device and sent as soon as it is back.',
   'sync.detail.explain.local':
     'Local Mode: there is no server. Everything you enter stays in this browser, on this device.',
+  'sync.detail.lastSynced': 'Last synced: {when}',
   'sync.detail.live':
     'Live updates are connected — changes from other devices arrive as they happen.',
   'sync.detail.liveGap':

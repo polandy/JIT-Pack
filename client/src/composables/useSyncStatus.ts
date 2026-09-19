@@ -9,6 +9,7 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue'
 
 import type { RequestFailure } from '@/api/client'
 import { t, type MessageKey } from '@/i18n'
+import { defaultNowMs, type NowMs } from '@/lib/clock'
 
 export type SyncState = 'synced' | 'syncing' | 'offline' | 'local'
 
@@ -81,6 +82,15 @@ export interface SyncStatus {
    * failed under a green glyph is exactly the case nobody was looking at.
    */
   lastFailure: Ref<RequestFailure | null>
+  /**
+   * Epoch-ms of the last sync cycle that completed, or null while none has
+   * this session. The glyph says *synced* and nothing says since when — a
+   * device left in a drawer for a weekend reads exactly like one that just
+   * pulled. Session-scoped on purpose: after a reload the outbox has not yet
+   * talked to the server, and an age remembered from before would vouch for
+   * a connection this page never made.
+   */
+  lastSyncedAt: Ref<number | null>
   /** Human-readable label for the current state. */
   label: ComputedRef<string>
 
@@ -110,7 +120,7 @@ export interface SyncStatus {
   setLastFailure(failure: RequestFailure): void
 }
 
-export function useSyncStatus(): SyncStatus {
+export function useSyncStatus(now: NowMs = defaultNowMs): SyncStatus {
   const connectionState = ref<'connected' | 'offline'>('connected')
   const isSyncing = ref(false)
   const isLocal = ref(false)
@@ -123,6 +133,7 @@ export function useSyncStatus(): SyncStatus {
   const queueDurable = ref(true)
   const live = ref(false)
   const lastFailure = ref<RequestFailure | null>(null)
+  const lastSyncedAt = ref<number | null>(null)
 
   // Order matters, and 'syncing' deliberately outranks 'local': Local
   // Mode still writes, and while a write is open the honest answer is
@@ -155,6 +166,7 @@ export function useSyncStatus(): SyncStatus {
   function setSynced() {
     isSyncing.value = false
     connectionState.value = 'connected'
+    lastSyncedAt.value = now()
   }
 
   function setOffline() {
@@ -207,6 +219,7 @@ export function useSyncStatus(): SyncStatus {
     queueDurable,
     live,
     lastFailure,
+    lastSyncedAt,
     label,
     setSyncing,
     setSynced,
