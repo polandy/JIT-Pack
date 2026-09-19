@@ -163,30 +163,39 @@ jobs:
   # backend-backed modes have had their own jobs since #192 (`e2e-single`,
   # `e2e-server`, both below).
   #
-  # The shard count is a *measurement*, not a constant: ten, sized
-  # 2026-09-18 against ~2940 test-seconds. Why ten and not eight or twelve —
-  # the per-browser split that was worse, the 20-job concurrency ceiling that
-  # eight non-shard jobs eat into, and what bounds it from below now that the
-  # legs are short (no longer the fixed ~60 s per leg, but `e2e-single` and
-  # `e2e-server` at ~260 s, which do not shard) — is in
-  # dev-docs/implementation-log.md, "The e2e matrix is ten legs" and the
-  # eight-leg section it supersedes. **Re-read the number when the suite
-  # grows**: a green pipeline never says the count has gone stale, because
-  # the only symptom is that every run is slower than it needs to be, and it
-  # has now gone stale twice. The cheap check is the per-leg times of any
+  # **One job per browser, each sharded on its own.** Playwright chunks the
+  # test list contiguously by *count*, and WebKit sits behind Chromium in that
+  # list, so with one matrix over both the legs held the same number of tests
+  # and ran 2.7–7.1 min: legs 1–4 were pure Chromium, 6–9 pure WebKit, and
+  # WebKit costs ~1.7x per test on a runner. Sharding each project separately
+  # lets the two leg counts differ, and `strategy.job-total` is then each job's
+  # own count, so a leg count and its `--shard` denominator cannot drift apart
+  # (a hand-written denominator that disagreed with the matrix would skip
+  # tests without any red signal).
+  #
+  # The leg counts are *measurements*, not constants: four Chromium and six
+  # WebKit, sized 2026-09-19 against ~48 test-minutes on 2 workers. Ten legs in
+  # all, for the concurrency reason in the log. Why the count and not another,
+  # what bounds it from below (`e2e-single` and `e2e-server` at ~260 s, which do
+  # not shard), and why an earlier one-leg-per-browser split was worse — that
+  # one was *two* legs, so WebKit ran for its whole duration on one runner — is
+  # in dev-docs/implementation-log.md, "The e2e legs are split by browser".
+  # **Re-read the numbers when the suite grows**: a green pipeline never says
+  # a count has gone stale, because the only symptom is that every run is
+  # slower than it needs to be. The cheap check is the per-leg times of any
   # recent run.
   #
   # Deliberately *not* gated on `client`, and it runs inside the digest-pinned
   # Playwright image rather than installing browsers — both measured, both in
-  # that same log section.
-  e2e:
+  # the log section "The e2e matrix is ten legs" and the ones it supersedes.
+  e2e-chromium:
     runs-on: ubuntu-latest
     strategy:
       # Every shard reports, so a failure in one is not hidden by the
       # others being cancelled.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Installed and built on the *runner*, not in the container: the image
@@ -195,14 +204,36 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
-      # job-total rather than a repeated literal: the shard count is the
+      # job-total rather than a repeated literal: this job's leg count is its
       # matrix length, and naming it twice is how the two drift apart.
-      - run: scripts/e2e.sh --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - run: scripts/e2e.sh --project=chromium --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           # Unique per leg — a repeated artifact name is an upload error.
-          name: playwright-report-shard-${{ matrix.shard }}
+          name: playwright-report-chromium-${{ matrix.shard }}
+          path: client/playwright-report/
+          retention-days: 7
+
+  # The other half of the split above: same steps, WebKit, more legs because a
+  # WebKit test costs more. Kept as a second job rather than a matrix `include`
+  # for the reason named there — `job-total` is per job.
+  e2e-webkit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/client-setup
+        with:
+          build: 'true'
+      - run: scripts/e2e.sh --project=webkit --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-webkit-${{ matrix.shard }}
           path: client/playwright-report/
           retention-days: 7
 
@@ -313,14 +344,14 @@ jobs:
 
   # Merges patch/minor Dependabot PRs once every check above is green.
   # `main` is protected and names go, go-lint, client, format and
-  # docker-build as required, but `e2e` and `visual` deliberately are not
+  # docker-build as required, but `e2e-*` and `visual` deliberately are not
   # (a sharded matrix would need every leg listed by name against a count
   # that is re-measured as the suite grows, and a skipped required check
   # reports worse than the failure under it — see CLAUDE.md).
   # This job's `needs` is what makes a Dependabot merge wait for those too.
   # Major updates stay open for manual review.
   dependabot-merge:
-    needs: [go, go-lint, client, format, visual, e2e, e2e-single, e2e-server, docker-build]
+    needs: [go, go-lint, client, format, visual, e2e-chromium, e2e-webkit, e2e-single, e2e-server, docker-build]
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:

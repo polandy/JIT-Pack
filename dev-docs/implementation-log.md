@@ -392,6 +392,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The e2e matrix is ten legs (2026-09-18)](#the-e2e-matrix-is-ten-legs-2026-09-18) — the shard count went stale a second time, and what bounds it from below is now the two backend jobs.
 - [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
 - [The search offers what it did not find (2026-09-18)](#the-search-offers-what-it-did-not-find-2026-09-18) — FR-24.11; the proposal's reason for the restore offer was wrong, and three things only the rendered screen said.
+- [The e2e legs are split by browser (2026-09-19)](#the-e2e-legs-are-split-by-browser-2026-09-19) — the ten legs held equal test counts and ran 2.7–7.1 min; the prediction is written down before the run.
 - [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's dependency pickers; an inline modal beside a v-if/v-else broke the section it sat in.
 - [The mark palette was too small (2026-09-18)](#the-mark-palette-was-too-small-2026-09-18) — FR-28.2 grew from 102 to 352 entries; the font ceiling doubled, a cost accepted on purpose.
 ## Deviations
@@ -16083,3 +16084,36 @@ a per-glyph `unicode-range` face, so a device that never paints a mark never fet
 against the pinned Noto build's cmap first; ZWJ sequences (e.g. 🧑‍💻) were left out because a per-code-point subset
 cannot carry them. The picker's facet chips now hold 20–45 entries each, which the picker was not visually re-checked
 against.
+
+## The e2e legs are split by browser (2026-09-19)
+
+**The legs had equal counts and unequal durations, and the cause was in the list order.** Run 35422616500 ran the ten
+legs at 233–490 s of job time (2.7–7.1 min of Playwright time) although each held 83–84 tests. `--list` per shard
+showed why: Playwright chunks the test list contiguously by count, and the list is ordered by project, so legs 1–4
+were pure Chromium, legs 6–9 pure WebKit and leg 5 the seam (68 + 16). A WebKit test costs about 1.7x a Chromium test
+on the runner, which runs 2 workers (the same 84 tests took 1.2 min on a 16-core machine with 8). The slowest leg
+decides the wall clock, and it was always a WebKit one. The log entry of 2026-08-30 had named the mechanism and
+accepted it ("the spread survives"); it is removed here rather than shrunk.
+
+**What was chosen:** two jobs, `e2e-chromium` (4 legs, 101 tests each) and `e2e-webkit` (6 legs, 67–68 each), each
+sharded with `--project=P --shard=N/${{ strategy.job-total }}`. Still ten legs, so the 20-job concurrency arithmetic
+of the previous entry is unchanged. Checked before it was written into CI: per browser, the union of the shards is
+identical to the unsharded list (404 = 404), so nothing is skipped and nothing runs twice.
+
+**Two jobs and not one matrix with an `include` list**, because `strategy.job-total` is the matrix length of its own
+job. A hand-written `--shard=N/M` that disagrees with the matrix does not fail; it skips tests. Two jobs cost fifteen
+duplicated lines, and that is the price of leaving no place for the number to be wrong.
+
+**This is not the per-browser split of 2026-08-19 that was measured worse.** That one had two legs, so WebKit ran for
+its whole 10.6 min on one runner, bounded by itself, and put two WebKit contexts on it (E2E-M12-05 failed at different
+lines each time: a unit exceeding its budget). WebKit is still split six ways here, with fewer tests per leg than
+before (67 against 84), so no leg carries more WebKit than it did.
+
+**Prediction, written before the run so that it can fail.** From the per-test cost of that run (Chromium 1.9–3.1 s,
+WebKit 4.1–5.7 s per test at leg level) and a fixed ~65–100 s per leg (setup, image pull): worst leg ≈ 400 s,
+range 350–450 s, from 490 s. That is a wall-clock gain of ~90 s (range 40–140), not the ~140 s the loose estimate
+gave when only the mean was used: it ignored the fixed cost and the spread that survives *inside* each browser, where
+files are still chunked contiguously. Expected spread across the ten legs: 260–450 s. `e2e-single` (268 s) stays
+below the worst leg. If the worst leg lands above 450 s the split did not help and the counts are wrong, not the idea.
+
+**Measured after the change:** to be filled from the run, see the PR.
