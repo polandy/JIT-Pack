@@ -769,6 +769,11 @@ in WebKit.
 * **E2E-M4-118** `all` (FR-25.26, FR-5.8, added 2026-09-19) — **implemented** (`e2e/membership.spec.ts`): the head
   removes every instance of an untouched cluster without asking; no instance is left behind as a lone row, and the
   undo returns the cluster with both children.
+* **E2E-M4-132** `local` (FR-5.9 with FR-25.26 and FR-25.31, added 2026-09-19) — **implemented**
+  (`e2e/membership.spec.ts`): the cluster head's *Vor Ort kaufen* switches **every instance**, read per child in its
+  own M5 (the head draws one instance's mode, so it repaints on a fan-out that reached one child of two). With all
+  instances bought there the head offers only *Doch mitnehmen*; its snackbar undo gives each instance its previous
+  mode back.
 * **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): M4's *Aufgaben für die
   Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing
