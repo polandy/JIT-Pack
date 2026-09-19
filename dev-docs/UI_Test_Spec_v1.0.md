@@ -736,6 +736,13 @@ in WebKit.
 * **E2E-M4-126** `local` (FR-25.31 with FR-25.26, added 2026-09-19) — **implemented** (`membership.spec.ts`): the
   cluster head's *late packer on for everyone* raises *„2 rows changed"*, and its undo clears the head's ⏰ — which the
   head paints while any instance carries the flag, so its absence is every instance.
+* **E2E-M4-117** `all` (FR-25.26 widened, added 2026-09-19) — **implemented** (`e2e/membership.spec.ts`): the cluster
+  head offers a row's entries. *Menge ändern* from the head, stepped to 3, reads **0/3 on each child**, and *Nicht
+  einpacken* takes the whole cluster off the working list — one skipped child of two would have kept it there. The
+  snackbar's one undo brings both back at their amount.
+* **E2E-M4-118** `all` (FR-25.26, FR-5.8, added 2026-09-19) — **implemented** (`e2e/membership.spec.ts`): the head
+  removes every instance of an untouched cluster without asking; no instance is left behind as a lone row, and the
+  undo returns the cluster with both children.
 * **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): M4's *Aufgaben für die
   Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing

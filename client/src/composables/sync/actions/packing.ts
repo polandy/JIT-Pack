@@ -18,7 +18,9 @@ import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import {
   itemInUse,
   itemLeftUnused,
+  itemLeftUnusedByRows,
   planRemoval,
+  planRemovals,
   type ItemUseSources,
   type RowRemoval,
 } from '@/domain/rowRemoval'
@@ -510,6 +512,20 @@ export function createPackingActions(ctx: SyncContext) {
     )
   }
 
+  /**
+   * {@link planRowRemoval} for several rows removed at once — every instance
+   * under a cluster head (FR-25.26). The companions are the ones the rows
+   * together leave unneeded, which row by row would be none.
+   */
+  function planRowsRemoval(tripId: string, items: readonly TripItem[]): RowRemoval<TripItem> {
+    return planRemovals(
+      items,
+      tripStore.getItems(tripId),
+      masterStore.dependencyList,
+      (item) => tripStore.itemChildRows(item.id).length,
+    )
+  }
+
   /** Everything on this device that can keep an inventory item in use. */
   function itemUseSources(): ItemUseSources {
     return {
@@ -526,6 +542,13 @@ export function createPackingActions(ctx: SyncContext) {
    */
   function itemLeftByRemoval(row: Pick<TripItem, 'id' | 'source_item_id'>): string | null {
     return itemLeftUnused(row, itemUseSources())
+  }
+
+  /** {@link itemLeftByRemoval} for every instance of one item removed together. */
+  function itemLeftByRemovals(
+    rows: readonly Pick<TripItem, 'id' | 'source_item_id'>[],
+  ): string | null {
+    return itemLeftUnusedByRows(rows, itemUseSources())
   }
 
   /**
@@ -823,6 +846,7 @@ export function createPackingActions(ctx: SyncContext) {
 
   return {
     itemLeftByRemoval,
+    itemLeftByRemovals,
     itemStillUsed,
     setMembership,
     spreadOverEveryTraveler,
@@ -853,6 +877,7 @@ export function createPackingActions(ctx: SyncContext) {
     addDecidedItem,
     removeAddedItem,
     planRowRemoval,
+    planRowsRemoval,
     removeItem,
     restoreRemovedItem,
     skipRows,

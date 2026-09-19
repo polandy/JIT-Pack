@@ -128,9 +128,11 @@ import {
 } from '@/domain/packingView'
 import { avatarAssignable, rowMenuEntries, type RowMenuAction } from '@/domain/rowMenu'
 import {
-  clusterFanOut,
   clusterMenuEntries,
+  clusterTargets,
+  type ClusterFanOut,
   type ClusterInstance,
+  type ClusterMenuContext,
   type ClusterMenuAction,
 } from '@/domain/clusterActions'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
@@ -607,7 +609,18 @@ function openItem(itemId: string) {
 // row while looking at the list, and a sheet per row would cost the list
 // five times. M5 carries the same control in a block of its own, for the
 // other posture — one row, read properly.
-const quantityItemId = ref<string | null>(null)
+/**
+ * The rows the editor writes: one when a row opened it, every instance the
+ * head's *Menge* reaches when a cluster head did (FR-25.26) — the amount is
+ * per person, so the same number is written to each of them.
+ */
+const quantityRowIds = ref<string[]>([])
+
+/**
+ * What the popover names when it stands for several rows — the item and how
+ * many people it writes for. Null for a single row, which names itself.
+ */
+const quantityClusterLabel = ref<string | null>(null)
 
 /**
  * The tap that opened the editor, which is what Ionic anchors the popover
@@ -616,8 +629,18 @@ const quantityItemId = ref<string | null>(null)
  */
 const quantityEvent = ref<MouseEvent | undefined>(undefined)
 
-const quantityItem = computed(
-  () => allItems.value.find((row) => row.id === quantityItemId.value) ?? null,
+const quantityRows = computed(() => rowsOf(quantityRowIds.value))
+
+/**
+ * The row whose amount the editor shows. For a cluster that is the first
+ * instance: the instances may disagree, and the first tap writes one number
+ * to every one of them, after which the display is true of all.
+ */
+const quantityItem = computed(() => quantityRows.value[0] ?? null)
+
+/** The floor the editor warns about: the most any written row has packed. */
+const quantityPacked = computed(() =>
+  Math.max(0, ...quantityRows.value.map((row) => row.packed_count)),
 )
 
 const quantityChoiceList = computed(() =>
@@ -636,8 +659,13 @@ const quantityChoiceList = computed(() =>
 function openQuantity(item: TripItem, event?: MouseEvent): void {
   if (closingPass.value || locked(item)) return
   quantityEvent.value = event
-  quantityItemId.value = item.id
-  quantityBefore = { ...item }
+  quantityClusterLabel.value = null
+  quantityRowIds.value = [item.id]
+}
+
+function closeQuantity(): void {
+  quantityRowIds.value = []
+  quantityClusterLabel.value = null
 }
 
 /**
@@ -647,24 +675,26 @@ function openQuantity(item: TripItem, event?: MouseEvent): void {
  * a snackbar raised over the open popover would also be the overlay Escape
  * dismisses first, leaving the popover standing and the undo gone.
  */
-let quantityBefore: TripItem | null = null
+let quantityBefore: TripItem[] | null = null
 
 function onSetQuantity(quantity: number): void {
-  const item = quantityItem.value
-  if (!item) return
-  orchestrator.setQuantity(props.tripId, item, quantity)
+  // Snapshotted at the first write rather than at opening, so both openers —
+  // a row and a cluster head (FR-25.26) — share one capture of every row.
+  quantityBefore ??= quantityRows.value.map((row) => ({ ...row }))
+  for (const row of quantityRows.value) orchestrator.setQuantity(props.tripId, row, quantity)
 }
 
 function onQuantityClosed(): void {
-  quantityItemId.value = null
+  closeQuantity()
   const before = quantityBefore
   quantityBefore = null
-  if (!before) return
-  const now = liveRow(before.id)
-  if (!now || now.quantity === before.quantity) return
+  const first = before?.[0]
+  if (!before || !first) return
+  const now = liveRow(first.id)
+  if (!now || now.quantity === first.quantity) return
   // Three fields, as the write has them: an amount cut below the packed count
   // clamps the count, and the undo has to give both back (FR-25.24).
-  rowUndo.armUndo([before], (records) => orchestrator.restoreSkip(props.tripId, records))
+  rowUndo.armUndo(before, (records) => orchestrator.restoreSkip(props.tripId, records))
   void announceAct(t('packing.quantityToast', { name: now.name, n: now.quantity }))
 }
 
@@ -784,11 +814,21 @@ function clusterInstances(cluster: PackingCluster): ClusterInstance[] {
     return [
       {
         id: item.id,
-        latePacker: item.late_packer,
+        row: item,
         lockedBy: holder ? nameOf(holder) : null,
+        mine: orchestrator.holdsClaim(props.tripId, item),
       },
     ]
   })
+}
+
+/** What the head's rule reads beyond the instances — a row menu's context. */
+function clusterMenuContext(): ClusterMenuContext {
+  return {
+    closingPass: closingPass.value,
+    canAssign: assignableMembers.value.length > 0,
+    judgeable: judgeable.value,
+  }
 }
 
 /** The rows behind a fan-out plan, in the order the plan names them. */
@@ -813,40 +853,158 @@ function announceFanOut(written: number, total: number, blockedBy: string[]): vo
   )
 }
 
+/**
+ * The name a fan-out's own snackbar reports under: the item, and — where a
+ * claim kept the write off some instances — how many it did reach. The skip
+ * and the removal carry an undo, so they cannot hand their report to
+ * {@link announceFanOut}'s toast without losing it.
+ */
+function fanOutName(name: string, plan: ClusterFanOut): string {
+  if (plan.blockedBy.length === 0) return name
+  const total = plan.targetIds.length + plan.blockedBy.length
+  return t('packing.clusterPartialName', { name, n: plan.targetIds.length, total })
+}
+
+/**
+ * FR-5.5 over every instance at once: one undo for all of them, the way the
+ * row's own skip arms one for its companions. `affected` is gathered from the
+ * skips themselves — FR-20.2 co-skips a companion only once no traveler's row
+ * still needs it, which only the last instance's skip can see.
+ */
+function skipRows(name: string, rows: TripItem[]): void {
+  const affected: TripItem[] = []
+  for (const row of rows) {
+    for (const hit of orchestrator.skipItem(props.tripId, row)) {
+      if (!affected.some((known) => known.id === hit.id)) affected.push(hit)
+    }
+  }
+  rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(props.tripId, records))
+  const targets = new Set(rows.map((row) => row.id))
+  void announceSkipped(
+    name,
+    affected.filter((row) => !targets.has(row.id)).map((row) => row.name),
+  )
+}
+
+/**
+ * FR-5.8 over every instance at once, with the row's own two paths: nothing
+ * on any of them goes behind one undo, anything the undo cannot return is
+ * asked first. The inventory item goes only when these rows were its last use
+ * (ADR-065) — the instances are no use of each other.
+ */
+async function removeRows(name: string, rows: TripItem[]): Promise<void> {
+  const removal = orchestrator.planRowsRemoval(props.tripId, rows)
+  const leftItem = orchestrator.itemLeftByRemovals(rows)
+  const pruneLeftItem = () => {
+    if (leftItem !== null) void orchestrator.pruneItemLeftByRemoval(props.tripId, leftItem)
+  }
+  if (!removalNeedsConfirm(removal)) {
+    const snapshots = rows.map((row) => ({ ...row }))
+    rowUndo.armUndo(
+      snapshots,
+      () => {
+        for (const snapshot of snapshots) orchestrator.restoreRemovedItem(props.tripId, snapshot)
+      },
+      pruneLeftItem,
+    )
+    for (const row of rows) removeRow(row)
+    void announceRemoved(name, leftItem !== null)
+    return
+  }
+  const confirmed = await confirmDestructive({
+    header: t('packing.removeConfirmTitle', { name }),
+    message: removalSentence(removal, leftItem !== null),
+    confirmLabel: t('common.remove'),
+    testid: 'm4-remove-confirm',
+  })
+  if (!confirmed) return
+  removeConfirmed(rows, removal.companions, pruneLeftItem)
+  void announceRemoved(name, leftItem !== null)
+}
+
 async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster): Promise<void> {
   const instances = clusterInstances(cluster)
-  const plan = clusterFanOut(instances)
+  const plan = clusterTargets(action, instances, clusterMenuContext())
   const rows = rowsOf(plan.targetIds)
+  const reached = plan.targetIds.length + plan.blockedBy.length
+  const report = () => announceFanOut(rows.length, reached, plan.blockedBy)
 
-  if (action === 'assignAll') {
-    // The head has no assignment of its own to show as picked: its instances
-    // may disagree, and presenting one of them as the cluster's answer would
-    // be a claim the model does not make.
-    const picked = await pickAssignee(cluster.name, null)
-    if (picked === undefined) return
-    // Per row, because the instances may have disagreed before the fan-out
-    // and the undo gives each its own value back.
-    const previous = new Map(rows.map((row) => [row.id, row.packer_user_id]))
-    armRowsUndo(rows, (live) =>
-      orchestrator.setPacker(props.tripId, live, previous.get(live.id) ?? null),
-    )
-    orchestrator.setPackerForRows(props.tripId, rows, picked)
-  } else {
-    const previous = new Map(rows.map((row) => [row.id, row.late_packer]))
-    armRowsUndo(rows, (live) =>
-      orchestrator.setLatePacker(props.tripId, live, previous.get(live.id) ?? false),
-    )
-    orchestrator.setLatePackerForRows(props.tripId, rows, action === 'latePackerOn')
+  switch (action) {
+    case 'assignAll': {
+      // The head has no assignment of its own to show as picked: its instances
+      // may disagree, and presenting one of them as the cluster's answer would
+      // be a claim the model does not make.
+      const picked = await pickAssignee(cluster.name, null)
+      if (picked === undefined) return
+      // Per row: the instances may have disagreed before the fan-out, and the
+      // undo gives each its own value back (FR-25.31).
+      const previous = new Map(rows.map((row) => [row.id, row.packer_user_id]))
+      armRowsUndo(rows, (live) =>
+        orchestrator.setPacker(props.tripId, live, previous.get(live.id) ?? null),
+      )
+      orchestrator.setPackerForRows(props.tripId, rows, picked)
+      report()
+      return
+    }
+    case 'latePackerOn':
+    case 'latePackerOff': {
+      const previous = new Map(rows.map((row) => [row.id, row.late_packer]))
+      armRowsUndo(rows, (live) =>
+        orchestrator.setLatePacker(props.tripId, live, previous.get(live.id) ?? false),
+      )
+      orchestrator.setLatePackerForRows(props.tripId, rows, action === 'latePackerOn')
+      report()
+      return
+    }
+    case 'release':
+      armRowsUndo(rows, (live) => {
+        if (!locked(live)) orchestrator.packingNow(props.tripId, live)
+      })
+      for (const row of rows) orchestrator.releaseClaim(props.tripId, row)
+      report()
+      return
+    case 'unskip':
+      rowUndo.armUndo(rows, (records) => orchestrator.restoreSkip(props.tripId, records))
+      for (const row of rows) orchestrator.unskipItem(props.tripId, row)
+      report()
+      return
+    case 'packingNow':
+      armRowsUndo(rows, (live) => {
+        if (orchestrator.holdsClaim(props.tripId, live))
+          orchestrator.releaseClaim(props.tripId, live)
+      })
+      for (const row of rows) orchestrator.packingNow(props.tripId, row)
+      report()
+      return
+    case 'flagUnused':
+    case 'unflagUnused': {
+      const previous = new Map(rows.map((row) => [row.id, row.flag_unused]))
+      armRowsUndo(rows, (live) =>
+        orchestrator.setReviewFlag(props.tripId, live, 'unused', previous.get(live.id) ?? false),
+      )
+      for (const row of rows) {
+        orchestrator.setReviewFlag(props.tripId, row, 'unused', action === 'flagUnused')
+      }
+      report()
+      return
+    }
+    case 'quantity':
+      // Centred, like the row menu's: the head it came from may have moved.
+      quantityEvent.value = undefined
+      quantityClusterLabel.value = fanOutName(cluster.name, plan)
+      quantityRowIds.value = plan.targetIds
+      return
+    case 'skip':
+      skipRows(fanOutName(cluster.name, plan), rows)
+      return
+    case 'remove':
+      await removeRows(fanOutName(cluster.name, plan), rows)
   }
-  announceFanOut(rows.length, instances.length, plan.blockedBy)
 }
 
 async function openClusterMenu(cluster: PackingCluster): Promise<void> {
   clusterHold.cancel()
-  const entries = clusterMenuEntries(clusterInstances(cluster), {
-    closingPass: closingPass.value,
-    canAssign: assignableMembers.value.length > 0,
-  })
+  const entries = clusterMenuEntries(clusterInstances(cluster), clusterMenuContext())
   if (entries.length === 0) return
 
   rowMenuActive = true
@@ -861,6 +1019,7 @@ async function openClusterMenu(cluster: PackingCluster): Promise<void> {
         ...entries.map((action) => ({
           text: t(CLUSTER_MENU_BUTTONS[action].labelKey),
           icon: CLUSTER_MENU_BUTTONS[action].icon,
+          role: CLUSTER_MENU_BUTTONS[action].role,
           handler: () => {
             void runClusterMenu(action, cluster)
           },
@@ -875,8 +1034,17 @@ async function openClusterMenu(cluster: PackingCluster): Promise<void> {
   }
 }
 
-/** Label and glyph per cluster entry; the decision is the domain's. */
-const CLUSTER_MENU_BUTTONS: Record<ClusterMenuAction, { labelKey: MessageKey; icon: string }> = {
+/**
+ * Label and glyph per cluster entry; the decision is the domain's. The head
+ * speaks the row's words for the row's actions — its sub-header already says
+ * how many rows they reach — and keeps its own for the three it had first,
+ * whose „für alle" wording says what a row's could not.
+ */
+const CLUSTER_MENU_BUTTONS: Record<
+  ClusterMenuAction,
+  { labelKey: MessageKey; icon: string; role?: 'destructive' }
+> = {
+  ...ROW_MENU_BUTTONS,
   latePackerOn: { labelKey: 'packing.clusterLatePackerOn', icon: timeOutline },
   latePackerOff: { labelKey: 'packing.clusterLatePackerOff', icon: timeOutline },
   assignAll: { labelKey: 'packing.clusterAssignAll', icon: peopleOutline },
@@ -1396,32 +1564,47 @@ async function onRemoveItem(item: TripItem) {
     testid: 'm4-remove-confirm',
   })
   if (!confirmed) return
-  // FR-25.31: the confirmed removal has an undo too. Its companions are
-  // skipped now — that is an ordinary write the snackbar can take back — but
-  // the row itself only leaves the screen: deleting it would take its
-  // comments and todos along, and those cannot be written back under their
-  // own authors. The delete is what lapses.
-  const rowId = item.id
+  removeConfirmed([item], removal.companions, pruneLeftItem)
+  void announceRemoved(item.name, leftItem !== null)
+}
+
+/**
+ * FR-25.31: a confirmed removal has an undo too. Its companions are skipped
+ * now — an ordinary write the snackbar can take back — but the rows themselves
+ * only leave the screen: deleting them would take their comments and todos
+ * along, and those cannot be written back under their own authors. The delete
+ * is what lapses, with ADR-065's prune after it.
+ */
+function removeConfirmed(
+  rows: readonly TripItem[],
+  companions: readonly TripItem[],
+  afterDelete: () => void,
+): void {
+  const ids = new Set(rows.map((row) => row.id))
+  const unhide = () => {
+    for (const id of ids) removingRows.value.delete(id)
+  }
   rowUndo.armUndo(
-    [item, ...removal.companions],
+    [...rows, ...companions],
     (records) => {
-      removingRows.value.delete(rowId)
+      unhide()
       orchestrator.restoreSkip(
         props.tripId,
-        records.filter((record) => record.itemId !== rowId),
+        records.filter((record) => !ids.has(record.itemId)),
       )
     },
     () => {
-      const live = tripStore.getItems(props.tripId).find((row) => row.id === rowId)
-      if (live) orchestrator.removeItem(props.tripId, live, [])
-      removingRows.value.delete(rowId)
-      pruneLeftItem()
+      for (const id of ids) {
+        const live = liveRow(id)
+        if (live) orchestrator.removeItem(props.tripId, live, [])
+      }
+      unhide()
+      afterDelete()
     },
   )
-  removingRows.value.add(rowId)
-  if (openItemId.value === rowId) closeItem()
-  orchestrator.skipRows(props.tripId, removal.companions)
-  void announceRemoved(item.name, leftItem !== null)
+  for (const id of ids) removingRows.value.add(id)
+  if (openItemId.value !== null && ids.has(openItemId.value)) closeItem()
+  orchestrator.skipRows(props.tripId, companions)
 }
 
 /**
@@ -2468,7 +2651,7 @@ setHeaderTitle(
            the rows around the one being corrected are what makes the number
            decidable. -->
       <IonPopover
-        :is-open="quantityItemId !== null"
+        :is-open="quantityRowIds.length > 0"
         :event="quantityEvent"
         data-testid="m4-quantity-popover"
         @did-dismiss="onQuantityClosed"
@@ -2476,12 +2659,12 @@ setHeaderTitle(
         <div class="qty-pop">
           <p class="qty-pop-head">
             <span class="jp-eyebrow">{{ t('quantity.title') }}</span>
-            <span class="qty-pop-name">{{ quantityItem?.name }}</span>
+            <span class="qty-pop-name">{{ quantityClusterLabel ?? quantityItem?.name }}</span>
           </p>
           <QuantityEditor
             v-if="quantityItem"
             :quantity="quantityItem.quantity"
-            :packed="quantityItem.packed_count"
+            :packed="quantityPacked"
             :choices="quantityChoiceList"
             @update="onSetQuantity"
           />
