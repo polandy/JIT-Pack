@@ -1020,7 +1020,8 @@ export const en = {
   'container.notFound': 'This container does not exist.',
 
   // M12 — Analytics (FR-8.2/14.3).
-  'analytics.hint': 'Weight: packed / planned · tap a bar for the filtered packing list',
+  'analytics.hint': 'Weight: packed / planned · tap bars to pick one or more',
+  'analytics.openList': 'Show in packing list ({n})',
   'analytics.empty': 'No weighted items yet — nothing to chart.',
   'analytics.unweighted':
     '＋ {n} item without a weight — honestly left out | ＋ {n} items without a weight — honestly left out',

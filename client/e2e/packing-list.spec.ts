@@ -436,6 +436,7 @@ test.describe('M4 packing list @local @m4', () => {
     // click aimed at its own `ion-label`.
     await page.getByTestId('analytics-dim-person').click()
     await page.getByTestId('analytics-slice-none').click()
+    await page.getByTestId('analytics-open-list').click()
 
     // The tap set the facet (M12-04's half); clearing it reveals the
     // grouping that must still be in force on the mounted M4 (ADR-012).

@@ -38,6 +38,8 @@ replaced and why. This index only says where to look.
 * 2026-09-16 — **G-19**: the banner's layer belongs to the content column — below the page head, the width of the
   column (ADR-060 amendment 1).
 * 2026-09-19 — **G-2**: the detail says when the last sync completed (FR-19.6).
+* 2026-09-19 — **M4**: the FR-25.29 rings are quick filters — a tap adds or removes that traveler, several at once.
+* 2026-09-19 — **M12**: bars are picked, several at once, and one button opens M4 filtered to them (FR-8.2).
 * 2026-09-19 — **M4**: a ring per traveler under the trip line, tap to filter (FR-25.29).
 * 2026-09-19 — **M4**: filtered to one person, a per-person item is a plain row rather than a cluster (FR-25.30).
 * 2026-09-18 — **M17/M3**: a default traveller can be an existing account (FR-2.5a).
@@ -1190,9 +1192,11 @@ These patterns apply to every screen and are specified once.
   * **Per person (added 2026-09-19, FR-25.29):** under the sticky line, not in it, so it scrolls away with the list —
     one card per traveler with their face inside a `--jp-done` ring (the ProgressRing construction) and *„x von y"* /
     *„fertig ✓"* / *„nichts zu packen"* under the name, three to a row; a dashed *Gemeinsam* line with a track under the
-    cards when any row is for nobody. A tap selects the traveler in the person facet (pressed card, chip in the chip
-    row); a second tap clears it. Beyond six travelers the sixth slot reads *„+N weitere · M noch offen"* and unfolds
-    the rest, *„Weniger zeigen"* folds them again. Absent with fewer than two travelers and during the closing pass.
+    cards when any row is for nobody. A tap toggles the traveler in the person facet (pressed card, chip in the chip
+    row), so several can be pressed at once — a quick filter, OR'd like the sheet's chips — and a second tap takes that
+    one back out (revised 2026-09-19; it used to narrow to the tapped traveler alone). Beyond six travelers the sixth
+    slot reads *„+N weitere · M noch offen"* and unfolds the rest, *„Weniger zeigen"* folds them again. Absent with
+    fewer than two travelers and during the closing pass.
   * Grouping switcher: *Category / Container / Person / Status*, now inside the filter sheet's *Gruppieren nach* section
     rather than as its own bar. **Decided: persists per user per trip** (not a global preference) — switching to
     *Container* view on one trip doesn't affect another trip or another user's view of the same trip.
@@ -1994,11 +1998,11 @@ These patterns apply to every screen and are specified once.
   container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would
   silently shorten the packing list.
 * **Navigation:** From *Gepäck* in the G-9 trip switcher (FR-21.21; the luggage was a toolbar button as built
-  2026-08-16, then a ⋮ entry; the earlier idea of an "Edit containers"
-  entry inside the grouping switcher was not carried over) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the
-  edge was never built** (read against the code 2026-08-30). M12's only navigation is to M4, and tapping a *Gepäck* bar
-  sets the container facet there rather than opening this screen — which is the more useful landing anyway, since it
-  puts the reader on the rows the bar was about. The clause goes; the edge is not owed.
+  2026-08-16, then a ⋮ entry; the earlier idea of an "Edit containers" entry inside the grouping switcher was not
+  carried over) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the edge was never built** (read against the
+  code 2026-08-30). M12's only navigation is to M4, and opening a picked *Gepäck* bar sets the container facet there
+  rather than opening this screen — which is the more useful landing anyway, since it puts the reader on the rows the
+  bar was about. The clause goes; the edge is not owed.
 * **Revised 2026-08-27 (UX-8).** The unassigned bucket renders only when it has something to say. Was: with no
   containers and nothing unassigned, "everything is assigned to a container" stood directly under "no containers yet".
 
@@ -2020,10 +2024,16 @@ These patterns apply to every screen and are specified once.
 * **Rebuilt 2026-08-16** on those decisions. Slices are keyed by exactly what M4's facets filter on (traveler id,
   `category_name`, container id, `''` for the absence bucket), so a tapped bar becomes a facet without translation;
   absence buckets carry the facet wording (*Gemeinsam* / *Ohne Kategorie* / *Ohne Gepäck*, FR-25.11f/g).
-* **Actions:** Tapping a bar **sets the FR-25.11 facet** for that value — clearing every other facet, since the reader
-  tapped one number — and opens M4, where the chip row names the filter (FR-25.11a) and the session keeps it (FR-25.18);
-  the grouping follows the dimension so the slice sits together. ADR-012 leaves M4 mounted behind M12, so both writes
-  move the live view state as well as the stored one.
+* **Actions:** Tapping a bar **picks** it (marked, `aria-pressed`); a second tap takes the pick back, and any number of
+  bars of the current dimension can be picked. While at least one is, *„In der Packliste zeigen (n)"* stands under the
+  bar card; it **sets the FR-25.11 facet** to the picked values — OR'd, as the sheet's chips are, and clearing every
+  other facet, since the reader picked these numbers — and opens M4, where the chip row names the filter (FR-25.11a) and
+  the session keeps it (FR-25.18); the grouping follows the dimension so the slices sit together. Switching the
+  dimension drops the picks: a person and a bag are two facets, AND'd in M4, so a pick carried across would name nothing
+  in the new view. ADR-012 leaves M4 mounted behind M12, so both writes move the live view state as well as the stored
+  one. **Revised 2026-09-19 (owner request):** a tap used to open M4 at once on that one value, so *„mine and the shared
+  ones"* could only be put together by hand in the filter sheet. The cost is one more tap for the single-bar case,
+  accepted because the bar is now a quick filter rather than a link.
 * **Per-person items** (FR-25.1) need no expansion step in the client's data model: each traveler's instance is its own
   row with its own quantity and packed count, so by *Person* the rows are one contribution each and by *Kategorie* or
   *Gepäck* they sum back into a single bucket by construction. Rows with no traveler count as *Gemeinsam* (FR-25.11f's

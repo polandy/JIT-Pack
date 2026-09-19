@@ -6,8 +6,9 @@
  * threes beyond that, with anything past {@link TRAVELER_FOLD_CAP} folded
  * behind one slot so a large party never pushes the list further down.
  *
- * A tap selects the traveler in the person facet (FR-25.11), the same filter
- * the sheet sets; this strip owns no filter of its own. What it draws is the
+ * A tap toggles the traveler in the person facet (FR-25.11), the same filter
+ * the sheet sets, so several can be picked; this strip owns no filter of its
+ * own. What it draws is the
  * whole trip regardless of that filter, like the trip line above it (FR-25.20):
  * a share that shrank with the list would stop being a share of the trip.
  */

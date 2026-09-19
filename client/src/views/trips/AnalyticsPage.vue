@@ -5,15 +5,24 @@
  *
  * Dimension switcher Person/Kategorie/Gepäck with a packed-in-planned bar
  * per dimension value; items without weight metadata stay out of the bars
- * and are counted honestly beside them. Tapping a bar makes that value the
- * FR-25.11 facet and opens M4 grouped to match, so the number tapped is
- * the list that appears — the pre-rebuild version only set the grouping,
- * and the tapped number was nowhere on screen. The trend section shows the
+ * and are counted honestly beside them. Tapping bars picks them — several
+ * at once, like the facet sheet's chips (OR within a facet) — and one
+ * button makes the picks the FR-25.11 facet and opens M4 grouped to match,
+ * so the numbers picked are the list that appears. The pre-rebuild version
+ * only set the grouping, and the tapped number was nowhere on screen. The trend section shows the
  * series' packed weight over the years and its most-flagged items, with
  * whatever history is synced.
  */
-import { IonPage, IonContent, IonSegment, IonSegmentButton, IonLabel, IonNote } from '@ionic/vue'
-import { computed, ref } from 'vue'
+import {
+  IonPage,
+  IonContent,
+  IonSegment,
+  IonSegmentButton,
+  IonLabel,
+  IonNote,
+  IonButton,
+} from '@ionic/vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import {
@@ -81,12 +90,27 @@ function sliceLabel(slice: DimensionSlice): string {
 }
 
 /**
- * The tapped bar becomes the one facet in force and the grouping follows,
- * so the slice sits together on arrival (FR-25.11/25.18). Both writes land
+ * The bars picked so far, by slice key. A pick belongs to the dimension it
+ * was made in — a person and a bag are two facets, AND'd in M4 — so
+ * switching the dimension starts over rather than carrying keys that name
+ * nothing here.
+ */
+const picked = ref<string[]>([])
+watch(dimension, () => (picked.value = []))
+
+function togglePick(slice: DimensionSlice) {
+  picked.value = picked.value.includes(slice.key)
+    ? picked.value.filter((key) => key !== slice.key)
+    : [...picked.value, slice.key]
+}
+
+/**
+ * The picked bars become the one facet in force and the grouping follows,
+ * so the slices sit together on arrival (FR-25.11/25.18). Both writes land
  * before the navigation — M4 is still mounted behind this page (ADR-012).
  */
-function openSlice(slice: DimensionSlice) {
-  setStoredFacet(props.tripId, dimension.value, slice.key)
+function openPicked() {
+  setStoredFacet(props.tripId, dimension.value, picked.value)
   setStoredGroupBy(props.tripId, dimension.value)
   router.push(tripPath(props.tripId))
 }
@@ -147,8 +171,10 @@ setHeaderTitle(
             v-for="slice in analysis.slices"
             :key="slice.key"
             class="abar-row"
+            :class="{ picked: picked.includes(slice.key) }"
+            :aria-pressed="picked.includes(slice.key) ? 'true' : 'false'"
             :data-testid="`analytics-slice-${slice.key || 'none'}`"
-            @click="openSlice(slice)"
+            @click="togglePick(slice)"
           >
             <span class="lbl">{{ sliceLabel(slice) }}</span>
             <span class="abar-wrap">
@@ -173,6 +199,16 @@ setHeaderTitle(
           {{ t('analytics.empty') }}
         </div>
       </div>
+
+      <IonButton
+        v-if="picked.length > 0"
+        expand="block"
+        class="open-list"
+        data-testid="analytics-open-list"
+        @click="openPicked"
+      >
+        {{ t('analytics.openList', { n: picked.length }) }}
+      </IonButton>
 
       <p v-if="analysis.unweightedCount > 0" class="unweighted" data-testid="analytics-unweighted">
         {{ t('analytics.unweighted', { n: analysis.unweightedCount }) }}
@@ -263,6 +299,24 @@ setHeaderTitle(
   cursor: pointer;
   color: inherit;
   text-align: left;
+}
+
+/* A pick is marked on the whole row, not only the label: the bar is what
+   was tapped, and the row is what the button will turn into a filter. */
+.abar-row.picked {
+  margin: 0 -8px;
+  padding: 9px 8px;
+  width: calc(100% + 16px);
+  border-radius: var(--jp-r-sm);
+  background: color-mix(in srgb, var(--jp-action) 14%, transparent);
+}
+
+.abar-row.picked .lbl {
+  color: var(--jp-action);
+}
+
+.open-list {
+  margin-top: 12px;
 }
 
 .abar-row + .abar-row {

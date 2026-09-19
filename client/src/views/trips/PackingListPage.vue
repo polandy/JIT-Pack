@@ -541,14 +541,13 @@ const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const travelerShares = computed(() => progressByTraveler(allItems.value, travelers.value))
 
 /**
- * FR-25.29: a tap narrows the person facet to that traveler alone, and a
- * second tap on the same one clears it — the sheet's multi-select stays the
- * way to pick several.
+ * FR-25.29: a tap toggles that traveler in the person facet, so the rings are
+ * quick filters — *mine and the shared ones* is two taps, OR'd like the
+ * sheet's chips. Narrowing to one alone used to cost a trip to the sheet for
+ * exactly the combination a packer wants most.
  */
 function selectTraveler(value: string) {
-  const alreadyAlone = facets.value.person.length === 1 && facets.value.person[0] === value
-  clearFacet('person')
-  if (!alreadyAlone) toggleValue('person', value)
+  toggleValue('person', value)
 }
 
 const view = computed(() =>
