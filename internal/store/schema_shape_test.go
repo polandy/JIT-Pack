@@ -202,3 +202,33 @@ func TestSchema_ItemsAndTemplatesCarryAnOptionalMark_FR28_1(t *testing.T) {
 			MarkColumn, MarkMaxBytes)
 	}
 }
+
+// FR-24.13: a tag carries the same optional mark an item does — same column,
+// same cap, same absence of any "is it really an emoji" check — so the one
+// picker and the one cap in the API layer (capMark asks the registry) cover
+// it without a second rule.
+func TestSchema_TagsCarryAnOptionalMark_FR24_13(t *testing.T) {
+	s := openTestStore(t)
+
+	if !columns(t, s.db, TableTags)[MarkColumn] {
+		t.Fatalf("tags.%s missing — FR-24.13 gives a tag the item's mark", MarkColumn)
+	}
+	if !syncableColumns[TableTags][MarkColumn] {
+		t.Errorf("tags.%s is not on the sync whitelist — the mark has to reach every device", MarkColumn)
+	}
+	if !TableHasMark(TableTags) {
+		t.Errorf("TableHasMark(tags) = false — the API layer's cap would not reach it")
+	}
+
+	if _, err := s.db.Exec(`INSERT INTO tags (id, name) VALUES ('tg-nomark', 'Bad')`); err != nil {
+		t.Fatalf("a tag must be savable without a mark: %v", err)
+	}
+	if _, err := s.db.Exec(`INSERT INTO tags (id, name, icon) VALUES ('tg-mark', 'Wasser', '🌊')`); err != nil {
+		t.Fatalf("a tag must be savable with a mark: %v", err)
+	}
+	if _, err := s.db.Exec(
+		`INSERT INTO tags (id, name, icon) VALUES ('tg-long', 'Ballast', ?)`,
+		strings.Repeat("x", MarkMaxBytes+1)); err == nil {
+		t.Errorf("tags.%s accepted more than %d bytes", MarkColumn, MarkMaxBytes)
+	}
+}

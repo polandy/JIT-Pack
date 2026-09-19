@@ -31,6 +31,8 @@ func TestCapMark_RefusesOnlyOnLength_FR28_9(t *testing.T) {
 		{"clearing the mark passes", store.TableItems, nil, false},
 		{"a template's mark is capped the same way", store.TableTemplates,
 			strings.Repeat("x", store.MarkMaxBytes+1), true},
+		{"a tag's mark is capped the same way (FR-24.13)", store.TableTags,
+			strings.Repeat("x", store.MarkMaxBytes+1), true},
 		{"over the cap is refused", store.TableItems,
 			strings.Repeat("x", store.MarkMaxBytes+1), true},
 		{"exactly the cap is allowed — the boundary is inclusive", store.TableItems,

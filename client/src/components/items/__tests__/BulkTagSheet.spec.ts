@@ -105,6 +105,45 @@ describe('BulkTagSheet — what it offers (FR-24.9)', () => {
     expect(take.find('[data-testid="m9-bulk-tag-none"]').text()).toBe(t('items.bulkNoSharedTag'))
   })
 
+  it('offers to create the typed tag when no tag has that name (FR-24.9, FR-24.11)', async () => {
+    const sheet = mountSheet()
+    await sheet.find('[data-testid="m9-bulk-tag-search"]').setValue('  Wasser ')
+
+    const offer = sheet.get('[data-testid="m9-bulk-tag-create"]')
+    expect(offer.text()).toContain('Wasser')
+    await offer.trigger('click')
+    // Trimmed, and with the refiling switch as it stands.
+    expect(sheet.emitted('create')?.[0]).toEqual([{ name: 'Wasser', primary: true }])
+    expect(sheet.emitted('pick')).toBeUndefined()
+  })
+
+  it('offers the create row beside partial hits, and withdraws it for an exact name', async () => {
+    const sheet = mountSheet()
+
+    // „Sonne" is part of „Sonnenschutz" but names no tag: both are offered.
+    await sheet.find('[data-testid="m9-bulk-tag-search"]').setValue('Sonne')
+    expect(sheet.find('[data-testid="m9-bulk-tag-create"]').exists()).toBe(true)
+    expect(sheet.find('[data-testid="m9-bulk-tag-Sonnenschutz"]').exists()).toBe(true)
+
+    // Under the uniqueness fold a different capitalisation is the same tag —
+    // creating it would be refused as a duplicate, so it is not offered.
+    await sheet.find('[data-testid="m9-bulk-tag-search"]').setValue('diverses')
+    expect(sheet.find('[data-testid="m9-bulk-tag-create"]').exists()).toBe(false)
+  })
+
+  it('never offers to create while taking, nor without a query', async () => {
+    expect(mountSheet().find('[data-testid="m9-bulk-tag-create"]').exists()).toBe(false)
+
+    const take = mountSheet({ mode: 'take' })
+    await take.find('[data-testid="m9-bulk-tag-search"]').setValue('Wasser')
+    expect(take.find('[data-testid="m9-bulk-tag-create"]').exists()).toBe(false)
+  })
+
+  it('shows a tag’s mark beside its name (FR-24.13)', () => {
+    const sheet = mountSheet({ tags: [{ ...tags[0]!, icon: '📦' }, tags[1]!] })
+    expect(sheet.get('[data-testid="m9-bulk-tag-Diverses"]').text()).toContain('📦')
+  })
+
   it('forgets the query and re-arms the switch when it closes', async () => {
     const sheet = mountSheet()
     await sheet.find('[data-testid="m9-bulk-tag-search"]').setValue('sonne')

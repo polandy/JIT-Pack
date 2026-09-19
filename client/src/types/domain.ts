@@ -277,6 +277,13 @@ export interface Tag {
   id: string
   name: string
   sort_order: number
+  /**
+   * FR-24.13: the tag's own mark — the item mark's column (FR-28.1), rendered
+   * through the same `ItemMark` and picked with the same picker. Optional
+   * rather than `string | null` only so the many tag literals written before
+   * it existed keep compiling; absent and null mean the same thing.
+   */
+  icon?: string | null
 }
 
 /**

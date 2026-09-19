@@ -106,6 +106,7 @@ CREATE TABLE tags (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     name        TEXT NOT NULL UNIQUE,
     sort_order  INTEGER NOT NULL DEFAULT 0,
+    icon        TEXT CHECK (icon IS NULL OR length(icon) <= 32),  -- FR-24.13, see items.icon
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );

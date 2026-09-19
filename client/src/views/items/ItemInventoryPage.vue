@@ -77,6 +77,7 @@ import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet, { type BulkTagMode } from '@/components/items/BulkTagSheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
+import MarkPicker from '@/components/items/MarkPicker.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
@@ -421,6 +422,22 @@ setHeaderTitle(
   },
 )
 
+/** Tags by name — a group's key is its tag's name, and its heading carries the mark. */
+const tagByName = computed(() => new Map(masterStore.tagList.map((tag) => [tag.name, tag])))
+
+/** The mark a heading shows: its tag's (FR-24.13), none for a bucket or a search reason. */
+function groupMark(key: string): string | null {
+  return searching.value ? null : (tagByName.value.get(key)?.icon ?? null)
+}
+
+/**
+ * The primary tag's mark, which an item without its own borrows on this
+ * screen (FR-24.13) — the rung between the item's mark and the initial.
+ */
+function primaryTagMark(item: MasterItem): string | null {
+  return masterStore.getItemTags(item.id)[0]?.icon ?? null
+}
+
 /** The heading a group renders — neither bucket key is a tag name. */
 function groupLabel(key: string): string {
   if (key === UNTAGGED_KEY) return t('items.untagged')
@@ -591,6 +608,17 @@ async function removeTag(tag: Tag) {
   if (result.ok) await presentToast({ message: t('items.tagDeleted', { tag: tag.name }) })
 }
 
+/**
+ * FR-24.13: the tag whose mark is being chosen. The picker is the item
+ * mark's own (FR-28.2), opened over the manager — a sheet over a sheet, like
+ * the rename prompt, so the manager is still where the user left it.
+ */
+const markingTag = ref<Tag | null>(null)
+
+function onTagMarkPicked(mark: string | null) {
+  if (markingTag.value) orchestrator.setTagMark(markingTag.value.id, mark)
+}
+
 async function chooseSort() {
   const sheet = await actionSheetController.create({
     header: t('items.sort'),
@@ -634,6 +662,12 @@ interface BulkUndo {
   created: string[]
   moved: { assignmentId: string; position: number }[]
   removed: ItemTag[]
+  /**
+   * A tag the batch itself created (FR-24.9's create row). Undone last, once
+   * the assignments above have emptied it — an undo that left the tag behind
+   * would leave a name the user typed by mistake on the axis for good.
+   */
+  createdTag?: string
 }
 
 let bulkUndo: BulkUndo | null = null
@@ -647,6 +681,10 @@ function undoBulk() {
   // Re-created rather than revived: the row was deleted, so it comes back as
   // a new assignment at the position it held.
   for (const row of undo.removed) orchestrator.assignTagAt(row.item_id, row.tag_id, row.position)
+  // The guarded delete, deliberately: the unassignments above painted
+  // synchronously, so the guard sees an empty tag — and if another device has
+  // meanwhile filed something under it, refusing is the right answer.
+  if (undo.createdTag) orchestrator.deleteTag(undo.createdTag)
 }
 
 async function announceBulk(message: string) {
@@ -656,11 +694,15 @@ async function announceBulk(message: string) {
   })
 }
 
-/** Give the chosen tag to the selection, optionally filing them under it. */
-async function giveTag(tagId: string, primary: boolean) {
+/**
+ * Give the chosen tag to the selection, optionally filing them under it.
+ * `fresh` says the tag was created for this batch, so the undo removes it too.
+ */
+async function giveTag(tagId: string, primary: boolean, fresh = false) {
   const items = selectedItems.value
   const plan = planTagGrant(items, masterStore.itemTagList, tagId, primary)
   const undo: BulkUndo = { created: [], moved: [], removed: [] }
+  if (fresh) undo.createdTag = tagId
 
   for (const item of plan.missing) {
     // Read per item, immediately before its own write: each insert changes
@@ -683,7 +725,14 @@ async function giveTag(tagId: string, primary: boolean) {
   }
   bulkUndo = undo
   endSelecting()
-  await announceBulk(t('items.bulkGave', { n: touched, tag: tagName(tagId) }))
+  await announceBulk(
+    t(fresh ? 'items.bulkGaveNew' : 'items.bulkGave', { n: touched, tag: tagName(tagId) }),
+  )
+}
+
+/** FR-24.9: the typed name no tag held — create it, then give it like any other. */
+async function createAndGive({ name, primary }: { name: string; primary: boolean }) {
+  await giveTag(orchestrator.createTag(name), primary, true)
 }
 
 /** Take the chosen tag away from every selected item that carries it. */
@@ -1025,6 +1074,7 @@ onBeforeUnmount(() => observer?.disconnect())
             :title="tag.name"
             @click="toggleTag(tag.id)"
           >
+            <ItemMark :mark="tag.icon ?? null" surface="plain" :size="16" />
             <span class="chip-label">{{ tag.name }}</span>
             <span class="chip-count jp-num">{{ counts.get(tag.id) ?? 0 }}</span>
           </button>
@@ -1141,7 +1191,8 @@ onBeforeUnmount(() => observer?.disconnect())
             :data-testid="canJump ? 'm9-jump-open' : undefined"
             @click="canJump && openJump()"
           >
-            <span data-testid="m9-group-head">
+            <span data-testid="m9-group-head" class="group-name">
+              <ItemMark :mark="groupMark(key)" surface="plain" :size="16" />
               {{ searching ? reasonLabel(key as MatchReason) : groupLabel(key) }}
             </span>
             <span class="group-count">{{ groupItems.length }}</span>
@@ -1170,12 +1221,14 @@ onBeforeUnmount(() => observer?.disconnect())
               >
                 <IonIcon v-if="selected.has(item.id)" :icon="checkmarkOutline" />
               </span>
-              <!-- FR-28.4: photo → mark → the tag initial. The inventory is
+              <!-- FR-28.4 + FR-24.13: photo → mark → the primary tag's mark →
+                   the tag initial. The inventory is
                    where an item is identified, so this ladder never ends in
                    nothing and the column stays aligned. -->
               <ItemMark
                 slot="start"
                 :mark="item.icon ?? null"
+                :tag-mark="primaryTagMark(item)"
                 surface="inventory"
                 :photo-item="item"
                 :initial="avatarGlyph(item)"
@@ -1268,6 +1321,7 @@ onBeforeUnmount(() => observer?.disconnect())
         :counts="bulkCounts"
         :selected="selected.size"
         @dismiss="bulkSheet = null"
+        @create="createAndGive"
         @pick="
           ({ tagId, primary }) => (bulkSheet === 'take' ? takeTag(tagId) : giveTag(tagId, primary))
         "
@@ -1312,6 +1366,16 @@ onBeforeUnmount(() => observer?.disconnect())
         @merge="mergeTag"
         @remove="removeTag"
         @move="orchestrator.reorderTags"
+        @mark="markingTag = $event"
+      />
+
+      <!-- FR-24.13: a tag's mark, chosen with the item mark's own picker. -->
+      <MarkPicker
+        :is-open="markingTag !== null"
+        :name="markingTag?.name ?? ''"
+        :current="markingTag?.icon ?? null"
+        @pick="onTagMarkPicked"
+        @close="markingTag = null"
       />
 
       <GroupJumpSheet
@@ -1529,6 +1593,14 @@ onBeforeUnmount(() => observer?.disconnect())
   /* Inset like M7's section card, so the radius reads as a card edge
      instead of bleeding into the page (G-14). */
   margin: 0 8px 8px;
+}
+
+/* The tag's mark beside its name (FR-24.13); the heading's own baseline
+   alignment would drop an emoji below the letters. */
+.group-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .group-head {

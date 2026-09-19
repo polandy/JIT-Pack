@@ -52,6 +52,19 @@ describe('TagManagerSheet (FR-24.10)', () => {
     expect(sheet.emitted('remove')?.[0]).toEqual([tags[1]])
   })
 
+  it('offers each tag’s mark as a control, and emits mark for its row (FR-24.13)', async () => {
+    const sheet = mountSheet({
+      tags: [{ ...tags[0]!, icon: '📦' }, tags[1]!, tags[2]!],
+    })
+
+    // A tag with a mark shows it in the control; one without offers the slot.
+    expect(sheet.get('[data-testid="m9-tag-mark-Diverses"]').text()).toContain('📦')
+    expect(sheet.get('[data-testid="m9-tag-mark-Hygiene"]').attributes('data-empty')).toBe('true')
+
+    await sheet.get('[data-testid="m9-tag-mark-Hygiene"]').trigger('click')
+    expect(sheet.emitted('mark')?.[0]).toEqual([tags[1]])
+  })
+
   it('moves a tag by its index on the axis, not by its place in the list', async () => {
     const sheet = mountSheet()
 

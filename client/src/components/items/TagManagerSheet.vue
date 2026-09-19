@@ -10,7 +10,7 @@
  * items under „Diverses" — that is the gap between tagging and *filing*.
  *
  * **The sheet decides nothing.** It emits an intent per row and the page
- * runs it, because each of the three acts needs a prompt, a picker or a
+ * runs it, because each of the acts needs a prompt, a picker or a
  * confirmation, and an overlay opened from inside an overlay is the scroll
  * clamp FR-24.8 already paid for once. Testing follows the same seam: this
  * component is driven directly in its own spec, and the page is asserted
@@ -18,6 +18,7 @@
  */
 import { IonIcon } from '@ionic/vue'
 import {
+  addOutline,
   arrowDownOutline,
   arrowUpOutline,
   gitMergeOutline,
@@ -28,6 +29,7 @@ import { computed, ref, watch } from 'vue'
 
 import SheetModal from '@/components/global/SheetModal.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import { searchMatches } from '@/domain/search'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
@@ -50,6 +52,8 @@ const emit = defineEmits<{
   rename: [tag: Tag]
   merge: [tag: Tag]
   remove: [tag: Tag]
+  /** FR-24.13: open the mark picker for this tag. */
+  mark: [tag: Tag]
   /** Indices into `tags`, so the page can hand them straight to the plan. */
   move: [from: number, to: number]
 }>()
@@ -123,6 +127,21 @@ const rows = computed(() =>
               <IonIcon :icon="arrowDownOutline" />
             </button>
           </span>
+
+          <!-- FR-24.13: the mark is set where the tag is fixed. The control shows
+               the mark it would change, or an empty dashed slot that says a
+               mark can go here. -->
+          <button
+            type="button"
+            class="mark"
+            :data-empty="tag.icon ? undefined : 'true'"
+            :aria-label="t('items.tagMarkSet', { tag: tag.name })"
+            :data-testid="`m9-tag-mark-${tag.name}`"
+            @click="emit('mark', tag)"
+          >
+            <ItemMark v-if="tag.icon" :mark="tag.icon" surface="plain" :size="22" />
+            <IonIcon v-else :icon="addOutline" />
+          </button>
 
           <button
             type="button"
@@ -239,6 +258,28 @@ const rows = computed(() =>
 }
 
 .order ion-icon {
+  font-size: var(--jp-icon-sm);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--ct-surface0);
+  border-radius: var(--jp-r-sm);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-overlay2);
+}
+
+.mark[data-empty] {
+  border-style: dashed;
+  background: none;
+}
+
+.mark ion-icon {
   font-size: var(--jp-icon-sm);
 }
 
