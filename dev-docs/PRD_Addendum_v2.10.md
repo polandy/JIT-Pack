@@ -3240,11 +3240,12 @@ locked.
   * **Facets are not lifted.** A Person or Status value was chosen; a switch is a default. Same rule as FR-25.11l, in
     the other direction: a picked value reveals its own bucket, a typed term reveals its own matches.
   * **The closing pass** (FR-9.3) already shows everything it lists and is unchanged.
-  * **The Erledigte bar goes while a term is typed (owner, 2026-09-19).** Its offer — *„Gepackte anzeigen"* — would
-    stand beside a packed row that is already on screen, and its tap would change nothing the reader can see. The
-    sheet's switch still counts the *matches*, so FR-25.22's pairing of bar and switch is read without a search
-    (E2E-M4-69). The *Anderen zugewiesen* bar reports 0 hidden and is gone with it. Open point: the *Spätpacker* bar
-    stays and has the same oddness; the owner named only the Erledigte one.
+  * **The Erledigte and Spätpacker bars go while a term is typed (owner, 2026-09-19).** The Erledigte bar's offer —
+    *„Gepackte anzeigen"* — would stand beside a packed row that is already on screen, and its tap would change
+    nothing the reader can see. The sheet's switch still counts the *matches*, so FR-25.22's pairing of bar and switch
+    is read without a search (E2E-M4-69). The *Spätpacker* bar follows the same rule, asked for separately the same
+    day (E2E-M4-94), and the *Anderen zugewiesen* bar reports 0 hidden and is gone with them — while a term stands,
+    no reveal bar is shown.
   * **No wire, no schema; identical in all three modes.** Ships with a fix to the same sheet: a tap on a switch's
     *words* toggled it twice (E2E-M4-127), so the tick came and went.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
