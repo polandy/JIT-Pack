@@ -703,11 +703,18 @@ in WebKit.
 * **E2E-M4-95** `local` (FR-5.8, G-9, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`): at a desktop
   width, removing the row whose M5 panel is open closes the panel rather than leaving it to report the item as not
   found. Mutation-checked: without the close the panel is still counted.
-* **E2E-M4-113** `local` (FR-5.8, ADR-065, added 2026-09-19) — **implemented** (`e2e/remove-item.spec.ts`): two rows
+* ~~**E2E-M4-113 (ADR-065, collided)** `local` (FR-5.8): the removal that takes its unused inventory item along.~~ —
+  **renumbered 2026-09-19 to E2E-M4-115**: it landed an hour after FR-25.30's case had taken the number, and the live
+  meaning of E2E-M4-113 is that one (`membership.spec.ts`).
+* **E2E-M4-115** `local` (FR-5.8, ADR-065, added 2026-09-19) — **implemented** (`e2e/remove-item.spec.ts`): two rows
   typed into the composer, so two inventory items used nowhere else. Removing *Zelt* announces *„from the inventory
   too"*; undone, and the screen left, M9 still lists *Zelt* — the undo lapsed nothing. Removed again and the snackbar
   left to run out, M9 lists *Schlafsack* and no *Zelt*. Mutation-checked: without the prune the last assertion fails;
   with a prune at removal time instead of at the lapse, the M9 check after the undo does.
+* **E2E-M4-116** `local` (FR-5.8 with FR-25.21, added 2026-09-19) — **implemented** (`e2e/remove-item.spec.ts`): a
+  per-person item for two travelers, both instances packed; removing one traveler's instance from its own row asks
+  first, naming **one** packed unit rather than the cluster's two, and takes only that row. The cluster dissolves into
+  the other traveler's row, still packed, and a reload reads the same.
 * **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): M4's *Aufgaben für die
   Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing
