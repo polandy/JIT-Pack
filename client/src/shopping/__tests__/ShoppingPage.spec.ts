@@ -318,6 +318,25 @@ describe('M6 — what was bought stays reversible (FR-25.11j)', () => {
   })
 })
 
+describe('M6 — the ＋ bottom right (FR-30.6)', () => {
+  it('takes the reader to the field: scrolled to the top, focused', async () => {
+    const page = mountPage()
+    const content = page.find('ion-content').element as HTMLElement & { scrollToTop?: unknown }
+    const input = page.find('ion-input').element as HTMLElement & { setFocus?: unknown }
+    const calls: string[] = []
+    content.scrollToTop = vi.fn(async () => void calls.push('scroll'))
+    input.setFocus = vi.fn(async () => void calls.push('focus'))
+
+    await page.find('[data-testid="m6-fab"]').trigger('click')
+    await flushPromises()
+
+    // Scrolled first: a focus on a field still off-screen opens the keyboard
+    // over the list instead of beside the field.
+    expect(calls).toEqual(['scroll', 'focus'])
+    expect(written).toEqual([])
+  })
+})
+
 describe('M6 — who bought it, and when (FR-30.4)', () => {
   it('names the buyer and the time on a bought entry, from the trip’s people', async () => {
     seedEntry('e1', {

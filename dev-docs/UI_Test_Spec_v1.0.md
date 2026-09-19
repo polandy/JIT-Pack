@@ -291,6 +291,10 @@ stable references for the traceability matrix.
   the signal, since „unchanged" alone is green on a card that never rendered the share. The reverse half unpacks the
   row: the share drops, the todo figure stays at *„1/1 Aufgaben"*. (Revised 2026-09-18: the hero's one-line check became
   a figure; E2E-M1-10 keeps the line, on a list card.)
+* **E2E-M1-12** `local` (FR-30.5, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): an active trip with one
+  *Buy there* row shows *„Shopping (1)"* under its card; of two planned trips, the one with a *Buy before* row carries
+  the pill and the one with nothing to buy does not (asserted beside its rendered row); tapping the active trip's pill
+  lands on M6 with the switcher's *Shopping* pill current and the row on its tab.
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
@@ -1336,9 +1340,11 @@ composer.
   an*, *Für wen* and *Kategorie* and — unlike M4's — **no grouping section**. Filtering by an assignee narrows the list
   and shows the removable chip. The unassigned bucket reads "niemand zugewiesen" and leads the list. M4's and M6's
   filters are **independent**: setting one must not change the other.
-* **E2E-M6-15** `all` (FR-25.11h) / **E2E-M4-20** `all`: scrolled to the bottom of the list, the last row's bounding box
-  does **not** intersect the ＋ FAB. **M4's half is implemented and carries the rule; M6's half is moot** — corrected
-  2026-08-30: M6 has no FAB for a row to collide with. If M6 ever gains one, this id is where the case goes.
+* **E2E-M6-15** `local` (FR-25.11h, FR-30.6) — **implemented 2026-09-19** (`shopping/shopping.spec.ts`), the id this
+  entry had kept for the day M6 gained a FAB: with fourteen entries on a 390 × 700 viewport and the list scrolled to its
+  end, the last row's box does **not** intersect the ＋ (checked red with the list's bottom padding removed); the field
+  is then out of view, and one tap on the ＋ brings it into view **focused**, ready for the next entry. M4's half is
+  E2E-M4-20's, as before.
 * **E2E-M6-09** `all` (FR-25.12) — **not implemented; the owner decided 2026-08-30 that it gets built**, in its own PR
   with UI-Spec, e2e and an eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy
   kauft das"* is the multi-user case M6 cannot express today, and the description is where *„die grüne Dose, nicht die
@@ -1354,12 +1360,12 @@ composer.
   mark.
 * **E2E-M6-11** `all` (FR-25.13): M6 has **no permanent "add" row** and no native `prompt()`; the composer is the shared
   one, collapsed to its own trigger above the list, and Enter adds to the **currently open tab**. Three clauses of the
-  original wording are gone, each superseded rather than untested — corrected 2026-08-30: M6 has **no ＋ FAB** (M4 has
-  one, M6's composer carries its own trigger), the composer is **not focused** on opening (FR-25.13c, so the chips are
-  not covered by the keyboard), and it **does not collapse on blur** (FR-25.13a as revised 2026-08-13 — collapsing
-  reflows the list under the next tap). **Superseded 2026-09-19 (FR-30.2):** M6 no longer carries the shared composer;
-  it has one text field of its own, always shown, which adds to the open tab (E2E-M6-26/27). Still no permanent add row
-  and no `prompt()`.
+  original wording are gone, each superseded rather than untested — corrected 2026-08-30: M6 had **no ＋ FAB** (it has
+  since FR-30.6, E2E-M6-15) (M4 has one, M6's composer carries its own trigger), the composer is **not focused** on
+  opening (FR-25.13c, so the chips are not covered by the keyboard), and it **does not collapse on blur** (FR-25.13a as
+  revised 2026-08-13 — collapsing reflows the list under the next tap). **Superseded 2026-09-19 (FR-30.2):** M6 no
+  longer carries the shared composer; it has one text field of its own, always shown, which adds to the open tab
+  (E2E-M6-26/27). Still no permanent add row and no `prompt()`.
 
 ### M7 — Template List
 
@@ -3525,6 +3531,8 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-30.2 | E2E+UNIT | M6-28 (on the list exactly while the mode says so), M6-17/22/05/06 (packing rows through the contract); `composables/__tests__/packingShoppingSource.spec.ts`, `domain/__tests__/buyRows.spec.ts` |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
 | FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |
+| FR-30.5 | E2E+UNIT | M1-12; `TripShoppingLink.spec.ts` |
+| FR-30.6 | E2E+UNIT | M6-15 (the ＋ leads to the field, the last row clear of it); `ShoppingPage.spec.ts` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

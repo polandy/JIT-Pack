@@ -30,6 +30,8 @@ import {
   IonInput,
   IonButton,
   IonIcon,
+  IonFab,
+  IonFabButton,
 } from '@ionic/vue'
 import { addOutline, bagHandleOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
@@ -42,6 +44,7 @@ import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
 import { useTripIdentity } from '@/composables/useTripIdentity'
 import { t } from '@/i18n'
+import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { boughtStampText } from '@/lib/rowFacts'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
@@ -135,6 +138,20 @@ function recipientNames(line: ShoppingLine): string {
 
 const draft = ref('')
 
+const content = ref<InstanceType<typeof IonContent> | null>(null)
+const field = ref<InstanceType<typeof IonInput> | null>(null)
+
+/**
+ * FR-30.6: the ＋ takes the reader to the field, wherever the list was
+ * scrolled to — M4's gesture for adding, on a screen whose field is always
+ * there. No animation: the next thing is typing, and a scroll still in
+ * flight would be what the keyboard opens over.
+ */
+async function goToField() {
+  await (content.value?.$el as HTMLIonContentElement | undefined)?.scrollToTop(0)
+  await (field.value?.$el as HTMLIonInputElement | undefined)?.setFocus()
+}
+
 /** FR-30.1: an entry of the list's own, on the open tab. */
 function addEntry() {
   if (draft.value.trim() === '') return
@@ -151,7 +168,7 @@ setHeaderTitle(
 
 <template>
   <IonPage>
-    <IonContent data-testid="m6-page">
+    <IonContent ref="content" class="shop-content" data-testid="m6-page">
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
         <IonSegmentButton :value="ITEM_MODE_BUY_BEFORE" data-testid="m6-tab-before">
@@ -164,6 +181,7 @@ setHeaderTitle(
 
       <form class="add" data-testid="m6-add" @submit.prevent="addEntry">
         <IonInput
+          ref="field"
           v-model="draft"
           class="add-input"
           :placeholder="t('shopping.addPlaceholder')"
@@ -293,11 +311,24 @@ setHeaderTitle(
           </IonButton>
         </IonItem>
       </IonList>
+      <!-- FR-30.6: M4's ＋, bottom right. The field it leads to stays at the
+           top of the list, so the screen still has one way to add. -->
+      <IonFab :id="FAB_ANCHOR.m6" slot="fixed" vertical="bottom" horizontal="end">
+        <IonFabButton data-testid="m6-fab" :aria-label="t('common.add')" @click="goToField">
+          <IonIcon :icon="addOutline" aria-hidden="true" />
+        </IonFabButton>
+      </IonFab>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
+/* FR-25.11h's rule, for M6's FAB (FR-30.6): the list scrolls clear of its
+   footprint, so the last row is never under the ＋. M4's measure. */
+.shop-content {
+  --padding-bottom: 96px;
+}
+
 .recipients {
   display: flex;
   align-items: center;

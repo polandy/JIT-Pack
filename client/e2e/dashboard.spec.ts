@@ -10,7 +10,7 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
-import { addTripTodo, openTripTodos, packRow } from './helpers/m4'
+import { addBuyRowOnM4, addTripTodo, openTripTodos, packRow } from './helpers/m4'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
 
 /**
@@ -438,5 +438,50 @@ test.describe('M1 — the three promises @local @m1', () => {
     await page.goto(PATH.dashboard)
     await expect(share).toHaveText('0/1 packed')
     await expect(tasks).toHaveText('1/1 tasks')
+  })
+})
+
+/**
+ * FR-30.5: M1 leads straight onto a trip's shopping list — from an active
+ * trip always (the list is a destination even when empty), from a planned
+ * one while something is left to buy, which is when buying before departure
+ * happens. The pill is a sibling of the card, not inside it: the card is
+ * itself a link.
+ */
+test.describe('M1 — onto the shopping list @local @m1', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M1-12: every trip card leads onto its shopping list, with the count', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await tripAction(page, 'start')
+    await addBuyRowOnM4(page, 'Sonnencreme', 'Buy there')
+
+    // Two planned trips: one with something to buy before departure, one without.
+    await createTripViaWizard(page, { name: 'Elba 2027', startDate: '2027-07-01' })
+    await addBuyRowOnM4(page, 'Adapter', 'Buy before')
+    await createTripViaWizard(page, { name: 'Ruhig 2027', startDate: '2027-08-01' })
+    await writesLanded(page)
+
+    await page.goto(PATH.dashboard)
+    const active = visible(page).getByTestId(`dashboard-shopping-${TRIP.name}`)
+    await expect(active).toHaveText('Shopping (1)')
+    await expect(visible(page).getByTestId('dashboard-shopping-Elba 2027')).toHaveText(
+      'Shopping (1)',
+    )
+    // Nothing to buy on the quiet one, so its row stays a row — asserted beside
+    // the planned list, which is rendered.
+    await expect(visible(page).getByTestId('dashboard-planned-Ruhig 2027')).toBeVisible()
+    await expect(visible(page).getByTestId('dashboard-shopping-Ruhig 2027')).toHaveCount(0)
+
+    await active.click()
+    const m6 = visible(page).getByTestId('m6-page')
+    await expect(m6).toBeVisible()
+    await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
+    await m6.getByTestId('m6-tab-local').click()
+    await expect(m6.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
   })
 })

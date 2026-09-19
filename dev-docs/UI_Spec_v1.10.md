@@ -801,6 +801,11 @@ These patterns apply to every screen and are specified once.
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
   links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's
   landing is exercised from a notification instead (E2E-G4-01).
+* **Onto the shopping list (FR-30.5, added 2026-09-19).** Under every active trip's card — the hero and the list cards —
+  sits the trip switcher's shopping pill, *„Einkaufen (4)"*, the word alone at zero; a planned trip's row carries it
+  only while something is left to buy, which is when buying before departure happens. Tap → M6. A **sibling** of the
+  card, never inside it: the card is itself a link. The count is the shopping module's, provided by the composition
+  root, so M1 and the switcher cannot disagree. Navigation, not an action — M1 still takes none.
 * **The screen loads what it aggregates (added 2026-08-31).** A trip partition arrives when its trip is opened, so in
   Server Mode M1 was counting an empty store: every active trip rendered with „0 offen", no preview rows and no prep,
   until the user had visited each trip in that page session. Local Mode never showed it, because everything there is
@@ -1565,6 +1570,9 @@ These patterns apply to every screen and are specified once.
 * **Actions:** Type and tap ＋ (or Enter) → an entry on the **open tab**; the field clears for the next. Check off an
   entry → bought, under the reveal. Check off a packing row → FR-3.3 on the row (BUY_BEFORE → on the packing list,
   BUY_LOCAL → packed). ✕ on an entry → removed. A packing row leaves only by being bought or by changing mode on M4/M5.
+* **The ＋ bottom right (FR-30.6, added 2026-09-19):** M4's FAB, same place and glyph. It scrolls the list to the top
+  and puts the cursor in the field — the field stays where it is, so the screen keeps one way to add, and the ＋ is the
+  way back to it from a long list. The list scrolls clear of the FAB's footprint (FR-25.11h's 96 px).
 * **Adding an inventory item to buy (since FR-30.2):** on **M4**, with the composer, then its mode — in M5, or *Vor Ort
   kaufen* from the row menu (FR-5.9). M6 writes no packing rows. The composer, its create sheet (FR-24.11) and its
   duplicate exclusion (FR-25.13d) are M4's and M8's.

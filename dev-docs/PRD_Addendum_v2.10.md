@@ -4219,6 +4219,13 @@ as for the packing rows.
   taking the purchase back clears both. **Per mode:** Server Mode names the buyer; Single-User names its one account;
   Local Mode states the time alone, because there is no account to name (G-8). A purchase with neither shows no stamp.
 
+* **FR-30.5 (From the Dashboard Onto the List — owner request 2026-09-19):** M1 leads straight onto a trip's shopping
+  list: the trip switcher's shopping pill, with its count, under every active trip's card, and under a planned trip's
+  row while something is left to buy. The count comes from the shopping module through the composition root, like the
+  switcher's (FR-30.3). Navigation only; M1 still takes no action.
+* **FR-30.6 (The ＋ Bottom Right — owner request 2026-09-19):** M6 carries M4's FAB. It leads to the field — scrolled
+  to the top, focused — rather than opening a second one, and the list scrolls clear of it (FR-25.11h).
+
 **Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like
 every other. **Not carried:** the portable backup (NFR-4.11) does not carry entries, like FR-7.3/7.4's todos; trip
 cloning (§3.12) copies none; the destination-bound lists of FR-13.3 are still unbuilt and would now pre-fill entries

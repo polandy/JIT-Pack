@@ -19,7 +19,8 @@ import {
   IonRefresherContent,
 } from '@ionic/vue'
 import { trainOutline, addOutline } from 'ionicons/icons'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
+import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
@@ -43,6 +44,7 @@ import { useIdentity } from '@/composables/useTripIdentity'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
+import TripShoppingLink from '@/components/trips/TripShoppingLink.vue'
 import TripHero from '@/components/trips/TripHero.vue'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
@@ -120,6 +122,16 @@ const tripsKnown = computed(() => orchestrator.masterDataLoaded())
  * `activeTrips` is ordered soonest departure first, so the hero is the trip
  * that is next rather than whichever one IndexedDB handed over first.
  */
+/**
+ * FR-30.5: what the shopping module counts as still to buy on a trip,
+ * provided by the composition root (FR-30.3) — read here only to decide
+ * whether a planned trip's row offers the way onto its list.
+ */
+const tripViewCounts = inject(TRIP_VIEW_COUNTS, {})
+function openShopping(tripId: string): number {
+  return tripViewCounts.shopping?.(tripId) ?? 0
+}
+
 const heroTrip = computed(() => activeTrips.value[0] ?? null)
 const followingTrips = computed(() => activeTrips.value.slice(1))
 
@@ -481,74 +493,86 @@ async function handleRefresh(event: CustomEvent) {
           {{ t('dashboard.moreItems', { n: openItemCount(heroTrip.id) - 3 }) }}
         </p>
       </TripHero>
+      <!-- FR-30.5: straight onto the shopping list — beside the card, since
+           the card is a link and cannot hold one. -->
+      <div v-if="heroTrip" class="trip-shortcuts">
+        <TripShoppingLink :trip-id="heroTrip.id" :testid="`dashboard-shopping-${heroTrip.name}`" />
+      </div>
 
       <!-- Trip cards -->
-      <RouterLink
-        v-for="trip in followingTrips"
-        :key="trip.id"
-        class="jp-card trip-card"
-        :to="tripPath(trip.id)"
-        :data-testid="`dashboard-trip-${trip.name}`"
-      >
-        <div class="trip-card-head">
-          <h3 class="trip-card-name">{{ trip.name }}</h3>
-          <p class="trip-dates">{{ formatTripPeriod(trip) }}</p>
-        </div>
+      <template v-for="trip in followingTrips" :key="trip.id">
+        <RouterLink
+          class="jp-card trip-card"
+          :to="tripPath(trip.id)"
+          :data-testid="`dashboard-trip-${trip.name}`"
+        >
+          <div class="trip-card-head">
+            <h3 class="trip-card-name">{{ trip.name }}</h3>
+            <p class="trip-dates">{{ formatTripPeriod(trip) }}</p>
+          </div>
 
-        <div class="trip-card-body">
-          <!-- The same figure the hero carries, one ring size down: a trip's
+          <div class="trip-card-body">
+            <!-- The same figure the hero carries, one ring size down: a trip's
                progress is one composition in this app, and M2's list rows
                read it the same way. -->
-          <ProgressFigure
-            :percent="progressFraction(trip) * 100"
-            :headline="
-              t('trips.itemSummary', {
-                packed: tripKpis(trip).packedItems,
-                total: tripKpis(trip).totalItems,
-              })
-            "
-            :detail="
-              openItemCount(trip.id) > 0
-                ? t('dashboard.openCount', { n: openItemCount(trip.id) })
-                : null
-            "
-            :ring-size="44"
-            :headline-testid="`dashboard-summary-${trip.name}`"
-          />
-          <p v-if="taskLine(trip)" class="task-line" :data-testid="`dashboard-tasks-${trip.name}`">
-            {{ taskLine(trip) }}
-          </p>
-
-          <IonItem
-            v-for="item in previewItems(trip.id)"
-            :key="item.id"
-            lines="none"
-            class="dashboard-item"
-            :data-testid="`dashboard-preview-${item.name}`"
-          >
-            <IonCheckbox
-              slot="start"
-              :checked="isFullyPacked(item)"
-              :indeterminate="isPartlyPacked(item)"
-              disabled
+            <ProgressFigure
+              :percent="progressFraction(trip) * 100"
+              :headline="
+                t('trips.itemSummary', {
+                  packed: tripKpis(trip).packedItems,
+                  total: tripKpis(trip).totalItems,
+                })
+              "
+              :detail="
+                openItemCount(trip.id) > 0
+                  ? t('dashboard.openCount', { n: openItemCount(trip.id) })
+                  : null
+              "
+              :ring-size="44"
+              :headline-testid="`dashboard-summary-${trip.name}`"
             />
-            <IonLabel>
-              <span>{{ item.name }}</span>
-              <span v-if="item.quantity > 1" class="qty-badge">
-                {{ item.packed_count }}/{{ item.quantity }}
-              </span>
-            </IonLabel>
-          </IonItem>
+            <p
+              v-if="taskLine(trip)"
+              class="task-line"
+              :data-testid="`dashboard-tasks-${trip.name}`"
+            >
+              {{ taskLine(trip) }}
+            </p>
 
-          <p
-            v-if="openItemCount(trip.id) > 3"
-            class="more-items"
-            :data-testid="`dashboard-more-${trip.name}`"
-          >
-            {{ t('dashboard.moreItems', { n: openItemCount(trip.id) - 3 }) }}
-          </p>
+            <IonItem
+              v-for="item in previewItems(trip.id)"
+              :key="item.id"
+              lines="none"
+              class="dashboard-item"
+              :data-testid="`dashboard-preview-${item.name}`"
+            >
+              <IonCheckbox
+                slot="start"
+                :checked="isFullyPacked(item)"
+                :indeterminate="isPartlyPacked(item)"
+                disabled
+              />
+              <IonLabel>
+                <span>{{ item.name }}</span>
+                <span v-if="item.quantity > 1" class="qty-badge">
+                  {{ item.packed_count }}/{{ item.quantity }}
+                </span>
+              </IonLabel>
+            </IonItem>
+
+            <p
+              v-if="openItemCount(trip.id) > 3"
+              class="more-items"
+              :data-testid="`dashboard-more-${trip.name}`"
+            >
+              {{ t('dashboard.moreItems', { n: openItemCount(trip.id) - 3 }) }}
+            </p>
+          </div>
+        </RouterLink>
+        <div class="trip-shortcuts">
+          <TripShoppingLink :trip-id="trip.id" :testid="`dashboard-shopping-${trip.name}`" />
         </div>
-      </RouterLink>
+      </template>
       <!--
         FR-6.1: the trips that have not started yet. Below the active cards,
         because M1 answers "what do I have to do right now?" first and this is
@@ -561,20 +585,26 @@ async function handleRefresh(event: CustomEvent) {
           data-testid="dashboard-planned-head"
         />
         <div class="jp-card rows-card" data-testid="dashboard-planned">
-          <IonItem
-            v-for="trip in plannedTrips"
-            :key="trip.id"
-            lines="none"
-            button
-            class="dashboard-item"
-            :data-testid="`dashboard-planned-${trip.name}`"
-            @click="openTrip(trip.id)"
-          >
-            <IonLabel>
-              <h3>{{ trip.name }}</h3>
-              <p>{{ formatTripPeriod(trip) }}</p>
-            </IonLabel>
-          </IonItem>
+          <template v-for="trip in plannedTrips" :key="trip.id">
+            <IonItem
+              lines="none"
+              button
+              class="dashboard-item"
+              :data-testid="`dashboard-planned-${trip.name}`"
+              @click="openTrip(trip.id)"
+            >
+              <IonLabel>
+                <h3>{{ trip.name }}</h3>
+                <p>{{ formatTripPeriod(trip) }}</p>
+              </IonLabel>
+            </IonItem>
+            <!-- FR-30.5: a planned trip is where buying before departure
+               happens; offered only while something is left, so the list of
+               what comes next stays a list. -->
+            <div v-if="openShopping(trip.id) > 0" class="trip-shortcuts planned-shortcut">
+              <TripShoppingLink :trip-id="trip.id" :testid="`dashboard-shopping-${trip.name}`" />
+            </div>
+          </template>
         </div>
       </template>
     </IonContent>
@@ -582,6 +612,17 @@ async function handleRefresh(event: CustomEvent) {
 </template>
 
 <style scoped>
+/* FR-30.5: the way onto a trip's shopping list, under its card. */
+.trip-shortcuts {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.planned-shortcut {
+  margin: 0 16px 10px;
+}
+
 /*
  * G-14: the app's card, positioned by the screen and painted by nobody.
  * These blocks were Ionic's `ion-card` until 2026-09-09 (FR-21.28) — a

@@ -447,3 +447,45 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (1)')
   })
 })
+
+/**
+ * FR-30.6: M4's ＋ bottom right, on M6 too. The field it leads to stays at
+ * the top, so the ＋ is the way back to it from a long, scrolled list — and
+ * the list scrolls clear of it (E2E-M6-15, FR-25.11h's rule for M6's half).
+ */
+test.describe('M6 shopping — the ＋ bottom right @local @m6', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M6-15: the ＋ leads to the field, and the last row scrolls clear of it', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 700 })
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    const names = Array.from({ length: 14 }, (_, i) => `Artikel ${String(i + 1).padStart(2, '0')}`)
+    for (const name of names) await addEntry(page, name)
+
+    const last = m6(page).getByTestId('m6-row').last()
+    await last.scrollIntoViewIfNeeded()
+    // `m6-page` is the page's own ion-content.
+    await m6(page).evaluate((el) =>
+      (el as HTMLElement & { scrollToBottom(d: number): Promise<void> }).scrollToBottom(0),
+    )
+    const fab = m6(page).getByTestId('m6-fab')
+    await expect(fab).toBeVisible()
+    const [row, button] = [(await last.boundingBox())!, (await fab.boundingBox())!]
+    expect(row.y + row.height <= button.y || row.y >= button.y + button.height).toBe(true)
+
+    // The field is off-screen now; the ＋ brings it back and puts the cursor in it.
+    const field = m6(page).getByTestId('m6-add-input').locator('input')
+    await expect(field).not.toBeInViewport()
+    await fab.click()
+    await expect(field).toBeInViewport()
+    await expect(field).toBeFocused()
+    await field.fill('Zucker')
+    await m6(page).getByTestId('m6-add-submit').click()
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Zucker' })).toBeVisible()
+  })
+})

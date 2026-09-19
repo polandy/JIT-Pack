@@ -21,6 +21,8 @@ export const FAB_ANCHOR = {
   m2: 'm2-fab-anchor',
   /** M4 — the packing list. */
   m4: 'm4-fab-anchor',
+  /** M6 — the shopping list (FR-30.6). */
+  m6: 'm6-fab-anchor',
   /** M7 — the template list. */
   m7: 'm7-fab-anchor',
   /** M8 — the template editor. */
