@@ -27,6 +27,8 @@ replace the file and update its own revision note.
   **„What earns an entry"**: if the diff and the commit message tell the same story,
   no entry is owed. What belongs here is what the code cannot show — a rejected
   option, a wrong premise, a cost accepted on purpose, a trap with a price.
+- [`retag-runbook.md`](retag-runbook.md) — one-off procedure for moving a production instance's tags onto the
+  item-mark facets through the app's own tag tools. Delete once run.
 - [`design-foundation-plan.md`](design-foundation-plan.md) — the token-level PRs that
   came **before** the remaining screen rebuilds, with the measured gap between the
   prototype and the client that motivated each. All six are merged (2026-08-15); it is
