@@ -392,7 +392,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The e2e matrix is ten legs (2026-09-18)](#the-e2e-matrix-is-ten-legs-2026-09-18) — the shard count went stale a second time, and what bounds it from below is now the two backend jobs.
 - [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
 - [The search offers what it did not find (2026-09-18)](#the-search-offers-what-it-did-not-find-2026-09-18) — FR-24.11; the proposal's reason for the restore offer was wrong, and three things only the rendered screen said.
-- [The e2e legs are split by browser (2026-09-19)](#the-e2e-legs-are-split-by-browser-2026-09-19) — the ten legs held equal test counts and ran 2.7–7.1 min; the prediction is written down before the run.
+- [The e2e legs are split by browser (2026-09-19)](#the-e2e-legs-are-split-by-browser-2026-09-19) — a per-browser split of the ten legs, and its prediction failing: one lucky run, three that matched the baseline.
 - [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's dependency pickers; an inline modal beside a v-if/v-else broke the section it sat in.
 - [The mark palette was too small (2026-09-18)](#the-mark-palette-was-too-small-2026-09-18) — FR-28.2 grew from 102 to 352 entries; the font ceiling doubled, a cost accepted on purpose.
 - [The composer creates in the inventory (2026-09-19)](#the-composer-creates-in-the-inventory-2026-09-19) — FR-24.11 reaches M4/M6/M8's quick-add; ad-hoc rows stop, and a trip push learned to wait for the master write it names.
@@ -16144,10 +16144,18 @@ gave when only the mean was used: it ignored the fixed cost and the spread that 
 files are still chunked contiguously. Expected spread across the ten legs: 260–450 s. `e2e-single` (268 s) stays
 below the worst leg. If the worst leg lands above 450 s the split did not help and the counts are wrong, not the idea.
 
-**Measured after the change** (run 35424307188, same tree apart from `ci.yml`): Chromium legs 225 / 311 / 361 / 395 s,
-WebKit legs 287 / 293 / 341 / 367 / 386 / 400 s. The worst leg is 400 s, down from 490 s, inside the predicted 350-450
-range and on the central estimate; the spread across legs is 225-400 s against 233-490 s. The wall-clock gain is
-~90 s (18 %). What did not move is the spread *inside* each browser (Chromium 225-395 s, the same 1.7x ratio as
-before): files are still chunked contiguously, so the next gain would need duration-aware sharding, which
-Playwright 1.63 does not offer, and is not worth a hand-rolled one at this size. `e2e-single` (259 s) is now below every
-leg but the shortest two.
+**Measured after the change: the prediction failed.** The first run (35424307188) had a worst leg of 400 s and looked
+like the predicted 18 % gain; three further runs of the same tree had 517, 513 and 528 s. The baseline over the eight
+preceding `main` runs is 488-514 s, so four samples of the new layout average ~490 s against ~500 s: no difference
+outside the run-to-run noise, which on one leg reaches +/-25 % (`e2e-chromium (4)` ran 395 s in one run and 510 s in
+the next, on the same tests). The prediction's own kill criterion was a worst leg above 450 s, and it is met.
+
+**What that says about the mechanism.** The diagnosis was right, the legs of the old layout really were pure Chromium
+or pure WebKit, but it was not the binding constraint. Runner speed varies more between runs than the browser mix
+varies between legs, and the spread *inside* a browser (225-395 s for Chromium in the good run) is the same
+contiguous-chunk effect one level down. A single run is not a measurement here: the first sample of an improvement is
+also the one most likely to be a lucky runner, and it was read as confirmation. Four samples were needed, and the
+baseline had to be pulled from eight earlier runs to know what "noise" was.
+
+**What is left if this is revisited:** duration-aware sharding (not in Playwright 1.63), or fewer, larger runners so
+that the fixed ~65-100 s per leg is paid fewer times. Neither was tried.
