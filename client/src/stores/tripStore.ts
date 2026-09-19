@@ -206,9 +206,16 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return result
   }
 
-  function kpis(tripId: string): TripKPIs {
-    const items = getItems(tripId)
-    const tripTodos = getTodos(tripId)
+  /**
+   * `hidden` names rows the caller no longer shows although they are still
+   * stored — FR-25.31's removals waiting for their undo to lapse. A hidden
+   * trip item takes its own todos out of the count with it.
+   */
+  function kpis(tripId: string, hidden: ReadonlySet<string> = new Set()): TripKPIs {
+    const items = getItems(tripId).filter((item) => !hidden.has(item.id))
+    const tripTodos = getTodos(tripId).filter(
+      (todo) => !hidden.has(todo.id) && !(todo.trip_item_id && hidden.has(todo.trip_item_id)),
+    )
     let totalItems = 0
     let packedItems = 0
     let totalWeight = 0
