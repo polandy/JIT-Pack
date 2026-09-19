@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   visiblePage,
@@ -163,8 +164,7 @@ test('E2E-G13-05: a section count renders beside the head, in the UI face @local
   await seedMode({ mode: 'local' })
   await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy'] })
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill('Schlafsack')
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, 'Schlafsack')
   await expect(page.getByTestId('m4-row-Schlafsack')).toBeVisible()
   await openTripView(page, 'luggage')
 

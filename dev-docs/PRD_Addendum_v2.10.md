@@ -530,6 +530,14 @@ removes the server entirely. Everything inherently multi-user or multi-device is
   case nobody was watching; the line says *last failed*, not *currently failing*. (3) **A 401 that the refresh
   repaired is not a failure** and is never shown — only a 401 whose retry also failed.
 
+  **The detail says when the last sync completed (added 2026-09-19).** The glyph said *synced* and nothing said since
+  when, so a device left in a drawer for a weekend read exactly like one that had just pulled. In Server Mode the sheet
+  carries one line, *„Zuletzt synchronisiert: …"*: a time of day when the cycle was today, date and time on any other
+  day (a bare time would read as today for a device offline for days). It is **session-scoped**: absent until a cycle
+  has completed since the page loaded, because after a reload nothing has yet talked to the server and a remembered
+  time would vouch for a connection this page never made. Only a user-visible cycle counts — a background row load
+  (ADR-033) leaves the glyph alone and so leaves this line alone. Local Mode never syncs and shows no line.
+
 * **FR-19.7 (Apply a Waiting Version Now — accepted 2026-09-02):** When NFR-4.13 has a newer build installed and
   waiting, the app offers to apply it immediately, in two places. (1) A **bar under the app bar**, on every screen,
   saying a new version is ready and carrying the action plus a *Later*; and (2) the **G-2 detail sheet**, where the
@@ -1692,6 +1700,34 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
     cannot close a cycle. *„Hängt ab von"* makes the same offer from the other end, asked for by the owner the same day:
     there the new or restored item becomes the **main item** this one depends on, and its cycle check is that edge's.
     Both pickers share one sheet.
+  * **The add composer makes the same offer (owner decision 2026-09-19, implemented the same day).** The quick-add
+    that M4, M6 and M8 share (FR-5.6/25.13) searched with a rule of its own (a plain name substring) and turned an
+    unknown name into an **ad-hoc trip row** — on M4 and M6 a row no inventory knew, with no tags, no weight and no
+    second life on the next trip; on M8 a master item created silently from the bare name. The owner asked for the
+    packing list to work like the inventory — search, and create what is not there, **with the same component**. The
+    composer now:
+    * **searches with M9's rule** (`domain/itemSearch`, FR-24.7 — both umlaut spellings, tag names, mark keywords; one
+      character is a query), and a hit that does not visibly contain the query says why (*„über Camping"*);
+    * **makes M9's offer above its hits** through the same `SearchOfferButton`, under the same test (no *active* item
+      of exactly this name, by the search's fold; none before the partition has arrived, ADR-033), and takes it
+      through the same `CreateItemSheet` — name and tags, the tags of the name hits offered first, none pre-assigned
+      (the composer has no filter to vanish from);
+    * **adds what the sheet created at once**, like a picked suggestion: for whoever FR-25.28's strip names on M4, as
+      a position on M8, as a row of the open tab on M6. The composer stays open for the next name; *„Anlegen und
+      öffnen"* adds and then opens M10;
+    * restores a **retired** name in place (M23's restore) and adds it in the same tap — its tags and weight are still
+      there, so there is nothing left to ask;
+    * gives the **confirm button and Enter** exactly two jobs: add the item the query names exactly, or take the
+      offer. A new name therefore opens the sheet and **never writes on its own** — FR-24.11's typo rule. A name the
+      scope already carries says *„‚{Name}' ist schon drin"* and the confirm rests.
+
+    *Consequence, accepted by the owner:* **the composer makes no ad-hoc rows any more.** Rows without a
+    `source_item_id` still exist — from the portable import, from trips made before this change, from another device —
+    and every rule that reads them (FR-25.1's name-held clusters, FR-27.5's *„Eigene Artikel"*, M14's *„ins Inventar
+    übernehmen"*) keeps handling them; the composer just stops producing them. *Considered and rejected:* keeping ✓ as
+    the ad-hoc add with the offer beside it — two answers to one unknown name, and the quicker one would have been the
+    one without tags. *Scope:* all three screens, because the composer is one component (FR-25.13's „one way to add,
+    everywhere"); M3's wizard does not use it.
 
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
@@ -2250,7 +2286,8 @@ locked.
     focuses it, master-item autocomplete (FR-5.6), a visible scope-labelled confirm ("Zur Gruppe/Vorlage hinzufügen"),
     Enter as the desktop shortcut, the field stays open for the next position, and it collapses on blur only when empty
     (FR-25.13a rules). This **replaces** M8's former picker card. A picked suggestion is the FR-25.7 one-tap add with
-    defaults; a free-text name creates the master item first (FR-1.1); a name already in the template is reported
+    defaults; a free-text name creates the master item first (FR-1.1) — since 2026-09-19 through FR-24.11's offer
+    and sheet, as on M4, rather than silently from the bare name; a name already in the template is reported
     ("schon drin — nicht doppelt") and never duplicated, the FR-20.3 stance applied at authoring time. **Editing follows
     the same directive:** tapping a position opens the **M5-pattern bottom sheet** — name header, read-only glance-chip
     row, the FR-25.15 auto-save chip, the routinely-touched sections first (Menge, Vorbereitung), and
@@ -2301,8 +2338,9 @@ locked.
     accepted cost is one extra tap for whoever wants to type, and the field's own tap raises the keyboard as before.
     **(b)** One row while the field is empty, capped and **excluding everything the scope already carries**:
     *„Zuletzt verwendet"*, a **device-local** recency trail (a typing convenience, not domain data — deliberately
-    unsynced, the review-dismissals stance; free-text adds record nothing, they have no master item yet at the
-    composer's level). ~~A second row, *„Passt zu {Tags}"* — items sharing a primary tag (FR-24.2) with the scope's
+    unsynced, the review-dismissals stance; free-text adds recorded nothing, having no master item at the composer's
+    level — since FR-24.11 reached the composer on 2026-09-19 there are none, and a created item is recorded like a
+    pick). ~~A second row, *„Passt zu {Tags}"* — items sharing a primary tag (FR-24.2) with the scope's
     contents — shipped alongside it and was removed 2026-09-12 (owner: the tag-based offer read as noise rather than
     a suggestion, most visibly when the contributing tag was the *Diverses* catch-all).~~ **(c)** A chip tap is the
     FR-25.7 one-tap add with defaults and does *not* refocus the field — the user is tapping through an offer, and
@@ -2578,7 +2616,9 @@ locked.
   own quantity and independently packable. **Those rows are instances of *one* item and must render as a single FR-25.1
   cluster** — named once, with a child row per traveler — **not as N independent items repeating the name.** Since an
   ad-hoc add creates no master item, the instances have no `source_item_id` and are held together by the normalised name
-  per the cluster-identity rule in FR-25.1. This sentence exists because the original wording ("one packing row per
+  per the cluster-identity rule in FR-25.1 (since 2026-09-19 the composer creates the master item first, FR-24.11,
+  so its instances share a `source_item_id`; the name rule still holds rows from imports and older trips).
+  This sentence exists because the original wording ("one packing row per
   traveler") was satisfied by an implementation that created N separate items, which is what the prototype did until
   concept testing on 2026-08-07 caught it: the rows were all there and individually correct, yet the screen showed three
   unrelated "Jacke" rows instead of one grouped item. This is an **ad-hoc, trip-scoped** item (FR-5.6) — it does not
@@ -3777,7 +3817,8 @@ the tail is where a symbol system is actually decided. Results:
   checked.
 * **FR-28.2 (Searchable Mark Picker):** The mark is chosen from a picker with a **search field over keywords, not over
   Unicode names** — typing „regen“ must find 🧥 and ☂️, neither of which is called *Regen* in any catalogue. The picker
-  offers a **curated index** (order of 100 packing-relevant entries, not the full ~3,700-emoji table), each entry
+  offers a **curated index** (order of 350 packing-relevant entries — widened from ~100 on owner request 2026-09-18,
+  the first index was too small to browse a real inventory — not the full ~3,700-emoji table), each entry
   carrying **German and English keywords** and one coarse facet (*Kleidung · Reise · Dokumente · Hygiene · Gesundheit ·
   Technik · Camping · Sport · Essen · Sonstiges*) so the grid is browsable without typing. Curation is part of the
   requirement, not a shortcut: the full CLDR table answers „Bau“ with 🏛️ and „Reise“ with a cruise ship, which is how a
@@ -3829,11 +3870,11 @@ the tail is where a symbol system is actually decided. Results:
   availability: a packing list is **shared** (FR-4.x), and on platform emoji the same row shows a different picture on
   an iPhone, an Android and a Linux desktop — the sender and the reader would be looking at different lists.
   Consequences to plan for: the subset's weight is measured and justified against NFR-4.3 **before** it is committed
-  (the index is around a hundred glyphs, not the full table), the subsetting command is documented in the same place the
-  text faces document theirs, and adding the face **rewrites every visual baseline** (ADR-013) — one deliberate `make
-  visual-update`, in the implementing PR, not a surprise in a later one. *(Measured 2026-08-22: it rewrote **four of
-  twenty-two**, all M4, and none of them because of the face — the visual fixture's rows are ad-hoc and carry no marks,
-  so no emoji is painted in the suite at all. What moved was the held empty slot. See ADR-021.)*
+  (the index is a few hundred glyphs, ~280 KB, not the full table), the subsetting command is documented in the same
+  place the text faces document theirs, and adding the face **rewrites every visual baseline** (ADR-013) — one
+  deliberate `make visual-update`, in the implementing PR, not a surprise in a later one. *(Measured 2026-08-22: it
+  rewrote **four of twenty-two**, all M4, and none of them because of the face — the visual fixture's rows are ad-hoc
+  and carry no marks, so no emoji is painted in the suite at all. What moved was the held empty slot. See ADR-021.)*
 * **FR-28.7 (Trip Rows Inherit the Mark, They Never Copy It):** `trip_items` gains **no** column. A generated packing
   row renders the mark of the master item it came from (`source_item_id`); an **ad-hoc row has no mark** until it
   becomes a master item, and shows none rather than a placeholder. Rationale: the mark is a property of the *thing*, not
@@ -4266,8 +4307,10 @@ the tail is where a symbol system is actually decided. Results:
     column would have to survive un-skips on either side and edits to the dependency itself.
 * **FR-5.6 (Inline Quick-Add in Packing List):** While working in the packing list (M4), the user can add new items
   directly via an inline input field without navigating away. The input provides autocomplete suggestions from the
-  master item inventory (FR-1.1), reusing the selected item's metadata (weight, value, category). Free-text entry
-  creates a new ad-hoc trip item. If the trip is in active status, newly added items are automatically flagged as
+  master item inventory (FR-1.1), reusing the selected item's metadata (weight, value, category). ~~Free-text entry
+  creates a new ad-hoc trip item.~~ **Since 2026-09-19** a name the inventory does not hold is created there first,
+  through FR-24.11's offer and sheet, and then added — the composer makes no ad-hoc rows.
+  If the trip is in active status, newly added items are automatically flagged as
   *Missing* (FR-9.1). The input stays expanded after adding an item for rapid sequential entry. This removes the
   friction of switching context during the packing workflow.
 
@@ -4434,7 +4477,9 @@ the tail is where a symbol system is actually decided. Results:
     a finished rucksack at 97 %, which is the false signal FR-7.3 was written to prevent, pointed the other way.
   * **Surface: written in the trip, reported on the dashboard (owner decision, revised the same day).** M4 carries an
     *Aufgaben für die Reise* section whose head states the second check and which unfolds to the editable list: open
-    ones ticked off in place, resolved ones reachable again to untick, a composer, and a ✕ per row. **M1 takes no
+    ones ticked off in place, resolved ones reachable again to untick, a composer, and a ✕ per row. **Ticking a task
+    off raises FR-25.2's snackbar with its undo** — the row leaves the open list the way a packed row leaves the
+    packing list, so a mistap is taken back the same way; M4's FR-7.3 prep section does the same. **M1 takes no
     actions** — it reports: an *Aufgaben* card lists the open trip todos of every active trip that has any, each trip's
     block leading into the trip, and each active trip card states the check beside — never inside — its packing
     progress. The first cut put the whole editor

@@ -393,6 +393,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
 - [The search offers what it did not find (2026-09-18)](#the-search-offers-what-it-did-not-find-2026-09-18) — FR-24.11; the proposal's reason for the restore offer was wrong, and three things only the rendered screen said.
 - [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's dependency pickers; an inline modal beside a v-if/v-else broke the section it sat in.
+- [The mark palette was too small (2026-09-18)](#the-mark-palette-was-too-small-2026-09-18) — FR-28.2 grew from 102 to 352 entries; the font ceiling doubled, a cost accepted on purpose.
+- [The composer creates in the inventory (2026-09-19)](#the-composer-creates-in-the-inventory-2026-09-19) — FR-24.11 reaches M4/M6/M8's quick-add; ad-hoc rows stop, and a trip push learned to wait for the master write it names.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -16072,3 +16074,41 @@ effect of a declaration that never happened. E2E-M10-25 pins it and was
 mutation-proved. *„Hängt ab von"* got the same offer the same day at the
 owner's request (E2E-M10-26..28); both pickers share one sheet, keyed by which
 end of the relation the new item takes.
+
+## The mark palette was too small (2026-09-18)
+
+Owner: the icon palette for packing items is too small. FR-28.2 asked for „order of 100" entries and got 102; it
+now carries 352 (owner chose ~350 over ~220 and ~150). **The cost is the font**: the COLRv1 subset costs ~0.8 KB a glyph,
+so 82 KB became 280 KB and `mark-font-gate.mjs`'s NFR-4.3 ceiling moved from 160 to 320 KB. It stays
+a per-glyph `unicode-range` face, so a device that never paints a mark never fetches it. Every added emoji was checked
+against the pinned Noto build's cmap first; ZWJ sequences (e.g. 🧑‍💻) were left out because a per-code-point subset
+cannot carry them. The picker's facet chips now hold 20–45 entries each, which the picker was not visually re-checked
+against.
+
+## The composer creates in the inventory (2026-09-19)
+
+Owner: the packing list should work like the inventory — search, and create what is not there, with the same
+component. The shared quick-add (M4, M6, M8) now searches with M9's rule and makes FR-24.11's offer through
+`SearchOfferButton` and `CreateItemSheet`; the create is followed by the add. The candidate list M9 built inline moved
+to `useItemSearchCandidates`, so the two fields cannot drift apart.
+
+**Rejected: keep ✓ as the ad-hoc add and put the offer beside it.** Two answers to one unknown name, and the quicker
+one — the tap already under the thumb — would have been the one without tags. The owner chose the stricter shape, and
+with it the cost: **the composer makes no ad-hoc rows**. Rows without `source_item_id` still arrive from imports and
+older trips, and every reader of them stays; E2E-M4-26's by-name branch lost its e2e driver and would need the
+portable import to get one back.
+
+**The trap: one act, two partitions.** Before this, nothing wrote a master row and a trip row that names it in the
+same breath — M8's old silent create stayed in the master partition. The create sheet pushes the item on the master
+feed and the add pushes the row on the trip feed, each drain fire-and-forget; the trip push could overtake, the server
+refused a row whose item it did not have yet, and ADR-031's repair made the row disappear. E2E-M17-03 in the `server`
+project caught it once in thirty runs. `drainTrip` now awaits `outbox.whenSent('master')` first — the running master
+drain, then anything it did not take — and a unit case holds the master push on the wire to pin the order. The first
+version asked `pendingCount` and drained again, which pulled the master feed twice: mutations stay queued until
+acknowledged, so an in-flight push looks pending.
+
+**Rendering found a second defect:** after „Anlegen" the focus landed on `BODY` — `onCreated` focused while the sheet
+was still dismissing and Ionic's focus restoration won — so Escape no longer closed the composer. It now waits for
+the sheet's `did-dismiss`, the pattern the browse sheet's footer line already used. The placeholder was shortened
+to „Suchen oder neu anlegen…" because the longer one clipped at 390 px beside ✓ and ✕.
+

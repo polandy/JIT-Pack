@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   createTripViaWizard,
@@ -109,8 +110,7 @@ async function packingList(page: Page, names: string[]) {
   await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] })
   for (const name of names) {
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, name)
     await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   }
   await page.keyboard.press('Escape')
@@ -219,8 +219,7 @@ async function containers(page: Page) {
   await page.getByTestId('quick-add-input').locator('input').fill('Zel')
   await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
   await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
-  await page.getByTestId('quick-add-input').locator('input').fill('Schlafsack')
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, 'Schlafsack')
   await expect(page.getByTestId('m4-row-Schlafsack')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
@@ -412,8 +411,7 @@ test('E2E-VIS-12: visual: M1 below the hero @local @visual', async ({ page, seed
   })
   for (const name of ['Zelt', 'Schlafsack']) {
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, name)
     await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   }
   await page.keyboard.press('Escape')
@@ -451,8 +449,7 @@ test('E2E-VIS-11: visual: M2 with the hero card @local @visual', async ({ page, 
   // a picture of the card and not of what the card says.
   await openQuickAdd(page)
   for (const name of ['Zelt', 'Schlafsack', 'Stirnlampe']) {
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, name)
     await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   }
   await page.keyboard.press('Escape')

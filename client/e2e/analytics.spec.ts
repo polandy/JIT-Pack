@@ -6,6 +6,7 @@ import {
   createTripViaWizard,
   openTripView,
   openLuggage,
+  addInComposer,
   openQuickAdd,
   tripAction,
   visiblePage,
@@ -48,11 +49,13 @@ async function quickAddFromMaster(page: Page, name: string) {
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
 }
 
-/** Quick-add verbatim — no master item, so the row has no weight. */
-async function quickAddVerbatim(page: Page, name: string) {
+/**
+ * Quick-add a name the inventory lacks: the sheet creates a bare item (name
+ * only, FR-24.11), so the row has no weight.
+ */
+async function quickAddUnweighed(page: Page, name: string) {
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill(name)
-  await page.getByTestId('quick-add-confirm').click()
+  expect(await addInComposer(page, name)).toBe('created')
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
@@ -145,7 +148,7 @@ test.describe('M12 analytics @local @m12', () => {
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
-    await quickAddVerbatim(page, 'Handcreme')
+    await quickAddUnweighed(page, 'Handcreme')
 
     await openAnalytics(page)
 
@@ -219,7 +222,7 @@ test.describe('M12 analytics @local @m12', () => {
     await packRow(page, 'Zelt')
     // On a running trip a typed row is what nobody had packed — the app
     // stamps FR-9.1 *missing* on it, which is the only flag writer M4 has.
-    await quickAddVerbatim(page, 'Powerbank')
+    await quickAddUnweighed(page, 'Powerbank')
     // Read the flag back off the stored row before archiving. The trend's
     // flag list is the assertion this case is about, and it would report an
     // empty list just as quietly if nothing had ever been flagged.

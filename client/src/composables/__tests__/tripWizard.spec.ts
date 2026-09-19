@@ -292,3 +292,41 @@ describe('createTripFromWizard', () => {
     expect(tripStore.getTrip(tripId)?.duration_days).toBeNull()
   })
 })
+
+/**
+ * FR-24.11 in the composer: the create sheet writes a master item and the
+ * add that follows writes a trip row pointing at it, in one act. Pushed in
+ * the wrong order the server refuses the row (its item does not exist yet)
+ * and ADR-031's repair undoes it — the row the user just added disappears.
+ */
+describe('a trip push waits for the master write it refers to', () => {
+  it('pushes a new item before the trip row that names it, even while the item push is in flight', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    let release!: () => void
+    const held = new Promise<void>((resolve) => (release = resolve))
+    const order: string[] = []
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const kind = `${url.includes('/master/') ? 'master' : 'trip'} ${init?.method === 'POST' ? 'push' : 'pull'}`
+      order.push(kind)
+      if (kind === 'master push') await held
+      return kind.endsWith('push')
+        ? new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), {
+            status: 200,
+          })
+        : new Response(JSON.stringify({ changes: [], next_cursor: 1, has_more: false }), {
+            status: 200,
+          })
+    })
+
+    const itemId = orch.createMasterItem('Kletterseil')
+    orch.quickAddItem('trip-1', 'Kletterseil', { sourceItemId: itemId }, false)
+    // The master push is on the wire and held there; under the defect the trip
+    // push leaves beside it now, before the item exists on the server.
+    await vi.waitFor(() => expect(order).toContain('master push'))
+    release()
+    await vi.waitFor(() => expect(order).toHaveLength(4))
+
+    expect(order).toEqual(['master push', 'master pull', 'trip push', 'trip pull'])
+  })
+})

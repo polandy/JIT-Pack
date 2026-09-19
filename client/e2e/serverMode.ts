@@ -13,7 +13,7 @@
 
 import { expect, type BrowserContext, type Page, type WebSocket } from '@playwright/test'
 
-import { seed, visiblePage } from './fixtures'
+import { addInComposer, seed, visiblePage } from './fixtures'
 import { writesLanded } from './helpers/page'
 
 /** Suffix that keeps one test's master data out of another's. */
@@ -29,15 +29,17 @@ export async function bootPage(context: BrowserContext, path = '/'): Promise<Pag
   return page
 }
 
-/** FR-25.13 quick-add on M4, committed via the ＋ confirm. */
+/**
+ * FR-25.13 quick-add on M4, committed via the ✓ confirm — through the create
+ * sheet when the inventory lacks the name (FR-24.11).
+ */
 export async function quickAddItem(page: Page, name: string): Promise<void> {
   const input = visiblePage(page).getByTestId('quick-add-input')
   if (!(await input.isVisible().catch(() => false))) {
     await visiblePage(page).getByTestId('m4-fab').click()
     await expect(input).toBeVisible()
   }
-  await input.locator('input').fill(name)
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, name)
   await expect(visiblePage(page).getByTestId(`m4-row-${name}`)).toBeVisible()
   await writesLanded(page)
 }

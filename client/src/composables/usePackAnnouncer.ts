@@ -48,6 +48,12 @@ export interface PackAnnouncer {
    * would do, and the undo is how it is taken back.
    */
   announceRenamed: (count: number) => Promise<void>
+  /**
+   * FR-7.3/FR-7.4: a task was ticked off. It leaves M4's open list the way a
+   * packed row leaves the packing list, so the mistap costs the same and is
+   * taken back the same way.
+   */
+  announceTaskDone: (body: string) => Promise<void>
 }
 
 /**
@@ -92,6 +98,10 @@ export function usePackAnnouncer(): PackAnnouncer {
 
   async function announceRenamed(count: number): Promise<void> {
     await announce(t('inventoryNames.adopted', { n: count }))
+  }
+
+  async function announceTaskDone(body: string): Promise<void> {
+    await announce(t('packing.taskDoneToast', { body }))
   }
 
   async function announce(message: string): Promise<void> {
@@ -151,5 +161,6 @@ export function usePackAnnouncer(): PackAnnouncer {
     announceSkipped,
     announceRemoved,
     announceRenamed,
+    announceTaskDone,
   }
 }

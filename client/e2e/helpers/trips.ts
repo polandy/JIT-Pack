@@ -5,7 +5,7 @@
  * through here.
  */
 import { expect } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 import { setDateField } from './ionic'
 import { pageSettled, visiblePage, writesLanded } from './page'
@@ -126,6 +126,69 @@ export async function openQuickAdd(page: Page, fab: 'm4-fab' | 'm8-fab' = 'm4-fa
   if (await input.isVisible().catch(() => false)) return
   await visiblePage(page).getByTestId(fab).click()
   await expect(input).toBeVisible()
+}
+
+/** How {@link addInComposer} got the name onto the scope. */
+export type ComposerAdd = 'created' | 'added'
+
+/**
+ * The composer's create sheet that is on show. Every mounted page carries its
+ * own `CreateItemSheet` (M9 stays mounted under M10, M4 under M5), so the one
+ * presented is the one that answers.
+ */
+export function createItemSheet(page: Page): Locator {
+  return page.getByTestId('create-item-sheet').and(page.locator('.show-modal'))
+}
+
+/**
+ * The composer's suggestion row for exactly this item — an exact name, not a
+ * partial hit („Zelt" must not settle on *Zeltheringe*).
+ */
+export function exactSuggestion(scope: Locator, name: string): Locator {
+  const exact = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
+  return scope.getByTestId('quick-add-suggestion').filter({ has: scope.page().getByText(exact) })
+}
+
+/**
+ * Type a name into the open composer (M4, M6, M8) and commit it with ✓.
+ *
+ * Since FR-24.11 reached the composer every add goes through the inventory: a
+ * name it holds is added at once, any other opens `CreateItemSheet`, and only
+ * that sheet's „Anlegen" writes. Which of the two happens is decided from a
+ * **settled** signal, never from a one-shot `isVisible()` that may run before
+ * Vue has re-rendered: the offer naming this query and the exact suggestion
+ * exclude each other, so whichever is on screen is the answer. A retired name
+ * (the restore offer) is not handled here — its case says so itself.
+ *
+ * Ends with the sheet gone; the caller asserts the row, because what a row is
+ * called differs per screen.
+ */
+export async function addInComposer(
+  page: Page,
+  name: string,
+  scope: Locator = visiblePage(page),
+): Promise<ComposerAdd> {
+  await scope.getByTestId('quick-add-input').locator('input').fill(name)
+  const offer = scope.getByTestId('quick-add-offer-title').filter({ hasText: name })
+  const known = exactSuggestion(scope, name)
+  await expect(offer.or(known).first()).toBeVisible()
+  const creates = (await offer.count()) > 0
+  await scope.getByTestId('quick-add-confirm').click()
+  if (!creates) return 'added'
+  await confirmCreateSheet(page, name)
+  return 'created'
+}
+
+/**
+ * FR-24.11: the sheet the composer opened for `name` is on show; „Anlegen"
+ * creates the item and hands it back to the composer, which adds it.
+ */
+export async function confirmCreateSheet(page: Page, name: string): Promise<void> {
+  const sheet = createItemSheet(page)
+  await expect(sheet).toHaveAttribute('data-presented', 'true')
+  await expect(sheet.getByTestId('create-item-name').locator('input')).toHaveValue(name)
+  await sheet.getByTestId('create-item-confirm').click()
+  await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 }
 
 /**

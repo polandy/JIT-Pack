@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 
 import {
+  addInComposer,
   test,
   expect,
   createTripViaWizard,
@@ -303,8 +304,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.setViewportSize(DESKTOP)
     const path = await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
 
     // Wait for the *state*, never for a duration: the indicator returns

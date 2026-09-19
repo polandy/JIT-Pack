@@ -15,6 +15,7 @@ import { mount } from '@vue/test-utils'
 import SyncDetailSheet from '../SyncDetailSheet.vue'
 import type { StorageStatus } from '@/local/storageStatus'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
+import { currentLocale } from '@/i18n'
 
 const DAY = 86_400_000
 const NOW = 1_760_000_000_000
@@ -434,5 +435,36 @@ describe('SyncDetailSheet — live updates (Sync-API §7/§9)', () => {
 
     expect(has(wrapper, 'sync-detail-live')).toBe(false)
     expect(has(wrapper, 'sync-detail-live-gap')).toBe(false)
+  })
+})
+
+/**
+ * FR-19.6 — since when "synced" is true. The glyph said *synced* and nothing
+ * said how long ago, so a device left in a drawer read like one that had just
+ * pulled.
+ */
+describe('SyncDetailSheet — the last completed sync (FR-19.6)', () => {
+  it('says when the last cycle completed, as a time of day on the same day', () => {
+    const wrapper = mountSheet({ lastSyncedAt: NOW - 60_000 })
+
+    const time = new Date(NOW - 60_000).toLocaleTimeString(currentLocale(), { timeStyle: 'short' })
+    expect(text(wrapper, 'sync-detail-last-synced')).toContain(time)
+  })
+
+  it('carries the date once the last sync was on another day', () => {
+    const at = NOW - 3 * DAY
+    const wrapper = mountSheet({ lastSyncedAt: at })
+
+    const date = new Date(at).toLocaleDateString(currentLocale(), { dateStyle: 'medium' })
+    expect(text(wrapper, 'sync-detail-last-synced')).toContain(date)
+  })
+
+  it('is absent until a cycle has completed this session', () => {
+    expect(has(mountSheet({ lastSyncedAt: null }), 'sync-detail-last-synced')).toBe(false)
+  })
+
+  it('is absent in Local Mode, which never syncs', () => {
+    const wrapper = mountSheet({ mode: 'local', state: 'local', lastSyncedAt: NOW - 1000 })
+    expect(has(wrapper, 'sync-detail-last-synced')).toBe(false)
   })
 })

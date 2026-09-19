@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import type { Page, WebSocketRoute } from '@playwright/test'
 
 import {
+  addInComposer,
   test,
   expect,
   seed,
@@ -1417,15 +1418,17 @@ test.describe('Single-User backend sync @single', () => {
     refusing = true
     const row = `Zelt-${id}`
     await visiblePage(page).getByTestId('m4-fab').click()
-    await visiblePage(page).getByTestId('quick-add-input').locator('input').fill(row)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, row)
 
     // On screen, and the server has never accepted it.
     await expect(visiblePage(page).getByTestId(`m4-row-${row}`)).toBeVisible()
 
     // The refusal is reported here and nowhere else.
     await expect(indicator).toHaveAttribute('data-state', 'offline')
-    await expect(indicator.locator('ion-badge')).toHaveText('1')
+    // Two pending writes, not one: since FR-24.11 reached the composer a new
+    // name is created in the inventory first, so the add is the item *and*
+    // the row, and both are refused.
+    await expect(indicator.locator('ion-badge')).toHaveText('2')
     await expect(page.locator('ion-alert')).toHaveCount(0)
     // The push really was refused — without this the case would also pass in
     // a world where nothing was ever sent.
@@ -1825,8 +1828,7 @@ test.describe('A trip sub-screen opened cold @single', () => {
     // deep-linked screen is the one that owns it.
     await pageA.goto(`${tripPath}/shopping`)
     await visiblePage(pageA).getByTestId('quick-add-open').click()
-    await visiblePage(pageA).getByTestId('quick-add-input').locator('input').fill(item)
-    await visiblePage(pageA).getByTestId('quick-add-confirm').click()
+    await addInComposer(pageA, item)
     await expect(visiblePage(pageA).getByTestId('m6-row').filter({ hasText: item })).toBeVisible()
 
     // A device that has never opened this trip, landing straight on M6.

@@ -51,8 +51,8 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await seedMode({ mode: 'local' })
     await page.goto(PATH.templates)
 
-    // The quick-add's free-text confirm creates the master item *and* the
-    // position, so the item is referenced by construction (FR-25.13).
+    // The quick-add's create sheet makes the master item *and* the position,
+    // so the item is referenced by construction (FR-25.13, FR-24.11).
     await createTemplate(page, 'group', 'Fotografie')
     await addPosition(page, 'Kamera')
     await backToTemplateList(page)
@@ -98,10 +98,10 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await createTemplate(page, 'group', 'Zweite Gruppe')
     await openQuickAdd(page, 'm8-fab')
     await visiblePage(page).getByTestId('quick-add-input').locator('input').pressSequentially('Kam')
-    // The settled signal is the free-text confirm, which the composer always
-    // offers: waiting on it means the suggestion list has been recomputed, so
-    // "no suggestion" is an outcome rather than a race.
-    await expect(visiblePage(page).getByTestId('quick-add-confirm')).toBeVisible()
+    // The settled signal is FR-24.11's offer for the full query: it renders in
+    // the same pass as the suggestion list, so once it names "Kam" the list
+    // has been recomputed and "no suggestion" is an outcome rather than a race.
+    await expect(visiblePage(page).getByTestId('quick-add-offer-title')).toContainText('Kam')
     await expect(visiblePage(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
   })
 

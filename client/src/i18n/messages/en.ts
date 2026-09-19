@@ -52,6 +52,7 @@ export const en = {
     'The server cannot be reached. Your changes are kept on this device and sent as soon as it is back.',
   'sync.detail.explain.local':
     'Local Mode: there is no server. Everything you enter stays in this browser, on this device.',
+  'sync.detail.lastSynced': 'Last synced: {when}',
   'sync.detail.live':
     'Live updates are connected — changes from other devices arrive as they happen.',
   'sync.detail.liveGap':
@@ -174,6 +175,7 @@ export const en = {
   'packing.packedToast': '“{name}” packed ✓',
   // FR-5.8 — a row off the list altogether, as against FR-5.5's decision to leave it home.
   'packing.removeAction': 'Remove from the list',
+  'packing.taskDoneToast': '“{body}” done ✓',
   'packing.removedToast': '“{name}” removed from the list',
   'packing.removeConfirmTitle': 'Remove “{name}”?',
   'packing.removeConfirmLead':
@@ -623,9 +625,11 @@ export const en = {
 
   // Quick-add (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Add item…',
-  'quickAdd.placeholder': 'Item name…',
+  'quickAdd.placeholder': 'Search or create…',
   'quickAdd.missingHint': 'New items are flagged as missing',
-  'quickAdd.newItem': 'Add “{name}” as a new item',
+  'quickAdd.offerCreateHint': 'Create it in the inventory and add it right away',
+  'quickAdd.offerRestoreHint': 'Restore it and add it right away',
+  'quickAdd.alreadyIn': '“{name}” is already in',
   'quickAdd.recentHeading': 'Recently used',
   // FR-27.10: whole groups in the same composer.
   'quickAdd.groupsHeading': 'Add a whole group',

@@ -132,6 +132,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [A layer fixed to the window took the window's geometry (2026-09-16)](#a-layer-fixed-to-the-window-took-the-windows-geometry-2026-09-16) — E2E-PWA-06 gains two measurements, and why one viewport could not have shown either of them.
 - [A resolved style stood in for a layout (2026-09-17)](#a-resolved-style-stood-in-for-a-layout-2026-09-17) — E2E-M5-12 read one `top`, so a pane over two thirds of the list passed; and what a teleport does to a scoped locator.
 - [Waiting on the far screen proved only the near one (2026-09-18)](#waiting-on-the-far-screen-proved-only-the-near-one-2026-09-18) — E2E-G10-02's second correction of the same mistake, and the two rules a socket watch has to obey.
+- [The composer stopped making ad-hoc rows (2026-09-19)](#the-composer-stopped-making-ad-hoc-rows-2026-09-19) — FR-24.11: the one helper every typed add goes through, and the promise no composer reaches.
 
 ## The rule that comes before the units
 
@@ -248,7 +249,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Global navigation & app bar | E2E-G9-09, E2E-G9-17, E2E-G1-06, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G9-20 (FR-21.26 tablet-gap measure), E2E-G9-19 (ADR-050 a tab root's head, M1 included since FR-21.27), E2E-G9-21 (the build names itself once, header vs M17), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G1-07, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-G7-02, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer), E2E-G8-01 (no delegation picker), E2E-G4-01 (the notification's landing) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4/M5 names from the inventory | E2E-M4-103 (FR-27.16: the ⋮ sheet, „All", undo, and the entry gone once the names agree), E2E-M4-104 (and on an archived trip), E2E-M5-30 (the one-row line in M5) | `local` | [`inventory-names.spec.ts`](../client/e2e/inventory-names.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.26: one content measure, kept by every screen the reader steps to), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes), E2E-M4-75 (FR-21.23: the header line as a ring, a sentence and a track), E2E-M4-76 (FR-21.24: one door to the quick-add), E2E-M4-77 (FR-24.2: a generated row is filed under the item's tag), E2E-M4-83/84 (FR-25.13i: a settled line is reset after the sheet was reopened, and the decided-only filter that finds it), E2E-M4-85 (FR-25.11l: the Status facet overrides Erledigte for the picked bucket), E2E-M4-87 (FR-25.25: the late-packer flag set from the row's own menu, and the way back off it), E2E-M4-89 (FR-25.25/G-8: Local Mode offers no assignment seat — the negative half of E2E-M4-90), E2E-M4-93/94 (FR-25.27: a flagged row sinks to the end of its group, and the *Spätpacker* switch puts those rows away without letting the remainder read as done), E2E-M4-96 (FR-7.4: the trip's own todos added, ticked, reopened and removed, read back after reloads), E2E-M4-97 (FR-7.4: the todos head the list, open while owed, with a figure in the header) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-107 (FR-24.11: a new name through the create sheet, offer above the partial hit), E2E-M4-108 (FR-24.11: the other umlaut spelling adds at once, then „schon drin"), E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column, revised with the 2026-09-06 row), E2E-M4-68 (a done row sinks), E2E-M4-69 (FR-25.22: the reveal bar and the Erledigte switch carry one number), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word), E2E-G12-03, E2E-G12-04, E2E-G6-01 (the hold, and the row gesture that was swallowing it), E2E-M4-66 (FR-20.4: the quick-add names the companions it pulled), E2E-M4-67 (FR-25.4a: only the unusual mode is drawn), E2E-M4-70 (FR-21.17: the page head yields with the header line, and holds at the bottom of the list), E2E-M4-71 (FR-21.26: one content measure, kept by every screen the reader steps to), E2E-M4-72 (FR-21.19: a lone per-person row starts its name where every other row does), E2E-M4-73 (FR-21.20: a cluster head stands in the name column and its people step in), E2E-M4-74 (FR-21.22: the reveal bar wears a button's edge and says which way it goes), E2E-M4-75 (FR-21.23: the header line as a ring, a sentence and a track), E2E-M4-76 (FR-21.24: one door to the quick-add), E2E-M4-77 (FR-24.2: a generated row is filed under the item's tag), E2E-M4-83/84 (FR-25.13i: a settled line is reset after the sheet was reopened, and the decided-only filter that finds it), E2E-M4-85 (FR-25.11l: the Status facet overrides Erledigte for the picked bucket), E2E-M4-87 (FR-25.25: the late-packer flag set from the row's own menu, and the way back off it), E2E-M4-89 (FR-25.25/G-8: Local Mode offers no assignment seat — the negative half of E2E-M4-90), E2E-M4-93/94 (FR-25.27: a flagged row sinks to the end of its group, and the *Spätpacker* switch puts those rows away without letting the remainder read as done), E2E-M4-96 (FR-7.4: the trip's own todos added, ticked, reopened and removed, read back after reloads), E2E-M4-97 (FR-7.4: the todos head the list, open while owed, with a figure in the header), E2E-M4-105 (FR-7.4/FR-25.2: a ticked-off trip todo is taken back from the snackbar), E2E-M4-106 (the same for a prep task) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | FR-25.21 membership · FR-25.8 per-person quick-add · FR-25.28 the for-whom strip (every case in this row runs through the strip since 2026-09-18; the membership sheet is gone) | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-24 (FR-21.16: the head is set louder than its children, read off computed type), E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M5-26 (FR-25.21c: *Alle* adds the missing travelers and keeps a chosen amount; its row-layout clause was retired with the sheet it measured), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the strip is absent), ~~E2E-M4-65~~ (retired 2026-09-18: no editor follows an add, so the sheet has nothing to make way for — E2E-M4-102 holds the opposite rule), E2E-M4-100 (FR-25.28: the seat unfolds a strip that follows its item from row to cluster; at most one), E2E-M4-101 (the last traveler leaves silently, progress kept), E2E-M4-102 (a browse-sheet add is deaf to the composer's strip), E2E-M5-29 (M5 closes with the row it stood on), E2E-M4-78/79 (FR-25.13g: „für alle" on a free line and on a carried one), E2E-M4-80/81 (FR-25.13h: assigning travelers, multi-select — the avatar buttons up to three, the long-press menu above), E2E-M4-82 (FR-25.23: the cluster folds, starts shut, and the shut head answers with faces and an open count), E2E-M4-88 (FR-25.26: the head sets the late-packer flag on every instance, asserted per instance in M5, and takes it back off) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
@@ -260,12 +261,12 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Taken off the list (FR-5.8) | E2E-M4-91, E2E-M4-92, E2E-M4-95 | `local` | [`remove-item.spec.ts`](../client/e2e/remove-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03, E2E-G14-04 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-05 (the header icon into M18), E2E-M7-06 (both empty states), E2E-M7-07 (three tests here plus the include half in the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
-| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (its own test only since the 2026-08-30 audit), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests), E2E-M8-26 (FR-7.4 trip tasks, one test per scope) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
-| M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-17 (**with E2E-FLOW-03**, whose journey it already was — since 2026-08-31 it also reads the state the row arrives in), E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
+| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (its own test only since the 2026-08-30 audit), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests), E2E-M8-26 (FR-7.4 trip tasks, one test per scope), E2E-M8-27 (FR-24.11: an unknown name becomes a position only through the create sheet) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-25 (FR-24.11: an unknown name becomes a shopping row only through the create sheet), E2E-M6-17 (**with E2E-FLOW-03**, whose journey it already was — since 2026-08-31 it also reads the state the row arrives in), E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, ~~E2E-M9-08~~ (retired with the tag axis, FR-24.8), E2E-M9-10 (search filters), E2E-M9-14 (three chips + the filter sheet, FR-24.8), E2E-M9-15 (the jump, FR-24.8), E2E-M9-16 (the bulk refile, FR-24.9), E2E-M9-17 / E2E-M9-18 / E2E-M9-19 (the tag manager: rename, the refused delete, the merge — FR-24.10), E2E-M9-20 (the hidden items are named, FR-24.3 — lives in `restore-retired.spec.ts`), E2E-M9-21 / E2E-M9-22 (the search creates what it did not find, FR-24.11), E2E-M9-23 (a retired name is offered back, FR-24.11 — lives in `restore-retired.spec.ts`),  E2E-M10-21 (the chip's two targets, FR-24.9), E2E-M10-22 (the same while creating, FR-24.9), E2E-M9-11 (umlaut + tag search, FR-24.7), E2E-M9-12 (the filtered dead end, FR-24.7), E2E-M9-13 (the tool bar stays, FR-24.6), E2E-M9-04 (empty state → M15), E2E-M10-07, E2E-M10-08, E2E-M10-10 (renumbered 2026-08-30 — they ran as M10-01 … M10-05), E2E-M10-03, E2E-M10-04 (new 2026-08-30), E2E-M10-20 (new 2026-09-12), E2E-M10-23–28 (both dependency pickers create and restore, FR-24.11), E2E-M10-13 (German-seeded), E2E-M10-16 | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-1.9 no default assignee in Local Mode (G-8) | E2E-M10-30 | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
-| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03, E2E-M23-04 (the Vorlage half) | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
+| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03, E2E-M23-04 (the Vorlage half), E2E-M4-109 (FR-24.11: the composer restores a retired name instead of creating it again) | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit and, since 2026-08-30, FR-25.15's absent Save button), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01 (rewritten 2026-08-30: the Gepäck dimension over a real bag, FR-10.4), E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
@@ -308,7 +309,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
 | M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08, **E2E-M17-14b** (FR-19.8's guard, both directions, since 2026-09-02) | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
 | M17 leaving Local Mode (FR-19.8, ADR-045) | **E2E-M17-14** (the whole move on one device, read back from the server), **E2E-M17-14c** (skip is not restore) — both since 2026-09-02 | `single` | [`single/leave-local-mode.spec.ts`](../client/e2e/single/leave-local-mode.spec.ts) |
-| Connection repair (FR-19.6 / FR-19.9) | **E2E-G2-15** (the sheet names the request that failed), **E2E-M17-15** (the connection is forgotten and M19 asks again) — both since 2026-09-13 | `single` | [`single/connection-repair.spec.ts`](../client/e2e/single/connection-repair.spec.ts) |
+| Connection repair (FR-19.6 / FR-19.9) | **E2E-G2-15** (the sheet names the request that failed), **E2E-G2-16** (and says when the last sync completed, since 2026-09-19), **E2E-M17-15** (the connection is forgotten and M19 asks again) — the others since 2026-09-13 | `single` | [`single/connection-repair.spec.ts`](../client/e2e/single/connection-repair.spec.ts) |
 | The release check (FR-23.8, ADR-062) | **E2E-M17-17** (a default instance says nothing about releases) — since 2026-09-15 | `single` | [`single/instance-update.spec.ts`](../client/e2e/single/instance-update.spec.ts) |
 | Logging out (FR-19.9) | **E2E-M17-16** (the session ends and stays ended across a reload) — since 2026-09-13 | `server` | [`server/logout.spec.ts`](../client/e2e/server/logout.spec.ts) |
 | M17 data export under a session (NFR-4.5) | E2E-M17-03 **/ E2E-NFR-05** | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
@@ -5273,3 +5274,78 @@ copy, not reverted with `git checkout`.
 
 **Run rather than reasoned about**: the whole `server` project 28/28 locally, and
 the two G-10 cases four times each, 8/8.
+
+## The composer stopped making ad-hoc rows (2026-09-19)
+
+FR-24.11 reached the shared composer (M4, M6, M8): every add goes through the
+inventory. A name it holds is added by ✓ at once; any other opens
+`CreateItemSheet`, and only its „Anlegen" writes; a retired name is restored. New
+cases: E2E-M4-107/108 (`packing-list.spec.ts`), E2E-M4-109 (`restore-retired.spec.ts`,
+where the retire is the fixture), E2E-M8-27, E2E-M6-25.
+
+**One helper decides the branch, from a settled signal.** `addInComposer` in
+`helpers/trips.ts` types the name and waits for *either* the offer naming it *or*
+the exact suggestion — the two exclude each other, since the offer is withdrawn the
+moment an active item has that name — and only then reads which one is on screen.
+It never asks a one-shot `isVisible()` whether a sheet appeared. `tripWithRows`,
+`quickAddItem` (`serverMode.ts`) and `addPosition` all go through it, so a caller
+does not have to know whether an earlier step already created the name. A retired
+name is deliberately not handled there: E2E-M4-109 drives it on its own.
+`confirmCreateSheet` and `createItemSheet` are its two halves for a case that wants
+to assert something between ✓ and „Anlegen".
+
+**"Nothing is written before Anlegen" has a positive signal.** E2E-M8-27 and
+E2E-M6-25 open the sheet, dismiss it, and read the offer again: an offer still
+saying *Create* proves no item of that name exists, because it would have been
+withdrawn. The empty positions/tab beside it is the other half.
+
+**Cases whose meaning moved:**
+
+- **E2E-M8-13's duplicate report** now happens before the commit: the exact name
+  already a position shows `quick-add-already-in` and ✓ carries
+  `aria-disabled="true"`. The old toast („not added twice") is no longer reached
+  by typing. Its **„autocomplete after two characters"** clause is retired — the
+  composer searches by M9's rule, where one character is a query; E2E-M8-21 now
+  asserts that "Z" already finds *Zahnbürste*.
+- **E2E-M4-46, E2E-M6-21, E2E-M8-20, E2E-M10-14** used the free-text hint
+  (`.no-match`) as the settled signal beside an absent suggestion. It is gone; the
+  offer title renders in the same pass and replaces it. For E2E-M8-20 that loses
+  one property: the hint was hidden when groups matched, the offer is not, so
+  the signal proves "searched", no longer "no groups leaked".
+- **E2E-M4-42** made a cluster by adding „Zelt" twice. The second add is now
+  refused (already in), so the cluster is made by lighting both travelers in
+  the composer's for-whom strip.
+- **E2E-M9-07 / E2E-M5-15** (`item-mark.spec.ts`) asserted the *ad-hoc* row's
+  empty mark slot. The row is now a bare inventory item with no mark, which
+  renders the same slot; the helper is `addUnmarked`.
+- **E2E-M12-02** (unweighted count), **the M14 fixture's *missing* row** and
+  **M21's loose row** were typed ad-hoc rows. They are now inventory rows with no
+  weight / no group behind them, and the claims they carry still hold.
+
+**Unreachable from the composer, recorded rather than deleted:** a trip row with
+no `source_item_id`. E2E-M4-26's second test used one so the group had to
+recognise the position *by name*; it now recognises it by source item, and the
+by-name branch of that rule has no e2e driver. Such rows still arrive through the
+portable import and older data, which is where a case for that branch would have
+to build its world.
+
+**What rendering it found:** after „Anlegen" the focus landed on `BODY`, not on
+the composer, so neither typing nor Escape reached it — every helper that closes
+the composer with Escape after a created add went red (20+ chromium cases). The
+sheet's `onCreated` focused the input while the modal was still dismissing, and
+Ionic's focus restoration won; the fix waits for the sheet's `did-dismiss`, the
+browse sheet's existing pattern. E2E-M4-107 asserts the focus, so the helpers keep
+using Escape, the user's path.
+
+**Two more things the new flow moved.** E2E-G5-01 (`single`) now counts **2**
+refused writes, not 1: a new name is the item *and* the row. And in the `server`
+project, E2E-M17-03 was red once (and green 3/3 on repeat) with *"The server
+refused 1 change — it has been undone"*: the item and the row that points at it
+are pushed in two partitions, and the trip push can land first. That was reported
+as a product defect and not papered over in the helper; it is fixed in the
+orchestrator (a trip drain first waits for the master writes already queued or on
+the wire) and pinned by a unit case in `tripWizard.spec.ts` that holds the master
+push and asserts the order — a race the e2e hits once in thirty runs is not a test. The `m4-list` /
+`m4-list-day` baselines differ only by a hover highlight: the pointer's last
+click is now the sheet's „Anlegen", not ✓ above the second row.
+

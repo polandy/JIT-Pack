@@ -7,7 +7,14 @@
  * passed against it. What proves the feature is that the item is named *once*
  * and its children carry *different* amounts.
  */
-import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
+import {
+  addInComposer,
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+  visiblePage,
+} from './fixtures'
 import { FOR_WHOM_M5, lightTraveler, openCluster, openForWhom, setMemberInM5 } from './helpers/m4'
 import { createMasterItem } from './helpers/templates'
 import type { Page } from '@playwright/test'
@@ -20,8 +27,7 @@ const ITEM = 'Kurze Hosen'
 async function seedTrip(page: Page) {
   await createTripViaWizard(page, TRIP)
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, ITEM)
   await expect(page.getByTestId(`m4-row-${ITEM}`)).toBeVisible()
 }
 
@@ -100,8 +106,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     // A plain row, to pin the head to the app's row size rather than only to
     // "bigger than its child" — which a head three steps too large also passes.
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(PLAIN)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, PLAIN)
     const list = visiblePage(page)
     await expect(list.getByTestId(`m4-row-${PLAIN}`)).toBeVisible()
 
@@ -317,8 +322,7 @@ test.describe('FR-25.28 the for-whom strip on the row @local @m4', () => {
   }) => {
     const OTHER = 'Sonnencreme'
     await seedTrip(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(OTHER)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, OTHER)
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('quick-add-input')).toBeHidden()
 
@@ -442,8 +446,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await lightTraveler(page, 'quick-add', 'Andy')
     await lightTraveler(page, 'quick-add', 'Leonardo')
     await expect(forWhom).toContainText('2')
-    await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, ITEM)
 
     // No editor follows the add: the cluster is simply there, and the composer
     // still holds the choice for the next row of the run.
@@ -503,8 +506,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
 
     // The same G-8 on the list: a solo trip has no *who* column at all, so its
     // rows are exactly as wide as they were. The row is the positive signal.
-    await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, ITEM)
     await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toBeVisible()
     await expect(visiblePage(page).getByTestId(`for-whom-seat-${ITEM}`)).toHaveCount(0)
   })
