@@ -2144,8 +2144,8 @@ number reaches a pixel and that the switcher and the bars actually move it.
 * **E2E-M12-04** `all` (FR-8.2/25.11) — **implemented**: a picked bar lands on M4 **filtered** to that value — asserts
   the facet is set (a row outside the slice is gone), the removable chip names the value, and clearing the chip reveals
   the grouping that came along. Regression guard: setting only the grouping (the pre-2026-08-08 behaviour) fails every
-  assertion but the last. The clause *„clearing every other facet, since the reader tapped one number"* is
-  **unit-owned** (`composables/__tests__/usePackingFilter.spec.ts`, six cases on `setStoredFacet` including a stale
+  assertion but the last. The clause *„clearing every other facet, since the reader picked these numbers"* is
+  **unit-owned** (`composables/__tests__/usePackingFilter.spec.ts`, seven cases on `setStoredFacet` including a stale
   facet from a previous mount) — the e2e world has only one facet in force, so an assertion here could not tell a
   replacement from an addition.
 * **E2E-M12-08** `all` (FR-8.2/25.11) — **implemented** (2026-09-19): bars are picked, not followed. Two of three
