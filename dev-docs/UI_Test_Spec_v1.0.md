@@ -149,6 +149,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G9-08 | G-9 List → detail → back | all | The everyday round trip entered through the trip list. Uncaught runtime errors are asserted with **no exemptions**. *(The known Ionic cross-outlet error the case used to filter is gone with ADR-012, which removed the second outlet; keeping the filter would only hide the next one.)* |
 | E2E-G10-01 | G-10 Trip presence | server | Facepile of others on the trip, the **in-sync** badge, and the tap that names one person — plus the two absences that give the pile its meaning: no pile above one person, and none once the second leaves. **Revised 2026-08-28**: the per-person *sheet* this case once demanded was **replaced** by state on the faces themselves (UI-Spec G-10, FR-4.6) — it is not an unbuilt promise, and the ledger said so until 2026-08-30. ~~"the group-sync badge in both states"~~ — this case only ever renders one of them; the other is E2E-G10-02. Its `presence-behind` absence sits after a visible `presence-in-sync` and the two are a `v-if`/`v-else`, so that clause cannot fail on its own; it is kept as documentation of the exclusivity, not counted as coverage of it. The ✕ on the named line is not pressed here — the case dismisses by tapping the face again — and is unit-owned in `PresenceFacepile.spec.ts`, together with the ordering, the overflow and the ring's own rendering. |
 | E2E-G10-02 | G-10 Trip presence, lagging | server | **Implemented 2026-08-30** (backlog item 6, the M20/G-10 audit), and it retires this row's predecessor sentence: ~~a device is behind only while its reported cursor sits below the trip head, and the client reports one the moment its pull returns, so an e2e case could only race it~~. That holds for a device that is *allowed* to pull. `drainTrip` reports the cursor only after the pull **returns**, so a device whose trip-partition requests are blocked keeps the cursor it had and the lagging state stands still — a settled state, not a moment. Bob's pulls are blocked, Alice moves the head, and her screen counts one straggler in the badge's bubble, drops the ✓✓, and names *„Bob · catching up"* on the tap while naming Alice *„up to date"*. Unblocking and moving the head again settles it back, which is what makes it a state rather than a latch. What it adds over the units: `hub_test.go` computes `in_sync` from cursors and `PresenceFacepile.spec.ts` rings whoever a prop says is behind — nothing said the server's answer is that prop. |
+| E2E-G10-03 | G-2b roster (FR-4.9) | server | Alice opens the sheet behind the cloud and reads that nobody else is packing; Bob opens the shared trip and her still-open sheet lists *Bob* over the trip's name; Bob goes to his own dashboard and it says nobody again — the socket and the subscription both stay, so only a roster built from the open packing list can pass. |
 | E2E-G11-01 | G-11 Theming | all | **Covered by E2E-M17-06** (read 2026-08-31): it opens a device with no preference and asserts Nacht *before* touching anything, presses the toggle, reloads, and presses it back — the default, the switch and the persistence, in that order. ~~no flash of wrong theme~~ — **kept and named, not counted**: it is a claim about the frames before first paint, and every assertion available here reads the settled document. |
 | E2E-G9-09 | G-9 Navigation repaints | all | A rail entry (≥900px) changes the URL **and** the rendered screen. Asserted against the *visible* page (`.ion-page:not(.ion-page-hidden)`), because the defect this exists for was a route change that never repainted — every URL assertion in the suite stayed green throughout it. |
 | E2E-G9-17 | G-9/ADR-012 An interrupted anchor switch | all | Tapping the rail's anchors **without waiting for the transition** — items → trips → templates → items → trips → dashboard → trips — leaves the outlet showing exactly one page, and the screen the URL names still answers a tap (M2's import icon reaches M15). New 2026-08-31. The assertion is a *settled* count read after the URL has arrived, not a race: an interrupted push leaves its extra page there permanently, measured at z-index 101 over 100. E2E-G9-09 makes one settled switch, which is precisely what the defect survives. |
@@ -781,7 +782,9 @@ in WebKit.
   travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
   is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the
   trip line reads *1/2*, the same sum. A tap on *Shared* presses it and puts a person chip in the chip row with the
-  shared row still listed; a second tap releases both.
+  shared row still listed; a tap on Andy then presses him **beside** it — two chips, Leonardo unpressed, the shared row
+  still listed (revised 2026-09-19: the tap used to replace the pick) — and a second tap on each releases only that
+  one.
 * **E2E-M4-111** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for one
   traveler shows no per-person strip, read once the trip line has rendered.
 * **E2E-M4-112** `local` (FR-25.29 with FR-9.3, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): on a
@@ -2140,13 +2143,18 @@ number reaches a pixel and that the switcher and the bars actually move it.
   *Gepäck* view splitting them into the named bag and the absence bucket — two slices where *Kategorie* had one, so a
   dead segment fails on the count alone. Mutation-proved twice: pointing `dimensionKey`'s container case at the absence
   bucket, and printing `plannedWeight` on both sides of the KPI.
-* **E2E-M12-04** `all` (FR-8.2/25.11) — **implemented**: tapping a bar lands on M4 **filtered** to that value — asserts
+* **E2E-M12-04** `all` (FR-8.2/25.11) — **implemented**: a picked bar lands on M4 **filtered** to that value — asserts
   the facet is set (a row outside the slice is gone), the removable chip names the value, and clearing the chip reveals
   the grouping that came along. Regression guard: setting only the grouping (the pre-2026-08-08 behaviour) fails every
-  assertion but the last. The clause *„clearing every other facet, since the reader tapped one number"* is
-  **unit-owned** (`composables/__tests__/usePackingFilter.spec.ts`, six cases on `setStoredFacet` including a stale
+  assertion but the last. The clause *„clearing every other facet, since the reader picked these numbers"* is
+  **unit-owned** (`composables/__tests__/usePackingFilter.spec.ts`, seven cases on `setStoredFacet` including a stale
   facet from a previous mount) — the e2e world has only one facet in force, so an assertion here could not tell a
   replacement from an addition.
+* **E2E-M12-08** `all` (FR-8.2/25.11) — **implemented** (2026-09-19): bars are picked, not followed. Two of three
+  Person bars are picked and land on M4 as **two chips of one facet**, OR'd — both picked rows stay and the third
+  person's row is gone, which a single-value handoff cannot produce. On M12 itself: no button while nothing is picked,
+  the count follows each pick, a second tap takes one back (`aria-pressed`), and switching the dimension away and back
+  drops them.
 * **E2E-M12-05** `all` (FR-8.2/25.1) — **implemented**: with rows assigned per traveler, the Person view shows **one
   contribution per traveler** plus the *Shared* bucket and no `undefined` bucket; the Category view sums the same rows
   into a single bucket, so the totals match across dimensions. (The multi-row per-person cluster shape is unit-owned in
@@ -2177,19 +2185,19 @@ number reaches a pixel and that the switcher and the bars actually move it.
   to the trip's own name and the line said „Series Elba 2026 · trend" about a series called Elba. Mutation-proved three
   times — pointing the trend at *active* trips, dropping *missing* from the flag counter, and putting the heading back
   on the trip name each redden it.
-* **E2E-M12-06** `all` (FR-8.2/25.18) — **implemented** (`e2e/packing-list.spec.ts`): tapping a slice sets the grouping
-  M4 comes back with, asserted after clearing the facet chip the same tap set. Crosses the screen boundary on purpose:
-  M12 and M4 each held their own grouping state and each was self-consistent, so no unit could see that the handoff
-  between them had stopped working. ADR-012 leaves one router outlet, so M4 is **not** remounted on the way back and a
-  value written only to storage would not be read until the next cold start.
+* **E2E-M12-06** `all` (FR-8.2/25.18) — **implemented** (`e2e/packing-list.spec.ts`): opening a picked slice sets the
+  grouping M4 comes back with, asserted after clearing the facet chip the same step set. Crosses the screen boundary on
+  purpose: M12 and M4 each held their own grouping state and each was self-consistent, so no unit could see that the
+  handoff between them had stopped working. ADR-012 leaves one router outlet, so M4 is **not** remounted on the way back
+  and a value written only to storage would not be read until the next cold start.
 * **Not implemented, and not a test gap — there is no way from M12 to M11.** UI-Spec M11's *Navigation* line has said
   *„from the luggage button in M4's toolbar … and from M12"* since before the rebuild. `AnalyticsPage.vue` pushes
-  exactly one route, `/trips/{id}`: tapping a *Gepäck* bar sets the container facet and lands on the packing list, which
-  is FR-8.2's own action and a different thing from opening the bag's screen. No case id claims the M12→M11 edge
-  (E2E-G9-11 covers M4↔M11 only), so nothing is red — the sentence simply describes an affordance the screen has never
-  had. **Owner decision:** add the edge (the natural place is the *Gepäck* view's header, not the bar, whose tap is
-  already spoken for) or strike the clause. UI-Spec M11 is corrected to say it is not built; no other document leans on
-  it.
+  exactly one route, `/trips/{id}`: opening a picked *Gepäck* bar sets the container facet and lands on the packing
+  list, which is FR-8.2's own action and a different thing from opening the bag's screen. No case id claims the M12→M11
+  edge (E2E-G9-11 covers M4↔M11 only), so nothing is red — the sentence simply describes an affordance the screen has
+  never had. **Owner decision:** add the edge (the natural place is the *Gepäck* view's header, not the bar, whose tap
+  is already spoken for) or strike the clause. UI-Spec M11 is corrected to say it is not built; no other document leans
+  on it.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 Feature removed from the product (PRD Addendum §3.11); its E2E cases are retired.
@@ -3228,6 +3236,10 @@ These are full end-to-end journeys spanning several screens — the highest-valu
   still this one that failed on the family instance: the owner's tab had lost its socket and the member's had not, so
   the sync was one-directional — and a suite that only ever packed on the owner's device could not have seen it. The
   socket-level cause is E2E-G2-13's; this case is the promise as the user states it.
+* **E2E-FLOW-01c The header follows** `server` (FR-4.4, Sync-API P-1) — **added 2026-09-19**: Bob packs both of Alice's
+  items while her packing list stays open and untouched; her progress figure goes `0/2` → `1/2` → `2/2` and the ring's
+  label `0%` → `50%` → `100%`. The figure is derived from rows, so this is a second claim beside E2E-FLOW-01b's row
+  arriving: it fails if the header were read from a value cached at open.
 * **E2E-FLOW-02 Delegation** `server`: M4 → M5 → set packer (Bob) → Bob receives push/in-app notification → taps →
   deep-links into M4/M5. (FR-4.3, 6.2, 6.3, G-4) — **implemented 2026-08-25** (`e2e/server/multi-user.spec.ts`), and it
   needed a control that did not exist: `packer_user_id` was written once when a row was generated and never again, so

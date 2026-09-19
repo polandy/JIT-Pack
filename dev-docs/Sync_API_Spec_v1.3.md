@@ -659,7 +659,9 @@ schema change was owed.
 * Server → client envelope: `{"type": "<event>", "payload": {…}}`.
 * Client → server frames: `{"subscribe": ["trip:<id>", "user:<own-id>"]}`, `{"unsubscribe": ["trip:<id>"]}`, `{"cursor":
   {"trip_id": "<id>", "seq": <n>}}` — the client reports its pull cursor after each trip pull so the server can
-  recompute `in_sync` — and `{"ping": true}`, the §9 keepalive, answered with a `pong` event. `user:` frames are
+  recompute `in_sync` — `{"viewing": {"trip_id": "<id>"}}` — the trip whose packing list is open on this connection,
+  `""` for none; a trip the caller is not a member of counts as none (FR-4.9) — and `{"ping": true}`, the §9
+  keepalive, answered with a `pong` event. `user:` frames are
   accepted but redundant: `notification.created` is delivered to every connection *authenticated* as the target user, so
   a client can never miss (or steal) the event by (mis)subscribing.
 * **A subscription ends when the permission does, and the server decides that on every send (ADR-056, corrected
@@ -707,6 +709,7 @@ schema change was owed.
 | `master.changed` | `{seq}` | pull master partition |
 | `item.locked` / `item.unlocked` | `{trip_id, item_id, by_user, name}` | render lock overlay (G-3) — ephemeral, not persisted |
 | `presence` | `{trip_id, users:[{user_id, device_count, in_sync}]}` | avatars + group-sync badge in M4 header (UI-Spec G-10) |
+| `roster` | `{users:[{user_id, trip_ids}]}` | the G-2 sheet's "Packing right now" section (FR-4.9) — sent to **every** connection, not only a trip's subscribers; whole state each time, never a delta; a newcomer gets it on connect only when it is non-empty |
 | `notification.created` | `{notification_id}` | fetch via `GET /notifications` + toast/OS notification (FR-6.2) |
 | `pong` | — | answers a client `{"ping": true}`; consumed by the client's liveness watchdog, never surfaced (§9) |
 

@@ -24,6 +24,7 @@ import {
   flashOutline,
   gitMergeOutline,
   listOutline,
+  peopleOutline,
   refreshOutline,
   sparklesOutline,
   warningOutline,
@@ -39,6 +40,7 @@ import { rejectionReasonKey } from '@/sync/rejectionReasons'
 import { SYNC_EXPLAIN_KEYS, SYNC_LABEL_KEYS, type SyncState } from '@/composables/useSyncStatus'
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
+import type { OnlineRow } from '@/lib/onlineRows'
 
 const props = withDefaults(
   defineProps<{
@@ -84,6 +86,12 @@ const props = withDefaults(
      * session (FR-19.6). Server Mode only — Local Mode never syncs.
      */
     lastSyncedAt?: number | null
+    /**
+     * Who else has a shared trip open right now (FR-4.9), or `null` where
+     * there is nobody to be told about — Local and Single-User Mode. `null`
+     * and an empty list differ on purpose: the second is an answer.
+     */
+    online?: OnlineRow[] | null
     /** Run mode: it, not the state, decides which half of the sheet applies. */
     mode: 'local' | 'server'
     /** Whether a trip is open, i.e. whether its own conflict log exists. */
@@ -115,6 +123,7 @@ const props = withDefaults(
     updateApplying: false,
     lastFailure: null,
     lastSyncedAt: null,
+    online: null,
   },
 )
 
@@ -125,6 +134,8 @@ const emit = defineEmits<{
   backup: []
   /** FR-19.7: apply the waiting version now. */
   applyUpdate: []
+  /** FR-4.9: go to the trip somebody else is packing. */
+  openTrip: [tripId: string]
 }>()
 
 const isLocal = computed(() => props.mode === 'local')
@@ -270,6 +281,28 @@ const backupAge = computed(() => {
       <IonIcon :icon="warningOutline" />
       <span>{{ t('sync.detail.liveGap') }}</span>
     </p>
+
+    <!-- FR-4.9: who else is at work on a trip this account shares. An empty
+         list is an answer and says so, so the sheet never looks unfinished. -->
+    <section v-if="!isLocal && online" class="block" data-testid="sync-detail-online">
+      <SectionHead :title="t('sync.detail.online')" :count="online.length || null" />
+      <p v-if="online.length === 0" class="note" data-testid="sync-detail-online-nobody">
+        {{ t('sync.detail.onlineNobody') }}
+      </p>
+      <button
+        v-for="row in online"
+        :key="row.key"
+        class="action"
+        :data-testid="`sync-detail-online-${row.name}`"
+        @click="emit('openTrip', row.tripId)"
+      >
+        <IonIcon :icon="peopleOutline" />
+        <span class="who"
+          ><strong>{{ row.name }}</strong
+          ><small>{{ row.tripName }}</small></span
+        >
+      </button>
+    </section>
 
     <!--
       FR-19.6: why the glyph says what it says. Four situations share one
@@ -452,6 +485,15 @@ const backupAge = computed(() => {
   gap: 8px;
   margin: 6px 0 0;
   color: var(--ion-color-warning);
+  font-size: var(--jp-text-sm);
+}
+
+.who {
+  display: grid;
+}
+
+.who small {
+  color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
 }
 

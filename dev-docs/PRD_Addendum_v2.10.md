@@ -3159,9 +3159,11 @@ locked.
     whose traveler is not on the roster counts as shared rather than disappearing from the sum.
   * **The whole trip, whatever the filter** — like the trip line (FR-25.20). A share that shrank with the list would
     stop being a share of the trip.
-  * **A tap narrows the person facet to that traveler alone; a second tap on the same one clears it.** The strip owns no
-    filter: the chip row names it like any other facet value, and the sheet's multi-select stays the way to pick
-    several. *Gemeinsam* selects the facet's no-value.
+  * **A tap toggles that traveler in the person facet; a second tap takes them back out.** The rings are quick filters:
+    several can be picked at once, OR'd like the sheet's chips, so *mine and the shared ones* is two taps. The strip
+    owns no filter: the chip row names each pick like any other facet value. *Gemeinsam* selects the facet's no-value.
+    **Revised 2026-09-19 (owner request):** as first built a tap narrowed the facet to that traveler *alone*, and the
+    sheet was the only way to pick several — which put the combination a packer wants most behind a trip to the sheet.
   * **Drawn for three travelers** (owner, 2026-09-19): three columns, no scrolling. Larger parties wrap in threes;
     beyond six, five faces stay and the rest fold behind *„+N weitere"* with how many of them still have something open,
     and a traveler the list is filtered to is never folded away. The order is the roster's, never the progress's, so a
@@ -4578,6 +4580,19 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
 
 ### 3.5 Packing Workflow
 
+* **FR-4.9 (Who Is Packing Right Now — new 2026-09-19):** The sync sheet behind the status glyph (G-2b) names the
+  other people who currently have the packing list of a trip open, and which trip, so a family knows before opening
+  anything that somebody else is already on it.
+  **Only trips the viewer is a member of, and only people who are members of them too** (owner, 2026-09-19): the
+  hub authorises both ends of every listing, so a trip a person may not know exists is never named to them. **What
+  counts as "working on it" is the packing list being open (M4), not a subscription** — the dashboard follows every
+  active trip and never unsubscribes, so a roster read from subscriptions would go on naming somebody after they
+  had left; the client says it explicitly (`viewing` frame, Sync-API §7) and the hub forgets it with the connection.
+  Consequently a person who is online but on no trip, or only on a screen other than the packing list, is not
+  listed: "online" here means *at work on a shared trip*, and a bare "is connected" list would have to name people
+  with whom the viewer shares nothing. Advisory and best-effort like FR-4.6 (a device that is offline is not
+  listed), absent in Single-User and Local Mode (G-8), and it gates nothing. FR-4.6's per-trip facepile stays as it
+  is; this is the account-wide answer to a different question.
 * **FR-5.4 (Partial Quantities):** Items with a quantity greater than 1 track a `packed_count` (e.g., 3 of 5 socks). The
   item state is derived: *Open* (0 packed), *Partially Packed* (0 < packed < quantity), *Packed* (packed = quantity).
   The quick actions of FR-5.2 increment the count; a long-press completes the item in one step. *Packing Now* and

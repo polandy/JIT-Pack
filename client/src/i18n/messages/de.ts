@@ -51,6 +51,8 @@ export const de: Record<keyof typeof en, string> = {
   'sync.detail.explain.local':
     'Local Mode: Es gibt keinen Server. Alles, was du erfasst, bleibt in diesem Browser auf diesem Gerät.',
   'sync.detail.lastSynced': 'Zuletzt synchronisiert: {when}',
+  'sync.detail.online': 'Packen gerade',
+  'sync.detail.onlineNobody': 'Gerade packt sonst niemand.',
   'sync.detail.live': 'Live-Updates sind verbunden — Änderungen anderer Geräte kommen sofort an.',
   'sync.detail.liveGap':
     'Live-Updates sind gerade nicht verbunden. Verbindung wird wiederhergestellt — bis dahin kommen Änderungen anderer Geräte mit der nächsten Synchronisation.',
@@ -1024,7 +1026,8 @@ export const de: Record<keyof typeof en, string> = {
   'container.notFound': 'Dieses Gepäckstück gibt es nicht.',
 
   // M12 — Auswertung (FR-8.2/14.3).
-  'analytics.hint': 'Gewicht: gepackt / geplant · Balken antippen → gefilterte Packliste',
+  'analytics.hint': 'Gewicht: gepackt / geplant · Balken antippen, auch mehrere',
+  'analytics.openList': 'In der Packliste zeigen ({n})',
   'analytics.empty': 'Noch nichts mit Gewicht — nichts auszuwerten.',
   'analytics.unweighted':
     '＋ {n} Artikel ohne Gewichtsangabe (ehrlich nicht mitgerechnet) | ＋ {n} Artikel ohne Gewichtsangabe (ehrlich nicht mitgerechnet)',

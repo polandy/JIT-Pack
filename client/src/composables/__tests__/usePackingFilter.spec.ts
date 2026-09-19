@@ -201,8 +201,8 @@ describe('setStoredGroupBy (FR-25.18)', () => {
 })
 
 /**
- * FR-25.11/8.2 — M12's slice tap, the *filter* half: the tapped bar
- * becomes the one facet in force, so the number the reader tapped is the
+ * FR-25.11/8.2 — M12's slice pick, the *filter* half: the picked bars
+ * become the one facet in force, so the numbers the reader picked are the
  * list they land on. Same ADR-012 shape as setStoredGroupBy: M4 is still
  * mounted on the way back, so the live ref must move with the storage.
  */
@@ -212,15 +212,21 @@ describe('setStoredFacet (FR-25.11)', () => {
     before.toggleValue('category', 'Kleidung')
     await settle()
 
-    setStoredFacet('trip-1', 'person', 'trav-1')
+    setStoredFacet('trip-1', 'person', ['trav-1'])
 
     const next = usePackingFilter('trip-1')
     expect(next.facets.value.person).toEqual(['trav-1'])
     expect(next.facets.value.category).toEqual([])
   })
 
+  it('carries every picked value of the facet, not just the first (FR-8.2)', () => {
+    setStoredFacet('trip-1', 'person', ['trav-1', ''])
+
+    expect(usePackingFilter('trip-1').facets.value.person).toEqual(['trav-1', ''])
+  })
+
   it('addresses the absence bucket with the empty string, like the facet sheet does', () => {
-    setStoredFacet('trip-1', 'person', '')
+    setStoredFacet('trip-1', 'person', [''])
 
     expect(usePackingFilter('trip-1').facets.value.person).toEqual([''])
   })
@@ -228,7 +234,7 @@ describe('setStoredFacet (FR-25.11)', () => {
   it('moves an M4 that is already mounted, not just the next one', () => {
     const mounted = usePackingFilter('trip-1')
 
-    setStoredFacet('trip-1', 'container', 'c1')
+    setStoredFacet('trip-1', 'container', ['c1'])
 
     expect(mounted.facets.value.container).toEqual(['c1'])
   })
@@ -238,7 +244,7 @@ describe('setStoredFacet (FR-25.11)', () => {
     before.showDone.value = true
     await settle()
 
-    setStoredFacet('trip-1', 'person', 'trav-1')
+    setStoredFacet('trip-1', 'person', ['trav-1'])
 
     expect(usePackingFilter('trip-1').showDone.value).toBe(true)
   })
@@ -246,7 +252,7 @@ describe('setStoredFacet (FR-25.11)', () => {
   it('scopes to the trip, like every other part of the view state', () => {
     const other = usePackingFilter('trip-2')
 
-    setStoredFacet('trip-1', 'person', 'trav-1')
+    setStoredFacet('trip-1', 'person', ['trav-1'])
 
     expect(other.facets.value.person).toEqual([])
   })
@@ -254,7 +260,7 @@ describe('setStoredFacet (FR-25.11)', () => {
   it('rebuilds a corrupt stored entry rather than refusing the tap', () => {
     sessionStorage.setItem('jitpack.m4filter.trip-1', '{not json')
 
-    setStoredFacet('trip-1', 'category', 'Kleidung')
+    setStoredFacet('trip-1', 'category', ['Kleidung'])
 
     const next = usePackingFilter('trip-1')
     expect(next.facets.value.category).toEqual(['Kleidung'])

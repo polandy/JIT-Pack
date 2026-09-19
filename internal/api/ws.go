@@ -27,11 +27,18 @@ type wsMessage struct {
 	Subscribe   []string  `json:"subscribe,omitempty"`
 	Unsubscribe []string  `json:"unsubscribe,omitempty"`
 	Cursor      *wsCursor `json:"cursor,omitempty"`
+	// Viewing names the trip the packing list is open on, "trip_id": "" for
+	// none (FR-4.9).
+	Viewing *wsViewing `json:"viewing,omitempty"`
 	// Ping is the client's keepalive (Sync-API §9), answered with an
 	// EventPong frame. App-level on purpose: a browser cannot send
 	// protocol pings, and the client needs a frame it can *see* to know
 	// the connection is still two-way.
 	Ping bool `json:"ping,omitempty"`
+}
+
+type wsViewing struct {
+	TripID string `json:"trip_id"`
 }
 
 type wsCursor struct {
@@ -67,6 +74,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 
 	c := newConn(ws, userID)
 	s.hub.Register(c)
+	s.hub.SendRoster(c)
 	defer func() {
 		s.hub.Unregister(c)
 		ws.CloseNow()
@@ -98,6 +106,15 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			if tripID, ok := strings.CutPrefix(channel, "trip:"); ok {
 				s.hub.Unsubscribe(c, tripID)
 			}
+		}
+		if msg.Viewing != nil {
+			// A trip the caller is not a member of is treated as none: the
+			// frame is a claim, and the roster must not carry a false one.
+			trip := msg.Viewing.TripID
+			if trip != "" && !s.isMember(r, trip, userID) {
+				trip = ""
+			}
+			s.hub.SetViewing(c, trip)
 		}
 		if msg.Cursor != nil {
 			s.hub.UpdateCursor(c, msg.Cursor.TripID, msg.Cursor.Seq)

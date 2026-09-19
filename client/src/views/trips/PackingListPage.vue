@@ -40,6 +40,8 @@ import {
   IonFabButton,
   IonPopover,
   actionSheetController,
+  onIonViewDidEnter,
+  onIonViewWillLeave,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -541,14 +543,13 @@ const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const travelerShares = computed(() => progressByTraveler(allItems.value, travelers.value))
 
 /**
- * FR-25.29: a tap narrows the person facet to that traveler alone, and a
- * second tap on the same one clears it — the sheet's multi-select stays the
- * way to pick several.
+ * FR-25.29: a tap toggles that traveler in the person facet, so the rings are
+ * quick filters — *mine and the shared ones* is two taps, OR'd like the
+ * sheet's chips. Narrowing to one alone used to cost a trip to the sheet for
+ * exactly the combination a packer wants most.
  */
 function selectTraveler(value: string) {
-  const alreadyAlone = facets.value.person.length === 1 && facets.value.person[0] === value
-  clearFacet('person')
-  if (!alreadyAlone) toggleValue('person', value)
+  toggleValue('person', value)
 }
 
 const view = computed(() =>
@@ -1120,6 +1121,15 @@ const breakpoint = window.matchMedia('(min-width: 900px)')
 const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
 breakpoint.addEventListener('change', onBreakpoint)
 onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
+
+// --- Who is working here (FR-4.9) ---------------------------------------
+// The roster on M1 lists people by the trip they have *open*, which is not the
+// subscription — the dashboard follows every active trip and never lets go.
+// Ionic keeps a page mounted under the one that replaced it, so leaving is a
+// view event and unmounting only the fallback.
+onIonViewDidEnter(() => orchestrator.setViewing(props.tripId))
+onIonViewWillLeave(() => orchestrator.setViewing(null))
+onUnmounted(() => orchestrator.setViewing(null))
 
 // --- Header line --------------------------------------------------------
 

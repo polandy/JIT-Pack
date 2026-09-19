@@ -78,6 +78,8 @@ export function useWebSocket(opts: WSOptions) {
    * knows nothing of what the last one reported (§7 in_sync).
    */
   const cursors = new Map<string, number>()
+  /** The trip open in the packing list (FR-4.9); told to every new socket too. */
+  let viewing: string | null = null
 
   function clearTimer(timer: ReturnType<typeof setTimeout> | null) {
     if (timer !== null) clearTimeout(timer)
@@ -136,6 +138,7 @@ export function useWebSocket(opts: WSOptions) {
       for (const [tripId, seq] of cursors) {
         sendCursorFrame(tripId, seq)
       }
+      if (viewing !== null) sendViewingFrame(viewing)
       startKeepalive(s)
       opts.onLive?.(true)
       opts.onOpen?.({ reconnect })
@@ -249,6 +252,21 @@ export function useWebSocket(opts: WSOptions) {
     if (fresh.length > 0 && isOpen()) sendSubscribe(fresh)
   }
 
+  function sendViewingFrame(tripId: string) {
+    socket?.send(JSON.stringify({ viewing: { trip_id: tripId } }))
+  }
+
+  /**
+   * Say which trip the packing list is open on, `null` for none (FR-4.9).
+   * Kept for the composable's whole life, as cursors are: the hub forgets a
+   * connection's viewing with the connection.
+   */
+  function setViewing(tripId: string | null) {
+    if (tripId === viewing) return
+    viewing = tripId
+    if (isOpen()) sendViewingFrame(tripId ?? '')
+  }
+
   function sendCursorFrame(tripId: string, seq: number) {
     socket?.send(JSON.stringify({ cursor: { trip_id: tripId, seq } }))
   }
@@ -287,5 +305,5 @@ export function useWebSocket(opts: WSOptions) {
     }
   }
 
-  return { connect, ensureConnected, subscribe, sendCursor, disconnect }
+  return { connect, ensureConnected, subscribe, sendCursor, setViewing, disconnect }
 }
