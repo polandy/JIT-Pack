@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   assignToContainer,
@@ -283,11 +284,9 @@ test.describe('M11 containers @local @m11', () => {
   }) => {
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
-    await page.getByTestId('quick-add-input').locator('input').fill('Kocher')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Kocher')
     await expect(page.getByTestId('m4-row-Kocher')).toBeVisible()
 
     await openLuggage(page)

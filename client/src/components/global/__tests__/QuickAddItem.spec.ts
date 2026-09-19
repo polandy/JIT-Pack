@@ -9,14 +9,21 @@
  * here — the composer knows nothing about rows —, reset when the run ends,
  * because *gemeinsam* is the default, and silent about what the browse-sheet
  * adds, which answers *for whom* per line.
+ *
+ * Since FR-24.11 reached the composer, everything it adds is an inventory item:
+ * the names typed below exist in the seeded inventory, and what happens to a
+ * name that does not is its own block at the end.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import QuickAddItem from '../QuickAddItem.vue'
 import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
+import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
+import { TABLE } from '@/types/tables'
 import type { MasterItem, Traveler } from '@/types/domain'
 
 const NAME = 'Sonnenhut'
@@ -36,9 +43,58 @@ function travelerIdsOf(emitted: unknown[] | undefined): string[] {
 
 const ITEM = { id: 'i1', name: NAME, weight_grams: null, value_cents: null } as MasterItem
 
-function open(props: Record<string, unknown> = {}, global?: Record<string, unknown>) {
-  const wrapper = mount(QuickAddItem, { props, ...(global ? { global } : {}) })
-  return wrapper
+/** What the composer asked the orchestrator to write — it writes only through the sheet. */
+interface Writes {
+  created: string[]
+  restored: string[]
+}
+let writes: Writes
+/** ADR-033: whether the master partition has arrived; a spec flips it off. */
+let masterLoaded: boolean
+
+function putItem(id: string, name: string, retired_at: string | null = null) {
+  useMasterStore().applyChange({
+    seq: 0,
+    table: TABLE.items,
+    id,
+    deleted: false,
+    row: { name, retired_at },
+  })
+}
+
+const orchestratorFake = {
+  masterDataLoaded: () => masterLoaded,
+  createMasterItem: (name: string) => {
+    writes.created.push(name)
+    putItem(`new-${name}`, name)
+    return `new-${name}`
+  },
+  assignTag: () => 'assignment',
+  createTag: () => 'tag',
+  restoreMasterItem: (id: string) => {
+    writes.restored.push(id)
+    const item = useMasterStore().getItem(id)
+    if (item) putItem(id, item.name)
+    return true
+  },
+}
+
+/** The inventory every spec starts from: the names the for-whom specs type. */
+function seedInventory() {
+  writes = { created: [], restored: [] }
+  masterLoaded = true
+  putItem(ITEM.id, NAME)
+  putItem('i2', 'Badehose')
+}
+
+/** The sheet is an Ionic modal, which renders no slot content under jsdom. */
+const SHEET_STUB = { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } }
+
+function open(props: Record<string, unknown> = {}, global: Record<string, unknown> = {}) {
+  return mount(QuickAddItem, {
+    props,
+    global: { provide: { [ORCHESTRATOR]: orchestratorFake }, ...global },
+  })
 }
 
 async function expand(wrapper: ReturnType<typeof open>) {
@@ -57,6 +113,7 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    seedInventory()
   })
 
   it('offers no strip where there is nobody to distribute over (G-8)', async () => {
@@ -140,18 +197,7 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
    * while the strip under the sheet has some lit.
    */
   it('sends a decided browse add straight out, deaf to the strip, decision intact', async () => {
-    useMasterStore().applyChange({
-      seq: 0,
-      table: 'items',
-      id: ITEM.id,
-      deleted: false,
-      row: { name: ITEM.name },
-    })
-    // The sheet is an Ionic modal, which renders no slot content under jsdom;
-    // stubbing it keeps the browse-sheet reachable.
-    const wrapper = open(ROSTER, {
-      stubs: { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } },
-    })
+    const wrapper = open(ROSTER, { stubs: SHEET_STUB })
     await expand(wrapper)
     await wrapper.find('[data-testid="for-whom-quick-add-Nina"]').trigger('click')
     await wrapper.find('[data-testid="quick-add-browse-open"]').trigger('click')
@@ -170,16 +216,7 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
    * of „für alle" taps going.
    */
   it('passes „für alle" straight out with the item’s fields, sheet still open', async () => {
-    useMasterStore().applyChange({
-      seq: 0,
-      table: 'items',
-      id: ITEM.id,
-      deleted: false,
-      row: { name: ITEM.name },
-    })
-    const wrapper = open(ROSTER, {
-      stubs: { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } },
-    })
+    const wrapper = open(ROSTER, { stubs: SHEET_STUB })
     await expand(wrapper)
     await wrapper.find('[data-testid="quick-add-browse-open"]').trigger('click')
 
@@ -205,16 +242,7 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
    * array straight through rather than a single id.
    */
   it('passes a traveler-set assignment straight out with the item’s fields and the ids', async () => {
-    useMasterStore().applyChange({
-      seq: 0,
-      table: 'items',
-      id: ITEM.id,
-      deleted: false,
-      row: { name: ITEM.name },
-    })
-    const wrapper = open(ROSTER, {
-      stubs: { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } },
-    })
+    const wrapper = open(ROSTER, { stubs: SHEET_STUB })
     await expand(wrapper)
     await wrapper.find('[data-testid="quick-add-browse-open"]').trigger('click')
 
@@ -239,6 +267,7 @@ describe('QuickAddItem — one door per screen (FR-21.24)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    seedInventory()
   })
 
   it('shows its own trigger where the screen has no other way in', () => {
@@ -262,5 +291,132 @@ describe('QuickAddItem — one door per screen (FR-21.24)', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.find('[data-testid="quick-add-input"]').exists()).toBe(true)
+  })
+})
+
+describe('QuickAddItem — the search creates what it did not find (FR-24.11)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    seedInventory()
+  })
+
+  function offerTitle(wrapper: ReturnType<typeof open>) {
+    return wrapper.find('[data-testid="quick-add-offer-title"]')
+  }
+
+  it('adds an exactly named item as that inventory item, by the search’s fold', async () => {
+    putItem('i3', 'Gürtel')
+    const wrapper = open()
+    await expand(wrapper)
+
+    // Neither keyboard spelling of the umlaut is a new item.
+    await type(wrapper, 'guertel')
+    expect(offerTitle(wrapper).exists()).toBe(false)
+    await confirm(wrapper)
+
+    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ name: 'Gürtel', sourceItemId: 'i3' })
+    expect(writes.created).toEqual([])
+  })
+
+  it('offers a missing name above partial hits, and confirming opens the sheet without writing', async () => {
+    putItem('i4', 'Zeltheringe')
+    const wrapper = open({}, { stubs: SHEET_STUB })
+    await expand(wrapper)
+
+    await type(wrapper, 'Zelt')
+    expect(offerTitle(wrapper).text()).toContain('Zelt')
+    expect(wrapper.findAll('[data-testid="quick-add-suggestion"]')).toHaveLength(1)
+
+    await confirm(wrapper)
+
+    expect(wrapper.findComponent(CreateItemSheet).props('isOpen')).toBe(true)
+    expect(wrapper.findComponent(CreateItemSheet).props('name')).toBe('Zelt')
+    expect(wrapper.emitted('add')).toBeUndefined()
+    expect(writes.created).toEqual([])
+  })
+
+  it('adds what the sheet created, for whoever the strip names, and stays open', async () => {
+    const wrapper = open(ROSTER, { stubs: SHEET_STUB })
+    await expand(wrapper)
+    await wrapper.find('[data-testid="for-whom-quick-add-Mila"]').trigger('click')
+    await type(wrapper, 'Zelt')
+    await wrapper.find('[data-testid="quick-add-offer"]').trigger('click')
+
+    await wrapper.find('[data-testid="create-item-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(writes.created).toEqual(['Zelt'])
+    const added = wrapper.emitted('add') ?? []
+    expect(added).toHaveLength(1)
+    expect(added[0]?.[0]).toMatchObject({ name: 'Zelt', sourceItemId: 'new-Zelt' })
+    expect(travelerIdsOf(added[0])).toEqual([MILA.id])
+    expect(wrapper.findComponent(CreateItemSheet).props('isOpen')).toBe(false)
+    expect(wrapper.find('[data-testid="quick-add-input"]').exists()).toBe(true)
+  })
+
+  it('restores a retired name and adds it, instead of creating a second one', async () => {
+    putItem('i5', 'Stirnlampe', '2026-09-01T00:00:00Z')
+    const wrapper = open()
+    await expand(wrapper)
+
+    await type(wrapper, 'Stirnlampe')
+    expect(offerTitle(wrapper).text()).toContain('Stirnlampe')
+    await confirm(wrapper)
+
+    expect(writes.restored).toEqual(['i5'])
+    expect(writes.created).toEqual([])
+    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ sourceItemId: 'i5' })
+  })
+
+  it('says a name already in the scope is in, and gives the confirm nothing to do', async () => {
+    const wrapper = open({ excludeItemIds: [ITEM.id] })
+    await expand(wrapper)
+
+    await type(wrapper, NAME)
+
+    expect(wrapper.find('[data-testid="quick-add-already-in"]').text()).toContain(NAME)
+    expect(offerTitle(wrapper).exists()).toBe(false)
+    const button = wrapper.find('[data-testid="quick-add-confirm"]').element as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+  })
+
+  it('offers nothing before the inventory has arrived (ADR-033)', async () => {
+    masterLoaded = false
+    const wrapper = open()
+    await expand(wrapper)
+
+    await type(wrapper, 'Zelt')
+    await confirm(wrapper)
+
+    expect(offerTitle(wrapper).exists()).toBe(false)
+    expect(wrapper.emitted('add')).toBeUndefined()
+  })
+
+  it('finds an item by its tag, as M9 does, and says why it is listed (FR-24.7)', async () => {
+    const masterStore = useMasterStore()
+    masterStore.applyChange({
+      seq: 0,
+      table: TABLE.tags,
+      id: 't-camp',
+      deleted: false,
+      row: { name: 'Camping', sort_order: 0 },
+    })
+    masterStore.applyChange({
+      seq: 0,
+      table: TABLE.itemTags,
+      id: 'it-1',
+      deleted: false,
+      row: { item_id: 'i2', tag_id: 't-camp', position: 0 },
+    })
+    const wrapper = open()
+    await expand(wrapper)
+
+    await type(wrapper, 'camp')
+
+    const rows = wrapper.findAll('[data-testid="quick-add-suggestion"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.text()).toContain('Badehose')
+    expect(rows[0]!.text()).toContain('Camping')
   })
 })

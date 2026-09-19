@@ -330,25 +330,19 @@ function openQuickAdd() {
 }
 
 /**
- * FR-25.13 in M8: a suggestion or a free-text name lands as a position with
- * the FR-25.7 defaults (qty 1, trip-global, Packen, dedup max). A name the
- * inventory does not know creates the master item first (FR-1.1); a name the
- * template already carries is reported, never added twice.
+ * FR-25.13 in M8: a picked or just-created inventory item lands as a position
+ * with the FR-25.7 defaults (qty 1, trip-global, Packen, dedup max). A name the
+ * inventory does not know is created by the composer's FR-24.11 sheet before it
+ * arrives here; a name the template already carries is reported, never added
+ * twice.
  */
-async function onQuickAdd(entry: { name: string; sourceItemId: string | null }) {
-  const name = entry.name.trim()
-  const existing =
-    entry.sourceItemId != null
-      ? masterStore.getItem(entry.sourceItemId)
-      : masterStore.itemList.find((i) => i.name.toLowerCase() === name.toLowerCase())
-  const itemId = existing?.id ?? orchestrator.createMasterItem(name)
-
-  if (positions.value.some((pos) => pos.item_id === itemId)) {
-    await toast(t('templates.duplicate', { name: existing?.name ?? name }))
+async function onQuickAdd(entry: { name: string; sourceItemId: string }) {
+  if (positions.value.some((pos) => pos.item_id === entry.sourceItemId)) {
+    await toast(t('templates.duplicate', { name: entry.name }))
     return
   }
-  orchestrator.addTemplateItem(props.templateId, itemId, { assignment: 'trip_global' })
-  await toast(t('templates.added', { name: existing?.name ?? name }))
+  orchestrator.addTemplateItem(props.templateId, entry.sourceItemId, { assignment: 'trip_global' })
+  await toast(t('templates.added', { name: entry.name }))
 }
 
 function removePosition(templateItemId: string) {

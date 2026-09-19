@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   createTripViaWizard,
@@ -39,8 +40,7 @@ const ITEMS = ['Zelt', 'Schlafsack', 'Kocher', 'Stirnlampe']
 async function quickAdd(page: Page, names: string[]) {
   await openQuickAdd(page)
   for (const name of names) {
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, name)
     await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   }
   await page.keyboard.press('Escape')

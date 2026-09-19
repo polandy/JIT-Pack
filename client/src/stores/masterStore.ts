@@ -31,7 +31,7 @@ import { retiredOnly } from '@/domain/masterRestore'
 
 /**
  * How much a user has to type before an inventory search offers anything
- * (§4a). Two surfaces ask it — M4/M8's quick-add and M3's FR-27.3 picker —
+ * (§4a). Two surfaces ask it — the quick-add's group matches (FR-27.10) and M3's FR-27.3 picker —
  * and a single letter over a full inventory is a list, not an answer.
  */
 export const MIN_SEARCH_LENGTH = 2

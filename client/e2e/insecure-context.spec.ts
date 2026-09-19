@@ -1,4 +1,4 @@
-import { test, expect, openQuickAdd, expectTripOpen } from './fixtures'
+import { test, expect, addInComposer, openQuickAdd, expectTripOpen } from './fixtures'
 import { visiblePage as visible } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -83,8 +83,9 @@ test.describe('a plain-HTTP instance can still write (NFR-4.2a)', () => {
     if (!(await input.isVisible().catch(() => false))) {
       await openQuickAdd(page, 'm8-fab')
     }
-    await input.locator('input').fill('Kamera')
-    await input.locator('input').press('Enter')
+    // A new name goes through the create sheet (FR-24.11): the item and the
+    // position are two minted ids.
+    await addInComposer(page, 'Kamera')
 
     await expect(
       visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' }).first(),

@@ -1176,8 +1176,9 @@ These patterns apply to every screen and are specified once.
       only a checkbox, and it put the most-tapped control at the far edge from the thumb. Moving the control to the
       end keeps both promises and buys them differently: the lead column holds the names, and the container's own edge
       holds the controls. E2E-M4-56 asserts both, because either one alone passes on a row that has lost the other.
-    The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row added by quick-add carries none until
-    it exists in the inventory, and shows an empty slot rather than a placeholder.
+    The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row (an import's, an older trip's; the
+    quick-add has made none since FR-24.11 reached it) carries none until it exists in the inventory, and shows an empty
+    slot rather than a placeholder.
     * **The lead column is one glyph wide (added 2026-09-07, FR-21.19).** The mark on an item row, the traveler's face
       on a child row under a cluster — never both. The case that had both is a *lone* per-person instance, which
       renders as an item row with the person folded into its label (`Wanderstöcke · Andy`); it drew the face beside
@@ -1224,8 +1225,16 @@ These patterns apply to every screen and are specified once.
     holder and writes nothing. The strip stays open while its item turns from a row into a cluster and back, and that
     change is not animated (E2E-M4-100).
   * **Inline quick-add (FR-5.6):** A persistent "Add item..." trigger below the filter bar. Tapping it expands an inline
-    text input with autocomplete suggestions from the master item inventory (M9). Enter on free text creates a new
-    ad-hoc trip item; selecting a suggestion reuses the master item's metadata (weight, value, category). If the trip is
+    text input with autocomplete suggestions from the master item inventory (M9). ~~Enter on free text creates a new
+    ad-hoc trip item;~~ **Since 2026-09-19 (FR-24.11) the composer is M9's search:** the suggestions follow M9's rule
+    (umlaut fold, tags, marks — a tag or mark hit says *„über {Tag}"*), and a name no active item carries exactly is
+    offered above them as *„‚{Name}' anlegen"* — M9's `SearchOfferButton`, dashed, hint *„Neu im Inventar anlegen und
+    gleich hinzufügen"*. Taking it, or ✓/Enter, opens M9's *„Neuer Artikel"* sheet (name + tags); *„Anlegen"* creates
+    the inventory item and adds it at once, for whoever the for-whom strip names, and the composer stays open. A
+    retired name reads *„‚{Name}' ist stillgelegt"* and is restored and added in one tap. ✓/Enter add an exact
+    inventory match directly and never write a new name on their own; a name already on the list reads *„‚{Name}' ist
+    schon drin"* and ✓ rests. The placeholder says so: *„Suchen oder neu anlegen…"*. Selecting a
+    suggestion reuses the master item's metadata (weight, value, category). If the trip is
     active, new items are auto-flagged *Missing* (FR-9.1). The input stays expanded after adding for rapid entry; Escape
     or the close button collapses it. No navigation away from M4 required. **Since FR-25.13c (2026-08-21):** the FAB
     expands the composer **without focusing it**, because while the field is empty it leads with a tappable
@@ -1609,7 +1618,9 @@ These patterns apply to every screen and are specified once.
     device-local recents chip row, which the raised keyboard would cover — master-item autocomplete, a visible
     scope-labelled confirm, Enter, the field stays open (and never
     blur-collapses, FR-25.13a as revised 2026-08-13), a duplicate is reported rather than added twice and is **not
-    offered** in chips or autocomplete to begin with, and free text creates the master item (FR-1.1). The composer's
+    offered** in chips or autocomplete to begin with, and a new name creates the master item (FR-1.1) through
+    FR-24.11's offer and sheet, exactly as at M4's quick-add (since 2026-09-19; it used to be created silently from
+    the bare name). The composer's
     *„Mehr aus dem Inventar…"* browse-sheet (FR-25.13d) is here too, verbatim — described once at M4's quick-add.
   * **Editing a position is the M5 bottom sheet** (2026-08-08): glance chips, **Menge und Vorbereitung first**,
     everything else behind "Details ▾", with the FR-25.15 indicator in the header (shared `SaveIndicator`, 2026-08-15

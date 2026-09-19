@@ -625,9 +625,11 @@ export const en = {
 
   // Quick-add (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Add item…',
-  'quickAdd.placeholder': 'Item name…',
+  'quickAdd.placeholder': 'Search or create…',
   'quickAdd.missingHint': 'New items are flagged as missing',
-  'quickAdd.newItem': 'Add “{name}” as a new item',
+  'quickAdd.offerCreateHint': 'Create it in the inventory and add it right away',
+  'quickAdd.offerRestoreHint': 'Restore it and add it right away',
+  'quickAdd.alreadyIn': '“{name}” is already in',
   'quickAdd.recentHeading': 'Recently used',
   // FR-27.10: whole groups in the same composer.
   'quickAdd.groupsHeading': 'Add a whole group',

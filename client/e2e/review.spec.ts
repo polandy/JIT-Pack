@@ -6,6 +6,7 @@ import {
   createTemplate,
   createTripViaWizard,
   expectTripOpen,
+  addInComposer,
   openQuickAdd,
   visiblePage as visible,
   tripAction,
@@ -147,8 +148,7 @@ async function flagUnused(page: Page, item: string) {
 /** Quick-add on an *active* trip, which auto-flags Missing (FR-5.6). */
 async function quickAddMissing(page: Page, name: string) {
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill(name)
-  await page.getByTestId('quick-add-input').locator('input').press('Enter')
+  await addInComposer(page, name)
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()

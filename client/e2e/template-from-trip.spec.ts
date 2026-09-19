@@ -13,8 +13,10 @@ import {
   createTemplate,
   createTripFollowingGroup,
   includeGroup,
+  addInComposer,
   openQuickAdd,
   visiblePage as visible,
+  writesLanded,
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -65,11 +67,13 @@ async function tripFromGroup(page: Page, name: string, positions = 2): Promise<s
   return new URL(page.url()).pathname
 }
 
-/** Quick-add a row with no group behind it — a loose row for M21. */
-async function quickAddVerbatim(page: Page, name: string) {
+/**
+ * Quick-add a row with no group behind it — a loose row for M21. Since FR-24.11
+ * reached the composer the name is created in the inventory first.
+ */
+async function quickAddLoose(page: Page, name: string) {
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill(name)
-  await page.getByTestId('quick-add-input').locator('input').press('Enter')
+  await addInComposer(page, name)
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
@@ -102,6 +106,8 @@ async function removeGroupPosition(page: Page, group: string, item: string) {
     .getByLabel('Remove position')
     .click()
   await expect(visible(page).locator('ion-item').filter({ hasText: item })).toHaveCount(0)
+  // Every caller navigates next, and a reload with the write still open loses it.
+  await writesLanded(page)
 }
 
 async function openM21(page: Page, tripPath: string) {
@@ -147,7 +153,7 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
   }) => {
     await seedGroup(page)
     const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
-    await quickAddVerbatim(page, 'Reisefön')
+    await quickAddLoose(page, 'Reisefön')
     await archiveTrip(page)
 
     await openM21(page, trip)
@@ -164,7 +170,7 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     await expect(group).toContainText('2 items on this trip came from it')
     await expect(group.getByTestId('m21-reused')).toBeVisible()
 
-    // The ad-hoc row is loose, pre-checked, and says why it is loose.
+    // The hand-added row is loose, pre-checked, and says why it is loose.
     const loose = visible(page).getByTestId('m21-loose')
     await expect(loose).toHaveCount(1)
     await expect(loose).toContainText('Reisefön')
@@ -237,7 +243,7 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
   }) => {
     await seedGroup(page)
     const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
-    await quickAddVerbatim(page, 'Reisefön')
+    await quickAddLoose(page, 'Reisefön')
     await archiveTrip(page)
     await removeGroupPosition(page, 'Makro', 'Stativ')
 
@@ -311,8 +317,8 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     // have been green throughout, and so would a checkbox wired to nothing.
     await seedGroup(page)
     const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
-    await quickAddVerbatim(page, 'Reisefön')
-    await quickAddVerbatim(page, 'Powerbank')
+    await quickAddLoose(page, 'Reisefön')
+    await quickAddLoose(page, 'Powerbank')
     await archiveTrip(page)
 
     await openM21(page, trip)
@@ -352,7 +358,7 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     // each other.
     await seedGroup(page)
     const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
-    await quickAddVerbatim(page, 'Reisefön')
+    await quickAddLoose(page, 'Reisefön')
     await archiveTrip(page)
 
     await openM21(page, trip)
@@ -397,7 +403,7 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
   }) => {
     await seedGroup(page)
     const trip = await tripFromGroup(page, 'Samedan Sommer 2026')
-    await quickAddVerbatim(page, 'Reisefön')
+    await quickAddLoose(page, 'Reisefön')
     await archiveTrip(page)
 
     await openM21(page, trip)
@@ -508,7 +514,7 @@ test.describe('FLOW-09 — a template learns across a year (FR-27.1–27.5, FR-2
     const harvested = new URL(page.url()).pathname
 
     // 2 — the trip learns something the templates do not know.
-    await quickAddVerbatim(page, 'Reisefön')
+    await quickAddLoose(page, 'Reisefön')
 
     // 3 — and it ends.
     await archiveTrip(page)

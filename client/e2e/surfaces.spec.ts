@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { addInComposer, test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
 
@@ -49,8 +49,7 @@ function toBytes(page: Page, value: string): Promise<number[]> {
 async function cardWithOneRow(page: Page, trip: string) {
   await createTripViaWizard(page, { name: trip, travelers: ['Andy'] })
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, 'Zelt')
   await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
 
   const card = page.locator('.group-card').first()
@@ -203,8 +202,7 @@ test('E2E-G14-04: two sheets present the same way out @local @g14', async ({ pag
 
   await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy'] })
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill('Schlafsack')
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, 'Schlafsack')
   await page.getByTestId('m4-row-Schlafsack').click()
   const fromItem = await closeControl(page, 'm5-close')
 

@@ -1,6 +1,10 @@
 import type { Page } from '@playwright/test'
 
 import {
+  addInComposer,
+  confirmCreateSheet,
+  createItemSheet,
+  writesLanded,
   test,
   expect,
   chooseInSelect,
@@ -59,11 +63,11 @@ test.describe('M6 shopping — the shared composer knows the trip @local @m6', (
     await visible(page).getByTestId('quick-add-open').click()
 
     // The autocomplete declines: the positive signal for the absent
-    // suggestion is the free-text hint, rendered exactly when nothing is
-    // offered (the E2E-M4-46 idiom).
+    // suggestion is FR-24.11's offer, rendered in the same pass as the
+    // suggestions (the E2E-M4-46 idiom).
     const input = visible(page).getByTestId('quick-add-input').locator('input')
     await input.fill('Sonnen')
-    await expect(visible(page).locator('.no-match')).toContainText('Add “Sonnen” as a new item')
+    await expect(visible(page).getByTestId('quick-add-offer-title')).toContainText('Sonnen')
     await expect(visible(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
 
     // And the browse-sheet states it rather than offering it.
@@ -100,8 +104,7 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
 
   async function addOnShoppingTab(page: Page, name: string) {
     await m6(page).getByTestId('quick-add-open').click()
-    await m6(page).getByTestId('quick-add-input').locator('input').fill(name)
-    await m6(page).getByTestId('quick-add-confirm').click()
+    await addInComposer(page, name, m6(page))
     await m6(page).getByTestId('quick-add-close').click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: name })).toBeVisible()
   }
@@ -221,8 +224,7 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
   async function seedPerPersonPurchase(page: Page) {
     await createTripViaWizard(page, PER_PERSON_TRIP)
     await visible(page).getByTestId('m4-fab').click()
-    await visible(page).getByTestId('quick-add-input').locator('input').fill(ITEM)
-    await visible(page).getByTestId('quick-add-confirm').click()
+    await addInComposer(page, ITEM)
     await expect(visible(page).getByTestId(`m4-row-${ITEM}`)).toBeVisible()
 
     // The mode first, while the item is still one row: the membership
@@ -311,8 +313,9 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
  * M6's own spine (UI-Test-Spec E2E-M6-01/04), written 2026-08-30 with the pass
  * that read all twenty-two M6 promises against the screen.
  *
- * The composer is the fixture here rather than the subject: a free-text add on
- * M6 lands in the **open tab's** mode, which is the only way the app can put a
+ * The composer is the fixture here rather than the subject: a typed add on M6
+ * (through the create sheet when the name is new, FR-24.11) lands in the
+ * **open tab's** mode, which is the only way the app can put a
  * row on a shopping list by hand, and it is what E2E-M6-03 covers in its own
  * right.
  */
@@ -347,12 +350,11 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     const field = m6(page).getByTestId('quick-add-input')
     await expect(trigger.or(field).first()).toBeVisible()
     if ((await trigger.count()) > 0) await trigger.click()
-    const input = m6(page).getByTestId('quick-add-input').locator('input')
-    await input.fill(viaSuggestion ? name.slice(0, 5) : name)
     if (viaSuggestion) {
+      await m6(page).getByTestId('quick-add-input').locator('input').fill(name.slice(0, 5))
       await m6(page).getByTestId('quick-add-suggestion').filter({ hasText: name }).click()
     } else {
-      await m6(page).getByTestId('quick-add-confirm').click()
+      await addInComposer(page, name, m6(page))
     }
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: name })).toBeVisible()
   }
@@ -409,5 +411,46 @@ test.describe('M6 shopping — the two lists and their counts @local @m6', () =>
     await expect(m6(page)).toBeVisible()
     await addOnOpenTab(page, 'Batterien')
     await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (1)')
+  })
+
+  /**
+   * E2E-M6-25 (FR-24.11, FR-25.13): M6's composer is the same one, so an
+   * unknown name goes through the create sheet here too. Dismissed once
+   * first: the offer still reading "Create" afterwards is the positive proof
+   * no item of that name was written, and the empty tab beside it that no row
+   * was.
+   */
+  test('E2E-M6-25: an unknown name becomes a shopping row only through the create sheet', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await expect(m6(page)).toBeVisible()
+    await m6(page).getByTestId('quick-add-open').click()
+    await m6(page).getByTestId('quick-add-input').locator('input').fill('Batterien')
+    await expect(m6(page).getByTestId('quick-add-offer-title')).toContainText('Batterien')
+
+    await m6(page).getByTestId('quick-add-confirm').click()
+    const sheet = createItemSheet(page)
+    await expect(sheet).toHaveAttribute('data-presented', 'true')
+    await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
+
+    await sheet.getByTestId('create-item-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(m6(page).getByTestId('quick-add-offer-title')).toContainText('Batterien')
+    await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
+    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(0)')
+
+    await m6(page).getByTestId('quick-add-confirm').click()
+    await confirmCreateSheet(page, 'Batterien')
+    await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Batterien' })).toBeVisible()
+    // It landed in the open tab's mode, like every add on M6.
+    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(1)')
+
+    await writesLanded(page)
+    await page.goto(PATH.items)
+    await expect(visible(page).getByTestId('m9-row').filter({ hasText: 'Batterien' })).toHaveCount(
+      1,
+    )
   })
 })

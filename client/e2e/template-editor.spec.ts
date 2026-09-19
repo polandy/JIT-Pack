@@ -1,6 +1,13 @@
 import type { Locator, Page } from '@playwright/test'
 
-import { test, expect, openQuickAdd, expectTripOpen } from './fixtures'
+import {
+  test,
+  expect,
+  confirmCreateSheet,
+  createItemSheet,
+  openQuickAdd,
+  expectTripOpen,
+} from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import {
   addPosition,
@@ -48,7 +55,7 @@ function positionRow(page: Page, name: string) {
  *
  * Covers E2E-M8-07 (scope shapes, picker offers groups only, inline group
  * creation), E2E-M8-10 (guarded scope switch, both directions), E2E-M8-13/04/12
- * (the shared quick-add: scope-labelled confirm, duplicate report, free-text
+ * (the shared quick-add: scope-labelled confirm, duplicate report, create-sheet
  * master-item creation, Standard defaults), E2E-M8-01/02/03/14 (the M5-pattern
  * position sheet: stepper with 0, assignment, dedup, condition chips behind
  * "Details ▾"), E2E-M8-11's editor half (task list with the blocking rule),
@@ -108,9 +115,13 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(visiblePage(page).getByTestId('quick-add-confirm')).toContainText('Add to group')
     await expect(input).not.toBeFocused()
 
-    // FR-25.7: one commit lands a collapsed row with the defaults.
+    // FR-25.7: one commit lands a collapsed row with the defaults. Enter
+    // commits like ✓; the name is new, so the create sheet comes first
+    // (FR-24.11).
     await input.fill('Kamera')
+    await expect(visiblePage(page).getByTestId('quick-add-offer-title')).toContainText('Kamera')
     await input.press('Enter')
+    await confirmCreateSheet(page, 'Kamera')
     const row = visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first()
     await expect(row).toContainText('Standard')
     await expect(row).toContainText('1×')
@@ -149,27 +160,80 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(visiblePage(page).getByTestId('m8-fab')).toBeVisible()
   })
 
-  test('E2E-M8-13, E2E-M8-04: a duplicate is reported and not added twice; free text created the master item', async ({
+  test('E2E-M8-13, E2E-M8-04: a duplicate is reported and not added twice; the typed name created the master item', async ({
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
 
+    // Since FR-24.11 reached the composer the duplicate is reported before
+    // the commit rather than after it: the exact name is already a position,
+    // so the composer says so and ✓ rests. Enter is pressed anyway, and the
+    // report still standing afterwards is the settled signal that it did
+    // nothing — the row count beside it is the claim.
     const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
     await input.fill('Kamera')
+    await expect(visiblePage(page).getByTestId('quick-add-already-in')).toContainText('Kamera')
+    await expect(visiblePage(page).getByTestId('quick-add-confirm')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
     await input.press('Enter')
-    // Positive signal for the "nothing happened" claim: the report itself.
-    await expect(page.locator('ion-toast').last()).toContainText('not added twice')
+    await expect(visiblePage(page).getByTestId('quick-add-already-in')).toBeVisible()
     await expect(
       visiblePage(page).locator('ion-item h2').filter({ hasText: 'Kamera' }),
     ).toHaveCount(1)
 
-    // FR-1.1: the free-text add created the master item — the inventory has it.
+    // FR-1.1: the typed name created the master item — the inventory has it.
     await backToList(page)
     await page.goto(PATH.items)
     await expect(
       visiblePage(page).locator('ion-item').filter({ hasText: 'Kamera' }).first(),
     ).toBeVisible()
+  })
+
+  /**
+   * E2E-M8-27 (FR-24.11, FR-25.13): M8 used to create the master item
+   * silently for any name it did not know; now the composer's sheet does, and
+   * nothing is written before its „Anlegen".
+   *
+   * The sheet is opened, dismissed, and opened again: the offer still reading
+   * "Create" after the dismissal is the positive proof that no item of that
+   * name exists — the offer is withdrawn the moment one does (FR-24.11) — and
+   * the empty positions list beside it says no position was made either.
+   */
+  test('E2E-M8-27: an unknown name becomes a position only through the create sheet', async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Makro')
+    await openQuickAdd(page, 'm8-fab')
+    const editor = visiblePage(page)
+    await editor.getByTestId('quick-add-input').locator('input').fill('Stativ')
+    await expect(editor.getByTestId('quick-add-offer-title')).toContainText('Stativ')
+
+    await editor.getByTestId('quick-add-confirm').click()
+    const sheet = createItemSheet(page)
+    await expect(sheet).toHaveAttribute('data-presented', 'true')
+    await expect(positionRows(page)).toHaveCount(0)
+
+    await sheet.getByTestId('create-item-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(editor.getByTestId('quick-add-offer-title')).toContainText('Stativ')
+    await expect(positionRows(page)).toHaveCount(0)
+
+    await editor.getByTestId('quick-add-confirm').click()
+    await confirmCreateSheet(page, 'Stativ')
+    await expect(positionRows(page)).toHaveText(['Stativ'])
+    // The composer stays open for the next position, emptied.
+    await expect(editor.getByTestId('quick-add-input').locator('input')).toHaveValue('')
+
+    // The position and the inventory item are one act.
+    await writesLanded(page)
+    await backToList(page)
+    await page.goto(PATH.items)
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Stativ' })).toHaveCount(
+      1,
+    )
   })
 
   test('E2E-M8-06: the row’s ✕ removes exactly that position, and the list is name-sorted (FR-1.2)', async ({
@@ -227,15 +291,10 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     // First position via the typed autocomplete — this also feeds the trail.
     const input = visiblePage(page).getByTestId('quick-add-input').locator('input')
 
-    // E2E-M8-13's "autocomplete after two characters" (clause asserted from
-    // 2026-08-30; `MIN_SEARCH_LENGTH` had no test in the suite or the units).
-    // The free-text hint has to be absent *with* the suggestions: it renders
-    // exactly when a query of two characters or more matches nothing, so its
-    // absence is what separates the gate from an empty result.
+    // Since FR-24.11 reached the composer it searches by M9's rule, where
+    // one character is already a query (it replaced E2E-M8-13's former
+    // two-character gate): "Z" finds the toothbrush.
     await input.fill('Z')
-    await expect(visiblePage(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
-    await expect(visiblePage(page).locator('.no-match')).toHaveCount(0)
-    await input.fill('Za')
     await expect(
       visiblePage(page).getByTestId('quick-add-suggestion').filter({ hasText: 'Zahnbürste' }),
     ).toBeVisible()

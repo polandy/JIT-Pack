@@ -213,6 +213,21 @@ export class SyncOutbox {
     return this.queues.get(partitionKey(type, id))?.length ?? 0
   }
 
+  /**
+   * Resolves once every mutation queued for this partition so far has been
+   * answered: it waits out the drain already running — its mutations stay
+   * queued until the server acknowledges them, so the queue alone cannot say
+   * they are on the wire — and drains only what that drain did not take.
+   * What a push that refers to them waits on, without a second drain of the
+   * same mutations. Rejects when that further drain does.
+   */
+  async whenSent(type: PartitionType, id: string | null): Promise<void> {
+    // The running drain's failure is its starter's; what is left over is
+    // what this caller answers for.
+    await this.draining.get(partitionKey(type, id))?.catch(() => {})
+    if (this.pendingCount(type, id) > 0) await this.drain(type, id)
+  }
+
   totalPending(): number {
     let total = 0
     for (const q of this.queues.values()) {

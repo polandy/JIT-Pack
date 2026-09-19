@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard } from './fixtures'
+import { addInComposer, test, expect, createTripViaWizard } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 
 /**
@@ -118,8 +118,7 @@ test('E2E-G11-03: the FAB is the brand and a packed box is done, never the actio
   expect(fabBackground).not.toContain(action)
 
   await fab.click()
-  await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, 'Zelt')
   await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
 
   const box = page.getByTestId('m4-row-Zelt').getByTestId('row-check').locator('ion-checkbox')
