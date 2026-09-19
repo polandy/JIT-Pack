@@ -368,8 +368,10 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(sheet.getByTestId('browse-row-carried')).toHaveCount(2)
 
     // Free text is an explicit footer line that hands back to the
-    // composer's field — the sheet itself never raises a keyboard.
-    await expect(sheet.locator('input')).toHaveCount(0)
+    // composer's field. The sheet's one input is its search (FR-25.13j),
+    // and it did not take the focus — the sheet raises no keyboard on its own.
+    await expect(sheet.locator('input')).toHaveCount(1)
+    await expect(sheet.getByTestId('browse-search-input')).not.toBeFocused()
     await sheet.getByTestId('browse-free-text').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('quick-add-input').locator('input')).toBeFocused()

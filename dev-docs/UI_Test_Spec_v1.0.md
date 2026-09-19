@@ -906,8 +906,9 @@ in WebKit.
 * **E2E-M8-22** `all` (FR-25.13d, added 2026-08-22) — **implemented** (`e2e/template-editor.spec.ts`): the empty
   composer's *„Mehr aus dem Inventar…"* line opens the browse-sheet; the tag axis narrows on **any** tag (the two
   matching rows are the positive signal for the absent third); two taps land two positions in a run, each tapped row
-  flipping to *„schon drin"* in place while the sheet stays open; the sheet contains **no input** — free text is the
-  explicit footer line, which dismisses the sheet and focuses the composer's field; the run's rows are on the editor
+  flipping to *„schon drin"* in place while the sheet stays open; the sheet's only input is its search field, unfocused
+  (FR-25.13j; until 2026-09-19 it had **no input**) — free text is the explicit footer line, which dismisses the sheet
+  and focuses the composer's field; the run's rows are on the editor
   with the FR-25.7 defaults. The sheet's own rules (grouping, carried-as-state not tappable, no-match line) are pinned
   in `InventoryBrowseSheet.spec.ts`.
 * **E2E-M4-27** `all` (FR-27.10) — **implemented** (`e2e/group-to-trip.spec.ts`): tapping a group whose positions are
