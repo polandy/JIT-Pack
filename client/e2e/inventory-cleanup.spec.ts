@@ -138,7 +138,10 @@ test.describe('M24 — Aufräumen @local @m24', () => {
   test('E2E-M24-01: M9 counts the untagged items, and M24’s suggestion files one', async ({
     page,
   }) => {
+    // Two items under „Bad", or the tag holding one item is a second finding.
     await createItem(page, 'Zahnbürste', { tags: ['Bad'] })
+    await backToInventory(page)
+    await createItem(page, 'Seife', { tags: ['Bad'] })
     await backToInventory(page)
     await createItem(page, 'Zahnseide')
     await backToInventory(page)
@@ -155,9 +158,9 @@ test.describe('M24 — Aufräumen @local @m24', () => {
     await expect(cleanup.getByTestId('m24-done')).toBeVisible()
 
     await backToList(page)
-    // Filed: one heading, both rows under it, and nothing left to count.
+    // Filed: one heading, every row under it, and nothing left to count.
     expect(await groupHeadings(list)).toEqual(['bad'])
-    await expect(list.getByTestId('m9-row')).toHaveCount(2)
+    await expect(list.getByTestId('m9-row')).toHaveCount(3)
     await expect(list.getByTestId('m9-cleanup-note')).toHaveCount(0)
   })
 
@@ -176,7 +179,9 @@ test.describe('M24 — Aufräumen @local @m24', () => {
       'No suggestion — nothing to base one on.',
     )
     await cleanup.getByTestId('m24-pick-Kartenspiel').click()
-    await expect(page.getByTestId('m9-bulk-tag-sheet')).toHaveAttribute('data-presented', 'true')
+    // By its content, not by the modal: M9 stays mounted under M24 and holds
+    // its own, never-presented instance of the same sheet.
+    await expect(page.getByTestId('m9-bulk-tag-search')).toBeVisible()
     // One untagged item: its first tag is its primary one whatever a switch
     // says, so the sheet does not ask.
     await expect(page.getByTestId('m9-bulk-primary')).toHaveCount(0)
