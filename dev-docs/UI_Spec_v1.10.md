@@ -1212,6 +1212,9 @@ These patterns apply to every screen and are specified once.
       alert first — title *„„Drohne" entfernen?"*, a body naming each loss and pointing at *Nicht einpacken*, buttons
       *Abbrechen* / *Entfernen* — and a confirmed removal shows a plain toast without an undo. A row whose M5 is open
       closes it: the sheet would otherwise report the item it was just asked to remove as not found.
+      Where the row is the **only use of its inventory item** (added 2026-09-19, ADR-065), the snackbar reads
+      *„„Zelt" entfernt – auch aus dem Inventar"* and the alert's body ends with *„Der Artikel kommt sonst nirgends vor
+      und wird auch aus dem Inventar gelöscht."*; the item goes once the undo has lapsed, or at once after the alert.
   * **Cluster head menu (added 2026-09-14, FR-25.26):** the head of a per-person cluster (FR-25.1) takes the same
     press-and-hold, while the short tap stays FR-25.23's fold. It offers **Spätpacker für alle ein/aus** and **Alle
     zuweisen an …**, each acting on every instance the head counts, and it states the scope in its sub-header

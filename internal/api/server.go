@@ -202,6 +202,7 @@ func (s *Server) Handler() http.Handler {
 		s.authed(s.deleteMasterRow(store.TableTags, PathTagID)))
 	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterItem),
 		s.authed(s.deleteMasterRow(store.TableItems, PathItemID)))
+	mux.HandleFunc(pattern(http.MethodPost, RouteMasterItemPrune), s.authed(s.handlePruneMasterItem))
 	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTemplate),
 		s.authed(s.deleteMasterRow(store.TableTemplates, PathTemplateID)))
 	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTemplateItem),

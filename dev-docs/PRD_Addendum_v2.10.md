@@ -4477,6 +4477,23 @@ the tail is where a symbol system is actually decided. Results:
     FR-25.26 cluster head offers no removal for all instances. Each is one more entry point for the same act; neither
     was asked for. **Revisit trigger:** somebody looks for removal in M5, or removes a per-person item row by row.
   * **Modes.** Identical in all three: a trip-partition delete and, for the undo, an insert — nothing server-only.
+  * **The item goes with its last use (owner decision 2026-09-19, *built 2026-09-19*; the how is ADR-065).** Since
+    FR-24.11 every name typed into the composer is an inventory item, so a removed typo or one-off stayed in the
+    inventory for good. A removed row now takes its inventory item along when **nothing else uses it**: no Vorlage or
+    group position, no other trip row — another traveler's row of the same item counts — and no other item's
+    companion rule pointing at it (the item's own rules go with it). **Automatically, without a question** — the owner
+    chose that over asking in the removal, over limiting it to items made on the side (a provenance column and a
+    reseed) and over an M24 rule. **Only once the removal is final**: when the snackbar's undo lapses (it runs out,
+    the screen is left, the next action replaces it) or at once after a confirmation, which has no undo — so the undo
+    still re-inserts one row and never has to re-create an item with its tags, rules and photo. Both surfaces say it:
+    the snackbar reads *„„Zelt" entfernt – auch aus dem Inventar"*, and the dialog ends with *„Der Artikel kommt sonst
+    nirgends vor und wird auch aus dem Inventar gelöscht."* **Local Mode** deletes on its own answer, which is
+    complete. **A server device asks the server** (`POST /master/items/{id}/prune`, after the removal has been
+    answered): it holds only the trips it has opened, so the server deletes only if nothing anywhere uses the item and
+    otherwise leaves it untouched — not retired, which is FR-24.3's answer to a deliberate delete. *Accepted costs:*
+    offline at that moment, the item stays; a tab closed while the snackbar is up keeps it too; and in Server Mode the
+    sentence can promise a prune the server then declines over a trip this device has not seen. Other removals — the
+    browse sheet's undo of an add, a group refresh, a membership change, deleting a trip — never prune.
 
 ### 3.6 Notifications & Delegation
 

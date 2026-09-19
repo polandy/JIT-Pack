@@ -39,9 +39,11 @@ export interface PackAnnouncer {
   /**
    * FR-5.8: an untouched row went off the list. The same snackbar and the
    * same undo as a pack, because it is the same kind of mistap to recover —
-   * the row is gone from under the finger that removed it.
+   * the row is gone from under the finger that removed it. `leavesItem` says
+   * the inventory item goes too once the snackbar does (ADR-065): the undo
+   * covers that as well, so the snackbar is where it has to be said.
    */
-  announceRemoved: (name: string) => Promise<void>
+  announceRemoved: (name: string, leavesItem?: boolean) => Promise<void>
   /**
    * FR-27.16: names taken over from the inventory. The same snackbar, because
    * several rows changing name at once is exactly what a mistap on „Alle"
@@ -92,8 +94,10 @@ export function usePackAnnouncer(): PackAnnouncer {
     )
   }
 
-  async function announceRemoved(name: string): Promise<void> {
-    await announce(t('packing.removedToast', { name }))
+  async function announceRemoved(name: string, leavesItem = false): Promise<void> {
+    await announce(
+      t(leavesItem ? 'packing.removedToastInventory' : 'packing.removedToast', { name }),
+    )
   }
 
   async function announceRenamed(count: number): Promise<void> {

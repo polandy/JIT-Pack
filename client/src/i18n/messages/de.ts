@@ -176,12 +176,15 @@ export const de: Record<keyof typeof en, string> = {
   'packing.removeAction': 'Von der Liste entfernen',
   'packing.taskDoneToast': '„{body}“ erledigt ✓',
   'packing.removedToast': '„{name}“ von der Liste entfernt',
+  'packing.removedToastInventory': '„{name}“ entfernt – auch aus dem Inventar',
   'packing.removeConfirmTitle': '„{name}“ entfernen?',
   'packing.removeConfirmLead':
     'Die Zeile verschwindet von der Packliste. Wenn du es bewusst zu Hause lässt, wähle „Nicht einpacken“.',
   'packing.removeConfirmPacked': 'Bereits {n} gepackt.',
   'packing.removeConfirmNotes': '{n} Notiz wird mitgelöscht. | {n} Notizen werden mitgelöscht.',
   'packing.removeConfirmCompanions': 'Ebenfalls nicht eingepackt: {names}.',
+  'packing.removeConfirmInventory':
+    'Der Artikel kommt sonst nirgends vor und wird auch aus dem Inventar gelöscht.',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
   // FR-25.21 — „Wer braucht das?": Mitgliedschaft und Mengen pro Person.
   // FR-25.28 — the for-whom strip: on M4's row, in M5 and over the quick-add.

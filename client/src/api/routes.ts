@@ -36,6 +36,11 @@ export const API = {
   masterTemplate: (templateID: string) => `/api/v1/master/templates/${templateID}`,
   masterTemplateItem: (templateItemID: string) => `/api/v1/master/template-items/${templateItemID}`,
 
+  // FR-5.8's conditional delete: the item goes only if nothing uses it, and
+  // is otherwise left exactly as it was — never retired (ADR-065). The app
+  // calls this one, because only the server sees every trip.
+  masterItemPrune: (itemID: string) => `/api/v1/master/items/${itemID}/prune`,
+
   // The caller's own scope. The full export lives here because it is
   // filtered to what the caller may pull, and it names its format.
   me: '/api/v1/me',

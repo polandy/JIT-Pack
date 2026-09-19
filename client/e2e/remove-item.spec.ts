@@ -4,11 +4,13 @@ import {
   createTripViaWizard,
   createMasterItem,
   openQuickAdd,
+  openTripFromList,
   visiblePage,
   useReducedMotion,
   writesLanded,
 } from './fixtures'
 import { chooseInRowMenu, openRowMenu, tripWithRows } from './helpers/m4'
+import { PATH } from './routes'
 
 /**
  * Taking a row off the packing list (UI-Test-Spec §3, M4; Addendum FR-5.8).
@@ -143,4 +145,48 @@ test('E2E-M4-95: removing the open row closes its detail panel @local @m4', asyn
   await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toHaveCount(0)
   await expect(panel).toHaveCount(0)
   await expect(page.getByTestId('m5-missing')).toHaveCount(0)
+})
+
+// E2E-M4-113 (FR-5.8, ADR-065): the inventory item a removed row was the only
+// use of goes too — the composer made it (FR-24.11), and nothing else keeps it.
+// Not while the snackbar can still bring the row back: the undo re-inserts a
+// row and nothing more, so the item may only go once that chance is over.
+test('E2E-M4-113: removing the only use of an item deletes it from the inventory once final @local @m4', async ({
+  page,
+  seedMode,
+}) => {
+  test.slow()
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await tripWithRows(page, ['Zelt', 'Schlafsack'], 'Inventarprobe')
+  const inventoryRow = (name: string) =>
+    visiblePage(page).getByTestId('m9-row').filter({ hasText: name })
+
+  // Removed and undone: the snackbar said the item would go, and it has not.
+  await openRowMenu(page, 'Zelt')
+  await chooseInRowMenu(page, /remove from the list/i)
+  const toast = page.locator('ion-toast.pack-toast')
+  await expect(toast).toContainText(/from the inventory too/i)
+  await toast.getByRole('button', { name: /undo/i }).click()
+  await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toBeVisible()
+  await page.getByTestId('header-back').click()
+  await writesLanded(page)
+  await page.goto(PATH.items)
+  await expect(inventoryRow('Zelt')).toHaveCount(1)
+
+  // Removed for good: the snackbar running out ends the undo, and that is
+  // when the item goes. Its going is the signal waited on — the lapse itself
+  // writes nothing on screen here.
+  await openTripFromList(page, 'Inventarprobe')
+  await openRowMenu(page, 'Zelt')
+  await chooseInRowMenu(page, /remove from the list/i)
+  await expect(toast).toContainText(/from the inventory too/i)
+  await expect(toast).toBeHidden()
+  await writesLanded(page)
+  await page.goto(PATH.items)
+
+  // Schlafsack is the positive signal that the list has rendered: it came
+  // from the same composer and stays, because its row is still on the trip.
+  await expect(inventoryRow('Schlafsack')).toHaveCount(1)
+  await expect(inventoryRow('Zelt')).toHaveCount(0)
 })
