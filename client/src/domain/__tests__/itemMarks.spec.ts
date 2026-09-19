@@ -154,3 +154,22 @@ describe('suggestMarks (FR-28.3)', () => {
     expect(suggestMarks('Wanderschuhe')).toEqual(suggestMarks('Wanderschuhe'))
   })
 })
+
+describe('the widened palette (FR-28.2)', () => {
+  it.each([
+    ['Gummistiefel', '👢'],
+    ['Banane', '🍌'],
+    ['Motorrad', '🏍️'],
+    ['Zahnseide', '🦷'],
+    ['Hundeleine', '🐶'],
+  ])('suggests %s → %s first', (name, emoji) => {
+    expect(suggestMarks(name)[0]?.emoji).toBe(emoji)
+  })
+
+  it.each(['Zwischenringe', 'Trekkingstöcke'])(
+    'still answers %s with nothing — growth must not turn the named empty result into noise (FR-28.3)',
+    (name) => {
+      expect(suggestMarks(name)).toEqual([])
+    },
+  )
+})
