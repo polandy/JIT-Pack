@@ -40,6 +40,8 @@ import {
   IonFabButton,
   IonPopover,
   actionSheetController,
+  onIonViewDidEnter,
+  onIonViewWillLeave,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -541,14 +543,13 @@ const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const travelerShares = computed(() => progressByTraveler(allItems.value, travelers.value))
 
 /**
- * FR-25.29: a tap narrows the person facet to that traveler alone, and a
- * second tap on the same one clears it — the sheet's multi-select stays the
- * way to pick several.
+ * FR-25.29: a tap toggles that traveler in the person facet, so the rings are
+ * quick filters — *mine and the shared ones* is two taps, OR'd like the
+ * sheet's chips. Narrowing to one alone used to cost a trip to the sheet for
+ * exactly the combination a packer wants most.
  */
 function selectTraveler(value: string) {
-  const alreadyAlone = facets.value.person.length === 1 && facets.value.person[0] === value
-  clearFacet('person')
-  if (!alreadyAlone) toggleValue('person', value)
+  toggleValue('person', value)
 }
 
 const view = computed(() =>
@@ -1121,6 +1122,15 @@ const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.ma
 breakpoint.addEventListener('change', onBreakpoint)
 onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
 
+// --- Who is working here (FR-4.9) ---------------------------------------
+// The roster on M1 lists people by the trip they have *open*, which is not the
+// subscription — the dashboard follows every active trip and never lets go.
+// Ionic keeps a page mounted under the one that replaced it, so leaving is a
+// view event and unmounting only the fallback.
+onIonViewDidEnter(() => orchestrator.setViewing(props.tripId))
+onIonViewWillLeave(() => orchestrator.setViewing(null))
+onUnmounted(() => orchestrator.setViewing(null))
+
 // --- Header line --------------------------------------------------------
 
 const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
@@ -1412,6 +1422,8 @@ const visibleOpenRows = computed(
 // single open row of quantity three reported two hidden things on a list
 // hiding nothing.
 const hiddenOpenCount = computed(() => Math.max(view.value.openRowCount - visibleOpenRows.value, 0))
+
+const searching = computed(() => search.value.trim() !== '')
 
 const onlyOthersHidden = computed(() => isOnlyOthersHidden(view.value, search.value))
 
@@ -2612,8 +2624,10 @@ setHeaderTitle(
            one whose rows ask for nothing. Hidden only on request, and never
            silently: this bar is what keeps „alles gepackt" from covering rows
            nobody has touched. -->
+      <!-- Like the Erledigte bar, absent while a term is typed: the search
+           already shows its late-packer matches (FR-25.32). -->
       <RevealBar
-        v-if="view.lateCount > 0"
+        v-if="view.lateCount > 0 && !searching"
         :open="showLate"
         :label="
           showLate
@@ -2640,9 +2654,11 @@ setHeaderTitle(
         testid="m4-others-bar"
         @toggle="showOthers = !showOthers"
       />
-      <!-- FR-25.2: state the count, one tap to reveal. -->
+      <!-- FR-25.2: state the count, one tap to reveal. Not while a term is typed:
+           the search already shows its packed matches (FR-25.32), so the offer
+           would sit beside a packed row that is on screen. -->
       <RevealBar
-        v-if="view.doneCount > 0 && !closingPass"
+        v-if="view.doneCount > 0 && !closingPass && !searching"
         :open="showDone"
         :label="
           showDone

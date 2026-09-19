@@ -19,7 +19,8 @@ import {
   IonRefresherContent,
 } from '@ionic/vue'
 import { trainOutline, addOutline } from 'ionicons/icons'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
+import { TRIP_CARDS } from '@/lib/tripCards'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
@@ -114,6 +115,14 @@ const isEmpty = computed(() => activeTrips.value.length === 0 && plannedTrips.va
  * trips, and G-7's „plan your first trip" is the wrong answer to it.
  */
 const tripsKnown = computed(() => orchestrator.masterDataLoaded())
+
+/**
+ * FR-30.7: the cards feature modules show under a trip — the shopping list
+ * first — provided by the composition root, so M1 renders them without
+ * importing a module (FR-30.3). Each decides for itself whether it has
+ * anything to show.
+ */
+const tripCards = inject(TRIP_CARDS, [])
 
 /*
  * The one trip the screen is about, and the ones after it (FR-21.13).
@@ -481,74 +490,98 @@ async function handleRefresh(event: CustomEvent) {
           {{ t('dashboard.moreItems', { n: openItemCount(heroTrip.id) - 3 }) }}
         </p>
       </TripHero>
+      <!-- FR-30.7: the modules' cards for this trip, as siblings of its card
+           — the trip card is a link, and a card that can be worked is not. -->
+      <template v-if="heroTrip">
+        <component
+          :is="card"
+          v-for="(card, index) in tripCards"
+          :key="`hero-${index}`"
+          :trip-id="heroTrip.id"
+          :trip-name="heroTrip.name"
+          :planned="false"
+        />
+      </template>
 
       <!-- Trip cards -->
-      <RouterLink
-        v-for="trip in followingTrips"
-        :key="trip.id"
-        class="jp-card trip-card"
-        :to="tripPath(trip.id)"
-        :data-testid="`dashboard-trip-${trip.name}`"
-      >
-        <div class="trip-card-head">
-          <h3 class="trip-card-name">{{ trip.name }}</h3>
-          <p class="trip-dates">{{ formatTripPeriod(trip) }}</p>
-        </div>
+      <template v-for="trip in followingTrips" :key="trip.id">
+        <RouterLink
+          class="jp-card trip-card"
+          :to="tripPath(trip.id)"
+          :data-testid="`dashboard-trip-${trip.name}`"
+        >
+          <div class="trip-card-head">
+            <h3 class="trip-card-name">{{ trip.name }}</h3>
+            <p class="trip-dates">{{ formatTripPeriod(trip) }}</p>
+          </div>
 
-        <div class="trip-card-body">
-          <!-- The same figure the hero carries, one ring size down: a trip's
+          <div class="trip-card-body">
+            <!-- The same figure the hero carries, one ring size down: a trip's
                progress is one composition in this app, and M2's list rows
                read it the same way. -->
-          <ProgressFigure
-            :percent="progressFraction(trip) * 100"
-            :headline="
-              t('trips.itemSummary', {
-                packed: tripKpis(trip).packedItems,
-                total: tripKpis(trip).totalItems,
-              })
-            "
-            :detail="
-              openItemCount(trip.id) > 0
-                ? t('dashboard.openCount', { n: openItemCount(trip.id) })
-                : null
-            "
-            :ring-size="44"
-            :headline-testid="`dashboard-summary-${trip.name}`"
-          />
-          <p v-if="taskLine(trip)" class="task-line" :data-testid="`dashboard-tasks-${trip.name}`">
-            {{ taskLine(trip) }}
-          </p>
-
-          <IonItem
-            v-for="item in previewItems(trip.id)"
-            :key="item.id"
-            lines="none"
-            class="dashboard-item"
-            :data-testid="`dashboard-preview-${item.name}`"
-          >
-            <IonCheckbox
-              slot="start"
-              :checked="isFullyPacked(item)"
-              :indeterminate="isPartlyPacked(item)"
-              disabled
+            <ProgressFigure
+              :percent="progressFraction(trip) * 100"
+              :headline="
+                t('trips.itemSummary', {
+                  packed: tripKpis(trip).packedItems,
+                  total: tripKpis(trip).totalItems,
+                })
+              "
+              :detail="
+                openItemCount(trip.id) > 0
+                  ? t('dashboard.openCount', { n: openItemCount(trip.id) })
+                  : null
+              "
+              :ring-size="44"
+              :headline-testid="`dashboard-summary-${trip.name}`"
             />
-            <IonLabel>
-              <span>{{ item.name }}</span>
-              <span v-if="item.quantity > 1" class="qty-badge">
-                {{ item.packed_count }}/{{ item.quantity }}
-              </span>
-            </IonLabel>
-          </IonItem>
+            <p
+              v-if="taskLine(trip)"
+              class="task-line"
+              :data-testid="`dashboard-tasks-${trip.name}`"
+            >
+              {{ taskLine(trip) }}
+            </p>
 
-          <p
-            v-if="openItemCount(trip.id) > 3"
-            class="more-items"
-            :data-testid="`dashboard-more-${trip.name}`"
-          >
-            {{ t('dashboard.moreItems', { n: openItemCount(trip.id) - 3 }) }}
-          </p>
-        </div>
-      </RouterLink>
+            <IonItem
+              v-for="item in previewItems(trip.id)"
+              :key="item.id"
+              lines="none"
+              class="dashboard-item"
+              :data-testid="`dashboard-preview-${item.name}`"
+            >
+              <IonCheckbox
+                slot="start"
+                :checked="isFullyPacked(item)"
+                :indeterminate="isPartlyPacked(item)"
+                disabled
+              />
+              <IonLabel>
+                <span>{{ item.name }}</span>
+                <span v-if="item.quantity > 1" class="qty-badge">
+                  {{ item.packed_count }}/{{ item.quantity }}
+                </span>
+              </IonLabel>
+            </IonItem>
+
+            <p
+              v-if="openItemCount(trip.id) > 3"
+              class="more-items"
+              :data-testid="`dashboard-more-${trip.name}`"
+            >
+              {{ t('dashboard.moreItems', { n: openItemCount(trip.id) - 3 }) }}
+            </p>
+          </div>
+        </RouterLink>
+        <component
+          :is="card"
+          v-for="(card, index) in tripCards"
+          :key="`${trip.id}-${index}`"
+          :trip-id="trip.id"
+          :trip-name="trip.name"
+          :planned="false"
+        />
+      </template>
       <!--
         FR-6.1: the trips that have not started yet. Below the active cards,
         because M1 answers "what do I have to do right now?" first and this is
@@ -561,21 +594,34 @@ async function handleRefresh(event: CustomEvent) {
           data-testid="dashboard-planned-head"
         />
         <div class="jp-card rows-card" data-testid="dashboard-planned">
-          <IonItem
-            v-for="trip in plannedTrips"
-            :key="trip.id"
-            lines="none"
-            button
-            class="dashboard-item"
-            :data-testid="`dashboard-planned-${trip.name}`"
-            @click="openTrip(trip.id)"
-          >
-            <IonLabel>
-              <h3>{{ trip.name }}</h3>
-              <p>{{ formatTripPeriod(trip) }}</p>
-            </IonLabel>
-          </IonItem>
+          <template v-for="trip in plannedTrips" :key="trip.id">
+            <IonItem
+              lines="none"
+              button
+              class="dashboard-item"
+              :data-testid="`dashboard-planned-${trip.name}`"
+              @click="openTrip(trip.id)"
+            >
+              <IonLabel>
+                <h3>{{ trip.name }}</h3>
+                <p>{{ formatTripPeriod(trip) }}</p>
+              </IonLabel>
+            </IonItem>
+          </template>
         </div>
+        <!-- FR-30.7: a planned trip is where buying before departure happens;
+             its card shows only while something is left to buy (the card
+             decides), so the list of what comes next stays a list. -->
+        <template v-for="trip in plannedTrips" :key="`cards-${trip.id}`">
+          <component
+            :is="card"
+            v-for="(card, index) in tripCards"
+            :key="`${trip.id}-${index}`"
+            :trip-id="trip.id"
+            :trip-name="trip.name"
+            :planned="true"
+          />
+        </template>
       </template>
     </IonContent>
   </IonPage>

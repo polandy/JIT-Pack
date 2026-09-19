@@ -53,6 +53,8 @@ export const en = {
   'sync.detail.explain.local':
     'Local Mode: there is no server. Everything you enter stays in this browser, on this device.',
   'sync.detail.lastSynced': 'Last synced: {when}',
+  'sync.detail.online': 'Packing right now',
+  'sync.detail.onlineNobody': 'Nobody else is packing right now.',
   'sync.detail.live':
     'Live updates are connected — changes from other devices arrive as they happen.',
   'sync.detail.liveGap':
@@ -1020,7 +1022,8 @@ export const en = {
   'container.notFound': 'This container does not exist.',
 
   // M12 — Analytics (FR-8.2/14.3).
-  'analytics.hint': 'Weight: packed / planned · tap a bar for the filtered packing list',
+  'analytics.hint': 'Weight: packed / planned · tap bars to pick one or more',
+  'analytics.openList': 'Show in packing list ({n})',
   'analytics.empty': 'No weighted items yet — nothing to chart.',
   'analytics.unweighted':
     '＋ {n} item without a weight — honestly left out | ＋ {n} items without a weight — honestly left out',
@@ -1460,6 +1463,7 @@ export const en = {
   'conflicts.entity.containers': 'Container',
   'conflicts.entity.comments': 'Comment',
   'conflicts.entity.trip_series': 'Series',
+  'conflicts.entity.shopping_entries': 'Shopping entry',
   'conflicts.field.name': 'Name',
   'conflicts.field.year': 'Year',
   'conflicts.field.start_date': 'Start date',
@@ -1487,6 +1491,8 @@ export const en = {
   'conflicts.field.source_item_id': 'Inventory article',
   'conflicts.field.source_template_id': 'From list',
   'conflicts.field.series_id': 'Series',
+  'conflicts.field.bought': 'Bought',
+  'conflicts.field.list': 'Shopping list',
   'conflicts.revertFailed.alreadyReverted': 'This conflict has already been reverted.',
   'conflicts.revertFailed.rowDeleted': 'That entry has since been deleted.',
   'conflicts.revertFailed.refused': 'Cannot revert: the item has since been packed.',
@@ -1513,6 +1519,19 @@ export const en = {
   'shopping.listUnknown': 'Loading the shopping list …',
   'shopping.emptyBefore': 'Nothing to buy before departure',
   'shopping.emptyLocal': 'Nothing to buy at the destination',
+  'shopping.emptyHint':
+    'Type what you mean to buy above. Anything on the packing list that is bought rather than packed shows up here by itself.',
+  'shopping.ownEntries': 'Added here',
+  'shopping.addPlaceholder': 'What to buy? e.g. milk, bread …',
+  'shopping.addLabel': 'Add to list',
+  'shopping.remove': 'Remove: {name}',
+  'shopping.boughtBy': 'bought by {who} · {when}',
+  'shopping.boughtByUnknown': 'bought · {when}',
+  'shopping.cardTitleFor': 'Shopping · {trip}',
+  'shopping.fromPacking': 'Packing list',
+  'shopping.boughtUndoable': '“{name}” bought',
+  'shopping.showAll': 'Show all {n}',
+  'shopping.openList': 'Open the shopping list',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',

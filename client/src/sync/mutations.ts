@@ -293,13 +293,16 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    * left the shopping side with nothing saying which list it left.
    */
   function buyItem(itemId: string, from: ShoppingMode, quantity: number): Mutation {
+    // FR-30.4: the moment of the tap travels with the purchase; the server
+    // stamps who (invariant 3) and keeps this time, as for `packed_at`.
+    const purchase = { bought_from: from, bought_at: nowIso() }
     if (from === ITEM_MODE_BUY_LOCAL) {
       // Bought at the destination: that is its packed state, and the mode
       // stays what it was — the row never leaves its own list.
       const packed = packItem(itemId, quantity, 'packed')
-      return { ...packed, fields: { bought_from: from, ...packed.fields } }
+      return { ...packed, fields: { ...purchase, ...packed.fields } }
     }
-    return make('upsert', TABLE.tripItems, itemId, { bought_from: from, mode: ITEM_MODE_PACK })
+    return make('upsert', TABLE.tripItems, itemId, { ...purchase, mode: ITEM_MODE_PACK })
   }
 
   /**
@@ -307,11 +310,13 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    * bought from, and the record that sent it there is cleared with it.
    */
   function unbuyItem(itemId: string, from: ShoppingMode): Mutation {
+    // FR-30.4: the record goes with the purchase it described.
+    const cleared = { bought_from: null, bought_at: null, bought_by_user_id: null }
     if (from === ITEM_MODE_BUY_LOCAL) {
       const unpacked = packItem(itemId, 0, 'open')
-      return { ...unpacked, fields: { bought_from: null, ...unpacked.fields } }
+      return { ...unpacked, fields: { ...cleared, ...unpacked.fields } }
     }
-    return make('upsert', TABLE.tripItems, itemId, { bought_from: null, mode: from })
+    return make('upsert', TABLE.tripItems, itemId, { ...cleared, mode: from })
   }
 
   function setItemMode(itemId: string, mode: ItemMode): Mutation {
@@ -1214,6 +1219,12 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   }
 
   return {
+    /**
+     * The raw builder, for a feature module's own tables (FR-30.3). A module
+     * gets it through `ModuleHost.mutation`, never this factory, which keeps
+     * the named packing mutations above out of its reach.
+     */
+    make,
     updateGeneratedTripItem,
     registerTripSource,
     writeGeneratedPosition,

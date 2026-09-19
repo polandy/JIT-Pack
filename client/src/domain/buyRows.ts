@@ -1,8 +1,12 @@
 /**
- * M6 shopping view model (FR-25.6) — pure, no I/O, no Vue.
+ * The packing list's rows in a buy mode, as things to buy (FR-25.6) — pure,
+ * no I/O, no Vue.
  *
- * The shopping list groups by category (FR-3.2) and, within a category,
- * shows **one row per thing to buy**. A per-person item (FR-25.1) is N
+ * This is the packing side of the shopping contract (FR-30.2, ADR-066): the
+ * packing list decides what of its own is a thing to buy, and
+ * `composables/packingShoppingSource.ts` hands the result to the shopping
+ * module as `ShoppingLine`s. It groups by category (FR-3.2) and, within a
+ * category, yields **one row per thing to buy**. A per-person item (FR-25.1) is N
  * `trip_items` rows with N quantities, and buying is a *single act*: it is
  * therefore aggregated into one row carrying the summed quantity and the
  * recipients' names, never one row per traveler — that would make the shop
@@ -17,7 +21,7 @@ import { perPersonKey } from './packingView'
 import type { Traveler, TripItem } from '@/types/domain'
 
 /** One line in a shopping list: a shared item, or every instance of a per-person one. */
-export interface ShoppingRow {
+export interface BuyRow {
   key: string
   name: string
   /** One entry for a shared item, one per recipient for a per-person item — in roster order. */
@@ -29,28 +33,28 @@ export interface ShoppingRow {
 }
 
 /** A category section of a shopping list. */
-export interface ShoppingGroup {
+export interface BuyGroup {
   key: string
   /** `null` = the uncategorised bucket; the caller supplies the wording. */
   name: string | null
-  rows: ShoppingRow[]
+  rows: BuyRow[]
 }
 
 /** The uncategorised bucket's key — an absence, addressed like any other value. */
 const NO_CATEGORY = ''
 
 /**
- * buildShoppingList turns one tab's open rows into its rendered sections.
+ * buildBuyRows turns one tab's open rows into its rendered sections.
  *
  * Categories and rows keep the order they arrive in, so the list does not
  * reshuffle under a purchase; recipients and instances are put in roster
  * order, so the names read the same way everywhere on the trip.
  */
-export function buildShoppingList(items: TripItem[], travelers: Traveler[]): ShoppingGroup[] {
+export function buildBuyRows(items: TripItem[], travelers: Traveler[]): BuyGroup[] {
   const travelerById = new Map(travelers.map((t) => [t.id, t]))
   const travelerOrder = new Map(travelers.map((t, i) => [t.id, i]))
-  const groups = new Map<string, ShoppingGroup>()
-  const rows = new Map<string, ShoppingRow>()
+  const groups = new Map<string, BuyGroup>()
+  const rows = new Map<string, BuyRow>()
 
   for (const item of items) {
     const groupKey = item.category_name ?? NO_CATEGORY
@@ -89,17 +93,4 @@ export function buildShoppingList(items: TripItem[], travelers: Traveler[]): Sho
   }
 
   return [...groups.values()]
-}
-
-/**
- * buyRowCount counts **things to buy**, not `trip_items` rows (FR-25.6): an
- * aggregated per-person item is one of them, so a count over rows promises
- * three where the list renders one.
- *
- * Here rather than in a view because two places state it — M6's own segments
- * and the trip switcher's shopping pill, which sit on the screen together and
- * disagreed by exactly that aggregation the first time they did (FR-21.21).
- */
-export function buyRowCount(items: TripItem[], travelers: Traveler[]): number {
-  return buildShoppingList(items, travelers).reduce((n, group) => n + group.rows.length, 0)
 }

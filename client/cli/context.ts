@@ -92,6 +92,8 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
   const ctx: SyncContext = {
     tripStore: trips,
     masterStore: master,
+    // The import command writes packing rows and templates; no module's.
+    features: [],
     mutations,
     // A command collects and pushes once, so both funnels are the collector
     // and there is nothing left for a cascade's push to do.

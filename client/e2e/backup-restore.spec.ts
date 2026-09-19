@@ -21,6 +21,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import { writesLanded } from './helpers/page'
+import { addBuyRowOnM4 } from './helpers/m4'
 import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -571,11 +572,10 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     browser,
   }) => {
     await createTripViaWizard(page, TRIP)
+    // FR-30.2: a packing row reaches the shopping list by its mode, set on M4.
+    await addBuyRowOnM4(page, 'Kaffee', 'Buy before')
     await openTripView(page, 'shopping')
     const m6 = () => visible(page).getByTestId('m6-page')
-    await m6().getByTestId('quick-add-open').click()
-    await addInComposer(page, 'Kaffee', m6())
-    await m6().getByTestId('quick-add-close').click()
     await m6().getByTestId('m6-row').filter({ hasText: 'Kaffee' }).locator('ion-checkbox').click()
     await expect(m6().getByTestId('m6-bought-bar')).toHaveText('Show 1 bought')
 

@@ -4,7 +4,7 @@
 # Two divergences: the `test` target says why it differs, and `client-cli` has no
 # CI step at all (stricter here than there — it guards ADR-025).
 .PHONY: ci ci-remote pins log-index case-ids e2e-helpers testids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
-        client client-deps client-lint client-tokens client-marks client-purity client-build client-test client-fmt \
+        client client-deps client-lint client-tokens client-marks client-purity client-modules client-build client-test client-fmt \
         e2e e2e-single e2e-server visual visual-update docker-build all
 
 ## --- toolchain -------------------------------------------------------------
@@ -175,7 +175,7 @@ tidy-check:
 ## --- client job -----------------------------------------------------------
 # CI lints without --fix; the package scripts fix in place. Check, don't fix,
 # so the local run fails on the same things CI does.
-client: client-lint client-fmt client-tokens client-marks client-purity client-refresh client-build client-cli client-devcode client-test
+client: client-lint client-fmt client-tokens client-marks client-purity client-modules client-refresh client-build client-cli client-devcode client-test
 
 # `npm ci` is CI's first client step. Locally it only needs to rerun when the
 # lockfile moved, so hang it off the stamp npm itself writes — otherwise every
@@ -210,6 +210,12 @@ client-marks:
 # above.
 client-purity:
 	$(RUN) node scripts/domain-purity-gate.mjs
+
+# FR-30.3 / ADR-066: a feature module (client/src/shopping/) and the packing
+# code never import each other; only the composition root reaches into a
+# module. Node built-ins only.
+client-modules:
+	$(RUN) node scripts/module-boundary-gate.mjs
 
 # A pull-to-refresh that reports success without fetching is worse than an
 # absent one. Node built-ins only, like the three gates above.

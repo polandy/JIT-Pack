@@ -45,6 +45,7 @@ const orchestratorFake = {
   acceptTripRefresh: vi.fn(),
   declineTripRefresh: vi.fn(),
   getPresence: vi.fn(() => []),
+  setViewing: vi.fn(),
   holdsClaim: vi.fn(() => false),
   isLockedByOther: vi.fn(() => false),
   lockHolder: vi.fn(() => null),

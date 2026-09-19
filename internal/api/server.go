@@ -429,7 +429,18 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 		if m.Op == syncpkg.OpInsert {
 			m.Set("author_id", userID)
 		}
+	case store.TableShoppingEntries:
+		// FR-30.4: the entry's purchase record. `bought` is the flag the
+		// record describes, sent as a JSON number or boolean.
+		bought, known := m.Fields["bought"]
+		stampPurchase(m, userID, now, known, truthy(bought))
 	case store.TableTripItems:
+		// FR-30.4: a packing row's purchase record follows `bought_from`,
+		// the list it was bought from (FR-25.11j) — set on the purchase,
+		// cleared when it is taken back.
+		from, known := m.Fields["bought_from"]
+		stampPurchase(m, userID, now, known, from != nil)
+
 		// FR-25.19: packer_user_id is the *assignment* and belongs to the
 		// client, so it is left untouched here. The record of who packed
 		// the row is server-owned — a record you can pick is not a record
@@ -480,6 +491,50 @@ func stampActor(m *syncpkg.Mutation, userID string, now func() time.Time) {
 			m.Set("packed_at", nil)
 		}
 	}
+}
+
+// Purchase record columns (FR-30.4), shared by trip_items and
+// shopping_entries.
+const (
+	columnBoughtBy = "bought_by_user_id"
+	columnBoughtAt = "bought_at"
+)
+
+// stampPurchase writes who bought a thing and when (FR-30.4) — the FR-25.19
+// packing record's rule applied to a purchase. The buyer is the pusher,
+// never a client value (invariant 3); the time may be the client's tap,
+// because shopping happens offline. A mutation that does not touch the
+// purchase (`known` false) carries no record at all, not even a null: a
+// null would erase a purchase another device already recorded.
+func stampPurchase(m *syncpkg.Mutation, userID string, now func() time.Time, known, bought bool) {
+	delete(m.Fields, columnBoughtBy)
+	tapped, _ := m.Fields[columnBoughtAt].(string)
+	delete(m.Fields, columnBoughtAt)
+	switch {
+	case !known:
+	case bought:
+		m.Set(columnBoughtBy, userID)
+		m.Set(columnBoughtAt, tapTime(tapped, now))
+	default:
+		m.Set(columnBoughtBy, nil)
+		m.Set(columnBoughtAt, nil)
+	}
+}
+
+// truthy reads a 0/1 column as JSON delivers it: a number, or a boolean
+// from a client that sends one.
+func truthy(v any) bool {
+	switch x := v.(type) {
+	case bool:
+		return x
+	case float64:
+		return x != 0
+	case int:
+		return x != 0
+	case int64:
+		return x != 0
+	}
+	return false
 }
 
 // tapTime keeps the client's tap time when it is a real instant and

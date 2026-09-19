@@ -28,6 +28,7 @@ import type {
   ItemDependency,
   ItemTag,
   ItemTodo,
+  ShoppingEntry,
   TripTodo,
   MasterItem,
   Tag,
@@ -52,6 +53,7 @@ import {
   checklistItemRow,
   commentRow,
   containerRow,
+  shoppingEntryRow,
   dependencyRow,
   masterItemRow,
   memberRow,
@@ -288,6 +290,8 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     packing_now_by: (row['packing_now_by'] as string) ?? null,
     packing_now_at: (row['packing_now_at'] as string) ?? null,
     bought_from: (row['bought_from'] as TripItem['bought_from']) ?? null,
+    bought_at: (row['bought_at'] as string) ?? null,
+    bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
     flag_unused: Boolean(row['flag_unused']),
     flag_missing: Boolean(row['flag_missing']),
     updated_hlc: (row['updated_hlc'] as string) ?? '',
@@ -320,6 +324,18 @@ function rowToContainer(id: string, row: Record<string, unknown>): Container {
     carrier_traveler_id: (row['carrier_traveler_id'] as string) ?? null,
     max_weight_grams: (row['max_weight_grams'] as number) ?? null,
     paired_container_id: (row['paired_container_id'] as string) ?? null,
+  }
+}
+
+function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingEntry {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    name: row['name'] as string,
+    list: (row['list'] as ShoppingEntry['list']) ?? ITEM_MODE_BUY_LOCAL,
+    bought: Boolean(row['bought']),
+    bought_at: (row['bought_at'] as string) ?? null,
+    bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
   }
 }
 
@@ -371,6 +387,7 @@ export const TABLE_CODECS = {
   [TABLE.travelers]: { parse: rowToTraveler, encode: travelerRow },
   [TABLE.containers]: { parse: rowToContainer, encode: containerRow },
   [TABLE.tripGeneratedPositions]: { parse: rowToGeneratedPosition },
+  [TABLE.shoppingEntries]: { parse: rowToShoppingEntry, encode: shoppingEntryRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.

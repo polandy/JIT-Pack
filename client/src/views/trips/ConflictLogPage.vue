@@ -165,6 +165,7 @@ const ENTITY_LABELS: Partial<Record<string, MessageKey>> = {
   [TABLE.containers]: 'conflicts.entity.containers',
   [TABLE.comments]: 'conflicts.entity.comments',
   [TABLE.tripSeries]: 'conflicts.entity.trip_series',
+  [TABLE.shoppingEntries]: 'conflicts.entity.shopping_entries',
 }
 
 /**
@@ -201,6 +202,8 @@ const FIELD_LABELS: Partial<Record<string, MessageKey>> = {
   source_item_id: 'conflicts.field.source_item_id',
   source_template_id: 'conflicts.field.source_template_id',
   series_id: 'conflicts.field.series_id',
+  bought: 'conflicts.field.bought',
+  list: 'conflicts.field.list',
 }
 
 /**

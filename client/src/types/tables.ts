@@ -28,6 +28,8 @@ export const TABLE = {
   travelers: 'travelers',
   containers: 'containers',
   comments: 'comments',
+  /** FR-30.1: the shopping list's own entries — not trip items (ADR-066). */
+  shoppingEntries: 'shopping_entries',
   /** FR-27.4, the planning-trip refresh (migration 023). */
   tripTemplateSources: 'trip_template_sources',
   tripGeneratedPositions: 'trip_generated_positions',

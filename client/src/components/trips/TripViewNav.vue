@@ -15,14 +15,12 @@
  * its siblings is a screen that will forget.
  */
 import { IonIcon, useIonRouter } from '@ionic/vue'
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { briefcaseOutline, cartOutline, listOutline, statsChartOutline } from 'ionicons/icons'
 import { t } from '@/i18n'
 import { tripPath, tripSubPath } from '@/router/paths'
-import { buyRowCount } from '@/domain/shoppingView'
-import { useTripStore } from '@/stores/tripStore'
-import type { TripViewId } from '@/lib/tripViews'
+import { TRIP_VIEW_COUNTS, type TripViewId } from '@/lib/tripViews'
 
 const props = defineProps<{
   tripId: string
@@ -32,7 +30,9 @@ const props = defineProps<{
 
 const router = useRouter()
 const ionRouter = useIonRouter()
-const tripStore = useTripStore()
+// FR-30.3: the count is the shopping module's, provided by the composition
+// root — the frame does not import the module behind the pill.
+const counts = inject(TRIP_VIEW_COUNTS, {})
 
 /**
  * The count is what makes the shopping entry worth a tap; at zero the word is
@@ -40,16 +40,12 @@ const tripStore = useTripStore()
  * the number in the word when the action sheet could render no badge, and a
  * pill keeps it there).
  *
- * **Things to buy, not rows** — the same arithmetic M6's own segments use
+ * **Things to buy, not rows** — the same lines M6's own segments count
  * (FR-25.6). The menu entry counted rows and nothing noticed, because the two
  * numbers were never on one screen; the pill sits above the segments that
  * state them, and said 3 over a list saying 1 + 1 the first time it rendered.
  */
-const openShopping = computed(() => {
-  const lists = tripStore.getShoppingItems(props.tripId)
-  const travelers = tripStore.getTravelers(props.tripId)
-  return buyRowCount(lists.buyBefore, travelers) + buyRowCount(lists.buyLocal, travelers)
-})
+const openShopping = computed(() => counts.shopping?.(props.tripId) ?? 0)
 
 const views = computed(() => [
   {

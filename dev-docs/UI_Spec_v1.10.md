@@ -14,6 +14,9 @@ replaced and why. This index only says where to look.
   (FR-24.13).
 * 2026-09-18 — **M4**'s ⋮ offers „Namen aus dem Inventar", a sheet that takes renamed items' names over, and **M5**
   offers it for its own row (FR-27.16).
+* 2026-09-19 — **M6** becomes the shopping module's screen: its own entries beside the packing list's buy rows, a
+  purchase stamp, and M4's ＋ (FR-30). **M1** carries each trip's shopping card, the one card it lets you work
+  (FR-30.7).
 * 2026-09-18 — **M1** reports trip todos and a second check on the trip cards, and takes no actions — the prep
   card's checkbox is gone; **M4** gains *Aufgaben für die Reise*, where they are written; **M3** step 3 reports trip
   tasks; **M8** gains *Aufgaben für die Reise* (FR-7.4). Later the same day: the hero and M4's header line carry the
@@ -35,6 +38,8 @@ replaced and why. This index only says where to look.
 * 2026-09-16 — **G-19**: the banner's layer belongs to the content column — below the page head, the width of the
   column (ADR-060 amendment 1).
 * 2026-09-19 — **G-2**: the detail says when the last sync completed (FR-19.6).
+* 2026-09-19 — **M4**: the FR-25.29 rings are quick filters — a tap adds or removes that traveler, several at once.
+* 2026-09-19 — **M12**: bars are picked, several at once, and one button opens M4 filtered to them (FR-8.2).
 * 2026-09-19 — **M4**: a ring per traveler under the trip line, tap to filter (FR-25.29).
 * 2026-09-19 — **M4**: filtered to one person, a per-person item is a plain row rather than a cluster (FR-25.30).
 * 2026-09-18 — **M17/M3**: a default traveller can be an existing account (FR-2.5a).
@@ -166,6 +171,15 @@ These patterns apply to every screen and are specified once.
   and resetting that margin alone was measured and rejected too, since a 38 px circle and a 29 px line flush at the
   top cannot centre on each other; the ✕ therefore sits on the title's line. The sheet is in a visual baseline now
   (E2E-VIS-08); it was in none, which is how an offset that size survived on the one surface every screen can open.
+* **G-2b (Who Is Packing Right Now — added 2026-09-19, FR-4.9):** the sheet behind the status glyph also answers *who
+  else is at work*. A section **„Packing right now"** sits under the live-updates line: one row per person per trip
+  they have open in the packing list — the person's name over the trip's name, a tap closes the sheet and opens the
+  trip. **An empty list says so** (*„Nobody else is packing right now."*) rather than dropping the section, so the
+  sheet never looks unfinished and the absence is assertable. **Absent altogether in Local and Single-User Mode**
+  (G-8): there is nobody to be told about. It first stood on M1 as a card and moved here the same day, on the owner's
+  word that this is where a person looks to see who is around. It is not G-10: G-10's facepile lives in M4's header and
+  speaks about one trip; this is the account-wide answer. Test ids `sync-detail-online`, `sync-detail-online-<name>`,
+  `sync-detail-online-nobody`; E2E-G10-03.
 * **G-3 (Presence & Locks):** Items locked via *Packing Now* (FR-5.3) render with the locker's avatar and name ("In
   progress by Andy") and are non-interactive for others except viewing. **The lock reaches M5, not only M4's row**
   (clarified 2026-08-22): a locked row opens its sheet — viewing is the half G-3 keeps — but the sheet leads with a
@@ -801,6 +815,15 @@ These patterns apply to every screen and are specified once.
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
   links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's
   landing is exercised from a notification instead (E2E-G4-01).
+* **The shopping card (FR-30.7, added 2026-09-19 — the one card M1 lets you work).** Under each trip's card, as a
+  sibling (the trip card is a link): title *„Einkaufen"* (*„Einkaufen · Elba 2027"* under a planned trip), two chips
+  *Vor der Abreise (n)* · *Vor Ort (n)* with the list that is *now* pressed — *Vor Ort* for a running trip, *Vor der
+  Abreise* for a planned one —, the field *„Was kaufen? z. B. Milch, Brot …"* with ＋, at most five lines (own entries
+  first, packing lines after them with a *Packliste* tag, the amount when above one), each with a check-off. A
+  check-off shows *„„Brot" gekauft · Rückgängig"* inside the card. Last line: *„Zur Einkaufsliste →"*, or *„Alle 7
+  anzeigen →"* past five. No remove, no reveal, no stamps — those are M6's. A running trip always has the card (with
+  *„Vor Ort ist nichts zu kaufen"* when empty, once the rows are here, ADR-033); a planned trip has it only while
+  something is left. Supersedes FR-30.5's pill, whose way onto M6 the card now carries.
 * **The screen loads what it aggregates (added 2026-08-31).** A trip partition arrives when its trip is opened, so in
   Server Mode M1 was counting an empty store: every active trip rendered with „0 offen", no preview rows and no prep,
   until the user had visited each trip in that page session. Local Mode never showed it, because everything there is
@@ -1090,8 +1113,9 @@ These patterns apply to every screen and are specified once.
     then *Erledigte* last — the two whose rows still ask for something stand above the one whose rows do not.
     Picking ⏰ in *Merkmale* overrides the switch, as a *Status* value overrides *Erledigte* (FR-25.11l). The closing
     pass (FR-9.3) is exempt from both halves. **A typed search term lifts all three switches** for the rows it
-    matches (FR-25.32); clearing it puts them away again. A switch's words are inside its checkbox, so a tap on the
-    words and a tap on the box are one toggle.
+    matches (FR-25.32); clearing it puts them away again. While the term stands, the *Erledigte* and *Spätpacker*
+    bars are absent — their matches are already on screen — and they return with the cleared term. A switch's words
+    are inside its checkbox, so a tap on the words and a tap on the box are one toggle.
   * **Groups fold** (FR-25.16): tapping a header collapses the group to that line, which then carries its open count;
     fold-all turns the list into a table of contents.
   * **Per-person items render as a named cluster** (FR-25.1) — item name once with `done/total`, one indented child row
@@ -1177,9 +1201,11 @@ These patterns apply to every screen and are specified once.
   * **Per person (added 2026-09-19, FR-25.29):** under the sticky line, not in it, so it scrolls away with the list —
     one card per traveler with their face inside a `--jp-done` ring (the ProgressRing construction) and *„x von y"* /
     *„fertig ✓"* / *„nichts zu packen"* under the name, three to a row; a dashed *Gemeinsam* line with a track under the
-    cards when any row is for nobody. A tap selects the traveler in the person facet (pressed card, chip in the chip
-    row); a second tap clears it. Beyond six travelers the sixth slot reads *„+N weitere · M noch offen"* and unfolds
-    the rest, *„Weniger zeigen"* folds them again. Absent with fewer than two travelers and during the closing pass.
+    cards when any row is for nobody. A tap toggles the traveler in the person facet (pressed card, chip in the chip
+    row), so several can be pressed at once — a quick filter, OR'd like the sheet's chips — and a second tap takes that
+    one back out (revised 2026-09-19; it used to narrow to the tapped traveler alone). Beyond six travelers the sixth
+    slot reads *„+N weitere · M noch offen"* and unfolds the rest, *„Weniger zeigen"* folds them again. Absent with
+    fewer than two travelers and during the closing pass.
   * Grouping switcher: *Category / Container / Person / Status*, now inside the filter sheet's *Gruppieren nach* section
     rather than as its own bar. **Decided: persists per user per trip** (not a global preference) — switching to
     *Container* view on one trip doesn't affect another trip or another user's view of the same trip.
@@ -1549,14 +1575,30 @@ These patterns apply to every screen and are specified once.
 
 ### M6 — Shopping Views
 
-* **Purpose:** Focused procurement checklists (FR-3.2).
-* **What M6 is, as built (2026-08-30, after reading its e2e promises against the screen):** two tabs, category groups,
-  one row per thing to buy, the shared composer and the FR-25.11j reveal — and **no filter bar, no search field and no
-  row sheet**. The lines below that describe those were written in the 2026-07-17 concept round and never built; the
-  owner retired them on 2026-08-30 (FR-25.11g/k, FR-25.13a's two composer fields, FR-25.6's per-item note), because a
-  shopping list rarely runs to twenty rows and M4 already owns those patterns. **The one exception is FR-25.12's row
-  sheet** — *Zugewiesen an* and *Beschreibung* — which is being built: *„Andy kauft das"* is the multi-user case M6
-  cannot express today. Read the lines below with that in mind until the sheet lands.
+* **Purpose:** The trip's shopping list (FR-3.2), a feature module of its own since FR-30 (ADR-066): it holds the
+  entries typed into it, and shows the packing list's buy-mode rows beside them.
+* **What M6 is, as built (2026-09-19, FR-30):** two tabs, one text field, the list's own entries under their own
+  heading, the packing list's buy rows under their categories, and the FR-25.11j reveal — **no filter bar, no search
+  field, no row sheet, and since FR-30 no shared composer**. The screen lives in `client/src/shopping/` and renders
+  lines without knowing whose they are (`lib/shoppingSources.ts`); the packing side supplies its rows as lines with
+  their FR-3.3 writes bound in. The 2026-07-17 concept lines kept below describe surfaces retired on 2026-08-30
+  (FR-25.11g/k, FR-25.13a's two fields, FR-25.6's per-item note) or still owed (FR-25.12's row sheet — *Zugewiesen
+  an* and *Beschreibung* — which would now apply to both kinds of line); read them with that in mind.
+* **Elements:** Two tabs: *Vor der Abreise* (BUY_BEFORE) and *Vor Ort* (BUY_LOCAL), each label counting its open
+  lines. Under them a **text field** with an add button (placeholder *„Was kaufen? z. B. Milch, Brot …"*). Then the
+  list: the tab's own entries first, under the heading *„Eingetragen"*, each with a check-off and a remove (✕); then
+  the packing list's rows in that tab's mode, grouped by category (*„Ohne Kategorie"* for none), each with a
+  check-off, its amount when above one, and — for a per-person item — the recipients (FR-25.6), and **no** remove. An
+  entry and a packing row of the same name stay two lines. FR-13.3's destination entries are not built.
+* **Actions:** Type and tap ＋ (or Enter) → an entry on the **open tab**; the field clears for the next. Check off an
+  entry → bought, under the reveal. Check off a packing row → FR-3.3 on the row (BUY_BEFORE → on the packing list,
+  BUY_LOCAL → packed). ✕ on an entry → removed. A packing row leaves only by being bought or by changing mode on M4/M5.
+* **The ＋ bottom right (FR-30.6, added 2026-09-19):** M4's FAB, same place and glyph. It scrolls the list to the top
+  and puts the cursor in the field — the field stays where it is, so the screen keeps one way to add, and the ＋ is the
+  way back to it from a long list. The list scrolls clear of the FAB's footprint (FR-25.11h's 96 px).
+* **Adding an inventory item to buy (since FR-30.2):** on **M4**, with the composer, then its mode — in M5, or *Vor Ort
+  kaufen* from the row menu (FR-5.9). M6 writes no packing rows. The composer, its create sheet (FR-24.11) and its
+  duplicate exclusion (FR-25.13d) are M4's and M8's.
 * **Concept-review additions (Addendum §3.25 / FR-25.6, proposed 2026-07-17):** each shopping row can be **assigned to a
   traveler** (*Used by*, FR-4.2) from here, and can carry a **per-item comment/note** (FR-7.1) — e.g., "war im Migros
   Eigerplatz, gab es dort nicht" — so where-looked / unavailable / substitution context lives on the item. **One
@@ -1566,14 +1608,6 @@ These patterns apply to every screen and are specified once.
   segment counts *rows to buy* rather than `trip_items` rows. **Note (2026-07-18):** free-form *Used by* was removed
   (FR-25.10); this "assign to a traveler" is to be reframed (per-person shopping row or lightweight "for whom" note)
   when M6 is re-mocked.
-* **Elements:** Two tabs: *Before departure* (BUY_BEFORE) and *At destination* (BUY_LOCAL); rows grouped by category;
-  destination tab includes standing destination-checklist entries (FR-13.3) visually separated; per row optionally a
-  traveler chip and a note indicator (§3.25).
-* **Actions:** Check off → BUY_BEFORE items transition to PACK and leave this list with animation (FR-3.3); add
-  free-text entry directly into either list; **assign a row to a traveler**; **add a per-item comment/note** (§3.25).
-* **Quick-add (FR-25.13):** the shared composer, landing the row on the open tab. **Since FR-25.13d (2026-08-22)** it
-  excludes what the trip already carries — the whole trip's contents, not the open tab's — closing the gap FR-25.13c had
-  closed for M4 only, and carries the same browse-sheet (described at M4's quick-add).
 * **What was bought (FR-25.11j, built 2026-08-25):** checking a row off takes it off the tab — a BUY_BEFORE row by
   changing its mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. Under the list sits a
   reveal bar in **M4's FR-25.2 shape**: *„1 gekaufte anzeigen"*, off by default, the count in the label, one tap. A
@@ -1581,10 +1615,16 @@ These patterns apply to every screen and are specified once.
   the destination) and its checkbox is the way back — unchecking restores the mode it was bought from and clears the
   record. Each tab has its own reveal, and the reveal is **absent, not empty**, when nothing was bought from that list.
   Deliberately **not** remembered across a session the way M4's switch is (FR-25.18): the tab is not remembered either,
-  so a restored reveal would open on a list the reader did not choose.
-* **States:** Both lists empty → the G-9 switcher keeps the **shopping pill** and drops only its **count** (corrected
-  2026-08-30 against the screen: the destination exists either way; the count is part of the word rather than a badge,
-  which is how ADR-050's menu carried it and how FR-21.21's pill still does).
+  so a restored reveal would open on a list the reader did not choose. **Every revealed line carries FR-30.4's stamp**
+  — *„gekauft von Andy · heute 14:32"* with the buyer's avatar, or *„gekauft · heute 14:32"* where nobody can be named
+  (Local Mode) — under its note. **An entry (FR-30.1)** is revealed the same way,
+  with **no note** — it was never anywhere but here — and keeps its ✕.
+* **States:** An empty tab, once the trip partition is here (ADR-033), shows the G-7 empty state with the hint *„Trag
+  oben ein, was ihr kaufen wollt. Was auf der Packliste gekauft statt eingepackt wird, erscheint hier von selbst."* —
+  the one place the screen says where its other lines come from. Both lists empty → the G-9 switcher keeps the
+  **shopping pill** and drops only its **count** (corrected 2026-08-30 against the screen: the destination exists either
+  way; the count is part of the word rather than a badge, which is how ADR-050's menu carried it and how FR-21.21's pill
+  still does).
 * **Navigation:** From the G-9 trip switcher, on any of the trip's four views (FR-21.21); deep-linkable.
 
 ### M7 — Template List
@@ -1967,11 +2007,11 @@ These patterns apply to every screen and are specified once.
   container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would
   silently shorten the packing list.
 * **Navigation:** From *Gepäck* in the G-9 trip switcher (FR-21.21; the luggage was a toolbar button as built
-  2026-08-16, then a ⋮ entry; the earlier idea of an "Edit containers"
-  entry inside the grouping switcher was not carried over) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the
-  edge was never built** (read against the code 2026-08-30). M12's only navigation is to M4, and tapping a *Gepäck* bar
-  sets the container facet there rather than opening this screen — which is the more useful landing anyway, since it
-  puts the reader on the rows the bar was about. The clause goes; the edge is not owed.
+  2026-08-16, then a ⋮ entry; the earlier idea of an "Edit containers" entry inside the grouping switcher was not
+  carried over) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the edge was never built** (read against the
+  code 2026-08-30). M12's only navigation is to M4, and opening a picked *Gepäck* bar sets the container facet there
+  rather than opening this screen — which is the more useful landing anyway, since it puts the reader on the rows the
+  bar was about. The clause goes; the edge is not owed.
 * **Revised 2026-08-27 (UX-8).** The unassigned bucket renders only when it has something to say. Was: with no
   containers and nothing unassigned, "everything is assigned to a container" stood directly under "no containers yet".
 
@@ -1993,10 +2033,16 @@ These patterns apply to every screen and are specified once.
 * **Rebuilt 2026-08-16** on those decisions. Slices are keyed by exactly what M4's facets filter on (traveler id,
   `category_name`, container id, `''` for the absence bucket), so a tapped bar becomes a facet without translation;
   absence buckets carry the facet wording (*Gemeinsam* / *Ohne Kategorie* / *Ohne Gepäck*, FR-25.11f/g).
-* **Actions:** Tapping a bar **sets the FR-25.11 facet** for that value — clearing every other facet, since the reader
-  tapped one number — and opens M4, where the chip row names the filter (FR-25.11a) and the session keeps it (FR-25.18);
-  the grouping follows the dimension so the slice sits together. ADR-012 leaves M4 mounted behind M12, so both writes
-  move the live view state as well as the stored one.
+* **Actions:** Tapping a bar **picks** it (marked, `aria-pressed`); a second tap takes the pick back, and any number of
+  bars of the current dimension can be picked. While at least one is, *„In der Packliste zeigen (n)"* stands under the
+  bar card; it **sets the FR-25.11 facet** to the picked values — OR'd, as the sheet's chips are, and clearing every
+  other facet, since the reader picked these numbers — and opens M4, where the chip row names the filter (FR-25.11a) and
+  the session keeps it (FR-25.18); the grouping follows the dimension so the slices sit together. Switching the
+  dimension drops the picks: a person and a bag are two facets, AND'd in M4, so a pick carried across would name nothing
+  in the new view. ADR-012 leaves M4 mounted behind M12, so both writes move the live view state as well as the stored
+  one. **Revised 2026-09-19 (owner request):** a tap used to open M4 at once on that one value, so *„mine and the shared
+  ones"* could only be put together by hand in the filter sheet. The cost is one more tap for the single-bar case,
+  accepted because the bar is now a quick filter rather than a link.
 * **Per-person items** (FR-25.1) need no expansion step in the client's data model: each traveler's instance is its own
   row with its own quantity and packed count, so by *Person* the rows are one contribution each and by *Kategorie* or
   *Gepäck* they sum back into a single bucket by construction. Rows with no traveler count as *Gemeinsam* (FR-25.11f's
