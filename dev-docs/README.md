@@ -35,6 +35,9 @@ replace the file and update its own revision note.
   packing a real vacation with it, and which of them may run in parallel. Delete it
   once the vacation has happened.
 
+- [`ideas.md`](ideas.md) — usability ideas not yet specified or scheduled; a checklist to vet against the specs, not
+  a commitment.
+
 ## Specifications
 
 - [`Sync_API_Spec_v1.3.md`](Sync_API_Spec_v1.3.md) — the wire protocol: pull/push
