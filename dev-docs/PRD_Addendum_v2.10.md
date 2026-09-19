@@ -1007,6 +1007,17 @@ taken straight from a phone camera never reaches the server unprocessed.
   that is where the rule stops reading direction: an upward reading taken at the bottom is not a gesture. The
   rule is a pure step (`lib/headScroll.ts`) rather than a scroll listener, because that is the only shape in
   which the clamp case can be reached by a test at all.
+
+  **A list that would not survive the yield keeps its head (2026-09-19, found on a search's few hits).** The clamp
+  guard above only holds at the bottom of a list that was long enough to begin with. A list that overflows its
+  screen by less than the yield releases — 147 px measured on a phone: the 96 px line plus the page head — has its
+  range shortened below the reader's offset, is clamped, and the head returns: the list jumped back up on every
+  swipe down (measured at 390×800: 148 px of overflow ended the flick at offset 44; 248 px ended it cleanly
+  collapsed). A search narrows a long list to a short one, which is how the owner met it. **The head now yields only
+  where the scroller overflows by more than the threshold plus 192 px** (the release, rounded up past the paired
+  two-figure line), and a shorter list simply keeps its head. Read from the scroller's own geometry, which the page
+  now resolves at mount rather than from the first scroll event — that event is the one the jump starts on.
+  E2E-M4-129.
 * **~~FR-21.18 (A List of Controls Takes a Narrower Column Than a Page of Prose — added 2026-09-07)~~ — superseded
   2026-09-08 by FR-21.26: the second caller its revisit trigger named never arrived, because the census found no
   screen for the *first* measure. Kept for the measurements in it.** UX-17's content

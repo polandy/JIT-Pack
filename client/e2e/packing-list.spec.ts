@@ -1403,6 +1403,73 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   })
 
   /*
+   * E2E-M4-129 (FR-21.17): a list that overflows its screen by less than the
+   * header line frees when it yields — a search's few hits — keeps the line.
+   * It used to yield anyway; the shorter range clamped the offset, the line
+   * came back and the list jumped up, on every swipe down. The viewport is
+   * sized from the measured overflow so the case sits in that band on any
+   * engine, and the positive signal is the offset reaching the end.
+   */
+  test('E2E-M4-129: a short list does not jump when it is scrolled to its end', async ({
+    page,
+  }) => {
+    // A phone: there the page head yields with the line, which is what makes
+    // the yield release more than the line alone.
+    await page.setViewportSize({ width: 390, height: 800 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Socke 1', 'Socke 2', 'Socke 3', 'Socke 4', 'Socke 5', 'Socke 6'])
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Socke')
+    await expect(visible(page).getByTestId('m4-row-Socke 6')).toBeVisible()
+
+    const content = visible(page).locator('ion-content.pack-content')
+    const scroller = () =>
+      content.evaluate(async (host: HTMLIonContentElement) => {
+        const el = await host.getScrollElement()
+        return { slack: el.scrollHeight - el.clientHeight, client: el.clientHeight }
+      })
+
+    // 150 px of overflow: past the yield threshold, short of what it frees.
+    const before = await scroller()
+    const height = page.viewportSize()!.height + before.slack - 150
+    await page.setViewportSize({ width: page.viewportSize()!.width, height })
+    await expect.poll(async () => (await scroller()).slack).toBe(150)
+
+    const end = await content.evaluate(async (host: HTMLIonContentElement) => {
+      const el = await host.getScrollElement()
+      const line = host.querySelector('.trip-line') as HTMLElement
+      let flips = 0
+      new MutationObserver(() => flips++).observe(line, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
+      // The page hears the scroll through ion-content's own event, one frame
+      // late, so that event is the positive signal that it has been read.
+      const heard = new Promise((resolve) =>
+        host.addEventListener('ionScroll', resolve, { once: true }),
+      )
+      el.scrollTo({ top: el.scrollHeight })
+      await heard
+      // A yield is a transition on the line and the browser's clamp arrives
+      // while it runs, starting the reverse one: settled is the line having
+      // no animation left, after frames for the class change to render.
+      const frames = () =>
+        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      for (let round = 0; round < 4; round++) {
+        await frames()
+        const running = line.getAnimations()
+        if (running.length === 0) break
+        await Promise.all(running.map((a) => a.finished))
+      }
+      return { top: el.scrollTop, slack: el.scrollHeight - el.clientHeight, flips }
+    })
+
+    // The line never moved and the offset stayed at the end.
+    expect(end.flips).toBe(0)
+    expect(end.top).toBe(end.slack)
+  })
+
+  /*
    * E2E-M4-57 (G-12, UX-13): the bar keeps the actions used while packing
    * and puts the once-per-trip ones behind the ⋮, where they are read as
    * words. Before it, six glyphs plus the gear sat in a bar that on a phone

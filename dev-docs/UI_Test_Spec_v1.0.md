@@ -737,6 +737,10 @@ in WebKit.
 * **E2E-M4-125** `local` (FR-25.31 with FR-5.5 and G-3, added 2026-09-19) — **implemented**
   (`e2e/undo-every-act.spec.ts`): *Doch einpacken* on a skipped row, undone, leaves it skipped again (the reveal bar is
   back); *Packen* (the claim), undone, takes the row's own-claim note away.
+* **E2E-M4-129** `local` (FR-21.17, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): on a 390 px phone, a
+  search's few hits overflow their screen by 150 px — past the yield threshold, short of what yielding frees. Scrolled
+  to the end, the header line never changes state and the offset stays at the end. Red before the guard: two
+  class changes and an offset back near the top.
 * **E2E-M4-127** `local` (FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): tapping the words of
   the *Erledigte* switch turns it on and it stays on — the tick used to come and go, the label forwarding the tap to
   a checkbox that had already toggled itself. Closing the sheet shows the packed row.
