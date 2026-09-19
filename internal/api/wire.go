@@ -184,11 +184,15 @@ type WSEventType string
 
 // Every frame the hub sends. A client that receives an unknown type ignores it.
 const (
-	EventTripChanged         WSEventType = "trip.changed"
-	EventMasterChanged       WSEventType = "master.changed"
-	EventItemLocked          WSEventType = "item.locked"
-	EventItemUnlocked        WSEventType = "item.unlocked"
-	EventPresence            WSEventType = "presence"
+	EventTripChanged   WSEventType = "trip.changed"
+	EventMasterChanged WSEventType = "master.changed"
+	EventItemLocked    WSEventType = "item.locked"
+	EventItemUnlocked  WSEventType = "item.unlocked"
+	EventPresence      WSEventType = "presence"
+	// EventRoster tells a connection who else is working on a trip it shares
+	// (FR-4.9). Sent to every connection, not only to a trip's subscribers:
+	// it answers a question about the account, asked from any screen.
+	EventRoster              WSEventType = "roster"
 	EventNotificationCreated WSEventType = "notification.created"
 	// EventPong answers a client {"ping": true} frame (Sync-API §7/§9).
 	// It carries no payload: its arrival is the information — the client's
@@ -210,6 +214,15 @@ type PresenceMember struct {
 	UserID      string `json:"user_id"`
 	DeviceCount int    `json:"device_count"`
 	InSync      bool   `json:"in_sync"`
+}
+
+// RosterMember is one entry of an EventRoster frame (FR-4.9): a person other
+// than the receiver, and the trips they have open in the packing list right now
+// that the receiver is a member of too. A person with no such trip is not
+// listed at all, which is how the roster keeps to what the receiver may know.
+type RosterMember struct {
+	UserID  string   `json:"user_id"`
+	TripIDs []string `json:"trip_ids"`
 }
 
 // --- Conflict log (Sync-API §8, NFR-4.2a) ---

@@ -235,4 +235,53 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     await ctxBob.close()
     await ctxAlice.close()
   })
+
+  /**
+   * E2E-G10-03 (FR-4.9): the roster in the G-2 sheet — the other half of G-10,
+   * which is scoped to one trip. Alice sits on the dashboard and opens the
+   * sheet behind the cloud; Bob opens the shared trip, and her *open* sheet
+   * names him over the trip, without her touching it. When he leaves the
+   * packing list the row goes. "Leaves" is the case the design turned on: the
+   * dashboard subscribes to every active trip and never lets go, so a roster
+   * read from subscriptions would go on naming Bob after he went home.
+   */
+  test('E2E-G10-03: the cloud sheet names who has a shared trip open, and stops when they leave', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Pilatus ${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    await alice.goto('/')
+    await expect(visiblePage(alice).getByTestId('dashboard')).toBeVisible()
+    await alice.getByTestId('sync-indicator').click()
+    // Nobody yet, and the sheet says so: an absence with a positive signal.
+    await expect(alice.getByTestId('sync-detail-online-nobody')).toBeVisible()
+
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId('m4-header')).toBeVisible()
+    await subscribedBob
+
+    const row = alice.getByTestId(`sync-detail-online-${ACCOUNT_NAMES.bob}`)
+    await expect(row).toBeVisible()
+    await expect(row).toContainText(trip)
+    await expect(alice.getByTestId('sync-detail-online-nobody')).toHaveCount(0)
+
+    // Bob goes to his own dashboard. The socket stays open and the trip stays
+    // subscribed — only the packing list closed.
+    await bob.goto('/')
+    await expect(visiblePage(bob).getByTestId('dashboard')).toBeVisible()
+    await expect(alice.getByTestId('sync-detail-online-nobody')).toBeVisible()
+    await expect(row).toHaveCount(0)
+
+    await ctxBob.close()
+    await ctxAlice.close()
+  })
 })

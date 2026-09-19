@@ -399,6 +399,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The inventory tidies itself up (2026-09-19)](#the-inventory-tidies-itself-up-2026-09-19) — FR-24.12/24.13: why no rule refuses, why never-used items are not flagged, a pinia leak in specs.
 - [Every act on the list can be taken back (2026-09-19)](#every-act-on-the-list-can-be-taken-back-2026-09-19) — FR-25.31: a cascading delete deferred, not restored; a snackbar over a popover; lingering toasts.
 - [The shopping list becomes a module (2026-09-19)](#the-shopping-list-becomes-a-module-2026-09-19) — FR-30/ADR-066: projection over copy, a reversed composer ruling, a gate blind to multi-line imports.
+- [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
 
 ## Deviations
 
@@ -16231,3 +16232,16 @@ A one-off scan of `client/src/domain` with the corrected pattern found no hidden
 **Two green gates that were right to go red.** `tripScreenAdoption.spec.ts` counts screens under `views/` only and lost
 M6 when it moved; it now globs the module too. `testid-gate` knows a dynamic id by the literal prefix of a template, so
 ``section.own ? 'm6-group-own' : `m6-group-${…}` `` hid the prefix from it. The ternary moved inside the template.
+
+
+### The roster reads what is open, not what is followed (2026-09-19)
+
+FR-4.9 (the G-2 sheet's "Packing right now"; it first stood on M1 and moved on the owner's word that the cloud is where
+one looks). The obvious build was to list, for each person, the trips their connection is
+subscribed to — the hub already tracks that for G-10. It was wrong before it was written: the dashboard subscribes to
+every active trip so FR-4.4's delegation section updates, and nothing ever unsubscribes, so a subscription says
+*follows*, not *is working on*. A roster made from it would name somebody on every trip they own from the moment they
+open the app. The connection therefore carries a second, explicit fact — `viewing`, set by M4 when the page is entered
+and cleared when it is left (a view event, since Ionic keeps the page mounted under the next one) — and the hub
+authorises both the viewer and the person listed on every send. Cost accepted: a person online but on no packing list
+is invisible, because listing them would mean answering "do we share any trip" for every connection pair.

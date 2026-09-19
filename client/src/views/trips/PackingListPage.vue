@@ -40,6 +40,8 @@ import {
   IonFabButton,
   IonPopover,
   actionSheetController,
+  onIonViewDidEnter,
+  onIonViewWillLeave,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -1120,6 +1122,15 @@ const breakpoint = window.matchMedia('(min-width: 900px)')
 const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
 breakpoint.addEventListener('change', onBreakpoint)
 onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
+
+// --- Who is working here (FR-4.9) ---------------------------------------
+// The roster on M1 lists people by the trip they have *open*, which is not the
+// subscription — the dashboard follows every active trip and never lets go.
+// Ionic keeps a page mounted under the one that replaced it, so leaving is a
+// view event and unmounting only the fallback.
+onIonViewDidEnter(() => orchestrator.setViewing(props.tripId))
+onIonViewWillLeave(() => orchestrator.setViewing(null))
+onUnmounted(() => orchestrator.setViewing(null))
 
 // --- Header line --------------------------------------------------------
 

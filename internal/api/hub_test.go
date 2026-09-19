@@ -36,6 +36,7 @@ func wsTestServerGated(t *testing.T, headSeq HeadSeqFunc, mayReceive ReceiveFunc
 		}
 		c := newConn(ws, r.URL.Query().Get("user"))
 		hub.Register(c)
+		hub.SendRoster(c)
 		defer func() {
 			hub.Unregister(c)
 			ws.CloseNow()
@@ -61,6 +62,8 @@ func wsTestServerGated(t *testing.T, headSeq HeadSeqFunc, mayReceive ReceiveFunc
 				hub.Unsubscribe(c, msg.TripID)
 			case "cursor":
 				hub.UpdateCursor(c, msg.TripID, msg.Cursor)
+			case "viewing":
+				hub.SetViewing(c, msg.TripID)
 			}
 		}
 	})
@@ -306,6 +309,104 @@ func TestHub_SubscribersCountsOnlyTheStillAuthorised(t *testing.T) {
 
 	if n := hub.Subscribers("trip-1"); n != 1 {
 		t.Errorf("subscribers = %d, want 1 — the hub still counts a revoked socket", n)
+	}
+}
+
+// --- FR-4.9: the roster ------------------------------------------------------
+
+// rosterUsers reads the next frame and returns its roster as user → trips.
+func rosterUsers(t *testing.T, ws *websocket.Conn) map[string][]string {
+	t.Helper()
+	evt := wsRead(t, ws)
+	if evt.Type != EventRoster {
+		t.Fatalf("type = %s, want roster", evt.Type)
+	}
+	raw, err := json.Marshal(evt.Payload["users"])
+	if err != nil {
+		t.Fatalf("marshal roster: %v", err)
+	}
+	var members []RosterMember
+	if err := json.Unmarshal(raw, &members); err != nil {
+		t.Fatalf("unmarshal roster: %v", err)
+	}
+	out := map[string][]string{}
+	for _, m := range members {
+		out[m.UserID] = m.TripIDs
+	}
+	return out
+}
+
+func TestHub_Roster_NamesWhoIsViewingASharedTrip_FR4_9(t *testing.T) {
+	_, srv := wsTestServer(t, nil)
+	andy := wsConnect(t, srv, "andy")
+	sarah := wsConnect(t, srv, "sarah")
+
+	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-1"})
+
+	// Sarah is told, and is not told about herself; Andy's own frame is empty.
+	if got := rosterUsers(t, sarah); len(got) != 1 || len(got["andy"]) != 1 || got["andy"][0] != "trip-1" {
+		t.Errorf("sarah's roster = %v, want andy on trip-1", got)
+	}
+	if got := rosterUsers(t, andy); len(got) != 0 {
+		t.Errorf("andy's roster = %v, want nobody but himself", got)
+	}
+}
+
+func TestHub_Roster_LeavingTheTripEmptiesIt_FR4_9(t *testing.T) {
+	_, srv := wsTestServer(t, nil)
+	andy := wsConnect(t, srv, "andy")
+	sarah := wsConnect(t, srv, "sarah")
+
+	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-1"})
+	rosterUsers(t, sarah)
+	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": ""})
+
+	if got := rosterUsers(t, sarah); len(got) != 0 {
+		t.Errorf("roster = %v, want it empty once andy left the trip", got)
+	}
+}
+
+func TestHub_Roster_DisconnectTakesThePersonOff_FR4_9(t *testing.T) {
+	_, srv := wsTestServer(t, nil)
+	andy := wsConnect(t, srv, "andy")
+	sarah := wsConnect(t, srv, "sarah")
+
+	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-1"})
+	rosterUsers(t, sarah)
+	andy.CloseNow()
+
+	if got := rosterUsers(t, sarah); len(got) != 0 {
+		t.Errorf("roster = %v, want a closed socket to leave it", got)
+	}
+}
+
+func TestHub_Roster_NeverNamesATripTheReceiverIsNotOn_FR4_9(t *testing.T) {
+	// Sarah is a member of trip-1 only. Andy works on trip-2, which she may
+	// not know exists: she is told the roster changed and nothing about him.
+	gate := func(_ context.Context, trip, user string) bool {
+		return trip == "trip-1" || user == "andy"
+	}
+	_, srv := wsTestServerGated(t, nil, gate)
+	andy := wsConnect(t, srv, "andy")
+	sarah := wsConnect(t, srv, "sarah")
+
+	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-2"})
+
+	if got := rosterUsers(t, sarah); len(got) != 0 {
+		t.Errorf("sarah's roster = %v, want nothing: she is not a member of trip-2", got)
+	}
+}
+
+func TestHub_Roster_ANewcomerIsToldWhoIsAlreadyThere_FR4_9(t *testing.T) {
+	_, srv := wsTestServer(t, nil)
+	andy := wsConnect(t, srv, "andy")
+	wsSend(t, andy, map[string]string{"action": "viewing", "trip_id": "trip-1"})
+	rosterUsers(t, andy)
+
+	// Nothing has changed since sarah arrived, so only the greeting can tell her.
+	sarah := wsConnect(t, srv, "sarah")
+	if got := rosterUsers(t, sarah); len(got["andy"]) != 1 {
+		t.Errorf("sarah's first roster = %v, want andy listed", got)
 	}
 }
 
