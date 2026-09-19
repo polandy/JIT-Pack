@@ -66,6 +66,8 @@ const CLUSTER_ORDER: readonly ClusterMenuAction[] = [
   'quantity',
   'packingNow',
   'skip',
+  'buyLocal',
+  'packInstead',
   'latePackerOn',
   'latePackerOff',
   'assignAll',

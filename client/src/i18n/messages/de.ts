@@ -166,6 +166,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.fanOutApplied': '{n} Zeile geändert | {n} Zeilen geändert',
   'packing.fanOutPartial': '{n} von {total} geändert · {who} packt gerade',
   'packing.unskipAction': 'Doch einpacken',
+  'packing.packInsteadAction': 'Doch mitnehmen',
   'packing.skippedToast': '„{name}“ bleibt zu Hause',
   'packing.companionsAdded':
     '„{names}“ kam mit — es gehört zwingend dazu | „{names}“ kamen mit — sie gehören zwingend dazu',

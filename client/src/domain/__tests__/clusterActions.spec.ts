@@ -26,6 +26,7 @@ interface InstanceSpec {
   latePacker?: boolean
   flagUnused?: boolean
   state?: TripItem['state']
+  mode?: TripItem['mode']
   lockedBy?: string | null
   mine?: boolean
 }
@@ -37,6 +38,7 @@ function instance(spec: InstanceSpec = {}): ClusterInstance {
       state: spec.state ?? 'open',
       late_packer: spec.latePacker ?? false,
       flag_unused: spec.flagUnused ?? false,
+      mode: spec.mode ?? 'pack',
     },
     lockedBy: spec.lockedBy ?? null,
     mine: spec.mine ?? false,
@@ -48,7 +50,14 @@ function ctx(overrides: Partial<ClusterMenuContext> = {}): ClusterMenuContext {
 }
 
 /** What an open cluster offers when the flag is still off, as a row does. */
-const OPEN: ClusterMenuAction[] = ['quantity', 'packingNow', 'skip', 'latePackerOn', 'remove']
+const OPEN: ClusterMenuAction[] = [
+  'quantity',
+  'packingNow',
+  'skip',
+  'buyLocal',
+  'latePackerOn',
+  'remove',
+]
 
 interface MenuCase {
   name: string
@@ -68,7 +77,7 @@ const menuCases: MenuCase[] = [
     name: 'a cluster flagged through offers the way back off it',
     instances: [instance({ id: 'a', latePacker: true }), instance({ id: 'b', latePacker: true })],
     ctx: {},
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOff', 'remove'],
+    want: ['quantity', 'packingNow', 'skip', 'buyLocal', 'latePackerOff', 'remove'],
   },
   {
     name: 'a half-flagged cluster offers to finish the job, not to undo it',
@@ -80,7 +89,7 @@ const menuCases: MenuCase[] = [
     name: 'the assignment is offered only where there is somebody to assign to (G-8)',
     instances: [instance({ id: 'a' }), instance({ id: 'b' })],
     ctx: { canAssign: true },
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'assignAll', 'remove'],
+    want: ['quantity', 'packingNow', 'skip', 'buyLocal', 'latePackerOn', 'assignAll', 'remove'],
   },
   {
     name: 'the closing pass takes the head’s menu away, exactly as it takes a row’s (FR-9.3)',
@@ -128,19 +137,19 @@ const menuCases: MenuCase[] = [
     name: 'the unused judgement is offered in its window (FR-9.3)',
     instances: [instance({ id: 'a' }), instance({ id: 'b' })],
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'flagUnused', 'remove'],
+    want: ['quantity', 'packingNow', 'skip', 'buyLocal', 'latePackerOn', 'flagUnused', 'remove'],
   },
   {
     name: 'a cluster judged unused through offers to take it back',
     instances: [instance({ id: 'a', flagUnused: true }), instance({ id: 'b', flagUnused: true })],
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'unflagUnused', 'remove'],
+    want: ['quantity', 'packingNow', 'skip', 'buyLocal', 'latePackerOn', 'unflagUnused', 'remove'],
   },
   {
     name: 'a half-judged cluster offers to finish the judgement',
     instances: [instance({ id: 'a', flagUnused: true }), instance({ id: 'b' })],
     ctx: { judgeable: true },
-    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'flagUnused', 'remove'],
+    want: ['quantity', 'packingNow', 'skip', 'buyLocal', 'latePackerOn', 'flagUnused', 'remove'],
   },
 ]
 
@@ -189,6 +198,19 @@ describe('clusterTargets (FR-25.26, G-3)', () => {
   it('the late-packer flag and the assignment reach every instance, as before', () => {
     expect(clusterTargets('latePackerOn', mixed, ctx()).targetIds).toEqual(['a', 'b', 'c'])
     expect(clusterTargets('assignAll', mixed, ctx()).targetIds).toEqual(['a', 'b', 'c'])
+  })
+
+  it('the mode switch reaches each instance from where it stands (FR-5.9)', () => {
+    const modes = [
+      instance({ id: 'a' }),
+      instance({ id: 'b', mode: 'buy_local' }),
+      instance({ id: 'c', state: 'partial' }),
+    ]
+    expect(clusterMenuEntries(modes, ctx())).toEqual(
+      expect.arrayContaining(['buyLocal', 'packInstead']),
+    )
+    expect(clusterTargets('buyLocal', modes, ctx()).targetIds).toEqual(['a'])
+    expect(clusterTargets('packInstead', modes, ctx()).targetIds).toEqual(['b'])
   })
 
   it('an on/off pair reaches the same instances in both directions', () => {

@@ -678,6 +678,10 @@ in WebKit.
   flag set from the row's own press-and-hold menu. The rendered ⏰ is the evidence the write landed; reopening the
   menu and finding *„Spätpacker aus"* in place of *„ein"* is the evidence the entry states the row rather than a
   constant. Then off again, so neither direction is assumed from the other.
+* **E2E-M4-119** `all` (FR-5.9, added 2026-09-19) — **implemented** (`e2e/packing-list.spec.ts`): *Vor Ort kaufen*
+  from the row's own menu. The row's *Buy there* badge is the row reading its mode back; M6's *Vor Ort* tab listing it
+  is the same write reaching the other screen that reads it. Reopening the menu finds *Doch mitnehmen* in place of the
+  entry, and taking it removes the badge again.
 * **E2E-M4-88** `all` (FR-25.26, added 2026-09-14) — **implemented** (`e2e/membership.spec.ts`): the cluster head's
   fan-out. The menu names its scope („2 rows") before the action, and the flag is asserted **per instance in M5**
   rather than on the head — the head paints its ⏰ when *any* instance carries the flag (FR-25.23), so a head-only
