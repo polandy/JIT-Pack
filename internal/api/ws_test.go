@@ -196,3 +196,60 @@ func TestWS_CursorUpdateTriggersPresence(t *testing.T) {
 		t.Errorf("in_sync = %v, want true (cursor ahead of empty head)", u["in_sync"])
 	}
 }
+
+// rosterOf reads one frame and returns the user ids its roster names.
+func rosterOf(t *testing.T, ws *websocket.Conn) []string {
+	t.Helper()
+	evt := wsReadMsg(t, ws)
+	if evt["type"] != "roster" {
+		t.Fatalf("type = %v, want roster", evt["type"])
+	}
+	var ids []string
+	for _, u := range evt["payload"].(map[string]any)["users"].([]any) {
+		ids = append(ids, u.(map[string]any)["user_id"].(string))
+	}
+	return ids
+}
+
+func TestWS_ViewingFrameShowsAMemberToTheOthers_FR4_9(t *testing.T) {
+	srv := newTestWSServer(t)
+	a := wsConnectAuth(t, srv, userA)
+	b := wsConnectAuth(t, srv, userB)
+
+	wsSendMsg(t, a, map[string]any{"viewing": map[string]any{"trip_id": trip}})
+
+	if got := rosterOf(t, b); len(got) != 1 || got[0] != userA {
+		t.Errorf("b's roster = %v, want [%s]", got, userA)
+	}
+}
+
+func TestWS_ANonMemberViewingClaimIsNeverListed_FR4_9(t *testing.T) {
+	srv := newTestWSServer(t)
+	b := wsConnectAuth(t, srv, userB)
+	x := wsConnectAuth(t, srv, "user-x") // not a member of the trip
+	a := wsConnectAuth(t, srv, userA)
+
+	// X's claim is downgraded to none, which changes nothing and so sends
+	// nothing; A's claim is the first frame b can receive. A roster naming X
+	// would arrive before it, or beside it.
+	wsSendMsg(t, x, map[string]any{"viewing": map[string]any{"trip_id": trip}})
+	wsSendMsg(t, a, map[string]any{"viewing": map[string]any{"trip_id": trip}})
+
+	if got := rosterOf(t, b); len(got) != 1 || got[0] != userA {
+		t.Errorf("b's roster = %v, want only [%s]", got, userA)
+	}
+}
+
+func TestWS_ANewConnectionIsToldWhoIsAlreadyPacking_FR4_9(t *testing.T) {
+	srv := newTestWSServer(t)
+	a := wsConnectAuth(t, srv, userA)
+	wsSendMsg(t, a, map[string]any{"viewing": map[string]any{"trip_id": trip}})
+	// b connects after the frame; the server may not have read it yet, in which
+	// case b's greeting is empty and is skipped, and the roster b gets is the
+	// broadcast the frame then causes — either way the first frame names a.
+	b := wsConnectAuth(t, srv, userB)
+
+	if got := rosterOf(t, b); len(got) != 1 || got[0] != userA {
+		t.Errorf("b's first roster = %v, want [%s]", got, userA)
+	}
+}

@@ -164,6 +164,62 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
+   * E2E-FLOW-01c (FR-4.4, Sync-API P-1): the header's figures follow another
+   * person's packing. E2E-FLOW-01b proves a *row* arrives on the owner's open
+   * screen; the progress figure above the list is computed from those rows, so
+   * it is a second claim — one that would fail if the figure were read from a
+   * value cached at open rather than derived. Alice touches nothing between
+   * Bob's two packs, and the ring's own label is read as well as the text,
+   * because the ring is what a glance at the header actually reads.
+   */
+  test("E2E-FLOW-01c: a member's packing moves the owner's progress figure and ring", async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Bernina ${id}`
+    const first = `Eispickel-${id}`
+    const second = `Stirnlampe-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, first)
+    await quickAddItem(alice, second)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    const subscribedAlice = watchSubscribed(alice)
+    await alice.goto(tripPath)
+    await expect(visiblePage(alice).getByTestId(`m4-row-${first}`)).toBeVisible()
+    await subscribedAlice
+
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${first}`)).toBeVisible()
+    await subscribedBob
+
+    // The starting figure is asserted first: without it "1/2" could be what
+    // the header had said all along.
+    const header = visiblePage(alice).getByTestId('m4-header')
+    await expect(header.getByTestId('m4-progress')).toContainText('0/2')
+    await expect(header.getByTestId('progress-ring')).toHaveAttribute('aria-label', '0%')
+
+    await packItem(bob, first)
+    await expect(header.getByTestId('m4-progress')).toContainText('1/2')
+    await expect(header.getByTestId('progress-ring')).toHaveAttribute('aria-label', '50%')
+
+    // A second pack moves it again, so the figure is live rather than
+    // refreshed once by the first event.
+    await packItem(bob, second)
+    await expect(header.getByTestId('m4-progress')).toContainText('2/2')
+    await expect(header.getByTestId('progress-ring')).toHaveAttribute('aria-label', '100%')
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
    * E2E-M2-05 (FR-4.5): the trip's own delete is the owner's alone, and the
    * confirm takes it off every list it was on.
    *
