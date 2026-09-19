@@ -427,6 +427,104 @@ describe('the tag admin actions (FR-24.10)', () => {
 
     expect(queued).toEqual([])
   })
+
+  it('giveTagToItems files an untagged item under the tag and a tagged one below its siblings (FR-24.9)', () => {
+    seedTag('tag-1', 'Diverses', 0)
+    seedTag('tag-2', 'Hygiene', 1)
+    const bare = seedItem('item-1')
+    const filed = seedItem('item-2')
+    seedAssignment('it-2', 'item-2', 'tag-1', 0)
+
+    const { touched } = createMasterDataActions(ctx).giveTagToItems([bare, filed], 'tag-2', true)
+
+    expect(touched).toBe(2)
+    const primaryOf = (itemId: string) =>
+      ctx.masterStore.itemTagList
+        .filter((a) => a.item_id === itemId)
+        .sort((a, b) => a.position - b.position)[0]!.tag_id
+    expect(primaryOf('item-1')).toBe('tag-2')
+    expect(primaryOf('item-2')).toBe('tag-2')
+  })
+
+  it('giveTagToItems without primary appends the tag behind the ones the item has', () => {
+    seedTag('tag-1', 'Diverses', 0)
+    seedTag('tag-2', 'Hygiene', 1)
+    const item = seedItem('item-1')
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+
+    createMasterDataActions(ctx).giveTagToItems([item], 'tag-2', false)
+
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts).toEqual([
+      expect.objectContaining({
+        fields: expect.objectContaining({ tag_id: 'tag-2', position: 1 }),
+      }),
+    ])
+  })
+
+  it('giveTagToItems writes nothing for items already filed as asked', () => {
+    seedTag('tag-1', 'Hygiene', 0)
+    const item = seedItem('item-1')
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+
+    const { touched } = createMasterDataActions(ctx).giveTagToItems([item], 'tag-1', true)
+
+    expect(touched).toBe(0)
+    expect(queued).toEqual([])
+  })
+
+  it('takeTagFromItems removes only the items that carry the tag', () => {
+    seedTag('tag-1', 'Diverses', 0)
+    const carrier = seedItem('item-1')
+    const other = seedItem('item-2')
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+
+    const { touched } = createMasterDataActions(ctx).takeTagFromItems([carrier, other], 'tag-1')
+
+    expect(touched).toBe(1)
+    expect(ctx.masterStore.itemTagList).toEqual([])
+  })
+
+  it('undoBulkTag puts a give and a take back as they were, positions included', () => {
+    seedTag('tag-1', 'Diverses', 0)
+    seedTag('tag-2', 'Hygiene', 1)
+    const item = seedItem('item-1')
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+    seedAssignment('it-2', 'item-1', 'tag-2', 1)
+    const actions = createMasterDataActions(ctx)
+    const snapshot = () =>
+      ctx.masterStore.itemTagList
+        .map((a) => [a.tag_id, a.position])
+        .sort((a, b) => Number(a[1]) - Number(b[1]))
+
+    const given = actions.giveTagToItems([item], 'tag-2', true)
+    expect(snapshot()[0]![0]).toBe('tag-2')
+    actions.undoBulkTag(given.undo)
+    expect(snapshot()).toEqual([
+      ['tag-1', 0],
+      ['tag-2', 1],
+    ])
+
+    const taken = actions.takeTagFromItems([item], 'tag-1')
+    expect(snapshot()).toEqual([['tag-2', 1]])
+    actions.undoBulkTag(taken.undo)
+    expect(snapshot()).toEqual([
+      ['tag-1', 0],
+      ['tag-2', 1],
+    ])
+  })
+
+  it('undoBulkTag removes a tag the batch itself created', () => {
+    const actions = createMasterDataActions(ctx)
+    const item = seedItem('item-1')
+    const tagId = actions.createTag('Neu')
+
+    const { undo } = actions.giveTagToItems([item], tagId, true, true)
+    actions.undoBulkTag(undo)
+
+    expect(ctx.masterStore.tagList).toEqual([])
+    expect(ctx.masterStore.itemTagList).toEqual([])
+  })
 })
 
 describe('a template’s trip tasks on the seam (FR-7.4)', () => {

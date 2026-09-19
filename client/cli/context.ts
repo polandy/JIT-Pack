@@ -24,6 +24,7 @@ import { createMutations } from '@/sync/mutations'
 import { createNameGuards } from '@/composables/sync/names'
 import { createCommentActions } from '@/composables/sync/actions/comments'
 import { createPackingActions } from '@/composables/sync/actions/packing'
+import { createMasterDataActions } from '@/composables/sync/actions/masterData'
 import { createGroupRefreshActions } from '@/composables/sync/actions/groupRefresh'
 import { createTripLifecycleActions } from '@/composables/sync/actions/tripLifecycle'
 import { knownTripItemsOf } from '@/composables/sync/context'
@@ -42,6 +43,8 @@ export interface CommandContext {
   mutations: ReturnType<typeof createMutations>
   pending: PendingWrites
   tripLifecycle: ReturnType<typeof createTripLifecycleActions>
+  /** M9's tag manager and bulk actions (FR-24.9/24.10/24.13), for `jitpack tags`. */
+  masterData: ReturnType<typeof createMasterDataActions>
   /** Feed a pull's changes to whichever store owns each row. */
   applyPulled(partition: 'master' | 'trip', changes: PullChange[]): void
   /** Remember that this trip's rows are here — the refresh's ADR-016 guard. */
@@ -123,6 +126,7 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
     mutations,
     pending,
     tripLifecycle,
+    masterData: createMasterDataActions(ctx),
     applyPulled,
     markTripLoaded: (tripId) => loaded.add(tripId),
   }

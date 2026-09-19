@@ -55,6 +55,7 @@ for an instance you run.
 |---|---|
 | `jitpack import` | Put portable YAML into the instance — see [Backup & Export](backup.md#importing-yaml-from-the-command-line). |
 | `jitpack traveler` | Read and extend the people on a trip. |
+| `jitpack tags` | Read, rename, merge and hand out the tags your inventory is filed under. |
 
 Every command exits `0` when it worked, `1` when the instance refused or something failed,
 and `2` when the command line itself was wrong — so a script can tell "nothing landed" from
@@ -164,6 +165,115 @@ just has nobody's account to notify yet.
 
 Not from here. Taking a person off a trip has to decide what happens to the rows they were
 packing, so the app asks — open the trip, edit it, and remove them there.
+
+## Tags
+
+Tags are how the inventory is filed. Over time they drift — `Elektronik` beside `Technik`, a
+`Diverses` that holds half the house — and tidying them in the app is a lot of tapping. The
+`tags` command does the same things the tag manager and the inventory's selection mode do,
+from a shell, and it can run a whole cleanup written down as a file.
+
+See what is there:
+
+```bash
+node client/dist-cli/jitpack.mjs tags list --items
+```
+
+```
+Elektronik — 1 item
+  Ladekabel
+Fotografie — 1 item
+  Kamera
+Diverses — 2 items
+  Pflaster
+Bad — 1 item
+  Zahnbürste
+```
+
+`Diverses` counts two items but lists one: the camera carries it too, but is filed under
+`Fotografie`, its first tag.
+
+The number beside a tag counts every item carrying it, retired ones included — the same
+number the tag manager shows. `--items` also lists the items filed under each tag, and those
+with no tag at all.
+
+### One change at a time
+
+| Action | What it does |
+|---|---|
+| `rename TAG NAME` | Gives a tag a new name. Refused if another tag already has it — merge into that one instead. |
+| `merge TAG INTO` | Moves every item from `TAG` onto `INTO`, keeping each item filed where it was, then removes `TAG`. |
+| `give TAG ITEM...` | Gives the tag to these items and files them under it. `--no-primary` only adds it. A tag that does not exist yet is created. |
+| `take TAG ITEM...` | Takes the tag away from these items. `--all` takes it from every active item that carries it. |
+| `delete TAG` | Removes a tag no item carries. Refused while items still carry it, and says how many. |
+| `mark TAG EMOJI` | Sets the tag's mark; `--clear` removes it. Only emoji the app's mark picker offers are accepted. |
+
+Tags and items are matched ignoring case. Retired items are left alone, as in the app:
+naming one is refused, and `--all` skips them — which is why a tag only retired items still
+carry cannot be deleted. Merge it into another tag instead.
+
+```bash
+node client/dist-cli/jitpack.mjs tags merge Elektronik Technik
+```
+
+### A whole cleanup as a plan
+
+A plan is a YAML list of the same steps, run in order:
+
+```yaml
+- rename: Elektronik
+  to: Technik
+- merge: Fotografie
+  into: Technik
+- rename: Bad
+  to: Hygiene
+- give: Gesundheit
+  items: [Pflaster]
+- take: Diverses
+  items: all
+- delete: Diverses
+- mark: Technik
+  as: 🔌
+- mark: Hygiene
+  as: 🧴
+```
+
+`give` files the items under the tag unless the step says `primary: false`. `mark` takes
+`as: null` to clear a mark.
+
+Always run it with `--dry-run` first. It performs every step against a copy of your data,
+reports each one, and shows the tags you would end up with — and sends nothing:
+
+```bash
+node client/dist-cli/jitpack.mjs tags apply retag.yaml --dry-run
+```
+
+```
+rename Elektronik → Technik
+merge Fotografie → Technik: 1 item moved, Fotografie removed
+rename Bad → Hygiene
+give Gesundheit (new tag): 1 of 1 item filed under it
+take Diverses: removed from 2 items
+delete Diverses
+mark Technik: 🔌
+mark Hygiene: 🧴
+11 writes (dry run, not sent). Tags afterwards:
+  Technik 🔌 — 2 items
+  Hygiene 🧴 — 1 item
+  Gesundheit — 1 item
+```
+
+Then run it without `--dry-run`. **A plan is all or nothing:** if any step is refused — a
+misspelt item, a name already taken, a tag still in use — the run stops there, says which
+step and why, and sends nothing at all. Fix the file and run it again. If the instance itself
+refuses a write — say someone renamed a tag on their phone a moment earlier — the command names
+that write and exits `1` instead of reporting success; run `tags list` to see where things stand.
+
+A plan describes a change, not an end state, so running the same file a second time stops at
+its first rename or merge (the old tag is gone) without changing anything.
+
+**There is no undo for a plan.** Take a backup of the database first — see
+[Backup & Export](backup.md) — so a cleanup you regret can be rolled back.
 
 ## A whole season at once
 
