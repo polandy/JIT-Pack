@@ -314,6 +314,16 @@ rather than a second way of building a trip.
       conditions:
         season: [summer]
   ```
+  * **Shared, not only saved (added 2026-09-19).** M7's row menu hands the same document to the device's share sheet
+    (Web Share with a file) beside the export that saves it — on a phone, passing a Vorlage on to someone running their
+    own instance is a message, and the saved file was a detour through the file manager. The file travels as
+    `text/plain` named `<name>.yaml.txt`, not as `application/yaml`: Chrome shares only an allowlist of file types, YAML
+    is not on it, and a type it refuses makes the action disappear on exactly the platform it is for; M18's picker
+    accepts `.txt` already. The entry is **offered only where the browser can share a file** (G-8's stance — desktop
+    Firefox and Chrome on Linux have no Web Share), and a share that fails for any reason but the person's own dismissal
+    saves the file instead and says so. This is **not** FR-1.6's publish/fork model and does not fire its revisit
+    trigger: the file leaves the instance exactly as the export's always did, and nothing on this instance changes owner
+    or visibility.
 * **FR-18.3 (Trip Export):** A trip's packing list (active or archived) can be exported the same way: item names,
   quantities, and packed state, with containers and traveler assignments referenced **by name**, not by internal
   database id, since those ids are meaningless on a different instance. The user chooses whether to include current pack

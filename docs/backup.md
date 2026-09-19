@@ -323,6 +323,12 @@ read and hand-edited — is not served by the instance. There is no
 template or a trip **in the app**, from the list screen, and a whole device from
 **Settings → Backup**.
 
+On a phone, a template's menu also offers **Share template…**, which hands the same document
+to the share sheet — a message to someone running their own instance, without saving it
+first. It travels as `<name>.yaml.txt`, because Android's share sheet does not take YAML
+files; the import screen reads it as it is. The entry is missing where the browser cannot
+share files, which includes desktop Firefox and Chrome on Linux: use the export there.
+
 The reason is worth knowing, because it is what the format is *for*: reading and writing it
 live in one place, so a file JIT-Pack writes is a file JIT-Pack reads back completely. The
 instance used to serve this format too, from a second implementation that had quietly fallen

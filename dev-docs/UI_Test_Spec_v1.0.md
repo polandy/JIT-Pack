@@ -1296,6 +1296,11 @@ and one of those clauses is the arithmetic the row exists for.
   including the write that must *not* happen. *The promise as written:* FAB → name prompt →
   creates template → opens M8.
 * **E2E-M7-04** `all` (FR-18.2) — **implemented**: long-press → Export → YAML download.
+* **E2E-M7-12** `local` (FR-18.2) — **implemented 2026-09-19 as three tests**: where the browser can share a file,
+  long-press → *Vorlage teilen…* hands the share sheet one file, `Makro.yaml.txt` as `text/plain`, carrying the whole
+  portable document of that Gruppe (its kind, name and scope); a share that fails other than by dismissal saves
+  `Makro.yaml` instead and a toast says so; where the browser cannot share a file the menu carries *Export* and no share
+  entry. The share sheet itself is the operating system's, so the case stubs `navigator.share` and asserts the call.
 * **E2E-M7-05** `all` (FR-18.4) — **the promise is half built, and the half that is has a case
   since 2026-08-30.** Import from M7 exists and reaches M18; the **FAB "+" menu** it is promised in does not, and the
   FAB opens the scope chooser instead. Import is a header icon beside the page title, recorded as *still owed* in this

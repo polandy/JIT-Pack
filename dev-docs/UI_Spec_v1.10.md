@@ -7,6 +7,7 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-19 — **M7**'s row menu shares a Vorlage through the device's share sheet (FR-18.2).
 * 2026-09-18 — **M4**'s ⋮ offers „Namen aus dem Inventar", a sheet that takes renamed items' names over, and **M5**
   offers it for its own row (FR-27.16).
 * 2026-09-18 — **M1** reports trip todos and a second check on the trip cards, and takes no actions — the prep
@@ -1579,7 +1580,8 @@ These patterns apply to every screen and are specified once.
   one surface, one commit, and no row exists until the name does. The prototype's create-then-rename flow was rejected
   because with real persistence it writes an unnamed row on the first tap. **Long-press a row (right-click on desktop) →
   context menu with *Umbenennen*, *Export* and *Löschen*** (Addendum FR-18.2; rename/delete joined with the M8 rebuild
-  2026-08-15) — the row itself keeps only what identifies it (name, counts, scope chip). Rename is an alert prefilled
+  2026-08-15), and ***Vorlage teilen…*** after *Export* where the browser can share a file (FR-18.2, 2026-09-19)
+  — the row itself keeps only what identifies it (name, counts, scope chip). Rename is an alert prefilled
   with the name; delete confirms first and states that generated trips keep their rows (FR-2.4), and **a group something
   includes refuses deletion naming its consumer** — the same stance as the FR-27.6 promotion guard, because a cascade
   would silently rewrite every Vorlage built on it. **A group a *trip* has already used is a different case (FR-24.3,
