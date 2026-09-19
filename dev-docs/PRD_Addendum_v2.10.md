@@ -2940,7 +2940,28 @@ locked.
   driving case is the toothbrush: four travelers, four instances, and one true statement about all of them — everybody
   packs it on the morning the trip leaves. Said per instance it cost four passes through M5 for one boolean. The
   **cluster head** (FR-25.1) carries the same press-and-hold menu a row does — the short tap stays FR-25.23's fold —
-  and offers exactly two things, each **for every instance under it**: the late-packer flag and *„Alle zuweisen an …"*.
+  and offers ~~exactly two things~~, each **for every instance under it**: the late-packer flag and *„Alle zuweisen an
+  …"*.
+
+  **Widened 2026-09-19 (owner request): the head offers everything a row's own menu does.** A shut cluster is one line
+  on the screen, and a press on it that could do less than a press on a row taught the reader to open the cluster
+  first. Beside the two entries above, the head now carries FR-25.24's *Menge*, *„Jetzt packen"*, FR-5.5's skip and
+  its *„Doch einpacken"*, G-3's release, FR-9.3's *unused* judgement and FR-5.8's removal — in the row's order, in the
+  row's words (the sub-header already says how many rows they reach). **Each entry reaches the instances whose own row
+  menu would offer it**, so a head over two open instances and a skipped one skips the two and un-skips the third,
+  and an entry is on the head when at least one instance nobody else holds would offer it (`clusterMenuEntries`,
+  `clusterTargets` in `domain/clusterActions.ts`). The late-packer flag and the assignment keep the first rule and
+  reach every instance, because narrowing them would change what the existing entries write. Four points settled
+  while building:
+  * **The takeover stays off the head**, for the reason below: breaking a claim is a decision about one row.
+  * **The amount is written, the same number, to every instance.** It is per person (FR-25.1), so one number is the
+    statement; the editor opens on the first instance's amount, and the first tap makes that true of all of them.
+  * **Skip and removal are one gesture with one undo.** Their snackbar names the item — with *„(3 von 4)"* when a
+    claim kept the write off an instance, since the undo-bearing snackbar cannot hand its report to the fan-out toast.
+  * **A removal of every instance asks what the instances only kept for each other.** FR-20.2 keeps a companion while
+    another traveler's row of its main item is still on the list, so asked row by row every instance would name no
+    companion, and the confirmation would promise less than the write takes (`planRemovals`). Likewise ADR-065's
+    inventory prune: the instances are no use of each other (`itemLeftUnusedByRows`).
 
   **No new structure.** A fan-out writes each instance's own field, exactly as the row-level control does, so
   field-level LWW (NFR-4.2a) merges the result with no rule of its own and an instance set differently afterwards
@@ -4535,9 +4556,10 @@ the tail is where a symbol system is actually decided. Results:
     per-person item (FR-25.1) is still on the trip while another traveler's row of it is not skipped (FR-20.2, since
     2026-09-18 for the skip too). Once the main row is gone, a co-skipped companion reads as plainly skipped:
     `skippedVia` names the *skipped* row it followed, and there is none left to name.
-  * **Not here, deliberately.** M5 has no *Entfernen* control (FR-5.5's findable path stays the skip), and the
-    FR-25.26 cluster head offers no removal for all instances. Each is one more entry point for the same act; neither
-    was asked for. **Revisit trigger:** somebody looks for removal in M5, or removes a per-person item row by row.
+  * **Not here, deliberately.** M5 has no *Entfernen* control (FR-5.5's findable path stays the skip)~~, and the
+    FR-25.26 cluster head offers no removal for all instances~~. Each is one more entry point for the same act; neither
+    was asked for. **Revisit trigger:** somebody looks for removal in M5~~, or removes a per-person item row by row~~.
+    *The cluster head's half fired 2026-09-19: the owner asked for the head to offer what a row does (FR-25.26).*
   * **Modes.** Identical in all three: a trip-partition delete and, for the undo, an insert — nothing server-only.
   * **The item goes with its last use (owner decision 2026-09-19, *built 2026-09-19*; the how is ADR-065).** Since
     FR-24.11 every name typed into the composer is an inventory item, so a removed typo or one-off stayed in the

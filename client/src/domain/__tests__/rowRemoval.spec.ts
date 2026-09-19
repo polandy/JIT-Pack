@@ -8,7 +8,9 @@ import { describe, it, expect } from 'vitest'
 
 import {
   itemLeftUnused,
+  itemLeftUnusedByRows,
   planRemoval,
+  planRemovals,
   removalNeedsConfirm,
   type ItemUseSources,
   type RemovableRow,
@@ -93,6 +95,35 @@ describe('planRemoval (FR-5.8)', () => {
   })
 })
 
+describe('planRemovals (FR-5.8, FR-25.26)', () => {
+  it('sums what every row takes along', () => {
+    const a = row('a', { source_item_id: 'item-tent', packed_count: 1 })
+    const b = row('b', { source_item_id: 'item-tent', packed_count: 2 })
+    const notes: Record<string, number> = { a: 1, b: 0 }
+    const plan = planRemovals([a, b], [a, b], [], (target) => notes[target.id] ?? 0)
+    expect(plan).toEqual({ packed: 3, notes: 1, companions: [] })
+  })
+
+  it('names the companions the instances only keep for each other (FR-20.2)', () => {
+    // Row by row each instance still has the other on the list, so neither
+    // would name the pegs — and the removal of both leaves them unneeded.
+    const a = row('a', { source_item_id: 'item-tent' })
+    const b = row('b', { source_item_id: 'item-tent' })
+    const pegs = row('pegs')
+    expect(planRemoval(a, [a, b, pegs], [PEGS_ON_TENT], 0).companions).toEqual([])
+    const plan = planRemovals([a, b], [a, b, pegs], [PEGS_ON_TENT], () => 0)
+    expect(plan.companions).toEqual([pegs])
+  })
+
+  it('keeps a companion an instance left out of the removal still needs', () => {
+    const a = row('a', { source_item_id: 'item-tent' })
+    const b = row('b', { source_item_id: 'item-tent' })
+    const pegs = row('pegs')
+    const plan = planRemovals([a], [a, b, pegs], [PEGS_ON_TENT], () => 0)
+    expect(plan.companions).toEqual([])
+  })
+})
+
 describe('itemLeftUnused (FR-5.8, ADR-065)', () => {
   const tripRow = (id: string, source_item_id: string | null): TripItem =>
     ({ id, trip_id: 't', name: id, quantity: 1, source_item_id }) as TripItem
@@ -115,6 +146,19 @@ describe('itemLeftUnused (FR-5.8, ADR-065)', () => {
 
   it('answers the same once the removed row has left the store', () => {
     expect(itemLeftUnused(tent, { ...none, tripItems: [] })).toBe('item-tent')
+  })
+
+  it('the rows of one item removed together are no use of each other (FR-25.26)', () => {
+    const other = tripRow('ti-tent-2', 'item-tent')
+    const both: ItemUseSources = { ...none, tripItems: [tent, other] }
+    expect(itemLeftUnused(tent, both)).toBeNull()
+    expect(itemLeftUnusedByRows([tent, other], both)).toBe('item-tent')
+    expect(itemLeftUnusedByRows([tent], both)).toBeNull()
+  })
+
+  it('has no single answer for rows of different items', () => {
+    const stove = tripRow('ti-stove', 'item-stove')
+    expect(itemLeftUnusedByRows([tent, stove], { ...none, tripItems: [tent, stove] })).toBeNull()
   })
 
   it('names nothing for an ad-hoc row — it has no inventory item (FR-5.6)', () => {

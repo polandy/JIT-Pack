@@ -162,6 +162,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.clusterLatePackerOff': 'Spätpacker für alle aus',
   'packing.clusterAssignAll': 'Alle zuweisen an …',
   'packing.clusterScope': '{n} Zeile | {n} Zeilen',
+  'packing.clusterPartialName': '{name} ({n} von {total})',
   'packing.fanOutApplied': '{n} Zeile geändert | {n} Zeilen geändert',
   'packing.fanOutPartial': '{n} von {total} geändert · {who} packt gerade',
   'packing.unskipAction': 'Doch einpacken',

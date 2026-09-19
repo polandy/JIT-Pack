@@ -1221,10 +1221,15 @@ These patterns apply to every screen and are specified once.
       und wird auch aus dem Inventar gelöscht."*; the item goes once the undo has lapsed, or at once after the alert.
   * **Cluster head menu (added 2026-09-14, FR-25.26):** the head of a per-person cluster (FR-25.1) takes the same
     press-and-hold, while the short tap stays FR-25.23's fold. It offers **Spätpacker für alle ein/aus** and **Alle
-    zuweisen an …**, each acting on every instance the head counts, and it states the scope in its sub-header
-    (*„4 Zeilen"*) because a shut head hides the rows it is about to write. Instances somebody else holds are skipped
-    and reported in the toast (*„3 von 4 geändert · Sia packt gerade"*); a head whose every instance is held offers no
-    menu at all, and none of its entries is a takeover.
+    zuweisen an …**, each acting on every instance the head counts, and — since 2026-09-19 — **every entry of a row's
+    own menu** except the takeover, in the row's order and words: *Menge ändern*, *Jetzt packen*, *Nicht einpacken* /
+    *Doch einpacken*, *Freigeben*, *Unbenutzt*, *Von der Liste entfernen*. Each reaches the instances whose own row
+    would offer it. *Menge ändern* opens the row's amount popover, centred, naming the item; each tap writes the same
+    amount to every instance. Skip and removal carry one snackbar and one undo for all of them. It states the scope
+    in its sub-header (*„4 Zeilen"*) because a shut head hides the rows it is about to write. Instances somebody else
+    holds are skipped and reported in the toast (*„3 von 4 geändert · Sia packt gerade"*) — or, for skip and removal,
+    in the snackbar's name (*„Zahnbürste (3 von 4)"*); a head whose every instance is held offers no menu at all, and
+    none of its entries is a takeover.
   * **The for-whom strip (added 2026-09-18, FR-25.28):** the list carries a leading ***who* column**, one avatar wide,
     before the mark — wherever the trip has two travelers or more and outside FR-9.3's closing pass (G-8). On an item
     row and on a cluster head it holds the **for-whom seat**: an empty seat with the people glyph on a shared row, the
