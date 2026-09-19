@@ -143,13 +143,13 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   await expect(inventoryRow('Drohne')).toHaveCount(0)
 })
 
-// E2E-M4-114 (FR-5.8, FR-25.21): a per-person item is one row per traveler,
+// E2E-M4-116 (FR-5.8, FR-25.21): a per-person item is one row per traveler,
 // so removing it is removing *one person's* row. Both instances are packed —
 // Andy packed for both — and Leonardo then does not need his after all: his
 // row goes, Andy's stays packed. The dialog's count is the rendered proof that
 // the removal was scoped before anything was written: it names one packed
 // unit, not the two the cluster holds.
-test('E2E-M4-114: removing one traveler’s instance keeps the other’s @local @m4', async ({
+test('E2E-M4-116: removing one traveler’s instance keeps the other’s @local @m4', async ({
   page,
   seedMode,
 }) => {

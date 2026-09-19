@@ -711,7 +711,7 @@ in WebKit.
   too"*; undone, and the screen left, M9 still lists *Zelt* — the undo lapsed nothing. Removed again and the snackbar
   left to run out, M9 lists *Schlafsack* and no *Zelt*. Mutation-checked: without the prune the last assertion fails;
   with a prune at removal time instead of at the lapse, the M9 check after the undo does.
-* **E2E-M4-114** `local` (FR-5.8 with FR-25.21, added 2026-09-19) — **implemented** (`e2e/remove-item.spec.ts`): a
+* **E2E-M4-116** `local` (FR-5.8 with FR-25.21, added 2026-09-19) — **implemented** (`e2e/remove-item.spec.ts`): a
   per-person item for two travelers, both instances packed; removing one traveler's instance from its own row asks
   first, naming **one** packed unit rather than the cluster's two, and takes only that row. The cluster dissolves into
   the other traveler's row, still packed, and a reload reads the same.
