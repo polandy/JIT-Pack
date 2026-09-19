@@ -47,7 +47,7 @@ test.describe('M4 — per-person progress @local @m4', () => {
       /Mia/,
       /Shared/,
     ])
-    await expect(face('Andy')).toContainText('nothing to pack')
+    for (const name of TRIP.travelers) await expect(face(name)).toContainText('nothing to pack')
     await expect(shared).toContainText('0 of 2')
 
     // Give one row to Andy: his share appears and the shared share shrinks.
