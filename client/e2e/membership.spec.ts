@@ -902,6 +902,57 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
   })
 
   /*
+   * FR-25.30. Filtered to one traveler — the FR-25.29 ring is the tap that
+   * does it — a shut cluster with one person left in it is a fold around a
+   * single row, and ticking your own socks cost opening it first. The case
+   * never taps the head: the check it reaches for is the positive signal that
+   * no fold stood in front of it, and the negative half (no cluster, no
+   * children) is what separates a plain row from an opened cluster.
+   *
+   * The filter is cleared afterwards because that is the half a unit cannot
+   * see: M4 has to hand the view builder the facet, not a list it already
+   * narrowed, or the cluster would not come back for the others.
+   */
+  test('E2E-M4-113: filtered to one traveler, their instance is a plain row ticked without opening', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 2)
+    await closeItem(page)
+
+    const list = visiblePage(page)
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toBeVisible()
+
+    const andy = list.getByTestId('m4-traveler-progress-Andy')
+    await andy.click()
+    await expect(andy).toHaveAttribute('aria-pressed', 'true')
+
+    // A plain row, not a cluster and not an opened one — and it does not say
+    // „· Andy", which the chip row already says.
+    const row = list.getByTestId(`m4-row-${ITEM}`)
+    await expect(row).toBeVisible()
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toHaveCount(0)
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toHaveCount(0)
+    await expect(row).not.toContainText('Andy')
+
+    await row.getByTestId('row-check').click()
+    await expect(row).toHaveCount(0)
+    await expect(page.getByTestId('m4-progress')).toContainText('1/3')
+
+    // Clearing the filter brings the cluster back for the people still open,
+    // with Andy's face among them as dealt with.
+    await andy.click()
+    await expect(andy).toHaveAttribute('aria-pressed', 'false')
+    const head = list.getByTestId(`m4-cluster-${ITEM}`)
+    await expect(head).toBeVisible()
+    await expect(head).toContainText('2 open')
+    await expect(head.getByTestId('user-avatar')).toHaveCount(2)
+  })
+
+  /*
    * FR-25.26. The head is the only line that knows an item is one thing
    * several people carry, so it is where „everybody packs this on the morning
    * we leave" can be said once. What no unit can see is that the flag reached

@@ -469,6 +469,13 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     })
   }
 
+  /** FR-25.30: the Person facet alone, which is the one facet that shapes clusters. */
+  const inPersonScope = (item: TripItem) =>
+    facets.person.length === 0 ||
+    valuesOf(item, 'person', false).some((v) => facets.person.includes(v))
+  const filteredToOnly = (traveler: Traveler) =>
+    facets.person.length === 1 && facets.person[0] === traveler.id
+
   const term = search.trim().toLowerCase()
   const matchesSearch = (item: TripItem) => term === '' || item.name.toLowerCase().includes(term)
 
@@ -569,13 +576,15 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     totals.set(key, tally)
   }
 
-  // Cluster sizes are measured over *every* item, filtered or not: whether a
+  // Cluster sizes are measured before anything hides an instance: whether a
   // per-person item renders as a cluster or as a flat row must not flip because
-  // one instance got packed, or because a facet hid a sibling. Shape is a
-  // property of the item, not of the current view.
+  // one instance got packed, or because a facet hid a sibling. The one axis
+  // that does set the shape is the Person facet (FR-25.30): choosing whose
+  // things are on screen is choosing the list, and a cluster left with one
+  // person in it is a fold around a single row that has to be opened to tick.
   const clusterSizes = new Map<string, number>()
   if (groupBy !== 'person') {
-    for (const item of items) {
+    for (const item of items.filter(inPersonScope)) {
       const key = perPersonKey(item)
       if (key) clusterSizes.set(key, (clusterSizes.get(key) ?? 0) + 1)
     }
@@ -595,9 +604,12 @@ export function buildPackingView(input: PackingViewInput): PackingView {
       ? (travelerById.get(item.assigned_traveler_id) ?? null)
       : null
     // A lone per-person instance says who it is for inline, since no cluster
-    // header carries that context. Grouped by traveler the header already does.
+    // header carries that context. Grouped by traveler the header already does,
+    // and filtered to that traveler alone the chip row does (FR-25.30).
     const label =
-      standalone && traveler && groupBy !== 'person' ? `${item.name} · ${traveler.name}` : item.name
+      standalone && traveler && groupBy !== 'person' && !filteredToOnly(traveler)
+        ? `${item.name} · ${traveler.name}`
+        : item.name
     return { kind: 'item', item, traveler, done: done(item), label }
   }
 

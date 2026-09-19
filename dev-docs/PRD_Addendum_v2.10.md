@@ -1929,7 +1929,8 @@ locked.
     while packing: the key is **scoped to the current group**, so instances in different categories or containers do not
     merge across group boundaries; and **cluster-vs-flat is decided over the full instance set, before FR-25.2 hides
     anything** — otherwise packing one instance of a two-person item would silently restructure the list under the
-    user's finger.
+    user's finger. **Narrowed 2026-09-19 by FR-25.30:** the full set is the one the **person facet** lets through; every
+    other facet, the search and the done rule still leave the shape alone.
 * **FR-25.2 (Completed & Skipped Items Hidden by Default):** An item that is **done** — either fully packed, or
   consciously skipped (FR-5.5) — is **hidden from the active packing list by default**, keeping the working list focused
   on what is left. A persistent, unobtrusive control (e.g., "N gepackte anzeigen") re-reveals them; revealing is
@@ -3099,6 +3100,27 @@ locked.
     face does not move out from under the thumb reaching for it.
   * **Absent below two travelers**, where it would only repeat the trip line, and during FR-9.3's closing pass. It is
     content, not a control row (G-12): it sits under the sticky trip line and scrolls away with the list.
+* **FR-25.30 (Filtered to one person, a cluster is a row — added 2026-09-19, owner request; built the same day):** When
+  the person facet (FR-25.11) — typically set by a tap on a FR-25.29 ring — leaves a per-person item **one** instance in
+  the group, that instance renders as an **ordinary row** with its own check or stepper, not as a shut FR-25.23 cluster
+  with one person inside. *The defect it answers:* packing one's own things with the list filtered to oneself, every
+  item everybody needs — socks, underwear, a toothbrush — was a fold around a single row that had to be opened before
+  it could be ticked, two taps per item on the list a person works through alone. Rules the build settled:
+  * **Only the person facet shapes the list.** FR-25.1's full-set rule stays for everything else: packing an instance,
+    hiding done rows, the search, and every other facet leave the shape as it was, because none of them is a choice
+    about *whose* things are on screen. A choice of people is — so the shape follows it, and the row moving is the
+    expected consequence of the tap that filtered, not a restructuring under the finger. Packed and revealed, the row
+    stays a row.
+  * **The row does not say whose it is when the filter names one person.** The FR-25.1 flat label *„Item · Person"*
+    drops the person, since the chip row (FR-25.11a) and the pressed ring already say it for every line. With several
+    people chosen the label keeps the name, because then no single chip does. The FR-25.28 seat keeps its face: it is
+    the control that changes whose the row is, not a label.
+  * **Several people chosen keeps the cluster** for an item two or more of them have, with faces and open count over
+    those people only — the FR-25.23 head answering for what it hides, over the list that is actually shown.
+  * **No wire, no schema:** a view-model rule in `domain/packingView.ts`, identical in all three modes.
+  Mocked before building (*„Socken ohne Aufklappen"*, three variants; this is variant A). **Rejected: a check on the
+  cluster head** (variant B) — it keeps the fold and turns one tap into a bulk action over several rows, which is
+  FR-25.26's head menu's job, not the list's.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.

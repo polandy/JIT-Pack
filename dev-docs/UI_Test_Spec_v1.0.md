@@ -719,6 +719,12 @@ in WebKit.
 * **E2E-M4-112** `local` (FR-25.29 with FR-9.3, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): on a
   running trip for three travelers the per-person strip is shown; opening the closing pass removes it, read once the
   pass banner is on screen, and cancelling the pass brings it back.
+* **E2E-M4-113** `local` (FR-25.30, added 2026-09-19) — **implemented** (`membership.spec.ts`): a per-person item for
+  Andy (1) and Leonardo (2) is a cluster; a tap on Andy's FR-25.29 ring presses it, and the item becomes a plain row —
+  no cluster head, no child row, and no *„Andy"* in its label. Its check is ticked **without the head ever being
+  tapped**, the row leaves (FR-25.2) and the trip line reads *1/3*. A second tap on the ring clears the filter and the
+  cluster is back, reading *„2 open"* with both faces — the half only M4's wiring can fail, by handing the view builder
+  an already-narrowed list instead of the facet.
 * **E2E-M4-106** `local` (FR-7.3 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): the same
   for M4's preparation section: ticking a prep task drops the row's badge and raises the snackbar; *Rückgängig*
   brings the badge back, also after a reload.
@@ -3381,6 +3387,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.6 | E2E | M6-05 (aggregated row), M6-06 (settles all instances), M6-07 (notes) |
 | FR-25.10 | E2E | M6-08 (no free-form "for whom"); M5 membership control — closed by FR-25.21 |
 | FR-25.21 | E2E | M5-18, M5-19, M5-20, M5-21 (the state follows the numbers), G3-04 (M6-05/06 carry the FR-25.6 half) |
+| FR-25.30 | E2E+UNIT | M4-113 (filtered to one traveler, the instance is a plain row ticked without opening; the cluster returns with the filter); packingView.ts (only the person facet shapes, the label drops the one filtered name) |
 | FR-25.28 | E2E | M4-100 (the seat, and a strip that follows its item from row to cluster), M4-101 (the last traveler leaves silently), M4-102 (a browse-sheet add is deaf to the strip), M5-29 (the sheet closes with the row it stood on); M5-18/-19/-20/-21/-26 and M4-12/-58/-64 run through the strip; G3-04 is its lock |
 | FR-25.12 | E2E | M6-09 (buyer, kept distinct from recipients), M6-10 (description) |
 | FR-25.13 | E2E | M6-11; M4-04; M8-13 (same quick-add on all three screens, and the two-character autocomplete gate); M8-14 (same edit sheet) |

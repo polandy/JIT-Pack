@@ -16,7 +16,14 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { buildPackingView, isDone, noFacets, rowEdgeAvatar, isReshaped } from '../packingView'
+import {
+  buildPackingView,
+  isDone,
+  NO_VALUE,
+  noFacets,
+  rowEdgeAvatar,
+  isReshaped,
+} from '../packingView'
 import type { Container, Facets, TripItem, TripParticipant, Traveler } from '@/types/domain'
 
 let seq = 0
@@ -441,11 +448,66 @@ describe('per-person clusters (FR-25.1)', () => {
     expect(result.groups[0]?.entries[0]?.kind).toBe('cluster')
   })
 
-  it('keeps cluster-vs-flat decided over the full set, even when a facet hides an instance', () => {
-    // Filtering to Andy leaves one visible instance; restructuring the list into
-    // a flat "Shorts · Andy" row on filtering would move the row under the user.
-    const result = view([shorts(andy), shorts(leo)], { facets: facets({ person: [andy.id] }) })
+  it('keeps cluster-vs-flat decided over the full set when a facet other than Person hides an instance', () => {
+    // Leo's shorts are in a bag, Andy's are not: narrowing to the bag must not
+    // turn the item into a flat row, since the bag is not whose things these are.
+    const result = view([shorts(andy), shorts(leo, { container_id: 'bag' })], {
+      facets: facets({ container: [NO_VALUE] }),
+    })
     expect(result.groups[0]?.entries[0]?.kind).toBe('cluster')
+  })
+
+  describe('the Person facet shapes the cluster (FR-25.30)', () => {
+    it('renders the one person left as a plain row, checkable without opening anything', () => {
+      const result = view([shorts(andy), shorts(leo), shorts(mia)], {
+        facets: facets({ person: [andy.id] }),
+      })
+      const [entry] = result.groups[0]?.entries ?? []
+      expect(entry?.kind).toBe('item')
+      if (entry?.kind !== 'item') return
+      expect(entry.traveler?.id).toBe(andy.id)
+      // The chip row already names Andy; saying it again on every row is noise.
+      expect(entry.label).toBe('Shorts')
+    })
+
+    it('keeps a cluster when two of the chosen people have one', () => {
+      const result = view([shorts(andy), shorts(leo), shorts(mia)], {
+        facets: facets({ person: [andy.id, leo.id] }),
+      })
+      const [entry] = result.groups[0]?.entries ?? []
+      expect(entry?.kind).toBe('cluster')
+      if (entry?.kind !== 'cluster') return
+      expect(entry.faces.map((f) => f.traveler?.name)).toEqual(['Andy', 'Leo'])
+    })
+
+    it('names the person on a lone row when several people are chosen, since no one chip says who', () => {
+      const result = view([shorts(andy), shorts(mia)], {
+        facets: facets({ person: [andy.id, leo.id] }),
+      })
+      const [entry] = result.groups[0]?.entries ?? []
+      expect(entry?.kind).toBe('item')
+      if (entry?.kind !== 'item') return
+      expect(entry.label).toBe('Shorts · Andy')
+    })
+
+    it('does not flip back into a cluster when the one row left is packed and revealed', () => {
+      // The shape is the facet's, not the done rule's (FR-25.1): packing is
+      // not a choice about the list, so it must not restructure it.
+      const result = view([shorts(andy, { packed_count: 1, state: 'packed' }), shorts(leo)], {
+        facets: facets({ person: [andy.id] }),
+        showDone: true,
+      })
+      const [entry] = result.groups[0]?.entries ?? []
+      expect(entry?.kind).toBe('item')
+    })
+
+    it('counts the plain row with the same units the cluster would have', () => {
+      const result = view([shorts(andy, { quantity: 5, packed_count: 2 }), shorts(leo)], {
+        facets: facets({ person: [andy.id] }),
+      })
+      expect(result.groups[0]?.doneCount).toBe(2)
+      expect(result.groups[0]?.totalCount).toBe(5)
+    })
   })
 })
 
