@@ -132,9 +132,16 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   await expect(visiblePage(page).getByTestId('m4-row-Akku')).toContainText(/deliberately skipped/i)
   await expect(visiblePage(page).getByTestId('m4-row-Drohne')).toHaveCount(0)
 
-  // A confirmed removal has no undo, so the item went at once (ADR-065). Akku
+  // A confirmed removal has an undo too since FR-25.31, so the item goes once
+  // the snackbar does (ADR-065) — its going is the signal waited on. Akku
   // stays: its skipped row still uses it — and is the positive signal that the
   // inventory has rendered.
+  const toast = page
+    .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+    .filter({ hasText: 'Drohne' })
+    .last()
+  await expect(toast).toBeVisible()
+  await expect(toast).toBeHidden()
   await writesLanded(page)
   await page.goto(PATH.items)
   const inventoryRow = (name: string) =>
@@ -199,7 +206,14 @@ test('E2E-M4-116: removing one traveler’s instance keeps the other’s @local 
     true,
   )
 
-  // The delete reached IndexedDB, and only for Leonardo.
+  // The delete reached IndexedDB, and only for Leonardo. It is written when
+  // the snackbar's undo lapses (FR-25.31), so its going is waited on first.
+  const toast = page
+    .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+    .filter({ hasText: ITEM })
+    .last()
+  await expect(toast).toBeVisible()
+  await expect(toast).toBeHidden()
   await writesLanded(page)
   await page.reload()
   // The reveal survives the reload, so it is asked for rather than toggled.

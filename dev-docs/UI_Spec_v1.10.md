@@ -540,9 +540,12 @@ These patterns apply to every screen and are specified once.
   *leaves*. Three beats say so: the done colour washes over the row, it collapses to nothing, and a snackbar names it
   with one **Rückgängig**. The snackbar is the correction path the screen otherwise lacks — a mistap removes its own
   evidence, and recovering it through the reveal bar costs four deliberate actions. **One undo at a time:** packing is a
-  run of taps, so a second pack replaces the snackbar rather than queueing behind it. **Un-packing announces nothing** —
-  its result is already on screen. Under `prefers-reduced-motion` the row still leaves and the snackbar still appears;
-  only the travel is dropped.
+  run of taps, so a second pack replaces the snackbar rather than queueing behind it. Under `prefers-reduced-motion` the
+  row still leaves and the snackbar still appears; only the travel is dropped. **Since FR-25.31 (2026-09-19) every act
+  on M4's list raises this snackbar**, un-packing a revealed row included — it used to announce nothing, its result
+  being on screen. Each names what happened (*„„Zelt": 2 von 3 gepackt"*, *„„Zelt": Menge 3"*, *„„Zelt" → Anna"*,
+  *„„Zelt" wird spät gepackt"*, *„Du packst „Zelt""*, *„„Pass erneuern" gelöscht"*) and carries the one *Rückgängig*.
+  The amount popover (FR-25.24) announces once, when it closes, and its undo returns to the amount it opened on.
   * **Added 2026-08-14, revised 2026-08-15 (the type migration).** Written after the built M4/M5 were compared with the
     concept prototype and the gap turned out to be form language rather than structure; first of the five
     design-foundation steps in `dev-docs/design-foundation-plan.md`. The icon scale and the section-label role came a
@@ -1214,11 +1217,12 @@ These patterns apply to every screen and are specified once.
     * **Removal (FR-5.8).** A row with nothing on it goes at once, with the pack snackbar's *Rückgängig*
       (*„„Zelt" von der Liste entfernt"*). A row carrying packed units, notes or FR-20.2 companions opens a destructive
       alert first — title *„„Drohne" entfernen?"*, a body naming each loss and pointing at *Nicht einpacken*, buttons
-      *Abbrechen* / *Entfernen* — and a confirmed removal shows a plain toast without an undo. A row whose M5 is open
+      *Abbrechen* / *Entfernen* — and a confirmed removal raises the same snackbar with *Rückgängig* (FR-25.31): the
+      row leaves the screen and is deleted once the undo lapses, its companions skipped at once. A row whose M5 is open
       closes it: the sheet would otherwise report the item it was just asked to remove as not found.
       Where the row is the **only use of its inventory item** (added 2026-09-19, ADR-065), the snackbar reads
       *„„Zelt" entfernt – auch aus dem Inventar"* and the alert's body ends with *„Der Artikel kommt sonst nirgends vor
-      und wird auch aus dem Inventar gelöscht."*; the item goes once the undo has lapsed, or at once after the alert.
+      und wird auch aus dem Inventar gelöscht."*; the item goes once the undo has lapsed.
   * **Cluster head menu (added 2026-09-14, FR-25.26):** the head of a per-person cluster (FR-25.1) takes the same
     press-and-hold, while the short tap stays FR-25.23's fold. It offers **Spätpacker für alle ein/aus** and **Alle
     zuweisen an …**, each acting on every instance the head counts, and it states the scope in its sub-header

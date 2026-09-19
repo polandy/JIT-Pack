@@ -56,9 +56,9 @@ packs it, and no other item needs it as a companion. The message after the remov
 (*"removed — from the inventory too"*), and so does the question JIT-Pack asks before
 removing a row that is already packed or has notes.
 
-The item goes only once the removal is final: when the message with **Undo** disappears, or
-right away after you confirmed the question. **Undo** therefore brings back the row and
-leaves the item exactly as it was.
+The item goes only once the removal is final: when the message with **Undo** disappears —
+also after you confirmed the question. **Undo** therefore brings back the row and leaves the
+item exactly as it was.
 
 With a server, your device asks the server first, because it only knows the trips it has
 opened. If a trip it has not seen still uses the item, the item stays, even though the

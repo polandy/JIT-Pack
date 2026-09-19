@@ -1955,7 +1955,8 @@ locked.
   collapses, so nothing in the view model has to track "still animating" — with the wash in the `--jp-done` role and the
   whole thing dropped under `prefers-reduced-motion`, where the row still leaves and the snackbar still offers the undo.
   **One undo, not a stack:** packing is a run of taps, so a second pack replaces the first snackbar rather than queueing
-  behind it, and *un*-packing a revealed row announces nothing (its result is already on screen). The undo restores only
+  behind it. *Un*-packing a revealed row announced nothing until 2026-09-19 (its result is already on screen); FR-25.31
+  announces it like every other act on the list. The undo restores only
   `packed_count` and `state`, re-read against the current row rather than the caller's snapshot, so it cannot revert a
   packer avatar or a sync that landed in between.
 * **FR-25.3 (Packer Attribution on the Row):** When a user marks an item packed, that item's row shows the **packer's
@@ -3151,6 +3152,45 @@ locked.
   Mocked before building (*„Socken ohne Aufklappen"*, three variants; this is variant A). **Rejected: a check on the
   cluster head** (variant B) — it keeps the fold and turns one tap into a bulk action over several rows, which is
   FR-25.26's head menu's job, not the list's.
+* **FR-25.31 (Every act on the packing list can be taken back — added 2026-09-19, owner request; built the same
+  day):** FR-25.2's snackbar with *Rückgängig* covered the pack, FR-5.5's skip, FR-5.8's untouched removal, FR-27.16's
+  names and a ticked-off task. Everything else a tap on M4 wrote was final unless the user found the control that
+  reverses it — a mistap on the stepper, a wrong person in the picker, a flag set in the closing pass. The owner asked
+  for *every* act on the list to be undoable, the way a pack is. Now **each act on the list itself** raises the same
+  snackbar, naming what happened, with one *Rückgängig*:
+  * **The row's controls:** check and un-check (a revealed done row included), the stepper's ＋/－ (the step that
+    completes the row reads as a pack), *auf null*, and the amount popover (FR-25.24) — **one opening is one act**,
+    announced when the popover closes: three taps on ＋ are one change, and the undo returns to the amount it opened
+    on. Announced per tap, the snackbar would also stand over the open popover as the overlay Escape closes first.
+  * **The row menu:** *Doch einpacken*, *Ich packe das* and *freigeben* (each other's undo, G-3), Spätpacker on/off,
+    *Ungenutzt* / *aufheben*, and the removal — **the confirmed one included**; the row avatar's assignment
+    (FR-25.25).
+  * **The cluster head's fan-out (FR-25.26):** one undo gives every instance the value *it* had, since the instances
+    may have disagreed before.
+  * **The closing pass (FR-9.3):** each tap on the pass's mark. Owner ruling 2026-09-19 over the earlier *no toast per
+    tap* — the pass is exactly where a run of fast taps lands on the wrong row.
+  * **Tasks:** a prep todo or a trip task (FR-7.4) reopened, a trip task added, and a trip task deleted.
+
+  Rules the build settled:
+  * **Still one undo, never a stack.** Each act replaces the snackbar before it, as FR-25.2 decided for packing.
+  * **An undo writes back only its own field, onto the row as it is now.** The old value is captured before the act;
+    the row is re-read when the undo fires, so a sync or another device's write in between is not reverted, and a row
+    deleted meanwhile stays deleted — the rule `restorePack` already followed.
+  * **A deletion that cascades is deferred, not restored.** The confirmed removal skips its FR-20.2 companions at once
+    (an ordinary write the undo reverses), but its own row only leaves the screen: it is deleted when the undo lapses,
+    exactly when ADR-065 prunes the inventory item. Re-inserting would have had to re-create the row's comments and
+    todos, whose authors the server stamps (invariant 3) — an undo would have turned somebody else's note into mine.
+    A deleted trip task follows the same rule. While hidden, the trip line, the FR-25.29 shares and the FR-7.4 check
+    count what the list shows, not what the store still holds. *Accepted cost:* the app killed while the snackbar is up
+    keeps the row
+    or the task, and other devices see it until the lapse — the safe direction for a delete.
+  * **Not undoable, on purpose.** Taking over somebody else's claim (FR-5.7): the server stamps the holder, so the
+    claim cannot be handed back by the client. *Reise starten*, which the owner left as it is. The FR-27.4 group
+    changes, adding a group (FR-27.10) and FR-25.13f's browse-sheet verbs (it keeps its in-line undo): their writes
+    run through the FR-27.4 position ledger (ADR-030), where taking an add back is a decision of its own. M5's
+    controls are out of scope for now (owner, 2026-09-19): their result stays on the open sheet.
+  * **No wire, no schema:** the undo is `useRowUndo`'s `armAction`, the same one-slot record the pack uses; identical
+    in all three modes.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.
@@ -4524,8 +4564,9 @@ the tail is where a symbol system is actually decided. Results:
     it** — no packed units, no notes, no companions to take along — goes at once, and the FR-25.2 snackbar offers the
     undo. A row carrying **any** of the three is confirmed first, the FR-24.3 idiom: the dialog says what the row is
     about to lose (*„Bereits 2 gepackt."*, *„3 Notizen werden mitgelöscht."*, *„Ebenfalls nicht eingepackt:
-    Akku."*) and always points at *Nicht einpacken* for the other intent. A confirmed removal has no undo — what it
-    announced is exactly what an undo could not bring back. The rule is `removalNeedsConfirm` in
+    Akku."*) and always points at *Nicht einpacken* for the other intent. A confirmed removal had no undo until
+    FR-25.31 (2026-09-19), because what it announced is what a re-insert could not bring back; it now has one, by
+    deleting later rather than restoring — see there. The rule is `removalNeedsConfirm` in
     `client/src/domain/rowRemoval.ts`; the other two options (always ask, never ask and only undo) were declined.
   * **The undo re-inserts the row under its own id** with every field the user chose, and none of the server's stamps
     (invariant 3). The same id is what makes the FR-27.4 ledger find its row again; a fresh id would read as a
@@ -4546,7 +4587,7 @@ the tail is where a symbol system is actually decided. Results:
     it as a companion (FR-20.1; its own companion list goes with it). **Automatically, without a question** — the owner
     chose that over asking in the removal, over limiting it to items made on the side (a provenance column and a reseed)
     and over an M24 rule. **Only once the removal is final**: when the snackbar's undo lapses (it runs out, the screen
-    is left, the next action replaces it) or at once after a confirmation, which has no undo — so the undo still
+    is left, the next action replaces it) — since FR-25.31 after a confirmation too — so the undo still
     re-inserts one row and never has to re-create an item with its tags, rules and photo. Both surfaces say it: the
     snackbar reads *„„Zelt" entfernt – auch aus dem Inventar"*, and the dialog ends with *„Der Artikel kommt sonst
     nirgends vor und wird auch aus dem Inventar gelöscht."* **Local Mode** deletes on its own answer, which is complete.

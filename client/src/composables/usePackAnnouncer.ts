@@ -18,11 +18,12 @@ export interface PackAnnouncer {
    * How many packs have been announced on this screen. Rendered onto the
    * content element as `data-pack-announcements`.
    *
-   * It exists because one of FR-25.2's rules is an *absence*: un-packing a
-   * revealed row must not announce anything. Checking for "no toast" straight
-   * after the tap proves nothing — the toast is created asynchronously, so the
-   * assertion simply arrives first and passes on a page that was about to show
-   * one. It did exactly that, on the build with the guard removed.
+   * It exists for the rules that are an *absence* — a snackbar that must not
+   * appear (the screen was left while it was being created; until FR-25.31, an
+   * un-pack). Checking for "no toast" straight after the act proves nothing —
+   * the toast is created asynchronously, so the assertion simply arrives first
+   * and passes on a page that was about to show one. It did exactly that, on
+   * the build with the guard removed.
    *
    * A counter that only ever goes up turns the absence into a comparison
    * against a number, which is the same reasoning that gave the G-2 indicator
@@ -56,6 +57,12 @@ export interface PackAnnouncer {
    * taken back the same way.
    */
   announceTaskDone: (body: string) => Promise<void>
+  /**
+   * FR-25.31: every other act on the list — the caller has already said, in
+   * `message`, what happened. The same snackbar and the same one undo, so a
+   * mistap is taken back the same way whichever control it landed on.
+   */
+  announceAct: (message: string) => Promise<void>
 }
 
 /**
@@ -166,5 +173,6 @@ export function usePackAnnouncer(): PackAnnouncer {
     announceRemoved,
     announceRenamed,
     announceTaskDone,
+    announceAct: announce,
   }
 }

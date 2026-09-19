@@ -306,7 +306,19 @@ const closingProposals = computed(() =>
   }).slice(0, CLOSING_TEASER_COUNT),
 )
 
-const kpis = computed(() => tripStore.kpis(props.tripId))
+/**
+ * Rows whose confirmed removal is still inside the snackbar's undo (FR-25.31).
+ * They leave the screen at once and the trip only when the undo lapses — the
+ * row, its comments and its todos are never deleted and re-created, so the
+ * undo cannot resurrect a note under the wrong author (invariant 3).
+ */
+const removingRows = ref(new Set<string>())
+/** The same for the trip's own tasks (FR-7.4). */
+const removingTodos = ref(new Set<string>())
+
+const kpis = computed(() =>
+  tripStore.kpis(props.tripId, new Set([...removingRows.value, ...removingTodos.value])),
+)
 const active = computed(() => isActive(trip.value))
 /** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
 const judgeable = computed(() => canJudgeUnused(trip.value))
@@ -320,7 +332,10 @@ const judgeable = computed(() => canJudgeUnused(trip.value))
  * list it started in. The only door into it is the archive action.
  */
 const closingPass = ref(false)
-const allItems = computed(() => tripStore.getItems(props.tripId))
+
+const allItems = computed(() =>
+  tripStore.getItems(props.tripId).filter((row) => !removingRows.value.has(row.id)),
+)
 
 /**
  * FR-25.19: the people this trip's rows can be handed to — members of the
@@ -398,7 +413,15 @@ async function onAssignRow(item: TripItem, traveler?: string | null): Promise<vo
   const header = traveler ? `${item.name} · ${traveler}` : item.name
   const picked = await pickAssignee(header, item.packer_user_id)
   if (picked === undefined) return
-  orchestrator.setPacker(props.tripId, item, picked)
+  const previous = item.packer_user_id
+  actUndoably(
+    item,
+    picked === null
+      ? t('packing.unassignedToast', { name: item.name })
+      : t('packing.assignedToast', { name: item.name, who: nameOf(picked) ?? '' }),
+    () => orchestrator.setPacker(props.tripId, item, picked),
+    (live) => orchestrator.setPacker(props.tripId, live, previous),
+  )
 }
 
 /**
@@ -512,9 +535,7 @@ function clusterMaster(cluster: PackingCluster): MasterItem | null {
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 
 /** FR-25.29: every traveler's share of the whole trip — unfiltered, like the trip line. */
-const travelerShares = computed(() =>
-  progressByTraveler(tripStore.getItems(props.tripId), travelers.value),
-)
+const travelerShares = computed(() => progressByTraveler(allItems.value, travelers.value))
 
 /**
  * FR-25.29: a tap narrows the person facet to that traveler alone, and a
@@ -616,12 +637,35 @@ function openQuantity(item: TripItem, event?: MouseEvent): void {
   if (closingPass.value || locked(item)) return
   quantityEvent.value = event
   quantityItemId.value = item.id
+  quantityBefore = { ...item }
 }
+
+/**
+ * The row as the editor found it (FR-25.31). One editing session is one act:
+ * three taps on ＋ are one change of amount, and the undo goes back to where
+ * the popover opened rather than one step. Announced on close, not per tap —
+ * a snackbar raised over the open popover would also be the overlay Escape
+ * dismisses first, leaving the popover standing and the undo gone.
+ */
+let quantityBefore: TripItem | null = null
 
 function onSetQuantity(quantity: number): void {
   const item = quantityItem.value
   if (!item) return
   orchestrator.setQuantity(props.tripId, item, quantity)
+}
+
+function onQuantityClosed(): void {
+  quantityItemId.value = null
+  const before = quantityBefore
+  quantityBefore = null
+  if (!before) return
+  const now = liveRow(before.id)
+  if (!now || now.quantity === before.quantity) return
+  // Three fields, as the write has them: an amount cut below the packed count
+  // clamps the count, and the undo has to give both back (FR-25.24).
+  rowUndo.armUndo([before], (records) => orchestrator.restoreSkip(props.tripId, records))
+  void announceAct(t('packing.quantityToast', { name: now.name, n: now.quantity }))
 }
 
 // --- Row menu: press and hold (FR-5.5, FR-5.2) --------------------------
@@ -699,10 +743,10 @@ function runRowMenu(action: RowMenuAction, item: TripItem): void {
       onSkipItem(item)
       return
     case 'latePackerOn':
-      orchestrator.setLatePacker(props.tripId, item, true)
+      onLatePacker(item, true)
       return
     case 'latePackerOff':
-      orchestrator.setLatePacker(props.tripId, item, false)
+      onLatePacker(item, false)
       return
     case 'flagUnused':
       void onFlagUnused(item, true)
@@ -758,17 +802,15 @@ function rowsOf(ids: string[]): TripItem[] {
  * tinguishable from one that wrote all four (G-3, advisory since 2026-08-30).
  */
 function announceFanOut(written: number, total: number, blockedBy: string[]): void {
-  void presentToast({
-    message:
-      blockedBy.length === 0
-        ? t('packing.fanOutApplied', { n: written })
-        : t('packing.fanOutPartial', {
-            n: written,
-            total,
-            who: blockedBy.join(', '),
-          }),
-    positionAnchor: FAB_ANCHOR.m4,
-  })
+  void announceAct(
+    blockedBy.length === 0
+      ? t('packing.fanOutApplied', { n: written })
+      : t('packing.fanOutPartial', {
+          n: written,
+          total,
+          who: blockedBy.join(', '),
+        }),
+  )
 }
 
 async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster): Promise<void> {
@@ -782,8 +824,18 @@ async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster
     // be a claim the model does not make.
     const picked = await pickAssignee(cluster.name, null)
     if (picked === undefined) return
+    // Per row, because the instances may have disagreed before the fan-out
+    // and the undo gives each its own value back.
+    const previous = new Map(rows.map((row) => [row.id, row.packer_user_id]))
+    armRowsUndo(rows, (live) =>
+      orchestrator.setPacker(props.tripId, live, previous.get(live.id) ?? null),
+    )
     orchestrator.setPackerForRows(props.tripId, rows, picked)
   } else {
+    const previous = new Map(rows.map((row) => [row.id, row.late_packer]))
+    armRowsUndo(rows, (live) =>
+      orchestrator.setLatePacker(props.tripId, live, previous.get(live.id) ?? false),
+    )
     orchestrator.setLatePackerForRows(props.tripId, rows, action === 'latePackerOn')
   }
   announceFanOut(rows.length, instances.length, plan.blockedBy)
@@ -901,7 +953,11 @@ const presenceNames = computed<Record<string, string>>(() =>
 )
 const openPrepCount = computed(() => tripStore.getOpenTodos(props.tripId).length)
 
-const tripTodoCount = computed(() => tripTodoProgress(tripStore.getTripTodos(props.tripId)))
+const tripTodoCount = computed(() =>
+  tripTodoProgress(
+    tripStore.getTripTodos(props.tripId).filter((todo) => !removingTodos.value.has(todo.id)),
+  ),
+)
 const tripTodoState = computed(() => tripTodoStatus(tripTodoCount.value))
 
 /** FR-7.4: the section head's own check, apart from every packing figure. */
@@ -1201,13 +1257,32 @@ const activeChips = computed(() => chipsFor(view.value, facets.value))
 
 // --- Actions ------------------------------------------------------------
 
+/**
+ * Claiming and giving back are each other's undo (G-3). The release derives
+ * the state from the packed count, which is what the row read before the
+ * claim; a re-claim is only offered back while nobody else has taken the row.
+ */
 function onPackingNow(item: TripItem) {
-  orchestrator.packingNow(props.tripId, item)
+  actUndoably(
+    item,
+    t('packing.claimedToast', { name: item.name }),
+    () => orchestrator.packingNow(props.tripId, item),
+    (live) => {
+      if (orchestrator.holdsClaim(props.tripId, live)) orchestrator.releaseClaim(props.tripId, live)
+    },
+  )
 }
 
 /** Give the row back without packing it (G-3). */
 function onReleaseClaim(item: TripItem) {
-  orchestrator.releaseClaim(props.tripId, item)
+  actUndoably(
+    item,
+    t('packing.releasedToast', { name: item.name }),
+    () => orchestrator.releaseClaim(props.tripId, item),
+    (live) => {
+      if (!locked(live)) orchestrator.packingNow(props.tripId, live)
+    },
+  )
 }
 
 /**
@@ -1281,20 +1356,19 @@ function onSkipItem(item: TripItem) {
  * stand beside the list saying the item cannot be found — true, and about the
  * one thing the reader just did on purpose.
  */
-function removeRow(item: TripItem, companions: readonly TripItem[]): void {
-  orchestrator.removeItem(props.tripId, item, companions)
+function removeRow(item: TripItem): void {
+  orchestrator.removeItem(props.tripId, item, [])
   if (openItemId.value === item.id) closeItem()
 }
 
 /**
  * FR-5.8: off the list altogether. An untouched row goes at once and the
  * snackbar can bring it back; a row carrying packing, notes or companions says
- * what it takes along first, because the undo could not return those — so it
- * is asked instead of offered.
+ * what it takes along first, and is asked instead of offered.
  *
  * The inventory item the row was the only use of goes too (ADR-065) — but
- * only once the removal is final: when the snackbar lapses, or at once after a
- * confirmation, which has no undo. So the undo only ever re-inserts a row.
+ * only once the removal is final, when the snackbar lapses. So the undo only
+ * ever re-inserts a row, or, after a confirmation, un-hides one (FR-25.31).
  */
 async function onRemoveItem(item: TripItem) {
   const removal = orchestrator.planRowRemoval(props.tripId, item)
@@ -1311,7 +1385,7 @@ async function onRemoveItem(item: TripItem) {
       () => orchestrator.restoreRemovedItem(props.tripId, snapshot),
       pruneLeftItem,
     )
-    removeRow(item, [])
+    removeRow(item)
     void announceRemoved(item.name, leftItem !== null)
     return
   }
@@ -1322,34 +1396,55 @@ async function onRemoveItem(item: TripItem) {
     testid: 'm4-remove-confirm',
   })
   if (!confirmed) return
-  removeRow(item, removal.companions)
-  pruneLeftItem()
-  void presentToast({
-    message: t(leftItem !== null ? 'packing.removedToastInventory' : 'packing.removedToast', {
-      name: item.name,
-    }),
-    positionAnchor: FAB_ANCHOR.m4,
-  })
+  // FR-25.31: the confirmed removal has an undo too. Its companions are
+  // skipped now — that is an ordinary write the snackbar can take back — but
+  // the row itself only leaves the screen: deleting it would take its
+  // comments and todos along, and those cannot be written back under their
+  // own authors. The delete is what lapses.
+  const rowId = item.id
+  rowUndo.armUndo(
+    [item, ...removal.companions],
+    (records) => {
+      removingRows.value.delete(rowId)
+      orchestrator.restoreSkip(
+        props.tripId,
+        records.filter((record) => record.itemId !== rowId),
+      )
+    },
+    () => {
+      const live = tripStore.getItems(props.tripId).find((row) => row.id === rowId)
+      if (live) orchestrator.removeItem(props.tripId, live, [])
+      removingRows.value.delete(rowId)
+      pruneLeftItem()
+    },
+  )
+  removingRows.value.add(rowId)
+  if (openItemId.value === rowId) closeItem()
+  orchestrator.skipRows(props.tripId, removal.companions)
+  void announceRemoved(item.name, leftItem !== null)
 }
 
 /**
- * FR-9.3: the flag is a judgement, not a stamp — the same menu entry sets
- * it and takes it back, which is the undo, so the confirmation names what
- * happened rather than offering a second path to reverse it.
+ * FR-9.3: the flag is a judgement, not a stamp. The same menu entry sets it
+ * and takes it back, and since FR-25.31 the snackbar does too — the one undo
+ * every act on the list offers.
  */
-async function onFlagUnused(item: TripItem, value: boolean) {
-  orchestrator.setReviewFlag(props.tripId, item, 'unused', value)
-  await presentToast({
-    message: value
+function onFlagUnused(item: TripItem, value: boolean) {
+  const previous = item.flag_unused
+  actUndoably(
+    item,
+    value
       ? t('packing.flagUnusedToast', { item: item.name })
       : t('packing.unflagUnusedToast', { item: item.name }),
-  })
+    () => orchestrator.setReviewFlag(props.tripId, item, 'unused', value),
+    (live) => orchestrator.setReviewFlag(props.tripId, live, 'unused', previous),
+  )
 }
 
 /**
- * The pass's single gesture. No snackbar here, unlike the menu's entry:
- * the row carries the mark, and one toast per tap in a pass over a
- * hundred rows is noise, not confirmation.
+ * The pass's single gesture. It raises the same snackbar as the menu's
+ * entry (FR-25.31, owner 2026-09-19): one at a time, each replacing the last,
+ * so a run of taps leaves one undo for the latest rather than a stack.
  */
 function onPassToggle(item: TripItem) {
   // G-3 reaches into the leaf: a row somebody else is holding is theirs,
@@ -1357,19 +1452,49 @@ function onPassToggle(item: TripItem) {
   // — packing ends it — but this control must not be the one place that
   // decides otherwise.
   if (locked(item)) return
-  orchestrator.setReviewFlag(props.tripId, item, 'unused', !item.flag_unused)
+  onFlagUnused(item, !item.flag_unused)
 }
 
 function onUnskipItem(item: TripItem) {
+  rowUndo.armUndo([item], (records) => orchestrator.restoreSkip(props.tripId, records))
   orchestrator.unskipItem(props.tripId, item)
+  void announceAct(t('packing.unskippedToast', { name: item.name }))
 }
 
+function onLatePacker(item: TripItem, latePacker: boolean) {
+  const previous = item.late_packer
+  actUndoably(
+    item,
+    t(latePacker ? 'packing.latePackerOnToast' : 'packing.latePackerOffToast', {
+      name: item.name,
+    }),
+    () => orchestrator.setLatePacker(props.tripId, item, latePacker),
+    (live) => orchestrator.setLatePacker(props.tripId, live, previous),
+  )
+}
+
+/**
+ * A step of the counter is announced like a pack, and the step that
+ * completes the row *is* one — it leaves the list the same way (FR-25.2).
+ */
 function onIncrement(item: TripItem) {
-  orchestrator.packIncrement(props.tripId, item)
+  packStep(item, Math.min(item.packed_count + 1, item.quantity), () =>
+    orchestrator.packIncrement(props.tripId, item),
+  )
 }
 
 function onDecrement(item: TripItem) {
-  orchestrator.packDecrement(props.tripId, item)
+  packStep(item, Math.max(item.packed_count - 1, 0), () =>
+    orchestrator.packDecrement(props.tripId, item),
+  )
+}
+
+function packStep(item: TripItem, packed: number, act: () => void) {
+  const name = item.name
+  rowUndo.actWithUndo([item], act, restorePacked)
+  void (packed >= item.quantity
+    ? announcePacked(name)
+    : announceAct(t('packing.countToast', { name, packed, quantity: item.quantity })))
 }
 
 function onComplete(item: TripItem) {
@@ -1379,7 +1504,9 @@ function onComplete(item: TripItem) {
 }
 
 function onZero(item: TripItem) {
-  orchestrator.packZero(props.tripId, item)
+  const name = item.name
+  rowUndo.actWithUndo([item], () => orchestrator.packZero(props.tripId, item), restorePacked)
+  void announceAct(t('packing.unpackedToast', { name }))
 }
 
 /* --- FR-25.2: the pack registers, and it can be taken back ------------ */
@@ -1421,7 +1548,46 @@ const {
   announceRemoved,
   announceRenamed,
   announceTaskDone,
+  announceAct,
 } = usePackAnnouncer()
+
+/** The row as it is now, or null once it has left the trip. */
+function liveRow(itemId: string): TripItem | null {
+  return tripStore.getItems(props.tripId).find((row) => row.id === itemId) ?? null
+}
+
+/**
+ * FR-25.31: act on one row behind the snackbar's undo. `restore` gets the row
+ * as it is *when the undo fires* and writes back only the field its act
+ * changed — building the write from the row in hand would revert whatever
+ * landed in between (the reason `restorePack` re-reads, too). A row deleted
+ * meanwhile stays deleted.
+ */
+function actUndoably(
+  item: TripItem,
+  message: string,
+  act: () => void,
+  restore: (live: TripItem) => void,
+) {
+  const id = item.id
+  rowUndo.armAction(item.name, () => {
+    const live = liveRow(id)
+    if (live) restore(live)
+  })
+  act()
+  void announceAct(message)
+}
+
+/** The same for a fan-out over several rows (FR-25.26): one undo for all. */
+function armRowsUndo(rows: readonly TripItem[], restore: (live: TripItem) => void) {
+  const ids = rows.map((row) => row.id)
+  rowUndo.armAction(rows[0]?.name ?? '', () => {
+    for (const id of ids) {
+      const live = liveRow(id)
+      if (live) restore(live)
+    }
+  })
+}
 
 /** Put back what a pack changed, and only that (FR-25.2). */
 function restorePacked(records: RowUndoRecord[]) {
@@ -1431,42 +1597,81 @@ function restorePacked(records: RowUndoRecord[]) {
 }
 
 function onToggle(item: TripItem) {
-  // Only a pack is announced. The same control un-packs a revealed done row
-  // (FR-25.2), and offering to undo *that* would be a snackbar for an action
-  // whose result is already visible.
+  // Un-packing a revealed done row is announced too (FR-25.31, owner
+  // 2026-09-19): its result is on screen, but a mistap on a list of done rows
+  // is as expensive to find again as one on the open list.
   const reads = stateFor(item.packed_count, item.quantity)
-  if (reads === 'packed' || reads === 'skipped') {
-    orchestrator.packToggle(props.tripId, item)
-    return
-  }
+  const unpacks = reads === 'packed' || reads === 'skipped'
   const name = item.name
   rowUndo.actWithUndo([item], () => orchestrator.packToggle(props.tripId, item), restorePacked)
-  void announcePacked(name)
+  void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePacked(name))
+}
+
+/** The trip's own task as it is now — the undo never writes from a snapshot. */
+function liveTripTodo(id: string): TripTodo | null {
+  return tripStore.getTripTodos(props.tripId).find((row) => row.id === id) ?? null
 }
 
 /** FR-7.4: the same undo for the trip's own tasks, which live in `TripTodoList`. */
 function onTripTodoResolved(todo: TripTodo) {
-  rowUndo.armTaskUndo(todo, () => {
-    const live = tripStore.getTripTodos(props.tripId).find((row) => row.id === todo.id)
+  rowUndo.armAction(todo.body, () => {
+    const live = liveTripTodo(todo.id)
     if (live?.task_state === 'resolved') orchestrator.reopenTripTodo(live)
   })
   void announceTaskDone(todo.body)
 }
 
+function onTripTodoReopened(todo: TripTodo) {
+  rowUndo.armAction(todo.body, () => {
+    const live = liveTripTodo(todo.id)
+    if (live?.task_state === 'open') orchestrator.resolveTripTodo(live)
+  })
+  void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
+}
+
+function onTripTodoAdded(id: string, body: string) {
+  rowUndo.armAction(body, () => {
+    const live = liveTripTodo(id)
+    if (live) orchestrator.deleteTripTodo(live)
+  })
+  void announceAct(t('packing.taskAddedToast', { body }))
+}
+
+/** Hidden now and deleted when the undo lapses — the confirmed removal's reason. */
+function onTripTodoRemove(todo: TripTodo) {
+  const id = todo.id
+  rowUndo.armAction(
+    todo.body,
+    () => removingTodos.value.delete(id),
+    () => {
+      const live = liveTripTodo(id)
+      if (live) orchestrator.deleteTripTodo(live)
+      removingTodos.value.delete(id)
+    },
+  )
+  removingTodos.value.add(id)
+  void announceAct(t('packing.taskDeletedToast', { body: todo.body }))
+}
+
 function togglePrepTodo(todo: ItemTodo) {
+  // Looked up again on undo: the `todo` in hand is the pre-tap snapshot, and
+  // writing from it would hand the optimistic layer a stale baseline.
+  const live = () =>
+    tripStore.getItemTodos(props.tripId, todo.trip_item_id).find((row) => row.id === todo.id)
   if (todo.task_state === 'open') {
     orchestrator.resolvePrepTodo(props.tripId, todo)
-    // Looked up again on undo: the `todo` in hand is the pre-tick snapshot,
-    // and reopening from it would hand the optimistic layer a stale baseline.
-    rowUndo.armTaskUndo(todo, () => {
-      const live = tripStore
-        .getItemTodos(props.tripId, todo.trip_item_id)
-        .find((row) => row.id === todo.id)
-      if (live?.task_state === 'resolved') orchestrator.reopenPrepTodo(props.tripId, live)
+    rowUndo.armAction(todo.body, () => {
+      const row = live()
+      if (row?.task_state === 'resolved') orchestrator.reopenPrepTodo(props.tripId, row)
     })
     void announceTaskDone(todo.body)
   } else {
     orchestrator.reopenPrepTodo(props.tripId, todo)
+    rowUndo.armAction(todo.body, () => {
+      const row = live()
+      if (row?.task_state === 'open') orchestrator.resolvePrepTodo(props.tripId, row)
+    })
+    void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
   }
 }
 
@@ -1898,7 +2103,15 @@ setHeaderTitle(
           </span>
           <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: tripTodosOpen }" />
         </button>
-        <TripTodoList v-if="tripTodosOpen" :trip-id="tripId" @resolved="onTripTodoResolved" />
+        <TripTodoList
+          v-if="tripTodosOpen"
+          :trip-id="tripId"
+          :removing="removingTodos"
+          @resolved="onTripTodoResolved"
+          @reopened="onTripTodoReopened"
+          @added="onTripTodoAdded"
+          @remove="onTripTodoRemove"
+        />
       </div>
       <!-- FR-25.11k: the field exists only while it is being used. -->
       <SearchRow
@@ -2258,7 +2471,7 @@ setHeaderTitle(
         :is-open="quantityItemId !== null"
         :event="quantityEvent"
         data-testid="m4-quantity-popover"
-        @did-dismiss="quantityItemId = null"
+        @did-dismiss="onQuantityClosed"
       >
         <div class="qty-pop">
           <p class="qty-pop-head">

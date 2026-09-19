@@ -20,17 +20,32 @@ import type { TripTodo } from '@/types/domain'
 const props = defineProps<{
   /** The trip whose todos these are. */
   tripId: string
+  /**
+   * Tasks whose removal is still inside the snackbar's undo (FR-25.31): gone
+   * from the list, not yet from the trip — the delete is written once the
+   * chance to take it back is over.
+   */
+  removing?: ReadonlySet<string>
 }>()
 
+/** Every act here is reported to the screen, which owns the one snackbar that takes it back (FR-25.31). */
 const emit = defineEmits<{
-  /** A task was just ticked off — the screen owns the snackbar that takes it back. */
+  /** A task was written — its id, for the undo that takes it out again. */
+  added: [id: string, body: string]
+  /** A task was just ticked off. */
   resolved: [todo: TripTodo]
+  /** A done task was unticked. */
+  reopened: [todo: TripTodo]
+  /** Asked to go — the screen hides it and deletes it once the undo lapses. */
+  remove: [todo: TripTodo]
 }>()
 
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
-const todos = computed(() => tripStore.getTripTodos(props.tripId))
+const todos = computed(() =>
+  tripStore.getTripTodos(props.tripId).filter((todo) => !props.removing?.has(todo.id)),
+)
 const open = computed(() => todos.value.filter((todo) => todo.task_state === 'open'))
 const resolved = computed(() => todos.value.filter((todo) => todo.task_state === 'resolved'))
 
@@ -40,8 +55,9 @@ const showResolved = ref(false)
 function add() {
   const body = draft.value.trim()
   if (!body) return
-  orchestrator.addTripTodo(props.tripId, CLIENT_ACTOR_PLACEHOLDER, body)
+  const id = orchestrator.addTripTodo(props.tripId, CLIENT_ACTOR_PLACEHOLDER, body)
   draft.value = ''
+  emit('added', id, body)
 }
 
 function toggle(todo: TripTodo) {
@@ -50,6 +66,7 @@ function toggle(todo: TripTodo) {
     emit('resolved', todo)
   } else {
     orchestrator.reopenTripTodo(todo)
+    emit('reopened', todo)
   }
 }
 </script>
@@ -71,7 +88,7 @@ function toggle(todo: TripTodo) {
         class="rm"
         :aria-label="t('tripTodos.remove')"
         :data-testid="`trip-todo-remove-${todo.body}`"
-        @click="orchestrator.deleteTripTodo(todo)"
+        @click="emit('remove', todo)"
       >
         <IonIcon :icon="closeOutline" />
       </button>
@@ -107,7 +124,7 @@ function toggle(todo: TripTodo) {
             class="rm"
             :aria-label="t('tripTodos.remove')"
             :data-testid="`trip-todo-remove-${todo.body}`"
-            @click="orchestrator.deleteTripTodo(todo)"
+            @click="emit('remove', todo)"
           >
             <IonIcon :icon="closeOutline" />
           </button>
