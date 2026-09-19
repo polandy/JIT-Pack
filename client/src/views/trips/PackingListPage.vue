@@ -1413,6 +1413,8 @@ const visibleOpenRows = computed(
 // hiding nothing.
 const hiddenOpenCount = computed(() => Math.max(view.value.openRowCount - visibleOpenRows.value, 0))
 
+const searching = computed(() => search.value.trim() !== '')
+
 const onlyOthersHidden = computed(() => isOnlyOthersHidden(view.value, search.value))
 
 const emptyReason = computed(() => emptyReasonFor(view.value, search.value, hiddenOpenCount.value))
@@ -2640,9 +2642,11 @@ setHeaderTitle(
         testid="m4-others-bar"
         @toggle="showOthers = !showOthers"
       />
-      <!-- FR-25.2: state the count, one tap to reveal. -->
+      <!-- FR-25.2: state the count, one tap to reveal. Not while a term is typed:
+           the search already shows its packed matches (FR-25.32), so the offer
+           would sit beside a packed row that is on screen. -->
       <RevealBar
-        v-if="view.doneCount > 0 && !closingPass"
+        v-if="view.doneCount > 0 && !closingPass && !searching"
         :open="showDone"
         :label="
           showDone

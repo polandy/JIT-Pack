@@ -1331,8 +1331,9 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
    * number. They carried two: the bar counted done rows among the ones the
    * filter lets through, the switch counted the whole trip's packed *units*.
    * `filter-switch-done` occurred in no test at all, which is what let it
-   * stand — the search is what separates the two, since only one of them
-   * narrows.
+   * stand. Since FR-25.32 the bar is gone while a term is typed, so the
+   * pairing is read without one; the search is then what shows the switch
+   * counting the *matches* (1) rather than the trip (2).
    */
   test('E2E-M4-69: the reveal bar and the Erledigte switch carry one number', async ({ page }) => {
     await createTripViaWizard(page, TRIP)
@@ -1343,15 +1344,20 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     const bar = visible(page).getByTestId('m4-done-bar')
     await expect(bar).toContainText('2')
 
-    await page.getByTestId('m4-search').click()
-    await page.getByTestId('m4-search-input').fill('Zelt')
-    // The bar follows the search, which is the positive signal that the
-    // narrowing landed before either number is read.
-    await expect(bar).toContainText('1')
-
     await page.getByTestId('m4-filter').click()
     await expect(page.getByTestId('filter-sheet')).toBeVisible()
     const doneSwitch = page.getByTestId('filter-switch-done').locator('..')
+    await expect(doneSwitch).toContainText('2')
+    await page.getByTestId('filter-close').click()
+
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Zelt')
+    // The searched row is on screen: the positive signal that the narrowing
+    // landed before the switch is read.
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
     await expect(doneSwitch).toContainText('1')
     await expect(doneSwitch).not.toContainText('2')
   })
@@ -1396,10 +1402,13 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     await page.getByTestId('m4-search-input').fill('Zelt')
     await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
     await expect(page.getByTestId('m4-row-Schlafsack')).toHaveCount(0)
+    // The packed row is on screen, so there is nothing left to offer.
+    await expect(visible(page).getByTestId('m4-done-bar')).toHaveCount(0)
 
     await page.getByTestId('m4-search-input').fill('')
     await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
     await expect(visible(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-done-bar')).toBeVisible()
   })
 
   /*
