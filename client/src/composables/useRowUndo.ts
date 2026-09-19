@@ -48,13 +48,16 @@ export interface RowUndo {
     onLapse?: () => void,
   ) => void
   /**
-   * Arm an undo for a task that has just been ticked off (FR-7.3, FR-7.4).
+   * Arm an undo for any other act on M4 — a task ticked off (FR-7.3, FR-7.4),
+   * a row's amount, flag or assignment changed (FR-25.31).
    *
-   * A task is not a `TripItem`, so it has no quantity or pack state to
-   * snapshot: the record only names it, and the caller's `restore` looks the
-   * live row up again when it runs, so it reopens what is there *now*.
+   * Nothing is snapshotted here: what an act changed differs per act, so the
+   * caller captures the old value in `restore`, and `restore` looks the live
+   * row up again when it runs — it writes back only its own field, onto what
+   * is there *now*. `label` is what the record names, for the reader of
+   * `pending`; the snackbar's sentence is the caller's.
    */
-  armTaskUndo: (task: { id: string; body: string }, restore: () => void) => void
+  armAction: (label: string, restore: () => void, onLapse?: () => void) => void
   /** Restore the armed rows, at most once. A no-op when nothing is armed. */
   undo: () => void
   /**
@@ -65,7 +68,8 @@ export interface RowUndo {
 }
 
 /**
- * The undo behind M4's snackbars — FR-25.2's pack and FR-5.5's skip.
+ * The undo behind M4's snackbars — FR-25.2's pack, FR-5.5's skip and, since
+ * FR-25.31, every other act the list itself can make.
  *
  * M4 hides a row as soon as it is done, which is what the screen is for and
  * also what makes a mistap expensive: the evidence removes itself, and
@@ -111,10 +115,11 @@ export function useRowUndo(): RowUndo {
     lapseFn = onLapse ?? null
   }
 
-  function armTaskUndo(task: { id: string; body: string }, restore: () => void): void {
+  function armAction(label: string, restore: () => void, onLapse?: () => void): void {
     clear()
-    pending.value = [{ itemId: task.id, name: task.body, quantity: 0, packedCount: 0, state: '' }]
+    pending.value = [{ itemId: '', name: label, quantity: 0, packedCount: 0, state: '' }]
     restoreFn = restore
+    lapseFn = onLapse ?? null
   }
 
   function undo(): void {
@@ -141,5 +146,5 @@ export function useRowUndo(): RowUndo {
     lapseFn = null
   }
 
-  return { pending, actWithUndo, armUndo, armTaskUndo, undo, clear }
+  return { pending, actWithUndo, armUndo, armAction, undo, clear }
 }

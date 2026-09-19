@@ -1300,7 +1300,10 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     // bottom of a 720 px window, and Playwright's way around an overlay is to
     // scroll — which yields the heads, moving the bar out from under the
     // click. Dismissed rather than waited out, as in visual.spec.
-    await page.locator('ion-toast.pack-toast').evaluate((el: HTMLIonToastElement) => el.dismiss())
+    // Every one: since FR-25.31 more than one act on the way here raises one.
+    await page
+      .locator('ion-toast.pack-toast')
+      .evaluateAll((els) => els.forEach((el) => void (el as HTMLIonToastElement).dismiss()))
     await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
     await page.getByTestId('m4-done-bar').click()
     const names = visible(page).locator('.group-card h3')
@@ -2316,7 +2319,10 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // The undo snackbar sits over the reveal bar, and a click that lands on
     // it while it leaves never opens the section — E2E-M4-68's trap, dismissed
     // the same way rather than waited out.
-    await page.locator('ion-toast.pack-toast').evaluate((el: HTMLIonToastElement) => el.dismiss())
+    // Every one: since FR-25.31 more than one act on the way here raises one.
+    await page
+      .locator('ion-toast.pack-toast')
+      .evaluateAll((els) => els.forEach((el) => void (el as HTMLIonToastElement).dismiss()))
     await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
     await page.getByTestId('m4-done-bar').click()
     // The packed row on screen is the settled state the one-shot read needs.
@@ -2369,7 +2375,10 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // The undo snackbar from packing Zelt sits over the bars, and a click
     // that lands while it leaves never toggles the section — the trap of
     // E2E-M4-93 and E2E-M4-68, dismissed the same way rather than waited out.
-    await page.locator('ion-toast.pack-toast').evaluate((el: HTMLIonToastElement) => el.dismiss())
+    // Every one: since FR-25.31 more than one act on the way here raises one.
+    await page
+      .locator('ion-toast.pack-toast')
+      .evaluateAll((els) => els.forEach((el) => void (el as HTMLIonToastElement).dismiss()))
     await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
     await bar.click()
     await expect(page.getByTestId('m4-row-Schlüssel')).toBeVisible()
@@ -2424,9 +2433,17 @@ test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
     await expect(status).toHaveText('0 of 2 done')
     await expect(section.getByTestId('trip-todos-resolved')).toHaveCount(0)
 
-    // Remove one; its sibling stays.
+    // Remove one; its sibling stays. The delete is written when the
+    // snackbar's undo lapses (FR-25.31), so its going is waited on before the
+    // reload — a reload inside the window keeps the task, on purpose.
     await section.getByTestId('trip-todo-remove-Empty the fridge').click()
     await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
+    const removed = page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: 'Empty the fridge' })
+      .last()
+    await expect(removed).toBeVisible()
+    await expect(removed).toBeHidden()
     await writesLanded(page)
     await reopenSection()
     await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
@@ -2450,7 +2467,11 @@ test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
 
     await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
     await expect(status).toHaveText('1 of 2 done')
-    const toast = page.locator('ion-toast.pack-toast')
+    // The newest: adding each task raised a snackbar of its own (FR-25.31).
+    const toast = page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: /done/ })
+      .last()
     await expect(toast).toContainText('Water the plants')
 
     await toast.getByRole('button', { name: /undo/i }).click()

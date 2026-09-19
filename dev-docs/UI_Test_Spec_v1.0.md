@@ -175,7 +175,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-VIS-08 | Visual G-2 detail sheet | all | The one surface reachable from every screen in every mode, and covered by no baseline at all until 2026-08-23. It guards the header, the state line and the sheet's own plane — **not** the offset that prompted it: mutating E2E-G2-08's fix back moves 591 px, ratio 0.0018, and this gate allows 0.002, so it stays green. That is the documented consequence of the tolerance the owner fixed on 2026-08-19 (*"this gate catches layout changes, not small ones"*), recorded here as a second worked example rather than discovered again. The offset is E2E-G2-08's job. |
 | E2E-M4-33 | M4 A pack registers, and can be taken back | all | Packing a row hides it *and* raises the snackbar; its undo returns the row to the open list, not merely to the revealed one. Run with `reducedMotion: 'reduce'` so the assertion is the outcome rather than the length of a transition — the production code takes its own no-motion path there, so nothing is being bypassed. |
 | E2E-M4-34 | M4 One undo, not a stack | all | Two packs in a row leave exactly one snackbar, naming the second; its undo restores that row and leaves the first packed. Caught a real defect on first run: the outgoing snackbar's dismiss handler disarmed the *incoming* pack's undo. |
-| E2E-M4-35 | M4 Un-packing announces nothing | all | Un-checking a revealed done row raises no snackbar — its result is already visible, and offering to undo it would be offering to undo an undo. Asserted against a **counter of announcements** rendered by the page, not against "no toast on screen": the snackbar is created asynchronously, so a bare absence check arrives first and passes on a page that was about to show one. It did exactly that until the counter replaced it. |
+| ~~E2E-M4-35~~ | ~~M4 Un-packing announces nothing~~ | all | **Reversed 2026-09-19 by FR-25.31**: un-packing a revealed row is announced and undoable like every other act on the list, so the absence this case asserted is no longer a promise. The new one is **E2E-M4-120**. |
 | E2E-G13-03 | G-13 An icon is a glyph box, not text | all | An empty-state illustration computes to 64 px while body copy stays under 20 px. Guards the reason the two scales are separate at all: sharing one would tie an illustration to whatever body copy does next, and nothing in the token tables would show it. |
 | E2E-G13-04 | G-13 The section head renders as its role | all | On M17, a section head computes to the display face, sentence case, above 16 px. Asserts the **rendered** properties rather than the class list — a class that is applied but overridden looks identical in the markup. Scoped to the visible page, since a route that does not repaint leaves the previous screen's markup in the outlet. **Revised 2026-09-07 (FR-21.11):** it asserted the opposite — uppercase, 12 px — because the head used to be the eyebrow. |
 | E2E-G13-06 | G-13 A row names itself larger than it qualifies itself | all | **New 2026-09-07 (FR-21.14).** On M2 the trip's name is larger than its date line, at least semibold, and **both are the app's sizes rather than Ionic's 16/14 pair** — the last clause is what makes the case falsifiable, since name-larger-than-detail was already true of Ionic's own defaults. Mutation-proved against the one implementation detail that carries the rule: dropping the `[class]` attribute from the selectors puts every row back on Ionic's sizes and turns this red on both browsers, while the stylesheet still reads as correct. |
@@ -702,8 +702,8 @@ in WebKit.
   rows on the list (the positive signal that it was a question). Confirmed, the main item is gone from the done rows
   too while the companion is among them, skipped. Mutation-checked: with `removalNeedsConfirm` forced to `false` the
   case fails at the alert. *Amended 2026-09-19 (ADR-065):* the alert also says the main item leaves the inventory,
-  and once confirmed M9 lists *Akku* — its skipped row still uses it — and no *Drohne*: a confirmed removal has no
-  undo, so the item goes at once.
+  and once confirmed M9 lists *Akku* — its skipped row still uses it — and no *Drohne*. *Amended 2026-09-19
+  (FR-25.31):* the confirmed removal has an undo now, so M9 is read once its snackbar has gone.
 * **E2E-M4-95** `local` (FR-5.8, G-9, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`): at a desktop
   width, removing the row whose M5 panel is open closes the panel rather than leaving it to report the item as not
   found. Mutation-checked: without the close the panel is still counted.
@@ -718,7 +718,28 @@ in WebKit.
 * **E2E-M4-116** `local` (FR-5.8 with FR-25.21, added 2026-09-19) — **implemented** (`e2e/remove-item.spec.ts`): a
   per-person item for two travelers, both instances packed; removing one traveler's instance from its own row asks
   first, naming **one** packed unit rather than the cluster's two, and takes only that row. The cluster dissolves into
-  the other traveler's row, still packed, and a reload reads the same.
+  the other traveler's row, still packed, and a reload reads the same — taken once the snackbar has gone, since the
+  delete is written when its undo lapses (FR-25.31).
+* **E2E-M4-120** `local` (FR-25.31, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`): a packed row,
+  revealed and un-checked, raises the snackbar (*„unpacked"*); its undo packs it again — the reveal bar, gone with the
+  last done row, is back and the check is set. Replaces E2E-M4-35's absence.
+* **E2E-M4-121** `local` (FR-25.31 with FR-25.24 and FR-5.8, added 2026-09-19) — **implemented**
+  (`e2e/undo-every-act.spec.ts`): the amount raised to 2 through the row menu's popover is announced once the popover
+  closes, and undone the check is back; a ＋ step (*„1 of 2 packed"*) is undone to *0/2*; and a **confirmed** removal of
+  the row carrying that unit is undone to *1/2*, which a reload still reads — the row was never deleted.
+* **E2E-M4-122** `local` (FR-25.31 with FR-25.25, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`):
+  *Late packer on* from the row menu, undone; the menu then offers *on* again and no *off* — the row's own answer.
+* **E2E-M4-123** `local` (FR-25.31 with FR-9.3, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`):
+  in the closing pass one tap on a row's mark raises the snackbar, and its undo leaves the mark unpressed.
+* **E2E-M4-124** `local` (FR-25.31 with FR-7.4, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`): a
+  trip task removed with ✕ leaves the list and its undo brings it back; removed again and left, it is gone after a
+  reload once the snackbar has gone — the lapse is the delete.
+* **E2E-M4-125** `local` (FR-25.31 with FR-5.5 and G-3, added 2026-09-19) — **implemented**
+  (`e2e/undo-every-act.spec.ts`): *Doch einpacken* on a skipped row, undone, leaves it skipped again (the reveal bar is
+  back); *Packen* (the claim), undone, takes the row's own-claim note away.
+* **E2E-M4-126** `local` (FR-25.31 with FR-25.26, added 2026-09-19) — **implemented** (`membership.spec.ts`): the
+  cluster head's *late packer on for everyone* raises *„2 rows changed"*, and its undo clears the head's ⏰ — which the
+  head paints while any instance carries the flag, so its absence is every instance.
 * **E2E-M4-117** `all` (FR-25.26 widened, added 2026-09-19) — **implemented** (`e2e/membership.spec.ts`): the cluster
   head offers a row's entries. *Menge ändern* from the head, stepped to 3, reads **0/3 on each child**, and *Nicht
   einpacken* takes the whole cluster off the working list — one skipped child of two would have kept it there. The
@@ -729,7 +750,8 @@ in WebKit.
 * **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): M4's *Aufgaben für die
   Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing
-  are each read back after a reload — a list that only repaints proves the component and not the write — and the head's
+  are each read back after a reload — a list that only repaints proves the component and not the write; the removal
+  once its snackbar has gone, since FR-25.31 writes the delete when the undo lapses — and the head's
   check (*„0 von 2"* → *„1 von 2"* → *„0 von 1 erledigt"*) follows every step.
 * **E2E-M4-105** `local` (FR-7.4 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): ticking a
   trip todo off raises the pack snackbar naming it, and its *Rückgängig* puts the task back on the open list — the

@@ -475,6 +475,27 @@ describe('createPackingActions without an orchestrator', () => {
     expect(queued).toEqual([])
   })
 
+  it('skipRows skips exactly the rows named, in one enqueue, and deletes nothing (FR-25.31)', () => {
+    const a = seedTripItem('ti-a')
+    const b = seedTripItem('ti-b')
+    seedTripItem('ti-main')
+    const actions = createPackingActions(ctx)
+
+    actions.skipRows(TRIP_ID, [a, b])
+
+    // One unit, like the removal it is half of: the confirmed removal skips
+    // the companions now and deletes its own row only when the undo lapses.
+    expect(queued).toHaveLength(1)
+    const muts = queued[0]!.muts.map((m) => m.mutation)
+    expect(muts.map((m) => m.id)).toEqual(['ti-a', 'ti-b'])
+    for (const m of muts) expect(m).toMatchObject({ op: 'upsert', fields: { state: 'skipped' } })
+  })
+
+  it('skipRows writes nothing for no rows', () => {
+    createPackingActions(ctx).skipRows(TRIP_ID, [])
+    expect(queued).toEqual([])
+  })
+
   it('addRequiredCompanions never adds a companion the list already carries (FR-20.3)', () => {
     seedTripItem('ti-main', { source_item_id: 'item-tent' })
     seedTripItem('ti-comp', { source_item_id: 'item-pegs' })

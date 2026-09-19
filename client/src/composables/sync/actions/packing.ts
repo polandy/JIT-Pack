@@ -595,6 +595,25 @@ export function createPackingActions(ctx: SyncContext) {
    * that is on the list again — a sync brought it back, or it was never gone —
    * is not inserted a second time.
    */
+  /**
+   * Skip exactly these rows, and no others — FR-5.8's companions, once a
+   * removal has been confirmed. Not {@link skipItem}: that one works the
+   * cascade out itself, and here the confirmation already named the rows it
+   * takes along. The main row is deleted later, when the undo lapses
+   * (FR-25.31), so the companions are written on their own.
+   */
+  function skipRows(tripId: string, rows: readonly TripItem[]) {
+    if (rows.length === 0) return
+    enqueueAndDrain(
+      'trip',
+      tripId,
+      ...rows.map((target) => {
+        const skip = mutations.skipItem(target.id)
+        return { mutation: skip, optimistic: optimisticUpdate(skip, itemRow(target)) }
+      }),
+    )
+  }
+
   function restoreRemovedItem(tripId: string, row: TripItem) {
     if (tripStore.getItems(tripId).some((current) => current.id === row.id)) return
     const mutation = mutations.restoreTripItem(row)
@@ -861,6 +880,7 @@ export function createPackingActions(ctx: SyncContext) {
     planRowsRemoval,
     removeItem,
     restoreRemovedItem,
+    skipRows,
     addRequiredCompanions,
   }
 }

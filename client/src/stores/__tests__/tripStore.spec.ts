@@ -359,6 +359,11 @@ describe('tripStore', () => {
     expect(k.packedWeight).toBe(700) // 100*1 + 200*3
     expect(k.totalValue).toBe(4000) // 500*2 + 1000*3
     expect(k.packedValue).toBe(3500) // 500*1 + 1000*3
+
+    // FR-25.31: a row whose removal is still inside its undo is off the line.
+    const hidden = tripStore.kpis('t1', new Set(['i2']))
+    expect(hidden.totalItems).toBe(2)
+    expect(hidden.packedItems).toBe(1)
   })
 
   it('counts a skipped row as no units — not packed, not owed (amends FR-25.22)', () => {
@@ -704,6 +709,14 @@ describe('tripStore', () => {
     const k = tripStore.kpis('t1')
     expect(k.totalTodos).toBe(2)
     expect(k.resolvedTodos).toBe(1)
+
+    // FR-25.31: a row hidden while its removal's undo is live takes its todos
+    // out of the count with it; a hidden todo leaves on its own.
+    expect(tripStore.kpis('t1', new Set(['i1'])).totalTodos).toBe(0)
+    expect(tripStore.kpis('t1', new Set(['todo2']))).toMatchObject({
+      totalTodos: 1,
+      resolvedTodos: 0,
+    })
   })
 })
 

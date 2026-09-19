@@ -397,6 +397,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The mark palette was too small (2026-09-18)](#the-mark-palette-was-too-small-2026-09-18) — FR-28.2 grew from 102 to 352 entries; the font ceiling doubled, a cost accepted on purpose.
 - [The composer creates in the inventory (2026-09-19)](#the-composer-creates-in-the-inventory-2026-09-19) — FR-24.11 reaches M4/M6/M8's quick-add; ad-hoc rows stop, and a trip push learned to wait for the master write it names.
 - [The inventory tidies itself up (2026-09-19)](#the-inventory-tidies-itself-up-2026-09-19) — FR-24.12/24.13: why no rule refuses, why never-used items are not flagged, a pinia leak in specs.
+- [Every act on the list can be taken back (2026-09-19)](#every-act-on-the-list-can-be-taken-back-2026-09-19) — FR-25.31: a cascading delete deferred, not restored; a snackbar over a popover; lingering toasts.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -16170,3 +16171,31 @@ the new test's `beforeEach` had set its own, and before its rows were seeded. Th
 read, and the failures looked like wrong rules. Passing alone and failing in a file is the tell.
 `InventoryCleanupPage.spec.ts` installs its pinia as a plugin and uses `enableAutoUnmount(afterEach)`; any spec mounting
 a page that reads a shared module-level ref needs the same.
+
+## Every act on the list can be taken back (2026-09-19)
+
+Owner: every act on the packing list should be undoable, the way a pack is. Asked which of the acts specified *without*
+an undo were meant: the confirmed removal, the closing-pass tap and the un-pack of a revealed row, yes; *Reise starten*,
+no; M5, later. The mechanism is the one FR-25.2 already had — one slot, replaced by the next act — widened to
+`armAction(label, restore, onLapse)`, where each act captures its old value and re-reads the row when the undo fires.
+
+**Rejected: undoing a confirmed removal by re-inserting.** The untouched removal re-inserts its row, and that was the
+obvious extension. It fails on what made the removal need a confirmation: the row's comments and todos cascade with it,
+and re-creating them sends inserts whose `author_id` the server stamps from the session (invariant 3) — the undo would
+turn somebody else's note into mine. The row is hidden instead and deleted when the undo lapses, the same moment
+ADR-065 already prunes the inventory item. *Accepted cost:* a reload or a killed app inside the three seconds keeps the
+row (or the trip task, which follows the same rule). Three existing e2e cases reloaded straight after a removal and
+had to wait for the snackbar to go first — the cost, made visible.
+
+**The trap: a snackbar over an open popover.** The amount popover first announced every tap. The snackbar is then the
+topmost overlay, and Escape — Ionic's per-document handler dismisses the *top* overlay — closed the snackbar and its
+undo while the popover stayed open; the e2e case found it by timing, passing once and failing three times of three.
+One opening of the popover is now one act, announced when it closes, which is also the better undo: three taps on ＋
+come back as one.
+
+**The trap in the suite: a dismissed toast stays in the DOM, unmarked.** Ionic sets `overlay-hidden` only once the
+leave animation has finished, and under load that is seconds, so `ion-toast.pack-toast` matched two or three elements
+where one act had replaced another — a strict-mode failure that looked like a toast that never went away. A probe
+calling `dismiss()` returned `false` on them: not refused, already leaving. Cases now take
+`:not(.overlay-hidden)` filtered by their sentence and `.last()`.
+

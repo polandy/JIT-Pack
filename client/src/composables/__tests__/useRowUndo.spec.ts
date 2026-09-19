@@ -165,12 +165,12 @@ describe('useRowUndo (FR-25.2, FR-5.5)', () => {
   })
 })
 
-describe('useRowUndo — a ticked-off task (FR-7.3, FR-7.4)', () => {
+describe('useRowUndo — any other act: a ticked-off task, a changed field (FR-7.3, FR-25.31)', () => {
   it('reopens the task once, and a second tap does nothing', () => {
     const undo = useRowUndo()
     const restore = vi.fn()
 
-    undo.armTaskUndo({ id: 'todo-1', body: 'Pass erneuern' }, restore)
+    undo.armAction('Pass erneuern', restore)
     expect(undo.pending.value[0]?.name).toBe('Pass erneuern')
 
     undo.undo()
@@ -185,8 +185,8 @@ describe('useRowUndo — a ticked-off task (FR-7.3, FR-7.4)', () => {
     const first = vi.fn()
     const second = vi.fn()
 
-    undo.armTaskUndo({ id: 'a', body: 'A' }, first)
-    undo.armTaskUndo({ id: 'b', body: 'B' }, second)
+    undo.armAction('A', first)
+    undo.armAction('B', second)
     undo.undo()
 
     expect(first).not.toHaveBeenCalled()
@@ -219,12 +219,26 @@ describe('useRowUndo — what an action owes once it lapses (FR-5.8)', () => {
     expect(lapse).toHaveBeenCalledOnce()
   })
 
+  it('runs the lapse an armAction was given, never after its undo (FR-25.31)', () => {
+    const undo = useRowUndo()
+    const lapse = vi.fn()
+    undo.armAction('Zelt', vi.fn(), lapse)
+    undo.clear()
+    expect(lapse).toHaveBeenCalledOnce()
+
+    const kept = vi.fn()
+    undo.armAction('Zelt', vi.fn(), kept)
+    undo.undo()
+    undo.clear()
+    expect(kept).not.toHaveBeenCalled()
+  })
+
   it('runs the lapse when a task undo replaces the record', () => {
     const undo = useRowUndo()
     const lapse = vi.fn()
     undo.armUndo([item()], vi.fn(), lapse)
 
-    undo.armTaskUndo({ id: 'todo', body: 'Pass' }, vi.fn())
+    undo.armAction('Pass', vi.fn())
     expect(lapse).toHaveBeenCalledOnce()
   })
 

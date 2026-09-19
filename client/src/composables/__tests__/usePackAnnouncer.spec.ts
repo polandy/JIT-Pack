@@ -237,7 +237,7 @@ describe('usePackAnnouncer — a ticked-off task (FR-7.3, FR-7.4)', () => {
   it('offers the undo on the same snackbar a pack does', async () => {
     const { api } = mountAnnouncer()
     const restore = vi.fn()
-    api.rowUndo.armTaskUndo({ id: 'todo-1', body: 'Pass erneuern' }, restore)
+    api.rowUndo.armAction('Pass erneuern', restore)
 
     const done = api.announceTaskDone('Pass erneuern')
     settleCreates()
@@ -249,6 +249,25 @@ describe('usePackAnnouncer — a ticked-off task (FR-7.3, FR-7.4)', () => {
     const buttons = toasts[0]!.options['buttons'] as unknown as Array<{ handler: () => void }>
     buttons[0]!.handler()
 
+    expect(restore).toHaveBeenCalledOnce()
+  })
+})
+
+describe('usePackAnnouncer — any other act (FR-25.31)', () => {
+  it("says the caller's sentence behind the same undo button", async () => {
+    const { api } = mountAnnouncer()
+    const restore = vi.fn()
+    api.rowUndo.armAction('Zelt', restore)
+
+    const done = api.announceAct('„Zelt“: Menge 3')
+    settleCreates()
+    await done
+
+    expect(toasts[0]!.options['message']).toBe('„Zelt“: Menge 3')
+    expect(toasts[0]!.options['cssClass']).toBe('pack-toast')
+    expect(api.packAnnouncements.value).toBe(1)
+    const buttons = toasts[0]!.options['buttons'] as unknown as Array<{ handler: () => void }>
+    buttons[0]!.handler()
     expect(restore).toHaveBeenCalledOnce()
   })
 })
