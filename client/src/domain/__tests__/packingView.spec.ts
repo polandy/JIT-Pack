@@ -744,6 +744,47 @@ describe('search (FR-25.11k)', () => {
   })
 })
 
+describe('a search finds what the reveal switches put away (FR-25.32)', () => {
+  const zelt = (over: Partial<TripItem> = {}) => packed({ name: 'Zelt', ...over })
+
+  it('finds a packed row with Erledigte off', () => {
+    expect(visibleNames([zelt(), item({ name: 'Kocher' })], { search: 'zelt' })).toEqual(['Zelt'])
+  })
+
+  it('finds a row that is somebody else’s with Andere off', () => {
+    const sias = item({ name: 'Zeltplane', packer_user_id: 'u-sia' })
+    expect(visibleNames([sias], { search: 'zelt' })).toEqual(['Zeltplane'])
+  })
+
+  it('finds a late-packer row with Spätpacker off', () => {
+    const late = item({ name: 'Zeltpflöcke', late_packer: true })
+    expect(visibleNames([late], { search: 'zelt', showLate: false })).toEqual(['Zeltpflöcke'])
+  })
+
+  it('does not reveal rows the search does not match', () => {
+    const rows = [zelt(), packed({ name: 'Kocher' })]
+    expect(visibleNames(rows, { search: 'zelt' })).toEqual(['Zelt'])
+  })
+
+  it('leaves the switches alone once the search is cleared or blank', () => {
+    expect(visibleNames([zelt()], { search: '   ' })).toEqual([])
+    expect(visibleNames([zelt()], { search: '' })).toEqual([])
+  })
+
+  it('keeps a facet binding: the search lifts the switches, never a chosen facet', () => {
+    const sias = zelt({ packer_user_id: 'u-sia' })
+    const only = facets({ status: ['not_packed'] })
+    expect(visibleNames([sias], { search: 'zelt', facets: only })).toEqual([])
+  })
+
+  it('offers no reveal for what the search already shows', () => {
+    const result = view([zelt(), item({ name: 'Zeltplane', packer_user_id: 'u-sia' })], {
+      search: 'zelt',
+    })
+    expect(result.hiddenOtherCount).toBe(0)
+  })
+})
+
 describe("other people's rows are hidden by default (FR-25.20)", () => {
   const mine = (over: Partial<TripItem> = {}) => item({ name: 'Mine', packer_user_id: ME, ...over })
   const sias = (over: Partial<TripItem> = {}) =>

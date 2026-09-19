@@ -259,6 +259,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | Visual baselines | E2E-VIS-01 … E2E-VIS-12 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, ~~E2E-M4-35~~ (reversed by FR-25.31 → E2E-M4-120) | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Every act on the list can be undone (FR-25.31) | E2E-M4-120 (un-pack), E2E-M4-121 (amount, ＋ step, confirmed removal), E2E-M4-122 (late packer from the menu), E2E-M4-123 (closing-pass mark), E2E-M4-124 (trip task removed; the lapse is the delete), E2E-M4-125 (unskip, claim), E2E-M4-126 (cluster fan-out, in `membership.spec.ts`) | `local` | [`undo-every-act.spec.ts`](../client/e2e/undo-every-act.spec.ts) |
+| Search lifts the reveal switches (FR-25.32), the Erledigte switch keeps its tick, a short list does not jump | E2E-M4-127, E2E-M4-128, E2E-M4-129 | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Taken off the list (FR-5.8) | E2E-M4-91, E2E-M4-92, E2E-M4-95, E2E-M4-115 (ADR-065: the unused inventory item goes along), E2E-M4-116 (FR-25.21: one traveler's instance goes, the other's stays packed) | `local` | [`remove-item.spec.ts`](../client/e2e/remove-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03, E2E-G14-04 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
