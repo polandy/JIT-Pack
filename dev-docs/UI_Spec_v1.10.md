@@ -1176,8 +1176,9 @@ These patterns apply to every screen and are specified once.
       only a checkbox, and it put the most-tapped control at the far edge from the thumb. Moving the control to the
       end keeps both promises and buys them differently: the lead column holds the names, and the container's own edge
       holds the controls. E2E-M4-56 asserts both, because either one alone passes on a row that has lost the other.
-    The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row added by quick-add carries none until
-    it exists in the inventory, and shows an empty slot rather than a placeholder.
+    The mark is resolved through the row's source item (FR-28.7) — an ad-hoc row (an import's, an older trip's; the
+    quick-add has made none since FR-24.11 reached it) carries none until it exists in the inventory, and shows an empty
+    slot rather than a placeholder.
     * **The lead column is one glyph wide (added 2026-09-07, FR-21.19).** The mark on an item row, the traveler's face
       on a child row under a cluster — never both. The case that had both is a *lone* per-person instance, which
       renders as an item row with the person folded into its label (`Wanderstöcke · Andy`); it drew the face beside
