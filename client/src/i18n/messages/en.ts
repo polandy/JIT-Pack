@@ -177,12 +177,15 @@ export const en = {
   'packing.removeAction': 'Remove from the list',
   'packing.taskDoneToast': '“{body}” done ✓',
   'packing.removedToast': '“{name}” removed from the list',
+  'packing.removedToastInventory': '“{name}” removed — from the inventory too',
   'packing.removeConfirmTitle': 'Remove “{name}”?',
   'packing.removeConfirmLead':
     'The row disappears from the packing list. To leave it at home on purpose, choose “Do not pack this”.',
   'packing.removeConfirmPacked': '{n} already packed.',
   'packing.removeConfirmNotes': '{n} note is deleted with it. | {n} notes are deleted with it.',
   'packing.removeConfirmCompanions': 'Not packed either: {names}.',
+  'packing.removeConfirmInventory':
+    'The item is used nowhere else and is deleted from the inventory too.',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
   // FR-25.21 — "Who needs this?": membership and per-person amounts.
   // FR-25.28 — the for-whom strip: on M4's row, in M5 and over the quick-add.

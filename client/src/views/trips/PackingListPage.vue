@@ -1291,28 +1291,43 @@ function removeRow(item: TripItem, companions: readonly TripItem[]): void {
  * snackbar can bring it back; a row carrying packing, notes or companions says
  * what it takes along first, because the undo could not return those — so it
  * is asked instead of offered.
+ *
+ * The inventory item the row was the only use of goes too (ADR-065) — but
+ * only once the removal is final: when the snackbar lapses, or at once after a
+ * confirmation, which has no undo. So the undo only ever re-inserts a row.
  */
 async function onRemoveItem(item: TripItem) {
   const removal = orchestrator.planRowRemoval(props.tripId, item)
+  const leftItem = orchestrator.itemLeftByRemoval(item)
+  const pruneLeftItem = () => {
+    if (leftItem !== null) void orchestrator.pruneItemLeftByRemoval(props.tripId, leftItem)
+  }
   if (!removalNeedsConfirm(removal)) {
     // A copy, not the store's row: the undo re-inserts from it after the row
     // has left the store.
     const snapshot = { ...item }
-    rowUndo.armUndo([snapshot], () => orchestrator.restoreRemovedItem(props.tripId, snapshot))
+    rowUndo.armUndo(
+      [snapshot],
+      () => orchestrator.restoreRemovedItem(props.tripId, snapshot),
+      pruneLeftItem,
+    )
     removeRow(item, [])
-    void announceRemoved(item.name)
+    void announceRemoved(item.name, leftItem !== null)
     return
   }
   const confirmed = await confirmDestructive({
     header: t('packing.removeConfirmTitle', { name: item.name }),
-    message: removalSentence(removal),
+    message: removalSentence(removal, leftItem !== null),
     confirmLabel: t('common.remove'),
     testid: 'm4-remove-confirm',
   })
   if (!confirmed) return
   removeRow(item, removal.companions)
+  pruneLeftItem()
   void presentToast({
-    message: t('packing.removedToast', { name: item.name }),
+    message: t(leftItem !== null ? 'packing.removedToastInventory' : 'packing.removedToast', {
+      name: item.name,
+    }),
     positionAnchor: FAB_ANCHOR.m4,
   })
 }

@@ -39,4 +39,10 @@ describe('removalSentence (FR-5.8)', () => {
     expect(sentence).not.toContain('gepackt.')
     expect(sentence).not.toContain('Ebenfalls')
   })
+
+  it('says the inventory item goes too, last — the one cost reaching past this trip (ADR-065)', () => {
+    const sentence = removalSentence({ ...NOTHING, packed: 1 }, true)
+    expect(sentence.endsWith('wird auch aus dem Inventar gelöscht.')).toBe(true)
+    expect(removalSentence({ ...NOTHING, packed: 1 })).not.toContain('Inventar')
+  })
 })

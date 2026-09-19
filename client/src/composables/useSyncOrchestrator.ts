@@ -63,6 +63,7 @@ import type {
   ConflictEntry,
   LockEvent,
   LockEventListResponse,
+  MasterPruneResponse,
   PresenceMember,
   PullChange,
   TakeoverResponse,
@@ -589,6 +590,35 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   /**
+   * FR-5.8's second half (ADR-065): once a removal can no longer be undone,
+   * the inventory item it left unused goes too. Asked again here rather than
+   * trusted from the removal — the row may have come back, or another use
+   * arrived, while the snackbar was up.
+   *
+   * Local Mode holds every trip, so its answer is the whole answer and the
+   * item is deleted like any other. A server device holds only the trips it
+   * has opened, so it asks the server, which deletes the item only if nothing
+   * uses it anywhere and otherwise leaves it exactly as it was — the push's
+   * delete would retire it instead (FR-24.3). The removal is sent first: the
+   * server would count the row being removed as a use. A device offline at
+   * that moment keeps the item, which is the answer a doubt should give.
+   */
+  async function pruneItemLeftByRemoval(tripId: string, itemId: string) {
+    if (packingActions.itemStillUsed(itemId)) return
+    if (local) {
+      masterDataActions.deleteMasterItem(itemId)
+      return
+    }
+    try {
+      await outbox.whenSent('trip', tripId)
+      const resp = await client.post<MasterPruneResponse>(API.masterItemPrune(itemId))
+      if (resp.pruned) await drainMaster()
+    } catch {
+      // Offline, or the removal itself was refused: the item stays.
+    }
+  }
+
+  /**
    * fetchLockEvents reads the trip's takeover record (FR-5.7) — who took
    * what from whom. Deliberately not part of the conflict log: that one
    * holds merge losers, and a list of two unrelated kinds of event stops
@@ -847,6 +877,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     lockHolder: locks.lockHolder,
     releaseClaim,
     takeOverClaim,
+    pruneItemLeftByRemoval,
     fetchLockEvents,
 
     // Drain

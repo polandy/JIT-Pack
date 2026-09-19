@@ -697,10 +697,17 @@ in WebKit.
   removing a main item with a required companion asks first and the alert names the companion; *Cancel* leaves both
   rows on the list (the positive signal that it was a question). Confirmed, the main item is gone from the done rows
   too while the companion is among them, skipped. Mutation-checked: with `removalNeedsConfirm` forced to `false` the
-  case fails at the alert.
+  case fails at the alert. *Amended 2026-09-19 (ADR-065):* the alert also says the main item leaves the inventory,
+  and once confirmed M9 lists *Akku* — its skipped row still uses it — and no *Drohne*: a confirmed removal has no
+  undo, so the item goes at once.
 * **E2E-M4-95** `local` (FR-5.8, G-9, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`): at a desktop
   width, removing the row whose M5 panel is open closes the panel rather than leaving it to report the item as not
   found. Mutation-checked: without the close the panel is still counted.
+* **E2E-M4-113** `local` (FR-5.8, ADR-065, added 2026-09-19) — **implemented** (`e2e/remove-item.spec.ts`): two rows
+  typed into the composer, so two inventory items used nowhere else. Removing *Zelt* announces *„from the inventory
+  too"*; undone, and the screen left, M9 still lists *Zelt* — the undo lapsed nothing. Removed again and the snackbar
+  left to run out, M9 lists *Schlafsack* and no *Zelt*. Mutation-checked: without the prune the last assertion fails;
+  with a prune at removal time instead of at the lapse, the M9 check after the undo does.
 * **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): M4's *Aufgaben für die
   Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing
@@ -3299,7 +3306,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-5.5 | E2E | M4-06 |
 | FR-5.6 | E2E | M4-04, M6-03 |
 | FR-5.7 | E2E | G3-02 (mode gate), M4-49/50 |
-| FR-5.8 | E2E | M4-91 (untouched: at once, undo, reload), M4-92 (asks, names the companion, co-skips it), M4-95 (the open panel closes); `domain/__tests__/rowRemoval.spec.ts` (when it asks) |
+| FR-5.8 | E2E | M4-91 (untouched: at once, undo, reload), M4-92 (asks, names the companion, co-skips it), M4-95 (the open panel closes), M4-113 (the unused item goes once final, ADR-065); `domain/__tests__/rowRemoval.spec.ts` (when it asks, which item is left unused), `composables/__tests__/removalPrune.spec.ts` (Local deletes, a server device asks after the removal) |
 | FR-6.1 | E2E | M1-01 (the aggregation, deliberately unfiltered), M1-03 (the delegation *section* beside it, built 2026-08-31), M1-03b (absent where there is no account), M1-08 (the planned-trips section, built 2026-09-02); `domain/__tests__/dashboardSections.spec.ts`, `local/__tests__/delegationSeen.spec.ts` |
 | FR-6.2 | E2E | FLOW-02, NOTIFY-01, M17-01 |
 | FR-6.3 | E2E | G4-01, FLOW-02 (M1-04's *at the item* is retired — M1 has no per-item link, 2026-08-30) |

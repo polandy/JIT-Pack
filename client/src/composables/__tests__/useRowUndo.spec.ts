@@ -193,3 +193,60 @@ describe('useRowUndo — a ticked-off task (FR-7.3, FR-7.4)', () => {
     expect(second).toHaveBeenCalledOnce()
   })
 })
+
+/**
+ * FR-5.8 with ADR-065: a removal finishes — deletes the inventory item it left
+ * unused — only once it can no longer be taken back. Three ways the chance
+ * ends, one way it is used.
+ */
+describe('useRowUndo — what an action owes once it lapses (FR-5.8)', () => {
+  it('runs the lapse when the snackbar is dismissed or the screen left', () => {
+    const undo = useRowUndo()
+    const lapse = vi.fn()
+    undo.armUndo([item()], vi.fn(), lapse)
+
+    expect(lapse).not.toHaveBeenCalled()
+    undo.clear()
+    expect(lapse).toHaveBeenCalledOnce()
+  })
+
+  it('runs the lapse when the next action replaces the record', () => {
+    const undo = useRowUndo()
+    const lapse = vi.fn()
+    undo.armUndo([item()], vi.fn(), lapse)
+
+    undo.actWithUndo([item({ id: 'i2' })], () => {}, vi.fn())
+    expect(lapse).toHaveBeenCalledOnce()
+  })
+
+  it('runs the lapse when a task undo replaces the record', () => {
+    const undo = useRowUndo()
+    const lapse = vi.fn()
+    undo.armUndo([item()], vi.fn(), lapse)
+
+    undo.armTaskUndo({ id: 'todo', body: 'Pass' }, vi.fn())
+    expect(lapse).toHaveBeenCalledOnce()
+  })
+
+  it('never runs the lapse once the action was undone — not even on the dismiss that follows', () => {
+    const undo = useRowUndo()
+    const lapse = vi.fn()
+    const restore = vi.fn()
+    undo.armUndo([item()], restore, lapse)
+
+    undo.undo()
+    undo.clear()
+    expect(restore).toHaveBeenCalledOnce()
+    expect(lapse).not.toHaveBeenCalled()
+  })
+
+  it('runs a lapse at most once', () => {
+    const undo = useRowUndo()
+    const lapse = vi.fn()
+    undo.armUndo([item()], vi.fn(), lapse)
+
+    undo.clear()
+    undo.clear()
+    expect(lapse).toHaveBeenCalledOnce()
+  })
+})

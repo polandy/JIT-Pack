@@ -8,8 +8,12 @@
 import { t } from '@/i18n'
 import type { RowRemoval } from '@/domain/rowRemoval'
 
-/** The confirmation's body: the lead, then each cost the removal carries. */
-export function removalSentence(removal: RowRemoval<{ name: string }>): string {
+/**
+ * The confirmation's body: the lead, then each cost the removal carries.
+ * `leavesItem` is FR-5.8's last cost — the inventory item the row was the
+ * only use of goes too (ADR-065), and it is the one reaching past this trip.
+ */
+export function removalSentence(removal: RowRemoval<{ name: string }>, leavesItem = false): string {
   const parts = [t('packing.removeConfirmLead')]
   if (removal.packed > 0) parts.push(t('packing.removeConfirmPacked', { n: removal.packed }))
   if (removal.notes > 0) parts.push(t('packing.removeConfirmNotes', { n: removal.notes }))
@@ -20,5 +24,6 @@ export function removalSentence(removal: RowRemoval<{ name: string }>): string {
       }),
     )
   }
+  if (leavesItem) parts.push(t('packing.removeConfirmInventory'))
   return parts.join(' ')
 }

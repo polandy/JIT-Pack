@@ -15,7 +15,13 @@ import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/types/tables'
 import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
-import { planRemoval, type RowRemoval } from '@/domain/rowRemoval'
+import {
+  itemInUse,
+  itemLeftUnused,
+  planRemoval,
+  type ItemUseSources,
+  type RowRemoval,
+} from '@/domain/rowRemoval'
 import {
   everyoneMembers,
   membersOfRows,
@@ -70,7 +76,7 @@ interface ForAllAddResult extends SpreadResult {
 
 /** createPackingActions binds the packing group to one sync context. */
 export function createPackingActions(ctx: SyncContext) {
-  const { mutations, enqueueAndDrain, tripStore, masterStore } = ctx
+  const { mutations, enqueueAndDrain, tripStore, masterStore, knownTripItems } = ctx
 
   /** Pack: increment packed count on a trip item. */
   function packIncrement(tripId: string, item: TripItem) {
@@ -504,6 +510,33 @@ export function createPackingActions(ctx: SyncContext) {
     )
   }
 
+  /** Everything on this device that can keep an inventory item in use. */
+  function itemUseSources(): ItemUseSources {
+    return {
+      positions: masterStore.templateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
+      tripItems: knownTripItems(),
+      dependencies: masterStore.dependencyList,
+    }
+  }
+
+  /**
+   * The inventory item removing `row` would leave unused, as far as this
+   * device can see (FR-5.8, ADR-065) — or null. Asked before the removal, so
+   * the snackbar and the confirmation can say the item goes too.
+   */
+  function itemLeftByRemoval(row: Pick<TripItem, 'id' | 'source_item_id'>): string | null {
+    return itemLeftUnused(row, itemUseSources())
+  }
+
+  /**
+   * Whether this device sees a use of the item — asked again when a removal
+   * becomes final, because the row may have come back, or another use
+   * arrived, while the snackbar was up.
+   */
+  function itemStillUsed(itemId: string): boolean {
+    return itemInUse(itemId, itemUseSources())
+  }
+
   /**
    * Take a row off the packing list altogether (FR-5.8) — a delete, where
    * FR-5.5's skip keeps the row as a decision.
@@ -770,6 +803,8 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   return {
+    itemLeftByRemoval,
+    itemStillUsed,
     setMembership,
     spreadOverEveryTraveler,
     addItemForEveryTraveler,

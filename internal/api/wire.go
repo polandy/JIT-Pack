@@ -124,6 +124,17 @@ type MasterDeleteResponse struct {
 	PullHint PullHint        `json:"pull_hint"`
 }
 
+// MasterPruneResponse answers FR-5.8's conditional delete of an inventory
+// item (ADR-065).
+//
+// Pruned is false both when something still uses the item and when it was
+// already gone: in either case there is nothing for the caller to do, and
+// the device that asked learns nothing it could act on from the difference.
+type MasterPruneResponse struct {
+	Pruned   bool     `json:"pruned"`
+	PullHint PullHint `json:"pull_hint"`
+}
+
 // --- API tokens (FR-23.7, ADR-039) ---
 
 // APITokenExpiry is how long a minted token lives.
@@ -529,6 +540,11 @@ const (
 	RouteMasterItem         = "/api/v1/master/items/{itemID}"
 	RouteMasterTemplate     = "/api/v1/master/templates/{templateID}"
 	RouteMasterTemplateItem = "/api/v1/master/template-items/{templateItemID}"
+
+	// FR-5.8's conditional delete: the item goes only if nothing uses it, and
+	// is otherwise left exactly as it was — never retired (ADR-065). The app
+	// calls this one, because only the server sees every trip.
+	RouteMasterItemPrune = "/api/v1/master/items/{itemID}/prune"
 
 	// The caller's own scope. The full export lives here because it is
 	// filtered to what the caller may pull, and it names its format.

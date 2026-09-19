@@ -47,6 +47,24 @@ Some things to know:
   phone, or another member of your household, is asked again. The **Rules** button on the
   screen switches rules off and sets the window.
 
+### Removing a packing-list row can remove its item
+
+Every name you type on a packing list becomes an item in your inventory. So that a typo or a
+one-off does not stay there for ever, **removing a row from the packing list also deletes its
+item** when nothing else uses it: no template or group lists it, no other row on any trip
+packs it, and no other item needs it as a companion. The message after the removal says so
+(*"removed — from the inventory too"*), and so does the question JIT-Pack asks before
+removing a row that is already packed or has notes.
+
+The item goes only once the removal is final: when the message with **Undo** disappears, or
+right away after you confirmed the question. **Undo** therefore brings back the row and
+leaves the item exactly as it was.
+
+With a server, your device asks the server first, because it only knows the trips it has
+opened. If a trip it has not seen still uses the item, the item stays, even though the
+message said it would go. If the device is offline at that moment, the item also stays, and
+you can delete it from the inventory yourself.
+
 ### Giving a tag an icon
 
 A tag can carry one emoji, like an item can. Open **Inventory → ⋮ → Manage tags** and tap the
@@ -68,6 +86,11 @@ shows the two on separate tabs.
 
 Trips are not on this list. Deleting a trip removes other people's packing history along
 with it, so it stays in the app where the confirmation question can say so.
+
+One more item endpoint is not a plain delete: `POST /api/v1/master/items/{id}/prune` deletes
+the item **only if nothing uses it**, and otherwise leaves it untouched instead of hiding it.
+It answers `{"pruned": true}` or `{"pruned": false}`. The app calls it when a packing-list
+removal leaves an item unused ([see above](#removing-a-packing-list-row-can-remove-its-item)), and it is just as safe to call from a script.
 
 ## Authenticating
 
