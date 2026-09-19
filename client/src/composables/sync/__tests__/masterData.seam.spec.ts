@@ -254,6 +254,30 @@ describe('the tag admin actions (FR-24.10)', () => {
     pullIn(ctx.masterStore, TABLE.itemTags, id, { item_id: itemId, tag_id: tagId, position })
   }
 
+  it('setTagMark writes the mark and paints it before the push answers (FR-24.13)', () => {
+    seedTag('tag-1', 'Bad', 0)
+
+    createMasterDataActions(ctx).setTagMark('tag-1', '🧼')
+
+    expect(queued[0]!.muts[0]!.mutation.fields).toEqual({ icon: '🧼' })
+    expect(ctx.masterStore.tagList.find((t) => t.id === 'tag-1')?.icon).toBe('🧼')
+  })
+
+  it('setTagMark writes nothing when the mark is already the one chosen', () => {
+    pullIn(ctx.masterStore, TABLE.tags, 'tag-1', { name: 'Bad', sort_order: 0, icon: '🧼' })
+
+    createMasterDataActions(ctx).setTagMark('tag-1', '🧼')
+
+    expect(queued).toHaveLength(0)
+  })
+
+  it('createTag with a mark creates the tag carrying it (FR-24.13)', () => {
+    const id = createMasterDataActions(ctx).createTag('Wasser', '🌊')
+
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ name: 'Wasser', icon: '🌊' })
+    expect(ctx.masterStore.tagList.find((t) => t.id === id)?.icon).toBe('🌊')
+  })
+
   it('renameTag writes the new name', () => {
     seedTag('tag-1', 'Kleidung', 0)
 

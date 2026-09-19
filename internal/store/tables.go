@@ -110,7 +110,7 @@ var tableSpecs = map[string]tableSpec{
 	// a set of these, not one of them.
 	TableTags: {
 		partition: partitionMaster,
-		columns:   toSet("name", "sort_order"),
+		columns:   toSet("name", "sort_order", MarkColumn), // the mark: FR-24.13
 		visible:   visibilityRule{everyone: true},
 		export:    exportQuery{query: `SELECT * FROM tags`},
 		// A deleted tag unassigns itself everywhere (FR-24.1). Without the

@@ -233,6 +233,14 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/items/ItemEditorPage.vue'),
   },
   {
+    // M24 (FR-24.12). Reached from M9 only, so it returns there; like
+    // /items/new it must precede /items/:itemId.
+    path: PATH.inventoryCleanup,
+    meta: { parent: PATH.items, titleKey: 'cleanup.title' },
+    name: 'inventory-cleanup',
+    component: () => import('@/views/items/InventoryCleanupPage.vue'),
+  },
+  {
     path: itemPath(ITEM_ID_PARAM),
     meta: { parent: PATH.items, titleKey: 'nav.title.item' },
     name: 'item-editor',

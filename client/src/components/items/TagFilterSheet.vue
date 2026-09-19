@@ -27,6 +27,7 @@ import { computed, ref, watch } from 'vue'
 
 import SheetModal from '@/components/global/SheetModal.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import { UNTAGGED_KEY, type TagFilterMode } from '@/domain/tags'
 import { searchMatches } from '@/domain/search'
 import { t } from '@/i18n'
@@ -144,6 +145,7 @@ const modeUseful = computed(() => props.selection.filter((id) => id !== UNTAGGED
             <span class="box" :class="{ on: selected.has(tag.id) }">
               <IonIcon v-if="selected.has(tag.id)" :icon="checkmarkOutline" />
             </span>
+            <ItemMark :mark="tag.icon ?? null" surface="plain" :size="18" />
             <span class="name">{{ tag.name }}</span>
             <span class="count jp-num">{{ counts.get(tag.id) ?? 0 }}</span>
           </button>

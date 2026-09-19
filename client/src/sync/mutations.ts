@@ -1126,9 +1126,16 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
 
   // --- Tag mutations (FR-24.1) ---
 
-  function createTag(name: string, sortOrder: number = 0): { mutation: Mutation; id: string } {
+  function createTag(
+    name: string,
+    sortOrder: number = 0,
+    icon: string | null = null,
+  ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', TABLE.tags, id, { name, sort_order: sortOrder })
+    // The mark only when one was chosen (FR-24.13): an insert that spells out
+    // `icon: null` says nothing an absent column does not.
+    const fields = icon ? { name, sort_order: sortOrder, icon } : { name, sort_order: sortOrder }
+    const mutation = make('insert', TABLE.tags, id, fields)
     return { mutation, id }
   }
 
@@ -1174,6 +1181,15 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
    */
   function renameTag(tagId: string, name: string): Mutation {
     return make('upsert', TABLE.tags, tagId, { name })
+  }
+
+  /**
+   * Set or clear a tag's mark (FR-24.13). The field alone, for
+   * {@link renameTag}'s reason — and `null` is written, not omitted, because
+   * clearing is a state of its own (FR-28.1).
+   */
+  function setTagMark(tagId: string, icon: string | null): Mutation {
+    return make('upsert', TABLE.tags, tagId, { icon })
   }
 
   /** Move a tag on the inventory's axis (FR-24.10) — its grouping order. */
@@ -1291,6 +1307,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     // Categories
     createTag,
     renameTag,
+    setTagMark,
     reorderTag,
     retagAssignment,
     deleteTag,

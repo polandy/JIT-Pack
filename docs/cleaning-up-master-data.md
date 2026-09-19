@@ -10,10 +10,49 @@ from a spreadsheet, JIT-Pack gives you a delete endpoint per row.
     when a tag was typed twice — it keeps every item filed, which deleting does not. See
     [what the endpoint does differently](#deleting-a-tag-is-not-what-the-app-does) below.
 
+!!! tip "Let the app find the mess"
+    **Inventory → ⋮ → Tidy up** checks the inventory against a few rules and lists what it
+    finds, each with the fix beside it — see [Tidying up in the app](#tidying-up-in-the-app).
+
 !!! warning "Back up first"
     Deletion through the API asks no confirmation question. Copy your database file before
     you start — see [Backup & Export](backup.md). It is one file, and restoring it undoes
     everything on this page.
+
+## Tidying up in the app
+
+**Inventory → ⋮ → Tidy up** runs three rules over your inventory. While any of them finds
+something, a line at the end of the inventory list says how many findings there are, and
+tapping it opens the same screen.
+
+| Rule | What it finds | What you can do |
+|---|---|---|
+| Untagged | Items that carry no tag. They sit under "Untagged" and are missing from every tag filter. | Take the suggested tag, or **Choose tag…**, which searches your tags and creates one you type that does not exist yet. |
+| Not used in a long time | Items in no template whose last trip ended more than 12 months ago (6 and 24 can be chosen). | **Retire** the item (it moves to *Hidden master data* and can be restored there), or **Keep** it. |
+| Tag with a single item | Tags that only one item carries — usually a typo of another tag. | **Merge…** it into another tag, or **Keep** it. |
+
+A tag is only suggested when there is a reason, and the reason is shown: an item with a
+similar name ("like Zahnbürste"), or a template the item is in. Every fix shows a message with
+**Undo** — except a merge, which asks before it acts, exactly as in **Manage tags**.
+
+Some things to know:
+
+- **Nothing is enforced.** An item without a tag can still be saved — imports and the quick
+  create in the search produce them on purpose. The rule finds them afterwards.
+- **An item that has never been on a trip is not reported as unused.** JIT-Pack does not know
+  when an item was created, so a new item and a forgotten one would look the same.
+- **With a server, only the trips this device has opened are counted.** If trips in the window
+  have not been opened here, the screen says how many — one of them may have used the item.
+- **The rules, the time window and every *Keep* are stored on this device only.** Another
+  phone, or another member of your household, is asked again. The **Rules** button on the
+  screen switches rules off and sets the window.
+
+### Giving a tag an icon
+
+A tag can carry one emoji, like an item can. Open **Inventory → ⋮ → Manage tags** and tap the
+square in front of a tag's name; the same emoji picker as for items opens. The icon appears on
+the tag's chip and heading in the inventory, and in front of every item filed under the tag
+that has no photo and no icon of its own — shown paler, so you can tell it from the item's own.
 
 ## What you can delete
 

@@ -396,6 +396,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's dependency pickers; an inline modal beside a v-if/v-else broke the section it sat in.
 - [The mark palette was too small (2026-09-18)](#the-mark-palette-was-too-small-2026-09-18) — FR-28.2 grew from 102 to 352 entries; the font ceiling doubled, a cost accepted on purpose.
 - [The composer creates in the inventory (2026-09-19)](#the-composer-creates-in-the-inventory-2026-09-19) — FR-24.11 reaches M4/M6/M8's quick-add; ad-hoc rows stop, and a trip push learned to wait for the master write it names.
+- [The inventory tidies itself up (2026-09-19)](#the-inventory-tidies-itself-up-2026-09-19) — FR-24.12/24.13: why no rule refuses, why never-used items are not flagged, a pinia leak in specs.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -16142,3 +16143,30 @@ runner, and it was read as confirmation; the baseline had to be pulled from eigh
 
 **If this is revisited:** duration-aware sharding (not in Playwright 1.63), or fewer, larger runners so the fixed
 ~65-100 s per leg is paid fewer times. Neither was tried.
+
+## The inventory tidies itself up (2026-09-19)
+
+Owner: a cleanup function in the inventory, starting with „every item has at least one tag"; asked for an interactive
+mockup first, then „build it as proposed", and a tag mark on top. M24 runs three rules (`domain/inventoryHygiene`);
+every repair is an existing act, and the tag's mark is the item mark's column on `tags`.
+
+**Rejected: making the tag mandatory.** It reads as the obvious implementation of the owner's sentence and it cannot
+exist: an assignment is its own `item_tags` row, a cross-row CHECK is not expressible in SQLite, and a client-side
+refusal of an untagged save would still be bypassed by every import, M21 and FR-24.11's quick create — which produce
+untagged items on purpose. A rule that finds afterwards covers all of them.
+
+**A premise that turned out wrong: „unused" is a date.** Items carry no creation date, so an item created yesterday and
+one forgotten for three years are the same row to the rule. The mockup flagged both; the build flags only an item with a
+known *last* use. In Server Mode even that is a lower bound (ADR-032) — the card says how many trips in the window the
+device has not opened rather than pretending.
+
+**Left out on purpose:** the „similar names" rule the mockup showed. Its repair is an item merge, which the owner struck
+from M9 on 2026-08-31; a rule that finds what nothing can repair is a nag. It waits for that decision.
+
+**The trap, in the specs: a page left mounted re-activates its own pinia.** `cleanupSettings` is one module-level ref,
+so the next test's `reset()` re-rendered every page earlier tests had mounted; a child component that mounted in that
+re-render called `useStore()` inside the old app's injection context, which `setActivePinia`s the *old* pinia — after
+the new test's `beforeEach` had set its own, and before its rows were seeded. The rows then landed in a store no page
+read, and the failures looked like wrong rules. Passing alone and failing in a file is the tell.
+`InventoryCleanupPage.spec.ts` installs its pinia as a plugin and uses `enableAutoUnmount(afterEach)`; any spec mounting
+a page that reads a shared module-level ref needs the same.

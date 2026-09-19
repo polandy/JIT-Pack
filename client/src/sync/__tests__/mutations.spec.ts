@@ -61,6 +61,26 @@ describe('createMutations', () => {
     expect(mut.fields).toEqual({ name: 'Bekleidung' })
   })
 
+  it('setTagMark writes the mark alone (FR-24.13)', () => {
+    const m = createMutations(mockHLC())
+
+    expect(m.setTagMark('t-bad', '🧼').fields).toEqual({ icon: '🧼' })
+    // Clearing is a write of null, not an absent field — FR-28.1's first-class
+    // absence, which a partial upsert without the key would never reach.
+    expect(m.setTagMark('t-bad', null).fields).toEqual({ icon: null })
+  })
+
+  it('createTag carries a mark only when one was chosen (FR-24.13)', () => {
+    const m = createMutations(mockHLC())
+
+    expect(m.createTag('Bad', 3).mutation.fields).toEqual({ name: 'Bad', sort_order: 3 })
+    expect(m.createTag('Wasser', 4, '🌊').mutation.fields).toEqual({
+      name: 'Wasser',
+      sort_order: 4,
+      icon: '🌊',
+    })
+  })
+
   it('reorderTag writes the axis number alone', () => {
     const m = createMutations(mockHLC())
     const mut = m.reorderTag('t-kleidung', 2)
