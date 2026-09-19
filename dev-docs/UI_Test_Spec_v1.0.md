@@ -831,6 +831,11 @@ in WebKit.
   „archived trips too". A trip with one inventory row is started and archived through the closing pass, the item is
   renamed in M10, and the archived trip's ⋮ still offers „Names from the inventory (1)"; applying it renames the row,
   which survives a reload, and the entry is gone from a populated menu.
+* **E2E-M4-130** `server` (FR-5.1, added 2026-09-19) — **implemented** (`e2e/server/multi-user.spec.ts`): the
+  late-packer flag is trip state, so one account's „pack later" is the other's. Alice flags a row from its menu and
+  Bob's open screen shows the ⏰ without a reload, and again after his reload (the server's copy, not a socket frame);
+  clearing it reaches him the same way. Written after the owner suspected it did not arrive — it does, and no case had
+  a second account look at the flag.
 * **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
   as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
   an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A
