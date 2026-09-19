@@ -1,7 +1,8 @@
 # Local mirror of the CI pipeline (.github/workflows/ci.yml).
 # Each target maps 1:1 to a CI job or step, so a green `make ci` predicts a
 # green pipeline. When you change a job in ci.yml, change its target here.
-# The `test` target carries the one deliberate divergence, and says why.
+# Two divergences: the `test` target says why it differs, and `client-cli` has no
+# CI step at all (stricter here than there — it guards ADR-025).
 .PHONY: ci ci-remote pins log-index case-ids e2e-helpers testids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-purity client-build client-test client-fmt \
         e2e e2e-single e2e-server visual visual-update docker-build all
