@@ -3299,7 +3299,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-17.11 | E2E | G8-01 (feature inert in Single-User) |
 | FR-17.13 | E2E+UNIT | M17-04, M17-12; avatarCrop.ts / imageResize.ts |
 | FR-18.1 | UNIT | portable.ts wire types; surfaced via 18.2/18.4 |
-| FR-18.2 | E2E | M7-04, M2-07 |
+| FR-18.2 | E2E | M7-04, M7-12, M2-07 |
 | FR-18.3 | E2E | M2-07 |
 | FR-2.3 | E2E | M2-10 (ADR-033: progress on a trip this device never opened) |
 | Sync-API §4 (paging) | E2E | SYNC-01 (a partition larger than one page arrives whole) |

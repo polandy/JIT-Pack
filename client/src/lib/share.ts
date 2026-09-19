@@ -28,8 +28,8 @@ export function shareableFile(text: string, stem: string): File {
 /**
  * Whether this browser can share the file at all. The action is offered only
  * when it can (G-8's stance: hide what cannot work rather than leave it
- * broken) — desktop Firefox has no Web Share, and several desktop browsers
- * share text but no files.
+ * broken) — many desktop browsers have no Web Share, or share text but no
+ * files.
  */
 export function canShareFile(file: File): boolean {
   try {
