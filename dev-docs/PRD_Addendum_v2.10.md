@@ -3189,8 +3189,8 @@ locked.
     announced when the popover closes: three taps on ＋ are one change, and the undo returns to the amount it opened
     on. Announced per tap, the snackbar would also stand over the open popover as the overlay Escape closes first.
   * **The row menu:** *Doch einpacken*, *Ich packe das* and *freigeben* (each other's undo, G-3), Spätpacker on/off,
-    *Ungenutzt* / *aufheben*, and the removal — **the confirmed one included**; the row avatar's assignment
-    (FR-25.25).
+    *Ungenutzt* / *aufheben*, *Vor Ort kaufen* / *Doch mitnehmen* (FR-5.9), and the removal — **the confirmed one
+    included**; the row avatar's assignment (FR-25.25).
   * **The cluster head's fan-out (FR-25.26):** one undo gives every instance the value *it* had, since the instances
     may have disagreed before.
   * **The closing pass (FR-9.3):** each tap on the pass's mark. Owner ruling 2026-09-19 over the earlier *no toast per
@@ -4666,6 +4666,20 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     the item stays; a tab closed while the snackbar is up keeps it too; and in Server Mode the sentence can promise a
     prune the server then declines over a trip this device has not seen. Other removals — the browse sheet's undo of an
     add, a group refresh, a membership change, deleting a trip — never prune.
+* **FR-5.9 (A row is bought at the destination from its own menu — owner request 2026-09-19, *built 2026-09-19*):** the
+  row's mode (*Packen* / *Vorher kaufen* / *Vor Ort kaufen*) was set in M5 alone, and *„das kaufe ich dort"* is a
+  decision made while reading the list, like the amount (FR-25.24) and the late-packer flag (FR-25.25). M4's
+  press-and-hold menu now offers ***Vor Ort kaufen*** on a row whose mode is anything else, and ***Doch mitnehmen***
+  (back to *Packen*) in its place on a `buy_local` row — after *Nicht einpacken*, before the late-packer flag.
+  * **Only on an untouched row** (`state = open`). On a `buy_local` row the packed state *is* „bought" (FR-25.11j), so
+    switching a half-packed row would claim a purchase nobody made, and the way back from a bought row would turn the
+    purchase into a packing. M5's mode control stays the complete one, for every row and all three modes; *Vorher
+    kaufen* gets no menu entry because it was not asked for, and a menu that grows one entry per mode stops being
+    short.
+  * **The cluster head** offers both, reaching the instances whose own row would offer each (FR-25.26's rule).
+  * **Taken back like every act on the list (FR-25.31):** the snackbar names it (*„„Sonnencreme" wird vor Ort
+    gekauft"*), and its *Rückgängig* writes the previous mode back — per instance, from the head.
+  * **Modes.** Identical in all three: one trip-partition field write.
 
 ### 3.6 Notifications & Delegation
 

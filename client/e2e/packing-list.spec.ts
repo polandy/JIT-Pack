@@ -911,6 +911,53 @@ test.describe('M4 packing list @local @m4', () => {
   })
 
   /**
+   * E2E-M4-119 (FR-5.9): a row is switched to *buy there* from its own menu.
+   *
+   * The mode had lived in M5 alone. The badge is the row reading its mode
+   * back; M6's *Vor Ort* tab is the same write reaching the other screen
+   * that reads it — a badge painted from the menu's own state would pass
+   * the first and fail the second.
+   */
+  test('E2E-M4-119: a row is bought at the destination from its own menu', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Sonnencreme'])
+
+    const row = visible(page).getByTestId('m4-row-Sonnencreme')
+    await expect(row.getByTitle('Buy there')).toHaveCount(0)
+
+    await openRowMenu(page, 'Sonnencreme')
+    await chooseInRowMenu(page, /^buy there$/i)
+    await expect(row.getByTitle('Buy there')).toHaveCount(1)
+
+    await openTripView(page, 'shopping')
+    await page.getByTestId('m6-tab-local').click()
+    await expect(visible(page).getByTestId('m6-row')).toHaveText([/Sonnencreme/])
+    await page.getByTestId('header-back').click()
+
+    // The way back stands in its place, read from the row rather than from
+    // the menu that wrote it.
+    await openRowMenu(page, 'Sonnencreme')
+    await expect(
+      page.locator('ion-action-sheet').getByRole('button', { name: /^buy there$/i }),
+    ).toHaveCount(0)
+    await chooseInRowMenu(page, /take it along instead/i)
+    await expect(
+      visible(page).getByTestId('m4-row-Sonnencreme').getByTitle('Buy there'),
+    ).toHaveCount(0)
+
+    // FR-25.31: like every act on the list, the switch is taken back from its
+    // snackbar — and the badge returning is the row reading the undo back.
+    await page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: /taken along after all/i })
+      .getByRole('button', { name: /undo/i })
+      .click()
+    await expect(
+      visible(page).getByTestId('m4-row-Sonnencreme').getByTitle('Buy there'),
+    ).toHaveCount(1)
+  })
+
+  /**
    * E2E-M4-89 (FR-25.25, G-8): the assignment control is absent in Local
    * Mode, where there are no accounts to hand a row to.
    *

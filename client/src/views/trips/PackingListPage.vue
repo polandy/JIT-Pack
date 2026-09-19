@@ -57,6 +57,7 @@ import {
   expandOutline,
   funnelOutline,
   layersOutline,
+  locationOutline,
   lockOpenOutline,
   peopleOutline,
   personOutline,
@@ -149,7 +150,7 @@ import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import InventoryNamesSheet from '@/components/trips/InventoryNamesSheet.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
 import type { FacetKey, GroupBy, ItemTodo, MasterItem, TripItem, TripTodo } from '@/types/domain'
-import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
+import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction, confirmDestructive } from '@/lib/confirm'
 import { removalSentence } from '@/lib/removalLabels'
@@ -740,6 +741,10 @@ const ROW_MENU_BUTTONS: Record<
   quantity: { labelKey: 'quantity.edit', icon: layersOutline },
   packingNow: { labelKey: 'mode.pack', icon: contrastOutline },
   skip: { labelKey: 'packing.skipAction', icon: closeCircleOutline },
+  // FR-5.9: the glyphs the row's own mode badge shows, so the entry names the
+  // state it leaves the row in.
+  buyLocal: { labelKey: 'mode.buyLocal', icon: locationOutline },
+  packInstead: { labelKey: 'packing.packInsteadAction', icon: bagHandleOutline },
   latePackerOn: { labelKey: 'packing.latePackerOn', icon: timeOutline },
   latePackerOff: { labelKey: 'packing.latePackerOff', icon: timeOutline },
   flagUnused: { labelKey: 'packing.flagUnusedAction', icon: removeCircleOutline },
@@ -771,6 +776,12 @@ function runRowMenu(action: RowMenuAction, item: TripItem): void {
       return
     case 'skip':
       onSkipItem(item)
+      return
+    case 'buyLocal':
+      onSetMode(item, ITEM_MODE_BUY_LOCAL)
+      return
+    case 'packInstead':
+      onSetMode(item, ITEM_MODE_PACK)
       return
     case 'latePackerOn':
       onLatePacker(item, true)
@@ -976,6 +987,17 @@ async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster
       for (const row of rows) orchestrator.packingNow(props.tripId, row)
       report()
       return
+    case 'buyLocal':
+    case 'packInstead': {
+      const mode = action === 'buyLocal' ? ITEM_MODE_BUY_LOCAL : ITEM_MODE_PACK
+      const previous = new Map(rows.map((row) => [row.id, row.mode]))
+      armRowsUndo(rows, (live) =>
+        orchestrator.setMode(props.tripId, live, previous.get(live.id) ?? live.mode),
+      )
+      for (const row of rows) orchestrator.setMode(props.tripId, row, mode)
+      report()
+      return
+    }
     case 'flagUnused':
     case 'unflagUnused': {
       const previous = new Map(rows.map((row) => [row.id, row.flag_unused]))
@@ -1653,6 +1675,19 @@ function onLatePacker(item: TripItem, latePacker: boolean) {
     }),
     () => orchestrator.setLatePacker(props.tripId, item, latePacker),
     (live) => orchestrator.setLatePacker(props.tripId, live, previous),
+  )
+}
+
+/** FR-5.9 from the row menu, taken back like every other act (FR-25.31). */
+function onSetMode(item: TripItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof ITEM_MODE_PACK) {
+  const previous = item.mode
+  actUndoably(
+    item,
+    t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
+      name: item.name,
+    }),
+    () => orchestrator.setMode(props.tripId, item, mode),
+    (live) => orchestrator.setMode(props.tripId, live, previous),
   )
 }
 
