@@ -3103,7 +3103,8 @@ locked.
     stays a row.
   * **The row does not say whose it is when the filter names one person.** The FR-25.1 flat label *„Item · Person"*
     drops the person, since the chip row (FR-25.11a) and the pressed ring already say it for every line. With several
-    people chosen the label keeps the name, because then no single chip does.
+    people chosen the label keeps the name, because then no single chip does. The FR-25.28 seat keeps its face: it is
+    the control that changes whose the row is, not a label.
   * **Several people chosen keeps the cluster** for an item two or more of them have, with faces and open count over
     those people only — the FR-25.23 head answering for what it hides, over the list that is actually shown.
   * **No wire, no schema:** a view-model rule in `domain/packingView.ts`, identical in all three modes.
