@@ -18,9 +18,12 @@ Mode. Rule logic lives in `client/src/domain` (invariant 4).
 - [ ] **I-3 — Share a template.** A link or QR code that loads a template into another account or into Local Mode,
   through the portable format (`domain/portable.ts` / `portableImport.ts`). A small step toward FR-1.6, which is
   parked with its own revisit trigger: **no publish/fork ownership model**, so decide whether this fires it.
-- [ ] **I-4 — Sync status per device.** „Last synced 2 h ago, 4 changes waiting", with a reason when something is
-  stuck. Close to G-2's indicator; the work is the explanation, not a new signal. Server-only surface, hidden in
-  Local Mode per G-8.
-- [ ] **I-5 — Undo toast instead of confirmation.** One tap on „Undo" after a delete or a check-off, instead of a
-  dialog beforehand. ADR-023 (manual revert) and FR-24.3 (retire/restore) are the existing precedents; check which
-  actions are covered before widening.
+- [x] **I-4 — Sync status per device.** Done 2026-09-19: the G-2 detail says when the last sync completed (FR-19.6,
+  PR #508). The rest of the idea — pending count, refusal reason, last failed request — was already there.
+- [x] **I-5 — Undo toast instead of confirmation.** Rejected 2026-09-19. A trip delete is hard: the server cascades
+  every child row and the trip's own change log, so nothing is left to restore. Archiving is the lifecycle's last step
+  (FR-9.1/9.2, `nextLifecycleStep`), already guarded on M4 by the closing pass (FR-9.3); an undo would need a backward
+  step and an owner ruling on the lifecycle. The parts that could be undone already are (FR-25.2, PR #509).
+- [ ] **I-6 — FR-7.3 prep-task undo has no case.** PR #509 wired the undo snackbar for prep tasks (`togglePrepTodo`) but
+  only E2E-M4-105 (trip todos) drives it; the PRD sentence „M4's FR-7.3 prep section does the same" is unproven.
+  Add the case, or narrow the sentence.
