@@ -16116,4 +16116,10 @@ gave when only the mean was used: it ignored the fixed cost and the spread that 
 files are still chunked contiguously. Expected spread across the ten legs: 260–450 s. `e2e-single` (268 s) stays
 below the worst leg. If the worst leg lands above 450 s the split did not help and the counts are wrong, not the idea.
 
-**Measured after the change:** to be filled from the run, see the PR.
+**Measured after the change** (run 35424307188, same tree apart from `ci.yml`): Chromium legs 225 / 311 / 361 / 395 s,
+WebKit legs 287 / 293 / 341 / 367 / 386 / 400 s. The worst leg is 400 s, down from 490 s, inside the predicted 350-450
+range and on the central estimate; the spread across legs is 225-400 s against 233-490 s. The wall-clock gain is
+~90 s (18 %). What did not move is the spread *inside* each browser (Chromium 225-395 s, the same 1.7x ratio as
+before): files are still chunked contiguously, so the next gain would need duration-aware sharding, which
+Playwright 1.63 does not offer, and is not worth a hand-rolled one at this size. `e2e-single` (259 s) is now below every
+leg but the shortest two.
