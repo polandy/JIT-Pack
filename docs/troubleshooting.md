@@ -173,6 +173,7 @@ parameter — so on such an instance, look at the routing and the upgrade header
 than at the query string.
 
 **Start on the device itself.** Tap the sync glyph in the app bar: the detail sheet has a
+*Last synced* line (the time the device last completed a sync since the app was opened) and a
 *Live updates* line that says whether the socket is open right now. If it says live updates
 are not connected and keeps saying so, the socket is not getting through and the causes
 above apply. If it says they are connected and a change from another device still does not

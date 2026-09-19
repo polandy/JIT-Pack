@@ -29,6 +29,7 @@ replaced and why. This index only says where to look.
   amount like every other (FR-21.9), and the FR-20.4 chip writes the position the resolution describes.
 * 2026-09-16 — **G-19**: the banner's layer belongs to the content column — below the page head, the width of the
   column (ADR-060 amendment 1).
+* 2026-09-19 — **G-2**: the detail says when the last sync completed (FR-19.6).
 * 2026-09-18 — **M17/M3**: a default traveller can be an existing account (FR-2.5a).
 * 2026-09-15 — **M17**: the About block gains the FR-23.8 release line (ADR-062), absent wherever the instance makes
   no check.
@@ -115,49 +116,49 @@ These patterns apply to every screen and are specified once.
   line follows: the status, the method and the path are **not translated** (a diagnostic is copied, not read as screen
   copy); a later success does **not** clear it, because a background drain that failed under a green glyph is the case
   nobody was watching; and a 401 the token refresh repaired is not a failure and never appears. Local Mode sends no
-  requests and shows no line. **Waiting update (NFR-4.13, added 2026-08-20):** when a newer build
-  of the app is installed and waiting for the next launch, the glyph carries a small action-coloured dot and the detail
-  sheet states, above the mode-specific half, that a new version is ready and takes over the next time the app is
-  opened. It is an annotation on the glyph, not a fifth state — the sync story is untouched. **The announcement carries
-  an action (FR-19.7, added 2026-09-02, reversing the clause that there is no reload button):** the sheet's sentence
-  gains *„Jetzt aktualisieren“* beneath it, and — because reaching that sentence costs knowing what the dot means, which
-  was the whole complaint — a **bar under the app bar** carries the same action on every screen, with a *Später* that
-  hides the bar for this load while the dot and the sheet keep the offer. The bar says that unsent changes are kept,
-  because the press reloads the page. It is the only thing that shortens the wait: nothing still takes over unprompted,
-  and an origin with no service worker renders neither surface (ADR-019, revised by ADR-044). **The conflict log takes a
-  loss back (added 2026-08-22, NFR-4.2a's second half):** each open entry carries a *Revert* control beside the losing →
-  winning line; an entry already reverted says so instead, because a revert is spent once. The page states in one line
-  that reverting writes the losing value **again, as a new change that reaches every device**; where a value is one half
-  of a coupled pair (a pack's state and its count, FR-5.4) both halves come back and both rows read *reverted*
-  afterwards — the word „revert“ invites the expectation of an undo, and it is not one (ADR-023). Every refusal is
-  rendered **on its own row** rather than as a snackbar: the entry was already reverted, the row has since been deleted,
-  the merge rules outrank the restore (an item packed meanwhile), or the caller may not write that row. The row is where
-  the reader is already looking, and a sentence there stays readable — unlike a snackbar, which on this app lands on the
-  tab bar. Local Mode never shows the log at all, so the control cannot appear there.  **An entry is written for a
-  reader (added 2026-08-24):** the row names the *thing* — the trip, the item, the inventory article — and the *column*
-  in the app's language, not the table and field of the schema; both values are rendered decoded, so a name arrives
-  without the JSON quotes it is stored in and a flag reads as a word rather than as `true`; and the timestamp follows
-  the app's language rather than the device's. A column whose value **is** a foreign key resolves too — an assignment
-  reads *Mia → Andy*, not one uuid to another. Two deliberate limits, each a case of saying less over saying something
-  untrue: anything this device cannot name — a row deleted since, one never pulled, an id belonging to a partition it
-  has not loaded — falls back to the *kind* of thing, or to the id itself; and a column with no word for it keeps its
-  own name. The first rendered log said `trips · year — 2026 → 2026`, and the first rendered *trip* log put two uuids
-  either side of an arrow.
-  * **Revised 2026-08-17 (the detail built), 2026-08-22, 2026-08-23.** The detail had been specified since v1.0 and the
-    app had never had it: tapping the glyph reached a trip's conflict log when one happened to be open and did nothing
-    anywhere else, so on M2, M7, M9 and every other screen the glyph was a symbol with no way to ask what it meant. Two
-    things only the rendered pixel settled: the storage facts are read *before* the sheet opens, because an auto-height
-    sheet is measured once at presentation and a section arriving a tick later pushed its last line under the tab bar;
-    and the backup age is clamped at zero, because the sheet captures `now` when it opens while the stamp is written
-    when the user taps, which read as *"Last backup -1 days ago"*. The tooltip is on the catalogue (NFR-4.12) rather
-    than four English literals. **2026-08-22:** two logs, one per partition — was a hint that the log "belongs to a
-    trip", true of one log and hiding the other, whose losers were reachable through nothing. **2026-08-23:** the glyph
-    belongs to the *title* and the two are centred on each other, the explanation indented to the title's edge. Aligning
-    the circle to the top of a block that also held the explanation left it 14.5 px high — the `h1` inside carried a
-    margin nothing had asked for — and resetting that margin alone was measured and rejected too, since a 38 px circle
-    and a 29 px line flush at the top cannot centre on each other; the ✕ therefore sits on the title's line. The sheet
-    is in a visual baseline now (E2E-VIS-08); it was in none, which is how an offset that size survived on the one
-    surface every screen can open.
+  requests and shows no line. **The last completed sync is stated (added 2026-09-19, FR-19.6):** one line in Server
+  Mode, absent until a cycle has completed this session. **Waiting update (NFR-4.13, added 2026-08-20):** when a newer
+  build of the app is installed and waiting for the next launch, the glyph carries a small action-coloured dot and the
+  detail sheet states, above the mode-specific half, that a new version is ready and takes over the next time the app
+  is opened. It is an annotation on the glyph, not a fifth state — the sync story is untouched. **The announcement
+  carries an action (FR-19.7, added 2026-09-02, reversing the clause that there is no reload button):** the sheet's
+  sentence gains *„Jetzt aktualisieren“* beneath it, and — because reaching that sentence costs knowing what the dot
+  means, which was the whole complaint — a **bar under the app bar** carries the same action on every screen, with a
+  *Später* that hides the bar for this load while the dot and the sheet keep the offer. The bar says that unsent
+  changes are kept, because the press reloads the page. It is the only thing that shortens the wait: nothing still
+  takes over unprompted, and an origin with no service worker renders neither surface (ADR-019, revised by ADR-044).
+  **The conflict log takes a loss back (added 2026-08-22, NFR-4.2a's second half):** each open entry carries a
+  *Revert* control beside the losing → winning line; an entry already reverted says so instead, because a revert is
+  spent once. The page states in one line that reverting writes the losing value **again, as a new change that reaches
+  every device**; where a value is one half of a coupled pair (a pack's state and its count, FR-5.4) both halves come
+  back and both rows read *reverted* afterwards — the word „revert“ invites the expectation of an undo, and it is not
+  one (ADR-023). Every refusal is rendered **on its own row** rather than as a snackbar: the entry was already
+  reverted, the row has since been deleted, the merge rules outrank the restore (an item packed meanwhile), or the
+  caller may not write that row. The row is where the reader is already looking, and a sentence there stays readable —
+  unlike a snackbar, which on this app lands on the tab bar. Local Mode never shows the log at all, so the control
+  cannot appear there.  **An entry is written for a reader (added 2026-08-24):** the row names the *thing* — the trip,
+  the item, the inventory article — and the *column* in the app's language, not the table and field of the schema;
+  both values are rendered decoded, so a name arrives without the JSON quotes it is stored in and a flag reads as a
+  word rather than as `true`; and the timestamp follows the app's language rather than the device's. A column whose
+  value **is** a foreign key resolves too — an assignment reads *Mia → Andy*, not one uuid to another. Two deliberate
+  limits, each a case of saying less over saying something untrue: anything this device cannot name — a row deleted
+  since, one never pulled, an id belonging to a partition it has not loaded — falls back to the *kind* of thing, or to
+  the id itself; and a column with no word for it keeps its own name. The first rendered log said `trips · year — 2026
+  → 2026`, and the first rendered *trip* log put two uuids either side of an arrow. * **Revised 2026-08-17 (the detail
+  built), 2026-08-22, 2026-08-23.** The detail had been specified since v1.0 and the app had never had it: tapping the
+  glyph reached a trip's conflict log when one happened to be open and did nothing anywhere else, so on M2, M7, M9 and
+  every other screen the glyph was a symbol with no way to ask what it meant. Two things only the rendered pixel
+  settled: the storage facts are read *before* the sheet opens, because an auto-height sheet is measured once at
+  presentation and a section arriving a tick later pushed its last line under the tab bar; and the backup age is
+  clamped at zero, because the sheet captures `now` when it opens while the stamp is written when the user taps, which
+  read as *"Last backup -1 days ago"*. The tooltip is on the catalogue (NFR-4.12) rather than four English literals.
+  **2026-08-22:** two logs, one per partition — was a hint that the log "belongs to a trip", true of one log and
+  hiding the other, whose losers were reachable through nothing. **2026-08-23:** the glyph belongs to the *title* and
+  the two are centred on each other, the explanation indented to the title's edge. Aligning the circle to the top of a
+  block that also held the explanation left it 14.5 px high — the `h1` inside carried a margin nothing had asked for —
+  and resetting that margin alone was measured and rejected too, since a 38 px circle and a 29 px line flush at the
+  top cannot centre on each other; the ✕ therefore sits on the title's line. The sheet is in a visual baseline now
+  (E2E-VIS-08); it was in none, which is how an offset that size survived on the one surface every screen can open.
 * **G-3 (Presence & Locks):** Items locked via *Packing Now* (FR-5.3) render with the locker's avatar and name ("In
   progress by Andy") and are non-interactive for others except viewing. **The lock reaches M5, not only M4's row**
   (clarified 2026-08-22): a locked row opens its sheet — viewing is the half G-3 keeps — but the sheet leads with a
