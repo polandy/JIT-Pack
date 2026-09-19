@@ -392,6 +392,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The e2e matrix is ten legs (2026-09-18)](#the-e2e-matrix-is-ten-legs-2026-09-18) — the shard count went stale a second time, and what bounds it from below is now the two backend jobs.
 - [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
 - [The search offers what it did not find (2026-09-18)](#the-search-offers-what-it-did-not-find-2026-09-18) — FR-24.11; the proposal's reason for the restore offer was wrong, and three things only the rendered screen said.
+- [Splitting the e2e legs by browser did not help (2026-09-19)](#splitting-the-e2e-legs-by-browser-did-not-help-2026-09-19) — the diagnosis was right, the prediction failed: one lucky run, three that matched the baseline.
 - [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's dependency pickers; an inline modal beside a v-if/v-else broke the section it sat in.
 - [The mark palette was too small (2026-09-18)](#the-mark-palette-was-too-small-2026-09-18) — FR-28.2 grew from 102 to 352 entries; the font ceiling doubled, a cost accepted on purpose.
 - [The composer creates in the inventory (2026-09-19)](#the-composer-creates-in-the-inventory-2026-09-19) — FR-24.11 reaches M4/M6/M8's quick-add; ad-hoc rows stop, and a trip push learned to wait for the master write it names.
@@ -16112,3 +16113,32 @@ was still dismissing and Ionic's focus restoration won — so Escape no longer c
 the sheet's `did-dismiss`, the pattern the browse sheet's footer line already used. The placeholder was shortened
 to „Suchen oder neu anlegen…" because the longer one clipped at 390 px beside ✓ and ✕.
 
+## Splitting the e2e legs by browser did not help (2026-09-19)
+
+**A tried and rejected option, recorded so it is not tried a third time.** The ten e2e legs of the entry above hold
+83-84 tests each and ran 233-490 s in run 35422616500. `--list` per shard showed why: Playwright chunks the test list
+contiguously by count and the list is ordered by project, so legs 1-4 were pure Chromium, 6-9 pure WebKit and leg 5 the
+seam (68 + 16). A WebKit test costs about 1.7x a Chromium test on the runner, which runs 2 workers (the same 84 tests
+took 1.2 min on a 16-core machine with 8), and the slowest leg is always a WebKit one.
+
+**The change tried** (PR #512, closed unmerged): two jobs, `e2e-chromium` x4 and `e2e-webkit` x6, each sharded with
+`--project=P --shard=N/${{ strategy.job-total }}` (two jobs rather than a matrix `include`, because `job-total` is the
+matrix length of its own job and a hand-written denominator that disagrees skips tests without any red signal). Still
+ten legs. Per browser the shards partitioned the list exactly (404 = 404). This is not the two-leg per-browser split of
+2026-08-19 that was measured worse: WebKit was still split six ways.
+
+**The prediction was written down before the run:** worst leg about 400 s, range 350-450, from ~490 s.
+
+**It failed.** The first run had a worst leg of 400 s and looked like a confirmation. Three further runs of the same
+tree had 517, 513 and 528 s. The baseline over the eight preceding `main` runs is 488-514 s, so four samples of the new
+layout average ~490 s against ~500 s: no difference outside the run-to-run noise, which on one leg reaches +/-25 %
+(`e2e-chromium (4)` ran 395 s in one run and 510 s in the next, on the same tests). The prediction's own kill criterion
+was a worst leg above 450 s, and it was met.
+
+**What that says.** The mechanism was real but not the binding constraint: runner speed varies more between runs than
+the browser mix varies between legs, and the spread inside a browser is the same contiguous-chunk effect one level down.
+**A single run is not a measurement here.** The first sample of an improvement is also the one most likely to be a lucky
+runner, and it was read as confirmation; the baseline had to be pulled from eight earlier runs to know what noise was.
+
+**If this is revisited:** duration-aware sharding (not in Playwright 1.63), or fewer, larger runners so the fixed
+~65-100 s per leg is paid fewer times. Neither was tried.
