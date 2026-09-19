@@ -86,13 +86,15 @@ export function makeSeamContext(
     for (const mut of muts) {
       for (const change of changesOf(mut)) {
         const target = storeFor(change.table)
-        if (target) applyTo(target === 'trip' ? tripStore : masterStore, change)
+        if (target === 'trip') applyTo(tripStore, change)
+        else if (target === 'master') applyTo(masterStore, change)
       }
     }
   }
   const ctx: SeamContext = {
     tripStore,
     masterStore,
+    features: [],
     mutations: createMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => SEAM_NOW_ISO),
     enqueueAndDrain: (type, id, ...muts) => {
       // The real one applies the optimistic changes before it queues, and a

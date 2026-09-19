@@ -291,6 +291,15 @@ stable references for the traceability matrix.
   the signal, since „unchanged" alone is green on a card that never rendered the share. The reverse half unpacks the
   row: the share drops, the todo figure stays at *„1/1 Aufgaben"*. (Revised 2026-09-18: the hero's one-line check became
   a figure; E2E-M1-10 keeps the line, on a list card.)
+* **E2E-M1-12** `local` (FR-30.7/30.5, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): a running trip's
+  shopping card opens on *At destination* with its *Buy there* packing row, tagged *Packing list*; a planned trip with a
+  *Buy before* row has a card titled *„Shopping · Elba 2027"* open on *Before departure*; a planned trip with nothing to
+  buy has **no** card (asserted beside its rendered row); the card's last line leads onto M6, with the switcher's
+  *Shopping* pill current. (First written the same day against FR-30.5's pill, which the card superseded.)
+* **E2E-M1-13** `local` (FR-30.7, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): the card is worked. An
+  entry typed there lands on the shown list; checking it off shows the card's undo, and *Undo* brings it back; checking
+  the packing row off packs it (FR-3.3) — the hero's share reads *1/1 packed* on the same screen — and M6 then shows the
+  entry open and the packing row under its reveal.
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
@@ -1084,9 +1093,9 @@ rather than registered.
   by *„Wer braucht das?“*: for-whom is per-person **membership**, not a caption. FR-4.2's two halves are both asserted,
   apart — the packing record in E2E-M4-24/-30, the traveler in E2E-M5-18/-19.
 * **E2E-M5-02** `all` (FR-3.1/10.2) — **implemented, split across three cases** (2026-08-30): both controls exist behind
-  *Details ▾* per E2E-M5-11, the mode is actually *switched* in `e2e/shopping.spec.ts` (a row set to *Buy before* leaves
-  M4 for M6), and the container is switched in **E2E-M5-22**. This entry describes the fold's contents; it is not a case
-  of its own.
+  *Details ▾* per E2E-M5-11, the mode is actually *switched* in `e2e/shopping/shopping.spec.ts` (a row set to *Buy
+  before* leaves M4 for M6), and the container is switched in **E2E-M5-22**. This entry describes the fold's contents;
+  it is not a case of its own.
 * ~~**E2E-M5-03** `all` (FR-9.1): Unused/Missing flags visible only on active trips.~~ — **retired 2026-08-30 as a
   duplicate**: E2E-M5-17 is the same sentence, implemented, and carries the positive signal beside the absence that this
   one does not ask for. Same disposal as `M4-07 → M4-40`.
@@ -1202,11 +1211,20 @@ rather than registered.
   not the mark's.*
 
 ### M6 — Shopping Views
-* **E2E-M6-01** `all` (FR-3.2) — **implemented 2026-08-30** (`e2e/shopping.spec.ts`): two tabs (Before departure / At
-  destination), rows grouped by category, each tab's label counting the **things to buy** rather than rows (FR-25.6).
-  The clause about the destination tab showing **destination-checklist entries separated** is **not testable yet and
-  never was**: those are FR-13.3 standing entries, which wait for trip series in the client — `ShoppingPage.vue` says so
-  in its own header.
+
+**Since FR-30 (2026-09-19, ADR-066)** the shopping list is a module of its own: entries typed into it are rows of
+`shopping_entries`, and the packing list's buy-mode rows are shown beside them. Every case below reaches a packing row
+the way a person does — added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 no longer writes packing
+rows; the cases live in `client/e2e/shopping/`. The composer's cases on M6 (E2E-M6-21, E2E-M6-25) are retired with the
+composer.
+
+* **E2E-M6-01** `all` (FR-3.2) — **implemented 2026-08-30** (`e2e/shopping/shopping.spec.ts`): two tabs (Before
+  departure / At destination), rows grouped by category, each tab's label counting the **things to buy** rather than
+  rows (FR-25.6). The clause about the destination tab showing **destination-checklist entries separated** is **not
+  testable yet and never was**: those are FR-13.3 standing entries, which wait for trip series in the client, and would
+  now pre-fill entries (FR-30). **Revised 2026-09-19 (FR-30):** the rows come from M4 with a buy mode, one entry is
+  typed into M6's own field, and the case asserts the entry under *„Eingetragen"* before the packing rows' category
+  groups.
 * **E2E-M6-02** `all` (FR-3.3) — **implemented 2026-08-30, inside E2E-M6-17 and E2E-M6-22** rather than as a case of its
   own: both halves of this promise were already asserted there — the row leaving the list, and the reveal note naming
   where it went — so a third case would have re-run them for an id's sake. What was genuinely missing is one assertion,
@@ -1215,18 +1233,20 @@ rather than registered.
   packed, and it leaves the list too. *„with animation"* is deliberately dropped from the assertion set: a transition
   nobody can observe deterministically is a `waitForTimeout` waiting to be written.
 * **E2E-M6-03** `all` (FR-5.6) — **implemented 2026-08-30, inside E2E-M6-01**: the case adds free text on both tabs and
-  asserts each landed in its own list, which is this promise in full: free-text add directly into either list.
-* **E2E-M6-04** `all` (FR-3.2) — **implemented 2026-08-30, revised 2026-09-06** (`e2e/shopping.spec.ts`): with both
-  lists empty, M4's ⋮ keeps the **shopping entry** and drops only its **count** — corrected 2026-08-30 against the
+  asserts each landed in its own list, which is this promise in full: free-text add directly into either list. **Since
+  FR-30.1 (2026-09-19)** the free text is an **entry of the list's own** (`shopping_entries`), no longer a packing row;
+  E2E-M6-01 adds one on each tab, and E2E-M6-26 asserts it reaches no packing figure.
+* **E2E-M6-04** `all` (FR-3.2) — **implemented 2026-08-30, revised 2026-09-06** (`e2e/shopping/shopping.spec.ts`): with
+  both lists empty, M4's ⋮ keeps the **shopping entry** and drops only its **count** — corrected 2026-08-30 against the
   screen, which states the reason where the count is computed: the destination exists either way. The original wording
   (*„entry/badge hidden"*) would have made an empty trip unable to reach M6 at all. ADR-050 moved the entry from a bar
   glyph into the menu, so the count is part of the word rather than a badge.
-* **E2E-M6-05** `all` (FR-25.6) — **implemented 2026-08-29** (`shopping.spec.ts`): a **per-person** item in a buy mode
-  appears in the shopping list at all — the regression was that it did not, because open-ness was decided from the
-  item's own `packed`/`quantity`, which a per-person item does not carry. It renders as **one aggregated row** with the
-  summed quantity ("6×", from 2 + 3 + 1), the recipients named ("for Andy, Leonardo, Mia") and their avatars — **not**
-  one row per traveler. The **tab's own count** is asserted with it: it counts things to buy, so a segment reading three
-  over a list showing one is the same lie in the other direction.
+* **E2E-M6-05** `all` (FR-25.6) — **implemented 2026-08-29** (`shopping/shopping.spec.ts`): a **per-person** item in a
+  buy mode appears in the shopping list at all — the regression was that it did not, because open-ness was decided from
+  the item's own `packed`/`quantity`, which a per-person item does not carry. It renders as **one aggregated row** with
+  the summed quantity ("6×", from 2 + 3 + 1), the recipients named ("for Andy, Leonardo, Mia") and their avatars —
+  **not** one row per traveler. The **tab's own count** is asserted with it: it counts things to buy, so a segment
+  reading three over a list showing one is the same lie in the other direction.
 * **E2E-M6-06** `all` (FR-25.6/3.3) — **implemented 2026-08-29**, and the half that matters: a single aggregated row
   that settles only one instance is worse than three honest ones. Checking off that aggregated row settles **every**
   instance in one act — a BUY_LOCAL per-person item leaves the list fully packed for all recipients, and a BUY_BEFORE
@@ -1245,7 +1265,8 @@ rather than registered.
   reintroducing the attribution FR-25.10 removed.
 * **E2E-M6-16** `all` (FR-25.13a) / **E2E-M4-21** `all`: both quick-adds carry a **visible confirm button** in every
   mode, and adding works by tapping it alone — no keyboard involved. Guards the phone case, where relying on Enter
-  leaves no reachable way to commit.
+  leaves no reachable way to commit. **M6's half since FR-30 (2026-09-19):** M6's own field carries the same visible add
+  button, and every entry in `shopping/shopping.spec.ts` is committed by tapping it (`addEntry`), never by the keyboard.
 * **E2E-M6-12** `all` (FR-25.13a) — **REMOVED (owner decision 2026-08-30)**: the surface was never built, and M6 stays
   the focused procurement checklist it is. The reasoning is one sentence per feature — a shopping list rarely runs to
   twenty rows, so a filter bar and a search field carry weight M4 already owns; and the composer has been the *shared*
@@ -1276,10 +1297,26 @@ rather than registered.
   for this defect must not do), then asserts the counts are stated once the partition lands: the zero is deferred, not
   dropped, because a genuinely empty tab is worth naming. `single` for E2E-M4-86's reason — only a backend-backed run
   has the moment.
-* **E2E-M6-25** `local` (FR-24.11 in the composer, FR-25.13, added 2026-09-19) — **implemented**
-  (`shopping.spec.ts`): an unknown name typed into M6's
-  composer goes through the *„Neuer Artikel"* sheet and nothing is written before *„Anlegen"*; after it, the name is a
-  row of the open tab.
+* ~~**E2E-M6-25** `local` (FR-24.11 in the composer, FR-25.13, added 2026-09-19): an unknown name typed into M6's
+  composer goes through the *„Neuer Artikel"* sheet and nothing is written before *„Anlegen"*.~~ — **retired
+  2026-09-19 (FR-30.2)**, the same day: M6's field adds entries, which are no inventory items and need no sheet. The
+  create sheet's rule stays covered on M4.
+* **E2E-M6-26** `local` (FR-30.1, added 2026-09-19) — **implemented** (`shopping/shopping.spec.ts`): an entry typed on
+  M6 is on the shopping list only. With one packing row in *Buy there* the trip reads *0/1*; after *„Milch"* is typed on
+  the *Vor Ort* tab, the entry sits under *„Eingetragen"* before the packing row, the tab and the switcher pill count
+  **2**, and M4 still reads *0/1* with no *Milch* row — the positive signal that the entry became no packing row.
+* **E2E-M6-27** `local` (FR-30.1/FR-25.11j, added 2026-09-19) — **implemented** (`shopping/shopping.spec.ts`): an entry
+  is checked off, survives a reload **under the reveal**, is revealed with **no note** (it was never elsewhere), is put
+  back by unchecking, and is removed with its ✕ — and a second reload shows only the entry that was not removed.
+* **E2E-M6-28** `local` (FR-30.2, added 2026-09-19) — **implemented** (`shopping/shopping.spec.ts`): a packing row is on
+  the shopping list exactly while its mode says so. A *Buy there* row appears on *Vor Ort* with no ✕; set back to
+  *Pack* in M5, it is gone from the tab (empty state) and from the pill's count — a copied entry would have stayed.
+* **E2E-M6-29** `single` (FR-30.4, added 2026-09-19) — **implemented** (`shopping/single/purchase-stamp.spec.ts`): who
+  bought it, and when. An entry and a *Buy before* packing row are both checked off; a **second browser context** opens
+  M6 fresh from the server and finds two stamps, each *„bought by <the Single-User account> · today …"*. `single`
+  because the buyer is stamped by the server (invariant 3) — the `local` cases can only see the time, and do:
+  **E2E-M6-17** (the packing row keeps its purchase time although its mode is *pack* again) and **E2E-M6-27** (the
+  entry's time survives a reload) each assert *„bought · today"*.
 * **E2E-M6-22** `all` (FR-3.3/25.11j) — **new 2026-08-25**: the destination tab's half. A BUY_LOCAL row never changes
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its
@@ -1299,17 +1336,16 @@ rather than registered.
   including a category this trip has not used yet. Without a pick the category defaults to *Sonstiges* and can be set
   manually. The clause *„and can be set manually"* describes a category control M6 does not have (2026-08-30).
   Regression guard: choosing a suggestion must not clear an already-typed description, and the suggestion strip must
-  redraw **without** re-rendering the form.
+  redraw **without** re-rendering the form. **M6's half retired 2026-09-19 (FR-30.2):** M6 no longer carries the
+  composer, so it offers no suggestions; an entry has no category to adopt. M4-21 carries the rule.
 * **E2E-M6-20** `all` (FR-25.12) — **not implemented; the owner decided 2026-08-30 that it gets built**, in its own PR
   with UI-Spec, e2e and an eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy
   kauft das"* is the multi-user case M6 cannot express today, and the description is where *„die grüne Dose, nicht die
   rote"* goes. *The promise as written:* a row with no assignee shows an **edit glyph**, not a plus.
-* **E2E-M6-21** `all` (FR-25.13c/25.13d, added 2026-08-22) — **implemented** (`e2e/shopping.spec.ts`) — **implemented
-  2026-08-30, inside E2E-M6-01**: the suggestion-added row lands under its master item's tag and the free-text row under
-  *Uncategorized*, which is both remaining clauses: what the trip already carries — added on M4 with master-item
-  provenance — is offered on no shopping tab either: the autocomplete declines (the free-text hint is the positive
-  signal for the absent suggestion) and the browse-sheet shows the item only as the *„schon drin"* state. Pins M6's
-  *wiring* of the shared composer, which excluded nothing here before FR-25.13d because the screen passed nothing.
+* ~~**E2E-M6-21** `all` (FR-25.13c/25.13d, added 2026-08-22): what the trip already carries is offered on no shopping
+  tab either — not in the composer's autocomplete, and in the browse-sheet only as the *„schon drin"* state.~~ —
+  **retired 2026-09-19 (FR-30.2): M6 no longer carries the composer**, so there is nothing on M6 that offers an
+  inventory item at all. The rule itself is the composer's and stays covered where the composer is, on M4 and M8.
 * **E2E-M6-14** `all` (FR-25.11g) — **REMOVED (owner decision 2026-08-30)**: the surface was never built, and M6 stays
   the focused procurement checklist it is. The reasoning is one sentence per feature — a shopping list rarely runs to
   twenty rows, so a filter bar and a search field carry weight M4 already owns; and the composer has been the *shared*
@@ -1319,9 +1355,11 @@ rather than registered.
   an*, *Für wen* and *Kategorie* and — unlike M4's — **no grouping section**. Filtering by an assignee narrows the list
   and shows the removable chip. The unassigned bucket reads "niemand zugewiesen" and leads the list. M4's and M6's
   filters are **independent**: setting one must not change the other.
-* **E2E-M6-15** `all` (FR-25.11h) / **E2E-M4-20** `all`: scrolled to the bottom of the list, the last row's bounding box
-  does **not** intersect the ＋ FAB. **M4's half is implemented and carries the rule; M6's half is moot** — corrected
-  2026-08-30: M6 has no FAB for a row to collide with. If M6 ever gains one, this id is where the case goes.
+* **E2E-M6-15** `local` (FR-25.11h, FR-30.6) — **implemented 2026-09-19** (`shopping/shopping.spec.ts`), the id this
+  entry had kept for the day M6 gained a FAB: with fourteen entries on a 390 × 700 viewport and the list scrolled to its
+  end, the last row's box does **not** intersect the ＋ (checked red with the list's bottom padding removed); the field
+  is then out of view, and one tap on the ＋ brings it into view **focused**, ready for the next entry. M4's half is
+  E2E-M4-20's, as before.
 * **E2E-M6-09** `all` (FR-25.12) — **not implemented; the owner decided 2026-08-30 that it gets built**, in its own PR
   with UI-Spec, e2e and an eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy
   kauft das"* is the multi-user case M6 cannot express today, and the description is where *„die grüne Dose, nicht die
@@ -1337,10 +1375,12 @@ rather than registered.
   mark.
 * **E2E-M6-11** `all` (FR-25.13): M6 has **no permanent "add" row** and no native `prompt()`; the composer is the shared
   one, collapsed to its own trigger above the list, and Enter adds to the **currently open tab**. Three clauses of the
-  original wording are gone, each superseded rather than untested — corrected 2026-08-30: M6 has **no ＋ FAB** (M4 has
-  one, M6's composer carries its own trigger), the composer is **not focused** on opening (FR-25.13c, so the chips are
-  not covered by the keyboard), and it **does not collapse on blur** (FR-25.13a as revised 2026-08-13 — collapsing
-  reflows the list under the next tap).
+  original wording are gone, each superseded rather than untested — corrected 2026-08-30: M6 had **no ＋ FAB** (it has
+  since FR-30.6, E2E-M6-15) (M4 has one, M6's composer carries its own trigger), the composer is **not focused** on
+  opening (FR-25.13c, so the chips are not covered by the keyboard), and it **does not collapse on blur** (FR-25.13a as
+  revised 2026-08-13 — collapsing reflows the list under the next tap). **Superseded 2026-09-19 (FR-30.2):** M6 no
+  longer carries the shared composer; it has one text field of its own, always shown, which adds to the open tab
+  (E2E-M6-26/27). Still no permanent add row and no `prompt()`.
 
 ### M7 — Template List
 
@@ -3346,7 +3386,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-2.5 | E2E | M3-03 |
 | FR-2.5b | E2E+UNIT | M3-21 (the preview names what an empty roster cannot place, and one traveller takes the block away); `domain/__tests__/instantiate.spec.ts` (the report, its falsifier and the two filters), `domain/__tests__/groupAdd.spec.ts` + `lib/__tests__/groupAdditionMessage.spec.ts` (FR-27.10's sixth outcome) |
 | FR-2.7 | E2E+UNIT | M22-01 (name and dates), M22-02/03/05/11 (the roster's three affordances and what each does to the per-person rows), M22-04/07 (removal ends at departure), M22-08 (a partial edit is still a whole row), M22-10 (an archived trip's editor is read-only throughout **and says so**), M22-12 (the year, corrected and read back through M2); `TripEditPage.spec.ts` (the FR-2.1d date bound) and `composables/__tests__/tripProperties.spec.ts` (the mutations). **The year is on the screen since 2026-08-31** (M22-12, owner decision — it had a reader everywhere and a writer only at creation), and the **series** is edited on M16 instead, which is what PRD FR-2.7's opening paragraph already said. |
-| FR-3.1 | E2E | M5-02 (the control), shopping.spec.ts (the write) |
+| FR-3.1 | E2E | M5-02 (the control), shopping/shopping.spec.ts (the write, `addBuyRowOnM4`) |
 | FR-3.2 | E2E | M6-01/04, M4-11 |
 | FR-3.3 | E2E | M6-02, M6-17, M6-22, FLOW-03 (M5-09 retired — the buy lives on M6) |
 | FR-4.1 | E2E | M3-04 (share on create) |
@@ -3361,7 +3401,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-5.3 | E2E | G3-01, FLOW-01 |
 | FR-5.4 | E2E | M4-56 (both control variants rendered), G6-01 (the rule itself, still unimplemented) — ~~M1-06~~ was a mis-citation: the Late-Packer flag is FR-5.1, and M1-06 is that section, built 2026-08-31 |
 | FR-5.5 | E2E | M4-06 |
-| FR-5.6 | E2E | M4-04, M6-03 |
+| FR-5.6 | E2E | M4-04, M6-03 (an entry of the list's own since FR-30.1) |
 | FR-5.7 | E2E | G3-02 (mode gate), M4-49/50 |
 | FR-5.8 | E2E | M4-91 (untouched: at once, undo, reload), M4-92 (asks, names the companion, co-skips it), M4-95 (the open panel closes), M4-113 (the unused item goes once final, ADR-065); `domain/__tests__/rowRemoval.spec.ts` (when it asks, which item is left unused), `composables/__tests__/removalPrune.spec.ts` (Local deletes, a server device asks after the removal) |
 | FR-6.1 | E2E | M1-01 (the aggregation, deliberately unfiltered), M1-03 (the delegation *section* beside it, built 2026-08-31), M1-03b (absent where there is no account), M1-08 (the planned-trips section, built 2026-09-02); `domain/__tests__/dashboardSections.spec.ts`, `local/__tests__/delegationSeen.spec.ts` |
@@ -3502,6 +3542,13 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-28.9 | SERVER+UNIT | Go: `capMark` rejects an over-long value and touches nothing else (`itemmark_test.go`); `schema_shape_test.go` pins the column on both tables and on the sync whitelist; merge is ordinary LWW (no special case) |
 | FR-28.10 | UNIT | `internal/portable` and `internal/store` round-trip with and without `icon` on all three levels (document, group, item); the client's `domain/portable.ts` and `commitPortableImport` likewise; an export from before the field imports unmarked (FR-18.4 tolerance) |
 | FR-28.11 | E2E | M10-11 runs in `local` — the picker, the search and the suggestion work with no server present |
+| FR-30.1 | E2E+UNIT | M6-26 (reaches no packing figure), M6-27 (buy, reveal, put back, remove, reload), M6-01/03 (one entry per tab); `shopping/__tests__/ShoppingPage.spec.ts`, `sync.spec.ts` (routing, trip cascade, restart); Go: `shopping_entries_test.go` |
+| FR-30.2 | E2E+UNIT | M6-28 (on the list exactly while the mode says so), M6-17/22/05/06 (packing rows through the contract); `composables/__tests__/packingShoppingSource.spec.ts`, `domain/__tests__/buyRows.spec.ts` |
+| FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
+| FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |
+| FR-30.5 | E2E | M1-12 (the card's way onto M6; the pill it superseded is gone) |
+| FR-30.6 | E2E+UNIT | M6-15 (the ＋ leads to the field, the last row clear of it); `ShoppingPage.spec.ts` |
+| FR-30.7 | E2E+UNIT | M1-12 (the list that is now, the planned rule), M1-13 (check off, undo, add; M4/M6 agree); `ShoppingDashboardCard.spec.ts` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

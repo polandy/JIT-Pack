@@ -16,7 +16,7 @@ import {
   tripAction,
 } from './trips'
 import { visiblePage, writesLanded } from './page'
-import { fillIonic } from './ionic'
+import { chooseInSelect, fillIonic } from './ionic'
 
 /**
  * Create a trip through M3 and quick-add the named rows onto it. Returns the
@@ -38,6 +38,28 @@ export async function tripWithRows(page: Page, names: string[], tripName: string
   await expect(page.getByTestId('quick-add-input')).toBeHidden()
   await writesLanded(page)
   return path
+}
+
+/**
+ * Put a row on the packing list and give it a buy mode in M5 (FR-3.1) — the
+ * one way a packing row reaches the shopping list since FR-30.2: M6 no longer
+ * writes packing rows, it only shows the ones in a buy mode.
+ *
+ * `mode` is the select's label (`'Buy before'`, `'Buy there'`). Ends on M4
+ * with the sheet closed and the write landed.
+ */
+export async function addBuyRowOnM4(page: Page, name: string, mode: string): Promise<void> {
+  await visiblePage(page).getByTestId('m4-fab').click()
+  await addInComposer(page, name)
+  await expect(visiblePage(page).getByTestId(`m4-row-${name}`)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('quick-add-input')).toBeHidden()
+  await visiblePage(page).getByTestId(`m4-row-${name}`).click()
+  await page.getByTestId('m5-details').click()
+  await chooseInSelect(page, 'm5-mode', mode)
+  await page.getByTestId('m5-close').click()
+  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+  await writesLanded(page)
 }
 
 /** Move the open trip from planning into packing, and wait until it is there. */

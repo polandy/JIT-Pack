@@ -136,8 +136,8 @@ Restore hidden items and templates** lists them, restores them, or deletes them 
 The inventory points there too — when items are hidden, a line at the end of the list says how
 many and takes you straight to them. And if you search the inventory for a hidden item by its
 exact name, the top of the results offers to restore it rather than to create a second one.
-Adding an item works the same way on the packing list, the shopping list and in the template
-editor: they search the inventory with the same rules, so typing a hidden item's name there
+Adding an item works the same way on the packing list and in the template editor: both
+search the inventory with the same rules, so typing a hidden item's name there
 restores it and adds it in one tap, and a name the inventory does not hold yet is created
 in the inventory first rather than being added to that one trip only.
 

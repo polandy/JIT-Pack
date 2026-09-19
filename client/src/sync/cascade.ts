@@ -48,6 +48,11 @@ export interface CascadeStores {
   masterStore: {
     childRows(table: string, id: string): CascadeRow[]
   }
+  /**
+   * The feature modules' stores (FR-30.3, ADR-066). A deleted trip takes
+   * their rows too, and nothing but this list says which those are.
+   */
+  features?: ReadonlyArray<{ tripChildRows(tripId: string): CascadeRow[] }>
 }
 
 /**
@@ -56,10 +61,10 @@ export interface CascadeStores {
  * case; a parent not named here cascades nothing.
  */
 export function cascadeOf(table: SyncTable, id: string, stores: CascadeStores): CascadeRow[] {
-  const { tripStore, masterStore } = stores
+  const { tripStore, masterStore, features = [] } = stores
   switch (table) {
     case TABLE.trips:
-      return tripStore.childRows(id)
+      return [...features.flatMap((f) => f.tripChildRows(id)), ...tripStore.childRows(id)]
     case TABLE.tripItems:
       // A row's comments and FR-7.3 todos hang off it; trip-level comments
       // carry a null trip_item_id and are untouched.

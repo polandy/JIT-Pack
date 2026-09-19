@@ -316,6 +316,12 @@ CREATE TABLE trip_items (
     -- rejected mutation leaves the outbox, taking the user's change with it.
     -- Same vocabulary as `mode`, because the value is one.
     bought_from          TEXT CHECK (bought_from IN ('pack','buy_before','buy_local')), -- FR-25.11j
+    -- FR-30.4: the purchase's who and when, beside the list it was bought
+    -- from. A BUY_BEFORE purchase flips the mode to pack (FR-3.3), so
+    -- without these the row keeps no trace of who bought it. Server-stamped
+    -- like packed_by_user_id (invariant 3).
+    bought_at            TEXT,
+    bought_by_user_id    TEXT REFERENCES users(id),
     late_packer          INTEGER NOT NULL DEFAULT 0 CHECK (late_packer IN (0,1)), -- FR-5.1
     assigned_traveler_id TEXT REFERENCES travelers(id),   -- FR-4.2 "Assigned to"
     -- Since FR-25.19 this is the *assignment*; packed_by_user_id below is the
@@ -407,6 +413,31 @@ CREATE TABLE trip_applied_changes (
     created_at           TEXT NOT NULL DEFAULT (datetime('now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT ''
+);
+
+-- ---------------------------------------------------------------------------
+-- Shopping list (FR-30)
+-- ---------------------------------------------------------------------------
+
+-- What a trip's people mean to buy that is not on the packing list — the
+-- groceries of a holiday flat. The packing list's own buy-mode rows reach the
+-- shopping list by projection, never by a copy here (ADR-066), so this table
+-- holds only what nobody packs. `list` is FR-3.2's two lists in `mode`'s
+-- vocabulary; `pack` is not one of them.
+CREATE TABLE shopping_entries (                   -- FR-30.1
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    list        TEXT NOT NULL DEFAULT 'buy_local'
+                CHECK (list IN ('buy_before','buy_local')),
+    bought      INTEGER NOT NULL DEFAULT 0 CHECK (bought IN (0,1)),
+    -- FR-30.4: who bought it and when. The buyer is stamped by the server
+    -- (invariant 3); the time is the tap's. Cleared when the purchase is
+    -- taken back.
+    bought_at         TEXT,
+    bought_by_user_id TEXT REFERENCES users(id),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
 );
 
 -- ---------------------------------------------------------------------------

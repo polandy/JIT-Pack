@@ -80,6 +80,7 @@ The packing concept is closed and every numbered backlog item below is done; the
 22. FR-25.21 per-person model writer (ADR-036) — 2026-08-30
 23. FR-24.3 retire/restore of referenced master rows (ADR-032/034) — 2026-08-25
 24. FR-7.4 trip todos (PR #490) — 2026-09-18. Not in the portable backup, like FR-7.3's todos.
+25. FR-30 the shopping list as a feature module (ADR-066) — 2026-09-19. Own entries are not in the portable backup either.
 
 **Parked, specified, do not start:** §3.26 calendar feed, the North-Star Plan/During phases, FR-27.8's per-trip usage history, FR-1.6's publish/fork ownership model. Each carries a revisit trigger in its stub.
 
@@ -92,6 +93,7 @@ The packing concept is closed and every numbered backlog item below is done; the
 - `internal/webui` — serves the built client beside the API on one origin (ADR-043). Standard library only; does **not** import `internal/api` (prefixes are passed in).
 - `internal/api` — HTTP handlers, WebSocket hub, session auth + OIDC broker (ADR-007), notifications, Web Push, admin, export. **`wire.go` is the contract** — envelopes, frame, conflict shapes, error vocabulary, routes. **Export only** — importing is the client's (invariant 4, ADR-025).
 - `client/src/domain` — the pure client-side rules: quantities, template instantiation, dependencies, containers, analytics, review, clone, spreadsheet import, the portable format (`portable.ts`, `portableImport.ts`), members. No I/O, exhaustively unit-tested. This is where a Go `internal/domain` ended up, deliberately (invariant 4).
+- `client/src/shopping` — the first **feature module** (FR-30.3, ADR-066): its own store, actions and M6, its e2e cases in `client/e2e/shopping/`. It and the packing code never import each other; they meet through kernel contracts (`lib/shoppingSources.ts`, `sync/featureModule.ts`, `lib/tripCards.ts`) that `App.vue` binds. `scripts/module-boundary-gate.mjs` holds both directions. The planner (§3.29) is to follow the same shape.
 
 ## Invariants — do not break these
 

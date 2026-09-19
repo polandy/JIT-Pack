@@ -7,6 +7,10 @@
  * shopping pill counts **things to buy** rather than rows — the arithmetic
  * M6's own segments use (FR-25.6), which the bar menu it replaced got wrong
  * unnoticed for as long as the two numbers were never on one screen.
+ *
+ * Since FR-30.3 the count is provided rather than computed here; the mount
+ * below provides it the way `App.vue` does, so the rule is held through the
+ * real wiring and not through a number the spec made up.
  */
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
@@ -14,6 +18,10 @@ import { beforeEach, describe, it, expect, vi } from 'vitest'
 import TripViewNav from '../TripViewNav.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
+import { createPackingShoppingSource } from '@/composables/packingShoppingSource'
+import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
+import { shoppingCount } from '@/shopping'
+import { useShoppingStore } from '@/shopping/store'
 
 const push = vi.fn()
 const navigate = vi.fn()
@@ -73,7 +81,15 @@ function seed() {
 }
 
 function mountNav(current: 'packing' | 'shopping' | 'luggage' | 'analytics' = 'packing') {
-  return mount(TripViewNav, { props: { tripId: TRIP, current } })
+  // App.vue's wiring: the packing list as the shopping list's source.
+  const source = createPackingShoppingSource(useTripStore(), {
+    buyItem: vi.fn(),
+    unbuyItem: vi.fn(),
+  })
+  return mount(TripViewNav, {
+    props: { tripId: TRIP, current },
+    global: { provide: { [TRIP_VIEW_COUNTS]: { shopping: shoppingCount([source]) } } },
+  })
 }
 
 beforeEach(() => {
@@ -98,6 +114,27 @@ describe('TripViewNav', () => {
     expect(tripStore.getShoppingItems(TRIP).buyBefore).toHaveLength(2)
     // …and they are one thing to buy, because they are one item per person.
     expect(mountNav().get('[data-testid="trip-view-shopping"]').text()).toBe('Shopping (1)')
+  })
+
+  // FR-30.1: an entry typed into the list is a thing to buy too.
+  it('counts the shopping list’s own entries beside the packing list’s', () => {
+    seed()
+    useShoppingStore().applyChanges([
+      {
+        seq: 0,
+        table: 'shopping_entries',
+        id: 'e1',
+        deleted: false,
+        row: { trip_id: TRIP, name: 'Milch', list: 'buy_local', bought: 0 },
+      },
+    ])
+    expect(mountNav().get('[data-testid="trip-view-shopping"]').text()).toBe('Shopping (2)')
+  })
+
+  it('offers the shopping view without a count where none is provided', () => {
+    seed()
+    const bare = mount(TripViewNav, { props: { tripId: TRIP, current: 'packing' } })
+    expect(bare.get('[data-testid="trip-view-shopping"]').text()).toBe('Shopping')
   })
 
   it('offers the shopping view without a number while there is nothing to buy', () => {

@@ -27,7 +27,9 @@ const NOT_TRIP_PARTITION: Record<string, string> = {
     'the roster is `trip_members`, which is master data — it arrives with the master pull',
 }
 
-const views = globSync('src/views/**/*.vue', { cwd: process.cwd() })
+// The feature modules' screens too (FR-30.3): M6 left `views/` for `shopping/`
+// and shows one trip exactly as it did there.
+const views = globSync(['src/views/**/*.vue', 'src/shopping/**/*.vue'], { cwd: process.cwd() })
   .map((path) => ({
     path: path.replace(/\\/g, '/'),
     source: readFileSync(resolve(process.cwd(), path), 'utf8'),

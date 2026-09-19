@@ -227,11 +227,12 @@ describe('createMutations', () => {
   // a landing order — in which the row has left the shopping side with no
   // record of where from, and the purchase is then irreversible.
   it('buyItem records the list a BUY_BEFORE row left as it moves to packing (FR-25.11j)', () => {
-    const m = createMutations(mockHLC())
+    const m = createMutations(mockHLC(), () => FIXED_ISO)
     const mut = m.buyItem('i1', 'buy_before', 3)
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('trip_items')
-    expect(mut.fields).toEqual({ bought_from: 'buy_before', mode: 'pack' })
+    // FR-30.4: the tap's time travels with the purchase; who is the server's.
+    expect(mut.fields).toEqual({ bought_from: 'buy_before', bought_at: FIXED_ISO, mode: 'pack' })
   })
 
   it('buyItem marks a BUY_LOCAL row packed and records the list too (FR-25.11j)', () => {
@@ -239,6 +240,7 @@ describe('createMutations', () => {
     const mut = m.buyItem('i1', 'buy_local', 3)
     expect(mut.fields).toEqual({
       bought_from: 'buy_local',
+      bought_at: FIXED_ISO,
       packed_count: 3,
       state: 'packed',
       packed_at: FIXED_ISO,
@@ -250,7 +252,13 @@ describe('createMutations', () => {
   it('unbuyItem puts a BUY_BEFORE row back on the list it was bought from (FR-25.11j)', () => {
     const m = createMutations(mockHLC())
     const mut = m.unbuyItem('i1', 'buy_before')
-    expect(mut.fields).toEqual({ bought_from: null, mode: 'buy_before' })
+    // FR-30.4: the purchase record goes with the purchase.
+    expect(mut.fields).toEqual({
+      bought_from: null,
+      bought_at: null,
+      bought_by_user_id: null,
+      mode: 'buy_before',
+    })
   })
 
   it('unbuyItem unpacks a BUY_LOCAL row without touching its mode (FR-25.11j)', () => {
@@ -258,6 +266,8 @@ describe('createMutations', () => {
     const mut = m.unbuyItem('i1', 'buy_local')
     expect(mut.fields).toEqual({
       bought_from: null,
+      bought_at: null,
+      bought_by_user_id: null,
       packed_count: 0,
       state: 'open',
       packed_at: null,

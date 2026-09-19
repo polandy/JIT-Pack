@@ -6,6 +6,7 @@ import {
   type PortableItem,
 } from '@/domain/portable'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
+import { createShoppingActions, useShoppingStore } from '@/shopping'
 
 /**
  * A ready-made trip to test against, for development only.
@@ -142,6 +143,7 @@ export function seedSampleTrip(
   const { id } = orchestrator.commitPortableImport(sampleDocument(), merges)
   orchestrator.activateTrip(id)
   buyOneShoppingRow(id, orchestrator)
+  seedShoppingEntries(id, orchestrator)
   seedItemComment(id, orchestrator)
   seedTripTodos(id, orchestrator)
   return id
@@ -198,6 +200,24 @@ function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
     .getItems(tripId)
     .find((row) => row.name === SEED_BOUGHT_ROW)
   if (item) orchestrator.buyItem(tripId, item, ITEM_MODE_BUY_BEFORE)
+}
+
+/**
+ * FR-30.1: groceries typed into the shopping list itself, one already bought,
+ * so M6 shows its own section beside the packing list's buy rows and its
+ * reveal holds an entry as well as a packing row. Through the module's own
+ * actions, for the reason `buyOneShoppingRow` gives.
+ */
+const SEED_SHOPPING_ENTRIES = ['Brot', 'Milch', 'Pasta', 'Mineralwasser'] as const
+const SEED_BOUGHT_ENTRY = 'Mineralwasser'
+
+function seedShoppingEntries(tripId: string, orchestrator: Orchestrator): void {
+  const actions = createShoppingActions(orchestrator.moduleHost)
+  for (const name of SEED_SHOPPING_ENTRIES) actions.addEntry(tripId, ITEM_MODE_BUY_LOCAL, name)
+  const bought = useShoppingStore()
+    .getEntries(tripId)
+    .find((entry) => entry.name === SEED_BOUGHT_ENTRY)
+  if (bought) actions.setBought(bought, true)
 }
 
 /**

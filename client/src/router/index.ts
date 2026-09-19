@@ -213,7 +213,7 @@ export const routes: RouteRecordRaw[] = [
     path: tripSubPath(TRIP_ID_PARAM, 'shopping'),
     meta: { parent: tripPath(TRIP_ID_PARAM), tripView: 'shopping' },
     name: 'trip-shopping',
-    component: () => import('@/views/trips/ShoppingPage.vue'),
+    component: () => import('@/shopping/ShoppingPage.vue'),
     props: true,
   },
   {
