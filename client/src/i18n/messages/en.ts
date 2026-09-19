@@ -187,6 +187,8 @@ export const en = {
   'packing.unskippedToast': '“{name}” is coming after all',
   'packing.latePackerOnToast': '“{name}” is packed late',
   'packing.latePackerOffToast': '“{name}” is no longer packed late',
+  'packing.buyLocalToast': '“{name}” is bought there',
+  'packing.packInsteadToast': '“{name}” is taken along after all',
   'packing.assignedToast': '“{name}” → {who}',
   'packing.unassignedToast': '“{name}”: nobody responsible',
   'packing.claimedToast': 'You are packing “{name}”',

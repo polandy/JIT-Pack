@@ -944,6 +944,17 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(
       visible(page).getByTestId('m4-row-Sonnencreme').getByTitle('Buy there'),
     ).toHaveCount(0)
+
+    // FR-25.31: like every act on the list, the switch is taken back from its
+    // snackbar — and the badge returning is the row reading the undo back.
+    await page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: /taken along after all/i })
+      .getByRole('button', { name: /undo/i })
+      .click()
+    await expect(
+      visible(page).getByTestId('m4-row-Sonnencreme').getByTitle('Buy there'),
+    ).toHaveCount(1)
   })
 
   /**

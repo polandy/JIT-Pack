@@ -3184,8 +3184,8 @@ locked.
     announced when the popover closes: three taps on ＋ are one change, and the undo returns to the amount it opened
     on. Announced per tap, the snackbar would also stand over the open popover as the overlay Escape closes first.
   * **The row menu:** *Doch einpacken*, *Ich packe das* and *freigeben* (each other's undo, G-3), Spätpacker on/off,
-    *Ungenutzt* / *aufheben*, and the removal — **the confirmed one included**; the row avatar's assignment
-    (FR-25.25).
+    *Ungenutzt* / *aufheben*, *Vor Ort kaufen* / *Doch mitnehmen* (FR-5.9), and the removal — **the confirmed one
+    included**; the row avatar's assignment (FR-25.25).
   * **The cluster head's fan-out (FR-25.26):** one undo gives every instance the value *it* had, since the instances
     may have disagreed before.
   * **The closing pass (FR-9.3):** each tap on the pass's mark. Owner ruling 2026-09-19 over the earlier *no toast per
@@ -4630,6 +4630,8 @@ the tail is where a symbol system is actually decided. Results:
     kaufen* gets no menu entry because it was not asked for, and a menu that grows one entry per mode stops being
     short.
   * **The cluster head** offers both, reaching the instances whose own row would offer each (FR-25.26's rule).
+  * **Taken back like every act on the list (FR-25.31):** the snackbar names it (*„„Sonnencreme" wird vor Ort
+    gekauft"*), and its *Rückgängig* writes the previous mode back — per instance, from the head.
   * **Modes.** Identical in all three: one trip-partition field write.
 
 ### 3.6 Notifications & Delegation

@@ -778,10 +778,10 @@ function runRowMenu(action: RowMenuAction, item: TripItem): void {
       onSkipItem(item)
       return
     case 'buyLocal':
-      orchestrator.setMode(props.tripId, item, ITEM_MODE_BUY_LOCAL)
+      onSetMode(item, ITEM_MODE_BUY_LOCAL)
       return
     case 'packInstead':
-      orchestrator.setMode(props.tripId, item, ITEM_MODE_PACK)
+      onSetMode(item, ITEM_MODE_PACK)
       return
     case 'latePackerOn':
       onLatePacker(item, true)
@@ -990,6 +990,10 @@ async function runClusterMenu(action: ClusterMenuAction, cluster: PackingCluster
     case 'buyLocal':
     case 'packInstead': {
       const mode = action === 'buyLocal' ? ITEM_MODE_BUY_LOCAL : ITEM_MODE_PACK
+      const previous = new Map(rows.map((row) => [row.id, row.mode]))
+      armRowsUndo(rows, (live) =>
+        orchestrator.setMode(props.tripId, live, previous.get(live.id) ?? live.mode),
+      )
       for (const row of rows) orchestrator.setMode(props.tripId, row, mode)
       report()
       return
@@ -1671,6 +1675,19 @@ function onLatePacker(item: TripItem, latePacker: boolean) {
     }),
     () => orchestrator.setLatePacker(props.tripId, item, latePacker),
     (live) => orchestrator.setLatePacker(props.tripId, live, previous),
+  )
+}
+
+/** FR-5.9 from the row menu, taken back like every other act (FR-25.31). */
+function onSetMode(item: TripItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof ITEM_MODE_PACK) {
+  const previous = item.mode
+  actUndoably(
+    item,
+    t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
+      name: item.name,
+    }),
+    () => orchestrator.setMode(props.tripId, item, mode),
+    (live) => orchestrator.setMode(props.tripId, live, previous),
   )
 }
 

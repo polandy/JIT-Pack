@@ -186,6 +186,8 @@ export const de: Record<keyof typeof en, string> = {
   'packing.unskippedToast': '„{name}“ kommt doch mit',
   'packing.latePackerOnToast': '„{name}“ wird spät gepackt',
   'packing.latePackerOffToast': '„{name}“ wird nicht mehr spät gepackt',
+  'packing.buyLocalToast': '„{name}“ wird vor Ort gekauft',
+  'packing.packInsteadToast': '„{name}“ wird doch mitgenommen',
   'packing.assignedToast': '„{name}“ → {who}',
   'packing.unassignedToast': '„{name}“: niemand zuständig',
   'packing.claimedToast': 'Du packst „{name}“',
