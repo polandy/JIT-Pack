@@ -15,7 +15,7 @@
  * carry the add control. After a tap the caller's carried set grows and the
  * row flips right here, which is the feedback a run needs. Free text is
  * demoted to an explicit footer line that hands back to the composer's
- * field; the sheet itself never raises a keyboard.
+ * field; the sheet never raises a keyboard on its own.
  *
  * **FR-25.13e** lets that stance be put away for a run: one opt-in switch
  * hides the carried rows, and what it hides is the set carried **when the
@@ -82,6 +82,15 @@
  *    inherit that switch's **snapshot**, and needs it more — a pass is a run
  *    of taps down one list, so a line reset in the middle of it has to stay
  *    put and flip rather than take the row below it into the finger.
+ *
+ * **FR-25.13j** gives the sheet M9's search and FR-24.11's offer (owner
+ * request 2026-09-19): working through the inventory stops at the item one
+ * knows by name and cannot find by scrolling, and at the one the inventory
+ * does not hold yet. Both are M9's own parts — `SearchRow` persistent, so the
+ * sheet still raises no keyboard on arrival; `searchItems` narrowing inside
+ * the tag axis; `SearchOfferButton` and `CreateItemSheet` for the missing
+ * name — and what the sheet creates or restores is added like a tapped line,
+ * so the run's ledger and its undo cover it too.
  */
 import { IonIcon, actionSheetController } from '@ionic/vue'
 import {
@@ -94,17 +103,25 @@ import {
   personOutline,
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { browseHideCarried } from '@/composables/useBrowseHideCarried'
+import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
 import { useLongPress } from '@/composables/useLongPress'
+import { useOrchestrator } from '@/composables/useOrchestrator'
+import { OFFER_CREATE, isSearchQuery, searchItems, searchOffer } from '@/domain/itemSearch'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import type { BrowseRowSummary } from '@/domain/browseRows'
+import { itemPath } from '@/router/paths'
 import type { MasterItem, Traveler } from '@/types/domain'
+import SearchRow from '@/components/global/SearchRow.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
+import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 
 const props = defineProps<{
   /** Item ids the scope already carries — rendered as "already in". */
@@ -161,9 +178,16 @@ const emit = defineEmits<{
 }>()
 
 const masterStore = useMasterStore()
+const orchestrator = useOrchestrator()
+const router = useRouter()
+const candidates = useItemSearchCandidates()
 
 /** `null` = the "Alle" chip: no tag filter (the M9 idiom). */
 const tagFilter = ref<string | null>(null)
+
+/** FR-25.13j: the sheet's own search, M9's rule (FR-24.7). */
+const query = ref('')
+const searching = computed(() => isSearchQuery(query.value))
 
 const { hideCarried, toggle: toggleHideCarried } = browseHideCarried()
 
@@ -250,12 +274,34 @@ watch(tagFilter, () => {
  * in its set, not only as primary — filtering by *Sommer* has to surface
  * the swimsuit that is filed under *Kleidung*.
  */
-const filtered = computed<MasterItem[]>(() => {
+const onTagFilter = computed<MasterItem[]>(() => {
   if (tagFilter.value === null) return masterStore.activeItemList
   const onTag = new Set(
     masterStore.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id),
   )
   return masterStore.activeItemList.filter((item) => onTag.has(item.id))
+})
+
+/**
+ * FR-25.13j: the query's hits inside the tag axis, as M9 finds them — both
+ * umlaut spellings, tags and mark keywords. The rows stay grouped by primary
+ * tag rather than by match reason: the sheet's groups are where its runs
+ * happen, and a query only narrows them.
+ */
+const hits = computed(() => {
+  if (!searching.value) return []
+  const scope = new Set(onTagFilter.value.map((item) => item.id))
+  return searchItems(
+    candidates.value.filter((c) => scope.has(c.id)),
+    query.value,
+  )
+})
+
+/** The tag axis and the search together — every count and state is read inside this. */
+const filtered = computed<MasterItem[]>(() => {
+  if (!searching.value) return onTagFilter.value
+  const hitIds = new Set(hits.value.map((hit) => hit.id))
+  return onTagFilter.value.filter((item) => hitIds.has(item.id))
 })
 
 /**
@@ -277,8 +323,10 @@ const settledOnly = ref(false)
  */
 const settledAtSwitch = ref<ReadonlySet<string>>(new Set())
 
+// Taken on the tag axis, not on the search: a query only narrows the pass, so
+// widening it again has to bring back what the pass began with.
 function retakeSettledSnapshot(): void {
-  settledAtSwitch.value = new Set(filtered.value.filter(isSettled).map((item) => item.id))
+  settledAtSwitch.value = new Set(onTagFilter.value.filter(isSettled).map((item) => item.id))
 }
 
 function toggleSettledOnly(): void {
@@ -717,6 +765,74 @@ function onUndo(item: MasterItem): void {
   }
 }
 
+// --- FR-25.13j: what the search did not find, FR-24.11 creates ------------
+
+/**
+ * M9's offer, by M9's rule. Not before the master partition has arrived
+ * (ADR-033): „no such item" is a claim about a list the device may not hold
+ * yet, and taking it would create a duplicate of one it does.
+ */
+const offer = computed(() =>
+  searching.value && orchestrator.masterDataLoaded()
+    ? searchOffer(query.value, masterStore.activeItemList, masterStore.retiredItemList)
+    : null,
+)
+
+const createOpen = ref(false)
+
+/**
+ * The tag the list is filtered by is the new item's from the start, as on
+ * M9: without it the item would be missing from the filtered list the moment
+ * it exists, which reads as a failed write.
+ */
+const createTagIds = computed(() => (tagFilter.value === null ? [] : [tagFilter.value]))
+
+/** The tags of the items the query found *by name* — „Zelt" finds the pegs. */
+const preferredTagIds = computed(() => {
+  const ids: string[] = []
+  for (const hit of hits.value) {
+    if (hit.reason !== 'name') continue
+    for (const tag of masterStore.getItemTags(hit.id)) if (!ids.includes(tag.id)) ids.push(tag.id)
+  }
+  return ids
+})
+
+/**
+ * The offer taken: a new name opens the sheet, a retired one is restored in
+ * place (M23's restore) and added like a tapped line — it already has its
+ * tags and weight, so there is nothing left to ask.
+ */
+function takeOffer(): void {
+  const current = offer.value
+  if (!current) return
+  if (current.kind === OFFER_CREATE) {
+    createOpen.value = true
+    return
+  }
+  if (!orchestrator.restoreMasterItem(current.id)) return
+  const restored = masterStore.getItem(current.id)
+  if (restored) onAdd(restored)
+}
+
+/** Enter opens the sheet and never writes: a typo must not become an item (FR-24.11). */
+function onSearchSubmit(): void {
+  if (offer.value?.kind === OFFER_CREATE) createOpen.value = true
+}
+
+/**
+ * The item exists; it is added like a tapped line, so the query now finds it
+ * as *„hinzugefügt"* with its undo. „Anlegen und öffnen" continues in M10,
+ * which the sheet has to get out of the way of first.
+ */
+async function onCreated({ id, open }: { id: string; open: boolean }): Promise<void> {
+  createOpen.value = false
+  const item = masterStore.getItem(id)
+  if (item) onAdd(item)
+  if (!open) return
+  emit('close')
+  await router.push(itemPath(id))
+}
+
 /** What the head says the taps do — three verbs where „für alle" is offered. */
 const subtitle = computed(() => {
   if (!verbs.value) return t('quickAdd.browseSubtitle')
@@ -740,6 +856,17 @@ function groupLabel(key: string): string {
       :meta="subtitle"
       close-testid="browse-close"
       @close="emit('close')"
+    />
+
+    <!-- FR-25.13j: M9's field. Persistent, so it takes no focus on arrival —
+         the sheet still raises no keyboard nobody asked for. -->
+    <SearchRow
+      v-model="query"
+      persistent
+      testid="browse-search-input"
+      :placeholder="t('items.searchPlaceholder')"
+      @close="query = ''"
+      @submit="onSearchSubmit"
     />
 
     <!-- The M9 tag axis (FR-24.2): filter on any tag, group by the primary. -->
@@ -807,8 +934,19 @@ function groupLabel(key: string): string {
       </button>
     </div>
 
+    <!-- FR-24.11's offer, at the top whether or not the query found
+         anything: „Zelt" finds the pegs and the tent is still missing. -->
+    <SearchOfferButton
+      v-if="offer"
+      :offer="offer"
+      testid="browse-offer"
+      :create-hint="t('quickAdd.offerCreateHint')"
+      :restore-hint="t('quickAdd.offerRestoreHint')"
+      @take="takeOffer"
+    />
+
     <p v-if="noMatch" class="no-match" data-testid="browse-no-match">
-      {{ t('quickAdd.browseNoMatch') }}
+      {{ searching ? t('quickAdd.browseNoSearchMatch') : t('quickAdd.browseNoMatch') }}
     </p>
 
     <!-- FR-25.13i: a third kind of empty. „Nothing decided here" is neither an
@@ -1051,6 +1189,18 @@ function groupLabel(key: string): string {
       <IonIcon :icon="createOutline" />
       <span>{{ t('quickAdd.browseFreeText') }}</span>
     </button>
+
+    <!-- The section's last child, as in M10: Ionic moves a presented inline
+         modal out of its parent, and a sheet with a sibling after it
+         becomes Vue's insertion anchor for that sibling. -->
+    <CreateItemSheet
+      :is-open="createOpen"
+      :name="offer?.name ?? query.trim()"
+      :tag-ids="createTagIds"
+      :preferred-tag-ids="preferredTagIds"
+      @dismiss="createOpen = false"
+      @created="onCreated"
+    />
   </section>
 </template>
 

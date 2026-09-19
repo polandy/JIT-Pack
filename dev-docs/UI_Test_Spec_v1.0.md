@@ -744,6 +744,12 @@ in WebKit.
 * **E2E-M4-108** `local` (FR-24.11, FR-24.7, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): an inventory
   item typed in the other umlaut spelling („guertel" for *Gürtel*) shows no offer, and ✓ adds it directly — no sheet.
   Typed again once it is on the list, the composer says *„‚Gürtel' ist schon drin"* and ✓ is disabled.
+* **E2E-M4-114** `local` (FR-25.13j, FR-24.11, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): the
+  browse-sheet opens with its search field visible and **not focused**, listing both *Zeltheringe* and *Kocher*;
+  „Zelt" narrows it to *Zeltheringe* with the offer **above** it. Enter opens the *„Neuer Artikel"* sheet on „Zelt"
+  and no M4 row has appeared — asserted once that sheet is visibly open. *„Anlegen"* returns to the browse-sheet with
+  the query kept, the offer gone and the *Zelt* line reading *„hinzugefügt"*; after closing, M4 carries the row and M9
+  lists three items.
 * **E2E-M4-109** `local` (FR-24.11 with FR-24.3, added 2026-09-19) — **implemented** (`restore-retired.spec.ts`): a
   retired item's name is offered as a restore; taking it puts the row on the list and the item back in M9, and M23 has
   nothing left to restore — no second item.

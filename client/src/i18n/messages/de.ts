@@ -667,6 +667,7 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.browseAlreadyIn': 'schon drin',
   'quickAdd.browseFreeText': 'Stattdessen neuen Namen eintippen…',
   'quickAdd.browseNoMatch': 'Noch keine Packelemente mit diesem Tag',
+  'quickAdd.browseNoSearchMatch': 'Nichts im Inventar passt dazu',
   'quickAdd.browseHideCarried': 'ausblenden',
   'quickAdd.browseHideCarriedLabel': '{n} schon drin — ausblenden',
   'quickAdd.browseCarriedCount': '{n} schon drin',
