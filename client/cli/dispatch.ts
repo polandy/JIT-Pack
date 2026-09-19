@@ -9,12 +9,14 @@
 import { EXIT, type CommandIO } from './common'
 import { USAGE as IMPORT_USAGE, parseImportArgs, runImport } from './importCommand'
 import { TRAVELER_USAGE, parseTravelerArgs, runTraveler } from './travelerCommand'
+import { TAGS_USAGE, parseTagsArgs, runTags } from './tagsCommand'
 
 export const USAGE = `Usage: jitpack COMMAND [flags] [args]
 
 Commands:
   import     put portable YAML into a running instance
   traveler   read or extend a trip's roster
+  tags       read and reshape the tags items are filed under
 
 Run a command with --help for its own flags.`
 
@@ -26,6 +28,7 @@ Run a command with --help for its own flags.`
 const COMMANDS = {
   import: { usage: IMPORT_USAGE, parse: parseImportArgs, run: runImport },
   traveler: { usage: TRAVELER_USAGE, parse: parseTravelerArgs, run: runTraveler },
+  tags: { usage: TAGS_USAGE, parse: parseTagsArgs, run: runTags },
 } as const
 
 export type CommandName = keyof typeof COMMANDS
