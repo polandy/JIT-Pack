@@ -166,6 +166,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.fanOutApplied': '{n} Zeile geändert | {n} Zeilen geändert',
   'packing.fanOutPartial': '{n} von {total} geändert · {who} packt gerade',
   'packing.unskipAction': 'Doch einpacken',
+  'packing.packInsteadAction': 'Doch mitnehmen',
   'packing.skippedToast': '„{name}“ bleibt zu Hause',
   'packing.companionsAdded':
     '„{names}“ kam mit — es gehört zwingend dazu | „{names}“ kamen mit — sie gehören zwingend dazu',
@@ -185,6 +186,8 @@ export const de: Record<keyof typeof en, string> = {
   'packing.unskippedToast': '„{name}“ kommt doch mit',
   'packing.latePackerOnToast': '„{name}“ wird spät gepackt',
   'packing.latePackerOffToast': '„{name}“ wird nicht mehr spät gepackt',
+  'packing.buyLocalToast': '„{name}“ wird vor Ort gekauft',
+  'packing.packInsteadToast': '„{name}“ wird doch mitgenommen',
   'packing.assignedToast': '„{name}“ → {who}',
   'packing.unassignedToast': '„{name}“: niemand zuständig',
   'packing.claimedToast': 'Du packst „{name}“',

@@ -1,5 +1,5 @@
 /**
- * What M4's press-and-hold offers on a row (FR-5.5, FR-5.7, FR-5.8, FR-9.3, G-3).
+ * What M4's press-and-hold offers on a row (FR-5.5, FR-5.7, FR-5.8, FR-5.9, FR-9.3, G-3).
  *
  * The menu was a nested ternary inside `actionSheetController.create`, so
  * the rule could only be read by rendering M4 and holding a row down — and
@@ -8,7 +8,7 @@
  * entries in the order they are offered; the view keeps the wording, the
  * glyphs and the handlers, which are its own.
  */
-import type { TripItem } from '@/types/domain'
+import { ITEM_MODE_BUY_LOCAL, type TripItem } from '@/types/domain'
 
 /**
  * One entry the row menu can offer. Not a label: the wording of `flagUnused`
@@ -22,6 +22,10 @@ export type RowMenuAction =
   | 'quantity'
   | 'packingNow'
   | 'skip'
+  /** FR-5.9: the row is bought at the destination instead (`buy_local`). */
+  | 'buyLocal'
+  /** FR-5.9: the way back — a `buy_local` row is packed after all. */
+  | 'packInstead'
   /** FR-25.25: the FR-5.1 flag, switched from the row instead of from M5. */
   | 'latePackerOn'
   | 'latePackerOff'
@@ -49,7 +53,7 @@ export interface RowMenuContext {
 }
 
 /** The row fields the menu reads; a `TripItem` satisfies it. */
-export type RowMenuItem = Pick<TripItem, 'state' | 'flag_unused' | 'late_packer'>
+export type RowMenuItem = Pick<TripItem, 'state' | 'flag_unused' | 'late_packer' | 'mode'>
 
 /** The row fields the avatar rule reads; a `TripItem` satisfies it. */
 export type AssignableRowItem = Pick<TripItem, 'packed_by_user_id'>
@@ -77,6 +81,19 @@ export interface AssignContext {
 export function avatarAssignable(item: AssignableRowItem, ctx: AssignContext): boolean {
   if (!ctx.hasAssignees || ctx.closingPass || ctx.locked) return false
   return item.packed_by_user_id === null
+}
+
+/**
+ * FR-5.9: where the row comes from — packed, or bought at the destination.
+ * Offered only on a row nothing has been done to yet: on a `buy_local` row
+ * the packed state *is* „bought" (`buyItem`), so a row half-packed and then
+ * switched would claim a purchase nobody made, and the way back would turn
+ * a purchase into a packing. M5's mode control stays the whole answer; this
+ * is the one of its three a reader decides while reading the list.
+ */
+function modeEntries(item: RowMenuItem): RowMenuAction[] {
+  if (item.state !== 'open') return []
+  return [item.mode === ITEM_MODE_BUY_LOCAL ? 'packInstead' : 'buyLocal']
 }
 
 /**
@@ -113,6 +130,7 @@ export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuA
           'quantity',
           'packingNow',
           'skip',
+          ...modeEntries(item),
           // FR-25.25: last of the row's own actions, because it is the one
           // that says something about *when* rather than about now. A
           // skipped row is offered none of it — nothing is being packed on

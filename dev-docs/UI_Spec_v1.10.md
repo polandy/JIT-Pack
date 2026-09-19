@@ -1209,11 +1209,12 @@ These patterns apply to every screen and are specified once.
       for renders an **empty seat** in the same place, which is the row's only affordance for being handed over. It is
       absent where nothing is assignable (G-8), under a G-3 lock, in the closing pass, and once the avatar names the
       packing record rather than the assignment: that one is not a choice (FR-25.19).
-  * **Row press-and-hold menu (FR-5.5):** *Menge ändern*, *Packen*, *Nicht einpacken*, **Spätpacker ein/aus**
-    (FR-25.25, last of the row's own actions), FR-9.3's unused mark where the trip can be judged, and **_Von der Liste
-    entfernen_ last of all** (FR-5.8, added 2026-09-18, destructive role). A row somebody else holds has no menu but
-    the takeover (G-3/FR-5.7); a row the viewer holds offers only the release; a skipped row offers the way back and
-    the removal, and no late-packer flag, because nothing is being packed on it.
+  * **Row press-and-hold menu (FR-5.5):** *Menge ändern*, *Packen*, *Nicht einpacken*, **_Vor Ort kaufen_** — on a
+    `buy_local` row **_Doch mitnehmen_** in its place, and neither on a row already begun (FR-5.9, added 2026-09-19) —,
+    **Spätpacker ein/aus** (FR-25.25, last of the row's own actions), FR-9.3's unused mark where the trip can be judged,
+    and **_Von der Liste entfernen_ last of all** (FR-5.8, added 2026-09-18, destructive role). A row somebody else
+    holds has no menu but the takeover (G-3/FR-5.7); a row the viewer holds offers only the release; a skipped row
+    offers the way back and the removal, and no late-packer flag, because nothing is being packed on it.
     * **Removal (FR-5.8).** A row with nothing on it goes at once, with the pack snackbar's *Rückgängig*
       (*„„Zelt" von der Liste entfernt"*). A row carrying packed units, notes or FR-20.2 companions opens a destructive
       alert first — title *„„Drohne" entfernen?"*, a body naming each loss and pointing at *Nicht einpacken*, buttons

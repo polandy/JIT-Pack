@@ -167,6 +167,7 @@ export const en = {
   // say whom to ask about the rest.
   'packing.fanOutPartial': '{n} of {total} changed · {who} is packing right now',
   'packing.unskipAction': 'Pack it after all',
+  'packing.packInsteadAction': 'Take it along instead',
   'packing.skippedToast': '“{name}” stays at home',
   'packing.companionsAdded':
     '“{names}” came along — it is required for what you added | “{names}” came along — they are required for what you added',
@@ -186,6 +187,8 @@ export const en = {
   'packing.unskippedToast': '“{name}” is coming after all',
   'packing.latePackerOnToast': '“{name}” is packed late',
   'packing.latePackerOffToast': '“{name}” is no longer packed late',
+  'packing.buyLocalToast': '“{name}” is bought there',
+  'packing.packInsteadToast': '“{name}” is taken along after all',
   'packing.assignedToast': '“{name}” → {who}',
   'packing.unassignedToast': '“{name}”: nobody responsible',
   'packing.claimedToast': 'You are packing “{name}”',
