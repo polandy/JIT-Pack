@@ -716,6 +716,9 @@ in WebKit.
   shared row still listed; a second tap releases both.
 * **E2E-M4-111** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for one
   traveler shows no per-person strip, read once the trip line has rendered.
+* **E2E-M4-112** `local` (FR-25.29 with FR-9.3, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): on a
+  running trip for three travelers the per-person strip is shown; opening the closing pass removes it, read once the
+  pass banner is on screen, and cancelling the pass brings it back.
 * **E2E-M4-106** `local` (FR-7.3 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): the same
   for M4's preparation section: ticking a prep task drops the row's badge and raises the snackbar; *Rückgängig*
   brings the badge back, also after a reload.
