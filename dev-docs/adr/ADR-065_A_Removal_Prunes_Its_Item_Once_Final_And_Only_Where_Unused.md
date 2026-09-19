@@ -35,14 +35,14 @@ Deciding that was the owner's. *How* to carry it out is this ADR, and three fact
 
 ### Option A — Prune once final, through a conditional server call *(recommended, accepted)*
 
-The removal decides nothing about the item by itself. `useRowUndo` gains an `onLapse`. It runs when the armed record
-is cleared or replaced without an undo: the snackbar runs out, the screen is left, or the next action takes the
-snackbar's place. A confirmed removal has no undo and prunes at once. The prune asks this device first (`itemInUse`
-over positions, known trip rows and the items that bring it as a companion). **Local Mode** holds every trip, so it deletes the item through
-FR-24.3's ordinary delete. A **server** device first waits until the trip delete has been answered (`whenSent('trip')`)
-and then calls `POST /api/v1/master/items/{id}/prune`. The call runs the ordinary master pipeline under a partition
-whose write gate adds "still used". A used item is refused *inside the deleting transaction*, and is not re-logged
-and not retired. The answer is `{pruned, pull_hint}`.
+The removal decides nothing about the item by itself. `useRowUndo` gains an `onLapse`. It runs when the armed record is
+cleared or replaced without an undo: the snackbar runs out, the screen is left, or the next action takes the snackbar's
+place. A confirmed removal has no undo and prunes at once. The prune asks this device first (`itemInUse` over positions,
+known trip rows and the items that bring it as a companion). **Local Mode** holds every trip, so it deletes the item
+through FR-24.3's ordinary delete. A **server** device first waits until the trip delete has been answered
+(`whenSent('trip')`) and then calls `POST /api/v1/master/items/{id}/prune`. The call runs the ordinary master pipeline
+under a partition whose write gate adds "still used". A used item is refused *inside the deleting transaction*, and is
+not re-logged and not retired. The answer is `{pruned, pull_hint}`.
 
 **Pros**
 - A used item is never touched, whichever device asks and however little it has seen.
