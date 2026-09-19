@@ -1584,7 +1584,9 @@ These patterns apply to every screen and are specified once.
   the destination) and its checkbox is the way back — unchecking restores the mode it was bought from and clears the
   record. Each tab has its own reveal, and the reveal is **absent, not empty**, when nothing was bought from that list.
   Deliberately **not** remembered across a session the way M4's switch is (FR-25.18): the tab is not remembered either,
-  so a restored reveal would open on a list the reader did not choose. **An entry (FR-30.1)** is revealed the same way,
+  so a restored reveal would open on a list the reader did not choose. **Every revealed line carries FR-30.4's stamp**
+  — *„gekauft von Andy · heute 14:32"* with the buyer's avatar, or *„gekauft · heute 14:32"* where nobody can be named
+  (Local Mode) — under its note. **An entry (FR-30.1)** is revealed the same way,
   with **no note** — it was never anywhere but here — and keeps its ✕.
 * **States:** An empty tab, once the trip partition is here (ADR-033), shows the G-7 empty state with the hint *„Trag
   oben ein, was ihr kaufen wollt. Was auf der Packliste gekauft statt eingepackt wird, erscheint hier von selbst."* —

@@ -37,6 +37,8 @@ function item(over: Partial<TripItem> = {}): TripItem {
     packing_now_by: null,
     packing_now_at: null,
     bought_from: null,
+    bought_at: null,
+    bought_by_user_id: null,
     flag_unused: false,
     flag_missing: false,
     updated_hlc: '1',
@@ -116,6 +118,30 @@ describe('createPackingShoppingSource (FR-30.2)', () => {
     expect(line?.boughtNote).toBe(t('shopping.wentToPacking'))
     line?.unbuy()
     expect(writes).toEqual([{ verb: 'unbuy', id: toPack.id, from: 'buy_before' }])
+  })
+
+  it('a bought line carries its purchase record, who and when (FR-30.4)', () => {
+    const at = '2026-09-19T14:32:00Z'
+    const bought = item({
+      name: 'Kaffee',
+      mode: 'pack',
+      bought_from: 'buy_before',
+      bought_at: at,
+      bought_by_user_id: 'u-sia',
+    })
+    const { source } = sourceWith({ boughtBefore: [bought] })
+    const [line] = source.bought('t1', 'buy_before')
+    expect(line?.boughtAt).toBe(at)
+    expect(line?.boughtBy).toBe('u-sia')
+  })
+
+  it('an open line carries no purchase record', () => {
+    const { source } = sourceWith({
+      buyLocal: [item({ bought_at: 'stale', bought_by_user_id: 'x' })],
+    })
+    const [line] = source.open('t1', 'buy_local')
+    expect(line?.boughtAt).toBeUndefined()
+    expect(line?.boughtBy).toBeUndefined()
   })
 
   it('a line bought at the destination reads as packed', () => {

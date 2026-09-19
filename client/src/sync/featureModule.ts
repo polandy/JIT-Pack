@@ -46,6 +46,8 @@ export interface QueuedModuleMutation {
 export interface ModuleHost {
   /** Builds a mutation stamped with this device's HLC. */
   mutation(op: MutationOp, table: string, id: string, fields?: Record<string, unknown>): Mutation
+  /** The device's clock as an ISO instant — the one the HLC reads, for a tap's time. */
+  nowIso(): string
   /** Queues the writes for the trip's partition, paints them, and drains. */
   writeTrip(tripId: string, ...muts: QueuedModuleMutation[]): void
 }

@@ -290,6 +290,8 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     packing_now_by: (row['packing_now_by'] as string) ?? null,
     packing_now_at: (row['packing_now_at'] as string) ?? null,
     bought_from: (row['bought_from'] as TripItem['bought_from']) ?? null,
+    bought_at: (row['bought_at'] as string) ?? null,
+    bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
     flag_unused: Boolean(row['flag_unused']),
     flag_missing: Boolean(row['flag_missing']),
     updated_hlc: (row['updated_hlc'] as string) ?? '',
@@ -332,6 +334,8 @@ function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingE
     name: row['name'] as string,
     list: (row['list'] as ShoppingEntry['list']) ?? ITEM_MODE_BUY_LOCAL,
     bought: Boolean(row['bought']),
+    bought_at: (row['bought_at'] as string) ?? null,
+    bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
   }
 }
 

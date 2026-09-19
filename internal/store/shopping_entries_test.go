@@ -99,3 +99,22 @@ func TestSchema_DeletingATripTakesItsShoppingEntries_FR30_1(t *testing.T) {
 		t.Errorf("%d shopping entries survived their trip, want 0", n)
 	}
 }
+
+// FR-30.4: a purchase carries who made it and when — on an entry, and on a
+// packing row bought from a list, whose mode flip (FR-3.3) otherwise leaves
+// no trace of the purchase at all. Nullable, because nothing is bought on a
+// fresh row, and pushable, because the stamp travels the push path.
+func TestSchema_APurchaseRecordsWhoAndWhen_FR30_4(t *testing.T) {
+	s := openTestStore(t)
+	for _, table := range []string{TableShoppingEntries, TableTripItems} {
+		cols := columns(t, s.db, table)
+		for _, col := range []string{"bought_at", "bought_by_user_id"} {
+			if !cols[col] {
+				t.Errorf("%s.%s missing", table, col)
+			}
+			if !syncableColumns[table][col] {
+				t.Errorf("%s.%s is not pushable — the server's stamp could not be persisted", table, col)
+			}
+		}
+	}
+}

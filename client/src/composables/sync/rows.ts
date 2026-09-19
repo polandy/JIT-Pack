@@ -146,6 +146,8 @@ export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> 
     name: entry.name,
     list: entry.list,
     bought: dbBool(entry.bought),
+    bought_at: entry.bought_at,
+    bought_by_user_id: entry.bought_by_user_id,
   }
 }
 
@@ -236,6 +238,8 @@ export function itemRow(item: TripItem): Record<string, unknown> {
     packing_now_by: item.packing_now_by,
     packing_now_at: item.packing_now_at,
     bought_from: item.bought_from,
+    bought_at: item.bought_at,
+    bought_by_user_id: item.bought_by_user_id,
     flag_unused: dbBool(item.flag_unused),
     flag_missing: dbBool(item.flag_missing),
     updated_hlc: item.updated_hlc,

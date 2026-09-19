@@ -895,6 +895,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   const moduleHost: ModuleHost = {
     mutation: mutations.make,
+    nowIso,
     writeTrip: (tripId, ...muts) => enqueueAndDrain('trip', tripId, ...muts),
   }
 

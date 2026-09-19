@@ -32,7 +32,7 @@ import {
   IonIcon,
 } from '@ionic/vue'
 import { addOutline, bagHandleOutline, closeOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 
 import EmptyState from '@/components/global/EmptyState.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
@@ -40,7 +40,9 @@ import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useTripScreen } from '@/composables/useTripScreen'
+import { useTripIdentity } from '@/composables/useTripIdentity'
 import { t } from '@/i18n'
+import { boughtStampText } from '@/lib/rowFacts'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
@@ -73,7 +75,20 @@ const showBought = ref(false)
 // ADR-033: whether this trip's rows are here — the entries travel the same
 // partition as the packing rows. „Nothing to buy" is a sentence somebody
 // leaves the house on, and a partition still in flight is not it.
-const { trip, loaded: rowsLoaded } = useTripScreen(props.tripId, orchestrator)
+const { trip, loaded: rowsLoaded, ensure } = useTripScreen(props.tripId, orchestrator)
+
+// FR-30.4: a purchase is named from the trip's participants, the way every
+// other stamp on the trip is — empty in Local Mode, where nobody is named.
+const { nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+onMounted(async () => {
+  await ensure()
+  await loadIdentity()
+})
+
+/** „gekauft von Andy · heute 14:32" — who bought the line, and when. */
+function boughtStamp(line: ShoppingLine): string | null {
+  return boughtStampText(line.boughtAt, line.boughtBy, nameOf)
+}
 
 function openLines(list: ShoppingMode) {
   return {
@@ -255,6 +270,16 @@ setHeaderTitle(
           <IonLabel>
             <h3>{{ line.name }}</h3>
             <p v-if="line.boughtNote" data-testid="m6-bought-note">{{ line.boughtNote }}</p>
+            <!-- FR-30.4: who bought it, and when. -->
+            <p v-if="boughtStamp(line)" class="recipients" data-testid="m6-bought-stamp">
+              <UserAvatar
+                v-if="line.boughtBy && nameOf(line.boughtBy)"
+                :name="nameOf(line.boughtBy)"
+                :seed="line.boughtBy"
+                :size="18"
+              />
+              <span>{{ boughtStamp(line) }}</span>
+            </p>
           </IonLabel>
           <IonButton
             v-if="line.remove"

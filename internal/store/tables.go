@@ -356,6 +356,9 @@ var tableSpecs = map[string]tableSpec{
 			// value like packer_user_id beside it — it records a decision the
 			// person made, not an identity claim, so stampActor leaves it alone.
 			"bought_from",
+			// FR-30.4: the purchase's record, stamped by stampActor the way
+			// packed_by_user_id is — listed so the stamp can be persisted.
+			"bought_at", "bought_by_user_id",
 			"assigned_traveler_id", "packer_user_id", "container_id",
 			"packing_now_by", "packing_now_at", "flag_unused", "flag_missing",
 			"outbound_packed",
@@ -419,7 +422,11 @@ var tableSpecs = map[string]tableSpec{
 	// and cascade nothing (ADR-066).
 	TableShoppingEntries: {
 		partition: partitionTrip,
-		columns:   toSet("trip_id", "name", "list", "bought"),
+		columns: toSet(
+			"trip_id", "name", "list", "bought",
+			// FR-30.4, stamped by stampActor.
+			"bought_at", "bought_by_user_id",
+		),
 		export: exportQuery{query: `SELECT x.* FROM shopping_entries x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},

@@ -39,6 +39,8 @@ function item(over: Partial<TripItem> = {}): TripItem {
     packing_now_by: null,
     packing_now_at: null,
     bought_from: null,
+    bought_at: null,
+    bought_by_user_id: null,
     flag_unused: false,
     flag_missing: false,
     updated_hlc: '1',

@@ -60,6 +60,10 @@ export function createPackingShoppingSource(
             ? t('shopping.wentToPacking')
             : t('shopping.wentPacked')
           : undefined,
+        // FR-30.4: one act bought every instance, so the first one's record
+        // is the purchase's.
+        boughtAt: bought ? (row.instances[0]?.bought_at ?? null) : undefined,
+        boughtBy: bought ? (row.instances[0]?.bought_by_user_id ?? null) : undefined,
         // Every instance, not the first: the line stands for all of them, and
         // one that names three people while settling one leaves two behind
         // where nobody is looking for them (FR-25.6).

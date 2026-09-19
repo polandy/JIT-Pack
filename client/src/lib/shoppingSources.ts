@@ -41,6 +41,14 @@ export interface ShoppingLine {
   section: string | null
   /** For a bought line: where it went, in the reader's words (FR-25.11j). */
   boughtNote?: string
+  /** For a bought line: when it was bought, an ISO instant (FR-30.4). */
+  boughtAt?: string | null
+  /**
+   * For a bought line: who bought it, as a user id (FR-30.4). An id rather
+   * than a name, so the screen names it from the trip's participants the way
+   * every other stamp is named, and a source never needs the directory.
+   */
+  boughtBy?: string | null
   /** Checks the line off — every write the purchase means, in one step. */
   buy(): void
   /** Puts a bought line back on the list it was bought from. */

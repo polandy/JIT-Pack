@@ -8,6 +8,8 @@ distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. **All fo
 fallen behind; see the §8 row. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
 
 **Revision history** — newest first. Every rule is current text in the section named; the entry says what it replaced.
+* **2026-09-19 (FR-30.4) — §5, server-stamped fields:** `bought_by_user_id`/`bought_at` on `trip_items` and
+  `shopping_entries` — who bought a thing and when, stamped like the packing record. Was: no record of a purchase.
 * **2026-09-19 (FR-30.1, ADR-066) — P-3:** `shopping_entries` joins the trip partition — the shopping list's own
   entries, which are no trip items. Was: every shopping-list line was a `trip_items` row in a buy mode.
 * **2026-09-19 (FR-5.8, ADR-065) — §8:** `POST /master/items/{id}/prune`, a conditional delete of an inventory item
@@ -348,6 +350,12 @@ copy until it discards it (lazy, same semantics as trip deletes).
   release used to be the client sending `packing_now_by: null`, and a released claim may not depend on the client saying
   so. The FR-5.7 **takeover** does not travel this path at all: it has its own endpoint (§8) and is stamped there.
   `packer_user_id` is *not* stamped: since FR-25.19 it carries the assignment, which is the client's to choose.
+  **The purchase record (FR-30.4)** follows the same rule on `trip_items` and `shopping_entries`:
+  `bought_by_user_id`/`bought_at` are stripped from every mutation and written back only by the field the purchase is —
+  `bought_from` on a trip item, `bought` on an entry. A purchase names the pusher and keeps the client's tap time (an
+  unreadable one is replaced by the server's clock, as for `packed_at`); taking it back clears both. A mutation that
+  touches neither field carries **no** record, not even a null, since a null would erase a purchase another device
+  already recorded.
   `trips.year` (migration 021) is `NOT NULL` — a `trips` insert without it is rejected rather than defaulted, because a
   trip with no year cannot be placed in time (FR-2.1b); `end_date` is nullable from the same migration.
   `trip_items.packed_at` (migration 020) is the same record's *when* (FR-25.17) and follows it exactly — written with

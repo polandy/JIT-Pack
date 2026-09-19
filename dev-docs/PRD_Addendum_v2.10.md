@@ -4209,6 +4209,16 @@ as for the packing rows.
   lets the module write) and `lib/tripViews.ts` (the switcher's count) — which the composition root, `App.vue`, binds.
   `scripts/module-boundary-gate.mjs` holds both directions in `make client` and the CI client job.
 
+* **FR-30.4 (Who Bought It, and When — owner request 2026-09-19):** every bought line — an entry or a packing row —
+  shows **„gekauft von Andy · heute 14:32"** under FR-25.11j's reveal, with the buyer's avatar: FR-25.17's stamp for a
+  purchase, from the same helpers (`domain/stamp.ts`, `lib/rowFacts.ts`), because a finished purchase raises the same
+  question as a packed row — *who* dealt with it and *how long ago*. The record is two columns, `bought_at` and
+  `bought_by_user_id`, on `shopping_entries` **and on `trip_items`**: a BUY_BEFORE purchase flips the row to *pack*
+  (FR-3.3), and without its own record the row keeps no trace of who bought it. The buyer is **stamped by the server
+  from the pusher** (invariant 3; Sync-API §5), the time is the tap's (offline purchases keep their moment), and
+  taking the purchase back clears both. **Per mode:** Server Mode names the buyer; Single-User names its one account;
+  Local Mode states the time alone, because there is no account to name (G-8). A purchase with neither shows no stamp.
+
 **Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like
 every other. **Not carried:** the portable backup (NFR-4.11) does not carry entries, like FR-7.3/7.4's todos; trip
 cloning (§3.12) copies none; the destination-bound lists of FR-13.3 are still unbuilt and would now pre-fill entries

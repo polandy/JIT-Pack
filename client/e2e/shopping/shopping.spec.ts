@@ -116,6 +116,9 @@ test.describe('M6 shopping — the list’s own entries @local @m6', () => {
     await expect(bought).toBeVisible()
     // It was never anywhere but here, so it names nowhere it went.
     await expect(bought.getByTestId('m6-bought-note')).toHaveCount(0)
+    // FR-30.4: when it was bought — and survived the reload with it. No who:
+    // Local Mode has no account to name (G-8); E2E-M6-29 names one.
+    await expect(bought.getByTestId('m6-bought-stamp')).toContainText('bought · today')
 
     await bought.locator('ion-checkbox').click()
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Kaffee' })).toBeVisible()
@@ -213,6 +216,9 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     await expect(bought).toContainText('Kaffee')
     // FR-25.11j: the revealed row says where it went.
     await expect(bought.getByTestId('m6-bought-note')).toHaveText('on the packing list')
+    // FR-30.4: the purchase keeps its time although the row is a packing row
+    // again — the record lives beside `bought_from`, not in the mode.
+    await expect(bought.getByTestId('m6-bought-stamp')).toContainText('bought · today')
     await expect(bar).toHaveText('Hide 1 bought')
 
     // E2E-M6-02 (FR-3.3), and the half the note only *claims*: the row really

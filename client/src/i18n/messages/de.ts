@@ -1533,6 +1533,8 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.addPlaceholder': 'Was kaufen? z. B. Milch, Brot …',
   'shopping.addLabel': 'Auf die Liste',
   'shopping.remove': 'Entfernen: {name}',
+  'shopping.boughtBy': 'gekauft von {who} · {when}',
+  'shopping.boughtByUnknown': 'gekauft · {when}',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',

@@ -8,8 +8,8 @@
  *
  * 1. **A module reaches only the shared kernel** — `api/`, `sync/`, `types/`,
  *    `lib/`, `theme/`, `i18n/`, the shared components in `components/global/`,
- *    and the three frame composables every screen is built on (the page head,
- *    the orchestrator's injection key, the trip-screen load). Never packing's
+ *    and the frame composables every screen is built on (the page head, the
+ *    orchestrator's injection key, the trip-screen load, the trip's identity). Never packing's
  *    views, stores, domain rules or composables, and never another module.
  * 2. **Nothing reaches into a module** except the composition root: `App.vue`
  *    through the module's public face (its `index.ts`), the router through a
@@ -51,6 +51,9 @@ const KERNEL_PATHS = [
   'composables/useHeaderTitle',
   'composables/useOrchestrator',
   'composables/useTripScreen',
+  // Who the trip's people are, for naming a record (FR-30.4) — a trip-level
+  // question every module asks, like the trip itself (the planner's votes).
+  'composables/useTripIdentity',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */

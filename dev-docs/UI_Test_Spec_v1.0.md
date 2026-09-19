@@ -1292,6 +1292,12 @@ composer.
 * **E2E-M6-28** `local` (FR-30.2, added 2026-09-19) — **implemented** (`shopping/shopping.spec.ts`): a packing row is on
   the shopping list exactly while its mode says so. A *Buy there* row appears on *Vor Ort* with no ✕; set back to
   *Pack* in M5, it is gone from the tab (empty state) and from the pill's count — a copied entry would have stayed.
+* **E2E-M6-29** `single` (FR-30.4, added 2026-09-19) — **implemented** (`shopping/single/purchase-stamp.spec.ts`): who
+  bought it, and when. An entry and a *Buy before* packing row are both checked off; a **second browser context** opens
+  M6 fresh from the server and finds two stamps, each *„bought by <the Single-User account> · today …"*. `single`
+  because the buyer is stamped by the server (invariant 3) — the `local` cases can only see the time, and do:
+  **E2E-M6-17** (the packing row keeps its purchase time although its mode is *pack* again) and **E2E-M6-27** (the
+  entry's time survives a reload) each assert *„bought · today"*.
 * **E2E-M6-22** `all` (FR-3.3/25.11j) — **new 2026-08-25**: the destination tab's half. A BUY_LOCAL row never changes
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its
@@ -3518,6 +3524,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-30.1 | E2E+UNIT | M6-26 (reaches no packing figure), M6-27 (buy, reveal, put back, remove, reload), M6-01/03 (one entry per tab); `shopping/__tests__/ShoppingPage.spec.ts`, `sync.spec.ts` (routing, trip cascade, restart); Go: `shopping_entries_test.go` |
 | FR-30.2 | E2E+UNIT | M6-28 (on the list exactly while the mode says so), M6-17/22/05/06 (packing rows through the contract); `composables/__tests__/packingShoppingSource.spec.ts`, `domain/__tests__/buyRows.spec.ts` |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
+| FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

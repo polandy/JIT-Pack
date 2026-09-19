@@ -25,6 +25,7 @@ import type { ModuleHost } from '@/sync/featureModule'
 import { changesOf } from '@/sync/optimistic'
 import type { ShoppingMode } from '@/types/domain'
 
+import { identityStub } from '@/composables/__tests__/identityStub'
 import { tripScreenStub } from '@/composables/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 
@@ -50,6 +51,7 @@ function fakeHost(): ModuleHost {
       fields,
       hlc: `hlc-${seq}`,
     }),
+    nowIso: () => TAP,
     writeTrip: (_tripId, ...muts) => {
       for (const mut of muts) {
         written.push(mut.mutation)
@@ -58,6 +60,15 @@ function fakeHost(): ModuleHost {
     },
   }
 }
+
+/** The clock the fake host reads, so a purchase's time is a known value. */
+const TAP = '2026-09-19T14:32:00.000Z'
+
+/** Who the instance knows: the viewer and a second account (FR-30.4). */
+const people = [
+  { user_id: 'u-andy', display_name: 'Andy' },
+  { user_id: 'u-sia', display_name: 'Sia' },
+]
 
 /** A line as a source would hand it over, with its writes recorded. */
 function line(over: Partial<ShoppingLine> = {}): ShoppingLine {
@@ -85,7 +96,12 @@ function source(
 
 function mountPage(sources?: ShoppingSource[]) {
   const provide: Record<symbol, unknown> = {
-    [ORCHESTRATOR]: { ...tripScreen, moduleHost: fakeHost() },
+    [ORCHESTRATOR]: {
+      ...identityStub(),
+      fetchUsers: async () => people,
+      ...tripScreen,
+      moduleHost: fakeHost(),
+    },
   }
   if (sources) provide[SHOPPING_SOURCES] = sources
   return mount(ShoppingPage, { props: { tripId: 't1' }, global: { provide } })
@@ -149,17 +165,26 @@ describe('M6 — the list’s own entries (FR-30.1)', () => {
     const page = mountPage()
 
     await page.find('[data-testid="m6-row"] ion-checkbox').trigger('ionChange')
-    expect(written.at(-1)).toMatchObject({ op: 'upsert', id: 'e1', fields: { bought: 1 } })
+    // FR-30.4: the tap's time travels with the purchase; who is the server's.
+    expect(written.at(-1)).toMatchObject({
+      op: 'upsert',
+      id: 'e1',
+      fields: { bought: 1, bought_at: TAP },
+    })
     expect(page.findAll('[data-testid="m6-row"]')).toHaveLength(0)
 
     await page.find('[data-testid="m6-bought-bar"]').trigger('click')
     const bought = page.findAll('[data-testid="m6-bought-row"]')
-    expect(bought.map((r) => r.text())).toEqual(['Brot'])
+    expect(bought.map((r) => r.find('h3').text())).toEqual(['Brot'])
     // An entry was never anywhere but here, so there is nowhere to say it went.
     expect(page.find('[data-testid="m6-bought-note"]').exists()).toBe(false)
 
     await bought[0]!.find('ion-checkbox').trigger('ionChange')
-    expect(written.at(-1)).toMatchObject({ op: 'upsert', id: 'e1', fields: { bought: 0 } })
+    expect(written.at(-1)).toMatchObject({
+      op: 'upsert',
+      id: 'e1',
+      fields: { bought: 0, bought_at: null, bought_by_user_id: null },
+    })
     expect(page.findAll('[data-testid="m6-row"]').map((r) => r.text())).toEqual(['Brot'])
   })
 
@@ -290,6 +315,63 @@ describe('M6 — what was bought stays reversible (FR-25.11j)', () => {
 
     await rows[0]!.find('ion-checkbox').trigger('ionChange')
     expect(bought.unbuy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('M6 — who bought it, and when (FR-30.4)', () => {
+  it('names the buyer and the time on a bought entry, from the trip’s people', async () => {
+    seedEntry('e1', {
+      name: 'Brot',
+      bought: 1,
+      bought_at: new Date().toISOString(),
+      bought_by_user_id: 'u-sia',
+    })
+    const page = mountPage()
+    await flushPromises()
+
+    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    const stamp = page.find('[data-testid="m6-bought-stamp"]')
+    // The span, not the line: the avatar beside it contributes its initials.
+    expect(stamp.findAll('span').at(-1)?.text()).toMatch(/^bought by Sia · today \S/)
+    expect(stamp.find('[data-testid="user-avatar"]').exists()).toBe(true)
+  })
+
+  it('names the buyer on a source line too, from the id the source hands over', async () => {
+    const bought = line({
+      name: 'Sonnencreme',
+      boughtNote: t('shopping.wentToPacking'),
+      boughtAt: new Date().toISOString(),
+      boughtBy: 'u-andy',
+    })
+    const page = mountPage([source({}, { buy_before: [bought] })])
+    await flushPromises()
+
+    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    const row = page.find('[data-testid="m6-bought-row"]')
+    expect(row.find('[data-testid="m6-bought-note"]').text()).toBe(t('shopping.wentToPacking'))
+    expect(row.findAll('[data-testid="m6-bought-stamp"] span').at(-1)?.text()).toMatch(
+      /^bought by Andy · today /,
+    )
+  })
+
+  it('states only the time where nobody can be named (Local Mode, G-8)', async () => {
+    seedEntry('e1', { name: 'Brot', bought: 1, bought_at: new Date().toISOString() })
+    const page = mountPage()
+    await flushPromises()
+
+    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    const stamp = page.find('[data-testid="m6-bought-stamp"]')
+    expect(stamp.text()).toMatch(/^bought · today \S/)
+    expect(stamp.find('[data-testid="user-avatar"]').exists()).toBe(false)
+  })
+
+  it('says nothing where the purchase carries no record at all', async () => {
+    seedEntry('e1', { name: 'Brot', bought: 1 })
+    const page = mountPage()
+    await page.find('[data-testid="m6-bought-bar"]').trigger('click')
+    // The positive signal beside the absence: the bought row itself is there.
+    expect(page.findAll('[data-testid="m6-bought-row"]')).toHaveLength(1)
+    expect(page.find('[data-testid="m6-bought-stamp"]').exists()).toBe(false)
   })
 })
 

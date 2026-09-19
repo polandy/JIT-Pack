@@ -1522,6 +1522,8 @@ export const en = {
   'shopping.addPlaceholder': 'What to buy? e.g. milk, bread …',
   'shopping.addLabel': 'Add to list',
   'shopping.remove': 'Remove: {name}',
+  'shopping.boughtBy': 'bought by {who} · {when}',
+  'shopping.boughtByUnknown': 'bought · {when}',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',

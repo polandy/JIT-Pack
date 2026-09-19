@@ -37,9 +37,15 @@ export function createShoppingActions(host: ModuleHost) {
     host.writeTrip(tripId, { mutation, optimistic: optimisticInsert(mutation) })
   }
 
+  /**
+   * FR-30.4: the tap's time travels with the purchase and the server stamps
+   * who; taking it back clears both, so no record outlives its purchase.
+   */
   function setBought(entry: ShoppingEntry, bought: boolean): void {
     const mutation = host.mutation('upsert', TABLE.shoppingEntries, entry.id, {
       bought: dbBool(bought),
+      bought_at: bought ? host.nowIso() : null,
+      bought_by_user_id: null,
     })
     host.writeTrip(entry.trip_id, {
       mutation,
@@ -77,6 +83,8 @@ export function ownEntriesSource(reads: EntryReads, actions: ShoppingActions): S
       quantity: 1,
       recipients: [],
       section: null,
+      boughtAt: entry.bought ? entry.bought_at : undefined,
+      boughtBy: entry.bought ? entry.bought_by_user_id : undefined,
       buy: () => actions.setBought(entry, true),
       unbuy: () => actions.setBought(entry, false),
       remove: () => actions.removeEntry(entry),
