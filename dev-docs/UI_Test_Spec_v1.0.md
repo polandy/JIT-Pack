@@ -1757,6 +1757,10 @@ line are unit-tested (`inventoryHygiene.spec.ts`, `InventoryCleanupPage.spec.ts`
   Tag* off removes its card, and M9's count agrees — the foot sentence is gone while the untagged row itself is still
   listed.
 
+* **E2E-G9-22** `all` (FR-24.12, ADR-011) — **implemented 2026-09-19**, in `e2e/global-nav.spec.ts` for E2E-G9-14's
+  reason: M24 is reached from M9's ⋮ word, named only by the app bar, and its back returns to the inventory with the bar
+  naming *Inventory* again — the promise a route added without a `titleKey` or a `parent` breaks silently.
+
 **M23 — Hidden items and templates (FR-24.3, the restore).** Four cases in `e2e/restore-retired.spec.ts`, all `local`,
 all reached through M17's row rather than a typed URL.
 

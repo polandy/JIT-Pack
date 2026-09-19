@@ -16,6 +16,7 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
+import { backToInventory, createItem } from './helpers/m9'
 
 /**
  * Global navigation and the app bar (UI-Test-Spec §3: G-1, G-9, G-12).
@@ -736,6 +737,33 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // And the bar goes back to naming Settings rather than keeping the
     // title of the screen that has been left.
     await expect(page.getByTestId('header-title')).toHaveText('Settings')
+  })
+
+  /**
+   * E2E-G9-22 (FR-24.12, M24): the same contract for the cleanup screen. It is
+   * reached from M9's ⋮ — a word, not a glyph — named only by the app bar,
+   * and its back returns to the inventory, which the bar names again.
+   */
+  test('E2E-G9-22: the cleanup screen is reached from the inventory’s ⋮ and returns to it', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto(PATH.items)
+    await createItem(page, 'Kartenspiel')
+    await backToInventory(page)
+
+    await page.getByTestId('header-overflow').click()
+    await page.getByText('Tidy up', { exact: true }).click()
+
+    await atPath(page, PATH.inventoryCleanup)
+    await expect(onVisibleScreen(page, 'm24-rule-untagged')).toBeVisible()
+    await expect(page.getByTestId('header-title')).toHaveText('Tidy up')
+
+    await page.getByTestId('header-back').click()
+
+    await atPath(page, PATH.items)
+    await expect(onVisibleScreen(page, 'm9-fab')).toBeVisible()
+    await expect(page.getByTestId('header-title')).toHaveText('Inventory')
   })
 
   /*
