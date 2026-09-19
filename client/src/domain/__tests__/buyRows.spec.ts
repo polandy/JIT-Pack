@@ -1,5 +1,5 @@
 /**
- * M6 shopping view model (FR-25.6).
+ * The packing list's things to buy (FR-25.6), as M6 shows them.
  *
  * The rule this file pins is the one the screen did not have for three
  * weeks: buying is a *single act*, so a per-person item is one buy row —
@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { buildShoppingList, type ShoppingGroup, type ShoppingRow } from '../shoppingView'
+import { buildBuyRows, type BuyGroup, type BuyRow } from '../buyRows'
 import type { TripItem, Traveler } from '@/types/domain'
 
 let seq = 0
@@ -52,13 +52,13 @@ const mia: Traveler = { id: 'tr3', trip_id: 't1', name: 'Mia', linked_user_id: n
 const roster = [andy, leonardo, mia]
 
 /** The rows of one group, so the assertions read as rows rather than as indexing. */
-function rowsOf(groups: ShoppingGroup[], index = 0): ShoppingRow[] {
+function rowsOf(groups: BuyGroup[], index = 0): BuyRow[] {
   return groups[index]?.rows ?? []
 }
 
-describe('buildShoppingList', () => {
+describe('buildBuyRows', () => {
   it('groups by category, keeping the order the rows arrive in (FR-3.2)', () => {
-    const groups = buildShoppingList(
+    const groups = buildBuyRows(
       [
         item({ name: 'Sonnencreme', category_name: 'Pflege' }),
         item({ name: 'Kurze Hosen', category_name: 'Kleidung' }),
@@ -71,13 +71,13 @@ describe('buildShoppingList', () => {
   })
 
   it('leaves the uncategorised bucket unnamed for the caller to word', () => {
-    const groups = buildShoppingList([item({ category_name: null })], roster)
+    const groups = buildBuyRows([item({ category_name: null })], roster)
     expect(groups[0]?.name).toBeNull()
   })
 
   it('a shared row is one row with no recipients and its own quantity', () => {
     const shared = item({ name: 'Zelt', quantity: 2 })
-    const rows = rowsOf(buildShoppingList([shared], roster))
+    const rows = rowsOf(buildBuyRows([shared], roster))
     expect(rows).toHaveLength(1)
     expect(rows[0]?.recipients).toEqual([])
     expect(rows[0]?.quantity).toBe(2)
@@ -105,7 +105,7 @@ describe('buildShoppingList', () => {
         quantity: 1,
       }),
     ]
-    const rows = rowsOf(buildShoppingList(instances, roster))
+    const rows = rowsOf(buildBuyRows(instances, roster))
     expect(rows).toHaveLength(1)
     const [row] = rows
     expect(row?.name).toBe('Kurze Hosen')
@@ -119,7 +119,7 @@ describe('buildShoppingList', () => {
       item({ name: 'Hut', source_item_id: 'm2', assigned_traveler_id: mia.id }),
       item({ name: 'Hut', source_item_id: 'm2', assigned_traveler_id: andy.id }),
     ]
-    const rows = rowsOf(buildShoppingList(instances, roster))
+    const rows = rowsOf(buildBuyRows(instances, roster))
     expect(rows[0]?.recipients.map((t) => t.name)).toEqual(['Andy', 'Mia'])
     expect(rows[0]?.instances.map((i) => i.assigned_traveler_id)).toEqual([andy.id, mia.id])
   })
@@ -129,7 +129,7 @@ describe('buildShoppingList', () => {
       item({ name: 'Sonnenhut', assigned_traveler_id: andy.id }),
       item({ name: 'sonnenhut', assigned_traveler_id: leonardo.id }),
     ]
-    const rows = rowsOf(buildShoppingList(instances, roster))
+    const rows = rowsOf(buildBuyRows(instances, roster))
     expect(rows).toHaveLength(1)
     expect(rows[0]?.recipients.map((t) => t.name)).toEqual(['Andy', 'Leonardo'])
   })
@@ -139,7 +139,7 @@ describe('buildShoppingList', () => {
       item({ name: 'Hut', source_item_id: 'm2', assigned_traveler_id: andy.id }),
       item({ name: 'Schal', source_item_id: 'm3', assigned_traveler_id: andy.id }),
     ]
-    const rows = rowsOf(buildShoppingList(instances, roster))
+    const rows = rowsOf(buildBuyRows(instances, roster))
     expect(rows.map((r) => r.name)).toEqual(['Hut', 'Schal'])
   })
 
@@ -153,13 +153,13 @@ describe('buildShoppingList', () => {
         category_name: 'Pflege',
       }),
     ]
-    const groups = buildShoppingList(instances, roster)
+    const groups = buildBuyRows(instances, roster)
     expect(groups.map((g) => g.rows.length)).toEqual([1, 1])
   })
 
   it('a single recipient still names them, because the row is that person’s', () => {
     const rows = rowsOf(
-      buildShoppingList(
+      buildBuyRows(
         [item({ name: 'Hut', source_item_id: 'm2', assigned_traveler_id: mia.id, quantity: 2 })],
         roster,
       ),
@@ -173,14 +173,14 @@ describe('buildShoppingList', () => {
       item({ name: 'Hut', source_item_id: 'm2', assigned_traveler_id: andy.id, quantity: 2 }),
       item({ name: 'Hut', source_item_id: 'm2', assigned_traveler_id: 'gone', quantity: 3 }),
     ]
-    const rows = rowsOf(buildShoppingList(instances, roster))
+    const rows = rowsOf(buildBuyRows(instances, roster))
     expect(rows[0]?.quantity).toBe(5)
     expect(rows[0]?.recipients.map((t) => t.name)).toEqual(['Andy'])
     expect(rows[0]?.instances).toHaveLength(2)
   })
 
   it('gives every row a key that is stable and unique within its group', () => {
-    const groups = buildShoppingList(
+    const groups = buildBuyRows(
       [
         item({ name: 'Zelt' }),
         item({ name: 'Zelt' }),

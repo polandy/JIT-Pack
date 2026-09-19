@@ -410,6 +410,26 @@ CREATE TABLE trip_applied_changes (
 );
 
 -- ---------------------------------------------------------------------------
+-- Shopping list (FR-30)
+-- ---------------------------------------------------------------------------
+
+-- What a trip's people mean to buy that is not on the packing list — the
+-- groceries of a holiday flat. The packing list's own buy-mode rows reach the
+-- shopping list by projection, never by a copy here (ADR-066), so this table
+-- holds only what nobody packs. `list` is FR-3.2's two lists in `mode`'s
+-- vocabulary; `pack` is not one of them.
+CREATE TABLE shopping_entries (                   -- FR-30.1
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    list        TEXT NOT NULL DEFAULT 'buy_local'
+                CHECK (list IN ('buy_before','buy_local')),
+    bought      INTEGER NOT NULL DEFAULT 0 CHECK (bought IN (0,1)),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- ---------------------------------------------------------------------------
 -- Destination profiles (FR-13)
 -- ---------------------------------------------------------------------------
 

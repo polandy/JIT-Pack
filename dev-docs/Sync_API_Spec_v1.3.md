@@ -8,6 +8,8 @@ distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. **All fo
 fallen behind; see the §8 row. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
 
 **Revision history** — newest first. Every rule is current text in the section named; the entry says what it replaced.
+* **2026-09-19 (FR-30.1, ADR-066) — P-3:** `shopping_entries` joins the trip partition — the shopping list's own
+  entries, which are no trip items. Was: every shopping-list line was a `trip_items` row in a buy mode.
 * **2026-09-19 (FR-5.8, ADR-065) — §8:** `POST /master/items/{id}/prune`, a conditional delete of an inventory item
   that keeps a used item untouched. Was: the four ADR-038 deletes only, none called by the app.
 * **2026-09-18 (FR-7.4) — P-3, `GET /master/sync`:** `template_tasks` joins the master partition, and a task
@@ -86,19 +88,19 @@ to open.
 * **P-2 (One write path):** Clients write exclusively via the **push endpoint** from a local outbox — also while online.
   "Online mode" is just "outbox drains fast" (UI-Spec G-5).
 * **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments,
-  trip_generated_positions) and one **master partition per user** (items, tags, item_tags, templates, template_items,
-  template_includes, template_item_tasks, template_tasks, item_dependencies, trip_series, destination_*, trips metadata,
-  trip_members, trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master
-  partition — trip_members, and since migration 023 the FR-27.4 registry and applied-changes log. **Partition membership
-  follows who reads a table, not what it is about:** M2 renders its applied-changes chip and M8 its blast-radius note
-  with no trip partition loaded, while the FR-27.4 ledger is only ever read beside the rows it describes and belongs
-  with them. Visibility on the master-partition trip-scoped tables is trip membership (as for trip_members); writes are
-  allowed to any member, since registering a source and logging an applied change are consequences of ordinary editing
-  rather than administration. **A partition is a boundary in both directions:** membership is checked for the trip an
-  endpoint names, so a mutation that reaches past it is refused rather than applied — see §5. `conflict_log` was listed
-  among the trip partition's tables until 2026-08-25 and never belonged there: it carries no HLC columns, is in no
-  partition whitelist, and §8 says in as many words that conflict rows never flow through pull. It is *scoped* by
-  `trip_id` exactly as `change_log` is, and read over its own endpoint.
+  trip_generated_positions, shopping_entries) and one **master partition per user** (items, tags, item_tags, templates,
+  template_items, template_includes, template_item_tasks, template_tasks, item_dependencies, trip_series, destination_*,
+  trips metadata, trip_members, trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel
+  the master partition — trip_members, and since migration 023 the FR-27.4 registry and applied-changes log. **Partition
+  membership follows who reads a table, not what it is about:** M2 renders its applied-changes chip and M8 its
+  blast-radius note with no trip partition loaded, while the FR-27.4 ledger is only ever read beside the rows it
+  describes and belongs with them. Visibility on the master-partition trip-scoped tables is trip membership (as for
+  trip_members); writes are allowed to any member, since registering a source and logging an applied change are
+  consequences of ordinary editing rather than administration. **A partition is a boundary in both directions:**
+  membership is checked for the trip an endpoint names, so a mutation that reaches past it is refused rather than
+  applied — see §5. `conflict_log` was listed among the trip partition's tables until 2026-08-25 and never belonged
+  there: it carries no HLC columns, is in no partition whitelist, and §8 says in as many words that conflict rows never
+  flow through pull. It is *scoped* by `trip_id` exactly as `change_log` is, and read over its own endpoint.
 * **P-4 (Server is merge authority):** Conflict resolution per NFR-4.2a happens on the server during push. Clients never
   merge; they apply pulled state verbatim.
 * **P-5 (Idempotency everywhere):** Every mutation carries a client-generated `mutation_id` (UUID). Replays return the

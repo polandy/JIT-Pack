@@ -1546,14 +1546,26 @@ These patterns apply to every screen and are specified once.
 
 ### M6 — Shopping Views
 
-* **Purpose:** Focused procurement checklists (FR-3.2).
-* **What M6 is, as built (2026-08-30, after reading its e2e promises against the screen):** two tabs, category groups,
-  one row per thing to buy, the shared composer and the FR-25.11j reveal — and **no filter bar, no search field and no
-  row sheet**. The lines below that describe those were written in the 2026-07-17 concept round and never built; the
-  owner retired them on 2026-08-30 (FR-25.11g/k, FR-25.13a's two composer fields, FR-25.6's per-item note), because a
-  shopping list rarely runs to twenty rows and M4 already owns those patterns. **The one exception is FR-25.12's row
-  sheet** — *Zugewiesen an* and *Beschreibung* — which is being built: *„Andy kauft das"* is the multi-user case M6
-  cannot express today. Read the lines below with that in mind until the sheet lands.
+* **Purpose:** The trip's shopping list (FR-3.2), a feature module of its own since FR-30 (ADR-066): it holds the
+  entries typed into it, and shows the packing list's buy-mode rows beside them.
+* **What M6 is, as built (2026-09-19, FR-30):** two tabs, one text field, the list's own entries under their own
+  heading, the packing list's buy rows under their categories, and the FR-25.11j reveal — **no filter bar, no search
+  field, no row sheet, and since FR-30 no shared composer**. The screen lives in `client/src/shopping/` and renders
+  lines without knowing whose they are (`lib/shoppingSources.ts`); the packing side supplies its rows as lines with
+  their FR-3.3 writes bound in. The 2026-07-17 concept lines kept below describe surfaces retired on 2026-08-30
+  (FR-25.11g/k, FR-25.13a's two fields, FR-25.6's per-item note) or still owed (FR-25.12's row sheet — *Zugewiesen
+  an* and *Beschreibung* — which would now apply to both kinds of line); read them with that in mind.
+* **Elements:** Two tabs: *Vor der Abreise* (BUY_BEFORE) and *Vor Ort* (BUY_LOCAL), each label counting its open
+  lines. Under them a **text field** with an add button (placeholder *„Was kaufen? z. B. Milch, Brot …"*). Then the
+  list: the tab's own entries first, under the heading *„Eingetragen"*, each with a check-off and a remove (✕); then
+  the packing list's rows in that tab's mode, grouped by category (*„Ohne Kategorie"* for none), each with a
+  check-off, its amount when above one, and — for a per-person item — the recipients (FR-25.6), and **no** remove. An
+  entry and a packing row of the same name stay two lines. FR-13.3's destination entries are not built.
+* **Actions:** Type and tap ＋ (or Enter) → an entry on the **open tab**; the field clears for the next. Check off an
+  entry → bought, under the reveal. Check off a packing row → FR-3.3 on the row (BUY_BEFORE → on the packing list,
+  BUY_LOCAL → packed). ✕ on an entry → removed. A packing row leaves only by being bought or by changing mode on M4/M5.
+* **Adding an inventory item to buy (since FR-30.2):** on **M4**, with the composer, then its mode in M5 — M6 writes
+  no packing rows. The composer, its create sheet (FR-24.11) and its duplicate exclusion (FR-25.13d) are M4's and M8's.
 * **Concept-review additions (Addendum §3.25 / FR-25.6, proposed 2026-07-17):** each shopping row can be **assigned to a
   traveler** (*Used by*, FR-4.2) from here, and can carry a **per-item comment/note** (FR-7.1) — e.g., "war im Migros
   Eigerplatz, gab es dort nicht" — so where-looked / unavailable / substitution context lives on the item. **One
@@ -1563,14 +1575,6 @@ These patterns apply to every screen and are specified once.
   segment counts *rows to buy* rather than `trip_items` rows. **Note (2026-07-18):** free-form *Used by* was removed
   (FR-25.10); this "assign to a traveler" is to be reframed (per-person shopping row or lightweight "for whom" note)
   when M6 is re-mocked.
-* **Elements:** Two tabs: *Before departure* (BUY_BEFORE) and *At destination* (BUY_LOCAL); rows grouped by category;
-  destination tab includes standing destination-checklist entries (FR-13.3) visually separated; per row optionally a
-  traveler chip and a note indicator (§3.25).
-* **Actions:** Check off → BUY_BEFORE items transition to PACK and leave this list with animation (FR-3.3); add
-  free-text entry directly into either list; **assign a row to a traveler**; **add a per-item comment/note** (§3.25).
-* **Quick-add (FR-25.13):** the shared composer, landing the row on the open tab. **Since FR-25.13d (2026-08-22)** it
-  excludes what the trip already carries — the whole trip's contents, not the open tab's — closing the gap FR-25.13c had
-  closed for M4 only, and carries the same browse-sheet (described at M4's quick-add).
 * **What was bought (FR-25.11j, built 2026-08-25):** checking a row off takes it off the tab — a BUY_BEFORE row by
   changing its mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. Under the list sits a
   reveal bar in **M4's FR-25.2 shape**: *„1 gekaufte anzeigen"*, off by default, the count in the label, one tap. A
@@ -1578,10 +1582,14 @@ These patterns apply to every screen and are specified once.
   the destination) and its checkbox is the way back — unchecking restores the mode it was bought from and clears the
   record. Each tab has its own reveal, and the reveal is **absent, not empty**, when nothing was bought from that list.
   Deliberately **not** remembered across a session the way M4's switch is (FR-25.18): the tab is not remembered either,
-  so a restored reveal would open on a list the reader did not choose.
-* **States:** Both lists empty → the G-9 switcher keeps the **shopping pill** and drops only its **count** (corrected
-  2026-08-30 against the screen: the destination exists either way; the count is part of the word rather than a badge,
-  which is how ADR-050's menu carried it and how FR-21.21's pill still does).
+  so a restored reveal would open on a list the reader did not choose. **An entry (FR-30.1)** is revealed the same way,
+  with **no note** — it was never anywhere but here — and keeps its ✕.
+* **States:** An empty tab, once the trip partition is here (ADR-033), shows the G-7 empty state with the hint *„Trag
+  oben ein, was ihr kaufen wollt. Was auf der Packliste gekauft statt eingepackt wird, erscheint hier von selbst."* —
+  the one place the screen says where its other lines come from. Both lists empty → the G-9 switcher keeps the
+  **shopping pill** and drops only its **count** (corrected 2026-08-30 against the screen: the destination exists either
+  way; the count is part of the word rather than a badge, which is how ADR-050's menu carried it and how FR-21.21's pill
+  still does).
 * **Navigation:** From the G-9 trip switcher, on any of the trip's four views (FR-21.21); deep-linkable.
 
 ### M7 — Template List

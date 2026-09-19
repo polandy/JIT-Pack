@@ -16,6 +16,7 @@ import type {
   ItemComment,
   ItemDependency,
   ItemTodo,
+  ShoppingEntry,
   TripTodo,
   MasterItem,
   Template,
@@ -135,6 +136,16 @@ export function containerRow(container: Container): Record<string, unknown> {
     carrier_traveler_id: container.carrier_traveler_id,
     max_weight_grams: container.max_weight_grams,
     paired_container_id: container.paired_container_id,
+  }
+}
+
+/** FR-30.1: a shopping entry as its row. */
+export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> {
+  return {
+    trip_id: entry.trip_id,
+    name: entry.name,
+    list: entry.list,
+    bought: dbBool(entry.bought),
   }
 }
 

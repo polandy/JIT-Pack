@@ -79,6 +79,7 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   { table: TABLE.templates, parse: 'rowToTemplate', encode: 'templateRow' },
   { table: TABLE.templateItems, parse: 'rowToTemplateItem', encode: 'templateItemRow' },
   { table: TABLE.tripSeries, parse: 'rowToSeries', encode: 'seriesRow' },
+  { table: TABLE.shoppingEntries, parse: 'rowToShoppingEntry', encode: 'shoppingEntryRow' },
   { table: TABLE.destinationProfiles, parse: 'rowToProfile', encode: 'profileRow' },
   {
     table: TABLE.destinationChecklistItems,

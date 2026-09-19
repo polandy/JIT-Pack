@@ -1467,6 +1467,7 @@ export const de: Record<keyof typeof en, string> = {
   'conflicts.entity.containers': 'Behälter',
   'conflicts.entity.comments': 'Kommentar',
   'conflicts.entity.trip_series': 'Serie',
+  'conflicts.entity.shopping_entries': 'Einkauf',
   'conflicts.field.name': 'Name',
   'conflicts.field.year': 'Jahr',
   'conflicts.field.start_date': 'Startdatum',
@@ -1494,6 +1495,8 @@ export const de: Record<keyof typeof en, string> = {
   'conflicts.field.source_item_id': 'Stammartikel',
   'conflicts.field.source_template_id': 'Aus Liste',
   'conflicts.field.series_id': 'Serie',
+  'conflicts.field.bought': 'Gekauft',
+  'conflicts.field.list': 'Einkaufsliste',
   'conflicts.revertFailed.alreadyReverted': 'Dieser Konflikt wurde bereits zurückgenommen.',
   'conflicts.revertFailed.rowDeleted': 'Der Eintrag wurde inzwischen gelöscht.',
   'conflicts.revertFailed.refused':
@@ -1521,6 +1524,12 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.listUnknown': 'Einkaufsliste wird geladen …',
   'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
   'shopping.emptyLocal': 'Vor Ort ist nichts zu kaufen',
+  'shopping.emptyHint':
+    'Trag oben ein, was ihr kaufen wollt. Was auf der Packliste gekauft statt eingepackt wird, erscheint hier von selbst.',
+  'shopping.ownEntries': 'Eingetragen',
+  'shopping.addPlaceholder': 'Was kaufen? z. B. Milch, Brot …',
+  'shopping.addLabel': 'Auf die Liste',
+  'shopping.remove': 'Entfernen: {name}',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',

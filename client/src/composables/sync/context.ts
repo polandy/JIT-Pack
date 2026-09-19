@@ -13,6 +13,7 @@ import type { NameGuards } from './names'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { NowIso } from '@/lib/clock'
 import type { CascadeRow } from '@/sync/cascade'
+import type { FeatureStore } from '@/sync/featureModule'
 import type {
   Container,
   DestinationProfile,
@@ -139,6 +140,8 @@ export type DrainPartitions = (tripIds: string[]) => void
 export interface SyncContext {
   tripStore: TripReads
   masterStore: MasterReads
+  /** The feature modules' stores (FR-30.3): what a trip delete also takes. */
+  features: readonly FeatureStore[]
   mutations: ReturnType<typeof createMutations>
   enqueueAndDrain: EnqueueAndDrain
   enqueue: Enqueue

@@ -88,6 +88,7 @@ function fakeContext(): { ctx: SyncContext; queued: QueuedMutation[]; asked: str
     ctx: {
       tripStore: fakeTripReads(asked),
       masterStore,
+      features: [],
       mutations: createMutations(new HLCGenerator(() => 1, 'aabbccdd'), () => NOW_ISO),
       enqueueAndDrain: (_type, _id, ...muts) => queued.push(...muts),
       enqueue: (_type, _id, ...muts) => queued.push(...muts),

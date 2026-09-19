@@ -1214,6 +1214,12 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
   }
 
   return {
+    /**
+     * The raw builder, for a feature module's own tables (FR-30.3). A module
+     * gets it through `ModuleHost.mutation`, never this factory, which keeps
+     * the named packing mutations above out of its reach.
+     */
+    make,
     updateGeneratedTripItem,
     registerTripSource,
     writeGeneratedPosition,

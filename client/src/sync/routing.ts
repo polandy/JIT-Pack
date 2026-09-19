@@ -44,10 +44,20 @@ export const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.itemDependencies,
 ])
 
+/**
+ * The tables a feature module's own store holds (FR-30.3, ADR-066). Named
+ * here, in the kernel, because a table name is wire contract rather than
+ * module code — the *store* holding the rows is the module's, and reaches the
+ * orchestrator as a `FeatureStore` (`sync/featureModule.ts`) through the
+ * composition root, never by an import from this side.
+ */
+export const FEATURE_STORE_TABLES: ReadonlySet<string> = new Set<string>([TABLE.shoppingEntries])
+
 /** Which store a table belongs to, or null for a table that travels no feed. */
-export function storeFor(table: string): 'trip' | 'master' | null {
+export function storeFor(table: string): 'trip' | 'master' | 'feature' | null {
   if (TRIP_STORE_TABLES.has(table)) return 'trip'
   if (MASTER_STORE_TABLES.has(table)) return 'master'
+  if (FEATURE_STORE_TABLES.has(table)) return 'feature'
   return null
 }
 

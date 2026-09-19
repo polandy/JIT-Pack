@@ -398,6 +398,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The composer creates in the inventory (2026-09-19)](#the-composer-creates-in-the-inventory-2026-09-19) — FR-24.11 reaches M4/M6/M8's quick-add; ad-hoc rows stop, and a trip push learned to wait for the master write it names.
 - [The inventory tidies itself up (2026-09-19)](#the-inventory-tidies-itself-up-2026-09-19) — FR-24.12/24.13: why no rule refuses, why never-used items are not flagged, a pinia leak in specs.
 - [Every act on the list can be taken back (2026-09-19)](#every-act-on-the-list-can-be-taken-back-2026-09-19) — FR-25.31: a cascading delete deferred, not restored; a snackbar over a popover; lingering toasts.
+- [The shopping list becomes a module (2026-09-19)](#the-shopping-list-becomes-a-module-2026-09-19) — FR-30/ADR-066: projection over copy, a reversed composer ruling, a gate blind to multi-line imports.
+
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -16199,3 +16201,34 @@ where one act had replaced another — a strict-mode failure that looked like a 
 calling `dismiss()` returned `false` on them: not refused, already leaving. Cases now take
 `:not(.overlay-hidden)` filtered by their sentence and `.last()`.
 
+
+## The shopping list becomes a module (2026-09-19)
+
+Owner: shopping lists for the holidays, independent of the packing list, with *vor Ort kaufen* rows still landing on
+them — and the code cleanly separated, fitting the module layout drafted for the Idea Board (FR-29.9). Two scope
+answers up front: one list per trip, both tabs stay. Built as FR-30 with ADR-066.
+
+**Rejected: copying buy rows into the new table.** It looked like the clean version — one table for M6 to read — and it
+is the one that fails offline. The copy has to follow quantity, name, mode and per-person fan-out on every device, merged
+field by field, and the failure is a thing bought twice. The projection costs nothing the user can see; ADR-066 has the
+matrix. The flag-on-trip-items option was rejected for the reason FR-7.4's todos got their own bucket.
+
+**A ruling reversed, on purpose.** On 2026-08-30 the owner kept M6 on the shared composer and refused it a field of its
+own (FR-25.13a). That rested on M6 adding inventory items. Under FR-30 it adds entries that are not items, so it has a
+plain text field. FR-25.13a and FR-25.13 now say so, and E2E-M6-21/25 are retired with the composer. The cost is real:
+an inventory item to buy is now made on M4 and given its mode there.
+
+**Wiring by injection, not by registry.** A module-level registry that `main.ts` fills was the first sketch. It works in
+the app and is empty in every spec that forgets to fill it — and an unrouted table fails silently (`routing.ts` exists
+for that). So the module's store goes into the orchestrator's config (`features`), and the line sources and the pill
+count go through `provide`/`inject` from `App.vue`.
+
+**The trap: `domain-purity-gate.mjs` cannot see a multi-line import.** Its specifier regex wants `import … from '…'` on
+one line, so `import {\n  a,\n} from '@/composables/x'` passes unseen — and prettier writes exactly that shape as
+soon as an import outgrows one line. The new `module-boundary-gate.mjs` matches `from '…'` wherever it stands and was checked
+against a planted multi-line import in both directions. **The domain gate is not fixed here** — it is its own change.
+A one-off scan of `client/src/domain` with the corrected pattern found no hidden violation today.
+
+**Two green gates that were right to go red.** `tripScreenAdoption.spec.ts` counts screens under `views/` only and lost
+M6 when it moved; it now globs the module too. `testid-gate` knows a dynamic id by the literal prefix of a template, so
+``section.own ? 'm6-group-own' : `m6-group-${…}` `` hid the prefix from it. The ternary moved inside the template.

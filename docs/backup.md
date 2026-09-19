@@ -34,6 +34,10 @@ Back it up from inside the app:
    screen's *bought* reveal still finds it after a restore. **Todos are not in it** —
    neither a trip's own tasks nor an item's preparation todos; a restored trip comes back
    without them. A template's *tasks for the trip* are, because they belong to the template.
+   **Nor is anything typed straight onto the shopping list** — the milk and bread under
+   *„Eingetragen"*. Those entries belong to the shopping list, not to the packing list the
+   file describes, and a restored trip's shopping list holds only what the packing list
+   marks to buy.
 
 Restore it through the **document icon** in the app bar on the Trips screen (portable import): pick the
 backup file, and the app lists the documents it holds and imports them together. Items are

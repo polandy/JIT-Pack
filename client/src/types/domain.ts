@@ -265,6 +265,20 @@ export interface TripTodo {
   task_state: TodoState
 }
 
+/**
+ * FR-30.1: something a trip's people mean to buy that nobody packs — the
+ * groceries of a holiday flat. Its own row rather than a trip item in a buy
+ * mode, so no packing figure can count it (ADR-066). `list` is one of FR-3.2's
+ * two lists; `pack` is not a shopping list.
+ */
+export interface ShoppingEntry {
+  id: string
+  trip_id: string
+  name: string
+  list: ShoppingMode
+  bought: boolean
+}
+
 // --- Master data ---
 
 /**

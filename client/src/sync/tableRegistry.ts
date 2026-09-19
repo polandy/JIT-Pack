@@ -28,6 +28,7 @@ import type {
   ItemDependency,
   ItemTag,
   ItemTodo,
+  ShoppingEntry,
   TripTodo,
   MasterItem,
   Tag,
@@ -52,6 +53,7 @@ import {
   checklistItemRow,
   commentRow,
   containerRow,
+  shoppingEntryRow,
   dependencyRow,
   masterItemRow,
   memberRow,
@@ -323,6 +325,16 @@ function rowToContainer(id: string, row: Record<string, unknown>): Container {
   }
 }
 
+function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingEntry {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    name: row['name'] as string,
+    list: (row['list'] as ShoppingEntry['list']) ?? ITEM_MODE_BUY_LOCAL,
+    bought: Boolean(row['bought']),
+  }
+}
+
 function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
   return {
     id,
@@ -371,6 +383,7 @@ export const TABLE_CODECS = {
   [TABLE.travelers]: { parse: rowToTraveler, encode: travelerRow },
   [TABLE.containers]: { parse: rowToContainer, encode: containerRow },
   [TABLE.tripGeneratedPositions]: { parse: rowToGeneratedPosition },
+  [TABLE.shoppingEntries]: { parse: rowToShoppingEntry, encode: shoppingEntryRow },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
   // todo's beside it because a registry keyed by table cannot hold two.

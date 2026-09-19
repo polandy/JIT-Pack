@@ -1457,6 +1457,7 @@ export const en = {
   'conflicts.entity.containers': 'Container',
   'conflicts.entity.comments': 'Comment',
   'conflicts.entity.trip_series': 'Series',
+  'conflicts.entity.shopping_entries': 'Shopping entry',
   'conflicts.field.name': 'Name',
   'conflicts.field.year': 'Year',
   'conflicts.field.start_date': 'Start date',
@@ -1484,6 +1485,8 @@ export const en = {
   'conflicts.field.source_item_id': 'Inventory article',
   'conflicts.field.source_template_id': 'From list',
   'conflicts.field.series_id': 'Series',
+  'conflicts.field.bought': 'Bought',
+  'conflicts.field.list': 'Shopping list',
   'conflicts.revertFailed.alreadyReverted': 'This conflict has already been reverted.',
   'conflicts.revertFailed.rowDeleted': 'That entry has since been deleted.',
   'conflicts.revertFailed.refused': 'Cannot revert: the item has since been packed.',
@@ -1510,6 +1513,12 @@ export const en = {
   'shopping.listUnknown': 'Loading the shopping list …',
   'shopping.emptyBefore': 'Nothing to buy before departure',
   'shopping.emptyLocal': 'Nothing to buy at the destination',
+  'shopping.emptyHint':
+    'Type what you mean to buy above. Anything on the packing list that is bought rather than packed shows up here by itself.',
+  'shopping.ownEntries': 'Added here',
+  'shopping.addPlaceholder': 'What to buy? e.g. milk, bread …',
+  'shopping.addLabel': 'Add to list',
+  'shopping.remove': 'Remove: {name}',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',

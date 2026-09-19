@@ -58,6 +58,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { PATH, tripSubPath } from '@/router/paths'
 import { confirmAction } from '@/lib/confirm'
 import { resolveHead } from '@/composables/useHeaderTitle'
+import { createPackingShoppingSource } from '@/composables/packingShoppingSource'
+import { SHOPPING_SOURCES } from '@/lib/shoppingSources'
+import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
+import { useTripStore } from '@/stores/tripStore'
+import { shoppingCount, shoppingFeatureStore } from '@/shopping'
 
 const mode = ref(readMode())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
@@ -101,6 +106,9 @@ const orchestrator = mode.value
       onNotification: showNotificationToast,
       onConflicts: showConflictToast,
       onRejections: showRejectionToast,
+      // FR-30.3 (ADR-066): the modules' stores, so the orchestrator routes
+      // their rows without importing a module.
+      features: [shoppingFeatureStore()],
     })
   : null
 
@@ -175,6 +183,18 @@ async function showNotificationToast(n: ServerNotification) {
 }
 
 provide(ORCHESTRATOR, orchestrator)
+
+/*
+ * FR-30.2/30.3 (ADR-066): the composition root is the one place that knows
+ * both the packing list and the shopping module. It binds the packing list's
+ * buy-mode rows into the shopping list as a source, and hands the switcher
+ * the module's count — so neither side imports the other.
+ */
+const shoppingSources = orchestrator
+  ? [createPackingShoppingSource(useTripStore(), orchestrator)]
+  : []
+provide(SHOPPING_SOURCES, shoppingSources)
+provide(TRIP_VIEW_COUNTS, { shopping: shoppingCount(shoppingSources) })
 
 const syncStatus = orchestrator?.syncStatus ?? null
 

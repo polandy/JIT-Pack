@@ -414,6 +414,16 @@ var tableSpecs = map[string]tableSpec{
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
+	// FR-30.1: the shopping list's own entries. Nothing references them
+	// and they reference nothing but their trip, so they block no delete
+	// and cascade nothing (ADR-066).
+	TableShoppingEntries: {
+		partition: partitionTrip,
+		columns:   toSet("trip_id", "name", "list", "bought"),
+		export: exportQuery{query: `SELECT x.* FROM shopping_entries x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
 	// trip_generated_positions is trip-partition state: it is only ever read
 	// beside the rows it describes, and it should travel with them.
 	//
