@@ -211,6 +211,12 @@ These patterns apply to every screen and are specified once.
   circle used to *commit* the tap rather than cancel it. Leaving now cancels, which is what a native button does, and
   the two holds are driven by unit test rather than by Playwright: `pointercancel` is the browser taking the pointer
   away and cannot be asked for from a case.
+  **The checkbox is a target, not a glyph (added 2026-09-19, owner report, E2E-G6-03):** on a row it answers a tap
+  within 12 px of the glyph on every side, as far as the row's own edge. The glyph alone was 24 px wide, and the 44 px
+  control column around it stops every click so that the row does not open M5 — a thumb that landed beside the box
+  therefore did nothing at all, and one just below it opened the sheet. The target is widened by an overlay, not by
+  the box, so the glyph keeps its place and the name column (UX-9) its width. M5's large checkbox (FR-21.25) carries
+  no overlay: it is its own target, and the skip button sits close beneath it.
 * **G-7 (Empty States):** Every list screen defines an empty state with a single primary action (e.g., Templates empty →
   "Create first template" / "Import from spreadsheet"). **One component renders all of them**
   (`components/global/EmptyState.vue`, 2026-09-03): a centred column of illustration, the one sentence that names the
