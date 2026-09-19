@@ -232,3 +232,23 @@ describe('usePackAnnouncer — leaving the screen', () => {
     expect(api.rowUndo.pending.value).toEqual([])
   })
 })
+
+describe('usePackAnnouncer — a ticked-off task (FR-7.3, FR-7.4)', () => {
+  it('offers the undo on the same snackbar a pack does', async () => {
+    const { api } = mountAnnouncer()
+    const restore = vi.fn()
+    api.rowUndo.armTaskUndo({ id: 'todo-1', body: 'Pass erneuern' }, restore)
+
+    const done = api.announceTaskDone('Pass erneuern')
+    settleCreates()
+    await done
+
+    expect(toasts[0]!.options['message']).toBe(
+      t('packing.taskDoneToast', { body: 'Pass erneuern' }),
+    )
+    const buttons = toasts[0]!.options['buttons'] as unknown as Array<{ handler: () => void }>
+    buttons[0]!.handler()
+
+    expect(restore).toHaveBeenCalledOnce()
+  })
+})

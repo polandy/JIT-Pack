@@ -4435,7 +4435,9 @@ the tail is where a symbol system is actually decided. Results:
     a finished rucksack at 97 %, which is the false signal FR-7.3 was written to prevent, pointed the other way.
   * **Surface: written in the trip, reported on the dashboard (owner decision, revised the same day).** M4 carries an
     *Aufgaben für die Reise* section whose head states the second check and which unfolds to the editable list: open
-    ones ticked off in place, resolved ones reachable again to untick, a composer, and a ✕ per row. **M1 takes no
+    ones ticked off in place, resolved ones reachable again to untick, a composer, and a ✕ per row. **Ticking a task
+    off raises FR-25.2's snackbar with its undo** — the row leaves the open list the way a packed row leaves the
+    packing list, so a mistap is taken back the same way; M4's FR-7.3 prep section does the same. **M1 takes no
     actions** — it reports: an *Aufgaben* card lists the open trip todos of every active trip that has any, each trip's
     block leading into the trip, and each active trip card states the check beside — never inside — its packing
     progress. The first cut put the whole editor

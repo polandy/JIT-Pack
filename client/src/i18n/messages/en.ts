@@ -174,6 +174,7 @@ export const en = {
   'packing.packedToast': '“{name}” packed ✓',
   // FR-5.8 — a row off the list altogether, as against FR-5.5's decision to leave it home.
   'packing.removeAction': 'Remove from the list',
+  'packing.taskDoneToast': '“{body}” done ✓',
   'packing.removedToast': '“{name}” removed from the list',
   'packing.removeConfirmTitle': 'Remove “{name}”?',
   'packing.removeConfirmLead':

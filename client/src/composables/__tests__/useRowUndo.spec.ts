@@ -164,3 +164,32 @@ describe('useRowUndo (FR-25.2, FR-5.5)', () => {
     expect(undo.pending.value).toEqual([])
   })
 })
+
+describe('useRowUndo — a ticked-off task (FR-7.3, FR-7.4)', () => {
+  it('reopens the task once, and a second tap does nothing', () => {
+    const undo = useRowUndo()
+    const restore = vi.fn()
+
+    undo.armTaskUndo({ id: 'todo-1', body: 'Pass erneuern' }, restore)
+    expect(undo.pending.value[0]?.name).toBe('Pass erneuern')
+
+    undo.undo()
+    undo.undo()
+
+    expect(restore).toHaveBeenCalledOnce()
+    expect(undo.pending.value).toEqual([])
+  })
+
+  it('is replaced by the next action rather than stacked', () => {
+    const undo = useRowUndo()
+    const first = vi.fn()
+    const second = vi.fn()
+
+    undo.armTaskUndo({ id: 'a', body: 'A' }, first)
+    undo.armTaskUndo({ id: 'b', body: 'B' }, second)
+    undo.undo()
+
+    expect(first).not.toHaveBeenCalled()
+    expect(second).toHaveBeenCalledOnce()
+  })
+})

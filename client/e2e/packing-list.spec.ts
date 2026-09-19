@@ -2204,6 +2204,34 @@ test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
   })
 
   /**
+   * E2E-M4-105 (FR-7.4, FR-25.2): ticking a task off offers the snackbar's
+   * undo, like a pack. The tick makes the row leave the open list, so the
+   * mistap has no evidence left to tap again — the undo brings it back, and
+   * the reopened state is read after a reload because a repaint alone proves
+   * the component and not the write.
+   */
+  test('E2E-M4-105: a ticked-off trip todo is taken back from the snackbar', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    const section = visible(page).getByTestId('m4-trip-todos')
+    const status = section.getByTestId('m4-trip-todos-status')
+    await addTripTodo(page, 'Water the plants')
+    await addTripTodo(page, 'Empty the fridge')
+
+    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(status).toHaveText('1 of 2 done')
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText('Water the plants')
+
+    await toast.getByRole('button', { name: /undo/i }).click()
+    await expect(status).toHaveText('0 of 2 done')
+    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    await writesLanded(page)
+    await page.reload()
+    await openTripTodos(page)
+    await expect(status).toHaveText('0 of 2 done')
+  })
+
+  /**
    * E2E-M4-97 (FR-7.4): the todos are where the trip is read, not at its foot.
    *
    * The section sits above the list and opens by itself while anything is

@@ -144,7 +144,7 @@ import { useTripStore } from '@/stores/tripStore'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import InventoryNamesSheet from '@/components/trips/InventoryNamesSheet.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
-import type { FacetKey, GroupBy, ItemTodo, MasterItem, TripItem } from '@/types/domain'
+import type { FacetKey, GroupBy, ItemTodo, MasterItem, TripItem, TripTodo } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction, confirmDestructive } from '@/lib/confirm'
@@ -1387,6 +1387,7 @@ const {
   announceSkipped,
   announceRemoved,
   announceRenamed,
+  announceTaskDone,
 } = usePackAnnouncer()
 
 /** Put back what a pack changed, and only that (FR-25.2). */
@@ -1410,9 +1411,27 @@ function onToggle(item: TripItem) {
   void announcePacked(name)
 }
 
+/** FR-7.4: the same undo for the trip's own tasks, which live in `TripTodoList`. */
+function onTripTodoResolved(todo: TripTodo) {
+  rowUndo.armTaskUndo(todo, () => {
+    const live = tripStore.getTripTodos(props.tripId).find((row) => row.id === todo.id)
+    if (live?.task_state === 'resolved') orchestrator.reopenTripTodo(live)
+  })
+  void announceTaskDone(todo.body)
+}
+
 function togglePrepTodo(todo: ItemTodo) {
   if (todo.task_state === 'open') {
     orchestrator.resolvePrepTodo(props.tripId, todo)
+    // Looked up again on undo: the `todo` in hand is the pre-tick snapshot,
+    // and reopening from it would hand the optimistic layer a stale baseline.
+    rowUndo.armTaskUndo(todo, () => {
+      const live = tripStore
+        .getItemTodos(props.tripId, todo.trip_item_id)
+        .find((row) => row.id === todo.id)
+      if (live?.task_state === 'resolved') orchestrator.reopenPrepTodo(props.tripId, live)
+    })
+    void announceTaskDone(todo.body)
   } else {
     orchestrator.reopenPrepTodo(props.tripId, todo)
   }
@@ -1839,7 +1858,7 @@ setHeaderTitle(
           </span>
           <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: tripTodosOpen }" />
         </button>
-        <TripTodoList v-if="tripTodosOpen" :trip-id="tripId" />
+        <TripTodoList v-if="tripTodosOpen" :trip-id="tripId" @resolved="onTripTodoResolved" />
       </div>
       <!-- FR-25.11k: the field exists only while it is being used. -->
       <SearchRow

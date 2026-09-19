@@ -37,6 +37,14 @@ export interface RowUndo {
    * them as they were before the write, and this arms from that.
    */
   armUndo: (rows: TripItem[], restore: (records: RowUndoRecord[]) => void) => void
+  /**
+   * Arm an undo for a task that has just been ticked off (FR-7.3, FR-7.4).
+   *
+   * A task is not a `TripItem`, so it has no quantity or pack state to
+   * snapshot: the record only names it, and the caller's `restore` looks the
+   * live row up again when it runs, so it reopens what is there *now*.
+   */
+  armTaskUndo: (task: { id: string; body: string }, restore: () => void) => void
   /** Restore the armed rows, at most once. A no-op when nothing is armed. */
   undo: () => void
   /** Disarm without restoring — leaving the screen, dismissing the snackbar. */
@@ -82,6 +90,11 @@ export function useRowUndo(): RowUndo {
     actWithUndo(rows, () => {}, restore)
   }
 
+  function armTaskUndo(task: { id: string; body: string }, restore: () => void): void {
+    pending.value = [{ itemId: task.id, name: task.body, quantity: 0, packedCount: 0, state: '' }]
+    restoreFn = restore
+  }
+
   function undo(): void {
     const records = pending.value
     const restore = restoreFn
@@ -98,5 +111,5 @@ export function useRowUndo(): RowUndo {
     restoreFn = null
   }
 
-  return { pending, actWithUndo, armUndo, undo, clear }
+  return { pending, actWithUndo, armUndo, armTaskUndo, undo, clear }
 }

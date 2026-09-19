@@ -22,6 +22,11 @@ const props = defineProps<{
   tripId: string
 }>()
 
+const emit = defineEmits<{
+  /** A task was just ticked off — the screen owns the snackbar that takes it back. */
+  resolved: [todo: TripTodo]
+}>()
+
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
@@ -40,8 +45,12 @@ function add() {
 }
 
 function toggle(todo: TripTodo) {
-  if (todo.task_state === 'open') orchestrator.resolveTripTodo(todo)
-  else orchestrator.reopenTripTodo(todo)
+  if (todo.task_state === 'open') {
+    orchestrator.resolveTripTodo(todo)
+    emit('resolved', todo)
+  } else {
+    orchestrator.reopenTripTodo(todo)
+  }
 }
 </script>
 
