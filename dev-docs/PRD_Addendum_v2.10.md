@@ -4095,6 +4095,11 @@ the tail is where a symbol system is actually decided. Results:
     behaves identically in Server, Single-User and Local Mode — the last of which has no account to hang a synced
     preference on. **The cost is explicit:** a second device configures its own list. **Revisit trigger:** the first
     time someone keeps two devices in step by hand, this belongs in the synced master partition beside the trip data.
+  * **A default may be an existing account** (2026-09-18, owner request): in a session, M17 offers the instance's
+    users next to the free-text field. A picked user is stored with its account id, so M3's step 2 starts with that
+    traveller already linked (FR-1.9) and, exactly as when picked in the wizard, a collaborator of the trip from its
+    first moment (the creator's own account is linked without a share). One account is one default. The picker is
+    absent without a session (G-8).
   * Names are trimmed, non-empty and unique (case-insensitively). A blank name would block step 2's own validation, and
     two travellers with one name make every per-person row ambiguous — so the setting refuses to produce either, rather
     than the wizard having to.

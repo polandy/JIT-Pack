@@ -641,7 +641,9 @@ test.describe('M10 — where an item is filed (FR-24.9)', () => {
     await editor.getByTestId('m10-tag-primary-Sommer').click()
     await expect(editor.getByTestId('m10-tag-summary')).toContainText('Sommer')
 
-    await page.getByTestId('header-back').click()
+    // Not a bare header-back click: the heading read below is empty until the
+    // list has come back, which the helper waits for.
+    await backToInventory(page)
     // The row moved: the inventory files it under the tag that is now first.
     expect(await groupHeadings(visiblePage(page))).toEqual(['sommer'])
 

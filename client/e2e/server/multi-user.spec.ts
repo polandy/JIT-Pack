@@ -986,6 +986,42 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
+   * E2E-M17-18 (FR-2.5a): a default traveller picked from the accounts in M17
+   * comes back in M3's step 2 as that account — linked and a member, like a
+   * traveller picked there. The pick is device-local, so it is made in the same
+   * context that then opens the wizard.
+   */
+  test('E2E-M17-18: an account picked as a default traveller starts the wizard as that account', async ({
+    browser,
+  }) => {
+    // Bob signs in first: the directory lists only accounts that have.
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    await alice.goto(PATH.settings)
+    await alice.getByTestId('default-traveler-user').click()
+    await alice
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: ACCOUNT_NAMES.bob })
+      .click()
+    await expect(alice.getByTestId(`default-traveler-remove-${ACCOUNT_NAMES.bob}`)).toBeVisible()
+
+    await alice.goto(PATH.newTrip)
+    await alice.getByTestId('wizard-name').locator('input').fill(`Bündner ${uniq()}`)
+    await alice.getByTestId('wizard-next').click()
+    await expect(alice.getByTestId('wizard-step-2')).toBeVisible()
+    await expect(alice.getByTestId('wizard-traveler-name').locator('input')).toHaveValue(
+      ACCOUNT_NAMES.bob,
+    )
+    await expect(alice.getByTestId('wizard-traveler-role')).toBeVisible()
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
    * E2E-M10-29 (FR-1.9): an item's default assignee, set in M10, reaches M3.
    *
    * Bob is chosen on the item, and on step 2 Alice records her traveler "Bob"
