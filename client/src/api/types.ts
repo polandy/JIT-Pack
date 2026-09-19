@@ -131,6 +131,19 @@ export interface MasterDeleteResponse {
 }
 
 /**
+ * MasterPruneResponse answers FR-5.8's conditional delete of an inventory
+ * item (ADR-065).
+ *
+ * Pruned is false both when something still uses the item and when it was
+ * already gone: in either case there is nothing for the caller to do, and
+ * the device that asked learns nothing it could act on from the difference.
+ */
+export interface MasterPruneResponse {
+  pruned: boolean
+  pull_hint: PullHint
+}
+
+/**
  * APITokenExpiry is how long a minted token lives.
  *
  * A closed vocabulary rather than a number of days, so the screen's select,

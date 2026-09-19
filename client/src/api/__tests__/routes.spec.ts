@@ -69,6 +69,9 @@ describe('API routes', () => {
       masterItem: '/api/v1/master/items/ID1',
       masterTemplate: '/api/v1/master/templates/ID1',
       masterTemplateItem: '/api/v1/master/template-items/ID1',
+      // FR-5.8's conditional delete is the exception: the app does call it
+      // (ADR-065).
+      masterItemPrune: '/api/v1/master/items/ID1/prune',
       me: '/api/v1/me',
       meNotificationPrefs: '/api/v1/me/notification-prefs',
       meExport: '/api/v1/me/export.json',

@@ -36,7 +36,17 @@ export interface RowUndo {
    * runs, so the caller cannot list them beforehand. `skipItem` returns
    * them as they were before the write, and this arms from that.
    */
-  armUndo: (rows: TripItem[], restore: (records: RowUndoRecord[]) => void) => void
+  armUndo: (
+    rows: TripItem[],
+    restore: (records: RowUndoRecord[]) => void,
+    /**
+     * What the action still owes once it can no longer be taken back — FR-5.8's
+     * removal deletes the inventory item it left unused only then (ADR-065),
+     * so the undo never has to bring back a deleted item with its tags and
+     * photo. Runs when the record is cleared or replaced, never after an undo.
+     */
+    onLapse?: () => void,
+  ) => void
   /**
    * Arm an undo for a task that has just been ticked off (FR-7.3, FR-7.4).
    *
@@ -47,7 +57,10 @@ export interface RowUndo {
   armTaskUndo: (task: { id: string; body: string }, restore: () => void) => void
   /** Restore the armed rows, at most once. A no-op when nothing is armed. */
   undo: () => void
-  /** Disarm without restoring — leaving the screen, dismissing the snackbar. */
+  /**
+   * Disarm without restoring — leaving the screen, dismissing the snackbar.
+   * The armed action's `onLapse` runs here: the chance to take it back is over.
+   */
   clear: () => void
 }
 
@@ -66,6 +79,7 @@ export interface RowUndo {
 export function useRowUndo(): RowUndo {
   const pending = ref<RowUndoRecord[]>([])
   let restoreFn: ((records: RowUndoRecord[]) => void) | null = null
+  let lapseFn: (() => void) | null = null
 
   function actWithUndo(
     rows: TripItem[],
@@ -74,7 +88,9 @@ export function useRowUndo(): RowUndo {
   ): void {
     // Replaces rather than stacks: acting on several things in a row is the
     // normal case, and a queue of snackbars would bury the list it reports
-    // on while turning "undo" into "undo the oldest".
+    // on while turning "undo" into "undo the oldest". A replaced record has
+    // lapsed like a dismissed one.
+    clear()
     pending.value = rows.map((row) => ({
       itemId: row.id,
       name: row.name,
@@ -86,11 +102,17 @@ export function useRowUndo(): RowUndo {
     act()
   }
 
-  function armUndo(rows: TripItem[], restore: (records: RowUndoRecord[]) => void): void {
+  function armUndo(
+    rows: TripItem[],
+    restore: (records: RowUndoRecord[]) => void,
+    onLapse?: () => void,
+  ): void {
     actWithUndo(rows, () => {}, restore)
+    lapseFn = onLapse ?? null
   }
 
   function armTaskUndo(task: { id: string; body: string }, restore: () => void): void {
+    clear()
     pending.value = [{ itemId: task.id, name: task.body, quantity: 0, packedCount: 0, state: '' }]
     restoreFn = restore
   }
@@ -99,16 +121,24 @@ export function useRowUndo(): RowUndo {
     const records = pending.value
     const restore = restoreFn
     if (records.length === 0 || !restore) return
-    // Cleared before restoring, so a second tap during the snackbar's
-    // dismiss animation cannot push the same pre-action state again — which
-    // would silently revert whatever happened in between.
-    clear()
+    // Reset before restoring, so a second tap during the snackbar's dismiss
+    // animation cannot push the same pre-action state again — which would
+    // silently revert whatever happened in between. The lapse is dropped:
+    // what it would have finished has just been taken back.
+    reset()
     restore(records)
   }
 
   function clear(): void {
+    const lapse = lapseFn
+    reset()
+    lapse?.()
+  }
+
+  function reset(): void {
     pending.value = []
     restoreFn = null
+    lapseFn = null
   }
 
   return { pending, actWithUndo, armUndo, armTaskUndo, undo, clear }

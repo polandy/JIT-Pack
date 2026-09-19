@@ -64,3 +64,25 @@ func writeMasterDeleteError(w http.ResponseWriter, err error) {
 func writeMasterDeleteRefusal(w http.ResponseWriter, reason store.RejectReason) {
 	writeError(w, http.StatusConflict, ErrValidation, "delete refused: "+string(reason))
 }
+
+// handlePruneMasterItem serves FR-5.8's conditional delete (ADR-065): the
+// item goes when nothing uses it and is left untouched when something does.
+// Unlike the four deletes above it is the app's own call — the one master
+// write that cannot go through the push, because the push's delete answers a
+// use by retiring, and only the server can see every use.
+func (s *Server) handlePruneMasterItem(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(userIDKey).(string)
+
+	res, err := s.store.PruneMasterItem(r.Context(), userID, r.PathValue(PathItemID))
+	if err != nil {
+		writeMasterDeleteError(w, err)
+		return
+	}
+	out := MasterPruneResponse{Pruned: res.Pruned}
+	out.PullHint.NextCursor = res.Seq
+	writeJSON(w, out)
+
+	if res.Seq > 0 {
+		s.hub.NotifyMasterChanged(userID, res.Seq)
+	}
+}

@@ -5,6 +5,7 @@ import {
   createTripViaWizard,
   createMasterItem,
   openQuickAdd,
+  openTripFromList,
   visiblePage,
   useReducedMotion,
   writesLanded,
@@ -17,6 +18,7 @@ import {
   openRowMenu,
   tripWithRows,
 } from './helpers/m4'
+import { PATH } from './routes'
 
 /**
  * Taking a row off the packing list (UI-Test-Spec §3, M4; Addendum FR-5.8).
@@ -104,6 +106,9 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   const alert = page.getByTestId('m4-remove-confirm')
   await expect(alert).toBeVisible()
   await expect(alert).toContainText('Akku')
+  // Drohne is on no other trip and in no Vorlage, so its item goes too, and
+  // the question says so before anything is written (ADR-065).
+  await expect(alert).toContainText(/deleted from the inventory too/i)
   // …and declining is the positive signal that it is a question: both rows
   // are still on the list once it is gone.
   await alert.getByRole('button', { name: /cancel/i }).click()
@@ -126,15 +131,25 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   await page.getByTestId('m4-done-bar').click()
   await expect(visiblePage(page).getByTestId('m4-row-Akku')).toContainText(/deliberately skipped/i)
   await expect(visiblePage(page).getByTestId('m4-row-Drohne')).toHaveCount(0)
+
+  // A confirmed removal has no undo, so the item went at once (ADR-065). Akku
+  // stays: its skipped row still uses it — and is the positive signal that the
+  // inventory has rendered.
+  await writesLanded(page)
+  await page.goto(PATH.items)
+  const inventoryRow = (name: string) =>
+    visiblePage(page).getByTestId('m9-row').filter({ hasText: name })
+  await expect(inventoryRow('Akku')).toHaveCount(1)
+  await expect(inventoryRow('Drohne')).toHaveCount(0)
 })
 
-// E2E-M4-113 (FR-5.8, FR-25.21): a per-person item is one row per traveler,
+// E2E-M4-114 (FR-5.8, FR-25.21): a per-person item is one row per traveler,
 // so removing it is removing *one person's* row. Both instances are packed —
 // Andy packed for both — and Leonardo then does not need his after all: his
 // row goes, Andy's stays packed. The dialog's count is the rendered proof that
 // the removal was scoped before anything was written: it names one packed
 // unit, not the two the cluster holds.
-test('E2E-M4-113: removing one traveler’s instance keeps the other’s @local @m4', async ({
+test('E2E-M4-114: removing one traveler’s instance keeps the other’s @local @m4', async ({
   page,
   seedMode,
 }) => {
@@ -219,4 +234,48 @@ test('E2E-M4-95: removing the open row closes its detail panel @local @m4', asyn
   await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toHaveCount(0)
   await expect(panel).toHaveCount(0)
   await expect(page.getByTestId('m5-missing')).toHaveCount(0)
+})
+
+// E2E-M4-115 (FR-5.8, ADR-065): the inventory item a removed row was the only
+// use of goes too — the composer made it (FR-24.11), and nothing else keeps it.
+// Not while the snackbar can still bring the row back: the undo re-inserts a
+// row and nothing more, so the item may only go once that chance is over.
+test('E2E-M4-115: removing the only use of an item deletes it from the inventory once final @local @m4', async ({
+  page,
+  seedMode,
+}) => {
+  test.slow()
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await tripWithRows(page, ['Zelt', 'Schlafsack'], 'Inventarprobe')
+  const inventoryRow = (name: string) =>
+    visiblePage(page).getByTestId('m9-row').filter({ hasText: name })
+
+  // Removed and undone: the snackbar said the item would go, and it has not.
+  await openRowMenu(page, 'Zelt')
+  await chooseInRowMenu(page, /remove from the list/i)
+  const toast = page.locator('ion-toast.pack-toast')
+  await expect(toast).toContainText(/from the inventory too/i)
+  await toast.getByRole('button', { name: /undo/i }).click()
+  await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toBeVisible()
+  await page.getByTestId('header-back').click()
+  await writesLanded(page)
+  await page.goto(PATH.items)
+  await expect(inventoryRow('Zelt')).toHaveCount(1)
+
+  // Removed for good: the snackbar running out ends the undo, and that is
+  // when the item goes. Its going is the signal waited on — the lapse itself
+  // writes nothing on screen here.
+  await openTripFromList(page, 'Inventarprobe')
+  await openRowMenu(page, 'Zelt')
+  await chooseInRowMenu(page, /remove from the list/i)
+  await expect(toast).toContainText(/from the inventory too/i)
+  await expect(toast).toBeHidden()
+  await writesLanded(page)
+  await page.goto(PATH.items)
+
+  // Schlafsack is the positive signal that the list has rendered: it came
+  // from the same composer and stays, because its row is still on the trip.
+  await expect(inventoryRow('Schlafsack')).toHaveCount(1)
+  await expect(inventoryRow('Zelt')).toHaveCount(0)
 })

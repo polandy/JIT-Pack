@@ -6,8 +6,14 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { planRemoval, removalNeedsConfirm, type RemovableRow } from '@/domain/rowRemoval'
-import type { ItemDependency } from '@/types/domain'
+import {
+  itemLeftUnused,
+  planRemoval,
+  removalNeedsConfirm,
+  type ItemUseSources,
+  type RemovableRow,
+} from '@/domain/rowRemoval'
+import type { ItemDependency, TemplateItem, TripItem } from '@/types/domain'
 
 function row(id: string, over: Partial<RemovableRow> = {}): RemovableRow {
   return { id, source_item_id: `item-${id}`, state: 'open', packed_count: 0, ...over }
@@ -84,5 +90,56 @@ describe('planRemoval (FR-5.8)', () => {
     const adhoc = row('adhoc', { source_item_id: null })
     const pegs = row('pegs')
     expect(planRemoval(adhoc, [adhoc, pegs], [PEGS_ON_TENT], 0).companions).toEqual([])
+  })
+})
+
+describe('itemLeftUnused (FR-5.8, ADR-065)', () => {
+  const tripRow = (id: string, source_item_id: string | null): TripItem =>
+    ({ id, trip_id: 't', name: id, quantity: 1, source_item_id }) as TripItem
+  const position = (item_id: string): TemplateItem =>
+    ({ id: `p-${item_id}`, template_id: 'tpl', item_id, quantity: 1 }) as TemplateItem
+  /** `companion` comes along whenever `main` is on a list (FR-20.1). */
+  const rule = (companion: string, main: string): ItemDependency => ({
+    id: `dep-${companion}-${main}`,
+    item_id: companion,
+    depends_on_item_id: main,
+    mode: 'required',
+    quantity: null,
+  })
+  const tent = tripRow('ti-tent', 'item-tent')
+  const none: ItemUseSources = { positions: [], tripItems: [tent], dependencies: [] }
+
+  it('names the item when the removed row was its only use', () => {
+    expect(itemLeftUnused(tent, none)).toBe('item-tent')
+  })
+
+  it('answers the same once the removed row has left the store', () => {
+    expect(itemLeftUnused(tent, { ...none, tripItems: [] })).toBe('item-tent')
+  })
+
+  it('names nothing for an ad-hoc row — it has no inventory item (FR-5.6)', () => {
+    expect(itemLeftUnused(tripRow('ti-x', null), none)).toBeNull()
+  })
+
+  const kept: [string, Partial<ItemUseSources>][] = [
+    ['a Vorlage or group position', { positions: [position('item-tent')] }],
+    ['another traveler’s row on this trip', { tripItems: [tent, tripRow('ti-2', 'item-tent')] }],
+    [
+      'a row on another trip',
+      { tripItems: [tent, { ...tripRow('ti-3', 'item-tent'), trip_id: 'u' }] },
+    ],
+    [
+      'another item bringing it as a companion',
+      { dependencies: [rule('item-tent', 'item-stove')] },
+    ],
+  ]
+  it.each(kept)('keeps the item while %s uses it', (_, use) => {
+    expect(itemLeftUnused(tent, { ...none, ...use })).toBeNull()
+  })
+
+  it('does not count the item’s own companions as a use — its list goes with it', () => {
+    expect(itemLeftUnused(tent, { ...none, dependencies: [rule('item-pegs', 'item-tent')] })).toBe(
+      'item-tent',
+    )
   })
 })
