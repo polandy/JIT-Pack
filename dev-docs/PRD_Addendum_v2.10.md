@@ -3159,9 +3159,11 @@ locked.
     whose traveler is not on the roster counts as shared rather than disappearing from the sum.
   * **The whole trip, whatever the filter** — like the trip line (FR-25.20). A share that shrank with the list would
     stop being a share of the trip.
-  * **A tap narrows the person facet to that traveler alone; a second tap on the same one clears it.** The strip owns no
-    filter: the chip row names it like any other facet value, and the sheet's multi-select stays the way to pick
-    several. *Gemeinsam* selects the facet's no-value.
+  * **A tap toggles that traveler in the person facet; a second tap takes them back out.** The rings are quick filters:
+    several can be picked at once, OR'd like the sheet's chips, so *mine and the shared ones* is two taps. The strip
+    owns no filter: the chip row names each pick like any other facet value. *Gemeinsam* selects the facet's no-value.
+    **Revised 2026-09-19 (owner request):** as first built a tap narrowed the facet to that traveler *alone*, and the
+    sheet was the only way to pick several — which put the combination a packer wants most behind a trip to the sheet.
   * **Drawn for three travelers** (owner, 2026-09-19): three columns, no scrolling. Larger parties wrap in threes;
     beyond six, five faces stay and the rest fold behind *„+N weitere"* with how many of them still have something open,
     and a traveler the list is filtered to is never folded away. The order is the roster's, never the progress's, so a

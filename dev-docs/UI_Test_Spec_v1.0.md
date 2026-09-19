@@ -789,7 +789,9 @@ in WebKit.
   travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
   is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the
   trip line reads *1/2*, the same sum. A tap on *Shared* presses it and puts a person chip in the chip row with the
-  shared row still listed; a second tap releases both.
+  shared row still listed; a tap on Andy then presses him **beside** it — two chips, Leonardo unpressed, the shared row
+  still listed (revised 2026-09-19: the tap used to replace the pick) — and a second tap on each releases only that
+  one.
 * **E2E-M4-111** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for one
   traveler shows no per-person strip, read once the trip line has rendered.
 * **E2E-M4-112** `local` (FR-25.29 with FR-9.3, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): on a
@@ -2148,13 +2150,18 @@ number reaches a pixel and that the switcher and the bars actually move it.
   *Gepäck* view splitting them into the named bag and the absence bucket — two slices where *Kategorie* had one, so a
   dead segment fails on the count alone. Mutation-proved twice: pointing `dimensionKey`'s container case at the absence
   bucket, and printing `plannedWeight` on both sides of the KPI.
-* **E2E-M12-04** `all` (FR-8.2/25.11) — **implemented**: tapping a bar lands on M4 **filtered** to that value — asserts
+* **E2E-M12-04** `all` (FR-8.2/25.11) — **implemented**: a picked bar lands on M4 **filtered** to that value — asserts
   the facet is set (a row outside the slice is gone), the removable chip names the value, and clearing the chip reveals
   the grouping that came along. Regression guard: setting only the grouping (the pre-2026-08-08 behaviour) fails every
-  assertion but the last. The clause *„clearing every other facet, since the reader tapped one number"* is
-  **unit-owned** (`composables/__tests__/usePackingFilter.spec.ts`, six cases on `setStoredFacet` including a stale
+  assertion but the last. The clause *„clearing every other facet, since the reader picked these numbers"* is
+  **unit-owned** (`composables/__tests__/usePackingFilter.spec.ts`, seven cases on `setStoredFacet` including a stale
   facet from a previous mount) — the e2e world has only one facet in force, so an assertion here could not tell a
   replacement from an addition.
+* **E2E-M12-08** `all` (FR-8.2/25.11) — **implemented** (2026-09-19): bars are picked, not followed. Two of three
+  Person bars are picked and land on M4 as **two chips of one facet**, OR'd — both picked rows stay and the third
+  person's row is gone, which a single-value handoff cannot produce. On M12 itself: no button while nothing is picked,
+  the count follows each pick, a second tap takes one back (`aria-pressed`), and switching the dimension away and back
+  drops them.
 * **E2E-M12-05** `all` (FR-8.2/25.1) — **implemented**: with rows assigned per traveler, the Person view shows **one
   contribution per traveler** plus the *Shared* bucket and no `undefined` bucket; the Category view sums the same rows
   into a single bucket, so the totals match across dimensions. (The multi-row per-person cluster shape is unit-owned in
@@ -2185,19 +2192,19 @@ number reaches a pixel and that the switcher and the bars actually move it.
   to the trip's own name and the line said „Series Elba 2026 · trend" about a series called Elba. Mutation-proved three
   times — pointing the trend at *active* trips, dropping *missing* from the flag counter, and putting the heading back
   on the trip name each redden it.
-* **E2E-M12-06** `all` (FR-8.2/25.18) — **implemented** (`e2e/packing-list.spec.ts`): tapping a slice sets the grouping
-  M4 comes back with, asserted after clearing the facet chip the same tap set. Crosses the screen boundary on purpose:
-  M12 and M4 each held their own grouping state and each was self-consistent, so no unit could see that the handoff
-  between them had stopped working. ADR-012 leaves one router outlet, so M4 is **not** remounted on the way back and a
-  value written only to storage would not be read until the next cold start.
+* **E2E-M12-06** `all` (FR-8.2/25.18) — **implemented** (`e2e/packing-list.spec.ts`): opening a picked slice sets the
+  grouping M4 comes back with, asserted after clearing the facet chip the same step set. Crosses the screen boundary on
+  purpose: M12 and M4 each held their own grouping state and each was self-consistent, so no unit could see that the
+  handoff between them had stopped working. ADR-012 leaves one router outlet, so M4 is **not** remounted on the way back
+  and a value written only to storage would not be read until the next cold start.
 * **Not implemented, and not a test gap — there is no way from M12 to M11.** UI-Spec M11's *Navigation* line has said
   *„from the luggage button in M4's toolbar … and from M12"* since before the rebuild. `AnalyticsPage.vue` pushes
-  exactly one route, `/trips/{id}`: tapping a *Gepäck* bar sets the container facet and lands on the packing list, which
-  is FR-8.2's own action and a different thing from opening the bag's screen. No case id claims the M12→M11 edge
-  (E2E-G9-11 covers M4↔M11 only), so nothing is red — the sentence simply describes an affordance the screen has never
-  had. **Owner decision:** add the edge (the natural place is the *Gepäck* view's header, not the bar, whose tap is
-  already spoken for) or strike the clause. UI-Spec M11 is corrected to say it is not built; no other document leans on
-  it.
+  exactly one route, `/trips/{id}`: opening a picked *Gepäck* bar sets the container facet and lands on the packing
+  list, which is FR-8.2's own action and a different thing from opening the bag's screen. No case id claims the M12→M11
+  edge (E2E-G9-11 covers M4↔M11 only), so nothing is red — the sentence simply describes an affordance the screen has
+  never had. **Owner decision:** add the edge (the natural place is the *Gepäck* view's header, not the bar, whose tap
+  is already spoken for) or strike the clause. UI-Spec M11 is corrected to say it is not built; no other document leans
+  on it.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 Feature removed from the product (PRD Addendum §3.11); its E2E cases are retired.
