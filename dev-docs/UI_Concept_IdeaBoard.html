@@ -1,0 +1,390 @@
+<title>JIT-Pack Ideen-Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+  /* Bergluft (ADR-048). Nacht is the app's default face, so the bare :root is
+     the dark palette and Tag is the redefinition — mirrored from palette.css. */
+  :root {
+    --page: #131a1d; --card: #1b2327; --sunken: #0e1417; --border: #2a353b; --border-2: #37444b;
+    --text: #e8ebe6; --sub1: #bcc5c1; --sub0: #9aa6a3; --mute: #6b7a78;
+    --brand: #f0a44e; --action: #6fb6da; --done: #7fc084; --danger: #ee7a6e; --straw: #e6d28a;
+    --heather: #b49bd6; --moss: #5faf9f; --on-accent: #0e1417;
+    --shadow: 0 10px 30px rgba(14, 20, 23, .6);
+    --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --ui: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --page: #f2f1ec; --card: #ffffff; --sunken: #e8e7df; --border: #dad9d0; --border-2: #cbcac0;
+      --text: #1e2427; --sub1: #3f4d51; --sub0: #5c6a6e; --mute: #8c9a9d;
+      --brand: #9e5a10; --action: #1f6f94; --done: #2e7d4e; --danger: #b93a2e; --straw: #a87a12;
+      --heather: #6b4fa0; --moss: #1f7a6b; --on-accent: #ffffff;
+      --shadow: 0 10px 30px rgba(30, 36, 39, .16);
+    }
+  }
+  :root[data-theme="light"] {
+    --page: #f2f1ec; --card: #ffffff; --sunken: #e8e7df; --border: #dad9d0; --border-2: #cbcac0;
+    --text: #1e2427; --sub1: #3f4d51; --sub0: #5c6a6e; --mute: #8c9a9d;
+    --brand: #9e5a10; --action: #1f6f94; --done: #2e7d4e; --danger: #b93a2e; --straw: #a87a12;
+    --heather: #6b4fa0; --moss: #1f7a6b; --on-accent: #ffffff;
+    --shadow: 0 10px 30px rgba(30, 36, 39, .16);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--page); color: var(--text); font-family: var(--ui); font-size: 15px; line-height: 1.45; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button { cursor: pointer; background: none; border: 0; padding: 0; }
+  :focus-visible { outline: 2px solid var(--action); outline-offset: 2px; border-radius: 6px; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: flex; flex-direction: column; gap: 24px; }
+  .intro { display: flex; flex-direction: column; gap: 6px; max-width: 65ch; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--brand); }
+  h1 { font-family: var(--display); font-weight: 600; font-size: 30px; line-height: 1.15; margin: 0; text-wrap: balance; }
+  .intro p { margin: 0; color: var(--sub0); }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 32px; align-items: start; }
+  @media (max-width: 820px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+  /* ---------- device ---------- */
+  .device { position: relative; height: 780px; max-height: 88vh; background: var(--page); border: 1px solid var(--border-2);
+    border-radius: 28px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+  .appbar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--card); }
+  .appbar .logo { font-family: var(--display); font-weight: 600; font-size: 18.5px; color: var(--brand); }
+  .appbar .sync { margin-left: auto; font-size: 12px; color: var(--sub0); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--done); }
+  .scroll { flex: 1; overflow-y: auto; padding: 18px 16px 96px; display: flex; flex-direction: column; gap: 16px; }
+
+  .head { display: flex; flex-direction: column; gap: 4px; }
+  .head .trip-eyebrow { font-size: 12px; color: var(--sub0); }
+  .head h2 { font-family: var(--display); font-weight: 600; font-size: 26px; line-height: 1.15; margin: 0; }
+
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--sunken); border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg button { padding: 8px 6px; border-radius: 9px; font-weight: 600; font-size: 14px; color: var(--sub0); display: flex; justify-content: center; gap: 6px; align-items: baseline; }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 0 var(--border-2); }
+  .seg .n { font-size: 12px; font-weight: 500; color: var(--mute); font-variant-numeric: tabular-nums; }
+  .seg.phase button[aria-pressed="true"] { color: var(--brand); }
+
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--sub0); }
+  .link { color: var(--action); font-weight: 600; font-size: 13px; }
+
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+  .idea { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+  .idea.dropped { opacity: .72; }
+  .idea .open { text-align: left; padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 6px; width: 100%; }
+  .idea .title { font-weight: 600; font-size: 16px; line-height: 1.3; }
+  .idea.dropped .title { text-decoration: line-through; text-decoration-color: var(--mute); }
+  .idea .note { color: var(--sub1); font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12px; color: var(--sub0); }
+  .host { color: var(--action); overflow-wrap: anywhere; }
+  .chip { border: 1px solid var(--border-2); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; color: var(--sub1); }
+  .chip.short { border-color: var(--brand); color: var(--brand); }
+  .tagrow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tagbtn { border: 1px solid var(--border-2); border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 600; color: var(--sub1); }
+  .tagbtn[aria-pressed="true"] { background: var(--action); border-color: var(--action); color: var(--on-accent); }
+  .chip.rain { border-color: var(--action); color: var(--action); }
+  label.check { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--sub1); }
+  label.check input { width: 18px; height: 18px; accent-color: var(--action); }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .flabel { font-size: 12px; font-weight: 600; color: var(--sub0); }
+  .thumbs { display: flex; gap: 6px; }
+  .thumb { width: 64px; height: 48px; border-radius: 8px; border: 1px solid var(--border); flex: none; }
+  .thumb.big { width: 100%; height: 150px; border-radius: 12px; }
+  .foot { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--border); }
+  .vote { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border-2); font-size: 13px; font-weight: 600; color: var(--sub1); font-variant-numeric: tabular-nums; }
+  .vote[aria-pressed="true"].up { background: var(--done); border-color: var(--done); color: var(--on-accent); }
+  .vote[aria-pressed="true"].down { background: var(--danger); border-color: var(--danger); color: var(--on-accent); }
+  .who { font-size: 11px; color: var(--mute); }
+  .foot .spacer { flex: 1; }
+  .ghost { padding: 5px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--sub0); }
+  .ghost:hover { background: var(--sunken); color: var(--text); }
+  .ghost.star[aria-pressed="true"] { color: var(--brand); }
+
+  .empty { text-align: center; color: var(--sub0); padding: 36px 16px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .empty strong { color: var(--text); font-family: var(--display); font-size: 18px; font-weight: 600; }
+
+  .fab { position: absolute; right: 18px; bottom: 18px; background: var(--brand); color: var(--on-accent); font-weight: 700; padding: 13px 18px; border-radius: 999px; box-shadow: var(--shadow); }
+
+  /* ---------- sheet ---------- */
+  .scrim { position: absolute; inset: 0; background: rgba(14, 20, 23, .55); display: flex; align-items: flex-end; }
+  .sheet { background: var(--card); width: 100%; max-height: 92%; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 10px 16px 20px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--border-2); }
+  .grab { width: 40px; height: 4px; border-radius: 4px; background: var(--border-2); align-self: center; }
+  .sheet-head { display: flex; align-items: start; gap: 10px; }
+  .sheet-head h3 { font-family: var(--display); font-weight: 600; font-size: 24px; line-height: 1.2; margin: 0; flex: 1; text-wrap: balance; }
+  .x { font-size: 22px; line-height: 1; color: var(--sub0); padding: 4px 8px; }
+  label { font-size: 12px; font-weight: 600; color: var(--sub0); display: flex; flex-direction: column; gap: 5px; }
+  input[type="text"], input[type="url"], textarea { background: var(--sunken); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 15px; width: 100%; }
+  textarea { resize: vertical; min-height: 64px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .primary { background: var(--action); color: var(--on-accent); font-weight: 700; padding: 11px 16px; border-radius: 12px; }
+  .primary:disabled { opacity: .45; cursor: not-allowed; }
+  .secondary { border: 1px solid var(--border-2); padding: 10px 14px; border-radius: 12px; font-weight: 600; color: var(--sub1); }
+  .danger-text { color: var(--danger); }
+  .urlbox { display: flex; gap: 8px; align-items: center; background: var(--sunken); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+  .urlbox a { color: var(--action); overflow-wrap: anywhere; flex: 1; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--sub0); }
+  .comments { display: flex; flex-direction: column; gap: 10px; }
+  .comment { display: grid; grid-template-columns: 28px 1fr; gap: 8px; font-size: 14px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--on-accent); }
+  .comment .by { font-size: 12px; color: var(--sub0); }
+  .compose { display: flex; gap: 8px; }
+  .compose input { flex: 1; }
+  .hint { font-size: 12px; color: var(--mute); }
+
+  /* ---------- prepare stub ---------- */
+  .m4line { display: flex; gap: 14px; font-size: 13px; color: var(--sub0); font-variant-numeric: tabular-nums; }
+  .m4line b { color: var(--text); }
+  .prow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+  .box { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border-2); flex: none; }
+  .box.on { background: var(--done); border-color: var(--done); }
+  .prow .q { margin-left: auto; color: var(--sub0); font-variant-numeric: tabular-nums; }
+
+  /* ---------- side panel ---------- */
+  .side { display: flex; flex-direction: column; gap: 22px; }
+  .panel { display: flex; flex-direction: column; gap: 10px; }
+  .panel h2 { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--sub0); margin: 0; }
+  .modes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .modes button { border: 1px solid var(--border-2); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--sub1); }
+  .modes button[aria-pressed="true"] { background: var(--text); color: var(--page); border-color: var(--text); }
+  .side ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; color: var(--sub1); max-width: 62ch; }
+  .side li b { color: var(--text); }
+  .side code { font-size: 13px; background: var(--sunken); padding: 1px 5px; border-radius: 5px; }
+  .open-q li::marker { color: var(--brand); }
+  @media (prefers-reduced-motion: no-preference) { .sheet { animation: up .18s ease-out; } @keyframes up { from { transform: translateY(24px); } to { transform: none; } } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="eyebrow">Concept mockup · PRD §3.29 draft · slice 1</span>
+    <h1>The Idea Board: a trip's <em>Planen</em> phase</h1>
+    <p>Clickable, in-memory, nothing is saved. Screen copy is German because it is the content being specified; the notes are English like the rest of <code>dev-docs/</code>. Implementation starts when this mockup is approved.</p>
+  </header>
+
+  <div class="stage">
+    <div class="device" id="device" aria-label="App mockup"></div>
+
+    <aside class="side">
+      <section class="panel">
+        <h2>Mode (invariant 5)</h2>
+        <div class="modes" id="modes"></div>
+        <p class="hint" id="modeHint"></p>
+      </section>
+      <section class="panel">
+        <h2>What the mockup claims</h2>
+        <ul>
+          <li><b>One card type.</b> An idea has a title and optionally a note, a link, one tag from a fixed set and up to four images. A bookmark is an idea with a link — no second entity.</li>
+          <li><b>Phase frame above M4.</b> <em>Planen | Vorbereiten</em> sits in the page head; M4 is unchanged underneath. No tabs for phases without content.</li>
+          <li><b>Three states, set by hand:</b> Idee → Shortlist → Verworfen. Votes are a signal and move nothing on their own.</li>
+          <li><b>Dropping is not deleting.</b> A dropped idea keeps its thread and votes, lives in its own segment and can be brought back. Delete is a separate, confirmed action in the detail sheet.</li>
+          <li><b>One vote per account</b>, tap again to withdraw. Travelers without an account do not vote.</li>
+          <li><b>Links are stored, not fetched.</b> No preview in slice 1 — the server makes no outbound request, so all three modes behave the same. Only <code>http(s)</code> is accepted.</li>
+          <li><b>Tags are a fixed set</b> (Wandern · Baden · Kultur · Essen · Ausflug), one per idea, and they filter the board. A tag says <em>what</em> an idea is.</li>
+          <li><b>„Geht auch bei Regen" is its own attribute</b>, not a tag: it says <em>when</em> an idea suits, so a museum is Kultur <em>and</em> rain-proof. It filters beside the tags and is what a later weather rule keys on.</li>
+          <li><b>Cloning a trip does not copy its ideas.</b> A clone repeats a packing effort, not a discussion.</li>
+          <li><b>Comments reuse the existing thread</b> (<code>comments.idea_id</code>); a new idea or comment notifies the other members.</li>
+        </ul>
+      </section>
+      <section class="panel">
+        <h2>Still open</h2>
+        <ul class="open-q">
+          <li>Which phase does a trip open on? Mocked: the last one visited on this device; first visit → <em>Planen</em> while the packing list is empty.</li>
+          <li>Does a shortlisted idea need a date or day yet, or is that the During-phase day plan?</li>
+          <li>Do the Local-Mode backup and the account export carry ideas, images included? 4 × 500 KB changes a backup's size class.</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  var USERS = { andy: { name: 'Andy', color: 'var(--brand)' }, lea: { name: 'Lea', color: 'var(--heather)' } };
+  var STATUS = { IDEA: 'idea', SHORT: 'shortlisted', DROPPED: 'dropped' };
+  var SEGMENTS = [[STATUS.IDEA, 'Ideen'], [STATUS.SHORT, 'Shortlist'], [STATUS.DROPPED, 'Verworfen']];
+  var MODES = { server: 'Server', single: 'Single-User', local: 'Local' };
+  var MODE_HINT = {
+    server: 'Two accounts share the trip: votes, authorship and push are live.',
+    single: 'No accounts, so no votes and no author line (hidden per G-8, not disabled). Everything else is identical.',
+    local: 'No server at all: ideas and images live in IndexedDB. No votes, no push — and because links are never fetched, nothing else is missing.'
+  };
+  var MAX_IMAGES = 4;
+  var TAGS = ['Wandern', 'Baden', 'Kultur', 'Essen', 'Ausflug'];
+  var RAIN_LABEL = '☔ Geht bei Regen';
+  var HUES = ['var(--moss)', 'var(--straw)', 'var(--action)', 'var(--heather)', 'var(--brand)'];
+
+  var seq = 100;
+  var state = {
+    phase: 'plan', seg: STATUS.IDEA, sort: 'votes', mode: 'server', me: 'andy', open: null, adding: false, tagFilter: '', rainFilter: false, draftTag: '', draftRain: false,
+    ideas: [
+      { id: 1, title: 'Drei-Zinnen-Rundweg', note: '10 km, ca. 4 h ab Auronzohütte. Früh los, Parkplatz ist um 9 voll.', url: 'https://www.drei-zinnen.info/rundweg', tag: 'Wandern', status: STATUS.SHORT, by: 'lea', imgs: [0, 2], votes: { andy: 1, lea: 1 },
+        comments: [{ by: 'lea', body: 'Maut für die Strasse ist 30 €, trotzdem?' }, { by: 'andy', body: 'Ja. Dienstag soll das Wetter am besten sein.' }] },
+      { id: 2, title: 'Therme Meran', note: 'Für den Regentag. Familienbereich bis 20 Uhr.', url: 'https://www.thermemeran.it', tag: 'Baden', rain: true, status: STATUS.IDEA, by: 'andy', imgs: [2], votes: { andy: 1 }, comments: [] },
+      { id: 3, title: 'Ötzi im Archäologiemuseum Bozen', note: '', url: 'https://www.iceman.it', tag: 'Kultur', rain: true, status: STATUS.IDEA, by: 'lea', imgs: [], votes: { lea: 1 }, comments: [{ by: 'andy', body: 'Tickets nur mit Zeitfenster, online buchen.' }] },
+      { id: 4, title: 'Törggelen beim Buschenschank', note: 'Kastanien, neuer Wein. Oktober ist genau die Saison — Hof noch aussuchen.', url: '', tag: 'Essen', status: STATUS.IDEA, by: 'andy', imgs: [], votes: {}, comments: [] },
+      { id: 5, title: 'Seiser Alm mit der Umlaufbahn', note: 'Oben flach, geht mit Kinderwagen.', url: 'https://www.seiseralm.it/bahn', tag: 'Wandern', status: STATUS.IDEA, by: 'lea', imgs: [1], votes: { andy: 1, lea: 1 }, comments: [] },
+      { id: 6, title: 'Tagesausflug Gardaland', note: '', url: 'https://www.gardaland.it', tag: 'Ausflug', status: STATUS.DROPPED, by: 'andy', imgs: [], votes: { andy: -1, lea: -1 }, comments: [{ by: 'lea', body: 'Drei Stunden Fahrt pro Weg. Nein.' }] }
+    ]
+  };
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function votesOn() { return state.mode === 'server'; }
+  function score(i) { var s = 0; for (var k in i.votes) s += i.votes[k]; return s; }
+  function count(i, v) { var n = 0; for (var k in i.votes) if (i.votes[k] === v) n++; return n; }
+  function names(i, v) { var a = []; for (var k in i.votes) if (i.votes[k] === v) a.push(USERS[k].name); return a.join(', '); }
+  function host(u) { try { return new URL(u).host.replace(/^www\./, ''); } catch (e) { return u; } }
+  function safeUrl(u) { try { var p = new URL(u).protocol; return p === 'http:' || p === 'https:'; } catch (e) { return false; } }
+  function find(id) { return state.ideas.filter(function (i) { return i.id === id; })[0]; }
+  function thumb(h, big) { return '<span class="thumb' + (big ? ' big' : '') + '" style="background:linear-gradient(135deg, color-mix(in srgb, ' + HUES[h % HUES.length] + ' 70%, var(--sunken)), var(--sunken))" role="img" aria-label="Bild"></span>'; }
+
+  function card(i) {
+    var h = '<article class="idea ' + (i.status === STATUS.DROPPED ? 'dropped' : '') + '">';
+    h += '<button class="open" data-act="open" data-id="' + i.id + '"><span class="title">' + esc(i.title) + '</span>';
+    if (i.note) h += '<span class="note">' + esc(i.note) + '</span>';
+    if (i.imgs.length) h += '<span class="thumbs">' + i.imgs.map(function (x) { return thumb(x); }).join('') + '</span>';
+    h += '<span class="meta">';
+    if (i.url) h += '<span class="host">↗ ' + esc(host(i.url)) + '</span>';
+    if (i.tag) h += '<span class="chip">' + esc(i.tag) + '</span>';
+    if (i.rain) h += '<span class="chip rain">' + RAIN_LABEL + '</span>';
+    if (i.comments.length) h += '<span>' + i.comments.length + ' Kommentar' + (i.comments.length > 1 ? 'e' : '') + '</span>';
+    if (state.mode === 'server') h += '<span>von ' + USERS[i.by].name + '</span>';
+    h += '</span></button><div class="foot">';
+    if (votesOn()) h += voteBtns(i);
+    h += '<span class="spacer"></span>' + statusBtns(i) + '</div></article>';
+    return h;
+  }
+  function voteBtns(i) {
+    var mine = i.votes[state.me] || 0;
+    return '<button class="vote up" data-act="vote" data-v="1" data-id="' + i.id + '" aria-pressed="' + (mine === 1) + '" title="' + esc(names(i, 1)) + '">👍 ' + count(i, 1) + '</button>' +
+      '<button class="vote down" data-act="vote" data-v="-1" data-id="' + i.id + '" aria-pressed="' + (mine === -1) + '" title="' + esc(names(i, -1)) + '">👎 ' + count(i, -1) + '</button>';
+  }
+  function statusBtns(i) {
+    if (i.status === STATUS.DROPPED) return '<button class="ghost" data-act="status" data-s="' + STATUS.IDEA + '" data-id="' + i.id + '">Zurückholen</button>';
+    var on = i.status === STATUS.SHORT;
+    return '<button class="ghost star" data-act="status" data-s="' + (on ? STATUS.IDEA : STATUS.SHORT) + '" data-id="' + i.id + '" aria-pressed="' + on + '">' + (on ? '★ Auf der Shortlist' : '☆ Shortlist') + '</button>' +
+      '<button class="ghost" data-act="status" data-s="' + STATUS.DROPPED + '" data-id="' + i.id + '">Verwerfen</button>';
+  }
+
+  function plan() {
+    var inSeg = state.ideas.filter(function (i) { return i.status === state.seg; });
+    var used = TAGS.filter(function (t) { return inSeg.some(function (i) { return i.tag === t; }); });
+    if (used.indexOf(state.tagFilter) < 0) state.tagFilter = '';
+    var anyRain = inSeg.some(function (i) { return i.rain; });
+    if (!anyRain) state.rainFilter = false;
+    var list = inSeg.filter(function (i) { return (!state.tagFilter || i.tag === state.tagFilter) && (!state.rainFilter || i.rain); });
+    list.sort(function (a, b) { return state.sort === 'votes' && votesOn() ? (score(b) - score(a)) || (b.id - a.id) : b.id - a.id; });
+    var h = '<div class="seg" role="group" aria-label="Status">' + SEGMENTS.map(function (s) {
+      var n = state.ideas.filter(function (i) { return i.status === s[0]; }).length;
+      return '<button data-act="seg" data-s="' + s[0] + '" aria-pressed="' + (state.seg === s[0]) + '">' + s[1] + ' <span class="n">' + n + '</span></button>';
+    }).join('') + '</div>';
+    if (used.length > 1 || anyRain) h += '<div class="tagrow" role="group" aria-label="Filter">' + (anyRain ? '<button class="tagbtn rain" data-act="rainfilter" aria-pressed="' + state.rainFilter + '">' + RAIN_LABEL + '</button>' : '') + used.map(function (t) { return '<button class="tagbtn" data-act="tagfilter" data-t="' + t + '" aria-pressed="' + (state.tagFilter === t) + '">' + t + '</button>'; }).join('') + '</div>';
+    if (list.length) {
+      h += '<div class="toolbar"><span>' + list.length + (list.length === 1 ? ' Idee' : ' Ideen') + '</span>';
+      if (votesOn()) h += '<button class="link" data-act="sort">Sortiert nach: ' + (state.sort === 'votes' ? 'Stimmen' : 'Neueste') + '</button>';
+      h += '</div><div class="cards">' + list.map(card).join('') + '</div>';
+    } else {
+      var msg = { idea: ['Noch keine Ideen', 'Sammelt hier Links, Orte und Einfälle für diese Reise.'], shortlisted: ['Die Shortlist ist leer', 'Markiert eine Idee mit ☆, wenn ihr sie machen wollt.'], dropped: ['Nichts verworfen', 'Verworfene Ideen landen hier und lassen sich zurückholen.'] }[state.seg];
+      h += '<div class="empty"><strong>' + msg[0] + '</strong><span>' + msg[1] + '</span></div>';
+    }
+    return h;
+  }
+
+  function prepare() {
+    var rows = [['Wanderschuhe', '2', 1], ['Regenjacke', '3', 1], ['Kindertrage', '1', 0], ['Sonnencreme', '1', 0], ['Reisepass', '3', 0]];
+    return '<div class="m4line"><span><b>12</b> / 48 gepackt</span><span><b>14,2</b> kg</span><span><b>3</b> offen</span></div>' +
+      '<div class="cards">' + rows.map(function (r) { return '<div class="prow"><span class="box ' + (r[2] ? 'on' : '') + '"></span><span>' + r[0] + '</span><span class="q">× ' + r[1] + '</span></div>'; }).join('') + '</div>' +
+      '<p class="hint">M4 as it is today — the packing list becomes the <em>Vorbereiten</em> phase, unchanged.</p>';
+  }
+
+  function detail(i) {
+    var h = '<div class="scrim" data-act="close"><div class="sheet" role="dialog" aria-label="' + esc(i.title) + '"><span class="grab"></span>';
+    h += '<div class="sheet-head"><h3>' + esc(i.title) + '</h3><button class="x" data-act="close" aria-label="Schliessen">×</button></div>';
+    h += '<div class="meta">' + (i.status === STATUS.SHORT ? '<span class="chip short">Shortlist</span>' : i.status === STATUS.DROPPED ? '<span class="chip">Verworfen</span>' : '') + (i.tag ? '<span class="chip">' + esc(i.tag) + '</span>' : '') + (i.rain ? '<span class="chip rain">' + RAIN_LABEL + '</span>' : '') + (state.mode === 'server' ? '<span>von ' + USERS[i.by].name + '</span>' : '') + '</div>';
+    if (i.imgs.length) h += thumb(i.imgs[0], true);
+    if (i.imgs.length > 1) h += '<div class="thumbs">' + i.imgs.slice(1).map(function (x) { return thumb(x); }).join('') + '</div>';
+    if (i.note) h += '<div>' + esc(i.note) + '</div>';
+    if (i.url) h += '<div class="urlbox"><a href="' + esc(i.url) + '" target="_blank" rel="noopener noreferrer">' + esc(i.url) + '</a><span>↗</span></div>';
+    h += '<div class="row">';
+    if (votesOn()) h += voteBtns(i) + '<span class="who">' + (names(i, 1) ? '👍 ' + esc(names(i, 1)) : '') + (names(i, -1) ? '  👎 ' + esc(names(i, -1)) : '') + '</span>';
+    h += '</div><div class="row">' + statusBtns(i);
+    if (i.imgs.length < MAX_IMAGES) h += '<button class="ghost" data-act="img" data-id="' + i.id + '">+ Bild (' + i.imgs.length + '/' + MAX_IMAGES + ')</button>';
+    h += '<button class="ghost" data-act="rain" data-id="' + i.id + '" aria-pressed="' + !!i.rain + '">' + (i.rain ? '☔ Regen-Merkmal entfernen' : '☔ Geht auch bei Regen') + '</button>';
+    h += '<button class="ghost danger-text" data-act="delete" data-id="' + i.id + '">Löschen …</button></div>';
+    h += '<span class="section-label">Kommentare</span><div class="comments">';
+    if (!i.comments.length) h += '<span class="hint">Noch keine Kommentare.</span>';
+    h += i.comments.map(function (c) { return '<div class="comment"><span class="avatar" style="background:' + USERS[c.by].color + '">' + USERS[c.by].name[0] + '</span><div>' + (state.mode === 'server' ? '<div class="by">' + USERS[c.by].name + '</div>' : '') + esc(c.body) + '</div></div>'; }).join('');
+    h += '</div><form class="compose" data-form="comment" data-id="' + i.id + '"><input type="text" id="commentBody" placeholder="Kommentar schreiben …" aria-label="Kommentar" autocomplete="off"><button class="primary" type="submit">Senden</button></form>';
+    return h + '</div></div>';
+  }
+
+  function tagChips() { return TAGS.map(function (t) { return '<button type="button" class="tagbtn" data-act="drafttag" data-t="' + t + '" aria-pressed="' + (state.draftTag === t) + '">' + t + '</button>'; }).join(''); }
+
+  function addSheet() {
+    return '<div class="scrim" data-act="close"><form class="sheet" data-form="add" role="dialog" aria-label="Neue Idee"><span class="grab"></span>' +
+      '<div class="sheet-head"><h3>Neue Idee</h3><button type="button" class="x" data-act="close" aria-label="Schliessen">×</button></div>' +
+      '<label for="addTitle">Titel<input type="text" id="addTitle" placeholder="z. B. Bootsfahrt auf dem Kalterer See" autocomplete="off" required></label>' +
+      '<label for="addUrl">Link (optional)<input type="url" id="addUrl" placeholder="https://…" autocomplete="off"></label>' +
+      '<label for="addNote">Notiz (optional)<textarea id="addNote" placeholder="Was ist daran gut? Was kostet es?"></textarea></label>' +
+      '<div class="field"><span class="flabel">Tag (optional)</span><div class="tagrow" id="addTags" role="group" aria-label="Tag">' + tagChips() + '</div></div>' +
+      '<label class="check" for="addRain"><input type="checkbox" id="addRain"> Geht auch bei Regen</label>' +
+      '<span class="hint" id="addErr"></span>' +
+      '<div class="row"><button class="primary" type="submit">Idee hinzufügen</button><button type="button" class="secondary" data-act="close">Abbrechen</button></div></form></div>';
+  }
+
+  function render() {
+    var d = document.getElementById('device');
+    var h = '<div class="appbar"><span class="logo">JIT-Pack</span><span class="sync"><span class="dot"></span>' + (state.mode === 'local' ? 'Auf diesem Gerät' : 'Synchron') + '</span></div><div class="scroll">';
+    h += '<div class="head"><span class="trip-eyebrow">3.–10. Okt. 2026 · 4 Reisende</span><h2>Südtirol, Herbstferien</h2></div>';
+    h += '<div class="seg phase" role="group" aria-label="Phase"><button data-act="phase" data-p="plan" aria-pressed="' + (state.phase === 'plan') + '">Planen</button><button data-act="phase" data-p="prepare" aria-pressed="' + (state.phase === 'prepare') + '">Vorbereiten</button></div>';
+    h += state.phase === 'plan' ? plan() : prepare();
+    h += '</div>';
+    if (state.phase === 'plan' && !state.open && !state.adding) h += '<button class="fab" data-act="add">+ Idee</button>';
+    if (state.open) h += detail(find(state.open));
+    if (state.adding) h += addSheet();
+    d.innerHTML = h;
+
+    document.getElementById('modes').innerHTML = Object.keys(MODES).map(function (m) { return '<button data-mode="' + m + '" aria-pressed="' + (state.mode === m) + '">' + MODES[m] + '</button>'; }).join('');
+    document.getElementById('modeHint').textContent = MODE_HINT[state.mode];
+    if (state.adding) { var t = document.getElementById('addTitle'); if (t) t.focus(); }
+  }
+
+  document.getElementById('modes').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-mode]'); if (!b) return; state.mode = b.dataset.mode; render();
+  });
+
+  document.getElementById('device').addEventListener('click', function (e) {
+    var el = e.target.closest('[data-act]'); if (!el) return;
+    var act = el.dataset.act, id = Number(el.dataset.id), i = id ? find(id) : null;
+    if (act === 'close') { if (el.classList.contains('scrim') && e.target !== el) return; state.open = null; state.adding = false; }
+    else if (act === 'phase') state.phase = el.dataset.p;
+    else if (act === 'seg') state.seg = el.dataset.s;
+    else if (act === 'sort') state.sort = state.sort === 'votes' ? 'new' : 'votes';
+    else if (act === 'open') state.open = id;
+    else if (act === 'add') { state.adding = true; state.draftTag = ''; }
+    else if (act === 'rainfilter') state.rainFilter = !state.rainFilter;
+    else if (act === 'rain') i.rain = !i.rain;
+    else if (act === 'tagfilter') state.tagFilter = state.tagFilter === el.dataset.t ? '' : el.dataset.t;
+    else if (act === 'drafttag') { state.draftTag = state.draftTag === el.dataset.t ? '' : el.dataset.t; document.getElementById('addTags').innerHTML = tagChips(); e.stopPropagation(); return; }
+    else if (act === 'vote') { var v = Number(el.dataset.v); if (i.votes[state.me] === v) delete i.votes[state.me]; else i.votes[state.me] = v; }
+    else if (act === 'status') { i.status = el.dataset.s; if (state.open && i.status === STATUS.DROPPED) state.open = null; }
+    else if (act === 'img') i.imgs.push(i.imgs.length + i.id);
+    else if (act === 'delete') { if (!window.confirm('„' + i.title + '" mit allen Kommentaren endgültig löschen?')) return; state.ideas = state.ideas.filter(function (x) { return x.id !== id; }); state.open = null; }
+    e.stopPropagation(); render();
+  });
+
+  document.getElementById('device').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target.closest('[data-form]'); if (!f) return;
+    if (f.dataset.form === 'comment') {
+      var body = document.getElementById('commentBody').value.trim(); if (!body) return;
+      find(Number(f.dataset.id)).comments.push({ by: state.me, body: body });
+    } else {
+      var title = document.getElementById('addTitle').value.trim(), url = document.getElementById('addUrl').value.trim();
+      if (!title) return;
+      if (url && !safeUrl(url)) { document.getElementById('addErr').textContent = 'Der Link muss mit http:// oder https:// beginnen.'; return; }
+      state.ideas.push({ id: ++seq, title: title, url: url, note: document.getElementById('addNote').value.trim(), tag: state.draftTag, rain: document.getElementById('addRain').checked, status: STATUS.IDEA, by: state.me, imgs: [], votes: {}, comments: [] });
+      state.adding = false; state.seg = STATUS.IDEA; state.sort = 'new';
+    }
+    render();
+  });
+
+  render();
+})();
+</script>

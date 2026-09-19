@@ -3682,6 +3682,98 @@ the tail is where a symbol system is actually decided. Results:
   row whose name the inventory already knows, and deliberately leaves the rest ad-hoc: that mixture is what the empty
   slot is for.
 
+### 3.29 The Idea Board (the *Planen* Phase, Slice 1)
+
+**Status: proposed** (scoped 2026-09-18) — **not yet implemented** (no schema, no code, no UI). This is the first slice
+of the North-Star Plan phase (`Vision_NorthStar_v1.0.md` §3.1) graduating into a specification. It is mocked in
+`dev-docs/UI_Concept_IdeaBoard.html`, a clickable page maintained together with this section. **Implementation does
+not start before the owner has approved that mockup** (owner, 2026-09-18); until then the two are changed together,
+and where they disagree the mockup is the newer statement.
+
+A trip's members collect what they might do on it — a link someone found, a place, a thought — discuss each one, and
+decide by hand which of them they mean to do and which they have given up on. Four scope decisions were taken up front
+(owner, 2026-09-18):
+
+* **Links are stored, not fetched.** The vision's server-side preview is a later slice with its own ADR (SSRF defence,
+  cache, Local-Mode degradation). Slice 1 makes **no outbound request**, which is what lets it behave identically in
+  all three modes. (The vision calls that gate „ADR-007"; the number has since been taken by session brokering, so the
+  fetch ADR takes the next free one.)
+* **Images are larger than an item photo**, scaled by the client, and few per idea (FR-29.5).
+* **Votes are a signal, the status is set by hand** (FR-29.2/29.3).
+* **The board attaches as a phase frame above M4**, with two phases for now (FR-29.7) — the re-entry point recorded
+  when the phase hub was dropped on 2026-08-08.
+
+* **FR-29.1 (One Card Type — the Idea):** A trip carries any number of **ideas**. An idea has a **title** (required)
+  and, optionally, a **note**, one **link**, one **tag** (FR-29.10), a **rain-proof** mark (FR-29.12) and images
+  (FR-29.5). There is no separate bookmark entity: *a bookmark is an idea with a link*. Ideas live in the **trip
+  partition** and sync like every other trip row (field-level LWW, tombstones); any member whose role may edit the
+  packing list may add, edit and decide ideas (FR-4.5 — no new role). The author column is
+  **server-stamped** (invariant 3). A link is accepted only with an `http` or `https` scheme — validated by the client
+  *and* refused by the server, since the value is rendered as an `href` — and opens in a new context with
+  `noopener noreferrer`.
+* **FR-29.2 (Three States, Set by Hand):** `idea → shortlisted → dropped`, each reachable from the card and from the
+  detail sheet. **Dropping is not deleting**: a dropped idea keeps its thread, votes and images, leaves the default
+  view for its own *Verworfen* segment, and one tap („Zurückholen") returns it to `idea`. **Delete** is a separate,
+  confirmed action in the detail sheet and removes the idea with its comments, votes and images (the client cascade
+  registry and the server's `ON DELETE CASCADE` both carry it).
+* **FR-29.3 (Votes — One per Account):** A member casts at most one vote per idea, 👍 or 👎; tapping the cast vote
+  withdraws it. Card and sheet show both tallies and who voted. **A vote changes nothing by itself** — no threshold
+  moves a status, so the rule needs no answer for three or more members. The voter column is server-stamped.
+  Travelers without an account do not vote (Vision decision 3). In **Single-User and Local Mode** there is no second
+  account, so votes, the „Stimmen" sort order and author lines are **hidden per G-8**, not disabled.
+* **FR-29.4 (Discussion Reuses the Comment Thread):** `comments` gains a nullable `idea_id` beside `trip_item_id`, at
+  most one of the two set (CHECK). An idea's thread is shown in its detail sheet and counted on its card. An idea
+  comment is **never a task** in this slice (`is_task = 0`) — preparation todos stay a packing concern.
+* **FR-29.5 (Images Outside the Envelope, With Their Own Limit):** Up to **4** images per idea. The client scales each
+  to a JPEG of at most **500 KB** before it leaves the device. The bytes follow ADR-002 exactly: only the hash and
+  position sync as a trip-partition row, the BLOB moves over its own endpoints, and the limit is enforced at handler,
+  store and CHECK constraint. In Local Mode the bytes live in IndexedDB beside the item images. The numbers are this
+  section's, not invariant 6's — an item photo answers *which jacket*, an idea image has to show a place.
+* **FR-29.6 (The Board):** One screen per trip. Three segments with counts — *Ideen · Shortlist · Verworfen* — a
+  card list, and a „+ Idee" action opening a sheet (Titel, Link, Notiz, Tag). Cards order by vote score, or by newest;
+  a freshly added idea is shown in the newest order so it does not vanish below the fold. Every empty segment says
+  what belongs in it, gated on the settled state (ADR-033) — a list that has not arrived is not an empty one. The
+  detail sheet follows the frame's pane on a wide window (ADR-064).
+* **FR-29.7 (The Phase Frame):** A trip's page head carries a two-way switch, ***Planen | Vorbereiten***. *Vorbereiten*
+  is M4, unchanged. **No phase without content gets a tab** — *Unterwegs* and *Danach* appear when they have
+  something behind them, which is the lesson of the dropped hub. Which phase a trip opens on is **open** (below).
+* **FR-29.8 (Notifications):** Two new kinds — a member added an idea, a member commented on an idea — with per-kind
+  preferences, delivered in the recipient's language (NFR-4.12, ADR-037), never to the actor. Server Mode only.
+* **FR-29.9 (Module Boundary — the reason this slice can stay fast to build):** The planner's client code lives under
+  `client/src/planner/` and its Playwright cases under `client/e2e/planner/`. It may import the shared kernel (`sync/`,
+  `api/`, `types/`, `lib/`, `theme/`, shared components); **packing code never imports planner code and the planner
+  never imports packing views, stores or composables** — an allowlist held by a gate in `make client`, modelled on
+  `domain-purity-gate.mjs`. The boundary is what makes it sound for CI to run only the planner's cases on a
+  planner-only diff; the path-selection change to `ci.yml` is its own PR and its own ADR, and lands first.
+
+* **FR-29.10 (Tags Are a Fixed Set — owner, 2026-09-18):** An idea carries at most one tag from a closed vocabulary:
+  *Wandern · Baden · Kultur · Essen · Ausflug*. Stored as a stable key and labelled through the catalogue
+  (NFR-4.12), named once per side (CODING_PRINCIPLES §4a) and held by a CHECK constraint. On the board a row of tag
+  chips filters the current segment, offering only the tags in use there. Chosen over free text because a closed set
+  filters without a tag manager and cannot fragment into *Wandern/wandern/Wanderung*. Cost accepted: an idea that
+  fits nothing stays untagged.
+* **FR-29.11 (Cloning Does Not Copy Ideas — owner, 2026-09-18):** Trip cloning (§3.12) copies no ideas, votes, idea
+  comments or idea images. A clone repeats a packing effort; the discussion belonged to the trip it was held for.
+
+* **FR-29.12 (Rain-Proof Is an Attribute, Not a Tag — owner, 2026-09-18):** An idea carries a boolean mark, labelled
+  „Geht auch bei Regen". It was first drafted as a tag *Regentag* and taken out of the set: a tag says **what** an idea
+  is, this says **when** it suits, and a museum is both *Kultur* and rain-proof — which one tag per idea cannot say.
+  Set in the add sheet and toggled in the detail sheet; shown as its own chip on card and sheet; on the board it is a
+  filter chip beside the tag chips, combined with them by *and*, offered only when the segment holds such an idea.
+  It is the column a later weather-suitability rule (Vision §3.2) keys on; this slice makes no forecast and no
+  suggestion from it.
+
+**Not in this slice:** link preview/fetch, PWA share-target, map and places, weather, transport, day plan, expenses,
+ideas that belong to no trip.
+
+**Open questions to resolve before *accepted*:**
+
+* **Opening phase.** Mocked: the phase last visited on this device; on a first visit *Planen* while the trip has no
+  packing rows, *Vorbereiten* otherwise.
+* **Does a shortlisted idea carry a day?** Or is scheduling wholly the During-phase day plan's.
+* **Backup and export.** Whether the Local-Mode device backup and `GET /me/export.json` carry ideas — images
+  included, which at 4 × 500 KB change a backup's size class.
+
 ## Part B — Clarifications & Extensions to Existing Sections
 
 ### 3.1 Template & Master Data Management
