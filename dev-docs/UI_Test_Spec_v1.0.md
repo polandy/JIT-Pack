@@ -1593,6 +1593,15 @@ test body under it separates a wrong number from a missing test.**
   **retired** item's name offers it back; a tap restores it without opening a sheet, the row returns marked, and M23
   is left with nothing to restore. A second item stays active, because an inventory whose only row is retired is an
   empty one and has no search field — which the first run of this case found.
+* **E2E-M9-24** `all` (FR-24.9 amended) — **implemented 2026-09-19** (`e2e/inventory-cleanup.spec.ts`): *Tag geben*
+  creates the tag its search did not find. A different capitalisation of an existing tag is **not** offered (the
+  uniqueness fold), a new name is, and taking it files both selected rows under the new heading. The undo is asserted
+  twice: the rows go back under their old heading, **and** the tag is gone from the manager — an undo that left the tag
+  behind would pass the first clause alone.
+* **E2E-M9-25** `all` (FR-24.13) — **implemented 2026-09-19** (`e2e/inventory-cleanup.spec.ts`): a tag's mark is set
+  from the tag manager's mark control through the item mark's picker, and read where it files something — on the group
+  heading, and **lent, muted, to a row without its own** (the `borrowed` slot). The mark is read off the tile that was
+  tapped rather than hard-coded, so the case does not pin the mark index's ordering.
 * **E2E-M9-17** `all` (FR-24.10) — **implemented 2026-09-15** (`e2e/inventory.spec.ts`): a tag is renamed from the
   manager, and the **inventory's group heading** carries the new name — the only place the write is observable, since
   the sheet would show a renamed row whether or not anything was written. The second clause is the refusal: a name a
@@ -1728,6 +1737,25 @@ decision, not a test gap.
   confirm says it will be removed for good before the tap that does it, and the row goes. The retire branch for a
   Vorlage is covered by the store and the orchestrator units rather than here, because reaching it through the UI means
   generating a whole trip for one sentence.
+
+**M24 — Aufräumen (FR-24.12).** Four cases in `e2e/inventory-cleanup.spec.ts`, all `local`. Every repair is asserted on
+**M9's headings after going back** — a finding that leaves M24's list is equally what a screen that wrote nothing and
+re-rendered would show. *Lange nicht gebraucht* has no rendered case: its finding needs a trip that ended months ago,
+which the wizard cannot date without a clock seam the suite does not have; the rule, its window and the unseen-trips
+line are unit-tested (`inventoryHygiene.spec.ts`, `InventoryCleanupPage.spec.ts`).
+
+* **E2E-M24-01** `all` (FR-24.12) — **implemented 2026-09-19**: M9's foot sentence counts the one untagged item, is the
+  way into M24, and the suggestion carries its reason (*„like ‚Zahnbürste'"*); taking it leaves M24 all tidy and, back
+  on M9, **both rows under one heading and the sentence gone** — the same event reaching both screens.
+* **E2E-M24-02** `all` (FR-24.12, FR-24.9) — **implemented 2026-09-19**: an item with no reason for a suggestion says
+  so; *„Tag wählen …"* opens the give sheet **without** the refiling switch, creates the typed tag, and M9 files the
+  item under it.
+* **E2E-M24-03** `all` (FR-24.12) — **implemented 2026-09-19**: *Behalten* on a single-item tag silences the rule
+  **across a reload** (device-local), while the rule's card still stands collapsed to *„Nichts zu tun"* — the positive
+  signal that the rule runs and was told, rather than having been switched off.
+* **E2E-M24-04** `all` (FR-24.12) — **implemented 2026-09-19**: M24 is reached from M9's ⋮ word too; switching *Ohne
+  Tag* off removes its card, and M9's count agrees — the foot sentence is gone while the untagged row itself is still
+  listed.
 
 **M23 — Hidden items and templates (FR-24.3, the restore).** Four cases in `e2e/restore-retired.spec.ts`, all `local`,
 all reached through M17's row rather than a typed URL.

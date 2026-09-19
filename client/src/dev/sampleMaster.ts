@@ -52,7 +52,13 @@ export interface SampleMaster {
 
 interface ItemSeed {
   name: string
-  tag: string
+  /**
+   * The primary tag. Absent on three items on purpose (FR-24.12): M24's
+   * „Ohne Tag" rule needs something to find on a fresh device, and each of
+   * the three reaches a different branch of its suggestion — a name
+   * neighbour, a group, and no reason at all.
+   */
+  tag?: string
   weightGrams?: number
   /**
    * FR-28.1: the item mark. Given to roughly half the inventory on purpose —
@@ -70,6 +76,18 @@ interface ItemSeed {
    * lands under a heading neither tag had.
    */
   alsoTag?: string
+}
+
+/**
+ * FR-24.13: the tags that carry a mark. Not all of them — „Elektronik" and
+ * „Fotografie" stay bare, so the axis shows both states and M9's leading slot
+ * falls back past a tag without one to the initial.
+ */
+const TAG_MARKS: Record<string, string> = {
+  Technik: '🔧',
+  Camping: '🏕️',
+  Kleidung: '👕',
+  Bad: '🧼',
 }
 
 /** The inventory, with the tag that groups it in M9 (ADR-014 primary tag). */
@@ -107,6 +125,14 @@ const INVENTORY: ItemSeed[] = [
   // needs an item nothing has ever referenced, and on a fresh device every
   // other item here is held by at least one group position.
   { name: 'Fernglas', tag: 'Technik', weightGrams: 620 },
+  // FR-24.12's findings. Zahnseide sits beside Zahnbürste (a name neighbour),
+  // Reiseadapter is in „Strom & Laden" (a group), Kartenspiel has neither.
+  { name: 'Zahnbürste', tag: 'Bad', weightGrams: 20, icon: '🪥' },
+  { name: 'Zahnseide', weightGrams: 10 },
+  { name: 'Reiseadapter', weightGrams: 90 },
+  { name: 'Kartenspiel', weightGrams: 80, icon: '🃏' },
+  // A tag exactly one item carries — the single-tag rule's finding.
+  { name: 'Graufilter', tag: 'Fotografie', weightGrams: 40 },
 ]
 
 /**
@@ -201,6 +227,7 @@ const GROUPS: GroupSeed[] = [
       { item: 'Powerbank', task: 'Powerbank laden' },
       { item: 'Ladegerät' },
       { item: 'Ersatzakkus', quantity: 2 },
+      { item: 'Reiseadapter' },
     ],
   },
 ]
@@ -313,8 +340,11 @@ export function seedSampleMaster(
   myUserId: string | null = null,
 ): SampleMaster {
   const tagIds = new Map<string, string>()
-  for (const tag of new Set(INVENTORY.flatMap((i) => (i.alsoTag ? [i.tag, i.alsoTag] : [i.tag])))) {
-    tagIds.set(tag, orchestrator.createTag(tag))
+  const tagNames = INVENTORY.flatMap((i) => [i.tag, i.alsoTag]).filter(
+    (tag): tag is string => tag !== undefined,
+  )
+  for (const tag of new Set(tagNames)) {
+    tagIds.set(tag, orchestrator.createTag(tag, TAG_MARKS[tag] ?? null))
   }
 
   const itemIds = new Map<string, string>()
@@ -325,7 +355,7 @@ export function seedSampleMaster(
       defaultAssigneeId: item.name === ASSIGNED_TO_ME ? myUserId : null,
     })
     itemIds.set(item.name, id)
-    const tagId = tagIds.get(item.tag)
+    const tagId = item.tag ? tagIds.get(item.tag) : undefined
     if (tagId) orchestrator.assignTag(id, tagId)
     // Second, so it lands behind the first — `assignTag` appends.
     const alsoId = item.alsoTag ? tagIds.get(item.alsoTag) : undefined

@@ -1624,6 +1624,12 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   switch on, and two controls for one write is how a second one drifts); **entering the mode by long-press**, which
   M4's rows use — the inventory row is a router link, and a hold that must not also navigate is a gesture fight worth
   having only once somebody misses the entrance in the app bar.
+
+  **Giving creates the tag it did not find (amended 2026-09-19 with FR-24.12).** The give sheet was search and pick only
+  — „a tag that does not exist is M10's business" — which turned tagging forty untagged items with a new category into a
+  detour through M10 first. A query that names no tag under the **uniqueness** fold (`findNameCollision`, so „diverses"
+  is not offered beside „Diverses") is offered as a new tag in FR-24.11's dashed row, created and given in one act; the
+  batch's undo removes the tag again once it has emptied it. Taking never offers it.
 * **FR-24.10 (Managing the Tags Themselves — added 2026-09-15, implemented the same day; the delete's options and
   their costs are **ADR-063**):** M9 carries a **tag manager**, reached as a word in the app bar's ⋮ (ADR-050 spends
   its three glyphs on FR-24.4's eye, the sort and FR-24.9's selection, and this is the rarest of the four). It lists
@@ -1729,6 +1735,62 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
     one without tags. *Scope:* all three screens, because the composer is one component (FR-25.13's „one way to add,
     everywhere"); M3's wizard does not use it.
 
+* **FR-24.12 (Tidying the Inventory Up — added 2026-09-19, implemented the same day; screen M24):** M9 reaches a screen
+  **„Aufräumen"** that runs a set of **rules** over the inventory and lists what each one finds, every finding beside
+  **the one repair that answers it**. *Why:* the owner asked for a cleanup function whose first rule is „every item
+  carries at least one tag". Three rules ship (owner decision 2026-09-19, taking every recommendation of the proposal's
+  mockup):
+  * **Ohne Tag** — an active item with no tag. Repair: a **suggested tag**, one tap, or **„Tag wählen …"**, which is
+    FR-24.9's give sheet — searchable, and it creates a tag it does not find (see FR-24.9's amendment). **A suggestion
+    is offered only with its reason, and the reason is shown:** first the primary tag most fellow positions of the
+    item's active **Vorlagen** carry (ties by the axis order) — somebody put it there on purpose; failing that, a *name
+    neighbour* (the tagged item sharing the longest folded name prefix, at least four letters — Zahnseide „wie
+    Zahnbürste") lends its primary tag. The order was the other way round until the rendered seed offered *Bad* for a
+    Reiseadapter filed in „Strom & Laden", because it shares „Reise" with the Reiseapotheke — German compounds make a
+    shared first word common and weak. No reason, no offer — a guess that cannot say why is the column everyone learns
+    to ignore. Several suggestions can be taken at once.
+  * **Lange nicht gebraucht** — in no active Vorlage, and its last known trip ended more than *N* months ago (6, 12 or
+    24; 12 by default). Repair: **Stilllegen** (FR-24.3's retire; the undo is M23's restore) or **Behalten**. Two
+    deliberate limits: an item **never** on a trip is not flagged, because items carry no creation date and one created
+    yesterday looks exactly like one forgotten for years; and an untagged item is left to the first rule, so one row is
+    one question. **One limit it can only admit:** in Server Mode a device holds only the trips it has opened (ADR-032),
+    so a more recent use may sit in a trip it has not seen — the card says how many trips in the window it has not seen,
+    and stays silent in Local Mode, where there are none.
+  * **Tag mit nur einem Artikel** — a tag exactly one active item carries: a typo of another tag, or a category that
+    never caught on. Repair: **Zusammenführen …**, FR-24.10's merge through the same prompt the tag manager uses, or
+    **Behalten**.
+
+  **A rule finds; it never refuses.** „At least one tag" cannot be a constraint: an assignment is its own `item_tags`
+  row, and a mutation refused for breaking a cross-row rule is one the outbox drops (the argument that keeps
+  `retired_at` free of CHECKs). Untagged items also keep arriving by design — FR-24.11's quick create, the spreadsheet
+  import, M21 — so the rule runs afterwards over what is there. **No repair is a new way to write:** giving a tag,
+  retiring and merging are FR-24.9/24.3/24.10's acts, and every one raises a snackbar with **Rückgängig**. The rules are
+  pure client-side functions (`domain/inventoryHygiene`, invariant 4), so Local Mode has them.
+
+  **Which rules run, the window, and every „Behalten" are device-local** (FR-24.4's persistence class), by the owner's
+  choice of the cheaper option. *Cost, accepted:* in the multi-user case a „Behalten" pressed on one phone is not seen
+  on another, and the household member is asked about the same camping stove again. **Revisit trigger:** that complaint
+  — the fix is a column on `items` and `tags` and a reseed. **M9's entrances:** a word behind the app bar's ⋮
+  (*„Aufräumen"*, offered whatever the count — „alles aufgeräumt" is an answer the screen gives, and the rule settings
+  live there), and a sentence at the list's foot beside the retired count, *„N Hinweise zum Aufräumen"*, present only
+  while something is found, never before the master partition has arrived (ADR-033) and never in the selection mode.
+  *Considered and rejected:* a banner above the list (a list that is untidy is not wrong, and a standing banner is noise
+  the day after); making the tag mandatory in M10 (the refusal above); and a fourth rule, **similar names** with an item
+  merge — M9's merge of duplicates was struck on 2026-08-31 and nothing merges two items today, so the rule would
+  find what it cannot repair. It waits for an owner decision on building that merge.
+
+* **FR-24.13 (A Tag Carries a Mark — added 2026-09-19, implemented the same day):** a tag may carry **one emoji**, the
+  item mark's column on `tags` (`icon`, FR-28.1's shape: optional, capped at 32 bytes, no „is it really an emoji" check
+  — FR-28.9), chosen with the item mark's own picker (FR-28.2) and rendered through `ItemMark`, so FR-28.5's confinement
+  of the mark face still holds. **Where it is set:** the tag manager (FR-24.10) gives every row a mark control — the
+  mark, or an empty dashed slot. **Where it shows:** M9's tag chips and group headings, the tag filter sheet and
+  FR-24.9's give/take sheet. **It fills M9's leading slot:** the inventory ladder (FR-28.4) gains a rung — photo → the
+  item's mark → **the primary tag's mark** → the tag's initial — and the borrowed mark is painted muted, so an item's
+  own mark stays recognisable beside it. Only on M9: the packing surfaces keep FR-28.4's empty slot, because a tag's
+  mark beside every row of a packing list is decoration, not identification. **The portable format does not carry it** —
+  a trip document names tags by name only, and adding a tag vocabulary section is its own change; the NFR-4.5 backup
+  does, being every column of `tags`. *Considered:* the mark at creation time in the give sheet (the mockup's strip) —
+  deferred, because the sheet then needs the picker inside a sheet, and the manager is one tap away.
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —
@@ -3840,7 +3902,8 @@ the tail is where a symbol system is actually decided. Results:
 * **FR-28.4 (Where the Mark Appears, and the Fallback Ladder):** The mark renders on the M4 packing row, the M5 item
   sheet header, the M9 inventory row, and the M10 editor (where it is also set). The fallback ladder is deliberately
   **not the same on every surface**, because the surfaces answer different questions:
-  * **M9 (inventory, master data): photo → mark → primary-tag initial.** The inventory is where an item is identified,
+  * **M9 (inventory, master data): photo → mark → the primary tag's mark (muted; FR-24.13, 2026-09-19) → primary-tag
+    initial.** The inventory is where an item is identified,
     the initial tile already exists there (ADR-014), and a row that never falls back to *nothing* keeps the column
     aligned.
   * **M4/M5 (packing): photo → mark → nothing.** No letter tile: the rendered round showed it as pure noise beside the

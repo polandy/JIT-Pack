@@ -38,16 +38,25 @@ import type { Tag } from '@/types/domain'
 /** What the sheet is being opened for. */
 export type BulkTagMode = 'give' | 'take'
 
-const props = defineProps<{
-  isOpen: boolean
-  mode: BulkTagMode
-  /** The tags to offer — already narrowed by the caller for `take`. */
-  tags: Tag[]
-  /** How many of the *selected* items each tag holds, by tag id. */
-  counts: Map<string, number>
-  /** How many items the action would touch. */
-  selected: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    isOpen: boolean
+    mode: BulkTagMode
+    /** The tags to offer — already narrowed by the caller for `take`. */
+    tags: Tag[]
+    /** How many of the *selected* items each tag holds, by tag id. */
+    counts: Map<string, number>
+    /** How many items the action would touch. */
+    selected: number
+    /**
+     * Whether to offer „Als primären Tag setzen". M24 opens this sheet for one
+     * *untagged* item, where the tag given is the primary one whatever the
+     * switch says — offering it there asks a question with no effect.
+     */
+    refile?: boolean
+  }>(),
+  { refile: true },
+)
 
 const emit = defineEmits<{
   dismiss: []
@@ -110,7 +119,7 @@ const title = computed(() =>
       </div>
 
       <!-- FR-24.9: the difference between labelling and refiling. -->
-      <label v-if="mode === 'give'" class="primary-switch">
+      <label v-if="mode === 'give' && refile" class="primary-switch">
         <input v-model="primary" type="checkbox" data-testid="m9-bulk-primary" />
         <span>
           <strong>{{ t('items.bulkPrimary') }}</strong>

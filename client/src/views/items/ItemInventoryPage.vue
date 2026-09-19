@@ -46,6 +46,7 @@ import {
   addOutline,
   checkboxOutline,
   checkmarkOutline,
+  sparklesOutline,
   chevronDownOutline,
   chevronForwardOutline,
   closeOutline,
@@ -70,6 +71,7 @@ import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
+import { useInventoryHygiene } from '@/composables/useInventoryHygiene'
 import EmptyState from '@/components/global/EmptyState.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
@@ -113,6 +115,7 @@ import {
 import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { presentToast } from '@/lib/toast'
+import { promptTagMerge } from '@/lib/tagMergePrompt'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
@@ -185,6 +188,9 @@ const selecting = ref(false)
 const selected = ref<Set<string>>(new Set())
 const bulkSheet = ref<BulkTagMode | null>(null)
 
+/** FR-24.12: how many findings M24 would list — the foot note's number. */
+const { report: hygiene } = useInventoryHygiene()
+
 setHeaderActions(() => {
   const eye: HeaderAction = {
     id: 'm9-properties',
@@ -232,6 +238,18 @@ setHeaderActions(() => {
     label: t('items.manageTags'),
     onClick: () => (tagsOpen.value = true),
   }
+  /*
+   * FR-24.12. A word behind the ⋮ like the tag manager, and for the same
+   * reason: a cleanup pass is occasional. Offered whatever the count — „all
+   * tidy" is an answer the screen gives, and the rule settings live there.
+   */
+  const cleanup: HeaderAction = {
+    id: 'm9-cleanup',
+    icon: sparklesOutline,
+    label: t('items.cleanup'),
+    overflow: true,
+    onClick: () => void router.push(PATH.inventoryCleanup),
+  }
   // An inventory with no tags has nothing to manage, exactly as it has
   // nothing to select — once it is known to hold none (ADR-033).
   if (knownEmpty.value) return [eye, sortAction]
@@ -244,8 +262,8 @@ setHeaderActions(() => {
     onClick: () => (selecting.value ? endSelecting() : (selecting.value = true)),
   }
   return masterStore.tagList.length > 0
-    ? [eye, sortAction, select, manageTags]
-    : [eye, sortAction, select]
+    ? [eye, sortAction, select, manageTags, cleanup]
+    : [eye, sortAction, select, cleanup]
 })
 
 function endSelecting() {
@@ -529,52 +547,13 @@ async function renameTag(tag: Tag) {
   })
 }
 
-/**
- * FR-24.10: merge this tag into another and delete it.
- *
- * The target is picked from an action sheet rather than a second modal: an
- * overlay opened from inside an overlay is the scroll clamp FR-24.8 already
- * paid for, and the list is the same tags the sheet behind it is showing.
- */
+/** FR-24.10: merge this tag into another and delete it — the shared flow. */
 async function mergeTag(tag: Tag) {
-  const targets = masterStore.tagList.filter((other) => other.id !== tag.id)
-  if (targets.length === 0) {
-    await presentToast({ message: t('items.tagMergeNoTarget', { tag: tag.name }) })
-    return
-  }
-
-  const picker = await actionSheetController.create({
-    header: t('items.tagMergeTitle', { tag: tag.name }),
-    buttons: [
-      ...targets.map((other) => ({
-        text: other.name,
-        data: other.id,
-        htmlAttributes: { 'data-testid': `m9-tag-merge-into-${other.name}` },
-      })),
-      { text: t('common.cancel'), role: 'cancel' },
-    ],
+  await promptTagMerge(tag, {
+    tags: masterStore.tagList,
+    usage: tagUsage.value.get(tag.id) ?? 0,
+    merge: orchestrator.mergeTags,
   })
-  await picker.present()
-  const { data: targetId, role } = await picker.onDidDismiss<string>()
-  if (role === 'cancel' || !targetId) return
-
-  const target = masterStore.tagList.find((other) => other.id === targetId)
-  if (!target) return
-
-  const ok = await confirmDestructive({
-    header: t('items.tagMergeTitle', { tag: tag.name }),
-    message: t('items.tagMergeConfirmBody', {
-      n: tagUsage.value.get(tag.id) ?? 0,
-      source: tag.name,
-      target: target.name,
-    }),
-    confirmLabel: t('items.tagMergeConfirm'),
-    testid: 'm9-tag-merge-confirm',
-  })
-  if (!ok) return
-
-  const moved = orchestrator.mergeTags(tag.id, target.id)
-  await presentToast({ message: t('items.tagMerged', { n: moved, tag: target.name }) })
 }
 
 /**
@@ -1275,16 +1254,37 @@ onBeforeUnmount(() => observer?.disconnect())
       </template>
 
       <!--
+        The foot of the list: what the screen is *not* showing, in two
+        sentences that are each the way to it. One block, so the clearance
+        the FAB needs is paid once below both rather than between them.
+
+        FR-24.12 first: what a cleanup rule found — a sentence here rather
+        than a banner over a list that is not wrong, only untidy.
+
         FR-24.3's other half, said out loud. A retired item is hidden from
         this list by design (ADR-032), but until now nothing here admitted
         the hidden ones exist — so „25 Artikel" read as the whole
         collection, and the way back to them (M23) was reachable only by
-        someone who already knew it was there. Behind `itemsKnown` for
-        ADR-033's reason: a partition that has not arrived carries no
-        retired rows either, and „nothing is hidden" is a claim.
+        someone who already knew it was there.
+
+        Both behind `itemsKnown` for ADR-033's reason: a partition that has
+        not arrived has no findings and no retired rows, and „nothing to
+        tidy" and „nothing is hidden" are claims.
       -->
-      <div v-if="itemsKnown && !selecting && retiredCount > 0" class="retired-note">
+      <div
+        v-if="itemsKnown && !selecting && (hygiene.total > 0 || retiredCount > 0)"
+        class="retired-note"
+      >
         <button
+          v-if="hygiene.total > 0"
+          type="button"
+          data-testid="m9-cleanup-note"
+          @click="router.push(PATH.inventoryCleanup)"
+        >
+          {{ t('items.cleanupHint', { n: hygiene.total }) }}
+        </button>
+        <button
+          v-if="retiredCount > 0"
           type="button"
           data-testid="m9-retired-note"
           @click="router.push(PATH.masterRetired)"
@@ -1497,7 +1497,8 @@ onBeforeUnmount(() => observer?.disconnect())
    well as hit. */
 .retired-note {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: 18px 4px 96px;
 }
 

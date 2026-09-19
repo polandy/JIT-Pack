@@ -39,6 +39,7 @@ import { t } from '@/i18n'
 
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { PATH } from '@/router/paths'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -48,13 +49,19 @@ vi.mock('@/lib/confirm', () => ({
   confirmAction: vi.fn().mockResolvedValue(false),
   promptText: vi.fn().mockResolvedValue(undefined),
 }))
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }))
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
   useRoute: () => ({ query: {}, params: {} }),
 }))
 
 const master = masterDataStub()
-const orchestratorFake = { ...master }
+const orchestratorFake = {
+  ...master,
+  // FR-24.12's count reads the day and which trips are on the device.
+  today: () => '2026-09-19',
+  tripDataLoaded: () => true,
+}
 
 function seedItem(name: string, id = 'i1') {
   useMasterStore().applyChange({
@@ -1066,6 +1073,67 @@ describe('M9 — the items it is not showing (FR-24.3, ADR-032)', () => {
     master.masterLoaded.value = true
     await flushPromises()
     expect(page.find('[data-testid="m9-retired-note"]').exists()).toBe(true)
+  })
+})
+
+describe('M9 — the way into the cleanup (FR-24.12)', () => {
+  function headerActions(): HeaderAction[] {
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    return build()
+  }
+
+  it('counts the findings at the foot of the list, and the sentence is the way in', async () => {
+    seedItem('Kartenspiel', 'i1')
+    seedItem('Schnorchel', 'i2')
+
+    const page = mountPage()
+    await flushPromises()
+
+    // Two untagged items, and nothing else for a rule to find.
+    const note = page.get('[data-testid="m9-cleanup-note"]')
+    expect(note.text()).toBe(t('items.cleanupHint', { n: 2 }))
+    await note.trigger('click')
+    expect(routerPush).toHaveBeenCalledWith(PATH.inventoryCleanup)
+  })
+
+  it('stays silent when no rule finds anything', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedTag('Bad', 't-bad')
+    seedItem('Seife', 'i2')
+    assignTag('i1', 't-bad')
+    assignTag('i2', 't-bad')
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(2)
+    expect(page.find('[data-testid="m9-cleanup-note"]').exists()).toBe(false)
+  })
+
+  it('offers the screen as a word behind the ⋮, whatever the count', async () => {
+    seedItem('Sonnencreme', 'i1')
+
+    mountPage()
+    await flushPromises()
+
+    const action = headerActions().find((a) => a.id === 'm9-cleanup')!
+    expect(action.label).toBe(t('items.cleanup'))
+    expect(action.overflow).toBe(true)
+    action.onClick()
+    expect(routerPush).toHaveBeenCalledWith(PATH.inventoryCleanup)
+  })
+
+  it('claims no finding before the master partition has arrived (ADR-033)', async () => {
+    seedItem('Kartenspiel', 'i1')
+    master.masterLoaded.value = false
+
+    const page = mountPage()
+    await flushPromises()
+    expect(page.find('[data-testid="m9-cleanup-note"]').exists()).toBe(false)
+
+    master.masterLoaded.value = true
+    await flushPromises()
+    expect(page.find('[data-testid="m9-cleanup-note"]').exists()).toBe(true)
   })
 })
 

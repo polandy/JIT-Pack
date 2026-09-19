@@ -150,11 +150,14 @@ describe('seedSampleMaster (dev)', () => {
     expect(master.getTemplateItems(wellness.id)).toHaveLength(3)
   })
 
-  it('tags every inventory item, so M9 groups them', () => {
+  it('tags every inventory item but the three left for M24, so M9 groups them', () => {
     const { master } = seed()
 
+    // FR-24.12: three are untagged on purpose (asserted by name below); every
+    // other item carries a tag, so the grouped list is not one long bucket.
+    const leftForCleanup = new Set(['Zahnseide', 'Reiseadapter', 'Kartenspiel'])
     expect(master.itemList.length).toBeGreaterThan(10)
-    for (const item of master.itemList) {
+    for (const item of master.itemList.filter((i) => !leftForCleanup.has(i.name))) {
       expect(master.getItemTags(item.id).length).toBeGreaterThan(0)
     }
   })
@@ -181,7 +184,7 @@ describe('seedSampleData (dev)', () => {
     // Two trips since FR-27.4: the sample trip is imported and therefore
     // follows nothing, so a generated one is what makes the refresh visible.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 24 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
+      'Beispieldaten: 29 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
   })
 
@@ -303,6 +306,31 @@ describe('sample master data, FR-28.1/28.8', () => {
       .filter((icon): icon is string => Boolean(icon))
 
     expect(seeded.filter((icon) => !known.has(icon))).toEqual([])
+  })
+})
+
+describe('seedSampleMaster — something for M24 to find (FR-24.12, FR-24.13)', () => {
+  it('gives some tags a mark and leaves at least one without', () => {
+    const { master } = seed()
+
+    const marked = master.tagList.filter((tag) => tag.icon)
+    expect(marked.length).toBeGreaterThan(0)
+    expect(marked.length).toBeLessThan(master.tagList.length)
+  })
+
+  it('leaves items untagged — one with a name neighbour, one in a group, one with no reason', () => {
+    const { master } = seed()
+
+    const tagged = new Set(master.itemTagList.map((a) => a.item_id))
+    const untagged = master.activeItemList.filter((i) => !tagged.has(i.id)).map((i) => i.name)
+    expect(untagged.sort()).toEqual(['Kartenspiel', 'Reiseadapter', 'Zahnseide'])
+  })
+
+  it('carries a tag exactly one item holds, for the single-tag rule', () => {
+    const { master } = seed()
+
+    const foto = master.tagList.find((tag) => tag.name === 'Fotografie')!
+    expect(master.itemTagList.filter((a) => a.tag_id === foto.id)).toHaveLength(1)
   })
 })
 

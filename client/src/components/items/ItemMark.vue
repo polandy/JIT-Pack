@@ -113,6 +113,12 @@ const showSlot = computed(() => showMark.value || props.surface === 'packing')
   opacity: 0.55;
 }
 
+/* …and drawn smaller inside the same box, so the column stays aligned while
+   a run of borrowed marks reads as the group's, not as each row's own. */
+.mark-slot.borrowed .jp-mark {
+  transform: scale(0.7);
+}
+
 /* ADR-014's tile, moved here with the ladder that decides when it shows. */
 .mark-initial {
   display: flex;
