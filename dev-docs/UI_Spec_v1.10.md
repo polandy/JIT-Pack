@@ -1565,8 +1565,9 @@ These patterns apply to every screen and are specified once.
 * **Actions:** Type and tap ＋ (or Enter) → an entry on the **open tab**; the field clears for the next. Check off an
   entry → bought, under the reveal. Check off a packing row → FR-3.3 on the row (BUY_BEFORE → on the packing list,
   BUY_LOCAL → packed). ✕ on an entry → removed. A packing row leaves only by being bought or by changing mode on M4/M5.
-* **Adding an inventory item to buy (since FR-30.2):** on **M4**, with the composer, then its mode in M5 — M6 writes
-  no packing rows. The composer, its create sheet (FR-24.11) and its duplicate exclusion (FR-25.13d) are M4's and M8's.
+* **Adding an inventory item to buy (since FR-30.2):** on **M4**, with the composer, then its mode — in M5, or *Vor Ort
+  kaufen* from the row menu (FR-5.9). M6 writes no packing rows. The composer, its create sheet (FR-24.11) and its
+  duplicate exclusion (FR-25.13d) are M4's and M8's.
 * **Concept-review additions (Addendum §3.25 / FR-25.6, proposed 2026-07-17):** each shopping row can be **assigned to a
   traveler** (*Used by*, FR-4.2) from here, and can carry a **per-item comment/note** (FR-7.1) — e.g., "war im Migros
   Eigerplatz, gab es dort nicht" — so where-looked / unavailable / substitution context lives on the item. **One

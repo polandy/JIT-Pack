@@ -4197,9 +4197,10 @@ as for the packing rows.
   one line per thing to buy (per-person instances aggregated), check-off writes the mode transition and `bought_from` on
   the packing row, the reveal says where it went. A packing row leaves the list by being bought or by changing mode on
   M4/M5 — M6 offers no remove for it. **M6 no longer adds packing rows**: the shared composer (FR-25.13) is gone from
-  M6, and an inventory item to buy is put on the packing list in M4 with its mode chosen there. The list shows its own
-  entries first under their own heading, then the packing rows under their categories; an entry and a packing row of
-  the same name are **not merged** — they are two decisions, and the list does not guess that they are one.
+  M6, and an inventory item to buy is put on the packing list in M4 with its mode chosen there — in M5, or for *vor Ort
+  kaufen* straight from the row's menu (FR-5.9). The list shows its own entries first under their own heading, then the
+  packing rows under their categories; an entry and a packing row of the same name are **not merged** — they are two
+  decisions, and the list does not guess that they are one.
 * **FR-30.3 (Module Boundary):** The shopping list's client code is a feature module under `client/src/shopping/`
   (store, actions, screen, specs), its Playwright cases under `client/e2e/shopping/` — the layout FR-29.9 names for the
   planner, used here first. Packing code never imports the module and the module never imports packing views, stores,
