@@ -172,7 +172,7 @@ const active = computed(() => isActive(trip.value))
 
 function quickAdd(item: {
   name: string
-  sourceItemId: string | null
+  sourceItemId: string
   weightGrams: number | null
   valueCents: number | null
   categoryName: string | null

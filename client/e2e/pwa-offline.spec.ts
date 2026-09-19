@@ -1,4 +1,11 @@
-import { test, expect, createTripViaWizard, openQuickAdd, visiblePage } from './fixtures'
+import {
+  addInComposer,
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+  visiblePage,
+} from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 
@@ -143,8 +150,7 @@ test.describe('app shell offline (NFR-4.13)', () => {
 
     await createTripViaWizard(page, { name: 'Sturmwoche' })
     await openQuickAdd(page)
-    await visiblePage(page).getByTestId('quick-add-input').locator('input').fill('Regenjacke')
-    await visiblePage(page).getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Regenjacke')
     await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toBeVisible()
     await visiblePage(page).getByTestId('quick-add-close').click()
 

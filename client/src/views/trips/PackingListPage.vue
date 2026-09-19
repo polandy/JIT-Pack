@@ -1479,11 +1479,7 @@ function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }, decided?: 
         [],
         item.travelerIds,
       )
-  // Only a row that came from the inventory has a line to offer the undo on;
-  // a typed name is not in the sheet at all.
-  if (item.sourceItemId) {
-    browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
-  }
+  browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
   announceCompanions(companions)
 }
 

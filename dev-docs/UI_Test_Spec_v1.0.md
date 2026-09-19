@@ -712,6 +712,18 @@ in WebKit.
 * **E2E-M4-106** `local` (FR-7.3 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): the same
   for M4's preparation section: ticking a prep task drops the row's badge and raises the snackbar; *Rückgängig*
   brings the badge back, also after a reload.
+* **E2E-M4-107** `local` (FR-24.11 in the composer, FR-5.6, added 2026-09-19) — **implemented**
+  (`packing-list.spec.ts`): „Zelt" typed while the inventory holds
+  *Zeltheringe* shows the offer **above** the partial hit; ✓ opens the *„Neuer Artikel"* sheet on „Zelt" and **no row
+  has appeared** — asserted once the sheet is visibly open, so the absence is not read before the write could land.
+  *„Anlegen"* puts a *Zelt* row on the list, the composer stays open, and M9 lists *Zelt* — the row and the inventory
+  entry are the same event reaching both places.
+* **E2E-M4-108** `local` (FR-24.11, FR-24.7, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): an inventory
+  item typed in the other umlaut spelling („guertel" for *Gürtel*) shows no offer, and ✓ adds it directly — no sheet.
+  Typed again once it is on the list, the composer says *„‚Gürtel' ist schon drin"* and ✓ is disabled.
+* **E2E-M4-109** `local` (FR-24.11 with FR-24.3, added 2026-09-19) — **implemented** (`restore-retired.spec.ts`): a
+  retired item's name is offered as a restore; taking it puts the row on the list and the item back in M9, and M23 has
+  nothing left to restore — no second item.
 * **E2E-M4-97** `local` (FR-7.4 visibility, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): with no todo
   the section is closed and the header has no todo figure. With two todos, after a reload that no helper has touched,
   the section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2 Aufgaben"* and
@@ -1184,6 +1196,10 @@ rather than registered.
   for this defect must not do), then asserts the counts are stated once the partition lands: the zero is deferred, not
   dropped, because a genuinely empty tab is worth naming. `single` for E2E-M4-86's reason — only a backend-backed run
   has the moment.
+* **E2E-M6-25** `local` (FR-24.11 in the composer, FR-25.13, added 2026-09-19) — **implemented**
+  (`shopping.spec.ts`): an unknown name typed into M6's
+  composer goes through the *„Neuer Artikel"* sheet and nothing is written before *„Anlegen"*; after it, the name is a
+  row of the open tab.
 * **E2E-M6-22** `all` (FR-3.3/25.11j) — **new 2026-08-25**: the destination tab's half. A BUY_LOCAL row never changes
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its
@@ -1395,7 +1411,11 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
   cannot pass by racing), inventory autocomplete after two characters, visible confirm labelled for the scope ("Zur
   Gruppe/Vorlage hinzufügen"), Enter commits, the field stays open and empty for the next position and never collapses
   on blur (FR-25.13a as revised 2026-08-13); an already-present name is reported ("schon drin — nicht doppelt") and not
-  added twice; an unknown name creates the master item and the position in one step. *(**„after two characters" was
+  added twice; an unknown name creates the master item and the position in one step. **Revised 2026-09-19 (FR-24.11
+  in the composer):** the already-present name is now reported *before* the commit — *„‚{Name}' ist schon drin"*
+  under the field, ✓ `aria-disabled`, Enter inert — and an unknown name goes through the create sheet (E2E-M8-27);
+  one character is a query since the composer searches with M9's rule, so the two-character gate below is retired.
+  *(**„after two characters" was
   asserted nowhere** — not here, not on M4, not in `QuickAddItem.spec.ts` — until 2026-08-30: `MIN_SEARCH_LENGTH` is
   shared with M3 step 3 and nothing would have gone red on a change to it. The gate is now pinned on M8, where the
   shared composer's rules live (the FR-25.13c/d division of labour), with the **free-text hint absent alongside the
@@ -1461,6 +1481,10 @@ ids and M8's tests; the entries stay where they are so no id is defined twice.
   *Aufgaben für die Reise* takes two tasks in both scopes, keeps them across a reload with the count on the head, and ✕
   removes one while its sibling stays. What a generated trip makes of them — trip todos, and no preparation — is
   E2E-M3-23's.
+* **E2E-M8-27** `local` (FR-24.11 in the composer, FR-25.13, added 2026-09-19) — **implemented**
+  (`template-editor.spec.ts`): an unknown name in M8's composer opens
+  the *„Neuer Artikel"* sheet instead of creating the master item silently; nothing is a position before *„Anlegen"*,
+  and after it the name is a position and an inventory item.
 
 ### M9 — Item Inventory
 
@@ -3300,7 +3324,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-23.8 | E2E+UNIT | M17-17 (`single`: an instance that was not asked to check says nothing, with the version line as the positive signal). The other three states need a release feed that answers on demand, which no project has: `views/settings/__tests__/SettingsUpdateCheck.spec.ts` renders all four plus Local Mode, where the assertion is that **no request is made**, and `internal/api/update_test.go` drives the endpoint — the day-long interval and the failed-check rules on an injected clock, the link hardening, and the check outliving the request that triggered it |
 | FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
 | FR-24.3 | E2E+UNIT | M10-14 (a referenced item is hidden and still resolves in its group), M10-15 (an unreferenced one is really gone, and its name is free again), M7-11 (the Vorlage confirm states which deletion it is), **M23-01/02/03/04** (the restore, the collision and its rename, that a retired row can still be removed for good, and the Vorlage half — retired by a trip, listed on its own segment, restored); `domain/masterDeletion` + `domain/masterRestore` and `composables/lifecycleDelete` + `composables/lifecycleRestore` (both rules, both branches, and that resolution/export keep seeing retired rows); store-side both branches **and the restore** in Go, including a colliding restore rejected as `constraint_violated` with the row left retired |
-| FR-24.11 | E2E+UNIT | M9-21 (missing name beside partial hits, list survives), M9-22 (filter tag assigned, create-and-open returns to the search), M9-23 (a retired name is restored, not re-created); `domain/itemSearch` `searchOffer` + `domain/search` `searchEquals`, `CreateItemSheet.spec.ts` (the write), `ItemInventoryPage.spec.ts` (when the offer appears) |
+| FR-24.11 | E2E+UNIT | M9-21 (missing name beside partial hits, list survives), M9-22 (filter tag assigned, create-and-open returns to the search), M9-23 (a retired name is restored, not re-created); the composer (2026-09-19): M4-107 (offer, sheet, row + inventory), M4-108 (exact match adds directly, already-in rests), M4-109 (retired name restored and added), M6-25, M8-27; `domain/itemSearch` `searchOffer` + `domain/search` `searchEquals`, `CreateItemSheet.spec.ts` (the write), `ItemInventoryPage.spec.ts` (when the offer appears), `QuickAddItem.spec.ts` (the composer's offer, commit and add) |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
 | FR-24.5 | E2E | M10-07 (minimal creation; photo, dependency and delete sections absent), M11-05 (placeholder-name container) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |

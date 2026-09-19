@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   createTripViaWizard,
@@ -28,8 +29,7 @@ useReducedMotion(test)
 async function tripWithRow(page: Page, name: string) {
   await createTripViaWizard(page, { name: 'Sperrprobe', travelers: ['Andy'] })
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill(name)
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, name)
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('quick-add-input')).toBeHidden()

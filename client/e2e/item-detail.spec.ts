@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   createTripViaWizard,
@@ -46,8 +47,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 400, height: 880 })
     const path = await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
 
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
 
@@ -75,8 +75,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 400, height: 880 })
     const path = await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
     const itemUrl = page.url()
 
@@ -107,8 +106,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 400, height: 880 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
 
     await expect(page.getByTestId('m5-pack')).toBeVisible()
@@ -149,8 +147,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     const listBefore = await visible(page).elementHandle()
     await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
 
@@ -201,8 +198,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
     await expect(page.getByTestId('m5-panel')).toBeVisible()
 
@@ -228,8 +224,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
     const itemUrl = page.url()
 
@@ -262,8 +257,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.getByTestId('trips-filter-planned').click()
     await page.getByTestId(`trip-row-${TRIP.name}`).click()
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
     // Settled, not arrived: back during the sheet's enter animation would
@@ -301,8 +295,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Wanderstöcke')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Wanderstöcke')
     await page.getByTestId('m4-row-Wanderstöcke').getByRole('heading').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
     // Present before they are measured, so a missing control fails as a
@@ -335,8 +328,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Regenhose')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Regenhose')
     await page.keyboard.press('Escape')
     await page.getByTestId('m4-row-Regenhose').getByRole('heading').click()
     await page.getByTestId('m5-details').click()
@@ -376,8 +368,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Kamera')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Kamera')
     await page.keyboard.press('Escape')
 
     // Nothing to prepare yet — the positive signal the badge is derived.
@@ -476,8 +467,7 @@ test.describe('M5 item detail @local @m5', () => {
   test('E2E-G8-01: a device with no members offers no delegation picker', async ({ page }) => {
     await createTripViaWizard(page, { ...TRIP, travelers: ['Andy', 'Sia'] })
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
     await page.getByTestId('m5-details').click()
 
@@ -509,8 +499,7 @@ test.describe('M5 item detail @local @m5', () => {
   }) => {
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
 
     await page.getByTestId('m5-note-input').locator('input').fill('Beim Nachbarn geliehen')
@@ -549,8 +538,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.setViewportSize({ width: 400, height: 880 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
 
     // The presented state, not a wait: Ionic's enter animation is a duration

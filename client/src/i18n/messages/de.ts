@@ -633,9 +633,11 @@ export const de: Record<keyof typeof en, string> = {
 
   // Schnell-Hinzufügen (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Packelement hinzufügen…',
-  'quickAdd.placeholder': 'Name des Packelements…',
+  'quickAdd.placeholder': 'Suchen oder neu anlegen…',
   'quickAdd.missingHint': 'Neue Packelemente werden als „fehlt“ markiert',
-  'quickAdd.newItem': '„{name}“ als neues Packelement hinzufügen',
+  'quickAdd.offerCreateHint': 'Neu im Inventar anlegen und gleich hinzufügen',
+  'quickAdd.offerRestoreHint': 'Wiederherstellen und gleich hinzufügen',
+  'quickAdd.alreadyIn': '„{name}“ ist schon drin',
   'quickAdd.recentHeading': 'Zuletzt verwendet',
   // FR-27.10: ganze Gruppen im selben Composer.
   'quickAdd.groupsHeading': 'Ganze Gruppe hinzufügen',

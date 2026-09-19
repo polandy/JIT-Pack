@@ -43,6 +43,15 @@
  * question per line with its own 👥 and avatars (FR-25.13g/h), and one door
  * per surface is the rule, so a sheet add never reads the strip.
  *
+ * **A name the inventory does not hold becomes an inventory item** (FR-24.11,
+ * owner 2026-09-19): the composer searches with M9's rule, makes M9's offer
+ * above its hits through the same `SearchOfferButton`, and takes it through the
+ * same `CreateItemSheet`; what the sheet creates is then added like any pick.
+ * The confirm button and Enter therefore add an exact match or open the sheet
+ * — they never write a row nobody's inventory knows. The ad-hoc row this used
+ * to make had no tags, no weight and no second life on the next trip, and it
+ * was the one add on the screen that did not go through the inventory.
+ *
  * **Deliberately no collapse-on-blur**, which FR-25.13a's wording allows
  * for an empty form. Collapsing removes a block from the flow *above* the
  * list, so the rows move between the pointer going down and coming up and
@@ -58,12 +67,26 @@ import {
   closeCircleOutline,
 } from 'ionicons/icons'
 import { ref, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { t } from '@/i18n'
 import ForWhomToggles from '@/components/global/ForWhomToggles.vue'
 import InventoryBrowseSheet from '@/components/global/InventoryBrowseSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
+import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
+import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
+import { useOrchestrator } from '@/composables/useOrchestrator'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
+import {
+  OFFER_CREATE,
+  isSearchQuery,
+  searchItems,
+  searchOffer,
+  type ItemSearchHit,
+} from '@/domain/itemSearch'
+import { searchEquals } from '@/domain/search'
+import { itemPath } from '@/router/paths'
 import { chipSuggestions } from '@/domain/quickAddChips'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { PREVIEW_ROW_NAMES, previewLines, resolvedLines } from '@/domain/templates'
@@ -71,6 +94,7 @@ import type { AddedItemDecision } from '@/sync/mutations'
 import type { BrowseRowSummary } from '@/domain/browseRows'
 import { recentItemIds, recordRecentItem } from '@/local/quickAddRecents'
 import { previewText } from '@/lib/groupPreview'
+import { formatWeight } from '@/lib/format'
 import type { MasterItem, Traveler } from '@/types/domain'
 
 /**
@@ -134,7 +158,8 @@ const props = withDefaults(
 /** The fields an add carries over, whichever verb sent it (FR-25.7 defaults). */
 export interface BrowseAddition {
   name: string
-  sourceItemId: string | null
+  /** Always an inventory item since FR-24.11 reached the composer. */
+  sourceItemId: string
   weightGrams: number | null
   valueCents: number | null
   categoryName: string | null
@@ -177,6 +202,9 @@ const emit = defineEmits<{
 }>()
 
 const masterStore = useMasterStore()
+const orchestrator = useOrchestrator()
+const router = useRouter()
+const candidates = useItemSearchCandidates()
 
 const expanded = ref(false)
 const query = ref('')
@@ -213,14 +241,51 @@ function chooseEveryone() {
 }
 const inputRef = ref<InstanceType<typeof IonInput> | null>(null)
 
+/**
+ * The query's hits, by M9's rule (FR-24.7): both umlaut spellings, tags and
+ * mark keywords, and ranked the way M9 ranks — so a name found in the
+ * inventory is found here, and „nichts gefunden" means the same thing on both.
+ */
+const hits = computed<ItemSearchHit[]>(() =>
+  isSearchQuery(query.value) ? searchItems(candidates.value, query.value) : [],
+)
+
 const suggestions = computed(() => {
-  if (query.value.length < MIN_SEARCH_LENGTH) return []
   const excluded = new Set(props.excludeItemIds)
-  return masterStore
-    .searchItems(query.value)
-    .filter((i) => !excluded.has(i.id))
+  return hits.value
+    .filter((hit) => !excluded.has(hit.id))
     .slice(0, MAX_MATCHES)
+    .flatMap((hit) => {
+      const item = masterStore.getItem(hit.id)
+      return item ? [{ item, via: hit.via }] : []
+    })
 })
+
+/** The active item the query names exactly — what ✓ adds when there is one. */
+const exactItem = computed(() => {
+  const name = query.value.trim()
+  if (!name) return undefined
+  return masterStore.activeItemList.find((item) => searchEquals(item.name, name))
+})
+
+/** The exact match is already in the scope: nothing to add, and ✓ says so by resting. */
+const exactAlreadyIn = computed(
+  () => !!exactItem.value && props.excludeItemIds.includes(exactItem.value.id),
+)
+
+/**
+ * FR-24.11's offer, made by M9's rule. Not before the master partition has
+ * arrived (ADR-033): „no such item" is a claim about a list the device may
+ * not hold yet, and taking it would create a duplicate of one it does.
+ */
+const offer = computed(() =>
+  orchestrator.masterDataLoaded()
+    ? searchOffer(query.value, masterStore.activeItemList, masterStore.retiredItemList)
+    : null,
+)
+
+/** Whether ✓ has anything to do: add the exact match, or take the offer. */
+const canCommit = computed(() => (exactItem.value ? !exactAlreadyIn.value : offer.value !== null))
 
 /** Bumped after each record so the chip rows follow the trail (FR-25.13c). */
 const recentsVersion = ref(0)
@@ -289,6 +354,7 @@ function close() {
   query.value = ''
   chosenTravelers.value = new Set()
   browseOpen.value = false
+  createOpen.value = false
 }
 
 function toggle() {
@@ -368,8 +434,8 @@ function onBrowseAssignForTravelers(item: MasterItem, travelerIds: string[]) {
 
 function selectSuggestion(item: MasterItem) {
   emitMasterItem(item)
-  // Stays open, like a free-text add: picking a suggestion is the same
-  // act, and closing on one but not the other would be arbitrary.
+  // Stays open: rows are entered in runs, and a created or restored item
+  // comes through here too, so every add leaves the composer the same way.
   void focusInput()
 }
 
@@ -432,26 +498,87 @@ function onBrowseDismiss() {
   }
 }
 
-function submitFreeText() {
-  const name = query.value.trim()
-  if (!name) return
+// --- FR-24.11: what the search did not find, it creates ------------------
 
-  emit('add', {
-    name,
-    sourceItemId: null,
-    weightGrams: null,
-    valueCents: null,
-    categoryName: null,
-    travelerIds: chosenTravelerIds(),
-  })
-  query.value = ''
-  void focusInput()
+const createOpen = ref(false)
+
+/**
+ * Whether the sheet's dismissal should hand focus back to the field. Set by a
+ * create, consumed on the sheet's dismissed signal: focusing while the sheet
+ * is still tearing down loses to Ionic's focus restoration, which leaves the
+ * page focused — Escape then no longer closes the composer. The browse-sheet's
+ * footer line pays the same price the same way.
+ */
+const createFocusPending = ref(false)
+
+/**
+ * The tags of the items the query found *by name*, offered first in the
+ * sheet, as M9 offers them: „Zelt" finds the pegs, so the tent is most likely
+ * filed where they are.
+ */
+const preferredTagIds = computed(() => {
+  const ids: string[] = []
+  for (const hit of hits.value) {
+    if (hit.reason !== 'name') continue
+    for (const tag of masterStore.getItemTags(hit.id)) if (!ids.includes(tag.id)) ids.push(tag.id)
+  }
+  return ids
+})
+
+/**
+ * The offer taken: a new name opens the sheet, a retired one is restored in
+ * place (M23's restore) and added straight away — the item already has its
+ * tags and its weight, so there is nothing left to ask.
+ */
+function takeOffer() {
+  const current = offer.value
+  if (!current) return
+  if (current.kind === OFFER_CREATE) {
+    createOpen.value = true
+    return
+  }
+  if (!orchestrator.restoreMasterItem(current.id)) return
+  const restored = masterStore.getItem(current.id)
+  if (restored) selectSuggestion(restored)
+}
+
+/**
+ * The sheet made the item, exactly as M9 and M10 make one; it is added like a
+ * picked suggestion — for whoever the strip names. „Anlegen und öffnen"
+ * continues in M10 after the add, so the row is there when the user returns.
+ */
+async function onCreated({ id, open }: { id: string; open: boolean }) {
+  createFocusPending.value = !open
+  createOpen.value = false
+  const item = masterStore.getItem(id)
+  if (!item) return
+  emitMasterItem(item)
+  if (open) await router.push(itemPath(id))
+}
+
+function onCreateDismiss() {
+  createOpen.value = false
+  if (createFocusPending.value) {
+    createFocusPending.value = false
+    void focusInput()
+  }
+}
+
+/**
+ * The confirm button and Enter. An exact match is added; any other name takes
+ * the offer, which for a new name opens the sheet and never writes — a typo
+ * must not become an item (FR-24.11).
+ */
+function commit() {
+  if (!canCommit.value) return
+  if (exactItem.value) selectSuggestion(exactItem.value)
+  else takeOffer()
 }
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Enter') {
     event.preventDefault()
-    submitFreeText()
+    commit()
   }
   if (event.key === 'Escape') {
     close()
@@ -505,9 +632,9 @@ function onKeydown(event: KeyboardEvent) {
         <IonButton
           size="small"
           data-testid="quick-add-confirm"
-          :disabled="!query.trim()"
+          :disabled="!canCommit"
           :aria-label="confirmLabel ?? t('common.add')"
-          @click="submitFreeText"
+          @click="commit"
         >
           <template v-if="confirmLabel">{{ confirmLabel }}</template>
           <IonIcon v-else slot="icon-only" :icon="checkmarkOutline" />
@@ -553,9 +680,23 @@ function onKeydown(event: KeyboardEvent) {
         <span>{{ t('quickAdd.browseEntry') }}</span>
       </button>
 
+      <!-- FR-24.11: above the hits, the place M9 makes it — with the keyboard
+           up, the end of a list of partial hits is out of reach. -->
+      <SearchOfferButton
+        v-if="offer"
+        :offer="offer"
+        testid="quick-add-offer"
+        :create-hint="t('quickAdd.offerCreateHint')"
+        :restore-hint="t('quickAdd.offerRestoreHint')"
+        @take="takeOffer"
+      />
+      <p v-else-if="exactAlreadyIn" class="no-match" data-testid="quick-add-already-in">
+        {{ t('quickAdd.alreadyIn', { name: exactItem?.name ?? '' }) }}
+      </p>
+
       <IonList v-if="suggestions.length > 0" class="suggestions">
         <IonItem
-          v-for="item in suggestions"
+          v-for="{ item, via } in suggestions"
           :key="item.id"
           button
           lines="inset"
@@ -564,13 +705,9 @@ function onKeydown(event: KeyboardEvent) {
         >
           <IonLabel>
             <h3>{{ item.name }}</h3>
-            <p v-if="item.weight_grams">
-              {{
-                item.weight_grams >= 1000
-                  ? `${(item.weight_grams / 1000).toFixed(1)} kg`
-                  : `${item.weight_grams} g`
-              }}
-            </p>
+            <!-- FR-24.7: a hit the query does not visibly contain says why. -->
+            <p v-if="via">{{ t('items.matchVia', { via }) }}</p>
+            <p v-else-if="item.weight_grams">{{ formatWeight(item.weight_grams) }}</p>
           </IonLabel>
         </IonItem>
       </IonList>
@@ -596,15 +733,6 @@ function onKeydown(event: KeyboardEvent) {
         </button>
       </div>
 
-      <p
-        v-if="
-          query.length >= MIN_SEARCH_LENGTH && suggestions.length === 0 && groupMatches.length === 0
-        "
-        class="no-match"
-      >
-        {{ t('quickAdd.newItem', { name: query }) }}
-      </p>
-
       <SheetModal :is-open="browseOpen" @dismiss="onBrowseDismiss">
         <InventoryBrowseSheet
           :carried-item-ids="excludeItemIds"
@@ -625,6 +753,18 @@ function onKeydown(event: KeyboardEvent) {
           @close="browseOpen = false"
         />
       </SheetModal>
+
+      <!-- The form's last child, as in M10: Ionic moves a presented inline
+           modal out of its parent, and a sheet with a sibling after it
+           becomes Vue's insertion anchor for that sibling. -->
+      <CreateItemSheet
+        :is-open="createOpen"
+        :name="offer?.name ?? query.trim()"
+        :tag-ids="[]"
+        :preferred-tag-ids="preferredTagIds"
+        @dismiss="onCreateDismiss"
+        @created="onCreated"
+      />
     </div>
   </div>
 </template>

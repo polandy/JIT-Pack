@@ -1,5 +1,6 @@
 import { test, expect, expectTripOpen } from './fixtures'
 import {
+  addInComposer,
   addPosition,
   addToGroup,
   backToTemplateList as backToList,
@@ -115,14 +116,16 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
   }) => {
     await createTripViaWizard(page, { name: 'Fototour 2026' })
 
-    // Typed by hand, so the row carries no source item — the group has to
-    // recognise it by name, which is the case that would double it.
+    // Added by hand before the group, so the group finds one of its
+    // positions already on the list — the case that would double it. Since
+    // FR-24.11 reached the composer the typed name is the inventory's own
+    // *Kamera*, so the row carries its source item; a sourceless row that
+    // has to be matched by name no longer comes from the composer.
     await openQuickAdd(page)
-    const input = visible(page).getByTestId('quick-add-input').locator('input')
-    await input.fill('Kamera')
-    await input.press('Enter')
+    expect(await addInComposer(page, 'Kamera')).toBe('added')
     await expect(visible(page).locator('ion-item').filter({ hasText: 'Kamera' })).toHaveCount(1)
 
+    const input = visible(page).getByTestId('quick-add-input').locator('input')
     await input.fill('Makro')
     await visible(page).getByTestId('quick-add-group').click()
 
@@ -134,9 +137,9 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
   test('E2E-M8-20: M8 reuses the same composer and offers no groups in it', async ({ page }) => {
     // The composer is one component with a prop, so M4 gaining groups could
     // hand them to M8 — where a group is not a position and FR-27.1 forbids
-    // nesting one anyway. The absence needs a positive signal beside it: the
-    // free-text hint proves the composer is open and searching, and it is the
-    // line M4 *hides* when groups match, so it falls if the prop leaks.
+    // nesting one anyway. The absence needs a positive signal beside it:
+    // FR-24.11's offer proves the composer is open and has searched, in the
+    // same render pass that would list the groups.
     await page.goto(PATH.templates)
     await visible(page).getByTestId('m7-scope-group').click()
     await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
@@ -145,7 +148,7 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     await openQuickAdd(page, 'm8-fab')
     await visible(page).getByTestId('quick-add-input').locator('input').fill('Mak')
 
-    await expect(visible(page).getByText('Add “Mak” as a new item')).toBeVisible()
+    await expect(visible(page).getByTestId('quick-add-offer-title')).toContainText('Mak')
     await expect(visible(page).getByTestId('quick-add-groups')).toHaveCount(0)
   })
 
