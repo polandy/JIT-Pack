@@ -99,6 +99,31 @@ describe('Server Mode', () => {
   })
 })
 
+describe('The module host', () => {
+  // FR-30.4: the tap's time comes from the orchestrator's own clock — the one
+  // the HLC reads — so a purchase and the clock that orders it cannot disagree.
+  it('stamps a purchase with the orchestrator’s clock', async () => {
+    const at = Date.parse('2026-09-19T14:32:00Z')
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: () => at,
+      features: [shoppingFeatureStore()],
+    })
+    harness.mockDrain()
+    const actions = createShoppingActions(orch.moduleHost)
+    actions.addEntry('t1', 'buy_local', 'Brot')
+    const [entry] = useShoppingStore().getEntries('t1')
+    actions.setBought(entry!, true)
+    await orch.drainTrip('t1')
+
+    expect(harness.pushedMutations().at(-1)).toMatchObject({
+      op: 'upsert',
+      fields: { bought: 1, bought_at: new Date(at).toISOString() },
+    })
+  })
+})
+
 describe('Local Mode', () => {
   it('an entry survives a restart', async () => {
     const persistence = new IndexedDBPersistence()
