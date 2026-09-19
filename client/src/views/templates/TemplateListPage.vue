@@ -39,6 +39,7 @@ import {
   documentTextOutline,
   downloadOutline,
   listOutline,
+  shareSocialOutline,
   trashOutline,
 } from 'ionicons/icons'
 import { computed, nextTick, ref } from 'vue'
@@ -47,6 +48,7 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import { compositionFrom, serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { canShareFile, shareFile, shareableFile } from '@/lib/share'
 import { useMasterStore } from '@/stores/masterStore'
 import { scopeForNewTemplate } from '@/domain/templates'
 import type { Template, TemplateKind } from '@/types/domain'
@@ -264,6 +266,17 @@ async function openRowMenu(tpl: Template) {
           icon: downloadOutline,
           handler: () => exportTemplate(tpl),
         },
+        ...(canShareFile(shareableFile('', safeFilename(tpl.name)))
+          ? [
+              {
+                text: t('templates.share'),
+                icon: shareSocialOutline,
+                handler: () => {
+                  void shareTemplate(tpl)
+                },
+              },
+            ]
+          : []),
         {
           text: t('common.delete'),
           icon: trashOutline,
@@ -334,16 +347,31 @@ async function deleteTemplate(tpl: Template) {
   if (confirmed) orchestrator.deleteTemplate(tpl.id)
 }
 
-/** FR-18.2: client-side export — works identically in Local Mode. */
-function exportTemplate(tpl: Template) {
-  const yaml = serializeTemplate(
+function portableDocument(tpl: Template): string {
+  return serializeTemplate(
     tpl,
     masterStore.getTemplateItems(tpl.id),
     masterStore.portableResolvers().masterItem,
     compositionFrom(tpl, masterStore.compositionSource()),
     masterStore.portableResolvers().tagsOf,
   )
-  saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
+}
+
+/** FR-18.2: client-side export — works identically in Local Mode. */
+function exportTemplate(tpl: Template) {
+  saveText(portableDocument(tpl), `${safeFilename(tpl.name)}.yaml`)
+}
+
+/**
+ * FR-18.2: the same document through the share sheet. A share that fails for
+ * any reason but the person's own dismissal saves the file instead, so the tap
+ * still leaves them holding the Vorlage.
+ */
+async function shareTemplate(tpl: Template) {
+  const file = shareableFile(portableDocument(tpl), safeFilename(tpl.name))
+  if ((await shareFile(file, tpl.name)) !== 'failed') return
+  exportTemplate(tpl)
+  await presentToast({ message: t('templates.shareFailed'), positionAnchor: FAB_ANCHOR.m7 })
 }
 </script>
 
