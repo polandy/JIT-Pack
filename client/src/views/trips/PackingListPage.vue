@@ -67,6 +67,7 @@ import {
 } from 'ionicons/icons'
 
 import { packedPercent, stateFor } from '@/domain/packState'
+import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -79,6 +80,7 @@ import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
+import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
 import { tripTodoProgress, tripTodoStatus, tripTodosUnfolded } from '@/domain/tripTodos'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import PackingRow, {
@@ -508,6 +510,22 @@ function clusterMaster(cluster: PackingCluster): MasterItem | null {
 }
 
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
+
+/** FR-25.29: every traveler's share of the whole trip — unfiltered, like the trip line. */
+const travelerShares = computed(() =>
+  progressByTraveler(tripStore.getItems(props.tripId), travelers.value),
+)
+
+/**
+ * FR-25.29: a tap narrows the person facet to that traveler alone, and a
+ * second tap on the same one clears it — the sheet's multi-select stays the
+ * way to pick several.
+ */
+function selectTraveler(value: string) {
+  const alreadyAlone = facets.value.person.length === 1 && facets.value.person[0] === value
+  clearFacet('person')
+  if (!alreadyAlone) toggleValue('person', value)
+}
 
 const view = computed(() =>
   buildPackingView({
@@ -1823,6 +1841,17 @@ setHeaderTitle(
         v-if="closingPass"
         @finish="onFinishClosingPass"
         @cancel="onCancelClosingPass"
+      />
+
+      <!-- FR-25.29: who the trip is for, and how far each of them is. Below
+           the sticky line rather than in it, so it scrolls away with the list
+           instead of holding a second band of the screen for the whole visit.
+           Waits for the partition like the figure above it (ADR-033). -->
+      <TravelerProgressStrip
+        v-if="rowsLoaded && !closingPass && showsTravelerProgress(travelers)"
+        :progress="travelerShares"
+        :selected="facets.person"
+        @select="selectTraveler"
       />
 
       <!-- FR-7.4: the trip's own todos — chores that prepare no row. Written

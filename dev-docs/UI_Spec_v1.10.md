@@ -30,6 +30,7 @@ replaced and why. This index only says where to look.
 * 2026-09-16 — **G-19**: the banner's layer belongs to the content column — below the page head, the width of the
   column (ADR-060 amendment 1).
 * 2026-09-19 — **G-2**: the detail says when the last sync completed (FR-19.6).
+* 2026-09-19 — **M4**: a ring per traveler under the trip line, tap to filter (FR-25.29).
 * 2026-09-18 — **M17/M3**: a default traveller can be an existing account (FR-2.5a).
 * 2026-09-15 — **M17**: the About block gains the FR-23.8 release line (ADR-062), absent wherever the instance makes
   no check.
@@ -1158,6 +1159,12 @@ These patterns apply to every screen and are specified once.
     as it also carried the trip's name and the 🛒/🧳/📊 glyphs; the name is the page head now (G-9) and the three
     destinations are words in the bar's ⋮, so the line states figures alone. *(The former KPI tile strip is gone —
     Analytics is a named entry rather than a tap on a tile, which testing found undiscoverable.)*
+  * **Per person (added 2026-09-19, FR-25.29):** under the sticky line, not in it, so it scrolls away with the list —
+    one card per traveler with their face inside a `--jp-done` ring (the ProgressRing construction) and *„x von y"* /
+    *„fertig ✓"* / *„nichts zu packen"* under the name, three to a row; a dashed *Gemeinsam* line with a track under the
+    cards when any row is for nobody. A tap selects the traveler in the person facet (pressed card, chip in the chip
+    row); a second tap clears it. Beyond six travelers the sixth slot reads *„+N weitere · M noch offen"* and unfolds
+    the rest, *„Weniger zeigen"* folds them again. Absent with fewer than two travelers and during the closing pass.
   * Grouping switcher: *Category / Container / Person / Status*, now inside the filter sheet's *Gruppieren nach* section
     rather than as its own bar. **Decided: persists per user per trip** (not a global preference) — switching to
     *Container* view on one trip doesn't affect another trip or another user's view of the same trip.

@@ -3008,6 +3008,25 @@ locked.
   * **The plan decides what is asked, in the domain.** `membershipQuestion` answers *collapse*, *remove*, *unskip* or
     nothing from the plan alone; the sheet had kept that decision inside a Vue component, where invariant 4 says a rule
     must never be reachable only.
+* **FR-25.29 (How far each traveler is — added 2026-09-19, owner request; built the same day):** M4 shows, under its
+  trip line, **one ring per traveler around their face** with *„x von y"* beneath it — *„fertig ✓"* once all of it is
+  packed, *„nichts zu packen"* while nothing is theirs — and, as a line of its own under them, the rows that are for
+  nobody (*Gemeinsam*). The axis is **for whom** (`assigned_traveler_id`), not *who packs* (FR-25.19's
+  `packer_user_id`): it is the axis every mode has, Local Mode included, and the one the person facet (FR-25.11) already
+  filters on. Rules the build settled:
+  * **The shares add up to the trip line.** They count FR-25.22's units, so a skipped row counts nowhere, and a row
+    whose traveler is not on the roster counts as shared rather than disappearing from the sum.
+  * **The whole trip, whatever the filter** — like the trip line (FR-25.20). A share that shrank with the list would
+    stop being a share of the trip.
+  * **A tap narrows the person facet to that traveler alone; a second tap on the same one clears it.** The strip owns no
+    filter: the chip row names it like any other facet value, and the sheet's multi-select stays the way to pick
+    several. *Gemeinsam* selects the facet's no-value.
+  * **Drawn for three travelers** (owner, 2026-09-19): three columns, no scrolling. Larger parties wrap in threes;
+    beyond six, five faces stay and the rest fold behind *„+N weitere"* with how many of them still have something open,
+    and a traveler the list is filtered to is never folded away. The order is the roster's, never the progress's, so a
+    face does not move out from under the thumb reaching for it.
+  * **Absent below two travelers**, where it would only repeat the trip line, and during FR-9.3's closing pass. It is
+    content, not a control row (G-12): it sits under the sticky trip line and scrolls away with the list.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.
