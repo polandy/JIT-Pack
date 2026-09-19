@@ -393,6 +393,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The third reveal switch is the one that starts on (2026-09-18)](#the-third-reveal-switch-is-the-one-that-starts-on-2026-09-18) — FR-25.27; why hiding is a switch and not a facet value, and the rule the two reveal bars now owe each other.
 - [The search offers what it did not find (2026-09-18)](#the-search-offers-what-it-did-not-find-2026-09-18) — FR-24.11; the proposal's reason for the restore offer was wrong, and three things only the rendered screen said.
 - [A presented sheet is no anchor (2026-09-18)](#a-presented-sheet-is-no-anchor-2026-09-18) — FR-24.11 in M10's dependency pickers; an inline modal beside a v-if/v-else broke the section it sat in.
+- [The mark palette was too small (2026-09-18)](#the-mark-palette-was-too-small-2026-09-18) — FR-28.2 grew from 102 to 352 entries; the font ceiling doubled, a cost accepted on purpose.
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
@@ -16072,3 +16073,13 @@ effect of a declaration that never happened. E2E-M10-25 pins it and was
 mutation-proved. *„Hängt ab von"* got the same offer the same day at the
 owner's request (E2E-M10-26..28); both pickers share one sheet, keyed by which
 end of the relation the new item takes.
+
+## The mark palette was too small (2026-09-18)
+
+Owner: the icon palette for packing items is too small. FR-28.2 asked for „order of 100" entries and got 102; it
+now carries 352 (owner chose ~350 over ~220 and ~150). **The cost is the font**: the COLRv1 subset costs ~0.8 KB a glyph,
+so 82 KB became 280 KB and `mark-font-gate.mjs`'s NFR-4.3 ceiling moved from 160 to 320 KB. It stays
+a per-glyph `unicode-range` face, so a device that never paints a mark never fetches it. Every added emoji was checked
+against the pinned Noto build's cmap first; ZWJ sequences (e.g. 🧑‍💻) were left out because a per-code-point subset
+cannot carry them. The picker's facet chips now hold 20–45 entries each, which the picker was not visually re-checked
+against.
