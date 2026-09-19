@@ -35,6 +35,7 @@ replaced and why. This index only says where to look.
   column (ADR-060 amendment 1).
 * 2026-09-19 — **G-2**: the detail says when the last sync completed (FR-19.6).
 * 2026-09-19 — **M4**: a ring per traveler under the trip line, tap to filter (FR-25.29).
+* 2026-09-19 — **M4**: filtered to one person, a per-person item is a plain row rather than a cluster (FR-25.30).
 * 2026-09-18 — **M17/M3**: a default traveller can be an existing account (FR-2.5a).
 * 2026-09-15 — **M17**: the About block gains the FR-23.8 release line (ADR-062), absent wherever the instance makes
   no check.
@@ -1089,7 +1090,9 @@ These patterns apply to every screen and are specified once.
     fold-all turns the list into a table of contents.
   * **Per-person items render as a named cluster** (FR-25.1) — item name once with `done/total`, one indented child row
     per traveler; a lone instance (notably when grouped by traveler) falls back to a flat "Item · Person" row.
-    Cluster-vs-flat is decided over the *full* set, so packing one instance never restructures the list. **The head
+    Cluster-vs-flat is decided over the *full* set, so packing one instance never restructures the list — the full set
+    being what the **person facet** lets through (FR-25.30, 2026-09-19): filtered to Andy, his socks are a plain row
+    with their own check, labelled *„Socken"* without *„· Andy"*, which the chip row already says. **The head
     counts units, like every other fraction on the screen** (FR-25.22, 2026-09-07): with Andy 2, Leonardo 3 and Mia 1
     it reads `0/6`, and the child rows add up to it. It counted *travelers* until then (FR-25.21a, `1/3` = one of three
     people done) — a head that could not be added up from the lines beneath it, which is what made six fractions on one
