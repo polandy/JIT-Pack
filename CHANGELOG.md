@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.14.0](https://github.com/polandy/JIT-Pack/compare/v0.13.0...v0.14.0) (2026-09-19)
+
+
+### Features
+
+* a removed row takes its unused inventory item along (FR-5.8, ADR-065) ([b1c4bdc](https://github.com/polandy/JIT-Pack/commit/b1c4bdc16e6633e805014b244eb4a29e72e289c4))
+* **client:** a default traveller can be an existing account (FR-2.5a) ([2f3c522](https://github.com/polandy/JIT-Pack/commit/2f3c52260df4c628c05dfe7e369fe5b187308966))
+* **client:** a per-person cluster head offers what a row's menu does (FR-25.26) ([#524](https://github.com/polandy/JIT-Pack/issues/524)) ([6d1ba43](https://github.com/polandy/JIT-Pack/commit/6d1ba43437315a86931cb345d4efe0364f6a2c3d))
+* **client:** a row is bought at the destination from its own menu (FR-5.9) ([11db479](https://github.com/polandy/JIT-Pack/commit/11db47959469730442e7883001c59ba37ada32c2))
+* **client:** an inventory item names who it is usually assigned to (FR-1.9) ([1847dea](https://github.com/polandy/JIT-Pack/commit/1847deafe51b3f24e1e6d8d8b7df0f5d8120357c))
+* **client:** every act on the packing list can be taken back (FR-25.31) ([617df1f](https://github.com/polandy/JIT-Pack/commit/617df1feb2d273b26546070ac01a2e575f2a271d))
+* **client:** filtered to one person, a per-person item is a plain row (FR-25.30) ([18d4120](https://github.com/polandy/JIT-Pack/commit/18d4120f235bd2a958da448a87b3e720a4f32c08))
+* **client:** M10's dependency pickers create what they did not find (FR-24.11) ([4c34b68](https://github.com/polandy/JIT-Pack/commit/4c34b68c15137eefdb75ad54a84ca139a7f9d1a3))
+* **client:** M3 adds an existing account as a traveller and a member (FR-2.5) ([6c13b57](https://github.com/polandy/JIT-Pack/commit/6c13b57e8a8baebd9c7703e3b55111a187104b7a))
+* **client:** M4 shows how far each traveler is packed (FR-25.29) ([a761189](https://github.com/polandy/JIT-Pack/commit/a7611897617c321772725d880ba377f4986c580c))
+* **client:** M7's row menu shares a Vorlage through the share sheet (FR-18.2) ([4165ae2](https://github.com/polandy/JIT-Pack/commit/4165ae22ce46f5fc96cd0cad3caaf46029fd6c41))
+* **client:** the add composer searches the inventory and creates what it did not find (FR-24.11) ([373847e](https://github.com/polandy/JIT-Pack/commit/373847eed072f98b48bbf775aa78d8802d1811ca))
+* **client:** the browse-sheet searches, and creates what it did not find (FR-25.13j) ([aff337e](https://github.com/polandy/JIT-Pack/commit/aff337e8ad6b1b5c0701acdf0d22ead938a94152))
+* **client:** the inventory tidies itself up, and a tag carries a mark (FR-24.12, FR-24.13) ([6df8580](https://github.com/polandy/JIT-Pack/commit/6df85807be64bc27d9ce7a8ea5889501a75ccaac))
+* **client:** the item mark palette grows from 102 to 352 entries (FR-28.2) ([ea28cf4](https://github.com/polandy/JIT-Pack/commit/ea28cf4b656fe2cacc47ccf809f166db2150856f))
+* **client:** the sync detail says when the last sync completed (FR-19.6) ([9c25b48](https://github.com/polandy/JIT-Pack/commit/9c25b4808ea850b3e38a5ba716da6d45575f5d8a))
+* **client:** ticking a task off offers the snackbar's undo (FR-7.4, FR-25.2) ([9390642](https://github.com/polandy/JIT-Pack/commit/9390642609f83a9f9d33055de744ceec7b5d40ad))
+
 ## [0.13.0](https://github.com/polandy/JIT-Pack/compare/v0.12.0...v0.13.0) (2026-09-18)
 
 
