@@ -4480,9 +4480,9 @@ the tail is where a symbol system is actually decided. Results:
   * **The item goes with its last use (owner decision 2026-09-19, *built 2026-09-19*; the how is ADR-065).** Since
     FR-24.11 every name typed into the composer is an inventory item, so a removed typo or one-off stayed in the
     inventory for good. A removed row now takes its inventory item along when **nothing else uses it**: no Vorlage or
-    group position, no other trip row — another traveler's row of the same item counts — and no other item's
-    companion rule pointing at it (the item's own rules go with it). **Automatically, without a question** — the owner
-    chose that over asking in the removal, over limiting it to items made on the side (a provenance column and a
+    group position, no other trip row — another traveler's row of the same item counts — and no other item that
+    brings it as a companion (FR-20.1; its own companion list goes with it). **Automatically, without a question** —
+    the owner chose that over asking in the removal, over limiting it to items made on the side (a provenance column and a
     reseed) and over an M24 rule. **Only once the removal is final**: when the snackbar's undo lapses (it runs out,
     the screen is left, the next action replaces it) or at once after a confirmation, which has no undo — so the undo
     still re-inserts one row and never has to re-create an item with its tags, rules and photo. Both surfaces say it:

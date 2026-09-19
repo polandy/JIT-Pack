@@ -73,11 +73,11 @@ func TestPruneMasterItem_StillUsed_IsKeptUntouchedAndNeverRetired_FR5_8(t *testi
 				t.Fatalf("seed trip row: %v", err)
 			}
 		}},
-		{"another item's companion rule", func(t *testing.T, s *Store) {
+		{"another item bringing it as a companion", func(t *testing.T, s *Store) {
 			seedLonelyItem(t, s, "it-1")
 			seedLonelyItem(t, s, "it-main")
 			applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableItemDependencies, "dep-1", "pr-3",
-				map[string]any{"item_id": "it-main", "depends_on_item_id": "it-1", "mode": "required"},
+				map[string]any{"item_id": "it-1", "depends_on_item_id": "it-main", "mode": "required"},
 				"0000000001002-0000-aaaaaaaa"))
 		}},
 	}
@@ -107,14 +107,15 @@ func TestPruneMasterItem_StillUsed_IsKeptUntouchedAndNeverRetired_FR5_8(t *testi
 	}
 }
 
-// The item's *own* companion rules are part of it, not a use of it: they go
-// with it, the way FR-24.3's delete takes them.
+// The item's *own* companion list is part of it, not a use of it: it goes
+// with it, the way FR-24.3's delete takes it. `depends_on_item_id` is the main
+// item (FR-20.1), so this rule is it-1 bringing the battery.
 func TestPruneMasterItem_ItsOwnCompanionRule_DoesNotKeepIt_FR5_8(t *testing.T) {
 	s := openTestStore(t)
 	seedLonelyItem(t, s, "it-1")
 	seedLonelyItem(t, s, "it-battery")
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableItemDependencies, "dep-1", "pr-4",
-		map[string]any{"item_id": "it-1", "depends_on_item_id": "it-battery", "mode": "required"},
+		map[string]any{"item_id": "it-battery", "depends_on_item_id": "it-1", "mode": "required"},
 		"0000000001002-0000-aaaaaaaa"))
 
 	res, err := s.PruneMasterItem(context.Background(), testUser, "it-1")
@@ -125,7 +126,7 @@ func TestPruneMasterItem_ItsOwnCompanionRule_DoesNotKeepIt_FR5_8(t *testing.T) {
 		t.Error("Pruned = false — the item's own rule kept it alive")
 	}
 	if exists, _ := itemExists(t, s, "it-battery"); !exists {
-		t.Error("the companion went too — only the rule pointing at it may")
+		t.Error("the companion went too — only the rule bringing it may")
 	}
 }
 

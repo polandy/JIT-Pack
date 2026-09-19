@@ -98,6 +98,9 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   const alert = page.getByTestId('m4-remove-confirm')
   await expect(alert).toBeVisible()
   await expect(alert).toContainText('Akku')
+  // Drohne is on no other trip and in no Vorlage, so its item goes too, and
+  // the question says so before anything is written (ADR-065).
+  await expect(alert).toContainText(/deleted from the inventory too/i)
   // …and declining is the positive signal that it is a question: both rows
   // are still on the list once it is gone.
   await alert.getByRole('button', { name: /cancel/i }).click()
@@ -120,6 +123,16 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   await page.getByTestId('m4-done-bar').click()
   await expect(visiblePage(page).getByTestId('m4-row-Akku')).toContainText(/deliberately skipped/i)
   await expect(visiblePage(page).getByTestId('m4-row-Drohne')).toHaveCount(0)
+
+  // A confirmed removal has no undo, so the item went at once (ADR-065). Akku
+  // stays: its skipped row still uses it — and is the positive signal that the
+  // inventory has rendered.
+  await writesLanded(page)
+  await page.goto(PATH.items)
+  const inventoryRow = (name: string) =>
+    visiblePage(page).getByTestId('m9-row').filter({ hasText: name })
+  await expect(inventoryRow('Akku')).toHaveCount(1)
+  await expect(inventoryRow('Drohne')).toHaveCount(0)
 })
 
 // E2E-M4-95 (FR-5.8, G-9): removing the row whose detail is open closes the

@@ -66,10 +66,11 @@ export interface ItemUseSources extends ItemReferenceSources {
 /**
  * Whether anything uses the inventory item (FR-5.8, ADR-065): a Vorlage or
  * group position, a trip row — another traveler's row of the same item counts
- * — or another item's companion rule pointing at it. The item's *own* rules
- * are part of it and go with it; a rule pointing at it is a use, because
- * deleting the item would strip a companion from the item that requires it
- * (FR-20.4).
+ * — or another item that brings it as a companion (`item_id` is the
+ * companion, `depends_on_item_id` the main item, FR-20.1). The item's *own*
+ * companion list is part of it and goes with it; being somebody's companion is
+ * a use, because deleting the item would strip it from the main item that
+ * brings it (FR-20.4).
  *
  * What this answers is what the *device* can see. In Server Mode that is only
  * the trips it has opened, so the server asks again over every trip before it
@@ -78,7 +79,7 @@ export interface ItemUseSources extends ItemReferenceSources {
 export function itemInUse(itemId: string, from: ItemUseSources): boolean {
   if (countItemReferences(itemId, from) > 0) return true
   return from.dependencies.some(
-    (dep) => dep.depends_on_item_id === itemId && dep.item_id !== itemId,
+    (dep) => dep.item_id === itemId && dep.depends_on_item_id !== itemId,
   )
 }
 

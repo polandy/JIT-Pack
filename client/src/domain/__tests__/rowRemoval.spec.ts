@@ -98,10 +98,11 @@ describe('itemLeftUnused (FR-5.8, ADR-065)', () => {
     ({ id, trip_id: 't', name: id, quantity: 1, source_item_id }) as TripItem
   const position = (item_id: string): TemplateItem =>
     ({ id: `p-${item_id}`, template_id: 'tpl', item_id, quantity: 1 }) as TemplateItem
-  const rule = (item_id: string, depends_on_item_id: string): ItemDependency => ({
-    id: `dep-${item_id}-${depends_on_item_id}`,
-    item_id,
-    depends_on_item_id,
+  /** `companion` comes along whenever `main` is on a list (FR-20.1). */
+  const rule = (companion: string, main: string): ItemDependency => ({
+    id: `dep-${companion}-${main}`,
+    item_id: companion,
+    depends_on_item_id: main,
     mode: 'required',
     quantity: null,
   })
@@ -128,16 +129,16 @@ describe('itemLeftUnused (FR-5.8, ADR-065)', () => {
       { tripItems: [tent, { ...tripRow('ti-3', 'item-tent'), trip_id: 'u' }] },
     ],
     [
-      'another item’s companion rule pointing at it',
-      { dependencies: [rule('item-stove', 'item-tent')] },
+      'another item bringing it as a companion',
+      { dependencies: [rule('item-tent', 'item-stove')] },
     ],
   ]
   it.each(kept)('keeps the item while %s uses it', (_, use) => {
     expect(itemLeftUnused(tent, { ...none, ...use })).toBeNull()
   })
 
-  it('does not count the item’s own companion rules as a use — they go with it', () => {
-    expect(itemLeftUnused(tent, { ...none, dependencies: [rule('item-tent', 'item-pegs')] })).toBe(
+  it('does not count the item’s own companions as a use — its list goes with it', () => {
+    expect(itemLeftUnused(tent, { ...none, dependencies: [rule('item-pegs', 'item-tent')] })).toBe(
       'item-tent',
     )
   })

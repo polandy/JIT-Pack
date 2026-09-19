@@ -20,8 +20,9 @@ type PruneMasterItemResult struct {
 }
 
 // PruneMasterItem deletes an inventory item on userID's behalf **only if
-// nothing uses it** — no Vorlage position, no trip row and no other item's
-// companion rule (FR-5.8, ADR-065). A used item is left exactly as it was.
+// nothing uses it** — no Vorlage position, no trip row, and no other item
+// that brings it as a companion (FR-5.8, ADR-065). A used item is left
+// exactly as it was.
 //
 // That is the difference from DeleteMasterRow, whose FR-24.3 answer to a use
 // is to retire the row: right when a person asked for the item to go, wrong
@@ -87,17 +88,18 @@ func prunePartition(userID string) partition {
 
 // itemInUse answers FR-5.8's "nothing else uses it": FR-24.3's blocking
 // references, read from the same declaration stillReferenced reads, plus
-// another item's companion rule pointing at it. The rule is a cascade for
+// another item bringing it as a companion (`item_id` is the companion,
+// `depends_on_item_id` the main item, FR-20.1). That rule is a cascade for
 // FR-24.3 — a deliberate delete may take it — but a removal that only noticed
-// the item looked unused must not silently strip a companion from the item
-// that requires it (FR-20.4).
+// the item looked unused must not silently strip a companion from the main
+// item that brings it. The item's own companion list goes with it.
 func itemInUse(ctx context.Context, tx *sql.Tx, id string) (bool, error) {
 	queries := make([]string, 0, len(blockingReferences[TableItems])+1)
 	for _, ref := range blockingReferences[TableItems] {
 		queries = append(queries, fmt.Sprintf(`SELECT count(*) FROM %s WHERE %s = ?1`, ref.table, ref.column))
 	}
 	queries = append(queries,
-		`SELECT count(*) FROM `+TableItemDependencies+` WHERE depends_on_item_id = ?1 AND item_id <> ?1`)
+		`SELECT count(*) FROM `+TableItemDependencies+` WHERE item_id = ?1 AND depends_on_item_id <> ?1`)
 	for _, query := range queries {
 		var uses int
 		if err := tx.QueryRowContext(ctx, query, id).Scan(&uses); err != nil {

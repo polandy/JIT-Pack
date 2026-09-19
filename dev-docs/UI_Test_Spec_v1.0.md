@@ -697,7 +697,9 @@ in WebKit.
   removing a main item with a required companion asks first and the alert names the companion; *Cancel* leaves both
   rows on the list (the positive signal that it was a question). Confirmed, the main item is gone from the done rows
   too while the companion is among them, skipped. Mutation-checked: with `removalNeedsConfirm` forced to `false` the
-  case fails at the alert.
+  case fails at the alert. *Amended 2026-09-19 (ADR-065):* the alert also says the main item leaves the inventory,
+  and once confirmed M9 lists *Akku* — its skipped row still uses it — and no *Drohne*: a confirmed removal has no
+  undo, so the item goes at once.
 * **E2E-M4-95** `local` (FR-5.8, G-9, added 2026-09-18) — **implemented** (`e2e/remove-item.spec.ts`): at a desktop
   width, removing the row whose M5 panel is open closes the panel rather than leaving it to report the item as not
   found. Mutation-checked: without the close the panel is still counted.

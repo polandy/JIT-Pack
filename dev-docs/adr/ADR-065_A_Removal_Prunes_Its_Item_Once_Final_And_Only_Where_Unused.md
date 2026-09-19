@@ -38,7 +38,7 @@ Deciding that was the owner's. *How* to carry it out is this ADR, and three fact
 The removal decides nothing about the item by itself. `useRowUndo` gains an `onLapse`. It runs when the armed record
 is cleared or replaced without an undo: the snackbar runs out, the screen is left, or the next action takes the
 snackbar's place. A confirmed removal has no undo and prunes at once. The prune asks this device first (`itemInUse`
-over positions, known trip rows and companion rules). **Local Mode** holds every trip, so it deletes the item through
+over positions, known trip rows and the items that bring it as a companion). **Local Mode** holds every trip, so it deletes the item through
 FR-24.3's ordinary delete. A **server** device first waits until the trip delete has been answered (`whenSent('trip')`)
 and then calls `POST /api/v1/master/items/{id}/prune`. The call runs the ordinary master pipeline under a partition
 whose write gate adds "still used". A used item is refused *inside the deleting transaction*, and is not re-logged
@@ -105,7 +105,8 @@ Teach the push a fourth op: a conditional delete that is a no-op when referenced
 The item goes only when FR-5.8's removal is **final** — the undo has lapsed, or the removal was confirmed. On a
 server device it goes through `POST /master/items/{id}/prune`, which deletes only when nothing on the server uses it
 and otherwise leaves the item exactly as it was. Local Mode deletes on its own answer. "Used" means a Vorlage or group
-position, any trip row, or **another item's companion rule** pointing at it. The item's own rules go with it.
+position, any trip row, or **another item that brings it as a companion** (FR-20.1). The item's own companion
+list goes with it.
 
 ## Consequences
 
