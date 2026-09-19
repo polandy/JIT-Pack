@@ -1089,7 +1089,9 @@ These patterns apply to every screen and are specified once.
     **The three bars sit in the same order as the rows** (owner, 2026-09-18): Spätpacker, then *Anderen zugewiesen*,
     then *Erledigte* last — the two whose rows still ask for something stand above the one whose rows do not.
     Picking ⏰ in *Merkmale* overrides the switch, as a *Status* value overrides *Erledigte* (FR-25.11l). The closing
-    pass (FR-9.3) is exempt from both halves.
+    pass (FR-9.3) is exempt from both halves. **A typed search term lifts all three switches** for the rows it
+    matches (FR-25.32); clearing it puts them away again. A switch's words are inside its checkbox, so a tap on the
+    words and a tap on the box are one toggle.
   * **Groups fold** (FR-25.16): tapping a header collapses the group to that line, which then carries its open count;
     fold-all turns the list into a table of contents.
   * **Per-person items render as a named cluster** (FR-25.1) — item name once with `done/total`, one indented child row

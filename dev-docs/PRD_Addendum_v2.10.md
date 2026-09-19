@@ -1029,6 +1029,17 @@ taken straight from a phone camera never reaches the server unprocessed.
   that is where the rule stops reading direction: an upward reading taken at the bottom is not a gesture. The
   rule is a pure step (`lib/headScroll.ts`) rather than a scroll listener, because that is the only shape in
   which the clamp case can be reached by a test at all.
+
+  **A list that would not survive the yield keeps its head (2026-09-19, found on a search's few hits).** The clamp
+  guard above only holds at the bottom of a list that was long enough to begin with. A list that overflows its
+  screen by less than the yield releases — 147 px measured on a phone: the 96 px line plus the page head — has its
+  range shortened below the reader's offset, is clamped, and the head returns: the list jumped back up on every
+  swipe down (measured at 390×800: 148 px of overflow ended the flick at offset 44; 248 px ended it cleanly
+  collapsed). A search narrows a long list to a short one, which is how the owner met it. **The head now yields only
+  where the scroller overflows by more than the threshold plus 192 px** (the release, rounded up past the paired
+  two-figure line), and a shorter list simply keeps its head. Read from the scroller's own geometry, which the page
+  now resolves at mount rather than from the first scroll event — that event is the one the jump starts on.
+  E2E-M4-129.
 * **~~FR-21.18 (A List of Controls Takes a Narrower Column Than a Page of Prose — added 2026-09-07)~~ — superseded
   2026-09-08 by FR-21.26: the second caller its revisit trigger named never arrived, because the census found no
   screen for the *first* measure. Kept for the measurements in it.** UX-17's content
@@ -3234,6 +3245,21 @@ locked.
     controls are out of scope for now (owner, 2026-09-19): their result stays on the open sheet.
   * **No wire, no schema:** the undo is `useRowUndo`'s `armAction`, the same one-slot record the pack uses; identical
     in all three modes.
+* **FR-25.32 (A search finds what the reveal switches put away — added 2026-09-19, owner request; built the same
+  day):** M4 hides three classes of rows by default or on request — packed (FR-25.2), somebody else's (FR-25.20) and
+  late packers (FR-25.27) — and a search only narrowed what was left, so a packed row could not be found by typing its
+  name; the reader had to leave the field and turn *Erledigte* on first. **A non-blank search term now lifts all three
+  switches for the rows it matches.**
+  * **A lift, not a flip:** the switch states are not written. Clearing the term returns the list to exactly what the
+    switches say, so nothing is left switched on behind the reader (the reason FR-25.18 keeps them per session).
+  * **Facets are not lifted.** A Person or Status value was chosen; a switch is a default. Same rule as FR-25.11l, in
+    the other direction: a picked value reveals its own bucket, a typed term reveals its own matches.
+  * **The closing pass** (FR-9.3) already shows everything it lists and is unchanged.
+  * **The bars stay.** *Erledigte* and *Spätpacker* keep their count while a term is typed, because FR-25.22 makes
+    bar and switch one number over the searched set; the *Anderen zugewiesen* bar reports 0 hidden and is gone. Open
+    point: a *„Gepackte anzeigen"* bar beside a packed row that is already shown reads oddly.
+  * **No wire, no schema; identical in all three modes.** Ships with a fix to the same sheet: a tap on a switch's
+    *words* toggled it twice (E2E-M4-127), so the tick came and went.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.

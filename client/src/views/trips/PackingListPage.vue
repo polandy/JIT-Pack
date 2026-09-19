@@ -1200,8 +1200,17 @@ const statsDetail = computed(() => {
 const head = ref<HeadScrollState>({ top: 0, collapsed: false })
 const headCollapsed = computed(() => head.value.collapsed)
 
-/** The scroller behind the ion-content, resolved from the first event. */
+/**
+ * The scroller behind the ion-content. Resolved at mount rather than from
+ * the first event: `nextHeadState` needs its geometry to tell a list that
+ * survives yielding from one that does not, and the first event of a page is
+ * the one a short list's jump starts on. The event stays as the fallback.
+ */
 let scrollEl: HTMLElement | null = null
+const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
+onMounted(() => {
+  void packContent.value?.$el.getScrollElement?.().then((el) => (scrollEl = el))
+})
 function onScroll(event: CustomEvent<{ scrollTop: number }>) {
   if (scrollEl === null) {
     const content = event.target as { getScrollElement?: () => Promise<HTMLElement> }
@@ -2210,6 +2219,7 @@ setHeaderTitle(
 <template>
   <IonPage>
     <IonContent
+      ref="packContent"
       class="pack-content"
       :data-pack-announcements="packAnnouncements"
       :scroll-events="true"
