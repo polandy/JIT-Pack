@@ -19,6 +19,8 @@ class FakeInstance {
   }[] = []
   pushed: Mutation[] = []
   pulls = 0
+  /** Mutation ids the instance refuses, as it would a UNIQUE violation. */
+  refuse = (_m: Mutation) => false
 
   add(table: string, id: string, row: Record<string, unknown>): void {
     this.master.push({
@@ -47,7 +49,11 @@ class FakeInstance {
       const body = JSON.parse(String(init.body)) as { mutations: Mutation[] }
       this.pushed.push(...body.mutations)
       return Response.json({
-        results: body.mutations.map((m) => ({ mutation_id: m.mutation_id, outcome: 'applied' })),
+        results: body.mutations.map((m) =>
+          this.refuse(m)
+            ? { mutation_id: m.mutation_id, outcome: 'rejected', error: 'constraint' }
+            : { mutation_id: m.mutation_id, outcome: 'applied' },
+        ),
         pull_hint: { next_cursor: 0 },
       })
     }
@@ -298,6 +304,24 @@ describe('runTags', () => {
     expect(await runTags(options(['give', 'Hygiene', 'Seife']), out)).toBe(EXIT.failed)
     expect(out.lines.at(-1)).toContain('no item called "Seife"')
     expect(instance.pushed).toEqual([])
+  })
+
+  it('writes one assignment for an item a give names twice', async () => {
+    const out = io()
+    expect(await runTags(options(['give', 'Technik', 'Ladekabel', 'ladekabel']), out)).toBe(EXIT.ok)
+
+    const inserts = instance.pushed.filter((m) => m.table === 'item_tags' && m.op === 'insert')
+    // UNIQUE (item_id, tag_id): a second insert is a write the instance refuses.
+    expect(inserts).toHaveLength(1)
+  })
+
+  it('fails and says so when the instance rejects a write, rather than reporting it sent', async () => {
+    instance.refuse = (m) => m.table === 'tags'
+    const out = io()
+    expect(await runTags(options(['mark', 'Technik', '🔌']), out)).toBe(EXIT.failed)
+
+    expect(instance.pushed).toHaveLength(1)
+    expect(out.lines.at(-1)).toBe('1 of 1 writes rejected by the instance: tags/t-tec (constraint)')
   })
 
   it('refuses a mark outside the picker’s index (FR-28.6)', async () => {

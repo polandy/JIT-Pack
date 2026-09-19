@@ -21,6 +21,7 @@ import {
   pushPending,
   type CommandIO,
   type Connection,
+  type RejectedWrite,
 } from './common'
 import { createCommandContext } from './context'
 import { ALL_ITEMS, TAG_OP, describeTags, parseTagPlan, runTagPlan, type TagStep } from './tagPlan'
@@ -150,11 +151,17 @@ function taskOf(
       }
     case TAG_OP.take:
       if (flags.all === rest.length > 0) return { error: 'take needs either items or --all' }
-      return { kind: TAGS_STEP, step: { op: TAG_OP.take, tag, items: flags.all ? ALL_ITEMS : rest } }
+      return {
+        kind: TAGS_STEP,
+        step: { op: TAG_OP.take, tag, items: flags.all ? ALL_ITEMS : rest },
+      }
     case TAG_OP.mark: {
       if (flags.clear === rest.length > 0) return { error: 'mark needs either an emoji or --clear' }
       if (rest.length > 1) return { error: 'mark takes one emoji' }
-      return { kind: TAGS_STEP, step: { op: TAG_OP.mark, tag, mark: flags.clear ? null : rest[0]! } }
+      return {
+        kind: TAGS_STEP,
+        step: { op: TAG_OP.mark, tag, mark: flags.clear ? null : rest[0]! },
+      }
     }
     case TAG_OP.rename:
     case TAG_OP.merge:
@@ -164,7 +171,8 @@ function taskOf(
           error: `${action} takes ${STEP_ARITY[action]} name${STEP_ARITY[action] > 1 ? 's' : ''}`,
         }
       }
-      if (action === TAG_OP.rename) return { kind: TAGS_STEP, step: { op: action, tag, to: rest[0]! } }
+      if (action === TAG_OP.rename)
+        return { kind: TAGS_STEP, step: { op: action, tag, to: rest[0]! } }
       if (action === TAG_OP.merge)
         return { kind: TAGS_STEP, step: { op: action, tag, into: rest[0]! } }
       return { kind: TAGS_STEP, step: { op: action, tag } }
@@ -222,13 +230,21 @@ export async function runTags(opts: TagsOptions, io: CommandIO): Promise<number>
     for (const line of describeTags(ctx, false)) io.write(`  ${line}`)
     return EXIT.ok
   }
+  let rejected: RejectedWrite[] = []
   if (writes > 0) {
     try {
-      await pushPending(client, hlc, ctx.pending)
+      rejected = await pushPending(client, hlc, ctx.pending)
     } catch (e) {
       io.write(`failed — ${message(e)}`)
       return EXIT.failed
     }
+  }
+  if (rejected.length > 0) {
+    const which = rejected
+      .map(({ mutation, error }) => `${mutation.table}/${mutation.id}${error ? ` (${error})` : ''}`)
+      .join(', ')
+    io.write(`${rejected.length} of ${writes} writes rejected by the instance: ${which}`)
+    return EXIT.failed
   }
   io.write(`${writes} writes sent`)
   return EXIT.ok

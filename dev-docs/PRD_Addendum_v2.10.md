@@ -478,7 +478,11 @@ items are the user's data while these are bookkeeping the refresh can re-derive.
   * **A plan is all or nothing.** Every step runs against the pulled stores first, in order, each seeing what the steps
     before it wrote; the first refused step ends the run and nothing is sent. `--dry-run` runs the whole plan and prints
     the axis it would leave behind. A plan describes a *change*, not a target state, so running it a second time
-    stops at its first rename or merge — safely, since nothing is sent.
+    stops at its first rename or merge — safely, since nothing is sent. „Nothing" is a promise about the plan's own
+    refusals; a write the *instance* rejects after sending (another device renamed a tag in the meantime) is named,
+    with the instance's reason, and the run exits 1 rather than reporting it sent.
+  * **An item named twice in one step is one item** — by name, by id, or both — because a second insert of the same
+    pairing is a `UNIQUE (item_id, tag_id)` violation the instance would reject.
   * **Names mean what they mean on screen.** Tags and items are matched ignoring case, or by id. Only active items are
     addressed, because M9's selection never offers a retired one: a name only a retired item holds is refused as such,
     and `take --all` / `items: all` takes the tag from the active items carrying it — what „Alle N" over that tag's

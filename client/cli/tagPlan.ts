@@ -248,21 +248,23 @@ function resolveItems(
   all: MasterItem[],
   wanted: string[],
 ): { items: MasterItem[] } | { error: string } {
-  const items: MasterItem[] = []
+  // Keyed by id: a name given twice, or a name and the same item's id, is one
+  // item — and a second insert of one pairing is a UNIQUE violation.
+  const items = new Map<string, MasterItem>()
   for (const name of wanted) {
     const byId = all.find((item) => item.id === name && !isRetired(item))
     if (byId) {
-      items.push(byId)
+      items.set(byId.id, byId)
       continue
     }
     const named = all.filter((item) => foldName(item.name) === foldName(name))
     const active = named.filter((item) => !isRetired(item))
-    if (active.length === 1) items.push(active[0]!)
+    if (active.length === 1) items.set(active[0]!.id, active[0]!)
     else if (active.length > 1) return { error: `"${name}" is several items — name it by id` }
     else if (named.length > 0) return { error: `"${name}" is retired — restore it first` }
     else return { error: `no item called "${name}"` }
   }
-  return { items }
+  return { items: [...items.values()] }
 }
 
 /** What M9's „Alle N" over a tag filter selects: the active items carrying it. */

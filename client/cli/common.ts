@@ -5,7 +5,7 @@
  */
 
 import type { APIClient } from '@/api/client'
-import type { Mutation } from '@/api/types'
+import { MUTATION_OUTCOME, type Mutation } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import { MASTER_PARTITION, MAX_PUSH_BATCH, pushPartition, tripPartition } from '@/sync/partition'
 
@@ -54,19 +54,38 @@ export interface PendingWrites {
   trips: Map<string, Mutation[]>
 }
 
-/** Send one run's collected writes, chunked past the §9 cap. */
+/** A write the instance answered with `rejected`, and the reason it gave. */
+export interface RejectedWrite {
+  mutation: Mutation
+  error: string | null
+}
+
+/**
+ * Send one run's collected writes, chunked past the §9 cap. Resolves to the
+ * writes the instance rejected: a push that answers 200 can still refuse
+ * some of its mutations, and a command that reports them as sent is lying.
+ */
 export async function pushPending(
   client: APIClient,
   hlc: HLCGenerator,
   pending: PendingWrites,
-): Promise<void> {
-  for (const chunk of chunked(pending.master)) {
-    await pushPartition(client, hlc, MASTER_PARTITION, chunk)
+): Promise<RejectedWrite[]> {
+  const rejected: RejectedWrite[] = []
+  const send = async (partition: Parameters<typeof pushPartition>[2], chunk: Mutation[]) => {
+    const byId = new Map(chunk.map((m) => [m.mutation_id, m]))
+    for (const result of (await pushPartition(client, hlc, partition, chunk)).results) {
+      const mutation = byId.get(result.mutation_id)
+      if (result.outcome === MUTATION_OUTCOME.rejected && mutation) {
+        rejected.push({ mutation, error: result.error ?? null })
+      }
+    }
   }
+  for (const chunk of chunked(pending.master)) await send(MASTER_PARTITION, chunk)
   for (const [tripId, list] of pending.trips) {
     const partition = tripPartition(tripId)
-    for (const chunk of chunked(list)) await pushPartition(client, hlc, partition, chunk)
+    for (const chunk of chunked(list)) await send(partition, chunk)
   }
+  return rejected
 }
 
 export function message(e: unknown): string {

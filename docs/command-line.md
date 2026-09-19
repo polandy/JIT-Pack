@@ -265,7 +265,9 @@ mark Hygiene: 🧴
 
 Then run it without `--dry-run`. **A plan is all or nothing:** if any step is refused — a
 misspelt item, a name already taken, a tag still in use — the run stops there, says which
-step and why, and sends nothing at all. Fix the file and run it again.
+step and why, and sends nothing at all. Fix the file and run it again. If the instance itself
+refuses a write — say someone renamed a tag on their phone a moment earlier — the command names
+that write and exits `1` instead of reporting success; run `tags list` to see where things stand.
 
 A plan describes a change, not an end state, so running the same file a second time stops at
 its first rename or merge (the old tag is gone) without changing anything.
