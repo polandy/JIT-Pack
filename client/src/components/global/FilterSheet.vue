@@ -29,7 +29,7 @@
  * pixel-identical to before the fold, so folding it in cost no design
  * decision — only `SheetModal.vue` grew the two props this needed.
  */
-import { IonContent, IonIcon, IonCheckbox, IonLabel } from '@ionic/vue'
+import { IonContent, IonIcon, IonCheckbox } from '@ionic/vue'
 
 import { t } from '@/i18n'
 import SheetHead from '@/components/global/SheetHead.vue'
@@ -165,17 +165,23 @@ const emit = defineEmits<{
       <!-- Every switch hides a class of rows, so they render from one shape
            and sit together at the foot: the rarely-touched group. -->
       <section v-if="switches.length > 0" class="sec">
-        <label v-for="control in switches" :key="control.key" class="switch">
-          <IonCheckbox
-            :checked="control.on"
-            :data-testid="`filter-switch-${control.key}`"
-            @ion-change="emit('toggleSwitch', control.key)"
-          />
-          <IonLabel>
-            <b>{{ control.label }}</b>
-            <span>{{ control.hint }} · {{ control.count }}</span>
-          </IonLabel>
-        </label>
+        <!-- The words live inside the checkbox, not in a wrapping <label>: the
+             label forwarded a tap on the text to the checkbox, which had
+             already toggled itself, so the state flipped twice and the tick
+             came and went. -->
+        <IonCheckbox
+          v-for="control in switches"
+          :key="control.key"
+          class="switch"
+          label-placement="end"
+          justify="start"
+          :checked="control.on"
+          :data-testid="`filter-switch-${control.key}`"
+          @ion-change="emit('toggleSwitch', control.key)"
+        >
+          <b>{{ control.label }}</b>
+          <span>{{ control.hint }} · {{ control.count }}</span>
+        </IonCheckbox>
       </section>
     </IonContent>
   </SheetModal>
@@ -318,10 +324,9 @@ const emit = defineEmits<{
 }
 
 .switch {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: block;
   padding: 9px 0;
+  white-space: normal;
 }
 
 .switch b {

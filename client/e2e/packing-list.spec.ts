@@ -1357,6 +1357,52 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
   })
 
   /*
+   * E2E-M4-127: the Erledigte switch stays on when it is tapped. The tick
+   * appeared and went again at once, so a packed row could only be brought
+   * back through the reveal bar. Every earlier case read the switch's count
+   * and none ever operated it.
+   */
+  test('E2E-M4-127: the Erledigte switch keeps its tick and reveals the packed rows', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Schlafsack'])
+    await packRow(page, 'Zelt')
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
+    const doneSwitch = page.getByTestId('filter-switch-done')
+    // The words, not the box: that is where a thumb lands.
+    await doneSwitch.locator('..').getByText('Packed', { exact: false }).first().click()
+    await expect(doneSwitch).toHaveJSProperty('checked', true)
+
+    await page.getByTestId('filter-close').click()
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+  })
+
+  /*
+   * E2E-M4-128 (FR-25.32): a search finds a packed row without the Erledigte
+   * switch being turned first, and the row goes away again with the term —
+   * the search lifts the switch, it does not flip it.
+   */
+  test('E2E-M4-128: searching finds a packed row while Erledigte is off', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Schlafsack'])
+    await packRow(page, 'Zelt')
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Zelt')
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Schlafsack')).toHaveCount(0)
+
+    await page.getByTestId('m4-search-input').fill('')
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
+  })
+
+  /*
    * E2E-M4-57 (G-12, UX-13): the bar keeps the actions used while packing
    * and puts the once-per-trip ones behind the ⋮, where they are read as
    * words. Before it, six glyphs plus the gear sat in a bar that on a phone

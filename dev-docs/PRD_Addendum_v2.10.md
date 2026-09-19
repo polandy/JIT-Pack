@@ -3212,6 +3212,21 @@ locked.
     controls are out of scope for now (owner, 2026-09-19): their result stays on the open sheet.
   * **No wire, no schema:** the undo is `useRowUndo`'s `armAction`, the same one-slot record the pack uses; identical
     in all three modes.
+* **FR-25.32 (A search finds what the reveal switches put away — added 2026-09-19, owner request; built the same
+  day):** M4 hides three classes of rows by default or on request — packed (FR-25.2), somebody else's (FR-25.20) and
+  late packers (FR-25.27) — and a search only narrowed what was left, so a packed row could not be found by typing its
+  name; the reader had to leave the field and turn *Erledigte* on first. **A non-blank search term now lifts all three
+  switches for the rows it matches.**
+  * **A lift, not a flip:** the switch states are not written. Clearing the term returns the list to exactly what the
+    switches say, so nothing is left switched on behind the reader (the reason FR-25.18 keeps them per session).
+  * **Facets are not lifted.** A Person or Status value was chosen; a switch is a default. Same rule as FR-25.11l, in
+    the other direction: a picked value reveals its own bucket, a typed term reveals its own matches.
+  * **The closing pass** (FR-9.3) already shows everything it lists and is unchanged.
+  * **The bars stay.** *Erledigte* and *Spätpacker* keep their count while a term is typed, because FR-25.22 makes
+    bar and switch one number over the searched set; the *Anderen zugewiesen* bar reports 0 hidden and is gone. Open
+    point: a *„Gepackte anzeigen"* bar beside a packed row that is already shown reads oddly.
+  * **No wire, no schema; identical in all three modes.** Ships with a fix to the same sheet: a tap on a switch's
+    *words* toggled it twice (E2E-M4-127), so the tick came and went.
 * **M4 explicit "do not pack" — realised (2026-08-18):** the consciously-skip action (FR-5.5) is discoverable through
   the row's press-and-hold menu and, spelled out, through the M5 sheet; see FR-5.5's 2026-08-18 revision for the round
   it was decided on and for why the swipe it replaces was not discoverable at all.

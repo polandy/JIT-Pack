@@ -480,6 +480,15 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   const matchesSearch = (item: TripItem) => term === '' || item.name.toLowerCase().includes(term)
 
   /**
+   * FR-25.32: a term is a request to *find* a row, and the three reveal
+   * switches put rows away for a reader who is not looking for one — so an
+   * active search lifts all three for the rows it matches, the way picking a
+   * Status value lifts the Erledigte one (FR-25.11l). Facets are not lifted:
+   * they were chosen, the switches were defaults.
+   */
+  const searching = term !== ''
+
+  /**
    * FR-25.20: assigned, and not to me. An unassigned row is nobody's and
    * therefore everybody's, so it never hides — and where there is no current
    * user (Single-User, Local) nothing is assignable, so nothing hides either.
@@ -507,10 +516,10 @@ export function buildPackingView(input: PackingViewInput): PackingView {
    * nothing for (the FR-25.11l trap on a second axis).
    */
   const hiddenAsLate = (item: TripItem) =>
-    !showLate && item.late_packer && !facets.flag.includes('late')
+    !showLate && !searching && item.late_packer && !facets.flag.includes('late')
 
   /** FR-25.20's half of the same question, so the two reveal bars can ask it of each other. */
-  const hiddenAsOthers = (item: TripItem) => !showOthers && othersJob(item)
+  const hiddenAsOthers = (item: TripItem) => !showOthers && !searching && othersJob(item)
 
   const matching = items.filter(
     (item) => (!packedOnly || wasPacked(item)) && passesFacets(item) && matchesSearch(item),
@@ -521,11 +530,12 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   // the bar promises rows that one tap does not produce. The two bars exclude
   // each other's rows for that same reason — a row both rules hide stays hidden
   // whichever one is tapped, so neither may claim it.
-  const revealable = (item: TripItem) => showDone || !done(item) || revealedByStatus(item)
+  const revealable = (item: TripItem) =>
+    showDone || searching || !done(item) || revealedByStatus(item)
   const others = matching.filter(
     (item) => othersJob(item) && !hiddenAsLate(item) && revealable(item),
   )
-  const hiddenOtherCount = showOthers ? 0 : others.length
+  const hiddenOtherCount = showOthers || searching ? 0 : others.length
   // Independent of the switch, unlike `hiddenOtherCount`: this one labels a
   // set rather than reporting a state, so it is the same number either way.
   const lateCount = matching.filter(
@@ -535,17 +545,18 @@ export function buildPackingView(input: PackingViewInput): PackingView {
       !hiddenAsOthers(item) &&
       revealable(item),
   ).length
-  const hiddenOtherNames = showOthers
-    ? []
-    : [
-        ...new Set(
-          others
-            .map((item) =>
-              item.packer_user_id ? nameByUserId.get(item.packer_user_id) : undefined,
-            )
-            .filter((name): name is string => name !== undefined),
-        ),
-      ].sort((a, b) => a.localeCompare(b))
+  const hiddenOtherNames =
+    showOthers || searching
+      ? []
+      : [
+          ...new Set(
+            others
+              .map((item) =>
+                item.packer_user_id ? nameByUserId.get(item.packer_user_id) : undefined,
+              )
+              .filter((name): name is string => name !== undefined),
+          ),
+        ].sort((a, b) => a.localeCompare(b))
 
   const shown = matching.filter((item) => !hiddenAsOthers(item) && !hiddenAsLate(item))
 
@@ -554,7 +565,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   for (const item of shown) {
     if (done(item)) {
       doneCount += 1
-      if (!showDone && !revealedByStatus(item)) continue
+      if (!showDone && !searching && !revealedByStatus(item)) continue
     }
     visible.push(item)
   }
