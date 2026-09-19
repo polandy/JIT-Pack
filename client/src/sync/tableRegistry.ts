@@ -85,6 +85,7 @@ function rowToTag(id: string, row: Record<string, unknown>): Tag {
     id,
     name: row['name'] as string,
     sort_order: (row['sort_order'] as number) ?? 0,
+    icon: (row['icon'] as string) ?? null,
   }
 }
 

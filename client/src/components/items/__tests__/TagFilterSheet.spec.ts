@@ -46,6 +46,15 @@ function mountSheet(props: Partial<InstanceType<typeof TagFilterSheet>['$props']
 }
 
 describe('TagFilterSheet — what the axis could not do (FR-24.8)', () => {
+  it('shows a tag’s mark beside its name, and none for a tag without one (FR-24.13)', () => {
+    const sheet = mountSheet({ tags: [{ ...tags[0]!, icon: '📦' }, tags[1]!] })
+
+    expect(sheet.get('[data-testid="m9-filter-tag-Diverses"]').text()).toContain('📦')
+    expect(
+      sheet.get('[data-testid="m9-filter-tag-Hygiene"]').find('[data-testid="item-mark"]').exists(),
+    ).toBe(false)
+  })
+
   it('lists every tag with the number of items it holds', () => {
     const sheet = mountSheet()
 

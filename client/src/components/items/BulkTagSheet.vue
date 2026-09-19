@@ -4,10 +4,16 @@
  * sheet which tag to give or to take away.
  *
  * Two modes, one component, because the difference is *which tags are worth
- * offering* and nothing else: giving offers the whole vocabulary (and the
- * chance to create none — a tag that does not exist is M10's business), while
+ * offering* and nothing else: giving offers the whole vocabulary, while
  * taking offers only the tags the selection actually carries. An action that
  * cannot change anything is not offered rather than offered and refused.
+ *
+ * **Giving creates what the search did not find** (FR-24.9, amended with
+ * FR-24.12): a typed name no tag holds is offered as a new tag, in the same
+ * dashed row FR-24.11 offers a missing item in. It used to be M10's business
+ * alone, which made tagging forty untagged items a trip to M10 first — the
+ * exact detour the bulk action exists to spare. Taking never offers it: a tag
+ * nobody carries cannot be taken away.
  *
  * **Giving carries the switch that refiles.** Assigning a tag does not move an
  * item in the grouped list — the primary tag decides that, and it is the one
@@ -21,6 +27,10 @@ import { computed, ref, watch } from 'vue'
 
 import SheetModal from '@/components/global/SheetModal.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
+import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
+import { OFFER_CREATE } from '@/domain/itemSearch'
+import { findNameCollision } from '@/domain/nameCollision'
 import { searchMatches } from '@/domain/search'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
@@ -28,20 +38,31 @@ import type { Tag } from '@/types/domain'
 /** What the sheet is being opened for. */
 export type BulkTagMode = 'give' | 'take'
 
-const props = defineProps<{
-  isOpen: boolean
-  mode: BulkTagMode
-  /** The tags to offer — already narrowed by the caller for `take`. */
-  tags: Tag[]
-  /** How many of the *selected* items each tag holds, by tag id. */
-  counts: Map<string, number>
-  /** How many items the action would touch. */
-  selected: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    isOpen: boolean
+    mode: BulkTagMode
+    /** The tags to offer — already narrowed by the caller for `take`. */
+    tags: Tag[]
+    /** How many of the *selected* items each tag holds, by tag id. */
+    counts: Map<string, number>
+    /** How many items the action would touch. */
+    selected: number
+    /**
+     * Whether to offer „Als primären Tag setzen". M24 opens this sheet for one
+     * *untagged* item, where the tag given is the primary one whatever the
+     * switch says — offering it there asks a question with no effect.
+     */
+    refile?: boolean
+  }>(),
+  { refile: true },
+)
 
 const emit = defineEmits<{
   dismiss: []
   pick: [value: { tagId: string; primary: boolean }]
+  /** FR-24.9: create a tag by this name, then give it as `pick` would. */
+  create: [value: { name: string; primary: boolean }]
 }>()
 
 const query = ref('')
@@ -59,6 +80,17 @@ watch(
 )
 
 const matches = computed(() => props.tags.filter((tag) => searchMatches(tag.name, query.value)))
+
+/**
+ * The name to offer as a new tag, or null. Decided under the *uniqueness*
+ * fold (`findNameCollision`) rather than the search's: „diverses" finds
+ * „Diverses" and would be refused as its duplicate, so it is not offered.
+ */
+const createName = computed(() => {
+  const name = query.value.trim()
+  if (props.mode !== 'give' || name === '') return null
+  return findNameCollision(name, props.tags) ? null : name
+})
 
 const title = computed(() =>
   t(props.mode === 'give' ? 'items.bulkGiveTitle' : 'items.bulkTakeTitle'),
@@ -87,13 +119,22 @@ const title = computed(() =>
       </div>
 
       <!-- FR-24.9: the difference between labelling and refiling. -->
-      <label v-if="mode === 'give'" class="primary-switch">
+      <label v-if="mode === 'give' && refile" class="primary-switch">
         <input v-model="primary" type="checkbox" data-testid="m9-bulk-primary" />
         <span>
           <strong>{{ t('items.bulkPrimary') }}</strong>
           <em>{{ t('items.bulkPrimaryHint') }}</em>
         </span>
       </label>
+
+      <SearchOfferButton
+        v-if="createName"
+        :offer="{ kind: OFFER_CREATE, name: createName }"
+        :create-hint="t('items.bulkCreateHint', { n: selected })"
+        testid="m9-bulk-tag-create"
+        class="create"
+        @take="emit('create', { name: createName, primary })"
+      />
 
       <ul class="tags">
         <li v-for="tag in matches" :key="tag.id">
@@ -102,6 +143,7 @@ const title = computed(() =>
             :data-testid="`m9-bulk-tag-${tag.name}`"
             @click="emit('pick', { tagId: tag.id, primary: mode === 'give' && primary })"
           >
+            <ItemMark :mark="tag.icon ?? null" surface="plain" :size="20" />
             <span class="name">{{ tag.name }}</span>
             <span v-if="counts.get(tag.id)" class="count jp-num">
               {{ t('items.bulkAlreadyOn', { n: counts.get(tag.id) ?? 0 }) }}
@@ -141,6 +183,10 @@ const title = computed(() =>
   border: none;
   color: var(--ct-text);
   font-size: var(--jp-text-md);
+}
+
+.create {
+  padding: 0 0 10px;
 }
 
 .primary-switch {

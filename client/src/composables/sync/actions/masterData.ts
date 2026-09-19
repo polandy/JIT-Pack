@@ -70,9 +70,12 @@ export type TagDeleteResult = { ok: true } | { ok: false; references: number }
 export function createMasterDataActions(ctx: SyncContext) {
   const { mutations, enqueueAndDrain, masterStore, tripStore, knownTripItems, names, local } = ctx
 
-  /** Create a tag by typing its name (FR-24.1); FR-24.10 is where one is fixed. */
-  function createTag(name: string): string {
-    const { mutation, id } = mutations.createTag(name, masterStore.tagList.length)
+  /**
+   * Create a tag by typing its name (FR-24.1), optionally with its mark
+   * (FR-24.13); FR-24.10 is where one is fixed.
+   */
+  function createTag(name: string, icon: string | null = null): string {
+    const { mutation, id } = mutations.createTag(name, masterStore.tagList.length, icon)
     enqueueAndDrain('master', null, {
       mutation,
       optimistic: optimisticInsert(mutation),
@@ -163,6 +166,22 @@ export function createMasterDataActions(ctx: SyncContext) {
       optimistic: optimisticUpdate(mutation, tag ? { ...tag } : {}),
     })
     return { ok: true }
+  }
+
+  /**
+   * Set or clear a tag's mark (FR-24.13). Choosing the mark the tag already
+   * has writes nothing — a picker tapped twice is not an edit, and under
+   * field-level LWW an empty write would still win against a real one made
+   * elsewhere in the meantime.
+   */
+  function setTagMark(tagId: string, icon: string | null): void {
+    const tag = masterStore.tagList.find((t) => t.id === tagId)
+    if (!tag || (tag.icon ?? null) === icon) return
+    const mutation = mutations.setTagMark(tagId, icon)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, { ...tag }),
+    })
   }
 
   /**
@@ -533,6 +552,7 @@ export function createMasterDataActions(ctx: SyncContext) {
   return {
     createTag,
     renameTag,
+    setTagMark,
     deleteTag,
     mergeTags,
     reorderTags,

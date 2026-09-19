@@ -265,8 +265,8 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
       await createItem(page, name, { tags: ['Diverses'] })
       await backToInventory(page)
     }
-    // The tag to refile them under has to exist: the sheet offers the
-    // vocabulary and does not invent it — creating a tag stays M10's.
+    // The tag to refile them under exists already, so this case picks it;
+    // creating one from the sheet is E2E-M9-24's.
     await createItem(page, 'Sonnenhut', { tags: ['Sonnenschutz'] })
     await backToInventory(page)
 

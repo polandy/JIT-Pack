@@ -24,6 +24,8 @@ import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet from '@/components/items/BulkTagSheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
+import MarkPicker from '@/components/items/MarkPicker.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -37,6 +39,7 @@ import { t } from '@/i18n'
 
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { PATH } from '@/router/paths'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
@@ -46,13 +49,19 @@ vi.mock('@/lib/confirm', () => ({
   confirmAction: vi.fn().mockResolvedValue(false),
   promptText: vi.fn().mockResolvedValue(undefined),
 }))
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }))
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
   useRoute: () => ({ query: {}, params: {} }),
 }))
 
 const master = masterDataStub()
-const orchestratorFake = { ...master }
+const orchestratorFake = {
+  ...master,
+  // FR-24.12's count reads the day and which trips are on the device.
+  today: () => '2026-09-19',
+  tripDataLoaded: () => true,
+}
 
 function seedItem(name: string, id = 'i1') {
   useMasterStore().applyChange({
@@ -246,7 +255,10 @@ describe('M9 inventory — the tools stay on the screen (FR-24.6)', () => {
 
     // The heading under a search is „Matched a tag", and taking *its* initial
     // painted an N (for „name") on every row of the group above it.
-    const mark = page.findComponent({ name: 'ItemMark' })
+    // The row's own ladder — headings and chips render a plain mark too (FR-24.13).
+    const mark = page
+      .findAllComponents({ name: 'ItemMark' })
+      .find((m) => m.props('surface') === 'inventory')!
     expect(mark.props('initial')).toBe('S')
   })
 
@@ -709,6 +721,44 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(t('items.bulkNothingToDo'))
   })
 
+  it('creates a typed tag and gives it in one step; the undo takes the new tag too (FR-24.9)', async () => {
+    seedThree()
+    const createdTags: string[] = []
+    const deletedTags: string[] = []
+    Object.assign(orchestratorFake, {
+      createTag: (name: string) => {
+        createdTags.push(name)
+        seedTag(name, 't-new', 2)
+        return 't-new'
+      },
+      deleteTag: (tagId: string) => {
+        deletedTags.push(tagId)
+        return { ok: true }
+      },
+    })
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+    page.findComponent(BulkTagSheet).vm.$emit('create', { name: 'Wasser', primary: true })
+    await flushPromises()
+
+    expect(createdTags).toEqual(['Wasser'])
+    expect(writes.assigned.map((w) => w.itemId).sort()).toEqual(['i1', 'i2', 'i3'])
+    expect(writes.assigned.every((w) => w.tagId === 't-new')).toBe(true)
+
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.message).toBe(t('items.bulkGaveNew', { n: 3, tag: 'Wasser' }))
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    await flushPromises()
+
+    // The assignments go first, then the tag they emptied — a tag created
+    // only to be undone is not left behind carrying nothing.
+    expect(writes.unassigned).toHaveLength(3)
+    expect(deletedTags).toEqual(['t-new'])
+  })
+
   it('takes a tag off only the selected items that carry it', async () => {
     seedThree()
 
@@ -837,6 +887,52 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     // whose delete is then refused over 2 is the screen contradicting itself.
     const counts = page.getComponent(TagManagerSheet).props('counts') as Map<string, number>
     expect(counts.get('t-hyg')).toBe(2)
+  })
+
+  it('opens the mark picker for the tag the manager named, and writes the pick (FR-24.13)', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedTag('Hygiene', 't-hyg')
+    const setTagMark = vi.fn()
+    Object.assign(orchestratorFake, { setTagMark })
+
+    const page = mountPage()
+    await flushPromises()
+    const picker = () => page.getComponent(MarkPicker)
+    expect(picker().props('isOpen')).toBe(false)
+
+    page.getComponent(TagManagerSheet).vm.$emit('mark', { id: 't-hyg', name: 'Hygiene' })
+    await flushPromises()
+    // The suggestion band is derived from the tag's own name.
+    expect(picker().props('isOpen')).toBe(true)
+    expect(picker().props('name')).toBe('Hygiene')
+
+    picker().vm.$emit('pick', '🧼')
+    picker().vm.$emit('close')
+    await flushPromises()
+    expect(setTagMark).toHaveBeenCalledWith('t-hyg', '🧼')
+    expect(picker().props('isOpen')).toBe(false)
+  })
+
+  it('lends an unmarked item its primary tag’s mark, and marks the tag’s heading (FR-24.13)', async () => {
+    seedItem('Seife', 'i1')
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.tags,
+      id: 't-bad',
+      deleted: false,
+      row: { name: 'Bad', sort_order: 0, icon: '🧼' },
+    })
+    assignTag('i1', 't-bad')
+
+    const page = mountPage()
+    await flushPromises()
+
+    const row = page.findAllComponents(ItemMark).find((m) => m.props('surface') === 'inventory')!
+    expect(row.props('tagMark')).toBe('🧼')
+    expect(row.props('mark')).toBeNull()
+    expect(page.get('[data-testid="m9-group-head"]').findComponent(ItemMark).props('mark')).toBe(
+      '🧼',
+    )
   })
 
   it('hands a move straight to the orchestrator, by axis index', async () => {
@@ -977,6 +1073,67 @@ describe('M9 — the items it is not showing (FR-24.3, ADR-032)', () => {
     master.masterLoaded.value = true
     await flushPromises()
     expect(page.find('[data-testid="m9-retired-note"]').exists()).toBe(true)
+  })
+})
+
+describe('M9 — the way into the cleanup (FR-24.12)', () => {
+  function headerActions(): HeaderAction[] {
+    const build = vi.mocked(setHeaderActions).mock.calls.at(-1)![0] as () => HeaderAction[]
+    return build()
+  }
+
+  it('counts the findings at the foot of the list, and the sentence is the way in', async () => {
+    seedItem('Kartenspiel', 'i1')
+    seedItem('Schnorchel', 'i2')
+
+    const page = mountPage()
+    await flushPromises()
+
+    // Two untagged items, and nothing else for a rule to find.
+    const note = page.get('[data-testid="m9-cleanup-note"]')
+    expect(note.text()).toBe(t('items.cleanupHint', { n: 2 }))
+    await note.trigger('click')
+    expect(routerPush).toHaveBeenCalledWith(PATH.inventoryCleanup)
+  })
+
+  it('stays silent when no rule finds anything', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedTag('Bad', 't-bad')
+    seedItem('Seife', 'i2')
+    assignTag('i1', 't-bad')
+    assignTag('i2', 't-bad')
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(2)
+    expect(page.find('[data-testid="m9-cleanup-note"]').exists()).toBe(false)
+  })
+
+  it('offers the screen as a word behind the ⋮, whatever the count', async () => {
+    seedItem('Sonnencreme', 'i1')
+
+    mountPage()
+    await flushPromises()
+
+    const action = headerActions().find((a) => a.id === 'm9-cleanup')!
+    expect(action.label).toBe(t('items.cleanup'))
+    expect(action.overflow).toBe(true)
+    action.onClick()
+    expect(routerPush).toHaveBeenCalledWith(PATH.inventoryCleanup)
+  })
+
+  it('claims no finding before the master partition has arrived (ADR-033)', async () => {
+    seedItem('Kartenspiel', 'i1')
+    master.masterLoaded.value = false
+
+    const page = mountPage()
+    await flushPromises()
+    expect(page.find('[data-testid="m9-cleanup-note"]').exists()).toBe(false)
+
+    master.masterLoaded.value = true
+    await flushPromises()
+    expect(page.find('[data-testid="m9-cleanup-note"]').exists()).toBe(true)
   })
 })
 

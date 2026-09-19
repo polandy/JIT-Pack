@@ -32,6 +32,7 @@ export const PATH = {
   authCallback: '/auth/callback',
   newTrip: '/trips/new',
   newItem: '/items/new',
+  inventoryCleanup: '/items/cleanup',
   importSpreadsheet: '/import',
   importFile: '/portable-import',
   masterConflicts: '/master/conflicts',

@@ -7,6 +7,10 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-19 — **M24** added: *Aufräumen*, the inventory's cleanup rules (FR-24.12). **M9** reaches it from the ⋮ and a
+  sentence at the list's foot; its give sheet creates a tag it does not find (FR-24.9); a tag carries a mark, shown on
+  chips and headings and set in the tag manager, and **G-15**'s inventory ladder gains the primary tag's mark as a rung
+  (FR-24.13).
 * 2026-09-18 — **M4**'s ⋮ offers „Namen aus dem Inventar", a sheet that takes renamed items' names over, and **M5**
   offers it for its own row (FR-27.16).
 * 2026-09-18 — **M1** reports trip todos and a second check on the trip cards, and takes no actions — the prep
@@ -596,7 +600,8 @@ These patterns apply to every screen and are specified once.
   (`dev-docs/UI_Concept_ItemMark_variants.html`); the losing options and their measured costs are in Addendum 3.28.
   * **The slot holds its width when it is empty.** An item with no mark is the normal case (FR-28.1), and a column that
     collapses on unmarked rows re-ragged the names on every list the round rendered.
-  * **The ladder is per surface, not global.** M9 falls back photo → mark → primary-tag initial; M4 and M5 fall back
+  * **The ladder is per surface, not global.** M9 falls back photo → mark → the primary tag's mark, painted muted
+    (FR-24.13, since 2026-09-19) → primary-tag initial; M4 and M5 fall back
     photo → mark → *nothing*. The inventory identifies an item and already owns the initial tile (ADR-014); the packing
     row is scanned, and a coloured letter repeating the name beside it is noise — that was the null variant of the
     round, and it lost to *no mark at all*.
@@ -688,6 +693,7 @@ These patterns apply to every screen and are specified once.
 | M19 | First-Launch Mode Selection | P2 | Addendum 3.19 |
 | M20 | User Administration | P3 | Addendum 3.23 |
 | M21 | Vorlage aus Reise (Template from Trip) | MVP | Addendum 3.27 (27.5, 27.1, 27.4) |
+| M24 | Aufräumen (Inventory Cleanup) | P2 | Addendum 24.12, 24.13 |
 
 ---
 
@@ -1722,8 +1728,9 @@ These patterns apply to every screen and are specified once.
   once (FR-24.2); groups order by the tag's `sort_order`, items by name, and items carrying no tag collect in a trailing
   **"Ohne Tag"** bucket that is present only when something is in it. Per row **lean by default**: the leading slot +
   name; tags, weight and price appear only when enabled in the property sheet (device-local, `localStorage`, never
-  synced). **The leading slot follows G-15's inventory ladder — photo → item mark → primary-tag initial** (Addendum
-  FR-28.4): the tag initial stays the last resort rather than the default it was, so a marked item is recognised here
+  synced). **The leading slot follows G-15's inventory ladder — photo → item mark → the primary tag's mark (muted,
+  FR-24.13) → primary-tag initial** (Addendum FR-28.4): the tag initial stays the last resort rather than the default it
+  was, so a marked item is recognised here
   the same way it is on the packing list.
 * **The tag controls (2026-09-13, FR-24.8, ADR-061) — the swipe axis is gone.** Three chips for the tags holding
   the most items, each with its count; **„Alle N Tags"** opening the filter sheet (every tag with its count, searchable,
@@ -1762,6 +1769,18 @@ These patterns apply to every screen and are specified once.
   once it is empty. **The arrows at the ends are dimmed, not removed**, so the column does not reflow as a tag reaches
   the top or the bottom, and they **withdraw entirely while a search is narrowing the list** — the arrows move a tag
   on the axis, and offering them beside two rows eleven apart on it is an ordering nobody can predict.
+* **A tag carries a mark (2026-09-19, FR-24.13).** The tag chips, the group headings, the filter sheet and the give/take
+  sheet show it beside the tag's name, rendered through `ItemMark` (G-15). The tag manager gives every row a **mark
+  control** before the name — the mark, or a dashed empty slot — which opens the item mark's own picker (FR-28.2) over
+  the manager, its suggestion band derived from the tag's name.
+* **Giving creates the tag it did not find (2026-09-19, FR-24.9 amended).** In *Tag geben*'s sheet a query that names no
+  tag — under the uniqueness fold, so a different capitalisation is not offered — puts FR-24.11's dashed row above the
+  list, *„‚{Name}' anlegen"* / *„Neuer Tag für N Artikel"*; taking it creates the tag and gives it in one act, and the
+  snackbar's *Rückgängig* removes the tag again with the assignments. *Tag nehmen* never offers it.
+* **The way into M24 (2026-09-19, FR-24.12).** *„Aufräumen"* is a word behind the ⋮, after *„Tags verwalten"*, offered
+  whatever the count. While a rule finds something, a sentence at the list's foot above the retired count says *„N
+  Hinweise zum Aufräumen"* and is the way in — like that count, **the sentence is the tap target**, absent before the
+  partition has arrived (ADR-033) and in the selection mode.
 * **The group heading is the jump (FR-24.8):** it opens the list of groups with their counts and **scrolls** to the
   one chosen, leaving the list whole — filtering takes rows away, jumping does not. It is offered only where it is a
   question: in the grouped order, outside a search, with more than one group. The scroll waits for the sheet to have
@@ -2427,6 +2446,35 @@ token would prove nothing there is anything to prove.
   where it was opened from (the fifth route class, ADR-011 revision). **The screen renders no heading of its own** — the
   one header bar names it from the route's `titleKey`, which is why the title is short enough not to truncate in either
   language, and why E2E-G9-14 asserts the bar rather than the page.
+
+### M24 — Aufräumen (Inventory Cleanup, FR-24.12) — *built 2026-09-19*
+
+* **Purpose:** the inventory's cleanup rules, each finding beside the one repair that answers it. A rule **finds and
+  never refuses** (the PRD says why a refusal cannot exist), so this screen is where the findings go.
+* **Elements:** one card per rule the device runs, in a fixed order — *Ohne Tag*, *Lange nicht gebraucht*, *Tag mit nur
+  einem Artikel*. A card's head is a status dot (caution while it finds something, done when not), the rule's name, the
+  sentence saying what it looks for, and its count. **A rule with nothing to report stays on screen collapsed to „Nichts
+  zu tun"** — a rule that vanished when satisfied would read as switched off. The page head's meta line counts the
+  findings; with none, a G-7 state *„Alles aufgeräumt"* heads the collapsed cards.
+* **Ohne Tag:** per item the leading slot (G-15's inventory ladder), the name, and two controls — the **suggested tag**
+  as a dashed chip in the done hue, and *„Tag wählen …"*, which opens FR-24.9's give sheet without its refiling switch
+  (an untagged item's first tag is its primary one either way), so it searches and creates. The **reason** sits under
+  the controls: *„Vorschlag: wie ‚Zahnbürste'"*, *„Vorschlag: in Vorlage ‚Strand'"*, or *„Kein Vorschlag – es findet
+  sich kein Grund."* With two or more suggestions the card's foot offers *„N Vorschläge übernehmen"*.
+* **Lange nicht gebraucht:** the name, its primary tag and *„zuletzt auf einer Reise am {Datum}"*; *Stilllegen* in the
+  danger hue and *Behalten* as a quiet word. Where the device has not opened every trip in the window (Server Mode,
+  ADR-032) a line under the head says how many it has not seen.
+* **Tag mit nur einem Artikel:** the tag's mark, its name and *„nur an {Artikel}"*; *Zusammenführen …* (FR-24.10's
+  prompt, the same one the tag manager opens) and *Behalten*.
+* **Every write raises a snackbar with *Rückgängig*:** a given tag is taken back (and a tag created for it deleted), a
+  retire is M23's restore, a *Behalten* is forgotten. The merge is FR-24.10's and confirms before it acts, as it does
+  there.
+* **Rules sheet:** the app bar's one glyph (*Regeln*) opens a sheet with a toggle per rule and, under *Lange nicht
+  gebraucht*, the window as three chips (6 / 12 / 24 Monate). Device-local, no save button, like FR-24.4's sheet.
+* **Modes:** all three; the rules are client-side and read only what the device holds. **Before the master partition has
+  arrived** the screen says the inventory is not here yet and lists nothing (ADR-033).
+* **Navigation:** M9 → M24 (the ⋮ word or the foot sentence); back returns to M9. The one header bar names it from the
+  route's `titleKey`.
 
 ### M21 — Vorlage aus Reise (Template from Trip)
 

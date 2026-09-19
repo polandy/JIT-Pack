@@ -69,6 +69,33 @@ describe('ItemMark', () => {
     expect(w.get('[data-testid="item-mark-initial"]').text()).toBe('K')
   })
 
+  it('falls back to the primary tag’s mark before its initial on the inventory, set apart as borrowed (FR-24.13)', () => {
+    const w = mount(ItemMark, {
+      props: { mark: null, tagMark: '🧼', surface: 'inventory', photoItem: item(), initial: 'B' },
+      global,
+    })
+    const slot = w.get('[data-testid="item-mark-slot"]')
+    expect(slot.get('[data-testid="item-mark"]').text()).toBe('🧼')
+    // Borrowed, not the item's own: the muted class is what tells the two apart.
+    expect(slot.classes()).toContain('borrowed')
+    expect(w.find('[data-testid="item-mark-initial"]').exists()).toBe(false)
+  })
+
+  it('lets the item’s own mark win over its tag’s (FR-24.13)', () => {
+    const w = mount(ItemMark, {
+      props: { mark: '🪥', tagMark: '🧼', surface: 'inventory', photoItem: item(), initial: 'B' },
+      global,
+    })
+    const slot = w.get('[data-testid="item-mark-slot"]')
+    expect(slot.text()).toBe('🪥')
+    expect(slot.classes()).not.toContain('borrowed')
+  })
+
+  it('borrows the tag’s mark only on the inventory — packing keeps its empty slot (FR-24.13)', () => {
+    const w = mount(ItemMark, { props: { mark: null, tagMark: '🧼', surface: 'packing' }, global })
+    expect(w.get('[data-testid="item-mark-slot"]').text()).toBe('')
+  })
+
   it('never falls back to a letter while packing — an empty slot holds the box instead (FR-28.4)', () => {
     const w = mount(ItemMark, { props: { mark: null, surface: 'packing', size: 22 }, global })
     expect(w.find('[data-testid="item-mark-initial"]').exists()).toBe(false)
