@@ -318,6 +318,8 @@ export const de: Record<keyof typeof en, string> = {
   'templates.namePlaceholder': 'Name',
   'templates.create': 'Anlegen',
   'templates.export': 'Vorlage exportieren',
+  'templates.share': 'Vorlage teilen…',
+  'templates.shareFailed': 'Teilen ging nicht – die Vorlage ist stattdessen als Datei gespeichert.',
   'templates.import': 'Vorlage aus Datei importieren',
   'templates.rename': 'Umbenennen',
   'templates.deleteConfirm': '„{name}“ löschen? Bereits erzeugte Reisen behalten ihre Einträge.',
