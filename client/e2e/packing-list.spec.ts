@@ -1655,6 +1655,69 @@ test.describe('M4 — the composer adds through the inventory @local @m4', () =>
     await expect(list.getByTestId('quick-add-suggestion')).toHaveCount(0)
     await expect(list.getByTestId('m4-row-Gürtel')).toHaveCount(1)
   })
+
+  /**
+   * E2E-M4-114 (FR-25.13j, FR-24.11): the browse-sheet searches by M9's rule
+   * and creates what it did not find, without leaving the sheet.
+   *
+   * The row count before the query is the positive signal the narrowing is
+   * read against: both items are listed until the query arrives. The absent
+   * M4 row is asserted while the creation sheet is visibly open, so the
+   * absence is not read before a write could have landed.
+   */
+  test('E2E-M4-114: the browse-sheet searches, and creates a missing name in place', async ({
+    page,
+  }) => {
+    await page.goto(PATH.items)
+    await createItem(page, 'Zeltheringe')
+    await backToInventory(page)
+    await createItem(page, 'Kocher')
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    const search = sheet.getByTestId('browse-search-input')
+    // The field is there, and it did not take the focus: the sheet still
+    // raises no keyboard on arrival (FR-25.13d).
+    await expect(search).toBeVisible()
+    await expect(search).not.toBeFocused()
+    await expect(sheet.getByTestId('browse-row-name')).toHaveCount(2)
+
+    await search.fill('Zelt')
+    await expect(sheet.getByTestId('browse-row-name')).toHaveText(['Zeltheringe'])
+    await expect(sheet.getByTestId('browse-offer-title')).toContainText('Zelt')
+    // Above the partial hit, as on M9 and in the composer.
+    const offerBox = (await sheet.getByTestId('browse-offer').boundingBox())!
+    const hitBox = (await sheet.getByTestId('browse-row').boundingBox())!
+    expect(offerBox.y + offerBox.height).toBeLessThanOrEqual(hitBox.y)
+
+    // Enter opens the sheet on the query and writes nothing.
+    await search.press('Enter')
+    const create = createItemSheet(page)
+    await expect(create).toHaveAttribute('data-presented', 'true')
+    await expect(create.getByTestId('create-item-name').locator('input')).toHaveValue('Zelt')
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toHaveCount(0)
+
+    await create.getByTestId('create-item-confirm').click()
+    await expect(create).toHaveCount(0)
+    // Back in the browse-sheet: the query survived, the offer went because
+    // the name exists now, and the new line says what this run did to it.
+    await expect(sheet).toBeVisible()
+    await expect(search).toHaveValue('Zelt')
+    await expect(sheet.getByTestId('browse-offer')).toHaveCount(0)
+    const added = sheet.getByTestId('browse-row-carried').filter({ hasText: /^Zelt\b/ })
+    await expect(added.getByTestId('browse-added-now')).toBeVisible()
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+
+    // The same act reached the inventory.
+    await writesLanded(page)
+    await page.goto(PATH.items)
+    await expect(visible(page).getByTestId('m9-row')).toHaveCount(3)
+  })
 })
 
 /**

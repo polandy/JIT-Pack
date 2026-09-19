@@ -2443,8 +2443,9 @@ locked.
     feedback — a tapped row flips to it in place, so the sheet needs no toast and never closes between taps; **(c)** M6
     now passes the trip's contents to the composer, closing the gap FR-25.13c had closed for M4 only — the rule is the
     trip's **whole** contents, not the open shopping tab's, because the item is on the trip either way. The sheet
-    deliberately carries **no search field**: the tag axis is its whole filter, and searching by name is the composer's
-    typed path — a second name search would be the drift FR-25.11g warns about.
+    deliberately carried **no search field**: the tag axis was its whole filter, and searching by name was the
+    composer's typed path — a second name search would be the drift FR-25.11g warns about. **Reversed by FR-25.13j
+    (2026-09-19)**, which gives it M9's search itself rather than a second one.
   * **FR-25.13e (The browse-sheet hides what is already in — owner request 2026-08-29, built 2026-08-29):** FR-25.13d
     listed a carried item and marked it *„schon drin"* on the argument that hiding it would imply it does not exist.
     That reasoning holds at an inventory of thirty and fails at two hundred, where the sheet's whole job — *let me work
@@ -2664,6 +2665,35 @@ locked.
       snapshot rule above keeps on the screen.
     * **No wire, no schema, no ADR.** Both writes are the existing unskip and zero-pack actions called from a second
       surface, and the filter is local view state. Identical in Server, Single-User and Local Mode.
+  * **FR-25.13j (The browse-sheet searches, and creates what it did not find — owner request 2026-09-19, built
+    2026-09-19):** working through the inventory stops at two points the tag axis cannot reach: the item one knows by
+    name and cannot find by scrolling two hundred rows, and the item the inventory does not hold yet — which until now
+    meant leaving the sheet through *„Stattdessen neuen Namen eintippen…"*, losing the run's filter and ledger on the
+    way. The owner asked for both, and for the component that already does it to be reused. So the sheet takes M9's
+    parts rather than growing its own:
+    * **M9's field, persistent** (`SearchRow`), between the head and the tag axis. It **takes no focus on arrival**,
+      so FR-25.13d's „the sheet raises no keyboard" still holds for everyone who does not tap it. The match is M9's
+      rule (FR-24.7, `searchItems`: both umlaut spellings, tag names, mark keywords) — one rule, so the FR-25.11g
+      drift FR-25.13d feared cannot happen — and it **narrows inside the tag axis**: the rows stay grouped by primary
+      tag, because the groups are where the sheet's runs happen, and a query only thins them. Every count on the
+      sheet (FR-25.13e's, FR-25.13i's) is read inside both filters. A query that leaves nothing says *„Nichts im
+      Inventar passt dazu"* rather than the tag axis's *„Noch keine Packelemente mit diesem Tag"*.
+    * **FR-24.11's offer, at the top** (`SearchOfferButton`), by FR-24.11's five rules unchanged: a missing *name*,
+      not an empty result; Enter opens the sheet and never writes; the filtered tag is assigned from the start; a
+      retired name is restored instead; nothing is offered before the master partition has arrived (ADR-033). The
+      hints are the composer's (*„Neu im Inventar anlegen und gleich hinzufügen"*), because what follows is the
+      composer's outcome, not M9's.
+    * **What the creation sheet makes is added like a tapped line.** `CreateItemSheet` opens over the browse-sheet
+      and closes back onto it; the query survives, the offer goes because the name now exists, and the new line
+      reads *„✓ hinzugefügt"* with its *„Rückgängig"* — the run's ledger covers it like any other tap. A restore is
+      added the same way. *„Anlegen und öffnen"* adds, closes the browse-sheet and continues in M10.
+    * **The two verbs do not reach the offer.** A new item is added plain; packing it, skipping it or naming its
+      travelers is one more tap on the line it has just become. Folding them into the offer would put five buttons
+      on a row that is not an item yet.
+    * The footer line *„Stattdessen neuen Namen eintippen…"* stays: it is the way back to the composer's
+      *Erfassen* posture (FR-25.28's for-whom strip, the chips), which the offer does not replace.
+    * **No wire, no schema, no ADR** — three existing components composed on a fourth surface. Identical in Server,
+      Single-User and Local Mode; M6 and M8 get it with the shared composer.
 * **FR-25.7 (Template-Item Entry — Sensible Defaults & Progressive Disclosure):** The template editor's per-item form
   (M8) currently exposes **all** parameters at once (quantity, per-person vs. trip-global, procurement mode, dedup
   strategy, conditions, Late Packer), which makes adding a single item to a template cumbersome — yet templates

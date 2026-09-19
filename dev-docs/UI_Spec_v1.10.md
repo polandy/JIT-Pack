@@ -1322,6 +1322,13 @@ These patterns apply to every screen and are specified once.
     it takes precedence over that switch, which steps aside entirely while it is on, and it is absent where nothing
     has been decided. A tag it finds nothing decided under states *„Hier ist noch nichts gepackt oder zu Hause
     gelassen."* with *„Alle anzeigen"* beside it — a third kind of empty next to the two FR-25.13e already has.
+    **Since FR-25.13j (2026-09-19) the sheet searches:** M9's search field sits between the head and the tag axis,
+    persistent and unfocused on arrival, and narrows the rows by M9's rule inside the tag filter, grouping kept. A
+    name no active item carries is offered at the top as FR-24.11's dashed *„‚{Name}' anlegen"* row (a retired one as
+    its restore); tapping it or pressing Enter opens the *„Neuer Artikel"* sheet over the browse-sheet, with the
+    filtered tag assigned. *„Anlegen"* closes back onto the browse-sheet with the query intact, and the new line reads
+    *„✓ hinzugefügt"* with *„Rückgängig"*; *„Anlegen und öffnen"* closes both sheets and opens M10. An emptied result
+    reads *„Nichts im Inventar passt dazu"*.
     **Since FR-25.28 (2026-09-18) the composer says who the next add is for:** the **for-whom strip** sits over the
     field — *Gemeinsam*, *Alle*, one avatar toggle per traveler, the same line a row unfolds on M4 — with a sentence
     under it stating the outcome (*„Wird gemeinsam angelegt."* / *„Wird für 2 Personen angelegt, je 1."*). An add writes

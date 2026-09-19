@@ -10,11 +10,14 @@
  * a field.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { config, flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
+import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import { browseHideCarried } from '@/composables/useBrowseHideCarried'
+import { ORCHESTRATOR } from '@/composables/useOrchestrator'
+import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import type { BrowseRowSummary } from '@/domain/browseRows'
 import type { Traveler } from '@/types/domain'
@@ -60,6 +63,32 @@ function seed() {
   assign('a3', 'i-pullover', 't-kleidung', 0)
   assign('a4', 'i-ladekabel', 't-technik', 0)
 }
+
+/** What the sheet asked the orchestrator to write — only FR-25.13j's offer writes. */
+let writes: { created: string[]; restored: string[] }
+/** ADR-033: whether the master partition has arrived; a spec flips it off. */
+let masterLoaded = true
+
+const orchestratorFake = {
+  masterDataLoaded: () => masterLoaded,
+  createMasterItem: (name: string) => {
+    writes.created.push(name)
+    item(`new-${name}`, name)
+    return `new-${name}`
+  },
+  assignTag: () => 'assignment',
+  createTag: () => 'tag',
+  restoreMasterItem: (id: string) => {
+    writes.restored.push(id)
+    const hidden = useMasterStore().getItem(id)
+    if (hidden) item(id, hidden.name)
+    return true
+  },
+}
+
+// Every mount below reads the orchestrator since FR-25.13j; only the search
+// specs at the end make it write.
+config.global.provide = { [ORCHESTRATOR]: orchestratorFake }
 
 function mountSheet(carriedItemIds: string[] = []) {
   return mount(InventoryBrowseSheet, { props: { carriedItemIds } })
@@ -132,8 +161,11 @@ describe('InventoryBrowseSheet (FR-25.13d)', () => {
   it('offers free text only as the explicit footer line', async () => {
     const wrapper = mountSheet()
 
-    // No input anywhere in the sheet — typing has one home, the composer.
-    expect(wrapper.find('input').exists()).toBe(false)
+    // One input, and it is the search (FR-25.13j) — a new name still has
+    // its home in the composer.
+    expect(wrapper.findAll('input').map((input) => input.attributes('data-testid'))).toEqual([
+      'browse-search-input',
+    ])
 
     await wrapper.find('[data-testid="browse-free-text"]').trigger('click')
     expect(wrapper.emitted('freeText')).toHaveLength(1)
@@ -1024,5 +1056,131 @@ describe("InventoryBrowseSheet — the name's long-press tooltip (FR-25.13h)", (
     await row.trigger('click')
 
     expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+  })
+})
+
+describe('InventoryBrowseSheet — search and the missing name (FR-25.13j)', () => {
+  /** The sheet is an Ionic modal, which renders no slot content under jsdom. */
+  const SHEET_STUB = { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    seed()
+    writes = { created: [], restored: [] }
+    masterLoaded = true
+  })
+
+  function mountSearching(carriedItemIds: string[] = []) {
+    return mount(InventoryBrowseSheet, {
+      props: { carriedItemIds },
+      global: { stubs: SHEET_STUB },
+    })
+  }
+
+  async function search(wrapper: ReturnType<typeof mountSearching>, query: string) {
+    await wrapper.get('[data-testid="browse-search-input"]').setValue(query)
+  }
+
+  function offerTitle(wrapper: ReturnType<typeof mountSearching>) {
+    return wrapper.find('[data-testid="browse-offer-title"]')
+  }
+
+  it('narrows the rows by M9’s rule — umlaut spellings and tags included (FR-24.7)', async () => {
+    const wrapper = mountSearching()
+
+    await search(wrapper, 'pull')
+    expect(rowNames(wrapper)).toEqual(['Pullover'])
+
+    // A tag name finds what it is on, as it does on M9.
+    await search(wrapper, 'Sommer')
+    expect(rowNames(wrapper)).toEqual(['Badehose'])
+
+    await search(wrapper, '')
+    expect(rowNames(wrapper)).toHaveLength(4)
+  })
+
+  it('searches inside the tag axis, and says so when nothing is left', async () => {
+    const wrapper = mountSearching()
+    await wrapper.find('[data-testid="browse-tag-Technik"]').trigger('click')
+
+    await search(wrapper, 'Pullover')
+
+    expect(rowNames(wrapper)).toEqual([])
+    expect(wrapper.get('[data-testid="browse-no-match"]').text()).toBe(
+      t('quickAdd.browseNoSearchMatch'),
+    )
+  })
+
+  it('offers a missing name above partial hits, and makes no offer for an existing one', async () => {
+    item('i-zeltheringe', 'Zeltheringe')
+    const wrapper = mountSearching()
+
+    await search(wrapper, 'Zelt')
+    expect(offerTitle(wrapper).text()).toContain('Zelt')
+    expect(rowNames(wrapper)).toEqual(['Zeltheringe'])
+
+    await search(wrapper, 'zeltheringe')
+    expect(offerTitle(wrapper).exists()).toBe(false)
+  })
+
+  it('opens the creation sheet on Enter and never writes from the field (FR-24.11)', async () => {
+    const wrapper = mountSearching()
+    await search(wrapper, 'Zelt')
+
+    await wrapper.get('[data-testid="browse-search-input"]').trigger('keydown', { key: 'Enter' })
+
+    const sheet = wrapper.findComponent(CreateItemSheet)
+    expect(sheet.props('isOpen')).toBe(true)
+    expect(sheet.props('name')).toBe('Zelt')
+    expect(writes.created).toEqual([])
+    expect(wrapper.emitted('add')).toBeUndefined()
+  })
+
+  it('creates the item with the filtered tag and adds it like a tapped line', async () => {
+    const wrapper = mountSearching()
+    await wrapper.find('[data-testid="browse-tag-Technik"]').trigger('click')
+    await search(wrapper, 'Powerbank')
+    await wrapper.get('[data-testid="browse-offer"]').trigger('click')
+
+    expect(wrapper.findComponent(CreateItemSheet).props('tagIds')).toEqual(['t-technik'])
+
+    await wrapper.get('[data-testid="create-item-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(writes.created).toEqual(['Powerbank'])
+    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ id: 'new-Powerbank' })
+    expect(wrapper.findComponent(CreateItemSheet).props('isOpen')).toBe(false)
+    // The name exists now, so the offer goes.
+    expect(offerTitle(wrapper).exists()).toBe(false)
+    expect(wrapper.emitted('close')).toBeUndefined()
+  })
+
+  it('restores a retired name and adds it, instead of creating a second one', async () => {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: 'items',
+      id: 'i-stirnlampe',
+      deleted: false,
+      row: { name: 'Stirnlampe', retired_at: '2026-09-01T00:00:00Z' },
+    })
+    const wrapper = mountSearching()
+    await search(wrapper, 'Stirnlampe')
+
+    await wrapper.get('[data-testid="browse-offer"]').trigger('click')
+
+    expect(writes.restored).toEqual(['i-stirnlampe'])
+    expect(writes.created).toEqual([])
+    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ id: 'i-stirnlampe' })
+  })
+
+  it('offers nothing before the inventory has arrived (ADR-033)', async () => {
+    masterLoaded = false
+    const wrapper = mountSearching()
+
+    await search(wrapper, 'Zelt')
+    await wrapper.get('[data-testid="browse-search-input"]').trigger('keydown', { key: 'Enter' })
+
+    expect(offerTitle(wrapper).exists()).toBe(false)
+    expect(wrapper.findComponent(CreateItemSheet).props('isOpen')).toBe(false)
   })
 })

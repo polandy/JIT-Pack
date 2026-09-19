@@ -659,6 +659,7 @@ export const en = {
   'quickAdd.browseAlreadyIn': 'already in',
   'quickAdd.browseFreeText': 'Type a new name instead…',
   'quickAdd.browseNoMatch': 'No items carry this tag yet',
+  'quickAdd.browseNoSearchMatch': 'Nothing in the inventory matches',
   'quickAdd.browseHideCarried': 'hide',
   'quickAdd.browseHideCarriedLabel': 'Hide what is already in ({n})',
   'quickAdd.browseCarriedCount': '{n} already in',

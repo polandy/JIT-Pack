@@ -87,8 +87,18 @@ function seedInventory() {
   putItem('i2', 'Badehose')
 }
 
-/** The sheet is an Ionic modal, which renders no slot content under jsdom. */
-const SHEET_STUB = { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } }
+/**
+ * The sheet is an Ionic modal, which renders no slot content under jsdom. Only
+ * an open one renders here: the browse-sheet carries a creation sheet of its
+ * own (FR-25.13j), which a closed browse-sheet must not put beside the composer's.
+ */
+const SHEET_STUB = {
+  SheetModal: {
+    name: 'SheetModal',
+    props: ['isOpen'],
+    template: '<div v-if="isOpen"><slot /></div>',
+  },
+}
 
 function open(props: Record<string, unknown> = {}, global: Record<string, unknown> = {}) {
   return mount(QuickAddItem, {
