@@ -396,6 +396,37 @@ describe('createPackingActions without an orchestrator', () => {
     expect(skip!.mutation).toMatchObject({ id: 'ti-comp', fields: { state: 'skipped' } })
   })
 
+  it('removing one traveler’s instance of a per-person item leaves the other’s alone (FR-5.8, FR-25.21)', () => {
+    // Both instances packed, as when one person packed the item for both: the
+    // removal forgets only the unit on the row it was asked about.
+    const shared = { source_item_id: 'item-underwear', name: 'Unterhose', quantity: 1 }
+    seedTripItem('ti-a', {
+      ...shared,
+      assigned_traveler_id: 'trav-a',
+      packed_count: 1,
+      state: 'packed',
+    })
+    const theirs = seedTripItem('ti-b', {
+      ...shared,
+      assigned_traveler_id: 'trav-b',
+      packed_count: 1,
+      state: 'packed',
+    })
+    const actions = createPackingActions(ctx)
+
+    const plan = actions.planRowRemoval(TRIP_ID, theirs)
+    actions.removeItem(TRIP_ID, theirs, plan.companions)
+
+    // A sibling instance is not a companion, so nothing else is skipped…
+    expect(plan).toMatchObject({ packed: 1, companions: [] })
+    expect(queued).toHaveLength(1)
+    expect(queued[0]!.muts.map((m) => [m.mutation.op, m.mutation.id])).toEqual([['delete', 'ti-b']])
+    // …and the other traveler's row is still there, packed.
+    expect(ctx.tripStore.getItems(TRIP_ID)).toEqual([
+      expect.objectContaining({ id: 'ti-a', assigned_traveler_id: 'trav-a', packed_count: 1 }),
+    ])
+  })
+
   it('restoreRemovedItem re-inserts the row under its own id, with its decisions (FR-5.8)', () => {
     const row = seedTripItem('ti-1', {
       source_item_id: 'item-tent',
