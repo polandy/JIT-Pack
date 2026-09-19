@@ -709,6 +709,13 @@ in WebKit.
 * **E2E-M4-105** `local` (FR-7.4 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): ticking a
   trip todo off raises the pack snackbar naming it, and its *Rückgängig* puts the task back on the open list — the
   head's check goes *„1 von 2"* → *„0 von 2 erledigt"* — and the reopened state survives a reload.
+* **E2E-M4-110** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for three
+  travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
+  is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the
+  trip line reads *1/2*, the same sum. A tap on *Shared* presses it and puts a person chip in the chip row with the
+  shared row still listed; a second tap releases both.
+* **E2E-M4-111** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for one
+  traveler shows no per-person strip, read once the trip line has rendered.
 * **E2E-M4-106** `local` (FR-7.3 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): the same
   for M4's preparation section: ticking a prep task drops the row's badge and raises the snackbar; *Rückgängig*
   brings the badge back, also after a reload.
