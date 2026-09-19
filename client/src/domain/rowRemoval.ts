@@ -49,6 +49,38 @@ export function planRemoval<T extends RemovableRow>(
 }
 
 /**
+ * planRemovals is {@link planRemoval} for several rows removed together —
+ * FR-25.26's head removing every instance of a per-person item at once.
+ *
+ * Summed, except for the companions, which are asked as if the other targets
+ * were already gone: FR-20.2 keeps a companion while another traveler's row
+ * of its main item is still on the list, so asked row by row, every instance
+ * would name none, and the confirmation would promise less than the write
+ * takes.
+ */
+export function planRemovals<T extends RemovableRow>(
+  targets: readonly T[],
+  rows: readonly T[],
+  dependencies: ItemDependency[],
+  notesOf: (target: T) => number,
+): RowRemoval<T> {
+  const removed = new Set(targets.map((target) => target.id))
+  const companions: T[] = []
+  let packed = 0
+  let notes = 0
+  for (const target of targets) {
+    const rest = rows.filter((row) => row.id === target.id || !removed.has(row.id))
+    const plan = planRemoval(target, rest, dependencies, notesOf(target))
+    packed += plan.packed
+    notes += plan.notes
+    for (const companion of plan.companions) {
+      if (!companions.some((known) => known.id === companion.id)) companions.push(companion)
+    }
+  }
+  return { packed, notes, companions }
+}
+
+/**
  * Whether the removal must be confirmed. Each of the three is something the
  * undo does not put back — packing that happened, notes that cascade away,
  * companions skipped on the removed row's account — so a removal carrying any
@@ -92,8 +124,21 @@ export function itemLeftUnused(
   removed: { id: string; source_item_id: string | null },
   from: ItemUseSources,
 ): string | null {
-  const itemId = removed.source_item_id
-  if (itemId === null) return null
-  const others = { ...from, tripItems: from.tripItems.filter((row) => row.id !== removed.id) }
+  return itemLeftUnusedByRows([removed], from)
+}
+
+/**
+ * {@link itemLeftUnused} for several rows of **one** item removed together
+ * (FR-25.26): the instances being removed are no use of each other. Rows of
+ * different items have no single answer, so they get none.
+ */
+export function itemLeftUnusedByRows(
+  removed: readonly { id: string; source_item_id: string | null }[],
+  from: ItemUseSources,
+): string | null {
+  const itemId = removed[0]?.source_item_id ?? null
+  if (itemId === null || removed.some((row) => row.source_item_id !== itemId)) return null
+  const gone = new Set(removed.map((row) => row.id))
+  const others = { ...from, tripItems: from.tripItems.filter((row) => !gone.has(row.id)) }
   return itemInUse(itemId, others) ? null : itemId
 }

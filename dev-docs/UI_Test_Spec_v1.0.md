@@ -715,6 +715,13 @@ in WebKit.
   per-person item for two travelers, both instances packed; removing one traveler's instance from its own row asks
   first, naming **one** packed unit rather than the cluster's two, and takes only that row. The cluster dissolves into
   the other traveler's row, still packed, and a reload reads the same.
+* **E2E-M4-117** `all` (FR-25.26 widened, added 2026-09-19) — **implemented** (`e2e/membership.spec.ts`): the cluster
+  head offers a row's entries. *Menge ändern* from the head, stepped to 3, reads **0/3 on each child**, and *Nicht
+  einpacken* takes the whole cluster off the working list — one skipped child of two would have kept it there. The
+  snackbar's one undo brings both back at their amount.
+* **E2E-M4-118** `all` (FR-25.26, FR-5.8, added 2026-09-19) — **implemented** (`e2e/membership.spec.ts`): the head
+  removes every instance of an untouched cluster without asking; no instance is left behind as a lone row, and the
+  undo returns the cluster with both children.
 * **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): M4's *Aufgaben für die
   Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing

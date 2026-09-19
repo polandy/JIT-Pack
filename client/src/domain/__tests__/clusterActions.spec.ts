@@ -1,6 +1,8 @@
 /**
  * FR-25.26: what a per-person cluster's head may do to every instance under
- * it at once, and which of them a write actually reaches.
+ * it at once, and which of them a write actually reaches. Since 2026-09-19
+ * that is everything a row's own menu offers, each entry reaching the
+ * instances whose row would offer it.
  *
  * The two halves are tested apart because they fail apart: the menu can be
  * right about what to offer while the fan-out writes the wrong set, and a
@@ -12,18 +14,41 @@ import { describe, it, expect } from 'vitest'
 import {
   clusterFanOut,
   clusterMenuEntries,
+  clusterTargets,
   type ClusterInstance,
   type ClusterMenuAction,
   type ClusterMenuContext,
 } from '@/domain/clusterActions'
+import type { TripItem } from '@/types/domain'
 
-function instance(overrides: Partial<ClusterInstance> = {}): ClusterInstance {
-  return { id: 'i1', latePacker: false, lockedBy: null, ...overrides }
+interface InstanceSpec {
+  id?: string
+  latePacker?: boolean
+  flagUnused?: boolean
+  state?: TripItem['state']
+  lockedBy?: string | null
+  mine?: boolean
+}
+
+function instance(spec: InstanceSpec = {}): ClusterInstance {
+  return {
+    id: spec.id ?? 'i1',
+    row: {
+      state: spec.state ?? 'open',
+      late_packer: spec.latePacker ?? false,
+      flag_unused: spec.flagUnused ?? false,
+    },
+    lockedBy: spec.lockedBy ?? null,
+    mine: spec.mine ?? false,
+  }
 }
 
 function ctx(overrides: Partial<ClusterMenuContext> = {}): ClusterMenuContext {
-  return { closingPass: false, canAssign: false, ...overrides }
+  return { closingPass: false, canAssign: false, judgeable: false, ...overrides }
 }
+
+/** What an open cluster offers when the flag is still off, as a row does. */
+const OPEN: ClusterMenuAction[] = ['quantity', 'packingNow', 'skip', 'latePackerOn', 'remove']
 
 interface MenuCase {
   name: string
@@ -34,28 +59,28 @@ interface MenuCase {
 
 const menuCases: MenuCase[] = [
   {
-    name: 'a cluster nobody has flagged offers the flag for all of it (FR-25.26)',
+    name: 'an open cluster offers what an open row does (FR-25.26, owner 2026-09-19)',
     instances: [instance({ id: 'a' }), instance({ id: 'b' })],
     ctx: {},
-    want: ['latePackerOn'],
+    want: OPEN,
   },
   {
     name: 'a cluster flagged through offers the way back off it',
     instances: [instance({ id: 'a', latePacker: true }), instance({ id: 'b', latePacker: true })],
     ctx: {},
-    want: ['latePackerOff'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOff', 'remove'],
   },
   {
     name: 'a half-flagged cluster offers to finish the job, not to undo it',
     instances: [instance({ id: 'a', latePacker: true }), instance({ id: 'b' })],
     ctx: {},
-    want: ['latePackerOn'],
+    want: OPEN,
   },
   {
     name: 'the assignment is offered only where there is somebody to assign to (G-8)',
     instances: [instance({ id: 'a' }), instance({ id: 'b' })],
     ctx: { canAssign: true },
-    want: ['latePackerOn', 'assignAll'],
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'assignAll', 'remove'],
   },
   {
     name: 'the closing pass takes the head’s menu away, exactly as it takes a row’s (FR-9.3)',
@@ -73,13 +98,49 @@ const menuCases: MenuCase[] = [
     name: 'one held instance does not close the menu — the others are still writable',
     instances: [instance({ id: 'a', lockedBy: 'Sia' }), instance({ id: 'b' })],
     ctx: {},
-    want: ['latePackerOn'],
+    want: OPEN,
   },
   {
     name: 'an empty cluster offers nothing rather than an empty sheet',
     instances: [],
     ctx: { canAssign: true },
     want: [],
+  },
+  {
+    name: 'a skipped cluster offers the way back, as a skipped row does (FR-5.5)',
+    instances: [instance({ id: 'a', state: 'skipped' }), instance({ id: 'b', state: 'skipped' })],
+    ctx: {},
+    want: ['unskip', 'latePackerOn', 'remove'],
+  },
+  {
+    name: 'a half-skipped cluster offers both directions — each reaches its own rows',
+    instances: [instance({ id: 'a', state: 'skipped' }), instance({ id: 'b' })],
+    ctx: {},
+    want: ['unskip', ...OPEN],
+  },
+  {
+    name: 'a cluster I am packing through offers the release and the flag, as my row does (G-3)',
+    instances: [instance({ id: 'a', mine: true }), instance({ id: 'b', mine: true })],
+    ctx: {},
+    want: ['release', 'latePackerOn'],
+  },
+  {
+    name: 'the unused judgement is offered in its window (FR-9.3)',
+    instances: [instance({ id: 'a' }), instance({ id: 'b' })],
+    ctx: { judgeable: true },
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'flagUnused', 'remove'],
+  },
+  {
+    name: 'a cluster judged unused through offers to take it back',
+    instances: [instance({ id: 'a', flagUnused: true }), instance({ id: 'b', flagUnused: true })],
+    ctx: { judgeable: true },
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'unflagUnused', 'remove'],
+  },
+  {
+    name: 'a half-judged cluster offers to finish the judgement',
+    instances: [instance({ id: 'a', flagUnused: true }), instance({ id: 'b' })],
+    ctx: { judgeable: true },
+    want: ['quantity', 'packingNow', 'skip', 'latePackerOn', 'flagUnused', 'remove'],
   },
 ]
 
@@ -95,7 +156,45 @@ describe('clusterMenuEntries (FR-25.26, FR-9.3, G-3, G-8)', () => {
       instance({ id: 'a', latePacker: true }),
       instance({ id: 'b', latePacker: false, lockedBy: 'Sia' }),
     ]
-    expect(clusterMenuEntries(held, ctx())).toEqual(['latePackerOn'])
+    expect(clusterMenuEntries(held, ctx())).toEqual(OPEN)
+  })
+
+  it('offers no entry that only a held instance would take', () => {
+    // The skipped row is Sia's, so nothing on the head could un-skip it.
+    const held = [instance({ id: 'a', state: 'skipped', lockedBy: 'Sia' }), instance({ id: 'b' })]
+    expect(clusterMenuEntries(held, ctx())).toEqual(OPEN)
+  })
+})
+
+describe('clusterTargets (FR-25.26, G-3)', () => {
+  const mixed = [
+    instance({ id: 'a' }),
+    instance({ id: 'b', state: 'skipped' }),
+    instance({ id: 'c', mine: true }),
+    instance({ id: 'd', lockedBy: 'Sia' }),
+  ]
+
+  it('an entry reaches the instances whose own row offers it', () => {
+    expect(clusterTargets('skip', mixed, ctx()).targetIds).toEqual(['a'])
+    expect(clusterTargets('unskip', mixed, ctx()).targetIds).toEqual(['b'])
+    expect(clusterTargets('release', mixed, ctx()).targetIds).toEqual(['c'])
+    expect(clusterTargets('remove', mixed, ctx()).targetIds).toEqual(['a', 'b'])
+  })
+
+  it('names a holder only where the entry would have reached their instance', () => {
+    expect(clusterTargets('skip', mixed, ctx()).blockedBy).toEqual(['Sia'])
+    expect(clusterTargets('unskip', mixed, ctx()).blockedBy).toEqual([])
+  })
+
+  it('the late-packer flag and the assignment reach every instance, as before', () => {
+    expect(clusterTargets('latePackerOn', mixed, ctx()).targetIds).toEqual(['a', 'b', 'c'])
+    expect(clusterTargets('assignAll', mixed, ctx()).targetIds).toEqual(['a', 'b', 'c'])
+  })
+
+  it('an on/off pair reaches the same instances in both directions', () => {
+    const judged = ctx({ judgeable: true })
+    expect(clusterTargets('flagUnused', mixed, judged).targetIds).toEqual(['a', 'b', 'c'])
+    expect(clusterTargets('unflagUnused', mixed, judged).targetIds).toEqual(['a', 'b', 'c'])
   })
 })
 

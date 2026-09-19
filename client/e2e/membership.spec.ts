@@ -1007,4 +1007,89 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
     await expect(menu).toHaveCount(0)
     await expect(head.getByTestId('row-late')).toHaveCount(0)
   })
+
+  /*
+   * FR-25.26, widened 2026-09-19 (owner): the head offers what a row's own
+   * menu does, each entry reaching every instance. Asserted per child, for
+   * E2E-M4-88's reason — the head sums and folds its children, so a fan-out
+   * that reached one instance of two would still repaint the head.
+   */
+  test('E2E-M4-117: the cluster head sets the amount and skips for every instance', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 1)
+    await closeItem(page)
+
+    const list = visiblePage(page)
+    const head = list.getByTestId(`m4-cluster-${ITEM}`)
+    const menu = page.locator('ion-action-sheet')
+
+    await head.dispatchEvent('contextmenu')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: /change the amount/i }).click()
+    await expect(menu).toHaveCount(0)
+    const popover = page.getByTestId('m4-quantity-popover')
+    await expect(popover.getByTestId('quantity-value')).toHaveText('1')
+    await popover.getByTestId('quantity-more').click()
+    await expect(popover.getByTestId('quantity-value')).toHaveText('2')
+    await popover.getByTestId('quantity-more').click()
+    await expect(popover.getByTestId('quantity-value')).toHaveText('3')
+    await page.keyboard.press('Escape')
+    await expect(popover.getByTestId('quantity-editor')).toHaveCount(0)
+
+    await openCluster(page, ITEM)
+    for (const traveler of ['Andy', 'Leonardo']) {
+      await expect(list.getByTestId(`m4-child-${ITEM}-${traveler}`)).toContainText('0/3')
+    }
+
+    await head.dispatchEvent('contextmenu')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: /do not pack this/i }).click()
+    await expect(menu).toHaveCount(0)
+    // Both instances are decided, so the whole cluster is done (FR-25.2) and
+    // leaves the working list — one skipped child would have kept it there.
+    await expect(head).toHaveCount(0)
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText(ITEM)
+
+    // One undo for the gesture, and it returns both.
+    await toast.getByRole('button', { name: /undo/i }).click()
+    await expect(head).toBeVisible()
+    for (const traveler of ['Andy', 'Leonardo']) {
+      await expect(list.getByTestId(`m4-child-${ITEM}-${traveler}`)).toContainText('0/3')
+    }
+  })
+
+  test('E2E-M4-118: the cluster head removes every instance, behind one undo', async ({ page }) => {
+    await seedTrip(page)
+
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 1)
+    await closeItem(page)
+
+    const list = visiblePage(page)
+    const head = list.getByTestId(`m4-cluster-${ITEM}`)
+    await head.dispatchEvent('contextmenu')
+    const menu = page.locator('ion-action-sheet')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: /remove from the list/i }).click()
+    await expect(menu).toHaveCount(0)
+
+    // Nothing was packed on either, so nothing is asked (FR-5.8): both go,
+    // and no instance is left behind as a lone row.
+    await expect(head).toHaveCount(0)
+    await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
+
+    await page.locator('ion-toast.pack-toast').getByRole('button', { name: /undo/i }).click()
+    await expect(head).toBeVisible()
+    await openCluster(page, ITEM)
+    for (const traveler of ['Andy', 'Leonardo']) {
+      await expect(list.getByTestId(`m4-child-${ITEM}-${traveler}`)).toBeVisible()
+    }
+  })
 })
