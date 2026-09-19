@@ -350,6 +350,12 @@ CREATE TABLE comments (
     body         TEXT NOT NULL,
     is_task      INTEGER NOT NULL DEFAULT 0 CHECK (is_task IN (0,1)),       -- FR-7.2
     task_state   TEXT CHECK (task_state IN ('open','resolved')),
+    -- FR-7.5: who a trip todo (FR-7.4) is somebody's job for — the task's
+    -- counterpart of trip_items.packer_user_id, and like it the client's to
+    -- set (invariant 3 concerns the author, not the assignment). Nullable
+    -- and free of a CHECK for field-level LWW's sake: a constraint that can
+    -- refuse a single-field mutation loses the user's choice.
+    assignee_user_id TEXT REFERENCES users(id),
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',

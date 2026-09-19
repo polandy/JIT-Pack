@@ -6,11 +6,17 @@
  *
  * The trip is where these are written (owner, 2026-09-18): M1 only reports
  * them, because the dashboard takes no actions.
+ *
+ * An open todo ends in FR-25.25's seat (FR-7.5): whose job it is, and the
+ * door to changing that. The picker is the screen's, the one a packing row's
+ * seat opens, so the list only reports the tap.
  */
 import { IonButton, IonCheckbox, IonIcon, IonInput, IonItem, IonLabel } from '@ionic/vue'
 import { chevronForwardOutline, closeOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
+import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
+import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
@@ -26,6 +32,14 @@ const props = defineProps<{
    * chance to take it back is over.
    */
   removing?: ReadonlySet<string>
+  /**
+   * FR-7.5: whether there is anybody to hand a todo to. Absent in Local and
+   * Single-User Mode, which have no second account (G-8) — the seat is then
+   * not rendered at all, rather than offered with nobody behind it.
+   */
+  assignable?: boolean
+  /** A member's display name, for the avatar's initials. */
+  nameOf?: (userId: string) => string | null
 }>()
 
 /** Every act here is reported to the screen, which owns the one snackbar that takes it back (FR-25.31). */
@@ -38,6 +52,8 @@ const emit = defineEmits<{
   reopened: [todo: TripTodo]
   /** Asked to go — the screen hides it and deletes it once the undo lapses. */
   remove: [todo: TripTodo]
+  /** FR-7.5: the seat was tapped — the screen asks whose job it is. */
+  assign: [todo: TripTodo]
 }>()
 
 const tripStore = useTripStore()
@@ -58,6 +74,12 @@ function add() {
   const id = orchestrator.addTripTodo(props.tripId, CLIENT_ACTOR_PLACEHOLDER, body)
   draft.value = ''
   emit('added', id, body)
+}
+
+/** The avatar a todo's seat shows, or null for the empty seat. */
+function assigneeOf(todo: TripTodo) {
+  const id = todo.assignee_user_id
+  return id ? { variant: 'assignee' as const, id, name: props.nameOf?.(id) ?? null } : null
 }
 
 function toggle(todo: TripTodo) {
@@ -82,16 +104,30 @@ function toggle(todo: TripTodo) {
     >
       <IonCheckbox slot="start" :checked="false" @ionChange="toggle(todo)" />
       <IonLabel>{{ todo.body }}</IonLabel>
-      <button
-        slot="end"
-        type="button"
-        class="rm"
-        :aria-label="t('tripTodos.remove')"
-        :data-testid="`trip-todo-remove-${todo.body}`"
-        @click="emit('remove', todo)"
-      >
-        <IonIcon :icon="closeOutline" />
-      </button>
+      <span slot="end" class="todo-end">
+        <AssigneeSeat
+          v-if="assignable"
+          :avatar="assigneeOf(todo)"
+          :data-testid="`trip-todo-assign-${todo.body}`"
+          @assign="emit('assign', todo)"
+        />
+        <UserAvatar
+          v-else-if="todo.assignee_user_id"
+          variant="assignee"
+          :name="nameOf?.(todo.assignee_user_id)"
+          :seed="todo.assignee_user_id"
+          :data-testid="`trip-todo-assignee-${todo.body}`"
+        />
+        <button
+          type="button"
+          class="rm"
+          :aria-label="t('tripTodos.remove')"
+          :data-testid="`trip-todo-remove-${todo.body}`"
+          @click="emit('remove', todo)"
+        >
+          <IonIcon :icon="closeOutline" />
+        </button>
+      </span>
     </IonItem>
 
     <!-- Resolved ones fold away but stay reachable: unticking is the only
@@ -118,16 +154,26 @@ function toggle(todo: TripTodo) {
         >
           <IonCheckbox slot="start" :checked="true" @ionChange="toggle(todo)" />
           <IonLabel>{{ todo.body }}</IonLabel>
-          <button
-            slot="end"
-            type="button"
-            class="rm"
-            :aria-label="t('tripTodos.remove')"
-            :data-testid="`trip-todo-remove-${todo.body}`"
-            @click="emit('remove', todo)"
-          >
-            <IonIcon :icon="closeOutline" />
-          </button>
+          <span slot="end" class="todo-end">
+            <!-- Done is done: who had it is still worth reading, but handing
+                 over a finished task decides nothing. -->
+            <UserAvatar
+              v-if="todo.assignee_user_id"
+              variant="assignee"
+              :name="nameOf?.(todo.assignee_user_id)"
+              :seed="todo.assignee_user_id"
+              :data-testid="`trip-todo-assignee-${todo.body}`"
+            />
+            <button
+              type="button"
+              class="rm"
+              :aria-label="t('tripTodos.remove')"
+              :data-testid="`trip-todo-remove-${todo.body}`"
+              @click="emit('remove', todo)"
+            >
+              <IonIcon :icon="closeOutline" />
+            </button>
+          </span>
         </IonItem>
       </template>
     </template>
@@ -158,6 +204,12 @@ function toggle(todo: TripTodo) {
 .todo-row.resolved ion-label {
   color: var(--ct-subtext0);
   text-decoration: line-through;
+}
+
+.todo-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .rm {

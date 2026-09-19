@@ -7,6 +7,8 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-19 — **M4**'s *Aufgaben für die Reise* ends each open todo in the row's assignment seat, and **M1**'s
+  *Aufgaben* card names the assignee (FR-7.5).
 * 2026-09-19 — **M7**'s row menu shares a Vorlage through the device's share sheet (FR-18.2).
 * 2026-09-19 — **M24** added: *Aufräumen*, the inventory's cleanup rules (FR-24.12). **M9** reaches it from the ⋮ and a
   sentence at the list's foot; its give sheet creates a tag it does not find (FR-24.9); a tag carries a mark, shown on
@@ -789,7 +791,8 @@ These patterns apply to every screen and are specified once.
   (G-13, the open count beside the name) sits directly below the *Vorzubereiten* card and **reports, never operates**:
   M1 takes no actions (owner, 2026-09-18). It lists every active trip that has at least one trip todo, soonest departure
   first — the hero's order — each as a block that leads into the trip: the trip's name, its own check (*„1 von 2
-  erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open todos as plain text. A
+  erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open todos as plain text —
+  an assigned one followed by its assignee's name in `--ct-subtext0` (*„Pflanzen giessen · Sia"*, FR-7.5). A
   trip without any trip todo is left out, and the card is absent when none has one — the first cut put an editor with an
   empty composer here for every active trip, which stood above the hero on every dashboard. **The trip cards carry the
   check too:** the hero as the **packing share's pair** — the same ring (both step down to 46 px while paired),
@@ -1380,6 +1383,12 @@ These patterns apply to every screen and are specified once.
     where unticking reopens one, and a composer (*„Aufgabe hinzufügen…"*, Enter or *Hinzufügen*). Nothing here counts
     toward the packing ring, the header's prep KPI or any row's doneness. Every trip member may tick; there is no G-3
     claim, because there is no row. (E2E-M4-96, E2E-M4-97)
+    **Whose job (FR-7.5 — built 2026-09-19).** Each open todo ends, before its ✕, in the row's assignment seat — the
+    same component as FR-25.25's: the assignee's avatar, or the dashed empty seat. A tap opens the row's picker, whose
+    list here includes the current user, plus *niemand*; the choice is taken back from the snackbar. A resolved todo
+    shows its assignee's avatar and no seat. Where nobody else is a member (Local, Single-User, an unshared trip) no
+    seat is rendered; an assignee already set is shown as a plain avatar. An assigned todo is never hidden.
+    (E2E-M4-130, E2E-M4-131)
   * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items
     with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal
     incomplete readiness.

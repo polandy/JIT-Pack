@@ -149,7 +149,15 @@ import { useTripStore } from '@/stores/tripStore'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import InventoryNamesSheet from '@/components/trips/InventoryNamesSheet.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
-import type { FacetKey, GroupBy, ItemTodo, MasterItem, TripItem, TripTodo } from '@/types/domain'
+import type {
+  FacetKey,
+  GroupBy,
+  ItemTodo,
+  MasterItem,
+  TripItem,
+  TripParticipant,
+  TripTodo,
+} from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction, confirmDestructive } from '@/lib/confirm'
@@ -354,6 +362,17 @@ const assignableMembers = computed(() => {
   )
 })
 
+/**
+ * FR-7.5: who a trip todo can be handed to — every member, *me included*.
+ * A row leaves me out because an unassigned row is already mine to see
+ * (FR-25.20); a todo has no such filter, and „I'll do it" is the most
+ * common thing a household says about one.
+ */
+const todoAssignees = computed(() => {
+  const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
+  return participants.value.filter((person) => members.has(person.user_id))
+})
+
 /** FR-25.25, decided in the domain (`avatarAssignable`) — see there for why. */
 function assignableRow(item: TripItem): boolean {
   return avatarAssignable(item, {
@@ -373,12 +392,13 @@ function assignableRow(item: TripItem): boolean {
 async function pickAssignee(
   header: string,
   current: string | null,
+  people: readonly TripParticipant[] = assignableMembers.value,
 ): Promise<string | null | undefined> {
   let picked: string | null | undefined
   const sheet = await actionSheetController.create({
     header,
     buttons: [
-      ...assignableMembers.value.map((person) => ({
+      ...people.map((person) => ({
         text: person.display_name,
         icon: personOutline,
         role: person.user_id === current ? 'selected' : undefined,
@@ -1866,6 +1886,23 @@ function onTripTodoAdded(id: string, body: string) {
   void announceAct(t('packing.taskAddedToast', { body }))
 }
 
+/** FR-7.5: the todo's seat, tapped — the row's picker and the row's undo. */
+async function onTripTodoAssign(todo: TripTodo) {
+  const picked = await pickAssignee(todo.body, todo.assignee_user_id, todoAssignees.value)
+  if (picked === undefined || picked === todo.assignee_user_id) return
+  const previous = todo.assignee_user_id
+  rowUndo.armAction(todo.body, () => {
+    const live = liveTripTodo(todo.id)
+    if (live) orchestrator.assignTripTodo(live, previous)
+  })
+  orchestrator.assignTripTodo(todo, picked)
+  void announceAct(
+    picked === null
+      ? t('packing.unassignedToast', { name: todo.body })
+      : t('packing.assignedToast', { name: todo.body, who: nameOf(picked) ?? '' }),
+  )
+}
+
 /** Hidden now and deleted when the undo lapses — the confirmed removal's reason. */
 function onTripTodoRemove(todo: TripTodo) {
   const id = todo.id
@@ -2337,6 +2374,9 @@ setHeaderTitle(
           v-if="tripTodosOpen"
           :trip-id="tripId"
           :removing="removingTodos"
+          :assignable="todoAssignees.length > 1"
+          :name-of="nameOf"
+          @assign="onTripTodoAssign"
           @resolved="onTripTodoResolved"
           @reopened="onTripTodoReopened"
           @added="onTripTodoAdded"
