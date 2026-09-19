@@ -1,6 +1,7 @@
 import {
   test,
   expect,
+  addInComposer,
   createTripViaWizard,
   createMasterItem,
   openQuickAdd,
@@ -9,7 +10,14 @@ import {
   useReducedMotion,
   writesLanded,
 } from './fixtures'
-import { chooseInRowMenu, openRowMenu, tripWithRows } from './helpers/m4'
+import {
+  FOR_WHOM_M5,
+  chooseInRowMenu,
+  lightTraveler,
+  openCluster,
+  openRowMenu,
+  tripWithRows,
+} from './helpers/m4'
 import { PATH } from './routes'
 
 /**
@@ -135,6 +143,74 @@ test('E2E-M4-92: removing a main item asks first and skips its companion @local 
   await expect(inventoryRow('Drohne')).toHaveCount(0)
 })
 
+// E2E-M4-116 (FR-5.8, FR-25.21): a per-person item is one row per traveler,
+// so removing it is removing *one person's* row. Both instances are packed —
+// Andy packed for both — and Leonardo then does not need his after all: his
+// row goes, Andy's stays packed. The dialog's count is the rendered proof that
+// the removal was scoped before anything was written: it names one packed
+// unit, not the two the cluster holds.
+test('E2E-M4-116: removing one traveler’s instance keeps the other’s @local @m4', async ({
+  page,
+  seedMode,
+}) => {
+  const ITEM = 'Unterhose'
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await createTripViaWizard(page, { name: 'Entfernpersonen', travelers: ['Andy', 'Leonardo'] })
+  await openQuickAdd(page)
+  await addInComposer(page, ITEM)
+  await expect(page.getByTestId(`m4-row-${ITEM}`)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('quick-add-input')).toBeHidden()
+
+  await visiblePage(page).getByTestId(`m4-row-${ITEM}`).click()
+  await expect(page.getByTestId('m5-sheet')).toBeVisible()
+  await lightTraveler(page, FOR_WHOM_M5, 'Andy')
+  await lightTraveler(page, FOR_WHOM_M5, 'Leonardo')
+  await page.getByTestId('m5-close').click()
+  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+  const list = visiblePage(page)
+  const child = (name: string) => list.getByTestId(`m4-child-${ITEM}-${name}`)
+  await openCluster(page, ITEM)
+  for (const name of ['Andy', 'Leonardo']) {
+    await child(name).getByTestId('row-check').locator('ion-checkbox').click()
+    await expect(child(name)).toHaveCount(0)
+  }
+  await writesLanded(page)
+
+  await list.getByTestId('m4-done-bar').click()
+  await openCluster(page, ITEM)
+  await child('Leonardo').dispatchEvent('contextmenu')
+  await expect(page.locator('ion-action-sheet')).toBeVisible()
+  await chooseInRowMenu(page, /remove from the list/i)
+
+  const alert = page.getByTestId('m4-remove-confirm')
+  await expect(alert).toContainText('1 already packed')
+  await alert.getByRole('button', { name: /^remove$/i }).click()
+
+  // One instance left is no longer a cluster: it is Andy's row, on its own,
+  // still among the done ones.
+  await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toHaveCount(0)
+  await expect(list.getByTestId(`m4-row-${ITEM}`)).toContainText('Andy')
+  await expect(list.getByTestId(`m4-row-${ITEM}`)).not.toContainText('Leonardo')
+  await expect(list.getByTestId(`m4-row-${ITEM}`).locator('ion-checkbox')).toHaveJSProperty(
+    'checked',
+    true,
+  )
+
+  // The delete reached IndexedDB, and only for Leonardo.
+  await writesLanded(page)
+  await page.reload()
+  // The reveal survives the reload, so it is asked for rather than toggled.
+  const doneBar = visiblePage(page).getByTestId('m4-done-bar')
+  await expect(doneBar).toBeVisible()
+  if ((await doneBar.getAttribute('aria-expanded')) === 'false') await doneBar.click()
+  await expect(doneBar).toHaveAttribute('aria-expanded', 'true')
+  await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toContainText('Andy')
+  await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toHaveCount(0)
+})
+
 // E2E-M4-95 (FR-5.8, G-9): removing the row whose detail is open closes the
 // detail. On a desktop width the panel stands beside the list, so the row can
 // be held while its panel is showing — and without the close, the panel stays
@@ -160,11 +236,11 @@ test('E2E-M4-95: removing the open row closes its detail panel @local @m4', asyn
   await expect(page.getByTestId('m5-missing')).toHaveCount(0)
 })
 
-// E2E-M4-113 (FR-5.8, ADR-065): the inventory item a removed row was the only
+// E2E-M4-115 (FR-5.8, ADR-065): the inventory item a removed row was the only
 // use of goes too — the composer made it (FR-24.11), and nothing else keeps it.
 // Not while the snackbar can still bring the row back: the undo re-inserts a
 // row and nothing more, so the item may only go once that chance is over.
-test('E2E-M4-113: removing the only use of an item deletes it from the inventory once final @local @m4', async ({
+test('E2E-M4-115: removing the only use of an item deletes it from the inventory once final @local @m4', async ({
   page,
   seedMode,
 }) => {
