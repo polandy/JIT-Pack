@@ -217,6 +217,26 @@ describe('runTags', () => {
     ])
   })
 
+  it('prints the id beside a name two active items share, since only the id can address them', async () => {
+    instance.item('i-zb2', 'zahnbürste')
+    instance.assign('a-4', 'i-zb2', 't-div', 1)
+    const out = io()
+    await runTags(options(['list', '--items']), out)
+    expect(out.lines.slice(0, 3)).toEqual([
+      'Diverses — 3 items',
+      '  Zahnbürste (i-zb)',
+      '  zahnbürste (i-zb2)',
+    ])
+  })
+
+  it('refuses a name two active items share, and writes neither', async () => {
+    instance.item('i-zb2', 'Zahnbürste')
+    const out = io()
+    expect(await runTags(options(['give', 'Technik', 'Zahnbürste']), out)).toBe(EXIT.failed)
+    expect(out.lines.at(-1)).toContain('"Zahnbürste" is several items — name it by id')
+    expect(instance.pushed).toEqual([])
+  })
+
   it('files items under a new tag, creating it, and pushes the writes (FR-24.9)', async () => {
     const out = io()
     expect(await runTags(options(['give', 'Hygiene', 'zahnbürste']), out)).toBe(EXIT.ok)

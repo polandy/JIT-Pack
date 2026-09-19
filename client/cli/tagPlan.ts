@@ -290,10 +290,13 @@ export function describeTags(ctx: CommandContext, withItems: boolean): string[] 
   const lines: string[] = []
   const filed = new Map<string, string[]>()
   const untagged: string[] = []
+  const shared = sharedNames(master.activeItemList)
   for (const item of master.activeItemList) {
+    // A name two items share cannot address either, so the id a plan needs is printed with it.
+    const label = shared.has(foldName(item.name)) ? `${item.name} (${item.id})` : item.name
     const primary = primaryTagOf(item.id, master.itemTagList, master.tagList)
-    if (primary) filed.set(primary.id, [...(filed.get(primary.id) ?? []), item.name])
-    else untagged.push(item.name)
+    if (primary) filed.set(primary.id, [...(filed.get(primary.id) ?? []), label])
+    else untagged.push(label)
   }
 
   for (const tag of master.tagList) {
@@ -306,6 +309,18 @@ export function describeTags(ctx: CommandContext, withItems: boolean): string[] 
     for (const name of sorted(untagged)) lines.push(`  ${name}`)
   }
   return lines
+}
+
+/** The folded names more than one of these items carries. */
+function sharedNames(items: MasterItem[]): Set<string> {
+  const seen = new Set<string>()
+  const shared = new Set<string>()
+  for (const item of items) {
+    const folded = foldName(item.name)
+    if (seen.has(folded)) shared.add(folded)
+    seen.add(folded)
+  }
+  return shared
 }
 
 /** „1 item", „2 items" — the report is read by a person. */
