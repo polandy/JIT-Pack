@@ -12,9 +12,10 @@ import {
   expect,
   createTripViaWizard,
   openQuickAdd,
+  tripAction,
   visiblePage,
 } from './fixtures'
-import { lightTraveler, openForWhom, packRow } from './helpers/m4'
+import { lightTraveler, openForWhom, packRow, startTrip } from './helpers/m4'
 
 const TRIP = { name: 'Pro Person Elba', travelers: ['Andy', 'Leonardo', 'Mia'] }
 const FOR_ANDY = 'Kurze Hosen'
@@ -71,6 +72,30 @@ test.describe('M4 — per-person progress @local @m4', () => {
     await shared.click()
     await expect(shared).toHaveAttribute('aria-pressed', 'false')
     await expect(list.locator('[data-testid^="m4-chip-person-"]')).toHaveCount(0)
+  })
+
+  test('E2E-M4-112: the closing pass takes the strip away, and cancelling it brings it back', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await addInComposer(page, SHARED)
+    await page.keyboard.press('Escape')
+    await startTrip(page)
+
+    const list = visiblePage(page)
+    const strip = list.getByTestId('m4-traveler-progress')
+    // Present first, so its absence below is caused by the pass.
+    await expect(strip).toBeVisible()
+
+    await tripAction(page, 'archive')
+    // The pass banner is the positive signal that the pass is what is on screen.
+    await expect(list.getByTestId('m4-pass-banner')).toBeVisible()
+    await expect(strip).toHaveCount(0)
+
+    await page.getByTestId('m4-pass-cancel').click()
+    await expect(list.getByTestId('m4-pass-banner')).toHaveCount(0)
+    await expect(strip).toBeVisible()
   })
 
   test('E2E-M4-111: a trip for one traveler shows no split', async ({ page }) => {
