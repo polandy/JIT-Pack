@@ -841,7 +841,8 @@ in WebKit.
   goes while the reveal bar counts it. Everything else is then packed, and the assertion that the emptied list still
   offers the reset is what proves it did not fall through to *„alles gepackt"* over a row nobody has touched. The bar
   brings it back. Since the same day it also pins the **order of the bars** — late-packers above packed — which is
-  the rule the rows already follow read once more at the foot of the list.
+  the rule the rows already follow read once more at the foot of the list. Since 2026-09-19 (FR-25.32) a search for
+  the hidden row shows it and takes the bar away; clearing the term hides the row and brings the bar back.
 * **E2E-M4-100** `local` (FR-25.28, added 2026-09-18) — **implemented** (`e2e/membership.spec.ts`): the for-whom seat on
   a shared row unfolds the strip **under the row**, *Gemeinsam* lit and the summary saying so. Lighting one traveler
   renames the row *„… · Andy"* and lighting a second turns it into a cluster — a different element under a different
