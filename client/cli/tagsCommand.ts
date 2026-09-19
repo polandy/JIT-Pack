@@ -28,12 +28,14 @@ import { ALL_ITEMS, TAG_OP, describeTags, parseTagPlan, runTagPlan, type TagStep
 /** Reading the axis and running a plan file, beside the six single steps. */
 export const TAGS_LIST = 'list'
 export const TAGS_APPLY = 'apply'
+/** Any of the six single steps, run as a one-step plan. */
+export const TAGS_STEP = 'step'
 
 /** What the command was asked to do: print, run a file, or run one step. */
 export type TagsTask =
   | { kind: typeof TAGS_LIST; items: boolean }
   | { kind: typeof TAGS_APPLY; file: string }
-  | { kind: 'step'; step: TagStep }
+  | { kind: typeof TAGS_STEP; step: TagStep }
 
 export interface TagsOptions extends Connection {
   task: TagsTask
@@ -143,16 +145,16 @@ function taskOf(
     case TAG_OP.give:
       if (rest.length === 0) return { error: 'give needs at least one item' }
       return {
-        kind: 'step',
+        kind: TAGS_STEP,
         step: { op: TAG_OP.give, tag, items: rest, primary: !flags.noPrimary },
       }
     case TAG_OP.take:
       if (flags.all === rest.length > 0) return { error: 'take needs either items or --all' }
-      return { kind: 'step', step: { op: TAG_OP.take, tag, items: flags.all ? ALL_ITEMS : rest } }
+      return { kind: TAGS_STEP, step: { op: TAG_OP.take, tag, items: flags.all ? ALL_ITEMS : rest } }
     case TAG_OP.mark: {
       if (flags.clear === rest.length > 0) return { error: 'mark needs either an emoji or --clear' }
       if (rest.length > 1) return { error: 'mark takes one emoji' }
-      return { kind: 'step', step: { op: TAG_OP.mark, tag, mark: flags.clear ? null : rest[0]! } }
+      return { kind: TAGS_STEP, step: { op: TAG_OP.mark, tag, mark: flags.clear ? null : rest[0]! } }
     }
     case TAG_OP.rename:
     case TAG_OP.merge:
@@ -162,10 +164,10 @@ function taskOf(
           error: `${action} takes ${STEP_ARITY[action]} name${STEP_ARITY[action] > 1 ? 's' : ''}`,
         }
       }
-      if (action === TAG_OP.rename) return { kind: 'step', step: { op: action, tag, to: rest[0]! } }
+      if (action === TAG_OP.rename) return { kind: TAGS_STEP, step: { op: action, tag, to: rest[0]! } }
       if (action === TAG_OP.merge)
-        return { kind: 'step', step: { op: action, tag, into: rest[0]! } }
-      return { kind: 'step', step: { op: action, tag } }
+        return { kind: TAGS_STEP, step: { op: action, tag, into: rest[0]! } }
+      return { kind: TAGS_STEP, step: { op: action, tag } }
     }
     default:
       return { error: `unknown action: ${action} (${ACTIONS.join(', ')})` }
@@ -188,7 +190,7 @@ export async function runTags(opts: TagsOptions, io: CommandIO): Promise<number>
       return EXIT.failed
     }
     steps = plan.steps
-  } else if (opts.task.kind === 'step') {
+  } else if (opts.task.kind === TAGS_STEP) {
     steps = [opts.task.step]
   }
 

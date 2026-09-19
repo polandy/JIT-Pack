@@ -182,11 +182,16 @@ node client/dist-cli/jitpack.mjs tags list --items
 ```
 Elektronik — 1 item
   Ladekabel
+Fotografie — 1 item
+  Kamera
 Diverses — 2 items
   Pflaster
 Bad — 1 item
   Zahnbürste
 ```
+
+`Diverses` counts two items but lists one: the camera carries it too, but is filed under
+`Fotografie`, its first tag.
 
 The number beside a tag counts every item carrying it, retired ones included — the same
 number the tag manager shows. `--items` also lists the items filed under each tag, and those
