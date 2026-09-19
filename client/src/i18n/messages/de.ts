@@ -174,6 +174,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.packedToast': '„{name}“ gepackt ✓',
   // FR-5.8 — siehe en.ts.
   'packing.removeAction': 'Von der Liste entfernen',
+  'packing.taskDoneToast': '„{body}“ erledigt ✓',
   'packing.removedToast': '„{name}“ von der Liste entfernt',
   'packing.removeConfirmTitle': '„{name}“ entfernen?',
   'packing.removeConfirmLead':
