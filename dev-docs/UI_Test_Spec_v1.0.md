@@ -730,6 +730,12 @@ in WebKit.
 * **E2E-M4-124** `local` (FR-25.31 with FR-7.4, added 2026-09-19) — **implemented** (`e2e/undo-every-act.spec.ts`): a
   trip task removed with ✕ leaves the list and its undo brings it back; removed again and left, it is gone after a
   reload once the snackbar has gone — the lapse is the delete.
+* **E2E-M4-125** `local` (FR-25.31 with FR-5.5 and G-3, added 2026-09-19) — **implemented**
+  (`e2e/undo-every-act.spec.ts`): *Doch einpacken* on a skipped row, undone, leaves it skipped again (the reveal bar is
+  back); *Packen* (the claim), undone, takes the row's own-claim note away.
+* **E2E-M4-126** `local` (FR-25.31 with FR-25.26, added 2026-09-19) — **implemented** (`membership.spec.ts`): the
+  cluster head's *late packer on for everyone* raises *„2 rows changed"*, and its undo clears the head's ⏰ — which the
+  head paints while any instance carries the flag, so its absence is every instance.
 * **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): M4's *Aufgaben für die
   Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing

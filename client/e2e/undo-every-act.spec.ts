@@ -197,4 +197,27 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     await expect(reloaded.getByTestId('trip-todo-input')).toBeVisible()
     await expect(reloaded.getByTestId('trip-todo-Pass erneuern')).toHaveCount(0)
   })
+
+  // E2E-M4-125: two menu acts whose undo is the opposite act — bringing a
+  // skipped row back, and claiming a row. Each is read off the row itself.
+  test('E2E-M4-125: pack-it-after-all and a claim are each undone @local @m4', async ({ page }) => {
+    await tripWithRows(page, ['Zelt', 'Schlafsack'], 'Rückgängigprobe')
+
+    await openRowMenu(page, 'Zelt')
+    await chooseInRowMenu(page, /do not pack this/i)
+    await expect(row(page, 'Zelt')).toHaveCount(0)
+    await page.getByTestId('m4-done-bar').click()
+    await openRowMenu(page, 'Zelt')
+    await chooseInRowMenu(page, /pack it after all/i)
+    await expect(page.getByTestId('m4-done-bar')).toBeHidden()
+    await undo(page, /coming after all/i)
+    // Skipped again: the reveal bar has a done row to count.
+    await expect(page.getByTestId('m4-done-bar')).toBeVisible()
+
+    await openRowMenu(page, 'Schlafsack')
+    await chooseInRowMenu(page, /^pack$/i)
+    await expect(row(page, 'Schlafsack').getByTestId('m4-own-claim')).toBeVisible()
+    await undo(page, /you are packing/i)
+    await expect(row(page, 'Schlafsack').getByTestId('m4-own-claim')).toHaveCount(0)
+  })
 })

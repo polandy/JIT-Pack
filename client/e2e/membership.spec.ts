@@ -952,6 +952,31 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
     await expect(head.getByTestId('user-avatar')).toHaveCount(2)
   })
 
+  // E2E-M4-126 (FR-25.31 with FR-25.26): the head's fan-out raises the
+  // snackbar, and one undo takes the flag off every instance it set — the head
+  // paints ⏰ while *any* instance carries it, so its absence is all of them.
+  test('E2E-M4-126: the cluster head’s fan-out is undone for every instance', async ({ page }) => {
+    await seedTrip(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 1)
+    await closeItem(page)
+
+    const head = visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)
+    await head.dispatchEvent('contextmenu')
+    const menu = page.locator('ion-action-sheet')
+    await menu.getByRole('button', { name: /late packer on for everyone/i }).click()
+    await expect(menu).toHaveCount(0)
+    await expect(head.getByTestId('row-late')).toBeVisible()
+
+    const toast = page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: /2 rows changed/ })
+      .last()
+    await toast.getByRole('button', { name: /undo/i }).click()
+    await expect(head.getByTestId('row-late')).toHaveCount(0)
+  })
+
   /*
    * FR-25.26. The head is the only line that knows an item is one thing
    * several people carry, so it is where „everybody packs this on the morning
