@@ -86,7 +86,7 @@ function filingAfterPush(): Map<string, string[]> {
   for (const m of instance.pushed) {
     if (m.table !== 'item_tags') continue
     if (m.op === 'delete') rows.delete(m.id)
-    else rows.set(m.id, { ...(rows.get(m.id) ?? {}), ...(m.fields as object) } as never)
+    else rows.set(m.id, { ...rows.get(m.id), ...(m.fields as object) } as never)
   }
   const out = new Map<string, string[]>()
   for (const row of [...rows.values()].sort((a, b) => a.position - b.position)) {

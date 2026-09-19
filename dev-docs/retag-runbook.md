@@ -19,9 +19,9 @@ the plan succeeded. The plan file is also the record of what was done.
 
 **Prerequisites.**
 
-- A build of the command from a checkout containing FR-18.9 (`cd client && npm ci && npm run build:cli`). The instance
-  itself needs no upgrade for steps 1–3 — the command writes plain tag and assignment rows — but **tag marks (step 4)
-  need release 0.14.0 or later** on the instance and on every device, or the marks are stored and not shown.
+- A build of the command from a checkout containing FR-18.9 (`cd client && npm ci && npm run build:cli`). Renames,
+  merges, gives and takes write plain tag and assignment rows any recent instance accepts, but **the plan's `mark`
+  steps need release 0.14.0 or later** (FR-24.13 added the column) on the instance and on the devices that show them.
 - `JITPACK_SERVER` and an API token in `JITPACK_TOKEN` (Settings → API tokens) for the instance.
 - **A database backup** (docs `backup.md`: an online snapshot with `sqlite3 .backup`, or a cold copy of all three WAL
   files). There is no undo for a plan and **no in-app restore of the JSON export**: Settings' *„Vollständiger Export
