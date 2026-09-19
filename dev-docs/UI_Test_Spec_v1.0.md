@@ -708,8 +708,10 @@ in WebKit.
   check (*„0 von 2"* → *„1 von 2"* → *„0 von 1 erledigt"*) follows every step.
 * **E2E-M4-105** `local` (FR-7.4 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): ticking a
   trip todo off raises the pack snackbar naming it, and its *Rückgängig* puts the task back on the open list — the
-  head's check goes *„1 von 2"* → *„0 von 2 erledigt"* — and the reopened state survives a reload. The FR-7.3 prep
-  section shares the unit-tested path (`useRowUndo.armTaskUndo`) but has no case of its own yet.
+  head's check goes *„1 von 2"* → *„0 von 2 erledigt"* — and the reopened state survives a reload.
+* **E2E-M4-106** `local` (FR-7.3 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): the same
+  for M4's preparation section: ticking a prep task drops the row's badge and raises the snackbar; *Rückgängig*
+  brings the badge back, also after a reload.
 * **E2E-M4-97** `local` (FR-7.4 visibility, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): with no todo
   the section is closed and the header has no todo figure. With two todos, after a reload that no helper has touched,
   the section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2 Aufgaben"* and
