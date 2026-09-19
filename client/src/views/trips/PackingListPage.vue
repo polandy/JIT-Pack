@@ -2625,8 +2625,10 @@ setHeaderTitle(
            one whose rows ask for nothing. Hidden only on request, and never
            silently: this bar is what keeps „alles gepackt" from covering rows
            nobody has touched. -->
+      <!-- Like the Erledigte bar, absent while a term is typed: the search
+           already shows its late-packer matches (FR-25.32). -->
       <RevealBar
-        v-if="view.lateCount > 0"
+        v-if="view.lateCount > 0 && !searching"
         :open="showLate"
         :label="
           showLate

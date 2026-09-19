@@ -2491,6 +2491,16 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     const bar = visible(page).getByTestId('m4-late-bar')
     await expect(bar).toContainText('1')
 
+    // FR-25.32: a search finds the hidden row and the bar has nothing left
+    // to offer; clearing the term puts both back.
+    await page.getByTestId('m4-search').click()
+    await page.getByTestId('m4-search-input').fill('Schlüssel')
+    await expect(visible(page).getByTestId('m4-row-Schlüssel')).toBeVisible()
+    await expect(bar).toHaveCount(0)
+    await page.getByTestId('m4-search-input').fill('')
+    await expect(page.getByTestId('m4-row-Schlüssel')).toHaveCount(0)
+    await expect(bar).toContainText('1')
+
     // Packing everything else must not turn the remainder into "alles
     // gepackt": the reset offer is the signal that the screen knows it is
     // still hiding something.
