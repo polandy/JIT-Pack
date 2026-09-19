@@ -20,7 +20,7 @@ import {
 } from '@ionic/vue'
 import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
-import { TRIP_VIEW_COUNTS } from '@/lib/tripViews'
+import { TRIP_CARDS } from '@/lib/tripCards'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
@@ -44,7 +44,6 @@ import { useIdentity } from '@/composables/useTripIdentity'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
-import TripShoppingLink from '@/components/trips/TripShoppingLink.vue'
 import TripHero from '@/components/trips/TripHero.vue'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
@@ -117,21 +116,19 @@ const isEmpty = computed(() => activeTrips.value.length === 0 && plannedTrips.va
  */
 const tripsKnown = computed(() => orchestrator.masterDataLoaded())
 
+/**
+ * FR-30.7: the cards feature modules show under a trip — the shopping list
+ * first — provided by the composition root, so M1 renders them without
+ * importing a module (FR-30.3). Each decides for itself whether it has
+ * anything to show.
+ */
+const tripCards = inject(TRIP_CARDS, [])
+
 /*
  * The one trip the screen is about, and the ones after it (FR-21.13).
  * `activeTrips` is ordered soonest departure first, so the hero is the trip
  * that is next rather than whichever one IndexedDB handed over first.
  */
-/**
- * FR-30.5: what the shopping module counts as still to buy on a trip,
- * provided by the composition root (FR-30.3) — read here only to decide
- * whether a planned trip's row offers the way onto its list.
- */
-const tripViewCounts = inject(TRIP_VIEW_COUNTS, {})
-function openShopping(tripId: string): number {
-  return tripViewCounts.shopping?.(tripId) ?? 0
-}
-
 const heroTrip = computed(() => activeTrips.value[0] ?? null)
 const followingTrips = computed(() => activeTrips.value.slice(1))
 
@@ -493,11 +490,18 @@ async function handleRefresh(event: CustomEvent) {
           {{ t('dashboard.moreItems', { n: openItemCount(heroTrip.id) - 3 }) }}
         </p>
       </TripHero>
-      <!-- FR-30.5: straight onto the shopping list — beside the card, since
-           the card is a link and cannot hold one. -->
-      <div v-if="heroTrip" class="trip-shortcuts">
-        <TripShoppingLink :trip-id="heroTrip.id" :testid="`dashboard-shopping-${heroTrip.name}`" />
-      </div>
+      <!-- FR-30.7: the modules' cards for this trip, as siblings of its card
+           — the trip card is a link, and a card that can be worked is not. -->
+      <template v-if="heroTrip">
+        <component
+          :is="card"
+          v-for="(card, index) in tripCards"
+          :key="`hero-${index}`"
+          :trip-id="heroTrip.id"
+          :trip-name="heroTrip.name"
+          :planned="false"
+        />
+      </template>
 
       <!-- Trip cards -->
       <template v-for="trip in followingTrips" :key="trip.id">
@@ -569,9 +573,14 @@ async function handleRefresh(event: CustomEvent) {
             </p>
           </div>
         </RouterLink>
-        <div class="trip-shortcuts">
-          <TripShoppingLink :trip-id="trip.id" :testid="`dashboard-shopping-${trip.name}`" />
-        </div>
+        <component
+          :is="card"
+          v-for="(card, index) in tripCards"
+          :key="`${trip.id}-${index}`"
+          :trip-id="trip.id"
+          :trip-name="trip.name"
+          :planned="false"
+        />
       </template>
       <!--
         FR-6.1: the trips that have not started yet. Below the active cards,
@@ -598,31 +607,27 @@ async function handleRefresh(event: CustomEvent) {
                 <p>{{ formatTripPeriod(trip) }}</p>
               </IonLabel>
             </IonItem>
-            <!-- FR-30.5: a planned trip is where buying before departure
-               happens; offered only while something is left, so the list of
-               what comes next stays a list. -->
-            <div v-if="openShopping(trip.id) > 0" class="trip-shortcuts planned-shortcut">
-              <TripShoppingLink :trip-id="trip.id" :testid="`dashboard-shopping-${trip.name}`" />
-            </div>
           </template>
         </div>
+        <!-- FR-30.7: a planned trip is where buying before departure happens;
+             its card shows only while something is left to buy (the card
+             decides), so the list of what comes next stays a list. -->
+        <template v-for="trip in plannedTrips" :key="`cards-${trip.id}`">
+          <component
+            :is="card"
+            v-for="(card, index) in tripCards"
+            :key="`${trip.id}-${index}`"
+            :trip-id="trip.id"
+            :trip-name="trip.name"
+            :planned="true"
+          />
+        </template>
       </template>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
-/* FR-30.5: the way onto a trip's shopping list, under its card. */
-.trip-shortcuts {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.planned-shortcut {
-  margin: 0 16px 10px;
-}
-
 /*
  * G-14: the app's card, positioned by the screen and painted by nobody.
  * These blocks were Ionic's `ion-card` until 2026-09-09 (FR-21.28) — a

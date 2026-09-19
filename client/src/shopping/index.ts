@@ -12,6 +12,9 @@ import { shoppingFeatureStore, useShoppingStore } from './store'
 export { shoppingFeatureStore, useShoppingStore }
 export { createShoppingActions } from './actions'
 
+/** FR-30.7: the trip's shopping card on the dashboard, handed to M1 by `App.vue`. */
+export { default as ShoppingDashboardCard } from './ShoppingDashboardCard.vue'
+
 /**
  * The trip switcher's shopping count: the list's own open entries plus every
  * source's open lines, on both lists (FR-21.21).

@@ -4220,11 +4220,23 @@ as for the packing rows.
   Local Mode states the time alone, because there is no account to name (G-8). A purchase with neither shows no stamp.
 
 * **FR-30.5 (From the Dashboard Onto the List — owner request 2026-09-19):** M1 leads straight onto a trip's shopping
-  list: the trip switcher's shopping pill, with its count, under every active trip's card, and under a planned trip's
-  row while something is left to buy. The count comes from the shopping module through the composition root, like the
-  switcher's (FR-30.3). Navigation only; M1 still takes no action.
+  list. First built as the trip switcher's pill under each trip card; **superseded the same day by FR-30.7**, whose card
+  carries the way onto M6 itself (*„Zur Einkaufsliste →"*, or *„Alle 7 anzeigen →"* past five lines), so two ways to
+  one destination under one card became one.
 * **FR-30.6 (The ＋ Bottom Right — owner request 2026-09-19):** M6 carries M4's FAB. It leads to the field — scrolled
   to the top, focused — rather than opening a second one, and the list scrolls clear of it (FR-25.11h).
+
+* **FR-30.7 (The Shopping List on the Dashboard, Workable — owner request and decision 2026-09-19):** under each trip
+  on M1 sits its shopping card: at most **five** open lines of the list that is *now* — *Vor Ort* for a running trip,
+  *Vor der Abreise* for a planned one — with a chip per list to switch, a field that adds an entry to the shown list,
+  a check-off per line (a packing line through FR-3.3, as on M6) with the card's own *Rückgängig*, and the way onto
+  M6. Packing lines carry a *Packliste* tag. Removing, the bought reveal and FR-30.4's stamps stay on M6. A running
+  trip always has its card; a planned trip only while something is left to buy. **This is the one exception to M1's
+  „reports, takes no actions" ruling (FR-7.4, 2026-09-18)**, taken on purpose: the list is opened in the shop, where
+  a detour through the trip is what nobody wants. The cost that ruling named — an empty composer on every dashboard —
+  is accepted for this card and not extended to trip todos, which stay read-only. Chosen over a single *Einkaufen*
+  section gathering every trip (variant B of the 2026-09-19 mockup), which cut the list off from its trip and repeated
+  the field per trip. M1 does not import the module: the card reaches it through `lib/tripCards.ts` (FR-30.3).
 
 **Behaviour per mode:** identical in all three — entries are ordinary trip rows, and Local Mode persists them like
 every other. **Not carried:** the portable backup (NFR-4.11) does not carry entries, like FR-7.3/7.4's todos; trip
@@ -4785,7 +4797,7 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     packing list, so a mistap is taken back the same way; M4's FR-7.3 prep section does the same. **M1 takes no
     actions** — it reports: an *Aufgaben* card lists the open trip todos of every active trip that has any, each trip's
     block leading into the trip, and each active trip card states the check beside — never inside — its packing
-    progress. The first cut put the whole editor
+    progress (**one exception since 2026-09-19: the shopping list, FR-30.7**). The first cut put the whole editor
     on M1; the owner ruled it out once it was built, because an empty composer stood above the hero on every dashboard
     and because the dashboard is for reading. The same ruling took the checkbox off FR-7.3's prep card. M5 does not show
     trip todos, and M4's prep section keeps meaning item preparation. Planned trips are not on M1 — its *Geplant* card

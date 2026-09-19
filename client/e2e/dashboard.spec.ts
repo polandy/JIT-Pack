@@ -442,18 +442,18 @@ test.describe('M1 — the three promises @local @m1', () => {
 })
 
 /**
- * FR-30.5: M1 leads straight onto a trip's shopping list — from an active
- * trip always (the list is a destination even when empty), from a planned
- * one while something is left to buy, which is when buying before departure
- * happens. The pill is a sibling of the card, not inside it: the card is
- * itself a link.
+ * FR-30.7: a trip's shopping list on the dashboard, and workable there — the
+ * one card on M1 that is (owner decision 2026-09-19). A running trip always
+ * has its card, opened on the destination list; a planned trip has one while
+ * something is left to buy, opened on the list before departure. The card
+ * also leads onto M6 (FR-30.5).
  */
-test.describe('M1 — onto the shopping list @local @m1', () => {
+test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
 
-  test('E2E-M1-12: every trip card leads onto its shopping list, with the count', async ({
+  test('E2E-M1-12: each trip shows its shopping card on the list that is now, and leads onto M6', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
@@ -467,21 +467,73 @@ test.describe('M1 — onto the shopping list @local @m1', () => {
     await writesLanded(page)
 
     await page.goto(PATH.dashboard)
-    const active = visible(page).getByTestId(`dashboard-shopping-${TRIP.name}`)
-    await expect(active).toHaveText('Shopping (1)')
-    await expect(visible(page).getByTestId('dashboard-shopping-Elba 2027')).toHaveText(
-      'Shopping (1)',
+    const running = visible(page).getByTestId(`dashboard-shopping-${TRIP.name}`)
+    await expect(running.getByTestId('dash-shop-tab-local')).toHaveAttribute('aria-pressed', 'true')
+    await expect(running.getByTestId('dash-shop-row')).toHaveText([/Sonnencreme/])
+    await expect(running.getByTestId('dash-shop-row')).toContainText(['Packing list'])
+
+    const planned = visible(page).getByTestId('dashboard-shopping-Elba 2027')
+    await expect(planned).toContainText('Shopping · Elba 2027')
+    await expect(planned.getByTestId('dash-shop-tab-before')).toHaveAttribute(
+      'aria-pressed',
+      'true',
     )
-    // Nothing to buy on the quiet one, so its row stays a row — asserted beside
-    // the planned list, which is rendered.
+    await expect(planned.getByTestId('dash-shop-row')).toHaveText([/Adapter/])
+    // Nothing to buy on the quiet one, so it has no card — asserted beside its
+    // row in the planned list, which is rendered.
     await expect(visible(page).getByTestId('dashboard-planned-Ruhig 2027')).toBeVisible()
     await expect(visible(page).getByTestId('dashboard-shopping-Ruhig 2027')).toHaveCount(0)
 
-    await active.click()
+    await running.getByTestId('dash-shop-more').click()
     const m6 = visible(page).getByTestId('m6-page')
     await expect(m6).toBeVisible()
     await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
+  })
+
+  test('E2E-M1-13: the card checks off, undoes and adds — and M4 and M6 agree', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await tripAction(page, 'start')
+    await addBuyRowOnM4(page, 'Sonnencreme', 'Buy there')
+    await writesLanded(page)
+    await page.goto(PATH.dashboard)
+    const card = visible(page).getByTestId(`dashboard-shopping-${TRIP.name}`)
+
+    // Added on the dashboard: an entry of the list it shows.
+    await card.getByTestId('dash-shop-add-input').fill('Milch')
+    await card.getByTestId('dash-shop-add-submit').click()
+    await expect(card.getByTestId('dash-shop-row')).toHaveText([/Milch/, /Sonnencreme/])
+
+    // Checked off, then taken back from the card itself.
+    await card
+      .getByTestId('dash-shop-row')
+      .filter({ hasText: 'Milch' })
+      .locator('ion-checkbox')
+      .click()
+    await expect(card.getByTestId('dash-shop-undo')).toContainText('“Milch” bought')
+    await card.getByTestId('dash-shop-undo-button').click()
+    await expect(card.getByTestId('dash-shop-row')).toHaveText([/Milch/, /Sonnencreme/])
+
+    // The packing row bought at the destination is packed (FR-3.3), which
+    // M1's own share says before anything else is opened.
+    await card
+      .getByTestId('dash-shop-row')
+      .filter({ hasText: 'Sonnencreme' })
+      .locator('ion-checkbox')
+      .click()
+    await expect(card.getByTestId('dash-shop-row')).toHaveText([/Milch/])
+    await expect(visible(page).getByTestId(`dashboard-trip-${TRIP.name}`)).toContainText(
+      '1/1 packed',
+    )
+    await writesLanded(page)
+
+    // And M6 reads the same list: Milch open, Sonnencreme under the reveal.
+    await card.getByTestId('dash-shop-more').click()
+    const m6 = visible(page).getByTestId('m6-page')
     await m6.getByTestId('m6-tab-local').click()
-    await expect(m6.getByTestId('m6-row').filter({ hasText: 'Sonnencreme' })).toBeVisible()
+    await expect(m6.getByTestId('m6-row')).toHaveText([/Milch/])
+    await m6.getByTestId('m6-bought-bar').click()
+    await expect(m6.getByTestId('m6-bought-row')).toHaveText([/Sonnencreme/])
   })
 })

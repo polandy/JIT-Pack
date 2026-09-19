@@ -291,10 +291,15 @@ stable references for the traceability matrix.
   the signal, since „unchanged" alone is green on a card that never rendered the share. The reverse half unpacks the
   row: the share drops, the todo figure stays at *„1/1 Aufgaben"*. (Revised 2026-09-18: the hero's one-line check became
   a figure; E2E-M1-10 keeps the line, on a list card.)
-* **E2E-M1-12** `local` (FR-30.5, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): an active trip with one
-  *Buy there* row shows *„Shopping (1)"* under its card; of two planned trips, the one with a *Buy before* row carries
-  the pill and the one with nothing to buy does not (asserted beside its rendered row); tapping the active trip's pill
-  lands on M6 with the switcher's *Shopping* pill current and the row on its tab.
+* **E2E-M1-12** `local` (FR-30.7/30.5, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): a running trip's
+  shopping card opens on *At destination* with its *Buy there* packing row, tagged *Packing list*; a planned trip with a
+  *Buy before* row has a card titled *„Shopping · Elba 2027"* open on *Before departure*; a planned trip with nothing to
+  buy has **no** card (asserted beside its rendered row); the card's last line leads onto M6, with the switcher's
+  *Shopping* pill current. (First written the same day against FR-30.5's pill, which the card superseded.)
+* **E2E-M1-13** `local` (FR-30.7, added 2026-09-19) — **implemented** (`dashboard.spec.ts`): the card is worked. An
+  entry typed there lands on the shown list; checking it off shows the card's undo, and *Undo* brings it back; checking
+  the packing row off packs it (FR-3.3) — the hero's share reads *1/1 packed* on the same screen — and M6 then shows the
+  entry open and the packing row under its reveal.
 * **E2E-M1-03b** `local` (FR-6.1, G-8) — **new 2026-08-31**: Local Mode carries no delegation section, and the
   aggregation below it is still complete. The second half is the point: it is why FR-6.1's personal *filter* was struck
   rather than built.
@@ -3531,8 +3536,9 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-30.2 | E2E+UNIT | M6-28 (on the list exactly while the mode says so), M6-17/22/05/06 (packing rows through the contract); `composables/__tests__/packingShoppingSource.spec.ts`, `domain/__tests__/buyRows.spec.ts` |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
 | FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |
-| FR-30.5 | E2E+UNIT | M1-12; `TripShoppingLink.spec.ts` |
+| FR-30.5 | E2E | M1-12 (the card's way onto M6; the pill it superseded is gone) |
 | FR-30.6 | E2E+UNIT | M6-15 (the ＋ leads to the field, the last row clear of it); `ShoppingPage.spec.ts` |
+| FR-30.7 | E2E+UNIT | M1-12 (the list that is now, the planned rule), M1-13 (check off, undo, add; M4/M6 agree); `ShoppingDashboardCard.spec.ts` |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

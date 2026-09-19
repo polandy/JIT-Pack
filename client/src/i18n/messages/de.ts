@@ -1535,6 +1535,11 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.remove': 'Entfernen: {name}',
   'shopping.boughtBy': 'gekauft von {who} · {when}',
   'shopping.boughtByUnknown': 'gekauft · {when}',
+  'shopping.cardTitleFor': 'Einkaufen · {trip}',
+  'shopping.fromPacking': 'Packliste',
+  'shopping.boughtUndoable': '„{name}“ gekauft',
+  'shopping.showAll': 'Alle {n} anzeigen',
+  'shopping.openList': 'Zur Einkaufsliste',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',

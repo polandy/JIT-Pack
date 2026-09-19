@@ -14,6 +14,9 @@ replaced and why. This index only says where to look.
   (FR-24.13).
 * 2026-09-18 — **M4**'s ⋮ offers „Namen aus dem Inventar", a sheet that takes renamed items' names over, and **M5**
   offers it for its own row (FR-27.16).
+* 2026-09-19 — **M6** becomes the shopping module's screen: its own entries beside the packing list's buy rows, a
+  purchase stamp, and M4's ＋ (FR-30). **M1** carries each trip's shopping card, the one card it lets you work
+  (FR-30.7).
 * 2026-09-18 — **M1** reports trip todos and a second check on the trip cards, and takes no actions — the prep
   card's checkbox is gone; **M4** gains *Aufgaben für die Reise*, where they are written; **M3** step 3 reports trip
   tasks; **M8** gains *Aufgaben für die Reise* (FR-7.4). Later the same day: the hero and M4's header line carry the
@@ -801,11 +804,15 @@ These patterns apply to every screen and are specified once.
   the item*~~ and ~~swipe an item row → quick-complete~~ are **not built (2026-08-30)**: the preview rows are neither
   links nor sliding items and their checkboxes are deliberately `disabled` — the card is the only affordance. G-4's
   landing is exercised from a notification instead (E2E-G4-01).
-* **Onto the shopping list (FR-30.5, added 2026-09-19).** Under every active trip's card — the hero and the list cards —
-  sits the trip switcher's shopping pill, *„Einkaufen (4)"*, the word alone at zero; a planned trip's row carries it
-  only while something is left to buy, which is when buying before departure happens. Tap → M6. A **sibling** of the
-  card, never inside it: the card is itself a link. The count is the shopping module's, provided by the composition
-  root, so M1 and the switcher cannot disagree. Navigation, not an action — M1 still takes none.
+* **The shopping card (FR-30.7, added 2026-09-19 — the one card M1 lets you work).** Under each trip's card, as a
+  sibling (the trip card is a link): title *„Einkaufen"* (*„Einkaufen · Elba 2027"* under a planned trip), two chips
+  *Vor der Abreise (n)* · *Vor Ort (n)* with the list that is *now* pressed — *Vor Ort* for a running trip, *Vor der
+  Abreise* for a planned one —, the field *„Was kaufen? z. B. Milch, Brot …"* with ＋, at most five lines (own entries
+  first, packing lines after them with a *Packliste* tag, the amount when above one), each with a check-off. A
+  check-off shows *„„Brot" gekauft · Rückgängig"* inside the card. Last line: *„Zur Einkaufsliste →"*, or *„Alle 7
+  anzeigen →"* past five. No remove, no reveal, no stamps — those are M6's. A running trip always has the card (with
+  *„Vor Ort ist nichts zu kaufen"* when empty, once the rows are here, ADR-033); a planned trip has it only while
+  something is left. Supersedes FR-30.5's pill, whose way onto M6 the card now carries.
 * **The screen loads what it aggregates (added 2026-08-31).** A trip partition arrives when its trip is opened, so in
   Server Mode M1 was counting an empty store: every active trip rendered with „0 offen", no preview rows and no prep,
   until the user had visited each trip in that page session. Local Mode never showed it, because everything there is

@@ -93,7 +93,7 @@ The packing concept is closed and every numbered backlog item below is done; the
 - `internal/webui` — serves the built client beside the API on one origin (ADR-043). Standard library only; does **not** import `internal/api` (prefixes are passed in).
 - `internal/api` — HTTP handlers, WebSocket hub, session auth + OIDC broker (ADR-007), notifications, Web Push, admin, export. **`wire.go` is the contract** — envelopes, frame, conflict shapes, error vocabulary, routes. **Export only** — importing is the client's (invariant 4, ADR-025).
 - `client/src/domain` — the pure client-side rules: quantities, template instantiation, dependencies, containers, analytics, review, clone, spreadsheet import, the portable format (`portable.ts`, `portableImport.ts`), members. No I/O, exhaustively unit-tested. This is where a Go `internal/domain` ended up, deliberately (invariant 4).
-- `client/src/shopping` — the first **feature module** (FR-30.3, ADR-066): its own store, actions and M6, its e2e cases in `client/e2e/shopping/`. It and the packing code never import each other; they meet through kernel contracts (`lib/shoppingSources.ts`, `sync/featureModule.ts`) that `App.vue` binds. `scripts/module-boundary-gate.mjs` holds both directions. The planner (§3.29) is to follow the same shape.
+- `client/src/shopping` — the first **feature module** (FR-30.3, ADR-066): its own store, actions and M6, its e2e cases in `client/e2e/shopping/`. It and the packing code never import each other; they meet through kernel contracts (`lib/shoppingSources.ts`, `sync/featureModule.ts`, `lib/tripCards.ts`) that `App.vue` binds. `scripts/module-boundary-gate.mjs` holds both directions. The planner (§3.29) is to follow the same shape.
 
 ## Invariants — do not break these
 

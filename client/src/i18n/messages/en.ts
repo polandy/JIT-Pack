@@ -1524,6 +1524,11 @@ export const en = {
   'shopping.remove': 'Remove: {name}',
   'shopping.boughtBy': 'bought by {who} · {when}',
   'shopping.boughtByUnknown': 'bought · {when}',
+  'shopping.cardTitleFor': 'Shopping · {trip}',
+  'shopping.fromPacking': 'Packing list',
+  'shopping.boughtUndoable': '“{name}” bought',
+  'shopping.showAll': 'Show all {n}',
+  'shopping.openList': 'Open the shopping list',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',

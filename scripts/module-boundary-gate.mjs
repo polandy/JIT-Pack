@@ -54,6 +54,9 @@ const KERNEL_PATHS = [
   // Who the trip's people are, for naming a record (FR-30.4) — a trip-level
   // question every module asks, like the trip itself (the planner's votes).
   'composables/useTripIdentity',
+  // The URL vocabulary — pure path builders, no views — so a module can link
+  // to a screen, its own included, without reaching the route table.
+  'router/paths',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */
