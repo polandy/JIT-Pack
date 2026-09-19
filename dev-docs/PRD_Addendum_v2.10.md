@@ -530,6 +530,14 @@ removes the server entirely. Everything inherently multi-user or multi-device is
   case nobody was watching; the line says *last failed*, not *currently failing*. (3) **A 401 that the refresh
   repaired is not a failure** and is never shown — only a 401 whose retry also failed.
 
+  **The detail says when the last sync completed (added 2026-09-19).** The glyph said *synced* and nothing said since
+  when, so a device left in a drawer for a weekend read exactly like one that had just pulled. In Server Mode the sheet
+  carries one line, *„Zuletzt synchronisiert: …"*: a time of day when the cycle was today, date and time on any other
+  day (a bare time would read as today for a device offline for days). It is **session-scoped**: absent until a cycle
+  has completed since the page loaded, because after a reload nothing has yet talked to the server and a remembered
+  time would vouch for a connection this page never made. Only a user-visible cycle counts — a background row load
+  (ADR-033) leaves the glyph alone and so leaves this line alone. Local Mode never syncs and shows no line.
+
 * **FR-19.7 (Apply a Waiting Version Now — accepted 2026-09-02):** When NFR-4.13 has a newer build installed and
   waiting, the app offers to apply it immediately, in two places. (1) A **bar under the app bar**, on every screen,
   saying a new version is ready and carrying the action plus a *Later*; and (2) the **G-2 detail sheet**, where the

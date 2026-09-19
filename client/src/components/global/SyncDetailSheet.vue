@@ -79,6 +79,11 @@ const props = withDefaults(
      * offline, and this is the line that can.
      */
     lastFailure?: RequestFailure | null
+    /**
+     * Epoch-ms of the last completed sync cycle, null while none has this
+     * session (FR-19.6). Server Mode only — Local Mode never syncs.
+     */
+    lastSyncedAt?: number | null
     /** Run mode: it, not the state, decides which half of the sheet applies. */
     mode: 'local' | 'server'
     /** Whether a trip is open, i.e. whether its own conflict log exists. */
@@ -109,6 +114,7 @@ const props = withDefaults(
     live: false,
     updateApplying: false,
     lastFailure: null,
+    lastSyncedAt: null,
   },
 )
 
@@ -161,6 +167,21 @@ const lastFailureText = computed(() => {
     : t('sync.detail.lastFailure', { when, status, method, path })
 })
 
+/**
+ * When the device last completed a sync. A time of day alone would read as
+ * "today" for a device that has been offline for days, so any other day
+ * carries its date — judged against the injected `now`, never the clock.
+ */
+const lastSyncedText = computed(() => {
+  const at = props.lastSyncedAt
+  if (at == null || isLocal.value) return null
+  const sameDay = new Date(at).toDateString() === new Date(props.now).toDateString()
+  const when = sameDay
+    ? new Date(at).toLocaleTimeString(currentLocale(), { timeStyle: 'short' })
+    : new Date(at).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
+  return t('sync.detail.lastSynced', { when })
+})
+
 const megabytes = (bytes: number) =>
   formatNumber(bytes / (1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
@@ -207,6 +228,13 @@ const backupAge = computed(() => {
         <span>{{ t('sync.detail.pendingFragile') }}</span>
       </p>
     </template>
+
+    <!-- FR-19.6: since when "synced" is true. Absent until a cycle has
+         completed this session — the sheet must not vouch for a connection
+         this page has not made. -->
+    <p v-if="lastSyncedText" class="note" data-testid="sync-detail-last-synced">
+      {{ lastSyncedText }}
+    </p>
 
     <!-- B2: a change the server refused is out of the queue on purpose —
          keeping it would take everything behind it hostage. -->

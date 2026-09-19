@@ -45,6 +45,25 @@ test('E2E-G2-15: the sync detail names the request that failed, not only that so
   const line = sheet.getByTestId('sync-detail-last-failure')
   await expect(line).toContainText('503')
   await expect(line).toContainText('/sync')
+
+  // FR-19.6: nothing has completed, so the sheet must not claim a last sync.
+  // The failure line above is the positive signal that the sheet had rendered
+  // its facts by the time this absence is read.
+  await expect(sheet.getByTestId('sync-detail-last-synced')).toHaveCount(0)
+})
+
+test('E2E-G2-16: the sync detail says when the last sync completed', async ({ page }) => {
+  await seed(page, { mode: 'server' })
+  await page.goto(PATH.trips)
+
+  // The glyph is the completion signal — no wait on the clock.
+  await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+  await page.getByTestId('sync-indicator').click()
+  const sheet = page.getByTestId('sync-detail-sheet')
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByTestId('sync-detail-last-synced')).toContainText(/\d/)
+  await expect(sheet.getByTestId('sync-detail-last-failure')).toHaveCount(0)
 })
 
 /**
