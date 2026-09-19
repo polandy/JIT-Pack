@@ -67,6 +67,7 @@ import type {
   LockEventListResponse,
   MasterPruneResponse,
   PresenceMember,
+  RosterMember,
   PullChange,
   TakeoverResponse,
   WSEvent,
@@ -211,6 +212,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return presence.value.get(tripId) ?? []
   }
 
+  // FR-4.9: who else has a shared trip open in the packing list, fed by the
+  // WS roster event. Empty in Local Mode and Single-User Mode, and after a
+  // socket dies — the hub sends the whole roster afresh on the next one.
+  const roster = ref<RosterMember[]>([])
+
+  function getRoster(): RosterMember[] {
+    return roster.value
+  }
+
   // G-3 locking, and the takeover rule an `item.locked` frame carries
   // (FR-5.3/5.7). All of it in `sync/locks.ts`, which needs no client, no
   // store and no outbox to answer what a row asks while rendering.
@@ -251,7 +261,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     baseUrl: config.baseUrl,
     getToken: config.getToken,
     onEvent: onWSEvent,
-    onLive: (live) => syncStatus.setLive(live),
+    onLive: (live) => {
+      if (!live) roster.value = []
+      syncStatus.setLive(live)
+    },
     onOpen: ({ reconnect }) => {
       // The first open is covered by the boot pull App.vue runs; every later
       // one follows a gap the hub cannot replay (P-1), so the gap is pulled.
@@ -387,6 +400,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         }
         break
       }
+      case 'roster':
+        roster.value = (event.payload?.['users'] as RosterMember[] | undefined) ?? []
+        break
       case 'item.locked': {
         const tripId = event.payload?.['trip_id'] as string | undefined
         const itemId = event.payload?.['item_id'] as string | undefined
@@ -866,6 +882,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     void notificationActions.surfaceUnread()
   }
 
+  /** FR-4.9: the trip whose packing list is open on this device, `null` once it is not. */
+  function setViewing(tripId: string | null) {
+    if (local) return
+    ws.setViewing(tripId)
+  }
+
   function subscribeTrip(tripId: string) {
     if (local) return
     subscribedTrips.add(tripId)
@@ -905,6 +927,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     capturePending,
     outbox,
     getPresence,
+    getRoster,
+    setViewing,
     ...conflictActions,
     isLockedByOther: locks.isLockedByOther,
     holdsClaim: locks.holdsClaim,

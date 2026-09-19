@@ -171,6 +171,15 @@ These patterns apply to every screen and are specified once.
   and resetting that margin alone was measured and rejected too, since a 38 px circle and a 29 px line flush at the
   top cannot centre on each other; the ✕ therefore sits on the title's line. The sheet is in a visual baseline now
   (E2E-VIS-08); it was in none, which is how an offset that size survived on the one surface every screen can open.
+* **G-2b (Who Is Packing Right Now — added 2026-09-19, FR-4.9):** the sheet behind the status glyph also answers *who
+  else is at work*. A section **„Packing right now"** sits under the live-updates line: one row per person per trip
+  they have open in the packing list — the person's name over the trip's name, a tap closes the sheet and opens the
+  trip. **An empty list says so** (*„Nobody else is packing right now."*) rather than dropping the section, so the
+  sheet never looks unfinished and the absence is assertable. **Absent altogether in Local and Single-User Mode**
+  (G-8): there is nobody to be told about. It first stood on M1 as a card and moved here the same day, on the owner's
+  word that this is where a person looks to see who is around. It is not G-10: G-10's facepile lives in M4's header and
+  speaks about one trip; this is the account-wide answer. Test ids `sync-detail-online`, `sync-detail-online-<name>`,
+  `sync-detail-online-nobody`; E2E-G10-03.
 * **G-3 (Presence & Locks):** Items locked via *Packing Now* (FR-5.3) render with the locker's avatar and name ("In
   progress by Andy") and are non-interactive for others except viewing. **The lock reaches M5, not only M4's row**
   (clarified 2026-08-22): a locked row opens its sheet — viewing is the half G-3 keeps — but the sheet leads with a

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
 
@@ -39,6 +40,11 @@ type conn struct {
 	userID string
 	// trips this connection is subscribed to.
 	trips map[string]bool
+	// viewing is the one trip this connection has open in the packing list
+	// (FR-4.9), or "". Distinct from `trips`: a subscription means *following*
+	// a trip — the dashboard subscribes every active one — and never ends,
+	// where this is what a person is working on now.
+	viewing string
 	// pullCursors tracks the last known pull cursor per trip.
 	pullCursors map[string]int64
 	// out holds the frames written but not yet sent to this peer, and is
@@ -94,6 +100,7 @@ func (h *Hub) Unregister(c *conn) {
 	c.stop()
 	h.mu.Lock()
 	delete(h.conns, c)
+	wasViewing := c.viewing != ""
 	trips := make([]string, 0, len(c.trips))
 	for t := range c.trips {
 		trips = append(trips, t)
@@ -103,6 +110,28 @@ func (h *Hub) Unregister(c *conn) {
 	for _, tripID := range trips {
 		h.broadcastPresence(tripID)
 	}
+	if wasViewing {
+		h.broadcastRoster(nil)
+	}
+}
+
+// SetViewing records which trip a connection has open in the packing list
+// ("" for none) and tells everyone the roster changed (FR-4.9). Membership is
+// the caller's to have checked, as it is for Subscribe.
+func (h *Hub) SetViewing(c *conn, tripID string) {
+	h.mu.Lock()
+	changed := c.viewing != tripID
+	c.viewing = tripID
+	h.mu.Unlock()
+	if changed {
+		h.broadcastRoster(nil)
+	}
+}
+
+// SendRoster gives one connection the roster as it stands, for the moment it
+// connects and nobody's viewing has changed to trigger one.
+func (h *Hub) SendRoster(c *conn) {
+	h.broadcastRoster(c)
 }
 
 // Subscribe adds a trip subscription to a connection.
@@ -303,6 +332,77 @@ func (h *Hub) broadcastPresence(tripID string) {
 		},
 	}
 	h.send(targets, evt)
+}
+
+// broadcastRoster sends each connection the people it shares a trip with and
+// what they have open (FR-4.9). `only` narrows the send to one connection —
+// the newcomer's — and then only when there is something to say.
+//
+// Every listing is authorised twice — the receiver must be allowed the trip,
+// and so must the person shown on it — because the roster is the one frame
+// that names somebody's whereabouts, and a revoked member is neither shown nor
+// shown to. The answers are asked once per (trip, user) per call, since a
+// roster for N connections would otherwise ask the database N times over.
+func (h *Hub) broadcastRoster(only *conn) {
+	h.mu.Lock()
+	viewing := map[string]map[string]bool{}
+	var targets []*conn
+	for c := range h.conns {
+		if only == nil || c == only {
+			targets = append(targets, c)
+		}
+		if c.viewing == "" {
+			continue
+		}
+		if viewing[c.userID] == nil {
+			viewing[c.userID] = map[string]bool{}
+		}
+		viewing[c.userID][c.viewing] = true
+	}
+	h.mu.Unlock()
+
+	type pair struct{ trip, user string }
+	asked := map[pair]bool{}
+	may := func(trip, user string) bool {
+		k := pair{trip, user}
+		if v, ok := asked[k]; ok {
+			return v
+		}
+		v := h.mayReceive != nil && h.mayReceive(context.Background(), trip, user)
+		asked[k] = v
+		return v
+	}
+
+	rosters := map[string][]RosterMember{}
+	for _, c := range targets {
+		members, ok := rosters[c.userID]
+		if !ok {
+			members = make([]RosterMember, 0)
+			for other, trips := range viewing {
+				if other == c.userID {
+					continue
+				}
+				shared := make([]string, 0, len(trips))
+				for trip := range trips {
+					if may(trip, c.userID) && may(trip, other) {
+						shared = append(shared, trip)
+					}
+				}
+				if len(shared) > 0 {
+					sort.Strings(shared)
+					members = append(members, RosterMember{UserID: other, TripIDs: shared})
+				}
+			}
+			sort.Slice(members, func(i, j int) bool { return members[i].UserID < members[j].UserID })
+			rosters[c.userID] = members
+		}
+		// A connection that has just arrived and has nobody to be told about
+		// needs no frame: the client starts every socket with an empty roster.
+		if only != nil && len(members) == 0 {
+			continue
+		}
+		h.send([]*conn{c}, WSEvent{Type: EventRoster, Payload: map[string]any{"users": members}})
+	}
 }
 
 // newConn creates a tracked connection. It does not start writing — that

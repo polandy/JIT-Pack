@@ -53,6 +53,8 @@ export const en = {
   'sync.detail.explain.local':
     'Local Mode: there is no server. Everything you enter stays in this browser, on this device.',
   'sync.detail.lastSynced': 'Last synced: {when}',
+  'sync.detail.online': 'Packing right now',
+  'sync.detail.onlineNobody': 'Nobody else is packing right now.',
   'sync.detail.live':
     'Live updates are connected — changes from other devices arrive as they happen.',
   'sync.detail.liveGap':

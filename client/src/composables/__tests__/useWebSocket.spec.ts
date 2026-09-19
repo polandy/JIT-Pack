@@ -290,6 +290,27 @@ describe('useWebSocket', () => {
       ])
     })
 
+    it('tells the new socket which trip is open, and nothing once none is (FR-4.9)', async () => {
+      const ws = useWebSocket(opts())
+      await ws.connect()
+      latest().simulateOpen()
+      ws.setViewing('t1')
+      expect(latest().sent).toEqual([JSON.stringify({ viewing: { trip_id: 't1' } })])
+
+      latest().simulateDrop()
+      await vi.advanceTimersByTimeAsync(WS_RECONNECT_BASE_MS)
+      const second = latest()
+      second.simulateOpen()
+      expect(second.sent).toEqual([JSON.stringify({ viewing: { trip_id: 't1' } })])
+
+      ws.setViewing(null)
+      expect(second.sent.at(-1)).toBe(JSON.stringify({ viewing: { trip_id: '' } }))
+
+      // Said once: repeating the same answer would rebroadcast the roster.
+      ws.setViewing(null)
+      expect(second.sent).toHaveLength(2)
+    })
+
     it('tells the owner about every open, so the gap can be pulled over', async () => {
       const onOpen = vi.fn()
       const ws = useWebSocket(opts({ onOpen }))

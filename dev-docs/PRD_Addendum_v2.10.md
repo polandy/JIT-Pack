@@ -4578,6 +4578,19 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
 
 ### 3.5 Packing Workflow
 
+* **FR-4.9 (Who Is Packing Right Now — new 2026-09-19):** The sync sheet behind the status glyph (G-2b) names the
+  other people who currently have the packing list of a trip open, and which trip, so a family knows before opening
+  anything that somebody else is already on it.
+  **Only trips the viewer is a member of, and only people who are members of them too** (owner, 2026-09-19): the
+  hub authorises both ends of every listing, so a trip a person may not know exists is never named to them. **What
+  counts as "working on it" is the packing list being open (M4), not a subscription** — the dashboard follows every
+  active trip and never unsubscribes, so a roster read from subscriptions would go on naming somebody after they
+  had left; the client says it explicitly (`viewing` frame, Sync-API §7) and the hub forgets it with the connection.
+  Consequently a person who is online but on no trip, or only on a screen other than the packing list, is not
+  listed: "online" here means *at work on a shared trip*, and a bare "is connected" list would have to name people
+  with whom the viewer shares nothing. Advisory and best-effort like FR-4.6 (a device that is offline is not
+  listed), absent in Single-User and Local Mode (G-8), and it gates nothing. FR-4.6's per-trip facepile stays as it
+  is; this is the account-wide answer to a different question.
 * **FR-5.4 (Partial Quantities):** Items with a quantity greater than 1 track a `packed_count` (e.g., 3 of 5 socks). The
   item state is derived: *Open* (0 packed), *Partially Packed* (0 < packed < quantity), *Packed* (packed = quantity).
   The quick actions of FR-5.2 increment the count; a long-press completes the item in one step. *Packing Now* and

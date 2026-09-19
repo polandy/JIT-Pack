@@ -86,4 +86,23 @@ describe('presence handling (G-10)', () => {
     expect(cursorFrames).toHaveLength(1)
     expect(cursorFrames[0].cursor).toEqual({ trip_id: 't1', seq: 7 })
   })
+
+  it('holds the roster from the WS event, and forgets it when the socket closes (FR-4.9)', async () => {
+    const orch = newOrch()
+    await orch.connect()
+    wsInstances[0]!.onopen?.()
+
+    wsInstances[0]!.onmessage!({
+      data: JSON.stringify({
+        type: 'roster',
+        payload: { users: [{ user_id: 'u2', trip_ids: ['t1'] }] },
+      }),
+    })
+    expect(orch.getRoster()).toEqual([{ user_id: 'u2', trip_ids: ['t1'] }])
+
+    // The hub sends the whole roster afresh on the next socket; until then a
+    // stale entry would name somebody the device can no longer vouch for.
+    wsInstances[0]!.onclose?.()
+    expect(orch.getRoster()).toEqual([])
+  })
 })
