@@ -1,4 +1,8 @@
 import {
+  addInComposer,
+  confirmCreateSheet,
+  createItemSheet,
+  exactSuggestion,
   test,
   expect,
   createTripViaWizard,
@@ -60,8 +64,7 @@ const SCROLL_ROWS = Array.from({ length: 16 }, (_, i) => `Sache ${i + 1}`)
 async function quickAdd(page: Page, names: string[]) {
   await openQuickAdd(page)
   for (const name of names) {
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, name)
     await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   }
 }
@@ -92,7 +95,8 @@ test.describe('M4 packing list @local @m4', () => {
   })
 
   // E2E-M4-04 (FR-5.6, FR-25.13a): the visible confirm button is the commit,
-  // and the form stays open for the next row.
+  // and the form stays open for the next row. The name is new to the
+  // inventory, so the commit goes through the create sheet (FR-24.11).
   test('E2E-M4-04: the FAB opens the quick-add, which commits by button and stays open', async ({
     page,
   }) => {
@@ -101,7 +105,9 @@ test.describe('M4 packing list @local @m4', () => {
     await openQuickAdd(page)
     const input = page.getByTestId('quick-add-input').locator('input')
     await input.fill('Zelt')
+    await expect(visible(page).getByTestId('quick-add-offer-title')).toContainText('Zelt')
     await page.getByTestId('quick-add-confirm').click()
+    await confirmCreateSheet(page, 'Zelt')
 
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
     // Still open and empty, ready for the next one.
@@ -129,8 +135,7 @@ test.describe('M4 packing list @local @m4', () => {
 
     // Adding does not bring it back — the composer stays open (FR-25.13), so
     // the ＋ still has nothing to do.
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
     await expect(page.getByTestId('m4-fab')).toHaveCount(0)
 
@@ -459,9 +464,9 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
 
     // Same query again: the positive signal for the absent suggestion is
-    // the free-text hint, which renders exactly when nothing is offered.
+    // FR-24.11's offer, which renders in the same pass as the suggestions.
     await input.fill('Zel')
-    await expect(visible(page).locator('.no-match')).toContainText('Add “Zel” as a new item')
+    await expect(visible(page).getByTestId('quick-add-offer-title')).toContainText('Zel')
     await expect(page.getByTestId('quick-add-suggestion')).toHaveCount(0)
   })
 
@@ -483,8 +488,7 @@ test.describe('M4 packing list @local @m4', () => {
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
     const input = page.getByTestId('quick-add-input').locator('input')
-    // Via the suggestion, so the row carries its master-item provenance —
-    // a free-text "Zelt" would be a different row with no source to match.
+    // Via the suggestion, so the row carries its master-item provenance.
     await input.fill('Zel')
     await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
@@ -1405,6 +1409,36 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
   })
 
   /**
+   * E2E-M4-106 (FR-7.3, FR-25.2): the same snackbar for M4's preparation
+   * section, whose ticked task also leaves the open list. The badge on the row
+   * is the positive signal that the reopened task is the row's own again.
+   */
+  test('E2E-M4-106: a ticked-off prep task is taken back from the snackbar', async ({ page }) => {
+    const TODO = 'Akku laden'
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Kamera'])
+    await page.getByTestId('m4-row-Kamera').click()
+    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
+    await page.getByTestId('m5-todo-add').click()
+    await expect(page.getByTestId(`m5-todo-${TODO}`)).toBeVisible()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    const prep = visible(page).getByTestId('m4-prep-section')
+    await prep.getByTestId('m4-prep-toggle').click()
+    await prep.locator('ion-checkbox').click()
+    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
+
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText(TODO)
+    await toast.getByRole('button', { name: /undo/i }).click()
+    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
+    await writesLanded(page)
+    await page.reload()
+    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
+  })
+
+  /**
    * E2E-M4-24 (FR-25.17): the packing stamp, and that it never outlives the
    * state it describes.
    *
@@ -1523,6 +1557,107 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
 })
 
 /**
+ * FR-24.11 reaches the composer: every add goes through the inventory. A name
+ * it holds is added at once, any other is created first through the same
+ * sheet M9 uses, and nothing is written before that sheet's „Anlegen" — the
+ * composer no longer makes ad-hoc rows.
+ */
+test.describe('M4 — the composer adds through the inventory @local @m4', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /**
+   * E2E-M4-107 (FR-24.11, FR-5.6): a new name is offered for creation above
+   * the partial hits, and only the sheet writes.
+   *
+   * The absent row is asserted while the sheet is visibly open — before that,
+   * "no row yet" would also hold for a commit that had simply not landed.
+   */
+  test('E2E-M4-107: a name the inventory lacks is created through the sheet, then added', async ({
+    page,
+  }) => {
+    await page.goto(PATH.items)
+    await createItem(page, 'Zeltheringe')
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+
+    const list = visible(page)
+    const input = list.getByTestId('quick-add-input').locator('input')
+    await input.fill('Zelt')
+    const offer = list.getByTestId('quick-add-offer')
+    const hit = list.getByTestId('quick-add-suggestion').filter({ hasText: 'Zeltheringe' })
+    await expect(list.getByTestId('quick-add-offer-title')).toContainText('Zelt')
+    await expect(hit).toBeVisible()
+    // Above the partial hit: with the keyboard up, the end of the list is out
+    // of reach, so the offer cannot wait below it.
+    const offerBox = (await offer.boundingBox())!
+    const hitBox = (await hit.boundingBox())!
+    expect(offerBox.y + offerBox.height).toBeLessThanOrEqual(hitBox.y)
+
+    await list.getByTestId('quick-add-confirm').click()
+    const sheet = createItemSheet(page)
+    await expect(sheet).toHaveAttribute('data-presented', 'true')
+    await expect(sheet.getByTestId('create-item-name').locator('input')).toHaveValue('Zelt')
+    await expect(list.getByTestId('m4-row-Zelt')).toHaveCount(0)
+
+    await sheet.getByTestId('create-item-confirm').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(list.getByTestId('m4-row-Zelt')).toBeVisible()
+    // The composer stays open for the next row, emptied and focused
+    // (FR-25.13) — the sheet handing focus back rather than leaving it on the
+    // page, where neither typing nor Escape reaches the composer.
+    await expect(list.getByTestId('quick-add-input')).toBeVisible()
+    await expect(input).toHaveValue('')
+    await expect(input).toBeFocused()
+
+    // The same act reached the inventory: M9 now lists the tent beside the
+    // pegs it was found next to.
+    await writesLanded(page)
+    await page.goto(PATH.items)
+    const rows = visible(page).getByTestId('m9-row')
+    await expect(rows).toHaveCount(2)
+    await expect(rows.filter({ has: page.getByText('Zelt', { exact: true }) })).toHaveCount(1)
+  })
+
+  /**
+   * E2E-M4-108 (FR-24.11, FR-24.7): the composer finds by M9's rule, so the
+   * other umlaut spelling names the item exactly — ✓ adds it without a sheet.
+   * Once it is on the list, the same name is reported rather than offered.
+   */
+  test('E2E-M4-108: an inventory name in the other spelling is added at once, then reported', async ({
+    page,
+  }) => {
+    await page.goto(PATH.items)
+    await createItem(page, 'Gürtel')
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+
+    const list = visible(page)
+    const input = list.getByTestId('quick-add-input').locator('input')
+    await input.fill('guertel')
+    // The exact hit is the positive signal the absent offer is read beside:
+    // both are rendered in the same pass.
+    await expect(exactSuggestion(list, 'Gürtel')).toBeVisible()
+    await expect(list.getByTestId('quick-add-offer')).toHaveCount(0)
+
+    await list.getByTestId('quick-add-confirm').click()
+    await expect(list.getByTestId('m4-row-Gürtel')).toBeVisible()
+    // The row is there, and no sheet was ever asked for.
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(input).toHaveValue('')
+
+    // Typed again: already on the list, so the composer says so and ✓ rests.
+    await input.fill('guertel')
+    await expect(list.getByTestId('quick-add-already-in')).toContainText('Gürtel')
+    await expect(list.getByTestId('quick-add-confirm')).toHaveAttribute('aria-disabled', 'true')
+    await expect(list.getByTestId('quick-add-offer')).toHaveCount(0)
+    await expect(list.getByTestId('quick-add-suggestion')).toHaveCount(0)
+    await expect(list.getByTestId('m4-row-Gürtel')).toHaveCount(1)
+  })
+})
+
+/**
  * FR-20.4's missing sentence and FR-9.4's silent card, both ruled *build it*
  * by the owner on 2026-08-31.
  */
@@ -1566,8 +1701,7 @@ test.describe('M4 — what the quick-add says about what it took along @local @m
 
     // An item with no companions says nothing: the positive signal against a
     // snackbar that always fires.
-    await page.getByTestId('quick-add-input').locator('input').fill('Sonnencreme')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Sonnencreme')
     await expect(visible(page).getByTestId('m4-row-Sonnencreme')).toBeVisible()
     await expect(page.locator('ion-toast').filter({ hasText: 'Sonnencreme' })).toHaveCount(0)
   })
@@ -1818,8 +1952,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // produces a flat row rather than a cluster.
     await openQuickAdd(page)
     await lightTraveler(page, 'quick-add', 'Andy')
-    await page.getByTestId('quick-add-input').locator('input').fill('Wanderstöcke')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Wanderstöcke')
 
     const list = visible(page)
     const perPerson = list.getByTestId('m4-row-Wanderstöcke')
@@ -1862,8 +1995,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
 
     await openQuickAdd(page)
     for (const who of ['Andy', 'Sia']) await lightTraveler(page, 'quick-add', who)
-    await page.getByTestId('quick-add-input').locator('input').fill('Regenjacke')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Regenjacke')
 
     const list = visible(page)
     const nameX = async (locator: Locator, selector: string) =>
@@ -2201,6 +2333,34 @@ test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
     await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
     await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
     await expect(status).toHaveText('0 of 1 done')
+  })
+
+  /**
+   * E2E-M4-105 (FR-7.4, FR-25.2): ticking a task off offers the snackbar's
+   * undo, like a pack. The tick makes the row leave the open list, so the
+   * mistap has no evidence left to tap again — the undo brings it back, and
+   * the reopened state is read after a reload because a repaint alone proves
+   * the component and not the write.
+   */
+  test('E2E-M4-105: a ticked-off trip todo is taken back from the snackbar', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    const section = visible(page).getByTestId('m4-trip-todos')
+    const status = section.getByTestId('m4-trip-todos-status')
+    await addTripTodo(page, 'Water the plants')
+    await addTripTodo(page, 'Empty the fridge')
+
+    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
+    await expect(status).toHaveText('1 of 2 done')
+    const toast = page.locator('ion-toast.pack-toast')
+    await expect(toast).toContainText('Water the plants')
+
+    await toast.getByRole('button', { name: /undo/i }).click()
+    await expect(status).toHaveText('0 of 2 done')
+    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    await writesLanded(page)
+    await page.reload()
+    await openTripTodos(page)
+    await expect(status).toHaveText('0 of 2 done')
   })
 
   /**

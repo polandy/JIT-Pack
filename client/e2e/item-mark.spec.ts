@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import {
+  addInComposer,
   test,
   expect,
   createTripViaWizard,
@@ -63,9 +64,7 @@ async function closePicker(page: Page) {
 
 /**
  * Add a trip row *from the master item* — through the composer's suggestion,
- * not the free-text confirm. The distinction is the point of FR-28.7: only a
- * row with a `source_item_id` has a master item to inherit a mark from, and
- * the free-text path deliberately creates an ad-hoc row that has none.
+ * so the row inherits the mark the item already carries (FR-28.7).
  */
 async function addFromInventory(page: Page, name: string) {
   await openQuickAdd(page)
@@ -74,11 +73,15 @@ async function addFromInventory(page: Page, name: string) {
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
 }
 
-/** Add an ad-hoc row — free text, no master item behind it (FR-28.7). */
-async function addAdHoc(page: Page, name: string) {
+/**
+ * Add a row whose item carries no mark. Until FR-24.11 reached the composer
+ * this was an ad-hoc row with no master item at all; now the composer's sheet
+ * creates a bare item (name only), which has no mark either — the rendering
+ * under test is the same, an unmarked row.
+ */
+async function addUnmarked(page: Page, name: string) {
   await openQuickAdd(page)
-  await page.getByTestId('quick-add-input').locator('input').fill(name)
-  await page.getByTestId('quick-add-confirm').click()
+  await addInComposer(page, name)
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
 }
 
@@ -181,15 +184,15 @@ test.describe('§3.28 the item mark', () => {
 
     const trip = await createTripViaWizard(page, { name: 'Markenprobe', travelers: ['Andy'] })
     await addFromInventory(page, 'Zelt')
-    // An ad-hoc row has no master item, so it has no mark (FR-28.7) — and it
-    // shows the empty slot rather than a placeholder.
-    await addAdHoc(page, 'Zwischenringe')
+    // A row whose item has no mark (FR-28.7) shows the empty slot rather
+    // than a placeholder.
+    await addUnmarked(page, 'Zwischenringe')
     await page.keyboard.press('Escape')
 
     await expect(page.getByTestId('m4-row-Zelt').getByTestId('item-mark')).toHaveText('⛺')
-    const adHoc = page.getByTestId('m4-row-Zwischenringe')
-    await expect(adHoc.getByTestId('item-mark')).toHaveCount(0)
-    await expect(adHoc.getByTestId('item-mark-slot')).toBeVisible()
+    const unmarked = page.getByTestId('m4-row-Zwischenringe')
+    await expect(unmarked.getByTestId('item-mark')).toHaveCount(0)
+    await expect(unmarked.getByTestId('item-mark-slot')).toBeVisible()
 
     // One edit on the master item, seen on both surfaces — which is only
     // possible because the trip row stores nothing.
@@ -326,7 +329,7 @@ test.describe('§3.28 the item mark', () => {
 
     await createTripViaWizard(page, { name: 'Blattprobe', travelers: ['Andy'] })
     await addFromInventory(page, 'Zelt')
-    await addAdHoc(page, 'Zwischenringe')
+    await addUnmarked(page, 'Zwischenringe')
     await page.keyboard.press('Escape')
 
     await page.getByTestId('m4-row-Zelt').click()
@@ -338,16 +341,16 @@ test.describe('§3.28 the item mark', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    // An ad-hoc row has no mark, and the sheet has no column to hold a slot
+    // An unmarked row has no mark, and the sheet has no column to hold a slot
     // for: the title is the first thing on the line, not 44px of blank. The
     // rendered name is the positive signal the absent slot is asserted beside.
     // Closing the sheet is a route *replace* (ADR-012), and on WebKit both
     // M4 pages sit in the outlet for a moment, neither yet hidden — so the
     // row is awaited to be unique before it is clicked (strict mode does not
     // retry on its own).
-    const adHocRow = visiblePage(page).getByTestId('m4-row-Zwischenringe')
-    await expect(adHocRow).toHaveCount(1)
-    await adHocRow.click()
+    const unmarkedRow = visiblePage(page).getByTestId('m4-row-Zwischenringe')
+    await expect(unmarkedRow).toHaveCount(1)
+    await unmarkedRow.click()
     await expect(page.getByTestId('m5-sheet').getByTestId('m5-name')).toHaveText('Zwischenringe')
     await expect(page.getByTestId('m5-sheet').getByTestId('item-mark-slot')).toHaveCount(0)
   })

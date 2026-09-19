@@ -69,6 +69,7 @@ import {
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
 import EmptyState from '@/components/global/EmptyState.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
@@ -100,14 +101,12 @@ import {
   type TagFilterMode,
 } from '@/domain/tags'
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
-import { MARK_INDEX } from '@/domain/itemMarks'
 import {
   hitsByReason,
   isSearchQuery,
   searchItems,
   searchOffer,
   OFFER_CREATE,
-  type ItemSearchCandidate,
   type MatchReason,
 } from '@/domain/itemSearch'
 import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
@@ -279,25 +278,11 @@ function toggleAll() {
   selected.value = all ? new Set() : new Set(shownItems.value.map((item) => item.id))
 }
 
-/** The mark's search keywords, by emoji — resolved once, not per keystroke. */
-const MARK_KEYWORDS = new Map(MARK_INDEX.map((entry) => [entry.emoji, entry.keywords]))
-
-/**
- * The inventory as the search reads it (FR-24.7). The tag names come from one
- * pass over the assignments rather than a lookup per row: asking each item for
- * its tags is items × assignments, and this is rebuilt whenever either feed
- * moves (NFR-4.3).
- */
+/** Every tag name of every item, in one pass — the primary is what groups a row. */
 const tagNames = computed(() => tagNamesByItem(masterStore.itemTagList, masterStore.tagList))
 
-const candidates = computed<ItemSearchCandidate[]>(() =>
-  masterStore.activeItemList.map((item) => ({
-    id: item.id,
-    name: item.name,
-    tagNames: tagNames.value.get(item.id) ?? [],
-    markKeywords: item.icon ? (MARK_KEYWORDS.get(item.icon) ?? []) : [],
-  })),
-)
+/** The inventory as the search reads it (FR-24.7) — the composer's too. */
+const candidates = useItemSearchCandidates()
 
 /** How many items each tag holds — the number every chip and row carries. */
 const counts = computed(() => tagCounts(masterStore.activeItemList, masterStore.itemTagList))

@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   seed,
@@ -66,8 +67,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
 
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Zelt')
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
     await page.getByTestId('quick-add-close').click()
 
@@ -574,8 +574,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await openTripView(page, 'shopping')
     const m6 = () => visible(page).getByTestId('m6-page')
     await m6().getByTestId('quick-add-open').click()
-    await m6().getByTestId('quick-add-input').locator('input').fill('Kaffee')
-    await m6().getByTestId('quick-add-confirm').click()
+    await addInComposer(page, 'Kaffee', m6())
     await m6().getByTestId('quick-add-close').click()
     await m6().getByTestId('m6-row').filter({ hasText: 'Kaffee' }).locator('ion-checkbox').click()
     await expect(m6().getByTestId('m6-bought-bar')).toHaveText('Show 1 bought')

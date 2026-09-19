@@ -6,7 +6,7 @@ import { expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 import { visiblePage, writesLanded } from './page'
-import { openQuickAdd } from './trips'
+import { addInComposer, openQuickAdd } from './trips'
 import { PATH } from '../routes'
 
 /**
@@ -62,12 +62,13 @@ export async function backToTemplateList(page: Page) {
   await expect(visiblePage(page).getByTestId('m8-scope-switch')).toHaveCount(0)
 }
 
-/** FR-25.13: type into M8's quick-add and commit with Enter. */
+/**
+ * FR-25.13: type into M8's quick-add and commit — through the create sheet
+ * when the inventory lacks the name (FR-24.11).
+ */
 export async function addPosition(page: Page, name: string) {
   await openQuickAdd(page, 'm8-fab')
-  const input = visiblePage(page).getByTestId('quick-add-input')
-  await input.locator('input').fill(name)
-  await input.locator('input').press('Enter')
+  await addInComposer(page, name)
   // The new row is the optimistic signal; the add is a Local Mode write, and
   // the helper returns when it is on the device — a caller's next step may be
   // a reload.

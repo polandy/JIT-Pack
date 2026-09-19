@@ -8,13 +8,20 @@
  */
 import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
-import { createTripViaWizard, expectTripActionOffered, openQuickAdd, tripAction } from './trips'
+import {
+  addInComposer,
+  createTripViaWizard,
+  expectTripActionOffered,
+  openQuickAdd,
+  tripAction,
+} from './trips'
 import { visiblePage, writesLanded } from './page'
 import { fillIonic } from './ionic'
 
 /**
  * Create a trip through M3 and quick-add the named rows onto it. Returns the
- * trip's path, so a caller that navigates away can come back to it.
+ * trip's path, so a caller that navigates away can come back to it. A name the
+ * inventory lacks is created through the composer's sheet (FR-24.11).
  *
  * The quick-add is closed with Escape and its disappearance awaited: the
  * sheet overlays the list, and a following click on a row would otherwise
@@ -24,8 +31,7 @@ export async function tripWithRows(page: Page, names: string[], tripName: string
   const path = await createTripViaWizard(page, { name: tripName, travelers: ['Andy'] })
   for (const name of names) {
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, name)
     await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
   }
   await page.keyboard.press('Escape')

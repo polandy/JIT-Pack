@@ -5,6 +5,8 @@ import {
   backToTemplateList,
   createTemplate,
   createTripFollowingGroup,
+  createTripViaWizard,
+  openQuickAdd,
   test,
   expect,
   visiblePage,
@@ -457,5 +459,46 @@ test.describe('FR-24.3 — a retired row can come back', () => {
     await expect(editor.getByTestId('m10-dependency-mode-Reisewecker')).toHaveCount(0)
     await openRetired(page)
     await expect(visiblePage(page).getByTestId('m23-row-name')).toHaveText('Reisewecker')
+  })
+})
+
+/**
+ * E2E-M4-109 (FR-24.11 with FR-24.3): the composer meets a retired name the
+ * way M9's search does — as a restore, never as a second item of that name.
+ * Here rather than in `packing-list.spec.ts` because the retire is this file's
+ * fixture.
+ */
+test.describe('FR-24.11 — the composer restores what it would otherwise duplicate @local @m4', () => {
+  test.slow()
+
+  test('E2E-M4-109: a retired name typed in the composer is restored and added, not created again', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await retireItemViaGroup(page, 'Fotografie', 'Kamera')
+
+    await createTripViaWizard(page, { name: 'Fototour 2026' })
+    await openQuickAdd(page)
+    const list = visiblePage(page)
+    await list.getByTestId('quick-add-input').locator('input').fill('Kamera')
+    await expect(list.getByTestId('quick-add-offer-title')).toContainText('is retired')
+    await expect(list.getByTestId('quick-add-offer-title')).toContainText('Kamera')
+
+    await list.getByTestId('quick-add-confirm').click()
+    await expect(list.getByTestId('m4-row-Kamera')).toBeVisible()
+    // Restored in place: the item already has its tags, so no sheet asks.
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await localWriteSettled(page)
+
+    // Back in the inventory, once — the restored row, not a new one beside
+    // it — and M23 has nothing left to bring back.
+    await page.goto(PATH.items)
+    await expect(visiblePage(page).getByTestId('m9-row').filter({ hasText: 'Kamera' })).toHaveCount(
+      1,
+    )
+    await expect(visiblePage(page).getByTestId('m9-retired-note')).toHaveCount(0)
+    await openRetired(page)
+    await expect(visiblePage(page).getByTestId('m23-empty')).toBeVisible()
   })
 })

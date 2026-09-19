@@ -172,7 +172,7 @@ export type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const tripStore = useTripStore()
   const masterStore = useMasterStore()
-  const syncStatus = useSyncStatus()
+  const syncStatus = useSyncStatus(() => now())
   const local = config.local ?? null
   // Deliberately not `config.getToken`: that provider may refresh and is
   // therefore async, and a lock decision is made while rendering a row.
@@ -410,6 +410,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (local) return
     if (!background) syncStatus.setSyncing()
     try {
+      // A trip row may name a master row written just before it — FR-24.11's
+      // composer creates the item and adds it in one act. Pushed alongside
+      // the master write, the row reaches a server that does not have its
+      // item yet, is refused, and is undone (ADR-031). So a master write that
+      // is queued or on the wire goes first, as `drainPartitions` does for a
+      // cascade.
+      await outbox.whenSent('master', null)
       await outbox.drain('trip', tripId)
       loadedTripPartitions.add(tripId)
       if (!background) {

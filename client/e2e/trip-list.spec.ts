@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   seed,
@@ -168,8 +169,7 @@ test.describe('M2 row actions @local @m2', () => {
   async function tripWithAPackedRow(page: Page) {
     await createTripViaWizard(page, { name: TRIP })
     await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
-    await page.getByTestId('quick-add-confirm').click()
+    await addInComposer(page, ITEM)
     await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toBeVisible()
     await visiblePage(page)
       .getByTestId(`m4-row-${ITEM}`)

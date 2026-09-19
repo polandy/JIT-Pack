@@ -1,4 +1,5 @@
 import {
+  addInComposer,
   test,
   expect,
   createTripViaWizard,
@@ -8,8 +9,8 @@ import {
   useReducedMotion,
 } from './fixtures'
 import {
-  assignTraveler,
   chooseInRowMenu,
+  lightTraveler,
   openCluster,
   openRowMenu,
   tripWithRows,
@@ -217,24 +218,15 @@ test('E2E-M4-42: a per-person child row can be left behind too @local @m4', asyn
   await page.setViewportSize({ width: 390, height: 844 })
   await createTripViaWizard(page, { name: 'Cluster', travelers: ['Andy', 'Sia'] })
 
-  // Two rows of the same name, one per traveler, is what makes a cluster.
-  for (const name of ['Zelt', 'Zelt']) {
-    await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill(name)
-    await page.getByTestId('quick-add-confirm').click()
-  }
+  // One row per traveler is what makes a cluster. Since FR-24.11 reached the
+  // composer a name can only be added once — the second „Zelt" would be
+  // „schon drin" — so the cluster is made the way a person makes one: both
+  // travelers lit in the composer's for-whom strip, one add (FR-25.28).
+  await openQuickAdd(page)
+  for (const who of ['Andy', 'Sia']) await lightTraveler(page, 'quick-add', who)
+  await addInComposer(page, 'Zelt')
   await page.keyboard.press('Escape')
-  // Both rows carry the same testid, and after the first assignment they are
-  // told apart by what they render: an assigned row names its traveler. A
-  // `.first()` twice would have assigned the same row twice — it did, and the
-  // cluster never formed.
-  const unassignedZelt = () =>
-    page
-      .getByTestId('m4-row-Zelt')
-      .filter({ has: page.getByRole('heading', { name: 'Zelt', exact: true }) })
-      .first()
-  await assignTraveler(page, unassignedZelt(), 'Andy')
-  await assignTraveler(page, unassignedZelt(), 'Sia')
+  await expect(page.getByTestId('quick-add-input')).toBeHidden()
 
   // FR-25.23: two instances are a cluster, and a cluster starts shut.
   await openCluster(page, 'Zelt')
