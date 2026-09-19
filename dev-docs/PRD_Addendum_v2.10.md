@@ -2699,7 +2699,7 @@ locked.
     * The footer line *„Stattdessen neuen Namen eintippen…"* stays: it is the way back to the composer's
       *Erfassen* posture (FR-25.28's for-whom strip, the chips), which the offer does not replace.
     * **No wire, no schema, no ADR** — three existing components composed on a fourth surface. Identical in Server,
-      Single-User and Local Mode; M6 and M8 get it with the shared composer.
+      Single-User and Local Mode; M8 gets it with the shared composer (M6 carries no composer since FR-30.2).
 * **FR-25.7 (Template-Item Entry — Sensible Defaults & Progressive Disclosure):** The template editor's per-item form
   (M8) currently exposes **all** parameters at once (quantity, per-person vs. trip-global, procurement mode, dedup
   strategy, conditions, Late Packer), which makes adding a single item to a template cumbersome — yet templates

@@ -16201,7 +16201,6 @@ where one act had replaced another — a strict-mode failure that looked like a 
 calling `dismiss()` returned `false` on them: not refused, already leaving. Cases now take
 `:not(.overlay-hidden)` filtered by their sentence and `.last()`.
 
-
 ## The shopping list becomes a module (2026-09-19)
 
 Owner: shopping lists for the holidays, independent of the packing list, with *vor Ort kaufen* rows still landing on
