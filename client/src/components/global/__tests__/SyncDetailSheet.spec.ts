@@ -468,3 +468,32 @@ describe('SyncDetailSheet — the last completed sync (FR-19.6)', () => {
     expect(has(wrapper, 'sync-detail-last-synced')).toBe(false)
   })
 })
+
+/**
+ * FR-4.9 — who else is packing. `null` and an empty list are different
+ * answers: the first is a mode with nobody to name, the second is a session
+ * in which nobody is on a shared trip right now.
+ */
+describe('SyncDetailSheet — who is packing right now (FR-4.9)', () => {
+  const bob = { key: 'u-bob:t1', name: 'Bob', tripId: 't1', tripName: 'Vercors' }
+
+  it('lists each person over their trip, and opens the trip on a tap', async () => {
+    const wrapper = mountSheet({ online: [bob] })
+    expect(text(wrapper, 'sync-detail-online-Bob')).toContain('Bob')
+    expect(text(wrapper, 'sync-detail-online-Bob')).toContain('Vercors')
+    expect(has(wrapper, 'sync-detail-online-nobody')).toBe(false)
+
+    await wrapper.get('[data-testid="sync-detail-online-Bob"]').trigger('click')
+    expect(wrapper.emitted('openTrip')).toEqual([['t1']])
+  })
+
+  it('says so when nobody else is, rather than leaving the section out', () => {
+    const wrapper = mountSheet({ online: [] })
+    expect(has(wrapper, 'sync-detail-online-nobody')).toBe(true)
+  })
+
+  it('has no section where there is nobody to name (Local and Single-User Mode)', () => {
+    expect(has(mountSheet({ online: null }), 'sync-detail-online')).toBe(false)
+    expect(has(mountSheet({ mode: 'local', online: [bob] }), 'sync-detail-online')).toBe(false)
+  })
+})

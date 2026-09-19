@@ -194,6 +194,7 @@ export type WSEventType =
   | 'item.locked'
   | 'item.unlocked'
   | 'presence'
+  | 'roster'
   | 'notification.created'
   | 'pong'
 
@@ -203,6 +204,7 @@ export const WS_EVENT_TYPE = {
   'item.locked': 'item.locked',
   'item.unlocked': 'item.unlocked',
   presence: 'presence',
+  roster: 'roster',
   'notification.created': 'notification.created',
   pong: 'pong',
 } as const
@@ -225,6 +227,17 @@ export interface PresenceMember {
   user_id: string
   device_count: number
   in_sync: boolean
+}
+
+/**
+ * RosterMember is one entry of an EventRoster frame (FR-4.9): a person other
+ * than the receiver, and the trips they have open in the packing list right now
+ * that the receiver is a member of too. A person with no such trip is not
+ * listed at all, which is how the roster keeps to what the receiver may know.
+ */
+export interface RosterMember {
+  user_id: string
+  trip_ids: string[]
 }
 
 /**
