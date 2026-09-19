@@ -254,6 +254,84 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await expect(visible(page).getByTestId('m8-scope-switch')).toBeVisible()
   })
 
+  test('E2E-M7-12: the row menu shares the Vorlage where the browser can share files', async ({
+    page,
+  }) => {
+    // The share sheet is the operating system's; what the page owes is the
+    // call. The stub records it, and `canShare` stands in for the platform's
+    // answer — headless Chromium on Linux has no Web Share at all.
+    await page.addInitScript(() => {
+      const w = window as unknown as { shared: { name: string; type: string; text: string }[] }
+      w.shared = []
+      Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true })
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: async (data: { files: File[] }) => {
+          const f = data.files[0]!
+          w.shared.push({ name: f.name, type: f.type, text: await f.text() })
+        },
+      })
+    })
+    await page.reload()
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+
+    const row = visible(page).locator('ion-item', { hasText: 'Makro' })
+    await row.dispatchEvent('contextmenu')
+    const sheet = page.locator('ion-action-sheet')
+    await sheet.getByRole('button', { name: 'Share template…' }).click()
+    await expect(sheet).toBeHidden()
+
+    // The whole portable document, as plain text Chrome will share, named so
+    // the file still says it is YAML — and it is the Gruppe, not a Vorlage.
+    const shared = await page.evaluate(
+      () =>
+        (window as unknown as { shared: { name: string; type: string; text: string }[] }).shared,
+    )
+    expect(shared).toHaveLength(1)
+    expect(shared[0]!.name).toBe('Makro.yaml.txt')
+    expect(shared[0]!.type).toBe('text/plain')
+    expect(shared[0]!.text).toContain('kind: template')
+    expect(shared[0]!.text).toContain('name: Makro')
+    expect(shared[0]!.text).toContain('scope: group')
+  })
+
+  test('E2E-M7-12: a share that fails saves the file instead, and says so', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true })
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: async () => {
+          throw new DOMException('denied', 'NotAllowedError')
+        },
+      })
+    })
+    await page.reload()
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+
+    await visible(page).locator('ion-item', { hasText: 'Makro' }).dispatchEvent('contextmenu')
+    const downloadPromise = page.waitForEvent('download')
+    await page.locator('ion-action-sheet').getByRole('button', { name: 'Share template…' }).click()
+    expect((await downloadPromise).suggestedFilename()).toBe('Makro.yaml')
+    await expect(page.locator('ion-toast')).toContainText('Sharing failed')
+  })
+
+  test('E2E-M7-12: without file sharing the row menu offers only the export', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'canShare', { value: () => false, configurable: true })
+    })
+    await page.reload()
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+
+    await visible(page).locator('ion-item', { hasText: 'Makro' }).dispatchEvent('contextmenu')
+    const sheet = page.locator('ion-action-sheet')
+    // The export entry is the positive signal that the menu has rendered.
+    await expect(sheet.getByRole('button', { name: 'Export template' })).toBeVisible()
+    await expect(sheet.getByRole('button', { name: 'Share template…' })).toHaveCount(0)
+  })
+
   test('E2E-M7-06 (partial): the empty state names both scopes and drops the segment', async ({
     page,
   }) => {

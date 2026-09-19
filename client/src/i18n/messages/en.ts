@@ -316,6 +316,8 @@ export const en = {
   'templates.namePlaceholder': 'Name',
   'templates.create': 'Create',
   'templates.export': 'Export template',
+  'templates.share': 'Share template…',
+  'templates.shareFailed': 'Sharing failed – the template was saved as a file instead.',
   'templates.import': 'Import template from file',
   'templates.rename': 'Rename',
   'templates.deleteConfirm': 'Delete “{name}”? Trips already generated keep their rows.',
