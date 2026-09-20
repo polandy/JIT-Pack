@@ -63,8 +63,6 @@ const own = ownEntriesSource(shoppingStore, actions)
 // Absent in a spec that provides none: the list still works on its own.
 const sources = inject(SHOPPING_SOURCES, [])
 
-})
-
 /**
  * FR-25.11j's reveal, shaped like M4's *Erledigte* bar (FR-25.2): off by
  * default, one tap, and the count in the label so the bar states what it is
@@ -97,6 +95,7 @@ const tab = computed<ShoppingMode>(() => {
     planned: trip.value.status === TRIP_STATUS_PLANNING,
     packingClosed: isPackingClosed(trip.value),
   })
+})
 
 // FR-30.4: a purchase is named from the trip's participants, the way every
 // other stamp on the trip is — empty in Local Mode, where nobody is named.
