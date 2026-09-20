@@ -1407,7 +1407,7 @@ These patterns apply to every screen and are specified once.
     list here includes the current user, plus *niemand*; the choice is taken back from the snackbar. A resolved todo
     shows its assignee's avatar and no seat. Where nobody else is a member (Local, Single-User, an unshared trip) no
     seat is rendered; an assignee already set is shown as a plain avatar. An assigned todo is never hidden.
-    (E2E-M4-130, E2E-M4-131)
+    (E2E-M4-133, E2E-M4-134)
   * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items
     with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal
     incomplete readiness.

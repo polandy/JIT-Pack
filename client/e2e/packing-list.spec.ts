@@ -2627,12 +2627,12 @@ test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
   })
 
   /**
-   * E2E-M4-131 (FR-7.5, G-8): Local Mode has nobody to hand a todo to, so the
+   * E2E-M4-134 (FR-7.5, G-8): Local Mode has nobody to hand a todo to, so the
    * todo carries no seat — absent, not an empty picker. The positive signal
    * beside the absence is the same todo's other end control, rendered in the
-   * box the seat would share; the seat itself is E2E-M4-130's.
+   * box the seat would share; the seat itself is E2E-M4-133's.
    */
-  test('E2E-M4-131: a trip todo offers no seat where there is nobody to assign it to', async ({
+  test('E2E-M4-134: a trip todo offers no seat where there is nobody to assign it to', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
