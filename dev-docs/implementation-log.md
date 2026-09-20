@@ -409,6 +409,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An indicator that was never off (2026-09-20)](#an-indicator-that-was-never-off-2026-09-20) — FR-25.15: why a confirmation of nothing reads as a button, and the test that had pinned the defect.
 - [The task the app already had, in the list nobody could find it in (2026-09-20)](#the-task-the-app-already-had-in-the-list-nobody-could-find-it-in-2026-09-20) — FR-7.6/ADR-068: the premise that nearly cost a migration, and the undo window that broke the chip.
 - [The gesture window is a residue, not an oversight (2026-09-20)](#the-gesture-window-is-a-residue-not-an-oversight-2026-09-20) — FR-21.17: the 120–220 ms the rule keeps on purpose, and why the flake pointed the wrong way.
+- [One spec file was 15 % of the suite (2026-09-20)](#one-spec-file-was-15--of-the-suite-2026-09-20) — the two CI levers that measured worse than doing nothing, and the file that was the actual cause.
 
 ## Deviations
 
@@ -16564,3 +16565,43 @@ scroll lands 133 ms after the reader's last reading with the latch still armed, 
 on a 289 px scroll — the scroll plus the head's own height, which is FR-21.17's defect stated exactly. The case was
 reporting the rule correctly and measuring at the wrong moment. A longer wait would have gone green by deleting the
 report, and it would have looked like a fix.
+
+## One spec file was 15 % of the suite (2026-09-20)
+
+The owner asked how to stop the pipeline from setting the pace. Three answers
+were measured; two were wrong, and the measurement is the only reason anyone
+knows which.
+
+**"Build the client once and hand the bundle to the legs."** A leg's whole
+setup step is **34 s** — `npm ci` plus a build whose type-check and bundle
+already run in parallel — while `needs: client` would put the 2-minute `client`
+job in front of every leg. More latency than it removes, and the only genuine
+saving is runner minutes on a repository that pays for none.
+
+**"Run more legs."** Ten legs of 93 and 94 tests took 7.9 and 4.4 minutes, so
+twelve looked like the cheap fix. It was built, and the pipeline answered:
+worst leg **537 s**, then **559 s** on a second run, against **502 s** with
+ten. No gain, slightly worse, and the two extra legs saturate the 20-job
+ceiling. The estimate behind it assumed the worst leg scales with the mean;
+under a count-split it does not, because the tests that make a leg long are not
+spread by counting them.
+
+**What was actually wrong is one file.** `packing-list.spec.ts` was **960 s of
+6249** — a sixth of the suite in a single file, and `--shard` cannot split
+below a file's own tests landing together. Packing the legs by measured
+duration was built too (and it worked: 480–663 s legs, with a gate against a
+spec file that no leg names), but it charges a matrix edit for every new spec
+file, and the owner ruled that too expensive for about a minute.
+
+**So the file was split**, by theme and by measured weight: the list and its
+rows (355 s), M5 over the list and what stays rendered behind it (267 s), the
+measured shape of the screen (249 s), how a row gets onto the list (50 s), and
+the trip's tasks (40 s) — which are FR-7.4/7.6 and not a packing row at all,
+and had quietly grown their own subject. Nothing else changed: the same 934
+tests before and after, verified by listing them, and the five files run green
+in both browsers.
+
+**The part worth keeping.** The shared preamble (`M4_TRIP`, `SCROLL_ROWS`, the
+quick-add loop) moved into `client/e2e/helpers/m4.ts` rather than being copied
+four times — which is exactly the drift `e2e-helpers-gate.mjs` exists to stop,
+and the split would have introduced it in the one commit that looks harmless.

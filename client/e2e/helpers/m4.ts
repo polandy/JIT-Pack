@@ -18,6 +18,36 @@ import {
 import { visiblePage, writesLanded } from './page'
 import { chooseInSelect, fillIonic } from './ionic'
 
+/** The trip M4's own cases are written against (name, end date, two travelers). */
+export const M4_TRIP = {
+  name: 'Samedan Sommer',
+  endDate: '2026-12-31',
+  travelers: ['Andy', 'Sia'],
+}
+
+/**
+ * Enough rows that the list is taller than a phone screen — E2E-M4-45 needs a
+ * scroll position worth losing.
+ */
+export const SCROLL_ROWS = Array.from({ length: 16 }, (_, i) => `Sache ${i + 1}`)
+
+/**
+ * Add rows to a trip that is already open, through the quick-add — the only
+ * add path M4 has. One open for the whole batch, unlike `tripWithRows`, which
+ * reopens per name because it also has to leave the composer closed.
+ *
+ * It lives here rather than in a spec because four spec files need it since
+ * the M4 unit was split, and a helper copied four times is the drift the
+ * suite's helper gate exists to stop.
+ */
+export async function quickAddRows(page: Page, names: string[]) {
+  await openQuickAdd(page)
+  for (const name of names) {
+    await addInComposer(page, name)
+    await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
+  }
+}
+
 /**
  * Create a trip through M3 and quick-add the named rows onto it. Returns the
  * trip's path, so a caller that navigates away can come back to it. A name the

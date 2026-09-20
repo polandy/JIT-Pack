@@ -606,10 +606,10 @@ in WebKit.
   distinguished by *staying on the list* plus its badge. **Struck 2026-08-31 (owner decision): the amber stays M5's.**
   On M4 such a row is distinguished by staying on the list plus its badge, and the sentence is removed rather than
   asserted.
-* **E2E-M4-25** `all` (FR-7.3/25.2) — **implemented 2026-08-30** (`e2e/packing-list.spec.ts`): the full lifecycle in one
-  case — an item packed while a prep todo is open stays **visible** and does **not** count as done (asserted on the
-  reveal bar being absent, which is the positive signal for „nothing is done"); **resolving its last todo makes it done
-  and it leaves the list**; revealing brings it back without a badge. The regression guard is the point and is
+* **E2E-M4-25** `all` (FR-7.3/25.2) — **implemented 2026-08-30** (`e2e/packing-list-sheet.spec.ts`): the full lifecycle
+  in one case — an item packed while a prep todo is open stays **visible** and does **not** count as done (asserted on
+  the reveal bar being absent, which is the positive signal for „nothing is done"); **resolving its last todo makes it
+  done and it leaves the list**; revealing brings it back without a badge. The regression guard is the point and is
   mutation-proved: handing the view an empty `itemsWithOpenPrep` reddens it. The entry's second direction — *an item
   with a todo but no stored count still shows its badge* — is retired with the count it describes: nothing stores one
   any more (FR-7.3's 2026-08-08 clarification), so there is no state to assert against.
@@ -623,11 +623,11 @@ in WebKit.
   packs reaches Bob's screen **without a reload**, carrying her name — the attribution is the server's own stamp
   (invariant 3), which is what makes it worth two accounts. The *animation* the entry also named is not asserted and
   will not be: motion is spec §3's untestable half, and the suite runs with it reduced.
-* **E2E-M4-11** `all` (FR-3.2) — **implemented 2026-08-30, revised 2026-09-06** (`e2e/packing-list.spec.ts`): the
-  shopping entry is always there — M6 is a screen, not a notification — and carries a **count only when something is
-  to be bought**, since a zero is worse than no number at all. Since ADR-050 the entry is a **word in the bar's ⋮**
-  and the count rides in the word, because an action sheet renders no badge; the case reads the menu's entries. The
-  archive half of the original sentence is E2E-M4-54's (*Fertig* archives and lands on M14).
+* **E2E-M4-11** `all` (FR-3.2) — **implemented 2026-08-30, revised 2026-09-06** (`e2e/packing-list-sheet.spec.ts`): the
+  shopping entry is always there — M6 is a screen, not a notification — and carries a **count only when something is to
+  be bought**, since a zero is worse than no number at all. Since ADR-050 the entry is a **word in the bar's ⋮** and the
+  count rides in the word, because an action sheet renders no badge; the case reads the menu's entries. The archive half
+  of the original sentence is E2E-M4-54's (*Fertig* archives and lands on M14).
 * **E2E-M4-12** `all` (FR-25.8/25.1, reworded for FR-25.28 on 2026-09-18) — **implemented** (`e2e/membership.spec.ts`,
   one case): asserted in the same case as E2E-M4-58, whose *two of three at different amounts* is this entry's world
   with the numbers pulled apart; every clause below is a clause of that case, and running both would run one rendered
@@ -680,7 +680,7 @@ in WebKit.
   announced completion, because the check looked at the filter count only.
 * **E2E-M4-19** `all` (FR-25.11f) — **implemented 2026-08-30**, in two places on purpose. That the shared bucket
   **leads** the Person facet is `packingView.spec.ts`'s (*leads the person facet with the shared bucket rather than
-  sorting it in*), because the sort lives there. The **word** is `e2e/packing-list.spec.ts`'s, because the unit
+  sorting it in*), because the sort lives there. The **word** is `e2e/packing-list-sheet.spec.ts`'s, because the unit
   deliberately labels only the values it can and leaves UI copy to the caller: three facets address absence with the
   same empty value, and one shared label makes Person read as „keine Kategorie". The case asserts the Person bucket's
   label differs from the Category bucket's and is not a form of *Alle* — the FR's own wrong answer, since the bucket
@@ -752,23 +752,22 @@ in WebKit.
 * **E2E-M4-125** `local` (FR-25.31 with FR-5.5 and G-3, added 2026-09-19) — **implemented**
   (`e2e/undo-every-act.spec.ts`): *Doch einpacken* on a skipped row, undone, leaves it skipped again (the reveal bar is
   back); *Packen* (the claim), undone, takes the row's own-claim note away.
-* **E2E-M4-129** `local` (FR-21.17, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): on a 390 px phone, a
-  search's few hits overflow their screen by 150 px — past the yield threshold, short of what yielding frees. Scrolled
-  to the end, the header line never changes state and the offset stays at the end. Red before the guard: two
+* **E2E-M4-129** `local` (FR-21.17, added 2026-09-19) — **implemented** (`packing-list-sheet.spec.ts`): on a 390 px
+  phone, a search's few hits overflow their screen by 150 px — past the yield threshold, short of what yielding frees.
+  Scrolled to the end, the header line never changes state and the offset stays at the end. Red before the guard: two
   class changes and an offset back near the top.
-* **E2E-M4-135** `all` (FR-21.17, added 2026-09-20) — **implemented** (`packing-list.spec.ts`): with the head yielded
-  by a reader's own flick, the list carried to its end **and that flick over** — the screen says so, and a scroll is
-  only nobody's once it is — a row that has gone off the top is brought back into view the way the browser does it,
-  `scrollIntoView`, which nobody asked for. The header line does not change state once (counted, not sampled), and the
-  row moves by the scroll and by nothing else. Red before the rule on both engines: one class change, and the row
-  162 px down on a 60 px scroll.
-* **E2E-M4-127** `local` (FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): tapping the words of
-  the *Erledigte* switch turns it on and it stays on — the tick used to come and go, the label forwarding the tap to
+* **E2E-M4-135** `all` (FR-21.17, added 2026-09-20) — **implemented** (`packing-list-shape.spec.ts`): with the head
+  yielded by a reader's own flick, the list carried to its end **and that flick over** — the screen says so, and a
+  scroll is only nobody's once it is — a row that has gone off the top is brought back into view the way the browser
+  does it, `scrollIntoView`, which nobody asked for. The header line does not change state once (counted, not sampled),
+  and the row moves by the scroll and by nothing else. Red before the rule on both engines: one class change, and the
+  row 162 px down on a 60 px scroll.
+* **E2E-M4-127** `local` (FR-25.2, added 2026-09-19) — **implemented** (`packing-list-sheet.spec.ts`): tapping the words
+  of the *Erledigte* switch turns it on and it stays on — the tick used to come and go, the label forwarding the tap to
   a checkbox that had already toggled itself. Closing the sheet shows the packed row.
-* **E2E-M4-128** `local` (FR-25.32, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): with a packed row
-  and *Erledigte* off, typing its name shows it and the *Gepackte anzeigen* bar is gone; clearing the term puts the
-  row away again and brings the bar back. The unit rows (`domain`) cover the other two switches and the facet
-  exemption.
+* **E2E-M4-128** `local` (FR-25.32, added 2026-09-19) — **implemented** (`packing-list-sheet.spec.ts`): with a packed
+  row and *Erledigte* off, typing its name shows it and the *Gepackte anzeigen* bar is gone; clearing the term puts the
+  row away again and brings the bar back. The unit rows (`domain`) cover the other two switches and the facet exemption.
 * **E2E-M4-126** `local` (FR-25.31 with FR-25.26, added 2026-09-19) — **implemented** (`membership.spec.ts`): the
   cluster head's *late packer on for everyone* raises *„2 rows changed"*, and its undo clears the head's ⏰ — which the
   head paints while any instance carries the flag, so its absence is every instance.
@@ -784,32 +783,32 @@ in WebKit.
   own M5 (the head draws one instance's mode, so it repaints on a fan-out that reached one child of two). With all
   instances bought there the head offers only *Doch mitnehmen*; its snackbar undo gives each instance its previous
   mode back.
-* **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): M4's *Aufgaben für die
+* **E2E-M4-96** `local` (FR-7.4, added 2026-09-18) — **implemented** (`trip-tasks.spec.ts`): M4's *Aufgaben für die
   Reise* is present and closed on a trip with no todo, with no check in its head. Two todos are added; one is ticked,
   reopened from the *erledigt* fold, and the other removed with ✕ while its sibling stays. Adding, ticking and removing
-  are each read back after a reload — a list that only repaints proves the component and not the write; the removal
-  once its snackbar has gone, since FR-25.31 writes the delete when the undo lapses — and the head's
-  check (*„0 von 2"* → *„1 von 2"* → *„0 von 1 erledigt"*) follows every step.
+  are each read back after a reload — a list that only repaints proves the component and not the write; the removal once
+  its snackbar has gone, since FR-25.31 writes the delete when the undo lapses — and the head's check (*„0 von 2"* → *„1
+  von 2"* → *„0 von 1 erledigt"*) follows every step.
 * **E2E-M4-133** `server` (FR-7.5, added 2026-09-19) — **implemented** (`e2e/server/multi-user.spec.ts`): a trip
   todo's empty seat opens the row's picker, which offers the current user as well — the one difference from a row's —
   and picking the other account fills the seat with them. That account is told (the toast names the task and who
   handed it over), sees itself on the task on its own open screen without a reload, and finds its name after the task
   on M1's *Aufgaben* card.
-* **E2E-M4-134** `local` (FR-7.5, G-8, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): Local Mode renders
-  no seat and no assignee on a trip todo. The todo's ✕ in the same end box is the positive signal; the negative half of
+* **E2E-M4-134** `local` (FR-7.5, G-8, added 2026-09-19) — **implemented** (`trip-tasks.spec.ts`): Local Mode renders no
+  seat and no assignee on a trip todo. The todo's ✕ in the same end box is the positive signal; the negative half of
   E2E-M4-133.
-* **E2E-M4-105** `local` (FR-7.4 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): ticking a
+* **E2E-M4-105** `local` (FR-7.4 with FR-25.2, added 2026-09-19) — **implemented** (`trip-tasks.spec.ts`): ticking a
   trip todo off raises the pack snackbar naming it, and its *Rückgängig* puts the task back on the open list — the
   head's check goes *„1 von 2"* → *„0 von 2 erledigt"* — and the reopened state survives a reload.
-* **E2E-M4-136** `local` (FR-7.6, added 2026-09-20) — **implemented** (`packing-list.spec.ts`): a row's preparation
-  and a chore of the trip stand in the one section, counted by the one figure (*„0/2 tasks"*), and the header line no
-  longer states the preparation a second time. Every clause is a pair, because „both kinds are here" is green on a list
-  that renders one of them twice: the preparation carries the chip and the trip's own does not, the ✕ is on the trip's
-  own and not on the preparation. Ticking the preparation in the section clears the **row's badge** — one todo read by
-  two surfaces — and the figure survives a reload; the chip then opens the row's sheet on that same todo.
-* **E2E-M4-137** `local` (FR-7.6 with FR-5.8, added 2026-09-20) — **implemented** (`packing-list.spec.ts`): removing
-  the packing row takes its preparation out of the trip's tasks — off the list and out of the count — while the trip's
-  own task stays, which is what makes the disappearance about the row rather than about the section. The removal is
+* **E2E-M4-136** `local` (FR-7.6, added 2026-09-20) — **implemented** (`trip-tasks.spec.ts`): a row's preparation and a
+  chore of the trip stand in the one section, counted by the one figure (*„0/2 tasks"*), and the header line no longer
+  states the preparation a second time. Every clause is a pair, because „both kinds are here" is green on a list that
+  renders one of them twice: the preparation carries the chip and the trip's own does not, the ✕ is on the trip's own
+  and not on the preparation. Ticking the preparation in the section clears the **row's badge** — one todo read by two
+  surfaces — and the figure survives a reload; the chip then opens the row's sheet on that same todo.
+* **E2E-M4-137** `local` (FR-7.6 with FR-5.8, added 2026-09-20) — **implemented** (`trip-tasks.spec.ts`): removing the
+  packing row takes its preparation out of the trip's tasks — off the list and out of the count — while the trip's own
+  task stays, which is what makes the disappearance about the row rather than about the section. The removal is
   **confirmed** rather than immediate precisely because the preparation cascades (`removalNeedsConfirm`), and the
   snackbar's *Rückgängig* brings row and task back together, which a list that lost the task for good would fail.
 * **E2E-M4-110** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for three
@@ -831,30 +830,29 @@ in WebKit.
   cluster is back, reading *„2 open"* with both faces — the half only M4's wiring can fail, by handing the view builder
   an already-narrowed list instead of the facet.
 * **E2E-M4-106** `local` (FR-7.3 with FR-25.2, added 2026-09-19, re-pointed 2026-09-20) — **implemented**
-  (`packing-list.spec.ts`): the same for a row's preparation, ticked in the trip's one task section since FR-7.6:
+  (`packing-list-sheet.spec.ts`): the same for a row's preparation, ticked in the trip's one task section since FR-7.6:
   it drops the row's badge and raises the snackbar; *Rückgängig* brings the badge back, also after a reload.
 * **E2E-M4-107** `local` (FR-24.11 in the composer, FR-5.6, added 2026-09-19) — **implemented**
-  (`packing-list.spec.ts`): „Zelt" typed while the inventory holds
-  *Zeltheringe* shows the offer **above** the partial hit; ✓ opens the *„Neuer Artikel"* sheet on „Zelt" and **no row
-  has appeared** — asserted once the sheet is visibly open, so the absence is not read before the write could land.
-  *„Anlegen"* puts a *Zelt* row on the list, the composer stays open, and M9 lists *Zelt* — the row and the inventory
-  entry are the same event reaching both places.
-* **E2E-M4-108** `local` (FR-24.11, FR-24.7, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): an inventory
-  item typed in the other umlaut spelling („guertel" for *Gürtel*) shows no offer, and ✓ adds it directly — no sheet.
-  Typed again once it is on the list, the composer says *„‚Gürtel' ist schon drin"* and ✓ is disabled.
-* **E2E-M4-114** `local` (FR-25.13j, FR-24.11, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): the
-  browse-sheet opens with its search field visible and **not focused**, listing both *Zeltheringe* and *Kocher*;
-  „Zelt" narrows it to *Zeltheringe* with the offer **above** it. Enter opens the *„Neuer Artikel"* sheet on „Zelt"
-  and no M4 row has appeared — asserted once that sheet is visibly open. *„Anlegen"* returns to the browse-sheet with
-  the query kept, the offer gone and the *Zelt* line reading *„hinzugefügt"*; after closing, M4 carries the row and M9
-  lists three items.
+  (`packing-list-adding.spec.ts`): „Zelt" typed while the inventory holds *Zeltheringe* shows the offer **above** the
+  partial hit; ✓ opens the *„Neuer Artikel"* sheet on „Zelt" and **no row has appeared** — asserted once the sheet is
+  visibly open, so the absence is not read before the write could land. *„Anlegen"* puts a *Zelt* row on the list, the
+  composer stays open, and M9 lists *Zelt* — the row and the inventory entry are the same event reaching both places.
+* **E2E-M4-108** `local` (FR-24.11, FR-24.7, added 2026-09-19) — **implemented** (`packing-list-adding.spec.ts`): an
+  inventory item typed in the other umlaut spelling („guertel" for *Gürtel*) shows no offer, and ✓ adds it directly — no
+  sheet. Typed again once it is on the list, the composer says *„‚Gürtel' ist schon drin"* and ✓ is disabled.
+* **E2E-M4-114** `local` (FR-25.13j, FR-24.11, added 2026-09-19) — **implemented** (`packing-list-adding.spec.ts`): the
+  browse-sheet opens with its search field visible and **not focused**, listing both *Zeltheringe* and *Kocher*; „Zelt"
+  narrows it to *Zeltheringe* with the offer **above** it. Enter opens the *„Neuer Artikel"* sheet on „Zelt" and no M4
+  row has appeared — asserted once that sheet is visibly open. *„Anlegen"* returns to the browse-sheet with the query
+  kept, the offer gone and the *Zelt* line reading *„hinzugefügt"*; after closing, M4 carries the row and M9 lists three
+  items.
 * **E2E-M4-109** `local` (FR-24.11 with FR-24.3, added 2026-09-19) — **implemented** (`restore-retired.spec.ts`): a
   retired item's name is offered as a restore; taking it puts the row on the list and the item back in M9, and M23 has
   nothing left to restore — no second item.
-* **E2E-M4-97** `local` (FR-7.4 visibility, added 2026-09-18) — **implemented** (`packing-list.spec.ts`): with no todo
-  the section is closed and the header has no todo figure. With two todos, after a reload that no helper has touched,
-  the section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2 Aufgaben"* and
-  stands as the share's pair (`expectFiguresPaired`: same ring, headlines and tracks level, no sentence clipped —
+* **E2E-M4-97** `local` (FR-7.4 visibility, added 2026-09-18) — **implemented** (`trip-tasks.spec.ts`): with no todo the
+  section is closed and the header has no todo figure. With two todos, after a reload that no helper has touched, the
+  section is open and **above the first row** (bounding boxes), and the header figure reads *„0/2 Aufgaben"* and stands
+  as the share's pair (`expectFiguresPaired`: same ring, headlines and tracks level, no sentence clipped —
   mutation-checked: without the paired layout the tracks sat 6 px apart). Ticking one keeps it open at *„1/2 Aufgaben"*;
   ticking the last folds it to *„✓ Alle Aufgaben erledigt"* with the list gone and the figure at *„2/2 Aufgaben"* — the
   status line is the positive signal for the fold. After another reload it is still folded, and tapping the header
@@ -874,18 +872,18 @@ in WebKit.
   Bob's open screen shows the ⏰ without a reload, and again after his reload (the server's copy, not a socket frame);
   clearing it reaches him the same way. Written after the owner suspected it did not arrive — it does, and no case had
   a second account look at the flag.
-* **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): flagging a row
-  as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it, because
-  an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row. A
-  packed row is then revealed, which is what separates the three tiers from two: the flagged row sits above it, not
+* **E2E-M4-93** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list-shape.spec.ts`): flagging a
+  row as late-packer drops it to the end of its group. The order is read **before** the flag as well as after it,
+  because an assertion on a list that already stood in that order says nothing — the flag has to be what moved the row.
+  A packed row is then revealed, which is what separates the three tiers from two: the flagged row sits above it, not
   with it.
-* **E2E-M4-94** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list.spec.ts`): the *Spätpacker*
-  switch. Read as checked before it is touched — the one switch of the three that starts on — then off, and the row
-  goes while the reveal bar counts it. Everything else is then packed, and the assertion that the emptied list still
-  offers the reset is what proves it did not fall through to *„alles gepackt"* over a row nobody has touched. The bar
-  brings it back. Since the same day it also pins the **order of the bars** — late-packers above packed — which is
-  the rule the rows already follow read once more at the foot of the list. Since 2026-09-19 (FR-25.32) a search for
-  the hidden row shows it and takes the bar away; clearing the term hides the row and brings the bar back.
+* **E2E-M4-94** `local` (FR-25.27, added 2026-09-18) — **implemented** (`e2e/packing-list-shape.spec.ts`): the
+  *Spätpacker* switch. Read as checked before it is touched — the one switch of the three that starts on — then off, and
+  the row goes while the reveal bar counts it. Everything else is then packed, and the assertion that the emptied list
+  still offers the reset is what proves it did not fall through to *„alles gepackt"* over a row nobody has touched. The
+  bar brings it back. Since the same day it also pins the **order of the bars** — late-packers above packed — which is
+  the rule the rows already follow read once more at the foot of the list. Since 2026-09-19 (FR-25.32) a search for the
+  hidden row shows it and takes the bar away; clearing the term hides the row and brings the bar back.
 * **E2E-M4-100** `local` (FR-25.28, added 2026-09-18) — **implemented** (`e2e/membership.spec.ts`): the for-whom seat on
   a shared row unfolds the strip **under the row**, *Gemeinsam* lit and the summary saying so. Lighting one traveler
   renames the row *„… · Andy"* and lighting a second turns it into a cluster — a different element under a different
@@ -925,8 +923,8 @@ in WebKit.
   stub** — and reappears only when *Erledigte* is switched on. Asserts folding and doneness stay separate concepts: a
   folded group with open items is still on the list, an absent group is not.
 * **E2E-M4-24** `all` (FR-25.17) — **implemented 2026-08-30**, split by what each mode can reach. The **time**, and that
-  un-packing clears the stamp so it never outlives the state it describes, is `e2e/packing-list.spec.ts`'s: Local Mode
-  has no account, so `packed_by_user_id` is null and the stamp reads its time alone. The **name** is E2E-FLOW-01's,
+  un-packing clears the stamp so it never outlives the state it describes, is `e2e/packing-list-sheet.spec.ts`'s: Local
+  Mode has no account, so `packed_by_user_id` is null and the stamp reads its time alone. The **name** is E2E-FLOW-01's,
   where the server stamps the column itself. The avatar beside it is E2E-M4-30's.
 * **E2E-M4-36** `all` (FR-25.13a, revised 2026-08-17) — **implemented** (`e2e/packing-list.spec.ts`): M4's ＋ hides while
   the quick-add composer is open — including after an add, since the composer stays open — and returns when it closes;
@@ -2953,59 +2951,57 @@ landed, that no test has ever rendered.
   leaving the working list before anything is revealed, and the untouched middle row is what says the sink did not
   simply reorder the group. Rendered order, because the domain unit can only say what the view model holds.
   Mutation-proved: disabling the partition in `packingView` reddens it with the un-sunk order.
-* **E2E-M4-69** `all` (FR-25.22, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): the reveal bar and
-  the filter sheet's *Erledigte* switch label the same set, so they must read the same number. Two rows packed, the
+* **E2E-M4-69** `all` (FR-25.22, new 2026-09-07) — **implemented** (`e2e/packing-list-sheet.spec.ts`): the reveal bar
+  and the filter sheet's *Erledigte* switch label the same set, so they must read the same number. Two rows packed, the
   bar reads 2 and so does the switch; with a search for one of them the switch reads 1, not the trip's 2. They had
   carried two numbers — the bar counted done rows passing the filter, the switch the trip's packed **units** — and
-  `filter-switch-done` occurred in no test at all, which is what let it stand. Since FR-25.32 the bar is absent
-  while a term is typed, so the search no longer separates the two through the bar; the searched row appearing is the
-  positive signal that the narrowing landed before the switch is read.
-* **E2E-M4-70** `all` (FR-21.17, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): the G-9 page head
-  yields to the list on a downward scroll, together with M4's own header line, and both come back on an upward one.
-  Read as rendered height, not as a class alone: the standing head is measured first, so "gone" is a change rather
-  than an element that never had a size. The bottom of the list is where the case earns its keep — the head's own
-  collapse shortens the scrollable range, the browser clamps `scrollTop`, and that clamp reads as an upward scroll.
-  The order matters and is written into the case: reaching the bottom with the head **already** down changes no
-  height and stays green against the unguarded build. Heights are **polled** rather than read once — the collapse
-  travels over a transition, and a single read lands on whatever frame it finds; the first version passed locally
-  and failed on CI at 28 px and 53 px, both mid-flight. The rule itself also has a unit
-  (`lib/__tests__/headScroll.spec.ts`), which is where the one-pixel tolerance around the bottom is pinned.
+  `filter-switch-done` occurred in no test at all, which is what let it stand. Since FR-25.32 the bar is absent while a
+  term is typed, so the search no longer separates the two through the bar; the searched row appearing is the positive
+  signal that the narrowing landed before the switch is read.
+* **E2E-M4-70** `all` (FR-21.17, new 2026-09-07) — **implemented** (`e2e/packing-list-shape.spec.ts`): the G-9 page head
+  yields to the list on a downward scroll, together with M4's own header line, and both come back on an upward one. Read
+  as rendered height, not as a class alone: the standing head is measured first, so "gone" is a change rather than an
+  element that never had a size. The bottom of the list is where the case earns its keep — the head's own collapse
+  shortens the scrollable range, the browser clamps `scrollTop`, and that clamp reads as an upward scroll. The order
+  matters and is written into the case: reaching the bottom with the head **already** down changes no height and stays
+  green against the unguarded build. Heights are **polled** rather than read once — the collapse travels over a
+  transition, and a single read lands on whatever frame it finds; the first version passed locally and failed on CI at
+  28 px and 53 px, both mid-flight. The rule itself also has a unit (`lib/__tests__/headScroll.spec.ts`), which is where
+  the one-pixel tolerance around the bottom is pinned.
 * **E2E-M4-71** `all` (FR-21.26, new 2026-09-07, rewritten 2026-09-08) — **implemented**
-  (`e2e/packing-list.spec.ts`): on a 1280 px window the content column is narrower than the room it is given, a row sits
-  inside it, and the width does not change when the reader steps to a sibling view of the trip (Luggage) or off the
-  trip entirely (Settings) and back. It asserted the opposite until FR-21.18 was superseded — that M4's column
+  (`e2e/packing-list-shape.spec.ts`): on a 1280 px window the content column is narrower than the room it is given, a
+  row sits inside it, and the width does not change when the reader steps to a sibling view of the trip (Luggage) or off
+  the trip entirely (Settings) and back. It asserted the opposite until FR-21.18 was superseded — that M4's column
   *differed* from the screens around it.
-* **E2E-M4-72** `all` (FR-21.19, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): a lone per-person
-  instance — one traveler checked, so no cluster and the person folded into the label — starts its name at the same
-  x as a plain row in the same list, and its lead column is the same width. Both are asserted, since a name that
-  lines up by some other accident would pass the first alone. The case first proves the row *is* the lone-instance
-  shape (no cluster, and the label still names the person), or the equality would be satisfied by a row that had
-  simply lost its traveler. This is the lead column's third shape: E2E-M4-56 compares a checkbox row with a stepper
-  row and the unit case used `traveler: null`, so the rule was claimed twice and never tested against the row that
-  broke it.
-* **E2E-M4-73** `all` (FR-21.20, new 2026-09-07) — **implemented** (`e2e/packing-list.spec.ts`): a per-person
+* **E2E-M4-72** `all` (FR-21.19, new 2026-09-07) — **implemented** (`e2e/packing-list-shape.spec.ts`): a lone per-person
+  instance — one traveler checked, so no cluster and the person folded into the label — starts its name at the same x as
+  a plain row in the same list, and its lead column is the same width. Both are asserted, since a name that lines up by
+  some other accident would pass the first alone. The case first proves the row *is* the lone-instance shape (no
+  cluster, and the label still names the person), or the equality would be satisfied by a row that had simply lost its
+  traveler. This is the lead column's third shape: E2E-M4-56 compares a checkbox row with a stepper row and the unit
+  case used `traveler: null`, so the rule was claimed twice and never tested against the row that broke it.
+* **E2E-M4-73** `all` (FR-21.20, new 2026-09-07) — **implemented** (`e2e/packing-list-shape.spec.ts`): a per-person
   cluster's head starts its name at the same x as a plain item row in the same list, and its travelers start theirs
-  further right. Both halves, because the equality alone would pass on a build that had flattened the children with
-  the head, and the step alone on one that had left the head inset. The cluster is proved to have more than one
-  person under it first, or neither assertion is about a cluster at all.
-* **E2E-M4-74** `all` (FR-21.22, new 2026-09-08) — **implemented** (`e2e/packing-list.spec.ts`): M4's reveal bar for
-  the packed rows wears a **solid** edge and carries `aria-expanded`, which flips with the rows it governs. Both, and
-  in that order: the edge is the defect reported (a dashed outline is this app's mark for a place where something is
+  further right. Both halves, because the equality alone would pass on a build that had flattened the children with the
+  head, and the step alone on one that had left the head inset. The cluster is proved to have more than one person under
+  it first, or neither assertion is about a cluster at all.
+* **E2E-M4-74** `all` (FR-21.22, new 2026-09-08) — **implemented** (`e2e/packing-list-shape.spec.ts`): M4's reveal bar
+  for the packed rows wears a **solid** edge and carries `aria-expanded`, which flips with the rows it governs. Both,
+  and in that order: the edge is the defect reported (a dashed outline is this app's mark for a place where something is
   *not yet*, and the bar counts rows that exist), and the attribute is what a reader who cannot see the caret is told
-  instead. The case ends by revealing the row it counted, so a bar that had merely stopped being dashed would not
-  pass.
-* **E2E-M4-75** `all` (FR-21.23, new 2026-09-08) — **implemented** (`e2e/packing-list.spec.ts`): the header line's
-  ring, sentence and track are read before and after one row of four is packed — 0 %, *0/4*, a track of zero width,
-  then 25 %, *1/4*, and a track a quarter of its own container. All three against the same pack, because the point of
-  the figure is that they cannot disagree; the track is asserted as a **ratio** of two rendered boxes, so the case
-  states neither a viewport nor a rounding — its first draft compared a pixel string and went red on WebKit at
-  19.0625 px against a `clientWidth` that had rounded to 19.
-* **E2E-M4-76** `all` (FR-21.24, new 2026-09-08) — **implemented** (`e2e/packing-list.spec.ts`): the composer is
+  instead. The case ends by revealing the row it counted, so a bar that had merely stopped being dashed would not pass.
+* **E2E-M4-75** `all` (FR-21.23, new 2026-09-08) — **implemented** (`e2e/packing-list-shape.spec.ts`): the header line's
+  ring, sentence and track are read before and after one row of four is packed — 0 %, *0/4*, a track of zero width, then
+  25 %, *1/4*, and a track a quarter of its own container. All three against the same pack, because the point of the
+  figure is that they cannot disagree; the track is asserted as a **ratio** of two rendered boxes, so the case states
+  neither a viewport nor a rounding — its first draft compared a pixel string and went red on WebKit at 19.0625 px
+  against a `clientWidth` that had rounded to 19.
+* **E2E-M4-76** `all` (FR-21.24, new 2026-09-08) — **implemented** (`e2e/packing-list-shape.spec.ts`): the composer is
   offered once. The collapsed pill is absent **and** the composer is closed, then the FAB opens it — the absence alone
   would stay green on a screen that had lost both doors, which is the failure the case is guarding against.
-* **E2E-M4-77** `all` (FR-24.2, new 2026-09-08) — **implemented** (`e2e/packing-list.spec.ts`): a row generated from
-  a group is filed under the master item's primary tag. An item tagged in M9, added as a position, followed into a trip
-  — M4's default grouping heads it with the tag, while an untagged position beside it stays in the leftover bucket.
+* **E2E-M4-77** `all` (FR-24.2, new 2026-09-08) — **implemented** (`e2e/packing-list-shape.spec.ts`): a row generated
+  from a group is filed under the master item's primary tag. An item tagged in M9, added as a position, followed into a
+  trip — M4's default grouping heads it with the tag, while an untagged position beside it stays in the leftover bucket.
   That second row is the positive signal: one heading for everything would satisfy the first assertion on its own, and
   the bucket is also what the whole list used to fall into.
 * **E2E-M4-57** `all` (G-12/UX-13, added 2026-08-27): the bar keeps *Suchen*, *Filter* and *Zuklappen* and carries the
