@@ -223,6 +223,38 @@ func TestNotifications_TaskOnDelegatedItem_SingleNotification(t *testing.T) {
 	}
 }
 
+// FR-7.5 end to end through a push: the todo is written first and assigned
+// later, so the second mutation carries no body and the words the
+// notification names come from the stored comment.
+func TestNotifications_TripTodoAssignedLater_NamesTheTask(t *testing.T) {
+	srv := newTestServer(t)
+	pushAs(t, srv, userA, map[string]any{
+		"mutation_id": "m-todo", "op": "insert", "table": "comments", "id": "c-todo",
+		"fields": map[string]any{
+			"trip_id": trip, "trip_item_id": nil,
+			"body": "Pflanzen giessen", "is_task": 1, "task_state": "open",
+		},
+		"hlc": "0000000002000-0000-aaaaaaaa",
+	})
+	pushAs(t, srv, userA, map[string]any{
+		"mutation_id": "m-assign", "op": "upsert", "table": "comments", "id": "c-todo",
+		"fields": map[string]any{"assignee_user_id": userB},
+		"hlc":    "0000000003000-0000-aaaaaaaa",
+	})
+
+	got := listNotifications(t, srv, userB, "")
+	if len(got.Notifications) != 1 {
+		t.Fatalf("notifications = %+v, want one delegation", got.Notifications)
+	}
+	n := got.Notifications[0]
+	if n.Kind != "delegation" || n.Payload["item_name"] != "Pflanzen giessen" || n.Payload["comment_id"] != "c-todo" {
+		t.Errorf("notification = %+v, want a delegation naming the task", n)
+	}
+	if _, ok := n.Payload["item_id"]; ok {
+		t.Errorf("payload carries item_id %v; a trip todo has no row", n.Payload["item_id"])
+	}
+}
+
 func TestNotifications_PrefsSuppressAndRoundTrip(t *testing.T) {
 	srv := newTestServer(t)
 	seedItem(t, srv, "item-1", "Zelt")

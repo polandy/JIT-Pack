@@ -40,6 +40,11 @@ type itemResolver func(itemID string) (itemFacts, bool)
 // ADR-058), reporting false when the traveler has none or cannot be read.
 type travelerResolver func(travelerID string) (linkedUserID string, ok bool)
 
+// todoResolver answers a comment's body — the words an FR-7.5 assignment
+// notification names — reporting false when it cannot be read. An
+// assignment made after the todo was written carries no body of its own.
+type todoResolver func(commentID string) (body string, ok bool)
+
 // planNotifications turns one push's mutations into the notifications they
 // earn, in the order they should be delivered. It reads nothing and writes
 // nothing: every input is a parameter.
@@ -54,6 +59,7 @@ func planNotifications(
 	members []store.MemberName,
 	resolve itemResolver,
 	resolveTraveler travelerResolver,
+	resolveTodo todoResolver,
 ) []plannedNotification {
 	if len(members) < 2 {
 		return nil
@@ -72,8 +78,10 @@ func planNotifications(
 			plan = append(plan, planDelegation(tripID, actor, actorName, m, resolve)...)
 			plan = append(plan, planRosterAssignment(tripID, actor, actorName, m, members, resolve, resolveTraveler, plan)...)
 		case store.TableComments:
+			assigned := planTodoAssignment(tripID, actor, actorName, m, members, resolveTodo)
+			plan = append(plan, assigned...)
 			if m.Op == syncpkg.OpInsert {
-				plan = append(plan, planComment(tripID, actor, actorName, m, members, resolve)...)
+				plan = append(plan, withoutRecipients(planComment(tripID, actor, actorName, m, members, resolve), assigned)...)
 			}
 		}
 	}
@@ -148,6 +156,59 @@ func planRosterAssignment(
 			payloadActorID: actor, payloadActorName: actorName, payloadItemName: facts.Name,
 		},
 	}}
+}
+
+// planTodoAssignment fires when a push hands a trip todo to somebody else
+// (FR-7.5): the task's counterpart of planDelegation, and the same kind,
+// because the delegation body („{actor} hat dir „{item}" zugewiesen")
+// already says the sentence. The recipient must be on the trip — the
+// payload's deep link is into it (ADR-058's driver 1).
+func planTodoAssignment(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, resolveTodo todoResolver,
+) []plannedNotification {
+	target, _ := m.Fields["assignee_user_id"].(string)
+	if target == "" || target == actor || displayNameOf(members, target) == "" {
+		return nil
+	}
+	body, _ := m.Fields["body"].(string)
+	if body == "" {
+		var ok bool
+		if body, ok = resolveTodo(m.ID); !ok {
+			return nil
+		}
+	}
+	return []plannedNotification{{
+		UserID: target,
+		Kind:   store.NotifyDelegation,
+		Payload: map[string]any{
+			payloadTripID: tripID, payloadCommentID: m.ID,
+			payloadActorID: actor, payloadActorName: actorName, payloadItemName: truncate(body, previewLen),
+		},
+	}}
+}
+
+// withoutRecipients drops from plan everyone already notified in taken: one
+// mutation earns a person one notification, and the rule that claimed them
+// first is the more actionable one.
+func withoutRecipients(plan, taken []plannedNotification) []plannedNotification {
+	var out []plannedNotification
+	for _, p := range plan {
+		if !containsRecipient(taken, p.UserID) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// containsRecipient reports whether plan already notifies userID.
+func containsRecipient(plan []plannedNotification, userID string) bool {
+	for _, p := range plan {
+		if p.UserID == userID {
+			return true
+		}
+	}
+	return false
 }
 
 // planComment fires mention notifications for @display-name matches and a

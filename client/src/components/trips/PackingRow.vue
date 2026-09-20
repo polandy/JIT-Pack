@@ -18,13 +18,9 @@
  * branch chain is testable without a trip.
  */
 import { IonBadge, IonIcon, IonItem, IonLabel } from '@ionic/vue'
-import {
-  buildOutline,
-  lockClosedOutline,
-  personAddOutline,
-  removeCircleOutline,
-} from 'ionicons/icons'
+import { buildOutline, lockClosedOutline, removeCircleOutline } from 'ionicons/icons'
 
+import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
 import ForWhomSeat from '@/components/trips/ForWhomSeat.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
@@ -224,25 +220,13 @@ const emit = defineEmits<{
            responsible, and tapping it is how that is decided. A row nobody
            has is the one that most needs the control, and it is also the one
            with nothing to tap, so it renders an empty seat rather than the
-           blank the row used to end with. `.stop.prevent` for the reason the
-           control column gives below: Ionic's anchor jump is a default
-           action, and stopping propagation alone never cancelled it. -->
-      <button
+           blank the row used to end with. -->
+      <AssigneeSeat
         v-if="assignable"
-        class="assign"
-        :aria-label="edgeAvatar ? t('item.assignedTo') : t('item.assignTo')"
+        :avatar="edgeAvatar"
         :data-testid="`m4-assign-${testKey}`"
-        @click.stop.prevent="(e: MouseEvent) => emit('assign', e)"
-        @pointerdown.stop
-      >
-        <UserAvatar
-          v-if="edgeAvatar"
-          :variant="edgeAvatar.variant"
-          :name="edgeAvatar.name"
-          :seed="edgeAvatar.id"
-        />
-        <IonIcon v-else :icon="personAddOutline" class="assign-empty" />
-      </button>
+        @assign="(e: MouseEvent) => emit('assign', e)"
+      />
       <UserAvatar
         v-else-if="edgeAvatar"
         :variant="edgeAvatar.variant"
@@ -328,29 +312,6 @@ const emit = defineEmits<{
   align-items: center;
   justify-content: flex-end;
   min-width: 44px;
-}
-
-/*
- * The assignment control is the avatar's own box and nothing more: a
- * background or a ring here would put a second frame around a circle that
- * already has one, and the empty seat is the only state that needs to look
- * like somewhere to tap at all.
- */
-.assign {
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-
-.assign-empty {
-  font-size: var(--jp-icon-sm);
-  color: var(--ct-overlay0);
-  border: 1px dashed var(--ct-surface2);
-  border-radius: 50%;
-  padding: 4px;
 }
 
 .lock {

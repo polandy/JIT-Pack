@@ -611,6 +611,15 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('delete', TABLE.comments, todoId)
   }
 
+  /**
+   * setTodoAssignee hands a trip todo to somebody, or back to everybody
+   * (FR-7.5) — `setPacker`'s counterpart, and like it the client's to choose;
+   * the server turns it into the FR-6.2 delegation notification.
+   */
+  function setTodoAssignee(todoId: string, userId: string | null): Mutation {
+    return make('upsert', TABLE.comments, todoId, { assignee_user_id: userId })
+  }
+
   // --- Container mutations (FR-10.1) ---
 
   function addContainer(
@@ -1265,6 +1274,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     // Todos
     addTodo,
     resolveTodo,
+    setTodoAssignee,
     reopenTodo,
     deleteTodo,
     addComment,

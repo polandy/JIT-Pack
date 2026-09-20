@@ -95,6 +95,15 @@ export function createCommentActions(ctx: SyncContext) {
     })
   }
 
+  /** FR-7.5: `null` hands it back to everybody. */
+  function assignTripTodo(todo: TripTodo, userId: string | null) {
+    const mut = mutations.setTodoAssignee(todo.id, userId)
+    enqueueAndDrain('trip', todo.trip_id, {
+      mutation: mut,
+      optimistic: optimisticUpdate(mut, tripTodoRow(todo)),
+    })
+  }
+
   function deleteTripTodo(todo: TripTodo) {
     const mutation = mutations.deleteTodo(todo.id)
     enqueueAndDrain('trip', todo.trip_id, {
@@ -113,6 +122,7 @@ export function createCommentActions(ctx: SyncContext) {
     addTripTodo,
     resolveTripTodo,
     reopenTripTodo,
+    assignTripTodo,
     deleteTripTodo,
   }
 }

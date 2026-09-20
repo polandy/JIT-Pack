@@ -780,6 +780,14 @@ in WebKit.
   are each read back after a reload — a list that only repaints proves the component and not the write; the removal
   once its snackbar has gone, since FR-25.31 writes the delete when the undo lapses — and the head's
   check (*„0 von 2"* → *„1 von 2"* → *„0 von 1 erledigt"*) follows every step.
+* **E2E-M4-133** `server` (FR-7.5, added 2026-09-19) — **implemented** (`e2e/server/multi-user.spec.ts`): a trip
+  todo's empty seat opens the row's picker, which offers the current user as well — the one difference from a row's —
+  and picking the other account fills the seat with them. That account is told (the toast names the task and who
+  handed it over), sees itself on the task on its own open screen without a reload, and finds its name after the task
+  on M1's *Aufgaben* card.
+* **E2E-M4-134** `local` (FR-7.5, G-8, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): Local Mode renders
+  no seat and no assignee on a trip todo. The todo's ✕ in the same end box is the positive signal; the negative half of
+  E2E-M4-133.
 * **E2E-M4-105** `local` (FR-7.4 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): ticking a
   trip todo off raises the pack snackbar naming it, and its *Rückgängig* puts the task back on the open list — the
   head's check goes *„1 von 2"* → *„0 von 2 erledigt"* — and the reopened state survives a reload.
@@ -3437,6 +3445,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-7.2 | E2E | M5-05 (M4-09 retired — FR-7.3 overrides its refusal) |
 | FR-7.3 | E2E | M1-02 (listing only since 2026-09-18), M4-08, M4-25 (M5-06's shadowed half; the resolution restriction is struck) |
 | FR-7.4 | E2E+UNIT | M4-96 (add, tick, reopen, remove), M4-97 (above the list, open while owed, header figure), M1-10 (reported read-only), M1-11 (independent of packing), M3-23 (template tasks, dedup, no prep), M8-26 (the template editor, both scopes); `tripTodos.spec.ts` (the store's own bucket), `instantiate.spec.ts` (dedup), `portable.spec.ts` (`trip_tasks`) |
+| FR-7.5 | E2E+UNIT | M4-133 (the seat hands a todo over, the assignee is told and sees it on M4 and M1), M4-134 (no seat without a second account); `TripTodoList.spec.ts` (seat, read-only avatar, resolved), `comments.seam.spec.ts` (one field on the wire), `notificationrules_test.go` (who is told) |
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers since 2026-08-30), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |
