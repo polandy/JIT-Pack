@@ -14,7 +14,7 @@ import {
   withCategories,
   UNTAGGED_KEY,
   tagDeletion,
-  planTagMerge,
+  planTagMergeMany,
   planTagReorder,
   TAG_DELETE_ALLOWED,
   TAG_DELETE_REFUSED,
@@ -480,11 +480,11 @@ describe('tagDeletion (FR-24.10)', () => {
   })
 })
 
-describe('planTagMerge (FR-24.10)', () => {
+describe('planTagMergeMany — one source (FR-24.10)', () => {
   it('re-points the source’s assignments on items that do not carry the target', () => {
     const assignments = [assign('i-badehose', 't-sommer', 3)]
 
-    const plan = planTagMerge('t-sommer', 't-kleidung', assignments)
+    const plan = planTagMergeMany(['t-sommer'], 't-kleidung', assignments)
 
     expect(plan.repoint).toEqual([{ assignment: assignments[0], position: 3 }])
     expect(plan.drop).toEqual([])
@@ -494,7 +494,7 @@ describe('planTagMerge (FR-24.10)', () => {
     const source = assign('i-badehose', 't-sommer', 2)
     const target = assign('i-badehose', 't-kleidung', 1)
 
-    const plan = planTagMerge('t-sommer', 't-kleidung', [source, target])
+    const plan = planTagMergeMany(['t-sommer'], 't-kleidung', [source, target])
 
     expect(plan.drop).toEqual([source])
     expect(plan.repoint).toEqual([])
@@ -507,7 +507,7 @@ describe('planTagMerge (FR-24.10)', () => {
     const source = assign('i-badehose', 't-sommer', 0)
     const target = assign('i-badehose', 't-kleidung', 1)
 
-    const plan = planTagMerge('t-sommer', 't-kleidung', [source, target])
+    const plan = planTagMergeMany(['t-sommer'], 't-kleidung', [source, target])
 
     expect(plan.drop).toEqual([source])
     expect(plan.promote).toEqual([{ assignment: target, position: 0 }])
@@ -517,13 +517,13 @@ describe('planTagMerge (FR-24.10)', () => {
     const source = assign('i-badehose', 't-sommer', 4)
     const target = assign('i-badehose', 't-kleidung', 1)
 
-    expect(planTagMerge('t-sommer', 't-kleidung', [source, target]).promote).toEqual([])
+    expect(planTagMergeMany(['t-sommer'], 't-kleidung', [source, target]).promote).toEqual([])
   })
 
   it('touches nothing when the source and the target are the same tag', () => {
     const assignments = [assign('i-badehose', 't-sommer', 0)]
 
-    expect(planTagMerge('t-sommer', 't-sommer', assignments)).toEqual({
+    expect(planTagMergeMany(['t-sommer'], 't-sommer', assignments)).toEqual({
       repoint: [],
       drop: [],
       promote: [],
@@ -533,7 +533,80 @@ describe('planTagMerge (FR-24.10)', () => {
   it('ignores assignments of other tags entirely', () => {
     const assignments = [assign('i-kabel', 't-technik', 0)]
 
-    expect(planTagMerge('t-sommer', 't-kleidung', assignments).repoint).toEqual([])
+    expect(planTagMergeMany(['t-sommer'], 't-kleidung', assignments).repoint).toEqual([])
+  })
+})
+
+describe('planTagMergeMany (FR-24.14)', () => {
+  it('re-points only the lowest-positioned source, so one item never gains the target twice', () => {
+    // The trap the feature exists to avoid: merging Sommer and sommer into
+    // Kleidung one after the other plans each pair against the same rows, and
+    // an item carrying both sources is then re-pointed twice — two rows naming
+    // Kleidung for one item, which `UNIQUE (item_id, tag_id)` refuses on the
+    // server after the outbox has already accepted them.
+    const primary = assign('i-badehose', 't-sommer', 0)
+    const second = assign('i-badehose', 't-sommer-klein', 2)
+
+    const plan = planTagMergeMany(['t-sommer', 't-sommer-klein'], 't-kleidung', [primary, second])
+
+    expect(plan.repoint).toEqual([{ assignment: primary, position: 0 }])
+    expect(plan.drop).toEqual([second])
+    expect(plan.promote).toEqual([])
+  })
+
+  it('keeps the item under its own heading when the surviving source was not the primary', () => {
+    const second = assign('i-badehose', 't-sommer', 3)
+    const primary = assign('i-badehose', 't-sommer-klein', 1)
+
+    const plan = planTagMergeMany(['t-sommer', 't-sommer-klein'], 't-kleidung', [second, primary])
+
+    expect(plan.repoint).toEqual([{ assignment: primary, position: 1 }])
+    expect(plan.drop).toEqual([second])
+  })
+
+  it('drops every source and promotes the target where the item already carries it', () => {
+    const target = assign('i-badehose', 't-kleidung', 4)
+    const a = assign('i-badehose', 't-sommer', 1)
+    const b = assign('i-badehose', 't-sommer-klein', 2)
+
+    const plan = planTagMergeMany(['t-sommer', 't-sommer-klein'], 't-kleidung', [target, a, b])
+
+    expect(plan.repoint).toEqual([])
+    expect(plan.drop).toEqual([a, b])
+    expect(plan.promote).toEqual([{ assignment: target, position: 1 }])
+  })
+
+  it('plans each item on its own', () => {
+    const badehose = assign('i-badehose', 't-sommer', 0)
+    const kabel = assign('i-kabel', 't-sommer-klein', 5)
+
+    const plan = planTagMergeMany(['t-sommer', 't-sommer-klein'], 't-kleidung', [badehose, kabel])
+
+    expect(plan.repoint).toEqual([
+      { assignment: badehose, position: 0 },
+      { assignment: kabel, position: 5 },
+    ])
+  })
+
+  it('ignores the target among the sources rather than emptying it', () => {
+    const target = assign('i-badehose', 't-kleidung', 0)
+    const source = assign('i-badehose', 't-sommer', 1)
+
+    const plan = planTagMergeMany(['t-kleidung', 't-sommer'], 't-kleidung', [target, source])
+
+    expect(plan.repoint).toEqual([])
+    expect(plan.drop).toEqual([source])
+    expect(plan.promote).toEqual([])
+  })
+
+  it('touches nothing when the selection is the target alone', () => {
+    const assignments = [assign('i-badehose', 't-kleidung', 0)]
+
+    expect(planTagMergeMany(['t-kleidung'], 't-kleidung', assignments)).toEqual({
+      repoint: [],
+      drop: [],
+      promote: [],
+    })
   })
 })
 

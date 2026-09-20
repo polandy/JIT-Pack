@@ -98,6 +98,22 @@ async function freeze(page: Page) {
     if (navigator.storage) {
       navigator.storage.estimate = () => Promise.resolve({ usage: 104_858, quota: 6_442_555_802 })
     }
+    // The app bar prints what was built — `git describe --tags --always
+    // --dirty` (vite.config.ts), which is a *different string on every run*:
+    // a dev machine renders `v0.16.0-4-g1c0553c-dirty`, CI renders the sha of
+    // the commit it built. That text has been inside every baseline carrying
+    // the bar since they were first recorded, and it is the reason this gate
+    // drifted: on 2026-09-20 the items tab failed by **660 pixels against a
+    // 658 budget** on a branch that had not touched the screen, almost all of
+    // it the version string. It is build metadata and not design, so it is
+    // hidden rather than masked — `visibility` keeps the box, so nothing else
+    // moves, and the line beside it keeps its own rendering (the storage
+    // estimate above is removed for the same reason, one machine at a time).
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style')
+      style.textContent = '[data-testid="header-app-version"] { visibility: hidden; }'
+      document.head.append(style)
+    })
   })
 }
 

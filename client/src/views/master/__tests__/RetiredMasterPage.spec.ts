@@ -104,3 +104,36 @@ describe('M23 archive — an absence it has not read yet (ADR-033, G-7)', () => 
     expect(page.findAll('[data-testid="m23-row"]')).toHaveLength(1)
   })
 })
+
+describe('M23 — a row that got here by a merge (FR-24.15)', () => {
+  function seedRetired(id: string, name: string, extra: Record<string, unknown> = {}) {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.items,
+      id,
+      deleted: false,
+      row: { name, unit: 'pcs', retired_at: '2026-09-20T00:00:00Z', ...extra },
+    })
+  }
+
+  it('names the item it was merged into, so its restore is not a silent duplicate', async () => {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.items,
+      id: 'i-survivor',
+      deleted: false,
+      row: { name: 'Stirnlampe', unit: 'pcs' },
+    })
+    seedRetired('i-loser', 'Stirnlampe Petzl', { merged_into_id: 'i-survivor' })
+    // A second retired row, hidden the ordinary way: „the line is there" would
+    // otherwise be satisfied by a screen that prints it on every row.
+    seedRetired('i-plain', 'Sonnencreme')
+
+    const page = mountPage()
+    await flushPromises()
+
+    const merged = page.findAll('[data-testid="m23-row-merged"]')
+    expect(merged).toHaveLength(1)
+    expect(merged[0]!.text()).toContain(t('items.mergedInto', { name: 'Stirnlampe' }))
+  })
+})

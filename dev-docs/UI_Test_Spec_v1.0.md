@@ -1812,6 +1812,27 @@ test body under it separates a wrong number from a missing test.**
   through the refusal. The item that carried the source ends up under the **target's** heading and the source's
   heading is gone — which is the whole promise, because a merge that re-pointed the assignment without carrying the
   position over would leave the row under a third heading entirely.
+* **E2E-M9-28** `all` (FR-24.14) — **implemented 2026-09-20** (`e2e/inventory.spec.ts`): three tags for one idea,
+  picked in the manager's selection and merged in one act. One item carries **two** of the sources, which is the case
+  a per-pair merge cannot do — it would re-point both of its assignments onto the survivor, and `UNIQUE (item_id,
+  tag_id)` refuses the second after the outbox has taken it. What says the plan was made over the whole set is the
+  row ending with exactly one tag, under the heading it already had; the manager is reopened afterwards so the
+  survivor's count and the two absent rows are read from the screen that owns them.
+* **E2E-M9-30** `all` (FR-24.15, ADR-069) — **implemented 2026-09-20** (`e2e/inventory.spec.ts`): two duplicates
+  merged into one. The loser is built to carry what the survivor lacks — a tag it does not have, a weight it has
+  none of, a companion edge pointing at it — because the inventory list after a merge that wrote nothing but the
+  delete looks exactly like one that worked; each is read back where it is *rendered* (the heading on M9, the tag
+  summary, the companion and the weight in M10). A trip packs the loser first, which is what makes FR-24.3 answer
+  its delete by **retiring** it, and the case ends on M23 asserting the row names the survivor — the sentence that
+  keeps its restore from being a silent offer to re-create the duplicate. That trip also carries a **remark written
+  on the losing row**, read back afterwards in the survivor's FR-27.9 section: the trip row still names the loser,
+  so the section is empty unless M10 reads through the alias — the one claim of ADR-069 that the domain's own units
+  cannot make, because they never wire the page.
+* **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented 2026-09-20** (`e2e/server/multi-user.spec.ts`):
+  the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the
+  one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name
+  once it is switched on, and the account's name typed into the search reaches the same row. A **second item stays
+  unassigned throughout**, or „the name is on the row" would be satisfied by a list that printed it on every row.
 * **E2E-M10-21** `all` (FR-24.9) — **implemented 2026-09-14** (`e2e/inventory.spec.ts`): M10's assigned chip has two
   targets. Tapping the **name** makes that tag primary, and the assertion crosses screens — the inventory files the
   row under the new heading, which is the only place the change is observable. The **✕** still removes the tag

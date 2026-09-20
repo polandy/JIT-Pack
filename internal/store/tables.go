@@ -145,6 +145,7 @@ var tableSpecs = map[string]tableSpec{
 			MarkColumn,
 			RetiredColumn,
 			DefaultAssigneeColumn,
+			MergedIntoColumn,
 		),
 		retirable: true,
 		blockedBy: []blockingReference{

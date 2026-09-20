@@ -3,6 +3,7 @@ import { computed, type ComputedRef } from 'vue'
 import { MARK_INDEX } from '@/domain/itemMarks'
 import type { ItemSearchCandidate } from '@/domain/itemSearch'
 import { tagNamesByItem } from '@/domain/tags'
+import { useIdentityStore } from '@/stores/identityStore'
 import { useMasterStore } from '@/stores/masterStore'
 
 /** The mark's search keywords, by emoji — resolved once, not per keystroke. */
@@ -16,16 +17,31 @@ const MARK_KEYWORDS = new Map(MARK_INDEX.map((entry) => [entry.emoji, entry.keyw
  * The tag names come from one pass over the assignments rather than a lookup
  * per row: asking each item for its tags is items × assignments, and this is
  * rebuilt whenever either feed moves (NFR-4.3).
+ *
+ * The **default assignee** (FR-1.9) joins as a fourth field, by display name.
+ * It is what M9 offers instead of a filter by account, and it reaches the two
+ * other surfaces built on this construction — the quick-add composer, which
+ * names the reason on the row, and FR-25.13j's browse sheet, which groups by
+ * tag and already takes mark-keyword hits without one. The directory is empty
+ * in Local and Single-User Mode, so the field is simply not there where
+ * FR-1.9 is not (G-8).
  */
 export function useItemSearchCandidates(): ComputedRef<ItemSearchCandidate[]> {
   const masterStore = useMasterStore()
+  const identityStore = useIdentityStore()
   const tagNames = computed(() => tagNamesByItem(masterStore.itemTagList, masterStore.tagList))
+  const nameOfAccount = computed(
+    () => new Map(identityStore.directory.map((user) => [user.user_id, user.display_name])),
+  )
   return computed(() =>
     masterStore.activeItemList.map((item) => ({
       id: item.id,
       name: item.name,
       tagNames: tagNames.value.get(item.id) ?? [],
       markKeywords: item.icon ? (MARK_KEYWORDS.get(item.icon) ?? []) : [],
+      assigneeName: item.default_assignee_id
+        ? nameOfAccount.value.get(item.default_assignee_id)
+        : undefined,
     })),
   )
 }

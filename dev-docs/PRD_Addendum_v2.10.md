@@ -1554,8 +1554,10 @@ instance-admin role — accordingly stays declarative and out of the UI entirely
 
 ### 3.24 Item Tags & Master-Item Lifecycle
 
-**Status: implemented** (2026-08-25). The section always held two independent changes to the central item database
-(FR-1.1), and they were unparked separately — the tag model in August, lifecycle deletion nine days later.
+**Status: implemented** (2026-08-25; FR-24.14 and FR-24.15 on 2026-09-20). The section always held two independent
+changes to the central item database (FR-1.1), and they were unparked separately — the tag model in August,
+lifecycle deletion nine days later; the two merges came a month after that, when the instance's own data had grown
+duplicates of both kinds.
 
 * **The tag model — FR-24.1, FR-24.2, FR-24.4, FR-24.5 — is *accepted and implemented*** (2026-08-16, owner decision:
   "we do it with tags"). Migration 022 renames `categories` to `tags` and moves the assignment into `item_tags (item_id,
@@ -1615,13 +1617,15 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   shown before it applies, and it happens once per row.
 * **FR-24.4 (Lean Inventory List with Configurable Properties — added 2026-08-08, realised in the concept):** The
   inventory list (M9) is **lean by default**: primary-tag avatar + name per row, nothing else — the inventory is a
-  lookup surface, not a spreadsheet, and the previous layout (all tags as chips, weight and price right-aligned on every
-  row) read as overloaded (owner feedback). Which extra properties the list shows — **Tags, Gewicht, Preis** — is a
-  **device-local preference** behind an eye icon next to the search field, opening a small settings sheet ("Angezeigte
-  Eigenschaften") with one toggle per property; the icon carries a count badge while anything is shown. Persistence
-  class = the FR-25.2 reveal-done toggle (localStorage, per device, never synced). *Considered and rejected:* a single
-  "Details" on/off toggle — the owner's sharper idea is configuring *which* properties show, which serves the
-  weight-focused packer and the price-focused shopper with the same mechanism.
+  lookup surface, not a spreadsheet, and the previous layout (all tags as chips, weight and price right-aligned on
+  every row) read as overloaded (owner feedback). Which extra properties the list shows — **Tags, Gewicht, Preis** —
+  is a **device-local preference** behind an eye icon next to the search field, opening a small settings sheet
+  ("Angezeigte Eigenschaften") with one toggle per property; the icon carries a count badge while anything is shown.
+  **A fourth joined 2026-09-20 — *Zuständig*, FR-1.9's default assignee** — and it is the first that is not offered
+  everywhere: the list of *offered* properties is filtered by G-8, while what is *stored* never is
+  (`offeredProperties`). Persistence class = the FR-25.2 reveal-done toggle (localStorage, per device, never synced).
+  *Considered and rejected:* a single "Details" on/off toggle — the owner's sharper idea is configuring *which*
+  properties show, which serves the weight-focused packer and the price-focused shopper with the same mechanism.
 * **FR-24.5 (Minimal Item Creation — added 2026-08-08, realised in the concept):** Creating a master item is a **minimal
   form**: intro line ("nur der Name ist nötig"), name (focused), tags, and Gewicht/Preis behind a **"Mehr ▾"**
   disclosure (the FR-25.7 principle applied to M10). The existing-item sections are **absent, not emptied**: an item
@@ -1649,12 +1653,19 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   that 23 groups make impossible, and ordering by recency or by usage is deliberately *not* offered, because neither
   number is on the client — `items` carries no client-visible clock and usage is the trip partitions this device may
   not hold. An option whose ordering the device cannot compute is worse than its absence.
-* **FR-24.7 (Inventory Search That Reaches The Data — added 2026-09-13, implemented the same day):** M9's search
-  matches an item's **name, its tags and its mark's keywords**, under a fold that accepts **both keyboard spellings of
-  an umlaut** — „gurtel" and „guertel" both reach „Gürtel". Each hit carries **why** it matched, and the results are
-  grouped by that reason (*Treffer im Namen* before *Treffer im Tag* before *Treffer in der Marke*), with a row that
-  matched through something other than its name saying what — a row arriving under a query it does not visibly contain
-  reads as a bug, which is the finding FR-27.13's picker already paid for with its `via` field. An item is reported
+* **FR-24.7 (Inventory Search That Reaches The Data — added 2026-09-13, implemented the same day; a fourth field added
+  2026-09-20):** M9's search matches an item's **name, its tags, its mark's keywords and — since 2026-09-20 — the
+  display name of its FR-1.9 default assignee**, the weakest of the four reasons because the name it matches is a
+  person's rather than the item's. That field is what stands in for a filter by account (see FR-1.9), and it exists
+  only where FR-1.9 does: in Local and Single-User Mode the directory is empty, so the fold has exactly its original
+  three reasons there. **It reaches every surface built on the same construction**, which is the point of there being
+  one: M9's field, FR-24.11's composer — where the hit says *über {Name}*, as it does for a tag — and FR-25.13j's
+  browse sheet, which groups by tag rather than by reason and already takes mark-keyword hits the same way. Every
+  field is matched under a fold that accepts **both keyboard spellings of an umlaut** — „gurtel" and „guertel" both
+  reach „Gürtel". Each hit carries **why** it matched, and the results are grouped by that reason (*Treffer im Namen*
+  before *Treffer im Tag* before *Treffer in der Marke* before *Treffer bei „zugewiesen an"*), with a row that matched
+  through something other than its name saying what — a row arriving under a query it does not visibly contain reads
+  as a bug, which is the finding FR-27.13's picker already paid for with its `via` field. An item is reported
   **once**, under the strongest reason it has, so FR-24.2's „each row appears exactly once" holds while searching too.
   *Why:* the old rule was `name.toLowerCase().includes(term)`, and against the real inventory „guertel" and „gurtel"
   each returned **0 of 184** while the belt sat in the list; dozens of names carry ä/ö/ü/ss, and the tag every row
@@ -1889,7 +1900,9 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   *Considered and rejected:* a banner above the list (a list that is untidy is not wrong, and a standing banner is noise
   the day after); making the tag mandatory in M10 (the refusal above); and a fourth rule, **similar names** with an item
   merge — M9's merge of duplicates was struck on 2026-08-31 and nothing merges two items today, so the rule would
-  find what it cannot repair. It waits for an owner decision on building that merge.
+  find what it cannot repair. **FR-24.15 built that merge on 2026-09-20, so the premise is gone and the fourth rule
+  is owed** — it is where a *similar names* finding belongs, because a rule that finds a duplicate can now hand over
+  the act that fixes it, the shape „Tag mit nur einem Artikel" already has.
 
 * **FR-24.13 (A Tag Carries a Mark — added 2026-09-19, implemented the same day):** a tag may carry **one emoji**, the
   item mark's column on `tags` (`icon`, FR-28.1's shape: optional, capped at 32 bytes, no „is it really an emoji" check
@@ -1903,6 +1916,102 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   a trip document names tags by name only, and adding a tag vocabulary section is its own change; the NFR-4.5 backup
   does, being every column of `tags`. *Considered:* the mark at creation time in the give sheet (the mockup's strip) —
   deferred, because the sheet then needs the picker inside a sheet, and the manager is one tap away.
+* **FR-24.14 (Merging Several Tags In One Act — added 2026-09-20, implemented the same day):** FR-24.10's
+  *„zusammenführen"* takes **one** source and one target. Filing a grown axis is rarely one such act: *„Sommer"*,
+  *„Sommerurlaub"* and *„Sommersachen"* are three rows, two merges and two confirms, and the user carries which tag
+  is meant to survive across both. The tag manager therefore has a **selection over tag rows** — FR-24.9's idiom, one
+  screen further in — with one *„Zusammenführen"* over it: the user names the **target** among the picked tags, every
+  other picked tag is re-pointed at it, and the sources are deleted once nothing carries them.
+  * **One plan over the set, not a merge per pair.** The rule per item is FR-24.10's, but `planTagMergeMany` decides
+    the whole selection in one pass, and that is the feature rather than an optimisation: an item carrying **two** of
+    the picked tags would otherwise be re-pointed twice, because each pair is planned against assignments the
+    previous merge has not written back yet — two `item_tags` rows naming the target for one item, which
+    `UNIQUE (item_id, tag_id)` refuses on the server *after* the outbox has accepted both. So exactly one assignment
+    per item survives: the **lowest-positioned** picked tag is re-pointed at its own position and the rest are
+    dropped, or — where the item already carries the target — every picked tag is dropped and the target inherits the
+    lowest position. Either way FR-24.2's heading does not move, which is what FR-24.10's promote clause buys for one
+    pair and this keeps for N.
+  * **The target is named in one sheet, the same one the single merge uses.** It lists the picked tags **with their
+    assignment counts, largest first** — the tag most items already carry is almost always the real one, and it is
+    the choice that moves the fewest rows. The target comes from *inside* the selection: picking one outside it would
+    make „these three are one thing" mean something else on the next screen. *Considered and rejected:* a
+    multi-source picker grown into the row act (one entry point, but the selection is the idiom the screen next door
+    already teaches), and a confirm per pair.
+  * **The confirm names the surviving tag, how many items move and how many tags go.** A merge is the one act in the
+    inventory with no undo (ADR-063) and an N-way merge loses N times as much in one tap. The number it states is the
+    **upper bound** — the sum of the sources' assignments — because an item carrying two of them ends under the
+    target once; the toast afterwards reports what the merge actually did, counted in items. A confirm may overstate
+    the work and may never understate it.
+  * **The selection survives the search and the act.** A picked tag stays picked while a query narrows it off the
+    screen — two spellings of one idea are rarely one query — and the manager stays open with the mode on afterwards,
+    because tidying an axis is rarely one merge. The merged tags leave the selection by themselves: it is read
+    against the axis, and they are no longer on it.
+  * **While picking, a row asks one question.** The rename control, the arrows, the mark and the two per-row acts
+    withdraw, so the only thing a tap can mean is *pick this one* — FR-24.9's rule for M9's own rows, one screen in.
+* **FR-24.15 (Merging Duplicate Items — added and implemented 2026-09-20; the trade is **ADR-069**):** two
+  inventory rows that are the same thing — *„Stirnlampe"* and *„Stirnlampe Petzl"*, typed a year apart on two
+  devices — are **merged into one**: the user names the survivor, and the other rows' references move to it before
+  they go. FR-16.3's deduplication answers this **on import** (M15, M18) and only there; typing is the other way a
+  duplicate is born, and it had no answer at all.
+  **This reverses a decision, and the reversal is the point.** A multi-select merge on M9 stood in the UI-Spec from
+  the first draft, was never built, and was **struck 2026-08-31** with *„a second cleanup surface in the inventory
+  answers a question nobody has asked"*. The question was asked on 2026-09-20 — by the owner, against this
+  instance's own data. FR-27.5's rejection of fuzzy matching in M21 rested partly on *„a duplicate master item is
+  visible in M9 and can be merged"*; **that premise is back.** FR-24.12's rejected fourth rule — *similar names*,
+  refused because „the rule would find what it cannot repair" — is now buildable and is owed next.
+  **Where it is done:** FR-24.9's selection mode, behind the ⋯ sheet, offered from **two** picked rows up. The
+  survivor is named in a sheet that lists the candidates with **what each brings** — its tags, its weight, whether
+  it has a photo, and how much of the product resolves against it — **most-used first**, because the row a
+  duplicate was split off from is the one the rest of the data already hangs on. The confirm names the survivor and
+  how many rows go; there is no undo (ADR-063's rule, one table over).
+  **What a merge moves, and how each collision resolves** (`domain/itemMerge.ts`, one plan over the whole set for
+  FR-24.14's reason — the writes of one pair are not in the store when the next is planned):
+  * `item_tags` — the union, minus what `UNIQUE (item_id, tag_id)` refuses. **The survivor keeps its own primary
+    tag** and a re-pointed assignment is appended after it: unlike FR-24.14, what the user chose to preserve here is
+    the *item*'s filing, not the tag's.
+  * `item_dependencies` — both ends move, and three shapes cannot: an edge **between** two merged rows (it would
+    become the `CHECK (item_id <> depends_on_item_id)` self-edge), one the survivor already has (`UNIQUE`), and one
+    that would close a cycle the two rows kept open while they were apart (§3.20). Each is dropped, counted, and
+    **named in the sentence afterwards** — a merge may not be refused by an edge the user cannot see from the
+    inventory, but it owes them the fact.
+  * `template_items` — `UNIQUE (template_id, item_id)`: a Vorlage holding both ends with **one** position. It keeps
+    the survivor's settings (or, where the survivor is not in that Vorlage, the first loser's position becomes the
+    survivor's and the rest fold into it), takes the **higher `quantity`** — FR-2.3's `dedup: max`, the product's
+    existing answer to the same item twice — and **carries the dropped position's FR-27.7 tasks over**, because
+    user-typed prose is the one thing a merge may never drop. This is why the position is *updated* rather than
+    re-created: `template_item_tasks.template_item_id` is `ON DELETE CASCADE`, so a delete-and-add would take the
+    words with it.
+  * **The survivor's own empty fields** — `weight_grams`, `value_cents`, the §3.28 mark and `default_assignee_id`
+    (FR-1.9) are filled from the losers in the order they were picked, and **never overwritten**. The photo is the
+    same rule and the only part of a merge that moves **bytes** (ADR-002): it is *copied* where the survivor has
+    none, after the mutations, so the losing row keeps its own. *Why not a per-field prompt:* the survivor was
+    chosen because it is the better row; what the act owes instead is a sentence naming what it took over, which is
+    the part of a merge that is invisible on the list afterwards.
+  * **History stays where it is** — `trip_items.source_item_id` and `trip_generated_positions.source_item_id` are
+    **not** re-pointed. The reasoning, the two rejected alternatives and the accepted costs are **ADR-069**.
+  **The rear view reads the two pasts as one, through an alias.** `items.merged_into_id` is written on each losing
+  row — before the delete, and even for a row about to be removed outright, so a device that sees only those two
+  changes still learns where the row went. `mergedIdsOf` gives M10's FR-27.9 section the survivor's id plus
+  everything aliased at it; `resolveMergedItem` answers the other direction. **One hop, never a chain:** the plan
+  flattens older aliases at merge time, and a reader treats an alias whose target is itself aliased as no alias —
+  which is what makes two devices merging the same pair in opposite directions degrade to today's behaviour instead
+  of looping. **FR-27.8's „Enthalten in" and FR-8/FR-14's analytics deliberately do not read it**: the first reads
+  template positions, which the merge re-points itself, and the second aggregates trip rows by name and category.
+  * **The column clears itself** (`ON DELETE SET NULL`): deleting the survivor — which FR-24.3 only allows once
+    nothing else resolves against it — gives the merged-away rows their own past back rather than refusing a delete
+    over a pointer nobody can see. `internal/store`'s foreign-key guard is what insisted the question be answered.
+  **What happens to the loser: FR-24.3's ordinary delete, not a third lifecycle.** Retired while anything still
+  references it — which, with history left in place, is every item that was ever on a trip — and removed when
+  nothing does. Retiring **frees the name** (`idx_items_active_name` is partial over active rows), so the survivor
+  can be renamed to the loser's wording straight afterwards. The retired row is **not an undo**: it preserves the
+  loser's own data and not the references that moved. **M23 therefore says which rows got there by a merge** and
+  names the survivor (*„zusammengeführt mit ‚Stirnlampe'"*), because its restore is otherwise an offer to re-create
+  the duplicate the user just removed — and the restore **clears the alias**, since a row that is active again has
+  a past of its own.
+  **Still owed, deliberately:** FR-24.11's near-miss search as a second entry point (*„Zelt"* finding two tents is
+  where a duplicate is actually noticed) and FR-24.12's *similar names* rule. Both are second ways into the same
+  sheet and the same rule, which is why neither blocked this.
+
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —
@@ -4496,6 +4605,20 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     reads the links it will be created with. A group added to a running
     trip (FR-27.10) applies the rule against the travelers' existing links; the FR-27.4 refresh does **not**, because
     it keys rows by (item, traveler) and an assignment appearing there would read as a new position.
+  * **Where it is seen (added 2026-09-20, owner request; implemented the same day):** M9's row names the account, and
+    M9's search finds the item by it. The flag could otherwise only be read by opening the item, so an inventory of
+    two hundred rows answered *„was ist üblicherweise meins?"* one editor at a time. It is an **FR-24.4 property**,
+    not a new row element — the sheet behind the eye gains a fourth toggle beside Tags/Gewicht/Preis, device-local
+    like the other three — and a row that names nobody shows **nothing**: *„Niemand"* is the editor's empty state,
+    and repeating it down a list is the overload FR-24.4 took the columns away for. Toggle and column are **absent
+    wherever FR-1.9 itself is** (G-8: Local Mode, Single-User Mode, a one-person instance), because a property
+    nothing can carry is a switch that does nothing; what is already **stored** is never cleared, since the same
+    phone may open a shared instance tomorrow. **No filter chip follows, and the search answers instead:** FR-24.2's
+    axis is tags, an account is not a tag — the argument that kept *„Stillgelegt"* off the axis (FR-24.8) — and a
+    second axis would go into a bar that is already three rows at 390 px, so the assignee's name joins FR-24.7's fold
+    as a fourth field instead. **Revisit trigger:** a filter chip is owed the first time that search is used to *work
+    through* the list rather than to find one row — the signal is a query that is a name and stays put while rows are
+    edited.
   * **Not carried:** the portable format (FR-18) and the backup's inventory view name no account, because account ids
     mean nothing on another instance.
 * **FR-1.1 refinement (see §3.24):** the "default category" of FR-1.1 is superseded by **multiple tags** per item

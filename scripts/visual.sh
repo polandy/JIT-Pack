@@ -53,8 +53,18 @@ fi
 # amd64) and makes an Apple-Silicon machine emulate rather than diverge —
 # which is what lets the images be *generated* anywhere. Verified 2026-08-16:
 # all 16 existing baselines reproduced byte-identically this way.
+# The preview server's port is a *host* port (--network host), so two
+# worktrees recording or checking baselines at once collide on it — and
+# Playwright's message for that names the port and not the cause. The
+# override reaches the container for the same reason it does in e2e.sh.
+env_flags=()
+if [ -n "${E2E_PORT:-}" ]; then
+  env_flags+=(-e E2E_PORT)
+fi
+
 exec docker run --rm \
   --platform linux/amd64 \
+  ${env_flags[@]+"${env_flags[@]}"} \
   --user "$(id -u):$(id -g)" \
   -e HOME=/tmp \
   -e CI=1 \
