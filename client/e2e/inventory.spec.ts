@@ -618,6 +618,11 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
    * And the losing row is asserted twice: gone from the inventory, and *named*
    * on M23 as merged rather than merely retired. A restore offered without
    * that sentence is an offer to make the duplicate again.
+   *
+   * The remark carried over from the loser's trip is the case's fourth claim
+   * and the one ADR-069 exists for. It is also the only assertion that reaches
+   * the *page's* wiring: the domain's two halves are covered separately, and
+   * with `[props.itemId]` back in M10 everything above this still passes.
    */
   test('E2E-M9-30: two duplicate items are merged into one, and the loser says where it went', async ({
     page,
@@ -645,6 +650,14 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.getByTestId('quick-add-input').locator('input').fill('Stirnlampe P')
     await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Petzl' }).click()
     await expect(page.getByTestId('m4-row-Stirnlampe Petzl')).toBeVisible()
+    // The remark is written on the row that is about to lose. Its trip is the
+    // one the merge deliberately leaves alone, so reading this back on the
+    // survivor afterwards is the whole claim the alias exists for (ADR-069) —
+    // and the only place the *page* is proven to ask for the merged ids.
+    await page.getByTestId('m4-row-Stirnlampe Petzl').click()
+    await itemDetail(page).getByTestId('m5-note-input').locator('input').fill('Akku hält 4 h')
+    await itemDetail(page).getByTestId('m5-note-add').click()
+    await expect(itemDetail(page).getByTestId('m5-note-Akku hält 4 h')).toBeVisible()
     await writesLanded(page)
     await page.goto(PATH.items)
 
@@ -677,6 +690,13 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(visiblePage(page).getByTestId('m10-companion-Ersatzbatterien')).toBeVisible()
     // No „Mehr ▾" here: that disclosure is the *creation* form's (FR-24.5).
     await expect(visiblePage(page).getByTestId('m10-weight').locator('input')).toHaveValue('90')
+    // What the loser was told on its own trip, read here as the survivor's.
+    // The trip row still names the loser — nothing re-pointed it — so this
+    // section is empty unless the page reads through the alias.
+    const comments = visiblePage(page).locator('[data-testid^="m10-comment-"]')
+    await expect(comments).toHaveCount(1)
+    await expect(comments.first()).toContainText('Akku hält 4 h')
+    await expect(comments.first()).toContainText('Sils 2026')
 
     // M23 says where the losing row went, so its restore is not a silent
     // offer to create the duplicate again.

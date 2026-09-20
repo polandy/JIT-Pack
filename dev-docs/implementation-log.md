@@ -16731,6 +16731,19 @@ mark, a photo, an assignee, a collapsed Vorlage position and possibly lost a
 companion edge to a cycle. The toast names all of it, because the alternative
 is a user discovering it in M10 a month later.
 
+**Two covered halves, and nothing on the seam** (found in review, same day).
+`commentsOnItem` takes a set of ids and `itemHistory.spec.ts` drives it;
+`mergedIdsOf` has its cases in `itemMerge.spec.ts`. The one line that joins
+them — M10 asking for the merged ids instead of its own — had no test at all:
+replacing it with `[props.itemId]` left the entire suite green, including
+E2E-M9-30, whose four other assertions are about tags, weights, companions and
+M23. So the benefit ADR-069 bought a schema column, two reading directions and
+a permanently visible M23 row for was the one thing the suite never checked.
+The repair was four lines in a case that already packed the losing row on a
+trip: write a remark there, read it on the survivor afterwards. Worth stating
+plainly because the shape recurs — a pure function and its caller are two
+subjects, and a domain with 100 % coverage says nothing about the wiring.
+
 ## Hiding the version string stopped the visual gate drifting (2026-09-20)
 
 The `visual` job failed on a branch that had not touched the screen: the items

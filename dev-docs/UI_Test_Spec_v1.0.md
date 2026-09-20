@@ -1824,7 +1824,10 @@ test body under it separates a wrong number from a missing test.**
   delete looks exactly like one that worked; each is read back where it is *rendered* (the heading on M9, the tag
   summary, the companion and the weight in M10). A trip packs the loser first, which is what makes FR-24.3 answer
   its delete by **retiring** it, and the case ends on M23 asserting the row names the survivor — the sentence that
-  keeps its restore from being a silent offer to re-create the duplicate.
+  keeps its restore from being a silent offer to re-create the duplicate. That trip also carries a **remark written
+  on the losing row**, read back afterwards in the survivor's FR-27.9 section: the trip row still names the loser,
+  so the section is empty unless M10 reads through the alias — the one claim of ADR-069 that the domain's own units
+  cannot make, because they never wire the page.
 * **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented 2026-09-20** (`e2e/server/multi-user.spec.ts`):
   the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the
   one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name
