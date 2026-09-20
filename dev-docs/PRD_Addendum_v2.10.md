@@ -2358,6 +2358,13 @@ locked.
       * **The two lists are disjoint by construction:** a row still actionable on its tab is never also reported as
         bought, even when its mode was put back by hand rather than by this undo. An actionable row hidden under a
         reveal is the failure FR-25.11a names.
+      * **A BUY_LOCAL purchase is found two ways (corrected 2026-09-20):** `bought_from` is what M6's own check-off
+        writes, and for a BUY_BEFORE row it is the only way back, because the purchase changed the mode. A BUY_LOCAL
+        row is bought *by being packed*, so checking it off on the packing list records it the ordinary FR-25.17 way
+        and writes no `bought_from` at all — and reading the column alone lost such a row off both tabs at once: open
+        no longer, bought never. The bought list therefore unions the column with the state — a `buy_local` row that
+        is `packed` — and keeps the column beside it, because a row bought on M6 and later moved to `pack` by hand is
+        findable only there. `bought_from` records *which list a row left*, not *whether* it was bought.
     ~~**Owed (2026-08-25):** the portable format does not carry `bought_from`, so a Local Mode backup and restore
     (NFR-4.11) loses which list a row was bought from — the row comes back on the packing list with the shopping side no
     longer knowing it was bought. Both halves of the fix live in `client/src/domain/portable.ts` and
