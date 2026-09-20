@@ -4913,10 +4913,14 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
   empty. Doneness, not the tap, is what the open todo withholds (FR-25.2). Todos can be added and resolved directly from
   M5 (Item Detail) ~~or from the Dashboard~~ (struck 2026-09-18, owner: M1 takes no actions — it lists them). Resolving
   the last open todo on a packed item transitions its visual state to fully complete. **Visibility:** All open
-  preparation todos of a trip are visible to every trip member — not just the item's assignee — via a dedicated
-  collapsible section in M4 and a KPI counter in the trip header. The M1 Dashboard (FR-6.1) aggregates open preparation
-  todos across all active trips, grouped by item. ~~filtered to the current user's assigned items, answering "what do
-  *I* need to prepare?"~~ **Struck 2026-08-30 (audit of backlog item 6, E2E-M1-02): the filter has never existed**, on
+  preparation todos of a trip are visible to every trip member — not just the item's assignee — ~~via a dedicated
+  collapsible section in M4 and a KPI counter in the trip header~~ **amended 2026-09-20 (FR-7.6): in M4's one task
+  section, *Aufgaben für die Reise*, where each preparation carries the chip of the row it prepares, and in the task
+  figure beside the packing share; the separate prep section and the header's open-prep count are gone.** The M1
+  Dashboard (FR-6.1) aggregates open preparation todos across all active trips, ~~grouped by item~~ **amended
+  2026-09-20 (FR-7.6): in the *Aufgaben* card, each named by its row's chip — the grouping is what the chip became**.
+  ~~filtered to the current user's assigned items, answering "what do *I* need to prepare?"~~ **Struck 2026-08-30
+  (audit of backlog item 6, E2E-M1-02): the filter has never existed**, on
   this card or on the trip cards beside it — M1 shows every open row and every open todo of every active trip. Until
   2026-08-25 it could not have existed, because nothing wrote `packer_user_id` (FR-25.19); and whether it *should* is an
   open owner decision rather than a defect with an obvious fix, because Local and Single-User Mode have no account to be
@@ -4955,6 +4959,9 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     the reverse holds too. What the user gets instead is a **second, independent check**: *n von m erledigt*, and *„Alle
     Aufgaben erledigt"* once none is open. Folding the two into one figure was rejected: it would let a houseplant hold
     a finished rucksack at 97 %, which is the false signal FR-7.3 was written to prevent, pointed the other way.
+    **Amended 2026-09-20 (FR-7.6):** that second check counts **every** task of the trip, its own and its rows'
+    preparations alike — what stays apart is the *packing* figure, which counts rows and nothing else. The sentence
+    above is unchanged in the direction that matters: no task of either kind moves the share.
   * **Surface: written in the trip, reported on the dashboard (owner decision, revised the same day).** M4 carries an
     *Aufgaben für die Reise* section whose head states the second check and which unfolds to the editable list: open
     ones ticked off in place, resolved ones reachable again to untick, a composer, and a ✕ per row. **Ticking a task
@@ -5039,6 +5046,45 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     precedent is FR-1.9, which put a default assignee on the inventory item, not on a template position. *Revisit
     trigger:* the same Vorlage task assigned to the same person by hand on every trip. Not in the portable format or
     the backup (neither carries todos, FR-7.4), and not carried by cloning a trip.
+
+* **FR-7.6 (The trip's tasks are one list — new 2026-09-20, owner request, decided from an interactive mockup):**
+  a preparation declared on a packing row (FR-7.3) and a chore of the trip itself (FR-7.4) are the same thing to the
+  person doing them — something that has to be done before leaving — and the app kept them as two lists, two counts and,
+  on M1, two cards. A preparation was reachable only from the row it hung off or from a card of its own; the trip's
+  *Aufgaben* section and its figure said nothing about it. **Both kinds are now one list, one count and one card, and
+  what tells them apart is the row a task belongs to.** The tradeoff is ADR-068.
+  * **Data model — nothing new, again.** Both kinds are `comments` rows with `is_task=1`; `trip_item_id` is what
+    distinguishes them, exactly as before. Nothing is stored, migrated or synced differently; the whole feature is a
+    reading of rows the trip already carries (`tripTasks` in `client/src/domain/tripTodos.ts`).
+  * **The chip is the distinction.** A task that prepares a row ends in a chip naming that row — its mark (FR-28.7,
+    inherited from the master item) and its name — and the chip **leads to the row's own sheet**. A task of the trip
+    itself carries no chip, and that absence is the only thing a reader has to learn. Consequences on the line, each
+    from a rule that already existed: a preparation carries **no assignment seat** (FR-7.5 — the row already names its
+    person) and **no ✕** (it is removed where it lives, in M5). *Revisit trigger:* somebody asks to delete a
+    preparation from the task list without opening its row.
+  * **Order.** Open before resolved; within each half the trip's own before a row's; a row's grouped by the row and
+    each group by text. So the chores read first and a row's preparations stand together.
+  * **One figure, one head.** M4's second figure, M4's section head, M1's *Aufgaben* card and each M1 trip card's task
+    line all count both kinds. **The packing figures are untouched** (owner, 2026-09-20): the share, the ring, M2's
+    figure and a row's doneness still count rows, and FR-7.3's „packed with open prep" is unchanged — a packed row with
+    an open preparation still stays on the list. Two answers, as FR-7.4 settled; what moved is only which tasks the
+    task answer counts.
+  * **What is gone.** M4's separate *Vorbereitung* section at the foot of the list, and M1's *Vorzubereiten* card. The
+    header's detail line under the packing share loses its *„N Vorbereitungen offen"* and keeps the weight: the figure
+    beside it states that count now, and a number said twice on one line is a number two places can disagree about.
+  * **The task goes with the row.** Deleting a packing row cascades its preparations — the server's `ON DELETE
+    CASCADE`, the client's own cascade (`sync/cascade.ts`), and, on M4, the row's tasks leave the list the moment the
+    row does, while FR-25.31's undo can still bring both back. The reading rule closes the last gap: a preparation
+    whose row this device does not hold is **not listed**, so a device that has not yet pulled a delete cannot show a
+    task whose chip leads nowhere. FR-5.8's confirmation already asks before a removal that takes notes or todos along.
+  * **Templates are unaffected** (owner, 2026-09-20): `template_item_tasks` still generates preparations on the rows
+    they belong to (FR-27.7) and `template_tasks` still generates the trip's own (FR-7.4). They arrive in the one list
+    like everything else, which is the whole point.
+  * **Modes.** All three, like both FRs it joins: the rule is pure and client-side (invariant 4), and nothing here is
+    server-only (G-8).
+  * **Surfaces:** M4 (the section, the figure, the header line), M1 (the *Aufgaben* card, the trip cards' line), M5
+    (unchanged — it stays where a preparation is declared). UI-Spec M1/M4; E2E-M4-136, E2E-M4-137, E2E-M1-02,
+    E2E-M1-07, E2E-M1-10.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

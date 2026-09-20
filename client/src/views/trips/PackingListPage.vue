@@ -29,11 +29,8 @@ import {
   IonPage,
   IonContent,
   IonList,
-  IonItem,
   IonIcon,
-  IonLabel,
   IonButton,
-  IonCheckbox,
   IonRefresher,
   IonRefresherContent,
   IonFab,
@@ -51,7 +48,6 @@ import {
   closeCircleOutline,
   removeCircleOutline,
   refreshOutline,
-  buildOutline,
   checkmarkDoneOutline,
   chevronDownOutline,
   contractOutline,
@@ -84,7 +80,12 @@ import ClusterHead from '@/components/trips/ClusterHead.vue'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
-import { tripTodoProgress, tripTodoStatus, tripTodosUnfolded } from '@/domain/tripTodos'
+import {
+  tripTodoProgress,
+  tripTodoStatus,
+  tripTodosUnfolded,
+  type TripTask,
+} from '@/domain/tripTodos'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import PackingRow, {
   type PackingRowNotes,
@@ -118,6 +119,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { useTripIdentity } from '@/composables/useTripIdentity'
+import { useTripTasks } from '@/composables/useTripTasks'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
 import type { RowUndoRecord } from '@/composables/useRowUndo'
 import { browseRowStates } from '@/domain/browseRows'
@@ -174,6 +176,7 @@ import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
 const tripStore = useTripStore()
+const { tasksOf } = useTripTasks()
 const masterStore = useMasterStore()
 const router = useRouter()
 const route = useRoute()
@@ -223,7 +226,6 @@ const {
 const collapsedGroups = ref<string[]>([])
 /** FR-25.24: per-person clusters the user opened; shut is the default. */
 const expandedClusters = ref<string[]>([])
-const showPrep = ref(false)
 /**
  * FR-7.4: the user's own fold of *Aufgaben für die Reise* this visit; null
  * while untouched, and then the todos decide (`tripTodosUnfolded`).
@@ -1171,16 +1173,26 @@ const PRESENCE_FACES_DESKTOP = 4
 const presenceNames = computed<Record<string, string>>(() =>
   Object.fromEntries(participants.value.map((p) => [p.user_id, p.display_name])),
 )
-const openPrepCount = computed(() => tripStore.getOpenTodos(props.tripId).length)
-
-const tripTodoCount = computed(() =>
-  tripTodoProgress(
-    tripStore.getTripTodos(props.tripId).filter((todo) => !removingTodos.value.has(todo.id)),
+/**
+ * FR-7.6: every task of the trip, its own and its rows' preparations, in one
+ * list — what the section shows and what its head and figure count.
+ *
+ * Two kinds of pending removal are already out of it (FR-25.31): a task whose
+ * own ✕ was tapped, and every task of a row that is on its way off the list.
+ * The row leaves the screen before its delete is written, and a task still
+ * listed for it would carry a chip into a row nobody can see any more.
+ */
+const tasks = computed(() =>
+  tasksOf(props.tripId).filter(
+    (task) =>
+      !removingTodos.value.has(task.id) &&
+      !(task.item !== null && removingRows.value.has(task.item.id)),
   ),
 )
+const tripTodoCount = computed(() => tripTodoProgress(tasks.value))
 const tripTodoState = computed(() => tripTodoStatus(tripTodoCount.value))
 
-/** FR-7.4: the section head's own check, apart from every packing figure. */
+/** FR-7.4/7.6: the section head's own check, apart from every packing figure. */
 const tripTodoLine = computed(() => {
   if (tripTodoState.value === 'none') return null
   if (tripTodoState.value === 'allDone') return t('tripTodos.allDone')
@@ -1210,16 +1222,17 @@ function revealTripTodos() {
 const RING_SIZE_HEADER = 42
 
 /**
- * What qualifies the share: the weight the trip is carrying, and the prep
- * that is still owed. Under the sentence rather than beside it, because a
- * figure reads as one line and this is the second (FR-21.23).
+ * What qualifies the share: the weight the trip is carrying. Under the
+ * sentence rather than beside it, because a figure reads as one line and this
+ * is the second (FR-21.23).
+ *
+ * It used to carry the open preparation as well. Since FR-7.6 the figure
+ * beside it counts those, and a number stated twice on one line is a number
+ * two places can disagree about.
  */
-const statsDetail = computed(() => {
-  const parts: string[] = []
-  if (kpis.value.totalWeight > 0) parts.push(formatWeight(kpis.value.totalWeight))
-  if (openPrepCount.value > 0) parts.push(t('packing.openPrep', { n: openPrepCount.value }))
-  return parts.length > 0 ? parts.join(' · ') : null
-})
+const statsDetail = computed(() =>
+  kpis.value.totalWeight > 0 ? formatWeight(kpis.value.totalWeight) : null,
+)
 
 /**
  * The header line *and the page head above it* yield to the list on the way
@@ -1933,21 +1946,44 @@ function liveTripTodo(id: string): TripTodo | null {
   return tripStore.getTripTodos(props.tripId).find((row) => row.id === id) ?? null
 }
 
-/** FR-7.4: the same undo for the trip's own tasks, which live in `TripTodoList`. */
-function onTripTodoResolved(todo: TripTodo) {
-  rowUndo.armAction(todo.body, () => {
-    const live = liveTripTodo(todo.id)
-    if (live?.task_state === 'resolved') orchestrator.reopenTripTodo(live)
-  })
-  void announceTaskDone(todo.body)
+/** A row's preparation as it is now, for the same reason. */
+function liveItemTodo(itemId: string, id: string): ItemTodo | null {
+  return tripStore.getItemTodos(props.tripId, itemId).find((row) => row.id === id) ?? null
 }
 
-function onTripTodoReopened(todo: TripTodo) {
-  rowUndo.armAction(todo.body, () => {
-    const live = liveTripTodo(todo.id)
-    if (live?.task_state === 'open') orchestrator.resolveTripTodo(live)
-  })
-  void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
+/**
+ * FR-7.6: one checkbox, two kinds of task. The list reports the tap and the
+ * screen writes it — the two kinds are written through different actions and
+ * taken back through the one snackbar (FR-25.31), and the live row is looked
+ * up here because the task in hand is a projection of the pre-tap state.
+ */
+function onTaskToggle(task: TripTask) {
+  if (task.item) {
+    const prep = liveItemTodo(task.item.id, task.id)
+    if (prep) togglePrepTodo(prep)
+    return
+  }
+  const todo = liveTripTodo(task.id)
+  if (todo) toggleTripTodo(todo)
+}
+
+/** FR-7.4: the trip's own task, ticked off or put back, with its undo. */
+function toggleTripTodo(todo: TripTodo) {
+  if (todo.task_state === 'open') {
+    orchestrator.resolveTripTodo(todo)
+    rowUndo.armAction(todo.body, () => {
+      const live = liveTripTodo(todo.id)
+      if (live?.task_state === 'resolved') orchestrator.reopenTripTodo(live)
+    })
+    void announceTaskDone(todo.body)
+  } else {
+    orchestrator.reopenTripTodo(todo)
+    rowUndo.armAction(todo.body, () => {
+      const live = liveTripTodo(todo.id)
+      if (live?.task_state === 'open') orchestrator.resolveTripTodo(live)
+    })
+    void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
+  }
 }
 
 function onTripTodoAdded(id: string, body: string) {
@@ -1958,8 +1994,10 @@ function onTripTodoAdded(id: string, body: string) {
   void announceAct(t('packing.taskAddedToast', { body }))
 }
 
-/** FR-7.5: the todo's seat, tapped — the row's picker and the row's undo. */
-async function onTripTodoAssign(todo: TripTodo) {
+/** FR-7.5: the task's seat, tapped — the row's picker and the row's undo. */
+async function onTripTodoAssign(task: TripTask) {
+  const todo = liveTripTodo(task.id)
+  if (!todo) return
   const picked = await pickAssignee(todo.body, todo.assignee_user_id, todoAssignees.value)
   if (picked === undefined || picked === todo.assignee_user_id) return
   const previous = todo.assignee_user_id
@@ -1976,10 +2014,10 @@ async function onTripTodoAssign(todo: TripTodo) {
 }
 
 /** Hidden now and deleted when the undo lapses — the confirmed removal's reason. */
-function onTripTodoRemove(todo: TripTodo) {
-  const id = todo.id
+function onTripTodoRemove(task: TripTask) {
+  const id = task.id
   rowUndo.armAction(
-    todo.body,
+    task.body,
     () => removingTodos.value.delete(id),
     () => {
       const live = liveTripTodo(id)
@@ -1988,7 +2026,7 @@ function onTripTodoRemove(todo: TripTodo) {
     },
   )
   removingTodos.value.add(id)
-  void announceAct(t('packing.taskDeletedToast', { body: todo.body }))
+  void announceAct(t('packing.taskDeletedToast', { body: task.body }))
 }
 
 function togglePrepTodo(todo: ItemTodo) {
@@ -2424,12 +2462,12 @@ setHeaderTitle(
       <div
         v-if="rowsLoaded && !closingPass"
         ref="tripTodosSection"
-        class="prep-section trip-todos-section jp-card"
+        class="tasks-section jp-card"
         :class="{ done: tripTodoState === 'allDone' }"
         data-testid="m4-trip-todos"
       >
         <button
-          class="prep-header"
+          class="tasks-header"
           data-testid="m4-trip-todos-toggle"
           :aria-expanded="tripTodosOpen ? 'true' : 'false'"
           @click="tripTodosFold = !tripTodosOpen"
@@ -2446,12 +2484,11 @@ setHeaderTitle(
         <TripTodoList
           v-if="tripTodosOpen"
           :trip-id="tripId"
-          :removing="removingTodos"
+          :tasks="tasks"
           :assignable="todoAssignees.length > 1"
           :name-of="nameOf"
           @assign="onTripTodoAssign"
-          @resolved="onTripTodoResolved"
-          @reopened="onTripTodoReopened"
+          @toggle="onTaskToggle"
           @added="onTripTodoAdded"
           @remove="onTripTodoRemove"
         />
@@ -2771,28 +2808,6 @@ setHeaderTitle(
         testid="m4-done-bar"
         @toggle="showDone = !showDone"
       />
-
-      <!-- Preparation (FR-7.3): the open todos of the whole trip, resolvable
-           without opening each item. -->
-      <div v-if="openPrepItems.length > 0" class="prep-section" data-testid="m4-prep-section">
-        <button class="prep-header" data-testid="m4-prep-toggle" @click="showPrep = !showPrep">
-          <IonIcon :icon="buildOutline" />
-          <span
-            >{{ t('packing.prepSection') }} ·
-            {{ t('packing.openPrep', { n: openPrepCount }) }}</span
-          >
-          <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: showPrep }" />
-        </button>
-        <IonList v-if="showPrep">
-          <template v-for="{ item, openTodos } in openPrepItems" :key="item.id">
-            <div class="prep-item">{{ item.name }}</div>
-            <IonItem v-for="todo in openTodos" :key="todo.id" lines="inset">
-              <IonCheckbox slot="start" :checked="false" @ion-change="togglePrepTodo(todo)" />
-              <IonLabel>{{ todo.body }}</IonLabel>
-            </IonItem>
-          </template>
-        </IonList>
-      </div>
 
       <!-- FR-25.13a: the ＋ opens *and focuses* the quick-add. Expanding it
            without focus costs a second tap on the only path that has to be
@@ -3179,7 +3194,7 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   transform: rotate(-90deg);
 }
 
-.prep-header .caret.open {
+.tasks-header .caret.open {
   transform: rotate(180deg);
 }
 
@@ -3272,12 +3287,7 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 }
 
 /* --- Bars, cards and sections ----------------------------------------- */
-.prep-section {
-  margin-top: 16px;
-  border-top: 1px solid var(--ct-surface0);
-}
-
-.prep-header {
+.tasks-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -3292,13 +3302,12 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
 
 /* FR-7.4: above the list the section is a card of its own, not the strip
    that closed the page — and it turns to the done role once nothing is owed. */
-.trip-todos-section {
+.tasks-section {
   margin: 8px 12px 4px;
-  border-top: none;
   overflow: hidden;
 }
 
-.trip-todos-section.done .prep-header {
+.tasks-section.done .tasks-header {
   color: var(--jp-done);
 }
 
@@ -3314,11 +3323,5 @@ ion-content.pack-content::part(scroll)::-webkit-scrollbar-thumb {
   text-align: start;
   cursor: pointer;
   --ring-hole: var(--ct-base);
-}
-
-.prep-item {
-  padding: 8px 14px 2px;
-  font-size: var(--jp-text-sm);
-  color: var(--ct-subtext0);
 }
 </style>

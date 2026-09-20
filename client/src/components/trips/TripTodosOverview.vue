@@ -1,25 +1,30 @@
 <script setup lang="ts">
 /**
- * M1's *Aufgaben* card (FR-7.4): the open trip todos of every active trip,
- * reported and not operated — the dashboard takes no actions (owner,
- * 2026-09-18). Each trip's block leads into the trip, where M4's *Aufgaben
- * für die Reise* section is where they are ticked, added and removed.
+ * M1's *Aufgaben* card (FR-7.4, FR-7.6): the open tasks of every active trip
+ * — the trip's own and the preparations its rows owe — reported and not
+ * operated, because the dashboard takes no actions (owner, 2026-09-18).
  *
- * A trip with no todo at all is left out: with nothing to add here, an
- * empty group would only push the hero down.
+ * One card rather than two (FR-7.6, ADR-068): the *Vorzubereiten* card that
+ * listed preparations by item is this card's item-bound half now. What tells
+ * the two kinds apart is the chip, which names the row and is the way into
+ * it; the head of each block leads into the trip, where tasks are ticked.
  *
- * An assigned todo names its person after the task (FR-7.5) — read here, as
+ * A trip with no task at all is left out: with nothing to add here, an empty
+ * group would only push the hero down.
+ *
+ * An assigned task names its person after the body (FR-7.5) — read here, as
  * everything on this card is; the seat that changes it is M4's.
  */
 import { computed } from 'vue'
 
 import SectionHead from '@/components/global/SectionHead.vue'
+import TaskItemChip from '@/components/trips/TaskItemChip.vue'
+import { useTripTasks } from '@/composables/useTripTasks'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 import { nameFrom } from '@/lib/rowFacts'
-import { tripPath } from '@/router/paths'
+import { tripItemPath, tripPath } from '@/router/paths'
 import { useIdentityStore } from '@/stores/identityStore'
-import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 
 const props = defineProps<{
@@ -27,17 +32,17 @@ const props = defineProps<{
   trips: readonly Trip[]
 }>()
 
-const tripStore = useTripStore()
 const identityStore = useIdentityStore()
+const { tasksOf } = useTripTasks()
 
 const groups = computed(() =>
   props.trips
     .map((trip) => {
-      const todos = tripStore.getTripTodos(trip.id)
-      const progress = tripTodoProgress(todos)
+      const tasks = tasksOf(trip.id)
+      const progress = tripTodoProgress(tasks)
       return {
         trip,
-        open: todos.filter((todo) => todo.task_state === 'open'),
+        open: tasks.filter((task) => task.task_state === 'open'),
         progress,
         status: tripTodoStatus(progress),
       }
@@ -56,14 +61,19 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
       data-testid="dashboard-trip-todos-head"
     />
     <div class="jp-card todos-card" data-testid="dashboard-trip-todos">
-      <RouterLink
+      <div
         v-for="group in groups"
         :key="group.trip.id"
         class="todo-group"
-        :to="tripPath(group.trip.id)"
         :data-testid="`trip-todos-${group.trip.name}`"
       >
-        <span class="group-head">
+        <!-- The block's head is the way into the trip; a task's chip is the
+             way into its row. Two links, never one inside the other. -->
+        <RouterLink
+          class="group-head"
+          :to="tripPath(group.trip.id)"
+          :data-testid="`trip-todos-open-${group.trip.name}`"
+        >
           <span class="trip-name">{{ group.trip.name }}</span>
           <span
             class="status"
@@ -79,24 +89,29 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
                   })
             }}
           </span>
-        </span>
+        </RouterLink>
         <ul v-if="group.open.length > 0" class="open-list">
           <li
-            v-for="todo in group.open"
-            :key="todo.id"
-            :data-testid="`dashboard-trip-todo-${todo.body}`"
+            v-for="task in group.open"
+            :key="task.id"
+            :data-testid="`dashboard-trip-todo-${task.body}`"
           >
-            {{ todo.body
-            }}<span
-              v-if="nameFrom(identityStore.directory, todo.assignee_user_id)"
+            <span class="body">{{ task.body }}</span>
+            <TaskItemChip
+              v-if="task.item"
+              :item="task.item"
+              :to="tripItemPath(group.trip.id, task.item.id)"
+            />
+            <span
+              v-else-if="nameFrom(identityStore.directory, task.assignee_user_id)"
               class="who"
-              :data-testid="`dashboard-trip-todo-assignee-${todo.body}`"
+              :data-testid="`dashboard-trip-todo-assignee-${task.body}`"
             >
-              · {{ nameFrom(identityStore.directory, todo.assignee_user_id) }}</span
-            >
+              · {{ nameFrom(identityStore.directory, task.assignee_user_id) }}
+            </span>
           </li>
         </ul>
-      </RouterLink>
+      </div>
     </div>
   </template>
 </template>
@@ -112,7 +127,6 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
   display: block;
   padding: 10px 16px;
   color: inherit;
-  text-decoration: none;
 }
 
 .todo-group + .todo-group {
@@ -124,6 +138,8 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
+  color: inherit;
+  text-decoration: none;
 }
 
 .trip-name {
@@ -151,7 +167,20 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
   color: var(--ct-subtext0);
 }
 
+/* The chip sits on the task's own line and wraps under it on a narrow one,
+   rather than pushing the body text out of the card. */
+.open-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .open-list li + li {
-  margin-top: 2px;
+  margin-top: 4px;
+}
+
+.body {
+  min-width: 0;
 }
 </style>

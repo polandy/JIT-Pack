@@ -147,13 +147,17 @@ test.describe('M1 dashboard @local @m1', () => {
   })
 
   /**
-   * E2E-M1-02 (FR-7.3): the prep card lists open todos grouped by item, and
-   * reports them without offering to resolve them — M1 takes no actions
-   * (owner, 2026-09-18). The name is the way in, and resolving there is what
-   * clears the card, which is the positive signal that the card reads the
-   * todos rather than a copy of them.
+   * E2E-M1-02 (FR-7.3/7.6): a row's preparation is a task of the trip on M1
+   * too — it is listed in the *Tasks* card, named by the chip of the row it
+   * prepares, and reported without anything to tick, because M1 takes no
+   * actions (owner, 2026-09-18). Resolving it where it lives is what clears
+   * the card, which is the positive signal that the card reads the todos
+   * rather than a copy of them.
+   *
+   * Until FR-7.6 this was a card of its own (*Prep to do*), grouped by item.
+   * One card now, and the chip is what the grouping became.
    */
-  test('E2E-M1-02: the prep card lists open todos by item, and offers nothing to tick', async ({
+  test('E2E-M1-02: a row’s preparation is listed among the trip’s tasks, with nothing to tick', async ({
     page,
   }) => {
     const TODO = 'Akku laden'
@@ -169,22 +173,26 @@ test.describe('M1 dashboard @local @m1', () => {
 
     await page.goto(PATH.dashboard)
 
-    const prep = visible(page).getByTestId('dashboard-prep')
+    const card = visible(page).getByTestId('dashboard-trip-todos')
     // The name is the section's head and the number its count (G-13), and
     // the block under it is the app's card rather than Ionic's (G-14,
     // FR-21.28) — M1 was the last screen drawing a card of its own.
-    const prepHead = visible(page).getByTestId('dashboard-prep-head')
-    await expect(prepHead).toContainText('Prep to do')
-    await expect(prepHead).toContainText('1')
-    await expect(prep).toHaveClass(/jp-card/)
-    // Grouped by item (the FR's own word), not a flat list of task bodies.
-    await expect(prep.getByTestId('dashboard-prep-item-Kamera')).toBeVisible()
-    await expect(prep.getByTestId(`dashboard-todo-${TODO}`)).toBeVisible()
+    const head = visible(page).getByTestId('dashboard-trip-todos-head')
+    await expect(head).toContainText('Tasks')
+    await expect(head).toContainText('1')
+    await expect(card).toHaveClass(/jp-card/)
+    // The task itself, and the chip that says which row owes it.
+    await expect(card.getByTestId(`dashboard-trip-todo-${TODO}`)).toBeVisible()
+    await expect(card.getByTestId('task-item-Kamera')).toBeVisible()
     // Reported, not operated: nothing on the card can be ticked.
-    await expect(prep.locator('ion-checkbox')).toHaveCount(0)
+    await expect(card.locator('ion-checkbox')).toHaveCount(0)
 
-    // Resolved where it lives, the card has nothing left to report.
-    await prep.getByTestId('dashboard-prep-item-Kamera').click()
+    // Resolved where it lives, the card has nothing left to list — and says
+    // so, which is where the merged card differs from the *Prep to do* one it
+    // replaced: a trip whose tasks are all done is reported as done (FR-7.4),
+    // not dropped. The task line going is the signal that the card reads the
+    // todos rather than a copy of them.
+    await card.getByTestId('task-item-Kamera').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
     await page.getByTestId(`m5-todo-${TODO}`).click()
     await page.getByTestId('m5-close').click()
@@ -192,7 +200,9 @@ test.describe('M1 dashboard @local @m1', () => {
     await writesLanded(page)
     await page.goto(PATH.dashboard)
     await expect(visible(page).getByTestId(`dashboard-trip-${TRIP.name}`)).toBeVisible()
-    await expect(visible(page).getByTestId('dashboard-prep')).toHaveCount(0)
+    const after = visible(page).getByTestId('dashboard-trip-todos')
+    await expect(after.getByTestId(`dashboard-trip-todo-${TODO}`)).toHaveCount(0)
+    await expect(after.getByTestId(`trip-todos-status-${TRIP.name}`)).toHaveText('✓ All tasks done')
   })
 
   /**
@@ -300,10 +310,10 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(visible(page).getByTestId('dashboard-late')).toHaveCount(0)
   })
 
-  // E2E-M1-07 (FR-7.3): the prep card's item name is the way into its row.
-  // It was a `<p>` with no handler; UI-Spec M1 has promised the jump since the
-  // screen shipped, and M4's own prep section has always had it.
-  test('E2E-M1-07: the prep card’s item name opens the row it names', async ({ page }) => {
+  // E2E-M1-07 (FR-7.3/7.6): the chip on a task is the way into the row that
+  // owes it. UI-Spec M1 has promised the jump since the screen shipped; what
+  // carries it since FR-7.6 is the chip rather than a card of item names.
+  test('E2E-M1-07: the chip on a task opens the row it names', async ({ page }) => {
     await activeTripWith(page, ['Kamera'])
     await visible(page).getByTestId('m4-row-Kamera').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
@@ -312,9 +322,9 @@ test.describe('M1 — the three promises @local @m1', () => {
     await page.getByTestId('m5-close').click()
 
     await page.goto(PATH.dashboard)
-    await visible(page).getByTestId('dashboard-prep-item-Kamera').click()
+    await visible(page).getByTestId('task-item-Kamera').click()
 
-    // The row's own sheet, not merely the trip: the name names a row.
+    // The row's own sheet, not merely the trip: the chip names a row.
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
     await expect(page.getByTestId(`m5-todo-Akku laden`)).toBeVisible()
   })
@@ -372,7 +382,7 @@ test.describe('M1 — the three promises @local @m1', () => {
     // Reported, not operated: no control on the card.
     await expect(card.locator('ion-checkbox, ion-input, input, button')).toHaveCount(0)
 
-    await group.click()
+    await group.getByTestId(`trip-todos-open-${TRIP.name}`).click()
     await expectTripOpen(page, TRIP.name)
     await expect(visible(page).getByTestId('m4-trip-todos')).toBeVisible()
   })

@@ -8,6 +8,8 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { fillIonic } from './helpers/ionic'
+import { openTripTodos } from './helpers/m4'
+import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
 /**
@@ -75,6 +77,7 @@ async function addTaskToPosition(page: Page, group: string, item: string, task: 
   await composer.press('Enter')
   await expect(page.getByTestId('m8-task-row')).toContainText(task)
   await page.getByTestId('m8-position-close').click()
+  await writesLanded(page)
 }
 
 /** Add an FR-7.4 trip task to a template through M8's own section. */
@@ -88,6 +91,11 @@ async function addTripTask(page: Page, scope: 'template' | 'group', name: string
   await fillIonic(composer, task)
   await composer.locator('input').press('Enter')
   await expect(visible(page).getByTestId(`m8-trip-task-${task}`)).toBeVisible()
+  // The row on screen is the optimistic one; every caller navigates straight
+  // afterwards, and a write still in flight when the app reloads is a task
+  // the wizard below never sees. Measured on main before FR-7.6 touched this
+  // file: one run in three lost a task this way.
+  await writesLanded(page)
 }
 
 /**
@@ -349,16 +357,16 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expectTripOpen(page, 'Fototour 2026')
 
     // FR-27.7 on the trip: an ordinary FR-7.3 todo, on the row it came from,
-    // counted in the header and listed in the prep section.
-    await expect(visible(page).getByTestId('m4-header')).toContainText('1 preparation open')
-    const prep = visible(page).getByTestId('m4-prep-section')
-    await prep.getByTestId('m4-prep-toggle').click()
-    await expect(prep).toContainText('Kamera')
-    await expect(prep).toContainText('Akkus laden')
+    // counted in the header figure and listed in the trip's one task section
+    // (FR-7.6), where the chip names the row it prepares.
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/1 tasks')
+    const tasks = await openTripTodos(page)
+    await expect(tasks.getByTestId('trip-todo-Akkus laden')).toBeVisible()
+    await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
 
     // Only the position that carries the task gets one — the other row of the
     // composition stays clean.
-    await expect(prep.locator('ion-item')).toHaveCount(1)
+    await expect(tasks.locator('ion-item')).toHaveCount(1)
   })
 
   /**
@@ -395,14 +403,21 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(page.getByTestId('wizard-step-4')).toBeVisible()
     await page.getByTestId('wizard-create').click()
     await expectTripOpen(page, 'Fototour 2026')
-    await expect(visible(page).getByTestId('m4-header')).toContainText('1 preparation open')
+    // Three tasks on the trip: the two deduplicated trip tasks and the
+    // position's preparation, which FR-7.6 counts in the same figure.
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/3 tasks')
     await tripAction(page, 'start')
 
     await page.goto(PATH.dashboard)
     const group = visible(page).getByTestId('trip-todos-Fototour 2026')
-    await expect(group.locator('[data-testid^="dashboard-trip-todo-"]')).toHaveCount(2)
-    await expect(group.getByTestId('dashboard-trip-todo-Water the plants')).toBeVisible()
+    // Three lines rather than four is the dedup: the Vorlage and its group
+    // both said „Water the plants".
+    await expect(group.locator('[data-testid^="dashboard-trip-todo-"]')).toHaveCount(3)
+    await expect(group.getByTestId('dashboard-trip-todo-Water the plants')).toHaveCount(1)
     await expect(group.getByTestId('dashboard-trip-todo-Empty the fridge')).toBeVisible()
-    await expect(group.getByTestId('trip-todos-status-Fototour 2026')).toHaveText('0 of 2 done')
+    // The preparation is on the same card, named by its row (FR-7.6).
+    await expect(group.getByTestId('dashboard-trip-todo-Akkus laden')).toBeVisible()
+    await expect(group.getByTestId('task-item-Kamera')).toBeVisible()
+    await expect(group.getByTestId('trip-todos-status-Fototour 2026')).toHaveText('0 of 3 done')
   })
 })

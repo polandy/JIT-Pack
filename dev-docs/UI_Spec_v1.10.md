@@ -9,6 +9,10 @@ Single-User/Local only. No other changes from v1.9.
 replaced and why. This index only says where to look.
 * 2026-09-20 — **M4**'s head and header line yield to the reader's own scroll and stand still for every other one
   (FR-21.17).
+* 2026-09-20 — **M4** and **M1** carry one task list: a row's preparation (FR-7.3) stands in *Aufgaben für die Reise*
+  and in M1's *Aufgaben* card beside the trip's own chores, named by the chip of the row it prepares and counted in the
+  same figure. M4's separate *Vorbereitung* section, M1's *Vorzubereiten* card and the header line's open-prep count
+  are gone (FR-7.6, ADR-068).
 * 2026-09-19 — **M4**'s *Aufgaben für die Reise* ends each open todo in the row's assignment seat, and **M1**'s
   *Aufgaben* card names the assignee (FR-7.5).
 * 2026-09-19 — **M7**'s row menu shares a Vorlage through the device's share sheet (FR-18.2).
@@ -813,19 +817,22 @@ These patterns apply to every screen and are specified once.
   accounts have nobody to be involved — so the device's trip list *is* the list of trips I am part of. The card is
   **display-only**: unlike the active trips above it, no planned trip's partition is fetched or subscribed, because
   nothing on the row is read out of it and one request per planned trip would buy numbers this section does not show
-  (E2E-M1-08). **Preparation Todos section (FR-7.3):** a dedicated "Prep to do" card listing open preparation todos
-  across all active trips, grouped by item (e.g., "Camera: charge battery, format SD card"). ~~Tapping a todo toggles it
-  resolved~~ — **struck 2026-09-18 (owner): M1 takes no actions**, so the card lists the todos as text and they are
-  resolved in M5 (E2E-M1-02); and **tapping the item name opens that row's M5 sheet** (built 2026-08-31; it is a
-  `<button>` rather than a `<p>` with a handler, because a tap target has to be one for the keyboard and for assistive
-  technology too).
-* **Trip todos section (FR-7.4 — built 2026-09-18, reworked the same day).** An *Aufgaben* card under its section head
-  (G-13, the open count beside the name) sits directly below the *Vorzubereiten* card and **reports, never operates**:
+  (E2E-M1-08). ~~**Preparation Todos section (FR-7.3):** a dedicated "Prep to do" card listing open preparation todos
+  across all active trips, grouped by item (e.g., "Camera: charge battery, format SD card").~~ **Struck 2026-09-20
+  (FR-7.6, ADR-068): one card.** A preparation is listed in the *Aufgaben* card below, among the trip's own tasks and
+  named by the chip of the row it prepares; the chip is what the grouping by item became, and it **leads to that row's
+  M5 sheet** (the jump the item name carried since 2026-08-31, on an element that is a link for the keyboard and for
+  assistive technology too). ~~Tapping a todo toggles it resolved~~ — **struck 2026-09-18 (owner): M1 takes no
+  actions**, so the card lists the tasks as text and they are resolved in M4 or M5 (E2E-M1-02, E2E-M1-07).
+* **Tasks section (FR-7.4 — built 2026-09-18, reworked the same day; every task of the trip since FR-7.6).** An
+  *Aufgaben* card under its section head (G-13, the open count beside the name) **reports, never operates**:
   M1 takes no actions (owner, 2026-09-18). It lists every active trip that has at least one trip todo, soonest departure
   first — the hero's order — each as a block that leads into the trip: the trip's name, its own check (*„1 von 2
-  erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open todos as plain text —
-  an assigned one followed by its assignee's name in `--ct-subtext0` (*„Pflanzen giessen · Sia"*, FR-7.5). A
-  trip without any trip todo is left out, and the card is absent when none has one — the first cut put an editor with an
+  erledigt"*, or *„✓ Alle Aufgaben erledigt"* in `--jp-done` once none is open), and its open tasks as plain text —
+  an assigned one followed by its assignee's name in `--ct-subtext0` (*„Pflanzen giessen · Sia"*, FR-7.5), one that
+  prepares a row followed by that row's chip instead (FR-7.6), which is the one link on the line and leads into the
+  row. The block's head is the other link, and leads into the trip; the two are never nested. A
+  trip without any task is left out, and the card is absent when none has one — the first cut put an editor with an
   empty composer here for every active trip, which stood above the hero on every dashboard. **The trip cards carry the
   check too:** the hero as the **packing share's pair** — the same ring (both step down to 46 px while paired),
   *„1/4 Aufgaben"*, *„3 offen"* while any is open, and a track, in `--jp-done` like the share's (G-11). Side by side
@@ -1060,8 +1067,9 @@ These patterns apply to every screen and are specified once.
 * **Redesign complete (Addendum §3.25) — mocked and settled 2026-07-17 … 2026-08-08.** The screen was re-mocked from
   scratch to give the actual packing far more room. The full reasoning per decision lives in the addendum; what M4 *is*
   now:
-  * **The header line** — packed/total · weight · open-prep with the presence facepile, and — once the trip has a
-    trip todo — **the todos' own figure** as the share's pair (FR-7.4): same ring, *„1/4 Aufgaben"*, *„3 offen"*, a
+  * **The header line** — packed/total · weight with the presence facepile (the open-prep count moved into the figure
+    beside it, FR-7.6), and — once the trip has a task — **the tasks' own figure** as the share's pair (FR-7.4, every
+    task of the trip since FR-7.6): same ring, *„1/4 Aufgaben"*, *„3 offen"*, a
     track; side by side, or on two rows where the line is too narrow for both sentences (the line's height allows
     for it). A tap unfolds *Aufgaben für die Reise* and scrolls it into view. Nothing else. It stays
     **unfiltered**, so real progress is visible whatever the current view shows. On scroll-**down** the whole line
@@ -1086,7 +1094,8 @@ These patterns apply to every screen and are specified once.
     to bring a control into view leaves both standing, because answering it moves every row by the head's height
     under a finger already on its way to one (E2E-M4-135).
   * **The line draws the trip as a figure, not as a fraction** (2026-09-08, FR-21.23): a ring, the share in words
-    (*„1/4 gepackt"*) and a track, with the weight and the open prep on the second line under it. It is the same
+    (*„1/4 gepackt"*) and a track, with the weight on the second line under it (the open prep stood there until
+    FR-7.6 gave the count to the task figure beside it). It is the same
     `ProgressFigure` M1's and M2's hero cards carry, from the same percentage — M4 was the one screen without it, and
     it is the screen where the progress is made. Measured on a 390×844 phone: 39 px before, 59 px while it stands,
     and it still yields entirely on the way down (FR-21.17).
@@ -1221,8 +1230,9 @@ These patterns apply to every screen and are specified once.
   them, two categories run into each other on a long list. The concept mock had the card from the start; the first
   implementation dropped it.
 * **Elements:**
-  * Sticky header: **one row at every width (2026-09-06, ADR-050)** — packed/total, weight (FR-8.1), **open-prep
-    count** (FR-7.3), trip presence facepile and group-sync badge per G-10. It carried two rows on a phone for as long
+  * Sticky header: **one row at every width (2026-09-06, ADR-050)** — packed/total, weight (FR-8.1), ~~**open-prep
+    count** (FR-7.3)~~ (moved into the task figure, FR-7.6), trip presence facepile and group-sync badge per G-10.
+    It carried two rows on a phone for as long
     as it also carried the trip's name and the 🛒/🧳/📊 glyphs; the name is the page head now (G-9) and the three
     destinations are words in the bar's ⋮, so the line states figures alone. *(The former KPI tile strip is gone —
     Analytics is a named entry rather than a tap on a tile, which testing found undiscoverable.)*
@@ -1406,20 +1416,28 @@ These patterns apply to every screen and are specified once.
     nothing else:** the browse-sheet answers *for whom* per line with its own 👥 and avatars (FR-25.13g/h), so a sheet
     add — FR-25.13f's two verbs included — never reads the strip, and no add waits for the sheet to close any more
     (E2E-M4-102).
-  * Collapsed sections: "Consciously skipped" items (FR-5.5), "Late Packers" (pinned to bottom until departure day, then
-    pinned to top), and **"Preparation" (FR-7.3)** — all open prep todos for the trip, grouped by item with traveler
+  * Collapsed sections: "Consciously skipped" items (FR-5.5) and "Late Packers" (pinned to bottom until departure day,
+    then pinned to top). ~~**"Preparation" (FR-7.3)** — all open prep todos for the trip, grouped by item with traveler
     avatar. Visible to all trip members; resolving a todo is restricted to the item's assignee or trip owner. Tap item
-    name → M5.
-  * **"Aufgaben für die Reise" (FR-7.4 — built 2026-09-18)** — the trip's own todos, the chores that prepare no row
-    (*„Pflanzen giessen"*). A collapsible card **above the list, directly under the header line** (moved 2026-09-18: at
+    name → M5.~~ **Struck 2026-09-20 (FR-7.6, ADR-068):** the preparations are in *Aufgaben für die Reise* above the
+    list, each with the chip of its row; the restriction had already been struck 2026-08-30 (every member may tick).
+  * **"Aufgaben für die Reise" (FR-7.4 — built 2026-09-18; every task of the trip since FR-7.6, 2026-09-20)** — the
+    trip's own chores that prepare no row (*„Pflanzen giessen"*) **and the preparations its rows owe** (FR-7.3), in one
+    list: open before resolved, the trip's own before a row's, a row's grouped by the row. A task that prepares a row
+    ends in the **chip** of that row — its mark and its name, leading to the row's M5 sheet — and carries neither the
+    assignment seat (FR-7.5: the row names its person) nor the ✕ (it is removed in M5). A task of the trip itself
+    carries both and no chip, which is the whole distinction on the line. A collapsible card **above the list,
+    directly under the header line** (moved 2026-09-18: at
     the list's foot, closed, it went unseen), **always present** outside the FR-9.3 closing pass, because it is where
     the first todo is typed — once the trip's partition is on the device (ADR-033): before it, the section would read
     folded and then spring open under a tap meant to open it. It is **unfolded while any todo is open** and folded to
     its head once none is — or while the trip has none; a fold the user makes holds for the visit. Its head names the
     section and, once the trip has a todo, the check: *„1 von 2 erledigt"*, or *„✓ Alle Aufgaben erledigt"* with the
     head in `--jp-done`. Unfolded: open todos with a checkbox and a ✕, the resolved ones folded under *„{n} erledigt"*
-    where unticking reopens one, and a composer (*„Aufgabe hinzufügen…"*, Enter or *Hinzufügen*). Nothing here counts
-    toward the packing ring, the header's prep KPI or any row's doneness. Every trip member may tick; there is no G-3
+    where unticking reopens one, and a composer (*„Aufgabe hinzufügen…"*, Enter or *Hinzufügen*, which writes the
+    trip's own kind — a preparation is declared on its row, in M5). Nothing here counts toward the packing ring or any
+    row's doneness; the check in the head and the figure in the header count **both** kinds (FR-7.6). Every trip
+    member may tick; there is no G-3
     claim, because there is no row. (E2E-M4-96, E2E-M4-97)
     **Whose job (FR-7.5 — built 2026-09-19).** Each open todo ends, before its ✕, in the row's assignment seat — the
     same component as FR-25.25's: the assignee's avatar, or the dashed empty seat. A tap opens the row's picker, whose

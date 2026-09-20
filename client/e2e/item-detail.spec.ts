@@ -10,7 +10,7 @@ import {
   expectTripActionOffered,
   visiblePage as visible,
 } from './fixtures'
-import { FOR_WHOM_M5 } from './helpers/m4'
+import { FOR_WHOM_M5, openTripTodos } from './helpers/m4'
 
 /**
  * M5 — item detail (UI-Test-Spec §4), rebuilt 2026-08-14 as a sheet over
@@ -394,8 +394,9 @@ test.describe('M5 item detail @local @m5', () => {
     await addInComposer(page, 'Kamera')
     await page.keyboard.press('Escape')
 
-    // Nothing to prepare yet — the positive signal the badge is derived.
-    await expect(visible(page).getByTestId('m4-prep-section')).toHaveCount(0)
+    // Nothing to prepare yet — the positive signal the badge is derived. The
+    // trip has no task at all, so its section states none (FR-7.6).
+    await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveCount(0)
 
     await page.getByTestId('m4-row-Kamera').getByRole('heading').click()
     await page.getByTestId('m5-note-input').locator('input').fill('Akku laden')
@@ -413,7 +414,13 @@ test.describe('M5 item detail @local @m5', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    await expect(visible(page).getByTestId('m4-prep-section')).toBeVisible()
+    // FR-7.6: the promoted note is now a task of the trip, listed in the one
+    // section under the chip of the row it prepares, and counted with the
+    // rest — as well as badged on the row itself.
+    await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveText('0 of 1 done')
+    const tasks = await openTripTodos(page)
+    await expect(tasks.getByTestId('trip-todo-Akku laden')).toBeVisible()
+    await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
   })
 

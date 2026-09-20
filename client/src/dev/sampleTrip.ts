@@ -146,6 +146,7 @@ export function seedSampleTrip(
   seedShoppingEntries(id, orchestrator)
   seedItemComment(id, orchestrator)
   seedTripTodos(id, orchestrator)
+  seedPreparations(id, orchestrator)
   return id
 }
 
@@ -162,6 +163,24 @@ function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
     .getTripTodos(tripId)
     .find((todo) => todo.body === SEED_TRIP_TODOS[1])
   if (done) orchestrator.resolveTripTodo(done)
+}
+
+/**
+ * FR-7.3/7.6: two preparations on one row, so a fresh device's task list
+ * shows the item-bound kind — the chip that names its row, and the row badge
+ * that counts it — beside the trip's own chores above.
+ */
+const SEED_PREPARED_ROW = 'iPad Pro + Tastatur'
+const SEED_PREPARATIONS = ['Akku laden', 'Filme herunterladen'] as const
+
+function seedPreparations(tripId: string, orchestrator: Orchestrator): void {
+  const row = useTripStore()
+    .getItems(tripId)
+    .find((item) => item.name === SEED_PREPARED_ROW)
+  if (!row) return
+  for (const body of SEED_PREPARATIONS) {
+    orchestrator.addPrepTodo(tripId, row.id, SEED_AUTHOR_ID, body)
+  }
 }
 
 /**

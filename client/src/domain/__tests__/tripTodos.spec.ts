@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { tripTodoPercent, tripTodoProgress, tripTodoStatus, tripTodosUnfolded } from '../tripTodos'
+import {
+  tripTasks,
+  tripTodoPercent,
+  tripTodoProgress,
+  tripTodoStatus,
+  tripTodosUnfolded,
+} from '../tripTodos'
+import type { ItemTodo, TodoState, TripTodo } from '@/types/domain'
 
 describe('tripTodoProgress (FR-7.4)', () => {
   it.each([
@@ -60,4 +67,115 @@ describe('tripTodosUnfolded (FR-7.4): M4 opens the section on what is still owed
       expect(tripTodosUnfolded(status, fold)).toBe(want)
     },
   )
+})
+
+describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
+  const row = (id: string, name: string, icon: string | null = null) => ({ id, name, icon })
+
+  const tripTodo = (
+    id: string,
+    body: string,
+    state: TodoState = 'open',
+    assignee: string | null = null,
+  ) =>
+    ({
+      id,
+      trip_id: 'trip',
+      author_id: 'someone',
+      body,
+      task_state: state,
+      assignee_user_id: assignee,
+    }) as TripTodo
+
+  const itemTodo = (id: string, itemId: string, body: string, state: TodoState = 'open') =>
+    ({
+      id,
+      trip_id: 'trip',
+      trip_item_id: itemId,
+      author_id: 'someone',
+      body,
+      task_state: state,
+    }) as ItemTodo
+
+  it('names the row a preparation prepares, and nothing for the trip’s own', () => {
+    const tasks = tripTasks(
+      [tripTodo('t1', 'Water the plants')],
+      [itemTodo('p1', 'i1', 'Charge the batteries')],
+      [row('i1', 'Camera', '📷')],
+    )
+    expect(
+      tasks.map((task) => [task.body, task.item?.name ?? null, task.item?.icon ?? null]),
+    ).toEqual([
+      ['Water the plants', null, null],
+      ['Charge the batteries', 'Camera', '📷'],
+    ])
+  })
+
+  it('carries the row id, so the chip can lead back to it', () => {
+    const tasks = tripTasks(
+      [],
+      [itemTodo('p1', 'i1', 'Charge the batteries')],
+      [row('i1', 'Camera')],
+    )
+    expect(tasks[0]?.item?.id).toBe('i1')
+  })
+
+  it('gives a preparation no assignee, because a row already names its person (FR-7.5)', () => {
+    const tasks = tripTasks([], [itemTodo('p1', 'i1', 'Charge')], [row('i1', 'Camera')])
+    expect(tasks[0]?.assignee_user_id).toBeNull()
+  })
+
+  it('keeps the trip todo’s assignee (FR-7.5)', () => {
+    const tasks = tripTasks([tripTodo('t1', 'Water', 'open', 'user-1')], [], [])
+    expect(tasks[0]?.assignee_user_id).toBe('user-1')
+  })
+
+  /**
+   * FR-7.6's cascade, read from the view side: a preparation whose row the
+   * trip no longer carries is not a task of the trip any more. The server
+   * cascades the delete; this is what makes the list agree with it on a
+   * device that has not pulled yet.
+   */
+  it('drops a preparation whose row the trip no longer carries', () => {
+    const tasks = tripTasks(
+      [tripTodo('t1', 'Water the plants')],
+      [itemTodo('p1', 'gone', 'Charge the batteries'), itemTodo('p2', 'i1', 'Wash it')],
+      [row('i1', 'Jacket')],
+    )
+    expect(tasks.map((task) => task.body)).toEqual(['Water the plants', 'Wash it'])
+  })
+
+  it('orders open before done, the trip’s own before a row’s, then by row and text', () => {
+    const tasks = tripTasks(
+      [tripTodo('t1', 'Water the plants'), tripTodo('t2', 'Empty the fridge', 'resolved')],
+      [
+        itemTodo('p1', 'i2', 'Wash it'),
+        itemTodo('p2', 'i1', 'Format the card'),
+        itemTodo('p3', 'i1', 'Charge the batteries'),
+        itemTodo('p4', 'i1', 'Clean the lens', 'resolved'),
+      ],
+      [row('i1', 'Camera'), row('i2', 'Jacket')],
+    )
+    expect(tasks.map((task) => task.body)).toEqual([
+      'Water the plants',
+      'Charge the batteries',
+      'Format the card',
+      'Wash it',
+      'Empty the fridge',
+      'Clean the lens',
+    ])
+  })
+
+  it('counts both kinds in the one check the figure states', () => {
+    const tasks = tripTasks(
+      [tripTodo('t1', 'Water the plants', 'resolved')],
+      [itemTodo('p1', 'i1', 'Charge the batteries')],
+      [row('i1', 'Camera')],
+    )
+    expect(tripTodoProgress(tasks)).toEqual({ open: 1, done: 1, total: 2 })
+  })
+
+  it('is empty for a trip with neither kind', () => {
+    expect(tripTasks([], [], [row('i1', 'Camera')])).toEqual([])
+  })
 })
