@@ -408,6 +408,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two of the four badges were not worth a badge (2026-09-20)](#two-of-the-four-badges-were-not-worth-a-badge-2026-09-20) — ADR-051 amendment 1: the mockup that decided it, and the rule that keeps the row saying where you are.
 - [An indicator that was never off (2026-09-20)](#an-indicator-that-was-never-off-2026-09-20) — FR-25.15: why a confirmation of nothing reads as a button, and the test that had pinned the defect.
 - [The task the app already had, in the list nobody could find it in (2026-09-20)](#the-task-the-app-already-had-in-the-list-nobody-could-find-it-in-2026-09-20) — FR-7.6/ADR-068: the premise that nearly cost a migration, and the undo window that broke the chip.
+- [The gesture window is a residue, not an oversight (2026-09-20)](#the-gesture-window-is-a-residue-not-an-oversight-2026-09-20) — FR-21.17: the 120–220 ms the rule keeps on purpose, and why the flake pointed the wrong way.
 
 ## Deviations
 
@@ -16534,3 +16535,32 @@ presenter; the branch is in one function instead, next to the undo it has to arm
 
 **What it did to the suite** is in the e2e ledger's own section for the day: two case ids kept their number and
 changed what they promise, because the promise moved to the surface that replaced theirs rather than dying with it.
+
+## The gesture window is a residue, not an oversight (2026-09-20)
+
+E2E-M4-135 was closed by mirroring M4's gesture window onto the host element as `data-scroll-gesture`, so a case waits
+for the window instead of racing it — it landed with ADR-051 amendment 1, whose branch carried it, and the ledger
+writes it up under *„Two views left the row and the helper stopped being one click"*. That is the fix, and the diff
+shows it. What the diff does not show is that the
+window itself is still there — and it stays, on purpose. Written down so it is not later found, read as the remains of
+a half-done fix, and „finished".
+
+**It has a measurable size.** „Comes to rest" is `ionScrollEnd`, which Ionic emits from a watchdog in
+`@ionic/core`'s content component: `setInterval(100)`, firing `onScrollEnd` once `lastScroll < Date.now() - 120`. So
+FR-21.17 has a **120–220 ms window after every gesture in which a scroll nobody made is still answered as the
+reader's**, and it is wall-clock, so nothing outside the page can tell whether it is open.
+
+**Why it is not closed.** Momentum counting as the flick is the rule's intent — a flick's travel is mostly momentum,
+and the head has to keep yielding through it — and the only way to take the clock out of the latch is to consume it
+per reading, which loses a flick that crosses the 48 px threshold on momentum alone. So the residue is real and
+known. Its reachable half is a **keyboard focus**: `focusin` is dispatched *before* the scroll it causes, so it could
+disarm the latch exactly rather than eventually. That is the shape a fix would take if the window ever produces a
+defect a reader can see; it is a behaviour change, and it would be owed its own case.
+
+**And the reading that pointed the wrong way.** The flake reproduced under background CPU load and barely at all on an
+idle machine, which reads as the familiar „the runner is slow, so wait longer". Here that was exactly backwards, and
+the instrumented trace is what settles it rather than an argument about timers: in a losing run the programmatic
+scroll lands 133 ms after the reader's last reading with the latch still armed, and the head then moves a row 435 px
+on a 289 px scroll — the scroll plus the head's own height, which is FR-21.17's defect stated exactly. The case was
+reporting the rule correctly and measuring at the wrong moment. A longer wait would have gone green by deleting the
+report, and it would have looked like a fix.
