@@ -251,6 +251,75 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
   })
 
   /**
+   * E2E-M4-138 (FR-7.6, UI-Spec M4): where the tick stands. The section sits
+   * directly above the packing rows, whose control is at the row's own edge
+   * so that the thing you tap is under the thumb — and the tasks were ticked
+   * on the opposite side, which reads as a different kind of row and is
+   * reached across the screen (owner, 2026-09-20).
+   *
+   * Geometry rather than markup, because only the rendered box says which
+   * edge a control ended up on (invariant 9b's point), and both kinds of task
+   * are measured: the trip's own ends with a seat and a ✕, a preparation with
+   * the chip of its row, and a tick placed before either of those would still
+   * carry the right `slot`.
+   *
+   * The packing row is measured in the same frame and asserted the same way.
+   * That clause is what makes this about the idiom instead of a number: it
+   * would go green on its own the day the packing control moves, and then
+   * the task clauses would be the ones to fail.
+   */
+  test('E2E-M4-138: a task is ticked at the row’s edge, where a packing row’s control is', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Kamera'], 'Samedan')
+    await addTripTodo(page, 'Water the plants')
+
+    await visible(page).getByTestId('m4-row-Kamera').click()
+    await page.getByTestId('m5-todo-input').locator('input').fill('Charge the battery')
+    await page.getByTestId('m5-todo-add').click()
+    await expect(page.getByTestId('m5-todo-Charge the battery')).toBeVisible()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    const section = await openTripTodos(page)
+    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
+
+    // One frame for every box: read one at a time they land in different
+    // frames of the section's unfold, and a row that is still moving reports
+    // edges that were never on screen together (the lesson of E2E-M5-14).
+    const measured = await visible(page).evaluate((screen) => {
+      const edges = (row: Element, control: string, words: string) => {
+        const r = row.getBoundingClientRect()
+        const c = row.querySelector(control)!.getBoundingClientRect()
+        const w = row.querySelector(words)!.getBoundingClientRect()
+        return { fromRowEnd: r.right - c.right, pastTheWords: c.left - w.right }
+      }
+      const row = (testid: string) => screen.querySelector(`[data-testid="${testid}"]`)!
+      return {
+        own: edges(row('trip-todo-Water the plants'), 'ion-checkbox', 'ion-label'),
+        prepared: edges(row('trip-todo-Charge the battery'), 'ion-checkbox', 'ion-label'),
+        packing: edges(row('m4-row-Kamera'), '.row-control', 'ion-label'),
+      }
+    })
+
+    // The words first, then the control: a tick to the left of its task reads
+    // as a bullet rather than as the thing you press.
+    expect(measured.own.pastTheWords).toBeGreaterThan(0)
+    expect(measured.prepared.pastTheWords).toBeGreaterThan(0)
+    expect(measured.packing.pastTheWords).toBeGreaterThan(0)
+
+    // And the control is the last thing on the line, close enough to the
+    // row's own end that the thumb finds it there — as it does one row down,
+    // on the packing rows the section stands above.
+    const AT_THE_EDGE = 24
+    expect(measured.own.fromRowEnd).toBeLessThan(AT_THE_EDGE)
+    expect(measured.prepared.fromRowEnd).toBeLessThan(AT_THE_EDGE)
+    expect(measured.packing.fromRowEnd).toBeLessThan(AT_THE_EDGE)
+  })
+
+  /**
    * E2E-M4-137 (FR-7.6, FR-5.8): the task goes with the row. Removing the
    * packing element takes its preparation out of the trip's tasks — off the
    * list and out of the count — while the trip's own task stays, which is

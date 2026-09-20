@@ -89,7 +89,6 @@ function assigneeOf(task: TripTask) {
       class="todo-row"
       :data-testid="`trip-todo-${task.body}`"
     >
-      <IonCheckbox slot="start" :checked="false" @ionChange="emit('toggle', task)" />
       <IonLabel>{{ task.body }}</IonLabel>
       <span slot="end" class="todo-end">
         <!-- FR-7.6: the chip stands where the trip's own task carries its
@@ -120,6 +119,12 @@ function assigneeOf(task: TripTask) {
           </button>
         </template>
       </span>
+      <!-- The tick is last, so its outer edge is the row's — the same rule a
+           packing row's control follows (UI-Spec M4), and the reason both land
+           under the same thumb. It is a sibling of the cluster rather than
+           part of it: the cluster's width budget is the chip's, and a tick
+           inside it would be paid for out of the row's name. -->
+      <IonCheckbox slot="end" class="tick" :checked="false" @ionChange="emit('toggle', task)" />
     </IonItem>
 
     <!-- Resolved ones fold away but stay reachable: unticking is the only
@@ -144,7 +149,6 @@ function assigneeOf(task: TripTask) {
           class="todo-row resolved"
           :data-testid="`trip-todo-${task.body}`"
         >
-          <IonCheckbox slot="start" :checked="true" @ionChange="emit('toggle', task)" />
           <IonLabel>{{ task.body }}</IonLabel>
           <span slot="end" class="todo-end">
             <TaskItemChip
@@ -173,6 +177,7 @@ function assigneeOf(task: TripTask) {
               </button>
             </template>
           </span>
+          <IonCheckbox slot="end" class="tick" :checked="true" @ionChange="emit('toggle', task)" />
         </IonItem>
       </template>
     </template>
@@ -213,6 +218,12 @@ function assigneeOf(task: TripTask) {
      that can outgrow the row; everything else keeps its box. */
   min-width: 0;
   max-width: 55%;
+}
+
+.tick {
+  /* A destructive ✕ stands next to the tick: the extra step keeps a mis-tap
+     from deleting what it meant to finish. */
+  margin-inline-start: 4px;
 }
 
 .rm {

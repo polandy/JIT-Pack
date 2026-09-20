@@ -811,6 +811,13 @@ in WebKit.
   task stays, which is what makes the disappearance about the row rather than about the section. The removal is
   **confirmed** rather than immediate precisely because the preparation cascades (`removalNeedsConfirm`), and the
   snackbar's *Rückgängig* brings row and task back together, which a list that lost the task for good would fail.
+* **E2E-M4-138** `local` (FR-7.6 with UI-Spec M4, added 2026-09-20) — **implemented** (`trip-tasks.spec.ts`,
+  red-proved against the leading-tick build): both kinds of task are ticked at the row's **own end**, past the seat and
+  the ✕ on the trip's own and past the chip on a preparation. Measured, not read off the markup — only the rendered
+  box says which edge a control reached (invariant 9b) — and every box is read in one frame, because a section still
+  unfolding reports edges that were never on screen together. The **packing row is measured in the same frame and
+  asserted the same way**, which is what makes the case about the idiom rather than a number: that clause alone would
+  stay green the day the packing control moves, and the task clauses would be the ones to fail.
 * **E2E-M4-110** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for three
   travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
   is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the
@@ -1101,6 +1108,10 @@ rather than registered.
   inventory row shows no rename line while the names agree; after the item is renamed in M10 it reads „The inventory
   calls it …", and *Take over* renames the row under the sheet's own title, drops the line and reports in M4's
   snackbar.
+* **E2E-M5-31** `local` (FR-7.3, added 2026-09-20) — **implemented** (`e2e/item-detail.spec.ts`, red-proved against
+  the leading-tick build): a preparation written in the sheet is ticked at the **end** of its line, flush with it and
+  past the words — the edge M4 ticks the same task on (E2E-M4-138). The line is a flex row, so the order in the
+  template and the order on the glass are two claims, and this one is measured.
 * **E2E-M5-13** `all` (Navigation Concept §7 case 4) — **implemented** (`e2e/item-detail.spec.ts`, red-proved against
   the unguarded build): the **browser's** back with the sheet open closes the sheet and stays on the packing list — the
   replace-based overlay history must not let a pop skip M4 and land on the trip list. The write-side rule is

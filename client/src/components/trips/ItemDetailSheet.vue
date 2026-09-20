@@ -553,13 +553,15 @@ const packedStamp = computed(() => {
         class="todo"
         :class="{ done: todo.task_state === 'resolved' }"
       >
+        <span class="todo-body">{{ todo.body }}</span>
+        <!-- The tick sits at the end, where M4 puts the control it stands
+             for — a task is ticked at the row's edge on both screens. -->
         <IonCheckbox
           :checked="todo.task_state === 'resolved'"
           :disabled="isLocked"
           :data-testid="`m5-todo-${todo.body}`"
           @ion-change="toggleTodo(todo)"
         />
-        <span class="todo-body">{{ todo.body }}</span>
       </label>
       <div v-if="!isLocked" class="composer">
         <IonInput
@@ -959,6 +961,11 @@ const packedStamp = computed(() => {
   align-items: center;
   gap: 11px;
   padding: 7px 0;
+}
+
+.todo .todo-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .todo.done .todo-body {
