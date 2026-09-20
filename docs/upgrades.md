@@ -11,7 +11,7 @@ store: database schema is stale: /data/jitpack.db was built from a different sch
 
 The refused file is left byte-for-byte as it was, so nothing is lost at that moment — but the new version will not run against it. [Troubleshooting](troubleshooting.md#store-database-schema-is-stale) covers the error itself; this page is about upgrading without losing what matters.
 
-This is planned to change at 1.0, when upgrades will carry the database forward. Until then, treat every image bump as potentially breaking and follow the steps below.
+This is planned to change in a 0.x release rather than waiting for 1.0: a coming version will carry the database forward on start-up instead of refusing it. Until that version ships, treat every image bump as potentially breaking and follow the steps below.
 
 ## Knowing a new version is out
 

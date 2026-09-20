@@ -402,6 +402,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
 - [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
+- [The instance outgrew "delete and reseed" (2026-09-20)](#the-instance-outgrew-delete-and-reseed-2026-09-20) — ADR-018's trigger fired, ADR-067 answers it; why a stamped fingerprint proves nothing.
 - [The selection mode grew a door instead of three buttons (2026-09-20)](#the-selection-mode-grew-a-door-instead-of-three-buttons-2026-09-20) — FR-24.9 widened: why a batch skips instead of refusing, and the two defects the first case to tap a row found.
 
 ## Deviations
@@ -16292,6 +16293,42 @@ E2E-M4-129 would have passed against the removal of the very guard it was writte
 is what they always claimed to be doing. The new case had the same disease twice before it bit: aimed at the nearest
 row off the top it moved the list by three pixels, under the rule's own noise threshold, and passed against the
 unfixed build. It aims at the topmost one and asserts the distance.
+
+### The instance outgrew "delete and reseed" (2026-09-20)
+
+ADR-018 traded the migration chain away for a readable `schema.sql` and named the condition that would buy it back: the
+first release meant for anyone but the maintainer, *or* the first time a second person runs an instance holding data
+they did not seed. The second half arrived quietly and nothing marked it. By v0.15.0 the family instance held 213
+items, 34 trips and 2131 trip rows behind two accounts, and the last two releases had both changed the schema.
+
+Neither release deleted it. Both were carried across by hand: read the `schema.sql` diff, write the `ALTER TABLE`s and
+the `CREATE TABLE` for `shopping_entries`, rehearse on a copy, apply to the stopped instance, then stamp
+`PRAGMA user_version` with the new fingerprint. The premise that made ADR-018 affordable — a database reproducible from
+a seed in one tap — had stopped being true a while before anyone said so.
+
+**A stamped fingerprint is a claim, not a check.** `ensureSchema` compares `user_version` against
+`schemaFingerprint()` and looks at nothing else. A hand migration that misses a column and stamps anyway produces a
+database the server opens without complaint and then queries for a column that is not there. The verification that
+caught this one was written for the occasion and is not part of any procedure: build a reference database from the
+release's `schema.sql`, then compare `sqlite_master`, `pragma table_info` and `pragma foreign_key_list` table by table
+against the live file. The `sqlite_master` text will *not* match — `ALTER TABLE` appends a column after `updated_hlc`
+where the schema declares it mid-list — so the comparison has to be per column, type, nullability, default and foreign
+key rather than per statement.
+
+Two traps came out of the same afternoon and both cost something:
+
+- **A `restic forget --keep-daily` window is a day, not a snapshot.** Taking a fresh backup before an unrelated
+  repair pruned the pre-upgrade snapshot from a few hours earlier, because `--keep-daily 14` keeps the *newest*
+  snapshot per day and the new one became it. The rollback point survived only as a file someone had already dumped.
+  Before a deliberate change, copy the snapshot out — do not assume taking another one is conservative.
+- **A single-user start against a multi-user database leaves a row behind.** `EnsureLocalSingleUserID` seeds a
+  `local` / "Demo User" account, and `ListUsers` filters only on `deactivated_at`, so the phantom would have shown up
+  in the FR-4.5 sharing picker. Rehearse a migration on a *copy*, never against the live path, even read-mostly.
+
+[ADR-067](adr/ADR-067_The_Store_Gets_A_Migration_Path_Inside_0x.md) is the answer: a migration path inside 0.x rather
+than at 1.0, with `schema.sql` kept as the baseline and an additive chain beside it, proved equal by a gate. It is a
+decision, not an implementation — until the loader exists the procedure above is what a schema-changing release costs,
+and this entry is where it is written down.
 
 ## The selection mode grew a door instead of three buttons (2026-09-20)
 
