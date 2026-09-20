@@ -1261,8 +1261,12 @@ const SCROLLER_INPUTS = ['wheel', 'touchmove', 'keydown', 'pointerdown'] as cons
 
 onMounted(() => {
   void packContent.value?.$el.getScrollElement?.().then((el) => {
+    // A scroller that does not resolve is the state the rule already knows
+    // as `viewport: null` — and there is nothing to listen on either.
+    if (el == null) return
     scrollEl = el
-    for (const type of SCROLLER_INPUTS) el.addEventListener(type, onScrollerInput, { passive: true })
+    for (const type of SCROLLER_INPUTS)
+      el.addEventListener(type, onScrollerInput, { passive: true })
   })
 })
 
