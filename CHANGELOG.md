@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.15.0](https://github.com/polandy/JIT-Pack/compare/v0.14.0...v0.15.0) (2026-09-20)
+
+
+### Features
+
+* **client:** a trip todo names whose job it is (FR-7.5) ([7bf667d](https://github.com/polandy/JIT-Pack/commit/7bf667d72dcefd0c20045c55892fa8f2a1d983ff))
+* **client:** the per-person rings and M12's bars are quick filters that pick several (FR-25.29, FR-8.2) ([#534](https://github.com/polandy/JIT-Pack/issues/534)) ([0277fa4](https://github.com/polandy/JIT-Pack/commit/0277fa49c5e61f3ed96e55e69e1adea11103bc88))
+* **client:** the sync sheet names who is packing a shared trip (FR-4.9) ([816ce86](https://github.com/polandy/JIT-Pack/commit/816ce86a11d9e380e05befd73a4d934b5c970a9b))
+* **cli:** jitpack tags retags an inventory from a plan file (FR-18.9) ([d66867d](https://github.com/polandy/JIT-Pack/commit/d66867dc163098647c7bbb65182639787a5e99b2))
+* the shopping list becomes a module of its own (FR-30, ADR-066) ([71b907a](https://github.com/polandy/JIT-Pack/commit/71b907a572b7f4db72dd2ce80405a71feadbae3c))
+
+
+### Bug Fixes
+
+* **client:** a tap beside M4's checkbox packs the row (G-6) ([595e5f6](https://github.com/polandy/JIT-Pack/commit/595e5f6b239a09720ea0b9a7a881955e1d174e05))
+* **client:** M4's head answers only a scroll the reader made (FR-21.17) ([ee66230](https://github.com/polandy/JIT-Pack/commit/ee6623072a20f409d819313347ff270f370f84e8))
+* **client:** search finds packed rows; the Erledigte switch and short lists stop misbehaving (FR-25.32, FR-21.17) ([d003ad1](https://github.com/polandy/JIT-Pack/commit/d003ad1f80c72aca1ec7fc4ab6a95ed99631455e))
+* **client:** the Gepackte-anzeigen bar goes while a search term is typed (FR-25.32) ([5268647](https://github.com/polandy/JIT-Pack/commit/52686473f391a9059a122e1a1e9940983ae8f3e0))
+* **client:** the Spätpacker bar goes while a search term is typed (FR-25.32) ([df5a861](https://github.com/polandy/JIT-Pack/commit/df5a861e363bf7f5ec2ce8cc5866fe604b860f5c))
+
 ## [0.14.0](https://github.com/polandy/JIT-Pack/compare/v0.13.0...v0.14.0) (2026-09-19)
 
 
