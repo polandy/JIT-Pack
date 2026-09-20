@@ -1093,8 +1093,16 @@ rather than registered.
   replace-based overlay history must not let a pop skip M4 and land on the trip list. The write-side rule is
   unit-specified in `src/router/__tests__/overlayBackGuard.spec.ts`.
 * **E2E-M5-14** `all` (G-14/FR-21.8) — **implemented** (`e2e/item-detail.spec.ts`, red-proved against the 26 px build):
-  the header's save indicator and ✕ share a diameter and a centre line. Measured on the rendered boxes, both read in one
-  frame so the sheet's enter animation cannot fake a difference.
+  the header's save indicator sits on the ✕'s centre line. Measured on the rendered boxes, both read in one
+  frame so the sheet's enter animation cannot fake a difference, and on the painted lamp rather than the cell that
+  centres it, since that cell agrees with the ✕ by construction — which is the construction under test.
+  **The shared diameter was asserted here until 2026-09-20 and is now asserted against** (owner): it was the other half
+  of why the indicator read as a second button, so the case had written a defect into the suite with the same weight as
+  a promise. The case now also requires the lamp to be visibly smaller than the ✕. The lesson is about the shape of the
+  clause, not this control: *equal width and height* was never the property that made the 2026-08-16 header look
+  crooked — the shared centre line was — and a measurement that over-states what it protects outlives the reason it was
+  written. Because the lamp is silent until the sheet writes, the case now makes an edit first, which is also the only
+  way it can fail for the right reason.
 * **E2E-M5-17** `all` (FR-9.1) — **implemented** (`e2e/item-detail.spec.ts`): the two trip-feedback flags are controls
   behind *Details ▾* and appear **only once the trip runs** — the same case starts the trip and marks the row *unused*,
   so the absence half has a positive signal beside it rather than passing on a typo. Read back from the glance chip,
@@ -3566,7 +3574,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.19 | E2E | M4-30 (responsibility vs. record, single right-edge avatar, record not editable) |
 | FR-25.20 | E2E | M4-31 (others' rows hidden by default, reveal bar names count + people, header unfiltered) |
 | FR-25.14 | E2E | M5-18 (the aggregate is M4's cluster head since FR-25.21; M5-06 retired) |
-| FR-25.15 | UNIT+E2E | M5-07 → captureState.spec.ts + ItemDetailSheet.spec.ts (distinct from G-2); M5-11, M11-05 (no save button — asserted since 2026-08-30; the credit stood for months on a case that asserted only the indicator's presence) |
+| FR-25.15 | UNIT+E2E | M5-07 → captureState.spec.ts + ItemDetailSheet.spec.ts (distinct from G-2); M5-11, M11-05 (no save button — asserted since 2026-08-30; the credit stood for months on a case that asserted only the indicator's presence). Since 2026-09-20 each of these reads the indicator **after** an edit, with its absence before asserted beside it: the lamp is silent until the sheet writes, so the presence clauses are falsifiable for the first time |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
 | FR-27.1 | E2E+UNIT | M8-07 (two-level include rules), M7-07, M21-03; `domain/templates.ts` (one-level expansion, dedup by master item), `internal/portable` + `domain/portable.ts` (the `scope` field round-trips, an unknown scope is rejected, a scope on a trip document is an error) |
 | FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |

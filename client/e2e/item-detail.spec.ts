@@ -116,7 +116,12 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-pack-label')).toHaveText('Packing')
     await expect(page.getByTestId('m5-todo-input')).toBeVisible()
     await expect(page.getByTestId('m5-note-input')).toBeVisible()
-    // FR-25.15: the sheet confirms local capture — settled ✓ once open…
+    // FR-25.15: the sheet confirms local capture. Silent on a sheet nobody
+    // has edited (owner, 2026-09-20) — a standing ✓ confirms nothing, and it
+    // made every assertion about this indicator unfalsifiable, this one
+    // included: it was green before the sheet had written a thing.
+    await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toHaveCount(0)
+    await page.getByTestId('m5-pack').getByTestId('row-check').click()
     await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toHaveAttribute(
       'title',
       'Saved',
@@ -283,21 +288,32 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
   })
 
-  // E2E-M5-14 (G-14/FR-21.8): the header's two round controls are a pair,
-  // so they share a diameter and a centre line. Owner-flagged on a rendered
-  // phone (2026-08-16): the ✓ was 26 px against the ✕'s 34 px and both were
-  // hung from the same top edge, which put their centres 4 px apart and made
-  // the header read as crooked. Geometry rather than a stylesheet claim,
-  // because only the rendered box shows the offset (invariant 9b's point).
-  test('E2E-M5-14: the save indicator and the ✕ share a size and a centre line', async ({
-    page,
-  }) => {
+  // E2E-M5-14 (G-14/FR-21.8): the save indicator sits on the ✕'s centre
+  // line. Owner-flagged on a rendered phone (2026-08-16): the ✓ was 26 px
+  // against the ✕'s 34 px and both were hung from the same top edge, which
+  // put their centres 4 px apart and made the header read as crooked.
+  // Geometry rather than a stylesheet claim, because only the rendered box
+  // shows the offset (invariant 9b's point).
+  //
+  // **The shared diameter is deliberately no longer asserted** (owner,
+  // 2026-09-20). It was the other half of why the indicator read as a
+  // second button: a filled circle at exactly the ✕'s size, beside a ✕ that
+  // is one. The lamp that replaced it is 9 px, and this case had the old
+  // equality written into it — a test can pin a defect as firmly as a
+  // promise. What survives is the alignment, which is what was actually
+  // wrong in 2026-08-16: the lamp keeps a cell as tall as the ✕ so the two
+  // centres still coincide, and that is the clause below.
+  test('E2E-M5-14: the save indicator sits on the ✕’s centre line', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
     await addInComposer(page, 'Wanderstöcke')
     await page.getByTestId('m4-row-Wanderstöcke').getByRole('heading').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    // The lamp is silent until the sheet writes, so there is something to
+    // measure only after an edit — which is also the one way this case can
+    // fail for the right reason.
+    await page.getByTestId('m5-pack').getByTestId('row-check').click()
     // Present before they are measured, so a missing control fails as a
     // missing control rather than as a null dereference inside the page.
     await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toBeVisible()
@@ -308,17 +324,24 @@ test.describe('M5 item detail @local @m5', () => {
     // animation and report a 5 px offset on an aligned header — a false red
     // this case produced before it was written this way. Under one shared
     // transform the difference between the two is exact whenever it is read.
+    //
+    // The lamp is measured as the painted dot, not as the cell that centres
+    // it: the cell's own centre agrees with the ✕ by construction, which is
+    // the construction under test.
     const [save, close] = await page.getByTestId('m5-sheet').evaluate((sheet) => {
       const box = (sel: string) => {
         const r = sheet.querySelector(sel)!.getBoundingClientRect()
         return { width: r.width, height: r.height, centerY: r.y + r.height / 2 }
       }
-      return [box('[data-testid="save-indicator"]'), box('[data-testid="m5-close"]')]
+      return [box('[data-testid="save-indicator"] .bulb'), box('[data-testid="m5-close"]')]
     })
 
-    expect(save.height).toBeCloseTo(close.height, 1)
-    expect(save.width).toBeCloseTo(close.width, 1)
     expect(save.centerY).toBeCloseTo(close.centerY, 1)
+    // And it is no longer the ✕'s twin: a status lamp that matches a button
+    // in size and shape is read as a second button, which is what sent this
+    // case back to the owner. The margin is wide, because the claim is
+    // "visibly smaller" and not a pixel count.
+    expect(save.width).toBeLessThan(close.width / 2)
   })
   // E2E-M5-17 (FR-9.1): the two trip-feedback flags are controls behind
   // *Details ▾*, and only while the trip runs. Until 2026-08-20 the sheet

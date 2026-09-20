@@ -415,7 +415,11 @@ const packedStamp = computed(() => {
         />
       </template>
       <template #trail>
-        <SaveIndicator :pending="orchestrator.capturePending.value" />
+        <!-- Keyed by the item: the G-9 side panel is *re-pointed* at another
+             row rather than closed and reopened (M4 replaces the route), and
+             the FR-25.15 latch would otherwise carry the lamp from the item
+             it was raised on to one nothing has been written to. -->
+        <SaveIndicator :key="props.itemId" :pending="orchestrator.capturePending.value" />
       </template>
     </SheetHead>
 
