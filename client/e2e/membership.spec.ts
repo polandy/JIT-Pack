@@ -1117,4 +1117,62 @@ test.describe('FR-25.21 the state follows the numbers @local @m5', () => {
       await expect(list.getByTestId(`m4-child-${ITEM}-${traveler}`)).toBeVisible()
     }
   })
+
+  /*
+   * FR-5.9 from the head (FR-25.26). The head draws the mode of one instance
+   * — the glyph sits once on the cluster (FR-25.4a) — so a fan-out that
+   * reached one child of two repaints it just the same. Each instance's mode
+   * is therefore read in its own M5, whose chip names it; the mode picker
+   * that would name every mode stays folded under *Details*.
+   */
+  test('E2E-M4-132: the cluster head switches every instance to buy there, behind one undo', async ({
+    page,
+  }) => {
+    await seedTrip(page)
+    await openItem(page, ITEM)
+    await setMemberInM5(page, 'Andy', 1)
+    await setMemberInM5(page, 'Leonardo', 1)
+    await closeItem(page)
+
+    const list = visiblePage(page)
+    const head = list.getByTestId(`m4-cluster-${ITEM}`)
+    const menu = page.locator('ion-action-sheet')
+    const expectEachChild = async (buyThere: boolean) => {
+      for (const traveler of ['Andy', 'Leonardo']) {
+        await list.getByTestId(`m4-child-${ITEM}-${traveler}`).getByRole('heading').click()
+        const sheet = page.getByTestId('m5-sheet')
+        await expect(sheet).toBeVisible()
+        await expect(sheet.locator('.chip.buy')).toHaveText(buyThere ? [/buy there/i] : [])
+        await page.getByTestId('m5-close').click()
+        await expect(sheet).toHaveCount(0)
+      }
+    }
+
+    // Packed, both — the chip the assertion reads is absent before the act.
+    await openCluster(page, ITEM)
+    await expectEachChild(false)
+
+    await head.dispatchEvent('contextmenu')
+    await menu.getByRole('button', { name: /^buy there$/i }).click()
+    await expect(menu).toHaveCount(0)
+    await expect(head.getByTitle('Buy there')).toHaveCount(1)
+    await expectEachChild(true)
+
+    // With every instance bought there, the head offers the way back only.
+    await head.dispatchEvent('contextmenu')
+    await expect(menu.getByRole('button', { name: /^buy there$/i })).toHaveCount(0)
+    await menu.getByRole('button', { name: /take it along instead/i }).click()
+    await expect(menu).toHaveCount(0)
+    await expect(head.getByTitle('Buy there')).toHaveCount(0)
+
+    // FR-25.31: one undo, and each instance gets its own previous mode back.
+    await page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: /2 rows changed/ })
+      .last()
+      .getByRole('button', { name: /undo/i })
+      .click()
+    await expect(head.getByTitle('Buy there')).toHaveCount(1)
+    await expectEachChild(true)
+  })
 })
