@@ -403,6 +403,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
 - [The instance outgrew "delete and reseed" (2026-09-20)](#the-instance-outgrew-delete-and-reseed-2026-09-20) — ADR-018's trigger fired, ADR-067 answers it; why a stamped fingerprint proves nothing.
+- [The selection mode grew a door instead of three buttons (2026-09-20)](#the-selection-mode-grew-a-door-instead-of-three-buttons-2026-09-20) — FR-24.9 widened: why a batch skips instead of refusing, and the two defects the first case to tap a row found.
+- [A bought row that said so in the wrong column (2026-09-20)](#a-bought-row-that-said-so-in-the-wrong-column-2026-09-20) — FR-25.11j: why a BUY_LOCAL row packed on M4 was on neither shopping tab.
 - [Two of the four badges were not worth a badge (2026-09-20)](#two-of-the-four-badges-were-not-worth-a-badge-2026-09-20) — ADR-051 amendment 1: the mockup that decided it, and the rule that keeps the row saying where you are.
 
 ## Deviations
@@ -16329,6 +16331,88 @@ Two traps came out of the same afternoon and both cost something:
 than at 1.0, with `schema.sql` kept as the baseline and an additive chain beside it, proved equal by a gate. It is a
 decision, not an implementation — until the loader exists the procedure above is what a schema-changing release costs,
 and this entry is where it is written down.
+
+## The selection mode grew a door instead of three buttons (2026-09-20)
+
+M9 could set tags and retire in bulk; everything else a row carries — FR-1.9's usual assignee, FR-20.1's mains and
+companions — was still one item at a time through M10. The owner asked for all three over a selection.
+
+**Where they went is the only design decision, and it was measured rather than argued.** The action bar is four
+icon-over-label buttons wide at 390 px before the labels start clipping, and two of its three slots are the acts the
+mode was measured on („Diverses" holds 49 of 184 items on the family instance). Six controls do not fit, a scrolling
+bar hides the very acts being added, and dropping the retire to make room would move a destructive act *towards* the
+thumb rail. So the fourth slot is a **⋯ „Mehr"** opening an action sheet. The sheet also buys something the bar cannot
+give: room for a sentence. „Hängt ab von" is not self-explanatory as a four-word label — it does not say which end of
+the edge the selection is standing on — and each sheet now carries that sentence above its list.
+
+**A batch skips; it does not refuse** — ADR-061's driver 4 again, in a new costume. The tempting shape for a bulk link
+is the one M10 has: check the edge, refuse
+with the cycle named hop by hop. Over fifty rows that answer is unusable — it names an offender the user then has to
+find among the selection, and nothing is written meanwhile. `planDependencyBatch` decides each item on its own and
+counts what it left out (the picked item inside its own selection, an edge that already exists, one that would close a
+cycle), and the snackbar says how many. The same principle covers the assignee batch, where the reason is stronger
+than tidiness: under field-level LWW (ADR-022) rewriting an item that already names that person is a newer clock
+carrying an unchanged value, which would beat a real change made on another device in between.
+
+**The plan accumulates edges it cannot need.** `planDependencyBatch` adds each accepted edge to the graph before
+judging the next candidate. For the batches this screen makes that can never change an answer — every edge of one
+batch meets the picked item at the same end, so an accepted edge can never extend a path the next check follows, and
+the first version of the test written to prove otherwise turned out to be asserting the self-edge instead. It stays
+because a plan that reads a graph it is also writing should not be correct only by that argument, and the doc comment
+now says exactly that rather than claiming a cycle it cannot produce.
+
+**The undo stopped being a record and became a call.** One `BulkTagUndo` had been enough while both actions put tag
+assignments back. The three new ones reverse different things — each item's own previous assignee, rows that were not
+there before — so M9 now holds `() => void` and each action group owns how to reverse itself, which is the shape
+`useRowUndo` already had for M4's snackbars.
+
+**What the rendered screen said that the stylesheet could not.** The dependency sheet's first version offered the
+inventory in store order: ten arbitrary items, a different ten after the next write. It is sorted by name now, because
+the cap only makes sense over an order somebody can predict.
+
+**Two defects the new case found in the old feature, and why nothing had found them before.** Writing an e2e case that
+*picks rows* — rather than pressing „Alle N", which is all E2E-M9-16 ever did — turned the selection mode red at the
+first tap:
+
+- **Tapping a row in selection mode reloaded the whole app.** The row drops its `routerLink` while the mode is on, and
+  `ion-item` answers that by keeping its shadow `<a>` with an **empty** href. An empty href resolves to the current
+  URL, so a click was a full page load: the app re-booted, the selection was gone and the URL looked untouched, which
+  is why it read as „the mode turns itself off". jsdom renders no shadow root, so the unit spec that clicks the same
+  control was green throughout and always will be. The row is keyed on the mode now, so the armed row is built without
+  an anchor at all.
+- **The counter said „Nichts ausgewählt" for exactly one row**, and „0 ausgewählt" for none. The catalogue has two
+  forms and `n === 1` takes the first; the entry had been written with the *zero* sentence in the singular slot, so
+  both ends were wrong. Zero is now its own key, decided at the call site — a two-form plural has no zero form, and
+  pretending otherwise is how this happened. The regression test has to compare the bar against the *other* sentence:
+  asserting it equals `t('items.selectedCount', { n: 1 })` was green against the inverted catalogue, because both
+  sides came from the same entry.
+
+The pair is the testing rule in CLAUDE.md paying for itself twice in one afternoon: a `data-testid` that appears in no
+case is a dependable sign that nothing has ever operated that control, and `m9-row-check-…` appeared only in a jsdom
+spec.
+
+### A bought row that said so in the wrong column (2026-09-20)
+
+Two `buy_local` rows on the family instance's live trip were on neither M6 tab — not open, not under "gekaufte
+anzeigen" — while sitting untouched in the database. Reported as data lost to the 0.15.0 upgrade; the pre-upgrade
+snapshot says otherwise. Both rows are byte-identical across it: `state = packed`, `bought_from` NULL, packed hours
+before the new image started.
+
+`getShoppingItems` asked one question for both lists: `bought_from === from`. That is right for BUY_BEFORE, where the
+purchase flips `mode` to `pack` and the column is the only trace of where the row came from — which is what FR-25.11j
+was written for. It is wrong for BUY_LOCAL, and the FR says so in the same paragraph: *a BUY_LOCAL purchase is a
+packing act, so `packed_at` and `packed_by_user_id` already record it through the ordinary FR-25.17 path.* Only M6's
+own check-off writes `bought_from`. Check the same row off on the packing list and it is packed, so it leaves the open
+tab, and unrecorded, so it never reaches the bought one.
+
+**The premise that was wrong**: that a purchase always happens on the shopping screen. `bought_from` was designed as
+the record of *which list* a row left, not of *whether* it was bought — and a column that answers one question was
+asked the other.
+
+The fix reads the state for BUY_LOCAL and keeps `bought_from` beside it, because a row bought on M6 and later moved to
+`pack` by hand is still findable only by the column. The `field_hlcs` were what settled the diagnosis rather than a
+guess: `bought_from` carried the row's creation-era clock while `state` and `packed_at` carried the later one, so the
+check-off demonstrably never touched it.
 
 ## Two of the four badges were not worth a badge (2026-09-20)
 

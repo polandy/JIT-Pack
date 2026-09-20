@@ -1757,6 +1757,17 @@ test body under it separates a wrong number from a missing test.**
   from the tag manager's mark control through the item mark's picker, and read where it files something — on the group
   heading, and **lent, muted, to a row without its own** (the `borrowed` slot). The mark is read off the tile that was
   tapped rather than hard-coded, so the case does not pin the mark index's ordering.
+* **E2E-M9-26** `all` (FR-24.9 widened, FR-20.1) — **implemented 2026-09-20** (`e2e/inventory.spec.ts`): a
+  dependency declared for two rows at once from the ⋯ sheet, in the **suggested** mode the sheet was switched to, and
+  read back on M10's own list for each of them — M9 paints no edges, so a link that wrote nothing would look exactly
+  like one that worked. The companion direction is then asserted on the *other* list, since the stored row is the same
+  edge and the end it is read from is all that tells them apart. The undo is taken on the **second** of two companion
+  batches, so the absence it leaves is measured against a list that still carries the first row.
+* **E2E-M9-27** `server` (FR-1.9 over FR-24.9) — **implemented 2026-09-20** (`e2e/server/multi-user.spec.ts`): two
+  items created as *„Nobody"*, then assigned to Bob in one act from the ⋯ sheet, and both rows name him in M10
+  afterwards. It is a `server` case because the action only exists there (G-8 needs two accounts), and it picks its
+  rows **by name** rather than with „Alle N", because master data is instance-wide and the inventory carries every
+  other case's items too.
 * **E2E-M9-17** `all` (FR-24.10) — **implemented 2026-09-15** (`e2e/inventory.spec.ts`): a tag is renamed from the
   manager, and the **inventory's group heading** carries the new name — the only place the write is observable, since
   the sheet would show a renamed row whether or not anything was written. The second clause is the refusal: a name a

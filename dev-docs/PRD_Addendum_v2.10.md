@@ -1718,6 +1718,30 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   detour through M10 first. A query that names no tag under the **uniqueness** fold (`findNameCollision`, so „diverses"
   is not offered beside „Diverses") is offered as a new tag in FR-24.11's dashed row, created and given in one act; the
   batch's undo removes the tag again once it has emptied it. Taking never offers it.
+
+  **Three more acts, behind one door (widened 2026-09-20).** The mode could set tags and retire, and everything else an
+  inventory row carries was still one row at a time: who it is usually assigned to (FR-1.9), what it depends on and what
+  comes along with it (FR-20.1). Those three are now bulk acts too, reached from a **⋯ „Mehr"** in the action bar rather
+  than as three more controls beside the two tag ones — measured at 390 px the bar carries **four** before the labels
+  clip, the two tag actions are what the mode was measured on, and a sheet has room for the words these three need
+  („Hängt ab von" alone does not say which end of the edge the selection is on). *„Üblicherweise zuweisen an …"* offers
+  the directory plus **„Niemand"**, which is what takes an assignment away again, and is **absent where the instance has
+  fewer than two accounts** (G-8, the same rule M10's own field follows — Local and Single-User Mode never see it).
+  *„Hängt ab von …"* and *„Begleitartikel …"* open one sheet whose only difference is the sentence and the direction:
+  the same stored edge read from its two ends, as M10 already renders it for a single item. The sheet carries the
+  **mode** the batch writes (FR-20.4's required/suggested), because deciding it per row afterwards is the saving the
+  batch exists for, and it offers the inventory **capped and sorted by name** with what the cap holds back named — an
+  uncapped sheet is two hundred rows, and an unsorted one is ten arbitrary ones.
+
+  **A batch skips, it does not refuse** (the shape is **ADR-061**'s, driver 4). A link is planned per item
+  (`planDependencyBatch`): the picked item inside its
+  own selection, an edge that already exists, and one that would close a cycle are each left out and **counted in the
+  result sentence**, while the rest is written. Refusing the whole batch over one offender would leave the user to find
+  it among fifty rows, and the cycle it protects is the same one M10's save-time validator refuses. The assignee batch
+  skips on the same principle: an item already naming that person is not rewritten, which under field-level LWW
+  (ADR-022) matters beyond tidiness — a no-op write still carries a newer clock and would beat a real change made on
+  another device. **Both have an undo**, the assignee's putting *each item's own* previous value back rather than one
+  value for the batch; the link's removing exactly the rows it created.
 * **FR-24.10 (Managing the Tags Themselves — added 2026-09-15, implemented the same day; the delete's options and
   their costs are **ADR-063**):** M9 carries a **tag manager**, reached as a word in the app bar's ⋮ (ADR-050 spends
   its three glyphs on FR-24.4's eye, the sort and FR-24.9's selection, and this is the rarest of the four). It lists
@@ -2353,6 +2377,13 @@ locked.
       * **The two lists are disjoint by construction:** a row still actionable on its tab is never also reported as
         bought, even when its mode was put back by hand rather than by this undo. An actionable row hidden under a
         reveal is the failure FR-25.11a names.
+      * **A BUY_LOCAL purchase is found two ways (corrected 2026-09-20):** `bought_from` is what M6's own check-off
+        writes, and for a BUY_BEFORE row it is the only way back, because the purchase changed the mode. A BUY_LOCAL
+        row is bought *by being packed*, so checking it off on the packing list records it the ordinary FR-25.17 way
+        and writes no `bought_from` at all — and reading the column alone lost such a row off both tabs at once: open
+        no longer, bought never. The bought list therefore unions the column with the state — a `buy_local` row that
+        is `packed` — and keeps the column beside it, because a row bought on M6 and later moved to `pack` by hand is
+        findable only there. `bought_from` records *which list a row left*, not *whether* it was bought.
     ~~**Owed (2026-08-25):** the portable format does not carry `bought_from`, so a Local Mode backup and restore
     (NFR-4.11) loses which list a row was bought from — the row comes back on the packing list with the shopping side no
     longer knowing it was bought. Both halves of the fix live in `client/src/domain/portable.ts` and

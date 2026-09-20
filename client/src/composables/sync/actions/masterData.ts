@@ -33,6 +33,7 @@ import {
   tagDeletion,
   TAG_DELETE_REFUSED,
 } from '@/domain/tags'
+import { planDefaultAssignee, type AssigneeChange } from '@/domain/defaultAssignee'
 import { findNameCollision } from '@/domain/nameCollision'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
@@ -89,6 +90,22 @@ export interface BulkTagUndo {
 export interface BulkTagResult {
   touched: number
   undo: BulkTagUndo
+}
+
+/**
+ * What one bulk assignee batch wrote (FR-1.9 over FR-24.9): each item it
+ * rewrote, with the value it held before. Per item rather than one previous
+ * value for the batch, because a selection is rarely uniform — the point of
+ * the action is that it spans items that named different people, or nobody.
+ */
+export interface BulkAssigneeUndo {
+  changed: AssigneeChange[]
+}
+
+/** A bulk assignee batch's answer: how many items it changed, and its undo. */
+export interface BulkAssigneeResult {
+  touched: number
+  undo: BulkAssigneeUndo
 }
 
 /** createMasterDataActions binds the master-data group to one sync context. */
@@ -364,6 +381,33 @@ export function createMasterDataActions(ctx: SyncContext) {
       mutation,
       optimistic: optimisticUpdate(mutation, masterItemRow(item)),
     })
+  }
+
+  /**
+   * Name who many items are usually assigned to (FR-1.9 over FR-24.9), or
+   * nobody when `assigneeId` is null. Items already naming that person are
+   * not rewritten — see `planDefaultAssignee` for why a no-op write is worse
+   * than pointless here.
+   */
+  function assignDefaultAssignee(
+    items: MasterItem[],
+    assigneeId: string | null,
+  ): BulkAssigneeResult {
+    const changed = planDefaultAssignee(items, assigneeId)
+    for (const { item } of changed) {
+      updateMasterItem(item, { default_assignee_id: assigneeId })
+    }
+    return { touched: changed.length, undo: { changed } }
+  }
+
+  /** Write one assignee batch back (FR-24.9's „Rückgängig"). */
+  function undoBulkAssignee(undo: BulkAssigneeUndo): void {
+    for (const { item, previous } of undo.changed) {
+      // Re-read: the batch above has painted the row, and the optimistic twin
+      // is built from what the row holds now, not from the pre-batch snapshot.
+      const current = masterStore.getItem(item.id) ?? item
+      updateMasterItem(current, { default_assignee_id: previous })
+    }
   }
 
   /**
@@ -646,6 +690,8 @@ export function createMasterDataActions(ctx: SyncContext) {
     undoBulkTag,
     createMasterItem,
     updateMasterItem,
+    assignDefaultAssignee,
+    undoBulkAssignee,
     masterItemDeletionOutlook,
     templateDeletionOutlook,
     deleteMasterItem,
