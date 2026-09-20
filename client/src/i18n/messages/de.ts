@@ -502,6 +502,7 @@ export const de: Record<keyof typeof en, string> = {
   'items.property.tags': 'Tags',
   'items.property.weight': 'Gewicht',
   'items.property.price': 'Preis',
+  'items.property.assignee': 'Zuständig',
   'items.tagFilterAll': 'Alle',
   'items.retiredHint':
     'Ein Artikel ist stillgelegt — ansehen | {n} Artikel sind stillgelegt — ansehen',
@@ -574,6 +575,37 @@ export const de: Record<keyof typeof en, string> = {
   'items.tagsSearch': 'Tag suchen …',
   'items.tagsEmpty': 'Es gibt noch keinen Tag.',
   'items.tagsNoMatch': 'Kein Tag passt zur Suche.',
+  'items.tagPick': '„{tag}“ auswählen',
+  'items.mergeTitle': 'Welcher Artikel bleibt?',
+  'items.mergeMeta': '{n} Artikel zusammenführen',
+  'items.mergeHint':
+    'Der gewählte Artikel bleibt. Die anderen geben ihm ihre Tags, Vorlagen-Positionen und Begleitartikel ab.',
+  'items.mergeUnused': 'noch nie benutzt',
+  'items.mergeUses': 'einmal benutzt | {n}× benutzt',
+  'items.bulkMerge': 'Zusammenführen …',
+  'items.mergeConfirmBody':
+    '„{name}“ bleibt. Ein Artikel wird zusammengeführt und danach stillgelegt oder gelöscht. | „{name}“ bleibt. {n} Artikel werden zusammengeführt und danach stillgelegt oder gelöscht.',
+  'items.mergeConfirm': 'Zusammenführen',
+  'items.merged':
+    'Ein Artikel liegt jetzt unter „{name}“. | {n} Artikel liegen jetzt unter „{name}“.',
+  'items.mergedTook': 'Übernommen: {what}.',
+  'items.mergedPositions':
+    'In einer Vorlage wurden zwei Positionen zu einer. | In {n} Vorlagen wurden zwei Positionen zu einer.',
+  'items.mergedEdges':
+    'Ein Begleitartikel-Eintrag ist entfallen. | {n} Begleitartikel-Einträge sind entfallen.',
+  'items.mergedInto': 'zusammengeführt mit „{name}“',
+  'items.field.weight_grams': 'Gewicht',
+  'items.field.value_cents': 'Preis',
+  'items.field.icon': 'Markierung',
+  'items.field.default_assignee_id': 'Zuständigkeit',
+  'items.field.photo': 'Foto',
+  'items.tagsSelect': 'Mehrere wählen',
+  'items.tagsSelected': '{n} gewählt',
+  'items.tagsMergeMany': 'Zusammenführen',
+  'items.tagsMergeManyTitle': 'Welcher Tag soll bleiben?',
+  'items.tagsMergeManyConfirmBody':
+    'Ein Artikel bekommt „{target}“. Die anderen {m} Tags werden danach gelöscht. | {n} Artikel bekommen „{target}“. Die anderen {m} Tags werden danach gelöscht.',
+  'items.tagsMergeManyCount': '{name} ({n})',
   'items.tagUp': '„{tag}“ nach oben',
   'items.tagDown': '„{tag}“ nach unten',
   'items.tagRenameAria': '„{tag}“ umbenennen',
@@ -619,6 +651,7 @@ export const de: Record<keyof typeof en, string> = {
   'items.match.name': 'Treffer im Namen',
   'items.match.tag': 'Treffer im Tag',
   'items.match.mark': 'Treffer in der Marke',
+  'items.match.assignee': 'Treffer bei „zugewiesen an“',
   'items.matchVia': 'über {via}',
   'items.editor.newHint': 'Neuer Artikel — nur der Name ist nötig, alles Weitere ist optional.',
   'items.editor.name': 'Name',

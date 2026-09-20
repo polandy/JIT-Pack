@@ -149,7 +149,7 @@ describe('commentsOnItem (FR-27.9)', () => {
   ]
 
   it('gathers the item’s comments across trips, newest first', () => {
-    const result = commentsOnItem('i-kamera', trips)
+    const result = commentsOnItem(['i-kamera'], trips)
     expect(result.map((c) => c.commentId)).toEqual(['c-1', 'c-9'])
     expect(result[0]).toMatchObject({
       tripId: 'trip-2025',
@@ -160,16 +160,28 @@ describe('commentsOnItem (FR-27.9)', () => {
   })
 
   it('leaves another item’s comment alone', () => {
-    expect(commentsOnItem('i-helm', trips).map((c) => c.body)).toEqual(['Helm ist zu klein'])
+    expect(commentsOnItem(['i-helm'], trips).map((c) => c.body)).toEqual(['Helm ist zu klein'])
   })
 
   it('never picks up a trip-level comment, which belongs to no item', () => {
-    const bodies = trips.flatMap((t) => commentsOnItem('i-kamera', [t])).map((c) => c.body)
+    const bodies = trips.flatMap((t) => commentsOnItem(['i-kamera'], [t])).map((c) => c.body)
     expect(bodies).not.toContain('Zug war pünktlich')
   })
 
   it('is empty for an item no trip ever carried', () => {
-    expect(commentsOnItem('i-unused', trips)).toEqual([])
+    expect(commentsOnItem(['i-unused'], trips)).toEqual([])
+  })
+
+  it('reads a merged-away row’s comments as the survivor’s (FR-24.15)', () => {
+    // The trip row still names the item it was generated from, so the
+    // survivor's own id finds nothing of the loser's past. The caller passes
+    // both ids — `mergedIdsOf` — and the section reads as one history.
+    const merged = commentsOnItem(['i-survivor', 'i-kamera'], trips)
+
+    expect(merged.map((c) => c.body)).toEqual(
+      commentsOnItem(['i-kamera'], trips).map((c) => c.body),
+    )
+    expect(merged.length).toBeGreaterThan(0)
   })
 
   /**
@@ -194,7 +206,7 @@ describe('commentsOnItem (FR-27.9)', () => {
         ],
       },
     ]
-    expect(commentsOnItem('i-kamera', adhoc)).toEqual([])
+    expect(commentsOnItem(['i-kamera'], adhoc)).toEqual([])
   })
 
   it('sorts an undated comment last rather than first', () => {
@@ -215,6 +227,9 @@ describe('commentsOnItem (FR-27.9)', () => {
         ],
       },
     ]
-    expect(commentsOnItem('i-kamera', undated).map((c) => c.commentId)).toEqual(['c-new', 'c-old'])
+    expect(commentsOnItem(['i-kamera'], undated).map((c) => c.commentId)).toEqual([
+      'c-new',
+      'c-old',
+    ])
   })
 })

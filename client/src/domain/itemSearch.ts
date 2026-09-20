@@ -21,7 +21,7 @@ import { foldSearch, searchEquals, searchMatches } from './search'
 import type { NamedRow } from './nameCollision'
 
 /** Why a row is in the result. Ordered: this is also the ranking. */
-export const MATCH_REASONS = ['name', 'tag', 'mark'] as const
+export const MATCH_REASONS = ['name', 'tag', 'mark', 'assignee'] as const
 
 /** Why a row is in the result (FR-24.7). */
 export type MatchReason = (typeof MATCH_REASONS)[number]
@@ -38,6 +38,14 @@ export interface ItemSearchCandidate {
    * stays independent of the mark index's shape.
    */
   markKeywords?: string[]
+  /**
+   * Who the item is usually somebody's job for (FR-1.9), by display name —
+   * absent where there is no account to name, which is every row in Local
+   * and Single-User Mode. It is the inventory's answer to „was ist
+   * üblicherweise meins?": FR-24.2's axis is tags and an account is not one,
+   * so the question is asked of the search instead of a second filter axis.
+   */
+  assigneeName?: string
 }
 
 /** One search result, in the order M9 renders. */
@@ -46,7 +54,8 @@ export interface ItemSearchHit {
   reason: MatchReason
   /**
    * What carried the match when it was not the name — the tag's name, the
-   * mark's keyword. `null` for a name hit, where the row itself shows it.
+   * mark's keyword, the account's display name. `null` for a name hit,
+   * where the row itself shows it.
    */
   via: string | null
 }
@@ -67,7 +76,9 @@ export function isSearchQuery(query: string): boolean {
  * searchItems answers M9's field (FR-24.7).
  *
  * Ranking is derived, never incidental, so two devices answer one query the
- * same way: name hits before tag hits before mark hits; within the name hits
+ * same way: name hits before tag hits before mark hits before assignee hits
+ * (FR-1.9, the weakest reason: a name that is a person's rather than the
+ * item's); within the name hits
  * a row whose name *starts* with the query before one that merely contains
  * it; alphabetical by name inside each rank. An item is reported **once**,
  * under the strongest reason it has — a row that appeared twice would break
@@ -111,6 +122,16 @@ export function searchItems(
         hit: { id: candidate.id, reason: 'mark', via: keyword },
         rank: 0,
         order: 2,
+        name: candidate.name,
+      })
+      continue
+    }
+
+    if (candidate.assigneeName && searchMatches(candidate.assigneeName, needle)) {
+      scored.push({
+        hit: { id: candidate.id, reason: 'assignee', via: candidate.assigneeName },
+        rank: 0,
+        order: 3,
         name: candidate.name,
       })
     }

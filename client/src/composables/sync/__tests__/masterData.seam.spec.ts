@@ -396,6 +396,62 @@ describe('the tag admin actions (FR-24.10)', () => {
     )
   })
 
+  it('mergeTagsMany writes one assignment per item and removes every source it emptied', () => {
+    // Two spellings of one tag on one item (FR-24.14): merging them pair by
+    // pair would re-point both onto Kleidung and hand the server two rows
+    // `UNIQUE (item_id, tag_id)` refuses. One plan over the set re-points the
+    // lower and drops the other.
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'sommer', 1)
+    seedTag('tag-3', 'Kleidung', 2)
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+    seedAssignment('it-2', 'item-1', 'tag-2', 3)
+
+    const moved = createMasterDataActions(ctx).mergeTagsMany(['tag-1', 'tag-2'], 'tag-3')
+
+    expect(moved).toBe(1)
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.filter((m) => m.op === 'upsert' && m.table === 'item_tags')).toMatchObject([
+      { id: 'it-1', fields: { tag_id: 'tag-3', position: 0 } },
+    ])
+    expect(muts.filter((m) => m.op === 'delete' && m.table === 'item_tags')).toMatchObject([
+      { id: 'it-2' },
+    ])
+    expect(muts.filter((m) => m.op === 'delete' && m.table === 'tags')).toMatchObject([
+      { id: 'tag-1' },
+      { id: 'tag-2' },
+    ])
+  })
+
+  it('mergeTagsMany leaves the target tag itself alone when the selection includes it', () => {
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'Kleidung', 1)
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+
+    createMasterDataActions(ctx).mergeTagsMany(['tag-1', 'tag-2'], 'tag-2')
+
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.filter((m) => m.op === 'delete' && m.table === 'tags')).toMatchObject([
+      { id: 'tag-1' },
+    ])
+  })
+
+  it('mergeTagsMany removes a picked tag no item carries either (FR-24.14)', () => {
+    // A tag typed twice and used once is the common duplicate; the *unused*
+    // half is just as common, and a merge that left it on the axis would be
+    // the act failing quietly on the tag the user was most sure about.
+    seedTag('tag-1', 'Sommersachen', 0)
+    seedTag('tag-2', 'Sommer', 1)
+
+    const moved = createMasterDataActions(ctx).mergeTagsMany(['tag-1'], 'tag-2')
+
+    expect(moved).toBe(0)
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.filter((m) => m.op === 'delete' && m.table === 'tags')).toMatchObject([
+      { id: 'tag-1' },
+    ])
+  })
+
   it('mergeTags into the tag itself writes nothing at all', () => {
     seedTag('tag-1', 'Sommer', 0)
     seedAssignment('it-1', 'item-1', 'tag-1', 0)
@@ -555,5 +611,167 @@ describe('a template’s trip tasks on the seam (FR-7.4)', () => {
       id,
     })
     expect(ctx.masterStore.getTemplateTasks(TEMPLATE_ID)).toEqual([])
+  })
+})
+
+describe('mergeMasterItems — one act over four tables (FR-24.15)', () => {
+  const SURVIVOR = 'item-survivor'
+  const LOSER = 'item-loser'
+
+  function seedAssignment(id: string, itemId: string, tagId: string, position: number): void {
+    pullIn(ctx.masterStore, TABLE.itemTags, id, { item_id: itemId, tag_id: tagId, position })
+  }
+
+  function mutationsOf(op: string, table: string) {
+    return queued
+      .flatMap((q) => q.muts.map((m) => m.mutation))
+      .filter((m) => m.op === op && m.table === table)
+  }
+
+  it('re-points what only the loser had and drops what the survivor already carries', () => {
+    seedItem(SURVIVOR)
+    seedItem(LOSER)
+    pullIn(ctx.masterStore, TABLE.tags, 'tag-1', { name: 'Technik', sort_order: 0 })
+    pullIn(ctx.masterStore, TABLE.tags, 'tag-2', { name: 'Licht', sort_order: 1 })
+    seedAssignment('it-mine', SURVIVOR, 'tag-1', 0)
+    seedAssignment('it-same', LOSER, 'tag-1', 0)
+    seedAssignment('it-only', LOSER, 'tag-2', 1)
+
+    createMasterDataActions(ctx).mergeMasterItems(SURVIVOR, [LOSER])
+
+    expect(mutationsOf('upsert', TABLE.itemTags)).toMatchObject([
+      { id: 'it-only', fields: { item_id: SURVIVOR, position: 1 } },
+    ])
+    expect(mutationsOf('delete', TABLE.itemTags)).toMatchObject([{ id: 'it-same' }])
+  })
+
+  it('moves both ends of a dependency edge and drops the one between the two rows', () => {
+    seedItem(SURVIVOR)
+    seedItem(LOSER)
+    seedItem('item-battery')
+    pullIn(ctx.masterStore, TABLE.itemDependencies, 'dep-out', {
+      item_id: 'item-battery',
+      depends_on_item_id: LOSER,
+      mode: 'required',
+    })
+    pullIn(ctx.masterStore, TABLE.itemDependencies, 'dep-between', {
+      item_id: LOSER,
+      depends_on_item_id: SURVIVOR,
+      mode: 'required',
+    })
+
+    createMasterDataActions(ctx).mergeMasterItems(SURVIVOR, [LOSER])
+
+    expect(mutationsOf('upsert', TABLE.itemDependencies)).toMatchObject([
+      { id: 'dep-out', fields: { item_id: 'item-battery', depends_on_item_id: SURVIVOR } },
+    ])
+    expect(mutationsOf('delete', TABLE.itemDependencies)).toMatchObject([{ id: 'dep-between' }])
+  })
+
+  it('collapses a Vorlage that held both, keeping the higher amount and the dropped tasks', () => {
+    seedItem(SURVIVOR)
+    seedItem(LOSER)
+    seedTemplate(TEMPLATE_ID)
+    pullIn(ctx.masterStore, TABLE.templateItems, 'pos-mine', {
+      template_id: TEMPLATE_ID,
+      item_id: SURVIVOR,
+      quantity: 1,
+    })
+    pullIn(ctx.masterStore, TABLE.templateItems, 'pos-theirs', {
+      template_id: TEMPLATE_ID,
+      item_id: LOSER,
+      quantity: 4,
+    })
+    pullIn(ctx.masterStore, TABLE.templateItemTasks, 'task-1', {
+      template_item_id: 'pos-theirs',
+      task: 'Akku laden',
+    })
+
+    createMasterDataActions(ctx).mergeMasterItems(SURVIVOR, [LOSER])
+
+    expect(mutationsOf('upsert', TABLE.templateItems)).toMatchObject([
+      { id: 'pos-mine', fields: { quantity: 4 } },
+    ])
+    // The words survive the position they were written on.
+    expect(mutationsOf('insert', TABLE.templateItemTasks)).toMatchObject([
+      { fields: { template_item_id: 'pos-mine', task: 'Akku laden' } },
+    ])
+    expect(mutationsOf('delete', TABLE.templateItems)).toMatchObject([{ id: 'pos-theirs' }])
+  })
+
+  it('fills the survivor’s empty fields, aliases the loser and retires it last', () => {
+    seedItem(SURVIVOR, { weight_grams: null, value_cents: null, icon: null })
+    seedItem(LOSER, { weight_grams: 120, value_cents: 4990, icon: '🔦' })
+    // Something references the loser, so FR-24.3 answers its delete by retiring.
+    seedGeneratedTripItem({ item: LOSER })
+
+    createMasterDataActions(ctx).mergeMasterItems(SURVIVOR, [LOSER])
+
+    const items = mutationsOf('upsert', TABLE.items)
+    expect(items[0]).toMatchObject({
+      id: SURVIVOR,
+      fields: { weight_grams: 120, value_cents: 4990, icon: '🔦' },
+    })
+    // Then the losing row, in this order: it is aliased at the survivor, and
+    // only then answered by FR-24.3 — which retires it here, because a trip
+    // still resolves against it.
+    expect(items.slice(1)).toMatchObject([
+      { id: LOSER, fields: { merged_into_id: SURVIVOR } },
+      { id: LOSER, fields: { [RETIRED_FIELD]: SEAM_NOW_ISO } },
+    ])
+  })
+
+  it('removes a loser nothing has ever used rather than retiring it', () => {
+    seedItem(SURVIVOR)
+    seedItem(LOSER)
+
+    createMasterDataActions(ctx).mergeMasterItems(SURVIVOR, [LOSER])
+
+    // The alias is written first so the row carries it in the feed before it
+    // goes: a device that only sees the delete still learns where it went.
+    expect(mutationsOf('upsert', TABLE.items)).toMatchObject([
+      { id: LOSER, fields: { merged_into_id: SURVIVOR } },
+    ])
+    expect(mutationsOf('delete', TABLE.items)).toMatchObject([{ id: LOSER }])
+  })
+
+  it('flattens an older alias so the chain stays one hop', () => {
+    seedItem(SURVIVOR)
+    seedItem(LOSER)
+    seedItem('item-ancient', { retired_at: RETIRED_AT, merged_into_id: LOSER })
+    seedGeneratedTripItem({ item: LOSER })
+
+    createMasterDataActions(ctx).mergeMasterItems(SURVIVOR, [LOSER])
+
+    expect(mutationsOf('upsert', TABLE.items)).toContainEqual(
+      expect.objectContaining({
+        id: 'item-ancient',
+        fields: expect.objectContaining({ merged_into_id: SURVIVOR }),
+      }),
+    )
+  })
+
+  it('a restore clears the alias with the marker — the row has its own past again', () => {
+    seedItem(SURVIVOR)
+    seedItem(LOSER, { retired_at: RETIRED_AT, merged_into_id: SURVIVOR })
+
+    expect(createMasterDataActions(ctx).restoreMasterItem(LOSER)).toBe(true)
+
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({
+      [RETIRED_FIELD]: null,
+      merged_into_id: null,
+    })
+  })
+
+  it('reports what it did, so the screen can say it', () => {
+    seedItem(SURVIVOR, { weight_grams: null })
+    seedItem(LOSER, { weight_grams: 120 })
+    pullIn(ctx.masterStore, TABLE.tags, 'tag-1', { name: 'Technik', sort_order: 0 })
+    seedAssignment('it-only', LOSER, 'tag-1', 0)
+
+    const outcome = createMasterDataActions(ctx).mergeMasterItems(SURVIVOR, [LOSER])
+
+    expect(outcome).toMatchObject({ merged: 1, tags: 1, positions: 0, retired: 0 })
+    expect(outcome.filled).toContain('weight_grams')
   })
 })

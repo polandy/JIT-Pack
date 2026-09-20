@@ -46,6 +46,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { dependencyCycleError, type DependencyCycleError } from '@/domain/dependencies'
 import { containingTemplates, commentsOnItem } from '@/domain/itemHistory'
+import { mergedIdsOf } from '@/domain/itemMerge'
 import { findNameCollision } from '@/domain/nameCollision'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -552,7 +553,10 @@ const containments = computed(() =>
 const itemComments = computed(() =>
   props.itemId
     ? commentsOnItem(
-        props.itemId,
+        // FR-24.15: plus whatever was merged into this item — those trips
+        // still name the row that lost the merge, and the merge's claim is
+        // that the two pasts are one.
+        mergedIdsOf(props.itemId, masterStore.itemList),
         tripStore.tripList.map((trip) => ({
           tripId: trip.id,
           tripName: trip.name,

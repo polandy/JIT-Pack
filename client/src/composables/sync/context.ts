@@ -81,6 +81,8 @@ export interface MasterReads {
   readonly activeTemplateList: Template[]
   readonly includeList: TemplateInclude[]
   readonly dependencyList: ItemDependency[]
+  /** Every Vorlage position, across templates — FR-24.15's merge plans over them. */
+  readonly positionList: TemplateItem[]
   readonly templateItemTaskList: TemplateItemTask[]
   readonly seriesList: TripSeries[]
   getItem(id: string): MasterItem | undefined

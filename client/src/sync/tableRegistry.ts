@@ -110,6 +110,7 @@ function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
     icon: (row['icon'] as string) ?? null,
     default_assignee_id: (row['default_assignee_id'] as string) ?? null,
     retired_at: (row['retired_at'] as string) ?? null,
+    merged_into_id: (row['merged_into_id'] as string) ?? null,
   }
 }
 

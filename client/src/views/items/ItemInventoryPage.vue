@@ -55,6 +55,7 @@ import {
   ellipsisHorizontalOutline,
   eyeOutline,
   funnelOutline,
+  personOutline,
   pricetagsOutline,
   removeCircleOutline,
   swapVerticalOutline,
@@ -80,6 +81,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet, { type BulkTagMode } from '@/components/items/BulkTagSheet.vue'
 import BulkAssigneeSheet from '@/components/items/BulkAssigneeSheet.vue'
+import MergeItemsSheet, { type MergeCandidate } from '@/components/items/MergeItemsSheet.vue'
 import BulkDependencySheet from '@/components/items/BulkDependencySheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
@@ -90,7 +92,7 @@ import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActi
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
   inventoryProperties,
-  INVENTORY_PROPERTIES,
+  offeredProperties,
   type InventoryProperty,
 } from '@/composables/useInventoryProperties'
 import {
@@ -121,7 +123,7 @@ import {
 import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { presentToast } from '@/lib/toast'
-import { promptTagMerge } from '@/lib/tagMergePrompt'
+import { promptTagMerge, promptTagMergeMany } from '@/lib/tagMergePrompt'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
@@ -195,6 +197,8 @@ const selecting = ref(false)
 const selected = ref<Set<string>>(new Set())
 const bulkSheet = ref<BulkTagMode | null>(null)
 const assigneeSheet = ref(false)
+/** FR-24.15: which of the picked rows stays. */
+const mergeSheet = ref(false)
 const dependencySheet = ref<DependencyLinkDirection | null>(null)
 
 /**
@@ -507,6 +511,17 @@ function reasonLabel(reason: MatchReason): string {
   return t(`items.match.${reason}`)
 }
 
+/**
+ * Who the row is usually somebody's job for (FR-1.9), or null — shown only
+ * while the device asked for it. An item that names nobody shows **nothing**:
+ * „Niemand" is the editor's empty state, and repeating it down a list is the
+ * overload FR-24.4 took the columns away for.
+ */
+function assigneeOf(item: MasterItem): string | null {
+  if (!props.isShown('assignee') || !canAssign.value) return null
+  return item.default_assignee_id ? userName(item.default_assignee_id) : null
+}
+
 function extrasFor(item: MasterItem): string[] {
   const extras: string[] = []
   if (props.isShown('weight') && item.weight_grams !== null) {
@@ -579,6 +594,23 @@ async function mergeTag(tag: Tag) {
     tags: masterStore.tagList,
     usage: tagUsage.value.get(tag.id) ?? 0,
     merge: orchestrator.mergeTags,
+  })
+}
+
+/**
+ * FR-24.14: merge a whole selection of tags into one of them.
+ *
+ * The orchestrator's `mergeTagsMany` and not a loop over `mergeTags`: the
+ * plan has to be made once over the set, or an item carrying two of the
+ * picked tags is re-pointed twice onto the survivor.
+ */
+async function mergeTagsSelected(tags: Tag[]) {
+  // The manager stays open and the mode stays on: tidying an axis is rarely
+  // one merge, and the merged tags leave the selection by themselves — they
+  // are gone from `tagList`, which is what the picked set is read against.
+  await promptTagMergeMany(tags, {
+    usage: tagUsage.value,
+    merge: orchestrator.mergeTagsMany,
   })
 }
 
@@ -725,7 +757,9 @@ function tagName(tagId: string): string {
 
 /** What the ⋯ sheet offers besides the two tag actions. */
 const MORE_ASSIGNEE = 'assignee'
-type MoreAction = typeof MORE_ASSIGNEE | DependencyLinkDirection
+/** FR-24.15: merge the picked rows into one of them. */
+const MORE_MERGE = 'merge'
+type MoreAction = typeof MORE_ASSIGNEE | typeof MORE_MERGE | DependencyLinkDirection
 
 /**
  * The three later actions live behind one glyph rather than beside the two
@@ -742,6 +776,8 @@ async function openMore() {
       ...(canAssign.value ? [{ text: t('items.bulkAssignee'), data: MORE_ASSIGNEE }] : []),
       { text: t('items.bulkDependsOn'), data: DEPENDENCY_LINK_MAIN },
       { text: t('items.bulkCompanion'), data: DEPENDENCY_LINK_COMPANION },
+      // FR-24.15: two rows are the fewest that can be the same thing.
+      ...(selected.value.size > 1 ? [{ text: t('items.bulkMerge'), data: MORE_MERGE }] : []),
       { text: t('common.cancel'), role: 'cancel' },
     ],
   })
@@ -750,6 +786,7 @@ async function openMore() {
   if (role === 'cancel' || typeof data !== 'string') return
   const action = data as MoreAction
   if (action === MORE_ASSIGNEE) assigneeSheet.value = true
+  else if (action === MORE_MERGE) mergeSheet.value = true
   else dependencySheet.value = action
 }
 
@@ -781,6 +818,70 @@ async function assignSelected({ userId }: { userId: string | null }) {
     userId
       ? t('items.bulkAssigned', { n: touched, name: userName(userId) })
       : t('items.bulkUnassigned', { n: touched }),
+  )
+}
+
+/**
+ * The picked rows as FR-24.15's sheet reads them: the tags they carry and how
+ * much of the product resolves against each — the two facts the choice of
+ * survivor actually turns on.
+ */
+const mergeCandidates = computed<MergeCandidate[]>(() =>
+  selectedItems.value.map((item) => ({
+    item,
+    tags: masterStore.getItemTags(item.id).map((tag) => tag.name),
+    uses: orchestrator.masterItemDeletionOutlook(item.id).references,
+  })),
+)
+
+/**
+ * FR-24.15: merge the selection into the row the sheet names.
+ *
+ * The confirm is what the act owes — it has no undo, and the losing rows are
+ * retired or removed by FR-24.3 at the end of it. Afterwards the screen says
+ * what was *taken over*, because the survivor quietly gaining a weight, a
+ * photo or a mark is the part a user cannot see from the list.
+ */
+async function mergeSelected(survivorId: string) {
+  const losers = selectedItems.value.filter((item) => item.id !== survivorId)
+  const survivor = masterStore.getItem(survivorId)
+  mergeSheet.value = false
+  if (!survivor || losers.length === 0) return
+
+  const ok = await confirmDestructive({
+    header: t('items.mergeTitle'),
+    message: t('items.mergeConfirmBody', { n: losers.length, name: survivor.name }),
+    confirmLabel: t('items.mergeConfirm'),
+    testid: 'm9-merge-confirm',
+  })
+  if (!ok) return
+
+  const photoFrom = survivor.image_hash ? null : losers.find((item) => item.image_hash)
+  const outcome = orchestrator.mergeMasterItems(
+    survivorId,
+    losers.map((item) => item.id),
+  )
+  // The bytes are the one part of a merge that is not a mutation (ADR-002),
+  // so they move after the rows and only where the survivor had no photo.
+  if (photoFrom) await orchestrator.copyItemImage(photoFrom, survivor)
+
+  endSelecting()
+  await announceBulk(
+    [
+      t('items.merged', { n: outcome.merged, name: survivor.name }),
+      outcome.filled.length > 0 || photoFrom
+        ? t('items.mergedTook', {
+            what: [
+              ...outcome.filled.map((field) => t(`items.field.${field}`)),
+              ...(photoFrom ? [t('items.field.photo')] : []),
+            ].join(', '),
+          })
+        : '',
+      outcome.positions > 0 ? t('items.mergedPositions', { n: outcome.positions }) : '',
+      outcome.edgesDropped > 0 ? t('items.mergedEdges', { n: outcome.edgesDropped }) : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
   )
 }
 
@@ -1339,6 +1440,12 @@ onBeforeUnmount(() => observer?.disconnect())
                 <p v-if="searching && viaOf.get(item.id)" class="row-via" data-testid="m9-row-via">
                   {{ t('items.matchVia', { via: viaOf.get(item.id)! }) }}
                 </p>
+                <!-- FR-1.9: whose job this usually is, where the device asked
+                     for it and there is an account to name (G-8). -->
+                <p v-if="assigneeOf(item)" class="row-assignee" data-testid="m9-row-assignee">
+                  <IonIcon :icon="personOutline" />
+                  {{ assigneeOf(item) }}
+                </p>
                 <!-- FR-24.4: only when the device asked for them. -->
                 <div v-if="props.isShown('tags')" class="row-tags">
                   <span
@@ -1443,6 +1550,14 @@ onBeforeUnmount(() => observer?.disconnect())
         "
       />
 
+      <!-- FR-24.15: which of the picked rows stays, and what each brings. -->
+      <MergeItemsSheet
+        :is-open="mergeSheet"
+        :candidates="mergeCandidates"
+        @dismiss="mergeSheet = false"
+        @pick="mergeSelected"
+      />
+
       <BulkAssigneeSheet
         :is-open="assigneeSheet"
         :directory="directory"
@@ -1499,6 +1614,7 @@ onBeforeUnmount(() => observer?.disconnect())
         @dismiss="tagsOpen = false"
         @rename="renameTag"
         @merge="mergeTag"
+        @merge-many="mergeTagsSelected"
         @remove="removeTag"
         @move="orchestrator.reorderTags"
         @mark="markingTag = $event"
@@ -1534,7 +1650,7 @@ onBeforeUnmount(() => observer?.disconnect())
           <p class="sheet-hint">{{ t('items.propertiesHint') }}</p>
 
           <IonList>
-            <IonItem v-for="key in INVENTORY_PROPERTIES" :key="key" lines="full">
+            <IonItem v-for="key in offeredProperties(canAssign)" :key="key" lines="full">
               <IonLabel>{{ propertyLabel(key) }}</IonLabel>
               <IonToggle
                 slot="end"
@@ -1784,6 +1900,19 @@ onBeforeUnmount(() => observer?.disconnect())
 .row-via {
   color: var(--ion-color-medium);
   font-size: var(--jp-text-xs);
+}
+
+/* FR-1.9: one quiet line under the name, the weight of the „via" line above
+   it — the account is context for the row, never its headline. */
+.row-assignee {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ct-subtext0);
+}
+
+.row-assignee ion-icon {
+  font-size: var(--jp-icon-xs);
 }
 
 .row-tags {

@@ -83,6 +83,18 @@ describe('searchItems — what can be typed (FR-24.7)', () => {
     expect(hits).toEqual([{ id: 'i-finken', reason: 'mark', via: 'slipper' }])
   })
 
+  it('finds an item through who it is usually assigned to (FR-1.9), and names them', () => {
+    const rows = [{ ...item('i-zelt', 'Zelt'), assigneeName: 'Andy Pollari' }]
+
+    expect(searchItems(rows, 'pollari')).toEqual([
+      { id: 'i-zelt', reason: 'assignee', via: 'Andy Pollari' },
+    ])
+  })
+
+  it('leaves the assignee out where there is none — a row with no account is not a hit', () => {
+    expect(searchItems([item('i-zelt', 'Zelt')], 'andy')).toEqual([])
+  })
+
   it('reports an item once, under the strongest reason it has', () => {
     // „socken" is in two names and in no tag; „Unterwäsche" is in two tags.
     // Neither query may report a row twice — the FR-24.2 promise, kept while
@@ -94,13 +106,19 @@ describe('searchItems — what can be typed (FR-24.7)', () => {
 })
 
 describe('searchItems — the order two devices must agree on (FR-24.7)', () => {
-  it('ranks name hits before tag hits before mark hits', () => {
+  it('ranks name hits before tag hits before mark hits before assignee hits', () => {
     const rows = [
+      { ...item('i-assignee', 'Nochwas'), assigneeName: 'Zelt-Zora' },
       item('i-mark', 'Etwas', [], ['zelt']),
       item('i-tag', 'Anderes', ['Zelt & Schlafen']),
       item('i-name', 'Zeltheringe'),
     ]
-    expect(searchItems(rows, 'zelt').map((h) => h.reason)).toEqual(['name', 'tag', 'mark'])
+    expect(searchItems(rows, 'zelt').map((h) => h.reason)).toEqual([
+      'name',
+      'tag',
+      'mark',
+      'assignee',
+    ])
   })
 
   it('puts a name that starts with the query before one that only contains it', () => {

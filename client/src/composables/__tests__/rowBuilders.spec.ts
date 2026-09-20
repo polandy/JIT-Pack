@@ -117,6 +117,7 @@ const CASES: BuilderCase[] = [
         icon: '⛺',
         default_assignee_id: 'user-a',
         retired_at: '2026-08-20T10:00:00Z',
+        merged_into_id: 'it-old',
       }),
     read: () => useMasterStore().getItem('it-1') as unknown as Record<string, unknown>,
     acts: [
@@ -145,6 +146,7 @@ const CASES: BuilderCase[] = [
       icon: '⛺',
       default_assignee_id: 'user-a',
       retired_at: '2026-08-20T10:00:00Z',
+      merged_into_id: 'it-old',
     } satisfies Record<keyof MasterItem, unknown>,
   },
   {

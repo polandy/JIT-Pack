@@ -115,3 +115,70 @@ describe('TagManagerSheet (FR-24.10)', () => {
     expect(empty.find('[data-testid="m9-tags-search"]').exists()).toBe(false)
   })
 })
+
+describe('TagManagerSheet — merging several tags at once (FR-24.14)', () => {
+  it('offers no checkboxes until the mode is on, and keeps the per-row acts until then', () => {
+    const sheet = mountSheet()
+
+    expect(sheet.find('[data-testid="m9-tag-pick-Hygiene"]').exists()).toBe(false)
+    expect(sheet.find('[data-testid="m9-tag-merge-Hygiene"]').exists()).toBe(true)
+  })
+
+  it('merges the tags that were picked, in one act', async () => {
+    const sheet = mountSheet()
+
+    await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
+    await sheet.get('[data-testid="m9-tag-pick-Diverses"]').trigger('click')
+    await sheet.get('[data-testid="m9-tag-pick-Hygiene"]').trigger('click')
+    await sheet.get('[data-testid="m9-tags-merge-many"]').trigger('click')
+
+    expect(sheet.emitted('mergeMany')?.[0]).toEqual([[tags[0], tags[1]]])
+  })
+
+  it('asks the question once per row: no rename, no arrows, no single merge while picking', async () => {
+    const sheet = mountSheet()
+
+    await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
+
+    expect(sheet.find('[data-testid="m9-tag-merge-Hygiene"]').exists()).toBe(false)
+    expect(sheet.find('[data-testid="m9-tag-delete-Hygiene"]').exists()).toBe(false)
+    expect(sheet.find('[data-testid="m9-tag-up-Hygiene"]').exists()).toBe(false)
+    // The name stops being a button: a tap picks the row now.
+    expect(sheet.find('[data-testid="m9-tag-rename-Hygiene"]').exists()).toBe(false)
+  })
+
+  it('refuses to merge a selection that names only one tag', async () => {
+    const sheet = mountSheet()
+
+    await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
+    await sheet.get('[data-testid="m9-tag-pick-Hygiene"]').trigger('click')
+
+    expect(sheet.get('[data-testid="m9-tags-merge-many"]').attributes('disabled')).toBeDefined()
+    await sheet.get('[data-testid="m9-tag-pick-Diverses"]').trigger('click')
+    expect(sheet.get('[data-testid="m9-tags-merge-many"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('keeps a picked tag the search has narrowed away — the two spellings are rarely one query', async () => {
+    const sheet = mountSheet()
+
+    await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
+    await sheet.get('[data-testid="m9-tag-pick-Diverses"]').trigger('click')
+    await sheet.get('[data-testid="m9-tags-search"]').setValue('hyg')
+    await sheet.get('[data-testid="m9-tag-pick-Hygiene"]').trigger('click')
+
+    expect(sheet.get('[data-testid="m9-tags-selected"]').text()).toContain('2')
+    await sheet.get('[data-testid="m9-tags-merge-many"]').trigger('click')
+    expect(sheet.emitted('mergeMany')?.[0]).toEqual([[tags[0], tags[1]]])
+  })
+
+  it('leaving the mode drops what was picked', async () => {
+    const sheet = mountSheet()
+
+    await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
+    await sheet.get('[data-testid="m9-tag-pick-Hygiene"]').trigger('click')
+    await sheet.get('[data-testid="m9-tags-select-cancel"]').trigger('click')
+    await sheet.get('[data-testid="m9-tags-select"]').trigger('click')
+
+    expect(sheet.get('[data-testid="m9-tags-selected"]').text()).toContain('0')
+  })
+})

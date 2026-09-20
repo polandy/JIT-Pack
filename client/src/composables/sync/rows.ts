@@ -175,6 +175,7 @@ export function masterItemRow(item: MasterItem): Record<string, unknown> {
     icon: item.icon ?? null,
     default_assignee_id: item.default_assignee_id ?? null,
     retired_at: item.retired_at ?? null,
+    merged_into_id: item.merged_into_id ?? null,
   }
 }
 

@@ -83,6 +83,17 @@ CREATE TABLE items (                            -- FR-1.1
     -- Nullable and unconstrained beyond the FK, for the same LWW reason as
     -- retired_at above.
     default_assignee_id TEXT REFERENCES users(id),
+    -- FR-24.15: the item this one was merged into, set on the row that loses
+    -- a merge. NULL for every active row. The master data moves to the
+    -- survivor; the *trip* rows keep pointing here, and the rear view follows
+    -- this column one hop so the two pasts read as one (ADR-069). Nullable and
+    -- unconstrained beyond the FK, for the same LWW reason as retired_at.
+    -- ON DELETE SET NULL, not the default RESTRICT: the alias is a *reading*
+    -- convenience, not a reference that has to hold. Deleting the survivor
+    -- outright — which FR-24.3 only allows when nothing else resolves against
+    -- it — simply gives the merged-away rows their own past back, instead of
+    -- refusing a delete over a pointer the user cannot see.
+    merged_into_id TEXT REFERENCES items(id) ON DELETE SET NULL,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc   TEXT NOT NULL DEFAULT ''
     -- FR-16.3's uniqueness is over what the user can see: a retired row
