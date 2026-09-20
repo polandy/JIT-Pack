@@ -1249,11 +1249,30 @@ const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
  * a row below the fold — and each answer moved every row by the head's
  * height while a finger was already on its way to one (E2E-M4-135).
  */
-const gesture = ref(false)
+let gesture = false
+
+/**
+ * The window, and the one observable thing about it.
+ *
+ * It closes on Ionic's `ionScrollEnd`, which is a debounce after the last
+ * scroll event — so *whether* it is open is a race against a timer for
+ * anything outside this screen, and E2E-M4-135 lost that race on a loaded
+ * shard: it measured a scroll nobody made while the flick that set it up was
+ * still settling, and read the head answering the reader as the defect it was
+ * written to catch. A plain `let` is deliberate — a ref would re-render the
+ * list on every wheel event — so the state is mirrored onto the host element
+ * instead, the way the G-19 toast carries `data-presented`. Nothing in the app
+ * reads it; it exists so a case can wait for the window rather than hope.
+ */
+function armGesture(open: boolean): void {
+  gesture = open
+  packContent.value?.$el.toggleAttribute('data-scroll-gesture', open)
+}
+
 function onScrollerInput(event: Event) {
   const key = event instanceof KeyboardEvent ? event.key : undefined
   if (isScrollGesture({ type: event.type, key, onScroller: event.target === scrollEl }))
-    gesture.value = true
+    armGesture(true)
 }
 
 /** False once the screen is gone, so a scroller resolving late is not listened to at all. */
@@ -1283,35 +1302,22 @@ function onScroll(event: CustomEvent<{ scrollTop: number }>) {
   head.value = nextHeadState(head.value, {
     top: event.detail.scrollTop,
     viewport: scrollEl,
-    gesture: gesture.value,
+    gesture,
   })
+  // The offset the rule has just taken up, mirrored beside `data-scroll-gesture`
+  // for the same reason and in the same way. The window above says a scroll
+  // nobody made *may* be measured; this says the one that was made has arrived.
+  // The rule accepts every reading, gesture or not, so a case asserting that the
+  // head did not answer one has to know the reading landed at all — otherwise it
+  // reports that absence just as happily a frame too early (E2E-M4-135).
+  // Rounded because a scroller's offset is fractional and an attribute is text.
+  packContent.value?.$el.setAttribute('data-head-scroll', String(Math.round(head.value.top)))
 }
 
 /** The scroller has come to rest, so whatever moves it next has to say who asked. */
 function onScrollEnd() {
-  gesture.value = false
+  armGesture(false)
 }
-
-/**
- * The two readings of the gesture rule that nothing outside the page can
- * otherwise see, rendered onto the content element — the same reasoning
- * that gave the pack announcer its counter (`usePackAnnouncer`).
- *
- * `data-head-gesture` is the *precondition* a scroll nobody made has to be
- * created under: „the reader is no longer driving". It is a latch that
- * momentum keeps armed on purpose, and it is let go on `ionScrollEnd` —
- * which Ionic emits from a 100 ms watchdog, so nothing about when it lands
- * is knowable from outside. A case that simply scrolled and hoped raced
- * that watchdog and lost on a loaded runner, roughly one run in six.
- *
- * `data-head-scroll` is the *positive signal* for the absence that follows:
- * the rule takes up every offset it is given, gesture or not, so the head
- * failing to move can only be read against the reading having arrived at
- * all. Rounded because a scroller's offset is fractional and an attribute
- * is compared as text.
- */
-const headGesture = computed(() => String(gesture.value))
-const headScroll = computed(() => String(Math.round(head.value.top)))
 
 // --- App-bar cluster (G-12) --------------------------------------------
 
@@ -2335,8 +2341,6 @@ setHeaderTitle(
       ref="packContent"
       class="pack-content"
       :data-pack-announcements="packAnnouncements"
-      :data-head-gesture="headGesture"
-      :data-head-scroll="headScroll"
       :scroll-events="true"
       @ion-scroll="onScroll"
       @ion-scroll-end="onScrollEnd"

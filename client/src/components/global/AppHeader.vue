@@ -21,12 +21,13 @@ import {
   useIonRouter,
 } from '@ionic/vue'
 import { chevronBackOutline, ellipsisVerticalOutline, settingsOutline } from 'ionicons/icons'
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import SyncIndicator from './SyncIndicator.vue'
 import { backTarget, enteredFrom } from '@/router/backTarget'
-import { actionsFor } from '@/composables/useHeaderActions'
+import { actionsFor, type HeaderAction } from '@/composables/useHeaderActions'
+import { TRIP_VIEW_COUNTS, tripViewEntry, tripViewMenu } from '@/lib/tripViews'
 import { t } from '@/i18n'
 import type { SyncState } from '@/composables/useSyncStatus'
 import { PATH } from '@/router/paths'
@@ -65,17 +66,52 @@ const glyphActions = computed(() => actionsFor(route.path).filter((a) => !a.over
 
 const pageActions = computed(() => glyphActions.value.slice(0, MAX_BAR_ACTIONS))
 
+// FR-30.3: a view's count belongs to the module behind it, not to the frame.
+const counts = inject(TRIP_VIEW_COUNTS, {})
+
+/**
+ * The trip's other views, for the screens that are one (ADR-051 amendment 1).
+ *
+ * The switcher under the page's name shows the two views a trip is worked in;
+ * the ones it leaves out are offered here, as words, on all four trip screens
+ * — which is what keeps the sideways step ADR-051 bought. The frame fills
+ * this from the route table, so none of the four screens registers it and
+ * none of them can forget to.
+ *
+ * Read from the same table the pills are read from, so a view cannot change
+ * its name or its destination by moving between the two shapes; the id is the
+ * same too, because a menu entry is the same action wearing other clothes.
+ */
+const tripViewActions = computed<HeaderAction[]>(() => {
+  const current = route.meta.tripView
+  const tripId = route.params.tripId
+  if (!current || typeof tripId !== 'string') return []
+  return tripViewMenu(current).map((id) => {
+    const view = tripViewEntry(id, tripId, counts)
+    return {
+      id: view.testid,
+      icon: view.icon,
+      label: view.label,
+      overflow: true,
+      onClick: () => router.push(view.path),
+    }
+  })
+})
+
 /*
  * The ones the page put behind the ⋮ (UX-13), and the ones that did not fit.
  * An action sheet rather than a popover: it is the menu shape the rest of the
  * app already uses (M2's and M7's row menus), and it renders each entry as a
  * *word*, which is what the bar could not do for them.
  *
- * The surplus keeps its registration order and lands ahead of the declared
- * overflow, so a page that overruns the budget reads as the list it wrote
- * rather than as a reshuffle.
+ * Where you can go comes before what you can do: the trip's other views head
+ * the sheet, and the page's own entries — which change the trip rather than
+ * leaving it — follow. The surplus keeps its registration order and lands
+ * ahead of the declared overflow, so a page that overruns the budget reads as
+ * the list it wrote rather than as a reshuffle.
  */
 const overflowActions = computed(() => [
+  ...tripViewActions.value,
   ...glyphActions.value.slice(MAX_BAR_ACTIONS),
   ...actionsFor(route.path).filter((a) => a.overflow),
 ])

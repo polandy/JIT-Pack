@@ -1113,28 +1113,47 @@ taken straight from a phone camera never reaches the server unprocessed.
 
   Reported by the owner off a render, like FR-21.19 the same day. The list has one name column, and every kind of
   line that names an item — plain row, lone per-person row, cluster head — now stands in it.
-* **FR-21.21 (A Trip's Views Are Named in the Page — added 2026-09-08):** Every screen that is one of a trip's four
-  views — the packing list (M4), the shopping list (M6), the luggage (M11) and the analytics (M12) — carries a row of
-  four pills under the page's name (G-9): *Packliste*, *Einkaufen (n)*, *Gepäck*, *Auswertung*. The one being looked
-  at is marked (`aria-current="page"`) and inert; the other three are one tap each, **from any of the four**, so the
-  step from the shopping list to the luggage no longer goes back through M4 first. Which view a screen is comes from
-  the route table (`meta.tripView`), like the content measure of FR-21.18 — a screen that had to remember to offer
-  its siblings is a screen that will forget.
+* **FR-21.21 (A Trip's Views Are Named in the Page — added 2026-09-08, amended 2026-09-20):** Every screen that is
+  one of a trip's four views — the packing list (M4), the shopping list (M6), the luggage (M11) and the analytics
+  (M12) — carries a row of pills under the page's name (G-9) and, for the views the row leaves out, entries in the
+  bar's ⋮. The one being looked at is marked (`aria-current="page"`) and inert; every other view is reachable
+  **from any of the four**, so the step from the shopping list to the luggage no longer goes back through M4 first.
+  Which view a screen is comes from the route table (`meta.tripView`), like the content measure of FR-21.18 — a
+  screen that had to remember to offer its siblings is a screen that will forget. The same applies to the ⋮: the
+  frame fills it, so none of the four screens registers those entries and none of them can forget to.
+
+  **Which views stand in the row (amended 2026-09-20, ADR-051 amendment 1).** *Packliste* and *Einkaufen (n)* — the
+  two a trip is **worked** in — plus the view being looked at when it is neither of them, so the row never stops
+  saying where you are. *Gepäck* and *Auswertung* are words in the ⋮ instead. Owner judgement off a render: the
+  luggage is not important enough to stand in the badges at the top of the packing list, and neither is the
+  analytics; four pills filled the row to its edge and made a screen read once a trip as loud as the list being
+  packed. The row is therefore two pills wide on M4 and M6, three on M11 and M12.
 
   **This pays back a cost ADR-050 wrote down.** That decision moved the three views into the bar's ⋮ so the bar could
   stop growing glyphs, and recorded §3.25's "one tap each" as spent. The M4 review of 2026-09-07 read the result off
   a render: three of the bar's seven slots went to view options, two to things that belong to no trip, and the five
   places the reader actually goes sat behind one glyph. ADR-051 weighs the ways back; what is left behind the ⋮ is
-  what *changes* the trip — its properties, and the one lifecycle step that is next.
+  what *changes* the trip — its properties, and the one lifecycle step that is next — and, since the amendment, the
+  two views the row does not show. The sheet leads with **where you can go** and follows with what you can do: a
+  lifecycle step between two destinations reads as neither.
 
   **The count is things to buy, not rows** (FR-25.6), which is the arithmetic M6's own segments use. The menu entry
   it replaced counted rows, and nothing noticed for as long as the two numbers were never on one screen: the pill
   said *Einkaufen (3)* above segments saying *(1)* and *(1)* the first time it rendered. `buyRowCount` is now one
-  function in `domain/shoppingView.ts`, read by both.
+  function in `domain/shoppingView.ts`, read by both. A count lives **in the word** rather than in a badge, because
+  an action-sheet entry can render no badge (ADR-050) — which is what lets a view carry its number into either shape.
 
-  **The pills are words on a phone and words with glyphs from 480 px up.** Four words fill a 390 px row to within
-  six pixels (measured: 352 of 358); the glyphs take 90 more and would push the fourth off the edge. The glyph
-  vocabulary itself is unchanged, and E2E-G12-05 reads it off the pills at the desktop width.
+  **A view is described once.** Its word, its glyph and its destination are one table (`lib/tripViews.ts`), read by
+  the switcher and by the bar's ⋮, and a view keeps the same id in both — so a case that knows where to click does
+  not have to know which shape the view is wearing today. Written twice, a view could be renamed in one shape and
+  not in the other with nothing failing.
+
+  **The pills are words on a phone and words with glyphs from 480 px up.** Four words filled a 390 px row to within
+  six pixels (measured: 352 of 358) and the glyphs take 90 more. The amendment's widest row is three — the luggage or
+  the analytics standing as the current view, in German *Packliste · Einkaufen (3) · Auswertung*, 286 px of words in
+  358 — which the glyphs still overrun, so the breakpoint stays where it was. The glyph vocabulary itself is
+  unchanged; E2E-G12-05 reads it off the shopping pill at the desktop width and off the other two inside the ⋮, where
+  the same glyph has to be the one the reader learned.
 * **FR-21.22 (A Dashed Edge Means *Not Yet* — added 2026-09-08):** A dashed outline marks a place where something is
   not there: the empty picker slot (M9), the quick-add invitation, the browse hand-over. A control that acts on
   content which *exists* is a solid, filled button. The reveal bars are that second kind — M4's *„{n} gepackte
@@ -2358,6 +2377,13 @@ locked.
       * **The two lists are disjoint by construction:** a row still actionable on its tab is never also reported as
         bought, even when its mode was put back by hand rather than by this undo. An actionable row hidden under a
         reveal is the failure FR-25.11a names.
+      * **A BUY_LOCAL purchase is found two ways (corrected 2026-09-20):** `bought_from` is what M6's own check-off
+        writes, and for a BUY_BEFORE row it is the only way back, because the purchase changed the mode. A BUY_LOCAL
+        row is bought *by being packed*, so checking it off on the packing list records it the ordinary FR-25.17 way
+        and writes no `bought_from` at all — and reading the column alone lost such a row off both tabs at once: open
+        no longer, bought never. The bought list therefore unions the column with the state — a `buy_local` row that
+        is `packed` — and keeps the column beside it, because a row bought on M6 and later moved to `pack` by hand is
+        findable only there. `bought_from` records *which list a row left*, not *whether* it was bought.
     ~~**Owed (2026-08-25):** the portable format does not carry `bought_from`, so a Local Mode backup and restore
     (NFR-4.11) loses which list a row was bought from — the row comes back on the packing list with the shopping side no
     longer knowing it was bought. Both halves of the fix live in `client/src/domain/portable.ts` and

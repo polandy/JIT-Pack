@@ -404,7 +404,9 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
 - [The instance outgrew "delete and reseed" (2026-09-20)](#the-instance-outgrew-delete-and-reseed-2026-09-20) — ADR-018's trigger fired, ADR-067 answers it; why a stamped fingerprint proves nothing.
 - [The selection mode grew a door instead of three buttons (2026-09-20)](#the-selection-mode-grew-a-door-instead-of-three-buttons-2026-09-20) — FR-24.9 widened: why a batch skips instead of refusing, and the two defects the first case to tap a row found.
-- [The gesture latch kept a window nothing could see (2026-09-20)](#the-gesture-latch-kept-a-window-nothing-could-see-2026-09-20) — FR-21.17: the 120–220 ms residue left on purpose, and the load that made a race tighter rather than looser.
+- [A bought row that said so in the wrong column (2026-09-20)](#a-bought-row-that-said-so-in-the-wrong-column-2026-09-20) — FR-25.11j: why a BUY_LOCAL row packed on M4 was on neither shopping tab.
+- [Two of the four badges were not worth a badge (2026-09-20)](#two-of-the-four-badges-were-not-worth-a-badge-2026-09-20) — ADR-051 amendment 1: the mockup that decided it, and the rule that keeps the row saying where you are.
+- [The gesture window is a residue, not an oversight (2026-09-20)](#the-gesture-window-is-a-residue-not-an-oversight-2026-09-20) — FR-21.17: the 120–220 ms the rule keeps on purpose, and the load that made a race tighter.
 
 ## Deviations
 
@@ -16390,28 +16392,78 @@ The pair is the testing rule in CLAUDE.md paying for itself twice in one afterno
 case is a dependable sign that nothing has ever operated that control, and `m9-row-check-…` appeared only in a jsdom
 spec.
 
-## The gesture latch kept a window nothing could see (2026-09-20)
+### A bought row that said so in the wrong column (2026-09-20)
 
-Follow-up to *„A head that answered scrolls nobody made"* above, and the reason its new case E2E-M4-135 went red about
-one run in six. The suite-side narrative — the instrumented traces, and the two signals M4 now renders — is in
-`dev-docs/e2e-tests.md`, *„A case that raced a watchdog it could not see"*. Two things belong here instead, because
-neither is visible in the diff.
+Two `buy_local` rows on the family instance's live trip were on neither M6 tab — not open, not under "gekaufte
+anzeigen" — while sitting untouched in the database. Reported as data lost to the 0.15.0 upgrade; the pre-upgrade
+snapshot says otherwise. Both rows are byte-identical across it: `state = packed`, `bought_from` NULL, packed hours
+before the new image started.
 
-**The premise that made it possible.** FR-21.17 reads as a rule about *who scrolled*, and the implementation is a
-latch: armed by an input that scrolls, let go when the scroller comes to rest. „Comes to rest" is `ionScrollEnd`, and
-Ionic emits that from a watchdog — `setInterval(100)` firing once `lastScroll < Date.now() - 120`. So the rule has a
-**120–220 ms window after every gesture in which a scroll nobody made is still answered**, and nothing outside the page
-can tell whether it is open. The case was written as though the rule were instantaneous, which is the belief the diff
-cannot show.
+`getShoppingItems` asked one question for both lists: `bought_from === from`. That is right for BUY_BEFORE, where the
+purchase flips `mode` to `pack` and the column is the only trace of where the row came from — which is what FR-25.11j
+was written for. It is wrong for BUY_LOCAL, and the FR says so in the same paragraph: *a BUY_LOCAL purchase is a
+packing act, so `packed_at` and `packed_by_user_id` already record it through the ordinary FR-25.17 path.* Only M6's
+own check-off writes `bought_from`. Check the same row off on the packing list and it is packed, so it leaves the open
+tab, and unrecorded, so it never reaches the bought one.
 
-**The cost accepted, so it is not later read as a defect and „fixed".** That window stays. Momentum counting as the
-flick is the rule's intent — a flick's travel is mostly momentum, and the head has to keep yielding through it — and
-the only way to take the clock out of the latch is to consume it per reading, which loses a flick that crosses the
-48 px threshold on momentum alone. The reachable half of the residue is a **keyboard focus**: `focusin` is dispatched
-before the scroll it causes, so it could disarm the latch exactly rather than eventually. That is a behaviour change,
-it is owed its own case, and it was deliberately left out of a determinism fix.
+**The premise that was wrong**: that a purchase always happens on the shopping screen. `bought_from` was designed as
+the record of *which list* a row left, not of *whether* it was bought — and a column that answers one question was
+asked the other.
 
-**And a measurement worth keeping**: a case that loses a race does not always lose it under load. Here load made the
-race *tighter* — the Playwright round trips between the flick and the programmatic scroll shortened relative to a timer
-the busy renderer was deferring — so „it passes on my machine, it fails on CI" was the opposite of the usual reason,
-and a longer wait would have been the wrong fix in the most convincing possible way.
+The fix reads the state for BUY_LOCAL and keeps `bought_from` beside it, because a row bought on M6 and later moved to
+`pack` by hand is still findable only by the column. The `field_hlcs` were what settled the diagnosis rather than a
+guess: `bought_from` carried the row's creation-era clock while `state` and `packed_at` carried the later one, so the
+check-off demonstrably never touched it.
+
+## Two of the four badges were not worth a badge (2026-09-20)
+
+**The report.** The owner, off the running app: the luggage is not important enough to stand in the badges at the top
+of the packing list, and neither is the analytics. Four ways out were mocked against the real palette before anything
+was built — the row cut to two with the rest in the ⋮; a third *„Mehr"* pill opening a popover; the luggage hung off
+the weight the header line already prints, with the analytics appearing only on an archived trip; and two cards at the
+foot of the list carrying their own numbers. The owner picked the first.
+
+**What the render showed that the code did not.** ADR-051 had scored "discoverability" as *every view visible* and won
+on it. Four pills fill a 390 px row to within six pixels, so the decision it actually shipped was that a screen read
+once a trip is exactly as loud as the list being packed — and a row that is equally loud everywhere says nothing about
+where the work is. That is not a fact a stylesheet states; it is why the mockup came first.
+
+**The rule that made two pills possible.** A screen whose view has no pill marks nothing as current, and "where am I"
+is half of what the switcher is for. So the row is the two views a trip is *worked* in **plus the one being looked
+at** — two pills on M4 and M6, three on M11 and M12, never four. The alternative considered and dropped was leaving
+M11 and M12 with an unmarked row: it renders as a control with a broken state rather than as a control that has
+nothing to say.
+
+**One table, two shapes.** The switcher wrote each view's word, glyph and path inline, and the menu would have written
+them a second time — the shape in which *Gepäck* gets renamed in one place and nothing fails. They are
+`lib/tripViews.ts` now, and the id travels with the view: a menu entry keeps the `trip-view-<id>` its pill had, which
+is why twenty-odd e2e cases did not change when two of the four moved.
+
+**The frame fills the menu, not the four screens.** `useHeaderActions` is per-route, so the obvious implementation was
+for M4, M6, M11 and M12 each to register the two entries — four copies of the rule ADR-051 driver 3 exists to prevent.
+`AppHeader` derives them from `meta.tripView` instead, the same source the pills come from, and the sheet leads with
+where you can go before what you can do to the trip. A lifecycle step between two destinations reads as neither.
+
+**What was accepted.** Two taps instead of one for the luggage and the analytics, behind an unlabelled glyph — the
+exact shape ADR-050 was criticised for. What makes it affordable is the count: two entries, not five, and the two
+nobody reaches while packing. The revisit trigger is written as the ⋮ growing past three entries on a trip screen.
+
+## The gesture window is a residue, not an oversight (2026-09-20)
+
+*„Two views left the row…"* above closed E2E-M4-135 by making M4's gesture window observable, and the suite side of
+that is in `dev-docs/e2e-tests.md`. Two things belong here instead, because the diff shows neither and both would
+otherwise be re-derived — or worse, read as defects and „fixed".
+
+**The window has a measurable size, and it stays.** „Comes to rest" is `ionScrollEnd`, which Ionic emits from a
+watchdog — `setInterval(100)` firing once `lastScroll < Date.now() - 120`. So FR-21.17 has a **120–220 ms window after
+every gesture in which a scroll nobody made is still answered**. Momentum counting as the flick is the rule's intent —
+a flick's travel is mostly momentum, and the head has to keep yielding through it — and the only way to take the clock
+out of the latch is to consume it per reading, which loses a flick that crosses the 48 px threshold on momentum alone.
+The reachable half of the residue is a **keyboard focus**: `focusin` is dispatched before the scroll it causes, so it
+could disarm the latch exactly rather than eventually. That is a behaviour change, it is owed its own case, and it was
+deliberately left out of a determinism fix.
+
+**And a measurement worth keeping**: load made the race *tighter*, not looser. The Playwright round trips between the
+flick and the programmatic scroll shorten relative to a timer the busy renderer is deferring, so „it passes on my
+machine, it fails on CI" pointed the opposite way from usual here — a longer wait would have been the wrong fix in the
+most convincing possible way, green while removing a true report of the rule.

@@ -134,7 +134,8 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Waiting on the far screen proved only the near one (2026-09-18)](#waiting-on-the-far-screen-proved-only-the-near-one-2026-09-18) — E2E-G10-02's second correction of the same mistake, and the two rules a socket watch has to obey.
 - [The composer stopped making ad-hoc rows (2026-09-19)](#the-composer-stopped-making-ad-hoc-rows-2026-09-19) — FR-24.11: the one helper every typed add goes through, and the promise no composer reaches.
 - [M6 became a module, and its cases reach packing rows through M4 (2026-09-19)](#m6-became-a-module-and-its-cases-reach-packing-rows-through-m4-2026-09-19) — FR-30: the first module directory, two retired ids, and why every buy row is now made on M4.
-- [A case that raced a watchdog it could not see (2026-09-20)](#a-case-that-raced-a-watchdog-it-could-not-see-2026-09-20) — E2E-M4-135: the flake that was a true report of the rule, and the two signals M4 renders in place of a guess.
+- [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, and the scroll window E2E-M4-135 was racing.
+- [An absence was still being read off a frame count (2026-09-20)](#an-absence-was-still-being-read-off-a-frame-count-2026-09-20) — E2E-M4-135's second half: tying the head's silence to the reading it is silent about.
 
 ## The rule that comes before the units
 
@@ -5382,64 +5383,125 @@ twice, because an entry that lived only in the screen's state would pass every
 other assertion in it. E2E-M6-28 sets the mode back to *Pack* and expects the tab
 to empty — the one observable difference between a projection and a copy.
 
-## A case that raced a watchdog it could not see (2026-09-20)
+## Two views left the row and the helper stopped being one click (2026-09-20)
 
-**E2E-M4-135 failed about one run in six, and it was never a flake in the
-assertions.** It went red in `e2e` shard 3 on the very run of the commit that
-added it (`ee66230`), and reached `main` anyway because `e2e` is deliberately
-not a required check. The obvious reading — a case that measures animation
-`flips` behind a bounded `requestAnimationFrame` loop is waiting and hoping —
-is wrong, and acting on it would have buried the thing the case was reporting.
+ADR-051 amendment 1 keeps *Packliste* and *Einkaufen* as pills and sends *Gepäck* and
+*Auswertung* back into the bar's ⋮ — the owner's judgement, off a render, that a view read
+once a trip should not be as loud as the list being packed. Three things fell out for the
+suite.
 
-**What the instrumented run shows.** Probing the gesture latch either side of
-the scroll, a passing run and a failing one differ by one number:
+**`openTripView` is a door, not a click.** It has now been all three shapes: open-the-menu
+then click (ADR-050), one click on a pill (FR-21.21), and both at once. The branch is on the
+*view*, not on what is on screen — `PILL_VIEWS` names the two, and anything else goes
+through the ⋮. That distinction is the whole reason the helper is allowed a branch at all: a
+conditional reading "click the pill **if it is visible**, otherwise open the menu" would
+pass against an app that had lost the pill, which is precisely the regression the case is
+there to catch. The rule restated: **a helper may branch on what the app is specified to
+do, never on what it currently renders.**
 
-```
-passing                                   failing
-  ...679 arm wheel                          ...642 arm wheel
-  ...679 scroll top=979 gesture=true        ...642 scroll top=979 gesture=true
-  ...694 scroll top=832 gesture=true        ...658 scroll top=832 gesture=true
-  ...879 disarm scrollEnd                   ...791 scroll top=543 gesture=true
-  ...072 scroll top=543 gesture=false
-```
+The ids made this cheap. The app gives a view the same `trip-view-<id>` whether it is a
+pill or a sheet entry — `AppHeader` has said so since UX-13 — so only the *way in* moved,
+and the twenty-odd cases that reach a sibling view did not change at all.
 
-In the failing run the programmatic scroll lands **133 ms** after the reader's
-last reading, while the latch is still armed, so the rule reads it as the flick
-still running: the header line loses `collapsed` and the row moves **435 px on
-a 289 px scroll** — the scroll plus the head's own height. That is FR-21.17's
-defect exactly, reported correctly. The case was right; its *premise* was not.
+**E2E-G12-05 had to follow the glyphs into the menu.** It reads the icon each destination
+actually renders and asserts pairwise distinctness; two of its four now render inside an
+action sheet. Read there rather than dropped, because the rule got *sharper* under the
+amendment: a reader who learned the briefcase on a pill must not meet a different glyph in
+the menu. The sheet's button carries the test id and the `ion-icon` sits inside it, so the
+existing `glyph()` helper works unchanged once the sheet is open.
 
-**The premise.** „A scroll nobody made" is only that once the reader's gesture
-is over, and the case never established it. The latch is let go on
-`ionScrollEnd`, which Ionic emits from a watchdog — `setInterval(100)` firing
-once `lastScroll < Date.now() - 120` — so when it lands is knowable nowhere
-outside the page, and a case that simply scrolled was racing a clock it could
-not see. Under load the race tightens rather than loosens: the Playwright round
-trips between the flick and the scroll get *shorter* relative to a timer the
-busy renderer is deferring.
+**E2E-G12-07 was rewritten a third time.** Its clause has been reversed by UX-13, by
+ADR-050 and by FR-21.21; this time it is narrowed rather than reversed. What it pins now:
+two pills named as words, the other two named as words *in the sheet*, `trip-view-luggage`
+asserted absent from the row before it is found in the menu — the positive-and-negative pair
+that keeps the absence falsifiable — and the sideways step that has survived every version
+of the decision. One clause is new: standing on M11, *Gepäck* **is** a pill and is marked
+current, and it is gone again from the row on M12. A switcher that marked nothing would have
+passed every other assertion in the case.
 
-**M4 now renders the two readings the case was guessing at**, which is the
-reasoning that already gave `usePackAnnouncer` its counter — an absence needs a
-positive signal, and a signal nothing renders cannot be waited on:
+**What is not in an e2e case, deliberately.** The sheet's *order* — destinations first, then
+what changes the trip — is asserted in `AppHeader.spec.ts` against the button list Ionic is
+handed, where the order is data. In the browser it is four labels in a column, and a case
+that read them by position would be pinning the sheet's markup rather than the decision.
 
-- `data-head-gesture` — the precondition. The case waits for the reader's
-  gesture to be over before creating one nobody made.
-- `data-head-scroll` — the offset the rule last took up. The rule accepts every
-  offset it is handed, gesture or not, so „the head did not move" can only be
-  read against the reading having arrived at all. It replaces four rounds of
-  `requestAnimationFrame` plus `getAnimations()`, which was a bounded wait for
-  an absence and would have reported one whenever the answer was a frame late.
+**Fixed here, measured rather than re-run: E2E-M4-135 measured before the scroller had
+rested.** It went red on `expect(moved.flips).toBe(0)` on the CI shard for this branch, and
+on two of the local runs. Measured against the base the branch was cut from (`b0942bb`),
+with the identical command each time: **1 failure in 6 on the branch, 1 in 6 on `main`** for
+the repeat-each run, and one failure in the loaded `packing-list + shopping` run **on each
+side** — on `main` it was this same case, on the branch it was its neighbour E2E-M4-70. Both
+browsers were seen failing across the runs. So it is the case, not the change: this branch
+touches what stands in the head, not the rule that collapses it.
 
-**What was deliberately not changed.** The latch's own timer stays. Momentum
-counting as the flick is the rule's intent, not an oversight, and the only way
-to take the clock out of it is to consume the latch per reading — which loses a
-flick that crosses the 48 px threshold on momentum alone. So the residue is
-real and known: a scroll nobody made that lands inside the watchdog's window is
-still answered. The reachable half of it is a **keyboard focus**, whose
-`focusin` precedes the scroll it causes and could therefore disarm the latch
-exactly; that is a behaviour change owed its own case, and it is not in this one.
+**The mechanism, read off the production code rather than guessed.** M4 arms its `gesture`
+flag on a wheel or a touch drag and disarms it in `onScrollEnd` — deliberately, so a flick's
+momentum still counts as the flick (FR-21.17). The case flicks to the end with
+`scrollToEnd`, waits for the line to carry `collapsed`, and then scrolls a row into view
+programmatically. But the class lands on the *first accepted reading*, which is long before
+`scrollend`; under load the window from the reader's own flick is still open when the
+programmatic scroll arrives, so the head answers it and `flips` is 1. The case is asserting
+the right rule and starting its measurement too early. What it needs is the settled state,
+and `gesture` is a module-local `let` that nothing can observe — which is the absence the
+working agreement calls the defect.
 
-**Evidence.** 10/10 under the background load that had been giving 1-in-4, and
-the mutation (the `gesture` guard removed from `nextHeadState`) 6/6 red across
-chromium and webkit — where the same proof on the old case would itself have
-been probabilistic.
+**The signal, and where it went.** `armGesture` mirrors the flag onto M4's `ion-content` as
+`data-scroll-gesture` — an attribute toggled imperatively, the way the G-19 toast carries
+`data-presented`, because a `ref` would re-render the list on every wheel event. Nothing in
+the app reads it. `scrollPackList` waits for it to clear, so **every** case that flicks the
+list measures from a settled state rather than from a race against Ionic's debounce; that is
+one place rather than one per case, and the helper already made the neighbouring promise
+("settled, not merely moved") about the list's offset. The two are genuinely different
+moments: the list stops first, the window closes after it.
+
+Proven both ways before it was believed. With the wait, E2E-M4-135 and E2E-M4-70 pass 3×
+each and the loaded `packing-list + shopping` run goes 152/152 — the configuration that had
+been failing. Against a mutant that hands `gesture: true` to every reading, E2E-M4-135 goes
+red in **both** browsers, so the wait did not buy its determinism by making the case vacuous.
+
+**And a second thing the CI shard found that no local run did: `Escape` does not close an
+Ionic sheet that is still presenting.** E2E-G12-07 opens the bar's ⋮ to read the two views
+in it, and closed it with a key. The key is ignored until Ionic's overlay has finished
+presenting, so waiting for an entry to *render* is waiting for the markup rather than for
+the overlay — and on a loaded shard the sheet outlived the `toHaveCount(0)` after it, twice,
+in two separate pipelines. Closed through its own *Cancel* now, in a `dismissMenu` helper
+beside the case and in the shared `tripActions`, which carried the same key: a click waits
+for the button to be actionable, which is that same moment stated as a state instead of
+hoped for. Neither run had ever gone red locally, at any repeat count — the loaded remote
+shard is the only place this shape shows itself, which is an argument for reading a red
+shard rather than re-running it.
+
+**One measurement here was not what it looked like**, and it is worth writing down: a local
+run of that same combination reported 35 failures, all WebKit. None of them were real. A
+parallel session was running the suite from another worktree, and `scripts/e2e.sh` uses
+`--network host`, so the two runs fought over port 4173 — which its own comment warns about.
+The tell is the shape: a change to one screen does not fail two specs' worth of cases in one
+browser only. `E2E_PORT=4183 scripts/e2e.sh …` is the way out, and a second local suite is
+the first thing to check when a run fails that broadly.
+
+## An absence was still being read off a frame count (2026-09-20)
+
+The section above closed the half of E2E-M4-135 that was a *race*: the scroll it makes is nobody's
+now, because `scrollPackList` waits out the reader's gesture window. This is the other half, and it
+is a different mistake in the same case — one the green run hides rather than reports.
+
+**What the case asserts is an absence.** `flips` is 0; the head did not answer. The working
+agreement's rule for that is a positive signal, *and the signal must be the same event reaching
+somewhere else*. What stood there instead was four rounds of double-`requestAnimationFrame` with a
+`getAnimations()` bail-out — a bounded wait, tied to nothing the rule does. It answers "some frames
+have passed", and the question is "did the reading the head would have answered arrive yet?". Those
+differ exactly when it matters: on a loaded runner the answer is a frame late, and the case reports
+the very absence it is asserting.
+
+**The signal is the reading itself.** M4 writes `data-head-scroll` — the offset `nextHeadState` has
+just taken up — beside the `data-scroll-gesture` the section above added, imperatively and for the
+same reason. The case waits for it to reach the offset `scrollIntoView` produced, and the ordering
+does the rest: the page assigns `head.value` first, which queues the head's own render, and writes
+the attribute after it, so a mutation observer notified of the attribute is notified after the class
+flip has been rendered and counted. The absence is read against the arrival of the thing it is an
+absence of.
+
+**It is worth the attribute because the old shape's own proof was probabilistic.** Against the
+mutant that drops the `!gesture` guard in `nextHeadState`, the frame count goes red *most* of the
+time and the attribute goes red every time — and a case whose falsification is a coin flip is a case
+that will one day certify a regression. That is the whole argument; the determinism of the green run
+is the smaller half.
