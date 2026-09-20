@@ -13,7 +13,7 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { planPackingClose } from '../closePacking'
+import { packingIsFinished, planPackingClose } from '../closePacking'
 import type { TripItem } from '@/types/domain'
 
 let seq = 0
@@ -139,5 +139,62 @@ describe('planPackingClose', () => {
     expect(
       planPackingClose([item({ quantity: 1, packed_count: 1, state: 'packed' })]).rows,
     ).toEqual([])
+  })
+})
+
+/**
+ * FR-5.10's *moment*: when has the packing just been finished?
+ *
+ * Separate from {@link planPackingClose} because „nothing is left to pack"
+ * is not the same question as „what would closing decide", and the first
+ * build asked the second one. A trip carrying nothing but shopping rows has
+ * an empty plan — there is nothing to decide — and it is emphatically not a
+ * trip whose packing was just finished. Asking there put a sheet over M4 on
+ * trips nobody had packed anything on, which is what twelve e2e cases then
+ * said in the only language CI has.
+ */
+describe('packingIsFinished', () => {
+  it('is true once every packing row is done and at least one was packed', () => {
+    expect(
+      packingIsFinished([
+        item({ quantity: 1, packed_count: 1, state: 'packed' }),
+        item({ quantity: 0, packed_count: 0, state: 'skipped' }),
+      ]),
+    ).toBe(true)
+  })
+
+  it('is false while a row is still open or half packed', () => {
+    expect(
+      packingIsFinished([
+        item({ quantity: 1, packed_count: 1, state: 'packed' }),
+        item({ name: 'Regenjacke' }),
+      ]),
+    ).toBe(false)
+    expect(packingIsFinished([item({ quantity: 6, packed_count: 4, state: 'partial' })])).toBe(
+      false,
+    )
+  })
+
+  it('is false for a trip that carries no packing row at all', () => {
+    // The defect, as a case: buy rows are the shopping list's, so this trip
+    // has nothing to pack — and „nothing to pack" is not „finished packing".
+    expect(
+      packingIsFinished([
+        item({ name: 'Brot', mode: 'buy_before' }),
+        item({ name: 'Sonnencreme', mode: 'buy_local' }),
+      ]),
+    ).toBe(false)
+    expect(packingIsFinished([])).toBe(false)
+  })
+
+  it('is false where every row was decided and none was packed', () => {
+    // Skipping the last row is a decision, not a moment of finishing: the
+    // question would arrive on the back of the skip's own snackbar.
+    expect(
+      packingIsFinished([
+        item({ quantity: 0, packed_count: 0, state: 'skipped' }),
+        item({ quantity: 0, packed_count: 0, state: 'skipped' }),
+      ]),
+    ).toBe(false)
   })
 })

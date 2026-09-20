@@ -261,6 +261,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.closeAction': 'Packen abschliessen',
   'packing.closeConfirmTitle': 'Packen abschliessen?',
   'packing.closeConfirmMeta': 'Was offen bleibt, ist danach eine Entscheidung.',
+  'packing.closePromptTitle': 'Alles gepackt',
   'packing.closePromptMeta': 'Das war das letzte offene Packelement.',
   'packing.closeLater': 'Später',
   'packing.closeConfirmBody':

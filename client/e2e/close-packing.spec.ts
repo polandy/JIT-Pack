@@ -162,9 +162,10 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   }) => {
     await tripWithRows(page, ['Zelt'], 'Nachtrag')
     await startTrip(page)
-    // The last row going in raises the question by itself (E2E-M4-143), so
-    // this case answers *that* one rather than reaching for the ⋮ behind it.
+    // The last row going in offers the step by itself (E2E-M4-143); this
+    // case takes the offer rather than reaching for the ⋮.
     await packRow(page, 'Zelt')
+    await visiblePage(page).getByTestId('m4-close-prompt').click()
     await confirmClose(page)
 
     await openQuickAdd(page)
@@ -187,23 +188,35 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
    * asks — and it is still a *question*: nothing is written until it is
    * answered, and a reader who says *Later* is not asked again.
    */
-  test('E2E-M4-143: packing the last row asks whether the packing is finished', async ({
+  test('E2E-M4-143: packing the last row offers to finish, without taking the screen', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt', 'Regenjacke'], 'Letzte Zeile')
     await startTrip(page)
     await packRow(page, 'Zelt')
-    // One row still open: no question yet, or it would be asking about a
-    // list that is not finished.
-    await expect(closeSheet(page)).toHaveCount(0)
+    // One row still open: no offer yet, or it would be reporting a moment
+    // that has not happened.
+    await expect(visiblePage(page).getByTestId('m4-close-prompt')).toHaveCount(0)
 
     await packRow(page, 'Regenjacke')
 
+    const prompt = visiblePage(page).getByTestId('m4-close-prompt')
+    await expect(prompt).toBeVisible()
+    // In the empty state the list already shows, not over it: no sheet
+    // opened itself, and the list underneath still answers a click — the
+    // clause that failed on the modal build this replaced (ADR-060).
+    await expect(closeSheet(page)).toHaveCount(0)
+    await visiblePage(page).getByTestId('m4-done-bar').click()
+    await expect(visiblePage(page).getByTestId('m4-row-Zelt')).toBeVisible()
+
+    // Taken, then waved off with *Later*: it stays away, nothing is written,
+    // and the ⋮ still carries the step.
+    await visiblePage(page).getByTestId('m4-done-bar').click()
+    await prompt.click()
     await expect(closeSheet(page)).toBeVisible()
-    await expect(closeSheet(page)).toContainText('last open item')
-    // *Later* leaves the trip exactly as it was — and stops the offer.
     await page.getByTestId('m4-close-sheet-cancel').click()
     await expect(page.getByTestId('m4-close-sheet')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m4-close-prompt')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
     await expectTripActionOffered(page, 'closePacking')
   })
@@ -250,6 +263,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await tripWithRows(page, ['Zelt'], 'Dashboard-Phase')
     await startTrip(page)
     await packRow(page, 'Zelt')
+    await visiblePage(page).getByTestId('m4-close-prompt').click()
     await confirmClose(page)
 
     await page.goto(PATH.dashboard)

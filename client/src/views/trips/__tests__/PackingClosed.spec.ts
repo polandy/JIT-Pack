@@ -229,7 +229,7 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
  * that was already complete; and a reader who says *später* is not asked
  * again for that trip.
  */
-describe('M4 — the last row packed asks the question (FR-5.10)', () => {
+describe('M4 — the last row packed offers the step (FR-5.10)', () => {
   /** Pack the one row the trip has, the way a pull of the write would. */
   function packLastRow() {
     const trips = useTripStore()
@@ -250,21 +250,56 @@ describe('M4 — the last row packed asks the question (FR-5.10)', () => {
     return flushPromises()
   }
 
-  it('asks when the last open row is packed', async () => {
+  it('offers the step when the last open row is packed, without taking the screen', async () => {
     seedTrip({}, [{ name: 'Regenjacke' }])
 
     const page = mountPage()
     await flushPromises()
-    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
 
     await packLastRow()
 
+    // A bar, not a modal: the first build opened the sheet here, and a sheet
+    // the user did not ask for intercepts every following tap — seventeen
+    // e2e flows said so at once.
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(true)
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(orchestratorFake.closePacking).not.toHaveBeenCalled()
+
+    // Its button asks the question, and only then.
+    await page.find('[data-testid="m4-close-prompt"]').trigger('click')
+    await flushPromises()
     const sheet = page.findComponent(ClosePackingSheet)
     expect(sheet.exists()).toBe(true)
-    // Nothing is open, so the question is the one for a finished list — and
-    // it is still a question: no write has happened.
     expect(sheet.text()).toContain(t('packing.closeConfirmNothing'))
-    expect(orchestratorFake.closePacking).not.toHaveBeenCalled()
+  })
+
+  it('takes the offer away when the list reopens', async () => {
+    seedTrip({}, [{ name: 'Regenjacke' }])
+
+    const page = mountPage()
+    await flushPromises()
+    await packLastRow()
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(true)
+
+    // Un-packed again: the bar reported a moment that is over.
+    useTripStore().applyChange({
+      seq: 2,
+      table: TABLE.tripItems,
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Regenjacke',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+      },
+    })
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
   })
 
   it('does not ask when a list that was already complete arrives after the screen', async () => {
@@ -302,7 +337,7 @@ describe('M4 — the last row packed asks the question (FR-5.10)', () => {
     tripScreen.loadedTrips.add('t1')
     await flushPromises()
 
-    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
     expect(actionIds()).toContain('m4-close-packing')
   })
 
@@ -314,19 +349,22 @@ describe('M4 — the last row packed asks the question (FR-5.10)', () => {
 
     // The ⋮ still offers it. What must not happen is the app asking about a
     // moment that passed before the screen was opened.
-    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
     expect(actionIds()).toContain('m4-close-packing')
   })
 
-  it('does not ask again once the reader has said later', async () => {
+  it('does not offer again once the reader has waved it away', async () => {
     seedTrip({}, [{ name: 'Regenjacke' }])
 
     const page = mountPage()
     await flushPromises()
     await packLastRow()
+    // *Später* on the sheet is the way to wave it off.
+    await page.find('[data-testid="m4-close-prompt"]').trigger('click')
+    await flushPromises()
     page.findComponent(ClosePackingSheet).vm.$emit('close')
     await flushPromises()
-    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
 
     // A row is added and packed: the list completes a second time, and the
     // app holds its tongue. Without this the screen would ask on every tick
@@ -363,17 +401,72 @@ describe('M4 — the last row packed asks the question (FR-5.10)', () => {
     })
     await flushPromises()
 
-    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
   })
 
-  it('does not ask on a trip whose packing is already closed', async () => {
+  it('does not offer on a trip that carries nothing but shopping rows', async () => {
+    // The defect twelve e2e cases reported: a buy row is the shopping list's
+    // (FR-30.2), so this trip's packing plan is empty — and an empty plan is
+    // not a finished packing. The sheet put itself over M4 on trips nobody
+    // had packed anything on, and every later click landed on the modal.
+    seedTrip({}, [{ name: 'Brot', mode: 'buy_before' }])
+
+    const page = mountPage()
+    await flushPromises()
+    // A second buy row arriving is the transition the first build fired on.
+    useTripStore().applyChange({
+      seq: 2,
+      table: TABLE.tripItems,
+      id: 'ti9',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Sonnencreme',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'buy_local',
+      },
+    })
+    await flushPromises()
+
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
+  })
+
+  it('does not offer when the last row was skipped rather than packed', async () => {
+    seedTrip({}, [{ name: 'Drohne' }])
+
+    const page = mountPage()
+    await flushPromises()
+    useTripStore().applyChange({
+      seq: 2,
+      table: TABLE.tripItems,
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Drohne',
+        quantity: 0,
+        packed_count: 0,
+        state: 'skipped',
+        mode: 'pack',
+      },
+    })
+    await flushPromises()
+
+    // Deciding against the last row is not finishing the packing, and the
+    // offer would arrive on the back of the skip's own snackbar.
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
+  })
+
+  it('does not offer on a trip whose packing is already closed', async () => {
     seedTrip({ packing_closed_at: CLOSED_AT }, [{ name: 'Regenjacke' }])
 
     const page = mountPage()
     await flushPromises()
     await packLastRow()
 
-    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(false)
   })
 
   it('does not ask over a list that has not arrived (ADR-033)', async () => {

@@ -143,7 +143,7 @@ import {
   type ClusterMenuAction,
 } from '@/domain/clusterActions'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
-import { planPackingClose, type ClosePackingPlan } from '@/domain/closePacking'
+import { packingIsFinished, planPackingClose, type ClosePackingPlan } from '@/domain/closePacking'
 import { isPackingClosed } from '@/lib/tripPhase'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
@@ -2381,9 +2381,7 @@ const closePrompted = ref(false)
  *  - a list that has not arrived is not an empty one (ADR-033), and a trip
  *    with no rows at all has nothing to finish.
  */
-const packingComplete = computed(
-  () => allItems.value.length > 0 && closePlan.value.rows.length === 0,
-)
+const packingComplete = computed(() => packingIsFinished(allItems.value))
 const closeDeclined = ref(false)
 /**
  * Whether this screen has read the list *once*. Counted from the partition
@@ -2393,18 +2391,34 @@ const closeDeclined = ref(false)
  * would otherwise look like the transition this watches for.
  */
 let listRead = false
+/** Whether the offer has been raised for this list, as a bar above it. */
+const closePromptUp = ref(false)
 watch(
   [rowsLoaded, packingComplete] as const,
   ([loaded, complete]) => {
     if (!loaded) return
     const firstReading = !listRead
     listRead = true
+    // The offer stands down by itself when the list reopens — a row added or
+    // un-packed — so it never outlives the moment it reports.
+    if (!complete) closePromptUp.value = false
     if (firstReading || !complete || packingClosed.value || closeDeclined.value) return
-    closePrompted.value = true
-    closeSheetOpen.value = true
+    closePromptUp.value = true
   },
   { immediate: true },
 )
+
+/** The bar's own button: the same question, now asked for. */
+function onOpenFromPrompt() {
+  closePrompted.value = true
+  closeSheetOpen.value = true
+}
+
+/** *Später* on the sheet: this trip stops volunteering it while M4 lives. */
+function onDismissPrompt() {
+  closePromptUp.value = false
+  closeDeclined.value = true
+}
 
 /** The ⋮ asks the same question, and says so by not being a prompt. */
 function onClosePacking() {
@@ -2412,10 +2426,10 @@ function onClosePacking() {
   closeSheetOpen.value = true
 }
 
-/** Dismissed: nothing is written, and this trip stops volunteering it. */
+/** Dismissed: nothing is written, and an offered close stops being offered. */
 function onCloseSheetDismissed() {
   closeSheetOpen.value = false
-  if (closePrompted.value) closeDeclined.value = true
+  if (closePrompted.value) onDismissPrompt()
 }
 
 /**
@@ -2429,6 +2443,7 @@ function onCloseSheetDismissed() {
  */
 function onConfirmClosePacking() {
   closeSheetOpen.value = false
+  closePromptUp.value = false
   const affected = orchestrator.closePacking(props.tripId, {
     isClaimed: (row: TripItem) => locked(row),
   })
@@ -2900,7 +2915,21 @@ setHeaderTitle(
         :title="t('packing.allDone')"
         :hint="t('packing.allDoneHint')"
         testid="packing-empty"
-      />
+      >
+        <!-- FR-5.10: the step, offered where the moment is. In the state the
+             list already shows when the last row goes in — so nothing new
+             enters the flow and nothing moves under the finger that packed
+             it (ADR-060). The sheet is one deliberate tap away. -->
+        <IonButton
+          v-if="closePromptUp && !packingClosed && !closingPass"
+          size="small"
+          data-testid="m4-close-prompt"
+          @click="onOpenFromPrompt"
+        >
+          <IonIcon slot="start" :icon="checkmarkDoneOutline" />
+          {{ t('packing.closeAction') }}
+        </IonButton>
+      </EmptyState>
 
       <!-- The bars run in the order the rows do (owner, 2026-09-18): the two
            whose rows still ask for something first — packed on departure day

@@ -16680,6 +16680,31 @@ nuisance (the first reading is dropped, a *Später* silences it for the trip, an
 finished one). And *„die Packliste kann dort deutlich weniger prominent sein"* — M1's hero and trip cards drop the
 packing ring for one line once the packing is closed, and the trip's tasks take the lone ring size back.
 
+**And then it found the defect under the case.** The first build asked „is the packing finished?" by reading the
+*plan*: nothing left for a close to decide. That is a different question, and on a trip carrying only shopping rows it
+answers yes — a buy row is not the packing list's (FR-30.2), so the plan is empty on a trip nobody has packed anything
+on. The sheet put itself over M4 there and every later click landed on the modal: twelve e2e cases on CI, in files
+that have nothing to do with packing (`backup-restore`, `dashboard`, `analytics`). The rule is its own function now
+(`packingIsFinished`) and says what the moment actually is — at least one packing row, none of them open or half
+packed, **and at least one actually packed**, so that skipping the last row does not raise the question on the back of
+the skip's own snackbar either.
+
+**And the second thing the suite said, which was about the design.** With the rule fixed, seventeen cases still
+failed — in both browsers, in files about backups, analytics, the dashboard, M5. Every one of them packed a trip's
+last row for its own reasons and then tapped something, and the sheet was in the way. That is not a test problem: a
+modal the user did not ask for takes the screen from the tap that follows it, and seventeen flows is a measurement of
+how often that happens. The offer moved out of the modal — and then out of the flow as well: a bar
+above the list fixed the seventeen and broke four more, because inserting a band above a list moves the page under
+whatever is being tapped, which is ADR-060's whole subject and a decision this project had already taken for the
+update banner. It lives in the *„Alles gepackt"* empty state now (FR-25.11e), which the list shows at exactly that
+moment and which occupies space the packed row has just vacated, so nothing moves at all. The sheet stays where a
+question belongs, one deliberate tap away. Nothing in the twenty-one cases had to change.
+
+**What it cost, and the habit it changes.** The local pass before that push was chromium-only, and the defect is
+browser-independent — it showed on CI because CI runs the whole suite, not because WebKit differs. A change that can
+make something *appear on its own* is a change to every screen that renders while it can appear, and the only thing
+that measures that is the whole suite. It is ten minutes; the CI round trip that found it instead was thirty.
+
 **The trigger found a case, which is the point of having them.** E2E-M4-141 packed the trip's only row and then reached
 for the ⋮ — and the new sheet, which had just opened over the list, swallowed the click. The case was right and the
 build was right: after this change, packing the last row *is* how the question arrives, so the case answers that one

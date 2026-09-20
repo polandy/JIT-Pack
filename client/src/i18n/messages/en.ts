@@ -262,6 +262,7 @@ export const en = {
   'packing.closeAction': 'Finish packing',
   'packing.closeConfirmTitle': 'Finish packing?',
   'packing.closeConfirmMeta': 'Whatever stays open becomes a decision.',
+  'packing.closePromptTitle': 'Everything is packed',
   'packing.closePromptMeta': 'That was the last open item.',
   'packing.closeLater': 'Later',
   'packing.closeConfirmBody':

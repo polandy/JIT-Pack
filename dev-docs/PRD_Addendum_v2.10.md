@@ -4925,13 +4925,23 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     row tappable back into the list. It catches the one thing you actually forgot, which is the point of the action, and
     it was still declined — it is a second review in front of the trip's own (FR-9.3), and on a forty-row remainder it
     is a screen rather than a question.
-  * **The last row packed asks the question** (owner, 2026-09-20: *„wird es auch getriggert, wenn das letzte Item
+  * **The last row packed offers the step** (owner, 2026-09-20: *„wird es auch getriggert, wenn das letzte Item
     gepackt wurde? das sollte es."*). The step is offered where the moment is, not only where the menu is: when the last
-    open row is packed, the same sheet comes up by itself, headed *„Das war das letzte offene Packelement."* Three
+    open row is packed, the step appears **in the *„Alles gepackt"* empty state the list already shows at that moment**
+    (FR-25.11e) — no new element enters the flow, so nothing moves under the finger that packed the row (ADR-060). The
+    sheet opens from it, headed *„Das war das letzte offene Packelement."*, and *Später* there waves it off for the
+    visit. **Two builds were measured away before this one:** opening the sheet by itself failed seventeen e2e flows
+    across both browsers, every one on a tap that landed on the modal instead of the list; a bar inserted above the
+    list then failed four more, because it moved the page under an open sheet. The offer also disappears by itself when
+    the list reopens — a row added or un-packed — so it never outlives the moment it reports. Three
     guards, each against a way this becomes a nuisance: it fires on the **transition** and never on arrival at a list
     that was already complete (that moment passed before the screen opened); a reader who answers *Später* is not asked
     again for that trip while the screen lives, or ticking the last box would raise it every time; and a list that has
-    not arrived is not a finished one (ADR-033), nor is a trip with no rows at all. It remains a *question* — nothing is
+    not arrived is not a finished one (ADR-033). **What counts as finished is its own rule** (`packingIsFinished`),
+    and not „the close would decide nothing": a trip carrying only shopping rows has an empty plan because a buy row is
+    not this list's (FR-30.2), and a trip whose last row was *skipped* was decided rather than packed — asking in either
+    place is asking about a moment that never happened. So: at least one packing row, none of them open or half packed,
+    and at least one of them actually packed. It remains a *question* — nothing is
     written until it is answered, because the decision is the user's and not the app's.
   * **„Abgeschlossen" is a stamp, not a reading.** `trips.packing_closed_at` (master partition, merged on its own under
     NFR-4.2a) records the moment. Deriving it from *„nothing is open"* was the cheaper option and is wrong here for one

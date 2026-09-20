@@ -1465,9 +1465,12 @@ These patterns apply to every screen and are specified once.
     trip is not archived and its packing is open, a list with nothing left open included. It asks once, in **the app's
     own sheet** (U-3's chrome, head + lead + the exceptions on the sunken plane + one primary): the count of what is
     about to be left behind, then how many rows are started, due on departure day (FR-5.1) or held by somebody else
-    (G-3), each on its own line. **The same sheet comes up by itself when the last open row is packed**, headed *„Das
-    war das letzte offene Packelement."* and offering *Später* in place of *Abbrechen* — once per trip per visit, on
-    the transition only, never over a list that has not arrived. The snackbar's one *Rückgängig* takes the whole batch
+    (G-3), each on its own line. **When the last open row is packed, the step appears in the *„Alles gepackt"*
+    empty state** the list shows at that moment (FR-25.11e), and the sheet opens from it, headed *„Das war das letzte
+    offene Packelement."* There rather than in a band of its own, because nothing may enter the flow above a list
+    somebody is tapping (ADR-060) and an unasked-for modal takes the screen from the tap that follows it — both
+    measured, at seventeen and four e2e flows. Once per trip per visit, on the transition only, never over a list that
+    has not arrived, and gone again as soon as the list reopens. The snackbar's one *Rückgängig* takes the whole batch
     back, the stamp with it (FR-25.31). A row
     nothing was packed of becomes FR-5.5's *weggelassen* with its claim released; a half-packed row keeps what is in
     the bag, its amount shrinking to the count (variant P1). Afterwards **M4 leads with a card** naming the moment and

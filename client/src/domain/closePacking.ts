@@ -74,3 +74,33 @@ export function planPackingClose(
 
   return { skip, trim, rows, late, claimed }
 }
+
+/**
+ * Whether the packing of this trip has **just been finished** — the moment
+ * FR-5.10's prompt watches for, and deliberately not the same question as
+ * „what would closing decide".
+ *
+ * Three conditions, and each of them is a way the naive reading goes wrong:
+ *
+ *  - **there is something to pack at all** — a trip carrying nothing but
+ *    shopping rows (FR-30.2) has an empty plan, because a buy row is not
+ *    this list's, and „nothing to pack" is not „finished packing";
+ *  - **nothing is open or half packed** — the list is done;
+ *  - **at least one row was actually packed.** Skipping the last row is a
+ *    decision rather than a moment of finishing, and the question would
+ *    otherwise arrive on the back of the skip's own snackbar.
+ */
+export function packingIsFinished(items: readonly TripItem[]): boolean {
+  let packable = 0
+  let packed = 0
+  let open = 0
+  for (const item of items) {
+    if (item.mode !== ITEM_MODE_PACK) continue
+    packable += 1
+    if (item.state === STATE_SKIPPED) continue
+    const reads = stateFor(item.packed_count, item.quantity)
+    if (reads === 'packed') packed += 1
+    else if (reads !== 'skipped') open += 1
+  }
+  return packable > 0 && open === 0 && packed > 0
+}
