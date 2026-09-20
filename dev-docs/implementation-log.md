@@ -409,6 +409,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An indicator that was never off (2026-09-20)](#an-indicator-that-was-never-off-2026-09-20) — FR-25.15: why a confirmation of nothing reads as a button, and the test that had pinned the defect.
 - [The task the app already had, in the list nobody could find it in (2026-09-20)](#the-task-the-app-already-had-in-the-list-nobody-could-find-it-in-2026-09-20) — FR-7.6/ADR-068: the premise that nearly cost a migration, and the undo window that broke the chip.
 - [The gesture window is a residue, not an oversight (2026-09-20)](#the-gesture-window-is-a-residue-not-an-oversight-2026-09-20) — FR-21.17: the 120–220 ms the rule keeps on purpose, and why the flake pointed the wrong way.
+- [Three CI levers, two measured worse than nothing and one disproved (2026-09-20)](#three-ci-levers-two-measured-worse-than-nothing-and-one-disproved-2026-09-20) — what the runner's variance does to a single-run measurement.
+- [The M4 unit was 2958 lines in one file (2026-09-20)](#the-m4-unit-was-2958-lines-in-one-file-2026-09-20) — the split, and the helper move it would otherwise have duplicated.
 - [Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)](#packing-gets-an-end-and-abgeschlossen-gets-somewhere-to-live-2026-09-20) — FR-5.10/FR-30.8/ADR-069: the derivation that revokes the user's own decision, and the half-packed row three ways.
 
 ## Deviations
@@ -16565,6 +16567,62 @@ scroll lands 133 ms after the reader's last reading with the latch still armed, 
 on a 289 px scroll — the scroll plus the head's own height, which is FR-21.17's defect stated exactly. The case was
 reporting the rule correctly and measuring at the wrong moment. A longer wait would have gone green by deleting the
 report, and it would have looked like a fix.
+
+## Three CI levers, two measured worse than nothing and one disproved (2026-09-20)
+
+The owner asked how to stop the pipeline from setting the pace. Everything
+below was measured rather than argued, and the useful result is negative.
+
+**"Build the client once and hand the bundle to the legs."** A leg's whole
+setup step is **34 s** — `npm ci` plus a build whose type-check and bundle
+already run in parallel — while `needs: client` would put the 2-minute
+`client` job in front of every leg. More latency than it removes.
+
+**"Run more legs."** Ten legs of 93 and 94 tests had taken 7.9 and 4.4 minutes,
+so twelve looked like the cheap fix. The pipeline answered: worst leg **537 s**,
+then **559 s**, against **502 s** with ten. Closed unmerged.
+
+**"Split the file that is a sixth of the suite."** `packing-list.spec.ts` was
+960 of 6249 test-seconds, and the reasoning was that a file that large decides
+how long the slowest leg is. **The reasoning was wrong, and the report says so
+plainly**: those 960 s are **132 tests at a 7.3 s mean, against the suite's
+6.9 s** — the file was heavy because it held many tests, not because its tests
+were slow, and a count-split already spreads many tests by counting them. The
+split shipped anyway (for reading, not for speed — see the entry below), and
+the leg times after it were **326–583 s**: no narrower than before.
+
+**What the three attempts really established** is about measurement, not about
+CI. Two configurations that should differ by a minute produced 502 s and 583 s
+on single runs; the same configuration produced 537 s and 559 s. Run-to-run
+variance on the runners is the same size as every effect being chased, so a
+single run cannot resolve any of them — and three changes were proposed, two
+built and one merged on exactly that evidence.
+
+**Where the time actually is**, for whoever picks this up next: 900 tests,
+6249 s, mean 6.9 s, p95 **21.4 s**, max 44 s. A leg's length is decided by how
+many of the long tail it draws, which only duration-aware packing addresses
+(built, then rejected for charging a matrix edit per new spec file), or fewer
+slow tests. And none of it is on the critical path for a merge: `e2e` is not a
+required check, and the gate — go, go-lint, client, format, docker-build — is
+under three minutes.
+
+## The M4 unit was 2958 lines in one file (2026-09-20)
+
+Split for reading rather than for speed — the CI reasoning that prompted it is
+disproved in the entry above, and the file is worth splitting anyway.
+
+**Split by theme and by measured weight:** the list and its
+rows (355 s), M5 over the list and what stays rendered behind it (267 s), the
+measured shape of the screen (249 s), how a row gets onto the list (50 s), and
+the trip's tasks (40 s) — which are FR-7.4/7.6 and not a packing row at all,
+and had quietly grown their own subject. Nothing else changed: the same 934
+tests before and after, verified by listing them, and the five files run green
+in both browsers.
+
+**The part worth keeping.** The shared preamble (`M4_TRIP`, `SCROLL_ROWS`, the
+quick-add loop) moved into `client/e2e/helpers/m4.ts` rather than being copied
+four times — which is exactly the drift `e2e-helpers-gate.mjs` exists to stop,
+and the split would have introduced it in the one commit that looks harmless.
 
 ## Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)
 
