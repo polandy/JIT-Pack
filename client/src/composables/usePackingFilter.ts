@@ -86,14 +86,15 @@ export function setStoredGroupBy(tripId: string, groupBy: GroupBy): void {
 }
 
 /**
- * Makes one facet value the whole filter, for M12's slice tap (FR-25.11):
- * the reader tapped *one* number, so every other facet is cleared rather
- * than intersected into a list that shows less than the bar promised. The
- * reveal switches are untouched — the tap narrows, it does not un-reveal.
- * Same write discipline as setStoredGroupBy: storage synchronously, and
- * the live ref of an M4 that is still mounted (ADR-012).
+ * Makes the picked values of one facet the whole filter, for M12's slice
+ * picks (FR-25.11, FR-8.2): the reader chose *these* bars, so every other
+ * facet is cleared rather than intersected into a list that shows less than
+ * the bars promised. The values are OR'd, as they are in the sheet. The
+ * reveal switches are untouched — the pick narrows, it does not un-reveal.
+ * Same write discipline as setStoredGroupBy: storage synchronously, and the
+ * live ref of an M4 that is still mounted (ADR-012).
  */
-export function setStoredFacet(tripId: string, key: FacetKey, value: string): void {
+export function setStoredFacet(tripId: string, key: FacetKey, values: readonly string[]): void {
   const session = globalThis.sessionStorage as Storage | undefined
   const filterKey = FILTER_PREFIX + tripId
   let stored: StoredFilter = {}
@@ -105,7 +106,7 @@ export function setStoredFacet(tripId: string, key: FacetKey, value: string): vo
       // Corrupt entry: the facet below rebuilds it from scratch.
     }
   }
-  const facets: Facets = { ...noFacets(), [key]: [value] }
+  const facets: Facets = { ...noFacets(), [key]: [...values] }
   writeStored(session, filterKey, JSON.stringify({ ...stored, facets } satisfies StoredFilter))
   const mounted = mountedFacets.get(tripId)
   if (mounted) mounted.value = facets

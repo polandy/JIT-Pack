@@ -157,9 +157,23 @@ onUnmounted(() => void hold.cancel())
 
 <style scoped>
 .stepper-checkbox {
+  position: relative;
   display: flex;
   align-items: center;
   cursor: pointer;
+}
+
+/* The target is wider than the glyph (E2E-G6-03). The glyph alone was the
+   whole target, a thumb misses 24 px while packing, and the row around it
+   swallows a miss, so the tap did nothing at all. Widened by an overlay
+   rather than by the box, so the glyph keeps its place and every row keeps
+   its layout; a clicked overlay is still this element's click. Row size
+   only: M5's large glyph is its own target, and an overlay there would
+   reach over the skip button beneath it. */
+.stepper-checkbox:not(.large)::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
 }
 
 /* One control at two sizes, not two controls (G-6): a row's checkbox and

@@ -455,7 +455,7 @@ list→detail — are omitted as implied.)
 | M4 trip title line | M12 Analytics | 📊 icon (G-12) |
 | M4 header | M6 / M14 | status-gated buttons |
 | M4 grouping | M11 Containers | `groupBy=container` → edit |
-| M12 slice | M4 (grouped) | tap a slice |
+| M12 slice | M4 (grouped) | pick slices, then *In der Packliste zeigen* |
 | M16 | M12 | trends shortcut (newest trip) |
 | Logo (any screen) | M1 Dashboard | universal home (G-9) |
 | top-bar gear/avatar | M17 Settings | any screen |

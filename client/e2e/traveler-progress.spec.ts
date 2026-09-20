@@ -26,7 +26,7 @@ test.describe('M4 — per-person progress @local @m4', () => {
     await seedMode({ mode: 'local' })
   })
 
-  test('E2E-M4-110: every traveler has a share, the shares add up, and a tap filters to one', async ({
+  test('E2E-M4-110: every traveler has a share, the shares add up, and taps pick several', async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
@@ -64,14 +64,27 @@ test.describe('M4 — per-person progress @local @m4', () => {
     await expect(face('Leonardo')).toContainText('nothing to pack')
 
     // A tap on the shared line narrows the list to the rows for nobody, through
-    // the person facet the sheet sets; a second tap lifts it again.
+    // the person facet the sheet sets…
+    const chips = list.locator('[data-testid^="m4-chip-person-"]')
     await shared.click()
     await expect(shared).toHaveAttribute('aria-pressed', 'true')
     await expect(list.getByTestId(`m4-row-${SHARED}`)).toBeVisible()
-    await expect(list.locator('[data-testid^="m4-chip-person-"]')).toBeVisible()
+    await expect(chips).toHaveCount(1)
+    // …a tap on a face adds that traveler beside it rather than replacing it —
+    // *mine and the shared ones* — and Leonardo, untapped, stays out…
+    await face('Andy').click()
+    await expect(face('Andy')).toHaveAttribute('aria-pressed', 'true')
+    await expect(shared).toHaveAttribute('aria-pressed', 'true')
+    await expect(face('Leonardo')).toHaveAttribute('aria-pressed', 'false')
+    await expect(chips).toHaveCount(2)
+    await expect(list.getByTestId(`m4-row-${SHARED}`)).toBeVisible()
+    // …and a second tap takes back only the one tapped.
     await shared.click()
     await expect(shared).toHaveAttribute('aria-pressed', 'false')
-    await expect(list.locator('[data-testid^="m4-chip-person-"]')).toHaveCount(0)
+    await expect(face('Andy')).toHaveAttribute('aria-pressed', 'true')
+    await expect(chips).toHaveCount(1)
+    await face('Andy').click()
+    await expect(chips).toHaveCount(0)
   })
 
   test('E2E-M4-112: the closing pass takes the strip away, and cancelling it brings it back', async ({

@@ -1,9 +1,9 @@
 # ADR-042: Automation reaches the app through the command line — subcommands vs. REST resources
 
 **Status:** Accepted
-**Related:** FR-18.7 (`jitpack import`), FR-18.8 (`jitpack traveler`), FR-2.5 (travelers), FR-23.7/ADR-039 (API tokens),
-ADR-025 (one implementation of the rules), ADR-027 (route shapes), ADR-038 (a master row has a delete endpoint),
-invariant 4 (generation runs client-side), invariant 5 (three modes, one artifact)
+**Related:** FR-18.7 (`jitpack import`), FR-18.8 (`jitpack traveler`), FR-18.9 (`jitpack tags`), FR-2.5 (travelers),
+FR-23.7/ADR-039 (API tokens), ADR-025 (one implementation of the rules), ADR-027 (route shapes), ADR-038 (a master row
+has a delete endpoint), invariant 4 (generation runs client-side), invariant 5 (three modes, one artifact)
 
 **Decision Drivers (in priority order):**
 1. **One implementation of every rule** (invariant 4, ADR-025). A second copy of a rule drifts, and the drift is

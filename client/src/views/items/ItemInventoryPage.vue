@@ -92,9 +92,6 @@ import {
 import {
   UNTAGGED_KEY,
   filterByTags,
-  planTagGrant,
-  planTagRemoval,
-  primaryPosition,
   tagCounts,
   tagNamesByItem,
   tagDeletion,
@@ -119,8 +116,9 @@ import { promptTagMerge } from '@/lib/tagMergePrompt'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
-import type { ItemTag, MasterItem, Tag } from '@/types/domain'
+import type { MasterItem, Tag } from '@/types/domain'
 import { PATH, itemPath } from '@/router/paths'
+import type { BulkTagUndo } from '@/composables/sync/actions/masterData'
 
 /** How the unsearched list is ordered (FR-24.6). */
 const SORT_MODES = ['grouped', 'alphabetical'] as const
@@ -630,40 +628,16 @@ const bulkTags = computed(() =>
 const bulkCounts = computed(() => tagCounts(selectedItems.value, masterStore.itemTagList))
 
 /**
- * What the last batch wrote, and how to write it back (FR-24.9).
- *
- * One batch at a time, live for as long as its snackbar: the assignments it
- * created (to remove) and the ones it moved or removed (to put back where
- * they were, position included). A retire is deliberately not in here — see
+ * The last batch's undo, live for as long as its snackbar (FR-24.9). One
+ * batch at a time. A retire is deliberately not in here — see
  * `retireSelected`.
  */
-interface BulkUndo {
-  created: string[]
-  moved: { assignmentId: string; position: number }[]
-  removed: ItemTag[]
-  /**
-   * A tag the batch itself created (FR-24.9's create row). Undone last, once
-   * the assignments above have emptied it — an undo that left the tag behind
-   * would leave a name the user typed by mistake on the axis for good.
-   */
-  createdTag?: string
-}
-
-let bulkUndo: BulkUndo | null = null
+let bulkUndo: BulkTagUndo | null = null
 
 function undoBulk() {
   const undo = bulkUndo
   bulkUndo = null
-  if (!undo) return
-  for (const assignmentId of undo.created) orchestrator.unassignTag(assignmentId)
-  for (const { assignmentId, position } of undo.moved) orchestrator.moveTag(assignmentId, position)
-  // Re-created rather than revived: the row was deleted, so it comes back as
-  // a new assignment at the position it held.
-  for (const row of undo.removed) orchestrator.assignTagAt(row.item_id, row.tag_id, row.position)
-  // The guarded delete, deliberately: the unassignments above painted
-  // synchronously, so the guard sees an empty tag — and if another device has
-  // meanwhile filed something under it, refusing is the right answer.
-  if (undo.createdTag) orchestrator.deleteTag(undo.createdTag)
+  if (undo) orchestrator.undoBulkTag(undo)
 }
 
 async function announceBulk(message: string) {
@@ -678,26 +652,8 @@ async function announceBulk(message: string) {
  * `fresh` says the tag was created for this batch, so the undo removes it too.
  */
 async function giveTag(tagId: string, primary: boolean, fresh = false) {
-  const items = selectedItems.value
-  const plan = planTagGrant(items, masterStore.itemTagList, tagId, primary)
-  const undo: BulkUndo = { created: [], moved: [], removed: [] }
-  if (fresh) undo.createdTag = tagId
-
-  for (const item of plan.missing) {
-    // Read per item, immediately before its own write: each insert changes
-    // what the next one has to land below.
-    const position = primary
-      ? primaryPosition(item.id, masterStore.itemTagList)
-      : masterStore.getItemTags(item.id).length
-    undo.created.push(orchestrator.assignTagAt(item.id, tagId, position))
-  }
-  for (const { item, assignment } of plan.demoted) {
-    undo.moved.push({ assignmentId: assignment.id, position: assignment.position })
-    orchestrator.setPrimaryTag(item.id, tagId)
-  }
-
+  const { touched, undo } = orchestrator.giveTagToItems(selectedItems.value, tagId, primary, fresh)
   bulkSheet.value = null
-  const touched = plan.missing.length + plan.demoted.length
   if (touched === 0) {
     await presentToast({ message: t('items.bulkNothingToDo') })
     return
@@ -716,18 +672,15 @@ async function createAndGive({ name, primary }: { name: string; primary: boolean
 
 /** Take the chosen tag away from every selected item that carries it. */
 async function takeTag(tagId: string) {
-  const rows = planTagRemoval(selectedItems.value, masterStore.itemTagList, tagId)
-  const undo: BulkUndo = { created: [], moved: [], removed: rows.map((row) => ({ ...row })) }
-  for (const row of rows) orchestrator.unassignTag(row.id)
-
+  const { touched, undo } = orchestrator.takeTagFromItems(selectedItems.value, tagId)
   bulkSheet.value = null
-  if (rows.length === 0) {
+  if (touched === 0) {
     await presentToast({ message: t('items.bulkNothingToDo') })
     return
   }
   bulkUndo = undo
   endSelecting()
-  await announceBulk(t('items.bulkTook', { n: rows.length, tag: tagName(tagId) }))
+  await announceBulk(t('items.bulkTook', { n: touched, tag: tagName(tagId) }))
 }
 
 function tagName(tagId: string): string {

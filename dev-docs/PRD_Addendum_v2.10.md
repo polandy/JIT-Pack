@@ -466,6 +466,32 @@ items are the user's data while these are bookkeeping the refresh can re-derive.
     no token; a multi-user instance needs `--token` (or `$JITPACK_TOKEN`), sent with every push. `$JITPACK_SERVER`
     supplies the address where the flag is omitted. Local Mode has no server and therefore no CLI import — its restore
     is M18, which is where it belongs.
+* **FR-18.9 (Tags from the Command Line, added 2026-09-19; ADR-042):** `jitpack tags ACTION` does to the tag axis
+  what M9's tag manager (FR-24.10, FR-24.13) and its selection mode (FR-24.9) do: `list [--items]`, `rename TAG NAME`,
+  `merge TAG INTO`, `give TAG ITEM... [--no-primary]`, `take TAG ITEM...|--all`, `delete TAG`, `mark TAG EMOJI|--clear`,
+  and **`apply PLAN.yaml`**, which runs an ordered list of those steps. It exists because retagging a whole inventory
+  onto a new vocabulary is a hundred taps that are better written down, reviewed and run once. Rules it carries:
+  * **Every step is the screen's action.** Giving and taking in bulk used to be composed inside M9's view; they are now
+    `giveTagToItems`, `takeTagFromItems` and `undoBulkTag` in the master-data action group, which M9 and the command
+    both call. A refusal the manager shows is the refusal here: a rename onto a taken name, a delete of a tag items
+    still carry (ADR-063).
+  * **A plan is all or nothing.** Every step runs against the pulled stores first, in order, each seeing what the steps
+    before it wrote; the first refused step ends the run and nothing is sent. `--dry-run` runs the whole plan and prints
+    the axis it would leave behind. A plan describes a *change*, not a target state, so running it a second time
+    stops at its first rename or merge — safely, since nothing is sent. „Nothing" is a promise about the plan's own
+    refusals; a write the *instance* rejects after sending (another device renamed a tag in the meantime) is named,
+    with the instance's reason, and the run exits 1 rather than reporting it sent.
+  * **An item named twice in one step is one item** — by name, by id, or both — because a second insert of the same
+    pairing is a `UNIQUE (item_id, tag_id)` violation the instance would reject.
+  * **Names mean what they mean on screen.** Tags and items are matched ignoring case, or by id. Only active items are
+    addressed, because M9's selection never offers a retired one: a name only a retired item holds is refused as such,
+    and `take --all` / `items: all` takes the tag from the active items carrying it — what „Alle N" over that tag's
+    filter selects. A tag that retired items still carry is therefore not deleted by take-then-delete; the refusal says
+    how many of them are retired, and a merge is the way out, as on M9.
+  * **Giving files by default**, like the sheet's „Als primären Tag setzen" that opens switched on; `primary: false`
+    only adds the tag. Giving a tag that does not exist creates it (FR-24.9's create row).
+  * **A mark must be in the picker's index** (FR-28.2): the picker offers nothing else, and the instance's mark font is
+    cut to that index (FR-28.6).
 
 ### 3.19 Local Mode (Backend-Free Operation)
 
@@ -3159,9 +3185,11 @@ locked.
     whose traveler is not on the roster counts as shared rather than disappearing from the sum.
   * **The whole trip, whatever the filter** — like the trip line (FR-25.20). A share that shrank with the list would
     stop being a share of the trip.
-  * **A tap narrows the person facet to that traveler alone; a second tap on the same one clears it.** The strip owns no
-    filter: the chip row names it like any other facet value, and the sheet's multi-select stays the way to pick
-    several. *Gemeinsam* selects the facet's no-value.
+  * **A tap toggles that traveler in the person facet; a second tap takes them back out.** The rings are quick filters:
+    several can be picked at once, OR'd like the sheet's chips, so *mine and the shared ones* is two taps. The strip
+    owns no filter: the chip row names each pick like any other facet value. *Gemeinsam* selects the facet's no-value.
+    **Revised 2026-09-19 (owner request):** as first built a tap narrowed the facet to that traveler *alone*, and the
+    sheet was the only way to pick several — which put the combination a packer wants most behind a trip to the sheet.
   * **Drawn for three travelers** (owner, 2026-09-19): three columns, no scrolling. Larger parties wrap in threes;
     beyond six, five faces stay and the rest fold behind *„+N weitere"* with how many of them still have something open,
     and a traveler the list is filtered to is never folded away. The order is the roster's, never the progress's, so a

@@ -272,12 +272,12 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(visiblePage(page).getByTestId('analytics-empty')).toBeVisible()
   })
 
-  // E2E-M12-04 (FR-8.2/25.11): tapping a bar lands on M4 *filtered* to
+  // E2E-M12-04 (FR-8.2/25.11): a picked bar lands on M4 *filtered* to
   // that value — the facet is set, the removable chip names it, the
   // grouping matches the dimension, and rows outside the slice are gone.
   // Regression guard: setting only the grouping (the pre-2026-08-08
   // behaviour) fails every one of these assertions but the last.
-  test('E2E-M12-04: a tapped bar becomes the facet M4 opens with', async ({ page }) => {
+  test('E2E-M12-04: a picked bar becomes the facet M4 opens with', async ({ page }) => {
     await createWeighedItem(page, 'Zelt', 5000)
     await createWeighedItem(page, 'Sonnenbrille', 100)
     await createTripViaWizard(page, TRIP)
@@ -291,6 +291,7 @@ test.describe('M12 analytics @local @m12', () => {
       .locator('[data-testid^="analytics-slice-"]')
       .filter({ hasText: 'Sia' })
       .click()
+    await visiblePage(page).getByTestId('analytics-open-list').click()
 
     // The chip row names the filter (FR-25.11a)…
     const chip = page.locator('[data-testid^="m4-chip-person-"]')
@@ -337,5 +338,56 @@ test.describe('M12 analytics @local @m12', () => {
     await visiblePage(page).getByTestId('analytics-dim-category').click()
     await expect(visiblePage(page).getByTestId('analytics-slice-none')).toContainText(total)
     await expect(visiblePage(page).getByTestId('analytics-kpi-weight')).toContainText(total)
+  })
+
+  // E2E-M12-08 (FR-8.2/25.11): bars are picked, not followed — several of
+  // one dimension at once, OR'd into the one facet, the way the sheet's
+  // chips combine. The third person's row is the positive signal that the
+  // list is narrowed at all; the two picked rows that both stay are what
+  // a single-value handoff (the pre-2026-09-19 tap) could not produce.
+  test("E2E-M12-08: several picked bars become one facet, OR'd", async ({ page }) => {
+    await createWeighedItem(page, 'Zelt', 5000)
+    await createWeighedItem(page, 'Sonnenbrille', 100)
+    await createWeighedItem(page, 'Kocher', 1000)
+    await createTripViaWizard(page, TRIP)
+    await quickAddFromMaster(page, 'Zelt')
+    await quickAddFromMaster(page, 'Sonnenbrille')
+    await quickAddFromMaster(page, 'Kocher')
+    await assignTraveler(page, row(page, 'Sonnenbrille'), 'Sia')
+    await assignTraveler(page, row(page, 'Kocher'), 'Andy')
+
+    await openAnalytics(page)
+    await visiblePage(page).getByTestId('analytics-dim-person').click()
+    const slices = visiblePage(page).locator('[data-testid^="analytics-slice-"]')
+    const sia = slices.filter({ hasText: 'Sia' })
+    const shared = slices.filter({ hasText: 'Shared' })
+    const open = visiblePage(page).getByTestId('analytics-open-list')
+
+    // Nothing picked, nothing to open: a tap stays on this screen.
+    await expect(open).toHaveCount(0)
+    await sia.click()
+    await expect(sia).toHaveAttribute('aria-pressed', 'true')
+    await expect(open).toContainText('1')
+    await shared.click()
+    await expect(open).toContainText('2')
+    // A second tap takes a pick back.
+    await sia.click()
+    await expect(sia).toHaveAttribute('aria-pressed', 'false')
+    await expect(open).toContainText('1')
+    await sia.click()
+
+    // A pick belongs to its dimension: switching away and back starts over.
+    await visiblePage(page).getByTestId('analytics-dim-category').click()
+    await expect(open).toHaveCount(0)
+    await visiblePage(page).getByTestId('analytics-dim-person').click()
+    await expect(sia).toHaveAttribute('aria-pressed', 'false')
+    await sia.click()
+    await shared.click()
+    await open.click()
+
+    await expect(page.locator('[data-testid^="m4-chip-person-"]')).toHaveCount(2)
+    await expect(page.getByTestId('m4-row-Sonnenbrille')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
   })
 })

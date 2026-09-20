@@ -197,6 +197,37 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByText('not found')).toHaveCount(0)
   })
 
+  // E2E-G6-03 (G-6, owner report 2026-09-19: "beim Packen trifft man die
+  // Checkbox zu wenig gut"): the checkbox's target was the glyph and nothing
+  // around it, and the 44 px column it sat in swallowed every tap that
+  // missed — a near miss neither packed the row nor opened it. The click
+  // lands off the glyph on purpose: at its centre the case would pass
+  // before the fix as well.
+  test('E2E-G6-03: a tap beside the checkbox still packs the row', async ({ page }) => {
+    await tripWithRows(page, ['Zelt', 'Lampe'], 'Zielprobe')
+
+    // Two near misses: left of the glyph, into the column that used to
+    // swallow the tap, and just below the checkbox's own 44 px box, where
+    // the tap used to open M5 instead.
+    const zelt = await page
+      .getByTestId('m4-row-Zelt')
+      .getByTestId('row-check')
+      .locator('ion-checkbox')
+      .boundingBox()
+    await page.mouse.click(zelt!.x - 10, zelt!.y + zelt!.height / 2)
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+
+    const lampeRow = page.getByTestId('m4-row-Lampe')
+    const lampe = await lampeRow.getByTestId('row-check').locator('ion-checkbox').boundingBox()
+    const edge = await lampeRow.boundingBox()
+    const below = lampe!.y + lampe!.height + 1
+    expect(below).toBeLessThan(edge!.y + edge!.height - 1)
+    await page.mouse.click(lampe!.x + lampe!.width / 2, below)
+
+    await expect(page.getByTestId('packing-empty')).toContainText('🎉')
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+  })
+
   // E2E-M4-18 (FR-25.11e): "Alles gepackt" may appear only when nothing is
   // narrowing the list. The regression this guards actually happened: the
   // check looked at the filter count alone, so an unmatched *search*
@@ -436,6 +467,7 @@ test.describe('M4 packing list @local @m4', () => {
     // click aimed at its own `ion-label`.
     await page.getByTestId('analytics-dim-person').click()
     await page.getByTestId('analytics-slice-none').click()
+    await page.getByTestId('analytics-open-list').click()
 
     // The tap set the facet (M12-04's half); clearing it reveals the
     // grouping that must still be in force on the mounted M4 (ADR-012).
