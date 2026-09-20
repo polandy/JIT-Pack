@@ -407,6 +407,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A bought row that said so in the wrong column (2026-09-20)](#a-bought-row-that-said-so-in-the-wrong-column-2026-09-20) — FR-25.11j: why a BUY_LOCAL row packed on M4 was on neither shopping tab.
 - [Two of the four badges were not worth a badge (2026-09-20)](#two-of-the-four-badges-were-not-worth-a-badge-2026-09-20) — ADR-051 amendment 1: the mockup that decided it, and the rule that keeps the row saying where you are.
 - [An indicator that was never off (2026-09-20)](#an-indicator-that-was-never-off-2026-09-20) — FR-25.15: why a confirmation of nothing reads as a button, and the test that had pinned the defect.
+- [The task the app already had, in the list nobody could find it in (2026-09-20)](#the-task-the-app-already-had-in-the-list-nobody-could-find-it-in-2026-09-20) — FR-7.6/ADR-068: the premise that nearly cost a migration, and the undo window that broke the chip.
 
 ## Deviations
 
@@ -16498,3 +16499,38 @@ another row *replaces* the route (ADR-046), so the panel is re-pointed rather th
 with it — a green lamp confirming, on a fresh item, a write that belonged to the previous one. The exact reading the
 latch was built to stop, reintroduced by the latch. The indicator is keyed by the item id now, and the case that pins
 it changes the prop rather than remounting, because remounting is what the defect consists of not happening.
+
+## The task the app already had, in the list nobody could find it in (2026-09-20)
+
+The owner asked for tasks declared on a packing item that have to be done before travelling: reflected as tasks, on the
+dashboard too, visibly belonging to a packing element, and gone when that element goes. Reading the code first turned
+that into a much smaller job than it sounded: **every part of it existed except the reading**. FR-7.3's preparation
+todos are `comments` rows with `is_task=1` and a `trip_item_id`, the delete already cascades on the server *and*
+client-side (`sync/cascade.ts`), and FR-27.7 has been generating them from templates since August. What did not exist
+was a place where they counted as tasks — they lived in a collapsed section at the foot of M4, in a *Vorzubereiten*
+card on M1 and in a number in M4's header detail line, while *Aufgaben für die Reise* and its figure counted only the
+trip's own chores. So the feature is a projection (`tripTasks`) and three surfaces reading it; the data model is
+untouched. The decision it needed — one list or two — was taken by the owner from an interactive mockup, and the
+weighing is in ADR-068.
+
+**The premise that nearly cost a migration.** The first sketch treated "a task on an item" as something new, which
+would have meant a table, a sync shape and a spec for how it relates to the preparation todo standing right beside it.
+Asking what FR-7.3 *already* stored is what made the difference between a schema change and a pure function. The
+lesson generalises past this feature: when a request names a concept the specs already have under another word —
+*Aufgabe* against *Vorbereitung* — the first question is which existing rows would carry it.
+
+**The trap, with a price.** FR-25.31 hides a removed row before its delete is written, so the row leaves the screen
+while `tripStore.getItems` still returns it. The first build therefore kept listing that row's tasks, each carrying a
+chip into a row nobody could see any more — the exact promise the owner had asked for, broken in the one second that
+is most visible. M4 filters them by the same `removingRows` set the list uses. The domain has its own, different rule
+for the same shape (a preparation whose row this device does not hold is not listed at all), which covers the device
+that has not yet pulled somebody else's delete; the two are not interchangeable and both are needed.
+
+**The cost that was accepted rather than designed away.** One checkbox now writes through two actions — `resolveTripTodo`
+or `resolvePrepTodo`, chosen by whether the task names a row — and the *screen* owns the branch, because the screen
+already owns FR-25.31's undo. The list component reports the tap and writes nothing but the composer's own kind. The
+alternative, a list that writes both itself, would have put two orchestrator paths and one undo policy inside a
+presenter; the branch is in one function instead, next to the undo it has to arm.
+
+**What it did to the suite** is in the e2e ledger's own section for the day: two case ids kept their number and
+changed what they promise, because the promise moved to the surface that replaced theirs rather than dying with it.

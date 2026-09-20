@@ -1,39 +1,42 @@
 <script setup lang="ts">
 /**
- * One trip's own todos (FR-7.4), editable: the list M4's *Aufgaben für die
- * Reise* section unfolds to. Open ones are ticked off in place, resolved ones
- * fold away but stay reachable to untick, and the composer adds one.
+ * The trip's tasks (FR-7.6), editable: the list M4's *Aufgaben für die Reise*
+ * section unfolds to. Open ones are ticked off in place, resolved ones fold
+ * away but stay reachable to untick, and the composer adds one.
+ *
+ * Two kinds of task share the list. The trip's own (FR-7.4) carry a seat and
+ * a ✕; a row's preparation (FR-7.3) carries the chip of the row it belongs to
+ * instead — it names nobody (FR-7.5: the row already does) and it is removed
+ * where it lives, which is the row. The chip is what says which is which.
  *
  * The trip is where these are written (owner, 2026-09-18): M1 only reports
  * them, because the dashboard takes no actions.
  *
- * An open todo ends in FR-25.25's seat (FR-7.5): whose job it is, and the
- * door to changing that. The picker is the screen's, the one a packing row's
- * seat opens, so the list only reports the tap.
+ * Every act is *emitted*: both kinds are written through different actions
+ * and both undone through the screen's one snackbar (FR-25.31), so the writer
+ * is the screen and this list reports the tap. The composer is the exception —
+ * it can only write the trip's own kind, so it writes it.
  */
 import { IonButton, IonCheckbox, IonIcon, IonInput, IonItem, IonLabel } from '@ionic/vue'
 import { chevronForwardOutline, closeOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
 import AssigneeSeat from '@/components/trips/AssigneeSeat.vue'
+import TaskItemChip from '@/components/trips/TaskItemChip.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { useOrchestrator } from '@/composables/useOrchestrator'
+import type { TripTask } from '@/domain/tripTodos'
 import { t } from '@/i18n'
-import { useTripStore } from '@/stores/tripStore'
+import { tripItemPath } from '@/router/paths'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
-import type { TripTodo } from '@/types/domain'
 
 const props = defineProps<{
-  /** The trip whose todos these are. */
+  /** The trip whose tasks these are. */
   tripId: string
+  /** Its tasks, in FR-7.6's order — the screen counts the same list. */
+  tasks: readonly TripTask[]
   /**
-   * Tasks whose removal is still inside the snackbar's undo (FR-25.31): gone
-   * from the list, not yet from the trip — the delete is written once the
-   * chance to take it back is over.
-   */
-  removing?: ReadonlySet<string>
-  /**
-   * FR-7.5: whether there is anybody to hand a todo to. Absent in Local and
+   * FR-7.5: whether there is anybody to hand a task to. Absent in Local and
    * Single-User Mode, which have no second account (G-8) — the seat is then
    * not rendered at all, rather than offered with nobody behind it.
    */
@@ -46,24 +49,18 @@ const props = defineProps<{
 const emit = defineEmits<{
   /** A task was written — its id, for the undo that takes it out again. */
   added: [id: string, body: string]
-  /** A task was just ticked off. */
-  resolved: [todo: TripTodo]
-  /** A done task was unticked. */
-  reopened: [todo: TripTodo]
+  /** A task's checkbox was operated; the screen writes it and arms the undo. */
+  toggle: [task: TripTask]
   /** Asked to go — the screen hides it and deletes it once the undo lapses. */
-  remove: [todo: TripTodo]
+  remove: [task: TripTask]
   /** FR-7.5: the seat was tapped — the screen asks whose job it is. */
-  assign: [todo: TripTodo]
+  assign: [task: TripTask]
 }>()
 
-const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
-const todos = computed(() =>
-  tripStore.getTripTodos(props.tripId).filter((todo) => !props.removing?.has(todo.id)),
-)
-const open = computed(() => todos.value.filter((todo) => todo.task_state === 'open'))
-const resolved = computed(() => todos.value.filter((todo) => todo.task_state === 'resolved'))
+const open = computed(() => props.tasks.filter((task) => task.task_state === 'open'))
+const resolved = computed(() => props.tasks.filter((task) => task.task_state === 'resolved'))
 
 const draft = ref('')
 const showResolved = ref(false)
@@ -76,57 +73,52 @@ function add() {
   emit('added', id, body)
 }
 
-/** The avatar a todo's seat shows, or null for the empty seat. */
-function assigneeOf(todo: TripTodo) {
-  const id = todo.assignee_user_id
+/** The avatar a task's seat shows, or null for the empty seat. */
+function assigneeOf(task: TripTask) {
+  const id = task.assignee_user_id
   return id ? { variant: 'assignee' as const, id, name: props.nameOf?.(id) ?? null } : null
-}
-
-function toggle(todo: TripTodo) {
-  if (todo.task_state === 'open') {
-    orchestrator.resolveTripTodo(todo)
-    emit('resolved', todo)
-  } else {
-    orchestrator.reopenTripTodo(todo)
-    emit('reopened', todo)
-  }
 }
 </script>
 
 <template>
   <div class="trip-todo-list" data-testid="trip-todo-list">
     <IonItem
-      v-for="todo in open"
-      :key="todo.id"
+      v-for="task in open"
+      :key="task.id"
       lines="none"
       class="todo-row"
-      :data-testid="`trip-todo-${todo.body}`"
+      :data-testid="`trip-todo-${task.body}`"
     >
-      <IonCheckbox slot="start" :checked="false" @ionChange="toggle(todo)" />
-      <IonLabel>{{ todo.body }}</IonLabel>
+      <IonCheckbox slot="start" :checked="false" @ionChange="emit('toggle', task)" />
+      <IonLabel>{{ task.body }}</IonLabel>
       <span slot="end" class="todo-end">
-        <AssigneeSeat
-          v-if="assignable"
-          :avatar="assigneeOf(todo)"
-          :data-testid="`trip-todo-assign-${todo.body}`"
-          @assign="emit('assign', todo)"
-        />
-        <UserAvatar
-          v-else-if="todo.assignee_user_id"
-          variant="assignee"
-          :name="nameOf?.(todo.assignee_user_id)"
-          :seed="todo.assignee_user_id"
-          :data-testid="`trip-todo-assignee-${todo.body}`"
-        />
-        <button
-          type="button"
-          class="rm"
-          :aria-label="t('tripTodos.remove')"
-          :data-testid="`trip-todo-remove-${todo.body}`"
-          @click="emit('remove', todo)"
-        >
-          <IonIcon :icon="closeOutline" />
-        </button>
+        <!-- FR-7.6: the chip stands where the trip's own task carries its
+             seat — one line, one place that says what the task belongs to. -->
+        <TaskItemChip v-if="task.item" :item="task.item" :to="tripItemPath(tripId, task.item.id)" />
+        <template v-else>
+          <AssigneeSeat
+            v-if="assignable"
+            :avatar="assigneeOf(task)"
+            :data-testid="`trip-todo-assign-${task.body}`"
+            @assign="emit('assign', task)"
+          />
+          <UserAvatar
+            v-else-if="task.assignee_user_id"
+            variant="assignee"
+            :name="nameOf?.(task.assignee_user_id)"
+            :seed="task.assignee_user_id"
+            :data-testid="`trip-todo-assignee-${task.body}`"
+          />
+          <button
+            type="button"
+            class="rm"
+            :aria-label="t('tripTodos.remove')"
+            :data-testid="`trip-todo-remove-${task.body}`"
+            @click="emit('remove', task)"
+          >
+            <IonIcon :icon="closeOutline" />
+          </button>
+        </template>
       </span>
     </IonItem>
 
@@ -146,33 +138,40 @@ function toggle(todo: TripTodo) {
       </button>
       <template v-if="showResolved">
         <IonItem
-          v-for="todo in resolved"
-          :key="todo.id"
+          v-for="task in resolved"
+          :key="task.id"
           lines="none"
           class="todo-row resolved"
-          :data-testid="`trip-todo-${todo.body}`"
+          :data-testid="`trip-todo-${task.body}`"
         >
-          <IonCheckbox slot="start" :checked="true" @ionChange="toggle(todo)" />
-          <IonLabel>{{ todo.body }}</IonLabel>
+          <IonCheckbox slot="start" :checked="true" @ionChange="emit('toggle', task)" />
+          <IonLabel>{{ task.body }}</IonLabel>
           <span slot="end" class="todo-end">
-            <!-- Done is done: who had it is still worth reading, but handing
-                 over a finished task decides nothing. -->
-            <UserAvatar
-              v-if="todo.assignee_user_id"
-              variant="assignee"
-              :name="nameOf?.(todo.assignee_user_id)"
-              :seed="todo.assignee_user_id"
-              :data-testid="`trip-todo-assignee-${todo.body}`"
+            <TaskItemChip
+              v-if="task.item"
+              :item="task.item"
+              :to="tripItemPath(tripId, task.item.id)"
             />
-            <button
-              type="button"
-              class="rm"
-              :aria-label="t('tripTodos.remove')"
-              :data-testid="`trip-todo-remove-${todo.body}`"
-              @click="emit('remove', todo)"
-            >
-              <IonIcon :icon="closeOutline" />
-            </button>
+            <template v-else>
+              <!-- Done is done: who had it is still worth reading, but handing
+                   over a finished task decides nothing. -->
+              <UserAvatar
+                v-if="task.assignee_user_id"
+                variant="assignee"
+                :name="nameOf?.(task.assignee_user_id)"
+                :seed="task.assignee_user_id"
+                :data-testid="`trip-todo-assignee-${task.body}`"
+              />
+              <button
+                type="button"
+                class="rm"
+                :aria-label="t('tripTodos.remove')"
+                :data-testid="`trip-todo-remove-${task.body}`"
+                @click="emit('remove', task)"
+              >
+                <IonIcon :icon="closeOutline" />
+              </button>
+            </template>
           </span>
         </IonItem>
       </template>
@@ -210,6 +209,10 @@ function toggle(todo: TripTodo) {
   display: flex;
   align-items: center;
   gap: 6px;
+  /* The chip is the one thing here that carries text, so it is the one thing
+     that can outgrow the row; everything else keeps its box. */
+  min-width: 0;
+  max-width: 55%;
 }
 
 .rm {

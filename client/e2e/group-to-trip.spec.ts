@@ -10,6 +10,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
+import { openTripTodos } from './helpers/m4'
 import { PATH } from './routes'
 
 /**
@@ -86,9 +87,13 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
 
     await group.click()
 
-    // Both positions landed, once each.
+    // Both positions landed, once each. By the rows' own testids rather than
+    // by text: since FR-7.6 the group's preparation task is on this screen
+    // too, in the task section, carrying the chip of the row it prepares —
+    // so „an ion-item that says Kamera" is two elements and neither is a
+    // count of rows.
     for (const name of ['Kamera', 'Stativ']) {
-      await expect(visible(page).locator('ion-item').filter({ hasText: name })).toHaveCount(1)
+      await expect(visible(page).getByTestId(`m4-row-${name}`)).toHaveCount(1)
     }
     await expect(visible(page).getByTestId('m4-progress')).toContainText('0/2')
 
@@ -97,11 +102,13 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
 
     // FR-27.7: the position's task arrives as an ordinary FR-7.3 prep todo on
     // the row it was generated for, and blocks it like a hand-added one.
-    await expect(visible(page).getByTestId('m4-header')).toContainText('1 preparation open')
-    const prep = visible(page).getByTestId('m4-prep-section')
-    await prep.getByTestId('m4-prep-toggle').click()
-    await expect(prep).toContainText('Kamera')
-    await expect(prep).toContainText('Akkus laden')
+    // Since FR-7.6 it is a task of the trip like any other: counted in the
+    // header figure, listed in the one section, and naming its row on the
+    // line through the chip.
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/1 tasks')
+    const tasks = await openTripTodos(page)
+    await expect(tasks.getByTestId('trip-todo-Akkus laden')).toBeVisible()
+    await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
 
     // The FR-9.1 half of the case — the added rows are *not* flagged Missing —
     // is asserted in `composables/__tests__/groupToTrip.spec.ts` instead: the

@@ -569,42 +569,6 @@ describe('tripStore', () => {
     expect(tripStore.getItemTodos('t1', 'i2')).toHaveLength(1)
   })
 
-  it('getOpenTodos returns only open todos', () => {
-    const tripStore = useTripStore()
-    tripStore.applyChanges([
-      {
-        seq: 1,
-        table: 'comments',
-        id: 'todo1',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          trip_item_id: 'i1',
-          author_id: 'u1',
-          body: 'Open',
-          is_task: 1,
-          task_state: 'open',
-        },
-      },
-      {
-        seq: 2,
-        table: 'comments',
-        id: 'todo2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          trip_item_id: 'i1',
-          author_id: 'u1',
-          body: 'Done',
-          is_task: 1,
-          task_state: 'resolved',
-        },
-      },
-    ])
-    expect(tripStore.getOpenTodos('t1')).toHaveLength(1)
-    expect(tripStore.getOpenTodos('t1')[0]!.body).toBe('Open')
-  })
-
   it('itemsWithOpenPrep returns items with open todos', () => {
     const tripStore = useTripStore()
     tripStore.applyChanges([
