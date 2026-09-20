@@ -827,6 +827,11 @@ in WebKit.
   adds lands packed — it is **not** on the open list, the card still stands (the addition did not reopen the packing)
   and the trip's figure reads *2/2*. Without the last two clauses the case would pass on a build where an addition
   silently revoked the decision, which is the failure the stamp exists to prevent.
+* **E2E-M4-141** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): reopening is not the
+  undo. Every snackbar is taken off the page first, so nothing the case then asserts can be an undo's doing; the card's
+  *Reopen* removes the card and brings the ⋮ step back, **and the rows the close decided stay decided** — the skipped
+  row is still off the working list and still counted behind the reveal. That last clause is the case: a reopen that
+  restored rows would have to invent the amount variant P1 no longer records.
 * **E2E-M4-110** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for three
   travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
   is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the

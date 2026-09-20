@@ -173,6 +173,38 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
+   * E2E-M4-141: reopening is **not** the undo, and the difference is the
+   * whole case — the snackbar's *Rückgängig* puts the rows back, while
+   * *Wieder öffnen* lifts the stamp and leaves every decision standing. With
+   * variant P1 the amount a half-packed row wanted is not recorded anywhere
+   * after the close, so a reopen that restored rows would have to invent it.
+   */
+  test('E2E-M4-141: the card reopens the packing, and the rows it decided stay decided', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt', 'Regenjacke'], 'Wieder auf')
+    await startTrip(page)
+    await packRow(page, 'Zelt')
+    await tripAction(page, 'closePacking')
+    await confirmClose(page)
+    // Every snackbar is taken off the page first — the outgoing pack toast and
+    // the close's own — so nothing below here can be an undo's doing.
+    await page
+      .locator('ion-toast.pack-toast')
+      .evaluateAll((toasts) => toasts.forEach((toast) => toast.remove()))
+
+    await visiblePage(page).getByTestId('m4-reopen-packing').click()
+    await writesLanded(page)
+
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
+    await expectTripActionOffered(page, 'closePacking')
+    // The decision stands: the row is still off the working list, and still
+    // behind the reveal that counts it.
+    await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m4-done-bar')).toContainText('2')
+  })
+
+  /**
    * E2E-M6-30 (FR-30.8): the shopping list stops opening on *Before
    * departure* once that moment is past. The trip here is still *planning* —
    * nobody tapped *Start trip* — which is exactly the case the trip's phase

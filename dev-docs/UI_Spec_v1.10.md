@@ -1458,7 +1458,7 @@ These patterns apply to every screen and are specified once.
     how many rows are *nicht mitgenommen*, carrying *Wieder öffnen* — which lifts the stamp and decides nothing, so a
     single row still comes back through the *Erledigte* reveal. The list stays workable: the composer is where it was,
     and while the packing is closed what is typed into it lands **packed**, its hint saying so instead of FR-9.1's.
-    (E2E-M4-138, E2E-M4-139, E2E-M4-140)
+    (E2E-M4-138, E2E-M4-139, E2E-M4-140, E2E-M4-141)
   * **Consciously skipped (FR-5.5) — superseded as a *section* by FR-25.2, kept as a state.** A skipped row is a done
     row: it leaves the working list and returns, dimmed, through the same *Erledigte* switch as a packed one (two
     mechanisms would show it twice). What it keeps is its own words — *"Bewusst weggelassen"*, or the FR-20.2 reason —
