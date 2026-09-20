@@ -184,6 +184,16 @@ export async function scrollPackList(page: Page, deltaY: number): Promise<number
       return settled
     })
     .toBe(true)
+  // …and the *gesture* has ended too, which is a second thing. The list stops
+  // moving first; M4's window closes on Ionic's scroll-end debounce after it
+  // (FR-21.17), and until it does, a scroll nobody made still counts as the
+  // reader's. Without this wait the next programmatic move in a case is a race
+  // against that debounce — which is what made E2E-M4-135 red on a loaded
+  // shard, measuring the head answering the *flick* and reading it as the
+  // defect the case was written to catch. The attribute is that window.
+  await expect(visiblePage(page).locator('ion-content.pack-content')).not.toHaveAttribute(
+    'data-scroll-gesture',
+  )
   return last
 }
 

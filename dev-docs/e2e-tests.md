@@ -134,7 +134,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Waiting on the far screen proved only the near one (2026-09-18)](#waiting-on-the-far-screen-proved-only-the-near-one-2026-09-18) — E2E-G10-02's second correction of the same mistake, and the two rules a socket watch has to obey.
 - [The composer stopped making ad-hoc rows (2026-09-19)](#the-composer-stopped-making-ad-hoc-rows-2026-09-19) — FR-24.11: the one helper every typed add goes through, and the promise no composer reaches.
 - [M6 became a module, and its cases reach packing rows through M4 (2026-09-19)](#m6-became-a-module-and-its-cases-reach-packing-rows-through-m4-2026-09-19) — FR-30: the first module directory, two retired ids, and why every buy row is now made on M4.
-- [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, and the glyph case that had to follow the views into the menu.
+- [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, the glyph case that followed the views into the menu, and the scroll window E2E-M4-135 was racing.
 
 ## The rule that comes before the units
 
@@ -5422,7 +5422,7 @@ what changes the trip — is asserted in `AppHeader.spec.ts` against the button 
 handed, where the order is data. In the browser it is four labels in a column, and a case
 that read them by position would be pinning the sheet's markup rather than the decision.
 
-**Owed, and measured rather than re-run: E2E-M4-135 measures before the scroller has
+**Fixed here, measured rather than re-run: E2E-M4-135 measured before the scroller had
 rested.** It went red on `expect(moved.flips).toBe(0)` on the CI shard for this branch, and
 on two of the local runs. Measured against the base the branch was cut from (`b0942bb`),
 with the identical command each time: **1 failure in 6 on the branch, 1 in 6 on `main`** for
@@ -5440,6 +5440,26 @@ programmatically. But the class lands on the *first accepted reading*, which is 
 programmatic scroll arrives, so the head answers it and `flips` is 1. The case is asserting
 the right rule and starting its measurement too early. What it needs is the settled state,
 and `gesture` is a module-local `let` that nothing can observe — which is the absence the
-working agreement calls the defect. The fix is a signal on the content element that says
-whether the window is open, waited on before the observer is attached; not a retry, and not
-a longer wait.
+working agreement calls the defect.
+
+**The signal, and where it went.** `armGesture` mirrors the flag onto M4's `ion-content` as
+`data-scroll-gesture` — an attribute toggled imperatively, the way the G-19 toast carries
+`data-presented`, because a `ref` would re-render the list on every wheel event. Nothing in
+the app reads it. `scrollPackList` waits for it to clear, so **every** case that flicks the
+list measures from a settled state rather than from a race against Ionic's debounce; that is
+one place rather than one per case, and the helper already made the neighbouring promise
+("settled, not merely moved") about the list's offset. The two are genuinely different
+moments: the list stops first, the window closes after it.
+
+Proven both ways before it was believed. With the wait, E2E-M4-135 and E2E-M4-70 pass 3×
+each and the loaded `packing-list + shopping` run goes 152/152 — the configuration that had
+been failing. Against a mutant that hands `gesture: true` to every reading, E2E-M4-135 goes
+red in **both** browsers, so the wait did not buy its determinism by making the case vacuous.
+
+**One measurement here was not what it looked like**, and it is worth writing down: a local
+run of that same combination reported 35 failures, all WebKit. None of them were real. A
+parallel session was running the suite from another worktree, and `scripts/e2e.sh` uses
+`--network host`, so the two runs fought over port 4173 — which its own comment warns about.
+The tell is the shape: a change to one screen does not fail two specs' worth of cases in one
+browser only. `E2E_PORT=4183 scripts/e2e.sh …` is the way out, and a second local suite is
+the first thing to check when a run fails that broadly.
