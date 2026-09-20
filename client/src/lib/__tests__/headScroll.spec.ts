@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { isScrollGesture, nextHeadState } from '@/lib/headScroll'
+import { isScrollGesture, nextHeadState, SCROLLER_INPUTS } from '@/lib/headScroll'
 import type { HeadScrollState, ScrollReading } from '@/lib/headScroll'
 
 /**
- * FR-21.17. The rule reads a scroll direction, and the one case worth a
- * test is the reading it must *not* read: a collapse hands the head's
- * height to the scroll viewport, the scrollable range shortens by the same
- * amount, and the browser clamps `scrollTop` down to fit. That clamp is an
- * upward scroll to anything watching, and it re-opens the head, which
- * lengthens the range again. Measured on a 1280×900 window before the
- * guard, the head opened and shut on a single flick.
+ * FR-21.17. The rule reads a scroll direction, and what is worth testing is
+ * every reading it must *not* read. Two of them look identical to a
+ * gesture from inside a listener: the clamp a collapse provokes — the
+ * scrollable range shortens by the head's height, the browser pulls
+ * `scrollTop` down to fit, and the head re-opens and lengthens it again
+ * (measured on a 1280×900 window: open and shut on a single flick) — and
+ * every scroll nobody made, which the cases at the end of this file carry.
  */
 describe('nextHeadState — the head yields to the list (FR-21.17)', () => {
   const standing: HeadScrollState = { top: 0, collapsed: false }
@@ -189,5 +189,17 @@ describe('isScrollGesture (FR-21.17)', () => {
 
   it('does not read a plain click as scrolling', () => {
     expect(isScrollGesture({ type: 'click', onScroller: true })).toBe(false)
+  })
+
+  /**
+   * The two lists have to be the same set. A type the caller listens for and
+   * the rule rejects is only noise; a type the rule accepts and nobody
+   * listens for is a gesture that can never arm — the head would simply stop
+   * yielding, and no case here would say so.
+   */
+  it('counts every input its caller is told to listen for', () => {
+    for (const type of SCROLLER_INPUTS) {
+      expect(isScrollGesture({ type, key: 'ArrowDown', onScroller: true })).toBe(true)
+    }
   })
 })

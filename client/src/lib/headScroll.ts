@@ -51,6 +51,13 @@ export interface ScrollReading {
 /** The keys that move a scroller. The rest reach it from a field being typed in. */
 const SCROLLING_KEYS = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']
 
+/**
+ * The event types a caller has to listen for, named here rather than at the
+ * listener: which events *count* and which are *heard* have to be the same
+ * set, and written twice they drift into a rule nothing can trigger.
+ */
+export const SCROLLER_INPUTS = ['wheel', 'touchmove', 'keydown', 'pointerdown'] as const
+
 /** One input event, as much of it as the question needs. */
 export interface ScrollerInput {
   type: string

@@ -1059,6 +1059,13 @@ taken straight from a phone camera never reaches the server unprocessed.
   of the paging keys is somebody typing in the quick-add, which sits inside the same scroller. The window is the
   scroller's own — armed on the input, closed when the scroller comes to rest — so a flick's momentum still counts
   as the flick. E2E-M4-135.
+
+  *The variant weighed and not taken (owner ruling, 2026-09-20):* let the head return only where the list is back
+  within the threshold — no direction read at all, no listeners, and the jump closed just as completely. It was
+  rejected for the cost it puts on the reader: the head would then be reachable only by scrolling a long list all
+  the way back to its top, and the flick that recalls it is the half of the 2026-08-19 decision that makes the
+  collapse a yield rather than a disappearance. *Revisit trigger:* an engine where the gesture window cannot be
+  closed reliably — the head would then be stuck yielded, which is the failure the simpler rule does not have.
 * **~~FR-21.18 (A List of Controls Takes a Narrower Column Than a Page of Prose — added 2026-09-07)~~ — superseded
   2026-09-08 by FR-21.26: the second caller its revisit trigger named never arrived, because the census found no
   screen for the *first* measure. Kept for the measurements in it.** UX-17's content

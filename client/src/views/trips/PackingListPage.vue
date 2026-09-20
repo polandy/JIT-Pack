@@ -142,7 +142,7 @@ import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
-import { isScrollGesture, nextHeadState } from '@/lib/headScroll'
+import { isScrollGesture, nextHeadState, SCROLLER_INPUTS } from '@/lib/headScroll'
 import { collapseRow } from '@/lib/rowCollapse'
 import type { HeadScrollState } from '@/lib/headScroll'
 import { buildReviewProposals } from '@/domain/review'
@@ -1256,14 +1256,14 @@ function onScrollerInput(event: Event) {
     gesture = true
 }
 
-/** Listened for on the scroller rather than the content, because that is what the reader drives. */
-const SCROLLER_INPUTS = ['wheel', 'touchmove', 'keydown', 'pointerdown'] as const
+/** False once the screen is gone, so a scroller resolving late is not listened to at all. */
+let listening = true
 
 onMounted(() => {
   void packContent.value?.$el.getScrollElement?.().then((el) => {
     // A scroller that does not resolve is the state the rule already knows
     // as `viewport: null` — and there is nothing to listen on either.
-    if (el == null) return
+    if (el == null || !listening) return
     scrollEl = el
     for (const type of SCROLLER_INPUTS)
       el.addEventListener(type, onScrollerInput, { passive: true })
@@ -1271,6 +1271,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  listening = false
   for (const type of SCROLLER_INPUTS) scrollEl?.removeEventListener(type, onScrollerInput)
 })
 
