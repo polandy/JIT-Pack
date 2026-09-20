@@ -400,6 +400,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Every act on the list can be taken back (2026-09-19)](#every-act-on-the-list-can-be-taken-back-2026-09-19) — FR-25.31: a cascading delete deferred, not restored; a snackbar over a popover; lingering toasts.
 - [The shopping list becomes a module (2026-09-19)](#the-shopping-list-becomes-a-module-2026-09-19) — FR-30/ADR-066: projection over copy, a reversed composer ruling, a gate blind to multi-line imports.
 - [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
+- [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
 
 ## Deviations
@@ -16247,6 +16248,20 @@ and cleared when it is left (a view event, since Ionic keeps the page mounted un
 authorises both the viewer and the person listed on every send. Cost accepted: a person online but on no packing list
 is invisible, because listing them would mean answering "do we share any trip" for every connection pair.
 
+### A measurement that compared two moments (2026-09-20)
+
+`expectFiguresPaired` — the FR-7.4 helper that checks M4's header line and M1's hero show two figures reading as one
+level — failed on the maintainer's machine while every CI run was green: the rings sat 1.66 px apart against a
+tolerance of 1 px. The obvious readings were both wrong. It was not a host rendering difference, and it was not a
+tolerance that needed widening: the helper called `boundingBox()` once per element, so the two positions it compared
+were taken at different moments, and the header line is still settling when the first one is read. A single
+`evaluate` returning every rectangle in one layout pass reports the two rings at exactly the same `y`; three
+successive one-shot reads showed the whole line moving 1 px between them, which is what the sequential reads had been
+sampling. The trap is general enough that it is now a convention in `client/e2e/README.md`: relative geometry is one
+question and has to be answered in one pass. The price of not knowing it was a case that could only fail on a
+machine slow enough to interleave the reads with the transition — green in CI, red locally, and reading as a
+rendering difference in both places. A DOMRect keeps its numbers on the prototype, so the helper picks them apart by
+hand before returning them; handed back whole it would cross the `evaluate` boundary as an empty object.
 
 ### A head that answered scrolls nobody made (2026-09-20)
 
@@ -16276,3 +16291,4 @@ E2E-M4-129 would have passed against the removal of the very guard it was writte
 is what they always claimed to be doing. The new case had the same disease twice before it bit: aimed at the nearest
 row off the top it moved the list by three pixels, under the rule's own noise threshold, and passed against the
 unfixed build. It aims at the topmost one and asserts the distance.
+

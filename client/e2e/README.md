@@ -154,6 +154,13 @@ them.
   wait a fixed time for it. If a case can only pass by waiting and hoping, the
   fault is in the production code — give it a deterministic seam. `writesLanded`
   exists because E2E-M4-32 needed to know when the data was actually on disk.
+- **Geometry is read in one `evaluate`, never box by box.** Where two elements
+  sit relative to each other is one question, and `boundingBox()` per element
+  answers it at several moments: a page that is still settling hands back
+  positions that never coexisted. `expectFiguresPaired` compared rings 1.7 px
+  apart that way on one machine while CI agreed — a property of the two hosts,
+  not of the layout. Take every rectangle in a single pass and compare the
+  numbers afterwards.
 - **Seed through the app, not around it** (spec §2.4). `createTripViaWizard` and
   friends. A fast path that writes rows directly is allowed only for `server`
   preconditions that are not themselves under test.
