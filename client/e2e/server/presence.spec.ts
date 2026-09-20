@@ -269,7 +269,9 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     await expect(visiblePage(bob).getByTestId('m4-header')).toBeVisible()
     await subscribedBob
 
-    const row = alice.getByTestId(`sync-detail-online-${ACCOUNT_NAMES.bob}`)
+    const row = alice
+      .getByTestId(`sync-detail-online-${ACCOUNT_NAMES.bob}`)
+      .filter({ hasText: trip })
     await expect(row).toBeVisible()
     await expect(row).toContainText(trip)
     await expect(alice.getByTestId('sync-detail-online-nobody')).toHaveCount(0)
@@ -280,6 +282,46 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     await expect(visiblePage(bob).getByTestId('dashboard')).toBeVisible()
     await expect(alice.getByTestId('sync-detail-online-nobody')).toBeVisible()
     await expect(row).toHaveCount(0)
+
+    await ctxBob.close()
+    await ctxAlice.close()
+  })
+
+  /**
+   * E2E-G10-04 (FR-4.9): a roster row is a way in. Tapping Bob's row closes
+   * the sheet and lands Alice on the trip he has open — asserted on the
+   * rendered packing list, not the URL.
+   */
+  test('E2E-G10-04: tapping a roster row closes the sheet and opens that trip', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Rigi ${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    await alice.goto('/')
+    await expect(visiblePage(alice).getByTestId('dashboard')).toBeVisible()
+    await alice.getByTestId('sync-indicator').click()
+    await expect(alice.getByTestId('sync-detail-online-nobody')).toBeVisible()
+
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId('m4-header')).toBeVisible()
+    await subscribedBob
+
+    await alice
+      .getByTestId(`sync-detail-online-${ACCOUNT_NAMES.bob}`)
+      .filter({ hasText: trip })
+      .click()
+    await expect(alice.getByTestId('sync-detail-sheet')).toHaveCount(0)
+    await expect(visiblePage(alice).getByTestId('m4-header')).toBeVisible()
+    await expect(alice).toHaveURL(new RegExp(`${tripPath}$`))
 
     await ctxBob.close()
     await ctxAlice.close()
