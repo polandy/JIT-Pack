@@ -402,6 +402,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
 - [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
+- [A bought row that said so in the wrong column (2026-09-20)](#a-bought-row-that-said-so-in-the-wrong-column-2026-09-20) — FR-25.11j: why a BUY_LOCAL row packed on M4 was on neither shopping tab.
 
 ## Deviations
 
@@ -16292,3 +16293,25 @@ is what they always claimed to be doing. The new case had the same disease twice
 row off the top it moved the list by three pixels, under the rule's own noise threshold, and passed against the
 unfixed build. It aims at the topmost one and asserts the distance.
 
+### A bought row that said so in the wrong column (2026-09-20)
+
+Two `buy_local` rows on the family instance's live trip were on neither M6 tab — not open, not under "gekaufte
+anzeigen" — while sitting untouched in the database. Reported as data lost to the 0.15.0 upgrade; the pre-upgrade
+snapshot says otherwise. Both rows are byte-identical across it: `state = packed`, `bought_from` NULL, packed hours
+before the new image started.
+
+`getShoppingItems` asked one question for both lists: `bought_from === from`. That is right for BUY_BEFORE, where the
+purchase flips `mode` to `pack` and the column is the only trace of where the row came from — which is what FR-25.11j
+was written for. It is wrong for BUY_LOCAL, and the FR says so in the same paragraph: *a BUY_LOCAL purchase is a
+packing act, so `packed_at` and `packed_by_user_id` already record it through the ordinary FR-25.17 path.* Only M6's
+own check-off writes `bought_from`. Check the same row off on the packing list and it is packed, so it leaves the open
+tab, and unrecorded, so it never reaches the bought one.
+
+**The premise that was wrong**: that a purchase always happens on the shopping screen. `bought_from` was designed as
+the record of *which list* a row left, not of *whether* it was bought — and a column that answers one question was
+asked the other.
+
+The fix reads the state for BUY_LOCAL and keeps `bought_from` beside it, because a row bought on M6 and later moved to
+`pack` by hand is still findable only by the column. The `field_hlcs` were what settled the diagnosis rather than a
+guess: `bought_from` carried the row's creation-era clock while `state` and `packed_at` carried the later one, so the
+check-off demonstrably never touched it.

@@ -94,6 +94,55 @@ describe('tripStore.getShoppingItems — what was bought (FR-25.11j)', () => {
     expect(boughtLocal.map((i) => i.id)).toEqual(['local'])
   })
 
+  it('finds a BUY_LOCAL row packed on the packing list, which wrote no bought_from (FR-25.17)', () => {
+    // A BUY_LOCAL purchase *is* a packing act, so checking the row off on M4
+    // records it the ordinary FR-25.17 way and never touches `bought_from`.
+    // Reading only that column loses the row off both tabs at once.
+    const tripStore = useTripStore()
+    tripStore.applyChange(
+      itemChange('local', { mode: 'buy_local', state: 'packed', packed_count: 1 }),
+    )
+
+    const { buyLocal, boughtLocal } = tripStore.getShoppingItems('t1')
+
+    expect(buyLocal).toHaveLength(0)
+    expect(boughtLocal.map((i) => i.id)).toEqual(['local'])
+  })
+
+  it('still finds a BUY_LOCAL row by bought_from once its mode moved on', () => {
+    // Bought on M6, then put on the packing list by hand (M5): the derived
+    // rule above no longer sees it, and `bought_from` is the only way back.
+    const tripStore = useTripStore()
+    tripStore.applyChange(
+      itemChange('local', {
+        mode: 'pack',
+        state: 'packed',
+        packed_count: 1,
+        bought_from: 'buy_local',
+      }),
+    )
+
+    const { boughtLocal } = tripStore.getShoppingItems('t1')
+
+    expect(boughtLocal.map((i) => i.id)).toEqual(['local'])
+  })
+
+  it('a skipped BUY_LOCAL row is not a bought one (FR-5.5)', () => {
+    // Skipping says the trip does not need it, which is not a purchase. The
+    // open tab drops it too, so this asserts the boundary of the rule above
+    // rather than an absence on its own.
+    const tripStore = useTripStore()
+    tripStore.applyChange(itemChange('needed', { mode: 'buy_local' }))
+    tripStore.applyChange(
+      itemChange('skipped', { mode: 'buy_local', state: 'skipped', quantity: 0 }),
+    )
+
+    const { buyLocal, boughtLocal } = tripStore.getShoppingItems('t1')
+
+    expect(buyLocal.map((i) => i.id)).toEqual(['needed'])
+    expect(boughtLocal).toEqual([])
+  })
+
   it('never counts a row as both open and bought', () => {
     // The mode was put back by hand (M5) rather than by FR-25.11j's undo, so
     // the record outlives the purchase. The row is actionable again, and an
