@@ -411,6 +411,10 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The gesture window is a residue, not an oversight (2026-09-20)](#the-gesture-window-is-a-residue-not-an-oversight-2026-09-20) — FR-21.17: the 120–220 ms the rule keeps on purpose, and why the flake pointed the wrong way.
 - [Three CI levers, two measured worse than nothing and one disproved (2026-09-20)](#three-ci-levers-two-measured-worse-than-nothing-and-one-disproved-2026-09-20) — what the runner's variance does to a single-run measurement.
 - [The M4 unit was 2958 lines in one file (2026-09-20)](#the-m4-unit-was-2958-lines-in-one-file-2026-09-20) — the split, and the helper move it would otherwise have duplicated.
+- [Merging a set of tags is not merging pairs (2026-09-20)](#merging-a-set-of-tags-is-not-merging-pairs-2026-09-20) — one plan over the selection, not a loop: the outbox accepts what `UNIQUE (item_id, tag_id)` then refuses.
+- [The inventory could not say whose job an item usually is (2026-09-20)](#the-inventory-could-not-say-whose-job-an-item-usually-is-2026-09-20) — FR-1.9's reader on M9: the offer is filtered by G-8, the stored preference is not; no filter by account.
+- [The item merge asked four tables the same question (2026-09-20)](#the-item-merge-asked-four-tables-the-same-question-2026-09-20) — why a position is updated rather than re-created, and what the FK guard decided.
+- [Hiding the version string stopped the visual gate drifting (2026-09-20)](#hiding-the-version-string-stopped-the-visual-gate-drifting-2026-09-20) — the baseline had been ~600 px from red for months; `--update-snapshots=all` is what re-records a passing one.
 
 ## Deviations
 
@@ -16622,3 +16626,142 @@ in both browsers.
 quick-add loop) moved into `client/e2e/helpers/m4.ts` rather than being copied
 four times — which is exactly the drift `e2e-helpers-gate.mjs` exists to stop,
 and the split would have introduced it in the one commit that looks harmless.
+
+## Merging a set of tags is not merging pairs (2026-09-20)
+
+FR-24.14 looks like a loop over FR-24.10's merge, and building it that way
+writes rows the server refuses.
+
+**The trap.** `mergeTags` plans against `masterStore.itemTagList` and then
+enqueues the writes; the optimistic copies are not back in that list when the
+next call reads it. Merging *Sommerurlaub* and *Sommersachen* into *Sommer* one
+after the other therefore plans each pair against an inventory in which the
+other merge has not happened — and an item carrying **both** sources is
+re-pointed twice, producing two `item_tags` rows naming *Sommer* for one item.
+`UNIQUE (item_id, tag_id)` refuses the second, but only once the push reaches
+the server, long after the outbox accepted it. The existing code already knew
+half of this: `mergeTags` calls `mutations.deleteTag` directly rather than the
+guarded `deleteTag`, with a comment saying the guard would read state
+mid-change. The same property bites one level up, and the answer had to be one
+plan over the set (`planTagMergeMany`), not a better loop.
+
+**What the plan decides per item**, and the reason it can: the lowest-positioned
+picked tag survives as the re-point and the rest are dropped, or — where the
+item already carries the target — all of them are dropped and the target
+inherits the lowest position. Both branches keep FR-24.2's heading still, which
+is what FR-24.10's promote clause buys for one pair.
+
+**A count that was wrong for the new case.** `mergeTags` returned
+`repoint.length + drop.length` and the toast says „N Artikel". For one source
+those are the same number, because a tag is on an item at most once; for a set
+they are not, and the first version of the seam test caught it reporting 2 for
+one item. It counts distinct items now.
+
+**The e2e fixture is the case, and it is easy to get wrong twice.** Three tags
+and three items, with one item carrying two of the sources — two and two
+collapses to the FR-24.10 case E2E-M9-19 already covers. And the tags have to be
+*different words*: the give idiom matches an existing tag under the uniqueness
+fold, so „sommer" typed beside „Sommer" assigns the existing tag instead of
+creating a second one, and the fixture would quietly be two tags rather than
+three.
+
+## The inventory could not say whose job an item usually is (2026-09-20)
+
+FR-1.9 shipped on 2026-09-18 with a writer (M10, and FR-24.9's bulk action) and
+no reader outside the editor: the answer to „was ist üblicherweise meins?" was
+two hundred items opened one at a time.
+
+**It is a property, not a column, and the offer is filtered rather than the
+storage.** M9's FR-24.4 sheet gains a fourth toggle — but it is the first
+property that is not offered everywhere, since G-8 hides the whole feature below
+two accounts. `offeredProperties(canNameAccount)` decides what the sheet lists;
+what the device has **stored** is never touched, because the same phone may open
+a shared instance tomorrow and a display preference that forgets itself on the
+way is worse than a toggle that is briefly absent.
+
+**The filter that was not built.** The obvious next control is a filter by
+account, and it was declined: FR-24.2's axis is tags, an account is not a tag —
+the argument that kept „Stillgelegt" off the axis — and a second axis goes into
+a bar already three rows high at 390 px. The assignee's display name joined
+FR-24.7's fold instead, as the weakest of its four reasons. That is the cheap
+90 %: typing a name finds their items, with no new chrome. The revisit trigger
+is in FR-1.9 — a query that is a name and *stays* while rows are edited is
+somebody using the search as a filter.
+
+**Why the property sheet has no unit test.** Ionic renders an overlay's content
+only once it has presented, and under jsdom it never does — the first attempt
+asserted on toggles that are not in the DOM and went green for the wrong reason
+against `.exists() === false`. The rule moved into the composable, where it is
+tested directly, and the sheet is covered by E2E-M9-29 in a real browser.
+
+## The item merge asked four tables the same question (2026-09-20)
+
+FR-24.15 is FR-24.14 with four tables instead of one, and three of them can
+refuse a re-point. The plan is computed once over the whole selection for the
+tag merge's reason; what the item half added was a set of collisions that only
+show up as a driver error if they are not decided in advance:
+`UNIQUE (item_id, tag_id)`, `UNIQUE (template_id, item_id)`,
+`UNIQUE (item_id, depends_on_item_id)`, the self-edge `CHECK`, and a cycle two
+rows kept open while they were apart.
+
+**Two things the code cannot show:**
+
+**A position is updated, never re-created.** M8's editor *moves* a position by
+deleting it and adding another — the mutation surface even says so — and doing
+that here would have been the obvious re-use. It would also have deleted the
+position's FR-27.7 preparation tasks, because `template_item_tasks` hangs off
+the position id with `ON DELETE CASCADE`. The merge writes `item_id` in place
+instead, and the collapsed position's tasks are copied onto the survivor's
+before it goes. User-typed prose is the one thing a merge may never lose.
+
+**The store's own foreign-key guard decided the alias's delete behaviour.**
+`TestTableSpecs_BlockedByIsExactlyTheRestrictingForeignKeys` failed the moment
+`items.merged_into_id` existed: a restricting key into a declared table has to
+be a `blockedBy` entry, or a delete fails as a driver error instead of a
+refusal. That is the right test and the wrong answer here — an alias is a
+*reading* convenience, and refusing to delete the survivor over a pointer the
+user cannot see would be the dead end ADR-063 spent a whole decision avoiding.
+So the key is `ON DELETE SET NULL` and the guard learned that a key which
+clears itself restricts nothing. The merged-away rows simply get their own past
+back.
+
+**What the sentence afterwards says, and why it exists.** A merge is invisible
+on the list — one row fewer — while the survivor has quietly gained a weight, a
+mark, a photo, an assignee, a collapsed Vorlage position and possibly lost a
+companion edge to a cycle. The toast names all of it, because the alternative
+is a user discovering it in M10 a month later.
+
+**Two covered halves, and nothing on the seam** (found in review, same day).
+`commentsOnItem` takes a set of ids and `itemHistory.spec.ts` drives it;
+`mergedIdsOf` has its cases in `itemMerge.spec.ts`. The one line that joins
+them — M10 asking for the merged ids instead of its own — had no test at all:
+replacing it with `[props.itemId]` left the entire suite green, including
+E2E-M9-30, whose four other assertions are about tags, weights, companions and
+M23. So the benefit ADR-069 bought a schema column, two reading directions and
+a permanently visible M23 row for was the one thing the suite never checked.
+The repair was four lines in a case that already packed the losing row on a
+trip: write a remark there, read it on the survivor afterwards. Worth stating
+plainly because the shape recurs — a pure function and its caller are two
+subjects, and a domain with 100 % coverage says nothing about the wiring.
+
+## Hiding the version string stopped the visual gate drifting (2026-09-20)
+
+The `visual` job failed on a branch that had not touched the screen: the items
+tab differed by **660 pixels against a 658 budget**. Almost all of it was the
+app bar's version string — `git describe --tags --always --dirty`, which is a
+different string on every build. The baseline still held
+`v0.10.0-6-g49d12ebc-dirty` from the day it was recorded; CI renders the sha of
+the commit it built. Every run had been failing by ~600 px and passing on the
+slack, so the gate had been one glyph away from red for months, and the icon
+change FR-24.8/24.12 made to that same bar had never been re-recorded.
+
+**Owner decision:** hide the version in visual runs and re-record. It is build
+metadata, not design, so `freeze()` injects a style that makes it
+`visibility: hidden` — the box stays, nothing else moves. 14 of the 30
+baselines changed; the rest never showed the bar.
+
+Two things worth keeping: `--update-snapshots` rewrites only what *fails*, and
+these were passing on the budget, so the re-record needed
+`--update-snapshots=all`. And `scripts/visual.sh` ignored `E2E_PORT`, which
+`scripts/e2e.sh` honours precisely because two worktrees collide on the host
+port — it forwards it now.

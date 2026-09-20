@@ -9,6 +9,7 @@
  * and share nothing with this group but the row they paint. They stay on the
  * orchestrator until the transport itself is cut.
  */
+import { planItemMerge, type FilledFields } from '@/domain/itemMerge'
 import {
   DELETION_RETIRE,
   RETIRED_FIELD,
@@ -26,7 +27,7 @@ import {
 import {
   assignmentOf,
   planTagGrant,
-  planTagMerge,
+  planTagMergeMany,
   planTagRemoval,
   planTagReorder,
   primaryPosition,
@@ -313,7 +314,23 @@ export function createMasterDataActions(ctx: SyncContext) {
    * again, the second is rows the inventory has to skip (`tagsOfItem`).
    */
   function mergeTags(sourceId: string, targetId: string): number {
-    const plan = planTagMerge(sourceId, targetId, masterStore.itemTagList)
+    return mergeTagsMany([sourceId], targetId)
+  }
+
+  /**
+   * Merge a whole selection of tags into one of them (FR-24.14).
+   *
+   * Not a loop over {@link mergeTags}: each call plans against
+   * `masterStore.itemTagList`, and the optimistic writes of the previous
+   * merge are not in it yet, so an item carrying two of the sources would be
+   * re-pointed twice — two `item_tags` rows naming the target for one item,
+   * which `UNIQUE (item_id, tag_id)` refuses once the push reaches the
+   * server, after the outbox has accepted both. `planTagMergeMany` decides
+   * the whole set in one pass instead, so exactly one assignment per item
+   * survives whatever the user selected.
+   */
+  function mergeTagsMany(sourceIds: readonly string[], targetId: string): number {
+    const plan = planTagMergeMany(sourceIds, targetId, masterStore.itemTagList)
 
     for (const { assignment, position } of plan.repoint) {
       const mutation = mutations.retagAssignment(assignment.id, targetId, position)
@@ -329,15 +346,24 @@ export function createMasterDataActions(ctx: SyncContext) {
       unassignTag(assignment.id)
     }
 
-    const moved = plan.repoint.length + plan.drop.length
-    if (moved > 0) {
-      // `mutations.deleteTag` and not the guarded {@link deleteTag}: the plan
-      // was computed from the store this loop has just been writing to, so
-      // asking the guard again is a read of state mid-change — and where the
-      // optimistic writes have not landed yet it sees the assignments the
-      // merge just took away, refuses, and leaves a tag behind that nothing
-      // carries. The plan already knows the tag is empty; that is what makes
-      // it a merge rather than a delete.
+    // Items, not assignments: an item carrying two of the sources is one row
+    // that ends up under the target, and the number is what the toast reports
+    // („N Artikel liegen jetzt unter X"). For a single source the two counts
+    // are the same, because one tag is on an item at most once.
+    const moved = new Set([
+      ...plan.repoint.map(({ assignment }) => assignment.item_id),
+      ...plan.drop.map((assignment) => assignment.item_id),
+    ]).size
+    // `mutations.deleteTag` and not the guarded {@link deleteTag}: the plan was
+    // computed from the store this loop has just been writing to, so asking
+    // the guard again is a read of state mid-change — and where the optimistic
+    // writes have not landed yet it sees the assignments the merge just took
+    // away, refuses, and leaves a tag behind that nothing carries. The plan
+    // already knows the tag is empty; that is what makes it a merge rather
+    // than a delete. The **target** is what the guard here is for: a merge
+    // into itself must not delete the tag it was asked to keep.
+    for (const sourceId of sourceIds) {
+      if (sourceId === targetId) continue
       const mutation = mutations.deleteTag(sourceId)
       enqueueAndDrain('master', null, {
         mutation,
@@ -345,6 +371,128 @@ export function createMasterDataActions(ctx: SyncContext) {
       })
     }
     return moved
+  }
+
+  /**
+   * What a merge did, for the sentence the screen owes afterwards (FR-24.15).
+   */
+  interface ItemMergeOutcome {
+    /** How many rows were merged away. */
+    merged: number
+    /** Assignments that moved to the survivor. */
+    tags: number
+    /** Vorlage positions that collapsed into one. */
+    positions: number
+    /** Dependency edges dropped as a self-edge, a duplicate or a cycle. */
+    edgesDropped: number
+    /** Losers FR-24.3 answered by retiring rather than removing. */
+    retired: number
+    /** Which of the survivor's empty fields the losers filled. */
+    filled: (keyof FilledFields)[]
+  }
+
+  /**
+   * Merge duplicate master items into one (FR-24.15, ADR-069).
+   *
+   * The whole act is planned first, over the rows this device holds, and only
+   * then written — `planItemMerge`'s doc says why four tables make that
+   * necessary. The order here is the part that is not in the plan:
+   *
+   * 1. everything that still points at a loser moves to the survivor;
+   * 2. the survivor takes over the fields it had none of;
+   * 3. the losers are aliased at the survivor and then deleted.
+   *
+   * The alias is written **before** the delete, and it is written even for a
+   * loser that is about to be removed outright: a device that only ever sees
+   * the two changes in the feed still learns where the row went, and one that
+   * sees the delete alone would otherwise have a `source_item_id` pointing at
+   * nothing. The delete itself is FR-24.3's ordinary one — retire where
+   * something still resolves against the row, remove where nothing does — and
+   * not a third lifecycle invented for merging.
+   */
+  function mergeMasterItems(survivorId: string, loserIds: string[]): ItemMergeOutcome {
+    const plan = planItemMerge(survivorId, loserIds, {
+      items: masterStore.itemList,
+      assignments: masterStore.itemTagList,
+      dependencies: masterStore.dependencyList,
+      positions: masterStore.positionList,
+      tasks: masterStore.templateItemTaskList,
+    })
+
+    for (const assignment of plan.tags.repoint) {
+      const mutation = mutations.reassignItemTag(
+        assignment.id,
+        survivorId,
+        plan.tags.positionOf(assignment.id),
+      )
+      enqueueAndDrain('master', null, {
+        mutation,
+        optimistic: optimisticUpdate(mutation, { ...assignment }),
+      })
+    }
+    for (const assignment of plan.tags.drop) unassignTag(assignment.id)
+
+    for (const { edge, item_id, depends_on_item_id } of plan.dependencies.repoint) {
+      const mutation = mutations.repointItemDependency(edge.id, item_id, depends_on_item_id)
+      enqueueAndDrain('master', null, {
+        mutation,
+        optimistic: optimisticUpdate(mutation, { ...edge }),
+      })
+    }
+    for (const edge of plan.dependencies.drop) {
+      const mutation = mutations.deleteItemDependency(edge.id)
+      enqueueAndDrain('master', null, { mutation, optimistic: optimisticDelete(mutation) })
+    }
+
+    for (const position of plan.positions.repoint) {
+      const mutation = mutations.repointTemplateItem(position.id, survivorId)
+      enqueueAndDrain('master', null, {
+        mutation,
+        optimistic: optimisticUpdate(mutation, { ...position }),
+      })
+    }
+    for (const { keep, drop, quantity, tasks } of plan.positions.collapse) {
+      if (quantity !== keep.quantity) {
+        const mutation = mutations.updateTemplateItem(keep.id, { quantity })
+        enqueueAndDrain('master', null, {
+          mutation,
+          optimistic: optimisticUpdate(mutation, { ...keep }),
+        })
+      }
+      for (const task of tasks) {
+        const { mutation } = mutations.addTemplateItemTask(keep.id, task)
+        enqueueAndDrain('master', null, { mutation, optimistic: optimisticInsert(mutation) })
+      }
+      const mutation = mutations.deleteTemplateItem(drop.id)
+      enqueueAndDrain('master', null, { mutation, optimistic: optimisticDelete(mutation) })
+    }
+
+    const survivor = masterStore.getItem(survivorId)
+    if (survivor && Object.keys(plan.fields).length > 0) {
+      updateMasterItem(survivor, plan.fields)
+    }
+
+    let retired = 0
+    for (const itemId of plan.aliases) {
+      const row = masterStore.getItem(itemId)
+      const alias = mutations.updateMasterItem(itemId, { merged_into_id: survivorId })
+      enqueueAndDrain('master', null, {
+        mutation: alias,
+        optimistic: optimisticUpdate(alias, row ? masterItemRow(row) : {}),
+      })
+      if (!loserIds.includes(itemId)) continue
+      if (row && masterItemDeletionOutlook(itemId).kind === DELETION_RETIRE) retired += 1
+      deleteMasterItem(itemId)
+    }
+
+    return {
+      merged: loserIds.length,
+      tags: plan.tags.repoint.length,
+      positions: plan.positions.collapse.length,
+      edgesDropped: plan.dependencies.drop.length,
+      retired,
+      filled: Object.keys(plan.fields) as (keyof FilledFields)[],
+    }
   }
 
   /**
@@ -504,7 +652,11 @@ export function createMasterDataActions(ctx: SyncContext) {
     const verdict = restoreVerdict(item, masterStore.activeItemList, name)
     if (verdict.kind !== RESTORE_READY) return false
     const fields = restoreFields(name === undefined ? null : verdict.name)
-    const mutation = mutations.updateMasterItem(itemId, fields)
+    // FR-24.15: a row brought back has a past of its own again, so the merge
+    // alias goes with the marker. Written whether or not the row carries one:
+    // the two are the same decision, and asking first would read the store
+    // for a field the patch is about to overwrite anyway.
+    const mutation = mutations.updateMasterItem(itemId, { ...fields, merged_into_id: null })
     enqueueAndDrain('master', null, {
       mutation,
       optimistic: optimisticUpdate(mutation, masterItemRow(item)),
@@ -679,6 +831,8 @@ export function createMasterDataActions(ctx: SyncContext) {
     setTagMark,
     deleteTag,
     mergeTags,
+    mergeTagsMany,
+    mergeMasterItems,
     reorderTags,
     assignTag,
     assignTagAt,

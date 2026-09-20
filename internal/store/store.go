@@ -72,6 +72,11 @@ const (
 // tests compare against it.
 const DefaultAssigneeColumn = "default_assignee_id"
 
+// MergedIntoColumn is FR-24.15's alias: the item a merged-away row was
+// merged into. Named once, like the columns above — the sync whitelist, the
+// client's reader and the tests all compare against it.
+const MergedIntoColumn = "merged_into_id"
+
 // The item mark (§3.28), named once because three layers compare against
 // it: the schema's CHECK, the handler's cap, and the sync whitelist.
 const (

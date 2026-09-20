@@ -63,6 +63,7 @@ function fakeMasterReads(templates: Template[] = []): MasterReads {
     activeTemplateList: templates,
     includeList: [],
     dependencyList: [],
+    positionList: [],
     templateItemTaskList: [],
     seriesList: [],
     getItem: () => undefined,

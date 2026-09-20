@@ -68,3 +68,81 @@ export async function promptTagMerge(
   await presentToast({ message: t('items.tagMerged', { n: moved, tag: target.name }) })
   return moved
 }
+
+/**
+ * FR-24.14's merge, asked and confirmed: which of the picked tags survives,
+ * then one act over the whole set.
+ *
+ * The **same flow** as {@link promptTagMerge} — one picker, one confirm, one
+ * toast — because a merge that reads differently depending on how many tags
+ * it was started with is two features sharing a mutation. What differs is
+ * only where the target comes from: not the axis, but the selection itself.
+ * Picking a target *outside* the selection would make „these three are one
+ * thing" mean something else on the next screen.
+ *
+ * The targets are offered **largest first**, counted in assignments: the tag
+ * most items already carry is almost always the real one, and it is also the
+ * choice that moves the fewest rows. An action sheet cannot preselect, so
+ * the order is what recommends it.
+ *
+ * Resolves to how many items ended up under the target, or null when nothing
+ * was merged.
+ */
+export async function promptTagMergeMany(
+  tags: readonly Tag[],
+  deps: {
+    /** How many assignments each picked tag has, by tag id. */
+    usage: Map<string, number>
+    merge: (sourceIds: string[], targetId: string) => number
+  },
+): Promise<number | null> {
+  if (tags.length < 2) return null
+  const byUsage = [...tags].sort(
+    (a, b) =>
+      (deps.usage.get(b.id) ?? 0) - (deps.usage.get(a.id) ?? 0) || a.name.localeCompare(b.name),
+  )
+
+  const picker = await actionSheetController.create({
+    header: t('items.tagsMergeManyTitle'),
+    buttons: [
+      ...byUsage.map((tag) => ({
+        text: t('items.tagsMergeManyCount', { name: tag.name, n: deps.usage.get(tag.id) ?? 0 }),
+        data: tag.id,
+        htmlAttributes: { 'data-testid': `m9-tag-merge-into-${tag.name}` },
+      })),
+      { text: t('common.cancel'), role: 'cancel' },
+    ],
+  })
+  await picker.present()
+  const { data: targetId, role } = await picker.onDidDismiss<string>()
+  if (role === 'cancel' || !targetId) return null
+
+  const target = byUsage.find((tag) => tag.id === targetId)
+  if (!target) return null
+  const sources = byUsage.filter((tag) => tag.id !== targetId)
+
+  // The upper bound on what moves, not the exact number: an item carrying two
+  // of the sources ends under the target once. The confirm may overstate the
+  // work and may never understate it — the toast afterwards reports what the
+  // merge actually did.
+  const moving = sources.reduce((sum, tag) => sum + (deps.usage.get(tag.id) ?? 0), 0)
+
+  const ok = await confirmDestructive({
+    header: t('items.tagsMergeManyTitle'),
+    message: t('items.tagsMergeManyConfirmBody', {
+      n: moving,
+      m: sources.length,
+      target: target.name,
+    }),
+    confirmLabel: t('items.tagMergeConfirm'),
+    testid: 'm9-tags-merge-many-confirm',
+  })
+  if (!ok) return null
+
+  const moved = deps.merge(
+    sources.map((tag) => tag.id),
+    target.id,
+  )
+  await presentToast({ message: t('items.tagMerged', { n: moved, tag: target.name }) })
+  return moved
+}

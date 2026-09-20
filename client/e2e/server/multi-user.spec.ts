@@ -1304,6 +1304,88 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
+   * E2E-M9-29 (FR-1.9 over FR-24.4/24.7): the inventory *shows* who an item
+   * is usually for, and finds it by that name.
+   *
+   * Until this, the flag could only be read by opening the item — an
+   * inventory of two hundred rows answered „was ist üblicherweise meins?"
+   * one editor at a time. Server Mode again, and for the same G-8 reason as
+   * E2E-M9-27: the property is not offered where there is only one account,
+   * so the toggle's own presence is part of what is asserted.
+   *
+   * Three claims, each needing the one before it: the toggle exists, the row
+   * carries the name once it is on, and the search reaches the same row
+   * through that name. The **second** item stays unassigned throughout, or
+   * „the name is on the row" would be satisfied by a list that printed it on
+   * every row.
+   */
+  test('E2E-M9-29: the inventory names who an item is usually for, and finds it by that name', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const mine = `Stirnlampe ${id}`
+    const nobodys = `Zeltunterlage ${id}`
+
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    for (const name of [mine, nobodys]) {
+      await alice.goto(PATH.newItem)
+      await fillIonic(visiblePage(alice).getByTestId('m10-name'), name)
+      await visiblePage(alice).getByTestId('m10-create').click()
+      await expect(alice.getByTestId('header-title')).toHaveText(name)
+    }
+    // Only the first one gets an account, in M10's own field.
+    await alice.goto(PATH.items)
+    await visiblePage(alice).getByTestId('items-search-input').fill(mine)
+    await visiblePage(alice).getByTestId('m9-row').filter({ hasText: mine }).click()
+    await expect(alice.getByTestId('header-title')).toHaveText(mine)
+    await visiblePage(alice).getByTestId('m10-assignee').click()
+    await alice
+      .locator('ion-popover ion-select-popover ion-item')
+      .filter({ hasText: ACCOUNT_NAMES.bob })
+      .click()
+    await expect(visiblePage(alice).getByTestId('m10-assignee')).toContainText(ACCOUNT_NAMES.bob)
+    await writesLanded(alice)
+
+    const openInventory = async (query: string) => {
+      await alice.getByTestId('rail-items').click()
+      await expect(visiblePage(alice).getByTestId('items-search-input')).toBeVisible()
+      await visiblePage(alice).getByTestId('items-search-input').fill(query)
+    }
+    const list = visiblePage(alice)
+    await openInventory(id)
+    await expect(list.getByTestId('m9-row')).toHaveCount(2)
+    // Lean by default (FR-24.4): nothing says it until the device asks.
+    await expect(list.getByTestId('m9-row-assignee')).toHaveCount(0)
+
+    await alice.getByTestId('m9-properties').click()
+    await expect(alice.getByTestId('m9-properties-sheet')).toBeVisible()
+    await alice.getByTestId('m9-property-assignee').click()
+    await alice.keyboard.press('Escape')
+
+    // One row names Bob; the other names nobody rather than „Nobody".
+    await expect(list.getByTestId('m9-row-assignee')).toHaveCount(1)
+    await expect(
+      list.getByTestId('m9-row').filter({ hasText: mine }).getByTestId('m9-row-assignee'),
+    ).toContainText(ACCOUNT_NAMES.bob)
+
+    // FR-24.7's fourth field: the account's name is a query, which is what
+    // stands in for a filter by account. Asserted as *this* pair and not as a
+    // total, because master data is instance-wide and the `server` project
+    // shares one database — E2E-M9-27 hands Bob two more items, and a count
+    // would make this case depend on how many of its neighbours ran first.
+    await openInventory(ACCOUNT_NAMES.bob)
+    await expect(list.getByTestId('m9-row').filter({ hasText: mine })).toHaveCount(1)
+    await expect(list.getByTestId('m9-row').filter({ hasText: nobodys })).toHaveCount(0)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
    * E2E-M4-130 (FR-5.1, FR-25.25): the late-packer flag is trip state, not a
    * view preference — what Alice marks „pack later" is marked for Bob too.
    *

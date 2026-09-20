@@ -77,6 +77,12 @@ interface RetiredRow {
   references: number
   /** Whether a *permanent* delete would now be physical (FR-24.3's second branch). */
   removable: boolean
+  /**
+   * FR-24.15: the item this row was merged into, by name, or null. A row that
+   * got here by a merge says so, because its restore is otherwise an offer to
+   * re-create the duplicate the user has just removed.
+   */
+  mergedInto: string | null
   /** The sentence the permanent-delete confirm carries. */
   removeKey: MessageKey
   /** The sentence a collided restore explains itself with. */
@@ -97,6 +103,9 @@ const itemRows = computed<RetiredRow[]>(() =>
       photoItem: item,
       references: outlook.references,
       removable: outlook.kind === DELETION_REMOVE,
+      mergedInto: item.merged_into_id
+        ? (masterStore.getItem(item.merged_into_id)?.name ?? null)
+        : null,
       // Read only where `removable` is true, and there the key is the remove
       // one — a retiring row's button is not rendered.
       removeKey: deletionOutlookKey(DELETION_SUBJECT_ITEM, outlook),
@@ -119,6 +128,9 @@ const templateRows = computed<RetiredRow[]>(() =>
       photoItem: null,
       references: outlook.references,
       removable: outlook.kind === DELETION_REMOVE,
+      // A Vorlage cannot be merged (FR-24.15 is about items), so this is
+      // always null here rather than optional on the row.
+      mergedInto: null,
       removeKey: deletionOutlookKey(DELETION_SUBJECT_TEMPLATE, outlook),
       // Which scope holds the name is a fact, not a bug — `templates.name`
       // is UNIQUE instance-wide and across both scopes (FR-1.6).
@@ -296,6 +308,11 @@ function hiddenOn(row: RetiredRow): string {
             <p v-if="row.references > 0" class="usage">
               {{ t('retired.stillUsed', { n: row.references }) }}
             </p>
+            <!-- FR-24.15: where this row went, so „Wiederherstellen" is not a
+                 silent offer to make the duplicate again. -->
+            <p v-if="row.mergedInto" class="merged" data-testid="m23-row-merged">
+              {{ t('items.mergedInto', { name: row.mergedInto }) }}
+            </p>
           </IonLabel>
 
           <div slot="end" class="row-actions">
@@ -339,6 +356,10 @@ function hiddenOn(row: RetiredRow): string {
 
 .row-mark {
   margin-inline-end: 12px;
+}
+
+.merged {
+  color: var(--ct-subtext0);
 }
 
 .usage {

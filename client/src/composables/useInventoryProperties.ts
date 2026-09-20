@@ -16,10 +16,32 @@ import { computed, ref } from 'vue'
  * the price-focused shopper are often the same household on two phones.
  */
 
-/** The properties the sheet offers, in the order it lists them. */
-export const INVENTORY_PROPERTIES = ['tags', 'weight', 'price'] as const
+/**
+ * The properties the sheet offers, in the order it lists them.
+ *
+ * `assignee` (FR-1.9) is offered **only where there is more than one account**
+ * — the page filters the list, not this module: what may be shown is a
+ * question about the instance, what *is* shown is this device's answer, and a
+ * preference stored on a phone that later joins a shared instance should
+ * still be there.
+ */
+export const INVENTORY_PROPERTIES = ['tags', 'weight', 'price', 'assignee'] as const
 
 export type InventoryProperty = (typeof INVENTORY_PROPERTIES)[number]
+
+/**
+ * Which of them this instance can answer (FR-1.9, G-8).
+ *
+ * „Zuständig" needs more than one account to be a question at all, so it is
+ * absent in Local Mode, in Single-User Mode and on a one-person instance —
+ * the rule M10's own field and FR-24.9's bulk action already follow. A
+ * preference already stored is **not** cleared: the same phone may open a
+ * shared instance tomorrow, and a display preference that forgets itself on
+ * the way is worse than a toggle that is briefly not offered.
+ */
+export function offeredProperties(canNameAccount: boolean): readonly InventoryProperty[] {
+  return INVENTORY_PROPERTIES.filter((key) => key !== 'assignee' || canNameAccount)
+}
 
 const STORAGE_KEY = 'jitpack_inventory_properties'
 
