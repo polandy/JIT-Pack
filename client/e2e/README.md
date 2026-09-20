@@ -93,6 +93,25 @@ do not move, force them and look at the picture:
 scripts/visual.sh --update-snapshots=all -g "trips"    # the screens you touched
 ```
 
+### The CI legs are packed by measured duration, not by test count
+
+`ci.yml`'s `e2e` matrix names the spec files each leg runs. Playwright's own
+`--shard=i/N` splits by _test count_, and count is a poor proxy for time: on the
+run this was changed after, two legs of 93 and 94 tests took 7.9 and 4.4
+minutes, and the pipeline waits for the slowest one.
+
+Re-pack when the suite has grown — the symptom is a widening spread in the
+per-leg times of a recent run, never a red check:
+
+```bash
+PLAYWRIGHT_JSON_OUTPUT_NAME=e2e-durations.json scripts/e2e.sh --reporter=json
+node scripts/e2e-shard-plan.mjs client/e2e-durations.json 10   # prints the include: block
+```
+
+Paste the block into `ci.yml` with its measurement comment. `make ci` runs
+`scripts/e2e-shard-plan-gate.mjs`, which fails when a spec file is in no leg (it
+would run nowhere, and the pipeline would stay green about it) or in two.
+
 ## The helpers — write your case in this vocabulary
 
 `helpers/` is **the only place a shared step is written**. Write it there and

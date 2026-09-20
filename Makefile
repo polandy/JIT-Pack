@@ -3,7 +3,7 @@
 # green pipeline. When you change a job in ci.yml, change its target here.
 # Two divergences: the `test` target says why it differs, and `client-cli` has no
 # CI step at all (stricter here than there — it guards ADR-025).
-.PHONY: ci ci-remote pins log-index case-ids e2e-helpers testids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
+.PHONY: ci ci-remote pins log-index case-ids e2e-helpers e2e-shard-plan testids wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-purity client-modules client-build client-test client-fmt \
         e2e e2e-single e2e-server visual visual-update docker-build all
 
@@ -36,7 +36,7 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: pins log-index spec-width case-ids e2e-helpers testids no-sleep wire-check proxy-host fmt-check test tidy-check go-lint client
+ci: pins log-index spec-width case-ids e2e-helpers e2e-shard-plan testids no-sleep wire-check proxy-host fmt-check test tidy-check go-lint client
 
 # Cheap and first: the toolchain majors are named in three files each, and a
 # disagreement is invisible to every other check (see the script's header).
@@ -66,6 +66,13 @@ case-ids:
 # no cause (fifteen copies of one selector, seven of `fillIonic`).
 e2e-helpers:
 	@$(RUN) node scripts/e2e-helpers-gate.mjs
+
+# And beside *that*: since the CI legs name their spec files (packed by
+# measured duration, not by Playwright's test count), a file no leg names runs
+# nowhere — and a suite that silently stopped running a file reports the same
+# green as one that runs it.
+e2e-shard-plan:
+	@$(RUN) node scripts/e2e-shard-plan-gate.mjs
 
 # And once more: a locator that finds nothing usually fails loudly, but an
 # *absence* asserted against an id the app never declared is green forever.

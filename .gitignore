@@ -53,6 +53,9 @@ node_modules/
 # Playwright output
 client/playwright-report/
 client/test-results/
+# The duration measurement the CI legs are packed from (client/e2e/README.md):
+# a report, not a source — the packing it produced is in ci.yml.
+client/e2e-durations.json
 
 # mkdocs build output (docs.yml builds it in CI; local `mkdocs build` too)
 site/

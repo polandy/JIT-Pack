@@ -408,6 +408,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two of the four badges were not worth a badge (2026-09-20)](#two-of-the-four-badges-were-not-worth-a-badge-2026-09-20) — ADR-051 amendment 1: the mockup that decided it, and the rule that keeps the row saying where you are.
 - [An indicator that was never off (2026-09-20)](#an-indicator-that-was-never-off-2026-09-20) — FR-25.15: why a confirmation of nothing reads as a button, and the test that had pinned the defect.
 - [The task the app already had, in the list nobody could find it in (2026-09-20)](#the-task-the-app-already-had-in-the-list-nobody-could-find-it-in-2026-09-20) — FR-7.6/ADR-068: the premise that nearly cost a migration, and the undo window that broke the chip.
+- [The CI legs were split by counting, not by timing (2026-09-20)](#the-ci-legs-were-split-by-counting-not-by-timing-2026-09-20) — why 'build once, fan out' was the wrong lever, and what a file heavier than a leg forces.
 
 ## Deviations
 
@@ -16534,3 +16535,50 @@ presenter; the branch is in one function instead, next to the undo it has to arm
 
 **What it did to the suite** is in the e2e ledger's own section for the day: two case ids kept their number and
 changed what they promise, because the promise moved to the surface that replaced theirs rather than dying with it.
+
+## The CI legs were split by counting, not by timing (2026-09-20)
+
+The owner asked how to stop the pipeline from setting the pace. The first
+answer was wrong, and measuring is what said so.
+
+**The proposal that died on contact with the numbers.** "Build the client once
+and hand the bundle to the ten e2e legs" sounds like ten builds saved. A leg's
+whole setup step is **34 s** — `npm ci` and a build whose type-check and bundle
+already run in parallel (`run-p`) — while making the legs `needs: client` would
+put the 2-minute `client` job in front of every one of them. It would have cost
+more latency than it removed, and the only thing it would genuinely save is
+runner minutes on a repository that pays for none.
+
+**What the same run actually showed.** Two legs, 93 and 94 tests, took **7.9
+and 4.4 minutes**. The pipeline waits for the slowest, so that spread is pure
+latency. `--shard=i/N` splits the test list by *count*, and count is a proxy for
+time that this suite falsifies: one spec file is worth as much as sixteen of the
+small ones.
+
+**And the obvious fix would have been worse.** Packing whole files into legs by
+measured duration puts `packing-list.spec.ts` — 960 s of 6249 — alone on a leg
+that is then heavier than the worst leg we started with. A file cannot be halved
+by naming it. What can: give that one file `k` legs and let `--shard=i/k` split
+*within* it, which is the one job `--shard` is good at. So the mechanism is not
+"never shard", it is "shard inside a set somebody chose, rather than letting it
+choose the sets".
+
+**The cost, and where it is paid.** Legs that name their files can lose one: a
+spec nobody names runs nowhere, and a suite that quietly stopped running a file
+reports exactly the green of one that runs it. `scripts/e2e-shard-plan-gate.mjs`
+refuses that, and refuses a half-covered split (`--shard=1/2` without its `2/2`)
+and a leg that mixes `--shard` with a second file, which would quarter that file
+too. It runs in `make ci`, node-only, and it was proved red before it was
+believed: with one file removed from a leg it names the file and exits 1.
+
+**Verified by listing rather than by running.** The ten legs' `--list` output,
+unioned, is exactly the 904 tests the unsharded suite lists — nothing lost,
+nothing doubled, the split file included. That check costs eleven container
+starts and no test execution, which is why it is the one worth repeating after a
+re-pack.
+
+**What was left alone, on purpose.** The leg count stays ten (one variable at a
+time; the 20-job concurrency ceiling still bounds it). Workers stay at two per
+leg: more workers is more load, and this suite has twice this week produced a
+failure that only appears under load. WebKit stays in the PR run for the same
+reason — it is where those two showed up first.

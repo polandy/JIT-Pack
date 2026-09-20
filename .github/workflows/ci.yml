@@ -166,18 +166,22 @@ jobs:
   # backend-backed modes have had their own jobs since #192 (`e2e-single`,
   # `e2e-server`, both below).
   #
-  # The shard count is a *measurement*, not a constant: ten, sized
-  # 2026-09-18 against ~2940 test-seconds. Why ten and not eight or twelve —
-  # the per-browser split that was worse, the 20-job concurrency ceiling that
-  # eight non-shard jobs eat into, and what bounds it from below now that the
-  # legs are short (no longer the fixed ~60 s per leg, but `e2e-single` and
-  # `e2e-server` at ~260 s, which do not shard) — is in
-  # dev-docs/implementation-log.md, "The e2e matrix is ten legs" and the
-  # eight-leg section it supersedes. **Re-read the number when the suite
-  # grows**: a green pipeline never says the count has gone stale, because
-  # the only symptom is that every run is slower than it needs to be, and it
-  # has now gone stale twice. The cheap check is the per-leg times of any
-  # recent run.
+  # The leg count is a *measurement*, not a constant: ten, sized 2026-09-18.
+  # Why ten and not eight or twelve — the per-browser split that was worse,
+  # the 20-job concurrency ceiling that eight non-shard jobs eat into, and
+  # what bounds it from below (`e2e-single` and `e2e-server` at ~260 s, which
+  # do not shard) — is in dev-docs/implementation-log.md, "The e2e matrix is
+  # ten legs" and the eight-leg section it supersedes.
+  #
+  # **What each leg runs is a measurement too, and a separate one** (2026-09-20):
+  # the legs name their spec files, packed by measured duration, because
+  # Playwright's `--shard=i/N` splits by test *count* and count is a poor proxy
+  # for time — the run before this ran legs of 93 and 94 tests in 7.9 and 4.4
+  # minutes. `scripts/e2e-shard-plan.mjs` reads a JSON report and prints the
+  # block below; `scripts/e2e-shard-plan-gate.mjs` (in `make ci`) refuses a spec
+  # file that no leg names, which would otherwise run nowhere and report green.
+  # **Re-pack when the suite grows**: nothing goes red, the legs just drift
+  # apart again. The cheap check is the per-leg times of any recent run.
   #
   # Deliberately *not* gated on `client`, and it runs inside the digest-pinned
   # Playwright image rather than installing browsers — both measured, both in
@@ -185,11 +189,33 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     strategy:
-      # Every shard reports, so a failure in one is not hidden by the
+      # Every leg reports, so a failure in one is not hidden by the
       # others being cancelled.
       fail-fast: false
+      # Packed 2026-09-20: 6249 test-seconds over
+      # 45 spec files, 10 legs of 480–663 s each.
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        include:
+          - leg: 1 # ~663 s
+            args: template-editor.spec.ts trip-list.spec.ts skip-item.spec.ts lock-claim.spec.ts i18n.spec.ts
+          - leg: 2 # ~662 s
+            args: inventory.spec.ts global-nav.spec.ts undo-every-act.spec.ts traveler-progress.spec.ts typography.spec.ts
+          - leg: 3 # ~662 s
+            args: membership.spec.ts backup-restore.spec.ts group-to-trip.spec.ts inventory-cleanup.spec.ts surfaces.spec.ts smoke.spec.ts
+          - leg: 4 # ~662 s
+            args: trip-composition.spec.ts closing-pass.spec.ts template-list.spec.ts series.spec.ts pack-out.spec.ts colour-anchors.spec.ts
+          - leg: 5 # ~661 s
+            args: dashboard.spec.ts analytics.spec.ts remove-item.spec.ts inventory-names.spec.ts settings.spec.ts storage-durability.spec.ts
+          - leg: 6 # ~661 s
+            args: trip-properties.spec.ts restore-retired.spec.ts containers.spec.ts item-mark.spec.ts navigation.spec.ts
+          - leg: 7 # ~659 s
+            args: template-from-trip.spec.ts shopping/shopping.spec.ts trip-creation.spec.ts lifecycle-delete.spec.ts insecure-context.spec.ts login-screen.spec.ts
+          - leg: 8 # ~659 s
+            args: review.spec.ts item-detail.spec.ts spreadsheet-import.spec.ts group-refresh.spec.ts pwa-offline.spec.ts
+          - leg: 9 # ~480 s
+            args: packing-list.spec.ts --shard=1/2
+          - leg: 10 # ~480 s
+            args: packing-list.spec.ts --shard=2/2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Installed and built on the *runner*, not in the container: the image
@@ -198,14 +224,14 @@ jobs:
       - uses: ./.github/actions/client-setup
         with:
           build: 'true'
-      # job-total rather than a repeated literal: the shard count is the
-      # matrix length, and naming it twice is how the two drift apart.
-      - run: scripts/e2e.sh --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      # The leg's own argument list: spec files, and for the one file heavier
+      # than a leg a `--shard=i/k` scoped to it (see the note above).
+      - run: scripts/e2e.sh ${{ matrix.args }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           # Unique per leg — a repeated artifact name is an upload error.
-          name: playwright-report-shard-${{ matrix.shard }}
+          name: playwright-report-leg-${{ matrix.leg }}
           path: client/playwright-report/
           retention-days: 7
 
