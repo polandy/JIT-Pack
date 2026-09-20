@@ -1,7 +1,6 @@
 import { test, expect, addInComposer, openQuickAdd, expectTripOpen } from './fixtures'
 import { visiblePage as visible } from './fixtures'
 import type { Page } from '@playwright/test'
-import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
 /**
@@ -52,11 +51,6 @@ test.describe('a plain-HTTP instance can still write (NFR-4.2a)', () => {
     await page.getByTestId('m10-name').locator('input').fill('Hosen')
     await page.getByTestId('m10-create').click()
 
-    // The reload is the assertion — the item has to come back from storage —
-    // so the write has to be *in* storage first. Without this the case races
-    // its own navigation: green alone, red in a loaded run (measured
-    // 2026-09-20, one failure in a 925-case local suite).
-    await writesLanded(page)
     await page.goto(PATH.items)
     await expect(visible(page).getByText('Hosen')).toBeVisible()
   })

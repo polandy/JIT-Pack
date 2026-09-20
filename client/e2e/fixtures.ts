@@ -2,7 +2,8 @@ import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 import type { Theme } from '../src/theme/theme'
-import { visiblePage } from './helpers/page'
+import { unwrappedNavigation } from './helpers/navigation'
+import { visiblePage, writesSettled } from './helpers/page'
 
 /**
  * Shared E2E fixtures for JIT-Pack (dev-docs/UI_Test_Spec_v1.0.md §2.4).
@@ -99,6 +100,36 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
+  /**
+   * Every navigation waits for the device's writes to land first.
+   *
+   * The defect this closes is one line long and has been written twice this
+   * week: act, then `page.goto` or `page.reload`. A write is on the device
+   * once the outbox has it, and the reload that proves it persisted is racing
+   * that persist — green when the machine is idle, red on a loaded CI shard,
+   * and red in a way that names the assertion rather than the navigation
+   * (E2E-M3-23 lost a template task once in three runs; E2E-NFR-SEC-02 lost an
+   * inventory item once in 925 cases).
+   *
+   * `writesLanded` has existed for exactly this since E2E-M18-08 — as
+   * something a case has to remember. Here it is what a navigation *is*, so
+   * remembering is no longer part of writing a case. A case that means to
+   * navigate mid-write calls `navigateWhileWriting`, which says so.
+   */
+  page: async ({ page }, use) => {
+    const goto = page.goto.bind(page)
+    const reload = page.reload.bind(page)
+    unwrappedNavigation.set(page, { goto, reload })
+    page.goto = async (url, options) => {
+      await writesSettled(page)
+      return goto(url, options)
+    }
+    page.reload = async (options) => {
+      await writesSettled(page)
+      return reload(options)
+    }
+    await use(page)
+  },
   seedMode: async ({ page }, use) => {
     await use((opts: SeedOptions) => seed(page, opts))
   },
