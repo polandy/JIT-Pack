@@ -1450,7 +1450,7 @@ These patterns apply to every screen and are specified once.
     * **The tick moved to the row's end (2026-09-20, owner).** It led the line, which is the far edge from the thumb
       and, next to the packing rows the section stands above, read as a different kind of row — the same cost UX-9
       paid one screen down and the same fix. The ✕ keeps its place before it, so the destructive control is not the
-      one the thumb lands on. M5's preparation list follows (E2E-M4-139, E2E-M5-31).
+      one the thumb lands on. M5's preparation list follows (E2E-M4-138, E2E-M5-31).
     **Whose job (FR-7.5 — built 2026-09-19).** Each open todo ends, before its ✕, in the row's assignment seat — the
     same component as FR-25.25's: the assignee's avatar, or the dashed empty seat. A tap opens the row's picker, whose
     list here includes the current user, plus *niemand*; the choice is taken back from the snackbar. A resolved todo
