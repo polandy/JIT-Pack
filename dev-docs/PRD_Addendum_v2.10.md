@@ -2303,7 +2303,9 @@ locked.
     ✓ is what *accept* looks like everywhere else in the app, and a round filled control beside a round filled control
     is a pair of controls. Both are gone. It is **silent until it has written something** (a latch inside the component,
     raised by the first open write and never lowered, so the lamp appears only as the consequence of an act of yours and
-    then stands for the life of the surface); and it is **a drawn lamp, not a glyph** — 9 px, amber while in flight,
+    then stands for the life of the surface — **keyed to the item on M5's G-9 side panel**, which is re-pointed at the
+    next row rather than closed and reopened (ADR-046), and would otherwise confirm on a fresh item a write that
+    belonged to the previous one); and it is **a drawn lamp, not a glyph** — 9 px, amber while in flight,
     `--jp-done` once captured — which offers no tap target and borrows no meaning from ✓. It keeps a cell as tall as the
     ✕ so the two centres stay on one line, and is otherwise no wider than itself. *Options weighed and declined: keeping
     the ✓ and only stripping its chrome (leaves the confirmation-of-nothing); adding the word back under the title (the
