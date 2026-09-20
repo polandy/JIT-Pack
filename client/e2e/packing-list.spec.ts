@@ -26,7 +26,9 @@ import {
   openTripTodos,
   openCluster,
   openRowMenu,
+  packListOffset,
   packRow,
+  scrollPackList,
   tripWithRows,
 } from './helpers/m4'
 import { expectFiguresPaired, writesLanded } from './helpers/page'
@@ -1041,26 +1043,16 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     await createTripViaWizard(page, TRIP)
     await quickAdd(page, SCROLL_ROWS)
 
-    const content = visible(page).locator('ion-content.pack-content')
-    const offset = () =>
-      content.evaluate(async (el) => {
-        const ionContent = el as unknown as { getScrollElement(): Promise<HTMLElement> }
-        return (await ionContent.getScrollElement()).scrollTop
-      })
+    const offset = async () => (await packListOffset(page)).top
 
-    // One deliberate scroll to a mid-list offset, through ion-content's own
-    // API. A mid-list offset because that is what "where it was" means here;
-    // the very end used to be unusable — the clamp that a collapse provokes
-    // read as an upward scroll and re-opened the line — and E2E-M4-70 is
-    // where that wobble is now held down (FR-21.17).
-    const SCROLLED_TO = 200
-    await content.evaluate(
-      (el, top) =>
-        (
-          el as unknown as { scrollToPoint(x: number, y: number, d: number): Promise<void> }
-        ).scrollToPoint(0, top, 0),
-      SCROLLED_TO,
-    )
+    // One deliberate scroll to a mid-list offset, by the wheel a reader
+    // turns: since FR-21.17's gesture rule the head stands still for a
+    // scroll nobody made, so moving the offset through ion-content's API
+    // would leave the line open and assert nothing. A mid-list offset
+    // because that is what "where it was" means here; the very end used to
+    // be unusable — the clamp that a collapse provokes read as an upward
+    // scroll and re-opened the line — and E2E-M4-70 holds that wobble down.
+    const SCROLLED_TO = await scrollPackList(page, 200)
 
     // Settled, not merely started: the header line folds over a max-height
     // transition, and an offset read while it is still travelling is not an
@@ -1191,12 +1183,10 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     await createTripViaWizard(page, TRIP)
     await quickAdd(page, SCROLL_ROWS)
 
-    const content = visible(page).locator('ion-content.pack-content')
-    await content.evaluate((el) =>
-      (
-        el as unknown as { scrollToPoint(x: number, y: number, d: number): Promise<void> }
-      ).scrollToPoint(0, 200, 0),
-    )
+    // By the wheel, not by the scroller's API: since FR-21.17's gesture rule
+    // only a reader's own scroll takes the header down, and this case is
+    // about what the bar can still do once it has gone.
+    await scrollPackList(page, 200)
 
     // Settled, not merely started: the line folds over a transition, and the
     // rendered end state is the seam this case waits on.
@@ -1476,21 +1466,25 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
     await page.setViewportSize({ width: page.viewportSize()!.width, height })
     await expect.poll(async () => (await scroller()).slack).toBe(150)
 
-    const end = await content.evaluate(async (host: HTMLIonContentElement) => {
-      const el = await host.getScrollElement()
+    // Watch the line from before the gesture: a flip is what this case counts.
+    await content.evaluate((host: HTMLIonContentElement) => {
       const line = host.querySelector('.trip-line') as HTMLElement
-      let flips = 0
-      new MutationObserver(() => flips++).observe(line, {
+      const counter = window as unknown as { __lineFlips: number }
+      counter.__lineFlips = 0
+      new MutationObserver(() => (counter.__lineFlips += 1)).observe(line, {
         attributes: true,
         attributeFilter: ['class'],
       })
-      // The page hears the scroll through ion-content's own event, one frame
-      // late, so that event is the positive signal that it has been read.
-      const heard = new Promise((resolve) =>
-        host.addEventListener('ionScroll', resolve, { once: true }),
-      )
-      el.scrollTo({ top: el.scrollHeight })
-      await heard
+    })
+
+    // One reader's flick to the end. A wheel rather than the scroller's API
+    // because since FR-21.17's gesture rule a scroll nobody made leaves the
+    // head alone by itself — this case has to ask the question it claims to.
+    await scrollPackList(page, before.slack + 200)
+
+    const end = await content.evaluate(async (host: HTMLIonContentElement) => {
+      const el = await host.getScrollElement()
+      const line = host.querySelector('.trip-line') as HTMLElement
       // A yield is a transition on the line and the browser's clamp arrives
       // while it runs, starting the reverse one: settled is the line having
       // no animation left, after frames for the class change to render.
@@ -1502,7 +1496,11 @@ test.describe('M4 packing list — the list under the sheet @local @m4', () => {
         if (running.length === 0) break
         await Promise.all(running.map((a) => a.finished))
       }
-      return { top: el.scrollTop, slack: el.scrollHeight - el.clientHeight, flips }
+      return {
+        top: el.scrollTop,
+        slack: el.scrollHeight - el.clientHeight,
+        flips: (window as unknown as { __lineFlips: number }).__lineFlips,
+      }
     })
 
     // The line never moved and the offset stayed at the end.
@@ -2046,6 +2044,13 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
   const STANDING_PX = 40
 
   /**
+   * Well past the offset below which the head stands whatever the scroll
+   * direction was. A case that asserts the head's *return* has to be clear
+   * of it, or it would pass on a build that never read a direction at all.
+   */
+  const CLEAR_OF_THE_TOP = 200
+
+  /**
    * The head's height once it has *settled*, polled rather than read once.
    *
    * The collapse travels over a transition, and a single `evaluate` reads
@@ -2059,16 +2064,24 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
       page.getByTestId('page-head').evaluate((el) => el.getBoundingClientRect().height),
     )
 
-  /** ion-content's own scroller, which is where an offset is real. */
-  function scroller(page: Page): Locator {
-    return visible(page).locator('ion-content.pack-content')
+  /**
+   * A wheel over the list, which is how a reader moves it — and since
+   * FR-21.17's gesture rule the only way that moves the head at all. Driving
+   * the offset through the scroller's API would leave every assertion below
+   * green against the rule's removal.
+   */
+  const scrollToEnd = async (page: Page) => {
+    const { slack } = await packListOffset(page)
+    await scrollPackList(page, slack + 200)
+    // Against the slack as it stands, not as it was: yielding the head hands
+    // its height to the viewport and shortens the range by the same amount.
+    await expect
+      .poll(async () => {
+        const at = await packListOffset(page)
+        return at.top === at.slack
+      })
+      .toBe(true)
   }
-  const scrollTo = (page: Page, top: number | 'bottom') =>
-    scroller(page).evaluate(async (el, to) => {
-      const content = el as unknown as { getScrollElement(): Promise<HTMLElement> }
-      const s = await content.getScrollElement()
-      s.scrollTop = to === 'bottom' ? s.scrollHeight : to
-    }, top)
 
   /*
    * E2E-M4-70 (FR-21.17): the page head goes down with the header line, and
@@ -2101,24 +2114,111 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // the bottom from an *already* collapsed head changes no height, so it
     // proves nothing: that sequence stayed green against the unguarded
     // build, and this one does not.
-    await scrollTo(page, 'bottom')
+    await scrollToEnd(page)
     await expect(head).toHaveClass(/collapsed/)
     await expect(line).toHaveClass(/collapsed/)
     await headHeight(page).toBeLessThan(YIELDED_PX)
 
-    // Any upward scroll brings both back — the other half of the owner's
+    // Any upward gesture brings both back — the other half of the owner's
     // 2026-08-19 rule, and what makes the collapse a yield rather than a
-    // one-way disappearance.
-    await scrollTo(page, 40)
+    // one-way disappearance. Upward by a little, so the list stays clear of
+    // the top: at the top the head stands whatever the direction was.
+    const back = await scrollPackList(page, -120)
+    expect(back).toBeGreaterThan(CLEAR_OF_THE_TOP)
     await expect(head).not.toHaveClass(/collapsed/)
     await expect(line).not.toHaveClass(/collapsed/)
     await headHeight(page).toBeGreaterThan(STANDING_PX)
 
     // And the ordinary case, mid-list, where nothing is clamping.
-    await scrollTo(page, 200)
+    await scrollPackList(page, 200)
     await expect(head).toHaveClass(/collapsed/)
     await expect(line).toHaveClass(/collapsed/)
     await headHeight(page).toBeLessThan(YIELDED_PX)
+  })
+
+  /*
+   * E2E-M4-135 (FR-21.17): a scroll nobody made leaves the head where it is.
+   *
+   * The browser produces one whenever it has to bring a control into view —
+   * a keyboard focus, and every click a driver aims at a row that is off
+   * screen. Read as a gesture, an upward one of those brought the head back
+   * and pushed every row down by its height, which is a tap landing on the
+   * row below the one it was aimed at. It cost E2E-M5-19 a WebKit shard on
+   * 2026-09-20: the seat had the pointer down on it and never saw a click,
+   * because the list moved between the two. Measured here at 390×640, and on
+   * the failing build at 1280×600: a 60 px scroll, 162 px of row.
+   *
+   * The geometry is taken in one `evaluate`, either side of the scroll it is
+   * about: two `boundingBox()` calls would compare two different moments.
+   */
+  test('E2E-M4-135: a scroll nobody made does not move the head, or the rows under it', async ({
+    page,
+  }) => {
+    test.slow()
+    await page.setViewportSize({ width: 390, height: 640 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, SCROLL_ROWS)
+
+    const line = visible(page).getByTestId('m4-header')
+    // Yielded by a reader's own flick, which is the only thing that may, and
+    // carried to the end, where rows have gone off the top: those are the
+    // ones the browser has to scroll back *up* to, and up is the direction
+    // that used to recall the head.
+    await scrollToEnd(page)
+    await expect(line).toHaveClass(/collapsed/)
+
+    const moved = await visible(page).evaluate(async (pageEl) => {
+      const host = pageEl.querySelector('ion-content.pack-content') as HTMLIonContentElement
+      const el = await host.getScrollElement()
+      const trip = pageEl.querySelector('.trip-line') as HTMLElement
+      let flips = 0
+      new MutationObserver(() => (flips += 1)).observe(trip, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
+
+      // A row the browser has to scroll *up* to, and far: the topmost one
+      // that has gone off the screen. `block: 'nearest'` moves the list by
+      // exactly the distance to it, and a few pixels would be filtered as
+      // the rubber band's own jitter and prove nothing.
+      const above = [...pageEl.querySelectorAll('[data-testid^="m4-row-"]')].filter(
+        (row) => row.getBoundingClientRect().top < el.getBoundingClientRect().top,
+      )
+      const target = above[0] as HTMLElement | undefined
+      if (target === undefined) return null
+
+      const rowBefore = target.getBoundingClientRect().top
+      const topBefore = el.scrollTop
+      target.scrollIntoView({ block: 'nearest' })
+
+      // Settled, not merely started: the head's own flip would arrive a
+      // frame or two after the scroll it answers, and a reading taken
+      // before it would report the very absence this case is asserting.
+      const frames = () =>
+        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      for (let round = 0; round < 4; round += 1) {
+        await frames()
+        const running = trip.getAnimations()
+        if (running.length === 0) break
+        await Promise.all(running.map((a) => a.finished))
+      }
+
+      return {
+        flips,
+        scrolled: el.scrollTop - topBefore,
+        rowMoved: target.getBoundingClientRect().top - rowBefore,
+      }
+    })
+
+    expect(moved).not.toBeNull()
+    // It really did scroll, upward, and by more than the jitter the rule
+    // filters out — without all three the rest is vacuous.
+    expect(moved!.scrolled).toBeLessThan(-CLEAR_OF_THE_TOP)
+    // The head did not answer it, and the row moved by the scroll and by
+    // nothing else. Either assertion alone would pass on half the defect.
+    expect(moved!.flips).toBe(0)
+    expect(moved!.rowMoved).toBe(-moved!.scrolled)
+    await expect(line).toHaveClass(/collapsed/)
   })
 
   /*

@@ -142,7 +142,7 @@ import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
-import { nextHeadState } from '@/lib/headScroll'
+import { isScrollGesture, nextHeadState } from '@/lib/headScroll'
 import { collapseRow } from '@/lib/rowCollapse'
 import type { HeadScrollState } from '@/lib/headScroll'
 import { buildReviewProposals } from '@/domain/review'
@@ -1223,9 +1223,9 @@ const statsDetail = computed(() => {
 
 /**
  * The header line *and the page head above it* yield to the list on the way
- * down and come back on any upward scroll. The rule itself is a pure step in
- * `lib/headScroll.ts` — its one interesting case is a collapse being read as
- * a gesture, which nothing can reach through a listener.
+ * down and come back on an upward gesture. The rule itself is a pure step in
+ * `lib/headScroll.ts` — its interesting cases are the readings it must not
+ * act on, none of which a listener can reach.
  */
 const head = ref<HeadScrollState>({ top: 0, collapsed: false })
 const headCollapsed = computed(() => head.value.collapsed)
@@ -1238,15 +1238,53 @@ const headCollapsed = computed(() => head.value.collapsed)
  */
 let scrollEl: HTMLElement | null = null
 const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
+
+/**
+ * Whether the reader is the one scrolling right now (FR-21.17).
+ *
+ * Armed by the inputs that scroll a list and disarmed when the scroller
+ * comes to rest, so a flick's momentum still counts as the flick. Without
+ * it the head answered scrolls nobody made — the browser's own, when it
+ * brings a control into view for a keyboard focus or for a click aimed at
+ * a row below the fold — and each answer moved every row by the head's
+ * height while a finger was already on its way to one (E2E-M4-135).
+ */
+let gesture = false
+function onScrollerInput(event: Event) {
+  const key = event instanceof KeyboardEvent ? event.key : undefined
+  if (isScrollGesture({ type: event.type, key, onScroller: event.target === scrollEl }))
+    gesture = true
+}
+
+/** Listened for on the scroller rather than the content, because that is what the reader drives. */
+const SCROLLER_INPUTS = ['wheel', 'touchmove', 'keydown', 'pointerdown'] as const
+
 onMounted(() => {
-  void packContent.value?.$el.getScrollElement?.().then((el) => (scrollEl = el))
+  void packContent.value?.$el.getScrollElement?.().then((el) => {
+    scrollEl = el
+    for (const type of SCROLLER_INPUTS) el.addEventListener(type, onScrollerInput, { passive: true })
+  })
 })
+
+onUnmounted(() => {
+  for (const type of SCROLLER_INPUTS) scrollEl?.removeEventListener(type, onScrollerInput)
+})
+
 function onScroll(event: CustomEvent<{ scrollTop: number }>) {
   if (scrollEl === null) {
     const content = event.target as { getScrollElement?: () => Promise<HTMLElement> }
     void content.getScrollElement?.().then((el) => (scrollEl = el))
   }
-  head.value = nextHeadState(head.value, { top: event.detail.scrollTop, viewport: scrollEl })
+  head.value = nextHeadState(head.value, {
+    top: event.detail.scrollTop,
+    viewport: scrollEl,
+    gesture,
+  })
+}
+
+/** The scroller has come to rest, so whatever moves it next has to say who asked. */
+function onScrollEnd() {
+  gesture = false
 }
 
 // --- App-bar cluster (G-12) --------------------------------------------
@@ -2273,6 +2311,7 @@ setHeaderTitle(
       :data-pack-announcements="packAnnouncements"
       :scroll-events="true"
       @ion-scroll="onScroll"
+      @ion-scroll-end="onScrollEnd"
     >
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />

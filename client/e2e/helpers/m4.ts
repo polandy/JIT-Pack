@@ -139,6 +139,54 @@ export async function openCluster(page: Page, name: string): Promise<void> {
   await expect(head).toHaveAttribute('aria-expanded', 'true')
 }
 
+/** M4's own scroller, which is where an offset is real. */
+export function packList(page: Page): Locator {
+  return visiblePage(page).locator('ion-content.pack-content')
+}
+
+/** Where M4's list stands right now: its offset and how much of it is left. */
+export async function packListOffset(page: Page): Promise<{ top: number; slack: number }> {
+  return packList(page).evaluate(async (host: HTMLIonContentElement) => {
+    const el = await host.getScrollElement()
+    return { top: el.scrollTop, slack: el.scrollHeight - el.clientHeight }
+  })
+}
+
+/**
+ * Scroll M4's list the way a reader does: a wheel over the list itself.
+ *
+ * Since FR-21.17's gesture rule the head yields to an input and stands still
+ * for a scroll nobody made, so a case that moves the offset through the
+ * scroller's API is asserting against a head that was never asked to move —
+ * it would stay green against the rule's removal. `deltaY` is a wheel's, not
+ * an offset: pass more than the slack to reach the end.
+ *
+ * It returns the offset the list came to rest at, which is not the one the
+ * wheel asked for: yielding the head takes its height out of the scrolled
+ * content, and the browser re-anchors the offset a frame or two later. A
+ * caller that needs "where it was" has to be given that settled value, or it
+ * will compare the list against a position it only passed through.
+ */
+export async function scrollPackList(page: Page, deltaY: number): Promise<number> {
+  const box = await packList(page).boundingBox()
+  if (box === null) throw new Error('M4 list has no box to scroll')
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  const from = (await packListOffset(page)).top
+  await page.mouse.wheel(0, deltaY)
+  // Settled, not merely moved: two readings alike, and both clear of where
+  // the list started. The wait is on the list holding still, never on a clock.
+  let last = from
+  await expect
+    .poll(async () => {
+      const { top } = await packListOffset(page)
+      const settled = top !== from && top === last
+      last = top
+      return settled
+    })
+    .toBe(true)
+  return last
+}
+
 /** The `testKey` M5's for-whom strip carries; M4's carries the item's name. */
 export const FOR_WHOM_M5 = 'm5'
 

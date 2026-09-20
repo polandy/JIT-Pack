@@ -7,6 +7,8 @@ Single-User/Local only. No other changes from v1.9.
 
 **Revision history:** each rule below is current text; a *Revised* note at the end of the screen or pattern says what it
 replaced and why. This index only says where to look.
+* 2026-09-20 — **M4**'s head and header line yield to the reader's own scroll and stand still for every other one
+  (FR-21.17).
 * 2026-09-19 — **M4**'s *Aufgaben für die Reise* ends each open todo in the row's assignment seat, and **M1**'s
   *Aufgaben* card names the assignee (FR-7.5).
 * 2026-09-19 — **M7**'s row menu shares a Vorlage through the device's share sheet (FR-18.2).
@@ -1066,7 +1068,10 @@ These patterns apply to every screen and are specified once.
     (`dev-docs/UI_Concept_M4Title_variants.html`). The scroll half is untouched and was settled by the same owner
     reasoning — *you generally know which packing list you are on* — which also retired the "identity migrates into the
     app bar on scroll" directive rather than building it. **Amended 2026-09-07 (FR-21.17):** the head collapses on the
-    same gesture as the line, which is 89 px of a 390×844 phone returned to the list.
+    same gesture as the line, which is 89 px of a 390×844 phone returned to the list. **Amended 2026-09-20:** on the
+    reader's *gesture* and on nothing else — a wheel, a touch drag, a key or the scrollbar. A scroll the browser makes
+    to bring a control into view leaves both standing, because answering it moves every row by the head's height
+    under a finger already on its way to one (E2E-M4-135).
   * **The line draws the trip as a figure, not as a fraction** (2026-09-08, FR-21.23): a ring, the share in words
     (*„1/4 gepackt"*) and a track, with the weight and the open prep on the second line under it. It is the same
     `ProgressFigure` M1's and M2's hero cards carry, from the same percentage — M4 was the one screen without it, and
