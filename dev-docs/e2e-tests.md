@@ -5456,6 +5456,18 @@ each and the loaded `packing-list + shopping` run goes 152/152 — the configura
 been failing. Against a mutant that hands `gesture: true` to every reading, E2E-M4-135 goes
 red in **both** browsers, so the wait did not buy its determinism by making the case vacuous.
 
+**And a second thing the CI shard found that no local run did: `Escape` does not close an
+Ionic sheet that is still presenting.** E2E-G12-07 opens the bar's ⋮ to read the two views
+in it, and closed it with a key. The key is ignored until Ionic's overlay has finished
+presenting, so waiting for an entry to *render* is waiting for the markup rather than for
+the overlay — and on a loaded shard the sheet outlived the `toHaveCount(0)` after it, twice,
+in two separate pipelines. Closed through its own *Cancel* now, in a `dismissMenu` helper
+beside the case and in the shared `tripActions`, which carried the same key: a click waits
+for the button to be actionable, which is that same moment stated as a state instead of
+hoped for. Neither run had ever gone red locally, at any repeat count — the loaded remote
+shard is the only place this shape shows itself, which is an argument for reading a red
+shard rather than re-running it.
+
 **One measurement here was not what it looked like**, and it is worth writing down: a local
 run of that same combination reported 35 failures, all WebKit. None of them were real. A
 parallel session was running the suite from another worktree, and `scripts/e2e.sh` uses

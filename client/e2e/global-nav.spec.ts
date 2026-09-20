@@ -64,6 +64,22 @@ function atPath(page: Page, path: string) {
 }
 
 /**
+ * Close the bar's ⋮ the way a reader does — through its own *Cancel*.
+ *
+ * Not `Escape`: Ionic ignores a key until the sheet has finished presenting,
+ * and a case that has only waited for an entry to render has waited for the
+ * markup rather than for the overlay. On a loaded CI shard the key went
+ * nowhere and the sheet outlived the assertion after it (E2E-G12-07, twice).
+ * A click waits for the button to be actionable, which is that same moment
+ * stated as a state instead of hoped for.
+ */
+async function dismissMenu(page: Page) {
+  const sheet = page.locator('ion-action-sheet')
+  await sheet.getByRole('button', { name: 'Cancel' }).click()
+  await expect(sheet).toHaveCount(0)
+}
+
+/**
  * Every page the outlet is currently showing. Ionic marks the ones it has
  * stacked away with `ion-page-hidden`, so a healthy outlet shows exactly
  * one and a leaked stack shows more — which is the only way to see the
@@ -823,8 +839,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.getByTestId('header-overflow').click()
     await expect(page.locator('ion-action-sheet')).toBeVisible()
     glyphs.push(await glyph('trip-view-luggage'), await glyph('trip-view-analytics'))
-    await page.keyboard.press('Escape')
-    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+    await dismissMenu(page)
     // The rail is the fourth reader of the same vocabulary.
     await page.goto(PATH.items)
     glyphs.push(await glyph('rail-items'))
@@ -908,8 +923,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.locator('ion-action-sheet').getByTestId('trip-view-analytics')).toHaveText(
       'Analytics',
     )
-    await page.keyboard.press('Escape')
-    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+    await dismissMenu(page)
 
     // Where you are is marked, and only there — otherwise "current" says
     // nothing (the packing list is the screen we are standing on).

@@ -326,7 +326,12 @@ export async function openTripView(page: Page, view: keyof typeof TRIP_VIEW): Pr
 export async function tripActions(page: Page): Promise<string[]> {
   const sheet = await openTripMenu(page)
   const labels = await sheet.locator('.action-sheet-button-inner').allInnerTexts()
-  await page.keyboard.press('Escape')
+  // Closed through its own *Cancel*, not with `Escape`: Ionic ignores a key
+  // until the sheet has finished presenting, so the key can land on nothing
+  // and leave the sheet up to swallow the next click. A click waits for the
+  // button to be actionable, which is that moment as a state rather than a
+  // hope — measured on a loaded CI shard, twice, against E2E-G12-07.
+  await sheet.getByRole('button', { name: 'Cancel' }).click()
   await expect(page.locator('ion-action-sheet')).toHaveCount(0)
   return labels.map((l) => l.trim())
 }
