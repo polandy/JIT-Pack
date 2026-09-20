@@ -123,7 +123,7 @@ Scores 1–5, higher is better.
 | Available inside 0.x | 4 | **5** — nothing waits on 1.0 | **5** | 4 — available, but it is the problem | **5** |
 | `schema.sql` readable as one artifact | 4 | **5** — it stays the baseline | 1 — reconstructed from a chain | **5** — untouched | **5** |
 | Cost to build | 2 | 3 — loader plus the equivalence gate | **5** — roughly twenty lines | **5** — nothing | **5** |
-| **Total** | | **86** | 70 | 60 | 61 |
+| **Total** | | **96** | 84 | 66 | 65 |
 
 Driver 4 carries weight 4 rather than ADR-018's 4-of-its-own-scale for the same reason it did there: it is the property
 the project spends time in daily. Cost to build carries 2 because the equivalence gate is recovered rather than

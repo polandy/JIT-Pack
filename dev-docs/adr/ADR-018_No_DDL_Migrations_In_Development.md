@@ -134,10 +134,11 @@ naming the database path and the two steps to start over. Nothing is deleted, re
 
 ## Revisit Trigger
 
-**Fired 2026-09-20** — by the second half of the condition below, not the first. No release was
-tagged for a wider audience; a second person simply started running an instance holding data they had not seeded, while
-0.x kept changing the schema. Two releases were carried across by hand before this was recorded. The successor decision,
-including why the reversal is *not* the one planned here, is [ADR-067](ADR-067_The_Store_Gets_A_Migration_Path_Inside_0x.md).
+**Fired 2026-09-20** — by the second half of the condition below, not the first. No release was tagged for a wider
+audience; a second person simply started running an instance holding data they had not seeded, while 0.x kept changing
+the schema. Two releases were carried across by hand before this was recorded. The successor decision, including why
+the reversal is *not* the one planned here, is
+[ADR-067](ADR-067_The_Store_Gets_A_Migration_Path_Inside_0x.md).
 
 **The first release tagged for anyone but the maintainer** — concretely, the first `v*` tag published after the packing
 concept's implementation closes, or the first time a second person runs an instance holding data they did not seed
