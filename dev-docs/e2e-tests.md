@@ -134,6 +134,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Waiting on the far screen proved only the near one (2026-09-18)](#waiting-on-the-far-screen-proved-only-the-near-one-2026-09-18) — E2E-G10-02's second correction of the same mistake, and the two rules a socket watch has to obey.
 - [The composer stopped making ad-hoc rows (2026-09-19)](#the-composer-stopped-making-ad-hoc-rows-2026-09-19) — FR-24.11: the one helper every typed add goes through, and the promise no composer reaches.
 - [M6 became a module, and its cases reach packing rows through M4 (2026-09-19)](#m6-became-a-module-and-its-cases-reach-packing-rows-through-m4-2026-09-19) — FR-30: the first module directory, two retired ids, and why every buy row is now made on M4.
+- [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, and the scroll window E2E-M4-135 was racing.
 
 ## The rule that comes before the units
 
@@ -266,7 +267,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | M7 template scopes | E2E-M7-04, E2E-M7-05 (the header icon into M18), E2E-M7-06 (both empty states), E2E-M7-07 (three tests here plus the include half in the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests), E2E-M7-12 (FR-18.2 share, three tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (its own test only since the 2026-08-30 audit), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests), E2E-M8-26 (FR-7.4 trip tasks, one test per scope), E2E-M8-27 (FR-24.11: an unknown name becomes a position only through the create sheet) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M6 shopping (own entries, packing rows by projection, FR-25.11j reveal, FR-25.6 aggregation, FR-30.4 purchase stamp) | E2E-M6-29 (`single`, `shopping/single/purchase-stamp.spec.ts`: the buyer named from the server), E2E-M6-26/27/28 (FR-30: an entry reaches no packing figure; bought, put back, removed across reloads; a packing row is listed exactly while its mode says so), E2E-M6-01/04, E2E-M6-17 (**with E2E-FLOW-03**, whose journey it already was — since 2026-08-31 it also reads the state the row arrives in), E2E-M6-22, E2E-M6-05, E2E-M6-06. ~~E2E-M6-21, E2E-M6-25~~ retired with M6's composer (FR-30.2) | `local` | [`shopping/shopping.spec.ts`](../client/e2e/shopping/shopping.spec.ts) |
-| M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, ~~E2E-M9-08~~ (retired with the tag axis, FR-24.8), E2E-M9-10 (search filters), E2E-M9-14 (three chips + the filter sheet, FR-24.8), E2E-M9-15 (the jump, FR-24.8), E2E-M9-16 (the bulk refile, FR-24.9), E2E-M9-17 / E2E-M9-18 / E2E-M9-19 (the tag manager: rename, the refused delete, the merge — FR-24.10), E2E-M9-20 (the hidden items are named, FR-24.3 — lives in `restore-retired.spec.ts`), E2E-M9-21 / E2E-M9-22 (the search creates what it did not find, FR-24.11), E2E-M9-23 (a retired name is offered back, FR-24.11 — lives in `restore-retired.spec.ts`),  E2E-M10-21 (the chip's two targets, FR-24.9), E2E-M10-22 (the same while creating, FR-24.9), E2E-M9-11 (umlaut + tag search, FR-24.7), E2E-M9-12 (the filtered dead end, FR-24.7), E2E-M9-13 (the tool bar stays, FR-24.6), E2E-M9-04 (empty state → M15), E2E-M10-07, E2E-M10-08, E2E-M10-10 (renumbered 2026-08-30 — they ran as M10-01 … M10-05), E2E-M10-03, E2E-M10-04 (new 2026-08-30), E2E-M10-20 (new 2026-09-12), E2E-M10-23–28 (both dependency pickers create and restore, FR-24.11), E2E-M10-13 (German-seeded), E2E-M10-16 | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
+| M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, ~~E2E-M9-08~~ (retired with the tag axis, FR-24.8), E2E-M9-10 (search filters), E2E-M9-14 (three chips + the filter sheet, FR-24.8), E2E-M9-15 (the jump, FR-24.8), E2E-M9-16 (the bulk refile, FR-24.9), **E2E-M9-26** (the bulk link, both directions and the undo — FR-24.9 widened/FR-20.1, since 2026-09-20), E2E-M9-17 / E2E-M9-18 / E2E-M9-19 (the tag manager: rename, the refused delete, the merge — FR-24.10), E2E-M9-20 (the hidden items are named, FR-24.3 — lives in `restore-retired.spec.ts`), E2E-M9-21 / E2E-M9-22 (the search creates what it did not find, FR-24.11), E2E-M9-23 (a retired name is offered back, FR-24.11 — lives in `restore-retired.spec.ts`),  E2E-M10-21 (the chip's two targets, FR-24.9), E2E-M10-22 (the same while creating, FR-24.9), E2E-M9-11 (umlaut + tag search, FR-24.7), E2E-M9-12 (the filtered dead end, FR-24.7), E2E-M9-13 (the tool bar stays, FR-24.6), E2E-M9-04 (empty state → M15), E2E-M10-07, E2E-M10-08, E2E-M10-10 (renumbered 2026-08-30 — they ran as M10-01 … M10-05), E2E-M10-03, E2E-M10-04 (new 2026-08-30), E2E-M10-20 (new 2026-09-12), E2E-M10-23–28 (both dependency pickers create and restore, FR-24.11), E2E-M10-13 (German-seeded), E2E-M10-16 | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-1.9 no default assignee in Local Mode (G-8) | E2E-M10-30 | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
 | M24 cleanup, tag marks, creating a tag where it is given | E2E-M24-01 (the untagged rule: M9's count, the reasoned suggestion, filed on M9), E2E-M24-02 (*Tag wählen* creates the tag), E2E-M24-03 (*Behalten* survives a reload), E2E-M24-04 (a rule switched off, M9's count agrees), E2E-M9-24 (FR-24.9: the give sheet creates the tag it did not find, and the undo removes it), E2E-M9-25 (FR-24.13: a tag's mark, set in the manager, on the heading and lent to a row). *Lange nicht gebraucht* is unit-only — no clock seam to date a trip months back | `local` | [`inventory-cleanup.spec.ts`](../client/e2e/inventory-cleanup.spec.ts) |
@@ -303,7 +304,7 @@ state; e2e asserts presence and the settled tooltip — racing the transient
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02 (rewritten 2026-09-01), E2E-PWA-03, **E2E-PWA-04** (the update policy, new 2026-09-01), **E2E-PWA-05 / E2E-PWA-05b** (FR-19.7 — applying it now, and *Später*, new 2026-09-02), **E2E-NFR-01** (the offline *write*, 2026-09-01) | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Storage durability (NFR-4.11) | E2E-NFR-03, E2E-NFR-03b | `local` | [`storage-durability.spec.ts`](../client/e2e/storage-durability.spec.ts) |
 | Web Push registration (NFR-4.6) | E2E-NFR-06 | `server` | [`server/push.spec.ts`](../client/e2e/server/push.spec.ts) |
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), **E2E-FLOW-01b** (the member's pack on the owner's screen, since 2026-09-01), **E2E-FLOW-01c** (the member's packing moves the owner's progress figure and ring, since 2026-09-19), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind), **E2E-M22-13** (M22 records a traveller as an account, since 2026-09-12), **E2E-M22-14** (and adds one as an account in a single act, since 2026-09-13), **E2E-M10-29** (FR-1.9: an item's default assignee reaches the linked traveler in M3, since 2026-09-18), **E2E-M4-90** (FR-25.25: a row is handed over from its own avatar, and taken back the same way — since 2026-09-14), **E2E-M4-133** (FR-7.5: a trip todo is handed over from its seat; the assignee is told and sees it on M4 and M1 — since 2026-09-19), **E2E-M3-24** (M3 adds an account as a traveller, and the account is a member of the new trip — since 2026-09-18), **E2E-M17-18** (FR-2.5a: an account picked as a default traveller starts the wizard linked and a member — since 2026-09-18), **E2E-M4-130** (FR-5.1: a late-packer flag set by one account shows on the other's screen live and after a reload, and clears the same way — since 2026-09-19) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), **E2E-FLOW-01b** (the member's pack on the owner's screen, since 2026-09-01), **E2E-FLOW-01c** (the member's packing moves the owner's progress figure and ring, since 2026-09-19), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind), **E2E-M22-13** (M22 records a traveller as an account, since 2026-09-12), **E2E-M22-14** (and adds one as an account in a single act, since 2026-09-13), **E2E-M10-29** (FR-1.9: an item's default assignee reaches the linked traveler in M3, since 2026-09-18), **E2E-M4-90** (FR-25.25: a row is handed over from its own avatar, and taken back the same way — since 2026-09-14), **E2E-M4-133** (FR-7.5: a trip todo is handed over from its seat; the assignee is told and sees it on M4 and M1 — since 2026-09-19), **E2E-M3-24** (M3 adds an account as a traveller, and the account is a member of the new trip — since 2026-09-18), **E2E-M17-18** (FR-2.5a: an account picked as a default traveller starts the wizard linked and a member — since 2026-09-18), **E2E-M4-130** (FR-5.1: a late-packer flag set by one account shows on the other's screen live and after a reload, and clears the same way — since 2026-09-19), **E2E-M9-27** (FR-1.9 over FR-24.9: two inventory rows assigned to Bob in one act, read back in M10 — since 2026-09-20) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-03b (avatar half), E2E-M20-04, E2E-M20-05 (the OIDC non-admin half; the `single`/`local` half is hidden by construction and unassertable), E2E-M20-06, **E2E-M20-07** (a deactivation reaches the sharing picker, since 2026-09-05) | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
@@ -897,10 +898,10 @@ the 2026-08-30 audit. Notes worth carrying forward:
 
 ## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
 
-Nineteen cases, Local Mode; eight landed with the §3.24 tag rebuild, four with the
+Twenty cases, Local Mode; eight landed with the §3.24 tag rebuild, four with the
 2026-08-30 audits (two M9, two M10), three with the FR-24.6/24.7 rebuild of the
 screen's tools, two more with FR-24.8, which removed the swipe axis (2026-09-13),
-and three with FR-24.9's selection mode (2026-09-14). One went the other way in the same pass: **E2E-M9-08 is retired**,
+and four with FR-24.9's selection mode (three 2026-09-14, one with its widening 2026-09-20). One went the other way in the same pass: **E2E-M9-08 is retired**,
 because the control whose clearance it measured no longer exists. What they cover is deliberately what a unit test
 cannot: the *painted* result of the two grouping rules, the shape of the creation form,
 and the two saved-item sections nothing had ever rendered.
@@ -930,6 +931,7 @@ and the two saved-item sections nothing had ever rendered.
 | a tag items carry is not deleted, and the refusal offers the merge | E2E-M9-18 | **New 2026-09-15 (FR-24.10, ADR-063).** An absence needs a positive signal, and here it is the refusal's own sentence — the count out loud, and a confirming button that says *Merge* rather than *Delete*. The heading still standing afterwards is the second signal: a delete that had gone through would have taken it. Proven red against a build whose `tagDeletion` stops refusing. |
 | merging a tag away files its items under the target | E2E-M9-19 | **New 2026-09-15 (FR-24.10, ADR-063).** The item carries **both** tags with the source first, which is the only arrangement that can tell the promotion clause from its absence: re-pointing and dropping alone leaves the row under a third heading. Proven red twice — against the same `tagDeletion` mutation, and against the real defect it found (below). |
 | several rows are refiled in one act, and the act can be taken back | E2E-M9-16 | **New 2026-09-14 (FR-24.9).** The feature's own measurement is the case's setup: „Diverses" holds 49 of 184 items on the family instance, and one-at-a-time refiling is 49 round trips through M10. Two clauses carry what is easy to get wrong — the old tag is **kept** (the rows still answer its filter; refiling is not retagging) and the batch has **one** undo. Proven red against a build whose switch appended instead of refiling. |
+| a dependency is declared for several items at once, and taken back | E2E-M9-26 | **New 2026-09-20 (FR-24.9 widened, FR-20.1).** M9 paints no edges, so every assertion is on M10's two lists — and the two directions are read on the two *different* lists they write to, because the stored row is the same edge and the end it is read from is all that separates them. The undo is taken on the **second** of two companion batches: an empty section reads as „absent" whether or not the undo did anything, so the row that stays is what makes the row that goes mean something. The suggested mode is switched on in the sheet and read back as the select's value — on `.select-text`, not the host, which the review had to correct: the first version asserted „Suggested" on the `ion-select` itself and stayed green while asserting „Required", the E2E-M22-13 trap walked into a second time. **It went red on its first run against two defects in the mode it was extending** — a row tap reloaded the app (`ion-item` keeps an empty-href shadow anchor when `routerLink` is dropped; jsdom has no shadow root, so the unit spec could not see it) and the count said „Nichts ausgewählt" for one row. Nothing had found either, because no case had ever *picked a row*: E2E-M9-16 presses „Alle N". |
 | a chip files the item under its tag, and the ✕ still removes it | E2E-M10-21 | **New 2026-09-14 (FR-24.9).** The assertion crosses screens on purpose: „primary" is only observable where the item is *filed*, so the case goes back to M9 and reads the heading. It also pins that the old target still does the old thing — the ✕ is E2E-M10-08's, and a second target on one control is how the first one quietly changes meaning. |
 | the chip files a brand-new item too, before it exists | E2E-M10-22 | **New 2026-09-14 (FR-24.9).** The creating branch is a different rule with the same control: there is no assignment row yet, so the act reorders the *draft* and only the saved item can say whether it took. Written after the review found the branch covered by nothing; proven red against a creating mode that ignores the tap. |
 | an empty inventory offers the spreadsheet import | E2E-M9-04 | **New 2026-08-30**, and the first time this state was ever rendered by a test — `m9-empty` existed in the suite only as E2E-G9-13's *absence* assertion. G-7 plus NFR-4.7's return path, which lands on M9 rather than on M15's other parent. |
@@ -5399,3 +5401,98 @@ after* (0/1 both times) beside the missing `m4-row-Milch`. E2E-M6-27 reloads
 twice, because an entry that lived only in the screen's state would pass every
 other assertion in it. E2E-M6-28 sets the mode back to *Pack* and expects the tab
 to empty — the one observable difference between a projection and a copy.
+
+## Two views left the row and the helper stopped being one click (2026-09-20)
+
+ADR-051 amendment 1 keeps *Packliste* and *Einkaufen* as pills and sends *Gepäck* and
+*Auswertung* back into the bar's ⋮ — the owner's judgement, off a render, that a view read
+once a trip should not be as loud as the list being packed. Three things fell out for the
+suite.
+
+**`openTripView` is a door, not a click.** It has now been all three shapes: open-the-menu
+then click (ADR-050), one click on a pill (FR-21.21), and both at once. The branch is on the
+*view*, not on what is on screen — `PILL_VIEWS` names the two, and anything else goes
+through the ⋮. That distinction is the whole reason the helper is allowed a branch at all: a
+conditional reading "click the pill **if it is visible**, otherwise open the menu" would
+pass against an app that had lost the pill, which is precisely the regression the case is
+there to catch. The rule restated: **a helper may branch on what the app is specified to
+do, never on what it currently renders.**
+
+The ids made this cheap. The app gives a view the same `trip-view-<id>` whether it is a
+pill or a sheet entry — `AppHeader` has said so since UX-13 — so only the *way in* moved,
+and the twenty-odd cases that reach a sibling view did not change at all.
+
+**E2E-G12-05 had to follow the glyphs into the menu.** It reads the icon each destination
+actually renders and asserts pairwise distinctness; two of its four now render inside an
+action sheet. Read there rather than dropped, because the rule got *sharper* under the
+amendment: a reader who learned the briefcase on a pill must not meet a different glyph in
+the menu. The sheet's button carries the test id and the `ion-icon` sits inside it, so the
+existing `glyph()` helper works unchanged once the sheet is open.
+
+**E2E-G12-07 was rewritten a third time.** Its clause has been reversed by UX-13, by
+ADR-050 and by FR-21.21; this time it is narrowed rather than reversed. What it pins now:
+two pills named as words, the other two named as words *in the sheet*, `trip-view-luggage`
+asserted absent from the row before it is found in the menu — the positive-and-negative pair
+that keeps the absence falsifiable — and the sideways step that has survived every version
+of the decision. One clause is new: standing on M11, *Gepäck* **is** a pill and is marked
+current, and it is gone again from the row on M12. A switcher that marked nothing would have
+passed every other assertion in the case.
+
+**What is not in an e2e case, deliberately.** The sheet's *order* — destinations first, then
+what changes the trip — is asserted in `AppHeader.spec.ts` against the button list Ionic is
+handed, where the order is data. In the browser it is four labels in a column, and a case
+that read them by position would be pinning the sheet's markup rather than the decision.
+
+**Fixed here, measured rather than re-run: E2E-M4-135 measured before the scroller had
+rested.** It went red on `expect(moved.flips).toBe(0)` on the CI shard for this branch, and
+on two of the local runs. Measured against the base the branch was cut from (`b0942bb`),
+with the identical command each time: **1 failure in 6 on the branch, 1 in 6 on `main`** for
+the repeat-each run, and one failure in the loaded `packing-list + shopping` run **on each
+side** — on `main` it was this same case, on the branch it was its neighbour E2E-M4-70. Both
+browsers were seen failing across the runs. So it is the case, not the change: this branch
+touches what stands in the head, not the rule that collapses it.
+
+**The mechanism, read off the production code rather than guessed.** M4 arms its `gesture`
+flag on a wheel or a touch drag and disarms it in `onScrollEnd` — deliberately, so a flick's
+momentum still counts as the flick (FR-21.17). The case flicks to the end with
+`scrollToEnd`, waits for the line to carry `collapsed`, and then scrolls a row into view
+programmatically. But the class lands on the *first accepted reading*, which is long before
+`scrollend`; under load the window from the reader's own flick is still open when the
+programmatic scroll arrives, so the head answers it and `flips` is 1. The case is asserting
+the right rule and starting its measurement too early. What it needs is the settled state,
+and `gesture` is a module-local `let` that nothing can observe — which is the absence the
+working agreement calls the defect.
+
+**The signal, and where it went.** `armGesture` mirrors the flag onto M4's `ion-content` as
+`data-scroll-gesture` — an attribute toggled imperatively, the way the G-19 toast carries
+`data-presented`, because a `ref` would re-render the list on every wheel event. Nothing in
+the app reads it. `scrollPackList` waits for it to clear, so **every** case that flicks the
+list measures from a settled state rather than from a race against Ionic's debounce; that is
+one place rather than one per case, and the helper already made the neighbouring promise
+("settled, not merely moved") about the list's offset. The two are genuinely different
+moments: the list stops first, the window closes after it.
+
+Proven both ways before it was believed. With the wait, E2E-M4-135 and E2E-M4-70 pass 3×
+each and the loaded `packing-list + shopping` run goes 152/152 — the configuration that had
+been failing. Against a mutant that hands `gesture: true` to every reading, E2E-M4-135 goes
+red in **both** browsers, so the wait did not buy its determinism by making the case vacuous.
+
+**And a second thing the CI shard found that no local run did: `Escape` does not close an
+Ionic sheet that is still presenting.** E2E-G12-07 opens the bar's ⋮ to read the two views
+in it, and closed it with a key. The key is ignored until Ionic's overlay has finished
+presenting, so waiting for an entry to *render* is waiting for the markup rather than for
+the overlay — and on a loaded shard the sheet outlived the `toHaveCount(0)` after it, twice,
+in two separate pipelines. Closed through its own *Cancel* now, in a `dismissMenu` helper
+beside the case and in the shared `tripActions`, which carried the same key: a click waits
+for the button to be actionable, which is that same moment stated as a state instead of
+hoped for. Neither run had ever gone red locally, at any repeat count — the loaded remote
+shard is the only place this shape shows itself, which is an argument for reading a red
+shard rather than re-running it.
+
+**One measurement here was not what it looked like**, and it is worth writing down: a local
+run of that same combination reported 35 failures, all WebKit. None of them were real. A
+parallel session was running the suite from another worktree, and `scripts/e2e.sh` uses
+`--network host`, so the two runs fought over port 4173 — which its own comment warns about.
+The tell is the shape: a change to one screen does not fail two specs' worth of cases in one
+browser only. `E2E_PORT=4183 scripts/e2e.sh …` is the way out, and a second local suite is
+the first thing to check when a run fails that broadly.

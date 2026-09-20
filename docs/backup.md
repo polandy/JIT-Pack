@@ -198,7 +198,8 @@ Stop the server, put the backup file in place at `JITPACK_DB_PATH` (removing any
 
     That is what the [API exports](#getting-data-out-over-the-api) below are for: portable
     YAML and the JSON export survive a schema change, a copy of the file does not. Take one
-    before you upgrade the image. This changes at 1.0, when migrations return.
+    before you upgrade the image. This changes in a coming 0.x release, when a version will
+    carry the database forward on start-up instead of refusing it — see [Upgrades](upgrades.md).
 
 There is no restore endpoint and no scheduled-backup feature; scheduling is your host's
 job (a cron job or systemd timer around one of the commands above).

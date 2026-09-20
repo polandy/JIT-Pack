@@ -309,13 +309,16 @@ These patterns apply to every screen and are specified once.
   which at 390 px beside M4's cluster rendered "Samedan Sommer" as "S…", and the display-face `h1` the three tab
   roots had each written into their own content by hand. Accepted cost: the head is a fixed band rather than part of
   the scroller, so it does not scroll away; the revisit trigger is in ADR-050.
-* **A trip's screen names the trip's other screens (added 2026-09-08, FR-21.21, ADR-051).** Under the page head, and
-  inside it — so it yields with the name where a screen collapses its head (FR-21.17) — the four views of one trip
-  are a row of pills: *Packliste*, *Einkaufen (n)*, *Gepäck*, *Auswertung*. The current one is marked and inert; the
-  other three are one tap, from any of the four. The frame renders it from `meta.tripView`, so the four screens
-  decide nothing. Words alone below 480 px, words with their G-12 glyphs above it: four words fill a 390 px row to
-  within six pixels, and the glyphs would push the fourth off the edge. This gives back what ADR-050 spent —
-  §3.25's "one tap each" — and takes the trip's destinations out of the ⋮, which keeps only what changes the trip.
+* **A trip's screen names the trip's other screens (added 2026-09-08, amended 2026-09-20; FR-21.21, ADR-051 and its
+  amendment 1).** Under the page head, and inside it — so it yields with the name where a screen collapses its head
+  (FR-21.17) — the views a trip is *worked* in are a row of pills: *Packliste* and *Einkaufen (n)*, plus the view
+  being looked at when it is neither of them, so the row always marks where you are. The current one is marked and
+  inert; the others are one tap, from any of the four screens. *Gepäck* and *Auswertung* are words in the bar's ⋮
+  instead — the frame puts them there, from the same `meta.tripView` the row comes from, so the four screens decide
+  nothing in either shape and a view cannot be named differently in the two. Pills are words alone below 480 px and
+  words with their G-12 glyphs above it; the widest row the amendment produces is three pills, which the glyphs
+  still overrun at 390 px. Together this keeps what ADR-050 spent — §3.25's "one tap each" for the two views that
+  earn it — while the ⋮ holds two destinations rather than five, ahead of what *changes* the trip.
 * **The bar's cluster is capped at three glyphs (added 2026-09-06, ADR-050).** A page describes its actions in
   registration order (G-12); the bar renders the first three that are not marked for the ⋮ and puts everything after
   them into the menu, ahead of the actions the page marked itself. M4 stood at seven glyphs, each of which had arrived
@@ -447,8 +450,10 @@ These patterns apply to every screen and are specified once.
   **The cluster has a size (added 2026-09-06, ADR-050):** the bar renders at most **three** glyphs from a page's list
   and puts the rest into the ⋮ in registration order, ahead of the entries the page marked itself. The page still
   chooses which three, by writing them first; what it can no longer do is add a fourth without noticing. M4's trip
-  destinations moved to the menu under this rule — and **left it again on 2026-09-08** (FR-21.21, ADR-051): they are
-  the switcher under the page head now, and the ⋮ keeps what changes the trip rather than where you can go with it.
+  destinations moved to the menu under this rule, **left it again on 2026-09-08** (FR-21.21, ADR-051) for the
+  switcher under the page head, and **two of them came back on 2026-09-20** (ADR-051 amendment 1): *Gepäck* and
+  *Auswertung* are ⋮ entries again, contributed by the frame rather than by the page, and they **head** the sheet —
+  where you can go first, what you do to the trip after. The page's own entries keep their order among themselves.
   **An overflow entry runs after the sheet closes, never inside its handler:** while an overlay is up Ionic marks the
   router outlet `aria-hidden`, and an action that navigates from within the handler leaves that flag behind — the screen
   then renders and responds to every tap while being absent from the accessibility tree.
@@ -1094,10 +1099,11 @@ These patterns apply to every screen and are specified once.
     happens while the list is moving too.
   * **Actions live in the app bar (G-12), not in the header:** search (collapsed behind its icon), filter (badge =
     active facet count), fold-all — the three glyphs the bar's budget allows, and the three tapped while packing. The
-    trip's *other views* were icons on the trip line, then words in the ⋮ (2026-09-06, ADR-050), and are the **G-9
-    switcher under the page head** since 2026-09-08 (FR-21.21, ADR-051): *Einkaufen* still carries its open count in
-    the word — things to buy, the same arithmetic M6's segments use — and the ⋮ is down to the trip's properties and
-    its one next lifecycle step.
+    trip's *other views* were icons on the trip line, then words in the ⋮ (2026-09-06, ADR-050), then the **G-9
+    switcher under the page head** (2026-09-08, FR-21.21, ADR-051), and are **split between the two since 2026-09-20**
+    (ADR-051 amendment 1): *Einkaufen* stands in the switcher and still carries its open count in the word — things to
+    buy, the same arithmetic M6's segments use — while *Gepäck* and *Auswertung* head the ⋮, ahead of the trip's
+    properties and its one next lifecycle step.
   * **One door to the quick-add** (2026-09-08, FR-21.24): the ＋ FAB, and nothing else. The composer's own collapsed
     pill sat above the list saying the same thing as the FAB hovering over it — the FAB is what stays, because it is
     reachable from anywhere in a list and the pill only from the top of one. M8's editor had the identical pair and
@@ -1637,7 +1643,9 @@ These patterns apply to every screen and are specified once.
   (FR-25.10); this "assign to a traveler" is to be reframed (per-person shopping row or lightweight "for whom" note)
   when M6 is re-mocked.
 * **What was bought (FR-25.11j, built 2026-08-25):** checking a row off takes it off the tab — a BUY_BEFORE row by
-  changing its mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. Under the list sits a
+  changing its mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. A BUY_LOCAL row
+  checked off on the **packing list** rather than here records nothing of the kind, and is listed by its packed state
+  instead (corrected 2026-09-20). Under the list sits a
   reveal bar in **M4's FR-25.2 shape**: *„1 gekaufte anzeigen"*, off by default, the count in the label, one tap. A
   revealed row states where it went (*„auf der Packliste"* for a purchase before departure, *„eingepackt"* for one at
   the destination) and its checkbox is the way back — unchecking restores the mode it was bought from and clears the
@@ -1653,7 +1661,8 @@ These patterns apply to every screen and are specified once.
   **shopping pill** and drops only its **count** (corrected 2026-08-30 against the screen: the destination exists either
   way; the count is part of the word rather than a badge, which is how ADR-050's menu carried it and how FR-21.21's pill
   still does).
-* **Navigation:** From the G-9 trip switcher, on any of the trip's four views (FR-21.21); deep-linkable.
+* **Navigation:** From the G-9 trip switcher, which carries M6's pill on all four of the trip's views (FR-21.21);
+  deep-linkable.
 
 ### M7 — Template List
 
@@ -1845,6 +1854,19 @@ These patterns apply to every screen and are specified once.
   The two tag actions raise a snackbar with one **Rückgängig** for the batch; *Stilllegen* raises a confirm that names
   both halves of FR-24.3's two acts and has **no** undo, because the removed half cannot come back. The mode ends with
   the batch.
+  **The bar gains a fourth control, ⋯ *Mehr* (2026-09-20)**, between *Tag nehmen* and *Stilllegen*. It opens an action
+  sheet carrying *„Üblicherweise zuweisen
+  an …"* (FR-1.9; absent below two accounts, G-8), *„Hängt ab von …"* and *„Begleitartikel …"* (FR-20.1). Four is what
+  the bar holds at 390 px before the labels clip, so the later acts live behind one door rather than beside the two the
+  mode was measured on. The bar's count reads **„Nichts ausgewählt"** at zero and „N ausgewählt" from one — zero is its
+  own sentence rather than a plural form, since the catalogue has two forms and `n === 1` takes the first.
+  The assignee sheet lists the directory with **„Niemand"** first — the way an assignment is
+  taken away again — and each row says how many of the selection already name it; the two link sheets are one
+  component, differing in the sentence above the list and the direction the edge is written in, and carry the
+  required/suggested switch (FR-20.4) plus a capped, name-sorted offer of the inventory that names what the cap held
+  back. All three raise the same snackbar with one **Rückgängig**, and a link's result sentence names what it skipped.
+  A batch that writes **nothing** — every item already named that person, or every edge already there or circular — is
+  a plain toast instead, with no *Rückgängig* to offer, and the selection stays armed so the choice can be made again.
 * **The hidden items are named (2026-09-15, FR-24.3):** below the last row, M9 says how many items are **retired**
   and the sentence is the way to M23. A retired item stays out of the list by design (ADR-032), but until now nothing
   on the screen admitted the hidden ones existed, so the head's „N Artikel" read as the whole collection and M23 was
@@ -2036,12 +2058,14 @@ These patterns apply to every screen and are specified once.
 * **Actions:** Create/edit/delete containers; assign items from the unassigned bucket via the picker. **Deleting a
   container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would
   silently shorten the packing list.
-* **Navigation:** From *Gepäck* in the G-9 trip switcher (FR-21.21; the luggage was a toolbar button as built
-  2026-08-16, then a ⋮ entry; the earlier idea of an "Edit containers" entry inside the grouping switcher was not
-  carried over) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the edge was never built** (read against the
-  code 2026-08-30). M12's only navigation is to M4, and opening a picked *Gepäck* bar sets the container facet there
-  rather than opening this screen — which is the more useful landing anyway, since it puts the reader on the rows the
-  bar was about. The clause goes; the edge is not owed.
+* **Navigation:** From *Gepäck* in the bar's ⋮, on any of the trip's four views (ADR-051 amendment 1, 2026-09-20).
+  It was a toolbar button as built 2026-08-16, then a ⋮ entry (ADR-050), then a G-9 switcher pill (FR-21.21), and is
+  a ⋮ entry again — the switcher is for the two views a trip is worked in. Standing here, *Gepäck* **is** a pill, so
+  the row still says where you are. (The earlier idea of an "Edit containers" entry inside the grouping switcher was
+  not carried over.) ~~and from M12~~ — **struck 2026-08-31 (owner decision); the edge was never built** (read
+  against the code 2026-08-30). M12's only navigation is to M4, and opening a picked *Gepäck* bar sets the container
+  facet there rather than opening this screen — which is the more useful landing anyway, since it puts the reader on
+  the rows the bar was about. The clause goes; the edge is not owed.
 * **Revised 2026-08-27 (UX-8).** The unassigned bucket renders only when it has something to say. Was: with no
   containers and nothing unassigned, "everything is assigned to a container" stood directly under "no containers yet".
 
@@ -2087,7 +2111,9 @@ These patterns apply to every screen and are specified once.
   2026-08-30, that the instance has no configured currency and one would be an owner decision, was true when it was
   written and has not been since; the setting is `JITPACK_CURRENCY`. No series, or a series with no archived trips → the
   trend section is absent, not empty.
-* **Navigation:** From *Auswertung* in the G-9 trip switcher (FR-21.21, ADR-051); trend section also from M16.
+* **Navigation:** From *Auswertung* in the bar's ⋮, on any of the trip's four views (FR-21.21, ADR-051 amendment 1
+  — a switcher pill from 2026-09-08 to 2026-09-20, and a pill again while you are standing here); trend section also
+  from M16.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 
