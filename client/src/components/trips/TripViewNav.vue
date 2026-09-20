@@ -68,7 +68,7 @@ function go(view: TripViewEntry) {
       :key="view.id"
       class="view"
       :class="{ current: view.id === props.current }"
-      :data-testid="`trip-view-${view.id}`"
+      :data-testid="view.testid"
       :aria-current="view.id === props.current ? 'page' : undefined"
       @click="go(view)"
     >

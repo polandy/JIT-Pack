@@ -82,6 +82,13 @@ export interface TripViewEntry {
   icon: string
   label: string
   path: string
+  /**
+   * What the suite reaches this view by, in either shape — the bar gives a
+   * menu entry the id its pill would have carried, so a case that knows where
+   * to click does not have to know which shape the view is wearing today.
+   * Built here rather than in each renderer, so the two cannot drift apart.
+   */
+  testid: string
 }
 
 /**
@@ -108,6 +115,7 @@ export function tripViewEntry(
     // and one with nothing to report does not pretend otherwise.
     label: spec.countKey && n > 0 ? t(spec.countKey, { n }) : t(spec.nameKey),
     path: spec.path(tripId),
+    testid: `trip-view-${id}`,
   }
 }
 

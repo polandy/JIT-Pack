@@ -89,7 +89,7 @@ const tripViewActions = computed<HeaderAction[]>(() => {
   return tripViewMenu(current).map((id) => {
     const view = tripViewEntry(id, tripId, counts)
     return {
-      id: `trip-view-${view.id}`,
+      id: view.testid,
       icon: view.icon,
       label: view.label,
       overflow: true,

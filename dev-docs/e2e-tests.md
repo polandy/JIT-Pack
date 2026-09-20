@@ -5422,14 +5422,24 @@ what changes the trip — is asserted in `AppHeader.spec.ts` against the button 
 handed, where the order is data. In the browser it is four labels in a column, and a case
 that read them by position would be pinning the sheet's markup rather than the decision.
 
-**Owed, and measured rather than re-run: E2E-M4-135 counts a flip it did not cause.** It
-went red once while this branch's specs were run, on `expect(moved.flips).toBe(0)` — the
-`MutationObserver` on `.trip-line` saw one class change during the programmatic scroll.
-Measured against the base it was branched from (`b0942bb`) with the same command and the
-same repeat count: **1 failure in 6 on the branch, 1 failure in 6 on `main`**, the same
-case, the same assertion, both browsers seen failing across the runs. So it is the case,
-not the change — this branch does not touch the scroll rule, only what stands in the head.
-The likely shape, for whoever picks it up: the observer counts *any* class mutation on the
-line, and the flick that `scrollToEnd` makes just before it can still be settling when the
-observer is attached, so a collapse the reader did ask for is charged to a scroll nobody
-made. The fix is a signal that says *which* scroll a flip answered, not a retry.
+**Owed, and measured rather than re-run: E2E-M4-135 measures before the scroller has
+rested.** It went red on `expect(moved.flips).toBe(0)` on the CI shard for this branch, and
+on two of the local runs. Measured against the base the branch was cut from (`b0942bb`),
+with the identical command each time: **1 failure in 6 on the branch, 1 in 6 on `main`** for
+the repeat-each run, and one failure in the loaded `packing-list + shopping` run **on each
+side** — on `main` it was this same case, on the branch it was its neighbour E2E-M4-70. Both
+browsers were seen failing across the runs. So it is the case, not the change: this branch
+touches what stands in the head, not the rule that collapses it.
+
+**The mechanism, read off the production code rather than guessed.** M4 arms its `gesture`
+flag on a wheel or a touch drag and disarms it in `onScrollEnd` — deliberately, so a flick's
+momentum still counts as the flick (FR-21.17). The case flicks to the end with
+`scrollToEnd`, waits for the line to carry `collapsed`, and then scrolls a row into view
+programmatically. But the class lands on the *first accepted reading*, which is long before
+`scrollend`; under load the window from the reader's own flick is still open when the
+programmatic scroll arrives, so the head answers it and `flips` is 1. The case is asserting
+the right rule and starting its measurement too early. What it needs is the settled state,
+and `gesture` is a module-local `let` that nothing can observe — which is the absence the
+working agreement calls the defect. The fix is a signal on the content element that says
+whether the window is open, waited on before the observer is attached; not a retry, and not
+a longer wait.

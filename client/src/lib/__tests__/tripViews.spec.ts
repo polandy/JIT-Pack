@@ -61,6 +61,9 @@ describe('what a view is called and where it goes', () => {
     expect(tripViewEntry('luggage', TRIP)).toMatchObject({
       label: 'Luggage',
       path: `/trips/${TRIP}/containers`,
+      // The same in either shape: the bar gives a menu entry the id its pill
+      // would have carried, which is what spared the e2e cases the move.
+      testid: 'trip-view-luggage',
     })
     expect(tripViewEntry('analytics', TRIP)).toMatchObject({
       label: 'Analytics',
