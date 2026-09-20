@@ -236,11 +236,13 @@ stable references for the traceability matrix.
   3~~: "next" names an ordering **nothing defines** — the preview is the first three of the store's own array, whose
   order after a reload is IndexedDB's over random ids. The case asserts three of four rows and the fourth counted, which
   is the rule the screen actually keeps; it flaked once on the wording before it did.
-* **E2E-M1-02** `all` (FR-7.3) — **implemented 2026-08-30, revised 2026-09-18** (`dashboard.spec.ts`): the card lists
-  open preparation todos **grouped by item** across active trips, and **offers nothing to tick** — M1 takes no actions
-  (owner, 2026-09-18), so the card carries no checkbox. Resolving the todo in M5, reached through the item name, is what
-  clears the card; that is the positive signal that the card reads the todos rather than a copy of them. ~~ticking one
-  resolves it~~ is the clause the ruling struck — it was implemented and asserted until that day.
+* **E2E-M1-02** `all` (FR-7.3/7.6) — **implemented 2026-08-30, revised 2026-09-18 and 2026-09-20**
+  (`dashboard.spec.ts`): a row's open preparation is listed in M1's **one** *Aufgaben* card, named by the **chip** of
+  the row it prepares, and the card **offers nothing to tick** — M1 takes no actions (owner, 2026-09-18), so it carries
+  no checkbox. Resolving the todo in M5, reached through the chip, is what clears the card; that is the positive signal
+  that the card reads the todos rather than a copy of them. ~~grouped by item~~ in a card of its own (*Prep to do*) is
+  what FR-7.6 replaced on 2026-09-20 — the chip is what the grouping became. ~~ticking one resolves it~~ is the clause
+  the 2026-09-18 ruling struck — it was implemented and asserted until that day.
 * **E2E-M1-03** `server` (FR-6.1/6.3/4.4) — **implemented 2026-08-31** (`server/multi-user.spec.ts`): Alice assigns a
   row and it appears on Bob's dashboard **while he is looking at it**, marked new, without a reload; opening it leads to
   the row; and coming back the same row is listed and no longer news. Every assertion is scoped to **this case's row**
@@ -261,9 +263,10 @@ stable references for the traceability matrix.
 * **E2E-M1-06b** `all` (FR-5.1) — **new 2026-08-31**: the same flagged row on a trip departing **later** produces no
   section at all. The positive signal is the trip card, which is on the screen either way, because an absence read off a
   page that failed to load says nothing.
-* **E2E-M1-07** `all` (FR-7.3) — **new 2026-08-31**: the prep card's item name opens **that row's** sheet, asserted on
-  the sheet's own todo rather than on the trip having opened. UI-Spec M1 had promised the jump since the screen shipped
-  and the name was a `<p>` with no handler. **Extended 2026-09-09 (FR-21.28):** the section's name is its head
+* **E2E-M1-07** `all` (FR-7.3/7.6) — **new 2026-08-31, re-pointed 2026-09-20**: the **chip** on a task opens **that
+  row's** sheet, asserted on the sheet's own todo rather than on the trip having opened. UI-Spec M1 had promised the
+  jump since the screen shipped and the name was a `<p>` with no handler; since FR-7.6 the chip carries it, the item
+  name having gone with the *Prep to do* card. **Extended 2026-09-09 (FR-21.28):** the section's name is its head
   and the number its count, and the block under it carries `.jp-card` — the assertion that M1 is drawing the app's
   card rather than Ionic's, which no screenshot of this screen had ever shown.
 * **E2E-M1-09** `all` (FR-21.13) — **new 2026-09-07**: the trip departing **soonest** is the hero; the later one is
@@ -798,6 +801,17 @@ in WebKit.
 * **E2E-M4-105** `local` (FR-7.4 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): ticking a
   trip todo off raises the pack snackbar naming it, and its *Rückgängig* puts the task back on the open list — the
   head's check goes *„1 von 2"* → *„0 von 2 erledigt"* — and the reopened state survives a reload.
+* **E2E-M4-136** `local` (FR-7.6, added 2026-09-20) — **implemented** (`packing-list.spec.ts`): a row's preparation
+  and a chore of the trip stand in the one section, counted by the one figure (*„0/2 tasks"*), and the header line no
+  longer states the preparation a second time. Every clause is a pair, because „both kinds are here" is green on a list
+  that renders one of them twice: the preparation carries the chip and the trip's own does not, the ✕ is on the trip's
+  own and not on the preparation. Ticking the preparation in the section clears the **row's badge** — one todo read by
+  two surfaces — and the figure survives a reload; the chip then opens the row's sheet on that same todo.
+* **E2E-M4-137** `local` (FR-7.6 with FR-5.8, added 2026-09-20) — **implemented** (`packing-list.spec.ts`): removing
+  the packing row takes its preparation out of the trip's tasks — off the list and out of the count — while the trip's
+  own task stays, which is what makes the disappearance about the row rather than about the section. The removal is
+  **confirmed** rather than immediate precisely because the preparation cascades (`removalNeedsConfirm`), and the
+  snackbar's *Rückgängig* brings row and task back together, which a list that lost the task for good would fail.
 * **E2E-M4-110** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for three
   travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
   is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the
@@ -816,9 +830,9 @@ in WebKit.
   tapped**, the row leaves (FR-25.2) and the trip line reads *1/3*. A second tap on the ring clears the filter and the
   cluster is back, reading *„2 open"* with both faces — the half only M4's wiring can fail, by handing the view builder
   an already-narrowed list instead of the facet.
-* **E2E-M4-106** `local` (FR-7.3 with FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): the same
-  for M4's preparation section: ticking a prep task drops the row's badge and raises the snackbar; *Rückgängig*
-  brings the badge back, also after a reload.
+* **E2E-M4-106** `local` (FR-7.3 with FR-25.2, added 2026-09-19, re-pointed 2026-09-20) — **implemented**
+  (`packing-list.spec.ts`): the same for a row's preparation, ticked in the trip's one task section since FR-7.6:
+  it drops the row's badge and raises the snackbar; *Rückgängig* brings the badge back, also after a reload.
 * **E2E-M4-107** `local` (FR-24.11 in the composer, FR-5.6, added 2026-09-19) — **implemented**
   (`packing-list.spec.ts`): „Zelt" typed while the inventory holds
   *Zeltheringe* shows the offer **above** the partial hit; ✓ opens the *„Neuer Artikel"* sheet on „Zelt" and **no row
@@ -3469,9 +3483,10 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-6.3 | E2E | G4-01, FLOW-02 (M1-04's *at the item* is retired — M1 has no per-item link, 2026-08-30) |
 | FR-7.1 | E2E | M5-05 |
 | FR-7.2 | E2E | M5-05 (M4-09 retired — FR-7.3 overrides its refusal) |
-| FR-7.3 | E2E | M1-02 (listing only since 2026-09-18), M4-08, M4-25 (M5-06's shadowed half; the resolution restriction is struck) |
+| FR-7.3 | E2E | M1-02 (listing only since 2026-09-18; in the one task card with its chip since FR-7.6), M1-07 (the chip opens the row), M4-08, M4-25 (M5-06's shadowed half; the resolution restriction is struck), M4-106 (ticked in the task section) |
 | FR-7.4 | E2E+UNIT | M4-96 (add, tick, reopen, remove), M4-97 (above the list, open while owed, header figure), M1-10 (reported read-only), M1-11 (independent of packing), M3-23 (template tasks, dedup, no prep), M8-26 (the template editor, both scopes); `tripTodos.spec.ts` (the store's own bucket), `instantiate.spec.ts` (dedup), `portable.spec.ts` (`trip_tasks`) |
 | FR-7.5 | E2E+UNIT | M4-133 (the seat hands a todo over, the assignee is told and sees it on M4 and M1), M4-134 (no seat without a second account); `TripTodoList.spec.ts` (seat, read-only avatar, resolved), `comments.seam.spec.ts` (one field on the wire), `notificationrules_test.go` (who is told) |
+| FR-7.6 | E2E+UNIT | M4-136 (both kinds in one list and one figure, the chip leads to the row, the header stops saying the prep count), M4-137 (the task goes with the row, and comes back with it), M1-02 (one card on M1), M1-07 (the chip is the way into the row); `tripTodos.spec.ts` (`tripTasks`: order, the chip's facts, a preparation whose row is gone), `TripTodoList.spec.ts` (chip vs. seat and ✕, one toggle for both kinds) |
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers since 2026-08-30), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |

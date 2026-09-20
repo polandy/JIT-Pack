@@ -1,13 +1,17 @@
 /**
- * FR-7.4: the trip's own todos, counted. Pure — M1 reads it for the
+ * The trip's tasks, counted and ordered. Pure — M1 reads it for the
  * *Aufgaben* section, the hero's second figure and each trip card's task
  * line; M4 for its header figure and for whether the section opens.
  *
- * Deliberately separate from every packing figure (`kpis`, `unitsOf`, the
- * prep KPI): a trip todo prepares no row, so a count that mixed the two
- * would let a houseplant hold a finished rucksack below 100 %.
+ * Since FR-7.6 a *task* is either the trip's own (FR-7.4) or one a packing
+ * row owes (FR-7.3): `tripTasks` is what puts the two in one list, and every
+ * count above reads that list.
+ *
+ * Still deliberately apart from every packing figure (`kpis`, `unitsOf`): a
+ * task counts nothing the packing list measures, so that neither a houseplant
+ * nor an uncharged battery can hold a finished rucksack below 100 %.
  */
-import type { TripTodo } from '@/types/domain'
+import type { ItemTodo, TodoState, TripTodo } from '@/types/domain'
 
 /** How far a trip's todos are, as the two figures M1 states. */
 export interface TripTodoProgress {
@@ -52,4 +56,91 @@ export function tripTodoPercent(progress: TripTodoProgress): number {
  */
 export function tripTodosUnfolded(status: TripTodoStatus, fold: boolean | null): boolean {
   return fold ?? status === 'open'
+}
+
+// --- FR-7.6: one list, two kinds of task ---
+
+/** The packing row a task prepares (FR-7.3), as a task line names it. */
+export interface TripTaskItem {
+  /** The `trip_items` row — what the chip leads back to. */
+  id: string
+  name: string
+  /** The row's mark (FR-28.4), null where it has none. */
+  icon: string | null
+}
+
+/**
+ * One task of the trip: its own (FR-7.4) or a row's preparation (FR-7.3).
+ *
+ * A projection rather than the comment row itself, because the two kinds are
+ * different rows with different writers, and every surface reads the same five
+ * facts of them. The writers look the live row up again by `id` before they
+ * write it — the undo never writes from a snapshot — so nothing here has to
+ * carry one.
+ */
+export interface TripTask {
+  /** The `comments` row (FR-7.2) this task is. */
+  id: string
+  body: string
+  task_state: TodoState
+  /** The row it prepares, or null when the task is the trip's own. */
+  item: TripTaskItem | null
+  /** FR-7.5: whose job it is. Only the trip's own name one. */
+  assignee_user_id: string | null
+}
+
+/**
+ * tripTasks puts a trip's own todos and its rows' preparations in the one
+ * list FR-7.6 asks for: open first, the trip's own before a row's, a row's
+ * grouped by the row and each group by text.
+ *
+ * A preparation whose row is not in `rows` is **left out**. That is the
+ * cascade seen from the reading side: deleting a row takes its preparations
+ * with it (the server cascades, §3.25), and a device that has not pulled that
+ * delete yet would otherwise keep listing a task for a row it no longer shows
+ * — a task nobody could reach, since the chip leads to a row that is gone.
+ */
+export function tripTasks(
+  tripTodos: readonly TripTodo[],
+  itemTodos: readonly ItemTodo[],
+  rows: readonly TripTaskItem[],
+): TripTask[] {
+  const byId = new Map(rows.map((row) => [row.id, row]))
+
+  const own: TripTask[] = tripTodos.map((todo) => ({
+    id: todo.id,
+    body: todo.body,
+    task_state: todo.task_state,
+    item: null,
+    assignee_user_id: todo.assignee_user_id,
+  }))
+
+  const prepared: TripTask[] = []
+  for (const todo of itemTodos) {
+    const row = byId.get(todo.trip_item_id)
+    if (!row) continue
+    prepared.push({
+      id: todo.id,
+      body: todo.body,
+      task_state: todo.task_state,
+      item: row,
+      // FR-7.5: a preparation names nobody — its row already does.
+      assignee_user_id: null,
+    })
+  }
+
+  return [...own, ...prepared].sort(compareTasks)
+}
+
+/** The order FR-7.6 states, written once because only `tripTasks` may decide it. */
+function compareTasks(a: TripTask, b: TripTask): number {
+  const byState = Number(a.task_state === 'resolved') - Number(b.task_state === 'resolved')
+  if (byState !== 0) return byState
+  const byKind = Number(a.item !== null) - Number(b.item !== null)
+  if (byKind !== 0) return byKind
+  if (a.item && b.item) {
+    const byRow = a.item.name.localeCompare(b.item.name) || a.item.id.localeCompare(b.item.id)
+    if (byRow !== 0) return byRow
+  }
+  return a.body.localeCompare(b.body) || a.id.localeCompare(b.id)
 }

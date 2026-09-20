@@ -38,9 +38,10 @@ import { formatTripPeriod } from '@/lib/format'
 import { greetingKey } from '@/lib/greeting'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { useTripStore } from '@/stores/tripStore'
-import type { Trip, ItemTodo } from '@/types/domain'
+import type { Trip } from '@/types/domain'
 import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
 import { useIdentity } from '@/composables/useTripIdentity'
+import { useTripTasks } from '@/composables/useTripTasks'
 import { PATH, tripItemPath, tripPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/useOrchestrator'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
@@ -50,6 +51,7 @@ import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 
 const tripStore = useTripStore()
+const { tasksOf } = useTripTasks()
 const orchestrator = useOrchestrator()
 const { myUserId, load } = useIdentity(orchestrator)
 const router = useRouter()
@@ -171,40 +173,14 @@ function openItemCount(tripId: string): number {
   return tripStore.getItems(tripId).filter(isOpenRow).length
 }
 
-/** All open prep todos across active trips, grouped by item name. */
-const prepTodos = computed(() => {
-  const result: Array<{
-    tripId: string
-    tripName: string
-    itemId: string
-    itemName: string
-    todos: ItemTodo[]
-  }> = []
-
-  for (const trip of activeTrips.value) {
-    const withPrep = tripStore.itemsWithOpenPrep(trip.id)
-    for (const { item, openTodos } of withPrep) {
-      result.push({
-        tripId: trip.id,
-        tripName: trip.name,
-        itemId: item.id,
-        itemName: item.name,
-        todos: openTodos,
-      })
-    }
-  }
-  return result
-})
-
-const totalOpenTodos = computed(() => prepTodos.value.reduce((sum, g) => sum + g.todos.length, 0))
-
 /**
- * FR-7.4: a trip card's second check, beside its packing progress and never
- * inside it. Null when the trip has no trip todo, so the line is absent
+ * FR-7.4/7.6: a trip card's second check, beside its packing progress and
+ * never inside it. It counts every task of the trip, like the card above and
+ * the hero's figure. Null when the trip has none, so the line is absent
  * rather than claiming „all done" about nothing.
  */
 function taskLine(trip: Trip): string | null {
-  const progress = tripTodoProgress(tripStore.getTripTodos(trip.id))
+  const progress = tripTodoProgress(tasksOf(trip.id))
   const status = tripTodoStatus(progress)
   if (status === 'none') return null
   if (status === 'allDone') return t('dashboard.taskLineDone')
@@ -379,52 +355,8 @@ async function handleRefresh(event: CustomEvent) {
         </div>
       </template>
 
-      <!-- Prep to do (FR-7.3) -->
-      <template v-if="totalOpenTodos > 0">
-        <SectionHead
-          :title="t('dashboard.prepTodo')"
-          :count="totalOpenTodos"
-          data-testid="dashboard-prep-head"
-        />
-        <div class="jp-card prep-card" data-testid="dashboard-prep">
-          <div class="card-body">
-            <div
-              v-for="group in prepTodos"
-              :key="`${group.tripId}-${group.itemName}`"
-              class="prep-group"
-            >
-              <!--
-                A button, not a `<p>` with a handler: the name is the way into
-                the row it names (UI-Spec M1, FR-7.3), and a tap target has to
-                be one for the keyboard and for assistive tech as well.
-              -->
-              <button
-                type="button"
-                class="prep-item-name"
-                :data-testid="`dashboard-prep-item-${group.itemName}`"
-                @click="openItem(group.tripId, group.itemId)"
-              >
-                {{ group.itemName }}
-                <span class="prep-trip-label">{{ group.tripName }}</span>
-              </button>
-              <!-- Reported, not operated: M1 takes no actions (owner,
-                   2026-09-18). The name above leads to the row, where the
-                   todo is ticked. -->
-              <ul class="prep-todos">
-                <li
-                  v-for="todo in group.todos"
-                  :key="todo.id"
-                  :data-testid="`dashboard-todo-${todo.body}`"
-                >
-                  {{ todo.body }}
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </template>
-
-      <!-- FR-7.4: the trip's own todos, reported; they are written in the trip. -->
+      <!-- FR-7.6: every open task of every active trip, its own and its
+           rows' preparations, reported; they are written in the trip. -->
       <TripTodosOverview :trips="activeTrips" />
 
       <!--
@@ -662,10 +594,6 @@ async function handleRefresh(event: CustomEvent) {
   padding: 12px 16px 14px;
 }
 
-.card-body {
-  padding: 10px 6px 12px;
-}
-
 .trip-card-name {
   font-size: var(--jp-text-lg);
   font-weight: var(--jp-weight-semibold);
@@ -707,42 +635,9 @@ async function handleRefresh(event: CustomEvent) {
   border-left: 3px solid var(--jp-brand);
 }
 
-.prep-group {
-  margin-bottom: 12px;
-}
-
-/* A button that reads as the heading it replaced: the element changed for
-   the keyboard and for assistive tech, not for the eye. */
-.prep-item-name {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: start;
-  color: var(--ion-text-color);
-  font-weight: var(--jp-weight-semibold);
-  font-size: var(--jp-text-base);
-  margin: 0 0 4px;
-  cursor: pointer;
-}
-
 /* FR-6.1: what arrived since this device last showed the section. The action
    role (G-11), because it is the one thing here that is *news*. */
 .dashboard-item.is-new {
   border-inline-start: 3px solid var(--jp-action);
-}
-
-.prep-todos {
-  margin: 0 0 4px;
-  padding-inline-start: 20px;
-  color: var(--ct-subtext1);
-}
-
-.prep-trip-label {
-  font-weight: var(--jp-weight-regular);
-  font-size: var(--jp-text-sm);
-  color: var(--ion-color-medium);
-  margin-left: 8px;
 }
 </style>

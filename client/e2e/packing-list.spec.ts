@@ -1626,9 +1626,9 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    const prep = visible(page).getByTestId('m4-prep-section')
-    await prep.getByTestId('m4-prep-toggle').click()
-    await prep.locator('ion-checkbox').click()
+    // FR-7.6: the row's preparation is ticked in the trip's one task section.
+    const tasks = await openTripTodos(page)
+    await tasks.getByTestId(`trip-todo-${TODO}`).locator('ion-checkbox').click()
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
 
     const toast = page.locator('ion-toast.pack-toast')
@@ -2660,7 +2660,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
   })
 })
 
-test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
+test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -2834,5 +2834,125 @@ test.describe('M4 — the trip’s own todos (FR-7.4) @local @m4', () => {
     await figure.click()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(section.getByTestId('trip-todos-resolved')).toBeVisible()
+  })
+
+  /**
+   * E2E-M4-136 (FR-7.6): a row's preparation is a task of the trip. It is
+   * listed in the one section beside the trip's own, counted in the one
+   * figure, and told apart by the chip that names its row — which is also the
+   * way into that row.
+   *
+   * Every assertion is a pair, because "both kinds are here" is green on a
+   * list that renders one of them twice: the preparation carries a chip and
+   * the trip's own does not, and the ✕ is on the trip's own and not on the
+   * preparation, which is removed where it lives.
+   *
+   * The row badge is the cross-signal that the section writes the row's own
+   * todo rather than a copy: ticking the task in the section clears the badge
+   * on the row, which reads its own store.
+   */
+  test('E2E-M4-136: a row’s preparation is a task of the trip, named by its row', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Kamera'], 'Samedan')
+    await addTripTodo(page, 'Water the plants')
+
+    await visible(page).getByTestId('m4-row-Kamera').click()
+    await page.getByTestId('m5-todo-input').locator('input').fill('Charge the battery')
+    await page.getByTestId('m5-todo-add').click()
+    await expect(page.getByTestId('m5-todo-Charge the battery')).toBeVisible()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    // One figure for both kinds (FR-7.6), and the header no longer says the
+    // preparation count a second time in its detail line.
+    const fraction = visible(page).getByTestId('m4-trip-todos-progress')
+    await expect(fraction).toHaveText('0/2 tasks')
+    await expect(visible(page).getByTestId('m4-header')).not.toContainText('preparation')
+
+    const section = await openTripTodos(page)
+    const prepared = section.getByTestId('trip-todo-Charge the battery')
+    const own = section.getByTestId('trip-todo-Water the plants')
+    await expect(prepared.getByTestId('task-item-Kamera')).toBeVisible()
+    await expect(own.locator('[data-testid^="task-item-"]')).toHaveCount(0)
+    await expect(own.getByTestId('trip-todo-remove-Water the plants')).toBeVisible()
+    await expect(prepared.getByTestId('trip-todo-remove-Charge the battery')).toHaveCount(0)
+
+    // Ticked here, cleared on the row: one todo, read by two surfaces.
+    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
+    await prepared.locator('ion-checkbox').click()
+    await expect(fraction).toHaveText('1/2 tasks')
+    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
+    await writesLanded(page)
+    await page.reload()
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('1/2 tasks')
+
+    // The chip is the way back to the row it names.
+    const reopened = await openTripTodos(page)
+    await reopened.getByTestId('trip-todos-resolved').click()
+    await reopened.getByTestId('task-item-Kamera').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await expect(page.getByTestId('m5-todo-Charge the battery')).toBeVisible()
+  })
+
+  /**
+   * E2E-M4-137 (FR-7.6, FR-5.8): the task goes with the row. Removing the
+   * packing element takes its preparation out of the trip's tasks — off the
+   * list and out of the count — while the trip's own task stays, which is
+   * what makes the disappearance about the row rather than about the section.
+   *
+   * The removal is confirmed rather than immediate precisely because the task
+   * cascades: FR-5.8 asks whenever something the undo cannot restore would go
+   * (`removalNeedsConfirm`), and the preparation is one of those things. The
+   * undo is asserted too, because a list that lost the task for good would
+   * pass the first half.
+   */
+  test('E2E-M4-137: removing the row takes its preparation out of the trip’s tasks', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Kamera', 'Zelt'], 'Samedan')
+    await addTripTodo(page, 'Water the plants')
+
+    await visible(page).getByTestId('m4-row-Kamera').click()
+    await page.getByTestId('m5-todo-input').locator('input').fill('Charge the battery')
+    await page.getByTestId('m5-todo-add').click()
+    await expect(page.getByTestId('m5-todo-Charge the battery')).toBeVisible()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    const section = await openTripTodos(page)
+    await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/2 tasks')
+
+    const removeKamera = async () => {
+      await openRowMenu(page, 'Kamera')
+      await chooseInRowMenu(page, /remove from the list/i)
+      // Asked, because the preparation is something the undo cannot write back.
+      const confirm = page.getByTestId('m4-remove-confirm')
+      await expect(confirm).toBeVisible()
+      await confirm.getByRole('button', { name: /^remove$/i }).click()
+      await expect(visible(page).getByTestId('m4-row-Kamera')).toHaveCount(0)
+    }
+
+    // Taken back first, and the undo is tapped straight away: the snackbar has
+    // a lifetime, and a case that asserts four things before reaching for it
+    // is racing that lifetime rather than testing anything.
+    await removeKamera()
+    await page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: 'Kamera' })
+      .last()
+      .getByRole('button', { name: /undo/i })
+      .click()
+    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
+    await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/2 tasks')
+
+    // Removed for good, the task goes with the row — while the trip's own
+    // task stays, which is what makes this about the row and not the section.
+    await removeKamera()
+    await expect(section.getByTestId('trip-todo-Charge the battery')).toHaveCount(0)
+    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/1 tasks')
   })
 })
