@@ -9,7 +9,13 @@ import {
   itemDetail,
   tripAction,
 } from '../fixtures'
-import { FOR_WHOM_M5, lightTraveler, openCluster } from '../helpers/m4'
+import {
+  FOR_WHOM_M5,
+  chooseInRowMenu,
+  lightTraveler,
+  openCluster,
+  openRowMenu,
+} from '../helpers/m4'
 import { fillIonic } from '../helpers/ionic'
 import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
@@ -1144,6 +1150,57 @@ test.describe('Two accounts on one instance @server', () => {
     const row = visiblePage(alice).getByTestId('wizard-review-row').filter({ hasText: item })
     await expect(row).toContainText(ACCOUNT_NAMES.bob)
     await expect(row).not.toContainText(/per person/i)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M4-130 (FR-5.1, FR-25.25): the late-packer flag is trip state, not a
+   * view preference — what Alice marks „pack later" is marked for Bob too.
+   *
+   * Reported by the owner as not arriving; the case found it does, and it is
+   * kept because no other case had a second account look at the flag. It is
+   * asserted three ways: live on Bob's open screen, after his reload (the
+   * server's copy rather than a socket frame), and in the clearing direction,
+   * because a flag that could only be set would strand a row as „later".
+   */
+  test("E2E-M4-130: a late-packer flag set by one account shows on the other's screen", async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Spaeter ${id}`
+    const item = `Spaetpacker-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, item)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await subscribedBob
+    const bobsFlag = visiblePage(bob).getByTestId(`m4-row-${item}`).getByTestId('row-late')
+    await expect(bobsFlag).toHaveCount(0)
+
+    await alice.goto(tripPath)
+    await openRowMenu(alice, item)
+    await chooseInRowMenu(alice, /late packer on/i)
+    await expect(
+      visiblePage(alice).getByTestId(`m4-row-${item}`).getByTestId('row-late'),
+    ).toBeVisible()
+
+    await expect(bobsFlag).toBeVisible()
+    await bob.reload()
+    await expect(bobsFlag).toBeVisible()
+
+    await openRowMenu(alice, item)
+    await chooseInRowMenu(alice, /late packer off/i)
+    await expect(bobsFlag).toHaveCount(0)
 
     await ctxAlice.close()
     await ctxBob.close()
