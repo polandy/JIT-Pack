@@ -38,6 +38,8 @@ import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
+import { makeSeamContext } from '@/composables/sync/__tests__/seamContext'
+import { createMasterDataActions } from '@/composables/sync/actions/masterData'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { PATH } from '@/router/paths'
 
@@ -539,16 +541,19 @@ describe('M9 inventory — the jump waits for the sheet to be gone (FR-24.8)', (
 })
 
 /**
- * FR-24.9 — acting on several rows at once. The orchestrator is the fake from
- * `masterDataStub` plus recorders for the four writes this screen makes, so
- * what is asserted is *which rows the screen decided to write*, which is the
- * whole of its job: the writes themselves are `masterActions.spec.ts`'s.
+ * FR-24.9 — acting on several rows at once. The bulk give, take and undo are
+ * the **real** master-data actions over a seam context, since the screen and
+ * `jitpack tags` share them (FR-18.9); `writes` reads back what they queued.
+ * What is asserted is *which rows the screen asked to write*: the selection
+ * it hands over, and the undo it wires to the snackbar.
  */
 describe('M9 inventory — the selection mode (FR-24.9)', () => {
   interface Writes {
-    assigned: { itemId: string; tagId: string; position: number }[]
+    assigned: { id: string; itemId: string; tagId: string; position: number }[]
     unassigned: string[]
     moved: { assignmentId: string; position: number }[]
+    /** Tags the undo removed — a tag the batch itself created. */
+    tagsDeleted: string[]
     deleted: string[]
   }
 
@@ -579,36 +584,43 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
   }
 
   beforeEach(() => {
-    writes = { assigned: [], unassigned: [], moved: [], deleted: [] }
+    const { ctx, queued } = makeSeamContext()
+    const actions = createMasterDataActions(ctx)
+    const sent = (table: string) =>
+      queued.flatMap((q) => q.muts.map((m) => m.mutation)).filter((m) => m.table === table)
+    const deleted: string[] = []
+    writes = {
+      get assigned() {
+        return sent(TABLE.itemTags)
+          .filter((m) => m.op === 'insert')
+          .map((m) => ({
+            id: m.id,
+            itemId: m.fields!.item_id as string,
+            tagId: m.fields!.tag_id as string,
+            position: m.fields!.position as number,
+          }))
+      },
+      get unassigned() {
+        return sent(TABLE.itemTags)
+          .filter((m) => m.op === 'delete')
+          .map((m) => m.id)
+      },
+      get moved() {
+        return sent(TABLE.itemTags)
+          .filter((m) => m.op === 'upsert')
+          .map((m) => ({ assignmentId: m.id, position: m.fields!.position as number }))
+      },
+      get tagsDeleted() {
+        return sent(TABLE.tags)
+          .filter((m) => m.op === 'delete')
+          .map((m) => m.id)
+      },
+      deleted,
+    }
     Object.assign(orchestratorFake, {
-      assignTagAt: (itemId: string, tagId: string, position: number) => {
-        const id = `new-${itemId}-${tagId}`
-        writes.assigned.push({ itemId, tagId, position })
-        useMasterStore().applyChange({
-          seq: 0,
-          table: TABLE.itemTags,
-          id,
-          deleted: false,
-          row: { item_id: itemId, tag_id: tagId, position },
-        })
-        return id
-      },
-      unassignTag: (assignmentId: string) => {
-        writes.unassigned.push(assignmentId)
-        useMasterStore().applyChange({
-          seq: 0,
-          table: TABLE.itemTags,
-          id: assignmentId,
-          deleted: true,
-          row: null,
-        })
-      },
-      moveTag: (assignmentId: string, position: number) => {
-        writes.moved.push({ assignmentId, position })
-      },
-      setPrimaryTag: (itemId: string, tagId: string) => {
-        writes.moved.push({ assignmentId: `${itemId}-${tagId}`, position: -1 })
-      },
+      giveTagToItems: actions.giveTagToItems,
+      takeTagFromItems: actions.takeTagFromItems,
+      undoBulkTag: actions.undoBulkTag,
       masterItemDeletionOutlook: (itemId: string) => ({
         // Only the first item is referenced anywhere: the batch spans both
         // acts, which is the case the confirm has to report honestly.
@@ -616,7 +628,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
         references: itemId === 'i1' ? 2 : 0,
         certain: true,
       }),
-      deleteMasterItem: (itemId: string) => writes.deleted.push(itemId),
+      deleteMasterItem: (itemId: string) => deleted.push(itemId),
     })
   })
 
@@ -724,16 +736,11 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
   it('creates a typed tag and gives it in one step; the undo takes the new tag too (FR-24.9)', async () => {
     seedThree()
     const createdTags: string[] = []
-    const deletedTags: string[] = []
     Object.assign(orchestratorFake, {
       createTag: (name: string) => {
         createdTags.push(name)
         seedTag(name, 't-new', 2)
         return 't-new'
-      },
-      deleteTag: (tagId: string) => {
-        deletedTags.push(tagId)
-        return { ok: true }
       },
     })
 
@@ -756,7 +763,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     // The assignments go first, then the tag they emptied — a tag created
     // only to be undone is not left behind carrying nothing.
     expect(writes.unassigned).toHaveLength(3)
-    expect(deletedTags).toEqual(['t-new'])
+    expect(writes.tagsDeleted).toEqual(['t-new'])
   })
 
   it('takes a tag off only the selected items that carry it', async () => {
@@ -783,7 +790,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     page.findComponent(BulkTagSheet).vm.$emit('pick', { tagId: 't-sonne', primary: false })
     await flushPromises()
 
-    const created = writes.assigned.map((w) => `new-${w.itemId}-${w.tagId}`)
+    const created = writes.assigned.map((w) => w.id)
     expect(created).toHaveLength(2)
 
     // The snackbar's own button is the undo — pressed here through the toast

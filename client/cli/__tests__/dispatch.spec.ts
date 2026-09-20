@@ -27,6 +27,7 @@ describe('dispatch', () => {
     expect(await dispatch(['--help'], env, o, io)).toBe(EXIT.ok)
     expect(o.stdout.join('\n')).toContain('traveler')
     expect(o.stdout.join('\n')).toContain('import')
+    expect(o.stdout.join('\n')).toContain('tags')
   })
 
   // The same text, a different answer: a script that ran the binary with no
@@ -48,6 +49,16 @@ describe('dispatch', () => {
     const o = out()
     expect(await dispatch(['traveler', '--help'], env, o, io)).toBe(EXIT.ok)
     expect(o.stdout.join('\n')).toContain('--trip')
+  })
+
+  it('routes tags to its own usage and its own argument errors (FR-18.9)', async () => {
+    const help = out()
+    expect(await dispatch(['tags', '--help'], env, help, io)).toBe(EXIT.ok)
+    expect(help.stdout.join('\n')).toContain('apply PLAN.yaml')
+
+    const wrong = out()
+    expect(await dispatch(['tags', 'rename', 'X'], env, wrong, io)).toBe(EXIT.usage)
+    expect(wrong.stderr.join('\n')).toContain('jitpack tags: rename takes 2 names')
   })
 
   it('reports a command argument error against that command', async () => {

@@ -25,7 +25,9 @@ import {
 } from '@/domain/masterRestore'
 import {
   assignmentOf,
+  planTagGrant,
   planTagMerge,
+  planTagRemoval,
   planTagReorder,
   primaryPosition,
   tagDeletion,
@@ -38,7 +40,7 @@ import { TABLE } from '@/types/tables'
 import { masterItemRow, templateItemRow, templateRow } from '../rows'
 import { isTakenRename } from '../names'
 import type { MasterItemEdit, TemplateEdit, TemplateItemEdit } from '@/sync/mutations'
-import type { MasterItem, Template, TemplateItem, TemplateKind } from '@/types/domain'
+import type { ItemTag, MasterItem, Template, TemplateItem, TemplateKind } from '@/types/domain'
 import type { SyncContext } from '../context'
 
 /**
@@ -65,6 +67,29 @@ export type TagRenameResult = { ok: true } | { ok: false; collision: string }
  * user nothing about how big the merge they now have to do is.
  */
 export type TagDeleteResult = { ok: true } | { ok: false; references: number }
+
+/**
+ * What one bulk tag batch wrote, and how to write it back (FR-24.9): the
+ * assignments it created (to remove) and the ones it moved or removed (to put
+ * back where they were, position included).
+ */
+export interface BulkTagUndo {
+  created: string[]
+  moved: { assignmentId: string; position: number }[]
+  removed: ItemTag[]
+  /**
+   * A tag the batch itself created (FR-24.9's create row). Undone last, once
+   * the assignments above have emptied it — an undo that left the tag behind
+   * would leave a name typed by mistake on the axis for good.
+   */
+  createdTag?: string
+}
+
+/** A bulk batch's answer: how many items it changed, and its undo. */
+export interface BulkTagResult {
+  touched: number
+  undo: BulkTagUndo
+}
 
 /** createMasterDataActions binds the master-data group to one sync context. */
 export function createMasterDataActions(ctx: SyncContext) {
@@ -142,6 +167,61 @@ export function createMasterDataActions(ctx: SyncContext) {
     const assignment = assignmentOf(itemId, tagId, masterStore.itemTagList)
     if (!assignment) return
     moveTag(assignment.id, primaryPosition(itemId, masterStore.itemTagList))
+  }
+
+  /**
+   * Give a tag to many items at once (FR-24.9), optionally filing them under
+   * it. Items already carrying it as asked are not rewritten, so a second run
+   * of the same batch is a no-op. `createdTag` marks the tag as made for this
+   * batch, so the undo removes it too.
+   *
+   * One action for M9's bulk sheet and `jitpack tags give`: the plan decides
+   * which items write what, and the loop below is where positions are read.
+   */
+  function giveTagToItems(
+    items: MasterItem[],
+    tagId: string,
+    primary: boolean,
+    createdTag = false,
+  ): BulkTagResult {
+    const plan = planTagGrant(items, masterStore.itemTagList, tagId, primary)
+    const undo: BulkTagUndo = { created: [], moved: [], removed: [] }
+    if (createdTag) undo.createdTag = tagId
+
+    for (const item of plan.missing) {
+      // Read per item, immediately before its own write: each insert changes
+      // what the next one has to land below.
+      const position = primary
+        ? primaryPosition(item.id, masterStore.itemTagList)
+        : masterStore.getItemTags(item.id).length
+      undo.created.push(assignTagAt(item.id, tagId, position))
+    }
+    for (const { item, assignment } of plan.demoted) {
+      undo.moved.push({ assignmentId: assignment.id, position: assignment.position })
+      setPrimaryTag(item.id, tagId)
+    }
+    return { touched: plan.missing.length + plan.demoted.length, undo }
+  }
+
+  /** Take a tag away from every one of these items that carries it (FR-24.9). */
+  function takeTagFromItems(items: MasterItem[], tagId: string): BulkTagResult {
+    const rows = planTagRemoval(items, masterStore.itemTagList, tagId)
+    const undo: BulkTagUndo = { created: [], moved: [], removed: rows.map((row) => ({ ...row })) }
+    for (const row of rows) unassignTag(row.id)
+    return { touched: rows.length, undo }
+  }
+
+  /** Write one bulk batch back (FR-24.9's „Rückgängig"). */
+  function undoBulkTag(undo: BulkTagUndo): void {
+    for (const assignmentId of undo.created) unassignTag(assignmentId)
+    for (const { assignmentId, position } of undo.moved) moveTag(assignmentId, position)
+    // Re-created rather than revived: the row was deleted, so it comes back as
+    // a new assignment at the position it held.
+    for (const row of undo.removed) assignTagAt(row.item_id, row.tag_id, row.position)
+    // The guarded delete, deliberately: the unassignments above painted
+    // synchronously, so the guard sees an empty tag — and if another device has
+    // meanwhile filed something under it, refusing is the right answer.
+    if (undo.createdTag) deleteTag(undo.createdTag)
   }
 
   // --- Managing the tags themselves (FR-24.10) ---
@@ -561,6 +641,9 @@ export function createMasterDataActions(ctx: SyncContext) {
     unassignTag,
     moveTag,
     setPrimaryTag,
+    giveTagToItems,
+    takeTagFromItems,
+    undoBulkTag,
     createMasterItem,
     updateMasterItem,
     masterItemDeletionOutlook,
