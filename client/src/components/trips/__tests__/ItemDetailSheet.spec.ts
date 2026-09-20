@@ -817,3 +817,22 @@ describe('M5 FR-25.15 — the lamp belongs to the item it was raised on', () => 
     expect(wrapper.find('[data-testid="save-indicator"]').exists()).toBe(false)
   })
 })
+
+/**
+ * FR-7.3's preparation list, ticked at the line's end — the same edge M4 puts
+ * a packing control on, and the same edge the trip's task list now uses. A
+ * task read one way on one screen and the other way on the next is two
+ * idioms for one act.
+ */
+describe('M5 preparation — the tick stands at the end of the line', () => {
+  it('puts the checkbox past the task, not in front of it', () => {
+    const tripStore = seedTrip('active')
+    seedOpenTask(tripStore)
+
+    const tick = mountSheet().get('[data-testid="m5-todo-impraegnieren"]')
+    const line = tick.element.parentElement
+
+    expect(line?.lastElementChild).toBe(tick.element)
+    expect(line?.firstElementChild?.textContent).toBe('impraegnieren')
+  })
+})

@@ -167,3 +167,74 @@ describe('TripTodoList — whose job a todo is (FR-7.5)', () => {
     expect(wrapper.find('[data-testid="trip-todo-assign-Pflanzen giessen"]').exists()).toBe(false)
   })
 })
+
+/**
+ * Where the tick stands. M4's packing rows put the control at the row's own
+ * edge, so the thing you tap is under the thumb; a task in the same list that
+ * is ticked on the far side reads as a different kind of row, and is reached
+ * across the screen. Both kinds of task and both states are pinned, because
+ * the open row and the resolved one are written out separately.
+ */
+describe('TripTodoList — the tick stands at the row edge, as a packing row does', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  function rowOf(wrapper: ReturnType<typeof mountList>, body: string) {
+    return wrapper.get(`[data-testid="trip-todo-${body}"]`)
+  }
+
+  /** What closes the row — the tick, past everything the end cluster carries. */
+  function lastOf(row: ReturnType<typeof rowOf>) {
+    const last = row.element.lastElementChild
+    return { tag: last?.tagName.toLowerCase(), slot: last?.getAttribute('slot') }
+  }
+
+  it('ticks the trip’s own task at the end, past the seat and the ✕', () => {
+    const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
+
+    expect(lastOf(rowOf(wrapper, 'Pflanzen giessen'))).toEqual({ tag: 'ion-checkbox', slot: 'end' })
+    expect(wrapper.findAll('ion-checkbox')).toHaveLength(1)
+    expect(wrapper.find('ion-checkbox[slot="start"]').exists()).toBe(false)
+  })
+
+  it('ticks a preparation there too, past the chip of the row it belongs to', () => {
+    const wrapper = mountList([preparation('Akkus laden', 'Kamera')])
+
+    expect(lastOf(rowOf(wrapper, 'Akkus laden'))).toEqual({ tag: 'ion-checkbox', slot: 'end' })
+  })
+
+  /**
+   * And it stands *beside* the cluster rather than inside it: the cluster is
+   * capped at a share of the row so a chip can never push the task's own words
+   * off the line, and a tick counted against that cap is paid for by the chip —
+   * which rendered as a bare mark with its name clipped away (owner's eyeball
+   * pass, 2026-09-20).
+   */
+  it('leaves the chip its width, standing beside the cluster and not in it', () => {
+    const wrapper = mountList([preparation('Akkus laden', 'Kamera')])
+
+    const cluster = rowOf(wrapper, 'Akkus laden').get('span[slot="end"]')
+    expect(cluster.findAll('ion-checkbox')).toHaveLength(0)
+    expect(cluster.get('[data-testid="task-item-Kamera"]').text()).toContain('Kamera')
+  })
+
+  it('unticks a finished task at the same edge, so undoing is where doing was', async () => {
+    const wrapper = mountList([ownTask('Pflanzen giessen', 'resolved')])
+
+    await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
+
+    expect(lastOf(rowOf(wrapper, 'Pflanzen giessen'))).toEqual({ tag: 'ion-checkbox', slot: 'end' })
+    expect(wrapper.find('ion-checkbox[slot="start"]').exists()).toBe(false)
+  })
+
+  it('still reports the tap from its new place', async () => {
+    const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
+
+    await rowOf(wrapper, 'Pflanzen giessen').get('ion-checkbox').trigger('ionChange')
+
+    expect((wrapper.emitted('toggle') ?? []).map(([task]) => (task as TripTask).id)).toEqual([
+      'Pflanzen giessen',
+    ])
+  })
+})
