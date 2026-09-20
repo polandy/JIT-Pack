@@ -16538,47 +16538,39 @@ changed what they promise, because the promise moved to the surface that replace
 
 ## The CI legs were split by counting, not by timing (2026-09-20)
 
-The owner asked how to stop the pipeline from setting the pace. The first
-answer was wrong, and measuring is what said so.
+The owner asked how to stop the pipeline from setting the pace. Two of the three
+answers that sounded obvious were wrong, and measuring is what said so.
 
-**The proposal that died on contact with the numbers.** "Build the client once
-and hand the bundle to the ten e2e legs" sounds like ten builds saved. A leg's
-whole setup step is **34 s** — `npm ci` and a build whose type-check and bundle
-already run in parallel (`run-p`) — while making the legs `needs: client` would
-put the 2-minute `client` job in front of every one of them. It would have cost
-more latency than it removed, and the only thing it would genuinely save is
-runner minutes on a repository that pays for none.
+**"Build the client once and hand the bundle to the legs"** sounds like ten
+builds saved. A leg's whole setup step is **34 s** — `npm ci` plus a build whose
+type-check and bundle already run in parallel (`run-p`) — while making the legs
+`needs: client` would put the 2-minute `client` job in front of every one of
+them. More latency than it removes, and the only real saving is runner minutes
+on a repository that pays for none.
 
-**What the same run actually showed.** Two legs, 93 and 94 tests, took **7.9
-and 4.4 minutes**. The pipeline waits for the slowest, so that spread is pure
-latency. `--shard=i/N` splits the test list by *count*, and count is a proxy for
-time that this suite falsifies: one spec file is worth as much as sixteen of the
-small ones.
+**What the same run showed instead.** Two legs, 93 and 94 tests, took **7.9 and
+4.4 minutes**. `--shard=i/N` splits the list by test *count*, and count is a
+proxy for time this suite falsifies: `packing-list.spec.ts` alone is 960 s of
+6249, so whichever legs get its tests run long.
 
-**And the obvious fix would have been worse.** Packing whole files into legs by
-measured duration puts `packing-list.spec.ts` — 960 s of 6249 — alone on a leg
-that is then heavier than the worst leg we started with. A file cannot be halved
-by naming it. What can: give that one file `k` legs and let `--shard=i/k` split
-*within* it, which is the one job `--shard` is good at. So the mechanism is not
-"never shard", it is "shard inside a set somebody chose, rather than letting it
-choose the sets".
+**The fix that was built, measured and then rejected.** Packing each leg with
+named spec files, chosen by measured duration, does balance them — 480–663 s
+against a 264–474 s spread — and it needs a gate to be safe, because a spec file
+that no leg names runs **nowhere** and a suite that silently stopped running a
+file reports exactly the green of one that runs it. That gate works (proved red
+with a file removed from a leg), and the ten legs' `--list` output unioned is
+exactly the 904 tests the unsharded suite lists. It was still the wrong trade:
+it buys about a minute over simply raising the leg count, and it charges a
+matrix edit for **every new spec file** — friction on the one activity this
+project does constantly. The owner ruled for the cheap variant.
 
-**The cost, and where it is paid.** Legs that name their files can lose one: a
-spec nobody names runs nowhere, and a suite that quietly stopped running a file
-reports exactly the green of one that runs it. `scripts/e2e-shard-plan-gate.mjs`
-refuses that, and refuses a half-covered split (`--shard=1/2` without its `2/2`)
-and a leg that mixes `--shard` with a second file, which would quarter that file
-too. It runs in `make ci`, node-only, and it was proved red before it was
-believed: with one file removed from a leg it names the file and exits 1.
+**What shipped: twelve legs instead of ten**, count-split as before. The worst
+leg shrinks roughly with the mean, no new mechanism, nothing to maintain.
+Twelve is the ceiling, not a preference: eight non-shard jobs sit beside the
+legs and the concurrency limit is twenty.
 
-**Verified by listing rather than by running.** The ten legs' `--list` output,
-unioned, is exactly the 904 tests the unsharded suite lists — nothing lost,
-nothing doubled, the split file included. That check costs eleven container
-starts and no test execution, which is why it is the one worth repeating after a
-re-pack.
-
-**What was left alone, on purpose.** The leg count stays ten (one variable at a
-time; the 20-job concurrency ceiling still bounds it). Workers stay at two per
-leg: more workers is more load, and this suite has twice this week produced a
-failure that only appears under load. WebKit stays in the PR run for the same
-reason — it is where those two showed up first.
+**And the part worth remembering.** e2e is not a required check — the merge gate
+is go, go-lint, client, format and docker-build, all under two minutes. So the
+minutes recovered here shorten the time to a *full verdict*, not the time to a
+merge. What actually cost this day was two flaky cases and waiting on a pipeline
+nobody had to wait for.

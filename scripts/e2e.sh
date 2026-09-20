@@ -55,10 +55,10 @@ if [ -n "${E2E_BACKEND:-}" ] || [ -n "${E2E_SERVER:-}" ]; then
   if [ -n "${E2E_BACKEND:-}" ]; then env_flags+=(-e E2E_BACKEND); fi
   if [ -n "${E2E_SERVER:-}" ]; then env_flags+=(-e E2E_SERVER); fi
 fi
-# The duration measurement behind the CI matrix's packing
-# (scripts/e2e-shard-plan.mjs) asks Playwright for a JSON report, and the
-# reporter writes it *inside* the container — so the variable naming the file
-# has to reach it like the ports below.
+# Sizing the CI leg count means measuring where the test-seconds are, and
+# Playwright's JSON reporter writes its file *inside* the container — so the
+# variable naming that file has to reach it like the ports below
+# (client/e2e/README.md, "How many legs CI runs").
 if [ -n "${PLAYWRIGHT_JSON_OUTPUT_NAME:-}" ]; then
   env_flags+=(-e PLAYWRIGHT_JSON_OUTPUT_NAME)
 fi
