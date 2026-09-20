@@ -16336,3 +16336,10 @@ because they were asserting *before* the act they claimed to confirm. Two furthe
 saving at all: `commitNewItem` and the M9 helper used the indicator as a "the replaced edit page is painted" marker,
 which only ever worked because it was always there. They read `m10-edit-head` now — the row that exists exactly when
 the item does, which is what they were actually asking.
+
+**And a latch has to know what it is the answer to.** "Each surface mounts its own indicator and none outlives its
+edit" is true of the three sheets, which close before another one opens, and false of M5's G-9 side panel: tapping
+another row *replaces* the route (ADR-046), so the panel is re-pointed rather than remounted and the raised latch went
+with it — a green lamp confirming, on a fresh item, a write that belonged to the previous one. The exact reading the
+latch was built to stop, reintroduced by the latch. The indicator is keyed by the item id now, and the case that pins
+it changes the prop rather than remounting, because remounting is what the defect consists of not happening.

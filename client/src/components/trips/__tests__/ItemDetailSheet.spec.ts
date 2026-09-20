@@ -776,3 +776,44 @@ describe('M5 says what it knows (FR-21.9, FR-20.4/FR-24.2)', () => {
     )
   })
 })
+
+/**
+ * The G-9 side panel is not closed and reopened when the reader taps another
+ * row — M4 *replaces* the route, so the same sheet is pointed at the next
+ * item (ADR-046). The FR-25.15 latch is per surface and never lowers, so
+ * without a key it would carry the settled lamp across that step and confirm,
+ * on a fresh item, a write that belonged to the previous one — which is the
+ * exact reading the latch was built to stop.
+ */
+describe('M5 FR-25.15 — the lamp belongs to the item it was raised on', () => {
+  it('goes silent again when the panel is pointed at another item', async () => {
+    const tripStore = seedTrip('active')
+    tripStore.applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti2',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Zelt',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+        flag_unused: false,
+        flag_missing: false,
+      },
+    } as never)
+    orchestratorFake.capturePending.value = true
+    const wrapper = mountSheet()
+    orchestratorFake.capturePending.value = false
+    await nextTick()
+    // The positive signal: the write this lamp is the answer to.
+    expect(wrapper.find('[data-testid="save-indicator"]').exists()).toBe(true)
+
+    await wrapper.setProps({ itemId: 'ti2' })
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="save-indicator"]').exists()).toBe(false)
+  })
+})
