@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.16.0](https://github.com/polandy/JIT-Pack/compare/v0.15.0...v0.16.0) (2026-09-20)
+
+
+### Features
+
+* **client:** a row's preparation is a task of the trip (FR-7.6) ([0279efc](https://github.com/polandy/JIT-Pack/commit/0279efcabe4042d8a38b676bdf3ef8b3cf6ae19c))
+* **client:** a selection can be assigned, linked and accompanied (FR-24.9) ([9a98912](https://github.com/polandy/JIT-Pack/commit/9a98912b4cab847431434fd363ff37cd7cc2766b))
+* **client:** only the views a trip is worked in earn a pill (FR-21.21) ([67b4dfb](https://github.com/polandy/JIT-Pack/commit/67b4dfbee7b8f3ec41cf8c01d31265d5e9e24707))
+
+
+### Bug Fixes
+
+* **client:** a BUY_LOCAL row packed on the packing list is a bought one (FR-25.11j) ([34d7f03](https://github.com/polandy/JIT-Pack/commit/34d7f033d6b2eec37b44e2490132779f674a1515))
+* **client:** the save indicator speaks only once it has written something (FR-25.15) ([e250d8a](https://github.com/polandy/JIT-Pack/commit/e250d8aad46c7e2c87946ee76ec57f81e3348380))
+
 ## [0.15.0](https://github.com/polandy/JIT-Pack/compare/v0.14.0...v0.15.0) (2026-09-20)
 
 
