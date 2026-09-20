@@ -2322,8 +2322,9 @@ locked.
     than no control.
   * **FR-25.15 (Editing saves as you go, and says so — 2026-08-07):** the item sheet has **no Save button** — on a phone
     there is nowhere sensible to put one, and G-5 already applies mutations optimistically. What was missing is the
-    confirmation: the sheet shows a compact **icon-only indicator** — an amber pulsing ● the moment something changes, a
-    green ✓ once it settles; the meaning rides on the `title` tooltip (the G-12-06 rule for unlabelled glyphs). *Refined
+    confirmation: the sheet shows a compact **icon-only indicator** — an amber pulsing lamp the moment something
+    changes, a green one once it settles; the meaning rides on the `title` tooltip (the G-12-06 rule for unlabelled
+    glyphs). *Refined
     2026-08-08 (owner): the original labelled chip ("✓ Gespeichert") wrapped next to long item names in the sheet header
     — indicator only, no text.* **Deliberately distinct from G-2**, the global sync glyph: this says the change is
     captured *on this device*, G-2 says whether it reached the server. Offline that difference is the entire story, so
@@ -2337,6 +2338,28 @@ locked.
     open writes (the Local Mode save; the outbox's append to the device) and is blind to the connection. The consequence
     worth keeping: **a requirement can be quoted verbatim in the code that violates it** — the component's own doc
     comment restated the distinction while the prop wired it away.
+    **Refined 2026-09-20 (owner), on the rendered M5 sheet: the indicator could not be read.** Two properties made it
+    so, and they pulled the same way. It was **always on** — `capturePending` is false on a sheet just opened, so the
+    first thing the screen showed was the settled state, which is a confirmation of nothing; an indicator that is never
+    off carries no information, and the mind supplies the nearest reading. And the nearest reading was **a button**,
+    because the glyph was a ✓ on a filled circle at exactly `--jp-control-round`, the diameter of the ✕ next to it: the
+    ✓ is what *accept* looks like everywhere else in the app, and a round filled control beside a round filled control
+    is a pair of controls. Both are gone. It is **silent until it has written something** (a latch inside the component,
+    raised by the first open write and never lowered, so the lamp appears only as the consequence of an act of yours and
+    then stands for the life of the surface — **keyed to the item on M5's G-9 side panel**, which is re-pointed at the
+    next row rather than closed and reopened (ADR-046), and would otherwise confirm on a fresh item a write that
+    belonged to the previous one); and it is **a drawn lamp, not a glyph** — 9 px, amber while in flight,
+    `--jp-done` once captured — which offers no tap target and borrows no meaning from ✓. It keeps a cell as tall as the
+    ✕ so the two centres stay on one line, and is otherwise no wider than itself. *Options weighed and declined: keeping
+    the ✓ and only stripping its chrome (leaves the confirmation-of-nothing); adding the word back under the title (the
+    2026-08-08 wrap is why there is no word, and the line under the title is the context line); and dropping the settled
+    state so only the in-flight lamp exists (takes away the positive confirmation this FR exists for — offline, where
+    the difference from G-2 is the entire story, the head would say nothing at all).* Two consequences: the meaning now
+    rides **entirely** on the tooltip, which a phone does not have, and a lamp says *state* without saying *which* —
+    accepted, because what it said before was not merely unread but wrong. And the e2e clause that pinned indicator and
+    ✕ to one diameter (E2E-M5-14) had written the confusion into the suite as a promise; it now asserts the shared
+    centre line, which is what was actually wrong when it was first raised in 2026-08-16, plus that the lamp is visibly
+    smaller than the button beside it.
   * **FR-25.11k (Search and filter are icons, not a permanent row — 2026-08-07):** **RETIRED for M6 (owner decision
     2026-08-30)**, with FR-25.11g and for the same reason: M6 has no filter bar to put a magnifier beside, and a list of
     this length is read rather than searched. M4's half stands. *What was specified:* on M6 the search field is

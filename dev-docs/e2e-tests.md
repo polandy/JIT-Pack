@@ -1358,6 +1358,26 @@ next to the ✕'s 34 px, both hung from the same top edge, so their centres sat
    from the same frame, so the shared transform cancels out and the
    comparison is exact whenever it runs. Red-proved against the 26 px build.
 
+**Revised 2026-09-20, and the revision is the interesting half.** The owner
+came back to the same header with the opposite complaint: the indicator could
+not be read, because a ✓ on a filled circle at exactly the ✕'s diameter is
+what a confirm button looks like. The equality this case asserted was
+therefore not a promise being kept — it was the defect, pinned. Both of the
+points above survive intact; what changed is *which* property the measurement
+protects. The centre line is what was wrong in 2026-08-16 and it is what the
+case measures now; the shared diameter was a second clause that happened to
+be true of the build in front of the author, and writing it down gave it the
+standing of a requirement.
+
+The rule worth carrying: **a geometric assertion should state the smallest
+property that would have caught the reported defect.** Anything wider is a
+description of the current build, and a description in a test is indistinguishable
+from a decision when somebody later wants to change it. Two further
+consequences here: the case measures the painted lamp rather than the cell
+that centres it (the cell agrees with the ✕ by construction, which is the
+construction under test), and it now performs an edit first, because the lamp
+is silent until the sheet has written something.
+
 ## G-2 — the sync detail (2026-08-17)
 
 **E2E-G2-02** and **E2E-G2-03** are live, in `global-nav.spec.ts` because G-2 is a
@@ -5476,4 +5496,3 @@ parallel session was running the suite from another worktree, and `scripts/e2e.s
 The tell is the shape: a change to one screen does not fail two specs' worth of cases in one
 browser only. `E2E_PORT=4183 scripts/e2e.sh …` is the way out, and a second local suite is
 the first thing to check when a run fails that broadly.
-

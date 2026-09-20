@@ -543,8 +543,10 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await page.getByTestId('m8-cond-summer').click()
     await expect(glance).toContainText('Summer')
 
-    // FR-25.15: the sheet's indicator has settled back to ✓ — the transient
-    // ● is unit-tested (SaveIndicator), racing it here would be a timing bet.
+    // FR-25.15: the sheet's lamp has settled back to green — the transient
+    // amber is unit-tested (SaveIndicator), racing it here would be a timing
+    // bet. Since the lamp is silent until the sheet writes, its presence at
+    // all is now carried by the edits this case made above it.
     const indicator = page.getByTestId('m8-position-sheet').getByTestId('save-indicator')
     await expect(indicator).toHaveAttribute('title', 'Saved')
 

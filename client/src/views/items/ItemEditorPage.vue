@@ -617,7 +617,11 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           {{ t('items.editor.newHint') }}
         </p>
 
-        <div v-else class="edit-head">
+        <!-- The row exists only once the item does, which is what tells the
+             replaced edit page apart from the creation form it replaced. The
+             indicator inside it cannot say that since FR-25.15 went silent
+             until it has written something. -->
+        <div v-else class="edit-head" data-testid="m10-edit-head">
           <SaveIndicator :pending="orchestrator.capturePending.value" />
         </div>
 
@@ -1184,9 +1188,16 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   margin: 4px 0 12px;
 }
 
+/*
+ * The row keeps its height while the FR-25.15 lamp is still silent. Here the
+ * indicator is alone on its line rather than beside a title, so letting the
+ * row collapse would move the whole form up and drop it back the moment the
+ * first edit lands.
+ */
 .edit-head {
   display: flex;
   justify-content: flex-end;
+  min-height: var(--jp-control-round);
 }
 
 .delete-card {

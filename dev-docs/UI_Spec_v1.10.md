@@ -41,6 +41,8 @@ replaced and why. This index only says where to look.
   amount like every other (FR-21.9), and the FR-20.4 chip writes the position the resolution describes.
 * 2026-09-16 — **G-19**: the banner's layer belongs to the content column — below the page head, the width of the
   column (ADR-060 amendment 1).
+* 2026-09-20 — **M5/M8/M10/M11, G-14**: the FR-25.15 save indicator is silent until it has written something, and is a
+  lamp rather than a ✓ at the ✕'s diameter.
 * 2026-09-19 — **G-2**: the detail says when the last sync completed (FR-19.6).
 * 2026-09-19 — **M4**: the FR-25.29 rings are quick filters — a tap adds or removes that traveler, several at once.
 * 2026-09-19 — **M12**: bars are picked, several at once, and one button opens M4 filtered to them (FR-8.2).
@@ -619,11 +621,17 @@ These patterns apply to every screen and are specified once.
     out symmetrical: a dark palette is compressed at its dark end, so **Nacht lifts a card mostly by the plane step and
     Tag mostly by the shadow**. Rendering a card edge and reading the pixels is what establishes that; it is not
     visible in the tokens.
-  * **A round control has one diameter** (`--jp-control-round`, added 2026-08-16). A sheet header carries a *pair* of
-    them — the FR-25.15 save indicator beside the ✕ — and two sizes hung from a shared top edge put their centres on
-    different lines: 26 px against 34 px read as a crooked header on a phone, which is how the owner found it. The size
-    is a shape decision, so it lives in `surfaces.css` with the radii rather than being restated per sheet, and
-    E2E-M5-14 measures the two rendered boxes rather than trusting the stylesheet.
+  * **A round control has one diameter** (`--jp-control-round`, added 2026-08-16). Two sizes hung from a shared top
+    edge put their centres on different lines: 26 px against 34 px read as a crooked header on a phone, which is how
+    the owner found it. The size is a shape decision, so it lives in `surfaces.css` with the radii rather than being
+    restated per sheet.
+    **What a sheet header carries is *not* a pair of them (revised 2026-09-20).** The FR-25.15 save indicator stood
+    beside the ✕ at the same diameter, in the same filled circle, and was therefore read as a second button — the rule
+    above had been applied to something that is not a control at all. A status readout takes the diameter only as a
+    **height**, so the two centres still coincide, and is otherwise as small as it needs to be. The generalisation
+    worth keeping: *one diameter* governs round **controls**, and the test that measures them must say which property
+    it is protecting — E2E-M5-14 asserted equal width and height and so held the confusion in place; it now measures
+    the shared centre line and that the lamp is visibly smaller than the button.
   * **The rule is enforced, not stated.** A view that writes a raw colour, radius or shadow fails the build
     (`scripts/design-tokens-gate.mjs`, invariant 9b). Six screen rebuilds are queued behind this pattern, and without
     the gate each would invent its own numbers again — which is precisely how the nine radii got there.
@@ -1783,7 +1791,8 @@ These patterns apply to every screen and are specified once.
   would mislead (*nur 1×* for a merge, *pro Person* instead of a guessed traveler count, the procurement mode, *mit
   Bedingung* for a position the trip may still exclude).
 * **Actions:** Add/remove positions and group includes; every change commits immediately (G-5): no save button, the
-  FR-25.15 ●→✓ indicator in the sheet header confirms local capture. A refused scope switch answers with an anchored
+  FR-25.15 indicator in the sheet header confirms local capture, and is absent until the sheet has written something
+  (2026-09-20). A refused scope switch answers with an anchored
   toast naming the reason, never a silent no-op.
 * **A name that is taken (2026-08-25, FR-1.6):** the editable name refuses a rename onto a name another template holds —
   an anchored toast names it and **the field goes back to the stored name**, because G-5's auto-save has no other
@@ -1958,7 +1967,8 @@ These patterns apply to every screen and are specified once.
   2026-08-30) and stays unit-less where none is. The setting M10 described from the concept round did not exist until
   then (corrected 2026-08-26); it exists now as `JITPACK_CURRENCY`, an instance-wide label rather than the per-screen
   field this line once implied — units retired (FR-1.8, 2026-08-08). **Editing commits immediately (G-5)** with the
-  FR-25.15 ●→✓ indicator, which this screen previously lacked; there is no save button.
+  FR-25.15 indicator, which this screen previously lacked; there is no save button. Its row keeps its height while
+  the indicator is still silent (2026-09-20), because here it stands alone on a line rather than beside a title.
 * **The rear-view, added 2026-08-31 (FR-27.8 + FR-27.9):** below the dependency section and **above the delete card**,
   because the card's *„An N Stellen verwendet"* is the number this list makes navigable and the reader wants the names
   before the count. *„Enthalten in"* lists every group and Ferien-Vorlage whose own positions name the item, each row
@@ -2037,7 +2047,7 @@ These patterns apply to every screen and are specified once.
   something is unassigned (2026-08-27, UX-8):** with zero containers and zero unassigned items, its "everything is
   assigned" line would contradict the empty state right above it, so the G-7 empty state stands alone.
 * **Editing is the M5 bottom sheet**, the same grammar as M8's position sheet: header with the container's load, then
-  name, carrier, weight limit and the pairing selector, with the FR-25.15 auto-save chip — no Save button. **Pairing is
+  name, carrier, weight limit and the pairing selector, with the FR-25.15 auto-save lamp — no Save button. **Pairing is
   exclusive and set on both sides at once**, and clearing or deleting one side releases the other; a half-set pair would
   render an imbalance against a container that does not consider itself paired.
 * **Creating is the FR-24.5 minimal form:** the ＋ FAB creates the container with a placeholder name and opens its sheet,

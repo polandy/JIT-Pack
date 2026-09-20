@@ -73,12 +73,18 @@ test.describe('M11 containers @local @m11', () => {
     // traceability matrix has credited this case with saying so since the
     // rebuild. Asserted 2026-08-30: the visible indicator is the positive
     // signal the absence beside it is worth anything against.
+    //
+    // Since 2026-09-20 the order is the assertion. The indicator is silent
+    // on a sheet that has written nothing, so it has to be read *after* the
+    // edit it confirms — which is also what makes the pair falsifiable: it
+    // was green before the tap for as long as the lamp was always lit.
+    await expect(page.getByTestId('save-indicator')).toHaveCount(0)
+    await sheetChip(page, 'Andy').click()
+    await expect(sheetChip(page, 'Andy')).toHaveClass(/sel/)
     await expect(page.getByTestId('save-indicator')).toBeVisible()
     await expect(
       page.getByTestId('m11-sheet').getByRole('button', { name: /save|speichern/i }),
     ).toHaveCount(0)
-    await sheetChip(page, 'Andy').click()
-    await expect(sheetChip(page, 'Andy')).toHaveClass(/sel/)
     await closeSheet(page)
     await expect(card(page, 'Links')).toContainText('Andy')
 
