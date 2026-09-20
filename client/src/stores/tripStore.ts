@@ -172,10 +172,6 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return getTodos(tripId).filter((t) => t.trip_item_id === tripItemId)
   }
 
-  function getOpenTodos(tripId: string): ItemTodo[] {
-    return getTodos(tripId).filter((t) => t.task_state === 'open')
-  }
-
   /**
    * The trip's own todos (FR-7.4), open first, each half by text — an order
    * that survives a reload, which the store's insertion order does not.
@@ -484,7 +480,6 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     getAppliedChanges,
     getTodos,
     getItemTodos,
-    getOpenTodos,
     getTripTodos,
     getComments,
     getItemComments,

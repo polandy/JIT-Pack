@@ -55,7 +55,6 @@ describe('trip todos in the trip store (FR-7.4)', () => {
     const kpis = tripStore.kpis('t1')
     expect(kpis.packedItems).toBe(kpis.totalItems)
     expect(kpis.totalTodos).toBe(0)
-    expect(tripStore.getOpenTodos('t1')).toEqual([])
     expect(tripStore.itemsWithOpenPrep('t1')).toEqual([])
     // The positive signal beside those absences: the todo is in the store.
     expect(tripStore.getTripTodos('t1')).toHaveLength(1)

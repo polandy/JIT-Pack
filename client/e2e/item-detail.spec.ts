@@ -382,7 +382,7 @@ test.describe('M5 item detail @local @m5', () => {
   // other. A case that only looked for the todo would pass just as well
   // against a build that rendered the row in both places at once.
   //
-  // The third reader is M4: `getOpenTodos` feeds the row's prep badge, so
+  // The third reader is M4: the row's prep badge counts the same todos, so
   // closing the sheet is what proves the promotion is a trip-level fact
   // rather than something the sheet remembers about itself.
   test('E2E-M5-05: a note promoted to a task leaves the notes and joins the preparation', async ({
