@@ -1629,7 +1629,9 @@ These patterns apply to every screen and are specified once.
   (FR-25.10); this "assign to a traveler" is to be reframed (per-person shopping row or lightweight "for whom" note)
   when M6 is re-mocked.
 * **What was bought (FR-25.11j, built 2026-08-25):** checking a row off takes it off the tab — a BUY_BEFORE row by
-  changing its mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. Under the list sits a
+  changing its mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. A BUY_LOCAL row
+  checked off on the **packing list** rather than here records nothing of the kind, and is listed by its packed state
+  instead (corrected 2026-09-20). Under the list sits a
   reveal bar in **M4's FR-25.2 shape**: *„1 gekaufte anzeigen"*, off by default, the count in the label, one tap. A
   revealed row states where it went (*„auf der Packliste"* for a purchase before departure, *„eingepackt"* for one at
   the destination) and its checkbox is the way back — unchecking restores the mode it was bought from and clears the

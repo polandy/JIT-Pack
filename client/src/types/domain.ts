@@ -60,6 +60,14 @@ export type ItemState = 'open' | 'packing_now' | 'partial' | 'packed' | 'skipped
  * the row (FR-5.2, see `domain/packState`).
  */
 export const STATE_PACKING_NOW: ItemState = 'packing_now'
+
+/**
+ * The settled end of the packing states, as a value for the same reason
+ * {@link STATE_PACKING_NOW} is one. M6 reads it as the record of a BUY_LOCAL
+ * purchase (FR-25.11j): buying at the destination *is* packing, so the row
+ * says it was bought by being packed.
+ */
+export const STATE_PACKED: ItemState = 'packed'
 export type ItemMode = 'pack' | 'buy_before' | 'buy_local'
 
 /**
