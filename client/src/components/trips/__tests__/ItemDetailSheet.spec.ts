@@ -12,6 +12,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
+import { nextTick, ref } from 'vue'
 
 import ItemDetailSheet from '../ItemDetailSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
@@ -26,7 +27,9 @@ vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
 const orchestratorFake = {
   syncStatus: { state: { value: 'synced' } },
   // FR-25.15: the indicator's own signal, deliberately not the one above.
-  capturePending: { value: false },
+  // A real `ref`, because since the indicator latches, what it says is a
+  // function of the signal *changing* and not only of its value at mount.
+  capturePending: ref(false),
   setReviewFlag: vi.fn(),
   setLatePacker: vi.fn(),
   packToggle: vi.fn(),
@@ -523,34 +526,48 @@ describe('M5 FR-25.19 assignment', () => {
  * signal is a value somebody sets.
  */
 describe('M5 FR-25.15 save indicator', () => {
+  it('says nothing on a sheet that has been opened and not edited', () => {
+    seedTrip('active')
+    const wrapper = mountSheet()
+
+    // The positive signal the three cases below stand against. Until
+    // 2026-09-20 the settled lamp was here from the first frame, so each of
+    // them would have been just as green with the sheet writing nothing.
+    expect(wrapper.find('[data-testid="save-indicator"]').exists()).toBe(false)
+  })
+
   it('says it is saving while a write of mine is still open', async () => {
     seedTrip('active')
     orchestratorFake.capturePending.value = true
     const wrapper = mountSheet()
 
     const indicator = wrapper.get('[data-testid="save-indicator"]')
-    expect(indicator.text()).toBe('●')
+    expect(indicator.classes()).toContain('saving')
     expect(indicator.attributes('title')).toBe('Saving…')
   })
 
   it('says so offline too — the sync state has no vote', async () => {
     seedTrip('active')
-    // What G-2 reports, and what used to decide this glyph.
+    // What G-2 reports, and what used to decide this lamp.
     orchestratorFake.syncStatus.state.value = 'offline'
     orchestratorFake.capturePending.value = true
     const wrapper = mountSheet()
 
-    expect(wrapper.get('[data-testid="save-indicator"]').text()).toBe('●')
+    expect(wrapper.get('[data-testid="save-indicator"]').classes()).toContain('saving')
     orchestratorFake.syncStatus.state.value = 'synced'
   })
 
   it('settles once nothing of mine is open, whatever the sync state is', async () => {
     seedTrip('active')
     orchestratorFake.syncStatus.state.value = 'syncing'
+    orchestratorFake.capturePending.value = true
     const wrapper = mountSheet()
 
+    orchestratorFake.capturePending.value = false
+    await nextTick()
+
     // A background pull is G-2's business; the sheet has nothing open.
-    expect(wrapper.get('[data-testid="save-indicator"]').text()).toBe('✓')
+    expect(wrapper.get('[data-testid="save-indicator"]').classes()).toContain('saved')
     orchestratorFake.syncStatus.state.value = 'synced'
   })
 })

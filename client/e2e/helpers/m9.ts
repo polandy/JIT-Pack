@@ -64,10 +64,12 @@ export async function createItem(page: Page, name: string, opts: NewItem = {}): 
   }
 
   await visiblePage(page).getByTestId('m10-create').click()
-  // Creating ends where editing continues — the saved item, by name, with
-  // the editor's own save indicator beside it.
+  // Creating ends where editing continues — the saved item, by name, on the
+  // edit head that only the replaced page carries. Not the FR-25.15
+  // indicator inside it: since 2026-09-20 that is silent until it has
+  // written something, so it says nothing about which page is on screen.
   await expect(page.getByTestId('header-title')).toHaveText(name)
-  await expect(visiblePage(page).getByTestId('save-indicator')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m10-edit-head')).toBeVisible()
   await writesLanded(page)
 }
 

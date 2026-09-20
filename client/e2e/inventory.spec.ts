@@ -54,15 +54,18 @@ const TALL_PNG = Buffer.from(
  * back immediately overlaps two outlet transitions — after which
  * `ion-router-outlet` intercepts pointer events and the next tap simply
  * never lands. That surfaces as an unclickable FAB 30 s later, nothing
- * resembling a navigation error. The FR-25.15 indicator exists only once
- * the item does, so it is a positive signal that the replaced page — and
- * not the form it replaced — is the one now on screen.
+ * resembling a navigation error. The edit head exists only once the item
+ * does, so it is a positive signal that the replaced page — and not the
+ * form it replaced — is the one now on screen. It used to be the FR-25.15
+ * indicator inside that head, which stopped saying so on 2026-09-20: the
+ * indicator is silent until it has written something, and the write that
+ * created the item can well have landed before its page was painted.
  */
 async function commitNewItem(page: Page, name: string) {
   await visiblePage(page).getByTestId('m10-create').click()
   // Creating ends where editing continues — the saved item, by name.
   await expect(page.getByTestId('header-title')).toHaveText(name)
-  await expect(visiblePage(page).getByTestId('save-indicator')).toBeVisible()
+  await expect(visiblePage(page).getByTestId('m10-edit-head')).toBeVisible()
 }
 
 /**
@@ -1420,7 +1423,7 @@ test.describe('M9 — the search creates what it did not find (FR-24.11)', () =>
     await sheet.getByTestId('create-item-open').click()
 
     await expect(page.getByTestId('header-title')).toHaveText('Ladegerät')
-    await expect(visiblePage(page).getByTestId('save-indicator')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-edit-head')).toBeVisible()
     await writesLanded(page)
 
     await backToInventory(page)

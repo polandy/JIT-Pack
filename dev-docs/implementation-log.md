@@ -402,6 +402,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
 - [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
+- [An indicator that was never off (2026-09-20)](#an-indicator-that-was-never-off-2026-09-20) — FR-25.15: why a confirmation of nothing reads as a button, and the test that had pinned the defect.
 
 ## Deviations
 
@@ -16292,3 +16293,46 @@ is what they always claimed to be doing. The new case had the same disease twice
 row off the top it moved the list by three pixels, under the rule's own noise threshold, and passed against the
 unfixed build. It aims at the topmost one and asserts the distance.
 
+### An indicator that was never off (2026-09-20)
+
+FR-25.15, reported by the owner from the running packing list: *"the semantics of the checkmark are unclear and
+therefore confusing"*. The ✓ left of the sheet's ✕ is the auto-save indicator. Nothing about it was broken — it was
+wired to the right signal, it had been audited once already (2026-08-30), and its own doc comment stated its contract
+correctly. It was unreadable anyway, for two reasons that the code shows neither of.
+
+**The wrong premise: that an indicator is a readout.** `capturePending` is false on a sheet just opened, so the first
+thing the screen rendered was the settled state. A confirmation of something you have not done confirms nothing, and a
+signal that is never off carries no information at all — it is furniture, and the eye files it as part of the frame.
+Every one of its states was correct; the set of states was missing the only one that would have made the others mean
+something. The fix is a latch inside the component: raised by the first open write, never lowered, so the lamp appears
+only as the consequence of an act and then stands for the life of the surface. It needs no state outside the component
+because each surface mounts its own and none outlives its edit.
+
+**The second reason, and the owner's own diagnosis: the glyph.** A ✓ is what *accept* looks like everywhere else in the
+app, and it sat on a filled circle at exactly `--jp-control-round` — the diameter of the ✕ beside it, which is a
+button. G-14's rule *a round control has one diameter* had been applied to something that is not a control, and the
+result satisfied every rule while reading as a second button. It is a 9 px drawn lamp now: amber in flight,
+`--jp-done` when captured, no tap target and no borrowed meaning. Weighed and declined: stripping the chrome but
+keeping the ✓ (leaves the confirmation-of-nothing); putting the word back under the title (the 2026-08-08 wrap is why
+there is no word); and dropping the settled state entirely so only the in-flight lamp exists — that one is the closest
+call, and it loses because offline, where the difference from G-2 is the whole point of this FR, the header would say
+nothing at all.
+
+**The cost, accepted.** The meaning now rides *entirely* on the `title` tooltip, which a phone does not have, and a
+lamp says *state* without saying *which*. That is worse than a label and better than the ✓, which did not merely fail
+to say "saved" — it said "tap me to confirm".
+
+**The trap, with a price.** E2E-M5-14 asserted that indicator and ✕ share a width, a height and a centre line. The
+centre line was the 2026-08-16 defect; the shared width was a property of the build in front of the author, written
+down and thereby given the standing of a requirement. So the suite held the confusion in place as firmly as it held
+the promise, and the case had to be argued down rather than simply updated. **A geometric assertion should state the
+smallest property that would have caught the reported defect** — anything wider is a description of the current build,
+and a description in a test is indistinguishable from a decision to the next reader.
+
+The second half of that price was quieter. Five e2e clauses read the indicator after an edit and asserted it visible —
+`toBeVisible()` against something that had been visible since the sheet opened. Every one would have passed with the
+write removed. The latch makes them falsifiable for the first time, and the ones that needed reordering needed it
+because they were asserting *before* the act they claimed to confirm. Two further sites turned out not to be about
+saving at all: `commitNewItem` and the M9 helper used the indicator as a "the replaced edit page is painted" marker,
+which only ever worked because it was always there. They read `m10-edit-head` now — the row that exists exactly when
+the item does, which is what they were actually asking.
