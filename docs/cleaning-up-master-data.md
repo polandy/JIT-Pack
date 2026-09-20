@@ -6,8 +6,10 @@ from a spreadsheet, JIT-Pack gives you a delete endpoint per row.
 
 !!! tip "For tags, try the app first"
     **Inventory → ⋮ → Manage tags** renames, merges, reorders and deletes tags, and it is
-    the only place that can *merge* two tags into one. Merging is usually what you want
-    when a tag was typed twice — it keeps every item filed, which deleting does not. See
+    the only place that can *merge* tags into one. Merging is usually what you want
+    when a tag was typed twice — it keeps every item filed, which deleting does not. Several
+    at once: **Select several**, tick the tags that mean the same thing, then **Merge** and
+    pick the one that stays (the tags are offered with their item counts, biggest first). See
     [what the endpoint does differently](#deleting-a-tag-is-not-what-the-app-does) below.
 
 !!! tip "Let the app find the mess"

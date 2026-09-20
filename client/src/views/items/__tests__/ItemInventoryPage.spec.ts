@@ -37,6 +37,7 @@ import { presentToast } from '@/lib/toast'
 import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { useMasterStore } from '@/stores/masterStore'
+import { inventoryProperties } from '@/composables/useInventoryProperties'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 
@@ -1106,6 +1107,59 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
   })
 })
 
+describe('M9 — who an item is usually for, on the row (FR-1.9 over FR-24.4)', () => {
+  const DIRECTORY = [
+    { user_id: 'u-sia', display_name: 'Sia' },
+    { user_id: 'u-max', display_name: 'Max' },
+  ]
+
+  beforeEach(() => {
+    inventoryProperties().reset()
+    Object.assign(orchestratorFake, identityStub())
+  })
+
+  function seedAssigned(name: string, id: string, userId: string | null) {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.items,
+      id,
+      deleted: false,
+      row: { name, unit: 'pcs', default_assignee_id: userId },
+    })
+  }
+
+  it('names the account on the row once the device asks for it', async () => {
+    Object.assign(orchestratorFake, { fetchUsers: async () => DIRECTORY })
+    seedAssigned('Zelt', 'i1', 'u-sia')
+    seedAssigned('Hammer', 'i2', null)
+
+    const page = mountPage()
+    await flushPromises()
+    // Lean by default: the account is not on the row until it is switched on.
+    expect(page.find('[data-testid="m9-row-assignee"]').exists()).toBe(false)
+
+    inventoryProperties().toggle('assignee')
+    await flushPromises()
+
+    const named = page.findAll('[data-testid="m9-row-assignee"]')
+    expect(named).toHaveLength(1)
+    expect(named[0]!.text()).toContain('Sia')
+  })
+
+  it('finds an item by the account it names (FR-24.7’s fourth field)', async () => {
+    Object.assign(orchestratorFake, { fetchUsers: async () => DIRECTORY })
+    seedAssigned('Zelt', 'i1', 'u-sia')
+    seedAssigned('Hammer', 'i2', null)
+
+    const page = mountPage()
+    await flushPromises()
+    await typeSearch(page, 'sia')
+
+    expect(page.findAll('[data-testid="m9-row"]')).toHaveLength(1)
+    expect(page.text()).toContain(t('items.match.assignee'))
+  })
+})
+
 describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
   // Named spies rather than reads back off `orchestratorFake`: it is typed
   // as the master-data stub, and `Object.assign` does not widen that type.
@@ -1267,6 +1321,77 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     expect(vi.mocked(presentToast)).toHaveBeenCalledWith({
       message: t('items.tagMergeNoTarget', { tag: 'Hygiene' }),
     })
+  })
+
+  it('merges a selection of tags into the one the picker names (FR-24.14)', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedTag('Hygiene', 't-hyg')
+    seedTag('hygiene', 't-hyg2', 1)
+    seedTag('Technik', 't-tec', 2)
+    assignTag('i1', 't-hyg')
+    const mergeTagsMany = vi.fn().mockReturnValue(1)
+    Object.assign(orchestratorFake, { mergeTagsMany })
+
+    // The picker offers the *picked* tags and nothing else: the selection is
+    // the claim that these are one tag, so the survivor comes from inside it.
+    const buttons: { text: string; data?: string }[] = []
+    const create = vi
+      .spyOn(actionSheetController, 'create')
+      .mockImplementation(async (opts: { buttons?: unknown[] } = {}) => {
+        buttons.push(...((opts.buttons ?? []) as typeof buttons))
+        return { present: async () => {}, onDidDismiss: async () => ({ data: 't-hyg' }) } as never
+      })
+    vi.mocked(confirmDestructive).mockResolvedValueOnce(true)
+
+    const page = mountPage()
+    await flushPromises()
+    page.getComponent(TagManagerSheet).vm.$emit('mergeMany', [
+      { id: 't-hyg', name: 'Hygiene' },
+      { id: 't-hyg2', name: 'hygiene' },
+    ])
+    await flushPromises()
+    create.mockRestore()
+
+    expect(buttons.map((b) => b.data).filter(Boolean)).toEqual(['t-hyg', 't-hyg2'])
+    // Largest first: „Hygiene" carries the one assignment, „hygiene" none.
+    expect(buttons[0]!.text).toBe(t('items.tagsMergeManyCount', { name: 'Hygiene', n: 1 }))
+    expect(mergeTagsMany).toHaveBeenCalledWith(['t-hyg2'], 't-hyg')
+    expect(vi.mocked(presentToast)).toHaveBeenCalledWith({
+      message: t('items.tagMerged', { n: 1, tag: 'Hygiene' }),
+    })
+  })
+
+  it('writes nothing when the merge confirm is declined (FR-24.14)', async () => {
+    seedItem('Sonnencreme', 'i1')
+    seedTag('Hygiene', 't-hyg')
+    seedTag('hygiene', 't-hyg2', 1)
+    const mergeTagsMany = vi.fn()
+    Object.assign(orchestratorFake, { mergeTagsMany })
+
+    const create = vi
+      .spyOn(actionSheetController, 'create')
+      .mockImplementation(
+        async () =>
+          ({ present: async () => {}, onDidDismiss: async () => ({ data: 't-hyg' }) }) as never,
+      )
+    vi.mocked(confirmDestructive).mockResolvedValueOnce(false)
+
+    const page = mountPage()
+    await flushPromises()
+    page.getComponent(TagManagerSheet).vm.$emit('mergeMany', [
+      { id: 't-hyg', name: 'Hygiene' },
+      { id: 't-hyg2', name: 'hygiene' },
+    ])
+    await flushPromises()
+    create.mockRestore()
+
+    expect(mergeTagsMany).not.toHaveBeenCalled()
+    // The positive signal: the confirm is what was reached and declined.
+    expect(vi.mocked(confirmDestructive)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: t('items.tagsMergeManyConfirmBody', { n: 0, m: 1, target: 'Hygiene' }),
+      }),
+    )
   })
 
   it('renames through the prompt, and keeps the alert open on a name already taken', async () => {

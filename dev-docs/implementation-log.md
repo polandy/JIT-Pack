@@ -411,6 +411,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The gesture window is a residue, not an oversight (2026-09-20)](#the-gesture-window-is-a-residue-not-an-oversight-2026-09-20) — FR-21.17: the 120–220 ms the rule keeps on purpose, and why the flake pointed the wrong way.
 - [Three CI levers, two measured worse than nothing and one disproved (2026-09-20)](#three-ci-levers-two-measured-worse-than-nothing-and-one-disproved-2026-09-20) — what the runner's variance does to a single-run measurement.
 - [The M4 unit was 2958 lines in one file (2026-09-20)](#the-m4-unit-was-2958-lines-in-one-file-2026-09-20) — the split, and the helper move it would otherwise have duplicated.
+- [Merging a set of tags is not merging pairs (2026-09-20)](#merging-a-set-of-tags-is-not-merging-pairs-2026-09-20) — one plan over the selection, not a loop: the outbox accepts what `UNIQUE (item_id, tag_id)` then refuses.
+- [The inventory could not say whose job an item usually is (2026-09-20)](#the-inventory-could-not-say-whose-job-an-item-usually-is-2026-09-20) — FR-1.9's reader on M9: the offer is filtered by G-8, the stored preference is not; no filter by account.
 
 ## Deviations
 
@@ -16622,3 +16624,70 @@ in both browsers.
 quick-add loop) moved into `client/e2e/helpers/m4.ts` rather than being copied
 four times — which is exactly the drift `e2e-helpers-gate.mjs` exists to stop,
 and the split would have introduced it in the one commit that looks harmless.
+
+## Merging a set of tags is not merging pairs (2026-09-20)
+
+FR-24.14 looks like a loop over FR-24.10's merge, and building it that way
+writes rows the server refuses.
+
+**The trap.** `mergeTags` plans against `masterStore.itemTagList` and then
+enqueues the writes; the optimistic copies are not back in that list when the
+next call reads it. Merging *Sommerurlaub* and *Sommersachen* into *Sommer* one
+after the other therefore plans each pair against an inventory in which the
+other merge has not happened — and an item carrying **both** sources is
+re-pointed twice, producing two `item_tags` rows naming *Sommer* for one item.
+`UNIQUE (item_id, tag_id)` refuses the second, but only once the push reaches
+the server, long after the outbox accepted it. The existing code already knew
+half of this: `mergeTags` calls `mutations.deleteTag` directly rather than the
+guarded `deleteTag`, with a comment saying the guard would read state
+mid-change. The same property bites one level up, and the answer had to be one
+plan over the set (`planTagMergeMany`), not a better loop.
+
+**What the plan decides per item**, and the reason it can: the lowest-positioned
+picked tag survives as the re-point and the rest are dropped, or — where the
+item already carries the target — all of them are dropped and the target
+inherits the lowest position. Both branches keep FR-24.2's heading still, which
+is what FR-24.10's promote clause buys for one pair.
+
+**A count that was wrong for the new case.** `mergeTags` returned
+`repoint.length + drop.length` and the toast says „N Artikel". For one source
+those are the same number, because a tag is on an item at most once; for a set
+they are not, and the first version of the seam test caught it reporting 2 for
+one item. It counts distinct items now.
+
+**The e2e fixture is the case, and it is easy to get wrong twice.** Three tags
+and three items, with one item carrying two of the sources — two and two
+collapses to the FR-24.10 case E2E-M9-19 already covers. And the tags have to be
+*different words*: the give idiom matches an existing tag under the uniqueness
+fold, so „sommer" typed beside „Sommer" assigns the existing tag instead of
+creating a second one, and the fixture would quietly be two tags rather than
+three.
+
+## The inventory could not say whose job an item usually is (2026-09-20)
+
+FR-1.9 shipped on 2026-09-18 with a writer (M10, and FR-24.9's bulk action) and
+no reader outside the editor: the answer to „was ist üblicherweise meins?" was
+two hundred items opened one at a time.
+
+**It is a property, not a column, and the offer is filtered rather than the
+storage.** M9's FR-24.4 sheet gains a fourth toggle — but it is the first
+property that is not offered everywhere, since G-8 hides the whole feature below
+two accounts. `offeredProperties(canNameAccount)` decides what the sheet lists;
+what the device has **stored** is never touched, because the same phone may open
+a shared instance tomorrow and a display preference that forgets itself on the
+way is worse than a toggle that is briefly absent.
+
+**The filter that was not built.** The obvious next control is a filter by
+account, and it was declined: FR-24.2's axis is tags, an account is not a tag —
+the argument that kept „Stillgelegt" off the axis — and a second axis goes into
+a bar already three rows high at 390 px. The assignee's display name joined
+FR-24.7's fold instead, as the weakest of its four reasons. That is the cheap
+90 %: typing a name finds their items, with no new chrome. The revisit trigger
+is in FR-1.9 — a query that is a name and *stays* while rows are edited is
+somebody using the search as a filter.
+
+**Why the property sheet has no unit test.** Ionic renders an overlay's content
+only once it has presented, and under jsdom it never does — the first attempt
+asserted on toggles that are not in the DOM and went green for the wrong reason
+against `.exists() === false`. The rule moved into the composable, where it is
+tested directly, and the sheet is covered by E2E-M9-29 in a real browser.

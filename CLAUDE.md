@@ -54,7 +54,7 @@ Which tier a document belongs to is decided by **who reads it**, never by what i
 
 ## Not built yet
 
-The packing concept is closed and every numbered backlog item below is done; the reasoning behind each is in the log (scan its index). **Numbers stay stable** because the log and specs refer to them (e.g. „item 19" means NFR-4.12). Real sources of open work, in order: what the owner just asked for; an open `*REVIEW*.md` worklist in the repo root (untracked by convention); `dev-docs/mvp-plan.md` Track H (owner-driven dogfood deployment); a fired revisit trigger in a parked stub or ADR.
+The packing concept is closed and every numbered backlog item below is done **except item 26**; the reasoning behind each is in the log (scan its index). **Numbers stay stable** because the log and specs refer to them (e.g. „item 19" means NFR-4.12). Real sources of open work, in order: what the owner just asked for; an open `*REVIEW*.md` worklist in the repo root (untracked by convention); `dev-docs/mvp-plan.md` Track H (owner-driven dogfood deployment); a fired revisit trigger in a parked stub or ADR.
 
 1. Basics first (auth, coverage, pinning, `mise`) — 2026-08-09
 2. §3.27 client package — 2026-08-21
@@ -81,6 +81,7 @@ The packing concept is closed and every numbered backlog item below is done; the
 23. FR-24.3 retire/restore of referenced master rows (ADR-032/034) — 2026-08-25
 24. FR-7.4 trip todos (PR #490) — 2026-09-18. Not in the portable backup, like FR-7.3's todos.
 25. FR-30 the shopping list as a feature module (ADR-066) — 2026-09-19. Own entries are not in the portable backup either.
+26. **Open — FR-24.15, merging duplicate items.** Specified 2026-09-20 with its rules decided; it reverses the 2026-08-31 strike of M9's multi-select merge and gives FR-27.5's fuzzy-matching argument its premise back, and FR-24.12's rejected fourth rule (*similar names*) is owed with it. The two rulings it turns on are in the FR: trip history is **not** re-pointed (a finished trip is a snapshot, and those rows are the trip partition, which a client can only rewrite for trips it holds — invariant 4), and the rear view unions through a new `items.merged_into_id` alias followed one hop (an additive migration under ADR-067). The losing row is disposed of by FR-24.3's ordinary delete, so it is usually retired. The implementation PR owes the ADR weighing the alias against a retroactive re-point. Its tag half shipped as FR-24.14.
 
 **Parked, specified, do not start:** §3.26 calendar feed, the North-Star Plan/During phases, FR-27.8's per-trip usage history, FR-1.6's publish/fork ownership model. Each carries a revisit trigger in its stub.
 

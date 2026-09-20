@@ -4,6 +4,7 @@ import {
   inventoryProperties,
   INVENTORY_PROPERTIES,
   type InventoryProperty,
+  offeredProperties,
 } from '@/composables/useInventoryProperties'
 
 /**
@@ -106,7 +107,34 @@ describe('inventoryProperties (FR-24.4)', () => {
     expect(fromList.isShown('weight')).toBe(true)
   })
 
-  it('offers exactly the three properties the sheet lists', () => {
-    expect([...INVENTORY_PROPERTIES]).toEqual<InventoryProperty[]>(['tags', 'weight', 'price'])
+  it('offers exactly the four properties the sheet lists', () => {
+    expect([...INVENTORY_PROPERTIES]).toEqual<InventoryProperty[]>([
+      'tags',
+      'weight',
+      'price',
+      'assignee',
+    ])
+  })
+})
+
+describe('offeredProperties (FR-1.9 over FR-24.4, G-8)', () => {
+  it('offers the assignee only where there is more than one account', () => {
+    expect(offeredProperties(true)).toContain('assignee')
+    expect(offeredProperties(false)).not.toContain('assignee')
+  })
+
+  it('offers the other three whatever the instance looks like', () => {
+    expect(offeredProperties(false)).toEqual(['tags', 'weight', 'price'])
+  })
+
+  it('keeps a stored preference that is not offered right now', () => {
+    // A phone that showed the column on a shared instance and is then opened
+    // in Local Mode must not lose the setting on the way — the list decides
+    // what is offered, never what is stored.
+    const props = inventoryProperties()
+    props.toggle('assignee')
+
+    expect(offeredProperties(false)).not.toContain('assignee')
+    expect(props.isShown('assignee')).toBe(true)
   })
 })

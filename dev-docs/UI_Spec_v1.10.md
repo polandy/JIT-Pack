@@ -1856,8 +1856,11 @@ These patterns apply to every screen and are specified once.
   tag** so a row appears exactly
   once (FR-24.2); groups order by the tag's `sort_order`, items by name, and items carrying no tag collect in a trailing
   **"Ohne Tag"** bucket that is present only when something is in it. Per row **lean by default**: the leading slot +
-  name; tags, weight and price appear only when enabled in the property sheet (device-local, `localStorage`, never
-  synced). **The leading slot follows G-15's inventory ladder — photo → item mark → the primary tag's mark (muted,
+  name; tags, weight, price and — since 2026-09-20, where FR-1.9 applies — **who the item is usually for** appear only
+  when enabled in the property sheet (device-local, `localStorage`, never synced). The assignee line sits under the
+  name in the meta weight, a person glyph and the account's display name; a row that names nobody shows nothing, and
+  the toggle itself is absent where there are fewer than two accounts (G-8), while a preference already stored is
+  kept. **The leading slot follows G-15's inventory ladder — photo → item mark → the primary tag's mark (muted,
   FR-24.13) → primary-tag initial** (Addendum FR-28.4): the tag initial stays the last resort rather than the default it
   was, so a marked item is recognised here
   the same way it is on the packing list.
@@ -1911,6 +1914,15 @@ These patterns apply to every screen and are specified once.
   once it is empty. **The arrows at the ends are dimmed, not removed**, so the column does not reflow as a tag reaches
   the top or the bottom, and they **withdraw entirely while a search is narrowing the list** — the arrows move a tag
   on the axis, and offering them beside two rows eleven apart on it is an ordering nobody can predict.
+* **Several tags merged in one act (2026-09-20, FR-24.14).** Above the list sits *„Mehrere wählen"*; it turns the
+  rows into a **selection** — a checkbox at the leading edge, the whole row picking it, and the per-row acts, the
+  arrows and the mark control withdrawn, so a tap can mean one thing. A bar replaces the entrance while the mode is
+  on: *„N gewählt"*, *„Zusammenführen"* (dimmed under two) and *„Abbrechen"*. The merge asks **which of the picked
+  tags stays**, in the same action sheet the single merge uses, each named with its assignment count and the
+  **largest first**; the confirm names the survivor, how many items move and how many tags go, and the toast counts
+  the **items** that ended up under the survivor. A picked tag **stays picked while a search narrows it away** — two
+  names for one idea are rarely one query — and after the merge the manager stays open with the mode on, the merged
+  tags simply gone from the axis the selection is read against.
 * **A tag carries a mark (2026-09-19, FR-24.13).** The tag chips, the group headings, the filter sheet and the give/take
   sheet show it beside the tag's name, rendered through `ItemMark` (G-15). The tag manager gives every row a **mark
   control** before the name — the mark, or a dashed empty slot — which opens the item mark's own picker (FR-28.2) over
@@ -1927,9 +1939,10 @@ These patterns apply to every screen and are specified once.
   one chosen, leaving the list whole — filtering takes rows away, jumping does not. It is offered only where it is a
   question: in the grouped order, outside a search, with more than one group. The scroll waits for the sheet to have
   dismissed, because an overlay locks the scroll host while it is up.
-* **Searching (2026-09-13, FR-24.7):** the field matches **name, tags and mark keywords**, folding both spellings of
-  an umlaut, and while a query is running the list leaves its tag groups: the results are grouped by **why** they
-  matched, and a row that matched through something else says *über <tag>*. A **dead end names its cause** — with a
+* **Searching (2026-09-13, FR-24.7):** the field matches **name, tags, mark keywords and — since 2026-09-20, where
+  FR-1.9 applies — the default assignee's name**, folding both spellings of an umlaut; while a query is running the
+  list leaves its tag groups: the results are grouped by **why** they matched, the assignee last, and a row that
+  matched through something else says *über <tag>*. A **dead end names its cause** — with a
   tag chip active the empty state reads *„Kein Treffer in ‚Hygiene'"*, counts the hits outside the filter and offers
   *„In allen Artikeln suchen"*, which drops the filter and keeps the query. The rule itself is
   `client/src/domain/itemSearch.ts`; what M9 owns is the grouping and the sentence.
@@ -1954,7 +1967,16 @@ These patterns apply to every screen and are specified once.
   **Struck 2026-08-31 (owner decision): the clause goes and the multi-select is not owed.** Deduplication is discharged
   where it happens, on import; a second cleanup surface in the inventory answers a question nobody has asked. PRD
   FR-27.5 carries a note that its supporting premise is withdrawn with this, because an argument may not go on resting
-  on a feature that will not exist. The row swipe stays *proposed*: it was specified 2026-07-17 as a shortcut past M10,
+  on a feature that will not exist. **Asked for again 2026-09-20 (owner) and specified as FR-24.15** — merging
+  duplicate items, entered from the selection mode and, as a second way in, from FR-24.11's near-miss search. It is
+  **not built** (backlog item 26) and the strike above stands until it is: what changed is that the question now has
+  an asker, not that the surface exists. What the screen will owe was decided with the FR — the **survivor is named
+  in the sheet FR-24.14 uses**, each candidate with what it brings (tags, weight, photo, usage count) and the
+  most-used first; the confirm states what was taken over from the losing row, how many Vorlagen collapse a position
+  and which dependency edges were dropped. **Trip history is not re-pointed** (a finished trip is a snapshot) and the
+  losing row is disposed of by FR-24.3's ordinary delete, so it is usually *retired* rather than gone — the confirm
+  must therefore not read as an undo: M23 brings the row back, not the references that moved, and it says which rows
+  got there by a merge. The row swipe stays *proposed*: it was specified 2026-07-17 as a shortcut past M10,
   and the shortcut is worth less than it looked once M10's own card had to carry the usage count and the outcome
   sentence — a swipe reveal has room for a label and not for a reason. It returns, if it returns, as a second entry
   point to the same rule and the same wording.

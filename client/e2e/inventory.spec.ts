@@ -541,6 +541,70 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     expect(await groupHeadings(list)).toEqual(['kleidung'])
   })
 
+  /**
+   * E2E-M9-28 (FR-24.14): three tags for one idea, merged in one act.
+   *
+   * Three tags for one idea — the shape a grown axis actually has. The case
+   * the per-pair merge cannot do: **one item carries two of the
+   * sources**, so merging them one after another would re-point both of its
+   * assignments onto the survivor — two `item_tags` rows for one item, which
+   * `UNIQUE (item_id, tag_id)` refuses after the outbox has taken them. The
+   * row surviving with exactly one tag is what says the plan was made over
+   * the whole selection.
+   *
+   * The item's heading is the second assertion, and it is the one the merge
+   * exists for: „sommer" is its primary tag, and if the surviving assignment
+   * kept its own position the row would move to a heading neither tag had.
+   */
+  test('E2E-M9-28: several tags are merged into one, and an item that carried two keeps one', async ({
+    page,
+  }) => {
+    test.slow()
+    // Badehose carries two of the three; the survivor is the one with the
+    // most items, so „Sommer" has to be the biggest of them.
+    await createItem(page, 'Badehose', { tags: ['Sommerurlaub', 'Sommersachen'] })
+    await backToInventory(page)
+    await createItem(page, 'Sonnenhut', { tags: ['Sommer'] })
+    await backToInventory(page)
+    await createItem(page, 'Sonnencreme', { tags: ['Sommer'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    expect(await groupHeadings(list)).toHaveLength(2)
+
+    await openTagManager(page)
+    await page.getByTestId('m9-tags-select').click()
+    await page.getByTestId('m9-tag-pick-Sommer').click()
+    await page.getByTestId('m9-tag-pick-Sommerurlaub').click()
+    await page.getByTestId('m9-tag-pick-Sommersachen').click()
+    await expect(page.getByTestId('m9-tags-selected')).toContainText('3')
+
+    await page.getByTestId('m9-tags-merge-many').click()
+    // Largest first, and it is the one this act keeps.
+    await page.getByTestId('m9-tag-merge-into-Sommer').click()
+    await page
+      .getByTestId('m9-tags-merge-many-confirm')
+      .getByRole('button', { name: 'Merge' })
+      .click()
+    // **One** item, not three: the two that already carried „Sommer" were
+    // never under a source, and the one that carried two of them moves once.
+    // The count is items and not assignments, which is the difference a merge
+    // over a set has from a merge per pair.
+    await expect(page.locator('ion-toast')).toContainText('One item is now filed under')
+    await writesLanded(page)
+
+    await page.getByTestId('m9-tags-close').click()
+    // One heading for all three items: the two misspellings are gone, and the
+    // item that carried both of them is filed under the survivor exactly once.
+    expect(await groupHeadings(list)).toEqual(['sommer'])
+    await expect(list.getByTestId('m9-row')).toHaveCount(3)
+
+    await openTagManager(page)
+    await expect(page.getByTestId('m9-tag-row-Sommer')).toContainText('3')
+    await expect(page.getByTestId('m9-tag-row-Sommerurlaub')).toHaveCount(0)
+    await expect(page.getByTestId('m9-tag-row-Sommersachen')).toHaveCount(0)
+  })
+
   /*
    * E2E-M9-08 measured the gap between the tag axis and the first group
    * heading (UX-4). The axis is gone with FR-24.8, and the geometry that

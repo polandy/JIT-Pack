@@ -396,6 +396,62 @@ describe('the tag admin actions (FR-24.10)', () => {
     )
   })
 
+  it('mergeTagsMany writes one assignment per item and removes every source it emptied', () => {
+    // Two spellings of one tag on one item (FR-24.14): merging them pair by
+    // pair would re-point both onto Kleidung and hand the server two rows
+    // `UNIQUE (item_id, tag_id)` refuses. One plan over the set re-points the
+    // lower and drops the other.
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'sommer', 1)
+    seedTag('tag-3', 'Kleidung', 2)
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+    seedAssignment('it-2', 'item-1', 'tag-2', 3)
+
+    const moved = createMasterDataActions(ctx).mergeTagsMany(['tag-1', 'tag-2'], 'tag-3')
+
+    expect(moved).toBe(1)
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.filter((m) => m.op === 'upsert' && m.table === 'item_tags')).toMatchObject([
+      { id: 'it-1', fields: { tag_id: 'tag-3', position: 0 } },
+    ])
+    expect(muts.filter((m) => m.op === 'delete' && m.table === 'item_tags')).toMatchObject([
+      { id: 'it-2' },
+    ])
+    expect(muts.filter((m) => m.op === 'delete' && m.table === 'tags')).toMatchObject([
+      { id: 'tag-1' },
+      { id: 'tag-2' },
+    ])
+  })
+
+  it('mergeTagsMany leaves the target tag itself alone when the selection includes it', () => {
+    seedTag('tag-1', 'Sommer', 0)
+    seedTag('tag-2', 'Kleidung', 1)
+    seedAssignment('it-1', 'item-1', 'tag-1', 0)
+
+    createMasterDataActions(ctx).mergeTagsMany(['tag-1', 'tag-2'], 'tag-2')
+
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.filter((m) => m.op === 'delete' && m.table === 'tags')).toMatchObject([
+      { id: 'tag-1' },
+    ])
+  })
+
+  it('mergeTagsMany removes a picked tag no item carries either (FR-24.14)', () => {
+    // A tag typed twice and used once is the common duplicate; the *unused*
+    // half is just as common, and a merge that left it on the axis would be
+    // the act failing quietly on the tag the user was most sure about.
+    seedTag('tag-1', 'Sommersachen', 0)
+    seedTag('tag-2', 'Sommer', 1)
+
+    const moved = createMasterDataActions(ctx).mergeTagsMany(['tag-1'], 'tag-2')
+
+    expect(moved).toBe(0)
+    const muts = queued.flatMap((q) => q.muts.map((m) => m.mutation))
+    expect(muts.filter((m) => m.op === 'delete' && m.table === 'tags')).toMatchObject([
+      { id: 'tag-1' },
+    ])
+  })
+
   it('mergeTags into the tag itself writes nothing at all', () => {
     seedTag('tag-1', 'Sommer', 0)
     seedAssignment('it-1', 'item-1', 'tag-1', 0)

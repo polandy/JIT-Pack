@@ -55,6 +55,7 @@ import {
   ellipsisHorizontalOutline,
   eyeOutline,
   funnelOutline,
+  personOutline,
   pricetagsOutline,
   removeCircleOutline,
   swapVerticalOutline,
@@ -90,7 +91,7 @@ import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActi
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
   inventoryProperties,
-  INVENTORY_PROPERTIES,
+  offeredProperties,
   type InventoryProperty,
 } from '@/composables/useInventoryProperties'
 import {
@@ -121,7 +122,7 @@ import {
 import { confirmAction, confirmDestructive, promptText } from '@/lib/confirm'
 import { bulkRetireSentence } from '@/lib/deletionLabels'
 import { presentToast } from '@/lib/toast'
-import { promptTagMerge } from '@/lib/tagMergePrompt'
+import { promptTagMerge, promptTagMergeMany } from '@/lib/tagMergePrompt'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
@@ -507,6 +508,17 @@ function reasonLabel(reason: MatchReason): string {
   return t(`items.match.${reason}`)
 }
 
+/**
+ * Who the row is usually somebody's job for (FR-1.9), or null — shown only
+ * while the device asked for it. An item that names nobody shows **nothing**:
+ * „Niemand" is the editor's empty state, and repeating it down a list is the
+ * overload FR-24.4 took the columns away for.
+ */
+function assigneeOf(item: MasterItem): string | null {
+  if (!props.isShown('assignee') || !canAssign.value) return null
+  return item.default_assignee_id ? userName(item.default_assignee_id) : null
+}
+
 function extrasFor(item: MasterItem): string[] {
   const extras: string[] = []
   if (props.isShown('weight') && item.weight_grams !== null) {
@@ -579,6 +591,23 @@ async function mergeTag(tag: Tag) {
     tags: masterStore.tagList,
     usage: tagUsage.value.get(tag.id) ?? 0,
     merge: orchestrator.mergeTags,
+  })
+}
+
+/**
+ * FR-24.14: merge a whole selection of tags into one of them.
+ *
+ * The orchestrator's `mergeTagsMany` and not a loop over `mergeTags`: the
+ * plan has to be made once over the set, or an item carrying two of the
+ * picked tags is re-pointed twice onto the survivor.
+ */
+async function mergeTagsSelected(tags: Tag[]) {
+  // The manager stays open and the mode stays on: tidying an axis is rarely
+  // one merge, and the merged tags leave the selection by themselves — they
+  // are gone from `tagList`, which is what the picked set is read against.
+  await promptTagMergeMany(tags, {
+    usage: tagUsage.value,
+    merge: orchestrator.mergeTagsMany,
   })
 }
 
@@ -1339,6 +1368,12 @@ onBeforeUnmount(() => observer?.disconnect())
                 <p v-if="searching && viaOf.get(item.id)" class="row-via" data-testid="m9-row-via">
                   {{ t('items.matchVia', { via: viaOf.get(item.id)! }) }}
                 </p>
+                <!-- FR-1.9: whose job this usually is, where the device asked
+                     for it and there is an account to name (G-8). -->
+                <p v-if="assigneeOf(item)" class="row-assignee" data-testid="m9-row-assignee">
+                  <IonIcon :icon="personOutline" />
+                  {{ assigneeOf(item) }}
+                </p>
                 <!-- FR-24.4: only when the device asked for them. -->
                 <div v-if="props.isShown('tags')" class="row-tags">
                   <span
@@ -1499,6 +1534,7 @@ onBeforeUnmount(() => observer?.disconnect())
         @dismiss="tagsOpen = false"
         @rename="renameTag"
         @merge="mergeTag"
+        @merge-many="mergeTagsSelected"
         @remove="removeTag"
         @move="orchestrator.reorderTags"
         @mark="markingTag = $event"
@@ -1534,7 +1570,7 @@ onBeforeUnmount(() => observer?.disconnect())
           <p class="sheet-hint">{{ t('items.propertiesHint') }}</p>
 
           <IonList>
-            <IonItem v-for="key in INVENTORY_PROPERTIES" :key="key" lines="full">
+            <IonItem v-for="key in offeredProperties(canAssign)" :key="key" lines="full">
               <IonLabel>{{ propertyLabel(key) }}</IonLabel>
               <IonToggle
                 slot="end"
@@ -1784,6 +1820,19 @@ onBeforeUnmount(() => observer?.disconnect())
 .row-via {
   color: var(--ion-color-medium);
   font-size: var(--jp-text-xs);
+}
+
+/* FR-1.9: one quiet line under the name, the weight of the „via" line above
+   it — the account is context for the row, never its headline. */
+.row-assignee {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ct-subtext0);
+}
+
+.row-assignee ion-icon {
+  font-size: var(--jp-icon-xs);
 }
 
 .row-tags {

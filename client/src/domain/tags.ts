@@ -399,7 +399,7 @@ export interface TagDeletion {
  * inventory: `item_tags.tag_id` is `ON DELETE CASCADE`, so deleting a used
  * tag silently strips it from every item, and each item whose primary tag it
  * was falls into the leftover bucket. Refusing while it is in use is what
- * makes {@link planTagMerge} the way out, and a merge is what „49 items in
+ * makes {@link planTagMergeMany} the way out, and a merge is what „49 items in
  * Diverses" actually needs.
  */
 export function tagDeletion(tagId: string, assignments: ItemTag[]): TagDeletion {
@@ -414,18 +414,18 @@ export interface PositionedAssignment {
 }
 
 /**
- * What merging one tag into another writes (FR-24.10).
+ * What a tag merge writes (FR-24.10, FR-24.14).
  *
  * Three groups, like {@link planTagGrant}, because the same item can be in
  * any of them and one number would hide it:
  *
- * - `repoint` — the item carries the source and not the target, so the
+ * - `repoint` — the item carries a source and not the target, so the
  *   existing assignment simply changes which tag it names. One write, not a
  *   delete and an insert: the pairing is all the row is, so tearing it down
  *   would put a tombstone in the feed for something that was never removed
  *   (ADR-052), and re-inserting would lose the position the item was filed at.
- * - `drop` — the item carries **both**, and `UNIQUE (item_id, tag_id)` means
- *   the source cannot be re-pointed onto a row that already exists.
+ * - `drop` — the item carries the target too, or a second source, and
+ *   `UNIQUE (item_id, tag_id)` means only one row may name the target.
  * - `promote` — the half of `drop` that would otherwise change what the item
  *   is filed under. FR-24.2 groups by the *lowest* position, so an item whose
  *   primary tag was the source must have the surviving target inherit that
@@ -438,24 +438,64 @@ export interface TagMerge {
   promote: PositionedAssignment[]
 }
 
-export function planTagMerge(sourceId: string, targetId: string, assignments: ItemTag[]): TagMerge {
+/**
+ * What merging one tag — or a whole selection of them — into a target writes
+ * (FR-24.10, widened to a set by FR-24.14).
+ *
+ * The rule per item is FR-24.10's, and the plan is computed once over the
+ * whole selection rather than a merge per source; for one source the two are
+ * the same thing, and for several the difference is the feature rather than
+ * an optimisation. Two sources on one item — „Sommerurlaub" and
+ * „Sommersachen" on the swimsuit — are two assignments that may not both
+ * become the target: `UNIQUE (item_id, tag_id)` refuses the second, and a
+ * per-pair plan cannot see it coming, because each pair is planned against
+ * assignments the previous merge has not written back yet. So exactly one
+ * assignment per item survives:
+ *
+ * - the item carries the target already → every source is dropped, and the
+ *   target inherits the *lowest* source position where that is higher up
+ *   than its own, so FR-24.2's heading does not move;
+ * - it does not → the **lowest-positioned** source is re-pointed at the
+ *   target, at its own position, and the rest are dropped. The lowest is the
+ *   one the heading is read from, so the item stays where it was filed.
+ *
+ * The target is ignored among the sources: a selection includes the tag that
+ * survives, and emptying it would be the one way this act can lose data.
+ */
+export function planTagMergeMany(
+  sourceIds: readonly string[],
+  targetId: string,
+  assignments: ItemTag[],
+): TagMerge {
   const plan: TagMerge = { repoint: [], drop: [], promote: [] }
-  if (sourceId === targetId) return plan
+  const sources = new Set(sourceIds.filter((id) => id !== targetId))
+  if (sources.size === 0) return plan
 
   const targetOf = new Map<string, ItemTag>()
   for (const a of assignments) if (a.tag_id === targetId) targetOf.set(a.item_id, a)
 
-  for (const source of assignments) {
-    if (source.tag_id !== sourceId) continue
-    const target = targetOf.get(source.item_id)
-    if (!target) {
-      plan.repoint.push({ assignment: source, position: source.position })
+  /** The source assignments of one item, in the order they were read. */
+  const byItem = new Map<string, ItemTag[]>()
+  for (const a of assignments) {
+    if (!sources.has(a.tag_id)) continue
+    const carried = byItem.get(a.item_id)
+    if (carried) carried.push(a)
+    else byItem.set(a.item_id, [a])
+  }
+
+  for (const [itemId, carried] of byItem) {
+    const lowest = carried.reduce((a, b) => (b.position < a.position ? b : a))
+    const target = targetOf.get(itemId)
+
+    if (target) {
+      plan.drop.push(...carried)
+      if (lowest.position < target.position) {
+        plan.promote.push({ assignment: target, position: lowest.position })
+      }
       continue
     }
-    plan.drop.push(source)
-    if (source.position < target.position) {
-      plan.promote.push({ assignment: target, position: source.position })
-    }
+    plan.repoint.push({ assignment: lowest, position: lowest.position })
+    plan.drop.push(...carried.filter((a) => a !== lowest))
   }
   return plan
 }
