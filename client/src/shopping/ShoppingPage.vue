@@ -63,22 +63,6 @@ const own = ownEntriesSource(shoppingStore, actions)
 // Absent in a spec that provides none: the list still works on its own.
 const sources = inject(SHOPPING_SOURCES, [])
 
-/**
- * The tab the reader picked; none yet means the trip decides (FR-30.8).
- *
- * Until the trip itself is on the device there is nothing to decide with, and
- * *Vor der Abreise* is the answer that cannot be wrong for a trip nobody has
- * left on yet — a rule read off an absent trip would open a planned trip at
- * the destination and then move the tab under the reader.
- */
-const chosen = ref<ShoppingMode | null>(null)
-const tab = computed<ShoppingMode>(() => {
-  if (chosen.value !== null) return chosen.value
-  if (!trip.value) return ITEM_MODE_BUY_BEFORE
-  return listInFocus({
-    planned: trip.value.status === TRIP_STATUS_PLANNING,
-    packingClosed: isPackingClosed(trip.value),
-  })
 })
 
 /**
@@ -96,6 +80,23 @@ const showBought = ref(false)
 // partition as the packing rows. „Nothing to buy" is a sentence somebody
 // leaves the house on, and a partition still in flight is not it.
 const { trip, loaded: rowsLoaded, ensure } = useTripScreen(props.tripId, orchestrator)
+
+/**
+ * The tab the reader picked; none yet means the trip decides (FR-30.8).
+ *
+ * Until the trip itself is on the device there is nothing to decide with, and
+ * *Vor der Abreise* is the answer that cannot be wrong for a trip nobody has
+ * left on yet — a rule read off an absent trip would open a planned trip at
+ * the destination and then move the tab under the reader.
+ */
+const chosen = ref<ShoppingMode | null>(null)
+const tab = computed<ShoppingMode>(() => {
+  if (chosen.value !== null) return chosen.value
+  if (!trip.value) return ITEM_MODE_BUY_BEFORE
+  return listInFocus({
+    planned: trip.value.status === TRIP_STATUS_PLANNING,
+    packingClosed: isPackingClosed(trip.value),
+  })
 
 // FR-30.4: a purchase is named from the trip's participants, the way every
 // other stamp on the trip is — empty in Local Mode, where nobody is named.
