@@ -1652,17 +1652,19 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   that 23 groups make impossible, and ordering by recency or by usage is deliberately *not* offered, because neither
   number is on the client — `items` carries no client-visible clock and usage is the trip partitions this device may
   not hold. An option whose ordering the device cannot compute is worse than its absence.
-* **FR-24.7 (Inventory Search That Reaches The Data — added 2026-09-13, implemented the same day; a fourth field
-  added 2026-09-20):** M9's search matches an item's **name, its tags, its mark's keywords and — since 2026-09-20 —
-  the display name of its FR-1.9 default assignee**, the weakest of the four reasons because the name it matches is a
+* **FR-24.7 (Inventory Search That Reaches The Data — added 2026-09-13, implemented the same day; a fourth field added
+  2026-09-20):** M9's search matches an item's **name, its tags, its mark's keywords and — since 2026-09-20 — the
+  display name of its FR-1.9 default assignee**, the weakest of the four reasons because the name it matches is a
   person's rather than the item's. That field is what stands in for a filter by account (see FR-1.9), and it exists
   only where FR-1.9 does: in Local and Single-User Mode the directory is empty, so the fold has exactly its original
-  three reasons there. Every field is matched under a fold that accepts **both keyboard spellings of an umlaut** —
-  „gurtel" and „guertel" both reach „Gürtel". Each hit carries **why** it matched, and the results are grouped by
-  that reason (*Treffer im Namen* before *Treffer im Tag* before *Treffer in der Marke* before
-  *Treffer bei „zugewiesen an"*), with a row that
-  matched through something other than its name saying what — a row arriving under a query it does not visibly contain
-  reads as a bug, which is the finding FR-27.13's picker already paid for with its `via` field. An item is reported
+  three reasons there. **It reaches every surface built on the same construction**, which is the point of there being
+  one: M9's field, FR-24.11's composer — where the hit says *über {Name}*, as it does for a tag — and FR-25.13j's
+  browse sheet, which groups by tag rather than by reason and already takes mark-keyword hits the same way. Every
+  field is matched under a fold that accepts **both keyboard spellings of an umlaut** — „gurtel" and „guertel" both
+  reach „Gürtel". Each hit carries **why** it matched, and the results are grouped by that reason (*Treffer im Namen*
+  before *Treffer im Tag* before *Treffer in der Marke* before *Treffer bei „zugewiesen an"*), with a row that matched
+  through something other than its name saying what — a row arriving under a query it does not visibly contain reads
+  as a bug, which is the finding FR-27.13's picker already paid for with its `via` field. An item is reported
   **once**, under the strongest reason it has, so FR-24.2's „each row appears exactly once" holds while searching too.
   *Why:* the old rule was `name.toLowerCase().includes(term)`, and against the real inventory „guertel" and „gurtel"
   each returned **0 of 184** while the belt sat in the list; dozens of names carry ä/ö/ü/ss, and the tag every row

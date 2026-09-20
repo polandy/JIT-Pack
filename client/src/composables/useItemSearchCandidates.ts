@@ -19,8 +19,11 @@ const MARK_KEYWORDS = new Map(MARK_INDEX.map((entry) => [entry.emoji, entry.keyw
  * rebuilt whenever either feed moves (NFR-4.3).
  *
  * The **default assignee** (FR-1.9) joins as a fourth field, by display name.
- * It is what M9 offers instead of a filter by account, and the directory is
- * empty in Local and Single-User Mode, so the field simply is not there where
+ * It is what M9 offers instead of a filter by account, and it reaches the two
+ * other surfaces built on this construction — the quick-add composer, which
+ * names the reason on the row, and FR-25.13j's browse sheet, which groups by
+ * tag and already takes mark-keyword hits without one. The directory is empty
+ * in Local and Single-User Mode, so the field is simply not there where
  * FR-1.9 is not (G-8).
  */
 export function useItemSearchCandidates(): ComputedRef<ItemSearchCandidate[]> {
