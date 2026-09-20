@@ -1,11 +1,12 @@
 /**
  * What a screen's head should do as its list scrolls (FR-21.17).
  *
- * A pure step rather than a handler, because the rule it holds is not
- * obvious and has exactly one interesting case: a collapse changes the
- * scroller's own geometry, and the browser's answer to that arrives
- * looking like a gesture. That case is unreachable from a unit test as
- * long as the rule lives inside a scroll listener.
+ * A pure step rather than a handler, because what the rule has to get
+ * right is the readings it must *not* act on, and a scroll listener is
+ * the one place none of them can be reached from a test. There are three:
+ * the rubber band's jitter, the clamp a collapse provokes in the browser,
+ * and every scroll nobody made — the browser's own, when it brings a
+ * control into view.
  */
 
 /** Below this the head is never in the way, so a gesture is ignored. */
@@ -38,6 +39,49 @@ export interface ScrollReading {
    * head that has never collapsed cannot be the thing clamping anything.
    */
   viewport: { clientHeight: number; scrollHeight: number } | null
+  /**
+   * Whether the reader is the one scrolling — see {@link isScrollGesture}.
+   * A scroll nobody made moves the list without anybody asking, and a head
+   * that answers it moves every row by its own height under a finger that
+   * is already aiming at one.
+   */
+  gesture: boolean
+}
+
+/** The keys that move a scroller. The rest reach it from a field being typed in. */
+const SCROLLING_KEYS = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']
+
+/**
+ * The event types a caller has to listen for, named here rather than at the
+ * listener: which events *count* and which are *heard* have to be the same
+ * set, and written twice they drift into a rule nothing can trigger.
+ */
+export const SCROLLER_INPUTS = ['wheel', 'touchmove', 'keydown', 'pointerdown'] as const
+
+/** One input event, as much of it as the question needs. */
+export interface ScrollerInput {
+  type: string
+  /** Read for a `keydown`; the other types ignore it. */
+  key?: string
+  /** Whether it landed on the scroller itself rather than on something inside it. */
+  onScroller: boolean
+}
+
+/**
+ * isScrollGesture answers whether an input event means the reader is
+ * driving the scroller.
+ *
+ * `pointerdown` is the one that has to ask where it landed: on the scroller
+ * it is a scrollbar being dragged, and anywhere inside it is a row being
+ * tapped — and a tap is precisely what must not count, because the driver of
+ * that tap is what scrolls the next target into view. `keydown` asks which
+ * key, because most of them arrive from a field being typed in rather than
+ * from a list being paged through.
+ */
+export function isScrollGesture({ type, key, onScroller }: ScrollerInput): boolean {
+  if (type === 'pointerdown') return onScroller
+  if (type === 'keydown') return SCROLLING_KEYS.includes(key ?? '')
+  return type === 'wheel' || type === 'touchmove'
 }
 
 /**
@@ -72,8 +116,8 @@ function survivesYield({ viewport }: ScrollReading): boolean {
 
 /**
  * nextHeadState folds one reading into the head's state: it yields on the
- * way down and returns on any upward scroll, ignoring both the jitter at
- * the top and the clamp at the bottom.
+ * way down and returns on any upward *gesture*, ignoring the jitter at the
+ * top, the clamp at the bottom, and every scroll nobody made.
  *
  * Except a clamp that lands within the head's own threshold: there the
  * list is barely longer than its screen, the yield itself made it fit, and
@@ -82,8 +126,11 @@ function survivesYield({ viewport }: ScrollReading): boolean {
  * downward swipe.
  */
 export function nextHeadState(prev: HeadScrollState, reading: ScrollReading): HeadScrollState {
-  const { top } = reading
+  const { top, gesture } = reading
   if (Math.abs(top - prev.top) < NOISE_PX) return prev
+  // The offset is taken up even so, or the next gesture would be measured
+  // against a list that has since moved — and read as a swipe the other way.
+  if (!gesture) return { ...prev, top }
   const up = top < prev.top
   if (up && atBottom(reading) && top > YIELD_AFTER_PX) return { ...prev, top }
   if (!prev.collapsed && !survivesYield(reading)) return { top, collapsed: false }

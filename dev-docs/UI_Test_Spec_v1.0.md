@@ -753,6 +753,11 @@ in WebKit.
   search's few hits overflow their screen by 150 px — past the yield threshold, short of what yielding frees. Scrolled
   to the end, the header line never changes state and the offset stays at the end. Red before the guard: two
   class changes and an offset back near the top.
+* **E2E-M4-135** `all` (FR-21.17, added 2026-09-20) — **implemented** (`packing-list.spec.ts`): with the head yielded
+  by a reader's own flick and the list carried to its end, a row that has gone off the top is brought back into view
+  the way the browser does it — `scrollIntoView`, which nobody asked for. The header line does not change state once
+  (counted, not sampled), and the row moves by the scroll and by nothing else. Red before the rule on both engines:
+  one class change, and the row 162 px down on a 60 px scroll.
 * **E2E-M4-127** `local` (FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): tapping the words of
   the *Erledigte* switch turns it on and it stays on — the tick used to come and go, the label forwarding the tap to
   a checkbox that had already toggled itself. Closing the sheet shows the packed row.
@@ -3503,6 +3508,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-21.7 | E2E+UNIT | G11-02, G11-03, G11-04, G11-05 (brand on identity, done on progress); palette.css (roles named once, primary stays the action hue, no hex outside the table) |
 | FR-25.2 | E2E+UNIT | M4-33, M4-34, M4-35 (the pack registers, one undo, none on un-pack); `usePackUndo` (the snapshot is taken before the pack, replaces rather than stacks, undoes once, no-ops when unarmed) |
 | FR-21.8 | E2E+UNIT+GATE | G14-01, G14-02, G14-03 (the card is a plane, casts a flavour-correct shadow, and bounds the group rather than its entries); surfaces.css (planes differ, `.jp-card` built from tokens, five radius steps, each cast written once); `scripts/design-tokens-gate.mjs` (no raw colour, radius or shadow anywhere in `client/src`) |
+| FR-21.17 | E2E+UNIT | M4-70 (the head yields with the line and holds at the bottom), M4-129 (a list too short to survive the yield keeps its head), M4-135 (a scroll nobody made moves neither the head nor the rows); `headScroll.spec.ts` (the direction, the jitter, the clamp, the short list, the scroll nobody made, and which inputs count as one) |
 | FR-22.1 | E2E+UNIT | M10-04 (add/replace/remove, rendered and read back — written 2026-08-30), M9-01; the M5 rung in the ItemMark component unit (M5-12 retired) |
 | FR-22.2/22.3 | E2E+UNIT | M10-04 asserts the aspect ratio survives the re-encode; the backoff itself is `imageResize.ts` |
 | FR-22.4 | UNIT+SERVER | the 150 KB cap is `imageResize.spec.ts` and the three server layers (invariant 6) — deliberately **not** M10-04, which would be asserting the encoder through a canvas |

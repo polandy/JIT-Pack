@@ -401,6 +401,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The shopping list becomes a module (2026-09-19)](#the-shopping-list-becomes-a-module-2026-09-19) — FR-30/ADR-066: projection over copy, a reversed composer ruling, a gate blind to multi-line imports.
 - [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
 - [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
+- [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
 
 ## Deviations
 
@@ -16261,3 +16262,33 @@ question and has to be answered in one pass. The price of not knowing it was a c
 machine slow enough to interleave the reads with the transition — green in CI, red locally, and reading as a
 rendering difference in both places. A DOMRect keeps its numbers on the prototype, so the helper picks them apart by
 hand before returning them; handed back whole it would cross the `evaluate` boundary as an empty object.
+
+### A head that answered scrolls nobody made (2026-09-20)
+
+FR-21.17, found by reading one red WebKit shard rather than re-running it. E2E-M5-19 failed on a seat whose strip never
+opened. The trace said why: the seat carried Ionic's `ion-activated` — so the pointer had gone down on it — and no
+click ever followed, while M4's header line was `collapsed` in the snapshot before the action and open in the one
+during it. The list had moved by the head's height between the press and the release, so the two landed on different
+elements and the browser raised no click at all. Playwright had said as much in its own log, three clicks running:
+*element is not stable*.
+
+**The wrong premise.** `headScroll.ts` already knew that a scroll can arrive without anybody making it — its whole
+`atBottom` guard exists for the clamp a collapse provokes — and the FR spells that case out. What neither noticed is
+that the clamp is not the only one. The browser scrolls a control into view whenever it has to: for a keyboard focus,
+and for every click a driver aims at a row that is off screen. Reproduced deterministically at 1280×600 by scrolling
+60 px up with nobody asking: the head came back and the row went 162 px down the screen. On a phone that is a tap
+landing on the row below the one it was aimed at; in CI it was a shard.
+
+**What the rule reads now.** Only an input the reader made — a wheel, a touch drag, a key, or a pointer on the
+scrollbar itself. A pointer *inside* the list is deliberately not one, and that is the case that carries the fix: the
+tap on a row is exactly what makes the driver scroll the next target into view, so counting it would have left the
+defect in place. The window is the scroller's own, armed on the input and closed when the scroller rests, so a flick's
+momentum still counts as the flick.
+
+**The cost, and it is the interesting half.** Four cases drove the head through the scroller's API — `scrollToPoint`,
+`scrollTop =` — which is now, correctly, a scroll nobody made. They did not go red; they went **vacuous**, and
+E2E-M4-129 would have passed against the removal of the very guard it was written for. They scroll by wheel now, which
+is what they always claimed to be doing. The new case had the same disease twice before it bit: aimed at the nearest
+row off the top it moved the list by three pixels, under the rule's own noise threshold, and passed against the
+unfixed build. It aims at the topmost one and asserts the distance.
+
