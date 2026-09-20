@@ -415,7 +415,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The inventory could not say whose job an item usually is (2026-09-20)](#the-inventory-could-not-say-whose-job-an-item-usually-is-2026-09-20) — FR-1.9's reader on M9: the offer is filtered by G-8, the stored preference is not; no filter by account.
 - [The item merge asked four tables the same question (2026-09-20)](#the-item-merge-asked-four-tables-the-same-question-2026-09-20) — why a position is updated rather than re-created, and what the FK guard decided.
 - [Hiding the version string stopped the visual gate drifting (2026-09-20)](#hiding-the-version-string-stopped-the-visual-gate-drifting-2026-09-20) — the baseline had been ~600 px from red for months; `--update-snapshots=all` is what re-records a passing one.
-- [Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)](#packing-gets-an-end-and-abgeschlossen-gets-somewhere-to-live-2026-09-20) — FR-5.10/FR-30.8/ADR-069: the derivation that revokes the user's own decision, and the half-packed row three ways.
+- [Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)](#packing-gets-an-end-and-abgeschlossen-gets-somewhere-to-live-2026-09-20) — FR-5.10/FR-30.8/ADR-070: the derivation that revokes the user's own decision, and the half-packed row three ways.
 
 ## Deviations
 
@@ -16769,7 +16769,7 @@ port — it forwards it now.
 
 ## Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)
 
-FR-5.10/FR-30.8, ADR-069. The owner asked for two things in one sentence: an action that *finishes the packing* —
+FR-5.10/FR-30.8, ADR-070. The owner asked for two things in one sentence: an action that *finishes the packing* —
 everything still open becoming FR-5.5's *bewusst nicht mitgenommen* — and an end to M6 opening on *Vor der Abreise*
 once that moment is past. Five decisions came out of drawing it
 (`dev-docs/UI_Concept_ClosePacking_variants.html`, rendered against one trip: 84 of 96 packed, twelve open, one of
@@ -16778,7 +16778,7 @@ were separable at all — a list of plain open rows would have made every varian
 
 **What the mockups were for, and what they settled.** The owner answered A (the step lives in the ⋮, beside the
 lifecycle's own), A (one confirmation and one undo, not a row-by-row last look), P1 (a half-packed row keeps what is
-in the bag), the stamp, and the phase rule for M6. The two that were close are in ADR-069; the one worth repeating
+in the bag), the stamp, and the phase rule for M6. The two that were close are in ADR-070; the one worth repeating
 here is the question the drawing *created*: the owner read variant A of question 2 and added a requirement nobody had
 asked about — that the list must stay workable afterwards, because the thing he wants to add later is something he
 *packed* and forgot to write down. That requirement is what decided question 4 against the cheap option.
@@ -16797,7 +16797,7 @@ row three ways side by side to make it a question at all. P1 shrinks the amount 
 its accepted cost is written into the FR: *how many were left behind on that row is not recorded anywhere*. P3 — the
 truthful one, `state='skipped'` beside the untouched numbers, which FR-5.5 already legalised — lost on the size of its
 blast radius: `packState.unitsOf` reads the numbers alone, and teaching it the state changes every figure in the app
-for a fact nothing displays yet. It has a revisit trigger in ADR-069 rather than a shrug.
+for a fact nothing displays yet. It has a revisit trigger in ADR-070 rather than a shrug.
 
 **The clause that was already right, and was nearly changed.** The plan said an addition on a closed list should land
 *packed* rather than as the one open job on a finished list — and the first draft of that clause also proposed

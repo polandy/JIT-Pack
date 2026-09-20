@@ -1,4 +1,4 @@
-# ADR-069: Finishing the packing is a stamp on the trip — and a half-packed row keeps what is in the bag
+# ADR-070: Finishing the packing is a stamp on the trip — and a half-packed row keeps what is in the bag
 
 **Status:** Accepted (2026-09-20)
 **Related:** FR-5.10, FR-5.5 (the skip this writes), FR-30.8 (which reads the stamp), FR-25.31 (the one undo),
