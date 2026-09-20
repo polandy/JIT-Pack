@@ -7,13 +7,18 @@
  *
  * A trip with no todo at all is left out: with nothing to add here, an
  * empty group would only push the hero down.
+ *
+ * An assigned todo names its person after the task (FR-7.5) — read here, as
+ * everything on this card is; the seat that changes it is M4's.
  */
 import { computed } from 'vue'
 
 import SectionHead from '@/components/global/SectionHead.vue'
 import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 import { t } from '@/i18n'
+import { nameFrom } from '@/lib/rowFacts'
 import { tripPath } from '@/router/paths'
+import { useIdentityStore } from '@/stores/identityStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 
@@ -23,6 +28,7 @@ const props = defineProps<{
 }>()
 
 const tripStore = useTripStore()
+const identityStore = useIdentityStore()
 
 const groups = computed(() =>
   props.trips
@@ -80,7 +86,14 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
             :key="todo.id"
             :data-testid="`dashboard-trip-todo-${todo.body}`"
           >
-            {{ todo.body }}
+            {{ todo.body
+            }}<span
+              v-if="nameFrom(identityStore.directory, todo.assignee_user_id)"
+              class="who"
+              :data-testid="`dashboard-trip-todo-assignee-${todo.body}`"
+            >
+              · {{ nameFrom(identityStore.directory, todo.assignee_user_id) }}</span
+            >
           </li>
         </ul>
       </RouterLink>
@@ -132,6 +145,10 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
   margin: 6px 0 0;
   padding-inline-start: 20px;
   color: var(--ct-subtext1);
+}
+
+.who {
+  color: var(--ct-subtext0);
 }
 
 .open-list li + li {

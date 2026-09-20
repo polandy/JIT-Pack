@@ -408,6 +408,7 @@ function rowToTripTodo(id: string, row: Record<string, unknown>): TripTodo {
     author_id: row['author_id'] as string,
     body: row['body'] as string,
     task_state: (row['task_state'] as TripTodo['task_state']) ?? 'open',
+    assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
   }
 }
 

@@ -111,6 +111,7 @@ export function tripTodoRow(todo: TripTodo): Record<string, unknown> {
     body: todo.body,
     is_task: dbBool(true),
     task_state: todo.task_state,
+    assignee_user_id: todo.assignee_user_id,
   }
 }
 

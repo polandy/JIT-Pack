@@ -412,6 +412,9 @@ var tableSpecs = map[string]tableSpec{
 		columns: toSet(
 			"trip_id", "trip_item_id", "author_id", "body",
 			"is_task", "task_state",
+			// FR-7.5: a trip todo's assignment, the client's to choose
+			// like trip_items.packer_user_id.
+			"assignee_user_id",
 		),
 		export: exportQuery{query: `SELECT x.* FROM comments x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
