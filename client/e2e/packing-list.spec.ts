@@ -2150,6 +2150,19 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    *
    * The geometry is taken in one `evaluate`, either side of the scroll it is
    * about: two `boundingBox()` calls would compare two different moments.
+   *
+   * Both waits are on a signal the page renders, because the first version of
+   * this case had neither and failed about one run in six on a loaded runner —
+   * a true report of the rule, not a flake in the assertions. „A scroll nobody
+   * made" is only that once the reader's own gesture is over, and the gesture
+   * is a latch that momentum keeps armed until Ionic's 100 ms watchdog lets it
+   * go. Scrolling without waiting for `data-head-gesture` raced that watchdog:
+   * the traced loss shows the programmatic scroll landing 133 ms after the
+   * reader's last reading, read as the flick still running, and the row moving
+   * 435 px where the scroll was 289 — the head's own height, which is exactly
+   * the defect the rule exists to prevent. `data-head-scroll` then carries the
+   * reading into the rule, because a head that did not move can only be read
+   * against the scroll having arrived at all.
    */
   test('E2E-M4-135: a scroll nobody made does not move the head, or the rows under it', async ({
     page,
@@ -2166,6 +2179,12 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // that used to recall the head.
     await scrollToEnd(page)
     await expect(line).toHaveClass(/collapsed/)
+    // The flick is over, so what follows is nobody's. Without this the case
+    // asserts the rule against a reading the rule still owns.
+    await expect(visible(page).locator('ion-content.pack-content')).toHaveAttribute(
+      'data-head-gesture',
+      'false',
+    )
 
     const moved = await visible(page).evaluate(async (pageEl) => {
       const host = pageEl.querySelector('ion-content.pack-content') as HTMLIonContentElement
@@ -2191,17 +2210,19 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
       const topBefore = el.scrollTop
       target.scrollIntoView({ block: 'nearest' })
 
-      // Settled, not merely started: the head's own flip would arrive a
-      // frame or two after the scroll it answers, and a reading taken
-      // before it would report the very absence this case is asserting.
-      const frames = () =>
-        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-      for (let round = 0; round < 4; round += 1) {
-        await frames()
-        const running = trip.getAnimations()
-        if (running.length === 0) break
-        await Promise.all(running.map((a) => a.finished))
-      }
+      // Arrived, not merely awaited: the rule takes up every offset it is
+      // handed, so the head's own flip — if it were coming — would follow
+      // this attribute rather than precede it. A frame count in its place
+      // reported the absence whenever the answer was a frame late.
+      const landed = String(Math.round(el.scrollTop))
+      await new Promise<void>((resolve) => {
+        if (host.dataset.headScroll === landed) return resolve()
+        new MutationObserver((_records, self) => {
+          if (host.dataset.headScroll !== landed) return
+          self.disconnect()
+          resolve()
+        }).observe(host, { attributes: true, attributeFilter: ['data-head-scroll'] })
+      })
 
       return {
         flips,

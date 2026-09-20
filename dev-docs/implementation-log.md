@@ -404,6 +404,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
 - [The instance outgrew "delete and reseed" (2026-09-20)](#the-instance-outgrew-delete-and-reseed-2026-09-20) — ADR-018's trigger fired, ADR-067 answers it; why a stamped fingerprint proves nothing.
 - [The selection mode grew a door instead of three buttons (2026-09-20)](#the-selection-mode-grew-a-door-instead-of-three-buttons-2026-09-20) — FR-24.9 widened: why a batch skips instead of refusing, and the two defects the first case to tap a row found.
+- [The gesture latch kept a window nothing could see (2026-09-20)](#the-gesture-latch-kept-a-window-nothing-could-see-2026-09-20) — FR-21.17: the 120–220 ms residue left on purpose, and the load that made a race tighter rather than looser.
 
 ## Deviations
 
@@ -16388,3 +16389,29 @@ first tap:
 The pair is the testing rule in CLAUDE.md paying for itself twice in one afternoon: a `data-testid` that appears in no
 case is a dependable sign that nothing has ever operated that control, and `m9-row-check-…` appeared only in a jsdom
 spec.
+
+## The gesture latch kept a window nothing could see (2026-09-20)
+
+Follow-up to *„A head that answered scrolls nobody made"* above, and the reason its new case E2E-M4-135 went red about
+one run in six. The suite-side narrative — the instrumented traces, and the two signals M4 now renders — is in
+`dev-docs/e2e-tests.md`, *„A case that raced a watchdog it could not see"*. Two things belong here instead, because
+neither is visible in the diff.
+
+**The premise that made it possible.** FR-21.17 reads as a rule about *who scrolled*, and the implementation is a
+latch: armed by an input that scrolls, let go when the scroller comes to rest. „Comes to rest" is `ionScrollEnd`, and
+Ionic emits that from a watchdog — `setInterval(100)` firing once `lastScroll < Date.now() - 120`. So the rule has a
+**120–220 ms window after every gesture in which a scroll nobody made is still answered**, and nothing outside the page
+can tell whether it is open. The case was written as though the rule were instantaneous, which is the belief the diff
+cannot show.
+
+**The cost accepted, so it is not later read as a defect and „fixed".** That window stays. Momentum counting as the
+flick is the rule's intent — a flick's travel is mostly momentum, and the head has to keep yielding through it — and
+the only way to take the clock out of the latch is to consume it per reading, which loses a flick that crosses the
+48 px threshold on momentum alone. The reachable half of the residue is a **keyboard focus**: `focusin` is dispatched
+before the scroll it causes, so it could disarm the latch exactly rather than eventually. That is a behaviour change,
+it is owed its own case, and it was deliberately left out of a determinism fix.
+
+**And a measurement worth keeping**: a case that loses a race does not always lose it under load. Here load made the
+race *tighter* — the Playwright round trips between the flick and the programmatic scroll shortened relative to a timer
+the busy renderer was deferring — so „it passes on my machine, it fails on CI" was the opposite of the usual reason,
+and a longer wait would have been the wrong fix in the most convincing possible way.

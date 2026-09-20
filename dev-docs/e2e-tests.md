@@ -134,6 +134,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Waiting on the far screen proved only the near one (2026-09-18)](#waiting-on-the-far-screen-proved-only-the-near-one-2026-09-18) — E2E-G10-02's second correction of the same mistake, and the two rules a socket watch has to obey.
 - [The composer stopped making ad-hoc rows (2026-09-19)](#the-composer-stopped-making-ad-hoc-rows-2026-09-19) — FR-24.11: the one helper every typed add goes through, and the promise no composer reaches.
 - [M6 became a module, and its cases reach packing rows through M4 (2026-09-19)](#m6-became-a-module-and-its-cases-reach-packing-rows-through-m4-2026-09-19) — FR-30: the first module directory, two retired ids, and why every buy row is now made on M4.
+- [A case that raced a watchdog it could not see (2026-09-20)](#a-case-that-raced-a-watchdog-it-could-not-see-2026-09-20) — E2E-M4-135: the flake that was a true report of the rule, and the two signals M4 renders in place of a guess.
 
 ## The rule that comes before the units
 
@@ -5380,3 +5381,65 @@ after* (0/1 both times) beside the missing `m4-row-Milch`. E2E-M6-27 reloads
 twice, because an entry that lived only in the screen's state would pass every
 other assertion in it. E2E-M6-28 sets the mode back to *Pack* and expects the tab
 to empty — the one observable difference between a projection and a copy.
+
+## A case that raced a watchdog it could not see (2026-09-20)
+
+**E2E-M4-135 failed about one run in six, and it was never a flake in the
+assertions.** It went red in `e2e` shard 3 on the very run of the commit that
+added it (`ee66230`), and reached `main` anyway because `e2e` is deliberately
+not a required check. The obvious reading — a case that measures animation
+`flips` behind a bounded `requestAnimationFrame` loop is waiting and hoping —
+is wrong, and acting on it would have buried the thing the case was reporting.
+
+**What the instrumented run shows.** Probing the gesture latch either side of
+the scroll, a passing run and a failing one differ by one number:
+
+```
+passing                                   failing
+  ...679 arm wheel                          ...642 arm wheel
+  ...679 scroll top=979 gesture=true        ...642 scroll top=979 gesture=true
+  ...694 scroll top=832 gesture=true        ...658 scroll top=832 gesture=true
+  ...879 disarm scrollEnd                   ...791 scroll top=543 gesture=true
+  ...072 scroll top=543 gesture=false
+```
+
+In the failing run the programmatic scroll lands **133 ms** after the reader's
+last reading, while the latch is still armed, so the rule reads it as the flick
+still running: the header line loses `collapsed` and the row moves **435 px on
+a 289 px scroll** — the scroll plus the head's own height. That is FR-21.17's
+defect exactly, reported correctly. The case was right; its *premise* was not.
+
+**The premise.** „A scroll nobody made" is only that once the reader's gesture
+is over, and the case never established it. The latch is let go on
+`ionScrollEnd`, which Ionic emits from a watchdog — `setInterval(100)` firing
+once `lastScroll < Date.now() - 120` — so when it lands is knowable nowhere
+outside the page, and a case that simply scrolled was racing a clock it could
+not see. Under load the race tightens rather than loosens: the Playwright round
+trips between the flick and the scroll get *shorter* relative to a timer the
+busy renderer is deferring.
+
+**M4 now renders the two readings the case was guessing at**, which is the
+reasoning that already gave `usePackAnnouncer` its counter — an absence needs a
+positive signal, and a signal nothing renders cannot be waited on:
+
+- `data-head-gesture` — the precondition. The case waits for the reader's
+  gesture to be over before creating one nobody made.
+- `data-head-scroll` — the offset the rule last took up. The rule accepts every
+  offset it is handed, gesture or not, so „the head did not move" can only be
+  read against the reading having arrived at all. It replaces four rounds of
+  `requestAnimationFrame` plus `getAnimations()`, which was a bounded wait for
+  an absence and would have reported one whenever the answer was a frame late.
+
+**What was deliberately not changed.** The latch's own timer stays. Momentum
+counting as the flick is the rule's intent, not an oversight, and the only way
+to take the clock out of it is to consume the latch per reading — which loses a
+flick that crosses the 48 px threshold on momentum alone. So the residue is
+real and known: a scroll nobody made that lands inside the watchdog's window is
+still answered. The reachable half of it is a **keyboard focus**, whose
+`focusin` precedes the scroll it causes and could therefore disarm the latch
+exactly; that is a behaviour change owed its own case, and it is not in this one.
+
+**Evidence.** 10/10 under the background load that had been giving 1-in-4, and
+the mutation (the `gesture` guard removed from `nextHeadState`) 6/6 red across
+chromium and webkit — where the same proof on the old case would itself have
+been probabilistic.

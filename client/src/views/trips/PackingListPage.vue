@@ -1249,11 +1249,11 @@ const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
  * a row below the fold — and each answer moved every row by the head's
  * height while a finger was already on its way to one (E2E-M4-135).
  */
-let gesture = false
+const gesture = ref(false)
 function onScrollerInput(event: Event) {
   const key = event instanceof KeyboardEvent ? event.key : undefined
   if (isScrollGesture({ type: event.type, key, onScroller: event.target === scrollEl }))
-    gesture = true
+    gesture.value = true
 }
 
 /** False once the screen is gone, so a scroller resolving late is not listened to at all. */
@@ -1283,14 +1283,35 @@ function onScroll(event: CustomEvent<{ scrollTop: number }>) {
   head.value = nextHeadState(head.value, {
     top: event.detail.scrollTop,
     viewport: scrollEl,
-    gesture,
+    gesture: gesture.value,
   })
 }
 
 /** The scroller has come to rest, so whatever moves it next has to say who asked. */
 function onScrollEnd() {
-  gesture = false
+  gesture.value = false
 }
+
+/**
+ * The two readings of the gesture rule that nothing outside the page can
+ * otherwise see, rendered onto the content element — the same reasoning
+ * that gave the pack announcer its counter (`usePackAnnouncer`).
+ *
+ * `data-head-gesture` is the *precondition* a scroll nobody made has to be
+ * created under: „the reader is no longer driving". It is a latch that
+ * momentum keeps armed on purpose, and it is let go on `ionScrollEnd` —
+ * which Ionic emits from a 100 ms watchdog, so nothing about when it lands
+ * is knowable from outside. A case that simply scrolled and hoped raced
+ * that watchdog and lost on a loaded runner, roughly one run in six.
+ *
+ * `data-head-scroll` is the *positive signal* for the absence that follows:
+ * the rule takes up every offset it is given, gesture or not, so the head
+ * failing to move can only be read against the reading having arrived at
+ * all. Rounded because a scroller's offset is fractional and an attribute
+ * is compared as text.
+ */
+const headGesture = computed(() => String(gesture.value))
+const headScroll = computed(() => String(Math.round(head.value.top)))
 
 // --- App-bar cluster (G-12) --------------------------------------------
 
@@ -2314,6 +2335,8 @@ setHeaderTitle(
       ref="packContent"
       class="pack-content"
       :data-pack-announcements="packAnnouncements"
+      :data-head-gesture="headGesture"
+      :data-head-scroll="headScroll"
       :scroll-events="true"
       @ion-scroll="onScroll"
       @ion-scroll-end="onScrollEnd"
