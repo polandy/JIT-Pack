@@ -10,7 +10,23 @@
  */
 import type { ShoppingLine, ShoppingSource } from '@/lib/shoppingSources'
 import type { ShoppingMode } from '@/types/domain'
-import { SHOPPING_MODES } from '@/types/domain'
+import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, SHOPPING_MODES } from '@/types/domain'
+
+/**
+ * Which list a trip is on *now* (FR-30.8): the one still worth working.
+ *
+ * *Vor der Abreise* answers that only while departure is still ahead. Once
+ * the trip has started — or the packing has been declared finished
+ * (FR-5.10), which happens the evening before on a trip nobody has tapped
+ * *Reise starten* on — the moment is past, and what is left to do is at the
+ * destination. Nothing is hidden by it: the other tab carries its count.
+ *
+ * Both screens of the module ask, and they must not disagree — M6 opens on
+ * this, and so does the dashboard card under each trip (FR-30.7).
+ */
+export function listInFocus(trip: { planned: boolean; packingClosed: boolean }): ShoppingMode {
+  return trip.planned && !trip.packingClosed ? ITEM_MODE_BUY_BEFORE : ITEM_MODE_BUY_LOCAL
+}
 
 /** One heading of a shopping list and the lines under it. */
 export interface ShoppingSection {

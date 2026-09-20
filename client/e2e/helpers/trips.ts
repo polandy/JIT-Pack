@@ -238,6 +238,9 @@ export async function createTripFollowingGroup(
 export const TRIP_ACTION = {
   edit: 'Trip properties',
   start: 'Start trip',
+  // FR-5.10, and deliberately one word away from *Finish trip*: finishing
+  // the packing is not finishing the trip.
+  closePacking: 'Finish packing',
   archive: 'Finish trip',
 } as const
 

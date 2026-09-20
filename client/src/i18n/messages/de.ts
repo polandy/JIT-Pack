@@ -257,6 +257,29 @@ export const de: Record<keyof typeof en, string> = {
   'packing.tripViews': 'Ansichten dieser Reise',
   'packing.archive': 'Reise abschliessen',
 
+  // FR-5.10 — Packen abschliessen: was offen bleibt, ist entschieden.
+  'packing.closeAction': 'Packen abschliessen',
+  'packing.closeConfirmTitle': 'Packen abschliessen?',
+  'packing.closeConfirmBody':
+    '{n} offenes Packelement wird als bewusst nicht mitgenommen vermerkt. | {n} offene Packelemente werden als bewusst nicht mitgenommen vermerkt.',
+  'packing.closeConfirmStarted':
+    'Bei {n} angefangenen bleibt, was schon eingepackt ist. | Bei {n} angefangenen bleibt, was schon eingepackt ist.',
+  'packing.closeConfirmLate':
+    '{n} davon ist erst am Abreisetag fällig. | {n} davon sind erst am Abreisetag fällig.',
+  'packing.closeConfirmHeld':
+    '{n} hat gerade jemand anderes in der Hand. | {n} haben gerade andere in der Hand.',
+  'packing.closeConfirmNothing':
+    'Nichts ist mehr offen — die Packliste wird als abgeschlossen vermerkt.',
+  'packing.closeConfirmVerb': 'Abschliessen · {n}',
+  'packing.closeConfirmVerbNothing': 'Abschliessen',
+  'packing.closedToast':
+    'Packen abgeschlossen · {n} nicht mitgenommen | Packen abgeschlossen · {n} nicht mitgenommen',
+  'packing.closedToastNone': 'Packen abgeschlossen',
+  'packing.closedTitle': 'Packen abgeschlossen',
+  'packing.closedStamp': '{when} · {n} nicht mitgenommen | {when} · {n} nicht mitgenommen',
+  'packing.closedStampNone': '{when}',
+  'packing.reopen': 'Wieder öffnen',
+
   // FR-25.20 — Packelemente, für die jemand anderes zuständig ist.
   'packing.othersHidden':
     '{n} Packelement liegt bei {who} · anzeigen | {n} Packelemente liegen bei {who} · anzeigen',
@@ -690,6 +713,9 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.trigger': 'Packelement hinzufügen…',
   'quickAdd.placeholder': 'Suchen oder neu anlegen…',
   'quickAdd.missingHint': 'Neue Packelemente werden als „fehlt“ markiert',
+  // FR-5.10: auf einer abgeschlossenen Liste ist ein Nachtrag das, was
+  // schon im Koffer liegt — nicht der einzige offene Job.
+  'quickAdd.packedHint': 'Neue Packelemente werden als eingepackt vermerkt',
   'quickAdd.offerCreateHint': 'Neu im Inventar anlegen und gleich hinzufügen',
   'quickAdd.offerRestoreHint': 'Wiederherstellen und gleich hinzufügen',
   'quickAdd.alreadyIn': '„{name}“ ist schon drin',

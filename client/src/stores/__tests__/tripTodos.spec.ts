@@ -108,6 +108,7 @@ describe('trip todos in the trip store (FR-7.4)', () => {
       duration_days: null,
       series_id: null,
       attributes: null,
+      packing_closed_at: null,
       imported: false,
     })
     tripStore.applyChange(tripTodo('tt1', 'Pflanzen giessen'))

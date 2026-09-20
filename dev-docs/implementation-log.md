@@ -409,6 +409,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An indicator that was never off (2026-09-20)](#an-indicator-that-was-never-off-2026-09-20) — FR-25.15: why a confirmation of nothing reads as a button, and the test that had pinned the defect.
 - [The task the app already had, in the list nobody could find it in (2026-09-20)](#the-task-the-app-already-had-in-the-list-nobody-could-find-it-in-2026-09-20) — FR-7.6/ADR-068: the premise that nearly cost a migration, and the undo window that broke the chip.
 - [The gesture window is a residue, not an oversight (2026-09-20)](#the-gesture-window-is-a-residue-not-an-oversight-2026-09-20) — FR-21.17: the 120–220 ms the rule keeps on purpose, and why the flake pointed the wrong way.
+- [Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)](#packing-gets-an-end-and-abgeschlossen-gets-somewhere-to-live-2026-09-20) — FR-5.10/FR-30.8/ADR-069: the derivation that revokes the user's own decision, and the half-packed row three ways.
 
 ## Deviations
 
@@ -16564,3 +16565,55 @@ scroll lands 133 ms after the reader's last reading with the latch still armed, 
 on a 289 px scroll — the scroll plus the head's own height, which is FR-21.17's defect stated exactly. The case was
 reporting the rule correctly and measuring at the wrong moment. A longer wait would have gone green by deleting the
 report, and it would have looked like a fix.
+
+## Packing gets an end, and „abgeschlossen" gets somewhere to live (2026-09-20)
+
+FR-5.10/FR-30.8, ADR-069. The owner asked for two things in one sentence: an action that *finishes the packing* —
+everything still open becoming FR-5.5's *bewusst nicht mitgenommen* — and an end to M6 opening on *Vor der Abreise*
+once that moment is past. Five decisions came out of drawing it
+(`dev-docs/UI_Concept_ClosePacking_variants.html`, rendered against one trip: 84 of 96 packed, twelve open, one of
+them half-packed, three due on departure day, one held by somebody else). The rendered round is why the questions
+were separable at all — a list of plain open rows would have made every variant look equally good.
+
+**What the mockups were for, and what they settled.** The owner answered A (the step lives in the ⋮, beside the
+lifecycle's own), A (one confirmation and one undo, not a row-by-row last look), P1 (a half-packed row keeps what is
+in the bag), the stamp, and the phase rule for M6. The two that were close are in ADR-069; the one worth repeating
+here is the question the drawing *created*: the owner read variant A of question 2 and added a requirement nobody had
+asked about — that the list must stay workable afterwards, because the thing he wants to add later is something he
+*packed* and forgot to write down. That requirement is what decided question 4 against the cheap option.
+
+**The premise that would have been wrong.** „Packing is closed" was going to be derived — no column, no reseed, just
+*nothing is open*. It survives exactly until the first row is added afterwards, which is the feature's own purpose:
+the card would vanish, the ⋮ would offer the step again, and M6 would fall back to the tab this FR exists to get away
+from. The derivation is cheap and it revokes the user's decision silently, which is the one thing a decision may not
+do. So `trips.packing_closed_at` was bought, at the price invariant 2 charges — every development database deleted and
+reseeded, and the live instance owed the hand-carried `ALTER TABLE` of ADR-067.
+
+**The wrong answer that the drawing caught.** M4's existing skip writes quantity 0. Run over a *half-packed* row —
+four of six socks in the bag — that denies four socks that travelled, and takes four packed rows away from M14's
+review. Nobody would have noticed in a list of one-quantity rows, which is most of a test trip; it took drawing the
+row three ways side by side to make it a question at all. P1 shrinks the amount to what is in the bag instead, and
+its accepted cost is written into the FR: *how many were left behind on that row is not recorded anywhere*. P3 — the
+truthful one, `state='skipped'` beside the untouched numbers, which FR-5.5 already legalised — lost on the size of its
+blast radius: `packState.unitsOf` reads the numbers alone, and teaching it the state changes every figure in the app
+for a fact nothing displays yet. It has a revisit trigger in ADR-069 rather than a shrug.
+
+**The clause that was already right, and was nearly changed.** The plan said an addition on a closed list should land
+*packed* rather than as the one open job on a finished list — and the first draft of that clause also proposed
+suppressing FR-9.1's *Missing* flag, on the reasoning that „I had it with me" is the opposite of „I needed it and did
+not have it". That reasoning was wrong about what *Missing* means here: the plan forgot the item, which is exactly
+what M14 should propose for next time. The flag stays; only the row's state changes. The machinery was already there
+— FR-25.13f's decided add — so the whole clause is a branch in `onQuickAdd` and a different hint under the field.
+
+**Where the rule had to live, twice.** The module boundary (FR-30.3) says the shopping module may not import
+`domain/`, and both sides need the same two facts. „Is the packing closed" went to `lib/tripPhase.ts`, kernel-side, so
+M4 and M6 ask one function; „which list is now" went to `shopping/list.ts`, because *that* is the module's own
+decision — and M1's card, which had the rule inline as `props.planned ? before : local`, now reads the same function.
+The card therefore grew a `packingClosed` prop: the alternative was two rules that agree today and drift on the first
+trip whose packing is closed before it starts.
+
+**Three fixtures caught the column before a screen could.** `rowBuilders.spec.ts` exists so a new `trips` column
+cannot be forgotten in `tripRow`, and it failed on the first run, exactly as designed. The type-check then found seven
+more `Trip` literals in specs — the price of a required field, paid once, and worth it: a nullable-by-omission field
+would have let the optimistic paint drop the stamp on every unrelated trip edit, which is the defect PR #158 already
+paid for once with `status`.

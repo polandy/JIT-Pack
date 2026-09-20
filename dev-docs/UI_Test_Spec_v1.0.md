@@ -812,6 +812,22 @@ in WebKit.
   own task stays, which is what makes the disappearance about the row rather than about the section. The removal is
   **confirmed** rather than immediate precisely because the preparation cascades (`removalNeedsConfirm`), and the
   snackbar's *Rückgängig* brings row and task back together, which a list that lost the task for good would fail.
+* **E2E-M4-138** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): the whole shape of
+  finishing the packing, in one pass. Two rows, one packed; the ⋮ step asks first and the question states *„1 open
+  item"*, which is the one row still open rather than the two on the list. Confirmed, the open row leaves the working
+  list and the card names the moment and the **1** left behind; the step is then **gone from the ⋮**, since a second
+  close would re-decide rows nobody touched. The snackbar's one *Rückgängig* brings the row back **and** takes the
+  card away — a close that was undone did not happen — and the ⋮ offers the step again.
+* **E2E-M4-139** `local` (FR-5.10, variant P1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): four of
+  six socks are in the bag. Closing shrinks the amount to what travelled rather than skipping the row, so the trip's
+  figure reads **4/4** and the row sits under the *Erledigte* reveal as a packed one. The figure is the assertion that
+  separates P1 from P2: a skip would have written 0/0 and denied four socks that are in the bag. The quantity above one
+  comes from the M18 import, which is the only path to one through the app (§2.4).
+* **E2E-M4-140** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a finished list stays
+  workable. The composer opens on a closed list, says *„recorded as packed"* before anything is typed, and the row it
+  adds lands packed — it is **not** on the open list, the card still stands (the addition did not reopen the packing)
+  and the trip's figure reads *2/2*. Without the last two clauses the case would pass on a build where an addition
+  silently revoked the decision, which is the failure the stamp exists to prevent.
 * **E2E-M4-110** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for three
   travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
   is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the
@@ -1370,6 +1386,11 @@ composer.
   because the buyer is stamped by the server (invariant 3) — the `local` cases can only see the time, and do:
   **E2E-M6-17** (the packing row keeps its purchase time although its mode is *pack* again) and **E2E-M6-27** (the
   entry's time survives a reload) each assert *„bought · today"*.
+* **E2E-M6-30** `local` (FR-30.8 with FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): M6 stops
+  opening on *Vor der Abreise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
+  and the list opens on *Vor der Abreise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab
+  is read off the segment's own value, as E2E-M2-33 does, rather than off Ionic's checked class. The planning status is
+  what makes the case about FR-30.8 rather than about the trip's phase alone.
 * **E2E-M6-22** `all` (FR-3.3/25.11j) — **new 2026-08-25**: the destination tab's half. A BUY_LOCAL row never changes
   mode — being bought there *is* its packed state — so the record is the only thing that keeps the two tabs' reveals
   apart: the row is revealed on its own tab, noting that it was packed, and the other tab's reveal stays absent with its

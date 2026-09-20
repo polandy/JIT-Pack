@@ -28,6 +28,7 @@ import { tripSubPath } from '@/router/paths'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import { createShoppingActions, ownEntriesSource } from './actions'
+import { listInFocus } from './list'
 import { useShoppingStore } from './store'
 
 const props = defineProps<TripCardProps>()
@@ -41,8 +42,10 @@ const actions = createShoppingActions(orchestrator.moduleHost)
 const own = ownEntriesSource(shoppingStore, actions)
 const sources = inject(SHOPPING_SOURCES, [])
 
-/** The list that is *now* for this trip; the chip switches it. */
-const list = ref<ShoppingMode>(props.planned ? ITEM_MODE_BUY_BEFORE : ITEM_MODE_BUY_LOCAL)
+/** The list that is *now* for this trip (FR-30.8); the chip switches it. */
+const list = ref<ShoppingMode>(
+  listInFocus({ planned: props.planned, packingClosed: props.packingClosed }),
+)
 
 /** Own entries first, as on M6; a source's lines after them. */
 function linesOf(which: ShoppingMode): { line: ShoppingLine; own: boolean }[] {

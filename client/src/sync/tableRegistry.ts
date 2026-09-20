@@ -263,6 +263,7 @@ function rowToTrip(id: string, row: Record<string, unknown>): Trip {
     ),
     series_id: (row['series_id'] as string) ?? null,
     attributes: parseJsonColumn<Trip['attributes']>(row['attributes'], null),
+    packing_closed_at: (row['packing_closed_at'] as string) ?? null,
     imported: Boolean(row['imported']),
   }
 }

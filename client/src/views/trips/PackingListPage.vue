@@ -76,6 +76,7 @@ import RevealBar from '@/components/global/RevealBar.vue'
 import FilterSheet from '@/components/global/FilterSheet.vue'
 import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
+import PackingClosedCard from '@/components/trips/PackingClosedCard.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
@@ -141,6 +142,8 @@ import {
   type ClusterMenuAction,
 } from '@/domain/clusterActions'
 import { canJudgeUnused, isActive, nextLifecycleStep } from '@/domain/trips'
+import { planPackingClose, type ClosePackingPlan } from '@/domain/closePacking'
+import { isPackingClosed } from '@/lib/tripPhase'
 import { formatWeight } from '@/lib/format'
 import { t, type MessageKey } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -162,7 +165,13 @@ import type {
   TripParticipant,
   TripTodo,
 } from '@/types/domain'
-import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, TRIP_STATUS_ARCHIVED } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_LOCAL,
+  ITEM_MODE_PACK,
+  STATE_PACKED,
+  STATE_SKIPPED,
+  TRIP_STATUS_ARCHIVED,
+} from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
 import { confirmAction, confirmDestructive } from '@/lib/confirm'
 import { removalSentence } from '@/lib/removalLabels'
@@ -335,6 +344,12 @@ const kpis = computed(() =>
   tripStore.kpis(props.tripId, new Set([...removingRows.value, ...removingTodos.value])),
 )
 const active = computed(() => isActive(trip.value))
+/** FR-5.10: whether this trip's packing has been declared finished. */
+const packingClosed = computed(() => isPackingClosed(trip.value))
+/** What the card counts: the rows the list currently carries as decided. */
+const skippedCount = computed(
+  () => allItems.value.filter((row) => row.state === STATE_SKIPPED).length,
+)
 /** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
 const judgeable = computed(() => canJudgeUnused(trip.value))
 
@@ -1410,6 +1425,20 @@ setHeaderActions(() => {
       onClick: () => (inventoryNamesOpen.value = true),
     })
   }
+  // FR-5.10, above the lifecycle steps because it is the step most trips
+  // take before them: finishing the packing is not finishing the trip. It is
+  // offered on a fully packed list too — declaring a finished list finished is
+  // the ordinary case — and disappears once it has been done, where the card
+  // at the top of the list carries the way back instead.
+  if (trip.value && trip.value.status !== TRIP_STATUS_ARCHIVED && !packingClosed.value) {
+    items.push({
+      id: 'm4-close-packing',
+      icon: checkmarkDoneOutline,
+      label: t('packing.closeAction'),
+      overflow: true,
+      onClick: onClosePacking,
+    })
+  }
   // The two lifecycle steps, each offered only where it is the next one.
   // Without the first, *active* was unreachable in the whole app — and with
   // it the archive action below, FR-9.1's Missing flagging and everything
@@ -2083,8 +2112,15 @@ function quickAddOptions(item: BrowseAddition) {
  */
 function onQuickAdd(item: BrowseAddition & { travelerIds: string[] }, decided?: AddedItemDecision) {
   const opts = quickAddOptions(item)
-  const { id: addedId, companions } = decided
-    ? orchestrator.addDecidedItem(props.tripId, item.name, opts, active.value, decided)
+  // FR-5.10: while the packing is closed, a row typed here is a thing that
+  // travelled and was never on the list (owner, 2026-09-20) — so it lands
+  // *packed* rather than as the one open job on a finished list. An add for
+  // named travelers keeps the open row it always wrote: a row per person is
+  // a plan being made, not a bag being recorded.
+  const decision: AddedItemDecision | undefined =
+    decided ?? (packingClosed.value && item.travelerIds.length === 0 ? STATE_PACKED : undefined)
+  const { id: addedId, companions } = decision
+    ? orchestrator.addDecidedItem(props.tripId, item.name, opts, active.value, decision)
     : orchestrator.setTravelerAssignment(
         props.tripId,
         item.name,
@@ -2315,6 +2351,64 @@ function onCancelClosingPass() {
   closingPass.value = false
 }
 
+/**
+ * FR-5.10: what the confirmation says before the write.
+ *
+ * It states the count and then the three things a count hides — the rows
+ * packing has begun on, the ones due on departure day (FR-5.1), and the one
+ * somebody else is holding (G-3). Variant A of the 2026-09-20 round, owner:
+ * one confirmation and one undo, rather than a second review of every row in
+ * front of the trip's own.
+ */
+function closeConfirmMessage(plan: ClosePackingPlan): string {
+  if (plan.rows.length === 0) return t('packing.closeConfirmNothing')
+  const lines = [t('packing.closeConfirmBody', { n: plan.rows.length })]
+  if (plan.trim.length > 0) lines.push(t('packing.closeConfirmStarted', { n: plan.trim.length }))
+  if (plan.late > 0) lines.push(t('packing.closeConfirmLate', { n: plan.late }))
+  if (plan.claimed > 0) lines.push(t('packing.closeConfirmHeld', { n: plan.claimed }))
+  return lines.join(' ')
+}
+
+/**
+ * FR-5.10: everything still open becomes a decision, and the trip records
+ * that the packing is finished.
+ *
+ * The plan is computed twice on purpose — once for the question, once inside
+ * the action for the write. In between the user reads a dialogue, and on a
+ * shared trip the list can change while they do; the write must act on what
+ * is there when it runs, not on what the question counted.
+ */
+async function onClosePacking() {
+  const claimed = (row: TripItem) => locked(row)
+  const asked = planPackingClose(allItems.value, { isClaimed: claimed })
+  const confirmed = await confirmAction({
+    header: t('packing.closeConfirmTitle'),
+    message: closeConfirmMessage(asked),
+    confirmLabel:
+      asked.rows.length > 0
+        ? t('packing.closeConfirmVerb', { n: asked.rows.length })
+        : t('packing.closeConfirmVerbNothing'),
+    testid: 'm4-close-packing-confirm',
+  })
+  if (!confirmed) return
+  const affected = orchestrator.closePacking(props.tripId, { isClaimed: claimed })
+  rowUndo.armUndo(affected, (records) => orchestrator.restorePackingClose(props.tripId, records))
+  void announceAct(
+    affected.length > 0
+      ? t('packing.closedToast', { n: affected.length })
+      : t('packing.closedToastNone'),
+  )
+}
+
+/**
+ * FR-5.10's way back. No snackbar and no undo: the card that offered it is
+ * gone from the top of the list, which is the whole feedback — and reopening
+ * is itself the way back out of closing.
+ */
+function onReopenPacking() {
+  orchestrator.reopenPacking(props.tripId)
+}
+
 /** FR-9.3's ending: the pass archives the trip and continues into M14. */
 async function onFinishClosingPass() {
   closingPass.value = false
@@ -2535,6 +2629,15 @@ setHeaderTitle(
         @decline="declineGroupChanges"
       />
 
+      <!-- FR-5.10: a finished list says so, and says when. Not during the
+           closing pass, which is a posture of its own asking one question. -->
+      <PackingClosedCard
+        v-if="packingClosed && !closingPass && trip?.packing_closed_at"
+        :at="trip.packing_closed_at"
+        :skipped="skippedCount"
+        @reopen="onReopenPacking"
+      />
+
       <ArchivedTripCard
         v-if="trip?.status === TRIP_STATUS_ARCHIVED"
         :trip-id="tripId"
@@ -2545,6 +2648,7 @@ setHeaderTitle(
         v-if="!closingPass"
         ref="quickAdd"
         :is-active="active"
+        :adds-packed="packingClosed"
         :show-trigger="false"
         :offer-groups="true"
         :traveler-count="travelers.length"

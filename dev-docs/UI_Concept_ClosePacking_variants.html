@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="en" data-theme="mocha"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Packen abschliessen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  /* Catppuccin Mocha — the app's real FR-21 token table */
+  --crust:#11111b; --mantle:#181825; --base:#1e1e2e;
+  --s0:#313244; --s1:#45475a; --s2:#585b70;
+  --o0:#6c7086; --o1:#7f849c; --o2:#9399b2;
+  --text:#cdd6f4; --sub1:#bac2de; --sub0:#a6adc8;
+  --blue:#89b4fa; --lav:#b4befe; --sapphire:#74c7ec; --sky:#89dceb;
+  --teal:#94e2d5; --green:#a6e3a1; --yellow:#f9e2af; --peach:#fab387;
+  --maroon:#eba0ac; --red:#f38ba8; --mauve:#cba6f7; --pink:#f5c2e7;
+  --flamingo:#f2cdcd; --rose:#f5e0dc;
+
+  --ui:'Hanken Grotesk',ui-sans-serif,system-ui,sans-serif;
+  --display:'Fraunces',Georgia,serif;
+  --r:18px; --r-lg:26px;
+  --shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 12px 30px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font-family:var(--ui); color:var(--text);
+  background:
+    radial-gradient(70% 55% at 18% 8%, rgba(203,166,247,.10), transparent 60%),
+    radial-gradient(60% 50% at 92% 96%, rgba(250,179,135,.09), transparent 62%),
+    var(--crust);
+  display:flex; align-items:center; justify-content:center;
+  min-height:100dvh; padding:24px; gap:34px; flex-wrap:wrap;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- caption beside the phone ---------- */
+.caption{max-width:270px; align-self:center}
+.caption .kicker{font:600 12px/1 var(--ui); letter-spacing:.18em; text-transform:uppercase; color:var(--peach)}
+.caption h1{font-family:var(--display); font-weight:600; font-size:34px; line-height:1.05; margin:.5em 0 .3em; letter-spacing:-.01em}
+.caption h1 em{font-style:italic; color:var(--rose)}
+.caption p{color:var(--sub0); font-size:14.5px; line-height:1.55; margin:.6em 0}
+.caption .legend{margin-top:20px; display:grid; gap:9px}
+.caption .legend div{display:flex; gap:10px; align-items:center; font-size:13px; color:var(--sub1)}
+.caption .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.caption small{color:var(--o1); font-size:11.5px}
+@media (max-width:820px){ .caption{display:none} }
+/* On a real phone: drop the device frame, fill the screen (no double frame / status bar) */
+@media (max-width:560px){
+  body{padding:0;background:var(--mantle);align-items:stretch;gap:0}
+  .device{width:100%;height:100dvh;max-width:none;border-radius:0;padding:0;box-shadow:none;background:var(--mantle)}
+  .screen{border-radius:0}
+  .statusbar{display:none}
+}
+
+/* ---------- phone frame ---------- */
+.device{
+  width:392px; height:min(852px, 94dvh);
+  background:linear-gradient(160deg,#26263a,#15151f);
+  border-radius:52px; padding:11px;
+  box-shadow:0 0 0 2px #0c0c14, 0 40px 80px -30px rgba(0,0,0,.85), 0 0 0 8px rgba(255,255,255,.015);
+  flex:none;
+}
+.screen{
+  position:relative; height:100%; width:100%;
+  background:var(--mantle); border-radius:42px; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+
+/* status bar */
+.statusbar{height:34px;flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:0 26px 0 30px;font-size:14px;font-weight:600;color:var(--text);position:relative;z-index:5}
+.statusbar .icons{display:flex;gap:6px;align-items:center}
+.statusbar svg{width:17px;height:17px}
+
+/* app bar */
+.appbar{flex:none;display:flex;align-items:center;gap:10px;padding:6px 16px;position:relative;z-index:4}
+.bar-facepile{display:flex;align-items:center;gap:5px;animation:rise .3s both}
+.bar-facepile .stack .avatar{width:24px;height:24px}
+.bar-facepile .gs{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.appbar .title{font-family:var(--display);font-weight:600;font-size:18.5px;letter-spacing:-.01em;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .sub{font-family:var(--ui);font-weight:500;font-size:12px;color:var(--sub0);display:block;letter-spacing:0}
+.iconbtn{width:33px;height:33px;border-radius:11px;display:grid;place-items:center;flex:none;
+  background:transparent;border:0;color:var(--sub1);cursor:pointer;transition:.15s}
+.iconbtn:hover{background:var(--base);color:var(--text)}
+.iconbtn svg{width:21px;height:21px}
+.logo{width:30px;height:30px;border:0;border-radius:9px;flex:none;display:grid;place-items:center;
+  background:none;color:var(--peach);cursor:pointer;box-shadow:none}
+.logo:hover{background:var(--base)}
+.logo svg{width:23px;height:23px}
+
+/* scroll body */
+.body{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 18px 108px;scrollbar-width:none}
+.body::-webkit-scrollbar{display:none}
+
+/* ---------- generic bits ---------- */
+.card{background:var(--base);border:1px solid var(--s0);border-radius:var(--r);box-shadow:var(--shadow)}
+.section-h{font:600 12px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--o1);
+  margin:22px 4px 11px}
+.muted{color:var(--sub0)} .tiny{font-size:12px}
+.avatar{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;
+  color:var(--crust);flex:none;border:2px solid var(--mantle)}
+.stack{display:flex} .stack .avatar+.avatar{margin-left:-9px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:9px;
+  background:var(--s0);color:var(--sub1)}
+.chip.warm{background:rgba(250,179,135,.15);color:var(--peach)}
+.chip.blue{background:rgba(137,180,250,.15);color:var(--blue)}
+.chip.green{background:rgba(166,227,161,.15);color:var(--green)}
+.chip.mauve{background:rgba(203,166,247,.16);color:var(--mauve)}
+.pressable{cursor:pointer;transition:transform .12s ease, background .15s}
+.pressable:active{transform:scale(.985)}
+/* §3.27: applied-group-changes notice on a planned trip row (FR-27.4) */
+.m2upd{margin-top:6px}
+.m2upd button.chip{border:0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600}
+.m2updlist{margin-top:6px;padding:8px 10px;border-left:2px solid rgba(137,180,250,.4);display:flex;flex-direction:column;gap:3px}
+
+/* ring */
+.ring{--p:0;--c:var(--teal);width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:conic-gradient(var(--c) calc(var(--p)*1%), var(--s0) 0);position:relative}
+.ring::before{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--base)}
+.ring span{position:relative;font-size:11px;font-weight:700}
+
+/* bottom nav */
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:84px;padding:8px 14px 26px;
+  display:flex;justify-content:space-around;align-items:flex-start;z-index:6;
+  background:linear-gradient(to top,var(--mantle) 62%,rgba(24,24,37,0));backdrop-filter:blur(6px)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:600;
+  color:var(--o0);background:none;border:0;cursor:pointer;flex:1;transition:.15s;padding-top:4px}
+.tab svg{width:24px;height:24px}
+.tab.on{color:var(--peach)}
+.fab{position:absolute;right:20px;bottom:104px;width:56px;height:56px;border-radius:19px;z-index:7;border:0;cursor:pointer;
+  background:linear-gradient(150deg,var(--peach),var(--maroon));color:var(--crust);display:grid;place-items:center;
+  box-shadow:0 14px 30px -8px rgba(250,179,135,.55)}
+.fab svg{width:26px;height:26px}
+.fab:active{transform:scale(.94)}
+
+/* ---------- screens ---------- */
+.view{display:none;flex-direction:column;flex:1;min-height:0}
+.view.active{display:flex}
+.body>*{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.body>*:nth-child(2){animation-delay:.04s}
+.body>*:nth-child(3){animation-delay:.08s}
+.body>*:nth-child(4){animation-delay:.12s}
+.body>*:nth-child(5){animation-delay:.16s}
+.body>*:nth-child(6){animation-delay:.2s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* dashboard hero trip card */
+.hero{position:relative;overflow:hidden;border-radius:var(--r-lg);padding:18px 18px 16px;margin-top:6px;
+  background:
+    radial-gradient(120% 100% at 100% 0,rgba(250,179,135,.22),transparent 55%),
+    radial-gradient(120% 120% at 0 100%,rgba(203,166,247,.18),transparent 55%),
+    var(--base);
+  border:1px solid var(--s0)}
+.hero .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--peach)}
+.hero h2{font-family:var(--display);font-weight:600;font-size:26px;margin:5px 0 2px;letter-spacing:-.01em;line-height:1.05}
+.hero .meta{color:var(--sub0);font-size:13px}
+.hero .row{display:flex;align-items:center;gap:12px;margin-top:15px}
+.progress{flex:1;height:8px;border-radius:6px;background:var(--s0);overflow:hidden}
+.progress i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--teal),var(--green))}
+
+/* phase rail */
+.phases{display:flex;gap:7px;margin:4px 0 2px;padding:5px;background:var(--mantle);border:1px solid var(--s0);
+  border-radius:16px;position:sticky;top:0;z-index:3}
+.phase{flex:1;border:0;cursor:pointer;background:none;color:var(--sub0);border-radius:12px;padding:9px 4px 8px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;font-weight:600;transition:.18s}
+.phase svg{width:20px;height:20px}
+.phase small{font-size:9.5px;color:var(--o0);font-weight:600}
+.phase.on{color:var(--crust);background:linear-gradient(150deg,var(--peach),var(--rose));box-shadow:0 8px 18px -8px rgba(250,179,135,.6)}
+.phase.on small{color:rgba(17,17,27,.65)}
+.phase.done{color:var(--green)}
+
+.panel{display:none;animation:rise .4s both}
+.panel.active{display:block}
+
+/* list item */
+.li{display:flex;align-items:center;gap:12px;padding:13px 14px}
+.li+.li{border-top:1px solid var(--s0)}
+.li .grow{flex:1;min-width:0}
+.li .name{font-size:14.5px;font-weight:600}
+.li .desc{font-size:12px;color:var(--sub0);margin-top:2px}
+.check{width:24px;height:24px;border-radius:8px;border:2px solid var(--s2);flex:none;display:grid;place-items:center;cursor:pointer}
+.check.on{background:var(--green);border-color:var(--green);color:var(--crust)}
+.check svg{width:15px;height:15px;opacity:0;transition:.12s}
+.check.on svg{opacity:1}
+.stepper{display:flex;align-items:center;gap:9px;background:var(--mantle);border:1px solid var(--s0);border-radius:11px;padding:3px}
+.stepper button{width:26px;height:26px;border-radius:8px;border:0;background:var(--s0);color:var(--text);font-size:16px;cursor:pointer}
+.stepper b{font-size:12.5px;min-width:30px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* idea card */
+.idea{padding:0;overflow:hidden;margin-bottom:12px}
+.idea .thumb{height:96px;background-size:cover;background-position:center;position:relative}
+.idea .thumb .src{position:absolute;left:10px;bottom:8px;font-size:10.5px;font-weight:600;color:#fff;
+  background:rgba(17,17,27,.6);padding:3px 8px;border-radius:7px;backdrop-filter:blur(4px)}
+.idea .b{padding:12px 14px 13px}
+.idea .b h3{font-size:15px;margin:0 0 3px;font-weight:600}
+.idea .foot{display:flex;align-items:center;gap:8px;margin-top:11px}
+.votes{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green)}
+.addbar{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;margin-bottom:4px}
+.addbar svg{width:19px;height:19px;color:var(--blue)}
+
+/* timeline */
+.tl{position:relative;padding-left:20px;margin-top:6px}
+.tl::before{content:"";position:absolute;left:5px;top:8px;bottom:14px;width:2px;background:var(--s0)}
+.tevent{position:relative;padding:0 0 18px 8px}
+.tevent::before{content:"";position:absolute;left:-19px;top:5px;width:11px;height:11px;border-radius:50%;
+  background:var(--base);border:2px solid var(--peach)}
+.tevent .t{font-size:11.5px;font-weight:700;color:var(--peach);letter-spacing:.03em}
+.tevent .a{font-size:14.5px;font-weight:600;margin:2px 0 3px}
+.banner{border-radius:14px;padding:13px 14px;display:flex;gap:12px;align-items:center;
+  background:rgba(249,226,175,.12);border:1px solid rgba(249,226,175,.28)}
+.banner svg{width:22px;height:22px;color:var(--yellow);flex:none}
+.banner .grow{flex:1}
+.banner button{border:0;background:var(--yellow);color:var(--crust);font-weight:700;font-size:12px;
+  padding:7px 12px;border-radius:9px;cursor:pointer;flex:none}
+
+/* stat */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.stat{padding:14px}
+.stat .n{font-family:var(--display);font-weight:600;font-size:28px;line-height:1}
+.stat .l{font-size:11.5px;color:var(--sub0);margin-top:5px}
+
+/* KPI strip */
+.kpis{display:flex;gap:9px;margin:6px 0 2px}
+.kpi{flex:1;padding:11px 8px;text-align:center;border-radius:14px;background:var(--base);border:1px solid var(--s0)}
+.kpi .n{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:10px;color:var(--o1);margin-top:2px;font-weight:600;letter-spacing:.03em}
+
+.groupbar{display:flex;gap:7px;overflow-x:auto;padding:2px 0 4px;margin-top:4px;scrollbar-width:none}
+.groupbar::-webkit-scrollbar{display:none}
+.gb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;white-space:nowrap;
+  font-size:11.5px;font-weight:600;padding:9px 4px;border-radius:12px;border:1px solid transparent;
+  background:var(--s0);color:var(--sub1);cursor:pointer}
+.gb svg{width:17px;height:17px}
+.gb.on{background:var(--blue);border-color:var(--blue);color:var(--crust)}
+/* per-person: "who" pill on a flat per-person row (grouped by person, or a lone instance) */
+.whochip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--sub1);
+  background:var(--mantle);border:1px solid var(--s0);border-radius:20px;padding:2px 9px 2px 3px}
+/* per-person cluster (variant B) */
+.ppcluster{border-left:2px solid var(--mauve);margin:2px 0 2px 2px}
+.pphead{display:flex;align-items:center;gap:8px;padding:9px 12px 5px 12px;font-weight:700;font-size:14.5px}
+.pphead .ppname{color:var(--text)}
+.pphead .ppcount{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--o0)}
+.ppkids .li.ppkid{padding-left:14px}
+.ppkids .li.ppkid .name{font-weight:600;font-size:14px}
+.ppkids .swipe+.swipe .swipe-inner{border-top:1px solid var(--s0)}
+
+.collapsed{display:flex;align-items:center;gap:10px;padding:12px 14px;color:var(--sub0);font-size:13px;cursor:pointer}
+.collapsed svg{width:17px;height:17px}
+
+.notif{display:flex;gap:11px;align-items:center;padding:13px 14px}
+.notif .grow{flex:1}
+.unread{width:8px;height:8px;border-radius:50%;background:var(--blue);flex:none}
+
+/* ---------- M4 packing list (deepened) ---------- */
+.packhead{position:sticky;top:0;z-index:4;background:var(--mantle);padding-top:4px;margin:0 -18px;padding-left:18px;padding-right:18px}
+.presence{display:flex;align-items:center;gap:8px;margin:2px 0 8px}
+.presence .stack .avatar{width:22px;height:22px}
+.presence .gs{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(166,227,161,.18)}
+.presence small{color:var(--sub0);font-size:11.5px}
+.toolbar{display:flex;gap:7px;margin:2px 0 4px}
+.tbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;
+  padding:9px 6px;border-radius:12px;border:1px solid var(--s0);background:var(--base);color:var(--sub1);cursor:pointer;position:relative}
+.tbtn svg{width:16px;height:16px}
+.tbtn .badge{position:absolute;top:-5px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;
+  background:var(--peach);color:var(--crust);font-size:10px;font-weight:800;display:grid;place-items:center}
+/* V1 one line */
+.pv1-line{display:flex;align-items:center;gap:9px;padding:8px 0 6px}
+.pv1-line .stack .avatar{width:20px;height:20px}
+.pv1-status{flex:1;min-width:0;font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv1-status .muted{font-weight:500;font-size:13px}
+.pv1-more{width:32px;height:32px;border-radius:10px;border:1px solid var(--s0);background:var(--base);color:var(--sub1);font-size:17px;cursor:pointer;flex:none;line-height:1}
+/* V1 hide-on-scroll-down / show-on-scroll-up */
+#packheadWrap{transition:transform .28s cubic-bezier(.2,.7,.2,1)}
+#packheadWrap.packhead-hidden{transform:translateY(-108%)}
+/* full-screen packing (Vollbild): the bottom tab bar slides away on M4 */
+.tabbar{transition:transform .32s cubic-bezier(.2,.7,.2,1)}
+.tabbar.tabbar-hidden{transform:translateY(130%)}
+.fab{transition:bottom .32s cubic-bezier(.2,.7,.2,1),transform .18s ease}
+.fab.fab-low{bottom:26px}
+/* FAB spans 104–160px above the viewport foot; the default 108px of list
+   padding leaves ~52px of the last row under it. Clear the whole footprint. */
+.body.pad-fab{padding-bottom:176px}
+/* Full-screen M4: the tab bar is gone, but the low FAB still occupies 26–82px,
+   so 40px of padding left the last row (and its packer avatar) underneath it. */
+.body.tabs-gone{padding-bottom:98px}
+
+.grouphead{display:flex;align-items:center;gap:8px;font:600 12px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--o1);margin:20px 4px 10px}
+.grouphead .n{margin-left:auto;color:var(--o0);letter-spacing:0;font-size:11.5px}
+
+/* swipe rows */
+.swipe{position:relative;overflow:hidden}
+.swipe+.swipe{border-top:1px solid var(--s0)}
+.swipe-bg{position:absolute;inset:0;display:flex;align-items:center;font-weight:700;font-size:13px;color:var(--crust)}
+.swipe-bg.left{background:linear-gradient(90deg,var(--green),var(--teal));justify-content:flex-start;padding-left:20px}
+.swipe-bg.right{background:linear-gradient(90deg,var(--maroon),var(--peach));justify-content:flex-end;padding-right:20px}
+.swipe-inner{position:relative;background:var(--base);touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.7,.2,1)}
+.swipe.dragging .swipe-inner{transition:none}
+
+.prepbadge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--peach);
+  background:rgba(250,179,135,.14);padding:2px 6px;border-radius:7px;margin-left:6px}
+.check.amber{border-color:var(--peach);background:var(--peach)}
+.li .name.row{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
+.li.skipped .name{text-decoration:line-through;color:var(--o0)}
+.li.done{background:var(--base)}
+.li.done>*{opacity:.45}
+/* pack-out: brief green flash, then collapse away */
+/* content fades + slides first, revealing the green "Packen ✓" bar, THEN the row eases closed */
+.swipe.packing-out{overflow:hidden;transition:height .5s cubic-bezier(.25,.8,.3,1) .2s}
+.swipe.packing-out .swipe-bg.right{opacity:0}   /* hide the peach "Überspringen" — wrong signal */
+.swipe.packing-out .swipe-inner{opacity:0;transform:translateX(28px);transition:opacity .28s ease,transform .28s ease}
+.swipe.packing-out .check,.swipe.packing-out .stepper b{animation:packpop .4s ease}
+@keyframes packpop{0%{transform:scale(1)}45%{transform:scale(1.25)}100%{transform:scale(1)}}
+.donebar{display:flex;align-items:center;gap:8px;justify-content:center;margin:10px 0 2px;padding:8px 12px;border:1px dashed var(--s2);border-radius:12px;color:var(--o1);font-size:13px;cursor:pointer;background:transparent}
+.donebar.on{color:var(--text);border-style:solid}
+.donebar svg{width:16px;height:16px;fill:currentColor}
+.mini-av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--crust);flex:none}
+/* FR-25.3: who packed it — a packer circle on the right edge, green ring + check badge to
+   set it apart from the plain traveler mini-av ("for whom", left). */
+.packerav{position:relative;display:inline-flex;flex:none}
+.packerav .mini-av{box-shadow:0 0 0 1.6px var(--green)}
+.respav{position:relative;display:inline-flex;flex:none}
+.respav .mini-av{box-shadow:0 0 0 1.6px var(--blue);opacity:.9}
+.packerav::after{content:'✓';position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border-radius:50%;
+  background:var(--green);color:var(--crust);font-size:8px;font-weight:800;line-height:1;display:grid;place-items:center;box-shadow:0 0 0 1.4px var(--base)}
+
+/* FR-25.4: procurement mode as a distinct glyph on every row — 🧳 packen · 🛒 vorher kaufen ·
+   📍 vor Ort kaufen. Pack (the default, dominant case) is deliberately low-emphasis so the two
+   shopping modes stand out as the exceptions worth noticing. Orthogonal to the ⏰ late-packer flag. */
+.modeicon{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:12px;line-height:1}
+.modeicon.m-buy{background:rgba(250,179,135,.18)}
+.modeicon.m-loc{background:rgba(137,180,250,.18)}
+.lateflag{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:12px;line-height:1;background:rgba(249,226,175,.16)}
+/* mode filter strip (sits under the group bar; scrolls horizontally, hides with the header) */
+.modebar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 2px;margin-top:6px;scrollbar-width:none}
+.modebar::-webkit-scrollbar{display:none}
+.mf{flex:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
+  font-size:12px;font-weight:600;padding:5px 11px;border-radius:20px;border:1px solid var(--s0);background:var(--mantle);color:var(--sub0)}
+.mf .g{font-size:13px;line-height:1}
+.mf i{font-style:normal;font-size:11px;font-weight:700;color:var(--o1)}
+.mf.on{background:var(--s1);color:var(--text);border-color:var(--s2)}
+.mf.on i{color:var(--sub1)}
+
+/* ---------- filter bar + filter sheet (galaxus-style facets) ----------
+   One collapsed row replaces the old group bar + mode strip: a Filter button
+   carrying the active count, then a chip per active facet so a filtered list
+   can never look like a complete one — the risk that matters on a packing
+   list, where a hidden row reads as "nothing left to do". */
+.filterbar{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:2px 0;margin-top:6px;scrollbar-width:none}
+.filterbar::-webkit-scrollbar{display:none}
+.fbtn{flex:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;
+  font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid var(--s1);background:var(--mantle);color:var(--text)}
+.fbtn.active{border-color:var(--blue);color:var(--blue)}
+.fbtn .cnt{font-size:11px;font-weight:700;background:var(--blue);color:var(--crust);border-radius:9px;padding:0 6px;line-height:16px}
+.fchip{flex:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer;
+  font-size:11.5px;font-weight:600;padding:5px 9px;border-radius:20px;background:var(--s1);color:var(--text);border:1px solid var(--s2)}
+.fchip b{font-weight:600;color:var(--sub1);font-size:10.5px}
+.fchip .x{color:var(--o1);font-weight:700}
+.freset{flex:none;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--o1);background:none;border:none;padding:5px 4px;white-space:nowrap}
+
+/* FR-25.11b (rev. 2026-08-14): facets are open chip rows, not accordions.
+   The panel used to hide every value behind a caret, which is what made it
+   read as cluttered — a filter you have to unfold twice to read. */
+.fsec{border-top:1px solid var(--s0);padding:13px 0}
+.fsec:first-child{border-top:none}
+.fsl{display:flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--sub0);margin-bottom:10px}
+.fsl svg{width:15px;height:15px;color:currentColor;flex:none}
+.fsl .n{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px;color:var(--o0)}
+.fsl .fres{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px;color:var(--blue);
+  background:none;border:none;cursor:pointer;padding:0}
+.fchips{display:flex;flex-wrap:wrap;gap:7px}
+/* FR-2.1c: the one row that stands for every optional field. */
+.morerow{display:flex;align-items:center;gap:9px;width:100%;padding:12px 2px;margin-top:2px;
+  background:none;border:none;border-top:1px solid var(--s0);color:var(--sub1);
+  font-size:14px;font-weight:600;cursor:pointer;text-align:left}
+.morerow .car{color:var(--o1);font-size:11px;transition:transform .18s}
+.morerow.open .car{transform:rotate(90deg)}
+.morerow .grow{flex:1}
+.morebody{padding-top:4px}
+.fchip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;cursor:pointer;
+  background:var(--s0);border:1px solid transparent;color:var(--sub1);font-size:13px}
+.fchip .n{color:var(--o0);font-size:11.5px}
+.fchip.on{background:rgba(137,180,250,.16);border-color:var(--blue);color:var(--text)}
+.fchip.on .n{color:var(--blue)}
+.fempty{color:var(--o0);font-size:12.5px}
+.fopt{display:flex;align-items:center;gap:11px;padding:9px 2px;cursor:pointer}
+.fopt .lbl b{display:block;font-size:13.5px}
+.fbox{width:19px;height:19px;flex:none;border-radius:6px;border:1.8px solid var(--s2);display:grid;place-items:center;background:var(--mantle)}
+.fbox svg{width:13px;height:13px;color:var(--crust);opacity:0}
+.fopt.on .fbox{background:var(--blue);border-color:var(--blue)}
+.fopt.on .fbox svg{opacity:1}
+.fhead{display:flex;align-items:center;gap:10px;padding:4px 18px 12px;flex:none}
+.fhead .grow{flex:1;min-width:0}
+.fhead b{font-size:16.5px}
+.fcount{font-size:12.5px;color:var(--sub0)}
+.fcount em{font-style:normal;color:var(--blue);font-weight:700}
+.fclear{cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:999px;
+  border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
+.fx{width:34px;height:34px;flex:none;border-radius:50%;border:none;cursor:pointer;
+  background:var(--s0);color:var(--sub1);display:grid;place-items:center}
+.fx svg{width:16px;height:16px}
+.emptyfilter{text-align:center;padding:26px 18px;color:var(--o1)}
+.emptyfilter b{display:block;color:var(--text);font-size:15px;margin-bottom:4px}
+.emptyfilter button{margin-top:12px;cursor:pointer;font-size:13px;font-weight:600;padding:9px 16px;
+  border-radius:14px;border:1px solid var(--s1);background:var(--mantle);color:var(--text)}
+
+/* M6 shopping row: derived recipients + per-item procurement note (FR-25.6) */
+.shwho{display:flex;gap:-4px;flex:none;margin-right:2px}
+.shwho .mini-av{margin-left:-5px;border:1.5px solid var(--base)}
+.shnote{font-size:12px;color:var(--peach);margin-top:3px;line-height:1.35}
+/* revealed bought rows — de-emphasised but still interactive, so a mistap is undoable */
+.li.shdone{opacity:.45}
+.li.shdone .name{text-decoration:line-through}
+.shstamp{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--o1);margin-top:3px}
+.shstamp .mini-av{width:15px;height:15px;font-size:8px}
+.shbuyer{position:relative;flex:none;cursor:pointer;display:grid;place-items:center;margin-left:6px}
+.shbuyer .mini-av{box-shadow:0 0 0 2px var(--blue)}
+.shbuyer i{position:absolute;right:-4px;bottom:-4px;font-style:normal;font-size:9px;line-height:1;
+  background:var(--base);border-radius:50%;padding:1px}
+.shbuyer.empty{width:26px;height:26px;border-radius:50%;border:1.5px dashed var(--s2);color:var(--o0);font-size:13px;font-weight:700}
+.assign .cap{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--o0);margin-bottom:7px}
+/* per-person total: a read-only progress chip, deliberately not a stepper */
+.ppsum{flex:none;font-size:14px;font-weight:700;color:var(--sub1);background:var(--mantle);
+  border:1px solid var(--s1);border-radius:12px;padding:7px 12px;margin-top:2px}
+.pprow{display:flex;align-items:center;gap:9px;padding:6px 0}
+.pprow .nm{flex:1;font-size:14px;font-weight:600}
+/* auto-save confirmation (distinct from G-2's sync glyph) — icon-only:
+   the labelled chip wrapped next to long item names in the sheet header
+   (owner 2026-08-08); the meaning rides on the title tooltip (G-12-06). */
+.savechip{display:grid;place-items:center;width:22px;height:22px;flex:none;font-size:12px;font-weight:700;
+  border-radius:50%;margin:2px 0 6px;transition:color .2s,background .2s;cursor:default}
+.savechip.saved{color:var(--green);background:color-mix(in srgb,var(--green) 14%,transparent)}
+.savechip.dirty{color:var(--yellow);background:color-mix(in srgb,var(--yellow) 16%,transparent)}
+@keyframes savepulse{50%{opacity:.35}}
+.savechip.dirty{animation:savepulse .8s ease-in-out infinite}
+.chiprow{display:flex;flex-wrap:wrap;gap:7px}
+.pchip{cursor:pointer;font-size:13px;font-weight:600;padding:6px 12px;border-radius:16px;
+  border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
+.pchip.on{background:var(--blue);border-color:var(--blue);color:var(--crust)}
+#shDesc{width:100%;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);
+  padding:10px 12px;font:inherit;font-size:14px;resize:vertical}
+#shDesc:focus{border-color:var(--blue);outline:none}
+/* secondary field in the quick-add: present but visibly optional */
+.qa-open input.sub{margin-top:6px;font-size:13px;color:var(--sub0)}
+.qa-assign{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:9px}
+.qa-assign .cap{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o0);margin-right:2px}
+.pchip.sm{font-size:12px;padding:4px 10px}
+.qa-assign select{background:var(--mantle);border:1px solid var(--s1);border-radius:14px;color:var(--text);
+  padding:5px 10px;font:inherit;font-size:12px;font-weight:600}
+.qa-assign select:focus{border-color:var(--blue);outline:none}
+
+/* quick add */
+.qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
+.qa svg{width:18px;height:18px;color:var(--blue)}
+.qa-open{padding:12px 14px}
+.qa-open input{width:100%;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);
+  font:500 14px var(--ui);padding:10px 12px;outline:none}
+.qa-open input:focus{border-color:var(--blue)}
+.qa-sugg{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.qa-sugg button{font-size:12px;font-weight:600;padding:6px 11px;border-radius:9px;border:1px solid var(--s0);
+  background:var(--mantle);color:var(--sub1);cursor:pointer}
+.qa-sugg button b{color:var(--blue);font-weight:700}
+.qa-sugg button.grp{border-color:var(--mauve);color:var(--text)}
+.qa-sugg button.grp b{color:var(--mauve)}
+.qa-sugg-h{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o0);margin-top:11px}
+.qa-hint{font-size:11px;color:var(--o0);margin-top:8px}
+.qa-modes{display:flex;gap:6px;margin-top:10px}
+.qa-modes button{flex:1;border:1px solid var(--s0);background:var(--mantle);color:var(--sub0);font-size:12.5px;font-weight:600;padding:7px;border-radius:9px;cursor:pointer}
+.qa-modes button.on{background:var(--blue);color:var(--crust);border-color:var(--blue)}
+.qa-persons{margin-top:11px;display:grid;gap:9px}
+.qa-prow{display:flex;align-items:center;gap:10px}
+.qa-prow .nm{flex:1;font-size:14px;font-weight:600}
+.qa-add-btn{width:100%;margin-top:11px;border:0;border-radius:11px;padding:11px;font-weight:700;font-size:14px;background:var(--peach);color:var(--crust);cursor:pointer}
+
+.subsec{margin-top:14px;overflow:hidden}
+.subsec>.collapsed{user-select:none}
+.subsec .inner{display:none}
+.subsec.open .inner{display:block}
+.subsec .chev{transition:transform .2s}
+.subsec.open .chev{transform:rotate(90deg)}
+.tasktog{width:22px;height:22px;border-radius:7px;border:2px solid var(--s2);flex:none;cursor:pointer;display:grid;place-items:center}
+.tasktog svg{width:13px;height:13px;opacity:0}
+.tasktog.on{background:var(--green);border-color:var(--green);color:var(--crust)}
+.tasktog.on svg{opacity:1}
+
+/* ---------- M5 item detail sheet ---------- */
+.scrim{position:absolute;inset:0;background:rgba(17,17,27,.55);opacity:0;pointer-events:none;transition:.25s;z-index:20}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;background:var(--mantle);border-radius:22px 22px 0 0;
+  border-top:1px solid var(--s1);box-shadow:0 -16px 40px rgba(0,0,0,.62);max-height:90%;display:flex;flex-direction:column;
+  transform:translateY(101%);transition:transform .32s cubic-bezier(.2,.85,.25,1)}
+.sheet.open{transform:none}
+.sheet .handle{width:42px;height:5px;border-radius:3px;background:var(--s2);margin:10px auto 2px;flex:none;cursor:grab}
+.sheet-body{overflow-y:auto;padding:8px 18px 30px;scrollbar-width:none}
+.sheet-body::-webkit-scrollbar{display:none}
+.ihead{display:flex;align-items:flex-start;gap:12px;margin:6px 0 4px}
+.ihead .iname{font-family:var(--display);font-weight:600;font-size:24px;letter-spacing:-.01em;line-height:1.1}
+.ihead .stepper{margin-top:2px}
+.assign{border-radius:14px;padding:12px 13px;margin-top:8px;background:var(--mantle);border:1px solid var(--s0);border-left:3px solid var(--teal)}
+.assign.packer{border-left-color:var(--blue)}
+.assign .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--o1);margin-bottom:9px}
+.pickrow{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.opt{cursor:pointer;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:10px;border:1px solid var(--s0);
+  background:var(--base);color:var(--sub1);transition:.12s}
+.opt.sel{background:var(--text);color:var(--crust);border-color:var(--text)}
+.pk{cursor:pointer;border:2px solid transparent;transition:.12s}
+.pk.sel{outline:2.5px solid var(--peach);outline-offset:2px}
+.seg{display:flex;gap:6px;background:var(--mantle);border:1px solid var(--s0);border-radius:13px;padding:5px}
+.seg button{flex:1;border:0;background:none;color:var(--sub0);font-size:12.5px;font-weight:600;padding:8px 4px;border-radius:9px;cursor:pointer}
+.seg button.sel{background:var(--blue);color:var(--crust)}
+.toggle{display:flex;align-items:center;gap:12px;padding:12px 0}
+.toggle .grow{flex:1}
+.sw{width:44px;height:26px;border-radius:14px;background:var(--s1);position:relative;cursor:pointer;transition:.18s;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--text);transition:.18s}
+.sw.on{background:var(--green)} .sw.on::after{left:21px;background:var(--crust)}
+.flagchip{cursor:pointer;font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;border:1px solid var(--s0);background:var(--base);color:var(--sub0)}
+.flagchip.on{background:rgba(243,139,168,.16);border-color:var(--red);color:var(--red)}
+.spark{display:flex;align-items:flex-end;gap:10px;height:56px;padding:6px 2px 0}
+.spark .bar{width:26px;border-radius:6px 6px 3px 3px;background:linear-gradient(var(--sapphire),var(--blue));position:relative}
+.spark .bar b{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--o1);font-weight:600;white-space:nowrap}
+.spark .bar span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10.5px;color:var(--sub1);font-weight:700}
+.comment{display:flex;gap:9px;padding:10px 0}
+.comment .bub{background:var(--mantle);border:1px solid var(--s0);border-radius:12px;padding:9px 11px;flex:1}
+.comment .who{font-size:12px;font-weight:700;margin-bottom:2px}
+.comment .txt{font-size:13.5px;line-height:1.4}
+.comment .tflag{font-size:11px;font-weight:600;color:var(--o1);margin-top:7px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.comment .tflag.on{color:var(--peach)}
+.buynow{width:100%;border:0;border-radius:12px;padding:12px;font-weight:700;font-size:13.5px;cursor:pointer;margin-top:10px;
+  background:linear-gradient(150deg,var(--green),var(--teal));color:var(--crust)}
+.snack{position:absolute;left:16px;right:16px;bottom:100px;z-index:30;background:var(--s1);border:1px solid var(--s2);
+  border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);
+  transform:translateY(140%);opacity:0;pointer-events:none;transition:.28s cubic-bezier(.2,.8,.2,1)}
+.snack.show{transform:none;opacity:1;pointer-events:auto}
+.snack .grow{flex:1;font-size:13px}
+.snack button{border:0;background:none;color:var(--peach);font-weight:700;font-size:13px;cursor:pointer}
+.addprep{display:flex;gap:8px;margin-top:8px}
+.addprep input{flex:1;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);font:500 13.5px var(--ui);padding:9px 11px;outline:none}
+.addprep input:focus{border-color:var(--blue)}
+/* progressive disclosure (M5): compact glance chips + a Details toggle over the advanced blocks */
+.metarow{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:12px 0 4px}
+.mchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 10px;border-radius:9px;background:var(--mantle);border:1px solid var(--s0);color:var(--sub1)}
+.mchip .mini-av{width:18px;height:18px;font-size:9px}
+.mchip.buy{background:rgba(250,179,135,.15);color:var(--peach);border-color:transparent}
+.mchip.loc{background:rgba(137,180,250,.15);color:var(--blue);border-color:transparent}
+.mchip.late{background:rgba(249,226,175,.16);color:var(--yellow);border-color:transparent}
+.detbtn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--sub0);background:none;border:1px solid var(--s0);border-radius:20px;padding:5px 12px}
+.detbtn .car{transition:transform .2s;font-size:10px}
+.detbtn.on .car{transform:rotate(180deg)}
+.detwrap{border-top:1px solid var(--s0);margin-top:10px;padding-top:2px;animation:rise .2s ease}
+
+/* ---------- M3 creation wizard ---------- */
+.wiz-steps{display:flex;gap:6px;padding:4px 2px 12px}
+.wiz-steps .st{flex:1;display:flex;flex-direction:column;gap:6px}
+.wiz-steps .bar{height:4px;border-radius:3px;background:var(--s0);transition:.25s}
+.wiz-steps .st.done .bar{background:var(--teal)} .wiz-steps .st.cur .bar{background:var(--peach)}
+.wiz-steps .lbl{font-size:10px;font-weight:600;color:var(--o0);text-align:center}
+.wiz-steps .st.cur .lbl{color:var(--peach)} .wiz-steps .st.done .lbl{color:var(--sub1)}
+.field{margin-bottom:16px}
+.field>label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o1);margin-bottom:8px}
+.field input.txt,.field input.dt{width:100%;background:var(--base);border:1px solid var(--s1);border-radius:12px;color:var(--text);
+  font:500 15px var(--ui);padding:12px 13px;outline:none}
+.field input:focus{border-color:var(--blue)}
+.field .datewrap{display:flex;gap:10px;align-items:center}
+.field .datewrap input{flex:1}
+.dur{font-size:13px;font-weight:700;color:var(--peach);white-space:nowrap}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chips .opt.warm.sel{background:var(--peach);border-color:var(--peach);color:var(--crust)}
+.chips .opt.mauve.sel{background:var(--mauve);border-color:var(--mauve);color:var(--crust)}
+.trow{display:flex;align-items:center;gap:11px;padding:11px 0}
+.trow+.trow{border-top:1px solid var(--s0)}
+.trow .grow{flex:1}
+.miniseg{display:flex;background:var(--mantle);border:1px solid var(--s0);border-radius:9px;padding:3px}
+.miniseg button{border:0;background:none;color:var(--sub0);font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:7px;cursor:pointer}
+.miniseg button.sel{background:var(--blue);color:var(--crust)}
+.tplrow{display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer}
+.tplrow+.tplrow{border-top:1px solid var(--s0)}
+.tplrow .grow{flex:1}
+.footer-note{position:sticky;bottom:0;background:linear-gradient(var(--mantle),var(--mantle));border-radius:14px;
+  border:1px solid var(--s0);padding:12px 14px;margin-top:14px}
+.footer-note .big{font-family:var(--display);font-weight:600;font-size:19px}
+.footer-note .ln{font-size:12px;margin-top:4px;display:flex;align-items:center;gap:6px}
+.qrow{display:flex;align-items:center;gap:12px;padding:13px 14px}
+.qrow+.qrow{border-top:1px solid var(--s0)}
+.qrow .grow{flex:1;min-width:0}
+.qrow .formula{font-size:11.5px;color:var(--o1);font-family:ui-monospace,monospace;margin-top:2px}
+.qrow .sugg{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--sapphire);
+  background:rgba(116,199,236,.14);padding:3px 8px;border-radius:8px;margin-top:6px;cursor:pointer}
+.wiz-foot{position:absolute;left:0;right:0;bottom:0;height:82px;z-index:8;padding:12px 18px 26px;display:flex;gap:12px;
+  background:linear-gradient(to top,var(--mantle) 68%,rgba(24,24,37,0));display:none}
+.wiz-foot.show{display:flex}
+.wiz-foot button{flex:1;border:0;border-radius:14px;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--ui)}
+.wiz-foot .back{flex:0 0 46px;background:var(--base);border:1px solid var(--s1);color:var(--sub1);display:grid;place-items:center}
+.wiz-foot .back svg{width:22px;height:22px}
+.wiz-foot .next{background:linear-gradient(150deg,var(--peach),var(--maroon));color:var(--crust)}
+.search{display:flex;align-items:center;gap:10px;background:var(--base);border:1px solid var(--s1);border-radius:13px;
+  padding:0 12px;margin-bottom:10px;transition:border-color .15s,box-shadow .15s}
+.search:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(137,180,250,.14)}
+.search>svg{width:18px;height:18px;color:var(--o1);flex:none}
+.search input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--text);font:500 15px var(--ui);padding:12px 0}
+.search input::placeholder{color:var(--o0)}
+.search .clr{width:24px;height:24px;border-radius:50%;border:0;background:var(--s1);color:var(--sub1);cursor:pointer;
+  display:none;place-items:center;flex:none;font-size:12px;line-height:1}
+.search .clr.show{display:grid}
+.search .clr:hover{background:var(--s2);color:var(--text)}
+
+/* ---------- M11 containers ---------- */
+.cwrap{padding:14px;margin-bottom:12px}
+.cwrap .top{display:flex;align-items:center;gap:11px}
+.cwrap .top .em{font-size:22px;flex:none}
+.cwrap .top .grow{flex:1;min-width:0}
+.cwrap .kg{font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cwrap .kg .mx{color:var(--o1);font-weight:600}
+.wbar{height:9px;border-radius:5px;background:var(--s0);overflow:hidden;margin-top:10px}
+.wbar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--teal),var(--green));transition:width .3s}
+.wbar.amber i{background:linear-gradient(90deg,var(--yellow),var(--peach))}
+.wbar.red i{background:linear-gradient(90deg,var(--maroon),var(--red))}
+.pair{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;margin-top:9px}
+.pair.ok{color:var(--green)} .pair.warn{color:var(--peach)}
+.assignrow{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.assignrow+.assignrow{border-top:1px solid var(--s0)}
+.assignrow .grow{flex:1;min-width:0}
+.assignrow .picks{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.assignrow .picks .opt{padding:5px 9px;font-size:11.5px}
+
+/* ---------- M6 shopping ---------- */
+.shtabs{display:flex;gap:7px;background:var(--mantle);border:1px solid var(--s0);border-radius:14px;padding:5px;margin:6px 0 4px}
+.shtabs button{flex:1;border:0;background:none;color:var(--sub0);font-size:13px;font-weight:600;padding:10px 4px;border-radius:10px;cursor:pointer;position:relative}
+.shtabs button.on{background:var(--blue);color:var(--crust)}
+.shtabs .b{display:inline-block;min-width:18px;margin-left:5px;font-size:11px;background:rgba(0,0,0,.18);border-radius:9px;padding:0 5px}
+.shtabs button.on .b{background:rgba(17,17,27,.22)}
+/* Search and filter sit as icons in the tab row: a permanent search field cost
+   a whole row of a list that has to be readable at arm's length in a shop. */
+.shtabs .ico{flex:0 0 auto;width:36px;padding:0;color:var(--sub0);display:grid;place-items:center}
+.shtabs .ico svg{width:19px;height:19px}
+.shtabs .ico.on{background:var(--s1);color:var(--text)}
+.shtabs .ico .cnt{position:absolute;top:2px;right:1px;font-size:9px;font-weight:700;line-height:13px;
+  min-width:13px;background:var(--blue);color:var(--crust);border-radius:7px;padding:0 3px}
+.shtabs .sep{flex:0 0 1px;align-self:stretch;background:var(--s0);margin:4px 3px}
+
+/* G-12 toolbar icon cluster — the same shape wherever a list carries actions:
+   search collapses behind a magnifier, filter carries its count as a badge,
+   the rest goes behind ⋯. Keeps a working screen to one header line. */
+.hicons{display:flex;align-items:center;gap:2px;flex:none;margin-left:auto}
+.appbar .hicons{margin-left:0}
+.appbar .hicons button{width:32px;height:32px}
+.hicons button{position:relative;width:34px;height:34px;border:0;border-radius:11px;background:none;
+  color:var(--sub0);display:grid;place-items:center;cursor:pointer}
+.hicons button svg{width:19px;height:19px}
+.hicons button.on{background:var(--s1);color:var(--text)}
+.hicons .cnt{position:absolute;top:1px;right:0;font-size:9px;font-weight:700;line-height:13px;min-width:13px;
+  background:var(--blue);color:var(--crust);border-radius:7px;padding:0 3px}
+.hicons .cnt.warm{background:var(--peach)}
+.hicons .dots{font-size:17px;font-weight:700;line-height:1}
+/* group folding */
+.gh-toggle{cursor:pointer;user-select:none}
+.gh-toggle .car{display:inline-block;font-size:11px;color:var(--o1);margin-right:6px;transition:transform .18s}
+.gh-toggle.shut .car{transform:rotate(-90deg)}
+.gh-toggle.shut{margin-bottom:2px}
+.tripnav{margin-left:6px}
+.tripnav button{width:32px;height:32px}
+.tipbubble{position:absolute;top:calc(100% + 6px);right:0;z-index:30;white-space:nowrap;
+  font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:9px;
+  background:var(--s2);color:var(--text);box-shadow:0 6px 18px -8px rgba(0,0,0,.8);animation:rise .16s both}
+.destsep{display:flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--mauve);margin:18px 4px 9px}
+.destsep::after{content:"";flex:1;height:1px;background:var(--s0)}
+
+/* ---------- M1 dashboard ---------- */
+.greet{margin:10px 2px 2px}
+.greet h2{font-family:var(--display);font-weight:600;font-size:28px;letter-spacing:-.01em;margin:0;line-height:1.05}
+.greet .sub{color:var(--sub0);font-size:13.5px;margin-top:4px}
+.card.hl{border-color:rgba(137,180,250,.5);background:radial-gradient(120% 130% at 0 0,rgba(137,180,250,.12),transparent 60%),var(--base)}
+.deleg-badge{font-size:10.5px;font-weight:700;color:var(--blue);background:rgba(137,180,250,.16);padding:3px 8px;border-radius:8px}
+.dash-more{display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;color:var(--blue);font-size:13px;font-weight:600;cursor:pointer;border-top:1px solid var(--s0)}
+
+/* ---------- M12 analytics ---------- */
+.abar-row{display:flex;align-items:center;gap:10px;padding:9px 0;cursor:pointer}
+.abar-row+.abar-row{border-top:1px solid var(--s0)}
+.abar-row .lbl{width:88px;flex:none;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.abar-wrap{flex:1;min-width:0}
+.abar{height:20px;border-radius:6px;background:var(--s1);overflow:hidden;min-width:6px}
+.abar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--green));border-radius:6px;transition:width .3s}
+.abar-row .akg{width:82px;flex:none;text-align:right;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--sub1)}
+.abar-row .akg small{color:var(--o1);font-weight:600}
+.atot{display:flex;gap:10px;margin-top:12px}
+.atot .box{flex:1;padding:13px;text-align:center}
+.atot .box .n{font-family:var(--display);font-weight:600;font-size:22px}
+.atot .box .l{font-size:11px;color:var(--o1);margin-top:3px}
+.trend{display:flex;align-items:flex-end;gap:14px;height:80px;padding:14px 6px 0}
+.trend .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.trend .bar{width:100%;max-width:40px;border-radius:7px 7px 3px 3px;background:linear-gradient(var(--mauve),var(--lav))}
+.trend .col b{font-size:11px;color:var(--sub1);font-weight:700}
+.trend .col span{font-size:10.5px;color:var(--o1)}
+.flagrow{display:flex;align-items:center;gap:10px;padding:11px 14px}
+.flagrow+.flagrow{border-top:1px solid var(--s0)}
+
+/* ---------- M8 template editor ---------- */
+.t8row{padding:12px 14px}
+.t8row+.t8row{border-top:1px solid var(--s0)}
+.t8head{display:flex;align-items:center;gap:10px;cursor:pointer}
+.t8head .grow{flex:1;min-width:0}
+.t8head .qtychip{font-size:12px;font-weight:700;color:var(--sapphire);background:rgba(116,199,236,.13);padding:3px 9px;border-radius:8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t8head .qtychip.err{color:var(--red);background:rgba(243,139,168,.14)}
+.t8head .rm{width:28px;height:28px;border-radius:9px;border:0;background:none;color:var(--o0);cursor:pointer;flex:none;font-size:14px}
+.t8head .rm:hover{color:var(--red);background:var(--mantle)}
+.t8body{margin-top:13px;display:grid;gap:13px;padding-bottom:2px}
+.finput{width:100%;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);
+  font:500 13.5px ui-monospace,SFMono-Regular,monospace;padding:10px 12px;outline:none}
+.finput:focus{border-color:var(--blue)}
+.finput.bad{border-color:var(--red)}
+.fex{font-size:11.5px;color:var(--sapphire);margin-top:6px}
+.ferr{font-size:11.5px;color:var(--red);margin-top:6px}
+.publish-note{border-radius:12px;padding:10px 13px;font-size:12px;background:rgba(249,226,175,.1);border:1px solid rgba(249,226,175,.25);color:var(--sub1)}
+
+/* Variant-sheet chrome only — everything inside a phone is the prototype's. */
+body{padding:0;margin:0;display:block;height:auto;min-height:0}
+.vwrap{max-width:1400px;margin:0 auto;padding-block:28px 80px;padding-left:20px;padding-right:20px}
+.vhead{max-width:78ch;margin-bottom:30px}
+.vhead .k{font:600 11.5px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--peach)}
+.vhead h1{font:600 30px/1.12 var(--display);margin:10px 0 12px;text-wrap:balance}
+.vhead p{margin:0 0 9px;color:var(--sub0);font-size:14.5px;line-height:1.65}
+.vhead em{color:var(--rose);font-style:italic}
+.vhead b{color:var(--text)}
+.qhead{max-width:78ch;margin:52px 0 22px}
+.qhead h2{font:600 22px/1.2 var(--display);margin:0 0 9px}
+.qhead .q{font:600 11.5px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--blue)}
+.qhead p{margin:8px 0 0;color:var(--sub0);font-size:14px;line-height:1.62}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:26px;align-items:start}
+.vgrid.three{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.vcol{display:flex;flex-direction:column;gap:12px;min-width:0}
+.vcap .k{font:600 11.5px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--peach)}
+.vcap h3{font:600 17px/1.25 var(--display);margin:7px 0 6px}
+.vcap p{margin:0 0 6px;color:var(--sub0);font-size:13px;line-height:1.55}
+.vcap .cost{color:var(--peach);font-size:12.5px}
+.vcap .cost.bad{color:var(--red)}
+.vcap .win{color:var(--green);font-size:12.5px}
+
+.phone{width:100%;max-width:380px;height:588px;border:1px solid var(--s0);border-radius:22px;overflow:hidden;
+  background:var(--mantle);box-shadow:var(--shadow);position:relative;display:flex;flex-direction:column}
+.phone .body{flex:1;overflow:hidden;padding:10px 13px;position:relative;display:flex;flex-direction:column;gap:2px}
+.phone .card{border-radius:14px;overflow:hidden}
+.phone .grouphead{margin:14px 2px 8px}
+.cl-bar{flex:none;display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--s0);
+  background:var(--crust)}
+.cl-back{color:var(--o1);font-size:19px;line-height:1}
+.cl-title{font:600 15px/1.2 var(--display);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-icons{font-size:13px;color:var(--o1);letter-spacing:.06em;flex:none}
+.cl-more{color:var(--text)}
+.cl-sub{font-size:12px;color:var(--o0);padding:4px 2px 2px}
+.cl-tripline{display:flex;align-items:center;gap:9px;padding:9px 2px 4px}
+.cl-figs{flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--sub1);font-variant-numeric:tabular-nums}
+.cl-pill{display:inline-block;padding:3px 9px;border-radius:999px;background:var(--s0);border:1px solid var(--s1);
+  color:var(--text);margin-right:5px}
+.cl-nav{display:flex;gap:9px;font-size:13px;flex:none;opacity:.85}
+.cl-marks{display:flex;align-items:center;gap:6px;flex:none;font-size:12px}
+
+.cl-popover{position:absolute;right:11px;top:6px;z-index:22;width:212px;background:var(--base);
+  border:1px solid var(--s1);border-radius:14px;box-shadow:0 18px 40px -14px rgba(0,0,0,.8);overflow:hidden}
+.cl-poprow{display:flex;gap:10px;align-items:center;padding:11px 13px;font-size:13.5px;color:var(--sub1)}
+.cl-poprow+.cl-poprow{border-top:1px solid var(--s0)}
+.cl-poprow.sel{color:var(--text);background:rgba(137,180,250,.12)}
+.banner.cl-close{margin:4px 0 2px;background:rgba(137,180,250,.10);border-color:rgba(137,180,250,.30)}
+.banner.cl-close b{font-size:13.5px}
+.banner.cl-close button{background:var(--blue)}
+.cl-ico{font-size:18px;flex:none}
+.cl-ico.ok{width:24px;height:24px;border-radius:50%;background:var(--green);color:var(--crust);
+  display:grid;place-items:center;font-size:13px;font-weight:700}
+.cl-stamp{margin:4px 0 2px}
+
+.cl-scrim{position:absolute;inset:0;background:rgba(17,17,27,.55);z-index:20}
+.cl-dim{filter:saturate(.7)}
+.cl-sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;background:var(--mantle);
+  border-radius:22px 22px 0 0;border-top:1px solid var(--s1);box-shadow:0 -16px 40px rgba(0,0,0,.62)}
+.cl-sheet .handle{width:42px;height:5px;border-radius:3px;background:var(--s2);margin:10px auto 2px}
+.cl-sheet-body{padding:8px 16px 20px}
+.cl-sheet-h{font:600 16px/1.25 var(--display);margin:6px 2px 6px}
+.cl-lead{font-size:13px;color:var(--sub0);line-height:1.55;margin:0 2px 12px}
+.cl-lead b{color:var(--text)}
+.cl-facts{display:grid;gap:7px;padding:11px 12px;border-radius:12px;background:var(--base);
+  border:1px solid var(--s0);font-size:12.5px;color:var(--sub1);margin-bottom:14px}
+.cl-btns{display:flex;align-items:center;gap:10px}
+.cl-primary{flex:1;border:0;border-radius:13px;padding:12px 14px;background:var(--blue);color:var(--crust);
+  font:600 13.5px/1 var(--ui)}
+.cl-ghost{border:0;background:none;color:var(--sub0);font:600 13px/1 var(--ui);padding:12px 6px}
+.cl-actrow{padding:12px 13px;border-radius:12px;background:var(--base);border:1px solid var(--s0);
+  font-size:13.5px;font-weight:600;color:var(--sub1);margin-top:8px}
+.cl-actrow.sel{color:var(--crust);background:var(--blue);border-color:var(--blue)}
+.cl-after{max-width:380px;display:flex;flex-direction:column;gap:7px}
+.cl-afterlbl{font-size:11.5px;color:var(--o0);letter-spacing:.04em;padding-left:2px}
+.cl-after .cl-snack{position:static;left:auto;right:auto;bottom:auto}
+.cl-snack{position:absolute;left:14px;right:14px;bottom:14px;z-index:30;background:var(--s1);
+  border:1px solid var(--s2);border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:12px;
+  font-size:12.5px;box-shadow:var(--shadow)}
+.cl-snack b{margin-left:auto;color:var(--peach);font-size:12.5px}
+.cl-keep .name{color:var(--text)}
+.cl-note{font-size:12px;color:var(--o0);padding:12px 2px;line-height:1.5}
+.cl-rowbox{padding:12px 13px;border-radius:18px;background:var(--mantle);border:1px solid var(--s0)}
+.cl-rowbox .card{border-radius:14px;overflow:hidden}
+.cl-rowbox .grouphead{margin:2px 2px 9px}
+
+.shared{margin-top:40px;max-width:82ch}
+.shared h2{font:600 21px/1.2 var(--display);margin:0 0 10px}
+.shared h3{font:600 15px/1.2 var(--ui);margin:22px 0 6px}
+.shared p{color:var(--sub0);font-size:14px;line-height:1.65;margin:0 0 10px}
+.shared b{color:var(--text)}
+.shared ul{margin:0 0 12px;padding-left:20px;color:var(--sub0);font-size:14px;line-height:1.65}
+.shared li{margin-bottom:5px}
+.tablewrap{overflow-x:auto;margin:14px 0 0}
+table.cmp{border-collapse:collapse;font-size:13.5px;width:100%;min-width:560px}
+table.cmp th,table.cmp td{border-top:1px solid var(--s0);padding:9px 10px;text-align:left;
+  color:var(--sub0);vertical-align:top}
+table.cmp th{color:var(--text);font:600 12px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase}
+table.cmp td:first-child{color:var(--text)}
+@media (max-width:560px){.phone{height:560px}}</style></head>
+<body>
+<div class="vwrap">
+  <div class="vhead">
+    <div class="k">Owner request · 2026-09-20</div>
+    <h1>Finishing the packing, and what „before departure“ stops meaning</h1>
+    <p>Two requests, one moment in a trip's life. First: <b>an action that finishes the packing</b> —
+      everything still open becomes FR-5.5's <em>bewusst nicht mitgenommen</em>, so the list states a
+      decision instead of an unfinished job. Second: once the trip has <b>started</b>, or the packing is
+      <b>closed</b>, M6 must stop opening on <em>„Vor der Abreise“</em> — that moment is past, and the tab
+      that is still worth working is <em>„Vor Ort“</em>.</p>
+    <p>Every phone below shows the same trip: <b>Samedan 2026</b>, 84 of 96 packed, twelve rows still open —
+      among them one half-packed row, three marked <em>„erst am Abreisetag“</em> (FR-5.1) and one Sonja is
+      holding right now (G-3). Those three are what separate the variants; a list of plain open rows would
+      make them all look equally good.</p>
+  </div>
+
+  <div class="qhead">
+    <div class="q">Question 1</div>
+    <h2>Where does <em>„Packen abschliessen“</em> live?</h2>
+    <p>It is a bulk write over up to a hundred rows, so it has to be found on purpose rather than by
+      accident. M4's app bar carries no overflow of destinations by decision (§3.25) — but it does carry
+      the two lifecycle steps, and this is a third.</p>
+  </div>
+  <div class="vgrid">
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant A</div>
+        <h3>In the ⋮ menu, beside the lifecycle steps</h3>
+        <p>Where <em>Reise starten</em> and <em>Reise abschliessen</em> already are: words, not glyphs,
+          and the same grammar as every other thing that changes the trip.</p>
+        <p class="win">Wins: nothing new to learn, nothing added to a working list.</p>
+        <p class="cost">Cost: two entries reading <em>„abschliessen“</em> one under the other, and the
+          action is invisible until you open the menu looking for something else.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Samedan 2026</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ <b class="cl-more">⋮</b></span>
+  </div>
+  <div class="body cl-body">
+    
+    <div class="cl-tripline">
+      <div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>
+      <div class="cl-figs">84/96 gepackt · 18 kg · Prep 2</div>
+      <div class="cl-nav"><span>🛒</span><span>🧳</span><span>📈</span></div>
+    </div>
+    <div class="cl-popover">
+      <div class="cl-poprow">✎ <span>Reise bearbeiten</span></div>
+      <div class="cl-poprow sel">✓ <span>Packen abschliessen</span></div>
+      <div class="cl-poprow">🗄 <span>Reise abschliessen</span></div>
+    </div>
+    <div class="grouphead">Kleidung<span class="n">6/8</span></div>
+    <div class="card">
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Regenjacke</div></div>
+        <div class="cl-marks"></div>
+      </div>
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Wandersocken</div><div class="desc">4 von 6 gepackt</div></div>
+        <div class="cl-marks"></div>
+      </div>
+    </div>
+  </div></div>
+    </div>
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant B</div>
+        <h3>A card above the list, only when it is due</h3>
+        <p>The shape M4 already uses for the closing pass: it states how much would be left behind and
+          carries the verb. Shown once the trip is running (or on the departure day), never while planning.</p>
+        <p class="win">Wins: discoverable exactly when it applies, and it names the consequence before
+          the tap.</p>
+        <p class="cost">Cost: a third band above the list, after trip todos (FR-7.4) and prep — and on a
+          trip you are still packing it reads as a nag.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Samedan 2026</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ <b class="cl-more">⋮</b></span>
+  </div>
+  <div class="body cl-body">
+    
+    <div class="cl-tripline">
+      <div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>
+      <div class="cl-figs">84/96 gepackt · 18 kg · Prep 2</div>
+      <div class="cl-nav"><span>🛒</span><span>🧳</span><span>📈</span></div>
+    </div>
+    <div class="banner cl-close">
+      <span class="cl-ico">🧳</span>
+      <div class="grow">
+        <b>Noch 12 Sachen offen</b>
+        <div class="tiny muted">Was liegen bleibt, wird als bewusst nicht mitgenommen vermerkt.</div>
+      </div>
+      <button>Packen abschliessen</button>
+    </div>
+    <div class="grouphead">Kleidung<span class="n">6/8</span></div>
+    <div class="card">
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Regenjacke</div></div>
+        <div class="cl-marks"></div>
+      </div>
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Wandersocken</div><div class="desc">4 von 6 gepackt</div></div>
+        <div class="cl-marks"></div>
+      </div>
+    </div>
+  </div></div>
+    </div>
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant C</div>
+        <h3>Behind the progress figure</h3>
+        <p>The trip line's percentage becomes the door: tap it for a small sheet about packing — what is
+          open, show only those, finish.</p>
+        <p class="win">Wins: it sits on the number that raises the question in the first place.</p>
+        <p class="cost">Cost: the trip line is a <em>figure</em> today (G-12) and stays unfiltered on
+          purpose; making it a control is new grammar, and nobody presses a statistic.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Samedan 2026</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ <b class="cl-more">⋮</b></span>
+  </div>
+  <div class="body cl-body">
+    <div class="cl-tripline">
+      <div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>
+      <div class="cl-figs"><span class="cl-pill">88 % ▾</span> 18 kg · Prep 2</div>
+      <div class="cl-nav"><span>🛒</span><span>🧳</span><span>📈</span></div>
+    </div>
+    <div class="grouphead">Kleidung<span class="n">6/8</span></div>
+    <div class="card">
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Regenjacke</div></div>
+        <div class="cl-marks"></div>
+      </div>
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Wandersocken</div><div class="desc">4 von 6 gepackt</div></div>
+        <div class="cl-marks"></div>
+      </div>
+    </div>
+    <div class="cl-sheet">
+      <div class="handle"></div>
+      <div class="cl-sheet-body">
+        <div class="cl-sheet-h">Packen · 12 offen</div>
+        <div class="cl-actrow">Nur Offene zeigen</div>
+        <div class="cl-actrow sel">Packen abschliessen</div>
+      </div>
+    </div>
+  </div></div>
+    </div>
+  </div>
+
+  <div class="qhead">
+    <div class="q">Question 2</div>
+    <h2>What does it ask before writing?</h2>
+    <p>The write is reversible in principle — FR-5.5's undo restores the rows a skip found — but only if
+      the batch is undone as one thing. The variants differ in whether the twelve rows are a
+      <em>number</em> to confirm or a <em>list</em> to look at.</p>
+  </div>
+  <div class="vgrid">
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant A</div>
+        <h3>One confirm, one undo</h3>
+        <p>A sheet that states the count and the three things a count hides: started rows, late-packer
+          rows, a row somebody is holding. Then the FR-25.2 snackbar with a single
+          <em>Rückgängig</em> for the whole batch.</p>
+        <p class="win">Wins: two taps on any trip size, and the exceptions are still named.</p>
+        <p class="cost">Cost: you confirm a number. The one thing you actually forgot is inside it,
+          unnamed, and the undo window is seconds long.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Samedan 2026</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ </span>
+  </div>
+  <div class="body cl-body cl-dim">
+    
+    <div class="cl-tripline">
+      <div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>
+      <div class="cl-figs">84/96 gepackt · 18 kg · Prep 2</div>
+      <div class="cl-nav"><span>🛒</span><span>🧳</span><span>📈</span></div>
+    </div>
+    <div class="grouphead">Kleidung<span class="n">6/8</span></div>
+    <div class="card">
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Regenjacke</div></div>
+        <div class="cl-marks"></div>
+      </div>
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Wandersocken</div><div class="desc">4 von 6 gepackt</div></div>
+        <div class="cl-marks"></div>
+      </div>
+    </div>
+    <div class="grouphead">Ausrüstung<span class="n">9/12</span></div>
+    <div class="card">
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Stirnlampe</div></div>
+        <div class="cl-marks">⏰</div>
+      </div>
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Wanderstöcke</div></div>
+        <div class="cl-marks"></div>
+      </div>
+    </div>
+  </div>
+  <div class="cl-scrim"></div>
+  <div class="cl-sheet">
+    <div class="handle"></div>
+    <div class="cl-sheet-body">
+      <div class="cl-sheet-h">Packen abschliessen?</div>
+      <p class="cl-lead">12 offene Sachen werden als <b>bewusst nicht mitgenommen</b> vermerkt.
+        Die Packliste ist damit fertig.</p>
+      <div class="cl-facts">
+        <div>2 sind angefangen — <span class="muted">Wandersocken 4 von 6</span></div>
+        <div>3 stehen auf <span class="muted">„erst am Abreisetag“</span> ⏰</div>
+        <div>1 hat Sonja gerade in der Hand 🔒</div>
+      </div>
+      <div class="cl-btns">
+        <button class="cl-primary">Abschliessen · 12</button>
+        <button class="cl-ghost">Abbrechen</button>
+      </div>
+    </div>
+  </div></div>
+      
+    <div class="cl-after">
+      <div class="cl-afterlbl">und danach, für ein paar Sekunden</div>
+      <div class="cl-snack">12 als nicht mitgenommen vermerkt<b>Rückgängig</b></div>
+    </div>
+    </div>
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant B</div>
+        <h3>A last look, row by row</h3>
+        <p>The rows about to be left behind, each one tappable back into the list. The default is
+          <em>bleibt liegen</em>; the late-packer and held rows arrive pre-kept, because neither is
+          evidence of a decision.</p>
+        <p class="win">Wins: the forgotten thing gets caught here, which is the entire point of the
+          action; and it is FR-9.3's closing pass in a posture people already know.</p>
+        <p class="cost">Cost: a second review in front of the trip's own review, and on a 40-row
+          remainder it is a screen rather than a question.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Samedan 2026</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ </span>
+  </div>
+  <div class="body cl-body cl-dim">
+    
+    <div class="cl-tripline">
+      <div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>
+      <div class="cl-figs">84/96 gepackt · 18 kg · Prep 2</div>
+      <div class="cl-nav"><span>🛒</span><span>🧳</span><span>📈</span></div>
+    </div>
+    <div class="grouphead">Kleidung<span class="n">6/8</span></div>
+    <div class="card">
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Regenjacke</div></div>
+        <div class="cl-marks"></div>
+      </div>
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Wandersocken</div><div class="desc">4 von 6 gepackt</div></div>
+        <div class="cl-marks"></div>
+      </div>
+    </div>
+    <div class="grouphead">Ausrüstung<span class="n">9/12</span></div>
+    <div class="card">
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Stirnlampe</div></div>
+        <div class="cl-marks">⏰</div>
+      </div>
+      
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Wanderstöcke</div></div>
+        <div class="cl-marks"></div>
+      </div>
+    </div>
+  </div>
+  <div class="cl-scrim"></div>
+  <div class="cl-sheet tall">
+    <div class="handle"></div>
+    <div class="cl-sheet-body">
+      <div class="cl-sheet-h">Was bleibt liegen?</div>
+      <p class="cl-lead">12 Sachen sind offen. Tippe an, was doch noch mitkommt.</p>
+      <div class="card">
+        
+        <div class="li ">
+          <div class="grow"><div class="name">Regenjacke</div><div class="desc">Kleidung</div></div>
+          <span class="opt ">bleibt liegen</span>
+        </div>
+        
+        <div class="li ">
+          <div class="grow"><div class="name">Wandersocken</div><div class="desc">Kleidung · 4 von 6 gepackt</div></div>
+          <span class="opt ">bleibt liegen</span>
+        </div>
+        
+        <div class="li cl-keep">
+          <div class="grow"><div class="name">Stirnlampe</div><div class="desc">Ausrüstung · ⏰ erst am Abreisetag</div></div>
+          <span class="opt sel">doch packen</span>
+        </div>
+        
+        <div class="li cl-keep">
+          <div class="grow"><div class="name">Ladegerät</div><div class="desc">Technik · 🔒 bei Sonja</div></div>
+          <span class="opt sel">doch packen</span>
+        </div>
+        
+        <div class="li ">
+          <div class="grow"><div class="name">Reiseapotheke</div><div class="desc">Bad</div></div>
+          <span class="opt ">bleibt liegen</span>
+        </div>
+      </div>
+      <div class="cl-btns">
+        <button class="cl-primary">Abschliessen · 10</button>
+        <button class="cl-ghost">Abbrechen</button>
+      </div>
+    </div>
+  </div></div>
+    </div>
+  </div>
+
+  <div class="qhead">
+    <div class="q">Question 3</div>
+    <h2>How does a half-packed row read afterwards?</h2>
+    <p>This is the one question with a wrong answer. <b>Four of six socks are in the bag.</b> Today's skip
+      writes quantity 0 and count 0, which is the middle card — it denies four socks that travelled.
+      FR-5.5 already settled that <b>state <code>skipped</code> beside a quantity above zero is a legal
+      row</b>, which makes the third card available.</p>
+  </div>
+  
+  <div class="vgrid three">
+    
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">P1 · the amount shrinks to what is in the bag</div>
+        <p>quantity 6 → 4, count stays 4. The row reads as packed and the trip line completes.</p>
+        <p class="cost ">Cost: nothing records that two were left behind — the row simply says four were wanted.</p>
+      </div>
+      <div class="cl-rowbox">
+        <div class="grouphead">Kleidung<span class="n">8/8</span></div>
+        <div class="card">
+      <div class="li done">
+        <div class="check on">✓</div>
+        <div class="grow"><div class="name">Wandersocken</div><div class="desc">4 von 4 gepackt</div></div>
+        <div class="cl-marks"></div>
+      </div></div>
+      </div>
+    </div>
+    
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">P2 · the whole row is skipped</div>
+        <p>quantity 0, count 0 — exactly what the row menu writes today.</p>
+        <p class="cost bad">Cost: it denies four socks that are in the bag, and M14 loses them as packed-and-unused.</p>
+      </div>
+      <div class="cl-rowbox">
+        <div class="grouphead">Kleidung<span class="n">8/8</span></div>
+        <div class="card">
+      <div class="li done">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Wandersocken</div><div class="desc">weggelassen</div></div>
+        <div class="cl-marks"><span class="chip">weggelassen</span></div>
+      </div></div>
+      </div>
+    </div>
+    
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">P3 · the state is written, the numbers are kept</div>
+        <p>state = skipped beside quantity 6 / count 4 — FR-5.5 already calls that a legal row.</p>
+        <p class="cost ">Cost: `unitsOf` has to read the state, or the trip line sits at 4/6 for ever.</p>
+      </div>
+      <div class="cl-rowbox">
+        <div class="grouphead">Kleidung<span class="n">8/8</span></div>
+        <div class="card">
+      <div class="li done">
+        <div class="check on">✓</div>
+        <div class="grow"><div class="name">Wandersocken</div><div class="desc">4 von 6 gepackt · Rest weggelassen</div></div>
+        <div class="cl-marks"><span class="chip">weggelassen</span></div>
+      </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="qhead">
+    <div class="q">Question 4</div>
+    <h2>Is „packing is closed“ a stamp, or is it read off the rows?</h2>
+    <p>The M6 rule needs the phrase to mean something, and the two readings differ the moment somebody
+      quick-adds a toothbrush afterwards (FR-5.6).</p>
+  </div>
+  <div class="vgrid">
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant A</div>
+        <h3>Derived: nothing is open</h3>
+        <p>No new column. The list's own empty state says it, and the two reveal bars hold what is
+          behind it. A row added later reopens the trip — and M6 goes back to defaulting to
+          <em>„Vor der Abreise“</em>.</p>
+        <p class="win">Wins: no schema change, so no dev database is deleted (invariant 2), and no new
+          field in the sync contract.</p>
+        <p class="cost">Cost: „abgeschlossen“ is not a fact anybody recorded, so it cannot be dated, shown
+          or reopened — and one forgotten toothbrush silently undoes it.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Samedan 2026</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ <b class="cl-more">⋮</b></span>
+  </div>
+  <div class="body cl-body">
+    
+    <div class="cl-tripline">
+      <div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>
+      <div class="cl-figs">84/84 gepackt · 18 kg · Prep 2</div>
+      <div class="cl-nav"><span>🛒</span><span>🧳</span><span>📈</span></div>
+    </div>
+    <div class="emptyfilter">
+      <b>Packen abgeschlossen 🎉</b>
+      Nichts mehr offen für diese Reise.
+    </div>
+    <div class="donebar">✓ 12 nicht mitgenommen anzeigen</div>
+    <div class="donebar">✓ 84 gepackte anzeigen</div>
+  </div></div>
+    </div>
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant B</div>
+        <h3>Stamped: <code>trips.packing_closed_at</code></h3>
+        <p>A decision with a time and a person, like every other stamp on the trip. M4 leads with it and
+          offers the way back; a row added afterwards is open without reopening the decision.</p>
+        <p class="win">Wins: the state survives the toothbrush, reads as history in M14, and
+          <em>„wieder öffnen“</em> exists.</p>
+        <p class="cost">Cost: a schema change — every development database is deleted and reseeded — plus
+          a field in the master partition and its field clock.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Samedan 2026</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ <b class="cl-more">⋮</b></span>
+  </div>
+  <div class="body cl-body">
+    
+    <div class="cl-tripline">
+      <div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>
+      <div class="cl-figs">84/84 gepackt · 18 kg · Prep 2</div>
+      <div class="cl-nav"><span>🛒</span><span>🧳</span><span>📈</span></div>
+    </div>
+    <div class="card cl-stamp">
+      <div class="li">
+        <span class="cl-ico ok">✓</span>
+        <div class="grow">
+          <div class="name">Packen abgeschlossen</div>
+          <div class="desc">heute 18:40 · Andy · 12 nicht mitgenommen</div>
+        </div>
+        <span class="opt">wieder öffnen</span>
+      </div>
+    </div>
+    <div class="grouphead">Später dazugekommen<span class="n">0/1</span></div>
+    <div class="card">
+      <div class="li ">
+        <div class="check "></div>
+        <div class="grow"><div class="name">Zahnbürste</div><div class="desc">Bad · nach dem Abschluss ergänzt</div></div>
+        <div class="cl-marks"></div>
+      </div></div>
+    <div class="donebar">✓ 12 nicht mitgenommen anzeigen</div>
+  </div></div>
+    </div>
+  </div>
+
+  <div class="qhead">
+    <div class="q">Question 5</div>
+    <h2>Which M6 tab opens?</h2>
+    <p>Both variants stop opening on <em>„Vor der Abreise“</em> once the trip runs. They differ on the
+      trip that departed with five things still unbought — and the open tab is also where a quick-add
+      lands, so this decides more than what you read first.</p>
+  </div>
+  <div class="vgrid">
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant A</div>
+        <h3>The phase decides</h3>
+        <p>Running, or packing closed → <em>„Vor Ort“</em>. Planning → <em>„Vor der Abreise“</em>, as
+          today. One rule, no arithmetic.</p>
+        <p class="win">Wins: predictable — the same trip always opens the same way, and the count on the
+          other tab still says what is over there.</p>
+        <p class="cost">Cost: departing with five unbought things puts them one tap away instead of in
+          front of you.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Einkaufen</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ </span>
+  </div>
+  <div class="body cl-body">
+    <div class="cl-sub">Samedan 2026 · läuft seit heute</div>
+    
+    <div class="shtabs">
+      <button class="">Vor der Abreise<span class="b">5</span></button>
+      <button class="on">Vor Ort<span class="b">3</span></button>
+    </div>
+    <div class="grouphead">Küche<span class="n"></span></div>
+    <div class="card">
+      
+      <div class="li"><div class="check"></div>
+        <div class="grow"><div class="name">Brot</div></div></div>
+      
+      <div class="li"><div class="check"></div>
+        <div class="grow"><div class="name">Käse</div><div class="desc">für Andy, Sonja</div></div></div>
+    </div>
+    <div class="grouphead">Bad<span class="n"></span></div>
+    <div class="card">
+      <div class="li"><div class="check"></div>
+        <div class="grow"><div class="name">Sonnencreme</div></div></div></div>
+  </div></div>
+    </div>
+    <div class="vcol">
+      <div class="vcap">
+        <div class="k">Variant B</div>
+        <h3>The phase decides, the content breaks the tie</h3>
+        <p>Same rule, with one clause: if the preferred tab is empty and the other one is not, open the
+          one with something on it.</p>
+        <p class="win">Wins: never opens on an empty list while work is waiting on the other side.</p>
+        <p class="cost">Cost: the screen opens differently as rows are checked off, so the tab you were
+          working stops being the tab you return to — the reason the tab is not remembered either.</p>
+      </div>
+      <div class="phone">
+  
+  <div class="cl-bar">
+    <span class="cl-back">‹</span>
+    <span class="cl-title">Einkaufen</span>
+    <span class="cl-icons">🔍 ⛭ ⤡ </span>
+  </div>
+  <div class="body cl-body">
+    <div class="cl-sub">Samedan 2026 · läuft seit heute</div>
+    
+    <div class="shtabs">
+      <button class="on">Vor der Abreise<span class="b">5</span></button>
+      <button class="">Vor Ort<span class="b">0</span></button>
+    </div>
+    <div class="grouphead">Küche<span class="n"></span></div>
+    <div class="card">
+      
+      <div class="li"><div class="check"></div>
+        <div class="grow"><div class="name">Kaffee</div></div></div>
+      
+      <div class="li"><div class="check"></div>
+        <div class="grow"><div class="name">Bouillon</div></div></div>
+    </div>
+    <div class="cl-note">„Vor Ort“ ist leer — die Liste öffnet dort, wo etwas offen ist.</div>
+  </div></div>
+    </div>
+  </div>
+
+  <div class="shared">
+    <h2>What the action deliberately does not touch</h2>
+    <ul>
+      <li><b>Shopping rows.</b> An unbought <em>vorher kaufen</em> row is the shopping list's business,
+        and question 5 is the answer to it — finishing the packing does not decide it.</li>
+      <li><b>Prep todos (FR-7.3) and trip todos (FR-7.4).</b> They are outside every packing figure, and
+        „nicht mitgenommen“ says nothing about a task.</li>
+      <li><b>The trip's lifecycle.</b> It neither starts nor archives the trip; <em>Reise abschliessen</em>
+        stays the only door into the closing pass.</li>
+      <li><b>Somebody else's claim.</b> The G-3 lock is advisory by decision, so a held row can be closed
+        — which is why the variants show it rather than hide it.</li>
+    </ul>
+
+    <h2>The recommendation, if it helps</h2>
+    <div class="tablewrap">
+      <table class="cmp">
+        <tr><th>Question</th><th>Pick</th><th>Why that one</th></tr>
+        <tr><td>1 · where</td><td>A <span class="muted">+ B once running</span></td>
+          <td>The menu is the honest home for a trip-changing verb; the card is what makes it findable on
+            the day it matters. B alone would offer it nowhere while planning.</td></tr>
+        <tr><td>2 · the ask</td><td>B</td>
+          <td>The action exists to turn „forgotten“ into „decided“. A number cannot tell the two apart,
+            and a list of twelve is shorter than the packing list behind it.</td></tr>
+        <tr><td>3 · half-packed</td><td>P3</td>
+          <td>It is the only one that stays true, and FR-5.5 already legalised the row shape. The cost is
+            one honest change in <code>packState.unitsOf</code>.</td></tr>
+        <tr><td>4 · the state</td><td>B</td>
+          <td>M6's default hangs on it, „wieder öffnen“ needs it, and a rule that a quick-add silently
+            revokes is not a rule. Schema cost is real but one-off.</td></tr>
+        <tr><td>5 · the tab</td><td>A</td>
+          <td>A default that moves as rows are checked off is the thing M6 already refuses to do with the
+            remembered tab. The count on the other tab does B's job at no cost.</td></tr>
+      </table>
+    </div>
+    <p>Nothing here is built yet. Once the five are settled they become one FR each in §3.5 and §3.2's
+      shopping half, plus the M4/M6 lines in the UI-Spec and a case in the ledger — and, if question 4
+      lands on B, a line in <code>schema.sql</code> and a reseed.</p>
+  </div>
+</div>
+</body></html>

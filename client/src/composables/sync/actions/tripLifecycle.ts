@@ -16,10 +16,11 @@
  * two, and the wiring is where it should be readable.
  */
 import { TABLE } from '@/types/tables'
-import { travelerRow, tripRow } from '../rows'
+import { itemRow, travelerRow, tripRow } from '../rows'
 import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
+import { planPackingClose } from '@/domain/closePacking'
 import { followsGroups } from '@/domain/trips'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import type { TripEdit } from '@/sync/mutations'
@@ -28,6 +29,7 @@ import {
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
   type Trip,
+  type TripItem,
   type TripStatus,
   type TravelerChangeReport,
 } from '@/types/domain'
@@ -45,8 +47,16 @@ export interface TripLifecycleDeps {
 
 /** createTripLifecycleActions binds the trip's own life to one sync context. */
 export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycleDeps) {
-  const { mutations, enqueueAndDrain, tripStore, masterStore, features, today, tripDataLoaded } =
-    ctx
+  const {
+    mutations,
+    enqueueAndDrain,
+    tripStore,
+    masterStore,
+    features,
+    today,
+    nowIso,
+    tripDataLoaded,
+  } = ctx
   const {
     comments: commentActions,
     packing: packingActions,
@@ -358,6 +368,89 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     setTripStatus(tripId, TRIP_STATUS_ARCHIVED)
   }
 
+  /** FR-5.10's stamp, and the way back out of it. */
+  function stampPackingClosed(tripId: string, at: string | null) {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return
+    const mutation = mutations.setPackingClosed(tripId, at)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: optimisticUpdate(mutation, tripRow(trip)),
+    })
+  }
+
+  /**
+   * closePacking finishes the packing (FR-5.10): everything still open
+   * becomes a decision — *bewusst nicht mitgenommen* where nothing was
+   * packed, and the amount of what is in the bag where some of it was
+   * (`domain/closePacking`, variant P1).
+   *
+   * Two partitions, deliberately in this order: the rows first, then the
+   * trip's stamp. The stamp is what every screen reads afterwards, so it
+   * must not be visible before what it claims about the rows is.
+   *
+   * It writes the stamp even where no row changed — a list that is already
+   * fully packed is exactly the one somebody declares finished — and it does
+   * **not** touch the lifecycle: starting and archiving stay their own steps.
+   *
+   * Returns the rows it changed, snapshotted before the write, for the
+   * snackbar's one undo (FR-25.31) — the same contract `skipItem` has.
+   */
+  function closePacking(
+    tripId: string,
+    opts: { isClaimed?: (item: TripItem) => boolean } = {},
+  ): TripItem[] {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return []
+    const plan = planPackingClose(tripStore.getItems(tripId), opts)
+    const writes = [
+      ...plan.skip.map((row) => ({ row, mutation: mutations.closeRowUnpacked(row.id) })),
+      ...plan.trim.map((row) => ({
+        row,
+        mutation: mutations.closeRowPartlyPacked(row.id, row.packed_count),
+      })),
+    ].map(({ row, mutation }) => ({
+      mutation,
+      optimistic: optimisticUpdate(mutation, itemRow(row)),
+    }))
+    if (writes.length > 0) enqueueAndDrain('trip', tripId, ...writes)
+    stampPackingClosed(tripId, nowIso())
+    return plan.rows
+  }
+
+  /**
+   * FR-5.10's way back: the packing is open again, and the rows it decided
+   * stay decided.
+   *
+   * Reopening is not an undo — the undo is the snackbar's, for the seconds
+   * in which it means the tap just made. A row left behind an hour ago comes
+   * back one at a time through FR-5.5's reveal, because that is what the
+   * decision was; and with variant P1 the amount a half-packed row wanted is
+   * no longer recorded anywhere, so a wholesale restore would have to invent
+   * it.
+   */
+  function reopenPacking(tripId: string) {
+    stampPackingClosed(tripId, null)
+  }
+
+  /**
+   * The snackbar's undo of {@link closePacking}: the rows go back where the
+   * close found them, and the trip is not closed after all.
+   *
+   * The rows are restored through the skip's own undo, which writes the three
+   * fields both closing writes touched. A claim the close released is *not*
+   * restored: it was somebody else's hold on a row, and it has been given up
+   * in the meantime — a few seconds of a snackbar is not a reason to hand it
+   * back.
+   */
+  function restorePackingClose(
+    tripId: string,
+    records: { itemId: string; quantity: number; packedCount: number; state: string }[],
+  ) {
+    packingActions.restoreSkip(tripId, records)
+    stampPackingClosed(tripId, null)
+  }
+
   /**
    * deleteTrip removes a trip entirely (M2, Owner/Admin only — the server
    * enforces the role, this is the optimistic tombstone).
@@ -392,6 +485,9 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
     setTripStatus,
     activateTrip,
     archiveTrip,
+    closePacking,
+    reopenPacking,
+    restorePackingClose,
     deleteTrip,
   }
 }

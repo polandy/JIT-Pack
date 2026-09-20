@@ -21,6 +21,7 @@ import {
 import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { TRIP_CARDS } from '@/lib/tripCards'
+import { isPackingClosed } from '@/lib/tripPhase'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
@@ -432,6 +433,7 @@ async function handleRefresh(event: CustomEvent) {
           :trip-id="heroTrip.id"
           :trip-name="heroTrip.name"
           :planned="false"
+          :packing-closed="isPackingClosed(heroTrip)"
         />
       </template>
 
@@ -512,6 +514,7 @@ async function handleRefresh(event: CustomEvent) {
           :trip-id="trip.id"
           :trip-name="trip.name"
           :planned="false"
+          :packing-closed="isPackingClosed(trip)"
         />
       </template>
       <!--
@@ -552,6 +555,7 @@ async function handleRefresh(event: CustomEvent) {
             :trip-id="trip.id"
             :trip-name="trip.name"
             :planned="true"
+            :packing-closed="isPackingClosed(trip)"
           />
         </template>
       </template>

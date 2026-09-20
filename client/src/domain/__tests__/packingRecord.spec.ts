@@ -51,6 +51,7 @@ const sourceTrip: Trip = {
   duration_days: 21,
   status: 'archived',
   attributes: null,
+  packing_closed_at: null,
   imported: false,
 }
 

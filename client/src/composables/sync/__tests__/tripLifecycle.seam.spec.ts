@@ -22,6 +22,7 @@ import {
   pullIn,
   type Recorded,
   paintedRow,
+  SEAM_NOW_ISO,
   type SeamContext,
 } from './seamContext'
 import { TABLE } from '@/types/tables'
@@ -245,6 +246,114 @@ describe('createTripLifecycleActions without an orchestrator', () => {
       TRIP_STATUS_ARCHIVED,
     ])
     expect(queued.every((q) => q.type === 'master')).toBe(true)
+  })
+
+  /**
+   * FR-5.10. The seam worth pinning is the *pair*: the rows are the trip
+   * partition's and the stamp is the master's, and a close that wrote only
+   * one of them would either lose the decision or claim one nothing backs.
+   */
+  it('closePacking decides the open rows and stamps the trip', () => {
+    seedTrip(TRIP_STATUS_ACTIVE)
+    pullIn(ctx.tripStore, TABLE.tripItems, 'row-open', {
+      trip_id: TRIP_ID,
+      name: 'Regenjacke',
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+      mode: 'pack',
+    })
+    pullIn(ctx.tripStore, TABLE.tripItems, 'row-partial', {
+      trip_id: TRIP_ID,
+      name: 'Wandersocken',
+      quantity: 6,
+      packed_count: 4,
+      state: 'partial',
+      mode: 'pack',
+    })
+
+    const changed = build(ctx).closePacking(TRIP_ID)
+
+    expect(changed.map((row) => row.name)).toEqual(['Regenjacke', 'Wandersocken'])
+    const rowWrites = queued.find((q) => q.type === 'trip')
+    expect(rowWrites?.muts.map((m) => m.mutation.fields)).toEqual([
+      {
+        quantity: 0,
+        packed_count: 0,
+        state: 'skipped',
+        packing_now_by: null,
+        packing_now_at: null,
+      },
+      // P1: the amount shrinks to what is in the bag, never to zero.
+      { quantity: 4, packed_count: 4, state: 'packed', packing_now_by: null, packing_now_at: null },
+    ])
+    const stamp = queued.find((q) => q.muts[0]!.mutation.table === TABLE.trips)
+    expect(stamp?.type).toBe('master')
+    expect(stamp?.muts[0]!.mutation.fields).toEqual({ packing_closed_at: SEAM_NOW_ISO })
+  })
+
+  it('closePacking stamps a list that is already fully packed', () => {
+    seedTrip(TRIP_STATUS_ACTIVE)
+    pullIn(ctx.tripStore, TABLE.tripItems, 'row-packed', {
+      trip_id: TRIP_ID,
+      name: 'Zelt',
+      quantity: 1,
+      packed_count: 1,
+      state: 'packed',
+      mode: 'pack',
+    })
+
+    expect(build(ctx).closePacking(TRIP_ID)).toEqual([])
+    // The one write is the stamp: finishing a list with nothing left open is
+    // the ordinary case, not a no-op.
+    expect(tablesQueued()).toEqual([TABLE.trips])
+  })
+
+  it('closePacking leaves the lifecycle alone', () => {
+    seedTrip(TRIP_STATUS_ACTIVE)
+
+    build(ctx).closePacking(TRIP_ID)
+
+    expect(queued.flatMap((q) => q.muts).some((m) => 'status' in (m.mutation.fields ?? {}))).toBe(
+      false,
+    )
+  })
+
+  it('reopenPacking clears the stamp and decides nothing', () => {
+    seedTrip(TRIP_STATUS_ACTIVE)
+    pullIn(ctx.tripStore, TABLE.tripItems, 'row-open', {
+      trip_id: TRIP_ID,
+      name: 'Regenjacke',
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+      mode: 'pack',
+    })
+
+    build(ctx).reopenPacking(TRIP_ID)
+
+    expect(tablesQueued()).toEqual([TABLE.trips])
+    expect(queued[0]!.muts[0]!.mutation.fields).toEqual({ packing_closed_at: null })
+  })
+
+  it('restorePackingClose puts the rows back and reopens the packing', () => {
+    seedTrip(TRIP_STATUS_ACTIVE)
+    pullIn(ctx.tripStore, TABLE.tripItems, 'row-open', {
+      trip_id: TRIP_ID,
+      name: 'Regenjacke',
+      quantity: 0,
+      packed_count: 0,
+      state: 'skipped',
+      mode: 'pack',
+    })
+
+    build(ctx).restorePackingClose(TRIP_ID, [
+      { itemId: 'row-open', quantity: 1, packedCount: 0, state: 'open' },
+    ])
+
+    expect(tablesQueued()).toEqual([TABLE.tripItems, TABLE.trips])
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ quantity: 1, state: 'open' })
+    expect(queued[1]!.muts[0]!.mutation.fields).toEqual({ packing_closed_at: null })
   })
 
   it('deleteTrip tombstones on the master partition', () => {

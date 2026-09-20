@@ -332,6 +332,7 @@ const CASES: BuilderCase[] = [
         end_date: '2026-08-10',
         series_id: 'ser-1',
         attributes: JSON.stringify({ season: 'summer' }),
+        packing_closed_at: '2026-08-01T18:40:00.000Z',
         imported: 1,
       }),
     read: () => useTripStore().getTrip(TRIP_ID) as unknown as Record<string, unknown>,
@@ -360,6 +361,7 @@ const CASES: BuilderCase[] = [
       // heading resolves the name from the master store's series row, which
       // the *view* can reach even though the trip store cannot.
       attributes: { season: 'summer' },
+      packing_closed_at: '2026-08-01T18:40:00.000Z',
       imported: true,
     } satisfies Record<keyof Trip, unknown>,
   },

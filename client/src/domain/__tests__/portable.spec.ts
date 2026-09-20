@@ -277,6 +277,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       duration_days: 10,
       series_id: 'ser-1',
       attributes: null,
+      packing_closed_at: null,
       imported: false,
     }
     const travelers: Traveler[] = [{ id: 'tr1', trip_id: 't1', name: 'Andy', linked_user_id: null }]
@@ -596,6 +597,7 @@ describe('serializeTrip — status, marks and tags (FR-18.4 amendment)', () => {
     status: 'archived',
     series_id: null,
     attributes: null,
+    packing_closed_at: null,
     imported: false,
     duration_days: null,
   }

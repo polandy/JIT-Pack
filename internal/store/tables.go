@@ -280,7 +280,7 @@ var tableSpecs = map[string]tableSpec{
 		partition: partitionMaster,
 		columns: toSet(
 			"series_id", "name", "year", "start_date", "end_date", "status",
-			"attributes", "imported", "created_by",
+			"attributes", "packing_closed_at", "imported", "created_by",
 		),
 		visible: visibilityRule{tripQuery: `SELECT id FROM trips WHERE id = ?`},
 		export: exportQuery{query: `SELECT t.* FROM trips t

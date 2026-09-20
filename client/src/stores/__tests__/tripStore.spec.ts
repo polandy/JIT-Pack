@@ -16,6 +16,7 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
     duration_days: 6,
     series_id: null,
     attributes: null,
+    packing_closed_at: null,
     imported: false,
     ...overrides,
   }

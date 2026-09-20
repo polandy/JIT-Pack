@@ -90,6 +90,11 @@ generated — edit the builder, not the HTML:
 - [`UI_Concept_ClosingPass_variants.html`](UI_Concept_ClosingPass_variants.html) — where the
   FR-9.3 closing pass lives: its own screen against a mode of M4, with the table of what each
   answer costs; `node dev-docs/build-closing-pass-variants.mjs`.
+- [`UI_Concept_ClosePacking_variants.html`](UI_Concept_ClosePacking_variants.html) — finishing
+  the packing (FR-5.10) and what „vor der Abreise" stops meaning (FR-30.8): five questions
+  rendered against one trip — where the step lives, whether it confirms a count or a list, what a
+  half-packed row becomes, whether „abgeschlossen" is a stamp or a reading, and which M6 tab
+  opens; `node dev-docs/build-close-packing-variants.mjs`.
 - [`UI_Concept_PerPersonRows_variants.html`](UI_Concept_PerPersonRows_variants.html) — what a
   per-person item may cost in rendered lines (FR-25.1/25.21/25.22): today's always-open cluster
   against a foldable one, an avatar-button row, a me-first list and a cluster that only expands

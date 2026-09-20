@@ -74,9 +74,16 @@ function entry(id: string, name: string, list: ShoppingMode = 'buy_local') {
   ])
 }
 
-function mountCard(opts: { planned?: boolean; sources?: ShoppingSource[] } = {}) {
+function mountCard(
+  opts: { planned?: boolean; packingClosed?: boolean; sources?: ShoppingSource[] } = {},
+) {
   return mount(ShoppingDashboardCard, {
-    props: { tripId: 't1', tripName: 'Elba', planned: opts.planned ?? false },
+    props: {
+      tripId: 't1',
+      tripName: 'Elba',
+      planned: opts.planned ?? false,
+      packingClosed: opts.packingClosed ?? false,
+    },
     global: {
       stubs: { RouterLink: RouterLinkStub },
       provide: {
@@ -121,6 +128,18 @@ describe('ShoppingDashboardCard (FR-30.7)', () => {
     const card = mountCard({ planned: true, sources: [source({ buy_before: [line('Adapter')] })] })
     expect(rows(card)).toEqual(['Adapter'])
     expect(card.get('.title').text()).toBe(t('shopping.cardTitleFor', { trip: 'Elba' }))
+  })
+
+  // FR-30.8: the same rule M6 opens on, so the two never disagree about the
+  // same trip. Closed packing on a trip nobody has tapped *Reise starten* on
+  // is exactly the case the phase alone gets wrong.
+  it('opens a planned trip at the destination once its packing is finished (FR-5.10)', () => {
+    const card = mountCard({
+      planned: true,
+      packingClosed: true,
+      sources: [source({ buy_before: [line('Adapter')], buy_local: [line('Brot')] })],
+    })
+    expect(rows(card)).toEqual(['Brot'])
   })
 
   it('switches the list with the chip', async () => {

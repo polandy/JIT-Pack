@@ -23,6 +23,7 @@ import {
   ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
   REVIEW_FLAG_FIELD,
+  STATE_PACKED,
   STATE_PACKING_NOW,
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
@@ -251,6 +252,41 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
       quantity: 0,
       packed_count: 0,
       state: 'skipped',
+    })
+  }
+
+  /**
+   * FR-5.10's close, on a row nothing was packed of: FR-5.5's skip, plus the
+   * release of a claim (FR-5.3).
+   *
+   * The release is what separates it from {@link skipItem}. That one is a
+   * decision about the row under the finger, and M4 does not offer it on a
+   * row somebody else is holding; the close reaches every open row at once —
+   * the G-3 lock is advisory — and a decided row must not still read
+   * „Sonja packt gerade".
+   */
+  function closeRowUnpacked(itemId: string): Mutation {
+    const skip = skipItem(itemId)
+    return { ...skip, fields: { ...skip.fields, packing_now_by: null, packing_now_at: null } }
+  }
+
+  /**
+   * FR-5.10's close, on a half-packed row: the amount shrinks to what is in
+   * the bag (variant P1, owner 2026-09-20), so the row reads as packed.
+   *
+   * Deliberately **not** the skip: four of six socks travelled, and writing
+   * quantity 0 would deny them — M14 would lose four packed rows it could
+   * have judged, and the bag would disagree with the list. Equally
+   * deliberately not {@link packItem}: nothing was packed at this moment, so
+   * `packed_at` keeps saying when the four actually went in.
+   */
+  function closeRowPartlyPacked(itemId: string, packedCount: number): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, {
+      quantity: packedCount,
+      packed_count: packedCount,
+      state: STATE_PACKED,
+      packing_now_by: null,
+      packing_now_at: null,
     })
   }
 
@@ -705,6 +741,18 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
 
   function updateTripStatus(tripId: string, status: string): Mutation {
     return make('upsert', TABLE.trips, tripId, { status })
+  }
+
+  /**
+   * FR-5.10: the moment the packing was declared finished, or `null` to
+   * reopen it.
+   *
+   * One field, alone: NFR-4.2a merges it on its own, so a status another
+   * device set meanwhile survives the stamp — and the lifecycle is not what
+   * this decides. Closing the packing neither starts nor archives the trip.
+   */
+  function setPackingClosed(tripId: string, at: string | null): Mutation {
+    return make('upsert', TABLE.trips, tripId, { packing_closed_at: at })
   }
 
   /**
@@ -1253,6 +1301,8 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     togglePacked,
     setQuantity,
     skipItem,
+    closeRowUnpacked,
+    closeRowPartlyPacked,
     restoreSkipped,
     unskipItem,
     buyItem,
@@ -1286,6 +1336,7 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     // Trips
     createTrip,
     updateTripStatus,
+    setPackingClosed,
     updateTrip,
     renameTraveler,
     linkTraveler,
