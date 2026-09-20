@@ -120,7 +120,11 @@ export function tripViewEntry(
  * (ADR-051 amendment 1), which is half of what the switcher is for.
  */
 export function tripViewPills(current: TripViewId): TripViewId[] {
+  // Read out of TRIP_VIEW_IDS rather than out of TRIP_VIEW_PILLS, so the row's
+  // order is the one the trip is worked through however that set is written.
   const pills = TRIP_VIEW_IDS.filter((id) => TRIP_VIEW_PILLS.includes(id))
+  // The current view goes last: it joins a row that already has an order, and
+  // inserting it would move the two pills that are on every screen.
   return pills.includes(current) ? pills : [...pills, current]
 }
 
