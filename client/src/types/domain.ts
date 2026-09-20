@@ -367,7 +367,7 @@ export interface MasterItem {
    * FR-24.15: the item this one was merged into, once it lost a merge. Null
    * for every active row. The rear view follows it **one hop** so a merged
    * item's past reads as the survivor's, while the trip rows keep saying what
-   * they said at the time (ADR-068).
+   * they said at the time (ADR-069).
    */
   merged_into_id?: string | null
   /** FR-24.3: null while the row is active, an RFC3339 stamp once a delete

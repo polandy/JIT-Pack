@@ -392,7 +392,7 @@ export function createMasterDataActions(ctx: SyncContext) {
   }
 
   /**
-   * Merge duplicate master items into one (FR-24.15, ADR-068).
+   * Merge duplicate master items into one (FR-24.15, ADR-069).
    *
    * The whole act is planned first, over the rows this device holds, and only
    * then written — `planItemMerge`'s doc says why four tables make that

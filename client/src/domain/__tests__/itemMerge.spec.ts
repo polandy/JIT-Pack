@@ -333,7 +333,7 @@ describe('planItemMerge — the alias the rear view reads (FR-24.15)', () => {
   })
 })
 
-describe('reading through the alias (FR-24.15, ADR-068)', () => {
+describe('reading through the alias (FR-24.15, ADR-069)', () => {
   const survivor = item(SURVIVOR, 'Stirnlampe')
   const loser = item(LOSER, 'Petzl', {
     retired_at: '2026-09-20T00:00:00Z',

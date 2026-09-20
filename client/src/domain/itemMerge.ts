@@ -17,7 +17,7 @@
  * rewrite the trips it is a member of and holds, and
  * `UNIQUE (trip_id, source_item_id, traveler_id)` would refuse the re-point on
  * exactly the trips that carried both duplicates. The rear view reads the two
- * pasts as one through {@link ItemMergePlan.aliases} instead — see ADR-068.
+ * pasts as one through {@link ItemMergePlan.aliases} instead — see ADR-069.
  */
 import { dependencyCycleError } from './dependencies'
 import type { ItemDependency, ItemTag, MasterItem, TemplateItem } from '@/types/domain'
@@ -330,7 +330,7 @@ export function mergedIdsOf(itemId: string, items: readonly MasterItem[]): strin
  * merge time, so a reader never has to walk; following a second hop would
  * also be the one way two devices that merged the same pair in opposite
  * directions could loop, since field-level LWW can leave a pair of rows
- * naming each other (ADR-068). An alias whose target is itself aliased is
+ * naming each other (ADR-069). An alias whose target is itself aliased is
  * therefore treated as no alias at all: the rear view reports the two pasts
  * separately, which is the state the product was in before the merge existed.
  */

@@ -86,7 +86,7 @@ CREATE TABLE items (                            -- FR-1.1
     -- FR-24.15: the item this one was merged into, set on the row that loses
     -- a merge. NULL for every active row. The master data moves to the
     -- survivor; the *trip* rows keep pointing here, and the rear view follows
-    -- this column one hop so the two pasts read as one (ADR-068). Nullable and
+    -- this column one hop so the two pasts read as one (ADR-069). Nullable and
     -- unconstrained beyond the FK, for the same LWW reason as retired_at.
     -- ON DELETE SET NULL, not the default RESTRICT: the alias is a *reading*
     -- convenience, not a reference that has to hold. Deleting the survivor
