@@ -259,9 +259,14 @@ export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
 }
 
 /**
- * The switcher pill each of the trip's other views wears (FR-21.21). Written
- * out rather than interpolated: `scripts/testid-gate.mjs` matches a template
+ * The id each of the trip's views is reached by (FR-21.21). Written out
+ * rather than interpolated: `scripts/testid-gate.mjs` matches a template
  * literal by its literal edge, and the app builds these from `trip-view-`.
+ *
+ * One id per view whichever shape it is wearing — a pill under the page's
+ * name or an entry in the bar's ⋮ — because the app gives the two the same
+ * id on purpose (AppHeader): a case that knows where to click should not
+ * have to know which shape the view is in today.
  */
 const TRIP_VIEW = {
   packing: 'trip-view-packing',
@@ -271,10 +276,20 @@ const TRIP_VIEW = {
 } as const
 
 /**
+ * The views that stand in the switcher; the others are behind the ⋮ (ADR-051
+ * amendment 1). Restated here rather than imported, like every other binding
+ * in this file: the suite reads the app from the outside, and a helper that
+ * imported the rule would agree with a wrong app.
+ */
+const PILL_VIEWS: readonly (keyof typeof TRIP_VIEW)[] = ['packing', 'shopping']
+
+/**
  * One of the trip's four views → another (FR-21.21, ADR-051). They were
- * glyphs on M4's header line, then words in the bar's ⋮ (ADR-050), and are
- * pills under the page's name now — on all four screens, so this reaches the
- * luggage from the shopping list without going back through M4.
+ * glyphs on M4's header line, then words in the bar's ⋮ (ADR-050), then four
+ * pills under the page's name — and since amendment 1 the two views a trip is
+ * worked in are pills and the other two are words in the ⋮ again. Either way
+ * this reaches them from any of the four screens, so the luggage is still one
+ * step from the shopping list rather than going back through M4.
  *
  * The head is scrolled back into view first, unconditionally: on M4 it yields
  * on the way down (FR-21.17) and takes the switcher with it, so a case that
@@ -289,6 +304,14 @@ export async function openTripView(page: Page, view: keyof typeof TRIP_VIEW): Pr
     .locator('ion-content')
     .first()
     .evaluate((el) => (el as HTMLElement & { scrollToTop?: (ms: number) => void }).scrollToTop?.(0))
+  if (!PILL_VIEWS.includes(view)) {
+    await openTripMenu(page)
+    await page.getByTestId(TRIP_VIEW[view]).click()
+    // The sheet's own teardown, as tripAction waits for it: one still on
+    // screen swallows the next click as an unrelated timeout.
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+    return
+  }
   const pill = page.getByTestId(TRIP_VIEW[view])
   await expect(pill).toBeVisible()
   await pill.click()

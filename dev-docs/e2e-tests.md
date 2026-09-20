@@ -134,6 +134,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Waiting on the far screen proved only the near one (2026-09-18)](#waiting-on-the-far-screen-proved-only-the-near-one-2026-09-18) — E2E-G10-02's second correction of the same mistake, and the two rules a socket watch has to obey.
 - [The composer stopped making ad-hoc rows (2026-09-19)](#the-composer-stopped-making-ad-hoc-rows-2026-09-19) — FR-24.11: the one helper every typed add goes through, and the promise no composer reaches.
 - [M6 became a module, and its cases reach packing rows through M4 (2026-09-19)](#m6-became-a-module-and-its-cases-reach-packing-rows-through-m4-2026-09-19) — FR-30: the first module directory, two retired ids, and why every buy row is now made on M4.
+- [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, and the glyph case that had to follow the views into the menu.
 
 ## The rule that comes before the units
 
@@ -5379,3 +5380,56 @@ after* (0/1 both times) beside the missing `m4-row-Milch`. E2E-M6-27 reloads
 twice, because an entry that lived only in the screen's state would pass every
 other assertion in it. E2E-M6-28 sets the mode back to *Pack* and expects the tab
 to empty — the one observable difference between a projection and a copy.
+
+## Two views left the row and the helper stopped being one click (2026-09-20)
+
+ADR-051 amendment 1 keeps *Packliste* and *Einkaufen* as pills and sends *Gepäck* and
+*Auswertung* back into the bar's ⋮ — the owner's judgement, off a render, that a view read
+once a trip should not be as loud as the list being packed. Three things fell out for the
+suite.
+
+**`openTripView` is a door, not a click.** It has now been all three shapes: open-the-menu
+then click (ADR-050), one click on a pill (FR-21.21), and both at once. The branch is on the
+*view*, not on what is on screen — `PILL_VIEWS` names the two, and anything else goes
+through the ⋮. That distinction is the whole reason the helper is allowed a branch at all: a
+conditional reading "click the pill **if it is visible**, otherwise open the menu" would
+pass against an app that had lost the pill, which is precisely the regression the case is
+there to catch. The rule restated: **a helper may branch on what the app is specified to
+do, never on what it currently renders.**
+
+The ids made this cheap. The app gives a view the same `trip-view-<id>` whether it is a
+pill or a sheet entry — `AppHeader` has said so since UX-13 — so only the *way in* moved,
+and the twenty-odd cases that reach a sibling view did not change at all.
+
+**E2E-G12-05 had to follow the glyphs into the menu.** It reads the icon each destination
+actually renders and asserts pairwise distinctness; two of its four now render inside an
+action sheet. Read there rather than dropped, because the rule got *sharper* under the
+amendment: a reader who learned the briefcase on a pill must not meet a different glyph in
+the menu. The sheet's button carries the test id and the `ion-icon` sits inside it, so the
+existing `glyph()` helper works unchanged once the sheet is open.
+
+**E2E-G12-07 was rewritten a third time.** Its clause has been reversed by UX-13, by
+ADR-050 and by FR-21.21; this time it is narrowed rather than reversed. What it pins now:
+two pills named as words, the other two named as words *in the sheet*, `trip-view-luggage`
+asserted absent from the row before it is found in the menu — the positive-and-negative pair
+that keeps the absence falsifiable — and the sideways step that has survived every version
+of the decision. One clause is new: standing on M11, *Gepäck* **is** a pill and is marked
+current, and it is gone again from the row on M12. A switcher that marked nothing would have
+passed every other assertion in the case.
+
+**What is not in an e2e case, deliberately.** The sheet's *order* — destinations first, then
+what changes the trip — is asserted in `AppHeader.spec.ts` against the button list Ionic is
+handed, where the order is data. In the browser it is four labels in a column, and a case
+that read them by position would be pinning the sheet's markup rather than the decision.
+
+**Owed, and measured rather than re-run: E2E-M4-135 counts a flip it did not cause.** It
+went red once while this branch's specs were run, on `expect(moved.flips).toBe(0)` — the
+`MutationObserver` on `.trip-line` saw one class change during the programmatic scroll.
+Measured against the base it was branched from (`b0942bb`) with the same command and the
+same repeat count: **1 failure in 6 on the branch, 1 failure in 6 on `main`**, the same
+case, the same assertion, both browsers seen failing across the runs. So it is the case,
+not the change — this branch does not touch the scroll rule, only what stands in the head.
+The likely shape, for whoever picks it up: the observer counts *any* class mutation on the
+line, and the flick that `scrollToEnd` makes just before it can still be settling when the
+observer is attached, so a collapse the reader did ask for is charged to a scroll nobody
+made. The fix is a signal that says *which* scroll a flip answered, not a retry.

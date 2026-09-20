@@ -810,16 +810,21 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
       return icon.evaluate((el) => (el as unknown as { icon?: string }).icon ?? '')
     }
 
-    // The three wear their glyphs on the trip's switcher since FR-21.21 —
-    // beside the word, and only from 480 px up, which is where a fourth pill
-    // stops costing the row its last word. So the vocabulary is read at the
-    // desktop width, off the element Ionic renders.
+    // The shopping list wears its glyph on the trip's switcher — beside the
+    // word, and only from 480 px up, which is where the pills stop costing
+    // the row a word. So the vocabulary is read at the desktop width, off the
+    // element Ionic renders.
     await page.setViewportSize(DESKTOP)
-    const glyphs = [
-      await glyph('trip-view-shopping'),
-      await glyph('trip-view-luggage'),
-      await glyph('trip-view-analytics'),
-    ]
+    const glyphs = [await glyph('trip-view-shopping')]
+
+    // The other two are words in the bar's ⋮ since ADR-051 amendment 1, and
+    // carry the same glyph there — which is the point: a reader who learned
+    // the icon in one shape must not meet a different one in the other.
+    await page.getByTestId('header-overflow').click()
+    await expect(page.locator('ion-action-sheet')).toBeVisible()
+    glyphs.push(await glyph('trip-view-luggage'), await glyph('trip-view-analytics'))
+    await page.keyboard.press('Escape')
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
     // The rail is the fourth reader of the same vocabulary.
     await page.goto(PATH.items)
     glyphs.push(await glyph('rail-items'))
@@ -866,32 +871,46 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G12-07 (G-12, ADR-050, ADR-051): the trip's destinations are words on
-   * the screen, one tap each, from any of the four.
+   * E2E-G12-07 (G-12, ADR-050, ADR-051 and its amendment 1): the trip's
+   * destinations are words — the two it is worked in on the screen, the other
+   * two in the bar's ⋮ — and every one of them is reachable from every one.
    *
    * The clause this case was written for read "one tap each. No ⋯ exists",
    * and both halves had been reversed by a decision: UX-13 gave M4 a ⋮, and
    * ADR-050 put the three destinations in it so the bar could stop growing
-   * glyphs — with §3.25's directive written down as the cost. FR-21.21 pays
-   * it back, and what this pins is the shape that replaced the menu: four
-   * pills under the page's name, the current one marked, and the step from a
-   * sibling to a sibling **not** going back through M4 first.
+   * glyphs — with §3.25's directive written down as the cost. FR-21.21 paid
+   * it back with four pills; amendment 1 keeps two of them, because a row of
+   * four made the two views read once a trip as loud as the two worked in
+   * daily. What this pins is what survived all of it: every view named as a
+   * **word**, where you are marked, and the step from a sibling to a sibling
+   * **not** going back through M4 first.
    */
-  test("E2E-G12-07: the trip's four views are named in the page, one tap from any of them", async ({
+  test("E2E-G12-07: the trip's views are named as words, and reachable from each other", async ({
     page,
   }) => {
     await createTripViaWizard(page, TRIP)
 
     // Named, not merely present: a glyph-only entry is what the move away
-    // from the bar was supposed to end, and the switcher inherits that.
+    // from the bar was supposed to end, and both shapes inherit that.
     for (const [id, name] of [
       ['trip-view-packing', 'Packing list'],
       ['trip-view-shopping', 'Shopping'],
-      ['trip-view-luggage', 'Luggage'],
-      ['trip-view-analytics', 'Analytics'],
     ] as const) {
       await expect(page.getByTestId(id)).toHaveText(name)
     }
+    // The two the row leaves out are not gone: they are words in the ⋮, which
+    // is the half of the amendment that keeps them reachable at all.
+    await expect(page.getByTestId('trip-view-luggage')).toHaveCount(0)
+    await page.getByTestId('header-overflow').click()
+    await expect(page.locator('ion-action-sheet').getByTestId('trip-view-luggage')).toHaveText(
+      'Luggage',
+    )
+    await expect(page.locator('ion-action-sheet').getByTestId('trip-view-analytics')).toHaveText(
+      'Analytics',
+    )
+    await page.keyboard.press('Escape')
+    await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+
     // Where you are is marked, and only there — otherwise "current" says
     // nothing (the packing list is the screen we are standing on).
     await expect(page.getByTestId('trip-view-packing')).toHaveAttribute('aria-current', 'page')
@@ -903,11 +922,16 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
 
     // … and sideways, without the packing list in between: the luggage is
-    // reached from the shopping list, which is the tap the ⋮ never offered.
+    // reached from the shopping list, which is what the ⋮ of ADR-050 never
+    // offered — its entries were M4's, so a sibling was two screens away.
     await openTripView(page, 'luggage')
     await expect(onVisibleScreen(page, 'm11-empty')).toBeVisible()
+    // Standing in a view the row does not otherwise show, it says so: the
+    // pill appears for as long as you are there (ADR-051 amendment 1).
+    await expect(page.getByTestId('trip-view-luggage')).toHaveAttribute('aria-current', 'page')
     await openTripView(page, 'analytics')
     await expect(onVisibleScreen(page, 'analytics-dim-category')).toBeVisible()
+    await expect(page.getByTestId('trip-view-luggage')).toHaveCount(0)
 
     // And back to the list it all belongs to.
     await openTripView(page, 'packing')

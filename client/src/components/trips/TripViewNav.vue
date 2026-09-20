@@ -1,14 +1,20 @@
 <script setup lang="ts">
 /**
- * The trip's four views, as words under the page's name (FR-21.21, ADR-051).
+ * The trip's views a trip is worked in, as words under the page's name
+ * (FR-21.21, ADR-051 and its amendment 1).
  *
  * ADR-050 sent shopping, luggage and analytics into the bar's ⋮ so the bar
  * could stop growing glyphs, and wrote the cost down: §3.25's "one tap each"
- * spent, five destinations behind one glyph. This is the other half of that
- * decision — the views come back as a row of words that says where you are
- * as well as where you can go, and it renders on all four of them, so the
- * step from the shopping list to the luggage no longer goes back through the
- * packing list first.
+ * spent, five destinations behind one glyph. ADR-051 was the other half of
+ * that decision — the views came back as a row of words that says where you
+ * are as well as where you can go, on all four screens, so the step from the
+ * shopping list to the luggage no longer goes back through the packing list.
+ *
+ * Amendment 1 keeps that shape and narrows what stands in it: the packing
+ * list and the shopping list, plus whichever view is being looked at. The
+ * luggage and the analytics are read once a trip, and a row of four made
+ * that indistinguishable from the two that are worked in daily; they are
+ * entries in the bar's ⋮ again, which `AppHeader` fills from the same table.
  *
  * The frame renders it, once, from `meta.tripView` — the same shape as the
  * content column it sits in (G-9): a screen that had to remember to offer
@@ -17,10 +23,14 @@
 import { IonIcon, useIonRouter } from '@ionic/vue'
 import { computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
-import { briefcaseOutline, cartOutline, listOutline, statsChartOutline } from 'ionicons/icons'
 import { t } from '@/i18n'
-import { tripPath, tripSubPath } from '@/router/paths'
-import { TRIP_VIEW_COUNTS, type TripViewId } from '@/lib/tripViews'
+import {
+  TRIP_VIEW_COUNTS,
+  tripViewEntry,
+  tripViewPills,
+  type TripViewEntry,
+  type TripViewId,
+} from '@/lib/tripViews'
 
 const props = defineProps<{
   tripId: string
@@ -34,48 +44,9 @@ const ionRouter = useIonRouter()
 // root — the frame does not import the module behind the pill.
 const counts = inject(TRIP_VIEW_COUNTS, {})
 
-/**
- * The count is what makes the shopping entry worth a tap; at zero the word is
- * offered without it, because the destination exists either way (ADR-050 put
- * the number in the word when the action sheet could render no badge, and a
- * pill keeps it there).
- *
- * **Things to buy, not rows** — the same lines M6's own segments count
- * (FR-25.6). The menu entry counted rows and nothing noticed, because the two
- * numbers were never on one screen; the pill sits above the segments that
- * state them, and said 3 over a list saying 1 + 1 the first time it rendered.
- */
-const openShopping = computed(() => counts.shopping?.(props.tripId) ?? 0)
-
-const views = computed(() => [
-  {
-    id: 'packing' as const,
-    icon: listOutline,
-    label: t('packing.title'),
-    path: tripPath(props.tripId),
-  },
-  {
-    id: 'shopping' as const,
-    icon: cartOutline,
-    label:
-      openShopping.value > 0
-        ? t('packing.shoppingCount', { n: openShopping.value })
-        : t('packing.shopping'),
-    path: tripSubPath(props.tripId, 'shopping'),
-  },
-  {
-    id: 'luggage' as const,
-    icon: briefcaseOutline,
-    label: t('packing.luggage'),
-    path: tripSubPath(props.tripId, 'containers'),
-  },
-  {
-    id: 'analytics' as const,
-    icon: statsChartOutline,
-    label: t('packing.analytics'),
-    path: tripSubPath(props.tripId, 'analytics'),
-  },
-])
+const views = computed(() =>
+  tripViewPills(props.current).map((id) => tripViewEntry(id, props.tripId, counts)),
+)
 
 /**
  * The packing list is the parent of the other three (ADR-011's declared
@@ -83,7 +54,7 @@ const views = computed(() => [
  * the same `navigate(..., 'back', 'replace')` the bar's chevron makes, which
  * is what keeps one live page per route rather than two (ADR-046).
  */
-function go(view: { id: TripViewId; path: string }) {
+function go(view: TripViewEntry) {
   if (view.id === props.current) return
   if (view.id === 'packing') ionRouter.navigate(view.path, 'back', 'replace')
   else router.push(view.path)
@@ -108,8 +79,10 @@ function go(view: { id: TripViewId; path: string }) {
 </template>
 
 <style scoped>
-/* Four pills on one line at 390 px, and the row scrolls rather than wraps:
-   a second line would push the list down by as much as the head above it. */
+/* The row scrolls rather than wraps: a second line would push the list down
+   by as much as the head above it. It stays a scroller although the row is
+   two or three pills since amendment 1 — a long shopping count and a wide
+   locale are what a fixed width would clip. */
 .trip-views {
   display: flex;
   gap: 6px;
@@ -134,19 +107,21 @@ function go(view: { id: TripViewId; path: string }) {
 }
 
 /* Where you are, in the action role — the same blue a chosen thing wears
-   everywhere else (G-11), so the row reads as one control and not as four
-   buttons of which one is broken. */
+   everywhere else (G-11), so the row reads as one control and not as a set
+   of buttons of which one is broken. */
 .view.current {
   border-color: var(--jp-action);
   color: var(--jp-action);
   cursor: default;
 }
 
-/* Four words fill a 390 px row to within a few pixels (measured: 352 of
-   358). The glyphs would take 90 more and push the fourth off the edge, so
-   below the phone breakpoint the pills are words alone — which is what they
-   are read as anyway; the icon is the reader's shortcut once there is room
-   for it. */
+/* The breakpoint outlived the four-pill row it was measured for (ADR-051
+   amendment 1). Two pills leave room for their glyphs at 390 px, but the
+   widest row the amendment can produce does not: the luggage or the
+   analytics standing as the current view makes three, and in German that is
+   *Packliste · Einkaufen (3) · Auswertung* — 286 px of words in 358, which
+   three glyphs and their gaps overrun. A breakpoint that held at two widths
+   and failed at a third would be worse than the one line it saves. */
 .view ion-icon {
   display: none;
   font-size: var(--jp-icon-sm);

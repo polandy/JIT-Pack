@@ -402,6 +402,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The roster reads what is open, not what is followed (2026-09-19)](#the-roster-reads-what-is-open-not-what-is-followed-2026-09-19) — FR-4.9: why a subscription cannot say who is working on a trip.
 - [A measurement that compared two moments (2026-09-20)](#a-measurement-that-compared-two-moments-2026-09-20) — why a geometry assertion was green in CI and red locally: `boundingBox()` per element samples a settling page.
 - [A head that answered scrolls nobody made (2026-09-20)](#a-head-that-answered-scrolls-nobody-made-2026-09-20) — FR-21.17: the flake that was a layout race, and why the guard for the clamp was the wrong shape.
+- [Two of the four badges were not worth a badge (2026-09-20)](#two-of-the-four-badges-were-not-worth-a-badge-2026-09-20) — ADR-051 amendment 1: the mockup that decided it, and the rule that keeps the row saying where you are.
 
 ## Deviations
 
@@ -16292,3 +16293,35 @@ is what they always claimed to be doing. The new case had the same disease twice
 row off the top it moved the list by three pixels, under the rule's own noise threshold, and passed against the
 unfixed build. It aims at the topmost one and asserts the distance.
 
+## Two of the four badges were not worth a badge (2026-09-20)
+
+**The report.** The owner, off the running app: the luggage is not important enough to stand in the badges at the top
+of the packing list, and neither is the analytics. Four ways out were mocked against the real palette before anything
+was built — the row cut to two with the rest in the ⋮; a third *„Mehr"* pill opening a popover; the luggage hung off
+the weight the header line already prints, with the analytics appearing only on an archived trip; and two cards at the
+foot of the list carrying their own numbers. The owner picked the first.
+
+**What the render showed that the code did not.** ADR-051 had scored "discoverability" as *every view visible* and won
+on it. Four pills fill a 390 px row to within six pixels, so the decision it actually shipped was that a screen read
+once a trip is exactly as loud as the list being packed — and a row that is equally loud everywhere says nothing about
+where the work is. That is not a fact a stylesheet states; it is why the mockup came first.
+
+**The rule that made two pills possible.** A screen whose view has no pill marks nothing as current, and "where am I"
+is half of what the switcher is for. So the row is the two views a trip is *worked* in **plus the one being looked
+at** — two pills on M4 and M6, three on M11 and M12, never four. The alternative considered and dropped was leaving
+M11 and M12 with an unmarked row: it renders as a control with a broken state rather than as a control that has
+nothing to say.
+
+**One table, two shapes.** The switcher wrote each view's word, glyph and path inline, and the menu would have written
+them a second time — the shape in which *Gepäck* gets renamed in one place and nothing fails. They are
+`lib/tripViews.ts` now, and the id travels with the view: a menu entry keeps the `trip-view-<id>` its pill had, which
+is why twenty-odd e2e cases did not change when two of the four moved.
+
+**The frame fills the menu, not the four screens.** `useHeaderActions` is per-route, so the obvious implementation was
+for M4, M6, M11 and M12 each to register the two entries — four copies of the rule ADR-051 driver 3 exists to prevent.
+`AppHeader` derives them from `meta.tripView` instead, the same source the pills come from, and the sheet leads with
+where you can go before what you can do to the trip. A lifecycle step between two destinations reads as neither.
+
+**What was accepted.** Two taps instead of one for the luggage and the analytics, behind an unlabelled glyph — the
+exact shape ADR-050 was criticised for. What makes it affordable is the count: two entries, not five, and the two
+nobody reaches while packing. The revisit trigger is written as the ⋮ growing past three entries on a trip screen.
