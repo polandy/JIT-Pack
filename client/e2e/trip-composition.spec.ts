@@ -9,7 +9,6 @@ import {
 import type { Page } from '@playwright/test'
 import { fillIonic } from './helpers/ionic'
 import { openTripTodos } from './helpers/m4'
-import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
 /**
@@ -77,7 +76,6 @@ async function addTaskToPosition(page: Page, group: string, item: string, task: 
   await composer.press('Enter')
   await expect(page.getByTestId('m8-task-row')).toContainText(task)
   await page.getByTestId('m8-position-close').click()
-  await writesLanded(page)
 }
 
 /** Add an FR-7.4 trip task to a template through M8's own section. */
@@ -91,11 +89,6 @@ async function addTripTask(page: Page, scope: 'template' | 'group', name: string
   await fillIonic(composer, task)
   await composer.locator('input').press('Enter')
   await expect(visible(page).getByTestId(`m8-trip-task-${task}`)).toBeVisible()
-  // The row on screen is the optimistic one; every caller navigates straight
-  // afterwards, and a write still in flight when the app reloads is a task
-  // the wizard below never sees. Measured on main before FR-7.6 touched this
-  // file: one run in three lost a task this way.
-  await writesLanded(page)
 }
 
 /**

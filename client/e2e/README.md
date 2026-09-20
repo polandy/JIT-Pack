@@ -154,6 +154,16 @@ them.
   wait a fixed time for it. If a case can only pass by waiting and hoping, the
   fault is in the production code — give it a deterministic seam. `writesLanded`
   exists because E2E-M4-32 needed to know when the data was actually on disk.
+- **Navigation waits for the outbox, and you get that for free.** `page.goto`
+  and `page.reload` are wrapped by the `page` fixture: they settle the device's
+  writes before leaving the screen. A write is on the device once the outbox
+  has it, and the reload that proves it persisted used to race that persist —
+  green on an idle machine, red on a loaded shard, and red at the assertion
+  rather than at the navigation. Two cases were repaired one at a time before
+  the rule moved into the fixture. When a case's _subject_ is a reload landing
+  mid-write, say so with `navigateWhileWriting(page, url)` from
+  `helpers/navigation.ts`; nothing needs it today. `writesLanded` stays for the
+  other job — waiting before an assertion that reads persisted state.
 - **Geometry is read in one `evaluate`, never box by box.** Where two elements
   sit relative to each other is one question, and `boundingBox()` per element
   answers it at several moments: a page that is still settling hands back

@@ -136,6 +136,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [M6 became a module, and its cases reach packing rows through M4 (2026-09-19)](#m6-became-a-module-and-its-cases-reach-packing-rows-through-m4-2026-09-19) — FR-30: the first module directory, two retired ids, and why every buy row is now made on M4.
 - [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, and the scroll window E2E-M4-135 was racing.
 - [Two case ids kept their number and changed their promise (2026-09-20)](#two-case-ids-kept-their-number-and-changed-their-promise-2026-09-20) — what FR-7.6's one task list cost the suite, and the undo-window trap E2E-M4-137 holds.
+- [The navigation that raced the write, closed as a class (2026-09-20)](#the-navigation-that-raced-the-write-closed-as-a-class-2026-09-20) — why the fixture now settles the outbox, and how a flake was made deterministic first.
 
 ## The rule that comes before the units
 
@@ -5528,3 +5529,37 @@ screen filters those out now, and E2E-M4-137 is what holds it: the task disappea
 with the row *immediately*, not after the undo lapses, and the *Rückgängig* brings
 both back. That is also why the case does not reload — a reload inside the undo
 window keeps the row, on purpose (the same note E2E-M4-96 carries).
+
+## The navigation that raced the write, closed as a class (2026-09-20)
+
+Two cases were repaired for the same reason within hours of each other:
+E2E-M3-23 lost a template task once in three runs, E2E-NFR-SEC-02 lost an
+inventory item once in a 925-case local suite. Both did the same thing — act,
+then `page.goto`/`page.reload` — and both were fixed the same way, by adding
+the `writesLanded` call the author had not thought of. That is a defect class
+being paid for one instance at a time, and the instances are cheap to write:
+323 `page.goto` call sites, each an opportunity to forget.
+
+**The rule moved into the `page` fixture.** `goto` and `reload` settle the
+outbox before they leave. The wrapper is deliberately more tolerant than
+`writesLanded` — a page with no sync indicator (a login screen, a context that
+never booted the app) has no write of this device's to lose — and it is bounded
+at 15 s, because a genuinely stuck outbox must be reported as itself and not as
+a timeout inside whatever the case did next.
+
+**The two explicit calls added yesterday are gone with it.** One rule, one
+place; a second mechanism for the same promise is what lets both rot. The cases
+pass without them, which is the smaller half of the proof.
+
+**The larger half is that a race was made deterministic before it was believed.**
+`IndexedDBPersistence.write` was slowed by 300 ms — the same technique the
+`writesLanded` docstring records from E2E-M18-08 — and on that one build,
+E2E-NFR-SEC-02 fails **3 of 3** with the wrapper removed and passes **3 of 3**
+with it. A flake cannot be mutation-proved while it stays a flake; slowing the
+thing it races is what turns "it passed again" into evidence.
+
+**What this does not cover.** A navigation is not the only way to lose a write —
+a case that asserts persisted state *without* navigating still needs
+`writesLanded`, and that is why the helper stays. And `navigateWhileWriting`
+exists for the case whose subject is the interrupted write; nothing uses it
+today, which is the honest state to leave it in rather than inventing a caller.

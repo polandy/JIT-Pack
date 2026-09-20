@@ -77,6 +77,35 @@ export function itemDetail(page: Page) {
  * certain: the helpers without this wait lose the position twice out of
  * twice, the helpers with it pass twice out of twice on the same build.
  */
+/**
+ * The same wait, made safe to run before **every** navigation (the `page`
+ * fixture does exactly that).
+ *
+ * Two differences from {@link writesLanded}, both about what an *unconditional*
+ * check may assume. It tolerates a page with no indicator at all — a login
+ * screen, a context that has not booted the app — because a surface that shows
+ * no outbox has no write of this device's to lose; `writesLanded`, called
+ * deliberately by a case that has just written something, keeps treating that
+ * absence as the failure it is there. And it is bounded: a navigation must not
+ * inherit the full assertion timeout on a device that is genuinely stuck, or a
+ * hung outbox would be reported as a timeout inside whatever came next.
+ */
+export async function writesSettled(page: Page) {
+  if (page.url() === 'about:blank') return
+  const indicator = page.getByTestId('sync-indicator')
+  if ((await indicator.count()) === 0) return
+  await expect(indicator).toHaveAttribute('data-state', /^(local|synced|offline)$/, {
+    timeout: SETTLE_BEFORE_NAVIGATION_MS,
+  })
+}
+
+/**
+ * How long a navigation waits for the outbox. Generous next to a write that
+ * lands in milliseconds, short next to the 60 s a case has: the number is a
+ * ceiling on a pathology, not a budget for the normal path.
+ */
+const SETTLE_BEFORE_NAVIGATION_MS = 15_000
+
 export async function writesLanded(page: Page) {
   // A context that has never loaded the app has made no write. This is the
   // one absence the helper accepts, and it is named rather than probed: the
