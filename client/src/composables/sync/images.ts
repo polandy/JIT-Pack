@@ -54,6 +54,17 @@ export interface ImageActions {
   setItemImage(item: MasterItem, source: Blob): Promise<void>
   deleteItemImage(item: MasterItem): Promise<void>
   /**
+   * FR-24.15: give `to` the photo `from` carries, where `to` has none.
+   *
+   * A **copy** and not a move: the losing row of a merge is usually retired
+   * rather than removed (FR-24.3), and it keeps its own data — taking its
+   * photo away would be the one thing a merge destroys. It is the only part
+   * of a merge that moves bytes, because the bytes are the one part that is
+   * not in the sync envelope (ADR-002); everything else the merge writes is
+   * an ordinary mutation.
+   */
+  copyItemImage(from: MasterItem, to: MasterItem): Promise<void>
+  /**
    * A displayable URL for an item's photo, or null when it has none. Server
    * Mode returns the public GET endpoint (with the hash as a cache-buster);
    * Local Mode returns an object URL the caller must revoke. Callers guard
@@ -90,6 +101,22 @@ export function createImageActions(deps: ImageDeps): ImageActions {
         return
       }
       await client.delete(API.itemImage(item.id))
+      await drainMaster()
+    },
+
+    async copyItemImage(from, to) {
+      if (!from.image_hash || to.image_hash) return
+      if (local) {
+        const blob = await local.getImage(from.id)
+        if (!blob) return
+        await local.putImage(to.id, blob)
+        applyChanges([
+          localChange(TABLE.items, to.id, { ...masterItemRow(to), image_hash: from.image_hash }),
+        ])
+        return
+      }
+      const blob = await client.getBlob(API.itemImage(from.id))
+      await client.putRaw(API.itemImage(to.id), blob, 'image/jpeg')
       await drainMaster()
     },
 

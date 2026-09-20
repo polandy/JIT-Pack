@@ -1818,6 +1818,13 @@ test body under it separates a wrong number from a missing test.**
   tag_id)` refuses the second after the outbox has taken it. What says the plan was made over the whole set is the
   row ending with exactly one tag, under the heading it already had; the manager is reopened afterwards so the
   survivor's count and the two absent rows are read from the screen that owns them.
+* **E2E-M9-30** `all` (FR-24.15, ADR-069) — **implemented 2026-09-20** (`e2e/inventory.spec.ts`): two duplicates
+  merged into one. The loser is built to carry what the survivor lacks — a tag it does not have, a weight it has
+  none of, a companion edge pointing at it — because the inventory list after a merge that wrote nothing but the
+  delete looks exactly like one that worked; each is read back where it is *rendered* (the heading on M9, the tag
+  summary, the companion and the weight in M10). A trip packs the loser first, which is what makes FR-24.3 answer
+  its delete by **retiring** it, and the case ends on M23 asserting the row names the survivor — the sentence that
+  keeps its restore from being a silent offer to re-create the duplicate.
 * **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented 2026-09-20** (`e2e/server/multi-user.spec.ts`):
   the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the
   one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name

@@ -50,6 +50,11 @@ type foreignKey struct {
 
 const onDeleteCascade = "CASCADE"
 
+// A key that clears itself restricts nothing either: FR-24.15's
+// `items.merged_into_id` points at the item a merged-away row was merged
+// into, and deleting that item empties the pointer rather than refusing.
+const onDeleteSetNull = "SET NULL"
+
 // Each restricting foreign key into a declared table is a `blockedBy` entry
 // and each entry is a restricting foreign key — exactly, in both directions.
 // An entry too few makes a delete fail as a driver error instead of a
@@ -65,7 +70,8 @@ func TestTableSpecs_BlockedByIsExactlyTheRestrictingForeignKeys(t *testing.T) {
 
 	actual := map[string]bool{}
 	for _, fk := range foreignKeys(t) {
-		if _, isDeclaredTable := tableSpecs[fk.parent]; !isDeclaredTable || fk.onDelete == onDeleteCascade {
+		if _, isDeclaredTable := tableSpecs[fk.parent]; !isDeclaredTable ||
+			fk.onDelete == onDeleteCascade || fk.onDelete == onDeleteSetNull {
 			continue
 		}
 		actual[fmt.Sprintf("%s <- %s.%s", fk.parent, fk.child, fk.childColumn)] = true

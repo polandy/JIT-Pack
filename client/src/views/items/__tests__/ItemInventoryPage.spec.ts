@@ -24,6 +24,7 @@ import ItemInventoryPage from '../ItemInventoryPage.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet from '@/components/items/BulkTagSheet.vue'
 import BulkAssigneeSheet from '@/components/items/BulkAssigneeSheet.vue'
+import MergeItemsSheet from '@/components/items/MergeItemsSheet.vue'
 import BulkDependencySheet from '@/components/items/BulkDependencySheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
@@ -928,6 +929,68 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     await enterSelection()
     await page.find('[data-testid="m9-select-all"]').trigger('click')
   }
+
+  it('offers the merge only once two rows are picked (FR-24.15)', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    await page.find('[data-testid="m9-row-check-Sonnencreme"]').trigger('click')
+
+    expect((await chooseMore(page, null)).map((b) => b.text)).not.toContain(t('items.bulkMerge'))
+
+    await page.find('[data-testid="m9-row-check-Sonnenbrille"]').trigger('click')
+    expect((await chooseMore(page, null)).map((b) => b.text)).toContain(t('items.bulkMerge'))
+  })
+
+  it('merges the selection into the row the sheet names, after asking (FR-24.15)', async () => {
+    seedThree()
+    const mergeMasterItems = vi.fn().mockReturnValue({
+      merged: 1,
+      tags: 1,
+      positions: 0,
+      edgesDropped: 0,
+      retired: 0,
+      filled: ['weight_grams'],
+    })
+    Object.assign(orchestratorFake, { mergeMasterItems })
+    vi.mocked(confirmDestructive).mockResolvedValueOnce(true)
+
+    const page = mountPage()
+    await flushPromises()
+    await selectAll(page)
+    await chooseMore(page, 'merge')
+    page.getComponent(MergeItemsSheet).vm.$emit('pick', 'i1')
+    await flushPromises()
+
+    expect(mergeMasterItems).toHaveBeenCalledWith('i1', ['i2', 'i3'])
+    // The sentence says what the survivor quietly took over — the part of a
+    // merge that is invisible on the list afterwards.
+    expect(vi.mocked(presentToast).mock.calls.at(-1)?.[0].message).toContain(
+      t('items.mergedTook', { what: t('items.field.weight_grams') }),
+    )
+  })
+
+  it('writes nothing when the merge confirm is declined (FR-24.15)', async () => {
+    seedThree()
+    const mergeMasterItems = vi.fn()
+    Object.assign(orchestratorFake, { mergeMasterItems })
+    vi.mocked(confirmDestructive).mockResolvedValueOnce(false)
+
+    const page = mountPage()
+    await flushPromises()
+    await selectAll(page)
+    await chooseMore(page, 'merge')
+    page.getComponent(MergeItemsSheet).vm.$emit('pick', 'i1')
+    await flushPromises()
+
+    expect(mergeMasterItems).not.toHaveBeenCalled()
+    // The positive signal: the confirm is what was reached and declined.
+    expect(vi.mocked(confirmDestructive)).toHaveBeenCalledWith(
+      expect.objectContaining({ testid: 'm9-merge-confirm' }),
+    )
+  })
 
   it('offers no assignee action where there is nobody to choose between (G-8)', async () => {
     seedThree()

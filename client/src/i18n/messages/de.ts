@@ -549,6 +549,29 @@ export const de: Record<keyof typeof en, string> = {
   'items.tagsEmpty': 'Es gibt noch keinen Tag.',
   'items.tagsNoMatch': 'Kein Tag passt zur Suche.',
   'items.tagPick': '„{tag}“ auswählen',
+  'items.mergeTitle': 'Welcher Artikel bleibt?',
+  'items.mergeMeta': '{n} Artikel zusammenführen',
+  'items.mergeHint':
+    'Der gewählte Artikel bleibt. Die anderen geben ihm ihre Tags, Vorlagen-Positionen und Begleitartikel ab.',
+  'items.mergeUnused': 'noch nie benutzt',
+  'items.mergeUses': 'einmal benutzt | {n}× benutzt',
+  'items.bulkMerge': 'Zusammenführen …',
+  'items.mergeConfirmBody':
+    '„{name}“ bleibt. Ein Artikel wird zusammengeführt und danach stillgelegt oder gelöscht. | „{name}“ bleibt. {n} Artikel werden zusammengeführt und danach stillgelegt oder gelöscht.',
+  'items.mergeConfirm': 'Zusammenführen',
+  'items.merged':
+    'Ein Artikel liegt jetzt unter „{name}“. | {n} Artikel liegen jetzt unter „{name}“.',
+  'items.mergedTook': 'Übernommen: {what}.',
+  'items.mergedPositions':
+    'In einer Vorlage wurden zwei Positionen zu einer. | In {n} Vorlagen wurden zwei Positionen zu einer.',
+  'items.mergedEdges':
+    'Ein Begleitartikel-Eintrag ist entfallen. | {n} Begleitartikel-Einträge sind entfallen.',
+  'items.mergedInto': 'zusammengeführt mit „{name}“',
+  'items.field.weight_grams': 'Gewicht',
+  'items.field.value_cents': 'Preis',
+  'items.field.icon': 'Markierung',
+  'items.field.default_assignee_id': 'Zuständigkeit',
+  'items.field.photo': 'Foto',
   'items.tagsSelect': 'Mehrere wählen',
   'items.tagsSelected': '{n} gewählt',
   'items.tagsMergeMany': 'Zusammenführen',

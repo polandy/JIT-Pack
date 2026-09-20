@@ -111,6 +111,12 @@ export interface ItemComment {
  * Every comment written on a packing row generated from this item, across the
  * trips the device holds, newest first (FR-27.9).
  *
+ * **Several ids, not one** (FR-24.15): a row merged away keeps its own
+ * `source_item_id` on the trips it was packed for, so the survivor's history
+ * is its own id *plus* everything aliased at it (`mergedIdsOf`). The caller
+ * passes the set, because which rows point here is a master-data question and
+ * this module only aggregates.
+ *
  * The join is `comments.trip_item_id → trip_items.id → source_item_id`, which
  * is why an **ad-hoc** row's comments never appear: a row typed into the
  * quick-add has no source item until it exists in the inventory, and inventing
@@ -122,11 +128,17 @@ export interface ItemComment {
  * top; treating it as *now* would put it on top. Last, and the row says the
  * date is unknown.
  */
-export function commentsOnItem(itemId: string, trips: readonly TripComments[]): ItemComment[] {
+export function commentsOnItem(
+  itemIds: readonly string[],
+  trips: readonly TripComments[],
+): ItemComment[] {
+  const wanted = new Set(itemIds)
   const out: ItemComment[] = []
   for (const trip of trips) {
     const rows = new Set(
-      trip.items.filter((item) => item.source_item_id === itemId).map((item) => item.id),
+      trip.items
+        .filter((item) => item.source_item_id !== null && wanted.has(item.source_item_id))
+        .map((item) => item.id),
     )
     if (rows.size === 0) continue
     for (const comment of trip.comments) {

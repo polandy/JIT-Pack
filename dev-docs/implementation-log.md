@@ -413,6 +413,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The M4 unit was 2958 lines in one file (2026-09-20)](#the-m4-unit-was-2958-lines-in-one-file-2026-09-20) — the split, and the helper move it would otherwise have duplicated.
 - [Merging a set of tags is not merging pairs (2026-09-20)](#merging-a-set-of-tags-is-not-merging-pairs-2026-09-20) — one plan over the selection, not a loop: the outbox accepts what `UNIQUE (item_id, tag_id)` then refuses.
 - [The inventory could not say whose job an item usually is (2026-09-20)](#the-inventory-could-not-say-whose-job-an-item-usually-is-2026-09-20) — FR-1.9's reader on M9: the offer is filtered by G-8, the stored preference is not; no filter by account.
+- [The item merge asked four tables the same question (2026-09-20)](#the-item-merge-asked-four-tables-the-same-question-2026-09-20) — why a position is updated rather than re-created, and what the FK guard decided.
+- [Hiding the version string stopped the visual gate drifting (2026-09-20)](#hiding-the-version-string-stopped-the-visual-gate-drifting-2026-09-20) — the baseline had been ~600 px from red for months; `--update-snapshots=all` is what re-records a passing one.
 
 ## Deviations
 
@@ -16691,3 +16693,62 @@ only once it has presented, and under jsdom it never does — the first attempt
 asserted on toggles that are not in the DOM and went green for the wrong reason
 against `.exists() === false`. The rule moved into the composable, where it is
 tested directly, and the sheet is covered by E2E-M9-29 in a real browser.
+
+## The item merge asked four tables the same question (2026-09-20)
+
+FR-24.15 is FR-24.14 with four tables instead of one, and three of them can
+refuse a re-point. The plan is computed once over the whole selection for the
+tag merge's reason; what the item half added was a set of collisions that only
+show up as a driver error if they are not decided in advance:
+`UNIQUE (item_id, tag_id)`, `UNIQUE (template_id, item_id)`,
+`UNIQUE (item_id, depends_on_item_id)`, the self-edge `CHECK`, and a cycle two
+rows kept open while they were apart.
+
+**Two things the code cannot show:**
+
+**A position is updated, never re-created.** M8's editor *moves* a position by
+deleting it and adding another — the mutation surface even says so — and doing
+that here would have been the obvious re-use. It would also have deleted the
+position's FR-27.7 preparation tasks, because `template_item_tasks` hangs off
+the position id with `ON DELETE CASCADE`. The merge writes `item_id` in place
+instead, and the collapsed position's tasks are copied onto the survivor's
+before it goes. User-typed prose is the one thing a merge may never lose.
+
+**The store's own foreign-key guard decided the alias's delete behaviour.**
+`TestTableSpecs_BlockedByIsExactlyTheRestrictingForeignKeys` failed the moment
+`items.merged_into_id` existed: a restricting key into a declared table has to
+be a `blockedBy` entry, or a delete fails as a driver error instead of a
+refusal. That is the right test and the wrong answer here — an alias is a
+*reading* convenience, and refusing to delete the survivor over a pointer the
+user cannot see would be the dead end ADR-063 spent a whole decision avoiding.
+So the key is `ON DELETE SET NULL` and the guard learned that a key which
+clears itself restricts nothing. The merged-away rows simply get their own past
+back.
+
+**What the sentence afterwards says, and why it exists.** A merge is invisible
+on the list — one row fewer — while the survivor has quietly gained a weight, a
+mark, a photo, an assignee, a collapsed Vorlage position and possibly lost a
+companion edge to a cycle. The toast names all of it, because the alternative
+is a user discovering it in M10 a month later.
+
+## Hiding the version string stopped the visual gate drifting (2026-09-20)
+
+The `visual` job failed on a branch that had not touched the screen: the items
+tab differed by **660 pixels against a 658 budget**. Almost all of it was the
+app bar's version string — `git describe --tags --always --dirty`, which is a
+different string on every build. The baseline still held
+`v0.10.0-6-g49d12ebc-dirty` from the day it was recorded; CI renders the sha of
+the commit it built. Every run had been failing by ~600 px and passing on the
+slack, so the gate had been one glyph away from red for months, and the icon
+change FR-24.8/24.12 made to that same bar had never been re-recorded.
+
+**Owner decision:** hide the version in visual runs and re-record. It is build
+metadata, not design, so `freeze()` injects a style that makes it
+`visibility: hidden` — the box stays, nothing else moves. 14 of the 30
+baselines changed; the rest never showed the bar.
+
+Two things worth keeping: `--update-snapshots` rewrites only what *fails*, and
+these were passing on the budget, so the re-record needed
+`--update-snapshots=all`. And `scripts/visual.sh` ignored `E2E_PORT`, which
+`scripts/e2e.sh` honours precisely because two worktrees collide on the host
+port — it forwards it now.

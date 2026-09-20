@@ -363,6 +363,13 @@ export interface MasterItem {
    * the ordinary case. Generation turns it into the row's assignee only where
    * a traveler is linked to that account (FR-2.5). */
   default_assignee_id?: string | null
+  /**
+   * FR-24.15: the item this one was merged into, once it lost a merge. Null
+   * for every active row. The rear view follows it **one hop** so a merged
+   * item's past reads as the survivor's, while the trip rows keep saying what
+   * they said at the time (ADR-068).
+   */
+  merged_into_id?: string | null
   /** FR-24.3: null while the row is active, an RFC3339 stamp once a delete
    * retired it. Display surfaces hide a retired row; resolution, export and
    * backup keep reading it, which is the whole point of keeping it. */

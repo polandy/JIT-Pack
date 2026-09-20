@@ -12,6 +12,14 @@ from a spreadsheet, JIT-Pack gives you a delete endpoint per row.
     pick the one that stays (the tags are offered with their item counts, biggest first). See
     [what the endpoint does differently](#deleting-a-tag-is-not-what-the-app-does) below.
 
+!!! tip "Two items that are the same thing"
+    Tick them both in the inventory's selection mode (the checkbox icon in the app bar), then
+    **⋯ More → Merge …** and choose which one stays. The others hand it their tags, their
+    template positions, their companions and any weight, price, mark or photo it does not have
+    yet, and are then hidden or deleted like any other item you remove. **Past trips keep naming
+    the item they were packed from** — nothing rewrites a trip that already happened — but the
+    item's own page shows the remarks from both, so its history reads as one. There is no undo.
+
 !!! tip "Let the app find the mess"
     **Inventory → ⋮ → Tidy up** checks the inventory against a few rules and lists what it
     finds, each with the fix beside it — see [Tidying up in the app](#tidying-up-in-the-app).

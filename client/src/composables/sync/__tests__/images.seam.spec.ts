@@ -145,3 +145,52 @@ describe('itemImageUrl', () => {
     vi.unstubAllGlobals()
   })
 })
+
+describe('copyItemImage — the one part of a merge that moves bytes (FR-24.15)', () => {
+  it('fetches the loser’s photo and uploads it under the survivor, in Server Mode', async () => {
+    const { images, client, drainMaster } = actions(null)
+    const bytes = new Blob(['photo'], { type: 'image/jpeg' })
+    client.answer(bytes)
+    client.answer(undefined)
+
+    await images.copyItemImage(item({ id: 'loser', image_hash: 'abc' }), item({ id: 'survivor' }))
+
+    expect(client.calls.map((c) => [c.verb, c.path])).toEqual([
+      ['getBlob', API.itemImage('loser')],
+      ['putRaw', API.itemImage('survivor')],
+    ])
+    // The hash is the server's to stamp, so the drain is what brings it back.
+    expect(drainMaster).toHaveBeenCalled()
+  })
+
+  it('copies inside the device and funnels the hash, in Local Mode', async () => {
+    const local = deviceStore()
+    const { images, applied, client } = actions(local)
+
+    await images.copyItemImage(item({ id: 'loser', image_hash: 'abc' }), item({ id: 'survivor' }))
+
+    expect(local.put).toHaveBeenCalledWith('survivor', expect.any(Blob))
+    expect(applied).toEqual([
+      expect.objectContaining({
+        table: TABLE.items,
+        id: 'survivor',
+        row: expect.objectContaining({ image_hash: 'abc' }),
+      }),
+    ])
+    // Nothing reached the network: the queue would have had to answer.
+    expect(client.calls).toEqual([])
+  })
+
+  it('leaves a survivor that already has a photo alone, and does nothing for a loser with none', async () => {
+    const local = deviceStore()
+    const { images } = actions(local)
+
+    await images.copyItemImage(
+      item({ id: 'loser', image_hash: 'abc' }),
+      item({ id: 'survivor', image_hash: 'own' }),
+    )
+    await images.copyItemImage(item({ id: 'loser' }), item({ id: 'survivor' }))
+
+    expect(local.put).not.toHaveBeenCalled()
+  })
+})

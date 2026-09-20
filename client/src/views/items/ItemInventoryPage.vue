@@ -81,6 +81,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet, { type BulkTagMode } from '@/components/items/BulkTagSheet.vue'
 import BulkAssigneeSheet from '@/components/items/BulkAssigneeSheet.vue'
+import MergeItemsSheet, { type MergeCandidate } from '@/components/items/MergeItemsSheet.vue'
 import BulkDependencySheet from '@/components/items/BulkDependencySheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
@@ -196,6 +197,8 @@ const selecting = ref(false)
 const selected = ref<Set<string>>(new Set())
 const bulkSheet = ref<BulkTagMode | null>(null)
 const assigneeSheet = ref(false)
+/** FR-24.15: which of the picked rows stays. */
+const mergeSheet = ref(false)
 const dependencySheet = ref<DependencyLinkDirection | null>(null)
 
 /**
@@ -754,7 +757,9 @@ function tagName(tagId: string): string {
 
 /** What the ⋯ sheet offers besides the two tag actions. */
 const MORE_ASSIGNEE = 'assignee'
-type MoreAction = typeof MORE_ASSIGNEE | DependencyLinkDirection
+/** FR-24.15: merge the picked rows into one of them. */
+const MORE_MERGE = 'merge'
+type MoreAction = typeof MORE_ASSIGNEE | typeof MORE_MERGE | DependencyLinkDirection
 
 /**
  * The three later actions live behind one glyph rather than beside the two
@@ -771,6 +776,8 @@ async function openMore() {
       ...(canAssign.value ? [{ text: t('items.bulkAssignee'), data: MORE_ASSIGNEE }] : []),
       { text: t('items.bulkDependsOn'), data: DEPENDENCY_LINK_MAIN },
       { text: t('items.bulkCompanion'), data: DEPENDENCY_LINK_COMPANION },
+      // FR-24.15: two rows are the fewest that can be the same thing.
+      ...(selected.value.size > 1 ? [{ text: t('items.bulkMerge'), data: MORE_MERGE }] : []),
       { text: t('common.cancel'), role: 'cancel' },
     ],
   })
@@ -779,6 +786,7 @@ async function openMore() {
   if (role === 'cancel' || typeof data !== 'string') return
   const action = data as MoreAction
   if (action === MORE_ASSIGNEE) assigneeSheet.value = true
+  else if (action === MORE_MERGE) mergeSheet.value = true
   else dependencySheet.value = action
 }
 
@@ -810,6 +818,70 @@ async function assignSelected({ userId }: { userId: string | null }) {
     userId
       ? t('items.bulkAssigned', { n: touched, name: userName(userId) })
       : t('items.bulkUnassigned', { n: touched }),
+  )
+}
+
+/**
+ * The picked rows as FR-24.15's sheet reads them: the tags they carry and how
+ * much of the product resolves against each — the two facts the choice of
+ * survivor actually turns on.
+ */
+const mergeCandidates = computed<MergeCandidate[]>(() =>
+  selectedItems.value.map((item) => ({
+    item,
+    tags: masterStore.getItemTags(item.id).map((tag) => tag.name),
+    uses: orchestrator.masterItemDeletionOutlook(item.id).references,
+  })),
+)
+
+/**
+ * FR-24.15: merge the selection into the row the sheet names.
+ *
+ * The confirm is what the act owes — it has no undo, and the losing rows are
+ * retired or removed by FR-24.3 at the end of it. Afterwards the screen says
+ * what was *taken over*, because the survivor quietly gaining a weight, a
+ * photo or a mark is the part a user cannot see from the list.
+ */
+async function mergeSelected(survivorId: string) {
+  const losers = selectedItems.value.filter((item) => item.id !== survivorId)
+  const survivor = masterStore.getItem(survivorId)
+  mergeSheet.value = false
+  if (!survivor || losers.length === 0) return
+
+  const ok = await confirmDestructive({
+    header: t('items.mergeTitle'),
+    message: t('items.mergeConfirmBody', { n: losers.length, name: survivor.name }),
+    confirmLabel: t('items.mergeConfirm'),
+    testid: 'm9-merge-confirm',
+  })
+  if (!ok) return
+
+  const photoFrom = survivor.image_hash ? null : losers.find((item) => item.image_hash)
+  const outcome = orchestrator.mergeMasterItems(
+    survivorId,
+    losers.map((item) => item.id),
+  )
+  // The bytes are the one part of a merge that is not a mutation (ADR-002),
+  // so they move after the rows and only where the survivor had no photo.
+  if (photoFrom) await orchestrator.copyItemImage(photoFrom, survivor)
+
+  endSelecting()
+  await announceBulk(
+    [
+      t('items.merged', { n: outcome.merged, name: survivor.name }),
+      outcome.filled.length > 0 || photoFrom
+        ? t('items.mergedTook', {
+            what: [
+              ...outcome.filled.map((field) => t(`items.field.${field}`)),
+              ...(photoFrom ? [t('items.field.photo')] : []),
+            ].join(', '),
+          })
+        : '',
+      outcome.positions > 0 ? t('items.mergedPositions', { n: outcome.positions }) : '',
+      outcome.edgesDropped > 0 ? t('items.mergedEdges', { n: outcome.edgesDropped }) : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
   )
 }
 
@@ -1476,6 +1548,14 @@ onBeforeUnmount(() => observer?.disconnect())
         @pick="
           ({ tagId, primary }) => (bulkSheet === 'take' ? takeTag(tagId) : giveTag(tagId, primary))
         "
+      />
+
+      <!-- FR-24.15: which of the picked rows stays, and what each brings. -->
+      <MergeItemsSheet
+        :is-open="mergeSheet"
+        :candidates="mergeCandidates"
+        @dismiss="mergeSheet = false"
+        @pick="mergeSelected"
       />
 
       <BulkAssigneeSheet

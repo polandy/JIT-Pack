@@ -1967,19 +1967,19 @@ These patterns apply to every screen and are specified once.
   **Struck 2026-08-31 (owner decision): the clause goes and the multi-select is not owed.** Deduplication is discharged
   where it happens, on import; a second cleanup surface in the inventory answers a question nobody has asked. PRD
   FR-27.5 carries a note that its supporting premise is withdrawn with this, because an argument may not go on resting
-  on a feature that will not exist. **Asked for again 2026-09-20 (owner) and specified as FR-24.15** — merging
-  duplicate items, entered from the selection mode and, as a second way in, from FR-24.11's near-miss search. It is
-  **not built** (backlog item 26) and the strike above stands until it is: what changed is that the question now has
-  an asker, not that the surface exists. What the screen will owe was decided with the FR — the **survivor is named
-  in the sheet FR-24.14 uses**, each candidate with what it brings (tags, weight, photo, usage count) and the
-  most-used first; the confirm states what was taken over from the losing row, how many Vorlagen collapse a position
-  and which dependency edges were dropped. **Trip history is not re-pointed** (a finished trip is a snapshot) and the
-  losing row is disposed of by FR-24.3's ordinary delete, so it is usually *retired* rather than gone — the confirm
-  must therefore not read as an undo: M23 brings the row back, not the references that moved, and it says which rows
-  got there by a merge. The row swipe stays *proposed*: it was specified 2026-07-17 as a shortcut past M10,
-  and the shortcut is worth less than it looked once M10's own card had to carry the usage count and the outcome
-  sentence — a swipe reveal has room for a label and not for a reason. It returns, if it returns, as a second entry
-  point to the same rule and the same wording.
+  on a feature that will not exist. **The strike was lifted on 2026-09-20 (owner) and the merge is built as
+  FR-24.15** — in FR-24.9's selection mode, behind the ⋯ sheet, offered from two picked rows up. It opens its own
+  sheet (`MergeItemsSheet`), not FR-24.14's action sheet: a tag is a name, an item is a name plus tags, a weight, a
+  photo and a past, so every candidate says **what it brings** — its tags, its weight, whether it has a photo, how
+  often it was used — and the **most-used is offered first**, being the row the rest of the data already hangs on.
+  The confirm names the survivor and how many rows go; the sentence afterwards names what was **taken over** (the
+  weight, the mark, the photo, the assignee), how many Vorlagen collapsed a position and how many companion edges
+  were dropped — the parts of a merge that are invisible on the list. **Trip history is not re-pointed** (ADR-069),
+  so the losing row is usually *retired* rather than gone, and the confirm may not read as an undo: M23 brings the
+  row back, not the references that moved. The row swipe stays *proposed*: it was specified 2026-07-17 as a shortcut
+  past M10, and the shortcut is worth less than it looked once M10's own card had to carry the usage count and the
+  outcome sentence — a swipe reveal has room for a label and not for a reason. It returns, if it returns, as a second
+  entry point to the same rule and the same wording.
 * **A retired item is absent, not dimmed (FR-24.3).** A row the lifecycle rule hid leaves this list, the tag axis counts
   and the search — no strike-through, no greyed section. **Where it goes instead was decided 2026-08-25: M23**, its own
   screen off Settings, not a filter chip on the tag axis (a lifecycle state is not a tag, and the same chip would then
@@ -2591,6 +2591,11 @@ token would prove nothing there is anything to prove.
   for one rule, in the screen FR-24.4 deliberately made lean. A **`?retired=1` mode of M9** inherits a grouping, a tag
   axis, a property sheet and a FAB that all mean nothing for a list whose only actions are *restore* and *delete for
   good*.
+* **A row that got here by a merge says so (2026-09-20, FR-24.15):** beneath the retire date it names the surviving
+  item — *„zusammengeführt mit ‚Stirnlampe'"* — because a bare *Wiederherstellen* is otherwise an offer to re-create
+  the duplicate the user has just removed. The restore is ADR-034's act unchanged and additionally **clears the merge
+  alias**: a row that is active again has a past of its own. What it does *not* bring back are the references the
+  merge moved — the tags, positions and companions are the survivor's now.
 * **Elements:** the FR's sentence in one line, then a two-value segment — *Artikel (N)* / *Vorlagen (N)* — and one card
   list per side, **newest retire first**, because the row someone wants back is almost always the one they just lost. A
   row carries the mark, the name, the date it was hidden, and its usage count. **Both segments are always present, and

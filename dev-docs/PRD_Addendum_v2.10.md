@@ -1554,9 +1554,10 @@ instance-admin role — accordingly stays declarative and out of the UI entirely
 
 ### 3.24 Item Tags & Master-Item Lifecycle
 
-**Status: implemented** (2026-08-25) **except FR-24.15, specified 2026-09-20 and not built** (backlog item 26).
-The section always held two independent changes to the central item database (FR-1.1), and they were unparked
-separately — the tag model in August, lifecycle deletion nine days later.
+**Status: implemented** (2026-08-25; FR-24.14 and FR-24.15 on 2026-09-20). The section always held two independent
+changes to the central item database (FR-1.1), and they were unparked separately — the tag model in August,
+lifecycle deletion nine days later; the two merges came a month after that, when the instance's own data had grown
+duplicates of both kinds.
 
 * **The tag model — FR-24.1, FR-24.2, FR-24.4, FR-24.5 — is *accepted and implemented*** (2026-08-16, owner decision:
   "we do it with tags"). Migration 022 renames `categories` to `tags` and moves the assignment into `item_tags (item_id,
@@ -1899,9 +1900,9 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   *Considered and rejected:* a banner above the list (a list that is untidy is not wrong, and a standing banner is noise
   the day after); making the tag mandatory in M10 (the refusal above); and a fourth rule, **similar names** with an item
   merge — M9's merge of duplicates was struck on 2026-08-31 and nothing merges two items today, so the rule would
-  find what it cannot repair. **The decision came on 2026-09-20 and the merge is specified as FR-24.15**, so the
-  fourth rule is owed with it — and it is where a *similar names* finding belongs, because a rule that finds a
-  duplicate can then hand over the act that fixes it, the shape „Tag mit nur einem Artikel" already has.
+  find what it cannot repair. **FR-24.15 built that merge on 2026-09-20, so the premise is gone and the fourth rule
+  is owed** — it is where a *similar names* finding belongs, because a rule that finds a duplicate can now hand over
+  the act that fixes it, the shape „Tag mit nur einem Artikel" already has.
 
 * **FR-24.13 (A Tag Carries a Mark — added 2026-09-19, implemented the same day):** a tag may carry **one emoji**, the
   item mark's column on `tags` (`icon`, FR-28.1's shape: optional, capped at 32 bytes, no „is it really an emoji" check
@@ -1947,79 +1948,70 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
     against the axis, and they are no longer on it.
   * **While picking, a row asks one question.** The rename control, the arrows, the mark and the two per-row acts
     withdraw, so the only thing a tap can mean is *pick this one* — FR-24.9's rule for M9's own rows, one screen in.
-* **FR-24.15 (Merging Duplicate Items — specified 2026-09-20, owner request; not built — backlog item 26):** two
+* **FR-24.15 (Merging Duplicate Items — added and implemented 2026-09-20; the trade is **ADR-069**):** two
   inventory rows that are the same thing — *„Stirnlampe"* and *„Stirnlampe Petzl"*, typed a year apart on two
-  devices — are **merged into one**: the user names the survivor, and the other row's references move to it before it
-  goes. FR-16.3's deduplication answers this **on import** (M15, M18) and only there; typing is the other way a
-  duplicate is born, and it has no answer at all. FR-24.12's rejected fourth rule — *similar names*, „the rule would
-  find what it cannot repair" — is the one that becomes buildable with this, and it is where the finding belongs.
+  devices — are **merged into one**: the user names the survivor, and the other rows' references move to it before
+  they go. FR-16.3's deduplication answers this **on import** (M15, M18) and only there; typing is the other way a
+  duplicate is born, and it had no answer at all.
   **This reverses a decision, and the reversal is the point.** A multi-select merge on M9 stood in the UI-Spec from
   the first draft, was never built, and was **struck 2026-08-31** with *„a second cleanup surface in the inventory
-  answers a question nobody has asked"*. The question has since been asked — by the owner, against this instance's
-  own data. FR-27.5's rejection of fuzzy matching in M21 rested partly on *„a duplicate master item is visible in M9
-  and can be merged"*; that premise was withdrawn with the clause and **comes back when this is built, not before**.
-  **What a merge moves, and how each collision resolves.** This is why the item half is not FR-24.14's: every table
-  below names an `items.id`, and three of them can refuse the re-point.
-  * `item_tags` — the union of both sets minus what `UNIQUE (item_id, tag_id)` refuses. **The survivor keeps its own
-    primary tag**; the loser's `position` 0 arrives as an ordinary tag. (FR-24.14 promotes instead, because there the
-    *item* is what is being preserved; here the survivor's filing is what the user chose.)
-  * `item_dependencies` — both directions, and two edges that cannot simply move: a dependency **between** the two
-    merged rows becomes a self-edge (`CHECK (item_id <> depends_on_item_id)`) and is **dropped**, and a re-pointed
-    edge can close a cycle the two rows kept open while they were apart. §3.20's save-time refusal is asked about one
-    edge; the merge asks it about the set and **drops the edges that would close a cycle**, naming them in the
-    confirm — a merge may not be refused by an edge the user cannot see from the inventory.
-  * `template_items` — `UNIQUE (template_id, item_id)`: a Vorlage holding both duplicates ends with **one** position.
-    It keeps the **survivor's** position and settings, takes the **higher `quantity`** (FR-2.3's `dedup: max` is the
-    product's existing answer to the same item twice), **concatenates** the FR-27.7 `template_item_tasks` — user-typed
-    prose is the one thing never dropped — and keeps the survivor's `conditions`, because AND narrows the position
-    silently and OR widens it, and neither is defensible. The confirm names how many Vorlagen collapse a position.
-  * `item_images` — `PRIMARY KEY (item_id)`, so the survivor keeps its photo or **takes the loser's when it has
-    none**. Same rule for the survivor's own empty fields: `default_assignee_id` (FR-1.9), the §3.28 mark, weight and
-    price are **filled from the loser where the survivor left them empty**, and never overwritten. *Why not a
-    per-field prompt:* the survivor was chosen because it is the better row, and a field-by-field dialogue on a rare
-    act buys precision nobody asked for — what the merge owes instead is a confirm naming the values it took over.
-  * **History stays where it is** — `trip_items.source_item_id` and `trip_generated_positions.source_item_id` on
-    trips already generated are **not re-pointed**. Three reasons, in order: those rows are the **trip partition**, so
-    a client can only rewrite the trips it is a member of and holds locally — the merge would be partial on every
-    device and complete on none, and moving it server-side would take the rule out of Local Mode (invariant 4);
-    `trip_items` is a **snapshot by design** (`name`, `weight_grams`, `category_name` are copies taken at
-    generation), and nothing else in the product lets a master edit rewrite a finished trip — a rename does not; and
-    `UNIQUE (trip_id, source_item_id, traveler_id)` refuses the re-point exactly on the trips that carried **both**
-    duplicates, the interesting case, which would then owe a rule for merging two rows with two packed states and two
-    quantities inside a trip nobody was looking at.
-  **The rear view reads the two pasts as one, through an alias.** A merge that leaves the analytics seeing two items
-  is a merge the user does again next year, so the write stops at master data and the **reading** side unions
-  instead: `items.merged_into_id`, nullable, set on the row that loses and pointing at the survivor. FR-27.8/FR-27.9's
-  rear-view sections and FR-8/FR-14's analytics **follow one hop** and report the loser's past as the survivor's,
-  while the trip row keeps saying what it said at the time. It is ADR-036's keep-and-repoint shape, one table over.
-  Three rules make the hop safe:
-  * **Flatten at merge time.** Merging B into C re-points every row already aliased to B, so the alias is always
-    **one hop**, never a chain, and no reader loops.
-  * **The alias is a master-partition field** like any other, merged by field-level LWW (ADR-022). Two devices that
-    merge the same pair in **opposite** directions therefore converge on a pair of rows pointing at each other, both
-    retired: a reader follows **at most one hop** and treats an alias whose target is itself aliased as no alias, so
-    the worst case is a rear view that reports the two pasts separately — the state the product is in today.
-  * **It is a schema change**, and since ADR-067 that is an additive migration in the `0.x` chain rather than the
-    reseed it would have been under ADR-018 — the column is nullable and nothing backfills it, which is exactly the
-    shape that chain carries. *Rejected:* re-pointing the history (above), and master-only with no alias (no schema
-    change, but then the merge is a statement the analytics contradict, and FR-27.5 does not get its premise back).
-  **What happens to the loser: FR-24.3's ordinary delete, not a third lifecycle.** The merge ends by deleting the
-  row, and the existing rule answers that: **retired** while anything still references it — which, with history left
-  in place, is every item that was ever on a trip — and **physically removed** when nothing does. Two consequences
-  worth stating: retiring **frees the name** (`idx_items_active_name` is partial over active rows), so the survivor
-  can be renamed to the loser's wording straight afterwards; and the retired row is **not an undo** — it preserves
-  the loser's own data (its tags, weight, photo, mark) and not the references that moved, so the confirm must not
-  imply that M23 puts things back. **M23 says which rows got there by a merge** and names the survivor
-  (*„zusammengeführt mit ‚Stirnlampe'"*), because its restore is otherwise an offer to re-create the duplicate the
-  user just removed; the restore is ADR-034's, unchanged, and it **clears the alias** — a row that is active again
-  has a past of its own.
-  **Where it starts.** FR-24.9's selection mode already selects items and carries a bar of acts, so merge joins them,
-  and the survivor is named in the sheet FR-24.14 uses — each candidate with what it brings (tags, weight, photo,
-  usage count), the most-used preselected. FR-24.11's near-miss search is where a duplicate is actually noticed
-  (*„Zelt"* finding two tents), so it offers the merge too, as a **second entry point to the same sheet and the same
-  rule** — and, being a second way in rather than the feature's own UI, it may follow the selection-mode PR.
-  **The implementation PR owes an ADR**, because the alias against the retroactive re-point is a real trade with a
-  cost either way.
+  answers a question nobody has asked"*. The question was asked on 2026-09-20 — by the owner, against this
+  instance's own data. FR-27.5's rejection of fuzzy matching in M21 rested partly on *„a duplicate master item is
+  visible in M9 and can be merged"*; **that premise is back.** FR-24.12's rejected fourth rule — *similar names*,
+  refused because „the rule would find what it cannot repair" — is now buildable and is owed next.
+  **Where it is done:** FR-24.9's selection mode, behind the ⋯ sheet, offered from **two** picked rows up. The
+  survivor is named in a sheet that lists the candidates with **what each brings** — its tags, its weight, whether
+  it has a photo, and how much of the product resolves against it — **most-used first**, because the row a
+  duplicate was split off from is the one the rest of the data already hangs on. The confirm names the survivor and
+  how many rows go; there is no undo (ADR-063's rule, one table over).
+  **What a merge moves, and how each collision resolves** (`domain/itemMerge.ts`, one plan over the whole set for
+  FR-24.14's reason — the writes of one pair are not in the store when the next is planned):
+  * `item_tags` — the union, minus what `UNIQUE (item_id, tag_id)` refuses. **The survivor keeps its own primary
+    tag** and a re-pointed assignment is appended after it: unlike FR-24.14, what the user chose to preserve here is
+    the *item*'s filing, not the tag's.
+  * `item_dependencies` — both ends move, and three shapes cannot: an edge **between** two merged rows (it would
+    become the `CHECK (item_id <> depends_on_item_id)` self-edge), one the survivor already has (`UNIQUE`), and one
+    that would close a cycle the two rows kept open while they were apart (§3.20). Each is dropped, counted, and
+    **named in the sentence afterwards** — a merge may not be refused by an edge the user cannot see from the
+    inventory, but it owes them the fact.
+  * `template_items` — `UNIQUE (template_id, item_id)`: a Vorlage holding both ends with **one** position. It keeps
+    the survivor's settings (or, where the survivor is not in that Vorlage, the first loser's position becomes the
+    survivor's and the rest fold into it), takes the **higher `quantity`** — FR-2.3's `dedup: max`, the product's
+    existing answer to the same item twice — and **carries the dropped position's FR-27.7 tasks over**, because
+    user-typed prose is the one thing a merge may never drop. This is why the position is *updated* rather than
+    re-created: `template_item_tasks.template_item_id` is `ON DELETE CASCADE`, so a delete-and-add would take the
+    words with it.
+  * **The survivor's own empty fields** — `weight_grams`, `value_cents`, the §3.28 mark and `default_assignee_id`
+    (FR-1.9) are filled from the losers in the order they were picked, and **never overwritten**. The photo is the
+    same rule and the only part of a merge that moves **bytes** (ADR-002): it is *copied* where the survivor has
+    none, after the mutations, so the losing row keeps its own. *Why not a per-field prompt:* the survivor was
+    chosen because it is the better row; what the act owes instead is a sentence naming what it took over, which is
+    the part of a merge that is invisible on the list afterwards.
+  * **History stays where it is** — `trip_items.source_item_id` and `trip_generated_positions.source_item_id` are
+    **not** re-pointed. The reasoning, the two rejected alternatives and the accepted costs are **ADR-069**.
+  **The rear view reads the two pasts as one, through an alias.** `items.merged_into_id` is written on each losing
+  row — before the delete, and even for a row about to be removed outright, so a device that sees only those two
+  changes still learns where the row went. `mergedIdsOf` gives M10's FR-27.9 section the survivor's id plus
+  everything aliased at it; `resolveMergedItem` answers the other direction. **One hop, never a chain:** the plan
+  flattens older aliases at merge time, and a reader treats an alias whose target is itself aliased as no alias —
+  which is what makes two devices merging the same pair in opposite directions degrade to today's behaviour instead
+  of looping. **FR-27.8's „Enthalten in" and FR-8/FR-14's analytics deliberately do not read it**: the first reads
+  template positions, which the merge re-points itself, and the second aggregates trip rows by name and category.
+  * **The column clears itself** (`ON DELETE SET NULL`): deleting the survivor — which FR-24.3 only allows once
+    nothing else resolves against it — gives the merged-away rows their own past back rather than refusing a delete
+    over a pointer nobody can see. `internal/store`'s foreign-key guard is what insisted the question be answered.
+  **What happens to the loser: FR-24.3's ordinary delete, not a third lifecycle.** Retired while anything still
+  references it — which, with history left in place, is every item that was ever on a trip — and removed when
+  nothing does. Retiring **frees the name** (`idx_items_active_name` is partial over active rows), so the survivor
+  can be renamed to the loser's wording straight afterwards. The retired row is **not an undo**: it preserves the
+  loser's own data and not the references that moved. **M23 therefore says which rows got there by a merge** and
+  names the survivor (*„zusammengeführt mit ‚Stirnlampe'"*), because its restore is otherwise an offer to re-create
+  the duplicate the user just removed — and the restore **clears the alias**, since a row that is active again has
+  a past of its own.
+  **Still owed, deliberately:** FR-24.11's near-miss search as a second entry point (*„Zelt"* finding two tents is
+  where a duplicate is actually noticed) and FR-24.12's *similar names* rule. Both are second ways into the same
+  sheet and the same rule, which is why neither blocked this.
+
 * **FR-24.3 (Lifecycle-Aware Deletion of Master Items and Vorlagen — implemented 2026-08-25):** Deleting a master item
   or a Vorlage behaves differently according to whether it has ever been used:
   * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it —

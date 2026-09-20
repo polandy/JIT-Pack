@@ -1373,10 +1373,13 @@ test.describe('Two accounts on one instance @server', () => {
     ).toContainText(ACCOUNT_NAMES.bob)
 
     // FR-24.7's fourth field: the account's name is a query, which is what
-    // stands in for a filter by account.
+    // stands in for a filter by account. Asserted as *this* pair and not as a
+    // total, because master data is instance-wide and the `server` project
+    // shares one database — E2E-M9-27 hands Bob two more items, and a count
+    // would make this case depend on how many of its neighbours ran first.
     await openInventory(ACCOUNT_NAMES.bob)
-    await expect(list.getByTestId('m9-row')).toHaveCount(1)
-    await expect(list.getByTestId('m9-row')).toContainText(mine)
+    await expect(list.getByTestId('m9-row').filter({ hasText: mine })).toHaveCount(1)
+    await expect(list.getByTestId('m9-row').filter({ hasText: nobodys })).toHaveCount(0)
 
     await ctxAlice.close()
     await ctxBob.close()

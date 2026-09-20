@@ -605,6 +605,88 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(page.getByTestId('m9-tag-row-Sommersachen')).toHaveCount(0)
   })
 
+  /**
+   * E2E-M9-30 (FR-24.15): two rows that are the same thing become one.
+   *
+   * The whole point of the act is what the survivor ends up holding, so the
+   * case is built around a **loser that carries what the survivor lacks**: a
+   * tag the survivor does not have, a weight it has none of, and a companion
+   * edge pointing at it. Each is read back where it is rendered — the tag on
+   * M9's heading, the weight and the companion in M10 — because the inventory
+   * list would look identical after a merge that wrote nothing but the delete.
+   *
+   * And the losing row is asserted twice: gone from the inventory, and *named*
+   * on M23 as merged rather than merely retired. A restore offered without
+   * that sentence is an offer to make the duplicate again.
+   */
+  test('E2E-M9-30: two duplicate items are merged into one, and the loser says where it went', async ({
+    page,
+  }) => {
+    test.slow()
+    await createItem(page, 'Stirnlampe', { tags: ['Technik'] })
+    await backToInventory(page)
+    await createItem(page, 'Stirnlampe Petzl', { tags: ['Licht'], weight: '90' })
+    await backToInventory(page)
+    // The companion edge points at the row that is about to lose, so the
+    // merge has to move it — M10 renders it on the survivor afterwards.
+    await createItem(page, 'Ersatzbatterien')
+    const editor = visiblePage(page)
+    await editor.getByTestId('m10-add-dependency').click()
+    await editor.getByTestId('m10-dependency-search').locator('input').fill('Petzl')
+    await editor.getByTestId('m10-dependency-main-Stirnlampe Petzl').click()
+    await backToInventory(page)
+
+    // A trip packed the loser once. That row is what the merge deliberately
+    // does *not* re-point (a finished trip is a snapshot), so it is also what
+    // makes FR-24.3 answer the loser's delete by **retiring** it — the state
+    // the M23 half of this case is about.
+    await createTripViaWizard(page, { name: 'Sils 2026' })
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Stirnlampe P')
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Petzl' }).click()
+    await expect(page.getByTestId('m4-row-Stirnlampe Petzl')).toBeVisible()
+    await writesLanded(page)
+    await page.goto(PATH.items)
+
+    const list = visiblePage(page)
+    await page.getByTestId('m9-select').click()
+    await list.getByTestId('m9-row-check-Stirnlampe').click()
+    await list.getByTestId('m9-row-check-Stirnlampe Petzl').click()
+    await expect(list.getByTestId('m9-select-count')).toContainText('2')
+
+    await list.getByTestId('m9-bulk-more').click()
+    await page.locator('ion-action-sheet').getByText('Merge').click()
+    await expect(page.getByTestId('m9-merge-sheet')).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m9-merge-keep-Stirnlampe').click()
+    await page.getByTestId('m9-merge-confirm').getByRole('button', { name: 'Merge' }).click()
+    await expect(page.locator('ion-toast')).toContainText('is now filed under')
+    await writesLanded(page)
+
+    // One row where there were two, and it carries both tags — the loser's
+    // filing moved rather than being dropped with the row.
+    await expect(list.getByTestId('m9-row').filter({ hasText: 'Stirnlampe' })).toHaveCount(1)
+    // Under the survivor's own heading, not the loser's and not a third one:
+    // „Ohne Tag" is the battery, which carries no tag and never did.
+    expect(await groupHeadings(list)).toEqual(['technik', 'untagged'])
+
+    await list.getByTestId('m9-row').filter({ hasText: 'Stirnlampe' }).click()
+    await expect(page.getByTestId('header-title')).toHaveText('Stirnlampe')
+    // The weight the survivor never had, and the companion that pointed at
+    // the other row: both are the survivor's now.
+    await expect(visiblePage(page).getByTestId('m10-tag-summary')).toContainText('Licht')
+    await expect(visiblePage(page).getByTestId('m10-companion-Ersatzbatterien')).toBeVisible()
+    // No „Mehr ▾" here: that disclosure is the *creation* form's (FR-24.5).
+    await expect(visiblePage(page).getByTestId('m10-weight').locator('input')).toHaveValue('90')
+
+    // M23 says where the losing row went, so its restore is not a silent
+    // offer to create the duplicate again.
+    await page.goto(PATH.masterRetired)
+    const retired = visiblePage(page)
+    await expect(retired.getByTestId('m23-row').filter({ hasText: 'Petzl' })).toContainText(
+      'merged into',
+    )
+  })
+
   /*
    * E2E-M9-08 measured the gap between the tag axis and the first group
    * heading (UX-4). The axis is gone with FR-24.8, and the geometry that

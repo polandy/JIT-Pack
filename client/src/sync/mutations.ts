@@ -95,7 +95,13 @@ export type ChecklistItemEdit = Partial<Pick<DestinationChecklistItem, 'label' |
 export type MasterItemEdit = Partial<
   Pick<
     MasterItem,
-    'name' | 'weight_grams' | 'value_cents' | 'icon' | 'default_assignee_id' | 'retired_at'
+    | 'name'
+    | 'weight_grams'
+    | 'value_cents'
+    | 'icon'
+    | 'default_assignee_id'
+    | 'retired_at'
+    | 'merged_into_id'
   >
 >
 
@@ -1222,6 +1228,44 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     return make('upsert', TABLE.itemTags, assignmentId, { tag_id: tagId, position })
   }
 
+  /**
+   * Point an existing assignment at another **item** — FR-24.15's merge, the
+   * mirror of {@link retagAssignment}. One upsert for the same reason: the
+   * pairing is not removed, it now names a different item, and the row keeps
+   * being the row the feed already knows.
+   */
+  function reassignItemTag(assignmentId: string, itemId: string, position: number): Mutation {
+    return make('upsert', TABLE.itemTags, assignmentId, { item_id: itemId, position })
+  }
+
+  /**
+   * Move one end of a dependency edge onto the survivor of a merge (FR-24.15).
+   * Both ends are written, because either or both may be a merged-away row and
+   * the plan has already decided what each resolves to.
+   */
+  function repointItemDependency(
+    dependencyId: string,
+    itemId: string,
+    dependsOnItemId: string,
+  ): Mutation {
+    return make('upsert', TABLE.itemDependencies, dependencyId, {
+      item_id: itemId,
+      depends_on_item_id: dependsOnItemId,
+    })
+  }
+
+  /**
+   * Point a Vorlage position at the survivor of a merge (FR-24.15).
+   *
+   * Deliberately an update and not the delete-and-add M8's editor uses to
+   * *move* a position: the row's FR-27.7 preparation tasks hang off its id
+   * (`template_item_tasks.template_item_id`, `ON DELETE CASCADE`), so
+   * re-creating the position would silently take the user's own words with it.
+   */
+  function repointTemplateItem(templateItemId: string, itemId: string): Mutation {
+    return make('upsert', TABLE.templateItems, templateItemId, { item_id: itemId })
+  }
+
   /** Remove a tag. Only ever called once nothing carries it (ADR-063). */
   function deleteTag(tagId: string): Mutation {
     return make('delete', TABLE.tags, tagId)
@@ -1331,6 +1375,9 @@ export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIs
     setTagMark,
     reorderTag,
     retagAssignment,
+    reassignItemTag,
+    repointItemDependency,
+    repointTemplateItem,
     deleteTag,
     assignTag,
     unassignTag,
