@@ -4942,7 +4942,8 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     **An add for named travelers keeps the open row it always wrote** — a row per person is a plan being made, not a bag
     being recorded.
   * **Modes:** identical in all three — one batch on the trip partition and one field on the master partition.
-    **Not carried** by the portable backup (NFR-4.11), like every other piece of progress and like FR-7.3/7.4's todos.
+    **Not carried** by the portable backup (NFR-4.11), like every other piece of progress and like FR-7.3/7.4's todos —
+    a restored trip's packing is open again with its decided rows still decided, which `docs/backup.md` states.
   * The round: `dev-docs/UI_Concept_ClosePacking_variants.html`, five questions rendered against one trip; the owner's
     answers were A (where it lives), A (what it asks), P1 (the half-packed row), the stamp, and FR-30.8's phase rule.
 
