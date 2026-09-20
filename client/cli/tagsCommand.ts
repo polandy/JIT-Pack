@@ -18,7 +18,9 @@ import {
   ENV_SERVER,
   ENV_TOKEN,
   EXIT,
+  pendingCount,
   pushPending,
+  rejectionLine,
   type CommandIO,
   type Connection,
   type RejectedWrite,
@@ -224,7 +226,7 @@ export async function runTags(opts: TagsOptions, io: CommandIO): Promise<number>
     return EXIT.failed
   }
 
-  const writes = ctx.pending.master.length
+  const writes = pendingCount(ctx.pending)
   if (opts.dryRun) {
     io.write(`${writes} writes (dry run, not sent). Tags afterwards:`)
     for (const line of describeTags(ctx, false)) io.write(`  ${line}`)
@@ -240,10 +242,7 @@ export async function runTags(opts: TagsOptions, io: CommandIO): Promise<number>
     }
   }
   if (rejected.length > 0) {
-    const which = rejected
-      .map(({ mutation, error }) => `${mutation.table}/${mutation.id}${error ? ` (${error})` : ''}`)
-      .join(', ')
-    io.write(`${rejected.length} of ${writes} writes rejected by the instance: ${which}`)
+    io.write(rejectionLine(rejected, writes))
     return EXIT.failed
   }
   io.write(`${writes} writes sent`)
