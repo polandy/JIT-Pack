@@ -16450,20 +16450,29 @@ nobody reaches while packing. The revisit trigger is written as the ⋮ growing 
 
 ## The gesture window is a residue, not an oversight (2026-09-20)
 
-*„Two views left the row…"* above closed E2E-M4-135 by making M4's gesture window observable, and the suite side of
-that is in `dev-docs/e2e-tests.md`. Two things belong here instead, because the diff shows neither and both would
-otherwise be re-derived — or worse, read as defects and „fixed".
+*„Two views left the row…"* above closed E2E-M4-135 by mirroring M4's gesture window onto the host element, so a case
+waits for it instead of racing it. That is the fix, and the diff shows it. What the diff does not show is that the
+window itself is still there — and it stays, on purpose. Written down so it is not later found, read as the remains of
+a half-done fix, and „finished".
 
-**The window has a measurable size, and it stays.** „Comes to rest" is `ionScrollEnd`, which Ionic emits from a
-watchdog — `setInterval(100)` firing once `lastScroll < Date.now() - 120`. So FR-21.17 has a **120–220 ms window after
-every gesture in which a scroll nobody made is still answered**. Momentum counting as the flick is the rule's intent —
-a flick's travel is mostly momentum, and the head has to keep yielding through it — and the only way to take the clock
-out of the latch is to consume it per reading, which loses a flick that crosses the 48 px threshold on momentum alone.
-The reachable half of the residue is a **keyboard focus**: `focusin` is dispatched before the scroll it causes, so it
-could disarm the latch exactly rather than eventually. That is a behaviour change, it is owed its own case, and it was
-deliberately left out of a determinism fix.
+**It has a measurable size.** „Comes to rest" is `ionScrollEnd`, which Ionic emits from a watchdog in
+`@ionic/core`'s content component: `setInterval(100)`, firing `onScrollEnd` once `lastScroll < Date.now() - 120`. So
+FR-21.17 has a **120–220 ms window after every gesture in which a scroll nobody made is still answered as the
+reader's**, and it is wall-clock, so nothing outside the page can tell whether it is open.
 
-**And a measurement worth keeping**: load made the race *tighter*, not looser. The Playwright round trips between the
-flick and the programmatic scroll shorten relative to a timer the busy renderer is deferring, so „it passes on my
-machine, it fails on CI" pointed the opposite way from usual here — a longer wait would have been the wrong fix in the
-most convincing possible way, green while removing a true report of the rule.
+**Why it is not closed.** Momentum counting as the flick is the rule's intent — a flick's travel is mostly momentum,
+and the head has to keep yielding through it — and the only way to take the clock out of the latch is to consume it
+per reading, which loses a flick that crosses the 48 px threshold on momentum alone. So the residue is real and
+known. Its reachable half is a **keyboard focus**: `focusin` is dispatched *before* the scroll it causes, so it could
+disarm the latch exactly rather than eventually. That is the shape a fix would take if the window ever produces a
+defect a reader can see; it is a behaviour change, and it would be owed its own case.
+
+**And the reading that pointed the wrong way.** The flake reproduced under background CPU load and barely at all on an
+idle machine, which reads as the familiar „the runner is slow, so wait longer". Here that was exactly backwards, and
+the instrumented trace is what settles it rather than an argument about timers: in a losing run the programmatic
+scroll lands 133 ms after the reader's last reading with the latch still armed, and the head then moves a row 435 px
+on a 289 px scroll — the scroll plus the head's own height, which is FR-21.17's defect stated exactly. The case was
+reporting the rule correctly and measuring at the wrong moment. A longer wait would have gone green by deleting the
+report, and it would have looked like a fix. **The rule this is an instance of is already in CLAUDE.md** — when a
+test can only pass by waiting and hoping, the fault is in the production code — and what it buys is stated here: the
+signal that replaced the hope is also the thing that makes the case fail when the rule breaks.

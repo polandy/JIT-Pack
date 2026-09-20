@@ -756,9 +756,9 @@ in WebKit.
 * **E2E-M4-135** `all` (FR-21.17, added 2026-09-20) — **implemented** (`packing-list.spec.ts`): with the head yielded
   by a reader's own flick, the list carried to its end **and that flick over** — the screen says so, and a scroll is
   only nobody's once it is — a row that has gone off the top is brought back into view the way the browser does it,
-  `scrollIntoView`, which nobody asked for. The header line does not change state once (counted, not sampled, and read
-  against the offset the rule took up), and the row moves by the scroll and by nothing else. Red before the rule on
-  both engines: one class change, and the row 162 px down on a 60 px scroll.
+  `scrollIntoView`, which nobody asked for. The header line does not change state once (counted, not sampled), and the
+  row moves by the scroll and by nothing else. Red before the rule on both engines: one class change, and the row
+  162 px down on a 60 px scroll.
 * **E2E-M4-127** `local` (FR-25.2, added 2026-09-19) — **implemented** (`packing-list.spec.ts`): tapping the words of
   the *Erledigte* switch turns it on and it stays on — the tick used to come and go, the label forwarding the tap to
   a checkbox that had already toggled itself. Closing the sheet shows the packed row.

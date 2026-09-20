@@ -135,7 +135,6 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [The composer stopped making ad-hoc rows (2026-09-19)](#the-composer-stopped-making-ad-hoc-rows-2026-09-19) — FR-24.11: the one helper every typed add goes through, and the promise no composer reaches.
 - [M6 became a module, and its cases reach packing rows through M4 (2026-09-19)](#m6-became-a-module-and-its-cases-reach-packing-rows-through-m4-2026-09-19) — FR-30: the first module directory, two retired ids, and why every buy row is now made on M4.
 - [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, and the scroll window E2E-M4-135 was racing.
-- [An absence was still being read off a frame count (2026-09-20)](#an-absence-was-still-being-read-off-a-frame-count-2026-09-20) — E2E-M4-135's second half: tying the head's silence to the reading it is silent about.
 
 ## The rule that comes before the units
 
@@ -5478,30 +5477,3 @@ The tell is the shape: a change to one screen does not fail two specs' worth of 
 browser only. `E2E_PORT=4183 scripts/e2e.sh …` is the way out, and a second local suite is
 the first thing to check when a run fails that broadly.
 
-## An absence was still being read off a frame count (2026-09-20)
-
-The section above closed the half of E2E-M4-135 that was a *race*: the scroll it makes is nobody's
-now, because `scrollPackList` waits out the reader's gesture window. This is the other half, and it
-is a different mistake in the same case — one the green run hides rather than reports.
-
-**What the case asserts is an absence.** `flips` is 0; the head did not answer. The working
-agreement's rule for that is a positive signal, *and the signal must be the same event reaching
-somewhere else*. What stood there instead was four rounds of double-`requestAnimationFrame` with a
-`getAnimations()` bail-out — a bounded wait, tied to nothing the rule does. It answers "some frames
-have passed", and the question is "did the reading the head would have answered arrive yet?". Those
-differ exactly when it matters: on a loaded runner the answer is a frame late, and the case reports
-the very absence it is asserting.
-
-**The signal is the reading itself.** M4 writes `data-head-scroll` — the offset `nextHeadState` has
-just taken up — beside the `data-scroll-gesture` the section above added, imperatively and for the
-same reason. The case waits for it to reach the offset `scrollIntoView` produced, and the ordering
-does the rest: the page assigns `head.value` first, which queues the head's own render, and writes
-the attribute after it, so a mutation observer notified of the attribute is notified after the class
-flip has been rendered and counted. The absence is read against the arrival of the thing it is an
-absence of.
-
-**It is worth the attribute because the old shape's own proof was probabilistic.** Against the
-mutant that drops the `!gesture` guard in `nextHeadState`, the frame count goes red *most* of the
-time and the attribute goes red every time — and a case whose falsification is a coin flip is a case
-that will one day certify a regression. That is the whole argument; the determinism of the green run
-is the smaller half.

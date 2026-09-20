@@ -2150,13 +2150,6 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
    *
    * The geometry is taken in one `evaluate`, either side of the scroll it is
    * about: two `boundingBox()` calls would compare two different moments.
-   *
-   * The scroll it makes is nobody's because `scrollPackList` has already
-   * waited out the reader's own gesture window; what remains is knowing the
-   * scroll *arrived*, and that is `data-head-scroll`. The rule takes up every
-   * reading it is handed, gesture or not, so the head not answering one can
-   * only be read against the reading having landed — and the head's flip, if
-   * it were coming, is rendered from that same reading and therefore after it.
    */
   test('E2E-M4-135: a scroll nobody made does not move the head, or the rows under it', async ({
     page,
@@ -2198,21 +2191,17 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
       const topBefore = el.scrollTop
       target.scrollIntoView({ block: 'nearest' })
 
-      // Arrived, not merely awaited. The ordering this leans on is the point:
-      // the page takes the reading up, which queues the head's own render, and
-      // only then writes the attribute — so by the time this observer is
-      // notified the class flip has been rendered and `flips` has counted it.
-      // The frame count this replaces had no such tie to the reading, and
-      // reported the absence whenever the answer was a frame late.
-      const landed = String(Math.round(el.scrollTop))
-      await new Promise<void>((resolve) => {
-        if (host.dataset.headScroll === landed) return resolve()
-        new MutationObserver((_records, self) => {
-          if (host.dataset.headScroll !== landed) return
-          self.disconnect()
-          resolve()
-        }).observe(host, { attributes: true, attributeFilter: ['data-head-scroll'] })
-      })
+      // Settled, not merely started: the head's own flip would arrive a
+      // frame or two after the scroll it answers, and a reading taken
+      // before it would report the very absence this case is asserting.
+      const frames = () =>
+        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      for (let round = 0; round < 4; round += 1) {
+        await frames()
+        const running = trip.getAnimations()
+        if (running.length === 0) break
+        await Promise.all(running.map((a) => a.finished))
+      }
 
       return {
         flips,

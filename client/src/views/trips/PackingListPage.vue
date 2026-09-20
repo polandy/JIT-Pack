@@ -1304,14 +1304,6 @@ function onScroll(event: CustomEvent<{ scrollTop: number }>) {
     viewport: scrollEl,
     gesture,
   })
-  // The offset the rule has just taken up, mirrored beside `data-scroll-gesture`
-  // for the same reason and in the same way. The window above says a scroll
-  // nobody made *may* be measured; this says the one that was made has arrived.
-  // The rule accepts every reading, gesture or not, so a case asserting that the
-  // head did not answer one has to know the reading landed at all — otherwise it
-  // reports that absence just as happily a frame too early (E2E-M4-135).
-  // Rounded because a scroller's offset is fractional and an attribute is text.
-  packContent.value?.$el.setAttribute('data-head-scroll', String(Math.round(head.value.top)))
 }
 
 /** The scroller has come to rest, so whatever moves it next has to say who asked. */
