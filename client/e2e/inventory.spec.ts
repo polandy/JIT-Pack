@@ -640,9 +640,33 @@ test.describe('M10 — where an item is filed (FR-24.9)', () => {
 
     await list.getByTestId('m9-row').click()
     const editor = visiblePage(page)
+
+    // FR-25.15 rides along here rather than in a case of its own, because
+    // this is the one M10 case that opens a *saved* item and then edits a
+    // field — which is exactly the before/after the indicator needs. Since
+    // 2026-09-20 the lamp is silent until the editor has written something,
+    // so the absence is the positive signal the presence below is read
+    // against. Its row still holds its height while it is silent: alone on
+    // a line, a collapsing row would move the whole form up and drop it back
+    // on the first edit.
+    await expect(editor.getByTestId('save-indicator')).toHaveCount(0)
+    // Read against the token rather than a copy of its value: a number here
+    // would be a second place `--jp-control-round` is written down.
+    const [headHeight, roundControl] = await editor
+      .getByTestId('m10-edit-head')
+      .evaluate((el) => [
+        el.getBoundingClientRect().height,
+        parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue('--jp-control-round'),
+        ),
+      ])
+    expect(roundControl).toBeGreaterThan(0)
+    expect(headHeight).toBeGreaterThanOrEqual(roundControl)
+
     // Tapping the *name* is the new target; the ✕ beside it is the old one.
     await editor.getByTestId('m10-tag-primary-Sommer').click()
     await expect(editor.getByTestId('m10-tag-summary')).toContainText('Sommer')
+    await expect(editor.getByTestId('save-indicator')).toBeVisible()
 
     // Not a bare header-back click: the heading read below is empty until the
     // list has come back, which the helper waits for.
