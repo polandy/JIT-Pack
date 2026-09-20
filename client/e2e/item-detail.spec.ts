@@ -424,6 +424,44 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
   })
 
+  // E2E-M5-31 (FR-7.3, UI-Spec M5): the preparation is ticked at the end of
+  // its line, which is where M4 ticks the same task (E2E-M4-138) and where
+  // every packing control sits. One act read two ways on two screens is two
+  // idioms for one thing, and this is the screen the task is usually written
+  // on — so the sheet is where the habit is formed.
+  //
+  // Measured rather than read off the markup: the line is a flex row, so the
+  // order in the template and the order on the glass are two claims
+  // (invariant 9b).
+  test('E2E-M5-31: a preparation is ticked at the end of its line, not in front of it', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await addInComposer(page, 'Kamera')
+    await page.keyboard.press('Escape')
+
+    await page.getByTestId('m4-row-Kamera').getByRole('heading').click()
+    await page.getByTestId('m5-todo-input').locator('input').fill('Akku laden')
+    await page.getByTestId('m5-todo-add').click()
+    await expect(page.getByTestId('m5-todo-Akku laden')).toBeVisible()
+
+    const line = await page.getByTestId('m5-sheet').evaluate((sheet) => {
+      const tick = sheet.querySelector('[data-testid="m5-todo-Akku laden"]')!
+      const row = tick.parentElement!.getBoundingClientRect()
+      const words = tick.parentElement!.querySelector('.todo-body')!.getBoundingClientRect()
+      const box = tick.getBoundingClientRect()
+      return { pastTheWords: box.left - words.right, fromLineEnd: row.right - box.right }
+    })
+
+    expect(line.pastTheWords).toBeGreaterThan(0)
+    // Flush with the line's end: the words take the slack, the tick keeps its
+    // box. A tolerance rather than zero, because the checkbox's own box is
+    // what is measured and not the ink in it.
+    expect(line.fromLineEnd).toBeLessThan(4)
+  })
+
   // E2E-M5-23 (FR-20.1/20.4): the companion offer. FR-20.4's *required*
   // companions join by themselves and are covered by E2E-M4-40's cascade;
   // this is the other mode, where the app may only ask — and the sheet is
