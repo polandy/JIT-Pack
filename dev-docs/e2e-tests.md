@@ -134,7 +134,7 @@ for. `scripts/log-index-gate.mjs` holds this list against the file.
 - [Waiting on the far screen proved only the near one (2026-09-18)](#waiting-on-the-far-screen-proved-only-the-near-one-2026-09-18) — E2E-G10-02's second correction of the same mistake, and the two rules a socket watch has to obey.
 - [The composer stopped making ad-hoc rows (2026-09-19)](#the-composer-stopped-making-ad-hoc-rows-2026-09-19) — FR-24.11: the one helper every typed add goes through, and the promise no composer reaches.
 - [M6 became a module, and its cases reach packing rows through M4 (2026-09-19)](#m6-became-a-module-and-its-cases-reach-packing-rows-through-m4-2026-09-19) — FR-30: the first module directory, two retired ids, and why every buy row is now made on M4.
-- [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, the glyph case that followed the views into the menu, and the scroll window E2E-M4-135 was racing.
+- [Two views left the row and the helper stopped being one click (2026-09-20)](#two-views-left-the-row-and-the-helper-stopped-being-one-click-2026-09-20) — ADR-051 amendment 1: one door for both shapes, and the scroll window E2E-M4-135 was racing.
 
 ## The rule that comes before the units
 
