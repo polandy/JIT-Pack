@@ -41,12 +41,20 @@ async function openList(page: import('@playwright/test').Page): Promise<string |
   return segment.evaluate((el) => (el as HTMLElement & { value?: string }).value)
 }
 
-/** Answer the confirmation the step asks (FR-5.10, variant A of the round). */
+/**
+ * The question, however it was raised — the ⋮ or the last row packed. Not
+ * scoped to the visible page: an `ion-modal` is teleported to the app root,
+ * so the sheet lives outside the router outlet it was opened from.
+ */
+function closeSheet(page: import('@playwright/test').Page) {
+  return page.getByTestId('m4-close-sheet')
+}
+
+/** Answer it (FR-5.10, variant A of the round). */
 async function confirmClose(page: import('@playwright/test').Page) {
-  const alert = page.locator('ion-alert')
-  await expect(alert).toBeVisible()
-  await alert.getByRole('button', { name: /^Finish/ }).click()
-  await expect(alert).toHaveCount(0)
+  await expect(closeSheet(page)).toBeVisible()
+  await page.getByTestId('m4-close-sheet-confirm').click()
+  await expect(page.getByTestId('m4-close-sheet')).toHaveCount(0)
   await writesLanded(page)
 }
 
@@ -72,7 +80,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await tripAction(page, 'closePacking')
     // The question states the count before anything is written; „1" is the
     // one row still open, not the two on the list.
-    await expect(page.locator('ion-alert')).toContainText('1 open item')
+    await expect(closeSheet(page)).toContainText('1 open item')
     await confirmClose(page)
 
     // The row that was open is a decision now: off the working list, and
@@ -154,8 +162,9 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   }) => {
     await tripWithRows(page, ['Zelt'], 'Nachtrag')
     await startTrip(page)
+    // The last row going in raises the question by itself (E2E-M4-142), so
+    // this case answers *that* one rather than reaching for the ⋮ behind it.
     await packRow(page, 'Zelt')
-    await tripAction(page, 'closePacking')
     await confirmClose(page)
 
     await openQuickAdd(page)
@@ -170,6 +179,33 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await expect(visiblePage(page).getByTestId('m4-packing-closed')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m4-row-Zahnbürste')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('m4-progress')).toContainText('2/2')
+  })
+
+  /**
+   * E2E-M4-142 (FR-5.10, owner 2026-09-20): the step is offered where the
+   * moment is. Packing the last open row raises the same question the ⋮
+   * asks — and it is still a *question*: nothing is written until it is
+   * answered, and a reader who says *Later* is not asked again.
+   */
+  test('E2E-M4-142: packing the last row asks whether the packing is finished', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt', 'Regenjacke'], 'Letzte Zeile')
+    await startTrip(page)
+    await packRow(page, 'Zelt')
+    // One row still open: no question yet, or it would be asking about a
+    // list that is not finished.
+    await expect(closeSheet(page)).toHaveCount(0)
+
+    await packRow(page, 'Regenjacke')
+
+    await expect(closeSheet(page)).toBeVisible()
+    await expect(closeSheet(page)).toContainText('last open item')
+    // *Later* leaves the trip exactly as it was — and stops the offer.
+    await page.getByTestId('m4-close-sheet-cancel').click()
+    await expect(page.getByTestId('m4-close-sheet')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
+    await expectTripActionOffered(page, 'closePacking')
   })
 
   /**
@@ -202,6 +238,25 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     // behind the reveal that counts it.
     await expect(visiblePage(page).getByTestId('m4-row-Regenjacke')).toHaveCount(0)
     await expect(visiblePage(page).getByTestId('m4-done-bar')).toContainText('2')
+  })
+
+  /**
+   * E2E-M1-25 (FR-5.10 on M1, owner 2026-09-20): the phase has moved on, so
+   * the dashboard's loudest element about packing stands down. Asserted as a
+   * **pair** — the figure gone *and* the line there — because a card that
+   * simply lost its figure would pass half of it.
+   */
+  test('E2E-M1-25: the dashboard lets a finished packing recede', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Dashboard-Phase')
+    await startTrip(page)
+    await packRow(page, 'Zelt')
+    await confirmClose(page)
+
+    await page.goto(PATH.dashboard)
+    const hero = visiblePage(page).getByTestId('dashboard-trip-Dashboard-Phase')
+    await expect(hero).toBeVisible()
+    await expect(hero.getByTestId('hero-progress')).toHaveCount(0)
+    await expect(hero.getByTestId('hero-done')).toBeVisible()
   })
 
   /**

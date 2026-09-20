@@ -17,11 +17,11 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import PackingListPage from '../PackingListPage.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import ClosePackingSheet from '@/components/trips/ClosePackingSheet.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
 import type { HeaderAction } from '@/composables/useHeaderActions'
-import type { ConfirmOptions } from '@/lib/confirm'
 import type { RowUndo } from '@/composables/useRowUndo'
 
 import { identityStub } from '@/composables/__tests__/identityStub'
@@ -34,13 +34,6 @@ vi.mock('@/composables/useHeaderActions', () => ({ setHeaderActions: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useRoute: () => ({ query: {}, params: {} }),
-}))
-
-/** The confirmation is asked for real; each case says what it answers. */
-const confirmed = vi.fn<(options: ConfirmOptions) => Promise<boolean>>(async () => true)
-vi.mock('@/lib/confirm', async (original) => ({
-  ...(await original<typeof import('@/lib/confirm')>()),
-  confirmAction: (options: ConfirmOptions) => confirmed(options),
 }))
 
 enableAutoUnmount(afterEach)
@@ -95,7 +88,12 @@ function seedTrip(trip: Record<string, unknown> = {}, rows: Record<string, unkno
 function mountPage() {
   return mount(PackingListPage, {
     props: { tripId: 't1' },
-    global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
+    global: {
+      provide: { [ORCHESTRATOR]: orchestratorFake },
+      // The real `ion-modal` renders an empty element under jsdom, so a
+      // sheet's content would be unreachable — the stub the tag sheets use.
+      stubs: { SheetModal: { template: '<div><slot /></div>' } },
+    },
   })
 }
 
@@ -117,7 +115,6 @@ beforeEach(() => {
 
   setActivePinia(createPinia())
   vi.clearAllMocks()
-  confirmed.mockResolvedValue(true)
   tripScreen.loadedTrips.clear()
 })
 
@@ -152,27 +149,44 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     expect(actionIds()).not.toContain('m4-close-packing')
   })
 
-  it('asks before writing, naming what a count hides', async () => {
+  it('asks in a sheet, naming what a count hides', async () => {
     seedTrip({}, [
       { name: 'Regenjacke' },
       { name: 'Wandersocken', quantity: 6, packed_count: 4, state: 'partial' },
       { name: 'Stirnlampe', late_packer: 1 },
     ])
-    confirmed.mockResolvedValue(false)
 
-    mountPage()
+    const page = mountPage()
     await flushPromises()
     await headerActions()
       .find((action) => action.id === 'm4-close-packing')
       ?.onClick?.()
+    await flushPromises()
 
-    const asked = confirmed.mock.calls[0]![0]
-    expect(asked.message).toContain(t('packing.closeConfirmBody', { n: 3 }))
-    expect(asked.message).toContain(t('packing.closeConfirmStarted', { n: 1 }))
-    expect(asked.message).toContain(t('packing.closeConfirmLate', { n: 1 }))
-    expect(asked.confirmLabel).toBe(t('packing.closeConfirmVerb', { n: 3 }))
-    // Declined: nothing is written. Without this the dialogue would be
+    const sheet = page.findComponent(ClosePackingSheet)
+    expect(sheet.exists()).toBe(true)
+    expect(sheet.text()).toContain(t('packing.closeConfirmBody', { n: 3 }))
+    expect(sheet.text()).toContain(t('packing.closeConfirmStarted', { n: 1 }))
+    expect(sheet.text()).toContain(t('packing.closeConfirmLate', { n: 1 }))
+    expect(sheet.text()).toContain(t('packing.closeConfirmVerb', { n: 3 }))
+    // Asking is not writing. Without this clause the sheet would be
     // decoration over an action that had already run.
+    expect(orchestratorFake.closePacking).not.toHaveBeenCalled()
+  })
+
+  it('leaves the list alone when the sheet is dismissed', async () => {
+    seedTrip({}, [{ name: 'Regenjacke' }])
+
+    const page = mountPage()
+    await flushPromises()
+    await headerActions()
+      .find((action) => action.id === 'm4-close-packing')
+      ?.onClick?.()
+    await flushPromises()
+    page.findComponent(ClosePackingSheet).vm.$emit('close')
+    await flushPromises()
+
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
     expect(orchestratorFake.closePacking).not.toHaveBeenCalled()
   })
 
@@ -188,6 +202,8 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
       .find((action) => action.id === 'm4-close-packing')
       ?.onClick?.()
     await flushPromises()
+    page.findComponent(ClosePackingSheet).vm.$emit('confirm')
+    await flushPromises()
 
     expect(orchestratorFake.closePacking).toHaveBeenCalledWith('t1', expect.anything())
     // The snackbar's undo is armed with the rows the action reported — the
@@ -199,6 +215,185 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     expect(orchestratorFake.restorePackingClose).toHaveBeenCalledWith('t1', [
       expect.objectContaining({ itemId: 'ti1', quantity: 1, state: 'open' }),
     ])
+  })
+})
+
+/**
+ * FR-5.10's second door (owner, 2026-09-20): *„wird es auch getriggert, wenn
+ * das letzte Item gepackt wurde? das sollte es."*
+ *
+ * The step is offered where the moment is, not only where the menu is. What
+ * needs pinning is the *shape* of that offer, because each clause below is a
+ * way for it to become a nuisance instead: it is the same question, not a
+ * silent write; it fires on the transition rather than on arrival at a list
+ * that was already complete; and a reader who says *später* is not asked
+ * again for that trip.
+ */
+describe('M4 — the last row packed asks the question (FR-5.10)', () => {
+  /** Pack the one row the trip has, the way a pull of the write would. */
+  function packLastRow() {
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 1,
+      table: TABLE.tripItems,
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Regenjacke',
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+        mode: 'pack',
+      },
+    })
+    return flushPromises()
+  }
+
+  it('asks when the last open row is packed', async () => {
+    seedTrip({}, [{ name: 'Regenjacke' }])
+
+    const page = mountPage()
+    await flushPromises()
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+
+    await packLastRow()
+
+    const sheet = page.findComponent(ClosePackingSheet)
+    expect(sheet.exists()).toBe(true)
+    // Nothing is open, so the question is the one for a finished list — and
+    // it is still a question: no write has happened.
+    expect(sheet.text()).toContain(t('packing.closeConfirmNothing'))
+    expect(orchestratorFake.closePacking).not.toHaveBeenCalled()
+  })
+
+  it('does not ask when a list that was already complete arrives after the screen', async () => {
+    // The real order on a cold start: M4 mounts, the partition lands a moment
+    // later. Seeding before the mount (the case below) never sees it, and the
+    // first build asked here — about a moment that had passed before the
+    // screen was opened.
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'active' },
+    })
+    tripScreen.loadedTrips.delete('t1')
+
+    const page = mountPage()
+    await flushPromises()
+
+    trips.applyChange({
+      seq: 1,
+      table: TABLE.tripItems,
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Zelt',
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+        mode: 'pack',
+      },
+    })
+    tripScreen.loadedTrips.add('t1')
+    await flushPromises()
+
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(actionIds()).toContain('m4-close-packing')
+  })
+
+  it('does not ask on arrival at a list that was already complete', async () => {
+    seedTrip({}, [{ name: 'Zelt', packed_count: 1, state: 'packed' }])
+
+    const page = mountPage()
+    await flushPromises()
+
+    // The ⋮ still offers it. What must not happen is the app asking about a
+    // moment that passed before the screen was opened.
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+    expect(actionIds()).toContain('m4-close-packing')
+  })
+
+  it('does not ask again once the reader has said later', async () => {
+    seedTrip({}, [{ name: 'Regenjacke' }])
+
+    const page = mountPage()
+    await flushPromises()
+    await packLastRow()
+    page.findComponent(ClosePackingSheet).vm.$emit('close')
+    await flushPromises()
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+
+    // A row is added and packed: the list completes a second time, and the
+    // app holds its tongue. Without this the screen would ask on every tick
+    // of the last box.
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 2,
+      table: TABLE.tripItems,
+      id: 'ti2',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Zahnbürste',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+      },
+    })
+    await flushPromises()
+    trips.applyChange({
+      seq: 3,
+      table: TABLE.tripItems,
+      id: 'ti2',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Zahnbürste',
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+        mode: 'pack',
+      },
+    })
+    await flushPromises()
+
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+  })
+
+  it('does not ask on a trip whose packing is already closed', async () => {
+    seedTrip({ packing_closed_at: CLOSED_AT }, [{ name: 'Regenjacke' }])
+
+    const page = mountPage()
+    await flushPromises()
+    await packLastRow()
+
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
+  })
+
+  it('does not ask over a list that has not arrived (ADR-033)', async () => {
+    // No rows at all and the partition still in flight: „nothing is open" is
+    // not a fact here, and asking would be asking about an unread list.
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'active' },
+    })
+
+    const page = mountPage()
+    await flushPromises()
+    tripScreen.loadedTrips.add('t1')
+    await flushPromises()
+
+    expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
   })
 })
 

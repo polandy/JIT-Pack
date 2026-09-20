@@ -24,14 +24,21 @@ import { useTripTasks } from '@/composables/useTripTasks'
 import { tripTodoPercent, tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
 import { t } from '@/i18n'
 
-const props = defineProps<{
-  /** The trip whose todos are counted. */
-  tripId: string
-  /** The ring's diameter — the packing figure beside it sets the scale. */
-  ringSize: number
-  /** Put on the fraction, for the cases that read it. */
-  testid: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    /** The trip whose todos are counted. */
+    tripId: string
+    /**
+     * The ring's diameter — the packing figure beside it sets the scale.
+     * Absent where there is no figure beside it any more (FR-5.10): the
+     * tasks are then the card's one figure and take the lone size.
+     */
+    ringSize?: number
+    /** Put on the fraction, for the cases that read it. */
+    testid: string
+  }>(),
+  { ringSize: undefined },
+)
 
 const { tasksOf } = useTripTasks()
 
@@ -47,7 +54,7 @@ const shown = computed(() => tripTodoStatus(progress.value) !== 'none')
     :headline="t('tripTodos.figure', { done: progress.done, total: progress.total })"
     :detail="progress.open > 0 ? t('tripTodos.open', { n: progress.open }) : null"
     :ring-size="ringSize"
-    paired
+    :paired="ringSize !== undefined"
     :headline-testid="testid"
   />
 </template>

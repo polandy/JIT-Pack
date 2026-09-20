@@ -68,7 +68,7 @@ import {
 import { packedPercent, stateFor } from '@/domain/packState'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import EmptyState from '@/components/global/EmptyState.vue'
@@ -77,6 +77,7 @@ import FilterSheet from '@/components/global/FilterSheet.vue'
 import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
 import PackingClosedCard from '@/components/trips/PackingClosedCard.vue'
+import ClosePackingSheet from '@/components/trips/ClosePackingSheet.vue'
 import ClusterHead from '@/components/trips/ClusterHead.vue'
 import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
 import TripTodoList from '@/components/trips/TripTodoList.vue'
@@ -2352,46 +2353,85 @@ function onCancelClosingPass() {
 }
 
 /**
- * FR-5.10: what the confirmation says before the write.
- *
- * It states the count and then the three things a count hides — the rows
- * packing has begun on, the ones due on departure day (FR-5.1), and the one
- * somebody else is holding (G-3). Variant A of the 2026-09-20 round, owner:
- * one confirmation and one undo, rather than a second review of every row in
- * front of the trip's own.
+ * FR-5.10's question, live: what closing *now* would decide. The sheet reads
+ * it, and so does the write, so the sentence confirmed and the rows changed
+ * come from one rule — and on a shared trip the sheet follows a list that
+ * changes while it is open.
  */
-function closeConfirmMessage(plan: ClosePackingPlan): string {
-  if (plan.rows.length === 0) return t('packing.closeConfirmNothing')
-  const lines = [t('packing.closeConfirmBody', { n: plan.rows.length })]
-  if (plan.trim.length > 0) lines.push(t('packing.closeConfirmStarted', { n: plan.trim.length }))
-  if (plan.late > 0) lines.push(t('packing.closeConfirmLate', { n: plan.late }))
-  if (plan.claimed > 0) lines.push(t('packing.closeConfirmHeld', { n: plan.claimed }))
-  return lines.join(' ')
+const closePlan = computed<ClosePackingPlan>(() =>
+  planPackingClose(allItems.value, { isClaimed: (row: TripItem) => locked(row) }),
+)
+
+/** Whether the question is on screen, and whether it came asked or invited. */
+const closeSheetOpen = ref(false)
+const closePrompted = ref(false)
+
+/**
+ * FR-5.10's second door (owner, 2026-09-20): the step is offered where the
+ * moment is. Packing the last open row *is* the moment — finding the ⋮
+ * afterwards is the part nobody does.
+ *
+ * Three guards, each paid for by a way this becomes a nuisance:
+ *
+ *  - it asks on the **transition**, never on arrival at a list that was
+ *    already complete — `settled` drops the first reading, which is the one
+ *    that describes a moment that passed before the screen opened;
+ *  - a reader who says *später* is not asked again for this trip while the
+ *    screen lives, or the box would raise it on every tick;
+ *  - a list that has not arrived is not an empty one (ADR-033), and a trip
+ *    with no rows at all has nothing to finish.
+ */
+const packingComplete = computed(
+  () => allItems.value.length > 0 && closePlan.value.rows.length === 0,
+)
+const closeDeclined = ref(false)
+/**
+ * Whether this screen has read the list *once*. Counted from the partition
+ * arriving rather than from the mount: on a cold start M4 renders before its
+ * rows land, so the mount's reading says „nothing is open" about a list
+ * nobody has read (ADR-033), and the reading after it — the real first one —
+ * would otherwise look like the transition this watches for.
+ */
+let listRead = false
+watch(
+  [rowsLoaded, packingComplete] as const,
+  ([loaded, complete]) => {
+    if (!loaded) return
+    const firstReading = !listRead
+    listRead = true
+    if (firstReading || !complete || packingClosed.value || closeDeclined.value) return
+    closePrompted.value = true
+    closeSheetOpen.value = true
+  },
+  { immediate: true },
+)
+
+/** The ⋮ asks the same question, and says so by not being a prompt. */
+function onClosePacking() {
+  closePrompted.value = false
+  closeSheetOpen.value = true
+}
+
+/** Dismissed: nothing is written, and this trip stops volunteering it. */
+function onCloseSheetDismissed() {
+  closeSheetOpen.value = false
+  if (closePrompted.value) closeDeclined.value = true
 }
 
 /**
  * FR-5.10: everything still open becomes a decision, and the trip records
  * that the packing is finished.
  *
- * The plan is computed twice on purpose — once for the question, once inside
- * the action for the write. In between the user reads a dialogue, and on a
+ * The plan is read twice on purpose — once by the sheet, once inside the
+ * action for the write. In between the user reads a question, and on a
  * shared trip the list can change while they do; the write must act on what
  * is there when it runs, not on what the question counted.
  */
-async function onClosePacking() {
-  const claimed = (row: TripItem) => locked(row)
-  const asked = planPackingClose(allItems.value, { isClaimed: claimed })
-  const confirmed = await confirmAction({
-    header: t('packing.closeConfirmTitle'),
-    message: closeConfirmMessage(asked),
-    confirmLabel:
-      asked.rows.length > 0
-        ? t('packing.closeConfirmVerb', { n: asked.rows.length })
-        : t('packing.closeConfirmVerbNothing'),
-    testid: 'm4-close-packing-confirm',
+function onConfirmClosePacking() {
+  closeSheetOpen.value = false
+  const affected = orchestrator.closePacking(props.tripId, {
+    isClaimed: (row: TripItem) => locked(row),
   })
-  if (!confirmed) return
-  const affected = orchestrator.closePacking(props.tripId, { isClaimed: claimed })
   rowUndo.armUndo(affected, (records) => orchestrator.restorePackingClose(props.tripId, records))
   void announceAct(
     affected.length > 0
@@ -2995,6 +3035,22 @@ setHeaderTitle(
           />
         </aside>
       </Teleport>
+
+      <!-- FR-5.10: the question, as the round drew it. Also the app's own
+           way of noticing that the last row went in. -->
+      <SheetModal
+        :is-open="closeSheetOpen"
+        testid="m4-close-modal"
+        @dismiss="onCloseSheetDismissed"
+      >
+        <ClosePackingSheet
+          v-if="closeSheetOpen"
+          :plan="closePlan"
+          :prompted="closePrompted"
+          @close="onCloseSheetDismissed"
+          @confirm="onConfirmClosePacking"
+        />
+      </SheetModal>
 
       <SheetModal
         :is-open="inventoryNamesOpen"

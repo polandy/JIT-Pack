@@ -4916,13 +4916,23 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     * **Untouched:** an already-decided row (packed, or *skipped* — the **state** is the decision, and FR-5.5 makes
       `state='skipped'` beside an amount above zero a legal row), every row in a buy mode (the shopping list's business,
       FR-30.2), FR-7.3/7.4's todos, and the lifecycle — closing the packing neither starts nor archives the trip.
-  * **One question, one undo** (variant **A** of the round). A single confirmation states the count and then the three
-    things a count hides: how many rows packing has begun on, how many are due on departure day (FR-5.1), and how many
+  * **One question, one undo** (variant **A** of the round). A single confirmation — **a sheet, not a system dialogue**
+    (revised 2026-09-20 on seeing it rendered: an `ion-alert` was the cheap way to ask and looked it, on the one moment
+    in a trip where the app should look like itself) — states the count and then the three things a count hides, each on
+    its own line: how many rows packing has begun on, how many are due on departure day (FR-5.1), and how many
     somebody else is holding. The snackbar's *Rückgängig* then takes the **whole batch** back (FR-25.31), and it also
     lifts the stamp — a close that was undone did not happen. Rejected: **variant B**, a last look row by row with each
     row tappable back into the list. It catches the one thing you actually forgot, which is the point of the action, and
     it was still declined — it is a second review in front of the trip's own (FR-9.3), and on a forty-row remainder it
     is a screen rather than a question.
+  * **The last row packed asks the question** (owner, 2026-09-20: *„wird es auch getriggert, wenn das letzte Item
+    gepackt wurde? das sollte es."*). The step is offered where the moment is, not only where the menu is: when the last
+    open row is packed, the same sheet comes up by itself, headed *„Das war das letzte offene Packelement."* Three
+    guards, each against a way this becomes a nuisance: it fires on the **transition** and never on arrival at a list
+    that was already complete (that moment passed before the screen opened); a reader who answers *Später* is not asked
+    again for that trip while the screen lives, or ticking the last box would raise it every time; and a list that has
+    not arrived is not a finished one (ADR-033), nor is a trip with no rows at all. It remains a *question* — nothing is
+    written until it is answered, because the decision is the user's and not the app's.
   * **„Abgeschlossen" is a stamp, not a reading.** `trips.packing_closed_at` (master partition, merged on its own under
     NFR-4.2a) records the moment. Deriving it from *„nothing is open"* was the cheaper option and is wrong here for one
     reason: **the list stays workable afterwards** (below), so the next row added would silently revoke the decision —
@@ -4941,6 +4951,13 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     it is still flagged *Missing*, which is exactly right: the plan forgot it, and M14 should propose it for next time.
     **An add for named travelers keeps the open row it always wrote** — a row per person is a plan being made, not a bag
     being recorded.
+  * **M1 lets the packing recede** (owner, 2026-09-20: *„die Packliste kann dort deutlich weniger prominent sein, da wir
+    nun in einer anderen Ferienphase sind"*). On a trip whose packing is closed, the dashboard's hero and its trip cards
+    replace the packing **figure** — a ring, the loudest thing on the card — with one quiet line, *„Packen
+    abgeschlossen"*, in the done role's ink. What is still owed takes the space: the trip's tasks become the card's one
+    figure and take the lone ring size back (FR-7.4), and the shopping card below opens on *Vor Ort* (FR-30.8). The
+    open-rows preview needs no rule of its own — it lists open rows, and a finished list has none; a row added
+    afterwards (above) reappears there, which is correct, because that one really is open.
   * **Modes:** identical in all three — one batch on the trip partition and one field on the master partition.
     **Not carried** by the portable backup (NFR-4.11), like every other piece of progress and like FR-7.3/7.4's todos —
     a restored trip's packing is open again with its decided rows still decided, which `docs/backup.md` states.

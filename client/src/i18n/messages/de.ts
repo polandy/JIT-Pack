@@ -260,6 +260,9 @@ export const de: Record<keyof typeof en, string> = {
   // FR-5.10 — Packen abschliessen: was offen bleibt, ist entschieden.
   'packing.closeAction': 'Packen abschliessen',
   'packing.closeConfirmTitle': 'Packen abschliessen?',
+  'packing.closeConfirmMeta': 'Was offen bleibt, ist danach eine Entscheidung.',
+  'packing.closePromptMeta': 'Das war das letzte offene Packelement.',
+  'packing.closeLater': 'Später',
   'packing.closeConfirmBody':
     '{n} offenes Packelement wird als bewusst nicht mitgenommen vermerkt. | {n} offene Packelemente werden als bewusst nicht mitgenommen vermerkt.',
   'packing.closeConfirmStarted':
@@ -1454,6 +1457,7 @@ export const de: Record<keyof typeof en, string> = {
   'tripTodos.forItem': 'Gehört zu {name}',
   'dashboard.taskLineOpen': 'Aufgaben: {n} offen',
   'dashboard.taskLineDone': 'Aufgaben: alle erledigt',
+  'dashboard.packingDone': 'Packen abgeschlossen',
   'dashboard.openCount': '{n} offen',
   'dashboard.moreItems': '+{n} weitere',
 

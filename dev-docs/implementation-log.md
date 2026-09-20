@@ -16670,6 +16670,22 @@ decision — and M1's card, which had the rule inline as `props.planned ? before
 The card therefore grew a `packingClosed` prop: the alternative was two rules that agree today and drift on the first
 trip whose packing is closed before it starts.
 
+**What the owner said when he saw it running, and what each note cost.** Three, the same evening. *„Das Finish-Packing-
+Overlay sieht nicht schön aus"* — the question had been an `ion-alert`, chosen to reuse the app's confirm grammar; it is
+the app's own sheet now, with the three exceptions on their own lines instead of run together into a dialogue's
+paragraph. The round had *drawn* a sheet and I had built the cheap equivalent, which is the kind of substitution that
+reads as fine in a diff and not on a phone. *„Wird es auch getriggert, wenn das letzte Item gepackt wurde? Das sollte
+es."* — the step now comes up by itself on that transition, which took three guards to stay a help rather than a
+nuisance (the first reading is dropped, a *Später* silences it for the trip, and a list that has not arrived is not a
+finished one). And *„die Packliste kann dort deutlich weniger prominent sein"* — M1's hero and trip cards drop the
+packing ring for one line once the packing is closed, and the trip's tasks take the lone ring size back.
+
+**The trigger found a case, which is the point of having them.** E2E-M4-140 packed the trip's only row and then reached
+for the ⋮ — and the new sheet, which had just opened over the list, swallowed the click. The case was right and the
+build was right: after this change, packing the last row *is* how the question arrives, so the case answers that one
+instead. A cross-suite run is what said so, and it is the reason the whole local suite is worth the ten minutes when a
+change adds something that can appear on its own.
+
 **Three fixtures caught the column before a screen could.** `rowBuilders.spec.ts` exists so a new `trips` column
 cannot be forgotten in `tripRow`, and it failed on the first run, exactly as designed. The type-check then found seven
 more `Trip` literals in specs — the price of a required field, paid once, and worth it: a nullable-by-omission field

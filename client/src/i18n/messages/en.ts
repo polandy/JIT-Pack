@@ -261,6 +261,9 @@ export const en = {
   // FR-5.10 — finishing the packing: whatever stays open is a decision.
   'packing.closeAction': 'Finish packing',
   'packing.closeConfirmTitle': 'Finish packing?',
+  'packing.closeConfirmMeta': 'Whatever stays open becomes a decision.',
+  'packing.closePromptMeta': 'That was the last open item.',
+  'packing.closeLater': 'Later',
   'packing.closeConfirmBody':
     '{n} open item is recorded as deliberately left behind. | {n} open items are recorded as deliberately left behind.',
   'packing.closeConfirmStarted':
@@ -1439,6 +1442,7 @@ export const en = {
   'tripTodos.forItem': 'Belongs to {name}',
   'dashboard.taskLineOpen': 'Tasks: {n} open',
   'dashboard.taskLineDone': 'Tasks: all done',
+  'dashboard.packingDone': 'Packing finished',
   'dashboard.openCount': '{n} open',
   'dashboard.moreItems': '+{n} more',
 

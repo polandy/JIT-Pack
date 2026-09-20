@@ -832,6 +832,10 @@ in WebKit.
   *Reopen* removes the card and brings the ⋮ step back, **and the rows the close decided stay decided** — the skipped
   row is still off the working list and still counted behind the reveal. That last clause is the case: a reopen that
   restored rows would have to invent the amount variant P1 no longer records.
+* **E2E-M4-142** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): the step is offered
+  where the moment is. With one of two rows packed the sheet is **absent** — the negative half, without which the case
+  would pass on a build that shows it always — and packing the second raises it, headed *„that was the last open
+  item"*. *Later* then leaves the trip exactly as it was: no card, and the ⋮ still offering the step.
 * **E2E-M4-110** `local` (FR-25.29, added 2026-09-19) — **implemented** (`traveler-progress.spec.ts`): a trip for three
   travelers with two shared rows shows three faces in roster order, each *nothing to pack*, and *Shared 0 of 2*. One row
   is given to Andy through the for-whom strip — Andy *0 of 1*, Shared *0 of 1* — and packed: Andy reads *done* while the
@@ -1389,6 +1393,9 @@ composer.
   because the buyer is stamped by the server (invariant 3) — the `local` cases can only see the time, and do:
   **E2E-M6-17** (the packing row keeps its purchase time although its mode is *pack* again) and **E2E-M6-27** (the
   entry's time survives a reload) each assert *„bought · today"*.
+* **E2E-M1-25** `local` (FR-5.10 on M1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a trip is packed
+  and its packing finished; the dashboard's hero for it then carries **no packing figure** and **does** carry the
+  *Packen abgeschlossen* line. The pair is the case: a card that had merely lost its figure would satisfy half of it.
 * **E2E-M6-30** `local` (FR-30.8 with FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): M6 stops
   opening on *Vor der Abreise* once that moment is past. The trip is still **planning** — nobody tapped *Start trip* —
   and the list opens on *Vor der Abreise*; the packing is then finished on M4, and M6 opens on *Vor Ort*. The open tab

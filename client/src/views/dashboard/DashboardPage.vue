@@ -18,7 +18,7 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue'
-import { trainOutline, addOutline } from 'ionicons/icons'
+import { trainOutline, addOutline, checkmarkCircleOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { TRIP_CARDS } from '@/lib/tripCards'
 import { isPackingClosed } from '@/lib/tripPhase'
@@ -384,6 +384,7 @@ async function handleRefresh(event: CustomEvent) {
         "
         :to="tripPath(heroTrip.id)"
         :testid="`dashboard-trip-${heroTrip.name}`"
+        :done-note="isPackingClosed(heroTrip) ? t('dashboard.packingDone') : null"
       >
         <!-- FR-7.4: the trip's todos as a second figure beside the share,
              read-only like the rest of the card; they are ticked in M4. -->
@@ -450,10 +451,22 @@ async function handleRefresh(event: CustomEvent) {
           </div>
 
           <div class="trip-card-body">
+            <!-- FR-5.10: a finished packing says so in one line, here as on
+                 the hero — the phase has moved on, and the ring would be the
+                 loudest thing on the card about a settled question. -->
+            <p
+              v-if="isPackingClosed(trip)"
+              class="done-note"
+              :data-testid="`dashboard-done-${trip.name}`"
+            >
+              <IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" />
+              <span>{{ t('dashboard.packingDone') }}</span>
+            </p>
             <!-- The same figure the hero carries, one ring size down: a trip's
                progress is one composition in this app, and M2's list rows
                read it the same way. -->
             <ProgressFigure
+              v-else
               :percent="progressFraction(trip) * 100"
               :headline="
                 t('trips.itemSummary', {
@@ -615,6 +628,22 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 /* FR-7.4: a statement under the packing figure, not a part of it. */
+/* FR-5.10, the hero's line one card down: done ink, body size, no figure. */
+.done-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
+.done-note ion-icon {
+  flex: none;
+  font-size: var(--jp-icon-sm);
+  color: var(--jp-done);
+}
+
 .task-line {
   margin: 10px 0 4px;
   color: var(--ct-subtext0);
