@@ -231,6 +231,17 @@ func (s *Store) TripItemInfo(ctx context.Context, itemID string) (name, packerUs
 	return name, packerUserID, nil
 }
 
+// CommentBody returns a comment's text, for the notification an FR-7.5
+// assignment of a trip todo earns.
+func (s *Store) CommentBody(ctx context.Context, commentID string) (string, error) {
+	var body string
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT body FROM comments WHERE id = ?`, commentID).Scan(&body); err != nil {
+		return "", fmt.Errorf("comment %s: %w", commentID, err)
+	}
+	return body, nil
+}
+
 // TravelerLinkedUser returns a traveler's linked account (FR-2.5 →
 // ADR-058), reporting false when the traveler has none, is unlinked, or
 // cannot be read.

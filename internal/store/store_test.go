@@ -325,6 +325,55 @@ func TestApplyMutation_CommentsTable_InsertAndPull(t *testing.T) {
 	}
 }
 
+// FR-7.5: a trip todo's assignment is a column the trip partition accepts
+// from the client and serves back, like trip_items.packer_user_id.
+func TestApplyMutation_TripTodoAssignee_RoundTrips(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	muts := []sync.Mutation{
+		{
+			MutationID: "m1", Op: sync.OpInsert, Table: TableComments, ID: "trip-todo-1",
+			Fields: map[string]any{
+				"trip_id": testTrip, "trip_item_id": nil, "author_id": testUser,
+				"body": "Pflanzen giessen", "is_task": 1, "task_state": "open",
+			},
+			HLC: sync.HLC("0000000001000-0000-aaaaaaaa"),
+		},
+		{
+			MutationID: "m2", Op: sync.OpUpsert, Table: TableComments, ID: "trip-todo-1",
+			Fields: map[string]any{"assignee_user_id": testUser},
+			HLC:    sync.HLC("0000000002000-0000-aaaaaaaa"),
+		},
+	}
+	for _, m := range muts {
+		res, err := s.ApplyMutation(ctx, testTrip, testUser, m)
+		if err != nil {
+			t.Fatalf("ApplyMutation %s: %v", m.MutationID, err)
+		}
+		if res.Outcome != "applied" {
+			t.Fatalf("%s outcome = %q, want applied", m.MutationID, res.Outcome)
+		}
+	}
+	body, err := s.CommentBody(ctx, "trip-todo-1")
+	if err != nil || body != "Pflanzen giessen" {
+		t.Fatalf("CommentBody = %q, %v; want the task's words", body, err)
+	}
+
+	page, err := s.Pull(ctx, testTrip, 0, 100)
+	if err != nil {
+		t.Fatalf("Pull: %v", err)
+	}
+	var got any
+	for _, c := range page.Changes {
+		if c.Table == TableComments && c.ID == "trip-todo-1" {
+			got = c.Row["assignee_user_id"]
+		}
+	}
+	if got != testUser {
+		t.Errorf("assignee_user_id = %v, want %q", got, testUser)
+	}
+}
+
 // FR-7.4: a trip todo is a task comment with no row. The schema always
 // allowed it; this pins that the trip partition accepts and serves it with
 // the anchor still null, since a null anchor is what tells it from FR-7.3.

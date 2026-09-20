@@ -158,4 +158,28 @@ describe('createCommentActions without an orchestrator', () => {
     expect(queued[0]!.muts[0]!.mutation).toMatchObject({ op: 'delete', id: 'tt-1' })
     expect(ctx.tripStore.getTripTodos(TRIP_ID)).toEqual([])
   })
+
+  it('assignTripTodo writes the assignment alone, and the todo stays the trip’s (FR-7.5)', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Pflanzen giessen',
+      is_task: 1,
+      task_state: 'open',
+    })
+
+    createCommentActions(ctx).assignTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, 'user-b')
+
+    // Only the one field travels: a body or a state riding along would
+    // overwrite whatever another device wrote to them (ADR-022).
+    const { mutation } = queued[0]!.muts[0]!
+    expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
+    expect(mutation.fields).toEqual({ assignee_user_id: 'user-b' })
+    expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({ trip_item_id: null, is_task: 1 })
+    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.assignee_user_id)).toEqual(['user-b'])
+
+    createCommentActions(ctx).assignTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
+    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.assignee_user_id)).toEqual([null])
+  })
 })

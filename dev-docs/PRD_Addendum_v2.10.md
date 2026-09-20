@@ -4884,7 +4884,8 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     Tasks first** — the section sits above the list, directly under the header line, **unfolded while any todo is open
     and folded to its one line once none is**, so a finished section gives the rows their room back; a fold the user
     makes holds for the visit. The two rejected variants, kept for their triggers: a separate *Aufgaben* view beside
-    the packing list (*trigger:* todos that grow fields of their own — an assignee, a note), and a departure countdown
+    the packing list (*trigger:* todos that grow fields of their own — an assignee, a note; the assignee arrived with
+    FR-7.5 and did not fire it, see there), and a departure countdown
     band from three days before the start (*trigger:* A and B still missed in practice). The list cards below M1's
     hero keep the one-line check, because a card that small has no room for a second ring.
   * **Who may resolve:** every member of the trip, as FR-7.3 was settled on 2026-08-30. There is no row, so there is no
@@ -4903,6 +4904,46 @@ buyer on an entry — FR-25.12's *Zugewiesen an* is the likely first, and it wou
     task added and expected on a running trip. Trip todos do **not** flow back into a template, neither by FR-27.5 nor
     by M21, for FR-27.7's reason — a trip's own todos are often about this trip only. *Trigger:* the same trip todo
     typed by hand on a second trip. Cloning a trip (§3.12) does not carry them, like it carries no FR-7.3 todo.
+
+* **FR-7.5 (A trip todo names whose job it is — new 2026-09-19, owner request, built the same day):** a packing row
+  can be handed to somebody (FR-25.19, FR-25.25); a trip todo could not, so *„Pflanzen giessen"* on a household's
+  list was everybody's and therefore nobody's. A trip todo now carries an **assignee**, set and read the way a row's
+  is.
+  * **Storage:** `comments.assignee_user_id`, a nullable reference to `users`, synced as an ordinary field of the trip
+    partition (field-level LWW, no CHECK — a constraint that could refuse a single-field mutation would lose the
+    choice). It is the task's counterpart of `trip_items.packer_user_id` and, like it, **the client's to set**:
+    invariant 3 is about who *wrote* the todo (`author_id`, still stamped by the server), not about whose job it is.
+    Only trip todos write it. **FR-7.3's preparation todos get none**: they hang off a row that already names its
+    responsible person, and a second name on the task would say the row's job belongs to one person and its
+    preparation to another. *Revisit trigger:* a prep task that is regularly somebody else's than its row's.
+  * **Where it is set — the row's seat, on the task (M4).** In *Aufgaben für die Reise* every open todo ends in
+    FR-25.25's seat — the same component: the assignee's avatar, or an empty seat while it is nobody's — and a tap
+    opens the same picker a row's seat does, plus *niemand*, with the same snackbar undo (FR-25.31). A resolved todo
+    **names** its assignee but offers no seat: handing over a finished task decides nothing. **G-8:** the seat exists
+    only where somebody else can be picked — absent in Local Mode, Single-User Mode and on a trip nobody else is a
+    member of; an assignee already on a todo is still named there.
+  * **One difference from a row, on purpose: the picker offers me too.** A row's picker leaves the current user out
+    because an unassigned row is already on my list (FR-25.20), so assigning it to myself says nothing. A trip todo
+    has no such filter, and *„ich mach das"* is the most common thing a household says about one.
+  * **What it does not change.** A todo assigned to somebody else is **not hidden** — FR-25.20 is not extended to the
+    section. It is a handful of lines whose head counts every todo (*„1 von 4 erledigt"*); hiding some would make the
+    count disagree with the list under it. And it is **not a permission**: every member may still tick any todo
+    (FR-7.4 *Who may resolve*) — the assignment says whose job it is, not who may do it.
+  * **Notification (FR-6.2).** Handing a todo to another member sends them a **delegation** — the kind a row's
+    assignment sends, in its words (*„Alice hat dir ‚Pflanzen giessen' zugewiesen"*), under the same M17 switch. No
+    fifth kind: to the recipient it is the same sentence. The payload carries the trip and the comment and no item, so
+    FR-6.3's deep link opens the trip, where the section is. Nobody is told about a todo taken on oneself, a todo
+    handed back to *niemand*, or an account that is not a member of the trip (ADR-058's rule). A todo written already
+    assigned and mentioning its assignee notifies them once.
+  * **M1 reports it.** The *Aufgaben* card names the assignee after each open todo (*„Pflanzen giessen · Sia"*),
+    read-only like the rest of the card.
+  * **FR-7.4's trigger for a separate *Aufgaben* view** named „an assignee" among the fields that would fire it.
+    Weighed and **not taken**: one field fits on the task line in the idiom the row already uses, so the section
+    stays. The trigger stands for the rest of its list — a note, or a second field beside this one.
+  * **Not carried:** a template's trip task (FR-7.4) names nobody, so a generated todo starts unassigned — the
+    precedent is FR-1.9, which put a default assignee on the inventory item, not on a template position. *Revisit
+    trigger:* the same Vorlage task assigned to the same person by hand on every trip. Not in the portable format or
+    the backup (neither carries todos, FR-7.4), and not carried by cloning a trip.
 
 ### 3.9 Trip Feedback & Post-Trip Review
 

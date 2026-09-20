@@ -267,6 +267,11 @@ export interface TripTodo {
   author_id: string
   body: string
   task_state: TodoState
+  /**
+   * FR-7.5: whose job it is — an account, like a row's `packer_user_id`; null
+   * while it is everybody's.
+   */
+  assignee_user_id: string | null
 }
 
 /**

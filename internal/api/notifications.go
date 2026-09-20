@@ -119,7 +119,15 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 		}
 		return linkedUserID, ok
 	}
-	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve, resolveTraveler) {
+	resolveTodo := func(commentID string) (string, bool) {
+		body, err := s.store.CommentBody(ctx, commentID)
+		if err != nil {
+			slog.Error("notification todo lookup", "comment", commentID, "error", err)
+			return "", false
+		}
+		return body, true
+	}
+	for _, n := range planNotifications(tripID, actor, muts, results, members, resolve, resolveTraveler, resolveTodo) {
 		s.createAndNotify(ctx, n.UserID, n.Kind, n.Payload)
 	}
 }

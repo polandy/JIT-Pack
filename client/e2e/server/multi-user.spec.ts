@@ -11,10 +11,12 @@ import {
 } from '../fixtures'
 import {
   FOR_WHOM_M5,
+  addTripTodo,
   chooseInRowMenu,
   lightTraveler,
   openCluster,
   openRowMenu,
+  openTripTodos,
 } from '../helpers/m4'
 import { fillIonic } from '../helpers/ionic'
 import { writesLanded } from '../helpers/page'
@@ -787,6 +789,74 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(
       visiblePage(alice).getByTestId(`m4-assign-${item}`).getByTestId('user-avatar'),
     ).toHaveCount(0)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M4-133 (FR-7.5): a trip todo is handed over from its own seat, the
+   * way a row is (E2E-M4-90) — and the assignee is told, sees it on the task,
+   * and finds it named on M1.
+   *
+   * Two accounts are the whole point: the seat is absent where nobody else
+   * can be picked (E2E-M4-134), and „I was told" needs a second person.
+   */
+  test('E2E-M4-133: a trip todo is handed to the other account from its seat, and they are told', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Sarek ${id}`
+    const task = `Pflanzen giessen ${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await tripAction(alice, 'start')
+    await addTripTodo(alice, task)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    const subscribedBob = watchSubscribed(bob)
+    await bob.goto(tripPath)
+    const bobsTodo = visiblePage(bob).getByTestId(`trip-todo-${task}`)
+    await expect(bobsTodo).toBeVisible()
+    await subscribedBob
+
+    // An unassigned todo carries the empty seat, as an unassigned row does.
+    await alice.goto(tripPath)
+    const section = await openTripTodos(alice)
+    const seat = section.getByTestId(`trip-todo-assign-${task}`)
+    await expect(seat).toBeVisible()
+    await expect(seat.getByTestId('user-avatar')).toHaveCount(0)
+
+    // The picker is the row's, with one difference that is the rule: a todo
+    // can be taken on oneself, so Alice is offered too — a row's picker
+    // leaves her out (FR-25.20).
+    await seat.click()
+    const picker = alice.locator('ion-action-sheet')
+    await expect(picker).toBeVisible()
+    await expect(picker.getByRole('button', { name: ACCOUNT_NAMES.alice })).toBeVisible()
+    await picker.getByRole('button', { name: ACCOUNT_NAMES.bob }).click()
+    await expect(picker).toHaveCount(0)
+    await expect(seat.getByTestId('user-avatar')).toHaveAttribute('aria-label', ACCOUNT_NAMES.bob)
+
+    // FR-6.2: Bob is told, in the delegation's words, naming the task.
+    const notice = bob.locator('ion-toast').filter({ hasText: task })
+    await expect(notice).toContainText(ACCOUNT_NAMES.alice)
+
+    // …and his own screen names him on the task, from the server's copy.
+    await expect(
+      bobsTodo.getByTestId(`trip-todo-assign-${task}`).getByTestId('user-avatar'),
+    ).toHaveAttribute('aria-label', ACCOUNT_NAMES.bob)
+
+    // M1 reports it: the open todo carries whose job it is.
+    await bob.goto(PATH.dashboard)
+    await expect(
+      visiblePage(bob).getByTestId(`dashboard-trip-todo-assignee-${task}`),
+    ).toContainText(ACCOUNT_NAMES.bob)
 
     await ctxAlice.close()
     await ctxBob.close()
