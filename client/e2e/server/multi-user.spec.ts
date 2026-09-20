@@ -1226,6 +1226,78 @@ test.describe('Two accounts on one instance @server', () => {
   })
 
   /**
+   * E2E-M9-27 (FR-1.9 over FR-24.9): the default assignee, set for several
+   * inventory rows at once.
+   *
+   * Server Mode is the only place the action exists at all — G-8 hides it
+   * where the directory holds fewer than two accounts, which is every Local
+   * and Single-User instance — so this is where both halves are asserted: the
+   * action is *offered*, and what it writes is on the rows afterwards. The
+   * rows are picked by name rather than with „All N", because master data is
+   * instance-wide and the inventory carries every other case's items too.
+   */
+  test('E2E-M9-27: several inventory rows are assigned to Bob in one act', async ({ browser }) => {
+    const id = uniq()
+    const items = [`Zeltheringe ${id}`, `Zeltstangen ${id}`]
+
+    // Bob has to have logged in once to be in the directory Alice picks from.
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    for (const name of items) {
+      await alice.goto(PATH.newItem)
+      await fillIonic(visiblePage(alice).getByTestId('m10-name'), name)
+      await visiblePage(alice).getByTestId('m10-create').click()
+      await expect(alice.getByTestId('header-title')).toHaveText(name)
+      // Nobody, until the batch says otherwise — the assertion below is only
+      // worth making because this one holds first.
+      await expect(visiblePage(alice).getByTestId('m10-assignee')).toContainText('Nobody')
+    }
+    await writesLanded(alice)
+
+    // In-app rather than `goto`: a fresh load of a tab route in Server Mode
+    // comes up on the dashboard, and the case would then be filling a search
+    // field that is not on screen. The rail, not the tab bar — this project
+    // runs at desktop width, where G-9 hands navigation to the rail.
+    const openInventory = async () => {
+      await alice.getByTestId('rail-items').click()
+      await expect(visiblePage(alice).getByTestId('items-search-input')).toBeVisible()
+      await visiblePage(alice).getByTestId('items-search-input').fill(id)
+    }
+
+    const list = visiblePage(alice)
+    await openInventory()
+    await expect(list.getByTestId('m9-row')).toHaveCount(2)
+
+    await alice.getByTestId('m9-select').click()
+    for (const name of items) await list.getByTestId(`m9-row-check-${name}`).click()
+    await expect(list.getByTestId('m9-select-count')).toContainText('2')
+
+    await list.getByTestId('m9-bulk-more').click()
+    await alice.locator('ion-action-sheet').getByText('Usually assigned to').click()
+    await expect(alice.getByTestId('m9-bulk-assignee-sheet')).toHaveAttribute(
+      'data-presented',
+      'true',
+    )
+    await alice.getByTestId(`m9-bulk-assignee-${ACCOUNT_NAMES.bob}`).click()
+    await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+    await writesLanded(alice)
+
+    for (const name of items) {
+      await list.getByTestId('m9-row').filter({ hasText: name }).click()
+      await expect(alice.getByTestId('header-title')).toHaveText(name)
+      await expect(visiblePage(alice).getByTestId('m10-assignee')).toContainText(ACCOUNT_NAMES.bob)
+      await alice.getByTestId('header-back').click()
+      await openInventory()
+    }
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
    * E2E-M4-130 (FR-5.1, FR-25.25): the late-packer flag is trip state, not a
    * view preference — what Alice marks „pack later" is marked for Bob too.
    *

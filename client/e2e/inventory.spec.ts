@@ -311,6 +311,95 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   })
 
   /**
+   * E2E-M9-26 (FR-24.9 widened, FR-20.1): a dependency declared for several
+   * items at once, in both of the directions it can be declared in.
+   *
+   * The assertion is M10's own two lists rather than anything M9 paints: the
+   * inventory shows no edges, so a bulk link that wrote nothing would look
+   * exactly like one that worked. The stored row is the same edge either way,
+   * and the end it is read from is the only thing that tells the directions
+   * apart — which is why each is checked on the list it writes to.
+   *
+   * **The undo is asserted against a list that still has a row in it.** An
+   * empty section would be „absent" whether or not the undo did anything, so
+   * the batch that is taken back is the second of two: the first row is still
+   * there afterwards, and the second is gone.
+   */
+  test('E2E-M9-26: a dependency is declared for several items at once, and taken back', async ({
+    page,
+  }) => {
+    test.slow()
+    for (const name of ['Kamera', 'Ersatzakku', 'Ladegeraet', 'Stativ', 'Regenhuelle']) {
+      await createItem(page, name)
+      await backToInventory(page)
+    }
+
+    const list = visiblePage(page)
+    const openItem = async (name: string) => {
+      await list.getByTestId('m9-row').filter({ hasText: name }).click()
+      await expect(page.getByTestId('header-title')).toHaveText(name)
+    }
+
+    await page.getByTestId('m9-select').click()
+    await list.getByTestId('m9-row-check-Ersatzakku').click()
+    await list.getByTestId('m9-row-check-Ladegeraet').click()
+    await expect(list.getByTestId('m9-select-count')).toContainText('2')
+
+    await list.getByTestId('m9-bulk-more').click()
+    await page.locator('ion-action-sheet').getByText('Depends on').click()
+    await expect(page.getByTestId('m9-bulk-dep-sheet')).toHaveAttribute('data-presented', 'true')
+    // Required by default; this batch asks for the other mode (FR-20.4).
+    await expect(page.getByTestId('m9-bulk-dep-suggested')).not.toBeChecked()
+    await page.getByTestId('m9-bulk-dep-suggested').check()
+    await page.getByTestId('m9-bulk-dep-search').fill('Kam')
+    await page.getByTestId('m9-bulk-dep-pick-Kamera').click()
+
+    // The mode ends with the batch, exactly as a tag batch does.
+    await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+    await writesLanded(page)
+
+    // Both rows now depend on the camera, in the mode the sheet was set to.
+    for (const name of ['Ersatzakku', 'Ladegeraet']) {
+      await openItem(name)
+      await expect(visiblePage(page).getByTestId('m10-dependency-mode-Kamera')).toContainText(
+        'Suggested',
+      )
+      await backToInventory(page)
+    }
+
+    // The other direction writes the same edge from the other end, so it is
+    // read on the other list: the camera's companions. Two items nothing has
+    // linked yet, because an edge that is already there is skipped by design.
+    const giveCompanion = async (companion: string) => {
+      await page.getByTestId('m9-select').click()
+      await list.getByTestId('m9-row-check-Kamera').click()
+      await list.getByTestId('m9-bulk-more').click()
+      await page.locator('ion-action-sheet').getByText('Companion item').click()
+      await page.getByTestId('m9-bulk-dep-search').fill(companion)
+      await page.getByTestId(`m9-bulk-dep-pick-${companion}`).click()
+      await expect(list.getByTestId('m9-selbar')).toHaveCount(0)
+      await writesLanded(page)
+    }
+
+    await giveCompanion('Stativ')
+    await openItem('Kamera')
+    await expect(visiblePage(page).getByTestId('m10-companion-Stativ')).toBeVisible()
+    await backToInventory(page)
+
+    // A second batch, taken back through its own snackbar before it expires.
+    await giveCompanion('Regenhuelle')
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await writesLanded(page)
+
+    await openItem('Kamera')
+    // The undone row is gone from a list that still carries the other one —
+    // one undo is one batch, and the section is rendered either way.
+    await expect(visiblePage(page).getByTestId('m10-companion-Stativ')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-companion-Regenhuelle')).toHaveCount(0)
+    await backToInventory(page)
+  })
+
+  /**
    * FR-24.10's three cases share one entrance, so it is written once.
    *
    * Everything the manager does is asserted on **M9's group headings** and
