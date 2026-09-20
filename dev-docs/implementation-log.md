@@ -409,7 +409,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An indicator that was never off (2026-09-20)](#an-indicator-that-was-never-off-2026-09-20) — FR-25.15: why a confirmation of nothing reads as a button, and the test that had pinned the defect.
 - [The task the app already had, in the list nobody could find it in (2026-09-20)](#the-task-the-app-already-had-in-the-list-nobody-could-find-it-in-2026-09-20) — FR-7.6/ADR-068: the premise that nearly cost a migration, and the undo window that broke the chip.
 - [The gesture window is a residue, not an oversight (2026-09-20)](#the-gesture-window-is-a-residue-not-an-oversight-2026-09-20) — FR-21.17: the 120–220 ms the rule keeps on purpose, and why the flake pointed the wrong way.
-- [One spec file was 15 % of the suite (2026-09-20)](#one-spec-file-was-15--of-the-suite-2026-09-20) — the two CI levers that measured worse than doing nothing, and the file that was the actual cause.
+- [Three CI levers, two measured worse than nothing and one disproved (2026-09-20)](#three-ci-levers-two-measured-worse-than-nothing-and-one-disproved-2026-09-20) — what the runner's variance does to a single-run measurement.
+- [The M4 unit was 2958 lines in one file (2026-09-20)](#the-m4-unit-was-2958-lines-in-one-file-2026-09-20) — the split, and the helper move it would otherwise have duplicated.
 
 ## Deviations
 
@@ -16566,34 +16567,50 @@ on a 289 px scroll — the scroll plus the head's own height, which is FR-21.17'
 reporting the rule correctly and measuring at the wrong moment. A longer wait would have gone green by deleting the
 report, and it would have looked like a fix.
 
-## One spec file was 15 % of the suite (2026-09-20)
+## Three CI levers, two measured worse than nothing and one disproved (2026-09-20)
 
-The owner asked how to stop the pipeline from setting the pace. Three answers
-were measured; two were wrong, and the measurement is the only reason anyone
-knows which.
+The owner asked how to stop the pipeline from setting the pace. Everything
+below was measured rather than argued, and the useful result is negative.
 
 **"Build the client once and hand the bundle to the legs."** A leg's whole
 setup step is **34 s** — `npm ci` plus a build whose type-check and bundle
-already run in parallel — while `needs: client` would put the 2-minute `client`
-job in front of every leg. More latency than it removes, and the only genuine
-saving is runner minutes on a repository that pays for none.
+already run in parallel — while `needs: client` would put the 2-minute
+`client` job in front of every leg. More latency than it removes.
 
-**"Run more legs."** Ten legs of 93 and 94 tests took 7.9 and 4.4 minutes, so
-twelve looked like the cheap fix. It was built, and the pipeline answered:
-worst leg **537 s**, then **559 s** on a second run, against **502 s** with
-ten. No gain, slightly worse, and the two extra legs saturate the 20-job
-ceiling. The estimate behind it assumed the worst leg scales with the mean;
-under a count-split it does not, because the tests that make a leg long are not
-spread by counting them.
+**"Run more legs."** Ten legs of 93 and 94 tests had taken 7.9 and 4.4 minutes,
+so twelve looked like the cheap fix. The pipeline answered: worst leg **537 s**,
+then **559 s**, against **502 s** with ten. Closed unmerged.
 
-**What was actually wrong is one file.** `packing-list.spec.ts` was **960 s of
-6249** — a sixth of the suite in a single file, and `--shard` cannot split
-below a file's own tests landing together. Packing the legs by measured
-duration was built too (and it worked: 480–663 s legs, with a gate against a
-spec file that no leg names), but it charges a matrix edit for every new spec
-file, and the owner ruled that too expensive for about a minute.
+**"Split the file that is a sixth of the suite."** `packing-list.spec.ts` was
+960 of 6249 test-seconds, and the reasoning was that a file that large decides
+how long the slowest leg is. **The reasoning was wrong, and the report says so
+plainly**: those 960 s are **132 tests at a 7.3 s mean, against the suite's
+6.9 s** — the file was heavy because it held many tests, not because its tests
+were slow, and a count-split already spreads many tests by counting them. The
+split shipped anyway (for reading, not for speed — see the entry below), and
+the leg times after it were **326–583 s**: no narrower than before.
 
-**So the file was split**, by theme and by measured weight: the list and its
+**What the three attempts really established** is about measurement, not about
+CI. Two configurations that should differ by a minute produced 502 s and 583 s
+on single runs; the same configuration produced 537 s and 559 s. Run-to-run
+variance on the runners is the same size as every effect being chased, so a
+single run cannot resolve any of them — and three changes were proposed, two
+built and one merged on exactly that evidence.
+
+**Where the time actually is**, for whoever picks this up next: 900 tests,
+6249 s, mean 6.9 s, p95 **21.4 s**, max 44 s. A leg's length is decided by how
+many of the long tail it draws, which only duration-aware packing addresses
+(built, then rejected for charging a matrix edit per new spec file), or fewer
+slow tests. And none of it is on the critical path for a merge: `e2e` is not a
+required check, and the gate — go, go-lint, client, format, docker-build — is
+under three minutes.
+
+## The M4 unit was 2958 lines in one file (2026-09-20)
+
+Split for reading rather than for speed — the CI reasoning that prompted it is
+disproved in the entry above, and the file is worth splitting anyway.
+
+**Split by theme and by measured weight:** the list and its
 rows (355 s), M5 over the list and what stays rendered behind it (267 s), the
 measured shape of the screen (249 s), how a row gets onto the list (50 s), and
 the trip's tasks (40 s) — which are FR-7.4/7.6 and not a packing row at all,
