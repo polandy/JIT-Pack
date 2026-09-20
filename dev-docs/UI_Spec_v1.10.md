@@ -1836,6 +1836,19 @@ These patterns apply to every screen and are specified once.
   The two tag actions raise a snackbar with one **Rückgängig** for the batch; *Stilllegen* raises a confirm that names
   both halves of FR-24.3's two acts and has **no** undo, because the removed half cannot come back. The mode ends with
   the batch.
+  **The bar gains a fourth control, ⋯ *Mehr* (2026-09-20)**, between *Tag nehmen* and *Stilllegen*. It opens an action
+  sheet carrying *„Üblicherweise zuweisen
+  an …"* (FR-1.9; absent below two accounts, G-8), *„Hängt ab von …"* and *„Begleitartikel …"* (FR-20.1). Four is what
+  the bar holds at 390 px before the labels clip, so the later acts live behind one door rather than beside the two the
+  mode was measured on. The bar's count reads **„Nichts ausgewählt"** at zero and „N ausgewählt" from one — zero is its
+  own sentence rather than a plural form, since the catalogue has two forms and `n === 1` takes the first.
+  The assignee sheet lists the directory with **„Niemand"** first — the way an assignment is
+  taken away again — and each row says how many of the selection already name it; the two link sheets are one
+  component, differing in the sentence above the list and the direction the edge is written in, and carry the
+  required/suggested switch (FR-20.4) plus a capped, name-sorted offer of the inventory that names what the cap held
+  back. All three raise the same snackbar with one **Rückgängig**, and a link's result sentence names what it skipped.
+  A batch that writes **nothing** — every item already named that person, or every edge already there or circular — is
+  a plain toast instead, with no *Rückgängig* to offer, and the selection stays armed so the choice can be made again.
 * **The hidden items are named (2026-09-15, FR-24.3):** below the last row, M9 says how many items are **retired**
   and the sentence is the way to M23. A retired item stays out of the list by design (ADR-032), but until now nothing
   on the screen admitted the hidden ones existed, so the head's „N Artikel" read as the whole collection and M23 was

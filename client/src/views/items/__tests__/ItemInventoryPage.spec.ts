@@ -16,12 +16,15 @@
  * behind `!isEmpty`, so at least one item is already on the device.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { actionSheetController } from '@ionic/vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import ItemInventoryPage from '../ItemInventoryPage.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet from '@/components/items/BulkTagSheet.vue'
+import BulkAssigneeSheet from '@/components/items/BulkAssigneeSheet.vue'
+import BulkDependencySheet from '@/components/items/BulkDependencySheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
@@ -40,6 +43,8 @@ import { t } from '@/i18n'
 import { masterDataStub } from '@/composables/__tests__/masterDataStub'
 import { makeSeamContext } from '@/composables/sync/__tests__/seamContext'
 import { createMasterDataActions } from '@/composables/sync/actions/masterData'
+import { createDependencyActions } from '@/composables/sync/actions/dependencies'
+import { identityStub } from '@/composables/__tests__/identityStub'
 import { ORCHESTRATOR } from '@/composables/useOrchestrator'
 import { PATH } from '@/router/paths'
 
@@ -60,6 +65,9 @@ vi.mock('vue-router', () => ({
 const master = masterDataStub()
 const orchestratorFake = {
   ...master,
+  // The identity seam comes with every mount, since M9 reads the directory
+  // for FR-1.9's bulk action; a spec about that action puts accounts in it.
+  ...identityStub(),
   // FR-24.12's count reads the day and which trips are on the device.
   today: () => '2026-09-19',
   tripDataLoaded: () => true,
@@ -555,6 +563,11 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     /** Tags the undo removed — a tag the batch itself created. */
     tagsDeleted: string[]
     deleted: string[]
+    /** FR-1.9: which items were told who they are usually assigned to. */
+    assignees: { itemId: string; assigneeId: string | null }[]
+    /** FR-20.1: the edges a bulk link wrote, and the ids its undo removed. */
+    links: { id: string; itemId: string; dependsOn: string; mode: string }[]
+    linksRemoved: string[]
   }
 
   let writes: Writes
@@ -615,12 +628,40 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
           .filter((m) => m.op === 'delete')
           .map((m) => m.id)
       },
+      get assignees() {
+        return sent(TABLE.items)
+          .filter((m) => m.fields && 'default_assignee_id' in m.fields)
+          .map((m) => ({
+            itemId: m.id,
+            assigneeId: m.fields!.default_assignee_id as string | null,
+          }))
+      },
+      get links() {
+        return sent(TABLE.itemDependencies)
+          .filter((m) => m.op === 'insert')
+          .map((m) => ({
+            id: m.id,
+            itemId: m.fields!.item_id as string,
+            dependsOn: m.fields!.depends_on_item_id as string,
+            mode: m.fields!.mode as string,
+          }))
+      },
+      get linksRemoved() {
+        return sent(TABLE.itemDependencies)
+          .filter((m) => m.op === 'delete')
+          .map((m) => m.id)
+      },
       deleted,
     }
+    const dependencies = createDependencyActions(ctx)
     Object.assign(orchestratorFake, {
       giveTagToItems: actions.giveTagToItems,
       takeTagFromItems: actions.takeTagFromItems,
       undoBulkTag: actions.undoBulkTag,
+      assignDefaultAssignee: actions.assignDefaultAssignee,
+      undoBulkAssignee: actions.undoBulkAssignee,
+      linkItemsToDependency: dependencies.linkItemsToDependency,
+      undoBulkDependency: dependencies.undoBulkDependency,
       masterItemDeletionOutlook: (itemId: string) => ({
         // Only the first item is referenced anywhere: the batch spans both
         // acts, which is the case the confirm has to report honestly.
@@ -678,9 +719,30 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     // The same control clears, so it undoes itself.
     await page.find('[data-testid="m9-select-all"]').trigger('click')
-    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(
-      t('items.selectedCount', { n: 0 }),
-    )
+    expect(page.find('[data-testid="m9-select-count"]').text()).toBe(t('items.selectedNone'))
+  })
+
+  it('counts one picked row as one, and none as none', async () => {
+    // The catalogue has two forms and `n === 1` takes the first, so a zero
+    // sentence written as the „singular" said „Nichts ausgewählt" for one row
+    // and „0 ausgewählt" for none. The clause that carries this is the
+    // `not.toBe` below: comparing the bar against `t` alone was green against
+    // the inverted catalogue, because both sides came from the same entry.
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+
+    const bar = () => page.find('[data-testid="m9-select-count"]').text()
+    expect(bar()).toBe(t('items.selectedNone'))
+
+    await page.find('[data-testid="m9-row-check-Sonnencreme"]').trigger('click')
+    expect(bar()).toBe(t('items.selectedCount', { n: 1 }))
+    expect(bar()).not.toBe(t('items.selectedNone'))
+
+    await page.find('[data-testid="m9-row-check-Sonnenbrille"]').trigger('click')
+    expect(bar()).toBe(t('items.selectedCount', { n: 2 }))
   })
 
   it('“Alle N” means what the filter and the search left, not the inventory', async () => {
@@ -823,6 +885,208 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
     // No undo: the removed half cannot come back, so the confirm is the safety.
     const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
     expect(toast.buttons).toBeUndefined()
+  })
+
+  /**
+   * FR-24.9 widened — the three later actions, which live behind the bar's ⋯
+   * rather than beside the two tag ones. The action sheet is Ionic's, so it
+   * is answered here the way a tap would answer it: `create` is spied on, its
+   * buttons are read (that is the G-8 assertion) and its dismissal carries
+   * the `data` of the button pressed.
+   */
+  const DIRECTORY = [
+    { user_id: 'u-sia', display_name: 'Sia' },
+    { user_id: 'u-max', display_name: 'Max' },
+  ]
+
+  /** Two accounts on the instance, as Server Mode answers (G-8). */
+  function withAccounts() {
+    Object.assign(orchestratorFake, { fetchUsers: async () => DIRECTORY })
+  }
+
+  /** Press ⋯ and answer its sheet with `data`, or dismiss it. Returns its buttons. */
+  async function chooseMore(page: ReturnType<typeof mountPage>, data: string | null) {
+    const buttons: { text: string; data?: string; role?: string }[] = []
+    const create = vi
+      .spyOn(actionSheetController, 'create')
+      .mockImplementation(async (opts: { buttons?: unknown[] } = {}) => {
+        buttons.push(...((opts.buttons ?? []) as typeof buttons))
+        return {
+          present: async () => {},
+          onDidDismiss: async () => (data === null ? { role: 'cancel' } : { data }),
+        } as never
+      })
+    await page.find('[data-testid="m9-bulk-more"]').trigger('click')
+    await flushPromises()
+    create.mockRestore()
+    return buttons
+  }
+
+  /** Arm the mode over every row on screen — what all three actions start from. */
+  async function selectAll(page: ReturnType<typeof mountPage>) {
+    await enterSelection()
+    await page.find('[data-testid="m9-select-all"]').trigger('click')
+  }
+
+  it('offers no assignee action where there is nobody to choose between (G-8)', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await selectAll(page)
+
+    // Local and Single-User Mode answer with an empty directory, and so does
+    // an instance of one: a „default" between one person is no decision. The
+    // two link actions are there either way — they need no accounts.
+    const buttons = (await chooseMore(page, null)).map((b) => b.text)
+    expect(buttons).not.toContain(t('items.bulkAssignee'))
+    expect(buttons).toContain(t('items.bulkDependsOn'))
+    expect(buttons).toContain(t('items.bulkCompanion'))
+  })
+
+  it('names who the selection is usually assigned to, skipping the items already naming them', async () => {
+    seedThree()
+    withAccounts()
+    // i2 already names Sia, so the batch must leave its row alone (FR-1.9).
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.items,
+      id: 'i2',
+      deleted: false,
+      row: { name: 'Sonnenbrille', unit: 'pcs', default_assignee_id: 'u-sia' },
+    })
+
+    const page = mountPage()
+    await flushPromises()
+    await selectAll(page)
+
+    // The other half of G-8: with accounts on the instance, it is offered.
+    expect((await chooseMore(page, 'assignee')).map((b) => b.text)).toContain(
+      t('items.bulkAssignee'),
+    )
+
+    page.findComponent(BulkAssigneeSheet).vm.$emit('pick', { userId: 'u-sia' })
+    await flushPromises()
+
+    expect(writes.assignees).toEqual([
+      { itemId: 'i1', assigneeId: 'u-sia' },
+      { itemId: 'i3', assigneeId: 'u-sia' },
+    ])
+    expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(
+      t('items.bulkAssigned', { n: 2, name: 'Sia' }),
+    )
+    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(false)
+  })
+
+  it('puts each item’s own previous assignee back, not one value for the batch', async () => {
+    seedThree()
+    withAccounts()
+    useMasterStore().applyChange({
+      seq: 0,
+      table: TABLE.items,
+      id: 'i2',
+      deleted: false,
+      row: { name: 'Sonnenbrille', unit: 'pcs', default_assignee_id: 'u-max' },
+    })
+
+    const page = mountPage()
+    await flushPromises()
+    await selectAll(page)
+    await chooseMore(page, 'assignee')
+    page.findComponent(BulkAssigneeSheet).vm.$emit('pick', { userId: 'u-sia' })
+    await flushPromises()
+
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    await flushPromises()
+
+    // Three writes forward, three back — and i2 goes back to Max rather than
+    // to the nobody the other two came from.
+    expect(writes.assignees.slice(0, 3).every((w) => w.assigneeId === 'u-sia')).toBe(true)
+    expect(writes.assignees.slice(3)).toEqual([
+      { itemId: 'i2', assigneeId: 'u-max' },
+      { itemId: 'i1', assigneeId: null },
+      { itemId: 'i3', assigneeId: null },
+    ])
+  })
+
+  it('links the selection to the picked item, in the direction the sheet was opened for', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await selectAll(page)
+    await chooseMore(page, 'main')
+
+    page.findComponent(BulkDependencySheet).vm.$emit('pick', { itemId: 'i1', mode: 'suggested' })
+    await flushPromises()
+
+    // „Die Auswahl hängt ab von i1": the selected rows are the dependents,
+    // and i1 — which is in the selection — is skipped as its own edge.
+    expect(writes.links).toEqual([
+      { id: expect.any(String), itemId: 'i2', dependsOn: 'i1', mode: 'suggested' },
+      { id: expect.any(String), itemId: 'i3', dependsOn: 'i1', mode: 'suggested' },
+    ])
+  })
+
+  it('turns the edges round for a companion, and reports what it skipped', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await selectAll(page)
+    await chooseMore(page, 'companion')
+
+    page.findComponent(BulkDependencySheet).vm.$emit('pick', { itemId: 'i1', mode: 'required' })
+    await flushPromises()
+
+    // „i1 kommt mit": i1 is the dependent of each selected row instead.
+    expect(writes.links.map((l) => [l.itemId, l.dependsOn])).toEqual([
+      ['i1', 'i2'],
+      ['i1', 'i3'],
+    ])
+    // The batch wrote two of three and says so rather than refusing whole.
+    expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(
+      `${t('items.bulkLinked', { n: 2, name: 'Sonnencreme' })}. ${t('items.bulkLinkedSkipped', { n: 1 })}`,
+    )
+  })
+
+  it('removes exactly the rows a link created when the batch is undone', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await selectAll(page)
+    await chooseMore(page, 'main')
+    page.findComponent(BulkDependencySheet).vm.$emit('pick', { itemId: 'i1', mode: 'required' })
+    await flushPromises()
+
+    const created = writes.links.map((l) => l.id)
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    await (toast.buttons![0] as { handler: () => void }).handler()
+    await flushPromises()
+
+    expect(writes.linksRemoved).toEqual(created)
+  })
+
+  it('offers no undo for a link that wrote nothing, and says why', async () => {
+    seedThree()
+
+    const page = mountPage()
+    await flushPromises()
+    await enterSelection()
+    // Only the picked item itself: every edge of the batch is a self edge.
+    await page.find('[data-testid="m9-row-check-Sonnencreme"]').trigger('click')
+    await chooseMore(page, 'main')
+    page.findComponent(BulkDependencySheet).vm.$emit('pick', { itemId: 'i1', mode: 'required' })
+    await flushPromises()
+
+    expect(writes.links).toEqual([])
+    const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
+    expect(toast.message).toBe(t('items.bulkLinkedNothing'))
+    expect(toast.buttons).toBeUndefined()
+    // Still armed: nothing happened, so the selection is still the user's.
+    expect(page.find('[data-testid="m9-selbar"]').exists()).toBe(true)
   })
 
   it('writes nothing when the confirm is declined', async () => {

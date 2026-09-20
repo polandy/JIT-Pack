@@ -5,6 +5,12 @@ import {
   coSkipTargets,
   skippedVia,
   dependencyCycleError,
+  planDependencyBatch,
+  DEPENDENCY_LINK_COMPANION,
+  DEPENDENCY_LINK_MAIN,
+  DEPENDENCY_SKIP_CYCLE,
+  DEPENDENCY_SKIP_EXISTS,
+  DEPENDENCY_SKIP_SELF,
   type DependencyResolutionInput,
 } from '../dependencies'
 import type { CategorisedMasterItem, ItemDependency } from '@/types/domain'
@@ -364,5 +370,93 @@ describe('dependencyCycleError', () => {
     expect(
       dependencyCycleError([], { item_id: 'camera', depends_on_item_id: 'camera' }, nameOf),
     ).toEqual({ reason: 'self', names: ['Kamera'] })
+  })
+})
+
+describe('planDependencyBatch (FR-24.9 over FR-20.1)', () => {
+  it('writes the selection as the dependents when the picked item is the main one', () => {
+    const plan = planDependencyBatch([], ['battery', 'charger'], 'camera', DEPENDENCY_LINK_MAIN)
+
+    expect(plan.edges).toEqual([
+      { item_id: 'battery', depends_on_item_id: 'camera' },
+      { item_id: 'charger', depends_on_item_id: 'camera' },
+    ])
+    expect(plan.skipped).toEqual([])
+  })
+
+  it('turns the same batch round when the picked item is the companion', () => {
+    const plan = planDependencyBatch([], ['camera', 'plate'], 'battery', DEPENDENCY_LINK_COMPANION)
+
+    // The picked item is what comes along, so it is the dependent every time.
+    expect(plan.edges).toEqual([
+      { item_id: 'battery', depends_on_item_id: 'camera' },
+      { item_id: 'battery', depends_on_item_id: 'plate' },
+    ])
+  })
+
+  it('skips the picked item when it is in its own selection, and keeps the rest', () => {
+    const plan = planDependencyBatch(
+      [],
+      ['battery', 'camera', 'charger'],
+      'camera',
+      DEPENDENCY_LINK_MAIN,
+    )
+
+    expect(plan.edges.map((e) => e.item_id)).toEqual(['battery', 'charger'])
+    expect(plan.skipped).toEqual([{ item_id: 'camera', reason: DEPENDENCY_SKIP_SELF }])
+  })
+
+  it('does not write an edge that is already there, so a second run writes nothing', () => {
+    const existing = [dep('d1', 'battery', 'camera')]
+
+    const plan = planDependencyBatch(
+      existing,
+      ['battery', 'charger'],
+      'camera',
+      DEPENDENCY_LINK_MAIN,
+    )
+
+    expect(plan.edges).toEqual([{ item_id: 'charger', depends_on_item_id: 'camera' }])
+    expect(plan.skipped).toEqual([{ item_id: 'battery', reason: DEPENDENCY_SKIP_EXISTS }])
+  })
+
+  it('skips the item that would close a cycle rather than refusing the batch', () => {
+    // The camera already comes along with the battery, so the battery cannot
+    // also need the camera — but the charger still can.
+    const existing = [dep('d1', 'camera', 'battery')]
+
+    const plan = planDependencyBatch(
+      existing,
+      ['battery', 'charger'],
+      'camera',
+      DEPENDENCY_LINK_MAIN,
+    )
+
+    expect(plan.edges).toEqual([{ item_id: 'charger', depends_on_item_id: 'camera' }])
+    expect(plan.skipped).toEqual([{ item_id: 'battery', reason: DEPENDENCY_SKIP_CYCLE }])
+  })
+
+  it('skips the picked item in the companion direction too', () => {
+    const plan = planDependencyBatch([], ['plate', 'camera'], 'camera', DEPENDENCY_LINK_COMPANION)
+
+    expect(plan.edges).toEqual([{ item_id: 'camera', depends_on_item_id: 'plate' }])
+    expect(plan.skipped).toEqual([{ item_id: 'camera', reason: DEPENDENCY_SKIP_SELF }])
+  })
+
+  it('names both faults when one batch carries a cycle and a self edge', () => {
+    const plan = planDependencyBatch(
+      [dep('d1', 'charger', 'battery')],
+      ['battery', 'charger'],
+      'charger',
+      DEPENDENCY_LINK_MAIN,
+    )
+
+    // battery → charger closes battery → charger → battery; charger → charger
+    // is the self edge. Neither survives, and the batch says so per item.
+    expect(plan.edges).toEqual([])
+    expect(plan.skipped).toEqual([
+      { item_id: 'battery', reason: DEPENDENCY_SKIP_CYCLE },
+      { item_id: 'charger', reason: DEPENDENCY_SKIP_SELF },
+    ])
   })
 })
