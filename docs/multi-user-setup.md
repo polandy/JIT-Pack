@@ -49,7 +49,7 @@ Master data — items, tags, templates — is **instance-wide**: everyone sees a
 
 ### Who usually packs what
 
-An inventory item can name the person it is usually somebody's job for — open the item and choose **Usually assigned to**. It is optional; most items have nobody.
+An inventory item can name the person it is usually somebody's job for — open the item and choose **Usually assigned to**. It is optional; most items have nobody. For several items at once, use the inventory's selection mode: the checkbox icon in the app bar, tick the rows, then **⋯ More → Usually assigned to …**. The same sheet carries **Nobody**, which takes the assignment off again. It only appears once at least two accounts have signed in — there is nothing to choose between before that.
 
 It takes effect when a trip is created: on the trip's second step, give each traveler the account they are (the choice appears once the trip is shared with somebody). An item that is on the list once for the whole trip — not one per person — then starts out assigned to the traveler with that account. A traveler without an account, or an item nobody is set for, changes nothing, and per-person items still get a row for everyone. It is only a starting point: you can hand any row to somebody else on the trip afterwards, and changing the item later does not touch trips that already exist.
 

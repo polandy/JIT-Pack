@@ -52,6 +52,7 @@ import {
   closeOutline,
   cloudUploadOutline,
   cubeOutline,
+  ellipsisHorizontalOutline,
   eyeOutline,
   funnelOutline,
   pricetagsOutline,
@@ -62,6 +63,7 @@ import {
 import {
   computed,
   onBeforeUnmount,
+  onMounted,
   ref,
   useTemplateRef,
   watch,
@@ -77,6 +79,8 @@ import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import TagFilterSheet from '@/components/items/TagFilterSheet.vue'
 import BulkTagSheet, { type BulkTagMode } from '@/components/items/BulkTagSheet.vue'
+import BulkAssigneeSheet from '@/components/items/BulkAssigneeSheet.vue'
+import BulkDependencySheet from '@/components/items/BulkDependencySheet.vue'
 import GroupJumpSheet from '@/components/items/GroupJumpSheet.vue'
 import TagManagerSheet from '@/components/items/TagManagerSheet.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
@@ -100,6 +104,11 @@ import {
   TAG_DELETE_REFUSED,
   type TagFilterMode,
 } from '@/domain/tags'
+import {
+  DEPENDENCY_LINK_COMPANION,
+  DEPENDENCY_LINK_MAIN,
+  type DependencyLinkDirection,
+} from '@/domain/dependencies'
 import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import {
   hitsByReason,
@@ -116,9 +125,9 @@ import { promptTagMerge } from '@/lib/tagMergePrompt'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
-import type { MasterItem, Tag } from '@/types/domain'
+import { useIdentity } from '@/composables/useTripIdentity'
+import type { DependencyMode, MasterItem, Tag } from '@/types/domain'
 import { PATH, itemPath } from '@/router/paths'
-import type { BulkTagUndo } from '@/composables/sync/actions/masterData'
 
 /** How the unsearched list is ordered (FR-24.6). */
 const SORT_MODES = ['grouped', 'alphabetical'] as const
@@ -185,6 +194,25 @@ const knownEmpty = computed(() => isEmpty.value && itemsKnown.value)
 const selecting = ref(false)
 const selected = ref<Set<string>>(new Set())
 const bulkSheet = ref<BulkTagMode | null>(null)
+const assigneeSheet = ref(false)
+const dependencySheet = ref<DependencyLinkDirection | null>(null)
+
+/**
+ * FR-1.9 over FR-24.9: who the instance's accounts are. Fetched once per
+ * session by the store (ADR-047), so a screen the user returns to all day
+ * asks once; in Local and Single-User Mode it answers nobody, which is what
+ * hides the action (G-8).
+ */
+const { directory, load: loadDirectory } = useIdentity(orchestrator)
+
+onMounted(() => void loadDirectory())
+
+/**
+ * G-8: offered only where there is somebody to choose between — the same rule
+ * M10's own field uses, and for the same reason: a directory of one is only
+ * the viewer, whose „default" is no decision.
+ */
+const canAssign = computed(() => directory.value.length > 1)
 
 /** FR-24.12: how many findings M24 would list — the foot note's number. */
 const { report: hygiene } = useInventoryHygiene()
@@ -631,13 +659,19 @@ const bulkCounts = computed(() => tagCounts(selectedItems.value, masterStore.ite
  * The last batch's undo, live for as long as its snackbar (FR-24.9). One
  * batch at a time. A retire is deliberately not in here — see
  * `retireSelected`.
+ *
+ * A closure rather than a record, because the actions no longer undo the same
+ * *shape*: a tag batch puts assignments back where they were, an assignee
+ * batch writes each item's own previous value, a link removes rows that were
+ * not there before. Each action's own group knows how to reverse it, so what
+ * the screen holds is the call, not the data (`useRowUndo` is the same shape).
  */
-let bulkUndo: BulkTagUndo | null = null
+let bulkUndo: (() => void) | null = null
 
 function undoBulk() {
   const undo = bulkUndo
   bulkUndo = null
-  if (undo) orchestrator.undoBulkTag(undo)
+  undo?.()
 }
 
 async function announceBulk(message: string) {
@@ -658,7 +692,7 @@ async function giveTag(tagId: string, primary: boolean, fresh = false) {
     await presentToast({ message: t('items.bulkNothingToDo') })
     return
   }
-  bulkUndo = undo
+  bulkUndo = () => orchestrator.undoBulkTag(undo)
   endSelecting()
   await announceBulk(
     t(fresh ? 'items.bulkGaveNew' : 'items.bulkGave', { n: touched, tag: tagName(tagId) }),
@@ -678,13 +712,122 @@ async function takeTag(tagId: string) {
     await presentToast({ message: t('items.bulkNothingToDo') })
     return
   }
-  bulkUndo = undo
+  bulkUndo = () => orchestrator.undoBulkTag(undo)
   endSelecting()
   await announceBulk(t('items.bulkTook', { n: touched, tag: tagName(tagId) }))
 }
 
 function tagName(tagId: string): string {
   return masterStore.tagList.find((tag) => tag.id === tagId)?.name ?? tagId
+}
+
+// --- FR-24.9 widened: what else a selection can be acted on with ---------
+
+/** What the ⋯ sheet offers besides the two tag actions. */
+const MORE_ASSIGNEE = 'assignee'
+type MoreAction = typeof MORE_ASSIGNEE | DependencyLinkDirection
+
+/**
+ * The three later actions live behind one glyph rather than beside the two
+ * tag ones (FR-24.9): at 390 px the bar carries four controls before the
+ * labels clip, and the two tag actions are the ones the mode was measured on.
+ * A sheet also has room for the words each of these needs — „Hängt ab von"
+ * alone does not say which end of the edge the selection is on.
+ */
+async function openMore() {
+  const sheet = await actionSheetController.create({
+    header: t('items.bulkMoreTitle'),
+    buttons: [
+      // G-8: absent where there is nobody to assign to, not offered and refused.
+      ...(canAssign.value ? [{ text: t('items.bulkAssignee'), data: MORE_ASSIGNEE }] : []),
+      { text: t('items.bulkDependsOn'), data: DEPENDENCY_LINK_MAIN },
+      { text: t('items.bulkCompanion'), data: DEPENDENCY_LINK_COMPANION },
+      { text: t('common.cancel'), role: 'cancel' },
+    ],
+  })
+  await sheet.present()
+  const { data, role } = await sheet.onDidDismiss()
+  if (role === 'cancel' || typeof data !== 'string') return
+  const action = data as MoreAction
+  if (action === MORE_ASSIGNEE) assigneeSheet.value = true
+  else dependencySheet.value = action
+}
+
+/** How many of the selection already name each account, and how many nobody. */
+const assigneeCounts = computed(() => {
+  const counts = new Map<string, number>()
+  for (const item of selectedItems.value) {
+    const id = item.default_assignee_id ?? null
+    if (id) counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
+  return counts
+})
+
+const unassignedCount = computed(
+  () => selectedItems.value.filter((item) => !item.default_assignee_id).length,
+)
+
+/** Name who the selection is usually assigned to, or nobody (FR-1.9). */
+async function assignSelected({ userId }: { userId: string | null }) {
+  const { touched, undo } = orchestrator.assignDefaultAssignee(selectedItems.value, userId)
+  assigneeSheet.value = false
+  if (touched === 0) {
+    await presentToast({ message: t('items.bulkNothingToDo') })
+    return
+  }
+  bulkUndo = () => orchestrator.undoBulkAssignee(undo)
+  endSelecting()
+  await announceBulk(
+    userId
+      ? t('items.bulkAssigned', { n: touched, name: userName(userId) })
+      : t('items.bulkUnassigned', { n: touched }),
+  )
+}
+
+function userName(userId: string): string {
+  return directory.value.find((user) => user.user_id === userId)?.display_name ?? userId
+}
+
+/**
+ * Link the selection to one item (FR-20.1 over FR-24.9), in the direction the
+ * sheet was opened for.
+ *
+ * **The result names what was skipped rather than hiding it.** A batch is
+ * planned per item (`planDependencyBatch`), so a selection holding the picked
+ * item itself, or one already linked, or one the edge would send in a circle,
+ * writes the rest and reports the remainder — an all-or-nothing refusal would
+ * leave the user to find the offender among fifty rows.
+ */
+async function linkSelected({ itemId, mode }: { itemId: string; mode: DependencyMode }) {
+  const direction = dependencySheet.value
+  if (!direction) return
+  const { plan, undo } = orchestrator.linkItemsToDependency(
+    selectedItems.value,
+    itemId,
+    direction,
+    mode,
+  )
+  dependencySheet.value = null
+
+  const written = plan.edges.length
+  if (written === 0) {
+    await presentToast({ message: t('items.bulkLinkedNothing') })
+    return
+  }
+  bulkUndo = () => orchestrator.undoBulkDependency(undo)
+  endSelecting()
+
+  const linked = t('items.bulkLinked', { n: written, name: itemName(itemId) })
+  const skipped = plan.skipped.length
+  // Two sentences, joined here rather than in the catalogue: the skipped
+  // half has its own plural, and one entry cannot carry two of them.
+  await announceBulk(
+    skipped > 0 ? `${linked}. ${t('items.bulkLinkedSkipped', { n: skipped })}` : linked,
+  )
+}
+
+function itemName(itemId: string): string {
+  return masterStore.getItem(itemId)?.name ?? itemId
 }
 
 /**
@@ -966,8 +1109,16 @@ onBeforeUnmount(() => observer?.disconnect())
         >
           <IonIcon :icon="closeOutline" />
         </button>
+        <!-- Zero is its own sentence, not a plural form: this catalogue has
+             two forms and `n === 1` takes the first, so „Nichts ausgewählt |
+             {n} ausgewählt" said exactly the wrong one at both ends — nothing
+             for one row, „0 ausgewählt" for none. -->
         <span class="selcount jp-num" data-testid="m9-select-count">
-          {{ t('items.selectedCount', { n: selected.size }) }}
+          {{
+            selected.size === 0
+              ? t('items.selectedNone')
+              : t('items.selectedCount', { n: selected.size })
+          }}
         </span>
         <button type="button" class="chip" data-testid="m9-select-all" @click="toggleAll">
           {{ t('items.selectAll', { n: shownItems.length }) }}
@@ -1134,7 +1285,7 @@ onBeforeUnmount(() => observer?.disconnect())
           <IonList class="jp-card group-card" lines="full">
             <IonItem
               v-for="item in groupItems"
-              :key="item.id"
+              :key="`${item.id}-${selecting}`"
               button
               :detail="false"
               :router-link="selecting ? undefined : itemPath(item.id)"
@@ -1143,7 +1294,15 @@ onBeforeUnmount(() => observer?.disconnect())
               @click="selecting && toggleSelected(item.id)"
             >
               <!-- FR-24.9: the row stops navigating while the mode is on, so
-                   the same tap that opened an item now picks it. -->
+                   the same tap that opened an item now picks it.
+
+                   **The key carries the mode**, and that is load-bearing:
+                   dropping `routerLink` leaves `ion-item`'s shadow anchor in
+                   place with an *empty* href, which a click resolves against
+                   the current URL — a full page load, the selection gone and
+                   the app re-booted. Re-keying builds the row again without
+                   an anchor at all. jsdom renders no shadow root, so only a
+                   browser can see this: E2E-M9-26 is the case that does. -->
               <span
                 v-if="selecting"
                 slot="start"
@@ -1261,6 +1420,10 @@ onBeforeUnmount(() => observer?.disconnect())
           <IonIcon :icon="removeCircleOutline" />
           {{ t('items.bulkTake') }}
         </button>
+        <button type="button" data-testid="m9-bulk-more" @click="openMore">
+          <IonIcon :icon="ellipsisHorizontalOutline" />
+          {{ t('items.bulkMore') }}
+        </button>
         <button type="button" class="danger" data-testid="m9-bulk-retire" @click="retireSelected">
           <IonIcon :icon="trashOutline" />
           {{ t('items.bulkRetire') }}
@@ -1278,6 +1441,25 @@ onBeforeUnmount(() => observer?.disconnect())
         @pick="
           ({ tagId, primary }) => (bulkSheet === 'take' ? takeTag(tagId) : giveTag(tagId, primary))
         "
+      />
+
+      <BulkAssigneeSheet
+        :is-open="assigneeSheet"
+        :directory="directory"
+        :counts="assigneeCounts"
+        :selected="selected.size"
+        :unassigned="unassignedCount"
+        @dismiss="assigneeSheet = false"
+        @pick="assignSelected"
+      />
+
+      <BulkDependencySheet
+        :is-open="dependencySheet !== null"
+        :direction="dependencySheet ?? DEPENDENCY_LINK_MAIN"
+        :items="masterStore.activeItemList"
+        :selected="selected.size"
+        @dismiss="dependencySheet = null"
+        @pick="linkSelected"
       />
 
       <IonFab v-if="!selecting" :id="FAB_ANCHOR.m9" vertical="bottom" horizontal="end" slot="fixed">

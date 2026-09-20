@@ -485,7 +485,8 @@ export const de: Record<keyof typeof en, string> = {
   'items.sortAlphabetical': 'Alle alphabetisch',
   'items.select': 'Auswählen',
   'items.selectExit': 'Auswahl beenden',
-  'items.selectedCount': 'Nichts ausgewählt | {n} ausgewählt',
+  'items.selectedNone': 'Nichts ausgewählt',
+  'items.selectedCount': 'Einer ausgewählt | {n} ausgewählt',
   'items.selectAll': 'Alle {n}',
   'items.bulkGive': 'Tag geben',
   'items.bulkTake': 'Tag nehmen',
@@ -513,6 +514,32 @@ export const de: Record<keyof typeof en, string> = {
     '{hidden} werden versteckt und bleiben in alten Reisen erhalten — rückgängig in den Einstellungen. {removed} werden endgültig entfernt; das nicht.',
   'items.bulkRetireConfirm': 'Stilllegen',
   'items.bulkRetired': 'Ein Artikel stillgelegt | {n} Artikel stillgelegt',
+  // FR-24.9 widened: what else a selection can be acted on with.
+  'items.bulkMore': 'Mehr',
+  'items.bulkMoreTitle': 'Weitere Aktionen',
+  'items.bulkAssignee': 'Üblicherweise zuweisen an …',
+  'items.bulkDependsOn': 'Hängt ab von …',
+  'items.bulkCompanion': 'Begleitartikel …',
+  'items.bulkAssigneeTitle': 'Üblicherweise zuweisen an',
+  'items.bulkAssigneeHint':
+    'Eine neue Reise weist diese Artikel dieser Person zu, sofern sie mitreist.',
+  'items.bulkAssigned': '„{name}" für einen Artikel | „{name}" für {n} Artikel',
+  'items.bulkUnassigned':
+    'Zuweisung bei einem Artikel entfernt | Zuweisung bei {n} Artikeln entfernt',
+  'items.bulkDependsOnTitle': 'Hängt ab von',
+  'items.bulkDependsOnHint':
+    'Die ausgewählten Artikel kommen mit, sobald der gewählte Artikel auf der Liste steht.',
+  'items.bulkCompanionTitle': 'Begleitartikel',
+  'items.bulkCompanionHint':
+    'Der gewählte Artikel kommt mit, sobald einer der ausgewählten auf der Liste steht.',
+  'items.bulkDependencySuggested': 'Nur vorschlagen',
+  'items.bulkDependencySuggestedHint': 'Wird auf der Liste angeboten statt automatisch ergänzt.',
+  'items.bulkDependencyMore':
+    'Ein weiterer Treffer — Suche eingrenzen. | Noch {n} Treffer — Suche eingrenzen.',
+  'items.bulkLinked': 'Mit „{name}" verknüpft: ein Artikel | Mit „{name}" verknüpft: {n} Artikel',
+  'items.bulkLinkedSkipped':
+    'Einer übersprungen — schon verknüpft, oder es drehte sich im Kreis. | {n} übersprungen — schon verknüpft, oder es drehte sich im Kreis.',
+  'items.bulkLinkedNothing': 'Nichts verknüpft — schon so, oder es würde sich im Kreis drehen.',
   // FR-24.10: managing the tags themselves.
   'items.manageTags': 'Tags verwalten',
   'items.tagsTitle': 'Tags verwalten',

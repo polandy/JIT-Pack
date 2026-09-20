@@ -37,7 +37,8 @@ survives a schema change; a copy of the `.db` file does not.
 **To discard it**, stop the server, delete `jitpack.db` **and its `-wal` and `-shm`
 sidecars**, and start again. The server creates a fresh database on the next start.
 
-This goes away at 1.0, which is when the migration chain comes back.
+This goes away in a coming 0.x release, which is when the database starts being carried
+forward on start-up instead of refused — see [Upgrades](upgrades.md).
 
 ### `config: JITPACK_SESSION_SECRET is required in multi-user mode`
 

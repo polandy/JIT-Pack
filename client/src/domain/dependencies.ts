@@ -286,16 +286,22 @@ export function dependencyCycleError(
   }
   // Follow depends-on edges from the candidate's main item; reaching the
   // candidate's dependent closes a cycle.
-  const dependsOn = new Map<string, string[]>()
-  for (const d of dependencies) {
-    const list = dependsOn.get(d.item_id) ?? []
-    list.push(d.depends_on_item_id)
-    dependsOn.set(d.item_id, list)
-  }
+  const dependsOn = dependsOnEdges(dependencies)
   const path = findPath(candidate.depends_on_item_id, candidate.item_id, dependsOn, new Set())
   if (!path) return null
   const names = [candidate.item_id, candidate.depends_on_item_id, ...path.slice(1)].map(itemName)
   return { reason: 'cycle', names }
+}
+
+/** The depends-on graph as an adjacency map, keyed by the dependent item. */
+function dependsOnEdges(dependencies: ItemDependency[]): Map<string, string[]> {
+  const edges = new Map<string, string[]>()
+  for (const d of dependencies) {
+    const list = edges.get(d.item_id) ?? []
+    list.push(d.depends_on_item_id)
+    edges.set(d.item_id, list)
+  }
+  return edges
 }
 
 function findPath(
@@ -312,4 +318,100 @@ function findPath(
     if (rest) return [from, ...rest]
   }
   return null
+}
+
+// --- Linking many items at once (FR-24.9 over FR-20.1) ---------------------
+
+/**
+ * Which way round a bulk link is written. The two are the same edge read from
+ * its two ends, which is exactly how M10 renders them: the item whose editor
+ * is open *depends on* its mains, and is *accompanied by* whatever depends on
+ * it. A batch names the end the user is standing on — the selection — so the
+ * direction is the caller's, never guessed from the ids.
+ */
+export const DEPENDENCY_LINK_MAIN = 'main'
+export const DEPENDENCY_LINK_COMPANION = 'companion'
+export type DependencyLinkDirection = typeof DEPENDENCY_LINK_MAIN | typeof DEPENDENCY_LINK_COMPANION
+
+/** Why one selected item is left out of a batch. */
+export const DEPENDENCY_SKIP_SELF = 'self'
+export const DEPENDENCY_SKIP_EXISTS = 'exists'
+export const DEPENDENCY_SKIP_CYCLE = 'cycle'
+export type DependencySkipReason =
+  typeof DEPENDENCY_SKIP_SELF | typeof DEPENDENCY_SKIP_EXISTS | typeof DEPENDENCY_SKIP_CYCLE
+
+/** One edge to write: `item_id` needs `depends_on_item_id` along. */
+export interface DependencyEdge {
+  item_id: string
+  depends_on_item_id: string
+}
+
+/** What a batch will write, and which of its items it cannot. */
+export interface DependencyBatchPlan {
+  edges: DependencyEdge[]
+  skipped: { item_id: string; reason: DependencySkipReason }[]
+}
+
+/**
+ * Plan one bulk link: every selected item against the one item picked for
+ * them all (FR-24.9).
+ *
+ * **A batch never refuses as a whole.** Three of its items may be fine while
+ * the fourth is the picked item itself, already linked, or would close a
+ * cycle — and answering that with one refusal would make the user find the
+ * offender by hand among fifty rows. So each item is decided on its own and
+ * the skipped ones are reported by reason, which is also what makes the
+ * result sentence honest about what it wrote.
+ *
+ * **The graph grows as the batch is planned** — though with one picked item
+ * that cannot change an answer: every edge of a batch meets that item at the
+ * same end, so an accepted one never extends a path the next check follows.
+ * It is written this way because the correctness of a plan that reads a graph
+ * it is also writing should not rest on that argument.
+ */
+export function planDependencyBatch(
+  dependencies: ItemDependency[],
+  selectedIds: string[],
+  pickedId: string,
+  direction: DependencyLinkDirection,
+): DependencyBatchPlan {
+  const edges = dependsOnEdges(dependencies)
+  const existing = new Set(dependencies.map((d) => edgeKey(d.item_id, d.depends_on_item_id)))
+  const plan: DependencyBatchPlan = { edges: [], skipped: [] }
+
+  for (const selectedId of selectedIds) {
+    const edge =
+      direction === DEPENDENCY_LINK_MAIN
+        ? { item_id: selectedId, depends_on_item_id: pickedId }
+        : { item_id: pickedId, depends_on_item_id: selectedId }
+
+    const reason = linkRefusal(edge, existing, edges)
+    if (reason) {
+      plan.skipped.push({ item_id: selectedId, reason })
+      continue
+    }
+
+    plan.edges.push(edge)
+    existing.add(edgeKey(edge.item_id, edge.depends_on_item_id))
+    edges.set(edge.item_id, [...(edges.get(edge.item_id) ?? []), edge.depends_on_item_id])
+  }
+  return plan
+}
+
+function linkRefusal(
+  edge: DependencyEdge,
+  existing: ReadonlySet<string>,
+  edges: Map<string, string[]>,
+): DependencySkipReason | null {
+  if (edge.item_id === edge.depends_on_item_id) return DEPENDENCY_SKIP_SELF
+  if (existing.has(edgeKey(edge.item_id, edge.depends_on_item_id))) return DEPENDENCY_SKIP_EXISTS
+  const closes = findPath(edge.depends_on_item_id, edge.item_id, edges, new Set())
+  return closes ? DEPENDENCY_SKIP_CYCLE : null
+}
+
+/** The pair as one map key; no id contains the separator. */
+const EDGE_KEY_SEPARATOR = '>'
+
+function edgeKey(itemId: string, dependsOnItemId: string): string {
+  return `${itemId}${EDGE_KEY_SEPARATOR}${dependsOnItemId}`
 }
