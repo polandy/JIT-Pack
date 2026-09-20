@@ -283,8 +283,11 @@ describe('runTraveler add', () => {
 
     expect(code).toBe(EXIT.failed)
     const said = it0.lines.join('\n')
-    expect(said).toContain('writes rejected by the instance: travelers/')
-    expect(said).toContain('(constraint)')
+    // The whole line, count included: the total comes from the trip
+    // partition's own list, which is where a traveler's writes sit.
+    expect(said).toMatch(
+      /Cannobio 2026: 1 of 1 writes rejected by the instance: travelers\/[\w-]+ \(constraint\)/,
+    )
     expect(said).not.toContain('1 added, 0 already here')
   })
 

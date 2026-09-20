@@ -288,8 +288,9 @@ describe('runImport', () => {
 
     expect(code).toBe(EXIT.failed)
     const said = it0.lines.join('\n')
-    expect(said).toContain('writes rejected by the instance: items/')
-    expect(said).toContain('(constraint)')
+    // The count is this document's own writes, not the run's: `pending` is
+    // built per document, and a shared one would re-push the ones before it.
+    expect(said).toMatch(/\d+ of \d+ writes rejected by the instance: items\/[\w-]+ \(constraint\)/)
     expect(said).not.toContain(': imported')
     expect(it0.lines.at(-1)).toContain('1 failed')
   })
