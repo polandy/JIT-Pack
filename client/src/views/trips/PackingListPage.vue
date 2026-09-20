@@ -1250,10 +1250,29 @@ const packContent = ref<{ $el: HTMLIonContentElement } | null>(null)
  * height while a finger was already on its way to one (E2E-M4-135).
  */
 let gesture = false
+
+/**
+ * The window, and the one observable thing about it.
+ *
+ * It closes on Ionic's `ionScrollEnd`, which is a debounce after the last
+ * scroll event — so *whether* it is open is a race against a timer for
+ * anything outside this screen, and E2E-M4-135 lost that race on a loaded
+ * shard: it measured a scroll nobody made while the flick that set it up was
+ * still settling, and read the head answering the reader as the defect it was
+ * written to catch. A plain `let` is deliberate — a ref would re-render the
+ * list on every wheel event — so the state is mirrored onto the host element
+ * instead, the way the G-19 toast carries `data-presented`. Nothing in the app
+ * reads it; it exists so a case can wait for the window rather than hope.
+ */
+function armGesture(open: boolean): void {
+  gesture = open
+  packContent.value?.$el.toggleAttribute('data-scroll-gesture', open)
+}
+
 function onScrollerInput(event: Event) {
   const key = event instanceof KeyboardEvent ? event.key : undefined
   if (isScrollGesture({ type: event.type, key, onScroller: event.target === scrollEl }))
-    gesture = true
+    armGesture(true)
 }
 
 /** False once the screen is gone, so a scroller resolving late is not listened to at all. */
@@ -1289,7 +1308,7 @@ function onScroll(event: CustomEvent<{ scrollTop: number }>) {
 
 /** The scroller has come to rest, so whatever moves it next has to say who asked. */
 function onScrollEnd() {
-  gesture = false
+  armGesture(false)
 }
 
 // --- App-bar cluster (G-12) --------------------------------------------

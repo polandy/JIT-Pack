@@ -9,7 +9,7 @@
  * here is the left slot's *other* job, the way back, and the cap that keeps
  * the cluster from growing back to what made the title unreadable.
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import AppHeader from '../AppHeader.vue'
@@ -39,11 +39,45 @@ const resolve = (to: { path: string; query: Record<string, string> }) => {
   return { fullPath: `${to.path}?from=${to.query.from}` }
 }
 
-vi.mock('vue-router', () => ({ useRoute: () => route, useRouter: () => ({ resolve }) }))
+const pushed: string[] = []
+
+vi.mock('vue-router', () => ({
+  useRoute: () => route,
+  useRouter: () => ({ resolve, push: (path: string) => pushed.push(path) }),
+}))
+
+/**
+ * What the ⋮ was asked to render, and a seam to close it with. The sheet
+ * itself is an Ionic overlay and jsdom is not where its DOM is worth
+ * asserting; what the bar owes is the *list* — which entries, in which order,
+ * under which ids — and that a chosen entry runs only once the sheet is gone.
+ * `dismiss` is that moment, in the test's hand rather than on a clock.
+ */
+interface SheetButton {
+  text: string
+  htmlAttributes?: Record<string, string>
+  role?: string
+  handler?: () => void
+}
+
+const { sheets } = vi.hoisted(() => ({
+  sheets: [] as { buttons: { text: string; handler?: () => void }[]; dismiss: () => void }[],
+}))
 
 vi.mock('@ionic/vue', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@ionic/vue')
-  return { ...actual, useIonRouter: () => ({ navigate: vi.fn() }) }
+  return {
+    ...actual,
+    useIonRouter: () => ({ navigate: vi.fn() }),
+    actionSheetController: {
+      create: async (opts: { buttons: { text: string; handler?: () => void }[] }) => {
+        let dismiss = () => {}
+        const gone = new Promise<void>((resolve) => (dismiss = resolve))
+        sheets.push({ buttons: opts.buttons, dismiss })
+        return { present: async () => {}, onDidDismiss: () => gone }
+      },
+    },
+  }
 })
 
 function mountHeader(extra: { syncUpdateReady?: boolean } = {}) {
@@ -56,8 +90,11 @@ beforeEach(() => {
   route.path = M4_PATH
   route.fullPath = M4_PATH
   route.meta = { parent: '/tabs/trips' }
+  route.params = { tripId: 'trip-1' }
   route.matched = [{}]
   resolved.length = 0
+  sheets.length = 0
+  pushed.length = 0
 })
 
 describe('AppHeader — the left slot (G-9)', () => {
@@ -202,6 +239,112 @@ describe('AppHeader — the G-12 overflow', () => {
 
     // The positive half: the bar did render its cluster.
     expect(wrapper.find('[data-testid="m4-filter"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="header-overflow"]').exists()).toBe(false)
+  })
+})
+
+/**
+ * ADR-051 amendment 1: the switcher under the page's name keeps the two
+ * views a trip is worked in, and the bar's ⋮ carries the rest — on every one
+ * of the trip's four screens, filled by the frame from the route table.
+ *
+ * The half no screen test can see is that this happens **without the screen
+ * asking**: a page that registers nothing still offers the views, which is
+ * the property that makes forgetting impossible (ADR-051 driver 3).
+ */
+describe('AppHeader — the trip views the switcher does not show', () => {
+  const action = (id: string, overflow?: boolean) => ({
+    id,
+    icon: 'x',
+    label: id,
+    onClick: vi.fn(),
+    ...(overflow ? { overflow: true } : {}),
+  })
+
+  /** Open the ⋮ and return what it was asked to render, plus its dismissal. */
+  async function openMenu(
+    wrapper: ReturnType<typeof mountHeader>,
+  ): Promise<{ buttons: SheetButton[]; dismiss: () => void }> {
+    await wrapper.get('[data-testid="header-overflow"]').trigger('click')
+    await flushPromises()
+    const [sheet] = sheets
+    // Thrown rather than asserted: everything below reads the list, and an
+    // empty one would fail as "expected [] to equal […]", which says nothing.
+    if (!sheet) throw new Error('the ⋮ opened no action sheet')
+    return { buttons: sheet.buttons as SheetButton[], dismiss: sheet.dismiss }
+  }
+
+  beforeEach(() => clearActionsFor(M4_PATH))
+
+  it('offers them although the screen registered no action at all', async () => {
+    route.meta = { parent: '/tabs/trips', tripView: 'packing' }
+
+    const { buttons } = await openMenu(mountHeader())
+
+    expect(buttons.map((b) => b.text)).toEqual(['Luggage', 'Analytics', 'Cancel'])
+  })
+
+  /*
+   * Where you can go, then what you can do: the two destinations head the
+   * sheet and the page's own once-per-trip actions follow. Read against the
+   * screen, "Finish trip" between the luggage and the analytics would be a
+   * lifecycle step offered inside a list of places.
+   */
+  it('puts the destinations ahead of what the page does to the trip', async () => {
+    route.meta = { parent: '/tabs/trips', tripView: 'packing' }
+    setActionsFor(M4_PATH, [action('m4-search'), action('m4-edit', true)])
+
+    const { buttons } = await openMenu(mountHeader())
+
+    expect(buttons.map((b) => b.htmlAttributes?.['data-testid'])).toEqual([
+      'trip-view-luggage',
+      'trip-view-analytics',
+      'm4-edit',
+      undefined, // Cancel, which carries no id
+    ])
+  })
+
+  /*
+   * The complement of the switcher, not a fixed pair: on the luggage the row
+   * shows *Gepäck* as the current pill, so offering it here too would be the
+   * same destination twice — once marked "you are here".
+   */
+  it('leaves out the view being looked at, which the row is already showing', async () => {
+    route.path = '/trips/trip-1/containers'
+    route.meta = { parent: M4_PATH, tripView: 'luggage' }
+
+    const { buttons } = await openMenu(mountHeader())
+
+    expect(buttons.map((b) => b.text)).toEqual(['Analytics', 'Cancel'])
+  })
+
+  it('goes there when the entry is chosen, once the sheet is gone', async () => {
+    route.meta = { parent: '/tabs/trips', tripView: 'packing' }
+
+    const { buttons, dismiss } = await openMenu(mountHeader())
+    buttons.find((b) => b.htmlAttributes?.['data-testid'] === 'trip-view-luggage')?.handler?.()
+
+    // The entry's handler only records the choice: while an overlay is up
+    // Ionic marks the outlet `aria-hidden` and clears it on dismissal, so a
+    // navigation made from inside the handler leaves that flag behind. The
+    // absence before the dismissal is the half that says so.
+    await flushPromises()
+    expect(pushed).toEqual([])
+
+    dismiss()
+    await flushPromises()
+    expect(pushed).toEqual(['/trips/trip-1/containers'])
+  })
+
+  it('offers none of this outside a trip, where there is no view to leave', () => {
+    route.path = PATH.items
+    route.meta = {}
+    route.params = {}
+
+    const wrapper = mountHeader()
+
+    // The positive half: the bar rendered, it simply has no ⋮ to show.
+    expect(wrapper.find('[data-testid="header-settings"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="header-overflow"]').exists()).toBe(false)
   })
 })

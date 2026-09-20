@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 /**
- * The trip's four views under the page's name (FR-21.21, ADR-051).
+ * The trip's views under the page's name (FR-21.21, ADR-051 amendment 1).
  *
- * Three things live here that no screen test can see: the four are all
- * offered, in order; the one you are standing on is the one marked; and the
+ * Three things live here that no screen test can see: which views the row
+ * offers, in order; the one you are standing on is the one marked; and the
  * shopping pill counts **things to buy** rather than rows — the arithmetic
  * M6's own segments use (FR-25.6), which the bar menu it replaced got wrong
  * unnoticed for as long as the two numbers were never on one screen.
@@ -99,12 +99,26 @@ beforeEach(() => {
 })
 
 describe('TripViewNav', () => {
-  it('offers all four views, in the order the trip is worked through', () => {
+  it('offers the two views a trip is worked in, in the order it is worked through', () => {
     seed()
     const labels = mountNav()
       .findAll('button')
       .map((b) => b.text())
-    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Luggage', 'Analytics'])
+    expect(labels).toEqual(['Packing list', 'Shopping (1)'])
+  })
+
+  /*
+   * ADR-051 amendment 1: the luggage and the analytics left the row, but the
+   * row still has to say where you are — so the view being looked at stands
+   * in it while you are there, and leaves again when you go.
+   */
+  it('makes room for the view being looked at when it is neither of the two', () => {
+    seed()
+    const labels = mountNav('luggage')
+      .findAll('button')
+      .map((b) => b.text())
+    expect(labels).toEqual(['Packing list', 'Shopping (1)', 'Luggage'])
+    expect(mountNav('luggage').find('[data-testid="trip-view-analytics"]').exists()).toBe(false)
   })
 
   it('counts things to buy, not rows', () => {
@@ -153,7 +167,7 @@ describe('TripViewNav', () => {
     seed()
     const wrapper = mountNav('luggage')
     expect(wrapper.get('[data-testid="trip-view-luggage"]').attributes('aria-current')).toBe('page')
-    for (const other of ['packing', 'shopping', 'analytics']) {
+    for (const other of ['packing', 'shopping']) {
       expect(wrapper.get(`[data-testid="trip-view-${other}"]`).attributes('aria-current')).toBe(
         undefined,
       )
@@ -162,10 +176,10 @@ describe('TripViewNav', () => {
 
   it('goes to a sibling, and returns to the list rather than stacking it', async () => {
     seed()
-    const wrapper = mountNav('shopping')
+    const wrapper = mountNav('luggage')
 
-    await wrapper.get('[data-testid="trip-view-luggage"]').trigger('click')
-    expect(push).toHaveBeenCalledWith(`/trips/${TRIP}/containers`)
+    await wrapper.get('[data-testid="trip-view-shopping"]').trigger('click')
+    expect(push).toHaveBeenCalledWith(`/trips/${TRIP}/shopping`)
 
     await wrapper.get('[data-testid="trip-view-packing"]').trigger('click')
     expect(navigate).toHaveBeenCalledWith(`/trips/${TRIP}`, 'back', 'replace')

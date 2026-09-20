@@ -2274,11 +2274,11 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // reading of the rule — what has to hold is that going *and coming
     // back* keeps the width, on each of the two kinds of destination.
 
-    // A sibling view of the same trip, one tap away through the switcher
-    // that made the two measures untenable. Unscoped: the switcher is
-    // rendered by the frame's PageHead, above the router outlet, so it is
-    // not inside the visible page.
-    await page.getByTestId('trip-view-luggage').click()
+    // A sibling view of the same trip, reached the way the reader reaches
+    // it — through the frame, which is what made the two measures untenable.
+    // The helper knows which shape the view is in (ADR-051 amendment 1); what
+    // this case is measuring is the column it lands in, not the tap.
+    await openTripView(page, 'luggage')
     await expect(visible(page).getByTestId('m11-unassigned-title')).toBeVisible()
     expect(await columnWidth()).toBe(column)
     await page.getByTestId('header-back').click()

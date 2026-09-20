@@ -95,6 +95,37 @@ the one lifecycle step that is next.
 The shopping pill's count is `buyRowCount` from `domain/shoppingView.ts` — **things to buy**, the aggregation
 FR-25.6 defines and M6's own segments already used.
 
+**Amendment 1 (2026-09-20) — two of the four earn a pill; the other two are words in the ⋮ again.** The row
+renders **the packing list and the shopping list**, plus whichever view is being looked at when it is neither of
+them. The luggage and the analytics are entries in the bar's ⋮, which `AppHeader` fills from `meta.tripView` — so
+they still render on all four screens, and driver 4 still holds: shopping → luggage is one tap plus the menu, not a
+detour through M4.
+
+The judgement is the owner's, made off a render on 2026-09-20: *the luggage is not important enough to stand in the
+badges at the top of the packing list, and neither is the analytics.* Four options were mocked against the running
+palette — the two-pill row with the rest in the ⋮, a third "Mehr" pill opening a popover, the luggage hung off the
+weight the header line already shows, and two cards at the foot of the list — and this is the one chosen.
+
+What changes about the decision, and what does not:
+
+- **Driver 1 is re-weighted rather than re-scored.** ADR-051 read "discoverability" as *every view visible*. The
+  render says what that costs: four pills fill a 390 px row to within six pixels, so a view read once a trip is
+  exactly as loud as the list being packed, and a row that is equally loud everywhere says nothing about where the
+  work is. Two pills say it.
+- **The row still answers "where am I".** A screen whose view has no pill would otherwise mark nothing as current,
+  which is half of what the switcher is for — so the current view joins the row while you stand in it. That makes
+  the row two or three pills wide, never four.
+- **One table, two shapes.** `lib/tripViews.ts` now holds each view's word, glyph and path; the switcher and the
+  bar's ⋮ both render from it, and a menu entry keeps the id its pill had. Written twice, a view could have been
+  renamed in one shape and not the other, and nothing would have failed.
+- **What the ⋮ keeps** is still what *changes* the trip — properties, the next lifecycle step — but the sheet now
+  leads with where you can go and follows with what you can do. A lifecycle step in the middle of a list of places
+  reads as neither.
+
+Accepted cost: the luggage and the analytics are two taps rather than one, and behind an unlabelled glyph — the
+exact shape ADR-050 was criticised for. It is affordable here and was not there because it is now **two** entries
+rather than five, and because the two it holds are the two nobody reaches while packing.
+
 ## Consequences
 
 **Positive**
@@ -106,7 +137,8 @@ FR-25.6 defines and M6's own segments already used.
 
 **Negative / accepted costs**
 - The pills carry their glyphs only from 480 px up. E2E-G12-05, which pins that four destinations did not reach for
-  one icon, reads them at the desktop width for that reason.
+  one icon, reads them at the desktop width for that reason — and since Amendment 1 it reads two of the four inside
+  the ⋮, where the same glyph has to be the one the reader learned on the pill.
 - On M4 the switcher is inside the collapsing head, so it is not on screen while the reader is scrolled into the
   list. Accepted: it is navigation, and any upward scroll brings it back.
 - `App.vue` now imports one trips component.
@@ -117,5 +149,10 @@ FR-25.6 defines and M6's own segments already used.
 
 ## Revisit Trigger
 
-A fifth view of a trip. Five pills do not fit a 390 px row even as words, and the answer then is not a smaller pill
-but a decision about which of them is a *view* and which is an action — the same question the bar's budget asks.
+A fifth view of a trip, or a third view that earns a pill. Amendment 1 answers the first form of the question the
+original trigger asked — which of them is a *view* and which is a destination read once — but it answers it for
+four. A fifth arrives as a ⋮ entry by default; what would reopen the decision is a view that is worked in rather
+than read, because three pills plus a current one is the width the row was already at its limit with.
+
+A second trigger, from Amendment 1's accepted cost: the ⋮ growing back past three entries on a trip screen. Two
+destinations behind an unlabelled glyph is the judgement made here; five was ADR-050's, and it did not hold.
