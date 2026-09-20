@@ -811,28 +811,35 @@ in WebKit.
   task stays, which is what makes the disappearance about the row rather than about the section. The removal is
   **confirmed** rather than immediate precisely because the preparation cascades (`removalNeedsConfirm`), and the
   snackbar's *Rückgängig* brings row and task back together, which a list that lost the task for good would fail.
-* **E2E-M4-138** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): the whole shape of
+* **E2E-M4-138** `local` (FR-7.6 with UI-Spec M4, added 2026-09-20) — **implemented** (`trip-tasks.spec.ts`,
+  red-proved against the leading-tick build): both kinds of task are ticked at the row's **own end**, past the seat and
+  the ✕ on the trip's own and past the chip on a preparation. Measured, not read off the markup — only the rendered
+  box says which edge a control reached (invariant 9b) — and every box is read in one frame, because a section still
+  unfolding reports edges that were never on screen together. The **packing row is measured in the same frame and
+  asserted the same way**, which is what makes the case about the idiom rather than a number: that clause alone would
+  stay green the day the packing control moves, and the task clauses would be the ones to fail.
+* **E2E-M4-139** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): the whole shape of
   finishing the packing, in one pass. Two rows, one packed; the ⋮ step asks first and the question states *„1 open
   item"*, which is the one row still open rather than the two on the list. Confirmed, the open row leaves the working
   list and the card names the moment and the **1** left behind; the step is then **gone from the ⋮**, since a second
   close would re-decide rows nobody touched. The snackbar's one *Rückgängig* brings the row back **and** takes the
   card away — a close that was undone did not happen — and the ⋮ offers the step again.
-* **E2E-M4-139** `local` (FR-5.10, variant P1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): four of
+* **E2E-M4-140** `local` (FR-5.10, variant P1, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): four of
   six socks are in the bag. Closing shrinks the amount to what travelled rather than skipping the row, so the trip's
   figure reads **4/4** and the row sits under the *Erledigte* reveal as a packed one. The figure is the assertion that
   separates P1 from P2: a skip would have written 0/0 and denied four socks that are in the bag. The quantity above one
   comes from the M18 import, which is the only path to one through the app (§2.4).
-* **E2E-M4-140** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a finished list stays
+* **E2E-M4-141** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): a finished list stays
   workable. The composer opens on a closed list, says *„recorded as packed"* before anything is typed, and the row it
   adds lands packed — it is **not** on the open list, the card still stands (the addition did not reopen the packing)
   and the trip's figure reads *2/2*. Without the last two clauses the case would pass on a build where an addition
   silently revoked the decision, which is the failure the stamp exists to prevent.
-* **E2E-M4-141** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): reopening is not the
+* **E2E-M4-142** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): reopening is not the
   undo. Every snackbar is taken off the page first, so nothing the case then asserts can be an undo's doing; the card's
   *Reopen* removes the card and brings the ⋮ step back, **and the rows the close decided stay decided** — the skipped
   row is still off the working list and still counted behind the reveal. That last clause is the case: a reopen that
   restored rows would have to invent the amount variant P1 no longer records.
-* **E2E-M4-142** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): the step is offered
+* **E2E-M4-143** `local` (FR-5.10, added 2026-09-20) — **implemented** (`close-packing.spec.ts`): the step is offered
   where the moment is. With one of two rows packed the sheet is **absent** — the negative half, without which the case
   would pass on a build that shows it always — and packing the second raises it, headed *„that was the last open
   item"*. *Later* then leaves the trip exactly as it was: no card, and the ⋮ still offering the step.
@@ -1126,6 +1133,10 @@ rather than registered.
   inventory row shows no rename line while the names agree; after the item is renamed in M10 it reads „The inventory
   calls it …", and *Take over* renames the row under the sheet's own title, drops the line and reports in M4's
   snackbar.
+* **E2E-M5-31** `local` (FR-7.3, added 2026-09-20) — **implemented** (`e2e/item-detail.spec.ts`, red-proved against
+  the leading-tick build): a preparation written in the sheet is ticked at the **end** of its line, flush with it and
+  past the words — the edge M4 ticks the same task on (E2E-M4-138). The line is a flex row, so the order in the
+  template and the order on the glass are two claims, and this one is measured.
 * **E2E-M5-13** `all` (Navigation Concept §7 case 4) — **implemented** (`e2e/item-detail.spec.ts`, red-proved against
   the unguarded build): the **browser's** back with the sheet open closes the sheet and stays on the packing list — the
   replace-based overlay history must not let a pop skip M4 and land on the trip list. The write-side rule is

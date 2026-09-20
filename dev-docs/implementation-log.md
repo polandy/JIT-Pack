@@ -16680,7 +16680,7 @@ nuisance (the first reading is dropped, a *Später* silences it for the trip, an
 finished one). And *„die Packliste kann dort deutlich weniger prominent sein"* — M1's hero and trip cards drop the
 packing ring for one line once the packing is closed, and the trip's tasks take the lone ring size back.
 
-**The trigger found a case, which is the point of having them.** E2E-M4-140 packed the trip's only row and then reached
+**The trigger found a case, which is the point of having them.** E2E-M4-141 packed the trip's only row and then reached
 for the ⋮ — and the new sheet, which had just opened over the list, swallowed the click. The case was right and the
 build was right: after this change, packing the last row *is* how the question arrives, so the case answers that one
 instead. A cross-suite run is what said so, and it is the reason the whole local suite is worth the ten minutes when a

@@ -15,6 +15,10 @@ cover.html
 # was committed by accident.
 coverage*.txt
 
+# Stray run output — a redirected server start left `server.log` in the repo
+# and it was committed with an unrelated PR
+*.log
+
 # IDE
 .idea/
 .vscode/

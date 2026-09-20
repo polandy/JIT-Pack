@@ -66,11 +66,11 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-138: the whole shape in one pass — the question names what it is
+   * E2E-M4-139: the whole shape in one pass — the question names what it is
    * about to do, the open row becomes a decision, the list says it is
    * finished, the step stops being offered, and one undo takes it all back.
    */
-  test('E2E-M4-138: closing the packing decides what is left, and one undo takes it back', async ({
+  test('E2E-M4-139: closing the packing decides what is left, and one undo takes it back', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt', 'Regenjacke'], 'Abschluss')
@@ -102,7 +102,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-139 (variant P1, owner 2026-09-20): four of six socks are in the
+   * E2E-M4-140 (variant P1, owner 2026-09-20): four of six socks are in the
    * bag. The skip M4 already had would write quantity 0 and deny them; the
    * close shrinks the amount to what travelled instead, so the row reads as
    * packed and the trip's figure completes without lying about the bag.
@@ -110,7 +110,7 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
    * A quantity above one can only come from an import (spec §2.4), which is
    * also the only way to reach a *partially* packed row without six taps.
    */
-  test('E2E-M4-139: a half-packed row keeps what is in the bag', async ({ page }) => {
+  test('E2E-M4-140: a half-packed row keeps what is in the bag', async ({ page }) => {
     await page.goto(PATH.importFile)
     await page
       .getByTestId('portable-paste')
@@ -152,17 +152,17 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-140: the list stays workable afterwards, which is the owner's own
+   * E2E-M4-141: the list stays workable afterwards, which is the owner's own
    * requirement (2026-09-20) — something that travelled and was never listed
    * is added later, and it lands *packed* rather than as the one open job on
    * an otherwise finished trip.
    */
-  test('E2E-M4-140: a finished list takes an addition as something already packed', async ({
+  test('E2E-M4-141: a finished list takes an addition as something already packed', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Nachtrag')
     await startTrip(page)
-    // The last row going in raises the question by itself (E2E-M4-142), so
+    // The last row going in raises the question by itself (E2E-M4-143), so
     // this case answers *that* one rather than reaching for the ⋮ behind it.
     await packRow(page, 'Zelt')
     await confirmClose(page)
@@ -182,12 +182,12 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-142 (FR-5.10, owner 2026-09-20): the step is offered where the
+   * E2E-M4-143 (FR-5.10, owner 2026-09-20): the step is offered where the
    * moment is. Packing the last open row raises the same question the ⋮
    * asks — and it is still a *question*: nothing is written until it is
    * answered, and a reader who says *Later* is not asked again.
    */
-  test('E2E-M4-142: packing the last row asks whether the packing is finished', async ({
+  test('E2E-M4-143: packing the last row asks whether the packing is finished', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt', 'Regenjacke'], 'Letzte Zeile')
@@ -209,13 +209,13 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
   })
 
   /**
-   * E2E-M4-141: reopening is **not** the undo, and the difference is the
+   * E2E-M4-142: reopening is **not** the undo, and the difference is the
    * whole case — the snackbar's *Rückgängig* puts the rows back, while
    * *Wieder öffnen* lifts the stamp and leaves every decision standing. With
    * variant P1 the amount a half-packed row wanted is not recorded anywhere
    * after the close, so a reopen that restored rows would have to invent it.
    */
-  test('E2E-M4-141: the card reopens the packing, and the rows it decided stay decided', async ({
+  test('E2E-M4-142: the card reopens the packing, and the rows it decided stay decided', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt', 'Regenjacke'], 'Wieder auf')

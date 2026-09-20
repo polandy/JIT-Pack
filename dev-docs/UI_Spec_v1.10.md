@@ -1440,12 +1440,17 @@ These patterns apply to every screen and are specified once.
     folded and then spring open under a tap meant to open it. It is **unfolded while any todo is open** and folded to
     its head once none is — or while the trip has none; a fold the user makes holds for the visit. Its head names the
     section and, once the trip has a todo, the check: *„1 von 2 erledigt"*, or *„✓ Alle Aufgaben erledigt"* with the
-    head in `--jp-done`. Unfolded: open todos with a checkbox and a ✕, the resolved ones folded under *„{n} erledigt"*
+    head in `--jp-done`. Unfolded: open todos, each **ticked at its own end** — past the seat, the ✕ or the chip,
+    where the packing row one line down carries its control; the resolved ones folded under *„{n} erledigt"*
     where unticking reopens one, and a composer (*„Aufgabe hinzufügen…"*, Enter or *Hinzufügen*, which writes the
     trip's own kind — a preparation is declared on its row, in M5). Nothing here counts toward the packing ring or any
     row's doneness; the check in the head and the figure in the header count **both** kinds (FR-7.6). Every trip
     member may tick; there is no G-3
     claim, because there is no row. (E2E-M4-96, E2E-M4-97)
+    * **The tick moved to the row's end (2026-09-20, owner).** It led the line, which is the far edge from the thumb
+      and, next to the packing rows the section stands above, read as a different kind of row — the same cost UX-9
+      paid one screen down and the same fix. The ✕ keeps its place before it, so the destructive control is not the
+      one the thumb lands on. M5's preparation list follows (E2E-M4-139, E2E-M5-31).
     **Whose job (FR-7.5 — built 2026-09-19).** Each open todo ends, before its ✕, in the row's assignment seat — the
     same component as FR-25.25's: the assignee's avatar, or the dashed empty seat. A tap opens the row's picker, whose
     list here includes the current user, plus *niemand*; the choice is taken back from the snackbar. A resolved todo
@@ -1469,7 +1474,7 @@ These patterns apply to every screen and are specified once.
     how many rows are *nicht mitgenommen*, carrying *Wieder öffnen* — which lifts the stamp and decides nothing, so a
     single row still comes back through the *Erledigte* reveal. The list stays workable: the composer is where it was,
     and while the packing is closed what is typed into it lands **packed**, its hint saying so instead of FR-9.1's.
-    (E2E-M4-138, E2E-M4-139, E2E-M4-140, E2E-M4-141, E2E-M4-142)
+    (E2E-M4-139, E2E-M4-140, E2E-M4-141, E2E-M4-142, E2E-M4-143)
   * **Consciously skipped (FR-5.5) — superseded as a *section* by FR-25.2, kept as a state.** A skipped row is a done
     row: it leaves the working list and returns, dimmed, through the same *Erledigte* switch as a packed one (two
     mechanisms would show it twice). What it keeps is its own words — *"Bewusst weggelassen"*, or the FR-20.2 reason —
@@ -1591,7 +1596,8 @@ These patterns apply to every screen and are specified once.
   field that is the item's, and it says so: *„Änderungen hier gelten für alle Zeilen dieses Packelements."*
 * **Elements — progressive disclosure:** *Level 1 (always):* header (name, quantity stepper, state); a compact
   **glance-chip row** summarising the advanced blocks (membership · mode · luggage · ⏰ late · packer) with a **"Details
-  ▾"** toggle; **Preparation Todos (FR-7.3)** (checkbox per todo + inline "Add prep todo…"); **comment/task thread
+  ▾"** toggle; **Preparation Todos (FR-7.3)** (a tick at the end of each line, where M4 ticks the same task
+  — 2026-09-20 — + inline "Add prep todo…"); **comment/task thread
   (FR-7.1/7.2) with a visible composer** and per-comment "flag as task"; packed items with open todos show an amber
   state. **The for-whom strip (FR-25.28)** stands at level 1, under the packing block: the toggle line, and under it one
   line per lit traveler with a **quantity stepper** — a list rather than a stepper hung under each avatar, because a
