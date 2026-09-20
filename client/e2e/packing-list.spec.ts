@@ -1,75 +1,39 @@
 import {
   addInComposer,
   confirmCreateSheet,
-  createItemSheet,
-  exactSuggestion,
   test,
   expect,
   createTripViaWizard,
   openTripView,
-  createTemplate,
-  createTripFollowingGroup,
-  addPosition,
   openQuickAdd,
-  createMasterItem,
   chooseInSelect,
   visiblePage as visible,
-  useReducedMotion,
 } from './fixtures'
-import type { Locator, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import { FAB_ANCHOR } from './fabAnchors'
 import { PATH } from './routes'
-import {
-  addTripTodo,
-  chooseInRowMenu,
-  lightTraveler,
-  openTripTodos,
-  openCluster,
-  openRowMenu,
-  packListOffset,
-  packRow,
-  scrollPackList,
-  tripWithRows,
-} from './helpers/m4'
-import { expectFiguresPaired, writesLanded } from './helpers/page'
-import { backToInventory, createItem } from './helpers/m9'
+import { M4_TRIP, chooseInRowMenu, openRowMenu, quickAddRows, tripWithRows } from './helpers/m4'
+import { createItem } from './helpers/m9'
 
 /**
- * M4 — packing list (UI-Test-Spec §4, unit "M4 packing list").
+ * M4 — the packing list itself (UI-Test-Spec §4, unit "M4 packing list").
  *
  * Local Mode throughout: M4's own behaviour is client-side, so it needs no
  * backend, and the cases that genuinely need one (remote pack attribution,
- * delegation notifications) are marked `server` in the spec and are not
- * here.
+ * delegation notifications) are marked `server` in the spec and are not here.
+ *
+ * This file held every M4 case until 2026-09-20, when it was 960 of the
+ * suite's 6249 test-seconds — one file worth 15 % of the run, which is what
+ * defeats any attempt to balance the CI legs (dev-docs/implementation-log.md,
+ * "The CI legs were split by counting, not by timing"). What is left here is
+ * the list and its rows; its neighbours are named in that entry.
  *
  * What is deliberately *not* covered yet, and why — the ledger repeats it:
- * every facet case beyond the panel's own structure needs rows that carry
- * a category, a traveler or a buy mode, and none of those can be set from
- * M4 today. They land with M5 and the M9/M10 rebuild, which is what
- * produces such rows through the app's own paths (spec §2.4).
- *
- * The category half of that sentence was true for a second reason nobody
- * had looked for: until 2026-09-08 a generated row *could not* carry one,
- * because generation read a field nothing wrote (FR-24.2). E2E-M4-77 is the
- * path that now produces one.
+ * every facet case beyond the panel's own structure needs rows that carry a
+ * category, a traveler or a buy mode, and none of those can be set from M4
+ * today. They land with M5 and the M9/M10 rebuild, which is what produces
+ * such rows through the app's own paths (spec §2.4).
  */
-
-const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31', travelers: ['Andy', 'Sia'] }
-
-/**
- * Enough rows that the list is taller than a phone screen — E2E-M4-45 needs
- * a scroll position worth losing.
- */
-const SCROLL_ROWS = Array.from({ length: 16 }, (_, i) => `Sache ${i + 1}`)
-
-/** Adds rows through the quick-add, which is the only add path M4 has. */
-async function quickAdd(page: Page, names: string[]) {
-  await openQuickAdd(page)
-  for (const name of names) {
-    await addInComposer(page, name)
-    await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
-  }
-}
 
 test.describe('M4 packing list @local @m4', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -82,8 +46,8 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-01: the header line stays unfiltered while the search narrows the list', async ({
     page,
   }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Schlafsack', 'Kocher'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt', 'Schlafsack', 'Kocher'])
 
     await expect(page.getByTestId('m4-progress')).toContainText('0/3')
 
@@ -102,7 +66,7 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-04: the FAB opens the quick-add, which commits by button and stays open', async ({
     page,
   }) => {
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
     await openQuickAdd(page)
     const input = page.getByTestId('quick-add-input').locator('input')
@@ -124,7 +88,7 @@ test.describe('M4 packing list @local @m4', () => {
   // the other. The shared `openQuickAdd` helper deliberately *tolerates* both
   // states — it would pass either way, which is why it is not the assertion.
   test('E2E-M4-36: the ＋ steps aside while the quick-add is open', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
     await expect(page.getByTestId('m4-fab')).toBeVisible()
     await openQuickAdd(page)
@@ -235,8 +199,8 @@ test.describe('M4 packing list @local @m4', () => {
   // check looked at the filter count alone, so an unmatched *search*
   // announced completion.
   test('E2E-M4-18: an unmatched search says "no matches", not "all packed"', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt'])
 
     await page.getByTestId('m4-search').click()
     await page.getByTestId('m4-search-input').fill('Kajak')
@@ -255,8 +219,8 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-18: everything packed does celebrate, because nothing is narrowing', async ({
     page,
   }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt'])
 
     await page.getByTestId('m4-row-Zelt').getByTestId('row-check').click()
 
@@ -270,8 +234,8 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-21: a group heading outranks its rows, and each group is its own block', async ({
     page,
   }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Kocher'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt', 'Kocher'])
 
     const sizes = await page.evaluate(() => {
       const px = (sel: string) => {
@@ -295,8 +259,8 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-23: a fully packed group disappears and returns with the reveal bar', async ({
     page,
   }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Kocher'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt', 'Kocher'])
 
     await page.getByTestId('m4-row-Zelt').getByTestId('row-check').click()
     await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
@@ -314,8 +278,8 @@ test.describe('M4 packing list @local @m4', () => {
   // E2E-M4-22 (FR-25.16): a folded group is its header line alone, and that
   // line answers what the hidden rows would have.
   test('E2E-M4-22: folding a group leaves its header carrying the open count', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Kocher'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt', 'Kocher'])
 
     const group = page.getByTestId('m4-group-none')
     await expect(group).toContainText('0/2')
@@ -332,8 +296,8 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-22: fold-all collapses every group, and folding survives packing a row', async ({
     page,
   }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Kocher'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt', 'Kocher'])
 
     await page.getByTestId('m4-fold-all').click()
     await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
@@ -424,8 +388,8 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-15: the filter sheet holds the grouping and the facets, and the header has no second bar', async ({
     page,
   }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt'])
 
     // With nothing filtered the row states the grouping instead of chips,
     // and the grouping switcher is nowhere but inside the sheet.
@@ -457,7 +421,7 @@ test.describe('M4 packing list @local @m4', () => {
     await page.getByTestId('m10-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Zelt')
 
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
     await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zel')
     await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
@@ -490,7 +454,7 @@ test.describe('M4 packing list @local @m4', () => {
     await page.getByTestId('m10-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Zelt')
 
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
     await openQuickAdd(page)
     const input = page.getByTestId('quick-add-input').locator('input')
     await input.fill('Zel')
@@ -519,7 +483,7 @@ test.describe('M4 packing list @local @m4', () => {
       await expect(page.getByTestId('header-title')).toHaveText(name)
     }
 
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
     await openQuickAdd(page)
     const input = page.getByTestId('quick-add-input').locator('input')
     // Via the suggestion, so the row carries its master-item provenance.
@@ -562,7 +526,7 @@ test.describe('M4 packing list @local @m4', () => {
       await expect(page.getByTestId('header-title')).toHaveText(name)
     }
 
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
     await openQuickAdd(page)
     const input = page.getByTestId('quick-add-input').locator('input')
     await input.fill('Zel')
@@ -630,7 +594,7 @@ test.describe('M4 packing list @local @m4', () => {
    */
   test('E2E-M4-60: one tap adds a row already packed (FR-25.13f)', async ({ page }) => {
     await inventory(page, ['Zelt', 'Lampe'])
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
     const sheet = await openBrowseSheet(page)
     await sheet.getByRole('button', { name: 'Mark "Lampe" as packed' }).click()
@@ -660,7 +624,7 @@ test.describe('M4 packing list @local @m4', () => {
    */
   test('E2E-M4-61: one tap leaves an item at home, on the record (FR-25.13f)', async ({ page }) => {
     await inventory(page, ['Zelt', 'Lampe'])
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
     const sheet = await openBrowseSheet(page)
     await sheet.getByRole('button', { name: 'Deliberately leave "Zelt" behind' }).click()
@@ -686,7 +650,7 @@ test.describe('M4 packing list @local @m4', () => {
     page,
   }) => {
     await inventory(page, ['Zelt', 'Lampe'])
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
     let sheet = await openBrowseSheet(page)
     await sheet.getByTestId('browse-row').filter({ hasText: 'Zelt' }).click()
@@ -711,7 +675,7 @@ test.describe('M4 packing list @local @m4', () => {
    */
   test('E2E-M4-63: the line’s undo takes the decision back (FR-25.13f)', async ({ page }) => {
     await inventory(page, ['Zelt', 'Lampe'])
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
     const sheet = await openBrowseSheet(page)
     await sheet.getByRole('button', { name: 'Mark "Lampe" as packed' }).click()
@@ -746,7 +710,7 @@ test.describe('M4 packing list @local @m4', () => {
     page,
   }) => {
     await inventory(page, ['Zelt', 'Lampe'])
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
     let sheet = await openBrowseSheet(page)
     await sheet.getByRole('button', { name: 'Deliberately leave "Zelt" behind' }).click()
@@ -787,7 +751,7 @@ test.describe('M4 packing list @local @m4', () => {
     page,
   }) => {
     await inventory(page, ['Zelt', 'Lampe', 'Kocher'])
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
     let sheet = await openBrowseSheet(page)
     await sheet.getByRole('button', { name: 'Mark "Lampe" as packed' }).click()
@@ -840,8 +804,8 @@ test.describe('M4 packing list @local @m4', () => {
   // E2E-M4-02 (FR-8.2/25.18): the grouping is durable per trip — it arranges
   // rows rather than hiding them, so nothing can be lost behind it.
   test('E2E-M4-02: the grouping choice survives a reload', async ({ page }) => {
-    const path = await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
+    const path = await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt'])
 
     await page.getByTestId('m4-filter').click()
     await page.getByTestId('group-person').click()
@@ -859,8 +823,8 @@ test.describe('M4 packing list @local @m4', () => {
   // because reaching it here needs a reload, and Local Mode does not
   // restore trip items across one (see the ledger).
   test('E2E-M4-28: the Erledigte switch survives leaving M4 and coming back', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zelt'])
     await page.getByTestId('m4-row-Zelt').getByTestId('row-check').click()
 
     await page.getByTestId('m4-done-bar').click()
@@ -887,11 +851,11 @@ test.describe('M4 packing list @local @m4', () => {
   // longer decides anything, and the header line carries figures alone.
   test('E2E-M4-44: the trip is named once, in the page head, at either width', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await createTripViaWizard(page, TRIP)
+    await createTripViaWizard(page, M4_TRIP)
 
-    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
+    await expect(page.getByTestId('header-title')).toHaveText(M4_TRIP.name)
     // Once: the header line below it states figures, not the name again.
-    await expect(visible(page).getByTestId('m4-header')).not.toContainText(TRIP.name)
+    await expect(visible(page).getByTestId('m4-header')).not.toContainText(M4_TRIP.name)
 
     // It reads as a page title, so it has to *be* one: the role class carries
     // the display face (G-13). Asserted on the resolved family rather than on
@@ -905,14 +869,14 @@ test.describe('M4 packing list @local @m4', () => {
     // fact the composed "Luggage · Samedan" title used to carry in one string.
     await openTripView(page, 'shopping')
     await expect(page.getByTestId('header-title')).toHaveText('Shopping')
-    await expect(page.getByTestId('header-meta')).toHaveText(TRIP.name)
+    await expect(page.getByTestId('header-meta')).toHaveText(M4_TRIP.name)
     await page.getByTestId('header-back').click()
-    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
+    await expect(page.getByTestId('header-title')).toHaveText(M4_TRIP.name)
 
     // Widened, nothing swaps: the head is the one place either way.
     await page.setViewportSize({ width: 1280, height: 900 })
-    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
-    await expect(visible(page).getByTestId('m4-header')).not.toContainText(TRIP.name)
+    await expect(page.getByTestId('header-title')).toHaveText(M4_TRIP.name)
+    await expect(visible(page).getByTestId('m4-header')).not.toContainText(M4_TRIP.name)
   })
 
   /**
@@ -924,8 +888,8 @@ test.describe('M4 packing list @local @m4', () => {
    * read the row back rather than merely painting a glyph.
    */
   test('E2E-M4-87: a row is made a late packer from its own menu', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zahnbürste'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zahnbürste'])
 
     const row = visible(page).getByTestId('m4-row-Zahnbürste')
     await expect(row.getByTestId('row-late')).toHaveCount(0)
@@ -953,8 +917,8 @@ test.describe('M4 packing list @local @m4', () => {
    * the first and fail the second.
    */
   test('E2E-M4-119: a row is bought at the destination from its own menu', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Sonnencreme'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Sonnencreme'])
 
     const row = visible(page).getByTestId('m4-row-Sonnencreme')
     await expect(row.getByTitle('Buy there')).toHaveCount(0)
@@ -1000,975 +964,12 @@ test.describe('M4 packing list @local @m4', () => {
    * where the control was never wired up anywhere.
    */
   test('E2E-M4-89: Local Mode offers no assignment on the row (G-8)', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zahnbürste'])
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Zahnbürste'])
 
     const row = visible(page).getByTestId('m4-row-Zahnbürste')
     await expect(row).toBeVisible()
     await expect(row.getByTestId('m4-assign-Zahnbürste')).toHaveCount(0)
-  })
-})
-
-/*
- * E2E-M4-45 runs with motion reduced, and that is a choice rather than a
- * convenience: the header line folds over a max-height transition that also
- * changes the height of the scrolled content, so with it animating the
- * screen spends a few hundred milliseconds in a layout nothing can measure.
- * The case is about where the list comes back to, not about how the line
- * travels, and the app honours the preference (see the reduced-motion block
- * in PackingListPage) — so this is the app's own instant path, not a test
- * that turns off the thing it should be watching.
- */
-test.describe('M4 packing list — the list under the sheet @local @m4', () => {
-  useReducedMotion(test)
-
-  test.beforeEach(async ({ seedMode }) => {
-    await seedMode({ mode: 'local' })
-  })
-
-  // E2E-M4-45 (ADR-012's overlay revision, ADR-046): opening an item is a
-  // state of the list's own page — `?item=` on the same route — so the list
-  // never leaves the screen and never leaves its offset. Until ADR-046 the
-  // item was a path parameter, every open mounted a second list at the top,
-  // and a scroll memory carried the offset across the remount; this case
-  // was written for that repair and now holds the promise it was repairing.
-  // The assertion is on the rendered scroll position, never on the URL.
-  test('E2E-M4-45: closing the item sheet returns M4 to where it was scrolled', async ({
-    page,
-  }) => {
-    // Sixteen rows built through the quick-add (spec §2.4) is real work.
-    test.slow()
-    // A phone, and enough rows that the list is genuinely taller than it.
-    await page.setViewportSize({ width: 390, height: 640 })
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, SCROLL_ROWS)
-
-    const offset = async () => (await packListOffset(page)).top
-
-    // One deliberate scroll to a mid-list offset, by the wheel a reader
-    // turns: since FR-21.17's gesture rule the head stands still for a
-    // scroll nobody made, so moving the offset through ion-content's API
-    // would leave the line open and assert nothing. A mid-list offset
-    // because that is what "where it was" means here; the very end used to
-    // be unusable — the clamp that a collapse provokes read as an upward
-    // scroll and re-opened the line — and E2E-M4-70 holds that wobble down.
-    const SCROLLED_TO = await scrollPackList(page, 200)
-
-    // Settled, not merely started: the header line folds over a max-height
-    // transition, and an offset read while it is still travelling is not an
-    // offset the list can hold. The rendered end state is the seam — the
-    // wait is on what is painted, never on a clock.
-    const header = visible(page).getByTestId('m4-header')
-    await expect(header).toHaveClass(/collapsed/)
-    await expect(header).toHaveCSS('max-height', '0px')
-    expect(await offset()).toBe(SCROLLED_TO)
-
-    // A row wholly inside the *content's* box, so opening it moves nothing by
-    // itself: Playwright scrolls whatever it is told to click into view, and
-    // a row sitting under the app bar is on the page without being on screen
-    // — asking for that one scrolled the list back to the top on WebKit.
-    const rowId = await visible(page).evaluate((pageEl) => {
-      const box = pageEl.querySelector('ion-content.pack-content')!.getBoundingClientRect()
-      const row = [...pageEl.querySelectorAll('[data-testid^="m4-row-"]')].find((el) => {
-        const rect = el.getBoundingClientRect()
-        return rect.top >= box.top && rect.bottom <= box.bottom
-      })
-      return row?.getAttribute('data-testid') ?? ''
-    })
-    expect(rowId).not.toBe('')
-
-    await page.locator(`[data-testid="${rowId}"]`).getByRole('heading').click()
-    await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId('m5-close').click()
-    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-
-    // Read once the sheet is gone: the offset is a settled state of a page
-    // that was never replaced, so there is nothing to wait for — a remount
-    // (the mutation this case is proved against) is at the top by the time
-    // the sheet has closed.
-    expect(await offset()).toBe(SCROLLED_TO)
-    // …and the header line came back folded with it, which is the other
-    // half of "where it was": it holds 84 px of the scrolled content, so a
-    // list restored under an open line shows different rows at the same
-    // number.
-    await expect(visible(page).getByTestId('m4-header')).toHaveClass(/collapsed/)
-  })
-
-  /*
-   * E2E-G6-01 (G-6): the hold, which is the half of the stepper no test had
-   * ever performed.
-   *
-   * That qty=1 renders a checkbox and qty>1 a stepper is asserted by
-   * E2E-M4-56, and that a tap counts without opening M5 by E2E-G6-02. What
-   * neither reaches is the shortcut the pattern exists for: holding + packs
-   * the lot, holding − takes it all back. Both are `emit`s the row has to
-   * be wired to, and a row wired to neither passes every other stepper case.
-   *
-   * The hold is a press whose *outcome* is waited on — the count is read
-   * until it changes, with the button still down — rather than a sleep of
-   * the component's own duration.
-   */
-  test('E2E-G6-01: holding + packs every unit and holding − takes them all back', async ({
-    page,
-  }) => {
-    test.slow()
-    // A quantity can only come from a template position (spec §2.4).
-    await page.goto(PATH.templates)
-    await createTemplate(page, 'group', 'Camping')
-    await addPosition(page, 'Heringe')
-    await page.keyboard.press('Escape')
-    await visible(page).locator('ion-item h2').filter({ hasText: 'Heringe' }).first().click()
-    await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
-    await page.getByTestId('m8-qty-inc').click()
-    await page.getByTestId('m8-qty-inc').click()
-    await page.getByTestId('m8-position-close').click()
-    await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
-
-    await createTripFollowingGroup(page, 'Haltetest', 'Camping')
-
-    const row = visible(page).getByTestId('m4-row-Heringe')
-    const count = row.locator('.stepper-count')
-    await expect(count).toHaveText('0/3')
-
-    // A tap first, so the hold below is demonstrably doing something a tap
-    // does not — one is +1, the other is all of them.
-    await row.getByTestId('row-plus').click()
-    await expect(count).toHaveText('1/3')
-
-    const hold = async (testid: string, until: string, reads: Locator) => {
-      // `hover` first, so the press lands on the button through Playwright's
-      // own hit-target check — `mouse.down` at a computed point does not
-      // check. And the *outcome* is what the press is held for: no sleep of
-      // the component's own duration anywhere.
-      await row.getByTestId(testid).hover()
-      await page.mouse.down()
-      await expect(reads).toContainText(until)
-      await page.mouse.up()
-    }
-
-    // Holding + packs the lot — and a fully packed row leaves the list
-    // (FR-25.2), so the outcome is read on the trip's own counter and on the
-    // reveal that now has something to reveal.
-    await hold('row-plus', '3/3', visible(page).getByTestId('m4-progress'))
-    await expect(visible(page).getByTestId('m4-done-bar')).toBeVisible()
-    await visible(page).getByTestId('m4-done-bar').click()
-    await expect(count).toHaveText('3/3')
-
-    // And holding − takes all three back in one gesture.
-    await hold('row-minus', '0/3', count)
-    await expect(visible(page).getByTestId('m4-progress')).toContainText('0/3')
-  })
-
-  /*
-   * E2E-G12-03 (G-12): the app-bar cluster survives the collapsing header.
-   *
-   * This is the reason the cluster lives in the bar rather than on the trip
-   * line: the line folds to nothing as soon as the list is scrolled, and a
-   * search that folded with it would be reachable only from the top of a
-   * list you are searching *because* it is long. E2E-M4-45 collapses the
-   * same header and asserts what the list does with its offset; nothing had
-   * ever reached for the bar afterwards.
-   *
-   * Tappable is asserted through the *outcome* — the list narrows, the
-   * panel opens — because a button that is present and inert would satisfy
-   * a visibility check.
-   */
-  test('E2E-G12-03: search and filter still act once the header has collapsed', async ({
-    page,
-  }) => {
-    // Sixteen rows through the quick-add, as E2E-M4-45 pays for the same
-    // scroll (spec §2.4).
-    test.slow()
-    await page.setViewportSize({ width: 390, height: 640 })
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, SCROLL_ROWS)
-
-    // By the wheel, not by the scroller's API: since FR-21.17's gesture rule
-    // only a reader's own scroll takes the header down, and this case is
-    // about what the bar can still do once it has gone.
-    await scrollPackList(page, 200)
-
-    // Settled, not merely started: the line folds over a transition, and the
-    // rendered end state is the seam this case waits on.
-    const header = visible(page).getByTestId('m4-header')
-    await expect(header).toHaveClass(/collapsed/)
-    await expect(header).toHaveCSS('max-height', '0px')
-
-    await page.getByTestId('m4-search').click()
-    await page.getByTestId('m4-search-input').fill('Sache 1')
-    // It searched: the row that does not match is gone, the one that does
-    // is on screen. Asserting the field alone would pass against a search
-    // whose input never reached the list.
-    await expect(visible(page).getByTestId('m4-row-Sache 1')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-row-Sache 2')).toHaveCount(0)
-
-    // Still open, deliberately: both halves of the cluster have to be
-    // reachable from the same collapsed state.
-    await page.getByTestId('m4-filter').click()
-    await expect(page.getByTestId('filter-sheet')).toBeVisible()
-  })
-
-  /*
-   * E2E-G12-04 (G-12, ADR-050): what the header line carries, and how many
-   * lines it is.
-   *
-   * The spec sentence promised "a single line" unconditionally and named the
-   * filter chip row as absent by default. Read against the screen, the second
-   * half is narrower than that: the chip row is always there, because
-   * FR-25.11a/b made it the place the grouping is stated (E2E-M4-15). The
-   * first half is true again since ADR-050 — the line was two rows on a phone
-   * for as long as it carried the trip's name and its three destinations, and
-   * with both gone it states figures alone at every width. The clause that
-   * survives unchanged is the search field, which is absent until it is
-   * opened — and that is what nothing asserted.
-   */
-  test('E2E-G12-04: the header line carries the figure and nothing else at either width', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 860 })
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
-
-    const header = visible(page).getByTestId('m4-header')
-    const stats = header.locator('.trip-stats')
-
-    // Default state: no search field. It is the one thing the header gains
-    // rather than always carries.
-    await expect(page.getByTestId('m4-search-input')).toHaveCount(0)
-
-    // The line is the figure plus its padding and nothing more — since
-    // FR-21.23 the figure is itself two lines and a track, so "one row" is
-    // no longer the measurement; "nothing stacked beside it" is. Measured,
-    // not read off the stylesheet: a second block would show as height here
-    // whatever the flex direction says.
-    const phoneLine = (await header.boundingBox())!
-    const phoneStats = (await stats.boundingBox())!
-    expect(phoneLine.height).toBeLessThan(phoneStats.height * 2)
-    await expect(stats).toContainText('0/1')
-
-    await page.setViewportSize({ width: 1280, height: 900 })
-    const wideLine = (await header.boundingBox())!
-    const wideStats = (await stats.boundingBox())!
-    expect(wideLine.height).toBeLessThan(wideStats.height * 2)
-
-    // Still no search field at either width; opening it is what produces one.
-    await expect(page.getByTestId('m4-search-input')).toHaveCount(0)
-    await page.getByTestId('m4-search').click()
-    await expect(page.getByTestId('m4-search-input')).toBeVisible()
-  })
-
-  // E2E-M4-56 (UX pass 2026-08-25, UX-9; revised 2026-09-06): the names of
-  // a checkbox row and a stepper row start at the same x, and the two
-  // controls end at the same x. UX-9 bought the first with a fixed control
-  // column on the *left* — before it a stepper row started its name 86 px
-  // right of a checkbox row. The control now sits at the row's other edge,
-  // so the lead column holds the names straight and the container edge
-  // holds the controls; both halves are asserted, because either one alone
-  // would pass on a row that had lost the other. The lead column's *third*
-  // shape — a lone per-person instance — is E2E-M4-72: this pair is a
-  // checkbox row against a stepper row, and neither of them has a traveler,
-  // so the general claim in the comment above was never tested against the
-  // row that broke it. Built through M8 per spec
-  // §2.4, because a quantity can only come from a position; measured on
-  // rendered boxes, not on the stylesheet.
-  test('E2E-M4-56: a checkbox row and a stepper row start the name at the same x', async ({
-    page,
-  }) => {
-    test.slow()
-    await page.goto(PATH.templates)
-    await createTemplate(page, 'group', 'Camping')
-    await addPosition(page, 'Heringe')
-    await addPosition(page, 'Lampe')
-    await page.keyboard.press('Escape')
-    await visible(page).locator('ion-item h2').filter({ hasText: 'Heringe' }).first().click()
-    await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
-    await page.getByTestId('m8-qty-inc').click()
-    await page.getByTestId('m8-qty-inc').click()
-    await page.getByTestId('m8-position-close').click()
-    await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
-
-    await createTripFollowingGroup(page, 'Spaltenprobe', 'Camping')
-
-    const stepperRow = page.getByTestId('m4-row-Heringe')
-    const checkboxRow = page.getByTestId('m4-row-Lampe')
-    // The variants really are on screen — without this, a world where both
-    // rows render the same control would pass the equality vacuously.
-    await expect(stepperRow.getByTestId('row-minus')).toBeVisible()
-    await expect(checkboxRow.getByTestId('row-check').locator('ion-checkbox')).toBeVisible()
-
-    const stepperName = await stepperRow.locator('h3').first().boundingBox()
-    const checkboxName = await checkboxRow.locator('h3').first().boundingBox()
-    expect(stepperName!.x).toBe(checkboxName!.x)
-
-    // The rule behind it: the lead column is one width for every row, and
-    // it is the mark slot rather than the control that holds it open.
-    const stepperLead = await stepperRow.locator('.row-lead').boundingBox()
-    const checkboxLead = await checkboxRow.locator('.row-lead').boundingBox()
-    expect(stepperLead!.width).toBe(checkboxLead!.width)
-
-    // The other edge: whatever the control is, the thing you tap ends where
-    // the row does. A stepper is wider than a checkbox, so this is only true
-    // if the column is right-aligned rather than merely present.
-    const stepperControl = await stepperRow.locator('.row-control').boundingBox()
-    const checkboxControl = await checkboxRow.locator('.row-control').boundingBox()
-    expect(stepperControl!.width).toBeGreaterThan(checkboxControl!.width)
-    expect(stepperControl!.x + stepperControl!.width).toBe(
-      checkboxControl!.x + checkboxControl!.width,
-    )
-  })
-
-  // E2E-M4-68 (FR-25.2, 2026-09-06): a done row keeps its place in the list
-  // and loses its place in the queue — it falls behind the rows that still
-  // ask for something. Asserted on the *rendered* order, because the domain
-  // unit can only say what the view model holds.
-  test('E2E-M4-68: a packed row sinks to the end of its group when revealed', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Schlafsack', 'Stirnlampe'])
-
-    // Packing takes the row off the working list (FR-25.2's default), which
-    // is the evidence the pack landed before anything is revealed.
-    await packRow(page, 'Schlafsack')
-
-    // The undo snackbar sits over the reveal bar once the list reaches the
-    // bottom of a 720 px window, and Playwright's way around an overlay is to
-    // scroll — which yields the heads, moving the bar out from under the
-    // click. Dismissed rather than waited out, as in visual.spec.
-    // Every one: since FR-25.31 more than one act on the way here raises one.
-    await page
-      .locator('ion-toast.pack-toast')
-      .evaluateAll((els) => els.forEach((el) => void (el as HTMLIonToastElement).dismiss()))
-    await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
-    await page.getByTestId('m4-done-bar').click()
-    const names = visible(page).locator('.group-card h3')
-    await expect(names).toHaveText([/Zelt/, /Stirnlampe/, /Schlafsack/])
-
-    // The middle row is where it was: sinking one row must not reorder the
-    // others, and a list of three where only the last moved is the proof.
-    await expect(names.nth(1)).toHaveText(/Stirnlampe/)
-  })
-
-  /*
-   * E2E-M4-69 (FR-25.22, 2026-09-07): the reveal bar and the filter sheet's
-   * *Erledigte* switch label the same set, so they must carry the same
-   * number. They carried two: the bar counted done rows among the ones the
-   * filter lets through, the switch counted the whole trip's packed *units*.
-   * `filter-switch-done` occurred in no test at all, which is what let it
-   * stand. Since FR-25.32 the bar is gone while a term is typed, so the
-   * pairing is read without one; the search is then what shows the switch
-   * counting the *matches* (1) rather than the trip (2).
-   */
-  test('E2E-M4-69: the reveal bar and the Erledigte switch carry one number', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Schlafsack'])
-    await packRow(page, 'Zelt')
-    await packRow(page, 'Schlafsack')
-
-    const bar = visible(page).getByTestId('m4-done-bar')
-    await expect(bar).toContainText('2')
-
-    await page.getByTestId('m4-filter').click()
-    await expect(page.getByTestId('filter-sheet')).toBeVisible()
-    const doneSwitch = page.getByTestId('filter-switch-done').locator('..')
-    await expect(doneSwitch).toContainText('2')
-    await page.getByTestId('filter-close').click()
-
-    await page.getByTestId('m4-search').click()
-    await page.getByTestId('m4-search-input').fill('Zelt')
-    // The searched row is on screen: the positive signal that the narrowing
-    // landed before the switch is read.
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-
-    await page.getByTestId('m4-filter').click()
-    await expect(page.getByTestId('filter-sheet')).toBeVisible()
-    await expect(doneSwitch).toContainText('1')
-    await expect(doneSwitch).not.toContainText('2')
-  })
-
-  /*
-   * E2E-M4-127: the Erledigte switch stays on when it is tapped. The tick
-   * appeared and went again at once, so a packed row could only be brought
-   * back through the reveal bar. Every earlier case read the switch's count
-   * and none ever operated it.
-   */
-  test('E2E-M4-127: the Erledigte switch keeps its tick and reveals the packed rows', async ({
-    page,
-  }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Schlafsack'])
-    await packRow(page, 'Zelt')
-    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
-
-    await page.getByTestId('m4-filter').click()
-    await expect(page.getByTestId('filter-sheet')).toBeVisible()
-    const doneSwitch = page.getByTestId('filter-switch-done')
-    // The words, not the box: that is where a thumb lands.
-    await doneSwitch.locator('..').getByText('Packed', { exact: false }).first().click()
-    await expect(doneSwitch).toHaveJSProperty('checked', true)
-
-    await page.getByTestId('filter-close').click()
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-  })
-
-  /*
-   * E2E-M4-128 (FR-25.32): a search finds a packed row without the Erledigte
-   * switch being turned first, and the row goes away again with the term —
-   * the search lifts the switch, it does not flip it.
-   */
-  test('E2E-M4-128: searching finds a packed row while Erledigte is off', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Schlafsack'])
-    await packRow(page, 'Zelt')
-    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
-
-    await page.getByTestId('m4-search').click()
-    await page.getByTestId('m4-search-input').fill('Zelt')
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-    await expect(page.getByTestId('m4-row-Schlafsack')).toHaveCount(0)
-    // The packed row is on screen, so there is nothing left to offer.
-    await expect(visible(page).getByTestId('m4-done-bar')).toHaveCount(0)
-
-    await page.getByTestId('m4-search-input').fill('')
-    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-done-bar')).toBeVisible()
-  })
-
-  /*
-   * E2E-M4-129 (FR-21.17): a list that overflows its screen by less than the
-   * header line frees when it yields — a search's few hits — keeps the line.
-   * It used to yield anyway; the shorter range clamped the offset, the line
-   * came back and the list jumped up, on every swipe down. The viewport is
-   * sized from the measured overflow so the case sits in that band on any
-   * engine, and the positive signal is the offset reaching the end.
-   */
-  test('E2E-M4-129: a short list does not jump when it is scrolled to its end', async ({
-    page,
-  }) => {
-    // A phone: there the page head yields with the line, which is what makes
-    // the yield release more than the line alone.
-    await page.setViewportSize({ width: 390, height: 800 })
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Socke 1', 'Socke 2', 'Socke 3', 'Socke 4', 'Socke 5', 'Socke 6'])
-    await page.getByTestId('m4-search').click()
-    await page.getByTestId('m4-search-input').fill('Socke')
-    await expect(visible(page).getByTestId('m4-row-Socke 6')).toBeVisible()
-
-    const content = visible(page).locator('ion-content.pack-content')
-    const scroller = () =>
-      content.evaluate(async (host: HTMLIonContentElement) => {
-        const el = await host.getScrollElement()
-        return { slack: el.scrollHeight - el.clientHeight, client: el.clientHeight }
-      })
-
-    // 150 px of overflow: past the yield threshold, short of what it frees.
-    const before = await scroller()
-    const height = page.viewportSize()!.height + before.slack - 150
-    await page.setViewportSize({ width: page.viewportSize()!.width, height })
-    await expect.poll(async () => (await scroller()).slack).toBe(150)
-
-    // Watch the line from before the gesture: a flip is what this case counts.
-    await content.evaluate((host: HTMLIonContentElement) => {
-      const line = host.querySelector('.trip-line') as HTMLElement
-      const counter = window as unknown as { __lineFlips: number }
-      counter.__lineFlips = 0
-      new MutationObserver(() => (counter.__lineFlips += 1)).observe(line, {
-        attributes: true,
-        attributeFilter: ['class'],
-      })
-    })
-
-    // One reader's flick to the end. A wheel rather than the scroller's API
-    // because since FR-21.17's gesture rule a scroll nobody made leaves the
-    // head alone by itself — this case has to ask the question it claims to.
-    await scrollPackList(page, before.slack + 200)
-
-    const end = await content.evaluate(async (host: HTMLIonContentElement) => {
-      const el = await host.getScrollElement()
-      const line = host.querySelector('.trip-line') as HTMLElement
-      // A yield is a transition on the line and the browser's clamp arrives
-      // while it runs, starting the reverse one: settled is the line having
-      // no animation left, after frames for the class change to render.
-      const frames = () =>
-        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-      for (let round = 0; round < 4; round++) {
-        await frames()
-        const running = line.getAnimations()
-        if (running.length === 0) break
-        await Promise.all(running.map((a) => a.finished))
-      }
-      return {
-        top: el.scrollTop,
-        slack: el.scrollHeight - el.clientHeight,
-        flips: (window as unknown as { __lineFlips: number }).__lineFlips,
-      }
-    })
-
-    // The line never moved and the offset stayed at the end.
-    expect(end.flips).toBe(0)
-    expect(end.top).toBe(end.slack)
-  })
-
-  /*
-   * E2E-M4-57 (G-12, UX-13): the bar keeps the actions used while packing
-   * and puts the once-per-trip ones behind the ⋮, where they are read as
-   * words. Before it, six glyphs plus the gear sat in a bar that on a phone
-   * had already given up its title to make room.
-   */
-  test('E2E-M4-57: the rare trip actions move behind the bar menu', async ({ page }) => {
-    await createTripViaWizard(page, { name: 'Elba' })
-    await expect(visible(page).getByTestId('m4-header')).toBeVisible()
-
-    // What stays: the three tapped while packing.
-    await expect(page.getByTestId('m4-search')).toBeVisible()
-    await expect(page.getByTestId('m4-filter')).toBeVisible()
-    await expect(page.getByTestId('m4-fold-all')).toBeVisible()
-    // What went: no longer a glyph of its own.
-    await expect(page.getByTestId('m4-edit')).toHaveCount(0)
-    await expect(page.getByTestId('m4-start')).toHaveCount(0)
-
-    await page.getByTestId('header-overflow').click()
-
-    // Named, not merely present — the whole reason for the menu.
-    const sheet = page.locator('ion-action-sheet')
-    await expect(sheet).toBeVisible()
-    await expect(sheet).toContainText('Trip properties')
-    await expect(sheet).toContainText('Start trip')
-
-    // And it acts: the properties entry lands on the rendered edit screen.
-    await sheet.getByText('Trip properties').click()
-    await expect(visible(page).getByTestId('trip-edit-name')).toBeVisible()
-
-    /*
-     * By role, not only by test id — and that distinction is the case's
-     * sharpest half. While an overlay is up Ionic marks the router outlet
-     * `aria-hidden`; an action that navigates from inside the sheet's own
-     * handler races the teardown and the flag stays behind, leaving the
-     * screen fully painted, fully clickable and absent from the
-     * accessibility tree. Every pixel assertion above stays green through
-     * that. This one does not.
-     */
-    await expect(visible(page).getByRole('textbox').first()).toBeVisible()
-  })
-})
-
-test.describe('M4 packing list — the rendered remainder @local @m4', () => {
-  test.beforeEach(async ({ seedMode }) => {
-    await seedMode({ mode: 'local' })
-  })
-
-  /**
-   * E2E-M4-25, with E2E-M4-08 (FR-7.3/25.2): the preparation lifecycle, end to
-   * end on the list.
-   *
-   * `packingView.spec.ts` covers the arithmetic — a packed row with open prep
-   * is not done. This is the rendered half, and it is where the defect the FR
-   * was amended for actually showed: open-prep must be derived from the todos
-   * at read time, and the prototype's stored count meant that resolving the
-   * last todo left the row on the list forever. Resolving the badge away and
-   * watching the row leave is the only assertion that catches that.
-   */
-  test('E2E-M4-08, E2E-M4-25: a packed row with open prep stays on the list until the todo is resolved', async ({
-    page,
-  }) => {
-    const TODO = 'Akku laden'
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Kamera'])
-
-    await page.getByTestId('m4-row-Kamera').click()
-    await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
-    await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId(`m5-todo-${TODO}`)).toBeVisible()
-    await page.getByTestId('m5-close').click()
-    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-
-    // E2E-M4-08: the row carries the badge, counting what is open.
-    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
-
-    await visible(page).getByTestId('m4-row-Kamera').getByTestId('row-check').click()
-
-    // Packed, and still on the working list: work remains. The reveal bar is
-    // the positive signal for "nothing is done" — its absence is what would
-    // otherwise be indistinguishable from a list that failed to update.
-    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-done-bar')).toHaveCount(0)
-
-    await visible(page).getByTestId('m4-row-Kamera').click()
-    await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId(`m5-todo-${TODO}`).click()
-    await page.getByTestId('m5-close').click()
-    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-
-    // The last todo resolved: the row is done and leaves.
-    await expect(visible(page).getByTestId('m4-row-Kamera')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m4-done-bar')).toBeVisible()
-
-    // Revealed, it comes back without a badge — the badge counts *open* prep,
-    // so a badge surviving its todo would be the stored-count defect again.
-    await visible(page).getByTestId('m4-done-bar').click()
-    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
-  })
-
-  /**
-   * E2E-M4-106 (FR-7.3, FR-25.2): the same snackbar for M4's preparation
-   * section, whose ticked task also leaves the open list. The badge on the row
-   * is the positive signal that the reopened task is the row's own again.
-   */
-  test('E2E-M4-106: a ticked-off prep task is taken back from the snackbar', async ({ page }) => {
-    const TODO = 'Akku laden'
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Kamera'])
-    await page.getByTestId('m4-row-Kamera').click()
-    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
-    await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId(`m5-todo-${TODO}`)).toBeVisible()
-    await page.getByTestId('m5-close').click()
-    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-
-    // FR-7.6: the row's preparation is ticked in the trip's one task section.
-    const tasks = await openTripTodos(page)
-    await tasks.getByTestId(`trip-todo-${TODO}`).locator('ion-checkbox').click()
-    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
-
-    const toast = page.locator('ion-toast.pack-toast')
-    await expect(toast).toContainText(TODO)
-    await toast.getByRole('button', { name: /undo/i }).click()
-    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
-    await writesLanded(page)
-    await page.reload()
-    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
-  })
-
-  /**
-   * E2E-M4-24 (FR-25.17): the packing stamp, and that it never outlives the
-   * state it describes.
-   *
-   * Local Mode has no account, so `packed_by_user_id` is null here and the
-   * stamp reads its time alone — the *name* half is the server's answer and is
-   * asserted in `server/multi-user.spec.ts` (E2E-FLOW-01), where the server
-   * stamps the column itself (invariant 3). What this case owns is the half
-   * that has no account in it: the stamp appears with the pack, and un-packing
-   * takes it back.
-   */
-  test('E2E-M4-24: a packed row says when, and un-packing takes the stamp back', async ({
-    page,
-  }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
-
-    await visible(page).getByTestId('m4-row-Zelt').getByTestId('row-check').click()
-    await visible(page).getByTestId('m4-done-bar').click()
-
-    const row = visible(page).getByTestId('m4-row-Zelt')
-    await expect(row.getByTestId('m4-packed-stamp')).toBeVisible()
-    // A time, not merely a rendered element: a stamp with nothing in it would
-    // satisfy visibility and say nothing.
-    await expect(row.getByTestId('m4-packed-stamp')).toContainText(/\d{1,2}[:.]\d{2}/)
-
-    // The same record on M5, which the UI-Test-Spec calls an M5 case and
-    // nothing had ever driven: read-only there, because the server stamps
-    // it and no control may pick it (invariant 3).
-    await row.getByRole('heading').click()
-    await page.getByTestId('m5-details').click()
-    await expect(page.getByTestId('m5-stamp')).toContainText(/\d{1,2}[:.]\d{2}/)
-    await expect(page.getByTestId('m5-stamp').locator('ion-select, input, button')).toHaveCount(0)
-    await page.getByTestId('m5-close').click()
-    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-
-    await row.getByTestId('row-check').click()
-
-    // Back on the working list, and the stamp is gone with the state it
-    // described. The row still being there is the positive half — a stamp that
-    // vanished with its row would satisfy the first assertion alone.
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-packed-stamp')).toHaveCount(0)
-  })
-
-  /**
-   * E2E-M4-11 (FR-3.2): the shopping entry counts, and says no number when
-   * there is nothing to buy.
-   *
-   * The entry itself is always there — M6 is a screen, not a notification — so
-   * the count is the part that carries information, and a `(0)` is worse than
-   * no number at all. It rides in the word rather than in a badge: ADR-050
-   * put it there because an action sheet renders none, and FR-21.21's pill
-   * keeps it there because the word is what the reader is scanning.
-   */
-  test('E2E-M4-11: the shopping entry carries a count only once something is to be bought', async ({
-    page,
-  }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
-
-    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping')
-
-    // Turning the row into a purchase is what puts it on M6 (FR-3.2).
-    await visible(page).getByTestId('m4-row-Zelt').click()
-    await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    // The mode sits behind FR-25.7's disclosure, like every other detail.
-    await page.getByTestId('m5-details').click()
-    await page.getByTestId('m5-mode').click()
-    await page
-      .locator('ion-popover ion-select-popover ion-item')
-      .filter({ hasText: /buy|Kaufen/i })
-      .first()
-      .click()
-    await page.getByTestId('m5-close').click()
-    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-
-    await expect(page.getByTestId('trip-view-shopping')).toHaveText('Shopping (1)')
-  })
-
-  /**
-   * E2E-M4-19 (FR-25.11f): the Person facet's absence bucket has a word of its
-   * own.
-   *
-   * Only the wording is here. That the bucket *leads* its facet is asserted in
-   * `domain/packingView.spec.ts`, which is where the sort lives; repeating it
-   * through the browser would re-run a covered rule at a hundred times the
-   * cost. What the unit deliberately does not decide is the word — it labels
-   * the values it can and leaves UI copy to the caller — so the caller is
-   * where the word has to be checked.
-   *
-   * The failure it guards is generic: three facets address absence with the
-   * same empty value, and one shared label makes the Person facet read as "no
-   * category". "Alle" is the other wrong answer the FR names — the bucket means
-   * *nobody in particular*, not *everybody*.
-   */
-  test('E2E-M4-19: the Person facet names its shared bucket, and not the way the others do', async ({
-    page,
-  }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
-
-    await page.getByTestId('m4-filter').click()
-    await expect(page.getByTestId('filter-sheet')).toBeVisible()
-
-    const person = page.getByTestId('facet-person-')
-    const category = page.getByTestId('facet-category-')
-    await expect(person).toBeVisible()
-    await expect(category).toBeVisible()
-
-    const shared = ((await person.textContent()) ?? '').trim()
-    expect(shared).not.toMatch(/^(alle|all)\b/i)
-    // The comparison is the assertion: "a word of its own" is a claim about two
-    // labels, and asserting one string alone would pass against a shared one.
-    expect(shared).not.toBe(((await category.textContent()) ?? '').trim())
-  })
-})
-
-/**
- * FR-24.11 reaches the composer: every add goes through the inventory. A name
- * it holds is added at once, any other is created first through the same
- * sheet M9 uses, and nothing is written before that sheet's „Anlegen" — the
- * composer no longer makes ad-hoc rows.
- */
-test.describe('M4 — the composer adds through the inventory @local @m4', () => {
-  test.beforeEach(async ({ seedMode }) => {
-    await seedMode({ mode: 'local' })
-  })
-
-  /**
-   * E2E-M4-107 (FR-24.11, FR-5.6): a new name is offered for creation above
-   * the partial hits, and only the sheet writes.
-   *
-   * The absent row is asserted while the sheet is visibly open — before that,
-   * "no row yet" would also hold for a commit that had simply not landed.
-   */
-  test('E2E-M4-107: a name the inventory lacks is created through the sheet, then added', async ({
-    page,
-  }) => {
-    await page.goto(PATH.items)
-    await createItem(page, 'Zeltheringe')
-    await createTripViaWizard(page, TRIP)
-    await openQuickAdd(page)
-
-    const list = visible(page)
-    const input = list.getByTestId('quick-add-input').locator('input')
-    await input.fill('Zelt')
-    const offer = list.getByTestId('quick-add-offer')
-    const hit = list.getByTestId('quick-add-suggestion').filter({ hasText: 'Zeltheringe' })
-    await expect(list.getByTestId('quick-add-offer-title')).toContainText('Zelt')
-    await expect(hit).toBeVisible()
-    // Above the partial hit: with the keyboard up, the end of the list is out
-    // of reach, so the offer cannot wait below it.
-    const offerBox = (await offer.boundingBox())!
-    const hitBox = (await hit.boundingBox())!
-    expect(offerBox.y + offerBox.height).toBeLessThanOrEqual(hitBox.y)
-
-    await list.getByTestId('quick-add-confirm').click()
-    const sheet = createItemSheet(page)
-    await expect(sheet).toHaveAttribute('data-presented', 'true')
-    await expect(sheet.getByTestId('create-item-name').locator('input')).toHaveValue('Zelt')
-    await expect(list.getByTestId('m4-row-Zelt')).toHaveCount(0)
-
-    await sheet.getByTestId('create-item-confirm').click()
-    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
-    await expect(list.getByTestId('m4-row-Zelt')).toBeVisible()
-    // The composer stays open for the next row, emptied and focused
-    // (FR-25.13) — the sheet handing focus back rather than leaving it on the
-    // page, where neither typing nor Escape reaches the composer.
-    await expect(list.getByTestId('quick-add-input')).toBeVisible()
-    await expect(input).toHaveValue('')
-    await expect(input).toBeFocused()
-
-    // The same act reached the inventory: M9 now lists the tent beside the
-    // pegs it was found next to.
-    await writesLanded(page)
-    await page.goto(PATH.items)
-    const rows = visible(page).getByTestId('m9-row')
-    await expect(rows).toHaveCount(2)
-    await expect(rows.filter({ has: page.getByText('Zelt', { exact: true }) })).toHaveCount(1)
-  })
-
-  /**
-   * E2E-M4-108 (FR-24.11, FR-24.7): the composer finds by M9's rule, so the
-   * other umlaut spelling names the item exactly — ✓ adds it without a sheet.
-   * Once it is on the list, the same name is reported rather than offered.
-   */
-  test('E2E-M4-108: an inventory name in the other spelling is added at once, then reported', async ({
-    page,
-  }) => {
-    await page.goto(PATH.items)
-    await createItem(page, 'Gürtel')
-    await createTripViaWizard(page, TRIP)
-    await openQuickAdd(page)
-
-    const list = visible(page)
-    const input = list.getByTestId('quick-add-input').locator('input')
-    await input.fill('guertel')
-    // The exact hit is the positive signal the absent offer is read beside:
-    // both are rendered in the same pass.
-    await expect(exactSuggestion(list, 'Gürtel')).toBeVisible()
-    await expect(list.getByTestId('quick-add-offer')).toHaveCount(0)
-
-    await list.getByTestId('quick-add-confirm').click()
-    await expect(list.getByTestId('m4-row-Gürtel')).toBeVisible()
-    // The row is there, and no sheet was ever asked for.
-    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
-    await expect(input).toHaveValue('')
-
-    // Typed again: already on the list, so the composer says so and ✓ rests.
-    await input.fill('guertel')
-    await expect(list.getByTestId('quick-add-already-in')).toContainText('Gürtel')
-    await expect(list.getByTestId('quick-add-confirm')).toHaveAttribute('aria-disabled', 'true')
-    await expect(list.getByTestId('quick-add-offer')).toHaveCount(0)
-    await expect(list.getByTestId('quick-add-suggestion')).toHaveCount(0)
-    await expect(list.getByTestId('m4-row-Gürtel')).toHaveCount(1)
-  })
-
-  /**
-   * E2E-M4-114 (FR-25.13j, FR-24.11): the browse-sheet searches by M9's rule
-   * and creates what it did not find, without leaving the sheet.
-   *
-   * The row count before the query is the positive signal the narrowing is
-   * read against: both items are listed until the query arrives. The absent
-   * M4 row is asserted while the creation sheet is visibly open, so the
-   * absence is not read before a write could have landed.
-   */
-  test('E2E-M4-114: the browse-sheet searches, and creates a missing name in place', async ({
-    page,
-  }) => {
-    await page.goto(PATH.items)
-    await createItem(page, 'Zeltheringe')
-    await backToInventory(page)
-    await createItem(page, 'Kocher')
-    await createTripViaWizard(page, TRIP)
-    await openQuickAdd(page)
-
-    await visible(page).getByTestId('quick-add-browse-open').click()
-    const sheet = page.getByTestId('inventory-browse-sheet')
-    const search = sheet.getByTestId('browse-search-input')
-    // The field is there, and it did not take the focus: the sheet still
-    // raises no keyboard on arrival (FR-25.13d).
-    await expect(search).toBeVisible()
-    await expect(search).not.toBeFocused()
-    await expect(sheet.getByTestId('browse-row-name')).toHaveCount(2)
-
-    await search.fill('Zelt')
-    await expect(sheet.getByTestId('browse-row-name')).toHaveText(['Zeltheringe'])
-    await expect(sheet.getByTestId('browse-offer-title')).toContainText('Zelt')
-    // Above the partial hit, as on M9 and in the composer.
-    const offerBox = (await sheet.getByTestId('browse-offer').boundingBox())!
-    const hitBox = (await sheet.getByTestId('browse-row').boundingBox())!
-    expect(offerBox.y + offerBox.height).toBeLessThanOrEqual(hitBox.y)
-
-    // Enter opens the sheet on the query and writes nothing.
-    await search.press('Enter')
-    const create = createItemSheet(page)
-    await expect(create).toHaveAttribute('data-presented', 'true')
-    await expect(create.getByTestId('create-item-name').locator('input')).toHaveValue('Zelt')
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toHaveCount(0)
-
-    await create.getByTestId('create-item-confirm').click()
-    await expect(create).toHaveCount(0)
-    // Back in the browse-sheet: the query survived, the offer went because
-    // the name exists now, and the new line says what this run did to it.
-    await expect(sheet).toBeVisible()
-    await expect(search).toHaveValue('Zelt')
-    await expect(sheet.getByTestId('browse-offer')).toHaveCount(0)
-    const added = sheet.getByTestId('browse-row-carried').filter({ hasText: /^Zelt\b/ })
-    await expect(added.getByTestId('browse-added-now')).toBeVisible()
-
-    await sheet.getByTestId('browse-close').click()
-    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-
-    // The same act reached the inventory.
-    await writesLanded(page)
-    await page.goto(PATH.items)
-    await expect(visible(page).getByTestId('m9-row')).toHaveCount(3)
-  })
-})
-
-/**
- * FR-20.4's missing sentence and FR-9.4's silent card, both ruled *build it*
- * by the owner on 2026-08-31.
- */
-test.describe('M4 — what the quick-add says about what it took along @local @m4', () => {
-  test.beforeEach(async ({ seedMode }) => {
-    await seedMode({ mode: 'local' })
-  })
-
-  /**
-   * E2E-M4-66 (FR-20.4/20.2): quick-adding an item pulls its required
-   * companions **and says so**.
-   *
-   * `addRequiredCompanions` returned nothing and no caller raised anything, so
-   * the companions simply appeared on the list — while FR-20.2's *skip* names
-   * exactly what it took along, and it is that contrast which made the silence
-   * read as an omission rather than as a decision (E2E-M4-32's third clause,
-   * retired 2026-08-30 with the finding).
-   */
-  test('E2E-M4-66: the quick-add names the required companions it pulled in', async ({ page }) => {
-    // Built through M10's own form: a dependency written straight into the
-    // store would assert the pull against a relation the app cannot make.
-    await createMasterItem(page, 'Kamera')
-    await createMasterItem(page, 'Ersatzakku')
-    // The editor is open on the Ersatzakku, which is the side that declares
-    // the relation; *required* is the default mode (FR-20.1).
-    await visible(page).getByTestId('m10-add-dependency').click()
-    await visible(page).getByTestId('m10-dependency-main-Kamera').click()
-    await expect(visible(page).getByTestId('m10-dependency-mode-Kamera')).toBeVisible()
-
-    await createTripViaWizard(page, { name: 'Fotoreise' })
-    await openQuickAdd(page)
-    await page.getByTestId('quick-add-input').locator('input').fill('Kame')
-    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Kamera' }).click()
-
-    // The companion is on the list…
-    await expect(visible(page).getByTestId('m4-row-Ersatzakku')).toBeVisible()
-    // …and the app said so, naming it. A bare count would send the reader
-    // looking for what changed, which is the whole complaint.
-    const notice = page.locator('ion-toast').filter({ hasText: 'Ersatzakku' })
-    await expect(notice).toBeVisible()
-
-    // An item with no companions says nothing: the positive signal against a
-    // snackbar that always fires.
-    await addInComposer(page, 'Sonnencreme')
-    await expect(visible(page).getByTestId('m4-row-Sonnencreme')).toBeVisible()
-    await expect(page.locator('ion-toast').filter({ hasText: 'Sonnencreme' })).toHaveCount(0)
   })
 })
 
@@ -1993,7 +994,7 @@ test.describe('M4 — the row says how an item is obtained, unless it is the usu
    */
   test('E2E-M4-67: only the unusual mode is drawn on a dense row', async ({ page }) => {
     await createTripViaWizard(page, { name: 'Samedan Sommer' })
-    await quickAdd(page, ['Zahnpasta', 'Socken'])
+    await quickAddRows(page, ['Zahnpasta', 'Socken'])
 
     // Set through M5's own select — the only path the app offers.
     await visible(page).getByTestId('m4-row-Zahnpasta').click()
@@ -2010,949 +1011,5 @@ test.describe('M4 — the row says how an item is obtained, unless it is the usu
     // …and the one that goes without saying is not, on the very same row
     // shape that just proved the glyph renders.
     await expect(packed.getByTitle('Pack')).toHaveCount(0)
-  })
-})
-
-/**
- * The head that never yielded (FR-21.17) and the column that had no measure
- * for a row (FR-21.18, superseded by FR-21.26) — the two halves of the M4
- * read-through of 2026-09-07 that are about the screen's shape rather than
- * its numbers.
- *
- * Both are claims about rendered pixels, so both are asserted as rendered
- * pixels: a stylesheet cannot say whether the head actually gave its space
- * back, and a route table cannot say how far a name sits from its checkbox.
- *
- * Motion is reduced for the same reason E2E-M4-45 reduces it: the head and
- * the line under it both travel, and a height read mid-transition is not a
- * height the screen holds. The app has its own instant path, so this is not
- * a test switching off the thing it watches.
- */
-test.describe('M4 — the shape of the screen @local @m4', () => {
-  useReducedMotion(test)
-
-  test.beforeEach(async ({ seedMode }) => {
-    await seedMode({ mode: 'local' })
-  })
-
-  /**
-   * A yielded head is not exactly zero pixels tall: the collapse animates a
-   * grid track to `0fr`, and the browser rounds that to a fraction. Below a
-   * pixel is the assertion; the standing head is measured against 40.
-   */
-  const YIELDED_PX = 2
-  const STANDING_PX = 40
-
-  /**
-   * Well past the offset below which the head stands whatever the scroll
-   * direction was. A case that asserts the head's *return* has to be clear
-   * of it, or it would pass on a build that never read a direction at all.
-   */
-  const CLEAR_OF_THE_TOP = 200
-
-  /**
-   * The head's height once it has *settled*, polled rather than read once.
-   *
-   * The collapse travels over a transition, and a single `evaluate` reads
-   * whatever frame it lands on — which is how the first version of this case
-   * passed here and failed on CI with 28 px and 53 px, both mid-flight. The
-   * wait is on the rendered end state, never on a clock; this is the same
-   * seam `toHaveCSS` gives E2E-M4-45 for the header line.
-   */
-  const headHeight = (page: Page) =>
-    expect.poll(() =>
-      page.getByTestId('page-head').evaluate((el) => el.getBoundingClientRect().height),
-    )
-
-  /**
-   * A wheel over the list, which is how a reader moves it — and since
-   * FR-21.17's gesture rule the only way that moves the head at all. Driving
-   * the offset through the scroller's API would leave every assertion below
-   * green against the rule's removal.
-   */
-  const scrollToEnd = async (page: Page) => {
-    const { slack } = await packListOffset(page)
-    await scrollPackList(page, slack + 200)
-    // Against the slack as it stands, not as it was: yielding the head hands
-    // its height to the viewport and shortens the range by the same amount.
-    await expect
-      .poll(async () => {
-        const at = await packListOffset(page)
-        return at.top === at.slack
-      })
-      .toBe(true)
-  }
-
-  /*
-   * E2E-M4-70 (FR-21.17): the page head goes down with the header line, and
-   * comes back with it.
-   *
-   * The third step is the one that carries the defect this case was written
-   * for. Collapsing the head hands its height to the scroll viewport, which
-   * shortens the scrollable range by the same amount; the browser clamps
-   * `scrollTop` down to fit, and that clamp arrives at the scroll handler
-   * looking exactly like an upward scroll. Measured before the fix, on a
-   * 1280×900 window, the head opened and shut on a single flick near the
-   * end of the list. Asserting at the very bottom is therefore not
-   * thoroughness — it is the only place the bug lives.
-   */
-  test('E2E-M4-70: the page head yields to the list, and holds at the bottom', async ({ page }) => {
-    test.slow()
-    await page.setViewportSize({ width: 390, height: 640 })
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, SCROLL_ROWS)
-
-    const head = page.getByTestId('page-head')
-    const line = visible(page).getByTestId('m4-header')
-    // The positive signal the rest of the case is measured against: the head
-    // is standing, and it is standing at a height worth reclaiming.
-    await expect(head).not.toHaveClass(/collapsed/)
-    await headHeight(page).toBeGreaterThan(STANDING_PX)
-
-    // Straight to the end, in one gesture, with the head still standing —
-    // which is the only arrangement in which the clamp can bite. Reaching
-    // the bottom from an *already* collapsed head changes no height, so it
-    // proves nothing: that sequence stayed green against the unguarded
-    // build, and this one does not.
-    await scrollToEnd(page)
-    await expect(head).toHaveClass(/collapsed/)
-    await expect(line).toHaveClass(/collapsed/)
-    await headHeight(page).toBeLessThan(YIELDED_PX)
-
-    // Any upward gesture brings both back — the other half of the owner's
-    // 2026-08-19 rule, and what makes the collapse a yield rather than a
-    // one-way disappearance. Upward by a little, so the list stays clear of
-    // the top: at the top the head stands whatever the direction was.
-    const back = await scrollPackList(page, -120)
-    expect(back).toBeGreaterThan(CLEAR_OF_THE_TOP)
-    await expect(head).not.toHaveClass(/collapsed/)
-    await expect(line).not.toHaveClass(/collapsed/)
-    await headHeight(page).toBeGreaterThan(STANDING_PX)
-
-    // And the ordinary case, mid-list, where nothing is clamping.
-    await scrollPackList(page, 200)
-    await expect(head).toHaveClass(/collapsed/)
-    await expect(line).toHaveClass(/collapsed/)
-    await headHeight(page).toBeLessThan(YIELDED_PX)
-  })
-
-  /*
-   * E2E-M4-135 (FR-21.17): a scroll nobody made leaves the head where it is.
-   *
-   * The browser produces one whenever it has to bring a control into view —
-   * a keyboard focus, and every click a driver aims at a row that is off
-   * screen. Read as a gesture, an upward one of those brought the head back
-   * and pushed every row down by its height, which is a tap landing on the
-   * row below the one it was aimed at. It cost E2E-M5-19 a WebKit shard on
-   * 2026-09-20: the seat had the pointer down on it and never saw a click,
-   * because the list moved between the two. Measured here at 390×640, and on
-   * the failing build at 1280×600: a 60 px scroll, 162 px of row.
-   *
-   * The geometry is taken in one `evaluate`, either side of the scroll it is
-   * about: two `boundingBox()` calls would compare two different moments.
-   */
-  test('E2E-M4-135: a scroll nobody made does not move the head, or the rows under it', async ({
-    page,
-  }) => {
-    test.slow()
-    await page.setViewportSize({ width: 390, height: 640 })
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, SCROLL_ROWS)
-
-    const line = visible(page).getByTestId('m4-header')
-    // Yielded by a reader's own flick, which is the only thing that may, and
-    // carried to the end, where rows have gone off the top: those are the
-    // ones the browser has to scroll back *up* to, and up is the direction
-    // that used to recall the head.
-    await scrollToEnd(page)
-    await expect(line).toHaveClass(/collapsed/)
-
-    const moved = await visible(page).evaluate(async (pageEl) => {
-      const host = pageEl.querySelector('ion-content.pack-content') as HTMLIonContentElement
-      const el = await host.getScrollElement()
-      const trip = pageEl.querySelector('.trip-line') as HTMLElement
-      let flips = 0
-      new MutationObserver(() => (flips += 1)).observe(trip, {
-        attributes: true,
-        attributeFilter: ['class'],
-      })
-
-      // A row the browser has to scroll *up* to, and far: the topmost one
-      // that has gone off the screen. `block: 'nearest'` moves the list by
-      // exactly the distance to it, and a few pixels would be filtered as
-      // the rubber band's own jitter and prove nothing.
-      const above = [...pageEl.querySelectorAll('[data-testid^="m4-row-"]')].filter(
-        (row) => row.getBoundingClientRect().top < el.getBoundingClientRect().top,
-      )
-      const target = above[0] as HTMLElement | undefined
-      if (target === undefined) return null
-
-      const rowBefore = target.getBoundingClientRect().top
-      const topBefore = el.scrollTop
-      target.scrollIntoView({ block: 'nearest' })
-
-      // Settled, not merely started: the head's own flip would arrive a
-      // frame or two after the scroll it answers, and a reading taken
-      // before it would report the very absence this case is asserting.
-      const frames = () =>
-        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-      for (let round = 0; round < 4; round += 1) {
-        await frames()
-        const running = trip.getAnimations()
-        if (running.length === 0) break
-        await Promise.all(running.map((a) => a.finished))
-      }
-
-      return {
-        flips,
-        scrolled: el.scrollTop - topBefore,
-        rowMoved: target.getBoundingClientRect().top - rowBefore,
-      }
-    })
-
-    expect(moved).not.toBeNull()
-    // It really did scroll, upward, and by more than the jitter the rule
-    // filters out — without all three the rest is vacuous.
-    expect(moved!.scrolled).toBeLessThan(-CLEAR_OF_THE_TOP)
-    // The head did not answer it, and the row moved by the scroll and by
-    // nothing else. Either assertion alone would pass on half the defect.
-    expect(moved!.flips).toBe(0)
-    expect(moved!.rowMoved).toBe(-moved!.scrolled)
-    await expect(line).toHaveClass(/collapsed/)
-  })
-
-  /*
-   * E2E-M4-71 (FR-21.26): on a window wide enough to have a choice, the
-   * content column is one width, and every screen the reader steps to keeps
-   * it.
-   *
-   * The rule it replaces was the opposite one: FR-21.18 gave M4 a narrower
-   * column than the screens around it, and this case asserted that they
-   * *differed*. What that produced is the defect underneath FR-21.26 — the
-   * trip's four views are one tap apart (ADR-051), so the page moved and
-   * changed width every time the reader used them.
-   *
-   * Two assertions, because either alone is passable by a broken build. The
-   * equality alone would hold on a build with no cap at all, where every
-   * screen is the window; the cap alone would hold on the build this case
-   * was written against. So the column has to be narrower than the room it
-   * is given *and* the same on each screen.
-   */
-  test('E2E-M4-71: one content measure, and the screens the reader steps to keep it', async ({
-    page,
-  }) => {
-    const VIEWPORT = 1280
-    await page.setViewportSize({ width: VIEWPORT, height: 900 })
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
-
-    const columnWidth = () =>
-      page.locator('.app-content').evaluate((el) => el.getBoundingClientRect().width)
-    const rowWidth = () =>
-      visible(page)
-        .getByTestId('m4-row-Zelt')
-        .evaluate((el) => el.getBoundingClientRect().width)
-    // The pop is finished, not merely started. Asserted here rather than
-    // left to the ADR-012 fixture, because that one runs after the case and
-    // reports a leak this case is in a position to prevent: the first
-    // version of it stacked two pushes and popped one, and only CI's copy of
-    // the guard said so.
-    const oneLivePage = () => expect.poll(() => visible(page).count()).toBe(1)
-
-    const column = await columnWidth()
-    // Narrower than the window, so the cap is doing something at all. The
-    // rail takes a bite out of the window, which is why this is not a
-    // comparison against the viewport width exactly.
-    expect(column).toBeLessThan(VIEWPORT / 2 + 100)
-    // The row is inside the column it is capped by — the positive signal
-    // that the cap reached the rows rather than only the frame around them.
-    expect(await rowWidth()).toBeLessThanOrEqual(column)
-
-    // Each step is pushed and popped before the next one, rather than
-    // stacked: two pages deep leaves the outlet showing both, and the suite
-    // fails the case that leaked them (ADR-012). It is also the truer
-    // reading of the rule — what has to hold is that going *and coming
-    // back* keeps the width, on each of the two kinds of destination.
-
-    // A sibling view of the same trip, reached the way the reader reaches
-    // it — through the frame, which is what made the two measures untenable.
-    // The helper knows which shape the view is in (ADR-051 amendment 1); what
-    // this case is measuring is the column it lands in, not the tap.
-    await openTripView(page, 'luggage')
-    await expect(visible(page).getByTestId('m11-unassigned-title')).toBeVisible()
-    expect(await columnWidth()).toBe(column)
-    await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-    await oneLivePage()
-    await expect.poll(columnWidth).toBe(column)
-
-    // And a screen off the trip entirely, reached through the app's own
-    // navigation rather than a reload.
-    await page.getByTestId('header-settings').click()
-    await expect(visible(page).getByTestId('settings-language')).toBeVisible()
-    expect(await columnWidth()).toBe(column)
-    await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-    await oneLivePage()
-    await expect.poll(columnWidth).toBe(column)
-  })
-  /*
-   * E2E-M4-72 (FR-21.19): the lead column is one thing wide, on every kind
-   * of row.
-   *
-   * The kind that broke it is a *lone* per-person instance: one traveler
-   * checked, so `packingView` renders no cluster and folds the person into
-   * the label instead (`Wanderstöcke · Andy`). The row drew the face **and**
-   * the mark slot, and started its name 32 px right of every sibling in the
-   * same group — 481 px against 449 px, measured at 1280 px on the sample
-   * data. Both the unit case and E2E-M4-56 claimed this rule in general and
-   * tested it only against rows with no traveler.
-   */
-  test('E2E-M4-72: a per-person row starts its name where every other row does', async ({
-    page,
-  }) => {
-    test.slow()
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Velohelme'])
-
-    // The per-person path, with exactly one person lit — which is what
-    // produces a flat row rather than a cluster.
-    await openQuickAdd(page)
-    await lightTraveler(page, 'quick-add', 'Andy')
-    await addInComposer(page, 'Wanderstöcke')
-
-    const list = visible(page)
-    const perPerson = list.getByTestId('m4-row-Wanderstöcke')
-    const plain = list.getByTestId('m4-row-Velohelme')
-
-    // It really is the lone-instance shape, and it really does still name the
-    // person — without which the equality below would be satisfied by a row
-    // that had simply lost its traveler.
-    await expect(list.getByTestId('m4-cluster-Wanderstöcke')).toHaveCount(0)
-    await expect(perPerson).toContainText('Andy')
-
-    const perPersonName = (await perPerson.locator('h3').first().boundingBox())!
-    const plainName = (await plain.locator('h3').first().boundingBox())!
-    expect(perPersonName.x).toBe(plainName.x)
-
-    // The rule under it, so a future row that aligns by accident does not
-    // pass: the column itself is one width.
-    const perPersonLead = (await perPerson.locator('.row-lead').boundingBox())!
-    const plainLead = (await plain.locator('.row-lead').boundingBox())!
-    expect(perPersonLead.width).toBe(plainLead.width)
-  })
-
-  /*
-   * E2E-M4-73 (FR-21.20): a cluster head is a line of the list; its people
-   * are the ones stepping in.
-   *
-   * The indent and its rule used to sit on the whole cluster, head included,
-   * so the item's name sat 8 px right of every other item name and only 6 px
-   * left of its own travelers — 457 against 449 and 463, measured at 1280 px.
-   * A head that close to its children reads as one of them. Both halves are
-   * asserted: an equality alone would pass on a build that had also flattened
-   * the children, and the step alone on one that had left the head inset.
-   */
-  test('E2E-M4-73: a cluster head lines up with the item rows, its people step in', async ({
-    page,
-  }) => {
-    test.slow()
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Velohelme'])
-
-    await openQuickAdd(page)
-    for (const who of ['Andy', 'Sia']) await lightTraveler(page, 'quick-add', who)
-    await addInComposer(page, 'Regenjacke')
-
-    const list = visible(page)
-    const nameX = async (locator: Locator, selector: string) =>
-      (await locator.locator(selector).first().boundingBox())!.x
-
-    // FR-25.23: the children only exist once the cluster is open, and this
-    // case is about where their names land.
-    await openCluster(page, 'Regenjacke')
-
-    const plainRow = await nameX(list.getByTestId('m4-row-Velohelme'), 'h3')
-    const head = await nameX(list.getByTestId('m4-cluster-Regenjacke'), '.cluster-name')
-    const child = await nameX(list.getByTestId('m4-child-Regenjacke-Andy'), 'h3')
-
-    // It is a cluster, with people under it — without which the two
-    // assertions below would be about rows that do not exist.
-    await expect(list.getByTestId('m4-child-Regenjacke-Sia')).toBeVisible()
-
-    // The head is one of the list's lines…
-    expect(head).toBe(plainRow)
-    // …and the people under it are indented from it, not level with it.
-    expect(child).toBeGreaterThan(head)
-  })
-
-  /*
-   * E2E-M4-74 (FR-21.22): the bar that reveals the packed rows is a button.
-   *
-   * It was drawn with a dashed outline and no fill — this app's mark for a
-   * place where something is *not yet*, worn by the empty picker slot and the
-   * quick-add invitation. On a control that reveals rows which exist and are
-   * counted in its own label, that mark reads as a drop zone or a
-   * placeholder. Both halves are asserted: the edge it no longer wears, and
-   * the state it now tells a reader who cannot see the caret.
-   */
-  test('E2E-M4-74: the reveal bar wears a button’s edge and says which way it goes', async ({
-    page,
-  }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Velohelme'])
-
-    // A packed row is what puts the bar on the screen (FR-25.2).
-    await visible(page).getByTestId('m4-row-Zelt').getByTestId('row-check').click()
-    const bar = visible(page).getByTestId('m4-done-bar')
-    await expect(bar).toHaveText('Show 1 packed')
-
-    await expect(bar).toHaveCSS('border-style', 'solid')
-    await expect(bar).toHaveAttribute('aria-expanded', 'false')
-
-    // And it does the one thing it says: the row it counted comes back.
-    await bar.click()
-    await expect(bar).toHaveAttribute('aria-expanded', 'true')
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-  })
-
-  /*
-   * E2E-M4-75 (FR-21.23): the screen where the progress is *made* says how
-   * far along the trip is the way every other screen says it — a ring, the
-   * share in words and a track. It had said it as a bare fraction.
-   *
-   * All three are asserted against the same pack, because the point of the
-   * figure is that they cannot disagree: the ring and the track are drawn
-   * from one percentage, and the sentence counts the units under it
-   * (FR-25.22).
-   */
-  test('E2E-M4-75: the header line answers the trip as a ring, a sentence and a track', async ({
-    page,
-  }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Schlafsack', 'Kocher', 'Stirnlampe'])
-
-    const ring = visible(page).getByTestId('progress-ring')
-    await expect(ring).toHaveAttribute('aria-label', '0%')
-    await expect(visible(page).getByTestId('m4-progress')).toContainText('0/4')
-    const track = visible(page).getByTestId('m4-header').locator('.track i')
-    await expect(track).toHaveCSS('width', '0px')
-
-    await packRow(page, 'Zelt')
-
-    await expect(ring).toHaveAttribute('aria-label', '25%')
-    await expect(visible(page).getByTestId('m4-progress')).toContainText('1/4')
-    // A quarter of the track's own width, whatever the viewport made that —
-    // as a ratio of two rendered boxes rather than a pixel string. Both are
-    // fractional on WebKit (19.0625 of 76.25), and `clientWidth` rounds one
-    // of them, so the string comparison was a rounding claim.
-    const share = await track.evaluate(
-      (el) => el.getBoundingClientRect().width / el.parentElement!.getBoundingClientRect().width,
-    )
-    expect(share).toBeCloseTo(0.25, 2)
-  })
-
-  /*
-   * E2E-M4-76 (FR-21.24): one door to the composer, not two.
-   *
-   * The collapsed pill sat above the list and the FAB hovered over it, both
-   * opening the same form. The case pins the absence *and* the door that is
-   * left — an absence alone would stay green on a screen that lost both.
-   */
-  test('E2E-M4-76: the list offers the quick-add once, through the FAB', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-
-    await expect(visible(page).getByTestId('quick-add-open')).toHaveCount(0)
-    await expect(visible(page).getByTestId('quick-add-input')).toHaveCount(0)
-
-    await openQuickAdd(page)
-    await expect(visible(page).getByTestId('quick-add-input')).toBeVisible()
-  })
-
-  /*
-   * E2E-M4-77 (FR-24.2): a generated row is filed under the item's tag.
-   *
-   * M4 groups by category by default, and every row a Vorlage produced
-   * landed in the leftover bucket: generation read a `category_name` on the
-   * master item that nothing ever wrote. The case builds the one path that
-   * proves it — tag an item in M9, put it in a group, follow the group into
-   * a trip — and asserts the heading. The untagged row beside it is the
-   * positive signal that the bucket still exists and the case is reading a
-   * real grouping rather than one heading for everything.
-   */
-  test('E2E-M4-77: a row generated from a group carries the item’s tag as its heading', async ({
-    page,
-  }) => {
-    test.slow()
-    await page.goto(PATH.items)
-    await createItem(page, 'Badehose', { tags: ['Sommer'] })
-    await backToInventory(page)
-    await page.goto(PATH.templates)
-    await createTemplate(page, 'group', 'Strand')
-    await addPosition(page, 'Badehose')
-    await addPosition(page, 'Schlüssel')
-    await page.keyboard.press('Escape')
-
-    await createTripFollowingGroup(page, 'Strandprobe', 'Strand')
-
-    // Rows are siblings of their heading, not children of it, so membership
-    // is read off the heading's tally: one row under the tag, one in the
-    // leftover bucket. Before the fix there was no `Sommer` heading at all
-    // and the bucket said 0/2 — which is what makes 0/1 here falsifiable.
-    await expect(visible(page).getByTestId('m4-group-Sommer')).toContainText('0/1')
-    await expect(visible(page).getByTestId('m4-group-none')).toContainText('0/1')
-    await expect(visible(page).getByTestId('m4-row-Badehose')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-row-Schlüssel')).toBeVisible()
-  })
-
-  /*
-   * E2E-M4-85 (FR-25.11l): picking a Status value overrides the Erledigte
-   * switch for exactly the rows it names.
-   *
-   * The unit test proves the bucketing arithmetic; what only the rendered
-   * panel can prove is the override — that Erledigte can stay off while the
-   * one picked bucket still renders, which is the whole reason the FR exists:
-   * otherwise the panel would report a nonzero "Gepackt" count and show
-   * nothing for it, the exact contradiction FR-25.11e forbids elsewhere.
-   */
-  test('E2E-M4-85: the Status facet overrides Erledigte for the picked bucket', async ({
-    page,
-  }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt', 'Lampe', 'Kocher'])
-
-    await packRow(page, 'Zelt')
-    await openRowMenu(page, 'Lampe')
-    await chooseInRowMenu(page, /do not pack this/i)
-
-    // Both done rows are behind the reveal bar by default; Kocher is open.
-    await expect(page.getByTestId('m4-row-Kocher')).toBeVisible()
-    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
-    await expect(page.getByTestId('m4-row-Lampe')).toHaveCount(0)
-
-    await page.getByTestId('m4-filter').click()
-    await page.getByTestId('facet-status-packed').click()
-    await page.getByTestId('filter-close').click()
-
-    // Erledigte is still off, yet the packed row alone is shown.
-    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
-    await expect(page.getByTestId('m4-row-Lampe')).toHaveCount(0)
-    await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
-    await expect(page.getByTestId('m4-filter-bar')).toContainText(/Status/i)
-
-    await page.getByTestId('m4-filter').click()
-    await page.getByTestId('facet-status-packed').click()
-    await page.getByTestId('facet-status-skipped').click()
-    await page.getByTestId('filter-close').click()
-
-    await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
-    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
-    await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
-  })
-
-  /*
-   * E2E-M4-93 (FR-25.27): a row that is packed on departure day sinks below
-   * the rows that can be dealt with now.
-   *
-   * The order is read before the flag as well as after it, because an
-   * assertion on a list that was already in that order says nothing: the
-   * flag has to be what moved the row.
-   */
-  test('E2E-M4-93: flagging a row as late-packer drops it to the end of its group', async ({
-    page,
-  }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Schlüssel', 'Zelt', 'Lampe'])
-
-    const order = () =>
-      visible(page)
-        .locator('[data-testid^="m4-row-"]')
-        .evaluateAll((rows) => rows.map((el) => (el as HTMLElement).dataset['testid']))
-
-    expect(await order()).toEqual(['m4-row-Schlüssel', 'm4-row-Zelt', 'm4-row-Lampe'])
-
-    await openRowMenu(page, 'Schlüssel')
-    await chooseInRowMenu(page, /late packer on/i)
-    await expect(
-      visible(page).getByTestId('m4-row-Schlüssel').getByTestId('row-late'),
-    ).toBeVisible()
-
-    expect(await order()).toEqual(['m4-row-Zelt', 'm4-row-Lampe', 'm4-row-Schlüssel'])
-
-    // And it stays above what needs nothing at all: three tiers, not two.
-    await packRow(page, 'Zelt')
-    // The undo snackbar sits over the reveal bar, and a click that lands on
-    // it while it leaves never opens the section — E2E-M4-68's trap, dismissed
-    // the same way rather than waited out.
-    // Every one: since FR-25.31 more than one act on the way here raises one.
-    await page
-      .locator('ion-toast.pack-toast')
-      .evaluateAll((els) => els.forEach((el) => void (el as HTMLIonToastElement).dismiss()))
-    await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
-    await page.getByTestId('m4-done-bar').click()
-    // The packed row on screen is the settled state the one-shot read needs.
-    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
-    expect(await order()).toEqual(['m4-row-Lampe', 'm4-row-Schlüssel', 'm4-row-Zelt'])
-  })
-
-  /*
-   * E2E-M4-94 (FR-25.27): the late-packer rows can be put away, and never
-   * silently — the bar is what keeps an emptied list from reading as done.
-   */
-  test('E2E-M4-94: the late-packer switch hides those rows and says so', async ({ page }) => {
-    await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Schlüssel', 'Zelt'])
-
-    await openRowMenu(page, 'Schlüssel')
-    await chooseInRowMenu(page, /late packer on/i)
-    await expect(
-      visible(page).getByTestId('m4-row-Schlüssel').getByTestId('row-late'),
-    ).toBeVisible()
-
-    await page.getByTestId('m4-filter').click()
-    await expect(page.getByTestId('filter-sheet')).toBeVisible()
-    // The switch starts on: this is the one class of rows the screen does
-    // not put away by itself.
-    const lateSwitch = page.getByTestId('filter-switch-late')
-    expect(await lateSwitch.evaluate((el) => (el as HTMLInputElement).checked)).toBe(true)
-    await lateSwitch.click()
-    await page.getByTestId('filter-close').click()
-
-    await expect(page.getByTestId('m4-row-Schlüssel')).toHaveCount(0)
-    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
-    const bar = visible(page).getByTestId('m4-late-bar')
-    await expect(bar).toContainText('1')
-
-    // FR-25.32: a search finds the hidden row and the bar has nothing left
-    // to offer; clearing the term puts both back.
-    await page.getByTestId('m4-search').click()
-    await page.getByTestId('m4-search-input').fill('Schlüssel')
-    await expect(visible(page).getByTestId('m4-row-Schlüssel')).toBeVisible()
-    await expect(bar).toHaveCount(0)
-    await page.getByTestId('m4-search-input').fill('')
-    await expect(page.getByTestId('m4-row-Schlüssel')).toHaveCount(0)
-    await expect(bar).toContainText('1')
-
-    // Packing everything else must not turn the remainder into "alles
-    // gepackt": the reset offer is the signal that the screen knows it is
-    // still hiding something.
-    await packRow(page, 'Zelt')
-    await expect(visible(page).getByTestId('m4-reset')).toBeVisible()
-
-    // And the bars run in the order their rows do (owner, 2026-09-18): rows
-    // that still ask for something stand above rows that ask for nothing.
-    expect(
-      await visible(page)
-        .locator('[data-testid="m4-late-bar"], [data-testid="m4-done-bar"]')
-        .evaluateAll((bars) => bars.map((el) => (el as HTMLElement).dataset['testid'])),
-    ).toEqual(['m4-late-bar', 'm4-done-bar'])
-
-    // The undo snackbar from packing Zelt sits over the bars, and a click
-    // that lands while it leaves never toggles the section — the trap of
-    // E2E-M4-93 and E2E-M4-68, dismissed the same way rather than waited out.
-    // Every one: since FR-25.31 more than one act on the way here raises one.
-    await page
-      .locator('ion-toast.pack-toast')
-      .evaluateAll((els) => els.forEach((el) => void (el as HTMLIonToastElement).dismiss()))
-    await expect(page.locator('ion-toast.pack-toast')).toHaveCount(0)
-    await bar.click()
-    await expect(page.getByTestId('m4-row-Schlüssel')).toBeVisible()
-  })
-})
-
-test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
-  test.beforeEach(async ({ seedMode }) => {
-    await seedMode({ mode: 'local' })
-  })
-
-  /**
-   * E2E-M4-96 (FR-7.4): *Aufgaben für die Reise* is where a trip todo is
-   * written — added, ticked, reopened from the fold and removed, each state
-   * read back after a reload, because a list that only repaints proves the
-   * component and not the write. The removal keeps a sibling as its positive
-   * signal. The section is there on a trip with no todo, closed and silent
-   * about being done, because it is where the first one is typed.
-   */
-  test('E2E-M4-96: trip todos are added, ticked, reopened and removed in the trip', async ({
-    page,
-  }) => {
-    await tripWithRows(page, ['Zelt'], 'Samedan')
-    const section = visible(page).getByTestId('m4-trip-todos')
-    const status = section.getByTestId('m4-trip-todos-status')
-    await expect(section).toBeVisible()
-    await expect(section.getByTestId('trip-todo-list')).toHaveCount(0)
-    await expect(status).toHaveCount(0)
-
-    await addTripTodo(page, 'Water the plants')
-    await addTripTodo(page, 'Empty the fridge')
-    await expect(status).toHaveText('0 of 2 done')
-
-    const reopenSection = async () => {
-      await page.reload()
-      await openTripTodos(page)
-    }
-    await reopenSection()
-    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-
-    // Tick: the row leaves the open list and the head counts it.
-    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(status).toHaveText('1 of 2 done')
-    await writesLanded(page)
-    await reopenSection()
-    await expect(status).toHaveText('1 of 2 done')
-    await expect(section.getByTestId('trip-todo-Water the plants')).toHaveCount(0)
-
-    // Reopen from the fold: a mis-tap's only undo.
-    await section.getByTestId('trip-todos-resolved').click()
-    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(status).toHaveText('0 of 2 done')
-    await expect(section.getByTestId('trip-todos-resolved')).toHaveCount(0)
-
-    // Remove one; its sibling stays. The delete is written when the
-    // snackbar's undo lapses (FR-25.31), so its going is waited on before the
-    // reload — a reload inside the window keeps the task, on purpose.
-    await section.getByTestId('trip-todo-remove-Empty the fridge').click()
-    await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
-    const removed = page
-      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
-      .filter({ hasText: 'Empty the fridge' })
-      .last()
-    await expect(removed).toBeVisible()
-    await expect(removed).toBeHidden()
-    await writesLanded(page)
-    await reopenSection()
-    await expect(section.getByTestId('trip-todo-Empty the fridge')).toHaveCount(0)
-    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await expect(status).toHaveText('0 of 1 done')
-  })
-
-  /**
-   * E2E-M4-134 (FR-7.5, G-8): Local Mode has nobody to hand a todo to, so the
-   * todo carries no seat — absent, not an empty picker. The positive signal
-   * beside the absence is the same todo's other end control, rendered in the
-   * box the seat would share; the seat itself is E2E-M4-133's.
-   */
-  test('E2E-M4-134: a trip todo offers no seat where there is nobody to assign it to', async ({
-    page,
-  }) => {
-    await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Water the plants')
-
-    const todo = visible(page).getByTestId('trip-todo-Water the plants')
-    await expect(todo.getByTestId('trip-todo-remove-Water the plants')).toBeVisible()
-    await expect(todo.getByTestId('trip-todo-assign-Water the plants')).toHaveCount(0)
-    await expect(todo.getByTestId('trip-todo-assignee-Water the plants')).toHaveCount(0)
-  })
-
-  /**
-   * E2E-M4-105 (FR-7.4, FR-25.2): ticking a task off offers the snackbar's
-   * undo, like a pack. The tick makes the row leave the open list, so the
-   * mistap has no evidence left to tap again — the undo brings it back, and
-   * the reopened state is read after a reload because a repaint alone proves
-   * the component and not the write.
-   */
-  test('E2E-M4-105: a ticked-off trip todo is taken back from the snackbar', async ({ page }) => {
-    await tripWithRows(page, ['Zelt'], 'Samedan')
-    const section = visible(page).getByTestId('m4-trip-todos')
-    const status = section.getByTestId('m4-trip-todos-status')
-    await addTripTodo(page, 'Water the plants')
-    await addTripTodo(page, 'Empty the fridge')
-
-    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(status).toHaveText('1 of 2 done')
-    // The newest: adding each task raised a snackbar of its own (FR-25.31).
-    const toast = page
-      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
-      .filter({ hasText: /done/ })
-      .last()
-    await expect(toast).toContainText('Water the plants')
-
-    await toast.getByRole('button', { name: /undo/i }).click()
-    await expect(status).toHaveText('0 of 2 done')
-    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await writesLanded(page)
-    await page.reload()
-    await openTripTodos(page)
-    await expect(status).toHaveText('0 of 2 done')
-  })
-
-  /**
-   * E2E-M4-97 (FR-7.4): the todos are where the trip is read, not at its foot.
-   *
-   * The section sits above the list and opens by itself while anything is
-   * owed — asserted after a reload, where no helper has touched the toggle —
-   * and folds to its one line once nothing is. The header carries the second
-   * figure beside the packing share, and tapping it is the way back in. The
-   * fold's absence is asserted against its own status line, which is the
-   * positive signal that the section rendered.
-   */
-  test('E2E-M4-97: trip todos head the list, open while owed, with a figure in the header', async ({
-    page,
-  }) => {
-    await tripWithRows(page, ['Zelt'], 'Samedan')
-    const section = visible(page).getByTestId('m4-trip-todos')
-    const toggle = section.getByTestId('m4-trip-todos-toggle')
-    const figure = visible(page).getByTestId('m4-trip-todos-figure')
-    const fraction = figure.getByTestId('m4-trip-todos-progress')
-
-    // No todo yet: the section is only the way to the first one, and the
-    // header has no second figure beside the share.
-    await expect(visible(page).getByTestId('m4-progress')).toHaveText('0/1 packed')
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(figure).toHaveCount(0)
-
-    await addTripTodo(page, 'Water the plants')
-    await addTripTodo(page, 'Empty the fridge')
-
-    // Above the list, and open on arrival while anything is owed.
-    await page.reload()
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await expect(fraction).toHaveText('0/2 tasks')
-    // A pair: the packing share has no detail line and the todos do („2
-    // open"), which is exactly the case that put the tracks on two levels.
-    await expectFiguresPaired(visible(page).getByTestId('m4-header'))
-    const sectionTop = (await section.boundingBox())!.y
-    const rowTop = (await visible(page).getByTestId('m4-row-Zelt').boundingBox())!.y
-    expect(sectionTop).toBeLessThan(rowTop)
-
-    // Ticking the last one folds the section to its line.
-    await section.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
-    await expect(fraction).toHaveText('1/2 tasks')
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    await section.getByTestId('trip-todo-Empty the fridge').locator('ion-checkbox').click()
-    await expect(section.getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
-    await expect(fraction).toHaveText('2/2 tasks')
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(section.getByTestId('trip-todo-list')).toHaveCount(0)
-    await writesLanded(page)
-
-    // Still folded on the next visit; the header figure opens it.
-    await page.reload()
-    await expect(section.getByTestId('m4-trip-todos-status')).toHaveText('✓ All tasks done')
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await figure.click()
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    await expect(section.getByTestId('trip-todos-resolved')).toBeVisible()
-  })
-
-  /**
-   * E2E-M4-136 (FR-7.6): a row's preparation is a task of the trip. It is
-   * listed in the one section beside the trip's own, counted in the one
-   * figure, and told apart by the chip that names its row — which is also the
-   * way into that row.
-   *
-   * Every assertion is a pair, because "both kinds are here" is green on a
-   * list that renders one of them twice: the preparation carries a chip and
-   * the trip's own does not, and the ✕ is on the trip's own and not on the
-   * preparation, which is removed where it lives.
-   *
-   * The row badge is the cross-signal that the section writes the row's own
-   * todo rather than a copy: ticking the task in the section clears the badge
-   * on the row, which reads its own store.
-   */
-  test('E2E-M4-136: a row’s preparation is a task of the trip, named by its row', async ({
-    page,
-  }) => {
-    await tripWithRows(page, ['Kamera'], 'Samedan')
-    await addTripTodo(page, 'Water the plants')
-
-    await visible(page).getByTestId('m4-row-Kamera').click()
-    await page.getByTestId('m5-todo-input').locator('input').fill('Charge the battery')
-    await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId('m5-todo-Charge the battery')).toBeVisible()
-    await page.getByTestId('m5-close').click()
-    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-
-    // One figure for both kinds (FR-7.6), and the header no longer says the
-    // preparation count a second time in its detail line.
-    const fraction = visible(page).getByTestId('m4-trip-todos-progress')
-    await expect(fraction).toHaveText('0/2 tasks')
-    await expect(visible(page).getByTestId('m4-header')).not.toContainText('preparation')
-
-    const section = await openTripTodos(page)
-    const prepared = section.getByTestId('trip-todo-Charge the battery')
-    const own = section.getByTestId('trip-todo-Water the plants')
-    await expect(prepared.getByTestId('task-item-Kamera')).toBeVisible()
-    await expect(own.locator('[data-testid^="task-item-"]')).toHaveCount(0)
-    await expect(own.getByTestId('trip-todo-remove-Water the plants')).toBeVisible()
-    await expect(prepared.getByTestId('trip-todo-remove-Charge the battery')).toHaveCount(0)
-
-    // Ticked here, cleared on the row: one todo, read by two surfaces.
-    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
-    await prepared.locator('ion-checkbox').click()
-    await expect(fraction).toHaveText('1/2 tasks')
-    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
-    await writesLanded(page)
-    await page.reload()
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('1/2 tasks')
-
-    // The chip is the way back to the row it names.
-    const reopened = await openTripTodos(page)
-    await reopened.getByTestId('trip-todos-resolved').click()
-    await reopened.getByTestId('task-item-Kamera').click()
-    await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await expect(page.getByTestId('m5-todo-Charge the battery')).toBeVisible()
-  })
-
-  /**
-   * E2E-M4-137 (FR-7.6, FR-5.8): the task goes with the row. Removing the
-   * packing element takes its preparation out of the trip's tasks — off the
-   * list and out of the count — while the trip's own task stays, which is
-   * what makes the disappearance about the row rather than about the section.
-   *
-   * The removal is confirmed rather than immediate precisely because the task
-   * cascades: FR-5.8 asks whenever something the undo cannot restore would go
-   * (`removalNeedsConfirm`), and the preparation is one of those things. The
-   * undo is asserted too, because a list that lost the task for good would
-   * pass the first half.
-   */
-  test('E2E-M4-137: removing the row takes its preparation out of the trip’s tasks', async ({
-    page,
-  }) => {
-    await tripWithRows(page, ['Kamera', 'Zelt'], 'Samedan')
-    await addTripTodo(page, 'Water the plants')
-
-    await visible(page).getByTestId('m4-row-Kamera').click()
-    await page.getByTestId('m5-todo-input').locator('input').fill('Charge the battery')
-    await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId('m5-todo-Charge the battery')).toBeVisible()
-    await page.getByTestId('m5-close').click()
-    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-
-    const section = await openTripTodos(page)
-    await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/2 tasks')
-
-    const removeKamera = async () => {
-      await openRowMenu(page, 'Kamera')
-      await chooseInRowMenu(page, /remove from the list/i)
-      // Asked, because the preparation is something the undo cannot write back.
-      const confirm = page.getByTestId('m4-remove-confirm')
-      await expect(confirm).toBeVisible()
-      await confirm.getByRole('button', { name: /^remove$/i }).click()
-      await expect(visible(page).getByTestId('m4-row-Kamera')).toHaveCount(0)
-    }
-
-    // Taken back first, and the undo is tapped straight away: the snackbar has
-    // a lifetime, and a case that asserts four things before reaching for it
-    // is racing that lifetime rather than testing anything.
-    await removeKamera()
-    await page
-      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
-      .filter({ hasText: 'Kamera' })
-      .last()
-      .getByRole('button', { name: /undo/i })
-      .click()
-    await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
-    await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/2 tasks')
-
-    // Removed for good, the task goes with the row — while the trip's own
-    // task stays, which is what makes this about the row and not the section.
-    await removeKamera()
-    await expect(section.getByTestId('trip-todo-Charge the battery')).toHaveCount(0)
-    await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText('0/1 tasks')
   })
 })
