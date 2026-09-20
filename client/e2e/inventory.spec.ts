@@ -359,11 +359,14 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await writesLanded(page)
 
     // Both rows now depend on the camera, in the mode the sheet was set to.
+    // `.select-text` and not the host: an `ion-select`'s own text is every
+    // option it offers, so asserting „Suggested" on the host is green against
+    // a batch that wrote „Required" — see E2E-M22-13 in the ledger.
     for (const name of ['Ersatzakku', 'Ladegeraet']) {
       await openItem(name)
-      await expect(visiblePage(page).getByTestId('m10-dependency-mode-Kamera')).toContainText(
-        'Suggested',
-      )
+      await expect(
+        visiblePage(page).getByTestId('m10-dependency-mode-Kamera').locator('.select-text'),
+      ).toHaveText('Suggested')
       await backToInventory(page)
     }
 

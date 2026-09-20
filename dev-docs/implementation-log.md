@@ -16343,7 +16343,8 @@ thumb rail. So the fourth slot is a **⋯ „Mehr"** opening an action sheet. Th
 give: room for a sentence. „Hängt ab von" is not self-explanatory as a four-word label — it does not say which end of
 the edge the selection is standing on — and each sheet now carries that sentence above its list.
 
-**A batch skips; it does not refuse.** The tempting shape for a bulk link is the one M10 has: check the edge, refuse
+**A batch skips; it does not refuse** — ADR-061's driver 4 again, in a new costume. The tempting shape for a bulk link
+is the one M10 has: check the edge, refuse
 with the cycle named hop by hop. Over fifty rows that answer is unusable — it names an offender the user then has to
 find among the selection, and nothing is written meanwhile. `planDependencyBatch` decides each item on its own and
 counts what it left out (the picked item inside its own selection, an edge that already exists, one that would close a

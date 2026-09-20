@@ -1252,8 +1252,12 @@ test.describe('Two accounts on one instance @server', () => {
       await visiblePage(alice).getByTestId('m10-create').click()
       await expect(alice.getByTestId('header-title')).toHaveText(name)
       // Nobody, until the batch says otherwise — the assertion below is only
-      // worth making because this one holds first.
-      await expect(visiblePage(alice).getByTestId('m10-assignee')).toContainText('Nobody')
+      // worth making because this one holds first. `.select-text` is the
+      // rendered *value*; an `ion-select`'s own text is its whole option list,
+      // which names Bob before anything has been written (E2E-M22-13).
+      await expect(
+        visiblePage(alice).getByTestId('m10-assignee').locator('.select-text'),
+      ).toHaveText('Nobody')
     }
     await writesLanded(alice)
 
@@ -1288,7 +1292,9 @@ test.describe('Two accounts on one instance @server', () => {
     for (const name of items) {
       await list.getByTestId('m9-row').filter({ hasText: name }).click()
       await expect(alice.getByTestId('header-title')).toHaveText(name)
-      await expect(visiblePage(alice).getByTestId('m10-assignee')).toContainText(ACCOUNT_NAMES.bob)
+      await expect(
+        visiblePage(alice).getByTestId('m10-assignee').locator('.select-text'),
+      ).toHaveText(ACCOUNT_NAMES.bob)
       await alice.getByTestId('header-back').click()
       await openInventory()
     }

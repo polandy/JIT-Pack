@@ -1714,7 +1714,8 @@ gain the set — which is why M4, M12, analytics, export and the spreadsheet imp
   batch exists for, and it offers the inventory **capped and sorted by name** with what the cap holds back named — an
   uncapped sheet is two hundred rows, and an unsorted one is ten arbitrary ones.
 
-  **A batch skips, it does not refuse.** A link is planned per item (`planDependencyBatch`): the picked item inside its
+  **A batch skips, it does not refuse** (the shape is **ADR-061**'s, driver 4). A link is planned per item
+  (`planDependencyBatch`): the picked item inside its
   own selection, an edge that already exists, and one that would close a cycle are each left out and **counted in the
   result sentence**, while the rest is written. Refusing the whole batch over one offender would leave the user to find
   it among fifty rows, and the cycle it protects is the same one M10's save-time validator refuses. The assignee batch
